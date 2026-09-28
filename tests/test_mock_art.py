@@ -59,6 +59,13 @@ def test_the_art_is_the_picture_between_the_text_rows(app):
     assert not overlaps(art["s01.e01"], title) and not overlaps(art["s01.e01"], caption)
 
 
+def test_a_small_picture_is_found_beside_a_larger_flat_area(app):
+    row, picture = Rect(x=20, y=100, w=380, h=90), Rect(x=26, y=106, w=70, h=70)
+    elements = [element("s01.e01", **row.model_dump()), element("s01.e02", 100, 110, 200, 20, text="Name"),
+                element("s01.e03", 100, 140, 100, 20, text="1 chat")]
+    assert art_in(app, elements, screenshot(picture)) == {"s01.e01": Rect(x=20, y=100, w=80, h=90)}
+
+
 def test_a_text_element_never_gets_art_even_when_its_line_is_picture_like(app):
     line = Rect(x=16, y=158, w=380, h=80)
     image = screenshot(line)
