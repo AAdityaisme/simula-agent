@@ -69,3 +69,19 @@ def test_a_modal_draws_over_its_parent_and_reset_returns_to_root(tmp_path, model
         page.evaluate("() => window.simula.reset()")
         assert page.evaluate("() => window.simula.state()") == screens[0]
         assert [sid for sid in screens if page.evaluate(shown, sid)] == [screens[0]]
+
+
+def test_an_overlay_never_paints_over_its_parent(tmp_path, model):
+    screens = [s.id for s in pick_scope(model)]
+    modals = [s for s in pick_scope(model) if s.parent_id in screens]
+    mock_dir = tmp_path / "mock"
+    copy_assets(FIXTURES / "golden" / model.app, mock_dir, pick_scope(model), model.device)
+    opaque = skeleton_html(model).replace("</head>", "<style>section[data-screen]{background:#000}</style></head>")
+    (mock_dir / "index.html").write_text(with_runtime(opaque, screens[0]))
+    background = "id => getComputedStyle(document.querySelector(`[data-screen=\"${id}\"]`)).backgroundColor"
+    with open_mock(mock_dir) as (page, _):
+        for modal in modals:
+            page.evaluate("id => window.simula.go(id)", modal.id)
+            assert page.evaluate(background, modal.id) == "rgba(0, 0, 0, 0)"
+            assert page.evaluate(background, modal.parent_id) == "rgb(0, 0, 0)"
+

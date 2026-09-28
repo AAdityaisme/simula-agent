@@ -28,7 +28,7 @@ html,body{margin:0;padding:0;width:411px;height:914px;overflow:hidden}
 body{position:relative}
 [data-screen]{position:absolute!important;left:0!important;top:51.8px!important;width:411px!important;height:838.2px!important;overflow:hidden;box-sizing:border-box}
 [data-screen]:not(.simula-on){display:none!important}
-[data-screen][data-parent]{z-index:10}
+[data-screen][data-parent]{z-index:10;background:transparent!important}
 .simula-push{animation:simula-slide .25s ease-out}
 .simula-back{animation:simula-slide-back .25s ease-out}
 .simula-modal{animation:simula-fade .2s ease-out}
