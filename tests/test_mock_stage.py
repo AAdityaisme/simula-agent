@@ -39,7 +39,7 @@ def test_only_the_first_two_items_of_a_repeated_list_are_tagged(app):
 def test_no_offered_asset_breaks_the_wallpaper_rule(app):
     model = golden(app)
     for state in mock.pick_scope(model):
-        brief = mock.state_brief(state, model.device)
+        brief = mock.state_brief(state, model.device, {})
         offered = {e["id"] for e in brief["elements"] if "asset" in e}
         assert offered == {e.id for e in state.elements if mock.usable_asset(e, model.device)}
 
@@ -55,7 +55,7 @@ def test_max_tokens_retries_once_at_high_with_shorter_css(tmp_path, monkeypatch)
         return "```html\n<html><body></body></html>\n```", None
     monkeypatch.setattr(llm, "call", call)
     model = golden("janitorai")
-    html = mock.generate(ctx_for(run_dir, "janitorai", profile="real"), model, mock.pick_scope(model))
+    html = mock.generate(ctx_for(run_dir, "janitorai", profile="real"), model, mock.pick_scope(model), {})
     assert html.startswith("<html>")
     assert efforts[0][0] == "xhigh" and efforts[1] == ("high", mock.SHORTER)
     assert read_trace(run_dir / "trace.jsonl")[-1].outcome == "retry"
@@ -69,7 +69,7 @@ def test_other_failures_are_not_retried(tmp_path, monkeypatch):
     monkeypatch.setattr(llm, "call", call)
     model = golden("luzia")
     with pytest.raises(llm.LLMFailure):
-        mock.generate(ctx_for(run_dir, "luzia"), model, mock.pick_scope(model))
+        mock.generate(ctx_for(run_dir, "luzia"), model, mock.pick_scope(model), {})
 
 
 def test_html_comes_out_of_a_fence_or_a_bare_document():
@@ -156,6 +156,6 @@ def test_each_attempt_is_one_call_under_its_own_wall_and_a_timeout_is_not_retrie
     monkeypatch.setattr(llm, "call", call)
     model = golden("aol")
     with pytest.raises(llm.LLMFailure) as e:
-        mock.generate(ctx_for(run_dir, "aol", profile="real"), model, mock.pick_scope(model))
+        mock.generate(ctx_for(run_dir, "aol", profile="real"), model, mock.pick_scope(model), {})
     assert e.value.outcome == "timeout"
     assert calls == [("xhigh", 1, mock.WALL_SECONDS), ("high", 1, mock.WALL_SECONDS)]
