@@ -479,12 +479,12 @@ def mock_scope(states: list[State], edges: list[Edge], meaning: ModelMeaning) ->
     """The experience the mock draws, in priority order: the root, every state showing a paywall, limit,
     currency, or ad, then every state showing any other mechanic (a modal or sheet brings its parent first),
     then every state on the core flows in flow order. No cap, and nothing else: a tab or depth-1 screen is in
-    only when it is on a flow or holds a mechanic. Never unsafe, blocked, or outside the app. The product model
-    keeps every state. Every mechanic's screen stays in, because propose drops an idea whose trigger screen
-    isn't mocked."""
+    only when it is on a flow or holds a mechanic. Never blocked or outside the app; an unsafe rating doesn't
+    remove a state, because ratings can be wrong. The product model keeps every state. Every mechanic's screen
+    stays in, because propose drops an idea whose trigger screen isn't mocked."""
     by_id = {s.id: s for s in states}
     edge_by_id = {e.id: e for e in edges}
-    eligible = {s.id for s in states if s.content_rating != "unsafe" and s.kind not in ("blocked", "external")}
+    eligible = {s.id for s in states if s.kind not in ("blocked", "external")}
     root = next((s.id for s in states if s.kind == "screen"), None)
     flow_states = [sid for f in meaning.flows for i in f.edge_ids if i in edge_by_id
                    for sid in (edge_by_id[i].from_state, edge_by_id[i].to_state)]

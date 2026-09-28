@@ -187,13 +187,13 @@ def test_mock_scope_is_chosen_by_code(app):
     money = {i.split(".")[0] for m in answer.mechanics for i in m.evidence_ids}
     reasons = flow_states | money | {by_id[s].parent_id for s in money if s in by_id}
     assert set(scope[1:]) <= reasons
-    assert all(by_id[s].content_rating != "unsafe" and by_id[s].kind not in ("blocked", "external") for s in scope)
+    assert all(by_id[s].kind not in ("blocked", "external") for s in scope)
     for sid in scope:
         parent = by_id[sid].parent_id
         assert parent is None or (parent in scope and scope.index(parent) < scope.index(sid)), sid
-    unsafe = [m.model_copy(update={"content_rating": "unsafe"}) if m.state_id == scope[-1] else m for m in answer.states]
+    unsafe = [m.model_copy(update={"content_rating": "unsafe"}) for m in answer.states]
     rated = stage.apply_meaning(states, answer.model_copy(update={"states": unsafe}), KEYWORDS)
-    assert scope[-1] not in stage.mock_scope(rated, edges, answer)
+    assert stage.mock_scope(rated, edges, answer) == scope, "an unsafe rating never removes a state"
 
 
 def test_a_modal_in_scope_brings_its_parent_first():
@@ -207,7 +207,9 @@ def test_a_modal_in_scope_brings_its_parent_first():
                                                observed_numbers=[], status="observed")])
     assert stage.mock_scope(states, [], meaning) == ["s01", "s02", "s03"]
     unsafe_parent = [states[0], states[1].model_copy(update={"content_rating": "unsafe"}), states[2]]
-    assert stage.mock_scope(unsafe_parent, [], meaning) == ["s01"]
+    assert stage.mock_scope(unsafe_parent, [], meaning) == ["s01", "s02", "s03"]
+    blocked_parent = [states[0], states[1].model_copy(update={"kind": "blocked"}), states[2]]
+    assert stage.mock_scope(blocked_parent, [], meaning) == ["s01"]
 
 
 def test_the_model_may_not_write_measured_experience(app):
