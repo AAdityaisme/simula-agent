@@ -5,7 +5,6 @@ import io
 import json
 import re
 import shutil
-import threading
 from collections import Counter
 
 from PIL import Image
@@ -142,11 +141,10 @@ def generate(ctx: Ctx, model: ProductModel, scope: list[State]) -> str:
     budget = llm.Budget.for_stage("mock", ctx.run_dir / "trace.jsonl", ctx.usd_cap)
 
     def ask(effort, content):
-        text, _ = within_wall(lambda: llm.call(
-            trace_path=ctx.run_dir / "trace.jsonl", stage="mock", step="generate", model=role["model"],
-            effort=effort, system=system, messages=[{"role": "user", "content": content}],
-            max_tokens=role.get("max_tokens", 64000), budget=budget, no_cache=ctx.no_cache, replay=ctx.replay),
-            WALL_SECONDS, ctx)
+        text, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="mock", step="generate", model=role["model"],
+                           effort=effort, system=system, messages=[{"role": "user", "content": content}],
+                           max_tokens=role.get("max_tokens", 64000), budget=budget, no_cache=ctx.no_cache,
+                           replay=ctx.replay, attempts=1, total_timeout=WALL_SECONDS)
         return extract_html(text)
 
     effort = role.get("effort")
@@ -159,29 +157,6 @@ def generate(ctx: Ctx, model: ProductModel, scope: list[State]) -> str:
     run_trace(ctx.run_dir, stage="mock", step="generate", decider="code", outcome="retry",
               note=f"max_tokens: retrying at effort={retry_effort} with shorter CSS")
     return ask(retry_effort, content + [{"type": "text", "text": SHORTER}])
-
-
-def within_wall(fn, seconds: float, ctx: Ctx):
-    """Runs one model attempt on a daemon thread and gives up after `seconds`: a streamed call can outlive
-    every idle timeout."""
-    result = {}
-
-    def target():
-        try:
-            result["value"] = fn()
-        except BaseException as e:
-            result["error"] = e
-
-    worker = threading.Thread(target=target, daemon=True)
-    worker.start()
-    worker.join(seconds)
-    if worker.is_alive():
-        note = f"mock generation passed the {seconds / 60:g}-minute wall"
-        run_trace(ctx.run_dir, stage="mock", step="generate", decider="code", outcome="timeout", note=note)
-        raise llm.LLMFailure("timeout", note)
-    if "error" in result:
-        raise result["error"]
-    return result["value"]
 
 
 def system_prompt() -> str:

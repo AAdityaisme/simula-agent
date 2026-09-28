@@ -1,7 +1,5 @@
 """Stage 3's code paths around the one model call: scope limits, tagging, retry, the wall, HTML extraction."""
 
-import time
-
 import pytest
 
 from simula import llm
@@ -74,15 +72,6 @@ def test_other_failures_are_not_retried(tmp_path, monkeypatch):
         mock.generate(ctx_for(run_dir, "luzia"), model, mock.pick_scope(model))
 
 
-def test_generation_stops_at_the_wall(tmp_path):
-    ctx = ctx_for(tmp_path, "aol")
-    with pytest.raises(llm.LLMFailure) as e:
-        mock.within_wall(lambda: time.sleep(5), 0.1, ctx)
-    assert e.value.outcome == "timeout"
-    assert read_trace(tmp_path / "trace.jsonl")[-1].outcome == "timeout"
-    assert mock.within_wall(lambda: 7, 1, ctx) == 7
-
-
 def test_html_comes_out_of_a_fence_or_a_bare_document():
     assert mock.extract_html("x\n```html\n<p>a</p>\n```") == "<p>a</p>\n"
     assert mock.extract_html("sure: <!DOCTYPE html><html></html> done") == "<!DOCTYPE html><html></html>"
@@ -107,23 +96,18 @@ def test_code_stamps_each_known_edge_with_its_transition(app):
     assert '<i data-edge="new:x" data-transition="push"></i>' in stamped
 
 
-def test_the_wall_is_per_attempt_so_a_long_first_attempt_leaves_the_retry_its_own_time(tmp_path, monkeypatch):
+def test_each_attempt_is_one_call_under_its_own_wall_and_a_timeout_is_not_retried(tmp_path, monkeypatch):
     run_dir = seed_model(tmp_path / "run", "aol")
     calls = []
 
     def call(**kwargs):
-        calls.append(kwargs["effort"])
-        time.sleep(0.6)
+        calls.append((kwargs["effort"], kwargs["attempts"], kwargs["total_timeout"]))
         if len(calls) == 1:
             raise llm.LLMFailure("max_tokens", "cut off")
-        return "```html\n<html></html>\n```", None
+        raise llm.LLMFailure("timeout", "passed the wall")
     monkeypatch.setattr(llm, "call", call)
-    monkeypatch.setattr(mock, "WALL_SECONDS", 1.0)
     model = golden("aol")
-    assert mock.generate(ctx_for(run_dir, "aol", profile="real"), model, mock.pick_scope(model)) == "<html></html>\n"
-    assert calls == ["xhigh", "high"]
-
-    monkeypatch.setattr(mock, "WALL_SECONDS", 0.3)
     with pytest.raises(llm.LLMFailure) as e:
         mock.generate(ctx_for(run_dir, "aol", profile="real"), model, mock.pick_scope(model))
     assert e.value.outcome == "timeout"
+    assert calls == [("xhigh", 1, mock.WALL_SECONDS), ("high", 1, mock.WALL_SECONDS)]
