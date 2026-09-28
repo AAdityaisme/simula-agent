@@ -75,7 +75,7 @@ def test_a_lock_whose_holder_died_is_broken(locks):
     (stale / "pid").write_text(str(dead.pid))
     with doctor.emulator_lock("emulator-5554", wait_s=0):
         assert (stale / "pid").read_text() != str(dead.pid)
-    assert not list(locks.iterdir())
+    assert not stale.exists()
 
 
 def test_a_lock_whose_holder_lives_is_waited_on(locks):
@@ -87,3 +87,23 @@ def test_a_lock_whose_holder_lives_is_waited_on(locks):
         with doctor.emulator_lock("emulator-5554", wait_s=0):
             pass
     assert held.exists()
+
+
+def test_reclaiming_leaves_a_live_holders_lock(locks):
+    import os
+    held = locks / "simula-emu-emulator-5554.lock"
+    held.mkdir()
+    (held / "pid").write_text(str(os.getpid()))
+    doctor.reclaim(held)
+    assert (held / "pid").exists()
+
+
+def test_two_emulators_of_one_avd_are_refused(monkeypatch):
+    from simula.stages import explore as stage
+    monkeypatch.setattr(stage, "adb", lambda: "adb")
+    monkeypatch.setattr(stage, "online", lambda tool: ["emulator-5554", "emulator-5556"])
+    monkeypatch.setattr(stage, "adb_shell", lambda serial, args: "simula")
+    with pytest.raises(SystemExit, match="same AVD"):
+        stage.refuse_twins("emulator-5554", "simula")
+    monkeypatch.setattr(stage, "adb_shell", lambda serial, args: "simula" if serial == "emulator-5554" else "other")
+    stage.refuse_twins("emulator-5554", "simula")

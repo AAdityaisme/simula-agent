@@ -291,7 +291,7 @@ def test_a_limit_dialog_stops_the_loop_on_the_pass_it_appears(tmp_path, monkeypa
     ex, phone = explore(tmp_path, monkeypatch, phone_factory=limited, budget="deep")
     stops = [(line.loop_pass, line.loop_stop) for line in lines(ex) if line.loop_stop]
     assert phone.sent == 3 and stops == [(3, "dialog opened")] and ex.core_hit.endswith("on pass 3")
-    assert "limit" in ex.checklist()[0]
+    assert "limit" in ex.checklist()[1]
 
 
 def test_the_walk_asks_the_ranker_among_several_and_never_taps_one_twice(tmp_path, monkeypatch):
@@ -395,3 +395,25 @@ def test_a_chosen_chat_that_cant_be_reached_again_is_reached_through_an_item(tmp
     ex, phone = explore(tmp_path, monkeypatch, phone_factory=detail_first)
     assert ex.core.kind == "chat" and phone.sent == ex.core_reps
     assert "could not get back" not in " ".join(ex.core_results)
+
+
+def test_a_stop_that_is_not_a_limit_leaves_the_limit_open(run):
+    ex, _ = run
+    assert not ex.core_hit and "limit" in ex.checklist()[1]
+    assert stage.LIMIT_STOPS == ("counter", "input disabled", "paywall")
+
+
+def test_a_sheet_over_the_chat_in_its_own_window_stops_the_loop(tmp_path, monkeypatch):
+    def sheet_after_two(clock):
+        phone = chatty(clock)
+        chat = phone.screens["chat"]
+        sheet = [{"ref": "@sheet", "type": "android.view.ViewGroup", "text": "You're out of free messages",
+                  "coordinates": {"x": 0, "y": 1700, "width": 1080, "height": 637}},
+                 {"ref": "@more", "type": "android.widget.Button", "text": "Get more messages",
+                  "coordinates": {"x": 100, "y": 2150, "width": 880, "height": 120}}]
+        phone.screens["chat_sheet"] = type(chat)(chat.elements + sheet, chat.image, chat.package)
+        phone.after_sends = {2: "chat_sheet"}
+        return phone
+    ex, phone = explore(tmp_path, monkeypatch, phone_factory=sheet_after_two, budget="deep")
+    stops = [(line.loop_pass, line.loop_stop) for line in lines(ex) if line.loop_stop]
+    assert phone.sent == 2 and len(stops) == 1 and stops[0][0] == 2

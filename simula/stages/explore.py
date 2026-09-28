@@ -25,7 +25,7 @@ from simula.contracts import (ActionLine, Coverage, Device, ExploreFile, HardScr
                               Rect, StateFile, VisionElement)
 from simula.device import observe as ob
 from simula.device.mcp import McpReplyError, McpTimeout, Phone, Server
-from simula.doctor import adb, emulator_lock, resolve_serial
+from simula.doctor import adb, emulator_lock, online, resolve_serial
 from simula.runlog import needs_human, now, run_trace, update_manifest, write_exhibit
 from simula.stages import Ctx
 
@@ -55,6 +55,7 @@ LAUNCH_WAIT_S = 30
 LAUNCH_QUIET_S = 3
 WALK_STEPS = 3
 COMPOSER_BAND_PX = 150
+LIMIT_STOPS = ("counter", "input disabled", "paywall")
 
 RANK_QUESTION = "Which tap most likely reveals a limit, a paywall, a currency, an ad, or a new core screen of the app?"
 FILTER_QUESTION = ("A content or safety filter decides how much adult or unsafe content the app shows (for "
@@ -389,7 +390,7 @@ class Explorer:
             raise
         self.escape_billing()
         # a chat pass stays on the chat while its composer shows: the growing conversation is not a new state
-        chatting = purpose == "core" and self.core.kind == "chat" and self.live_composer()
+        chatting = purpose == "core" and self.core.kind == "chat" and self.live_composer() and not self.covered(before)
         to = s if chatting else self.record(obs, s, move, before.cands)
         if to is s and not summary:
             summary = ob.change_summary(before.elements, obs.elements, self.device)
@@ -1116,6 +1117,19 @@ class Explorer:
             return None
         return ob.composer(self.obs.cands, self.device)
 
+    def covered(self, before: Obs) -> bool:
+        """A sheet in the chat's own window leaves the composer in the tree: it shows as a second text box in the
+        lower half, or as new controls lying over the text box (bubbles and hints never do)."""
+        live = ob.composer(self.obs.cands, self.device)
+        if live is None:
+            return False
+        box, middle = live[0], (self.device.content_top_px + self.device.content_bottom_px) / 2
+        boxes = [c for c in self.obs.cands if c.kind == "EditText" and ob.center(c.rect)[1] > middle]
+        old = {(c.label, c.kind) for c in before.cands}
+        over = [c for c in self.obs.cands if c is not box and (c.label, c.kind) not in old
+                and ob.overlaps(c.rect, box.rect) and not ob.inside(c.rect, box.rect)]
+        return len(boxes) > 1 or bool(over)
+
     def watch(self, before: set[str], max_s: float, verb: str) -> str:
         """Polls the element list after the action until new text stops changing for QUIET_S."""
         start, samples = self.clock(), []
@@ -1153,6 +1167,8 @@ class Explorer:
         if here.kind in ("modal", "sheet"):
             inside = [e for e in here.elements if here.box is None or ob.inside(ob.rect(e), here.box)]
             return ("paywall" if ob.priced(inside, self.device) else "dialog opened"), here.sid
+        if self.covered(before):
+            return "sheet opened", here.sid
         box = next((c for c in self.obs.cands if c.kind == "EditText"), None)
         if box is None:
             return "input gone", here.sid
@@ -1180,7 +1196,9 @@ class Explorer:
                     live = ob.find(self.obs.cands, move.cand) if move.cand else None
                     total += 1
                     if move.cand and live is None:
-                        continue
+                        self.note("replay.miss", f"{move.action} {move.cand.label[:30]!r} expected on the way to "
+                                                 f"{to_sid}: control not on the live screen", outcome="error")
+                        break
                     if move.action == "tap" and not self.safe_tap(live, "replay"):
                         break
                     if move.action != "tap":
@@ -1324,7 +1342,7 @@ class Explorer:
             "all_tabs": all(self.tab_to.get(t.key) for t in self.tabs),
             "paywall_or_membership": self.priced_paywall() is not None,
             "settings": any("settings" in s.via.lower() for s in self.states),
-            "limit": bool(self.core_hit),
+            "limit": self.core_hit.startswith(LIMIT_STOPS),
         }
         return [i for i in items if answered.get(i)], [i for i in items if not answered.get(i)]
 
@@ -1448,11 +1466,22 @@ def run(ctx: Ctx) -> None:
         server = Server(cwd=out)
         try:
             avd = adb_shell(serial, ["getprop", "ro.boot.qemu.avd_name"]) or None
+            refuse_twins(serial, avd)
             ex = Explorer(ctx, Phone(server, ctx.app["package"], out / ".scratch", serial, avd), out)
             ex.serial = serial
             explore_app(ex)
         finally:
             server.close()
+
+
+def refuse_twins(serial: str, avd: str | None) -> None:
+    """mobile-mcp names an emulator by its AVD, so another emulator of the same AVD could answer in its place."""
+    tool = adb()
+    twins = [s for s in (online(tool) if tool and avd else []) if s != serial
+             and adb_shell(s, ["getprop", "ro.boot.qemu.avd_name"]) == avd]
+    if twins:
+        raise SystemExit(f"{serial} and {', '.join(twins)} run the same AVD {avd!r}, which mobile-mcp can't tell "
+                         "apart: stop one of them")
 
 
 def explore_app(ex: Explorer) -> None:

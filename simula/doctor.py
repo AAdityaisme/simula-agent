@@ -1,5 +1,6 @@
 """Preflight. Touches the emulator read-only, under the shared lock. --keys makes one tiny call per model."""
 
+import fcntl
 import os
 import shutil
 import subprocess
@@ -61,7 +62,7 @@ def emulator_lock(serial: str, wait_s: int = 120):
             break
         except FileExistsError:
             if holder_dead(lock):
-                break_lock(lock)
+                reclaim(lock)
                 continue
             if time.monotonic() > deadline:
                 raise TimeoutError(f"{lock} held by another process for {wait_s}s")
@@ -91,15 +92,13 @@ def holder_dead(lock: Path) -> bool:
     return False
 
 
-def break_lock(lock: Path) -> None:
-    # ponytail: two waiters that both saw the dead holder can race, one moving the other's fresh lock; the window
-    # is one rename wide. An flock would close it, if two explorers ever start on one device in the same second.
-    stale = lock.with_name(f"{lock.name}.stale-{os.getpid()}")
-    try:
-        lock.rename(stale)
-    except OSError:
-        return
-    shutil.rmtree(stale, ignore_errors=True)
+def reclaim(lock: Path) -> None:
+    """Removes a dead holder's lock. The check and the removal happen under a short flock, so of two waiters that
+    both saw the dead holder, the second finds the first one's fresh lock alive and leaves it."""
+    with open(lock.with_name(f"{lock.name}.guard"), "w") as guard:
+        fcntl.flock(guard, fcntl.LOCK_EX)
+        if holder_dead(lock):
+            shutil.rmtree(lock, ignore_errors=True)
 
 
 def check_local() -> None:
