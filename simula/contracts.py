@@ -7,7 +7,7 @@ at most 4 levels of nesting. The Anthropic SDK turns a dict field into an object
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 SCHEMA_VERSION = 1
 
@@ -77,7 +77,7 @@ class State(Strict):
     elements: list[Element]
     in_mock_scope: bool
     content_rating: ContentRating
-    dynamic_regions: list[Rect]
+    dynamic_regions: list[Rect] = Field(description="Device px, like rect_px. QA converts them to content dp.")
     blocked_reason: str | None
 
 
@@ -360,8 +360,8 @@ class PairwisePick(Strict):
 class Decision(Strict):
     candidate_id: str
     final: Literal["accept", "conditional", "reject", "needs_human"]
-    checks_passed: int
-    checks_total: int
+    checks_passed: int = Field(description="Of the 11 LLM-judged checks, those every judge that ran passed.")
+    checks_total: int = Field(description="11: the 5 gates plus the 6 judgment checks.")
     rank_score: float | None
     gate_fails: list[str]
     judgment_splits: list[str]
@@ -370,6 +370,79 @@ class Decision(Strict):
     revision_of: str | None
     failure_type: Literal["proposal", "product_model", "explore"] | None
     rerun_stage: str | None
+
+
+# ---------- file-level wrappers: every JSON file a stage writes carries schema_version ----------
+
+class StateFile(Strict):
+    """explore/states/<sid>.json"""
+    schema_version: int = SCHEMA_VERSION
+    state_id: str
+    kind: StateKind
+    parent_id: str | None
+    fingerprint: str
+    foreground_package: str
+    screenshot: str
+    elements_reply: str
+    settled: bool
+    settle_seconds: float
+    dynamic_regions: list[Rect] = Field(description="Device px.")
+    captured_at: str
+
+
+class ExploreFile(Strict):
+    """explore/explore.json"""
+    schema_version: int = SCHEMA_VERSION
+    app_package: str
+    app_version: str | None
+    budget: str
+    relaunches: int
+    content_filter: str | None
+    blocked_state_ids: list[str]
+    coverage: Coverage
+
+
+class ContractError(Strict):
+    kind: str
+    detail: str
+    screen: str | None
+
+
+class ContractReport(Strict):
+    """mock/contract_report.json"""
+    schema_version: int = SCHEMA_VERSION
+    passed: bool
+    screens: list[str]
+    errors: list[ContractError]
+
+
+class Lens(Strict):
+    id: str
+    name: str
+    kind: Literal["fixed", "ledger"]
+    ledger_ids: list[str]
+    focus: str
+
+
+class LensesFile(Strict):
+    """propose/lenses.json"""
+    schema_version: int = SCHEMA_VERSION
+    lenses: list[Lens]
+
+
+class CandidatesFile(Strict):
+    """propose/candidates.json"""
+    schema_version: int = SCHEMA_VERSION
+    candidates: list[Candidate]
+
+
+class DecisionsFile(Strict):
+    """judge/decisions.json"""
+    schema_version: int = SCHEMA_VERSION
+    decisions: list[Decision]
+
+
+FILE_WRAPPERS = [StateFile, ExploreFile, ContractReport, LensesFile, CandidatesFile, DecisionsFile]
 
 
 # ---------- run bookkeeping (code-only, so dicts are fine here) ----------
