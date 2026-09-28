@@ -151,6 +151,19 @@ def test_the_stage_fails_only_when_every_batch_fails(tmp_path, monkeypatch, app)
     assert not (run_dir / "mock" / "index.html").exists()
 
 
+
+def test_when_every_batch_fails_a_cap_failure_is_the_one_raised(tmp_path, monkeypatch, app):
+    run_dir = seed_model(tmp_path / "run", app)
+    first = mock.pick_scope(golden(app))[0].id
+
+    def call(**kwargs):
+        if first in batch_screens(kwargs):
+            raise llm.LLMFailure("refusal", "no")
+        raise llm.CapReached("mock: next call is over the cap")
+    monkeypatch.setattr(llm, "call", call)
+    with pytest.raises(llm.CapReached):
+        mock.run(ctx_for(run_dir, app))
+
 # ---------- through llm.call: cache replay and the $ cap ----------
 
 def provider_drawing(model, calls: list, tokens_out: int = 1000):

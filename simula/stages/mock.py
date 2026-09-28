@@ -208,7 +208,8 @@ def crop_art(model_dir, mock_dir, scope: list[State], device: Device) -> dict[st
 
 def find_art(state: State, image: Image.Image, device: Device) -> dict[str, Rect]:
     """For each drawn element with no asset and no text of its own (its words cover its rect): the largest
-    picture-like region inside it that nothing else is drawn over. image is the state's content-area screenshot."""
+    picture-like region inside it that nothing else is drawn over, unless that region is wallpaper-sized.
+    image is the state's content-area screenshot."""
     screen = content_rect(device)
     cropped = [e.rect_dp for e in state.elements if usable_asset(e, device)]
     art = {}
@@ -217,14 +218,15 @@ def find_art(state: State, image: Image.Image, device: Device) -> dict[str, Rect
             continue
         box = overlap(e.rect_dp, screen)
         blockers = [r for r in (overlap(o.rect_dp, box) for o in state.elements if drawn_over(o, e)) if area(r) > 0]
-        rect = largest_free_rect(box, blockers, ART_MIN_SIDE)
-        if rect is None or not under_wallpaper_limit(rect, device):
-            continue
-        if any(area(overlap(rect, c)) >= ALREADY_CROPPED * area(rect) for c in cropped):
-            continue
-        if is_picture(crop_px(image, rect, device.scale)):
-            art[e.id] = rect
-            cropped.append(rect)
+        for rect in free_rects(box, blockers, ART_MIN_SIDE):
+            if any(area(overlap(rect, c)) >= ALREADY_CROPPED * area(rect) for c in cropped):
+                continue
+            if not is_picture(crop_px(image, rect, device.scale)):
+                continue
+            if under_wallpaper_limit(rect, device):
+                art[e.id] = rect
+                cropped.append(rect)
+            break
     return art
 
 
@@ -235,15 +237,15 @@ def drawn_over(other: Element, container: Element) -> bool:
     return other.id != container.id and bool(other.text or other.label or other.asset_png) and not around
 
 
-def largest_free_rect(box: Rect, blockers: list[Rect], min_side: float) -> Rect | None:
-    """The largest rectangle in box, both sides at least min_side, that overlaps no blocker. The blockers' edges
-    cut box into a grid; each grid row is then a largest-rectangle-in-a-histogram scan."""
+def free_rects(box: Rect, blockers: list[Rect], min_side: float) -> list[Rect]:
+    """Rectangles in box, both sides at least min_side, that overlap no blocker, largest first. The blockers'
+    edges cut box into a grid; each grid row is then a largest-rectangle-in-a-histogram scan."""
     xs = sorted({box.x, box.x + box.w, *(v for b in blockers for v in (b.x, b.x + b.w))})
     ys = sorted({box.y, box.y + box.h, *(v for b in blockers for v in (b.y, b.y + b.h))})
     blocked = np.zeros((len(ys) - 1, len(xs) - 1), dtype=bool)
     for b in blockers:
         blocked[ys.index(b.y):ys.index(b.y + b.h), xs.index(b.x):xs.index(b.x + b.w)] = True
-    heights, best = [0.0] * (len(xs) - 1), None
+    heights, found = [0.0] * (len(xs) - 1), set()
     for row, bottom in enumerate(ys[1:]):
         heights = [0.0 if blocked[row, c] else h + bottom - ys[row] for c, h in enumerate(heights)]
         stack = []
@@ -252,10 +254,10 @@ def largest_free_rect(box: Rect, blockers: list[Rect], min_side: float) -> Rect 
             while stack and stack[-1][1] >= h:
                 start, bar = stack.pop()
                 rect = snap_inward(Rect(x=xs[start], y=bottom - bar, w=xs[c] - xs[start], h=bar))
-                if min(rect.w, rect.h) >= min_side and (best is None or area(rect) > area(best)):
-                    best = rect
+                if min(rect.w, rect.h) >= min_side:
+                    found.add((rect.x, rect.y, rect.w, rect.h))
             stack.append((start, h))
-    return best
+    return sorted((Rect(x=x, y=y, w=w, h=h) for x, y, w, h in found), key=area, reverse=True)
 
 
 def snap_inward(r: Rect) -> Rect:
@@ -319,7 +321,8 @@ def draw_batches(ctx: Ctx, model: ProductModel, groups: list[list[State]], scree
         results = list(pool.map(draw, range(1, len(groups) + 1), groups))
     failures = [r for r in results if isinstance(r, BaseException)]
     if len(failures) == len(results):
-        raise failures[0]
+        # A cap failure gets the CLI's needs-human instructions (raise --usd-cap), so it wins over any other.
+        raise next((f for f in failures if isinstance(f, llm.CapReached)), failures[0])
     parts, undrawn, errors = [], {}, []
     for n, (batch, result) in enumerate(zip(groups, results), 1):
         if isinstance(result, BaseException):
