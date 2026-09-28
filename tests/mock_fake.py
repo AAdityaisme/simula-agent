@@ -27,6 +27,7 @@ def skeleton_html(model: ProductModel, screens: list[str] | None = None) -> str:
             edge = edges.get(e.id)
             if edge:
                 attrs += f' data-edge="{edge.id}" data-transition="{edge.transition}"'
+                style += ";z-index:1"
             if usable_asset(e, model.device):
                 boxes.append(f'<img src="assets/{e.id}.png" style="{style}"{attrs}>')
             else:

@@ -24,7 +24,7 @@ def write_mock(tmp_path, model):
 
 
 def click(page, edge_id):
-    page.evaluate("id => document.querySelector(`[data-edge=\"${CSS.escape(id)}\"]`).click()", edge_id)
+    page.locator(f'[data-edge="{edge_id}"]').click(timeout=3000)
     return page.evaluate("() => [window.simula.state(), document.body.dataset.transition]")
 
 
