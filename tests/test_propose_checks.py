@@ -1,3 +1,4 @@
+import hashlib
 import time
 
 import pytest
@@ -429,3 +430,25 @@ def test_an_unsafe_screen_shows_its_id_name_and_rating_but_no_text(model):
     state = next(s for s in states if s.id == root_id)
     assert f"#### {state.id} {state.name} ({state.kind}; content unsafe)\n- (text left out: unsafe content)" in text
     assert state.elements and not any(f"- {e.id} " in text for e in state.elements)
+
+
+# sha256 of model_text on each golden, pinned before experience items got their own heading. The goldens carry no
+# experience items, so the proposer's prompt must not change; a golden or model_text change repins these.
+GOLDEN_MODEL_TEXT = {
+    "janitorai": "3a11214543c279d8a8ffcf93256eb645bf1dcf98ad3914526d898d23e5d3b483",
+    "luzia": "5e92b0c985386bd8357bf857cd18af17658c49abeb6269889767a200f8d4ce5f",
+    "aol": "3aa04504b3a74be0e9256630f737586cf8812a9ba25480cd07ab0f86e29f6e2b",
+}
+
+
+def test_model_text_on_each_golden_is_byte_identical(model):
+    assert hashlib.sha256(propose.model_text(model).encode()).hexdigest() == GOLDEN_MODEL_TEXT[model.app]
+
+
+def test_an_experience_item_is_listed_as_measured_not_as_app_text(model):
+    text = propose.model_text(with_experience(model))
+    ledger, measured = text.split("### Value ledger (verbatim app text)\n")[1].split(
+        "\n\n### Measured experience (what the explorer saw when repeating the core action)\n")
+    assert "exp1" not in ledger
+    assert measured.startswith("- exp1 Replies took 2.1 s (median of 5 passes) Evidence: ")
+    assert '"Replies took' not in text
