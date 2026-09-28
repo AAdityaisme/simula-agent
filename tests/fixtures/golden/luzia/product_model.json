@@ -4532,7 +4532,7 @@
    "kind": "screen",
    "parent_id": null,
    "name": "Chat thread",
-   "purpose": "An existing chat with the Teacher persona, message bar and a notifications prompt. Chat content stays out of the mock.",
+   "purpose": "An existing chat with the Teacher persona, message bar and a notifications prompt.",
    "fingerprint": "fixture:tree:luzia-chat-thread",
    "canonical_png": "states/s07.png",
    "elements": [
