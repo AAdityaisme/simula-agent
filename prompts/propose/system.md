@@ -45,8 +45,7 @@ The bible calls some fields by other names: its `adapted_from` is `bible_mechani
 
 ## Rules
 
-- Check what the app already offers before you propose. If the product model already shows the same thing free (a free trial of the plan, a free sample of the feature), a rewarded taste of it adds nothing; don't propose it.
-- When a free trial is shown on the same screen as a paid benefit, the trial already gives that benefit to people who don't pay. Don't offer free users or everyone a piece of it; offer them something the trial doesn't give (a new resource, `grants_id: null`), or offer payers more of it. Code drops the rest.
+- Check what the app already offers before you propose. If the product model already shows the same thing free (a free sample of the feature), a rewarded taste of it adds nothing; don't propose it.
 - Offering payers more of a paid benefit needs an amount to add to: a number on its paywall line, or a limit the product model shows as observed. Without either, code drops the idea.
 - Anything the product model lists as not observed (its open questions, a mechanic whose status is `unknown`) can't carry an idea. Build on what was seen.
 - The reward is granted only when Simula verifies the play, once. Declining, closing, or an ad failure leaves the app as it was.

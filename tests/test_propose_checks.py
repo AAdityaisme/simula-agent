@@ -181,11 +181,10 @@ def paywalled(model, bullet, limit=False):
                                                          evidence_ids=[bullet_id])]})
 
 
-@pytest.mark.parametrize("users", ["free", "everyone"])
-def test_a_piece_of_a_bullet_the_free_trial_already_gives_is_dropped(model, users):
+@pytest.mark.parametrize("users", ["free", "everyone", "paying"])
+def test_a_piece_of_a_bullet_with_a_free_trial_on_its_screen_is_kept(model, users):
     m = paywalled(model, "Up to 5 chats a day")
-    assert "which the free trial on that screen already gives" in check(candidate(m, grants_id="b1",
-                                                                                 for_users=users), m)
+    assert check(candidate(m, grants_id="b1", for_users=users), m) is None
 
 
 def test_more_of_a_bullet_with_a_number_for_payers_is_kept(model):
@@ -270,14 +269,15 @@ def test_a_trigger_next_to_unsafe_or_unknown_content_is_dropped(model, rating):
     assert f"{rating} content" in check(candidate(rated), rated)
 
 
-def run_with(model, tmp_path, monkeypatch, fail_lenses, delay=None, benefit=None, part_of=None):
-    """Runs the stage on fake calls: every lens and the top-up return one valid draft, and the naming call gives
-    every idea `benefit` (a different name each when None) and links it to `part_of`. Returns each call's step and
-    prompt text."""
+def run_with(model, tmp_path, monkeypatch, fail_lenses, delay=None, benefit=None, part_of=None, draft=None):
+    """Runs the stage on fake calls: every lens and the top-up return one valid draft (`draft` overrides its
+    fields), and the naming call gives every idea `benefit` (a different name each when None) and links it to
+    `part_of`. Returns each call's step and prompt text."""
     (tmp_path / "model").mkdir()
     (tmp_path / "propose").mkdir()
     (tmp_path / "model" / "product_model.json").write_text(model.model_dump_json())
-    draft = CandidateDraft(**{k: v for k, v in candidate(model).model_dump().items() if k in CandidateDraft.model_fields})
+    draft = CandidateDraft(**{k: v for k, v in candidate(model, **(draft or {})).model_dump().items()
+                              if k in CandidateDraft.model_fields})
     calls = []
 
     def fake_call(*, step, schema, messages, **_):
@@ -329,7 +329,8 @@ def test_the_top_up_fires_once_when_dedupe_leaves_fewer_than_four(model, tmp_pat
     assert any(c.lens == "topup" and c.dropped_reason == "duplicate of c01: same benefit (gold badge)" for c in out)
     exhibit = next((tmp_path / "exhibits").glob("05-*.md")).read_text()
     assert "Top-up call: fired (1 distinct after dedupe, under 4; 1 after the top-up)." in exhibit
-    assert "Mock coverage: 1 of 1 live ideas start on a screen the mock draws." in exhibit
+    assert (f"Mock coverage: {len(out)} of {len(out)} ideas start on a screen the mock draws (counted before the "
+            "mock-scope filter); the filter dropped 0.") in exhibit
 
 
 def test_no_top_up_with_four_distinct_ideas(model, tmp_path, monkeypatch):
@@ -352,12 +353,24 @@ def test_a_failed_naming_call_leaves_the_paid_benefit_rule_alone(model, tmp_path
     assert "grants_id alone" in (tmp_path / "trace.jsonl").read_text()
 
 
-def test_an_idea_the_naming_call_links_to_a_trialed_bullet_is_dropped(model, tmp_path, monkeypatch):
-    m = paywalled(model, "Up to 5 chats a day")
-    calls = run_with(m, tmp_path, monkeypatch, set(), part_of="b1")
-    assert '- b1: "Up to 5 chats a day"' in dict(calls)["dedupe"]
+def test_a_paying_idea_the_naming_call_links_to_an_uncounted_bullet_is_dropped(model, tmp_path, monkeypatch):
+    m = paywalled(model, "Smarter replies")
+    calls = run_with(m, tmp_path, monkeypatch, set(), part_of="b1", draft={"for_users": "paying"})
+    assert '- b1: "Smarter replies"' in dict(calls)["dedupe"]
     out = CandidatesFile.model_validate_json((tmp_path / "propose" / "candidates.json").read_text()).candidates
     assert out and all(c.grants_id is None for c in out)
-    assert all("which the free trial on that screen already gives" in c.dropped_reason
-               and c.dropped_reason.endswith("(linked by the benefit-naming call)") for c in out)
+    assert all(c.dropped_reason == 'gives payers more of "Smarter replies", but no amount or cap for it was '
+               "observed (linked by the benefit-naming call)" for c in out)
     assert "(linked by the benefit-naming call)" in (tmp_path / "trace.jsonl").read_text()
+
+
+def test_mock_coverage_counts_before_the_scope_filter_and_lists_what_it_dropped(model):
+    outside = next((s for s in model.states if not s.in_mock_scope), None)
+    if outside is None:
+        pytest.skip("every state is in scope")
+    drafts = [candidate(model), candidate(model, title="Off the map", trigger_state_id=outside.id)]
+    out, repairs, _ = finish(drafts, model, "annotate")
+    text = propose.exhibit([], out, repairs, model, "not needed")
+    assert ("Mock coverage: 1 of 2 ideas start on a screen the mock draws (counted before the mock-scope filter); "
+            "the filter dropped 1:") in text
+    assert f"  - c02 · Off the map · trigger {outside.id} {outside.name}" in text

@@ -33,7 +33,7 @@ NEGATED = re.compile(r"\b(not|never|outside|away from)\b[^.;,]{0,20}\b(chat|conv
 SAFE_TRIGGER_RATINGS = {"safe", "mixed"}
 # The assignment's two buckets, shown first on every candidate's title.
 BUCKETS = {"existing_anchor": "Existing opportunity", "product_change": "Product change"}
-FREE_OFFER = re.compile(r"\bfree\b[^.;,]{0,20}\btrial\b|\btrial\b[^.;,]{0,20}\bfree\b", re.I)
+OUTSIDE_MOCK = "names screens outside the mock scope"
 
 FIXED_LENSES = [
     Lens(id="free_at_limit", name="Free user at a limit", kind="fixed", ledger_ids=[],
@@ -178,48 +178,37 @@ def in_chat(placement: str) -> bool:
     return any(CHAT_PLACEMENT.search(c) and not NEGATED.search(c) for c in clauses)
 
 
-def free_trial(model: ProductModel, screens: set[str]) -> str | None:
-    """The first free-trial text shown on any of these screens."""
-    texts = (plain(" ".join(t for t in (e.text, e.label) if t))
-             for s in model.states if s.id in screens for e in s.elements)
-    return next((t for t in texts if FREE_OFFER.search(t)), None)
-
-
 def observed_limit(model: ProductModel, evidence_ids: list[str]) -> bool:
     return any(m.kind == "limit" and m.status == "observed" and set(m.evidence_ids) & set(evidence_ids)
                for m in model.mechanics)
 
 
 def grants_problem(c: Candidate, model: ProductModel) -> str | None:
-    """Why the paid benefit the reward is a piece of rules the idea out, or None: the free trial on the benefit's
-    screen already gives it to non-payers, or payers would get more of an amount nobody saw."""
+    """Why the paid benefit the reward is a piece of rules the idea out, or None: payers would get more of an
+    amount nobody saw."""
     if not c.grants_id:
         return None
     benefit = next((i for i in model.value_ledger if i.id == c.grants_id), None)
     if benefit is None:
         return f"grants_id {c.grants_id!r} is not a ledger id"
-    if benefit.kind != "paywall_bullet":
-        return None
-    if problem := trial_problem(c, benefit, model):
-        return f"{problem} (linked by the proposer's grants_id)"
+    problem = uncounted_problem(c, benefit, model)
+    return f"{problem} (linked by the proposer's grants_id)" if problem else None
+
+
+def uncounted_problem(c: Candidate, benefit: LedgerItem, model: ProductModel) -> str | None:
     bullet = plain(benefit.verbatim)
-    if c.for_users == "paying" and not re.search(r"\d", bullet) and not observed_limit(model, benefit.evidence_ids):
-        return f'gives payers more of "{bullet}", but no amount or cap for it was observed'
-    return None
-
-
-def trial_problem(c: Candidate, bullet: LedgerItem, model: ProductModel) -> str | None:
-    trial = free_trial(model, {i.split(".")[0] for i in bullet.evidence_ids})
-    if trial and c.for_users != "paying":
-        return f'a piece of "{plain(bullet.verbatim)}", which the free trial on that screen already gives: "{trial}"'
-    return None
+    if benefit.kind != "paywall_bullet" or c.for_users != "paying":
+        return None
+    if re.search(r"\d", bullet) or observed_limit(model, benefit.evidence_ids):
+        return None
+    return f'gives payers more of "{bullet}", but no amount or cap for it was observed'
 
 
 def linked_problem(c: Candidate, bullet_id: str | None, model: ProductModel) -> str | None:
-    """The free-trial check on the paywall bullet the naming call says the idea's benefit is part of, when the
-    proposer's grants_id didn't already name it."""
+    """The uncounted-benefit check on the paywall bullet the naming call says the idea's benefit is part of, when
+    the proposer's grants_id didn't already name it."""
     bullet = next((i for i in model.value_ledger if i.id == bullet_id and i.kind == "paywall_bullet"), None)
-    problem = bullet and bullet.id != c.grants_id and trial_problem(c, bullet, model)
+    problem = bullet and bullet.id != c.grants_id and uncounted_problem(c, bullet, model)
     return f"{problem} (linked by the benefit-naming call)" if problem else None
 
 
@@ -238,7 +227,7 @@ def check(c: Candidate, model: ProductModel) -> str | None:
         return f"flow steps name states that don't exist: {', '.join(bad_steps) or 'no steps'}"
     outside = list(dict.fromkeys(i for i in [c.trigger_state_id, *existing_steps] if not states[i].in_mock_scope))
     if outside:
-        return f"names screens outside the mock scope, which the slides can't draw: {', '.join(outside)}"
+        return f"{OUTSIDE_MOCK}, which the slides can't draw: {', '.join(outside)}"
     trigger = states[c.trigger_state_id]
     if trigger.content_rating not in SAFE_TRIGGER_RATINGS:
         return f"trigger screen {trigger.id} has {trigger.content_rating} content; the offer can't render next to it"
@@ -416,10 +405,17 @@ def topup_lens(live: list[Candidate], names: dict[str, str]) -> Lens:
                       "another moment, amount, or duration.")
 
 
-def mock_coverage(candidates: list[Candidate], model: ProductModel) -> str:
-    live = [c for c in candidates if not c.dropped_reason]
-    drawn = {s.id for s in model.states if s.in_mock_scope}
-    return f"{sum(c.trigger_state_id in drawn for c in live)} of {len(live)} live ideas start on a screen the mock draws"
+def mock_coverage(candidates: list[Candidate], model: ProductModel) -> list[str]:
+    """Exhibit lines: how many proposed ideas start on a screen the mock draws, counted before the mock-scope
+    filter drops any, and the ideas that filter dropped."""
+    ideas = [c for c in candidates if c.kind != "no_opportunity"]
+    states = {s.id: s for s in model.states}
+    drawn = sum(c.trigger_state_id in states and states[c.trigger_state_id].in_mock_scope for c in ideas)
+    off = [c for c in ideas if (c.dropped_reason or "").startswith(OUTSIDE_MOCK)]
+    return ([f"- Mock coverage: {drawn} of {len(ideas)} ideas start on a screen the mock draws (counted before the "
+             f"mock-scope filter); the filter dropped {len(off)}" + (":" if off else ".")]
+            + [f"  - {c.id} · {c.title.removeprefix(f'{BUCKETS[c.kind]}: ')} · trigger {c.trigger_state_id} "
+               f"{states[c.trigger_state_id].name}" for c in off])
 
 
 # ---------- stage ----------
@@ -429,7 +425,7 @@ def exhibit(lenses: list[Lens], candidates: list[Candidate], repairs: dict[str, 
     live = [c for c in candidates if not c.dropped_reason]
     lines = ["# 05 · propose", "", f"{len(lenses)} lenses, {len(live)} live candidates, "
              f"{len(candidates) - len(live)} dropped, {len(repairs)} with near-miss ids repaired by code "
-             f"(`resolve:<id>` lines in trace.jsonl).", "", f"- Mock coverage: {mock_coverage(candidates, model)}.",
+             f"(`resolve:<id>` lines in trace.jsonl).", "", *mock_coverage(candidates, model),
              f"- Top-up call: {topup}.", "", "| Lens | Kind | Focus |", "|---|---|---|"]
     lines += [f"| {l.name} | {l.kind} | {l.focus} |" for l in lenses]
     lines += ["", "## Candidates, by reach"]
