@@ -810,6 +810,8 @@ def unbuildable(c: Candidate | None) -> str | None:
     """Why an idea can't be drawn before anything is paid for, or None."""
     if c is None:
         return "its candidate isn't in propose/candidates.json or judge/revisions.json"
+    if not re.fullmatch(r"[\w-]+", c.id):
+        return f"its id {c.id!r} isn't a plain name, so it can't name a folder under flows/"
     if len(c.flow_steps) < 2:
         return "its flow has one step, so there is nothing to tap through"
     return None
