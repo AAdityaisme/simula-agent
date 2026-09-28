@@ -20,7 +20,7 @@ from simula.contracts import (GATES, JUDGMENT, Candidate, CandidatesFile, Decisi
                               ProductModel, Verdict)
 from simula.runlog import read_trace, run_trace, write_exhibit
 from simula.stages import Ctx
-from simula.stages.mock import StartTags, _insert_before, contract_text, with_runtime
+from simula.stages.mock import StartTags, _insert_before, _rewrite, contract_text, with_runtime
 from simula.stages.propose import BUCKETS, depths
 
 PROMPTS = ROOT / "prompts" / "flows"
@@ -283,6 +283,17 @@ def with_flow_css(html: str, blur: str) -> str:
     return _insert_before(html, "</head>", f'<style id="simula-flow">\n{FLOW_CSS}{blur}</style>\n')
 
 
+def decline_edges(html: str, first: str, known: set[str]) -> tuple[str, int]:
+    """Code owns transitions: a new control that returns to the flow's first step is a way of saying no, so it goes
+    back. Returns the page and how many controls code relabeled."""
+    tags = [t for t in StartTags(html).tags
+            if (edge := t["attrs"].get("data-edge")) and edge not in known and edge.split(">")[-1] == first
+            and t["attrs"].get("data-transition") != "back"]
+    for t in tags:
+        t["attrs"] = {**t["attrs"], "data-transition": "back"}
+    return _rewrite(html, tags), len(tags)
+
+
 def ad_card(c: Candidate) -> str:
     tiles = "<i></i>" * 9
     return ('<div class="sa-dim"></div><div class="sa-card"><div class="sa-top"><span class="sa-tag">Sponsored game'
@@ -421,6 +432,42 @@ def walk(flow_dir: Path, c: Candidate, ad: str | None, ad_at: int) -> tuple[list
     return shots, recorded
 
 
+def words(text: str) -> str:
+    return " ".join(re.findall(r"[a-z0-9]+", text.casefold()))
+
+
+def walk_decline(flow_dir: Path, c: Candidate, ad: str | None, ad_at: int) -> tuple[bool | None, str]:
+    """The second, short walk: reach the offer, check it shows the offer copy, tap its control that goes back, and
+    check the app is as it was (back on the first step, nothing granted, no reward showing). Returns whether the copy
+    was shown (None when the offer couldn't be reached) and why saying no failed ("" when it worked)."""
+    steps = [s.state_id for s in c.flow_steps]
+    with render.open_mock(flow_dir) as (page, _):
+        page.clock.install()
+        if not show(page, steps[0]):
+            return None, f"{steps[0]} isn't in the page"
+        for target in steps[1:ad_at]:
+            reached, _, why = advance(page, target, ad)
+            if not reached:
+                return None, f"couldn't reach the offer: {why}"
+        offer = state(page)
+        shown = words(c.offer_copy) in words(page.locator(f'[data-screen="{offer}"]').inner_text())
+        back = [b for b in page.locator(f'[data-screen="{offer}"] [data-edge][data-transition="back"]').all()
+                if b.is_visible()]
+        if not back:
+            return shown, f"the offer on {offer} has no visible control that goes back"
+        try:
+            back[0].click(timeout=CLICK_MS)
+        except PlaywrightTimeout:
+            return shown, "the offer's control that goes back can't be tapped (something covers it)"
+        grants, reward = page.evaluate("() => [window.simulaAd.grants(), [...document.querySelectorAll("
+                                       "'[data-reward]')].some(e => e.checkVisibility())]")
+        if state(page) != steps[0]:
+            return shown, f"saying no led to {state(page)}, not back to {steps[0]}"
+        if grants or reward:
+            return shown, "saying no granted the reward"
+    return shown, ""
+
+
 def screenshot_before(flow_dir: Path, sid: str) -> str | None:
     with render.open_mock(flow_dir) as (page, _):
         if not show(page, sid):
@@ -444,6 +491,10 @@ def build_flow(ctx: Ctx, model: ProductModel, source: Path, c: Candidate, decisi
     applied = len(edits.edits) - len(rejected) if edits else 0
     run_trace(ctx.run_dir, stage="flows", step=f"edits:{c.id}", decider="code", outcome="ok" if applied else "error",
               note=f"{applied} applied, {len(rejected)} rejected" + (f"; first: {rejected[0]}" if rejected else ""))
+    edited, relabeled = decline_edges(edited, c.flow_steps[0].state_id, {e.id for e in model.edges})
+    if relabeled:
+        run_trace(ctx.run_dir, stage="flows", step=f"edits:{c.id}", decider="code",
+                  note=f"{relabeled} new control(s) that return to the first step now go back")
     html, ad, ad_at, fallback = flow_page(original, edited, c, blur)
     if fallback:
         run_trace(ctx.run_dir, stage="flows", step=f"edits:{c.id}", decider="code",
@@ -451,6 +502,11 @@ def build_flow(ctx: Ctx, model: ProductModel, source: Path, c: Candidate, decisi
     (flow_dir / "index.html").write_text(html)
 
     shots, recorded = walk(flow_dir, c, ad, ad_at)
+    copy_shown, decline = walk_decline(flow_dir, c, ad, ad_at)
+    if decline or copy_shown is False:
+        problem = decline or "the offer screen doesn't show the offer copy"
+        run_trace(ctx.run_dir, stage="flows", step=f"decline:{c.id}", decider="code", outcome="error",
+                  note=f"{NOT_WIRED}: {problem}"[:300])
     for n, shot in enumerate(shots):
         if not shot["wired"]:
             run_trace(ctx.run_dir, stage="flows", step=f"walk:{c.id}", decider="code", outcome="error",
@@ -459,7 +515,8 @@ def build_flow(ctx: Ctx, model: ProductModel, source: Path, c: Candidate, decisi
         run_trace(ctx.run_dir, stage="flows", step=f"walk:{c.id}", decider="code", outcome="error",
                   note=f"{len(recorded['console'])} console errors; first: {recorded['console'][0]}"[:300])
     return {"candidate": c, "decision": decision, "before": before, "shots": shots, "ad_at": ad_at,
-            "grants": recorded["grants"], "events": recorded["events"], "applied": applied, "rejected": rejected}
+            "grants": recorded["grants"], "events": recorded["events"], "applied": applied, "rejected": rejected,
+            "copy_shown": copy_shown, "decline": decline}
 
 
 # ---------- slides ----------
@@ -502,9 +559,12 @@ def phones_html(shots: list[dict], prefix: str, pointer: bool) -> str:
     return "".join(parts) + f'<svg class="marks" viewBox="0 0 {SLIDE_W} {SLIDE_H}">{svg}</svg>'
 
 
-def callouts_html(callouts: list[tuple[str, str]]) -> str:
-    items = "".join(f'<div class="callout"><b>{escape(label)}</b><p>{escape(plain(text))}</p></div>'
-                    for label, text in callouts if text)
+def callouts_html(callouts: list[tuple]) -> str:
+    """(label, text) or (label, text, flag): a flag is a red tag after the label, like "not wired"."""
+    items = "".join(f'<div class="callout"><b>{escape(label)}'
+                    + (f' <span class="flag">{escape(rest[0])}</span>' if rest and rest[0] else "")
+                    + f"</b><p>{escape(plain(text))}</p></div>"
+                    for label, text, *rest in callouts if text)
     return f'<div class="callouts">{items}</div>'
 
 
@@ -590,8 +650,11 @@ def idea_slides(flow: dict, model: ProductModel, run_dir: Path) -> list[str]:
     slides = [
         ("start", [("Today", shots[0]["caption"])], start, False),
         ("change", [new_part, ("It shows up when", c.trigger_event)], change, True),
-        ("offer", [("What the user sees", f"“{c.offer_copy}”"),
-                   ("If they say no", "Everything stays exactly as it was.")], offer, True),
+        ("offer", [("What the user sees", f"“{c.offer_copy}”",
+                    "not on the offer screen" if flow["copy_shown"] is False else ""),
+                   ("If they say no", "This mock doesn't bring the user back to where they were yet." if flow["decline"]
+                    else "Everything stays exactly as it was.", NOT_WIRED if flow["decline"] else "")],
+         offer, True),
         ("ad", [("A short sponsored game", "The user chose to play it and can close it at any time."),
                 ("The reward", "Granted once, only after the play is verified. Closing early or a failed ad uses "
                                "nothing up.")], ad, False),
