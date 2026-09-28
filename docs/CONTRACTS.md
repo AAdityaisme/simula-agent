@@ -127,7 +127,7 @@ Code writes every number and id; a model writes meaning keyed by ids code gave i
 
 - One static `mock/index.html`, inline CSS/JS, no build step. Images only from `assets/<element_id>.png`. Google Fonts allowed; every other request is blocked.
 - `<section data-screen="s03">` per in-scope state. Modals: `data-screen="s07" data-parent="s03"`, drawn as an overlay.
-- `data-el="s03.e07"` on each `in_mock` element (first 2 items of a repeated list only).
+- `data-el="s03.e07"` on each `in_mock` element; only the `data-el` tag is limited to the first 2 items of a repeated list. `in_mock` means "the mock draws this element", and every element that starts an edge is `in_mock`.
 - `data-edge="s03.e07>s05"` on each tappable element, plus **`data-transition="push|modal|tab|back|replace|unknown"`** copied from the edge. A click shows the edge's `to_state` screen with that transition: push slides, modal fades in an overlay, tab switches instantly; `prefers-reduced-motion` turns animation off. `unknown` renders as `push`, and QA skips the transition check for it.
 - `data-chrome="header|tabbar"` on shared chrome (one shared DOM fragment). `data-value="<cross_screen_value id>"` on shared values.
 - `window.simula.go(id)`, `window.simula.state()`, `window.simula.reset()`.
