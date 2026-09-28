@@ -171,6 +171,14 @@ def decide(c: Candidate, verdicts: list[Verdict], judges: int, mode: str, paths:
     return d.model_copy(update={"final": "accept" if econ == "PASS" else "conditional"})
 
 
+def proposal_fault(original: Decision, revision_verdicts: list[Verdict]) -> Decision:
+    """An evidence fail the revision fixed without new facts was the proposal's wording, not a gap in the model,
+    so nobody needs to re-explore for it."""
+    if original.rerun_stage != "explore" or not revision_verdicts or "c2_evidence" in failed_by_any(revision_verdicts):
+        return original
+    return original.model_copy(update={"failure_type": "proposal", "rerun_stage": None})
+
+
 def revisable(c: Candidate, d: Decision, verdicts: list[Verdict]) -> bool:
     return (d.final == "reject" and is_idea(c) and not c.dropped_reason and bool(verdicts)
             and any(v.fixable for v in verdicts))
@@ -307,6 +315,9 @@ def run(ctx: Ctx) -> None:
         verdicts |= v2
         decisions |= {r.id: decide(r, [*v2[r.id].values()], len(judges), mode, p2[r.id],
                                    revision_of=r.id.removesuffix("-rev")) for r in revised}
+        for r in revised:
+            original = r.id.removesuffix("-rev")
+            decisions[original] = proposal_fault(decisions[original], [*v2[r.id].values()])
 
     everyone = {c.id: c for c in candidates + revised}
     superseded = {r.id.removesuffix("-rev") for r in revised}

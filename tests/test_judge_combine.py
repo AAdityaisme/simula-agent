@@ -237,3 +237,22 @@ def test_a_rerun_leaves_nothing_from_an_earlier_attempt(tmp_path, monkeypatch):
     judge.run(ctx_for(app, run_dir))
     assert sorted(p.name for p in stale.rglob("*")) == ["c01_judge_1_r1.json", "decisions.json", "revisions.json",
                                                         "verdicts"]
+
+
+def test_an_evidence_fail_the_revision_fixed_was_the_proposals_not_the_models(tmp_path, monkeypatch):
+    app = "janitorai"
+    cands = live(app, {"rationale": "OVERCLAIM"})
+    run_dir = seed(tmp_path, app, cands)
+    call, _ = fake_llm({"OVERCLAIM": ["c2_evidence"]}, revision=cands[0].model_copy(update={"rationale": "Plain."}))
+    monkeypatch.setattr(llm, "call", call)
+    judge.run(ctx_for(app, run_dir))
+    decisions = {d.candidate_id: d for d in
+                 DecisionsFile.model_validate_json((run_dir / "judge" / "decisions.json").read_text()).decisions}
+    original = decisions[cands[0].id]
+    assert (original.final, original.failure_type, original.rerun_stage) == ("reject", "proposal", None)
+
+
+def test_an_evidence_fail_the_revision_kept_still_points_at_explore():
+    d = judge.decide(idea(golden("aol")), [verdict(["c2_evidence"])], ONE, "annotate")
+    assert judge.proposal_fault(d, [verdict(["c2_evidence"])]).rerun_stage == "explore"
+    assert judge.proposal_fault(d, []).rerun_stage == "explore"
