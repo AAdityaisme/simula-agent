@@ -4,7 +4,6 @@ and full-res screenshots. Then use the app: repeat its core action and measure t
 The only agent in the pipeline: code decides what is possible, Jev what is likely, Sonnet what is hard, and
 code checks every answer."""
 
-import dataclasses
 import io
 import json
 import os
@@ -55,6 +54,7 @@ SPLASH_WAIT_S = 90
 LAUNCH_WAIT_S = 30
 LAUNCH_QUIET_S = 3
 WALK_STEPS = 3
+COMPOSER_BAND_PX = 150
 
 RANK_QUESTION = "Which tap most likely reveals a limit, a paywall, a currency, an ad, or a new core screen of the app?"
 FILTER_QUESTION = ("A content or safety filter decides how much adult or unsafe content the app shows (for "
@@ -386,11 +386,13 @@ class Explorer:
             self.log(s, None, move, ob.find(s.cands, move.cand) if move.cand else None, "unknown",
                      f"observing after the move failed: {type(e).__name__}", "error")
             raise
-        to = self.record(obs, s, move, before.cands)
+        # a chat pass stays on the chat while its composer shows: the growing conversation is not a new state
+        chatting = purpose == "core" and self.core.kind == "chat" and self.live_composer()
+        to = s if chatting else self.record(obs, s, move, before.cands)
         if to is s and not summary:
             summary = ob.change_summary(before.elements, obs.elements, self.device)
         canonical = ob.find(s.cands, move.cand) if move.cand else None
-        self.stop_kind, self.stop_evidence = self.hit(s, to, before) if loop else ("", "")
+        self.stop_kind, self.stop_evidence = self.hit(s, to, before, move) if loop else ("", "")
         self.log(s, to, move, canonical or live, self.transition(s, to, move), summary, outcome, loop,
                  self.stop_kind or None)
         if purpose == "tour":
@@ -944,7 +946,7 @@ class Explorer:
                 self.core_results.append("stopped: out of time")
                 return
             try:
-                if not self.goto(self.core.state):
+                if not self.at_core(n):
                     self.core_results.append(f"pass {n}: could not get back to {self.core.state.sid}")
                     return
                 result, hit = self.core_once(n)
@@ -958,18 +960,27 @@ class Explorer:
                     self.read_upsell()
                 return
 
+    def at_core(self, n: int) -> bool:
+        """After the first pass a chat stays where it is: the conversation grows, so it never matches its first
+        capture again, and walking 'back' to it would leave it. Anything else walks back to the core state."""
+        if n > 1 and self.core.kind == "chat" and self.live_composer():
+            self.current = self.core.state
+            return True
+        return self.goto(self.core.state)
+
     def core_once(self, n: int) -> tuple[str, str]:
         """One pass of the core action. Returns its measurement and what stopped the loop, if anything."""
         core, before = self.core, ob.texts(self.obs.elements, self.device)
         self.last_summary = ""
         if core.kind == "chat":
             message = CORE_MESSAGES[(n - 1) % len(CORE_MESSAGES)]
-            box, send = core.controls
+            box, _ = self.live_composer() or core.controls
             self.act(Move("tap", box, why="core loop: focus the text box"), purpose="core", loop=n)
             if not self.stop_kind:
                 self.act(Move("type", text=message, why="core loop: type"), purpose="core", loop=n)
             if not self.stop_kind:
-                self.act(Move("tap", self.shifted(send, box), why="core loop: send"), purpose="core", loop=n,
+                _, send = self.live_composer()
+                self.act(Move("tap", send, why="core loop: send"), purpose="core", loop=n,
                          watch=lambda: self.watch(before | {message}, REPLY_WAIT_S, "reply"))
             return self.last_summary, self.stop_text()
         control = core.controls[(n - 1) % len(core.controls)]
@@ -989,13 +1000,11 @@ class Explorer:
     def chat_here(self) -> tuple[ob.Candidate, ob.Candidate] | None:
         return ob.composer(self.current.cands, self.device) if self.current.kind == "screen" else None
 
-    def shifted(self, c: ob.Candidate, anchor: ob.Candidate) -> ob.Candidate:
-        """Where c sits now, keeping its offset from anchor: the keyboard moves a composer bar as one piece."""
-        live = ob.find(self.obs.cands, anchor)
-        if live is None or c.ident:
-            return c
-        dx, dy = live.rect.x - anchor.rect.x, live.rect.y - anchor.rect.y
-        return dataclasses.replace(c, rect=Rect(x=c.rect.x + dx, y=c.rect.y + dy, w=c.rect.w, h=c.rect.h))
+    def live_composer(self) -> tuple[ob.Candidate, ob.Candidate] | None:
+        """The text box and its send control on the screen as it is now."""
+        if self.obs is None or self.obs.fg != self.package or ob.dialog_box(self.obs.cands, self.device):
+            return None
+        return ob.composer(self.obs.cands, self.device)
 
     def watch(self, before: set[str], max_s: float, verb: str) -> str:
         """Polls the element list after the action until new text stops changing for QUIET_S."""
@@ -1011,24 +1020,37 @@ class Explorer:
         self.last_summary = ob.timing_line(verb, samples, max_s)
         return self.last_summary
 
-    def hit(self, s: Seen, here: Seen, before: Obs) -> tuple[str, str]:
+    def hit(self, s: Seen, here: Seen, before: Obs, move: Move) -> tuple[str, str]:
         """What a core-loop move brought up that ends the loop, read from what changed on screen and never from
-        words in content: the store's billing screen, a new dialog or sheet, an upsell screen, the text box gone,
-        or a counter in the header or the input bar moving. A few words for loop_stop, and the evidence."""
-        chat = self.core.kind == "chat"
+        words in content. A few words for loop_stop, and the evidence."""
         if here.kind == "external":
             if self.obs.fg in BILLING:
                 return "billing", self.obs.fg
-            return ("left the app", self.obs.fg) if chat else ("", "")
+            return ("left the app", self.obs.fg) if self.core.kind == "chat" else ("", "")
+        if self.core.kind == "chat":
+            return self.chat_stop(here, before, move)
         if here is not s and here.kind in ("modal", "sheet"):
             return ("paywall" if here.upsell else f"{here.kind} opened"), here.sid
         if here is not s and here.upsell:
             return "paywall", here.sid
+        moved = ob.counters(before.elements, self.obs.elements, self.device, [(0, ob.TOP_CHROME_BOTTOM_PX)])
+        return ("counter", moved[0]) if moved else ("", "")
+
+    def chat_stop(self, here: Seen, before: Obs, move: Move) -> tuple[str, str]:
+        """In a chat only the window can stop the loop: a dialog over it, the text box disabled or gone, send still
+        disabled once a message is typed, or a counter moving beside the composer. The conversation's own text,
+        prices and timestamps included, never does."""
+        if here.kind in ("modal", "sheet"):
+            inside = [e for e in here.elements if here.box is None or ob.inside(ob.rect(e), here.box)]
+            return ("paywall" if ob.is_upsell(inside, self.device) else "dialog opened"), here.sid
         box = next((c for c in self.obs.cands if c.kind == "EditText"), None)
-        if chat and box is None:
+        if box is None:
             return "input gone", here.sid
-        bands = [(0, ob.TOP_CHROME_BOTTOM_PX)] + ([(int(box.rect.y) - 150, self.device.h_px)] if box else [])
-        moved = ob.counters(before.elements, self.obs.elements, self.device, bands)
+        live = self.live_composer()
+        if not box.enabled or (move.action == "type" and live and not live[1].enabled):
+            return "input disabled", here.sid
+        band = (int(box.rect.y) - COMPOSER_BAND_PX, int(box.rect.y + box.rect.h) + COMPOSER_BAND_PX)
+        moved = ob.counters(before.elements, self.obs.elements, self.device, [band])
         return ("counter", moved[0]) if moved else ("", "")
 
     # ---------- the replay check ----------

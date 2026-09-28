@@ -71,3 +71,13 @@ def test_a_counter_in_the_header_counts_and_a_changing_reply_does_not():
     bands = [(0, ob.TOP_CHROME_BOTTOM_PX)]
     assert ob.counters(tree("5 left", "at 3 pm"), tree("4 left", "at 4 pm"), DEVICE, bands) == ["5 left → 4 left"]
     assert ob.counters(tree("5 left", "at 3 pm"), tree("5 left", "at 4 pm"), DEVICE, bands) == []
+
+
+def test_a_message_timestamp_beside_the_composer_is_not_a_counter():
+    def tree(stamp):
+        return [{"ref": "@t", "type": "android.widget.TextView", "text": stamp,
+                 "coordinates": {"x": 900, "y": 1950, "width": 120, "height": 40}}]
+    band = [(1850, 2200)]
+    assert ob.counters(tree("5:21 PM"), tree("5:22 PM"), DEVICE, band) == []
+    assert ob.counters(tree("1 min ago"), tree("2 min ago"), DEVICE, band) == []
+    assert ob.counters(tree("3 messages left"), tree("2 messages left"), DEVICE, band) == ["3 messages left → 2 messages left"]

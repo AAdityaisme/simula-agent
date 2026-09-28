@@ -72,10 +72,14 @@ class FakePhone:
     splash: int = 0
     hung_lists: int = 0
     device: str = "fake-1"
+    after_sends: dict[int, str] = field(default_factory=dict)
+    chat_top: int = 401
 
     def __post_init__(self):
         self.screen, self.history, self.log, self.typed = self.start, [], [], []
         self.list_seconds, self.shots, self.reply_polls, self.splash_left = [], {}, 0, 0
+        self.chats: dict[str, list[tuple[str, str]]] = {}
+        self.draft, self.sent = "", 0
         self.screens.setdefault("launcher", blank("com.android.launcher"))
 
     def tick(self, seconds: float = 0.3) -> None:
@@ -86,12 +90,31 @@ class FakePhone:
             self.splash_left -= 1
             return []
         elements = list(self.screens[self.screen].elements)
-        if self.screen in self.replies and self.typed:
-            self.reply_polls += 1
-            text = " ".join(self.replies[self.screen])[: 40 * self.reply_polls]
-            elements.append({"ref": "@r1", "type": "android.widget.TextView", "text": text,
-                             "coordinates": {"x": 42, "y": 900, "width": 996, "height": 200}})
-        return elements
+        if self.screen not in self.replies:
+            return elements
+        box = next(e for e in elements if e["type"].endswith("EditText"))
+        if self.draft:
+            elements = [{**e, "text": self.draft} if e is box else e for e in elements]
+        self.reply_polls += 1
+        return elements + [{"ref": f"@m{n}", "type": "android.widget.TextView", "text": text,
+                            "coordinates": {"x": x, "y": y, "width": w, "height": h}}
+                           for n, (text, x, y, w, h) in enumerate(self.bubbles(box["coordinates"]["y"]))]
+
+    def bubbles(self, composer_y: int) -> list[tuple[str, int, int, int, int]]:
+        """A real chat: each send adds the user's bubble and the reply above the composer, bottom-anchored, so older
+        bubbles move up into the header band; the reply streams in; the history survives leaving the chat."""
+        out, y = [], composer_y - 40
+        history = self.chats.get(self.screen, [])
+        for n in reversed(range(len(history))):
+            mine, reply = history[n]
+            if n == len(history) - 1:
+                reply = reply[: 40 * self.reply_polls]
+            for text, x, w, h in ((f"5:{20 + n:02d} PM", 900, 120, 40), (reply, 42, 900, 150), (mine, 400, 640, 100)):
+                y -= h + 16
+                if y < self.chat_top:
+                    return out
+                out.append((text, x, y, w, h))
+        return out
 
     def elements(self):
         self.tick()
@@ -108,6 +131,12 @@ class FakePhone:
         seen = self.shots.get(self.screen, 0)
         if self.screen in self.dirty and seen > 1:
             ImageDraw.Draw(image).rectangle(self.dirty[self.screen], fill=(255, 255, 255))
+        if self.chats.get(self.screen):
+            draw = ImageDraw.Draw(image)
+            box = next(e for e in self.screens[self.screen].elements if e["type"].endswith("EditText"))
+            draw.rectangle((0, self.chat_top, 1080, box["coordinates"]["y"] - 24), fill=(245, 245, 245))
+            for text, x, y, w, h in self.bubbles(box["coordinates"]["y"]):
+                draw.rectangle((x, y, x + w, y + h), fill=(30, 90, 200) if x == 400 else (90, 90, 90))
         return image
 
     def small_hash(self) -> int:
@@ -143,7 +172,17 @@ class FakePhone:
                          key=lambda e: e["coordinates"]["width"] * e["coordinates"]["height"])
         keys = [element_key(e) for e in holding] or ["nothing"]
         self.log.append(("tap", self.screen, keys[0]))
+        if self.screen in self.replies and self.draft and any("send" in k.lower() for k in keys):
+            self.send()
         self.go(next((self.taps[(self.screen, k)] for k in keys if (self.screen, k) in self.taps), None))
+
+    def send(self) -> None:
+        history = self.chats.setdefault(self.screen, [])
+        replies = self.replies[self.screen]
+        history.append((self.draft, replies[len(history) % len(replies)]))
+        self.draft, self.reply_polls = "", 0
+        self.sent += 1
+        self.go(self.after_sends.get(self.sent))
 
     def back(self) -> None:
         self.tick()
@@ -162,7 +201,7 @@ class FakePhone:
         self.tick()
         self.log.append(("type", self.screen, text))
         self.typed.append(text)
-        self.reply_polls = 0
+        self.draft += text
 
     def launch(self) -> None:
         self.tick(2.0)

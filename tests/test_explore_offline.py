@@ -8,6 +8,7 @@ import pytest
 
 from simula import llm, runlog
 from simula.contracts import ActionLine, ExploreFile, StateFile
+from simula.device import observe as ob
 from simula.device.mcp import parse_elements
 from simula.stages import explore as stage
 from tests.fake_device import PACKAGE, Clock, FakePhone, blank, capture, new_run
@@ -250,3 +251,35 @@ def test_a_cold_start_that_times_out_the_first_dumps_still_explores(tmp_path, mo
     assert ex.root is not None and len(ex.states) >= 8
     notes = [line.note for line in runlog.read_trace(ex.run_dir / "trace.jsonl") if line.step == "launch"]
     assert notes and "McpTimeout" in notes[0]
+
+
+PRICED_REPLIES = ["Hi! I can help with stories, advice, and questions.", "The Pixel 8a at $299 is a solid pick.",
+                  "Once upon a time a lighthouse keeper counted ships every night."]
+
+
+def chatty(clock):
+    phone = janitor_like(clock)
+    phone.replies["chat"] = PRICED_REPLIES
+    return phone
+
+
+def test_a_growing_chat_gets_all_eight_passes_with_no_false_stop(tmp_path, monkeypatch):
+    ex, phone = explore(tmp_path, monkeypatch, phone_factory=chatty, budget="deep")
+    assert ex.core.kind == "chat" and phone.sent == ex.core_reps == 8
+    assert not ex.core_hit and not any(line.loop_stop for line in lines(ex))
+    assert phone.chats["chat"][2][0] == "What's the best phone under $300?"
+    phone.screen = "chat"
+    assert min(y for _, _, y, _, _ in phone.bubbles(2028)) < ob.TOP_CHROME_BOTTOM_PX
+    sends = [line for line in lines(ex) if line.loop_pass and "reply started" in line.change_summary]
+    assert [line.loop_pass for line in sends] == list(range(1, 9))
+
+
+def test_a_limit_dialog_stops_the_loop_on_the_pass_it_appears(tmp_path, monkeypatch):
+    def limited(clock):
+        phone = chatty(clock)
+        phone.screens["limit"] = capture("janitorai", "j01_launch")
+        phone.after_sends = {3: "limit"}
+        return phone
+    ex, phone = explore(tmp_path, monkeypatch, phone_factory=limited, budget="deep")
+    stops = [(line.loop_pass, line.loop_stop) for line in lines(ex) if line.loop_stop]
+    assert phone.sent == 3 and [n for n, _ in stops] == [3] and ex.core_hit.endswith("on pass 3")

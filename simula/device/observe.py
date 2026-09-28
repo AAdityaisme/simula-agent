@@ -44,6 +44,7 @@ ENTRY = re.compile(r"upgrade|\bplans?\b|premium|\bplus\b|\bpro\b|\+|membership|s
 LIMIT = re.compile(r"\blimits?\b|\bremaining\b|\bquota\b|resets? in|out of (free )?(messages|credits|swipes|chats|"
                    r"articles)|no more (free )?\w+|\bleft today\b", re.IGNORECASE)
 DIGITS = re.compile(r"\d")
+CLOCK = re.compile(r"\b\d{1,2}:\d{2}\b|\bago\b", re.IGNORECASE)
 LETTER = re.compile(r"[^\W\d_]")
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
 REDACTED = "[redacted]"
@@ -221,6 +222,7 @@ class Candidate:
     ref: str | None
     tree_label: str
     ident: str = ""
+    enabled: bool = True
 
     @property
     def key(self) -> str:
@@ -258,7 +260,7 @@ def controls(elements: list[dict], device: Device) -> list[Candidate]:
         tree_label = own or (next(iter(held)) if len(held) == 1 else "")
         ident = short_id(e.get("identifier"))
         found.append(Candidate(label=tree_label or ident, kind=e["type"].split(".")[-1], rect=r, ref=e["ref"],
-                               tree_label=tree_label, ident=ident))
+                               tree_label=tree_label, ident=ident, enabled=e.get("enabled") is not False))
     kept = [c for c in found if not any(o is not c and area(o.rect) > area(c.rect) and inside(c.rect, o.rect)
                                         for o in found)]
     return [c for n, c in enumerate(kept) if all(o.rect != c.rect for o in kept[:n])]
@@ -378,7 +380,7 @@ def counters(before: list[dict], after: list[dict], device: Device, bands: list[
     def at(elements):
         return {(bucket(e["coordinates"]["x"], device), bucket(e["coordinates"]["y"], device)): words(e)
                 for e in elements if in_content(e, device) and words(e) and len(words(e)) <= 30
-                and any(y0 <= e["coordinates"]["y"] < y1 for y0, y1 in bands)}
+                and not CLOCK.search(words(e)) and any(y0 <= e["coordinates"]["y"] < y1 for y0, y1 in bands)}
     old, new = at(before), at(after)
     return [f"{old[p]} → {new[p]}" for p in old.keys() & new.keys()
             if old[p] != new[p] and DIGITS.search(old[p]) and DIGITS.search(new[p])]
