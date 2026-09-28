@@ -26,6 +26,8 @@ SCREENSHOT_TIMEOUT_S = 30.0
 LAUNCH_TIMEOUT_S = 30.0
 START_TIMEOUT_S = 60.0
 STOP_TIMEOUT_S = 15.0
+LIST_ATTEMPTS = 3
+LIST_RETRY_PAUSE_S = 1.5
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 
 
@@ -165,10 +167,18 @@ class Phone:
             return self.server.call(tool, timeout, device=self.device, **args)
 
     def elements(self) -> tuple[dict, list[dict]]:
-        started = time.monotonic()
-        reply = self.call("mobile_list_elements_on_screen", LIST_TIMEOUT_S, retry=True, format="json")
-        self.list_seconds.append(time.monotonic() - started)
-        return reply, parse_elements(reply)
+        """The element list. uiautomator's dump fails now and then mid-animation ("no XML content"); an error
+        reply is read again twice before it counts."""
+        for attempt in range(1, LIST_ATTEMPTS + 1):
+            started = time.monotonic()
+            reply = self.call("mobile_list_elements_on_screen", LIST_TIMEOUT_S, retry=True, format="json")
+            self.list_seconds.append(time.monotonic() - started)
+            try:
+                return reply, parse_elements(reply)
+            except McpReplyError:
+                if attempt == LIST_ATTEMPTS:
+                    raise
+                time.sleep(LIST_RETRY_PAUSE_S)
 
     def screenshot(self, path: Path, size: tuple[int, int] | None = None) -> Path:
         path.unlink(missing_ok=True)
@@ -191,9 +201,6 @@ class Phone:
 
     def tap(self, x: int, y: int) -> None:
         self.call("mobile_click_on_screen_at_coordinates", x=x, y=y)
-
-    def tap_ref(self, ref: str) -> None:
-        self.call("mobile_click_on_screen_at_coordinates", ref=ref)
 
     def back(self) -> None:
         self.call("mobile_press_button", button="BACK")

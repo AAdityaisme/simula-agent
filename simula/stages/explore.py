@@ -7,6 +7,7 @@ code checks every answer."""
 import dataclasses
 import io
 import json
+import os
 import shutil
 import signal
 import subprocess
@@ -24,7 +25,7 @@ from simula import config, decide, llm
 from simula.contracts import (ActionLine, Coverage, Device, ExploreFile, HardScreenAction, IconLabel, IconPass, Point,
                               Rect, StateFile, VisionElement)
 from simula.device import observe as ob
-from simula.device.mcp import McpTimeout, Phone, Server
+from simula.device.mcp import McpReplyError, McpTimeout, Phone, Server
 from simula.doctor import adb, emulator_lock
 from simula.runlog import needs_human, now, run_trace, update_manifest, write_exhibit
 from simula.stages import Ctx
@@ -49,6 +50,8 @@ REPLY_WAIT_S = 45
 LOAD_WAIT_S = 20
 QUIET_S = 2.0
 REPLAY_MINUTES = 8
+LAUNCH_WAIT_S = 30
+LAUNCH_QUIET_S = 3
 
 RANK_QUESTION = "Which tap most likely reveals a limit, a paywall, a currency, an ad, or a new core screen of the app?"
 FILTER_QUESTION = ("A content or safety filter decides how much adult or unsafe content the app shows (for "
@@ -189,6 +192,7 @@ class Explorer:
         self.tour_actions = 0
         self.replay = (0, 0)
         self.started = clock()
+        self.secrets = [s.strip() for s in os.environ.get("SIMULA_REDACT", "").split(",") if s.strip()]
         (out / "states").mkdir(parents=True, exist_ok=True)
         self.scratch = out / ".scratch"
         self.scratch.mkdir(exist_ok=True)
@@ -202,12 +206,13 @@ class Explorer:
         self.anr_waited = False
         shot = self.phone.screenshot(self.scratch / "now.png", (self.device.w_px, self.device.h_px))
         image = Image.open(shot).convert("RGB")
+        reply, elements = ob.redact(settled.reply, image, self.secrets)
+        image.save(shot)
         fg = self.phone.foreground()
         if not settled.ok:
             self.note("settle", f"unsettled after {settled.seconds:.1f}s", outcome="timeout")
-        self.obs = Obs(settled.reply, settled.elements, image, fg,
-                       ob.fingerprint(fg, settled.elements, image, self.device),
-                       ob.controls(settled.elements, self.device), settled.ok, round(settled.seconds, 2))
+        self.obs = Obs(reply, elements, image, fg, ob.fingerprint(fg, elements, image, self.device),
+                       ob.controls(elements, self.device), settled.ok, round(settled.seconds, 2))
         return self.obs
 
     def answer_anr(self, elements: list[dict]) -> Obs:
@@ -215,7 +220,7 @@ class Explorer:
         if wait and not self.anr_waited:
             self.anr_waited = True
             self.note("anr", "app not responding: tapped Wait once")
-            self.phone.tap_ref(wait.ref)
+            self.phone.tap(*wait.point)
             return self.observe()
         raise NeedRelaunch("the app is not responding")
 
@@ -347,7 +352,7 @@ class Explorer:
 
     def perform(self, move: Move, live: ob.Candidate | None) -> None:
         if move.action == "tap":
-            self.phone.tap_ref(live.ref) if live.ref else self.phone.tap(*live.point)
+            self.phone.tap(*live.point)
         elif move.action == "back":
             self.phone.back()
         elif move.action == "swipe":
@@ -409,7 +414,7 @@ class Explorer:
                 self.log(self.current, self.root, Move("relaunch", why="back to the root"), None, "unknown", "", "ok")
         self.phone.terminate()
         self.phone.launch()
-        self.observe()
+        self.wait_for_app(None if first else self.launch_root)
         self.current = None
         self.normalize()
         home = self.record(self.obs, None, None, [])
@@ -427,6 +432,24 @@ class Explorer:
             self.back_to_root()
         self.apply_filter(first)
         self.segments.append([])
+
+    def wait_for_app(self, expect: Seen | None = None) -> Obs:
+        """Observes after a launch, waiting up to LAUNCH_WAIT_S for a splash to end and, on a relaunch, for the
+        launch screen seen before. A feed can sit on still loading placeholders for many seconds, so a launch
+        also waits until two looks LAUNCH_QUIET_S apart agree."""
+        deadline = self.clock() + LAUNCH_WAIT_S
+        obs = self.observe()
+        while obs.fg == self.package and self.clock() < deadline and (not obs.cands or (
+                expect and not ob.same_state(obs.fp, expect.fp) and not ob.dialog_box(obs.cands, self.device))):
+            self.sleep(1.5)
+            obs = self.observe()
+        while not (expect and ob.same_state(obs.fp, expect.fp)) and obs.fg == self.package and self.clock() < deadline:
+            self.sleep(LAUNCH_QUIET_S)
+            again = self.observe()
+            if ob.same_state(again.fp, obs.fp):
+                return again
+            obs = again
+        return obs
 
     def normalize(self) -> None:
         """Records any launch banner or dialog before dismissing it, so a launch paywall is never lost."""
@@ -454,9 +477,11 @@ class Explorer:
         return None if obs.cands else "no controls on the launch screen"
 
     def back_to_root(self) -> None:
-        """A relaunch that lands off the launch screen goes back up to 4 times to reach it."""
+        """A relaunch that restored a deeper screen goes back up to 4 times to the launch screen. A screen that
+        shows the bottom tabs is a top screen already, and BACK there would leave the app."""
         for _ in range(4):
-            if self.current is self.launch_root or self.current.kind == "external":
+            here = self.current
+            if here is self.launch_root or here.kind == "external" or any(ob.find(here.cands, t) for t in self.tabs):
                 return
             self.act(Move("back", why="relaunch landed off the launch screen"), purpose="setup")
 
@@ -546,8 +571,19 @@ class Explorer:
         return next((t for t in self.tabs if t.key not in self.tab_to and ob.find(self.obs.cands, t)), None)
 
     def options(self, s: Seen) -> list[ob.Candidate]:
-        return [c for c in s.cands if c.key not in s.tried and c.key not in self.tab_keys()
+        filter_row = self.filter_row(s)
+        return [c for c in s.cands if c.key not in s.tried and c.key not in self.tab_keys() and c.key not in filter_row
                 and not ob.denied(c, upsell=s.upsell) and (c.key not in s.waiting or s.visits > s.waiting[c.key])]
+
+    def filter_row(self, s: Seen) -> set[str]:
+        """The content filter's controls on this screen: the opener, and every option in the chosen one's row.
+        The tour never taps them, so it can't undo the filter."""
+        keys = {t.key for t in self.filter_taps}
+        chosen = ob.find(s.cands, self.filter_taps[-1]) if self.filter_taps else None
+        if chosen:
+            cy = ob.center(chosen.rect)[1]
+            keys |= {c.key for c in s.cands if abs(ob.center(c.rect)[1] - cy) < 24 and abs(c.rect.h - chosen.rect.h) < 24}
+        return keys
 
     def has_work(self, s: Seen) -> bool:
         if s.done or s.kind not in ("screen", "modal", "sheet"):
@@ -709,9 +745,9 @@ class Explorer:
             except NeedRelaunch as e:
                 self.note("relaunch", str(e))
                 self.relaunch()
-            except McpTimeout as e:
+            except (McpTimeout, McpReplyError) as e:
                 self.hang(self.current)
-                self.note("hang", str(e), outcome="timeout")
+                self.note("hang", str(e)[:200], outcome="timeout")
 
     # ---------- the core loop ----------
 
@@ -877,7 +913,7 @@ class Explorer:
         """A relaunch for the replay check: same launch, dialogs, and filter, nothing recorded."""
         self.phone.terminate()
         self.phone.launch()
-        self.observe()
+        self.wait_for_app(self.launch_root)
         for _ in range(3):
             if not ob.dialog_box(self.obs.cands, self.device):
                 break

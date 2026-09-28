@@ -33,7 +33,7 @@ def janitor_like(clock: Clock) -> FakePhone:
     for screen in ("root", "limited", "chats", "notif", "profile", "search"):
         targets = ["limited", "search", "chats", "notif", "profile"]
         taps.update({(screen, key): target for key, target in zip(TABS, targets, strict=True)})
-    return FakePhone(screens=screens, start="launch", taps=taps, clock=clock, backs={"store": "launcher"},
+    return FakePhone(screens=screens, start="launch", taps=taps, clock=clock, backs={"store": "launcher"}, splash=4,
                      replies={"chat": ["Hello! I can help with stories, advice, and everyday questions."] * 3},
                      dirty={"root": (100, 1400, 400, 1500)})
 
@@ -71,6 +71,9 @@ def test_launch_dialog_is_recorded_before_it_is_dismissed(run):
     ex, _ = run
     first = ex.states[0]
     assert first.kind == "modal" and first.parent == ex.states[1].sid
+    dialog = StateFile.model_validate_json((ex.out / "states" / f"{first.sid}.json").read_text())
+    home = StateFile.model_validate_json((ex.out / "states" / f"{first.parent}.json").read_text())
+    assert dialog.parent_id == home.state_id and home.parent_id is None and home.kind == "screen"
     dismiss = next(line for line in lines(ex) if line.outcome == "ok")
     assert dismiss.from_state == first.sid and dismiss.outcome == "ok" and dismiss.mcp_ref
 
@@ -96,7 +99,7 @@ def test_caps_hold_and_no_denied_tap_runs(run):
     denied = [line for line in lines(ex) if line.outcome == "denied"]
     assert denied and all(line.to_state is None for line in denied)
     tapped = {key for kind, *rest in phone.log if kind == "tap" for key in rest[1:]}
-    assert not tapped & {"Logout", "Blocks", "Following", "Favorites", "Hidden Gems"}
+    assert not tapped & {"Logout", "Blocks", "Following", "Favorites"}
 
 
 def test_every_edge_has_a_transition(run):

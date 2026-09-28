@@ -2,17 +2,19 @@
 detection, candidates, and the deny-list. No device calls live here, so every rule is tested on fixtures."""
 
 import hashlib
+import json
 import re
 import time
 from collections import Counter
 from dataclasses import dataclass
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 from skimage.measure import label, regionprops
 
 from simula.contracts import Device, Rect
 
+ELEMENTS_PREFIX = "Found these elements on screen: "
 BUCKET_DP = 8
 TOP_CHROME_BOTTOM_PX = 700
 LAYOUT_SHARE = 0.4
@@ -41,6 +43,9 @@ CREATE = re.compile(r"\W*(generate|create|new|start|play|draw|make|scan)\b", re.
 LIMIT = re.compile(r"\blimits?\b|\bremaining\b|\bquota\b|resets? in|out of (free )?(messages|credits|swipes|chats|"
                    r"articles)|no more (free )?\w+|\bleft today\b", re.IGNORECASE)
 DIGITS = re.compile(r"\d")
+LETTER = re.compile(r"[^\W\d_]")
+EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
+REDACTED = "[redacted]"
 
 
 # ---------- geometry ----------
@@ -102,6 +107,26 @@ def device_from(elements: list[dict], w_px: int, h_px: int, density: int) -> Dev
     return Device(w_px=w_px, h_px=h_px, density=density, scale=density / 160,
                   content_top_px=status[0] if status else default.content_top_px,
                   content_bottom_px=nav[0] if nav else h_px - (default.h_px - default.content_bottom_px))
+
+
+# ---------- redaction ----------
+
+def redact(reply: dict, image: Image.Image, secrets: list[str]) -> tuple[dict, list[dict]]:
+    """Replaces every listed string (any case) and every email address in the element list with [redacted] and
+    paints a solid box over those elements in the image, before anything reads or saves them."""
+    pattern = re.compile("|".join([EMAIL.pattern] + [re.escape(s.strip()) for s in secrets if s.strip()]), re.IGNORECASE)
+    elements = json.loads(reply["content"][0]["text"].removeprefix(ELEMENTS_PREFIX))
+    draw = ImageDraw.Draw(image)
+    for e in elements:
+        hit = False
+        for key in ("text", "label", "identifier"):
+            if e.get(key) and pattern.search(e[key]):
+                e[key], hit = pattern.sub(REDACTED, e[key]), True
+        if hit:
+            r = rect(e)
+            draw.rectangle((r.x, r.y, r.x + r.w, r.y + r.h), fill=(0, 0, 0))
+    content = [{**reply["content"][0], "text": ELEMENTS_PREFIX + json.dumps(elements, ensure_ascii=False)}]
+    return {**reply, "content": content + reply["content"][1:]}, elements
 
 
 # ---------- fingerprint ----------
@@ -209,7 +234,8 @@ def short_id(identifier: str | None) -> str:
 def controls(elements: list[dict], device: Device) -> list[Candidate]:
     """Tappable-looking elements in the content area. A text (not a nested control's label) inside a larger
     element is merged into it. A big element without words that holds two or more different texts is a layout,
-    not a control; a small one is a control that content scrolled under, like a tab."""
+    not a control; a small one is a control that content scrolled under, like a tab. Words without a letter
+    ("8", "1 / 102") are counters, not controls."""
     content = [e for e in elements if in_content(e, device) and area(rect(e)) < LAYOUT_SHARE * content_area(device)
                and rect(e).y + rect(e).h <= device.content_bottom_px + 16]
     found = []
@@ -221,6 +247,8 @@ def controls(elements: list[dict], device: Device) -> list[Candidate]:
         if not own and len(held) > 1 and area(r) >= 0.02 * content_area(device):
             continue
         if not own and not held and min(r.w, r.h) < MIN_CONTROL_PX:
+            continue
+        if own and not LETTER.search(own):
             continue
         tree_label = own or (next(iter(held)) if len(held) == 1 else "")
         ident = short_id(e.get("identifier"))

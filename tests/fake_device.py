@@ -66,17 +66,21 @@ class FakePhone:
     swipes: dict[str, str] = field(default_factory=dict)
     replies: dict[str, list[str]] = field(default_factory=dict)
     dirty: dict[str, tuple[int, int, int, int]] = field(default_factory=dict)
+    splash: int = 0
     device: str = "fake-1"
 
     def __post_init__(self):
         self.screen, self.history, self.log, self.typed = self.start, [], [], []
-        self.list_seconds, self.shots, self.reply_polls = [], {}, 0
+        self.list_seconds, self.shots, self.reply_polls, self.splash_left = [], {}, 0, 0
         self.screens.setdefault("launcher", blank("com.android.launcher"))
 
     def tick(self, seconds: float = 0.3) -> None:
         self.clock.t += seconds
 
     def current_elements(self) -> list[dict]:
+        if self.splash_left:
+            self.splash_left -= 1
+            return []
         elements = list(self.screens[self.screen].elements)
         if self.screen in self.replies and self.typed:
             self.reply_polls += 1
@@ -125,10 +129,6 @@ class FakePhone:
         self.log.append(("tap", self.screen, key))
         self.go(self.taps.get((self.screen, key)))
 
-    def tap_ref(self, ref: str) -> None:
-        self.tick()
-        self.tap_element(next((e for e in self.current_elements() if e["ref"] == ref), None))
-
     def tap(self, x: int, y: int) -> None:
         self.tick()
         holding = [e for e in self.current_elements() if e["coordinates"]["x"] <= x < e["coordinates"]["x"]
@@ -159,7 +159,7 @@ class FakePhone:
     def launch(self) -> None:
         self.tick(2.0)
         self.log.append(("launch",))
-        self.screen, self.history = self.start, []
+        self.screen, self.history, self.splash_left = self.start, [], self.splash
 
     def terminate(self) -> None:
         self.tick()

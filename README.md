@@ -23,6 +23,8 @@ uv run simula doctor --keys              # checks everything; the key checks cos
 | OpenAI | gpt-6-sol (judge 2), gpt-6-luna (dev profile) | `OPENAI_API_KEY` |
 | TypeSafe | Jev (`jev-latest`): ranks the explorer's next tap | `TYPESAFE_API_KEY` |
 
+Also set `SIMULA_REDACT` in `.env` to a comma-separated list of the emulator account's handle and names. The explorer replaces each listed string (any case) and every email address with `[redacted]` in the element lists it captures and paints over those elements in its screenshots, before anything is saved.
+
 ## Commands
 
 ```sh

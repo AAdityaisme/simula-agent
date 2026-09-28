@@ -44,3 +44,28 @@ def test_a_hung_action_times_out_without_a_retry(phone):
         phone.tap(10, 10)
     assert phone.server.respawns == 1
     phone.elements()
+
+
+class FlakyServer:
+    """Answers the element list with uiautomator's transient dump failure a set number of times."""
+
+    def __init__(self, failures: int):
+        self.failures = failures
+
+    def call(self, tool, timeout, **args):
+        if tool == "mobile_list_available_devices":
+            return {"content": [{"type": "text", "text": '{"devices": [{"id": "simula", "platform": "android"}]}'}]}
+        if self.failures:
+            self.failures -= 1
+            return {"content": [{"type": "text", "text": "Error: Command failed: mobilecli dump ui: no XML content "
+                                                         "found in uiautomator dump"}], "isError": True}
+        return {"content": [{"type": "text", "text": 'Found these elements on screen: [{"ref": "@e1", "type": "x", '
+                                                     '"coordinates": {"x": 0, "y": 200, "width": 10, "height": 10}}]'}]}
+
+
+def test_a_failed_dump_is_read_again(tmp_path, monkeypatch):
+    monkeypatch.setattr(mcp, "LIST_RETRY_PAUSE_S", 0)
+    phone = mcp.Phone(FlakyServer(2), "com.example.app", tmp_path)
+    assert phone.elements()[1][0]["ref"] == "@e1" and len(phone.list_seconds) == 3
+    with pytest.raises(mcp.McpReplyError):
+        mcp.Phone(FlakyServer(3), "com.example.app", tmp_path).elements()

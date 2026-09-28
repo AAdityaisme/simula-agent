@@ -12,7 +12,7 @@ from tests.fake_device import PACKAGE, Clock, FakePhone, capture, fake_jev, fake
 
 LAUNCH_STATES = {
     "janitorai": ("j01_launch", "janitorai-a", "Close subscription announcement"),
-    "luzia": ("luzia-pet-intro", "luzia-home", "540,1736"),
+    "luzia": ("luzia-pet-intro", "luzia-home", "Later"),
 }
 
 
