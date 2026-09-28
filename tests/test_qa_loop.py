@@ -43,6 +43,9 @@ def scripted(tmp_path, monkeypatch):
     run_dir = seed_model(tmp_path / "run", "luzia")
     (run_dir / "mock" / "assets").mkdir(parents=True)
     (run_dir / "mock" / "index.html").write_text("<html><body>v0</body></html>")
+    screens = [s.id for s in mock.pick_scope(golden("luzia"))]
+    (run_dir / "mock" / "contract_report.json").write_text(
+        ContractReport(passed=True, screens=screens, errors=[]).model_dump_json())
     calls = []
 
     def play(scores, profile="dev", edits=lambda n: [Edit(find=f"v{n - 1}", replace=f"v{n}", reason="r")],
@@ -208,16 +211,22 @@ def test_a_fixer_edit_that_breaks_the_page_is_discarded_and_the_delivered_mock_a
 @pytest.mark.parametrize("app", APPS)
 def test_a_replay_whose_renders_differ_makes_no_model_call_and_ends_where_the_recorded_run_did(
         tmp_path, monkeypatch, records, app):
+    """The recorded run has a critic group that refuses (skipped) and a fixer that fails (the loop stops); the replay
+    has to fail the same way to end in the same place."""
     run_dir = seed_model(tmp_path / "run", app)
     monkeypatch.setattr(llm, "call", fake_builder([]))
     mock.run(ctx_for(run_dir, app))
-    delivered = (run_dir / "mock" / "index.html").read_text()
-    first = next(t["attrs"]["data-el"] for t in mock.StartTags(delivered).tags if "data-el" in t["attrs"])
-    rounds = {1: [Edit(find="</body>", replace="<!-- round 1 --></body>", reason="r")],
-              2: [Edit(find=f'data-el="{first}"', replace=f'data-x="{first}"', reason="r")]}
-    monkeypatch.setattr(llm, "call", fake_llm([], lambda n: rounds.get(n, [])))
+    answer = fake_llm([], lambda n: [Edit(find="</body>", replace="<!-- round 1 --></body>", reason="r")])
+
+    def refusing(**kwargs):
+        if kwargs["step"] in ("critic r1 g2", "fixer r2"):
+            raise llm.LLMFailure("refusal", "refused")
+        return answer(**kwargs)
+    monkeypatch.setattr(llm, "call", refusing)
     qa.run(ctx_for(run_dir, app))
     recorded = json.loads((run_dir / "qa" / "qa_report.json").read_text())
+    assert recorded["stop_reason"] == "round 2 stopped before any edit: refusal: refused"
+    assert any("group skipped" in line.note for line in read_trace(run_dir / "trace.jsonl"))
 
     screenshot = render.screenshot_screens
 
@@ -238,10 +247,41 @@ def test_a_replay_whose_renders_differ_makes_no_model_call_and_ends_where_the_re
     qa.run(replace(ctx_for(run_dir, app), replay=True))
     assert json.loads((run_dir / "qa" / "qa_report.json").read_text()) == recorded
 
+    replayed = [line for line in read_trace(run_dir / "trace.jsonl") if "recorded for this page" in line.note]
+    assert [line.outcome for line in replayed if line.step in ("critic r1 g2", "fixer r2")] == ["refusal", "refusal"]
+
     for record in records.iterdir():
         record.unlink()
-    with pytest.raises(llm.ReplayMiss):
+    with pytest.raises(llm.ReplayMiss, match="no measurement record for round 0"):
         qa.run(replace(ctx_for(run_dir, app), replay=True))
+    assert not any(records.iterdir()) and not (run_dir / "qa" / "round0").exists()
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_qa_walks_exactly_the_screens_the_mock_drew_even_an_unsafe_one_on_a_core_flow(tmp_path, monkeypatch, app):
+    """The mock follows the model's scope, where an unsafe screen on a core flow is in; QA has no rating rule."""
+    model = golden(app)
+    scope = mock.pick_scope(model)
+    edges = {e.id: e for e in mock.scope_edges(model, scope)}
+    flow = next(f for f in model.flows if f.edge_ids and all(i in edges for i in f.edge_ids))
+    unsafe = edges[flow.edge_ids[0]].to_state
+    rated = model.model_copy(update={"states": [s.model_copy(update={"content_rating": "unsafe"}) if s.id == unsafe
+                                                else s for s in model.states]})
+    run_dir = seed_model(tmp_path / "run", app)
+    (run_dir / "model" / "product_model.json").write_text(rated.model_dump_json())
+    ids = [s.id for s in scope]
+    mock.copy_assets(run_dir / "model", run_dir / "mock", scope, model.device)
+    (run_dir / "mock" / "index.html").write_text(qa.rebuild(skeleton_html(model), rated, ids))
+    (run_dir / "mock" / "contract_report.json").write_text(
+        ContractReport(passed=True, screens=ids, errors=[]).model_dump_json())
+
+    def refuse(**kwargs):
+        raise llm.LLMFailure("refusal", "refused")
+    monkeypatch.setattr(llm, "call", refuse)
+    qa.run(ctx_for(run_dir, app))
+    report = json.loads((run_dir / "qa" / "qa_report.json").read_text())
+    assert unsafe in [s["state_id"] for s in report["screens"]]
+    assert next(w for w in report["flows"] if w["flow"] == flow.id)["status"] == "passed"
 
 
 # ---------- a synthetic 12-screen model: the critic in groups, undrawn screens ----------

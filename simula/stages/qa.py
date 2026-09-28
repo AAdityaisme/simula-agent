@@ -57,7 +57,7 @@ class Version:
 
 def run(ctx: Ctx) -> None:
     model = ProductModel.model_validate_json((ctx.run_dir / "model" / "product_model.json").read_text())
-    scope = mock.pick_scope(model)
+    scope = mock_screens(ctx, model)
     screens = [s.id for s in scope]
     shutil.rmtree(ctx.run_dir / "qa", ignore_errors=True)
     budget = llm.Budget.for_stage("qa", ctx.run_dir / "trace.jsonl", ctx.usd_cap)
@@ -129,16 +129,20 @@ def keep_rule_disagreement(new: Version, best: Version, kept: bool) -> dict | No
 def measure_or_replay(ctx: Ctx, model: ProductModel, scope: list[State], n: int, html: str) -> Version:
     """Renders aren't byte-stable (image decode timing, a machine's fonts), so each measurement is recorded under the
     page and its inputs, and --replay takes the recorded numbers: the loop then decides, and asks the models, exactly
-    as the recorded run did."""
-    version = measure(ctx, model, scope, n, html)
+    as the recorded run did. A replay with no record stops rather than measure live. It still renders, for the round
+    folder's images."""
     path = record_path("measure", n, html, inputs_digest(ctx))
-    if ctx.replay and path.exists():
-        version = version_from(json.loads(path.read_text()), n, html)
-        write_json(ctx.run_dir / "qa" / f"round{n}" / "metrics.json", json.loads(version.metrics.model_dump_json()))
-        run_trace(ctx.run_dir, stage="qa", step=f"round{n}", decider="code",
-                  note=f"replay: the recorded measurements, score {version.score:.2f}")
-    else:
+    if not ctx.replay:
+        version = measure(ctx, model, scope, n, html)
         write_record(path, version_record(version))
+        return version
+    if not path.exists():
+        raise llm.ReplayMiss(f"--replay: qa has no measurement record for round {n}")
+    measure(ctx, model, scope, n, html)
+    version = version_from(json.loads(path.read_text()), n, html)
+    write_json(ctx.run_dir / "qa" / f"round{n}" / "metrics.json", json.loads(version.metrics.model_dump_json()))
+    run_trace(ctx.run_dir, stage="qa", step=f"round{n}", decider="code",
+              note=f"replay: the recorded measurements, score {version.score:.2f}")
     return version
 
 
@@ -210,6 +214,14 @@ def art_origins(ctx: Ctx) -> dict:
     path = ctx.run_dir / "mock" / "art.json"
     data = json.loads(path.read_text()) if path.exists() else {}
     return {src: Rect(**r) for src, r in data.get("art", data).items() if src.startswith("assets/")}
+
+
+def mock_screens(ctx: Ctx, model: ProductModel) -> list[State]:
+    """Exactly the screens stage 3 put on the page, in its order, from mock/contract_report.json. QA applies no
+    scope or content-rating rule of its own."""
+    report = ContractReport.model_validate_json((ctx.run_dir / "mock" / "contract_report.json").read_text())
+    states = {s.id: s for s in model.states}
+    return [states[sid] for sid in report.screens]
 
 
 def undrawn_screens(ctx: Ctx) -> dict[str, str]:
@@ -382,18 +394,26 @@ def named_screens(model: ProductModel, critique: Critique) -> set[str]:
 
 def ask(ctx: Ctx, budget: llm.Budget, version: Version, *, step: str, model: str, effort: str | None, system: str,
         content: list[dict], max_tokens: int, schema):
-    """llm.call, with the answer also recorded under what the model was shown, each render stood in for by the page
+    """llm.call, with the outcome also recorded under what the model was shown, each render stood in for by the page
     it was rendered from (the real screens are in the inputs). --replay looks there first, so it never depends on
-    render bytes."""
+    render bytes. A failed call is recorded too, so a replay fails the same way and follows the same path."""
     texts = [p["text"] for p in content if p["type"] == "text"]
     path = record_path(step, model, effort, max_tokens, system, version.html, texts, inputs_digest(ctx))
     if ctx.replay and path.exists():
+        record = json.loads(path.read_text())
         run_trace(ctx.run_dir, stage="qa", step=step, decider="model", model=model, effort=effort, cache_hit=True,
-                  note="replay: the answer recorded for this page")
-        return schema.model_validate_json(path.read_text())
-    answer, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="qa", step=step, model=model, effort=effort,
-                         system=system, messages=[{"role": "user", "content": content}], max_tokens=max_tokens,
-                         budget=budget, schema=schema, no_cache=ctx.no_cache, replay=ctx.replay)
+                  outcome=record.get("failure", "ok"), note="replay: the outcome recorded for this page")
+        if "failure" in record:
+            raise llm.LLMFailure(record["failure"], record["detail"])
+        return schema.model_validate(record)
+    try:
+        answer, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="qa", step=step, model=model,
+                             effort=effort, system=system, messages=[{"role": "user", "content": content}],
+                             max_tokens=max_tokens, budget=budget, schema=schema, no_cache=ctx.no_cache,
+                             replay=ctx.replay)
+    except llm.LLMFailure as e:
+        write_record(path, json.dumps({"failure": e.outcome, "detail": str(e).removeprefix(f"{e.outcome}: ")}))
+        raise
     write_record(path, answer.model_dump_json())
     return answer
 
@@ -450,7 +470,7 @@ def inputs_digest(ctx: Ctx) -> str:
     """What QA reads besides the page: the model (not the run it was written in), the real screens, assets and art
     it draws from, and which screens stage 3 left undrawn."""
     model = ProductModel.model_validate_json((ctx.run_dir / "model" / "product_model.json").read_text())
-    files = [ctx.run_dir / "model" / s.canonical_png for s in mock.pick_scope(model)]
+    files = [ctx.run_dir / "model" / s.canonical_png for s in model.states]
     files += [ctx.run_dir / "mock" / "assets", ctx.run_dir / "mock" / "art.json"]
     return digest([model.model_dump(mode="json", exclude={"run_id", "provenance"}),
                    [h.model_dump() for h in runfolder.hashes(files, ctx.run_dir)], undrawn_screens(ctx)])
