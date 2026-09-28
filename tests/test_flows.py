@@ -379,6 +379,12 @@ def test_a_new_control_that_returns_to_the_first_step_goes_back(app):
     assert fixed == page.replace('data-transition="replace"', 'data-transition="back"')
 
 
+def test_an_idea_whose_id_is_not_a_plain_name_is_never_built():
+    model = golden("luzia")
+    assert "isn't a plain name" in flows.unbuildable(candidate(model, id="../model"))
+    assert flows.unbuildable(candidate(model, id="c01-rev")) is None
+
+
 def test_the_copy_check_reads_words_in_any_script():
     assert flows.words("「広告を見て」30分 無料!") == "広告を見て 30分 無料"
     assert flows.words("Échale un vistazo, ¡gratis!") == "échale un vistazo gratis"
