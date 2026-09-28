@@ -1,0 +1,83 @@
+{
+ "id": "kg-run-luzia-c03",
+ "source": "run",
+ "from_run": "PR 5 round 6: runs/luzia/20260928-042747-6d79ef8-fixture/propose/candidates.json c03",
+ "app": "luzia",
+ "app_type": "AI assistant chat",
+ "in_test_set": true,
+ "model": "golden/luzia/product_model.json",
+ "author": "aadi",
+ "filled_by": {},
+ "note": "Approved by Aadi as known-good (2026-09-28). A taste of an existing paid benefit (up to 5 AI characters), one more for a subscriber at the cap.",
+ "candidate": {
+  "id": "c03",
+  "lens": "subscriber",
+  "kind": "existing_anchor",
+  "title": "Existing opportunity: A 6th AI character for subscribers who have used all 5",
+  "anchor_evidence_ids": [
+   "s02.e06",
+   "s01.e22"
+  ],
+  "bible_mechanic": "M18",
+  "what_is_different_here": "The Luzia+ paywall line 'Create up to 5 AI characters' (s02.e06) gives payers a hard number. A subscriber with 5 characters who taps the Custom Bestie banner on home (s01.e22, 'Make an AI expert tailored to you') has nowhere to put a new one. A rewarded play opens one extra slot for 7 days. As with WEBTOON's 3-day unlock, the ad path is temporary, and the slot costs no extra model replies beyond the chatting the plan already covers.",
+  "adds": null,
+  "removes_nothing_free": true,
+  "trigger_event": "A Luzia+ subscriber who already has 5 AI characters taps the Custom Bestie banner on home (the app knows the character count)",
+  "trigger_state_id": "s01",
+  "placement": "Bottom sheet over home, opened from the Custom Bestie banner, in place of the 'you've reached your limit' state",
+  "offer_copy": "You've made all 5 of your AI characters. Play a short sponsored game to open a 6th character slot for 7 days.",
+  "reward": {
+   "kind": "content_unlock",
+   "unit": "AI characters",
+   "amount": 1.0,
+   "duration": "7 days"
+  },
+  "for_users": "paying",
+  "grants_id": "l05",
+  "cost_inputs": {
+   "inference_count": 0,
+   "tokens_in": 0,
+   "tokens_out": 0,
+   "minutes": 0.0,
+   "currency_amount": 0.0
+  },
+  "frequency_cap": "1 per day, resets at midnight local time; at most 1 extra slot open at a time",
+  "decline_path": "The sheet closes and home is exactly as before. The subscriber keeps their 5 characters and can edit or replace one as today.",
+  "ad_fail_path": "If no game is available, the sheet shows only the usual limit message with no play button. If the play can't be confirmed, a kind note says the slot wasn't added, and the daily attempt isn't used up.",
+  "subscriber_treatment": "This offer is only for Luzia+ subscribers who have used all 5 character slots. It is opt-in and never shown mid-chat.",
+  "advertiser_category": "Casual mobile games and productivity apps",
+  "character_use": "The sheet shows the subscriber's 5 existing character avatars with an empty 6th circle that fills when the reward lands.",
+  "flow_steps": [
+   {
+    "state_id": "s01",
+    "caption": "A subscriber with 5 AI characters taps the Custom Bestie banner on home."
+   },
+   {
+    "state_id": "new:extra-slot-offer",
+    "caption": "A sheet says all 5 slots are used and offers a 6th slot for 7 days for one short game."
+   },
+   {
+    "state_id": "new:sponsored-game",
+    "caption": "The subscriber plays a short sponsored game and can close it at any time."
+   },
+   {
+    "state_id": "new:slot-unlocked",
+    "caption": "Once the play is confirmed, a 6th empty slot appears with a 7-day timer and they start building their new character."
+   }
+  ],
+  "after_reward": "When the 7 days end, the 6th character is saved but paused with a note that one more short game reopens it for another week, so the subscriber comes back to play again instead of deleting a character.",
+  "rationale": "Luzia+ caps characters at 5, and the most engaged subscribers are the ones who hit that cap, with no bigger plan to move to. A temporary 6th slot gives them more of what they already value without weakening the plan, because the slot is short-lived and one at a time. The slot adds no extra AI cost beyond the chatting subscribers already do, so the sponsored game pays for it easily.",
+  "economics": {
+   "cost_2k": 0.0,
+   "cost_8k": 0.0,
+   "breakeven_ecpm_2k": 0.0,
+   "breakeven_ecpm_8k": 0.0,
+   "benchmark_ecpm": 10.16,
+   "verdict": "CONDITIONAL",
+   "assumption_line": "Serving cost not counted: no price observed. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 1 unlocked item(s); one view per reward; a publisher-net eCPM (share 1)."
+  },
+  "reach_score": 1.0,
+  "rank_score": 1.0,
+  "dropped_reason": null
+ }
+}

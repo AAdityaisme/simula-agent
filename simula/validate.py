@@ -39,7 +39,8 @@ Z95 = 1.96
 class KnownGood(Strict):
     """tests/fixtures/judge/known_good/<id>.json: a good idea for one app, unmutated."""
     id: str
-    source: Literal["base", "deck"]
+    source: Literal["base", "run", "deck"]
+    from_run: str = ""
     app: str
     app_type: str
     in_test_set: bool
@@ -51,15 +52,22 @@ class KnownGood(Strict):
 
 
 class Planted(Strict):
-    """tests/fixtures/judge/planted/<id>.json: a known-good base with exactly one field changed."""
+    """tests/fixtures/judge/planted/<id>.json: a known-good base with exactly one field changed, or a real
+    candidate from a run that fails one check (`from_run`, `candidate`, and the app fields instead)."""
     id: str
     target: Literal[GATES + JUDGMENT + (C8,)]
     tier: Literal["flagrant", "subtle"]
     one_liner: str
     author: str
-    expanded_by: str
-    base: str
-    change: dict
+    expanded_by: str = ""
+    base: str | None = None
+    change: dict | None = None
+    from_run: str = ""
+    app: str = ""
+    app_type: str = ""
+    in_test_set: bool = True
+    model: str = ""
+    candidate: dict | None = None
     expect_economics: Literal["PASS", "CONDITIONAL", "FAIL", "dropped"] | None = None
 
 
@@ -99,8 +107,10 @@ def load_model(ref: str) -> ProductModel:
 
 
 def as_candidate(draft: dict, case_id: str) -> Candidate:
-    """A fixture's candidate fields as a Candidate; the id is the case id and `lens` may be left out."""
-    return propose.with_bucket(Candidate(**{"lens": "fixture", **draft, "id": case_id}))
+    """A fixture's candidate fields as a Candidate; the id is the case id, `lens` may be left out, and a real
+    candidate's bucket label isn't doubled."""
+    c = Candidate(**{"lens": "fixture", **draft, "id": case_id})
+    return propose.with_bucket(c.model_copy(update={"title": judge.strip_bucket(c.title)}))
 
 
 def mutate(base: dict, change: dict) -> dict:
@@ -112,17 +122,26 @@ def mutate(base: dict, change: dict) -> dict:
 def load_cases(root: Path = CASES) -> list[Case]:
     goods = {g.id: g for g in (KnownGood.model_validate_json(p.read_text())
                                for p in sorted((root / "known_good").glob("*.json")))}
-    models = {ref: load_model(ref) for ref in {g.model for g in goods.values()}}
+    planted = [(path, Planted.model_validate_json(path.read_text()))
+               for path in sorted((root / "planted").glob("*.json"))]
+    refs = {g.model for g in goods.values()} | {p.model for _, p in planted if p.model}
+    models = {ref: load_model(ref) for ref in refs}
     cases = [Case(g.id, g.source, as_candidate(g.candidate, g.id), models[g.model], g.app, g.app_type,
                   g.in_test_set) for g in goods.values()]
-    for path in sorted((root / "planted").glob("*.json")):
-        p = Planted.model_validate_json(path.read_text())
-        if p.base not in goods:
-            raise ValueError(f"{path.name}: base {p.base!r} is not a known_good id")
-        if len(p.change) != 1 or next(iter(p.change)) not in CandidateDraft.model_fields:
-            raise ValueError(f"{path.name}: change must name exactly one candidate field, got {list(p.change)}")
+    for path, p in planted:
         if (p.target == C8) != (p.expect_economics is not None):
             raise ValueError(f"{path.name}: expect_economics is set on, and only on, a {C8} case")
+        if p.candidate is not None:
+            if p.base or p.change or not (p.from_run and p.model and p.app and p.app_type):
+                raise ValueError(f"{path.name}: a real candidate needs from_run, model, app, and app_type, "
+                                 "and no base or change")
+            cases.append(Case(p.id, "planted", as_candidate(p.candidate, p.id), models[p.model], p.app, p.app_type,
+                              p.in_test_set, p.target, p.tier))
+            continue
+        if p.base not in goods:
+            raise ValueError(f"{path.name}: base {p.base!r} is not a known_good id")
+        if not p.change or len(p.change) != 1 or next(iter(p.change)) not in CandidateDraft.model_fields:
+            raise ValueError(f"{path.name}: change must name exactly one candidate field, got {list(p.change)}")
         g = goods[p.base]
         candidate = as_candidate(mutate(g.candidate, p.change), p.id)
         cases.append(Case(p.id, "planted", candidate, models[g.model], g.app, g.app_type, g.in_test_set,
@@ -184,7 +203,7 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
     (case id, judge); a None is a call that failed twice and counts against the judge."""
     planted = [c for c in cases if c.source == "planted" and c.target != C8]
     subtle = [c for c in planted if c.tier == "subtle"]
-    bases = [c for c in cases if c.source == "base"]
+    goods = [c for c in cases if c.source in ("base", "run")]
     deck = [c for c in cases if c.source == "deck"]
     c8 = [c for c in cases if c.target == C8]
     columns = [*judges, "combined"] if len(judges) > 1 else judges
@@ -204,14 +223,14 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
 
     per_check = {k: [c for c in planted if c.target == k] for k in LLM_CHECKS}
     complete = all(len(v) == 2 and {c.tier for c in v} == {"flagrant", "subtle"} for v in per_check.values())
-    types = sorted({c.app_type for c in cases if c.source in ("base", "planted")})
-    outside = sorted({c.app for c in cases if c.source in ("base", "planted") and not c.in_test_set})
+    types = sorted({c.app_type for c in cases if c.source != "deck"})
+    outside = sorted({c.app for c in cases if c.source != "deck" and not c.in_test_set})
 
     lines = ["# Judge validation", "", f"Generated {datetime.now().isoformat(timespec='minutes')}. Judges: "
              + ", ".join(judges) + ". Prompts frozen in `config/frozen_prompts.toml`.", "",
              f"Fixtures: {len(planted)} planted LLM cases ({len(subtle)} subtle), {len(c8)} C8 cases, "
-             f"{len(bases)} known-good bases, {len(deck)} deck ideas; app types: {', '.join(types) or 'none'}; "
-             f"apps outside the test set: {', '.join(outside) or 'none'}."]
+             f"{len(goods)} known-good (bases and real-run ideas), {len(deck)} deck ideas; "
+             f"app types: {', '.join(types) or 'none'}; apps outside the test set: {', '.join(outside) or 'none'}."]
     if not complete:
         lines += ["", f"**Fixtures incomplete:** the gate needs 1 flagrant + 1 subtle planted case for each of the "
                   f"{len(LLM_CHECKS)} LLM-judged checks ({2 * len(LLM_CHECKS)} cases); "
@@ -223,10 +242,10 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
               "A judge that fails everything catches every defect and passes no known-good idea; read both rows.", ""]
     for who in columns:
         hit = sum(is_caught(c, who) for c in planted)
-        ok = sum(is_passed(c, who) for c in bases)
+        ok = sum(is_passed(c, who) for c in goods)
         lines += [f"**{who}**", "", "| | caught / passed | missed / failed |", "|---|---|---|",
                   f"| Planted defects ({len(planted)}) | {hit} | {len(planted) - hit} |",
-                  f"| Known-good bases ({len(bases)}) | {ok} | {len(bases) - ok} |", ""]
+                  f"| Known-good ({len(goods)}) | {ok} | {len(goods) - ok} |", ""]
 
     lines += ["## Per check (a check with 0 of 2 caught is broken)", "",
               "| Check | " + " | ".join(columns) + " |", "|---|" + "---|" * len(columns)]
@@ -250,12 +269,12 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
                      f"{rate(ks, len(subtle))} | {wilson_lower(ks, len(subtle)):.3f} |")
 
     lines += ["", "## Known-good pass rate (every one of the 11 checks passed)", "",
-              "| Judge | Bases (gate) | Deck ideas |", "|---|---|---|"]
+              "| Judge | Known-good (gate) | Deck ideas |", "|---|---|---|"]
     kg_rate = {}
     for who in columns:
-        ok = sum(is_passed(c, who) for c in bases)
-        kg_rate[who] = ok / len(bases) if bases else 0.0
-        lines.append(f"| {who} | {rate(ok, len(bases))} | {rate(sum(is_passed(c, who) for c in deck), len(deck))} |")
+        ok = sum(is_passed(c, who) for c in goods)
+        kg_rate[who] = ok / len(goods) if goods else 0.0
+        lines.append(f"| {who} | {rate(ok, len(goods))} | {rate(sum(is_passed(c, who) for c in deck), len(deck))} |")
 
     flips = {}
     lines += ["", "## `--no-cache` rerun: do safety verdicts flip?", ""]
@@ -299,8 +318,8 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
                  (f"{who}: every flagrant gate defect caught "
                   f"({sum(is_caught(c, who) for c in flagrant_gates)}/{len(flagrant_gates)})",
                   len(flagrant_gates) == len(GATES) and all(is_caught(c, who) for c in flagrant_gates)),
-                 (f"{who}: known-good bases ≥ {KNOWN_GOOD_BAR:.0%} ({kg_rate[who]:.0%})",
-                  bool(bases) and kg_rate[who] >= KNOWN_GOOD_BAR),
+                 (f"{who}: known-good ≥ {KNOWN_GOOD_BAR:.0%} ({kg_rate[who]:.0%})",
+                  bool(goods) and kg_rate[who] >= KNOWN_GOOD_BAR),
                  (f"{who}: no safety flip on the --no-cache rerun", bool(reruns) and not flips[who])]
     passed = all(ok for _, ok in gate)
     lines += ["", f"## Gate: {'PASS' if passed else 'FAIL'}", ""] + [f"- {'✓' if ok else '✗'} {what}" for what, ok in gate]

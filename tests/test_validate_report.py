@@ -78,15 +78,15 @@ def test_a_judge_that_catches_every_defect_and_passes_known_good_passes_the_gate
     text, passed = run_report(cases, judged(cases))
     assert passed and "## Gate: PASS" in text
     assert "| judge_1 | 22/22 (100%) | 0.851 | 11/11 (100%) | 0.741 |" in text
-    assert "| Planted defects (22) | 22 | 0 |" in text and "| Known-good bases (3) | 3 | 0 |" in text
+    assert "| Planted defects (22) | 22 | 0 |" in text and "| Known-good (3) | 3 | 0 |" in text
 
 
 def test_a_judge_that_fails_everything_catches_22_of_22_and_the_2x2_shows_it():
     cases = build_cases()
     text, passed = run_report(cases, judged(cases, fail_all=True))
     assert not passed
-    assert "| Planted defects (22) | 22 | 0 |" in text and "| Known-good bases (3) | 0 | 3 |" in text
-    assert "✗ judge_1: known-good bases ≥ 70% (0%)" in text
+    assert "| Planted defects (22) | 22 | 0 |" in text and "| Known-good (3) | 0 | 3 |" in text
+    assert "✗ judge_1: known-good ≥ 70% (0%)" in text
 
 
 def test_a_check_with_0_of_2_caught_is_broken():
@@ -209,6 +209,37 @@ def test_a_sketch_model_for_an_app_outside_the_test_set_loads_and_judges(tmp_pat
     text = judge.judge_messages(c, model)[0]["content"][0]["text"]
     assert '"2 of 3 free workouts left this week"' in text and "Price not seen." in text
     assert model.states[0].in_mock_scope and model.provenance.source == "fixture"
+
+
+def test_a_real_candidate_can_be_a_planted_case(fixture_dir):
+    real = {**idea(golden("aol"), "c07").model_dump(), "title": "Product change: A second city"}
+    write(fixture_dir / "planted" / "pd.json", planted(base=None, change=None, target="c1_revealed_value",
+                                                       tier="subtle", from_run="round 6 c07", app="aol",
+                                                       app_type="news", model="golden/aol/product_model.json",
+                                                       candidate=real))
+    case = next(c for c in validate.load_cases(fixture_dir) if c.source == "planted")
+    assert (case.target, case.candidate.id, case.candidate.title) == ("c1_revealed_value", "pd-g-policy-flagrant",
+                                                                      "Product change: A second city")
+    write(fixture_dir / "planted" / "pd.json", planted(candidate=real, from_run="x", app="aol", app_type="news",
+                                                       model="golden/aol/product_model.json"))
+    with pytest.raises(ValueError, match="no base or change"):
+        validate.load_cases(fixture_dir)
+
+
+def test_real_run_ideas_count_toward_the_known_good_bar_and_deck_ideas_do_not():
+    cases = build_cases()
+    m = golden("luzia")
+    cases += [Case("kg-run", "run", idea(m, "kg-run"), m, "luzia", "AI assistant", True),
+              Case("deck", "deck", idea(m, "deck"), m, "luzia", "AI assistant", True)]
+    verdicts = judged(cases) | {("kg-run", "judge_1"): verdict(["c5_moment"]), ("deck", "judge_1"): verdict(["g_policy"])}
+    text, passed = run_report(cases, verdicts)
+    assert "| Known-good (4) | 3 | 1 |" in text and "| judge_1 | 3/4 (75%) | 0/1 (0%) |" in text and passed
+
+
+def test_the_committed_fixtures_load():
+    cases = validate.load_cases()
+    assert {c.source for c in cases} >= {"deck", "run", "planted"}
+    assert all(not c.candidate.title.startswith("Product change: Product change") for c in cases)
 
 
 def test_the_deck_ideas_load_as_known_good_with_what_the_agent_filled():
