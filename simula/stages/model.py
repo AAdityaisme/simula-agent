@@ -269,7 +269,8 @@ def ask_meaning(ctx: Ctx, text: str, shots: list[tuple[str, bytes]],
 
 def check_meaning(meaning: ModelMeaning, states: list[State], edges: list[Edge]) -> tuple[ModelMeaning, list[str]]:
     """Drops every model-written item that cites something code didn't record, and every observed number its
-    evidence doesn't show. Returns the kept meaning and one line per rejection or gap."""
+    evidence doesn't show; kept quotes and numbers take the evidence's exact text. Returns the kept meaning
+    and one line per rejection or gap."""
     state_ids = {s.id for s in states}
     elements = {e.id: e for s in states for e in s.elements}
     edge_by_id = {e.id: e for e in edges}
@@ -289,13 +290,17 @@ def check_meaning(meaning: ModelMeaning, states: list[State], edges: list[Edge])
         missing = [i for i in ids if i not in state_ids and i not in elements]
         return f"unknown ids {missing}" if missing else None
 
-    def shown_in(evidence_ids, words: str, spaced: bool = True) -> bool:
-        """Trees carry non-breaking and odd spaces a model can't type back, so whitespace is normalized
-        (a quote) or ignored (a number); every other character must match."""
-        def norm(t: str) -> str:
-            return (" " if spaced else "").join(t.split())
-        return any(norm(words) and (norm(words) in norm(elements[i].text) or norm(words) in norm(elements[i].label))
-                   for i in evidence_ids if i in elements)
+    def exact_text(evidence_ids, words: str, spaced: bool = True) -> str | None:
+        """The evidence's own text for a model's quote (spaced) or number (not spaced), or None. Trees carry
+        non-breaking spaces a model types as plain ones, so any whitespace run matches any other; every other
+        character must match. Text and label are searched separately."""
+        parts = words.split() if spaced else [c for c in words if not c.isspace()]
+        pattern = (r"\s+" if spaced else r"\s*").join(re.escape(p) for p in parts)
+        for field in (f for i in evidence_ids if i in elements for f in (elements[i].text, elements[i].label)):
+            match = re.search(pattern, field) if pattern else None
+            if match:
+                return match.group(0)
+        return None
 
     def flow_problem(f):
         missing = [i for i in f.edge_ids if i not in edge_by_id]
@@ -313,15 +318,15 @@ def check_meaning(meaning: ModelMeaning, states: list[State], edges: list[Edge])
         return unknown(m.evidence_ids)
 
     def ledger_problem(item):
-        if not shown_in(item.evidence_ids, item.verbatim):
+        if exact_text(item.evidence_ids, item.verbatim) is None:
             return f"{item.verbatim!r} is not verbatim in the text or label of its evidence elements"
         return unknown(item.evidence_ids)
 
     def shown_numbers(m):
-        shown = [n for n in m.observed_numbers if shown_in(m.evidence_ids, n, spaced=False)]
+        found = [(n, exact_text(m.evidence_ids, n, spaced=False)) for n in m.observed_numbers]
         rejected.extend(f"mechanic {m.id}: number {n!r} is not shown in its evidence elements"
-                        for n in m.observed_numbers if n not in shown)
-        return m.model_copy(update={"observed_numbers": shown})
+                        for n, exact in found if exact is None)
+        return m.model_copy(update={"observed_numbers": [exact for _, exact in found if exact]})
 
     cleaned = meaning.model_copy(update={
         "states": keep(meaning.states, lambda s: None if s.state_id in state_ids else "unknown state", "state",
@@ -331,7 +336,8 @@ def check_meaning(meaning: ModelMeaning, states: list[State], edges: list[Edge])
         "flows": keep(meaning.flows, flow_problem, "flow"),
         "mechanics": [shown_numbers(m) for m in keep(meaning.mechanics, mechanic_problem, "mechanic")],
         "cross_screen_values": keep(meaning.cross_screen_values, lambda v: unknown(v.evidence_ids), "value"),
-        "value_ledger": keep(meaning.value_ledger, ledger_problem, "ledger"),
+        "value_ledger": [i.model_copy(update={"verbatim": exact_text(i.evidence_ids, i.verbatim)})
+                         for i in keep(meaning.value_ledger, ledger_problem, "ledger")],
     })
     named = {s.state_id for s in cleaned.states}
     rejected += [f"state {s.id}: no meaning" for s in states if s.id not in named]

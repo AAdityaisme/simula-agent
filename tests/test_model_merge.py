@@ -98,7 +98,7 @@ def test_a_ledger_line_may_not_span_text_and_label_but_whitespace_is_normalized(
                                         LedgerItem(id="nbsp", kind="price", verbatim="Go $ 1.99", evidence_ids=["s01.e01"]),
                                         LedgerItem(id="respaced", kind="price", verbatim="Go $1.99", evidence_ids=["s01.e01"])])
     kept, rejected = stage.check_meaning(answer, [state], [])
-    assert [i.id for i in kept.value_ledger] == ["label", "nbsp"]
+    assert [(i.id, i.verbatim) for i in kept.value_ledger] == [("label", "Premium"), ("nbsp", "Go\xa0 $\xa01.99")]
     assert [r.split(":")[0] for r in rejected] == ["ledger span", "ledger respaced"]
 
 
@@ -118,7 +118,7 @@ def test_a_number_its_evidence_does_not_show_is_dropped_but_the_mechanic_stays(a
                                      observed_numbers=[element.text, squeezed, "$9.99"], status="observed"))
     kept, rejected = new_rejections(answer, states, edges, baseline)
     assert rejected == ["mechanic m-num: number '$9.99' is not shown in its evidence elements"]
-    assert next(m for m in kept.mechanics if m.id == "m-num").observed_numbers == [element.text, squeezed]
+    assert next(m for m in kept.mechanics if m.id == "m-num").observed_numbers == [element.text, element.text]
 
 
 def test_flows_with_missing_or_disconnected_edges_are_rejected(app):
