@@ -9,7 +9,7 @@ from string import Template
 
 from simula import config, economics, llm
 from simula.config import ROOT
-from simula.contracts import Candidate, CandidatesFile, Lens, LensesFile, LensOutput, ProductModel
+from simula.contracts import Candidate, CandidatesFile, Lens, LensesFile, LensOutput, ProductModel, Strict
 from simula.runfolder import write_json_atomic
 from simula.runlog import run_trace, write_exhibit
 from simula.stages import Ctx
@@ -19,6 +19,8 @@ PROMPTS = ROOT / "prompts" / "propose"
 ALLOWED_INPUTS = (BIBLE, PROMPTS)
 MAX_TOKENS = 16000
 MAX_CANDIDATES = 10
+NAMING_MAX_TOKENS = 4000
+MIN_DISTINCT = 4
 MAX_LEDGER_LENSES = 2
 ANCHOR_MECHANICS = {"paywall", "limit", "currency", "entitlement"}
 ANCHOR_LEDGER = {"price", "limit", "meter", "currency", "paywall_bullet"}
@@ -284,22 +286,72 @@ def rank(c: Candidate, model: ProductModel, mode: str) -> Candidate:
     return c.model_copy(update={"reach_score": reach, "rank_score": round(score, 6)})
 
 
-def reward_key(c: Candidate) -> str:
-    """What dedupe compares: the paid benefit and who gets it when the idea names one, else the reward's unit."""
-    if c.grants_id:
-        return f"{c.grants_id} for {c.for_users} users"
-    # ponytail: the unit's words, case-folded, each with a plural "s" stripped; synonyms ("badge" vs
-    # "checkmark") slip through. The prompt asks for the app's own word so one benefit gets one unit.
-    return " ".join(word.removesuffix("s") for word in plain(c.reward.unit).casefold().split())
+class BenefitName(Strict):
+    id: str
+    benefit: str
 
 
-def dedupe(ranked: list[Candidate]) -> list[Candidate]:
-    """Takes live candidates best first. One that gives the same reward as a better-ranked one (see reward_key)
-    is dropped as its duplicate, whatever its trigger."""
+class BenefitNames(Strict):
+    ideas: list[BenefitName]
+
+
+def ideas_text(live: list[Candidate]) -> str:
+    lines = []
+    for c in live:
+        head = f"{c.id} | for: {c.for_users}" + (f" | piece of paid benefit {c.grants_id}" if c.grants_id else "")
+        lines += [head, f"  title: {c.title}", f"  offer: {c.offer_copy}",
+                  f"  reward: {c.reward.amount:g} {c.reward.unit} ({c.reward.kind}, {c.reward.duration})", ""]
+    return "\n".join(lines)
+
+
+def name_benefits(ctx: Ctx, live: list[Candidate], budget: llm.Budget, step: str) -> dict[str, str]:
+    """One model call names what each live idea gives the user, in a few words, so code can pair ideas that give
+    the same thing. Empty when there is nothing to name or the call failed (dedupe then uses grants_id alone)."""
+    if not live:
+        return {}
+    role = config.roles(ctx.profile)["propose_dedupe"]
+    prompt = Template(read_input(PROMPTS / "dedupe.md")).substitute(ideas=ideas_text(live))
+    try:
+        output, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="propose", step=step,
+                             model=role["model"], effort=role.get("effort"), system="",
+                             messages=[{"role": "user", "content": [{"type": "text", "text": prompt}]}],
+                             max_tokens=NAMING_MAX_TOKENS, budget=budget, schema=BenefitNames,
+                             no_cache=ctx.no_cache, replay=ctx.replay)
+    except llm.LLMFailure as e:
+        run_trace(ctx.run_dir, stage="propose", step=step, decider="code", outcome=e.outcome,
+                  note="benefit naming failed; dedupe used grants_id alone")
+        return {}
+    ids = {c.id for c in live}
+    return {i.id: i.benefit for i in output.ideas if i.id in ids}
+
+
+def fold(name: str) -> str:
+    return " ".join(word.removesuffix("s") for word in plain(name).casefold().replace("-", " ").split())
+
+
+def users_overlap(a: str, b: str) -> bool:
+    return a == b or "everyone" in (a, b)
+
+
+def same_benefit(a: Candidate, b: Candidate, names: dict[str, str]) -> str | None:
+    """What a and b both give, or None. The same paid benefit for the same users always counts; otherwise the
+    two need the same benefit name and overlapping users (free and paying never overlap)."""
+    if a.grants_id and (a.grants_id, a.for_users) == (b.grants_id, b.for_users):
+        return names.get(a.id) or f"{a.grants_id} for {a.for_users} users"
+    name = fold(names.get(a.id, ""))
+    if name and name == fold(names.get(b.id, "")) and users_overlap(a.for_users, b.for_users):
+        return names[a.id]
+    return None
+
+
+def dedupe(ranked: list[Candidate], names: dict[str, str]) -> list[Candidate]:
+    """Takes live candidates best first. One that gives the same benefit as a better-ranked kept one is dropped
+    as its duplicate, whatever its trigger."""
     out = []
     for c in ranked:
-        twin = next((k for k in out if reward_key(c) and reward_key(k) == reward_key(c)), None)
-        reason = f"duplicate of {twin.id}: same reward ({reward_key(twin)})" if twin else None
+        kept = (k for k in out if not k.dropped_reason)
+        twin, benefit = next(((k, b) for k in kept if (b := same_benefit(k, c, names))), (None, None))
+        reason = f"duplicate of {twin.id}: same benefit ({benefit})" if twin else None
         out.append(c.model_copy(update={"dropped_reason": reason}))
     return out
 
@@ -310,9 +362,11 @@ def with_bucket(c: Candidate) -> Candidate:
     return c.model_copy(update={"title": f"{BUCKETS[c.kind]}: {c.title}"})
 
 
-def finish(drafts: list[Candidate], model: ProductModel, mode: str) -> tuple[list[Candidate], dict[str, str]]:
-    """Numbers the drafts, repairs near-miss ids, checks, prices, and ranks them. Returns the candidates (live
-    first, best first; dropped ones kept with their reason) and the id repairs by candidate id."""
+def finish(drafts: list[Candidate], model: ProductModel, mode: str, name=lambda live: {}
+           ) -> tuple[list[Candidate], dict[str, str], dict[str, str]]:
+    """Numbers the drafts, repairs near-miss ids, checks, prices, ranks, and dedupes them (`name` names the live
+    ones' benefits). Returns the candidates (live first, best first; dropped ones kept with their reason), the id
+    repairs by candidate id, and the benefit names."""
     checked, repairs = [], {}
     for n, draft in enumerate(drafts, 1):
         c, repaired = resolve_ids(draft.model_copy(update={"id": f"c{n:02d}"}), model)
@@ -321,21 +375,33 @@ def finish(drafts: list[Candidate], model: ProductModel, mode: str) -> tuple[lis
         reason = f"no opportunity: {c.rationale}" if c.kind == "no_opportunity" else check(c, model)
         checked.append(c.model_copy(update={"dropped_reason": reason}))
     ranked = [rank(c, model, mode) for c in economics.apply(checked, model.app_category, mode)]
-    deduped = dedupe(sorted((c for c in ranked if not c.dropped_reason), key=lambda c: -c.rank_score))
+    passing = sorted((c for c in ranked if not c.dropped_reason), key=lambda c: -c.rank_score)
+    names = name(passing)
+    deduped = dedupe(passing, names)
     live = [c for c in deduped if not c.dropped_reason]
     over = [c.model_copy(update={"dropped_reason": f"over the {MAX_CANDIDATES}-candidate cap"})
             for c in live[MAX_CANDIDATES:]]
     dropped = [c for c in deduped + ranked if c.dropped_reason]
-    return [with_bucket(c) for c in live[:MAX_CANDIDATES] + over + dropped], repairs
+    return [with_bucket(c) for c in live[:MAX_CANDIDATES] + over + dropped], repairs, names
+
+
+# ---------- top-up ----------
+
+def topup_lens(live: list[Candidate], names: dict[str, str]) -> Lens:
+    given = "; ".join(dict.fromkeys(names.get(c.id) or c.reward.unit for c in live)) or "nothing yet"
+    return Lens(id="topup", name="A different benefit", kind="fixed", ledger_ids=[],
+                focus=f"Any user of this app. The ideas kept so far give: {given}. Propose ideas that give the user "
+                      "something different from every one of these: a different benefit, not the same one at "
+                      "another moment, amount, or duration.")
 
 
 # ---------- stage ----------
 
-def exhibit(lenses: list[Lens], candidates: list[Candidate], repairs: dict[str, str]) -> str:
+def exhibit(lenses: list[Lens], candidates: list[Candidate], repairs: dict[str, str], topup: str) -> str:
     live = [c for c in candidates if not c.dropped_reason]
     lines = ["# 05 · propose", "", f"{len(lenses)} lenses, {len(live)} live candidates, "
              f"{len(candidates) - len(live)} dropped, {len(repairs)} with near-miss ids repaired by code "
-             f"(`resolve:<id>` lines in trace.jsonl).", "", "| Lens | Kind | Focus |", "|---|---|---|"]
+             f"(`resolve:<id>` lines in trace.jsonl).", "", f"- Top-up call: {topup}.", "", "| Lens | Kind | Focus |", "|---|---|---|"]
     lines += [f"| {l.name} | {l.kind} | {l.focus} |" for l in lenses]
     lines += ["", "## Candidates, by reach"]
     for c in live:
@@ -352,6 +418,10 @@ def exhibit(lenses: list[Lens], candidates: list[Candidate], repairs: dict[str, 
     return "\n".join(lines) + "\n"
 
 
+def live_count(candidates: list[Candidate]) -> int:
+    return sum(not c.dropped_reason for c in candidates)
+
+
 def run(ctx: Ctx) -> None:
     model = ProductModel.model_validate_json((ctx.run_dir / "model" / "product_model.json").read_text())
     out = ctx.run_dir / "propose"
@@ -364,7 +434,19 @@ def run(ctx: Ctx) -> None:
     if all(a is None for a in answers):
         raise RuntimeError("every lens call failed; see trace.jsonl")
     drafts = [c for a in answers if a for c in a]
-    candidates, repairs = finish(drafts, model, config.profiles()["economics_mode"])
+    mode = config.profiles()["economics_mode"]
+    candidates, repairs, names = finish(drafts, model, mode, lambda live: name_benefits(ctx, live, budget, "dedupe"))
+    distinct = live_count(candidates)
+    topup = f"not needed ({distinct} distinct after dedupe)"
+    if distinct < MIN_DISTINCT:
+        live = [c for c in candidates if not c.dropped_reason]
+        extra = ask_lens(ctx, model, topup_lens(live, names), system, budget, step="topup")
+        if extra:
+            candidates, repairs, names = finish(drafts + extra, model, mode,
+                                                lambda live: name_benefits(ctx, live, budget, "dedupe:topup"))
+        topup = (f"fired ({distinct} distinct after dedupe, under {MIN_DISTINCT}; "
+                 + (f"{live_count(candidates)} after the top-up)" if extra else "its call failed)"))
+    run_trace(ctx.run_dir, stage="propose", step="topup", decider="code", note=topup)
     for cid, note in repairs.items():
         run_trace(ctx.run_dir, stage="propose", step=f"resolve:{cid}", decider="code", note=note[:300])
     for c in candidates:
@@ -372,4 +454,4 @@ def run(ctx: Ctx) -> None:
             run_trace(ctx.run_dir, stage="propose", step=f"check:{c.id}", decider="code", outcome="denied",
                       note=c.dropped_reason[:300])
     write_json_atomic(out / "candidates.json", CandidatesFile(candidates=candidates).model_dump_json(indent=1))
-    write_exhibit(ctx.run_dir, 5, "propose", exhibit(lenses, candidates, repairs))
+    write_exhibit(ctx.run_dir, 5, "propose", exhibit(lenses, candidates, repairs, topup))

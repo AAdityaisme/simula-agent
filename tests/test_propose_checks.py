@@ -84,7 +84,7 @@ def distinct(model):
 def test_finish_numbers_prices_labels_and_caps(model, monkeypatch):
     monkeypatch.setattr(propose, "MAX_CANDIDATES", 2)
     drafts = distinct(model) + [candidate(model, kind="no_opportunity", title="Nothing here", rationale="nothing")]
-    out, _ = finish(drafts, model, "annotate")
+    out, *_ = finish(drafts, model, "annotate")
     live = [c for c in out if not c.dropped_reason]
     assert len(live) == 2 and all(c.economics and c.reach_score for c in live)
     assert sorted(c.id for c in out) == ["c01", "c02", "c03", "c04"]
@@ -97,7 +97,7 @@ def test_finish_numbers_prices_labels_and_caps(model, monkeypatch):
 def test_existing_opportunity_label(model):
     if not anchor_ids(model):
         pytest.skip("no anchor to cite")
-    [out], _ = finish([anchored(model, title="Unlock one more for 3 days")], model, "annotate")
+    [out], *_ = finish([anchored(model, title="Unlock one more for 3 days")], model, "annotate")
     assert out.title == "Existing opportunity: Unlock one more for 3 days"
 
 
@@ -106,31 +106,57 @@ def other_screen(model):
                 if s.in_mock_scope and s.id != root(model) and s.content_rating in propose.SAFE_TRIGGER_RATINGS)
 
 
-def test_the_same_reward_on_different_screens_is_a_duplicate(model):
-    badge = {"kind": "cosmetic", "unit": "Gold  Badge", "amount": 1, "duration": "7 days"}
-    elsewhere = {**badge, "unit": "gold badges"}
+def test_the_same_benefit_name_on_different_screens_is_a_duplicate(model):
+    badge = {"kind": "cosmetic", "unit": "badge", "amount": 1, "duration": "7 days"}
     drafts = [candidate(model, reward=badge),
-              candidate(model, reward=elsewhere, trigger_state_id=other_screen(model), frequency_cap="5 per day")]
-    by_id = {c.id: c for c in finish(drafts, model, "annotate")[0]}
+              candidate(model, reward={**badge, "unit": "profile flair"}, trigger_state_id=other_screen(model),
+                        frequency_cap="5 per day")]
+    named = {"c01": "Gold  Badges", "c02": "gold-badge"}
+    by_id = {c.id: c for c in finish(drafts, model, "annotate", lambda live: named)[0]}
     assert by_id["c02"].dropped_reason is None
-    assert by_id["c01"].dropped_reason == "duplicate of c02: same reward (gold badge)"
+    assert by_id["c01"].dropped_reason == "duplicate of c02: same benefit (gold-badge)"
 
 
-def test_the_same_benefit_for_the_same_users_is_a_duplicate_whatever_the_wording(model):
+def test_the_same_paid_benefit_for_the_same_users_is_a_duplicate_whatever_the_name(model):
     meter = LedgerItem(id="x1", kind="meter", verbatim="3 chats left", evidence_ids=[])
     metered = model.model_copy(update={"value_ledger": model.value_ledger + [meter]})
     drafts = [candidate(metered, title="Two more chats", grants_id="x1"),
-              candidate(metered, title="Keep talking a little longer", grants_id="x1", frequency_cap="3 per day",
-                        reward={"kind": "cosmetic", "unit": "extra conversation", "amount": 2, "duration": "today"})]
+              candidate(metered, title="Keep talking a little longer", grants_id="x1", frequency_cap="3 per day")]
     by_id = {c.id: c for c in finish(drafts, metered, "annotate")[0]}
     assert by_id["c02"].dropped_reason is None
-    assert by_id["c01"].dropped_reason == "duplicate of c02: same reward (x1 for free users)"
+    assert by_id["c01"].dropped_reason == "duplicate of c02: same benefit (x1 for free users)"
 
 
-def test_different_rewards_on_one_screen_are_both_kept(model):
-    badge = {"kind": "cosmetic", "unit": "badge", "amount": 1, "duration": "7 days"}
-    drafts = [candidate(model, reward=badge), candidate(model, reward={**badge, "unit": "profile frame"})]
+@pytest.mark.parametrize("a_users, b_users, twins", [("free", "paying", False), ("paying", "free", False),
+                                                     ("free", "everyone", True), ("everyone", "paying", True),
+                                                     ("paying", "paying", True)])
+def test_a_shared_name_merges_only_overlapping_users(model, a_users, b_users, twins):
+    drafts = [candidate(model, for_users=a_users), candidate(model, for_users=b_users)]
+    out = finish(drafts, model, "annotate", lambda live: {"c01": "no ads", "c02": "No ads"})[0]
+    assert sum(bool(c.dropped_reason) for c in out) == twins
+
+
+def test_the_same_paid_benefit_for_different_users_is_not_a_duplicate(model):
+    meter = LedgerItem(id="x1", kind="meter", verbatim="3 chats left", evidence_ids=[])
+    metered = model.model_copy(update={"value_ledger": model.value_ledger + [meter]})
+    drafts = [candidate(metered, grants_id="x1", for_users="free"), candidate(metered, grants_id="x1",
+                                                                               for_users="everyone")]
+    assert [c.dropped_reason for c in finish(drafts, metered, "annotate")[0]] == [None, None]
+
+
+def test_different_names_or_no_names_keep_both(model):
+    drafts = [candidate(model), candidate(model)]
     assert [c.dropped_reason for c in finish(drafts, model, "annotate")[0]] == [None, None]
+    named = lambda live: {"c01": "badge", "c02": "profile frame"}
+    assert [c.dropped_reason for c in finish(drafts, model, "annotate", named)[0]] == [None, None]
+
+
+def test_an_idea_is_only_a_duplicate_of_one_that_was_kept(model):
+    drafts = [candidate(model, for_users="free", frequency_cap="3 per day"),
+              candidate(model, for_users="everyone", frequency_cap="2 per day"), candidate(model, for_users="paying")]
+    out = finish(drafts, model, "annotate", lambda live: {c.id: "no ads" for c in live})[0]
+    assert {c.id: c.dropped_reason for c in out} == {"c01": None, "c02": "duplicate of c01: same benefit (no ads)",
+                                                      "c03": None}
 
 
 def test_no_after_reward_is_dropped(model):
@@ -221,7 +247,7 @@ def test_mechanic_ledger_and_element_ids_resolve_to_what_they_point_at(model):
     element = mechanic.evidence_ids[0]
     c = anchored(model, anchor_evidence_ids=[mechanic.id], trigger_state_id=element,
                  flow_steps=[{"state_id": element, "caption": "x"}, {"state_id": "new:offer", "caption": "y"}])
-    [out], repairs = finish([c], model, "annotate")
+    [out], repairs, _ = finish([c], model, "annotate")
     assert out.dropped_reason is None
     assert out.anchor_evidence_ids == mechanic.evidence_ids
     assert repairs == {"c01": f"{mechanic.id} -> {','.join(mechanic.evidence_ids)}; {element} -> {element.split('.')[0]}"}
@@ -244,22 +270,29 @@ def test_a_trigger_next_to_unsafe_or_unknown_content_is_dropped(model, rating):
     assert f"{rating} content" in check(candidate(rated), rated)
 
 
-def run_with(model, tmp_path, monkeypatch, fail_lenses, delay=None):
+def run_with(model, tmp_path, monkeypatch, fail_lenses, delay=None, benefit=None):
+    """Runs the stage on fake calls: every lens and the top-up return one valid draft, and the naming call gives
+    every idea `benefit` (no names when None). Returns each call's step and prompt text."""
     (tmp_path / "model").mkdir()
     (tmp_path / "propose").mkdir()
     (tmp_path / "model" / "product_model.json").write_text(model.model_dump_json())
     draft = CandidateDraft(**{k: v for k, v in candidate(model).model_dump().items() if k in CandidateDraft.model_fields})
+    calls = []
 
-    def fake_call(*, step, **_):
+    def fake_call(*, step, schema, messages, **_):
+        calls.append((step, messages[0]["content"][0]["text"]))
         time.sleep((delay or {}).get(step, 0))
         if step.removeprefix("lens:") in fail_lenses:
             raise llm.LLMFailure("timeout", "provider down")
+        if schema is propose.BenefitNames:
+            return schema(ideas=[{"id": f"c{n:02d}", "benefit": benefit} for n in range(1, 20)] if benefit else []), None
         return LensOutput(candidates=[draft]), None
 
     monkeypatch.setattr(llm, "call", fake_call)
     ctx = Ctx(app={"name": model.app}, run_dir=tmp_path, profile="dev", no_cache=False, replay=False,
               usd_cap=None, allow_fixtures=True)
     propose.run(ctx)
+    return calls
 
 
 def test_every_lens_failing_fails_the_stage(model, tmp_path, monkeypatch):
@@ -282,3 +315,34 @@ def test_lenses_run_at_the_same_time_and_keep_their_order(model, tmp_path, monke
     assert time.monotonic() - started < max(delay.values()) + 0.3 < sum(delay.values())
     out = CandidatesFile.model_validate_json((tmp_path / "propose" / "candidates.json").read_text()).candidates
     assert [c.lens for c in sorted(out, key=lambda c: c.id)][:len(lenses)] == [l.id for l in lenses]
+
+
+def test_the_top_up_fires_once_when_dedupe_leaves_fewer_than_four(model, tmp_path, monkeypatch):
+    calls = run_with(model, tmp_path, monkeypatch, set(), benefit="gold badge")
+    steps = [step for step, _ in calls]
+    assert steps.count("topup") == 1 and steps[-1] == "dedupe:topup"
+    assert "The ideas kept so far give: gold badge." in dict(calls)["topup"]
+    out = CandidatesFile.model_validate_json((tmp_path / "propose" / "candidates.json").read_text()).candidates
+    assert [c.id for c in out if not c.dropped_reason] == ["c01"]
+    assert any(c.lens == "topup" and c.dropped_reason == "duplicate of c01: same benefit (gold badge)" for c in out)
+    exhibit = next((tmp_path / "exhibits").glob("05-*.md")).read_text()
+    assert "Top-up call: fired (1 distinct after dedupe, under 4; 1 after the top-up)." in exhibit
+
+
+def test_no_top_up_with_four_distinct_ideas(model, tmp_path, monkeypatch):
+    lenses = propose.build_lenses(model)
+    if len(lenses) < propose.MIN_DISTINCT:
+        monkeypatch.setattr(propose, "MIN_DISTINCT", len(lenses))
+    steps = [step for step, _ in run_with(model, tmp_path, monkeypatch, set())]
+    assert "topup" not in steps and steps.count("dedupe") == 1
+
+
+def test_a_failed_naming_call_leaves_the_paid_benefit_rule_alone(model, tmp_path, monkeypatch):
+    def failing(**_):
+        raise llm.LLMFailure("timeout", "provider down")
+
+    monkeypatch.setattr(llm, "call", failing)
+    ctx = Ctx(app={"name": model.app}, run_dir=tmp_path, profile="dev", no_cache=False, replay=False,
+              usd_cap=None, allow_fixtures=True)
+    assert propose.name_benefits(ctx, [candidate(model, id="c01")], llm.Budget("propose", 1.0), "dedupe") == {}
+    assert "grants_id alone" in (tmp_path / "trace.jsonl").read_text()

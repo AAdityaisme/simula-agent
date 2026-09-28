@@ -72,7 +72,7 @@ def test_annotate_never_drops_or_ranks_down(app):
     cases = verdict_cases(model)
     assert {v: economics.annotate(c, model.app_category).verdict for v, c in cases.items()} == \
         {v: v for v in cases}
-    out, _ = finish(list(cases.values()), model, "annotate")
+    out, *_ = finish(list(cases.values()), model, "annotate")
     assert all(c.dropped_reason is None for c in out)
     assert len({c.rank_score for c in out}) == 1
 
