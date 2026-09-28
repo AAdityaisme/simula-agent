@@ -220,20 +220,26 @@ class Phone:
     def screen_size(self) -> tuple[int, int]:
         return parse_screen_size(self.call("mobile_get_screen_size", retry=True))
 
+    def act(self, tool: str, timeout: float = ACTION_TIMEOUT_S, retry: bool = False, **args) -> None:
+        """A device action. An error reply means it didn't happen, so it never counts as done."""
+        reply = self.call(tool, timeout, retry, **args)
+        if reply.get("isError"):
+            raise McpReplyError(f"{tool} failed: {reply_text(reply)[:120]!r}")
+
     def tap(self, x: int, y: int) -> None:
-        self.call("mobile_click_on_screen_at_coordinates", x=x, y=y)
+        self.act("mobile_click_on_screen_at_coordinates", x=x, y=y)
 
     def back(self) -> None:
-        self.call("mobile_press_button", button="BACK")
+        self.act("mobile_press_button", button="BACK")
 
     def swipe(self, direction: str) -> None:
-        self.call("mobile_swipe_on_screen", direction=direction)
+        self.act("mobile_swipe_on_screen", direction=direction)
 
     def type_text(self, text: str) -> None:
-        self.call("mobile_type_keys", text=text, submit=False)
+        self.act("mobile_type_keys", text=text, submit=False)
 
     def launch(self) -> None:
-        self.call("mobile_launch_app", LAUNCH_TIMEOUT_S, retry=True, packageName=self.package)
+        self.act("mobile_launch_app", LAUNCH_TIMEOUT_S, retry=True, packageName=self.package)
 
     def terminate(self) -> None:
-        self.call("mobile_terminate_app", LAUNCH_TIMEOUT_S, retry=True, packageName=self.package)
+        self.act("mobile_terminate_app", LAUNCH_TIMEOUT_S, retry=True, packageName=self.package)

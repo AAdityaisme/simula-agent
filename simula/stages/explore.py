@@ -373,6 +373,10 @@ class Explorer:
         except McpTimeout:
             outcome = "timeout"
             self.hang(s)
+        except McpReplyError as e:
+            self.obs = None
+            self.log(s, None, move, live, "unknown", f"the device refused the {move.action}: {e}"[:160], "error")
+            raise
         self.actions += 1
         try:
             summary = watch() if watch else ""

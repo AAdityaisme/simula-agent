@@ -109,3 +109,26 @@ def test_after_a_failed_capture_the_next_tap_is_aimed_from_a_fresh_look(tmp_path
         elif entry[0] in ("back", "swipe", "launch"):
             shot_on = None
     assert any(entry == ("shot", "search") for entry in phone.log)
+
+
+def test_a_tap_the_device_refuses_is_logged_as_an_error_not_done(tmp_path, monkeypatch):
+    from simula.contracts import ActionLine
+    from simula.device.mcp import McpReplyError
+
+    def refuses_once(clock):
+        phone = janitor_like(clock)
+        tap, armed = phone.tap, [True]
+
+        def refusing_tap(x, y):
+            if armed[0] and phone.screen == "root":
+                armed[0] = False
+                raise McpReplyError("mobile_click_on_screen_at_coordinates failed: 'device offline'")
+            tap(x, y)
+        phone.tap = refusing_tap
+        return phone
+    ex, _ = new_explorer(tmp_path, monkeypatch, refuses_once)
+    stage.explore_app(ex)
+    lines = [ActionLine.model_validate_json(raw) for raw in (ex.out / "actions.jsonl").read_text().splitlines()]
+    refused = [line for line in lines if "refused the tap" in line.change_summary]
+    assert len(refused) == 1 and refused[0].outcome == "error" and refused[0].to_state is None
+    assert len(ex.states) >= 8

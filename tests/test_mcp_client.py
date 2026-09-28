@@ -93,3 +93,20 @@ def test_a_lost_device_is_asked_again(tmp_path, monkeypatch):
     assert mcp.Phone(LosesTheDevice(5), "com.janitor.ai", tmp_path).foreground() == "com.janitor.ai"
     with pytest.raises(mcp.McpReplyError):
         mcp.Phone(LosesTheDevice(6), "com.janitor.ai", tmp_path).foreground()
+
+
+class RefusesActions(FlakyServer):
+    """Answers every device action with an error, the way mobile-mcp reports a tap that didn't happen."""
+
+    def call(self, tool, timeout, **args):
+        if tool == "mobile_list_available_devices":
+            return super().call(tool, timeout, **args)
+        return {"content": [{"type": "text", "text": "Error: adb: device offline"}], "isError": True}
+
+
+@pytest.mark.parametrize("action", [lambda p: p.tap(1, 1), lambda p: p.back(), lambda p: p.swipe("up"),
+                                    lambda p: p.type_text("hi"), lambda p: p.launch(), lambda p: p.terminate()],
+                         ids=["tap", "back", "swipe", "type_text", "launch", "terminate"])
+def test_an_action_that_errors_raises(tmp_path, action):
+    with pytest.raises(mcp.McpReplyError, match="failed"):
+        action(mcp.Phone(RefusesActions(0), "com.example.app", tmp_path))
