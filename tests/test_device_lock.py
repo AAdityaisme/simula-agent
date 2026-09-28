@@ -107,3 +107,14 @@ def test_two_emulators_of_one_avd_are_refused(monkeypatch):
         stage.refuse_twins("emulator-5554", "simula")
     monkeypatch.setattr(stage, "adb_shell", lambda serial, args: "simula" if serial == "emulator-5554" else "other")
     stage.refuse_twins("emulator-5554", "simula")
+
+
+def test_the_guard_never_follows_a_planted_symlink(locks, tmp_path):
+    victim = tmp_path / "victim.txt"
+    victim.write_text("keep me")
+    stale = locks / "simula-emu-emulator-5554.lock"
+    stale.mkdir()
+    (locks / "simula-emu-emulator-5554.lock.guard").symlink_to(victim)
+    with pytest.raises(OSError):
+        doctor.reclaim(stale)
+    assert victim.read_text() == "keep me"

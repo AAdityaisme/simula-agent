@@ -57,7 +57,7 @@ WALK_STEPS = 3
 WALK_SWIPES = 2
 ONE_LINE_DP = 32
 COMPOSER_BAND_PX = 150
-LIMIT_STOPS = ("counter", "input disabled", "paywall")
+LIMIT_STOPS = ("counter", "input disabled", "paywall", "limit")
 
 RANK_QUESTION = "Which tap most likely reveals a limit, a paywall, a currency, an ad, or a new core screen of the app?"
 FILTER_QUESTION = ("A content or safety filter decides how much adult or unsafe content the app shows (for "
@@ -392,7 +392,7 @@ class Explorer:
             raise
         self.escape_billing()
         # a chat pass stays on the chat while its composer shows: the growing conversation is not a new state
-        chatting = purpose == "core" and self.core.kind == "chat" and self.live_composer() and not self.covered(before)
+        chatting = purpose == "core" and self.core.kind == "chat" and self.live_composer() and not self.covering(before)
         to = s if chatting else self.record(obs, s, move, before.cands)
         if to is s and not summary:
             summary = ob.change_summary(before.elements, obs.elements, self.device)
@@ -947,21 +947,21 @@ class Explorer:
                     None)
 
     def core_options(self) -> list[CoreAction]:
-        options = []
-        for s in self.states:
-            found = ob.composer(s.cands, self.device) if s.kind == "screen" else None
-            if found:
-                options.append(CoreAction("chat", s, list(found), f"send messages in a conversation and read the "
-                                                                    f"replies ({self.chat_title(s)!r}; text box + "
-                                                                    f"send on {s.sid})"))
-                break
+        """What a user might come to do, for Jev to choose from. A conversation found inside a feed item replaces a
+        chat the tour saw elsewhere: it is reached the way a user starts one, by a path that replays, while a chat
+        reached through a tab can be whichever one was open last."""
         feed = self.feed_option()
+        inside = self.walk_to_input(feed) if feed else None
+        options = [inside] if inside else []
+        seen = next(((s, found) for s in self.states if s.kind == "screen"
+                     for found in [ob.composer(s.cands, self.device)] if found), None)
+        if seen and not (inside and inside.kind == "chat"):
+            s, found = seen
+            options.append(CoreAction("chat", s, list(found), f"send messages in a conversation and read the replies "
+                                                              f"({self.chat_title(s)!r}; text box + send on {s.sid})"))
         options += [feed] if feed else []
         options += [CoreAction("action", s, [c], f"tap {c.label[:40]!r} again and again on {s.sid}")
                     for s in self.states if s.kind == "screen" for c in [self.input_action(s.cands, s.upsell)] if c]
-        if feed and not any(o.kind in ("chat", "action") for o in options):
-            inside = self.walk_to_input(feed)
-            options = ([inside] if inside else []) + options
         return options[:10]
 
     def feed_option(self) -> CoreAction | None:
@@ -1079,7 +1079,7 @@ class Explorer:
                 self.core_results.append("stopped: out of time")
                 return
             try:
-                if not self.at_core(n) and not (n == 1 and self.chat_through_an_item()):
+                if not self.at_core(n):
                     self.core_results.append(f"pass {n}: could not get back to {self.core.state.sid}")
                     return
                 result, hit = self.core_once(n)
@@ -1100,17 +1100,6 @@ class Explorer:
             self.current = self.core.state
             return True
         return self.goto(self.core.state)
-
-    def chat_through_an_item(self) -> bool:
-        """The chosen chat can't be reached again (a tab that reopens whichever chat was open last lands there
-        only by chance): walks into the first feed item to its composer instead, the same kind of core action."""
-        feed = self.feed_option() if self.core.kind == "chat" else None
-        inside = self.walk_to_input(feed) if feed else None
-        if inside is None or inside.kind != "chat":
-            return False
-        self.note("core", f"{self.core.state.sid} can't be reached again; the chat is {inside.name}")
-        self.core = inside
-        return True
 
     def core_once(self, n: int) -> tuple[str, str]:
         """One pass of the core action. Returns its measurement and what stopped the loop, if anything."""
@@ -1147,18 +1136,33 @@ class Explorer:
             return None
         return ob.composer(self.obs.cands, self.device)
 
-    def covered(self, before: Obs) -> bool:
+    def covering(self, before: Obs) -> list[ob.Candidate]:
         """A sheet in the chat's own window leaves the composer in the tree: it shows as a second text box in the
         lower half, or as new controls lying over the text box (bubbles and hints never do)."""
         live = ob.composer(self.obs.cands, self.device)
         if live is None:
-            return False
+            return []
         box, middle = live[0], (self.device.content_top_px + self.device.content_bottom_px) / 2
-        boxes = [c for c in self.obs.cands if c.kind == "EditText" and ob.center(c.rect)[1] > middle]
         old = {(c.label, c.kind) for c in before.cands}
-        over = [c for c in self.obs.cands if c is not box and (c.label, c.kind) not in old
-                and ob.overlaps(c.rect, box.rect) and not ob.inside(c.rect, box.rect)]
-        return len(boxes) > 1 or bool(over)
+        return [c for c in self.obs.cands if c is not box and (
+            (c.kind == "EditText" and ob.center(c.rect)[1] > middle)
+            or ((c.label, c.kind) not in old and ob.overlaps(c.rect, box.rect) and not ob.inside(c.rect, box.rect)))]
+
+    def within(self, s: Seen) -> list[dict]:
+        return [e for e in s.elements if s.box is None or ob.inside(ob.rect(e), s.box)]
+
+    def sheet_words(self, before: Obs) -> str:
+        """What a sheet over the composer says: the new words in the lower half of the screen."""
+        middle, old = (self.device.content_top_px + self.device.content_bottom_px) / 2, ob.texts(before.elements,
+                                                                                                    self.device)
+        return self.named([e for e in self.obs.elements if e["coordinates"]["y"] >= middle and ob.words(e) not in old])
+
+    def named(self, elements: list[dict]) -> str:
+        """A dialog's or sheet's own words, never the conversation's: a price makes it a paywall, limit words a
+        limit."""
+        texts = ob.texts(elements, self.device)
+        return ("paywall" if any(ob.PRICE.search(t) for t in texts) else
+                "limit" if any(ob.LIMIT.search(t) for t in texts) else "")
 
     def watch(self, before: set[str], max_s: float, verb: str) -> str:
         """Polls the element list after the action until new text stops changing for QUIET_S."""
@@ -1184,7 +1188,7 @@ class Explorer:
         if self.core.kind == "chat":
             return self.chat_stop(here, before, move)
         if here is not s and here.kind in ("modal", "sheet"):
-            return ("paywall" if here.priced else f"{here.kind} opened"), here.sid
+            return self.named(self.within(here)) or f"{here.kind} opened", here.sid
         if here is not s and here.upsell:
             return ("paywall" if here.priced else "upsell screen"), here.sid
         moved = ob.counters(before.elements, self.obs.elements, self.device, [(0, ob.TOP_CHROME_BOTTOM_PX)])
@@ -1195,13 +1199,12 @@ class Explorer:
         disabled once a message is typed, or a counter moving beside the composer. The conversation's own text,
         prices and timestamps included, never does."""
         if here.kind in ("modal", "sheet"):
-            inside = [e for e in here.elements if here.box is None or ob.inside(ob.rect(e), here.box)]
-            return ("paywall" if ob.priced(inside, self.device) else "dialog opened"), here.sid
-        if self.covered(before):
-            return "sheet opened", here.sid
+            return self.named(self.within(here)) or "dialog opened", here.sid
+        if self.covering(before):
+            return self.sheet_words(before) or "sheet opened", here.sid
         box = next((c for c in self.obs.cands if c.kind == "EditText"), None)
         if box is None:
-            return "input gone", here.sid
+            return self.sheet_words(before) or "input gone", here.sid
         live = self.live_composer()
         if not box.enabled or (move.action == "type" and live and not live[1].enabled):
             return "input disabled", here.sid

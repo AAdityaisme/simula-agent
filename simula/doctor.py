@@ -94,11 +94,15 @@ def holder_dead(lock: Path) -> bool:
 
 def reclaim(lock: Path) -> None:
     """Removes a dead holder's lock. The check and the removal happen under a short flock, so of two waiters that
-    both saw the dead holder, the second finds the first one's fresh lock alive and leaves it."""
-    with open(lock.with_name(f"{lock.name}.guard"), "w") as guard:
+    both saw the dead holder, the second finds the first one's fresh lock alive and leaves it. The guard is opened
+    read-only and never through a symlink, so a planted link in /tmp can't make it truncate anything."""
+    guard = os.open(lock.with_name(f"{lock.name}.guard"), os.O_RDONLY | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    try:
         fcntl.flock(guard, fcntl.LOCK_EX)
         if holder_dead(lock):
             shutil.rmtree(lock, ignore_errors=True)
+    finally:
+        os.close(guard)
 
 
 def check_local() -> None:

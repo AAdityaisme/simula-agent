@@ -382,21 +382,6 @@ def test_a_sheet_over_the_tab_bar_is_closed_with_back_not_a_relaunch(tmp_path, m
     assert any("covers the tab bar" in line.note for line in trace)
 
 
-def test_a_chosen_chat_that_cant_be_reached_again_is_reached_through_an_item(tmp_path, monkeypatch):
-    unreachable = [True]
-    at_core = stage.Explorer.at_core
-
-    def first_goto_fails(self, n):
-        if unreachable[0]:
-            unreachable[0] = False
-            return False
-        return at_core(self, n)
-    monkeypatch.setattr(stage.Explorer, "at_core", first_goto_fails)
-    ex, phone = explore(tmp_path, monkeypatch, phone_factory=detail_first)
-    assert ex.core.kind == "chat" and phone.sent == ex.core_reps
-    assert "could not get back" not in " ".join(ex.core_results)
-
-
 def test_a_stop_that_is_not_a_limit_leaves_the_limit_open(run):
     ex, _ = run
     assert not ex.core_hit and "limit" in ex.checklist()[1]
@@ -416,7 +401,7 @@ def test_a_sheet_over_the_chat_in_its_own_window_stops_the_loop(tmp_path, monkey
         return phone
     ex, phone = explore(tmp_path, monkeypatch, phone_factory=sheet_after_two, budget="deep")
     stops = [(line.loop_pass, line.loop_stop) for line in lines(ex) if line.loop_stop]
-    assert phone.sent == 2 and len(stops) == 1 and stops[0][0] == 2
+    assert phone.sent == 2 and stops == [(2, "limit")] and "limit" in ex.checklist()[0]
 
 
 def test_jev_sees_what_repeating_each_option_means_and_the_conversation_itself(tmp_path, monkeypatch):
@@ -456,16 +441,22 @@ def test_the_walk_scrolls_to_a_main_action_below_the_fold_and_takes_a_long_one_l
         phone.swipes["detail"] = "detail_end"
         phone.taps[("detail_end", "Chat with Vac the Kinectic")] = "chat"
         return phone
-    unreachable = [True]
-    at_core = stage.Explorer.at_core
-
-    def first_goto_fails(self, n):
-        if unreachable[0]:
-            unreachable[0] = False
-            return False
-        return at_core(self, n)
-    monkeypatch.setattr(stage.Explorer, "at_core", first_goto_fails)
     ex, phone = explore(tmp_path, monkeypatch, phone_factory=below_the_fold)
     assert ex.core.kind == "chat" and phone.sent == ex.core_reps
     assert ("tap", "detail_end", "Chat with Vac the Kinectic") in phone.log
     assert not any(entry[:3] == ("tap", "detail", BIO) for entry in phone.log)
+
+
+def test_a_conversation_inside_a_feed_item_replaces_a_chat_the_tour_reached_through_a_tab(tmp_path, monkeypatch):
+    ex, _ = new_explorer(tmp_path, monkeypatch, janitor_like)
+    asked = []
+
+    def recording(state, instructions, labels, backend):
+        if instructions == stage.CORE_QUESTION:
+            asked.append(labels)
+        return fake_jev(state, instructions, labels, backend)
+    monkeypatch.setattr(decide, "ask_choice", recording)
+    stage.explore_app(ex)
+    labels, = asked
+    assert labels[0].startswith("open an item and send messages in its conversation")
+    assert not any(label.startswith("send messages in a conversation") for label in labels)
