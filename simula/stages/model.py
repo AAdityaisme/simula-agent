@@ -76,12 +76,13 @@ def colors(pixels: np.ndarray) -> tuple[str | None, str | None]:
 
 
 def is_image_like(e: Element, siblings: list[Element], device: Device) -> bool:
-    """Art worth cropping: an image, or a wordless box that holds no text (a crop would bake that text in)."""
+    """Art worth cropping: an image (text over it is an overlay, drawn separately), or a wordless box that
+    holds no text (a crop would bake that text in)."""
     r = e.rect_px
     holds_text = any((s.text or s.label) and s is not e and inside(s.rect_px, r) for s in siblings)
     small_enough = r.w * r.h < 0.4 * device.w_px * device.h_px
-    return ((e.type == "ImageView" or not (e.text or e.label)) and not holds_text
-            and min(r.w, r.h) >= 48 and small_enough)
+    art = e.type == "ImageView" or not (e.text or e.label or holds_text)
+    return art and min(r.w, r.h) >= 48 and small_enough
 
 
 def make_element(eid: str, rect: Rect, kind: str, text: str, label: str, mcp_ref: str | None,
@@ -192,7 +193,8 @@ def element_line(e: Element) -> str:
 
 def describe(states: list[State], edges: list[Edge], app: dict, device: Device, name_limit: int) -> str:
     """Lists only what the mock could draw (words, art, or a tapped control). Items of a repeated list after
-    the second fold into one line, so a long feed stays short."""
+    the second fold into one line, so a long feed stays short. Past the naming budget only tapped controls
+    are still listed."""
     tapped = {e.element_id for e in edges}
     listed = 0
     lines = [f"App package: {app['package']}", "", "STATES and their drawable elements (rect in dp, content coordinates):"]
@@ -207,7 +209,7 @@ def describe(states: list[State], edges: list[Edge], app: dict, device: Device, 
                 folded.setdefault(e.repeat_group, []).append(e)
                 continue
             seen[e.repeat_group] += 1
-            if listed >= name_limit:
+            if listed >= name_limit and e.id not in tapped:
                 omitted += 1
                 continue
             listed += 1
@@ -499,13 +501,27 @@ def understand(ctx: Ctx, text: str, shots: list[tuple[str, bytes]], states: list
     try:
         second, _ = ask_meaning(ctx, text, kept, (first.model_dump_json(), problems))
     except llm.LLMFailure as e:
+        if e.raw:
+            (ctx.run_dir / "model" / "raw_reply.txt").write_text(e.raw)
         run_trace(ctx.run_dir, stage="model", step="retry", decider="code", outcome="retry",
                   note=f"retry failed ({e.outcome}); kept the checked first answer")
+        gaps = gaps_in(meaning, states, edges)
+        if gaps:
+            needs_human(ctx.run_dir, "model", "the product model has gaps", "; ".join(gaps) + ". The retry failed "
+                        f"({e.outcome}); the run continues on the checked first answer.",
+                        ["exhibits/02-model.md", "model/raw_reply.txt"],
+                        f"simula model {ctx.app['name']} --run {ctx.run_dir.name}")
         return meaning, rounds
     meaning, rejected = check_meaning(second, states, edges)
     rounds.append(rejected)
     log_round(ctx, 2, rejected)
     return meaning, rounds
+
+
+def gaps_in(meaning: ModelMeaning, states: list[State], edges: list[Edge]) -> list[str]:
+    named = {s.state_id for s in meaning.states}
+    gaps = [f"state {s.id} has no name or purpose" for s in states if s.id not in named]
+    return gaps + (["no core flow survived"] if edges and not meaning.flows else [])
 
 
 def log_round(ctx: Ctx, n: int, rejected: list[str]) -> None:

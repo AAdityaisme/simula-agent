@@ -298,6 +298,20 @@ def test_a_failed_retry_keeps_the_checked_first_answer(tmp_path, monkeypatch):
     retry = [t for t in read_trace(ctx.run_dir / "trace.jsonl") if t.step == "retry"]
     assert retry[-1].outcome == "retry" and "kept the checked first answer" in retry[-1].note
     assert "The retry failed" in (ctx.run_dir / "exhibits" / "02-model.md").read_text()
+    assert not (ctx.run_dir / "needs-human.md").exists()
+
+
+def test_a_failed_retry_on_a_model_with_gaps_asks_for_a_human_and_continues(tmp_path, monkeypatch):
+    name = APPS[1]
+    good = recorded_answer(golden(name))
+    gappy = good.model_copy(update={"states": good.states[1:], "flows": []})
+    fake_calls(monkeypatch, [gappy, llm.LLMFailure("schema_fail", "twice", raw='{"flows": [')])
+    ctx = make_ctx(name, tmp_path)
+    stage.run(ctx)
+    assert (ctx.run_dir / "model" / "product_model.json").exists()
+    assert (ctx.run_dir / "model" / "raw_reply.txt").read_text() == '{"flows": ['
+    asked = (ctx.run_dir / "needs-human.md").read_text()
+    assert "the product model has gaps" in asked and "no core flow survived" in asked
 
 
 def test_a_failed_call_asks_for_a_human_and_keeps_the_raw_answer(tmp_path, monkeypatch):

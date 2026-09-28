@@ -154,13 +154,24 @@ def test_assets_are_cropped_to_their_rect_for_in_scope_states_only(app, tmp_path
             assert not e.in_mock or s.in_mock_scope
 
 
-def test_an_art_crop_never_holds_text(app):
+def test_a_box_crop_never_holds_text(app):
     _, states, _, _, _ = app
     for s in states:
         words = [e for e in s.elements if e.text or e.label]
         for e in s.elements:
-            if stage.is_image_like(e, s.elements, DEVICE):
+            if stage.is_image_like(e, s.elements, DEVICE) and e.type != "ImageView":
                 assert not any(w is not e and stage.inside(w.rect_px, e.rect_px) for w in words), e.id
+
+
+def test_an_image_with_a_text_overlay_is_still_art():
+    def element(eid, kind, text, rect):
+        return stage.make_element(eid, rect, kind, text, "", "@" + eid, np.zeros((2400, 1080, 3), np.uint8), DEVICE)
+    image = element("s01.e01", "ImageView", "", Rect(x=0, y=300, w=500, h=500))
+    box = element("s01.e02", "ViewGroup", "", Rect(x=500, y=300, w=500, h=500))
+    overlays = [element("s01.e03", "TextView", "Title", Rect(x=20, y=700, w=300, h=60)),
+                element("s01.e04", "TextView", "Title", Rect(x=520, y=700, w=300, h=60))]
+    siblings = [image, box, *overlays]
+    assert stage.is_image_like(image, siblings, DEVICE) and not stage.is_image_like(box, siblings, DEVICE)
 
 
 def test_every_tapped_element_is_drawn_and_no_tapped_element_is_a_list_item(app, tmp_path):
@@ -205,10 +216,12 @@ def test_describe_lists_drawable_elements_and_folds_long_lists(app):
     assert tapped - {None} <= listed
 
 
-def test_describe_stops_naming_past_the_budget(app):
+def test_describe_stops_naming_past_the_budget_except_tapped_controls(app):
     _, states, _, edges, _ = app
     text = stage.describe(states, edges, {"package": "x"}, DEVICE, name_limit=5)
-    assert sum(1 for line in text.splitlines() if ELEMENT_LINE.match(line)) <= 5
+    listed = {line.split()[0] for line in text.splitlines() if ELEMENT_LINE.match(line)}
+    tapped = {e.element_id for e in edges if e.element_id}
+    assert tapped <= listed and len(listed - tapped) <= 5
     if sum(len(s.elements) for s in states) > 5:
         assert "not listed" in text
     assert "RECORDED EDGES" in text
