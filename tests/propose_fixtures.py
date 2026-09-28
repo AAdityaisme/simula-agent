@@ -28,6 +28,7 @@ def candidate(model: ProductModel, **changes) -> Candidate:
         advertiser_category="Mobile games", character_use="None",
         flow_steps=[{"state_id": root_id, "caption": "Home as today"}, {"state_id": "new:offer", "caption": "The offer"},
                     {"state_id": "new:ad", "caption": "The game plays"}, {"state_id": root_id, "caption": "Badge shows"}],
+        after_reward="The badge fades after 7 days, and the card offers another one tomorrow.",
         rationale="A small daily extra.")
     fields.update(changes)
     return Candidate(**fields)

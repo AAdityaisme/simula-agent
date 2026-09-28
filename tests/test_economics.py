@@ -18,10 +18,11 @@ def reward(kind, amount=1):
 
 def verdict_cases(model):
     return {
-        "PASS": candidate(model, reward=reward("cosmetic")),
-        "CONDITIONAL": candidate(model, reward=reward("inference", 6),
+        "PASS": candidate(model, title="A badge", reward=reward("cosmetic")),
+        "CONDITIONAL": candidate(model, title="Six more replies", reward=reward("inference", 6),
                                  cost_inputs={**NO_COST, "inference_count": 6, "tokens_in": 4000, "tokens_out": 300}),
-        "FAIL": candidate(model, reward=reward("voice", 3), cost_inputs={**NO_COST, "minutes": 3}),
+        "FAIL": candidate(model, title="Three minutes of voice", reward=reward("voice", 3),
+                          cost_inputs={**NO_COST, "minutes": 3}),
     }
 
 

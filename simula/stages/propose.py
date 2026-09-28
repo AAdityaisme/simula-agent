@@ -3,6 +3,7 @@ code checks every answer, adds the cost line, and ranks by reach."""
 
 import json
 import re
+from difflib import SequenceMatcher
 from pathlib import Path
 from string import Template
 
@@ -27,6 +28,11 @@ CHAT_PLACEMENT = re.compile(
     re.I)
 NEGATED = re.compile(r"\b(not|never|outside|away from)\b[^.;,]{0,20}\b(chat|conversation|transcript)", re.I)
 SAFE_TRIGGER_RATINGS = {"safe", "mixed"}
+# The assignment's two buckets, shown first on every candidate's title.
+BUCKETS = {"existing_anchor": "Existing opportunity", "product_change": "Product change"}
+FREE_OFFER = re.compile(r"\bfree\b[^.;,]{0,20}\btrial\b|\btrial\b[^.;,]{0,20}\bfree\b", re.I)
+TASTE = re.compile(r"\b(try|taste|trial|sample)\b", re.I)
+SIMILAR_TITLES = 0.8
 
 FIXED_LENSES = [
     Lens(id="free_at_limit", name="Free user at a limit", kind="fixed", ledger_ids=[],
@@ -128,6 +134,11 @@ def ask_lens(ctx: Ctx, model: ProductModel, lens: Lens, system: str, budget: llm
 
 # ---------- code checks ----------
 
+def plain(text: str) -> str:
+    """Every run of whitespace, non-breaking spaces included, as one space (the rule PR 2's model stage uses)."""
+    return " ".join(text.split())
+
+
 def anchor_ids(model: ProductModel) -> set[str]:
     return ({i for m in model.mechanics if m.kind in ANCHOR_MECHANICS for i in m.evidence_ids}
             | {i for item in model.value_ledger if item.kind in ANCHOR_LEDGER for i in item.evidence_ids})
@@ -160,8 +171,16 @@ def resolve_ids(c: Candidate, model: ProductModel) -> tuple[Candidate, str]:
 def in_chat(placement: str) -> bool:
     # ponytail: keyword check per clause, skipping a clause whose negation sits right before the chat word
     # ("never shown in a chat"); recall belongs to the judge's brand-safety gate
-    clauses = re.split(r"[.;,()]", placement)
+    clauses = re.split(r"[.;,()]", plain(placement))
     return any(CHAT_PLACEMENT.search(c) and not NEGATED.search(c) for c in clauses)
+
+
+def free_offers(model: ProductModel) -> list[str]:
+    """What the app already gives away free (a free trial), read from its ledger and its paywall, limit,
+    currency, and entitlement evidence."""
+    elements = {e.id: e for s in model.states for e in s.elements}
+    texts = [plain(f"{elements[i].text} {elements[i].label}") for i in sorted(anchor_ids(model)) if i in elements]
+    return [t for t in texts + [plain(i.verbatim) for i in model.value_ledger] if FREE_OFFER.search(t)]
 
 
 def check(c: Candidate, model: ProductModel) -> str | None:
@@ -193,6 +212,13 @@ def check(c: Candidate, model: ProductModel) -> str | None:
         return "product_change removes or caps something free"
     if problem := economics.input_problem(c):
         return problem
+    if not c.after_reward.strip():
+        return "doesn't say what the user sees when the reward runs out"
+    # ponytail: a taste of a paid feature is what a free trial already is; code spots the trial and the idea's
+    # own "try / taste" framing by words, and the judge reads the meaning
+    offers = free_offers(model)
+    if offers and c.kind == "existing_anchor" and TASTE.search(plain(f"{c.title} {c.offer_copy}")):
+        return f'the app already offers this: "{offers[0]}"'
     if in_chat(c.placement):
         return "placement is inside a chat transcript, not app chrome"
     return None
@@ -222,7 +248,7 @@ def depths(model: ProductModel) -> dict[str, int]:
 def daily_cap(frequency_cap: str) -> int:
     # ponytail: reads "N per day" (or "N a day", "N/day", "N times a day") out of free text, else 1; durations
     # and clock times ("every 24 hours", "resets at 00:00") are ignored. A structured cap field would fix it.
-    match = re.search(r"(\d+)\s*(?:x\s*|times\s*)?(?:per|a|/|each)\s*day", frequency_cap, re.I)
+    match = re.search(r"(\d+)\s*(?:x\s*|times\s*)?(?:per|a|/|each)\s*day", plain(frequency_cap), re.I)
     return max(1, int(match.group(1))) if match else 1
 
 
@@ -238,6 +264,28 @@ def rank(c: Candidate, model: ProductModel, mode: str) -> Candidate:
     return c.model_copy(update={"reach_score": reach, "rank_score": round(score, 6)})
 
 
+def same_idea(a: Candidate, b: Candidate) -> bool:
+    if (a.trigger_state_id, a.reward.kind) == (b.trigger_state_id, b.reward.kind):
+        return True
+    return SequenceMatcher(None, plain(a.title).lower(), plain(b.title).lower()).ratio() >= SIMILAR_TITLES
+
+
+def dedupe(ranked: list[Candidate]) -> list[Candidate]:
+    """Takes live candidates best first. One that repeats a better-ranked one (same trigger screen and reward
+    kind, or a near-identical title) is dropped as its duplicate."""
+    out = []
+    for c in ranked:
+        twin = next((k for k in out if not k.dropped_reason and same_idea(k, c)), None)
+        out.append(c.model_copy(update={"dropped_reason": f"duplicate of {twin.id}"}) if twin else c)
+    return out
+
+
+def with_bucket(c: Candidate) -> Candidate:
+    if c.kind not in BUCKETS:
+        return c
+    return c.model_copy(update={"title": f"{BUCKETS[c.kind]}: {c.title}"})
+
+
 def finish(drafts: list[Candidate], model: ProductModel, mode: str) -> tuple[list[Candidate], dict[str, str]]:
     """Numbers the drafts, repairs near-miss ids, checks, prices, and ranks them. Returns the candidates (live
     first, best first; dropped ones kept with their reason) and the id repairs by candidate id."""
@@ -249,10 +297,12 @@ def finish(drafts: list[Candidate], model: ProductModel, mode: str) -> tuple[lis
         reason = f"no opportunity: {c.rationale}" if c.kind == "no_opportunity" else check(c, model)
         checked.append(c.model_copy(update={"dropped_reason": reason}))
     ranked = [rank(c, model, mode) for c in economics.apply(checked, model.app_category, mode)]
-    live = sorted((c for c in ranked if not c.dropped_reason), key=lambda c: -c.rank_score)
+    deduped = dedupe(sorted((c for c in ranked if not c.dropped_reason), key=lambda c: -c.rank_score))
+    live = [c for c in deduped if not c.dropped_reason]
     over = [c.model_copy(update={"dropped_reason": f"over the {MAX_CANDIDATES}-candidate cap"})
             for c in live[MAX_CANDIDATES:]]
-    return live[:MAX_CANDIDATES] + over + [c for c in ranked if c.dropped_reason], repairs
+    dropped = [c for c in deduped + ranked if c.dropped_reason]
+    return [with_bucket(c) for c in live[:MAX_CANDIDATES] + over + dropped], repairs
 
 
 # ---------- stage ----------
@@ -269,6 +319,7 @@ def exhibit(lenses: list[Lens], candidates: list[Candidate], repairs: dict[str, 
                   f"- {c.kind}, lens `{c.lens}`, trigger on `{c.trigger_state_id}`: {c.trigger_event}",
                   f"- Offer: {c.offer_copy}",
                   f"- Reward: {c.reward.amount:g} {c.reward.unit} ({c.reward.kind}, {c.reward.duration})",
+                  f"- When the reward ends: {c.after_reward}",
                   f"- Cost: {c.economics.assumption_line}",
                   f"- Reach scenario: {c.reach_score:g} (trigger depth x daily cap; not a measured audience)"]
     dropped = [c for c in candidates if c.dropped_reason]

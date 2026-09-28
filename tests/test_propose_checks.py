@@ -1,9 +1,9 @@
 import pytest
 
 from simula import llm
-from simula.contracts import CandidateDraft, LensOutput
+from simula.contracts import CandidateDraft, LedgerItem, LensOutput
 from simula.stages import Ctx, propose
-from simula.stages.propose import anchor_ids, check, daily_cap, depths, finish
+from simula.stages.propose import anchor_ids, check, daily_cap, depths, finish, free_offers, in_chat
 from tests.conftest import APPS
 from tests.propose_fixtures import anchored, candidate, golden, root
 
@@ -70,14 +70,68 @@ def test_made_up_ids_are_dropped(model):
     assert check(candidate(model, bible_mechanic="none"), model) is None
 
 
-def test_finish_numbers_prices_and_caps(model):
-    drafts = [candidate(model) for _ in range(11)] + [candidate(model, kind="no_opportunity", rationale="nothing")]
+def distinct(model):
+    return [candidate(model, title="A badge for a week", reward={"kind": "cosmetic", "unit": "badge", "amount": 1,
+                                                                 "duration": "7 days"}),
+            candidate(model, title="Keep your streak", reward={"kind": "streak_protection", "unit": "save",
+                                                                "amount": 1, "duration": "one missed day"}),
+            candidate(model, title="Faster replies for an hour", reward={"kind": "queue_priority", "unit": "hour",
+                                                                         "amount": 1, "duration": "1 hour"})]
+
+
+def test_finish_numbers_prices_labels_and_caps(model, monkeypatch):
+    monkeypatch.setattr(propose, "MAX_CANDIDATES", 2)
+    drafts = distinct(model) + [candidate(model, kind="no_opportunity", title="Nothing here", rationale="nothing")]
     out, _ = finish(drafts, model, "annotate")
     live = [c for c in out if not c.dropped_reason]
-    assert len(live) == 10 and all(c.economics and c.reach_score for c in live)
-    assert sorted(c.id for c in out) == [f"c{n:02d}" for n in range(1, 13)]
-    reasons = sorted(c.dropped_reason for c in out if c.dropped_reason)
-    assert reasons == ["no opportunity: nothing", "over the 10-candidate cap"]
+    assert len(live) == 2 and all(c.economics and c.reach_score for c in live)
+    assert sorted(c.id for c in out) == ["c01", "c02", "c03", "c04"]
+    assert sorted(c.dropped_reason for c in out if c.dropped_reason) == ["no opportunity: nothing",
+                                                                         "over the 2-candidate cap"]
+    assert all(c.title.startswith("Product change: ") for c in out if c.kind == "product_change")
+    assert next(c for c in out if c.kind == "no_opportunity").title == "Nothing here"
+
+
+def test_existing_opportunity_label(model):
+    if not anchor_ids(model):
+        pytest.skip("no anchor to cite")
+    [out], _ = finish([anchored(model, title="Unlock one more for 3 days")], model, "annotate")
+    assert out.title == "Existing opportunity: Unlock one more for 3 days"
+
+
+def test_duplicates_keep_the_better_ranked_one(model):
+    same_moment = [candidate(model, title="A badge"),
+                   candidate(model, title="A different badge story", frequency_cap="3 per day")]
+    out, _ = finish(same_moment + distinct(model)[1:], model, "annotate")
+    by_id = {c.id: c for c in out}
+    assert by_id["c01"].dropped_reason == "duplicate of c02" and by_id["c02"].dropped_reason is None
+    similar = [distinct(model)[0], candidate(model, title="A badge for a week!",
+                                             reward={"kind": "streak_protection", "unit": "save", "amount": 1,
+                                                     "duration": "a day"})]
+    assert [c.dropped_reason for c in finish(similar, model, "annotate")[0]] == [None, "duplicate of c01"]
+    assert all(c.dropped_reason is None for c in finish(distinct(model), model, "annotate")[0])
+
+
+def test_no_after_reward_is_dropped(model):
+    assert "runs out" in check(candidate(model, after_reward="  "), model)
+
+
+def test_a_taste_of_what_a_free_trial_already_gives_is_dropped(model):
+    if not anchor_ids(model):
+        pytest.skip("no anchor to cite")
+    trial = LedgerItem(id="t1", kind="paywall_bullet", verbatim="Start\xa07-day free trial", evidence_ids=[])
+    with_trial = model.model_copy(update={"value_ledger": model.value_ledger + [trial]})
+    taste = anchored(model, title="Try the paid feature for a day")
+    assert "already offers this" in check(taste, with_trial)
+    assert check(anchored(model, title="One more slot for 3 days"), with_trial) is None
+    assert check(candidate(model, title="Try a new theme"), with_trial) is None
+    if not free_offers(model):
+        assert check(taste, model) is None
+
+
+def test_non_breaking_spaces_are_plain_spaces():
+    assert in_chat("Inside\xa0the chat\xa0transcript")
+    assert daily_cap("3\xa0per\xa0day") == 3
 
 
 def test_reach_follows_the_trigger_depth(model):
