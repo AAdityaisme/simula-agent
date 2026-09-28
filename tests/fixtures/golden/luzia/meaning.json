@@ -30,20 +30,26 @@
   },
   {
    "id": "s03",
-   "screen": "06-settings",
    "kind": "screen",
    "name": "Settings",
    "in_mock_scope": true,
-   "purpose": "Upgrade banner (opens the paywall), memories, preferences, support, account. Screenshot only: the tree capture skipped it because it shows the account identity."
+   "purpose": "Upgrade to Luzia+ row (opens the paywall), memories, preferences (language, theme, offline model, pet and haptics toggles), support, account.",
+   "tree": "luzia-settings",
+   "labels": {
+    "@e28": "Back button"
+   },
+   "roles": {
+    "@e28": "icon button"
+   }
   },
   {
    "id": "s04",
-   "screen": "04-toki-pet-modal",
    "kind": "modal",
    "parent": "s01",
    "name": "Virtual pet intro",
    "in_mock_scope": true,
-   "purpose": "Onboarding modal for the virtual pet; appeared unprompted. Screenshot only."
+   "purpose": "Onboarding modal for the virtual pet over home: Meet me / Later, and a note that the pet can be turned off in Settings. Opened from the home pet banner (it also appeared unprompted once).",
+   "tree": "luzia-pet-intro"
   },
   {
    "id": "s05",
@@ -81,6 +87,14 @@
   },
   {
    "from": [
+    "s03",
+    "@e33"
+   ],
+   "to": "s02",
+   "summary": "settings upgrade row opens the paywall"
+  },
+  {
+   "from": [
     "s01",
     "@e33"
    ],
@@ -110,6 +124,14 @@
    ],
    "to": "s07",
    "summary": "opens the recent chat"
+  },
+  {
+   "from": [
+    "s01",
+    "Meet Toki"
+   ],
+   "to": "s04",
+   "summary": "pet banner opens the pet intro"
   }
  ],
  "mechanics": [
@@ -120,6 +142,10 @@
     [
      "s01",
      "Try Luzia"
+    ],
+    [
+     "s03",
+     "@e33"
     ],
     [
      "s02",
@@ -170,7 +196,7 @@
     "3-day",
     "5"
    ],
-   "summary": "Luzia+ subscription: a home badge opens a paywall listing six features, three plans (Weekly $1.99, Monthly $4.99 marked Most popular, Annual $39.99) and a 3-day free trial."
+   "summary": "Luzia+ subscription with two entry points (the home badge and the Upgrade to Luzia+ row in Settings); the paywall lists six features, three plans (Weekly $1.99, Monthly $4.99 marked Most popular, Annual $39.99) and a 3-day free trial."
   },
   {
    "id": "m02",
