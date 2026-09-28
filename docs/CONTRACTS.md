@@ -100,7 +100,7 @@ runs/<app>/latest -> <run_id>
 
 ## 5. Schemas a model fills
 
-`MODEL_FACING` in `contracts.py`: `ModelMeaning`, `IconPass`, `HardScreenAction`, `Critique`, `Edits`, `LensOutput`, `Verdict`, `PairwisePick`.
+`MODEL_FACING` in `contracts.py`: `ModelMeaning`, `IconPass`, `HardScreenAction`, `Critique`, `Edits`, `LensOutput`, `BenefitNames`, `Verdict`, `PairwisePick`.
 
 - No `dict` fields and no recursion. The Anthropic SDK turns a dict field into an object that can only be `{}`, and pydantic still accepts it, so a dict-shaped verdict would pass everything. `tests/test_schema_gate.py` checks both SDKs.
 - At most 4 levels of nesting; `extra="forbid"`.
@@ -122,7 +122,7 @@ Code writes every number and id; a model writes meaning keyed by ids code gave i
 | Edge | everything, including `transition` (closing a modal → back, opening a modal or sheet → modal, a tab tap → tab, BACK → back, root replaced → replace, else push) | nothing |
 | Flow | validates that every edge id exists and the hops connect | id, name, purpose, edge_ids, evidence_ids |
 | LedgerItem | checks `verbatim` string-matches its evidence element's text | everything else |
-| Candidate | economics, reach_score, rank_score, dropped_reason. The economics cost term comes from `reward.kind`; `app_category` only breaks ties | everything in CandidateDraft |
+| Candidate | id (`c01`, `c02`, … in draft order), the bucket prefix in `title` (`Existing opportunity: ` or `Product change: `), economics, reach_score, rank_score, dropped_reason. The economics cost term comes from `reward.kind`; `app_category` only breaks ties | everything else in CandidateDraft |
 | Verdict | nothing | every check, `other_concern`, `fixable` |
 | Decision | everything. `checks_total` = the 11 LLM-judged checks (5 gates + 6 judgment checks); `checks_passed` counts a check only when every judge that ran passed it | nothing |
 

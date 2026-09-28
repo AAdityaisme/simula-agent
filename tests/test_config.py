@@ -5,6 +5,7 @@ import tomllib
 import pytest
 
 from simula import config
+from simula.stages import ROLES
 
 APP_FILES = sorted((config.CONFIG / "apps").glob("*.toml"))
 
@@ -45,3 +46,9 @@ def test_doctor_probes_every_role_at_its_real_settings():
     assert ("gpt-6-luna", "high", 4096) in probes
     probed_roles = {role.removesuffix(" fallback") for roles in probes.values() for role in roles}
     assert set(config.roles("real")) - {"jev"} <= probed_roles
+
+
+def test_every_role_belongs_to_a_stage_so_changing_it_reruns_that_stage():
+    staged = {role for roles in ROLES.values() for role in roles}
+    for profile in ("real", "dev"):
+        assert set(config.roles(profile)) == staged

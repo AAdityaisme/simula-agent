@@ -25,7 +25,7 @@ ROLES = {
     "model": ["model_meaning"],
     "mock": ["mock_builder"],
     "qa": ["qa_critic", "qa_fixer"],
-    "propose": ["proposer"],
+    "propose": ["proposer", "propose_dedupe"],
     "judge": ["judge_1", "judge_2", "pairwise", "proposer"],
     "flows": ["flows_editor"],
 }

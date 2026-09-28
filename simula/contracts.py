@@ -311,6 +311,16 @@ class LensOutput(Strict):
     candidates: list[CandidateDraft]
 
 
+class BenefitName(Strict):
+    id: str
+    benefit: str
+    part_of: str | None
+
+
+class BenefitNames(Strict):
+    ideas: list[BenefitName]
+
+
 class Economics(Strict):
     cost_2k: float
     cost_8k: float
@@ -548,5 +558,5 @@ class Manifest(Strict):
     fallbacks_used: list[str] = []
 
 
-MODEL_FACING = [ModelMeaning, IconPass, HardScreenAction, Critique, Edits, LensOutput, Verdict,
+MODEL_FACING = [ModelMeaning, IconPass, HardScreenAction, Critique, Edits, LensOutput, BenefitNames, Verdict,
                 PairwisePick]

@@ -9,8 +9,8 @@ from string import Template
 
 from simula import config, economics, llm
 from simula.config import ROOT
-from simula.contracts import (Candidate, CandidatesFile, LedgerItem, Lens, LensesFile, LensOutput, ProductModel,
-                              Strict)
+from simula.contracts import (BenefitNames, Candidate, CandidatesFile, LedgerItem, Lens, LensesFile, LensOutput,
+                              ProductModel)
 from simula.runfolder import write_json_atomic
 from simula.runlog import run_trace, write_exhibit
 from simula.stages import Ctx
@@ -288,16 +288,6 @@ def rank(c: Candidate, model: ProductModel, mode: str) -> Candidate:
     if mode == "gate":
         score = reach * (c.economics.benchmark_ecpm - c.economics.breakeven_ecpm_2k) / 1000
     return c.model_copy(update={"reach_score": reach, "rank_score": round(score, 6)})
-
-
-class BenefitName(Strict):
-    id: str
-    benefit: str
-    part_of: str | None
-
-
-class BenefitNames(Strict):
-    ideas: list[BenefitName]
 
 
 def ideas_text(live: list[Candidate]) -> str:
