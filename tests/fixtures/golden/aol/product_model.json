@@ -2118,790 +2118,6 @@
    "elements": [
     {
      "id": "s02.e01",
-     "mcp_ref": "@e30",
-     "type": "TextView",
-     "text": "Good Housekeeping",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": -1027.0,
-      "y": 317.0,
-      "w": 295.0,
-      "h": 38.0
-     },
-     "rect_dp": {
-      "x": -391.24,
-      "y": 68.95,
-      "w": 112.38,
-      "h": 14.48
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": "#6e7780",
-     "bg_hex": "#ffffff",
-     "font_px": 38.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e02",
-     "mcp_ref": "@e31",
-     "type": "TextView",
-     "text": "FDA Announces New Nationwide Blood Pressure Medication Recall",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": -1027.0,
-      "y": 355.0,
-      "w": 974.0,
-      "h": 246.0
-     },
-     "rect_dp": {
-      "x": -391.24,
-      "y": 83.43,
-      "w": 371.05,
-      "h": 93.71
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": "#232a31",
-     "bg_hex": "#ffffff",
-     "font_px": 246.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e03",
-     "mcp_ref": "@e32",
-     "type": "TextView",
-     "text": "Lisa Mulcahy",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": -1027.0,
-      "y": 602.0,
-      "w": 216.0,
-      "h": 96.0
-     },
-     "rect_dp": {
-      "x": -391.24,
-      "y": 177.52,
-      "w": 82.29,
-      "h": 36.57
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": "#232a31",
-     "bg_hex": "#ffffff",
-     "font_px": 96.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e04",
-     "mcp_ref": "@e33",
-     "type": "TextView",
-     "text": "Sep. 27, 2026 10:06 AM PT",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": -1027.0,
-      "y": 698.0,
-      "w": 377.0,
-      "h": 38.0
-     },
-     "rect_dp": {
-      "x": -391.24,
-      "y": 214.1,
-      "w": 143.62,
-      "h": 14.48
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": "#6e7780",
-     "bg_hex": "#ffffff",
-     "font_px": 38.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e05",
-     "mcp_ref": "@e34",
-     "type": "View",
-     "text": "",
-     "label": "Image for Taboola Advertising Unit",
-     "source": "mcp",
-     "rect_px": {
-      "x": -1028.0,
-      "y": 778.0,
-      "w": 220.0,
-      "h": 223.0
-     },
-     "rect_dp": {
-      "x": -391.62,
-      "y": 244.57,
-      "w": 83.81,
-      "h": 84.95
-     },
-     "role": "container",
-     "asset_png": null,
-     "fg_hex": "#94b6b8",
-     "bg_hex": "#e0f4f5",
-     "font_px": null,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e06",
-     "mcp_ref": "@e35",
-     "type": "Image",
-     "text": "Image for Taboola Advertising Unit",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": -997.0,
-      "y": 809.0,
-      "w": 160.0,
-      "h": 160.0
-     },
-     "rect_dp": {
-      "x": -379.81,
-      "y": 256.38,
-      "w": 60.95,
-      "h": 60.95
-     },
-     "role": "container",
-     "asset_png": null,
-     "fg_hex": "#8dacb0",
-     "bg_hex": "#b7d4d6",
-     "font_px": null,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e07",
-     "mcp_ref": "@e36",
-     "type": "View",
-     "text": "",
-     "label": "These CD Rates Are Beating Most Savings Accounts Today NerdWallet in Taboola advertising section · Sponsored: learn about this recommendation (opens dialog)",
-     "source": "mcp",
-     "rect_px": {
-      "x": -813.0,
-      "y": 778.0,
-      "w": 758.0,
-      "h": 223.0
-     },
-     "rect_dp": {
-      "x": -309.71,
-      "y": 244.57,
-      "w": 288.76,
-      "h": 84.95
-     },
-     "role": "container",
-     "asset_png": null,
-     "fg_hex": "#232a31",
-     "bg_hex": "#ffffff",
-     "font_px": null,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e08",
-     "mcp_ref": "@e37",
-     "type": "View",
-     "text": "",
-     "label": "These CD Rates Are Beating Most Savings Accounts Today",
-     "source": "mcp",
-     "rect_px": {
-      "x": -813.0,
-      "y": 809.0,
-      "w": 727.0,
-      "h": 87.0
-     },
-     "rect_dp": {
-      "x": -309.71,
-      "y": 256.38,
-      "w": 276.95,
-      "h": 33.14
-     },
-     "role": "container",
-     "asset_png": null,
-     "fg_hex": "#232a31",
-     "bg_hex": "#ffffff",
-     "font_px": null,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e09",
-     "mcp_ref": "@e38",
-     "type": "TextView",
-     "text": "These CD Rates Are Beating Most Savings Accounts Today",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": -813.0,
-      "y": 806.0,
-      "w": 598.0,
-      "h": 92.0
-     },
-     "rect_dp": {
-      "x": -309.71,
-      "y": 255.24,
-      "w": 227.81,
-      "h": 35.05
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": "#232a31",
-     "bg_hex": "#ffffff",
-     "font_px": 92.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e10",
-     "mcp_ref": "@e39",
-     "type": "View",
-     "text": "",
-     "label": "NerdWallet in Taboola advertising section",
-     "source": "mcp",
-     "rect_px": {
-      "x": -745.0,
-      "y": 930.0,
-      "w": 163.0,
-      "h": 39.0
-     },
-     "rect_dp": {
-      "x": -283.81,
-      "y": 302.48,
-      "w": 62.1,
-      "h": 14.86
-     },
-     "role": "container",
-     "asset_png": null,
-     "fg_hex": "#828c93",
-     "bg_hex": "#ffffff",
-     "font_px": null,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e11",
-     "mcp_ref": "@e40",
-     "type": "TextView",
-     "text": "NerdWallet",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": -745.0,
-      "y": 930.0,
-      "w": 163.0,
-      "h": 42.0
-     },
-     "rect_dp": {
-      "x": -283.81,
-      "y": 302.48,
-      "w": 62.1,
-      "h": 16.0
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": "#828c93",
-     "bg_hex": "#ffffff",
-     "font_px": 42.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e12",
-     "mcp_ref": "@e41",
-     "type": "TextView",
-     "text": "·",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": -763.0,
-      "y": 930.0,
-      "w": 10.0,
-      "h": 42.0
-     },
-     "rect_dp": {
-      "x": -290.67,
-      "y": 302.48,
-      "w": 3.81,
-      "h": 16.0
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": null,
-     "bg_hex": "#ffffff",
-     "font_px": 42.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e13",
-     "mcp_ref": "@e42",
-     "type": "View",
-     "text": "",
-     "label": "Sponsored: learn about this recommendation (opens dialog)",
-     "source": "mcp",
-     "rect_px": {
-      "x": -813.0,
-      "y": 938.0,
-      "w": 44.0,
-      "h": 39.0
-     },
-     "rect_dp": {
-      "x": -309.71,
-      "y": 305.52,
-      "w": 16.76,
-      "h": 14.86
-     },
-     "role": "container",
-     "asset_png": null,
-     "fg_hex": "#828c93",
-     "bg_hex": "#ffffff",
-     "font_px": null,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e14",
-     "mcp_ref": "@e43",
-     "type": "TextView",
-     "text": "Ad",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": -813.0,
-      "y": 930.0,
-      "w": 44.0,
-      "h": 42.0
-     },
-     "rect_dp": {
-      "x": -309.71,
-      "y": 302.48,
-      "w": 16.76,
-      "h": 16.0
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": "#828c93",
-     "bg_hex": "#ffffff",
-     "font_px": 42.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e15",
-     "mcp_ref": "@e44",
-     "type": "View",
-     "text": "",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": -196.0,
-      "y": 881.0,
-      "w": 126.0,
-      "h": 125.0
-     },
-     "rect_dp": {
-      "x": -74.67,
-      "y": 283.81,
-      "w": 48.0,
-      "h": 47.62
-     },
-     "role": "container",
-     "asset_png": "assets/s02.e15.png",
-     "fg_hex": "#656e76",
-     "bg_hex": "#ffffff",
-     "font_px": null,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e16",
-     "mcp_ref": "@e45",
-     "type": "View",
-     "text": "",
-     "label": "More options",
-     "source": "mcp",
-     "rect_px": {
-      "x": -160.0,
-      "y": 917.0,
-      "w": 53.0,
-      "h": 53.0
-     },
-     "rect_dp": {
-      "x": -60.95,
-      "y": 297.52,
-      "w": 20.19,
-      "h": 20.19
-     },
-     "role": "container",
-     "asset_png": null,
-     "fg_hex": "#656e76",
-     "bg_hex": "#ffffff",
-     "font_px": null,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e17",
-     "mcp_ref": "@e46",
-     "type": "TextView",
-     "text": "New Nationwide Blood Pressure Medication RecallGetty Images",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": -1028.0,
-      "y": 1554.0,
-      "w": 979.0,
-      "h": 61.0
-     },
-     "rect_dp": {
-      "x": -391.62,
-      "y": 540.19,
-      "w": 372.95,
-      "h": 23.24
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": "#b57828",
-     "bg_hex": "#b3651e",
-     "font_px": 61.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e18",
-     "mcp_ref": "@e47",
-     "type": "TextView",
-     "text": "If you take blood pressure medication—or know someone who does—there’s a new recall you’ll want to know about.",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": -1028.0,
-      "y": 1643.0,
-      "w": 979.0,
-      "h": 195.0
-     },
-     "rect_dp": {
-      "x": -391.62,
-      "y": 574.1,
-      "w": 372.95,
-      "h": 74.29
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": "#6f3411",
-     "bg_hex": "#ffffff",
-     "font_px": 195.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e19",
-     "mcp_ref": "@e48",
-     "type": "TextView",
-     "text": "Inventia Healthcare first recalled certain lots of chlorthalidone tablets, which are used to treat high blood pressure, ",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": -1028.0,
-      "y": 1872.0,
-      "w": 887.0,
-      "h": 176.0
-     },
-     "rect_dp": {
-      "x": -391.62,
-      "y": 661.33,
-      "w": 337.9,
-      "h": 67.05
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": "#1d373c",
-     "bg_hex": "#ffffff",
-     "font_px": 176.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e20",
-     "mcp_ref": "@e49",
-     "type": "View",
-     "text": "",
-     "label": "back in June",
-     "source": "mcp",
-     "rect_px": {
-      "x": -750.0,
-      "y": 1998.0,
-      "w": 218.0,
-      "h": 50.0
-     },
-     "rect_dp": {
-      "x": -285.71,
-      "y": 709.33,
-      "w": 83.05,
-      "h": 19.05
-     },
-     "role": "container",
-     "asset_png": null,
-     "fg_hex": "#1d69ff",
-     "bg_hex": "#ffffff",
-     "font_px": null,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e21",
-     "mcp_ref": "@e50",
-     "type": "TextView",
-     "text": "back in June",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": -750.0,
-      "y": 1998.0,
-      "w": 218.0,
-      "h": 50.0
-     },
-     "rect_dp": {
-      "x": -285.71,
-      "y": 709.33,
-      "w": 83.05,
-      "h": 19.05
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": "#1d69ff",
-     "bg_hex": "#ffffff",
-     "font_px": 50.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e22",
-     "mcp_ref": "@e51",
-     "type": "TextView",
-     "text": " . ",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": -535.0,
-      "y": 1998.0,
-      "w": 26.0,
-      "h": 50.0
-     },
-     "rect_dp": {
-      "x": -203.81,
-      "y": 709.33,
-      "w": 9.9,
-      "h": 19.05
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": "#0f69ff",
-     "bg_hex": "#ffffff",
-     "font_px": 50.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e23",
-     "mcp_ref": "@e52",
-     "type": "View",
-     "text": "Then, on September 3, the company initiated a separate recall involving an additional lot of the medication.",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": -1028.0,
-      "y": 1998.0,
-      "w": 924.0,
-      "h": 176.0
-     },
-     "rect_dp": {
-      "x": -391.62,
-      "y": 709.33,
-      "w": 352.0,
-      "h": 67.05
-     },
-     "role": "container",
-     "asset_png": null,
-     "fg_hex": "#1d696f",
-     "bg_hex": "#ffffff",
-     "font_px": null,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e24",
-     "mcp_ref": "@e53",
-     "type": "TextView",
-     "text": " On September 17, ",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": -461.0,
-      "y": 2124.0,
-      "w": 328.0,
-      "h": 50.0
-     },
-     "rect_dp": {
-      "x": -175.62,
-      "y": 757.33,
-      "w": 124.95,
-      "h": 19.05
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": "#1d2228",
-     "bg_hex": "#ffffff",
-     "font_px": 50.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e25",
-     "mcp_ref": "@e54",
-     "type": "View",
-     "text": "",
-     "label": "the FDA classified the September recall as Class II",
-     "source": "mcp",
-     "rect_px": {
-      "x": -1028.0,
-      "y": 2124.0,
-      "w": 952.0,
-      "h": 113.0
-     },
-     "rect_dp": {
-      "x": -391.62,
-      "y": 757.33,
-      "w": 362.67,
-      "h": 43.05
-     },
-     "role": "container",
-     "asset_png": null,
-     "fg_hex": "#1d2228",
-     "bg_hex": "#ffffff",
-     "font_px": null,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e26",
-     "mcp_ref": "@e55",
-     "type": "TextView",
-     "text": "the FDA classified the September recall as Class II",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": -1028.0,
-      "y": 2124.0,
-      "w": 952.0,
-      "h": 113.0
-     },
-     "rect_dp": {
-      "x": -391.62,
-      "y": 757.33,
-      "w": 362.67,
-      "h": 43.05
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": "#1d2228",
-     "bg_hex": "#ffffff",
-     "font_px": 113.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e27",
-     "mcp_ref": "@e56",
-     "type": "TextView",
-     "text": " . (The June recall has also been classified as Class II).",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": -1028.0,
-      "y": 2187.0,
-      "w": 903.0,
-      "h": 113.0
-     },
-     "rect_dp": {
-      "x": -391.62,
-      "y": 781.33,
-      "w": 344.0,
-      "h": 43.05
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": "#232a31",
-     "bg_hex": "#ffffff",
-     "font_px": 113.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e28",
-     "mcp_ref": "@e57",
-     "type": "TextView",
-     "text": "Chlorthalidone is a diuretic, or “water pill,” that makes your kidneys shed excess water and salt. This helps lower high blood pressure and reduce water retention, lessening your chances of organ damage that could cause heart attack, heart disease, heart failure, stroke, kidney damage, or damage to your eyes that could impact your vision.",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": -1028.0,
-      "y": 2336.0,
-      "w": 979.0,
-      "h": 447.0
-     },
-     "rect_dp": {
-      "x": -391.62,
-      "y": 838.1,
-      "w": 372.95,
-      "h": 170.29
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": "#646464",
-     "bg_hex": "#fafafa",
-     "font_px": 447.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e29",
      "mcp_ref": "@e110",
      "type": "LinearLayout",
      "text": "",
@@ -2929,7 +2145,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e30",
+     "id": "s02.e02",
      "mcp_ref": "@e111",
      "type": "ComposeView",
      "text": "",
@@ -2948,7 +2164,7 @@
       "h": 175.62
      },
      "role": "container",
-     "asset_png": "assets/s02.e30.png",
+     "asset_png": "assets/s02.e02.png",
      "fg_hex": "#232a31",
      "bg_hex": "#ffffff",
      "font_px": null,
@@ -2957,7 +2173,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e31",
+     "id": "s02.e03",
      "mcp_ref": "@e112",
      "type": "TextView",
      "text": "USA TODAY",
@@ -2985,7 +2201,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e32",
+     "id": "s02.e04",
      "mcp_ref": "@e113",
      "type": "TextView",
      "text": "When to set your clocks back. The 2026 daylight saving time start, end",
@@ -3013,7 +2229,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e33",
+     "id": "s02.e05",
      "mcp_ref": "@e114",
      "type": "TextView",
      "text": "Maria Francis, USA TODAY NETWORK",
@@ -3041,7 +2257,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e34",
+     "id": "s02.e06",
      "mcp_ref": "@e115",
      "type": "TextView",
      "text": "Sep. 27, 2026 12:38 PM PT",
@@ -3069,7 +2285,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e35",
+     "id": "s02.e07",
      "mcp_ref": "@e116",
      "type": "ComposeView",
      "text": "",
@@ -3088,7 +2304,7 @@
       "h": 86.86
      },
      "role": "container",
-     "asset_png": "assets/s02.e35.png",
+     "asset_png": "assets/s02.e07.png",
      "fg_hex": "#8ca5a8",
      "bg_hex": "#ffffff",
      "font_px": null,
@@ -3097,7 +2313,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e36",
+     "id": "s02.e08",
      "mcp_ref": "@e117",
      "type": "ViewGroup",
      "text": "",
@@ -3116,7 +2332,7 @@
       "h": 86.86
      },
      "role": "container",
-     "asset_png": "assets/s02.e36.png",
+     "asset_png": "assets/s02.e08.png",
      "fg_hex": "#8ca5a8",
      "bg_hex": "#ffffff",
      "font_px": null,
@@ -3125,7 +2341,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e37",
+     "id": "s02.e09",
      "mcp_ref": "@e118",
      "type": "FrameLayout",
      "text": "",
@@ -3144,7 +2360,7 @@
       "h": 86.86
      },
      "role": "container",
-     "asset_png": "assets/s02.e37.png",
+     "asset_png": "assets/s02.e09.png",
      "fg_hex": "#8ca5a8",
      "bg_hex": "#ffffff",
      "font_px": null,
@@ -3153,7 +2369,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e38",
+     "id": "s02.e10",
      "mcp_ref": "@e119",
      "type": "FrameLayout",
      "text": "",
@@ -3172,7 +2388,7 @@
       "h": 86.86
      },
      "role": "container",
-     "asset_png": "assets/s02.e38.png",
+     "asset_png": "assets/s02.e10.png",
      "fg_hex": "#8ca5a8",
      "bg_hex": "#ffffff",
      "font_px": null,
@@ -3181,7 +2397,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e39",
+     "id": "s02.e11",
      "mcp_ref": "@e120",
      "type": "View",
      "text": "",
@@ -3209,7 +2425,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e40",
+     "id": "s02.e12",
      "mcp_ref": "@e121",
      "type": "Image",
      "text": "Image for Taboola Advertising Unit",
@@ -3237,7 +2453,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e41",
+     "id": "s02.e13",
      "mcp_ref": "@e122",
      "type": "View",
      "text": "",
@@ -3265,7 +2481,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e42",
+     "id": "s02.e14",
      "mcp_ref": "@e123",
      "type": "View",
      "text": "",
@@ -3293,7 +2509,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e43",
+     "id": "s02.e15",
      "mcp_ref": "@e124",
      "type": "TextView",
      "text": "These CD Rates Are Beating Most Savings Accounts Today",
@@ -3321,7 +2537,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e44",
+     "id": "s02.e16",
      "mcp_ref": "@e125",
      "type": "View",
      "text": "",
@@ -3349,7 +2565,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e45",
+     "id": "s02.e17",
      "mcp_ref": "@e126",
      "type": "TextView",
      "text": "NerdWallet",
@@ -3377,7 +2593,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e46",
+     "id": "s02.e18",
      "mcp_ref": "@e127",
      "type": "TextView",
      "text": "·",
@@ -3405,7 +2621,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e47",
+     "id": "s02.e19",
      "mcp_ref": "@e128",
      "type": "View",
      "text": "",
@@ -3433,7 +2649,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e48",
+     "id": "s02.e20",
      "mcp_ref": "@e129",
      "type": "TextView",
      "text": "Ad",
@@ -3461,7 +2677,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e49",
+     "id": "s02.e21",
      "mcp_ref": "@e130",
      "type": "View",
      "text": "",
@@ -3480,7 +2696,7 @@
       "h": 47.62
      },
      "role": "container",
-     "asset_png": "assets/s02.e49.png",
+     "asset_png": "assets/s02.e21.png",
      "fg_hex": "#656e76",
      "bg_hex": "#ffffff",
      "font_px": null,
@@ -3489,7 +2705,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e50",
+     "id": "s02.e22",
      "mcp_ref": "@e131",
      "type": "View",
      "text": "",
@@ -3517,7 +2733,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e51",
+     "id": "s02.e23",
      "mcp_ref": "@e132",
      "type": "TextView",
      "text": "The ",
@@ -3545,7 +2761,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e52",
+     "id": "s02.e24",
      "mcp_ref": "@e133",
      "type": "View",
      "text": "",
@@ -3573,7 +2789,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e53",
+     "id": "s02.e25",
      "mcp_ref": "@e134",
      "type": "TextView",
      "text": "autumn equinox",
@@ -3601,7 +2817,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e54",
+     "id": "s02.e26",
      "mcp_ref": "@e135",
      "type": "TextView",
      "text": " arrived this past week, bringing shorter days, earlier ",
@@ -3629,7 +2845,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e55",
+     "id": "s02.e27",
      "mcp_ref": "@e136",
      "type": "View",
      "text": "",
@@ -3657,7 +2873,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e56",
+     "id": "s02.e28",
      "mcp_ref": "@e137",
      "type": "TextView",
      "text": "sunsets",
@@ -3685,7 +2901,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e57",
+     "id": "s02.e29",
      "mcp_ref": "@e138",
      "type": "TextView",
      "text": " and a reminder that another clock change is approaching. Americans are still scheduled to turn their clocks back one hour on Sunday, Nov. 1, when ",
@@ -3713,7 +2929,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e58",
+     "id": "s02.e30",
      "mcp_ref": "@e139",
      "type": "View",
      "text": "",
@@ -3741,7 +2957,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e59",
+     "id": "s02.e31",
      "mcp_ref": "@e140",
      "type": "TextView",
      "text": "daylight saving time ends",
@@ -3769,7 +2985,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e60",
+     "id": "s02.e32",
      "mcp_ref": "@e141",
      "type": "TextView",
      "text": " across most of the country.",
@@ -3797,7 +3013,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e61",
+     "id": "s02.e33",
      "mcp_ref": "@e142",
      "type": "TextView",
      "text": "That timeline has taken on new urgency as Congress continues debating whether to make ",
@@ -3825,7 +3041,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e62",
+     "id": "s02.e34",
      "mcp_ref": "@e143",
      "type": "View",
      "text": "",
@@ -3853,7 +3069,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e63",
+     "id": "s02.e35",
      "mcp_ref": "@e144",
      "type": "TextView",
      "text": "daylight saving time permanent",
@@ -3881,7 +3097,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e64",
+     "id": "s02.e36",
      "mcp_ref": "@e145",
      "type": "TextView",
      "text": " . The House passed the ",
@@ -3909,7 +3125,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e65",
+     "id": "s02.e37",
      "mcp_ref": "@e146",
      "type": "View",
      "text": "",
@@ -3937,7 +3153,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e66",
+     "id": "s02.e38",
      "mcp_ref": "@e147",
      "type": "TextView",
      "text": "Sunshine Protection Act",
@@ -3965,7 +3181,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e67",
+     "id": "s02.e39",
      "mcp_ref": "@e227",
      "type": "ImageView",
      "text": "",
@@ -3984,7 +3200,7 @@
       "h": 32.0
      },
      "role": "image",
-     "asset_png": "assets/s02.e67.png",
+     "asset_png": "assets/s02.e39.png",
      "fg_hex": "#000000",
      "bg_hex": "#ffffff",
      "font_px": null,
@@ -3993,7 +3209,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e68",
+     "id": "s02.e40",
      "mcp_ref": "@e228",
      "type": "ViewGroup",
      "text": "",
@@ -4012,7 +3228,7 @@
       "h": 56.0
      },
      "role": "container",
-     "asset_png": "assets/s02.e68.png",
+     "asset_png": "assets/s02.e40.png",
      "fg_hex": "#232a31",
      "bg_hex": "#ffffff",
      "font_px": null,
@@ -4021,7 +3237,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e69",
+     "id": "s02.e41",
      "mcp_ref": "@e229",
      "type": "ViewGroup",
      "text": "",
@@ -4040,7 +3256,7 @@
       "h": 56.0
      },
      "role": "container",
-     "asset_png": "assets/s02.e69.png",
+     "asset_png": "assets/s02.e41.png",
      "fg_hex": "#232a31",
      "bg_hex": "#ffffff",
      "font_px": null,
@@ -4049,7 +3265,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e70",
+     "id": "s02.e42",
      "mcp_ref": "@e230",
      "type": "View",
      "text": "",
@@ -4077,7 +3293,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e71",
+     "id": "s02.e43",
      "mcp_ref": "@e231",
      "type": "ImageView",
      "text": "",
@@ -4096,7 +3312,7 @@
       "h": 24.0
      },
      "role": "image",
-     "asset_png": "assets/s02.e71.png",
+     "asset_png": "assets/s02.e43.png",
      "fg_hex": "#232a31",
      "bg_hex": "#ffffff",
      "font_px": null,
@@ -4105,7 +3321,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e72",
+     "id": "s02.e44",
      "mcp_ref": "@e232",
      "type": "ImageView",
      "text": "",
@@ -4124,7 +3340,7 @@
       "h": 24.0
      },
      "role": "image",
-     "asset_png": "assets/s02.e72.png",
+     "asset_png": "assets/s02.e44.png",
      "fg_hex": "#232a31",
      "bg_hex": "#ffffff",
      "font_px": null,
@@ -4133,7 +3349,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e73",
+     "id": "s02.e45",
      "mcp_ref": "@e233",
      "type": "ImageView",
      "text": "",
@@ -4152,7 +3368,7 @@
       "h": 24.0
      },
      "role": "image",
-     "asset_png": "assets/s02.e73.png",
+     "asset_png": "assets/s02.e45.png",
      "fg_hex": "#232a31",
      "bg_hex": "#ffffff",
      "font_px": null,
@@ -4161,7 +3377,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e74",
+     "id": "s02.e46",
      "mcp_ref": "@e234",
      "type": "ImageView",
      "text": "",
@@ -4180,7 +3396,7 @@
       "h": 24.0
      },
      "role": "image",
-     "asset_png": "assets/s02.e74.png",
+     "asset_png": "assets/s02.e46.png",
      "fg_hex": "#232a31",
      "bg_hex": "#ffffff",
      "font_px": null,
@@ -4189,7 +3405,7 @@
      "repeat_group": null
     },
     {
-     "id": "s02.e75",
+     "id": "s02.e47",
      "mcp_ref": "@e235",
      "type": "ImageView",
      "text": "",
@@ -4208,598 +3424,10 @@
       "h": 24.0
      },
      "role": "image",
-     "asset_png": "assets/s02.e75.png",
+     "asset_png": "assets/s02.e47.png",
      "fg_hex": "#232a31",
      "bg_hex": "#ffffff",
      "font_px": null,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e76",
-     "mcp_ref": "@e236",
-     "type": "TextView",
-     "text": "Men's Journal",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": 1133.0,
-      "y": 317.0,
-      "w": 192.0,
-      "h": 38.0
-     },
-     "rect_dp": {
-      "x": 431.62,
-      "y": 68.95,
-      "w": 73.14,
-      "h": 14.48
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": null,
-     "bg_hex": null,
-     "font_px": 38.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e77",
-     "mcp_ref": "@e237",
-     "type": "TextView",
-     "text": "USPS Quietly Announces Major Price Change Starting October 4",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": 1133.0,
-      "y": 355.0,
-      "w": 974.0,
-      "h": 246.0
-     },
-     "rect_dp": {
-      "x": 431.62,
-      "y": 83.43,
-      "w": 371.05,
-      "h": 93.71
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": null,
-     "bg_hex": null,
-     "font_px": 246.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e78",
-     "mcp_ref": "@e238",
-     "type": "TextView",
-     "text": "Lauren Harrison",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": 1133.0,
-      "y": 602.0,
-      "w": 267.0,
-      "h": 96.0
-     },
-     "rect_dp": {
-      "x": 431.62,
-      "y": 177.52,
-      "w": 101.71,
-      "h": 36.57
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": null,
-     "bg_hex": null,
-     "font_px": 96.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e79",
-     "mcp_ref": "@e239",
-     "type": "TextView",
-     "text": "Sep. 27, 2026 4:13 AM PT",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": 1133.0,
-      "y": 698.0,
-      "w": 357.0,
-      "h": 38.0
-     },
-     "rect_dp": {
-      "x": 431.62,
-      "y": 214.1,
-      "w": 136.0,
-      "h": 14.48
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": null,
-     "bg_hex": null,
-     "font_px": 38.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e80",
-     "mcp_ref": "@e240",
-     "type": "View",
-     "text": "",
-     "label": "Image for Taboola Advertising Unit",
-     "source": "mcp",
-     "rect_px": {
-      "x": 1132.0,
-      "y": 778.0,
-      "w": 220.0,
-      "h": 223.0
-     },
-     "rect_dp": {
-      "x": 431.24,
-      "y": 244.57,
-      "w": 83.81,
-      "h": 84.95
-     },
-     "role": "container",
-     "asset_png": null,
-     "fg_hex": null,
-     "bg_hex": null,
-     "font_px": null,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e81",
-     "mcp_ref": "@e241",
-     "type": "Image",
-     "text": "Image for Taboola Advertising Unit",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": 1163.0,
-      "y": 809.0,
-      "w": 160.0,
-      "h": 160.0
-     },
-     "rect_dp": {
-      "x": 443.05,
-      "y": 256.38,
-      "w": 60.95,
-      "h": 60.95
-     },
-     "role": "container",
-     "asset_png": null,
-     "fg_hex": null,
-     "bg_hex": null,
-     "font_px": null,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e82",
-     "mcp_ref": "@e242",
-     "type": "View",
-     "text": "",
-     "label": "These CD Rates Are Beating Most Savings Accounts Today NerdWallet in Taboola advertising section · Sponsored: learn about this recommendation (opens dialog)",
-     "source": "mcp",
-     "rect_px": {
-      "x": 1347.0,
-      "y": 778.0,
-      "w": 758.0,
-      "h": 223.0
-     },
-     "rect_dp": {
-      "x": 513.14,
-      "y": 244.57,
-      "w": 288.76,
-      "h": 84.95
-     },
-     "role": "container",
-     "asset_png": null,
-     "fg_hex": null,
-     "bg_hex": null,
-     "font_px": null,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e83",
-     "mcp_ref": "@e243",
-     "type": "View",
-     "text": "",
-     "label": "These CD Rates Are Beating Most Savings Accounts Today",
-     "source": "mcp",
-     "rect_px": {
-      "x": 1347.0,
-      "y": 809.0,
-      "w": 727.0,
-      "h": 87.0
-     },
-     "rect_dp": {
-      "x": 513.14,
-      "y": 256.38,
-      "w": 276.95,
-      "h": 33.14
-     },
-     "role": "container",
-     "asset_png": null,
-     "fg_hex": null,
-     "bg_hex": null,
-     "font_px": null,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e84",
-     "mcp_ref": "@e244",
-     "type": "TextView",
-     "text": "These CD Rates Are Beating Most Savings Accounts Today",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": 1347.0,
-      "y": 806.0,
-      "w": 598.0,
-      "h": 92.0
-     },
-     "rect_dp": {
-      "x": 513.14,
-      "y": 255.24,
-      "w": 227.81,
-      "h": 35.05
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": null,
-     "bg_hex": null,
-     "font_px": 92.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e85",
-     "mcp_ref": "@e245",
-     "type": "View",
-     "text": "",
-     "label": "NerdWallet in Taboola advertising section",
-     "source": "mcp",
-     "rect_px": {
-      "x": 1415.0,
-      "y": 930.0,
-      "w": 163.0,
-      "h": 39.0
-     },
-     "rect_dp": {
-      "x": 539.05,
-      "y": 302.48,
-      "w": 62.1,
-      "h": 14.86
-     },
-     "role": "container",
-     "asset_png": null,
-     "fg_hex": null,
-     "bg_hex": null,
-     "font_px": null,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e86",
-     "mcp_ref": "@e246",
-     "type": "TextView",
-     "text": "NerdWallet",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": 1415.0,
-      "y": 930.0,
-      "w": 163.0,
-      "h": 42.0
-     },
-     "rect_dp": {
-      "x": 539.05,
-      "y": 302.48,
-      "w": 62.1,
-      "h": 16.0
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": null,
-     "bg_hex": null,
-     "font_px": 42.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e87",
-     "mcp_ref": "@e247",
-     "type": "TextView",
-     "text": "·",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": 1397.0,
-      "y": 930.0,
-      "w": 10.0,
-      "h": 42.0
-     },
-     "rect_dp": {
-      "x": 532.19,
-      "y": 302.48,
-      "w": 3.81,
-      "h": 16.0
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": null,
-     "bg_hex": null,
-     "font_px": 42.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e88",
-     "mcp_ref": "@e248",
-     "type": "View",
-     "text": "",
-     "label": "Sponsored: learn about this recommendation (opens dialog)",
-     "source": "mcp",
-     "rect_px": {
-      "x": 1347.0,
-      "y": 938.0,
-      "w": 44.0,
-      "h": 39.0
-     },
-     "rect_dp": {
-      "x": 513.14,
-      "y": 305.52,
-      "w": 16.76,
-      "h": 14.86
-     },
-     "role": "container",
-     "asset_png": null,
-     "fg_hex": null,
-     "bg_hex": null,
-     "font_px": null,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e89",
-     "mcp_ref": "@e249",
-     "type": "TextView",
-     "text": "Ad",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": 1347.0,
-      "y": 930.0,
-      "w": 44.0,
-      "h": 42.0
-     },
-     "rect_dp": {
-      "x": 513.14,
-      "y": 302.48,
-      "w": 16.76,
-      "h": 16.0
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": null,
-     "bg_hex": null,
-     "font_px": 42.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e90",
-     "mcp_ref": "@e250",
-     "type": "View",
-     "text": "",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": 1964.0,
-      "y": 881.0,
-      "w": 126.0,
-      "h": 125.0
-     },
-     "rect_dp": {
-      "x": 748.19,
-      "y": 283.81,
-      "w": 48.0,
-      "h": 47.62
-     },
-     "role": "container",
-     "asset_png": "assets/s02.e90.png",
-     "fg_hex": null,
-     "bg_hex": null,
-     "font_px": null,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e91",
-     "mcp_ref": "@e251",
-     "type": "View",
-     "text": "",
-     "label": "More options",
-     "source": "mcp",
-     "rect_px": {
-      "x": 2000.0,
-      "y": 917.0,
-      "w": 53.0,
-      "h": 53.0
-     },
-     "rect_dp": {
-      "x": 761.9,
-      "y": 297.52,
-      "w": 20.19,
-      "h": 20.19
-     },
-     "role": "container",
-     "asset_png": null,
-     "fg_hex": null,
-     "bg_hex": null,
-     "font_px": null,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e92",
-     "mcp_ref": "@e252",
-     "type": "TextView",
-     "text": "Anyone planning to ship holiday gifts through the U.S. Postal Service may want to pay attention to the calendar—and the weight of those packages.",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": 1132.0,
-      "y": 1735.0,
-      "w": 979.0,
-      "h": 192.0
-     },
-     "rect_dp": {
-      "x": 431.24,
-      "y": 609.14,
-      "w": 372.95,
-      "h": 73.14
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": null,
-     "bg_hex": null,
-     "font_px": 192.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e93",
-     "mcp_ref": "@e253",
-     "type": "TextView",
-     "text": "USPS is planning a temporary price increase beginning Oct. 4, putting the change less than one week away. The increases affect several popular package services, and the biggest proposed retail hike is significant: Some Priority Mail Express packages would cost $20.80 more, according to the ",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": 1132.0,
-      "y": 1964.0,
-      "w": 979.0,
-      "h": 365.0
-     },
-     "rect_dp": {
-      "x": 431.24,
-      "y": 696.38,
-      "w": 372.95,
-      "h": 139.05
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": null,
-     "bg_hex": null,
-     "font_px": 365.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e94",
-     "mcp_ref": "@e254",
-     "type": "View",
-     "text": "",
-     "label": "U.S. Postal Service",
-     "source": "mcp",
-     "rect_px": {
-      "x": 1536.0,
-      "y": 2279.0,
-      "w": 323.0,
-      "h": 50.0
-     },
-     "rect_dp": {
-      "x": 585.14,
-      "y": 816.38,
-      "w": 123.05,
-      "h": 19.05
-     },
-     "role": "container",
-     "asset_png": null,
-     "fg_hex": null,
-     "bg_hex": null,
-     "font_px": null,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e95",
-     "mcp_ref": "@e255",
-     "type": "TextView",
-     "text": "U.S. Postal Service",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": 1536.0,
-      "y": 2279.0,
-      "w": 323.0,
-      "h": 50.0
-     },
-     "rect_dp": {
-      "x": 585.14,
-      "y": 816.38,
-      "w": 123.05,
-      "h": 19.05
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": null,
-     "bg_hex": null,
-     "font_px": 50.0,
-     "font_guess": "unknown",
-     "in_mock": true,
-     "repeat_group": null
-    },
-    {
-     "id": "s02.e96",
-     "mcp_ref": "@e256",
-     "type": "TextView",
-     "text": " .",
-     "label": "",
-     "source": "mcp",
-     "rect_px": {
-      "x": 1856.0,
-      "y": 2279.0,
-      "w": 21.0,
-      "h": 50.0
-     },
-     "rect_dp": {
-      "x": 707.05,
-      "y": 816.38,
-      "w": 8.0,
-      "h": 19.05
-     },
-     "role": "text",
-     "asset_png": null,
-     "fg_hex": null,
-     "bg_hex": null,
-     "font_px": 50.0,
      "font_guess": "unknown",
      "in_mock": true,
      "repeat_group": null

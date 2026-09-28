@@ -35,7 +35,8 @@ def in_content(e: dict) -> bool:
     c = e["coordinates"]
     full_screen = c["width"] >= DEVICE.w_px and c["height"] >= 2000
     system = "systemui" in (e.get("identifier") or "")
-    return DEVICE.content_top_px <= c["y"] < DEVICE.content_bottom_px and not full_screen and not system
+    on_screen = DEVICE.content_top_px <= c["y"] < DEVICE.content_bottom_px and 0 <= c["x"] < DEVICE.w_px
+    return on_screen and not full_screen and not system
 
 
 def to_dp(c: dict) -> Rect:
