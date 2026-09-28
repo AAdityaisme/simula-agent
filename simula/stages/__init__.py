@@ -10,14 +10,16 @@ UPSTREAM = {
     "qa": ["mock", "model"],
     "propose": ["model"],
     "judge": ["propose", "model"],
-    "flows": ["qa", "judge", "propose"],
+    "flows": ["qa", "judge", "propose", "mock", "model"],
 }
 
 # Files outside the run folder that a stage reads, hashed like any input so an edit reruns the stage.
 EXTRA_INPUTS = {
     "mock": ["docs/CONTRACTS.md"],
+    "qa": ["docs/CONTRACTS.md"],
     "propose": ["bible"],
     "judge": ["bible"],
+    "flows": ["templates", "docs/CONTRACTS.md"],
 }
 
 ROLES = {
