@@ -48,6 +48,7 @@ class Reply:
     tokens_cached: int = 0
     stop_reason: str = "end_turn"
     headers: dict = field(default_factory=dict)
+    failure: str = ""  # the typed outcome when this recorded attempt failed; "" for a usable answer
 
 
 @dataclass
@@ -262,17 +263,26 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
     params = {"effort": effort, "max_tokens": max_tokens,
               "schema": json_schema_for(provider, schema) if schema else None}
     keys = [cache_key(provider, model, system, messages, params, attempt) for attempt in range(attempts)]
-    for key in [] if no_cache else keys:
-        cached = cache_read(key, cache_dir)
-        if cached:
+    last, pending = LLMFailure("error", "no attempt made"), []
+    for key in keys:
+        cached = None if no_cache else cache_read(key, cache_dir)
+        if cached is None:
+            pending.append(key)
+        elif cached.failure:
+            last = LLMFailure(cached.failure, cached.stop_reason, raw=cached.text)
+            trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
+                  tokens_in=cached.tokens_in, tokens_out=cached.tokens_out, cache_hit=True, outcome=cached.failure,
+                  note="recorded failed attempt")
+        else:
             result = _parse(cached, schema)
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
                   tokens_in=cached.tokens_in, tokens_out=cached.tokens_out, cache_hit=True, outcome="ok")
             return result, cached
+    if not pending:
+        raise last
     if replay:
-        raise ReplayMiss(f"--replay: no cached response for {stage}/{step} (key {keys[0][:12]})")
-    last = LLMFailure("error", "no attempt made")
-    for key in keys:
+        raise ReplayMiss(f"--replay: no cached response for {stage}/{step} (key {pending[0][:12]})")
+    for key in pending:
         budget.reserve(worst_case_usd(model, estimate_tokens_in(system, messages), max_tokens))
         started = time.monotonic()
         try:
@@ -292,6 +302,10 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
         if outcome == "ok":
             cache_write(key, reply, cache_dir)
             return result, reply
+        # The model answered but the answer failed: record it, so a replay (or a rerun) takes the same path
+        # to the next attempt or the caller's own retry without paying for this one again.
+        reply.failure = outcome
+        cache_write(key, reply, cache_dir)
         last = LLMFailure(outcome, reply.stop_reason, raw=reply.text)
     raise last
 
