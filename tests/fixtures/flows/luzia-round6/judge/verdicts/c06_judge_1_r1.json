@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c06",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is opt-in (user taps the card), the reward (a color theme for 7 days) is stated before play, declining hides the card with no penalty, and a failure path is specified (card stays, day's offer not consumed if play unverified)."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic color theme with no cash equivalent, cannot be withdrawn, sold, transferred, or exchanged outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a pure app event (second separate day after 3+ day gap), not based on chat messages, user-typed content, or conversation analysis."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds new theme options without removing, locking, or capping any resource users get free today; themes are mentioned in Settings (s03.e18) but no free-tier limit was observed."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card appears on s01 Chats home, a safe app-chrome surface (above recent chats), not inside a chat transcript or next to unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is a product_change adding new theme options. Themes are tied to Settings, a core app surface, and cosmetic customization is a natural extension of the existing Theme mechanic (s03.e18), not a subscription feature."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The proposal cites s03.e18 Theme and s03 Settings, which the model confirms exist. The claim that themes are not part of any paid plan is supported by the six paywall features (l01–l06) listing only chat, reasoning, images, voice, characters, and tools—themes are not mentioned."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "Themes are not listed among the six Luzia+ paywall benefits (l01–l06), so the reward gives nothing that subscribers pay for. The 7-day time limit further ensures no giveaway of subscription value."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears on a persistent surface (home recent-chats section) the user can choose to open, not interrupting a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn rewarded game (native), the reward is granted on verified play (REWARD_VERIFIED), and the trigger is an app event (return after 3+ day gap) the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the specific screen (s01 Chats, 'Keep chatting' section), the specific mechanic (Theme in s03 Settings), the specific resource being added (color themes), and how they integrate; it does not read the same in any app."
+ },
+ "other_concern": "The proposal specifies a 1-per-day frequency cap resetting at midnight, but does not clarify whether this cap is per-user, per-device, or account-wide, or how it interacts with the trigger (second separate day within 7 days after 3+ day gap). The model contains no information about what constitutes a 'day' or how return patterns are tracked, so the feasibility of the trigger is not fully verifiable.",
+ "fixable": true
+}

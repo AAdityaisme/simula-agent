@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c02",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is opt-in (user chooses to play), the reward is stated upfront in copy ('1 higher-quality image today for 2 short sponsored games'), declining hides the card without penalty, and a failure path is specified ('That didn't go through' message, no resource consumed until both plays verify)."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a higher-quality image generation, a service feature within the app, not cash, a gift card, voucher, or withdrawable points."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a free user opening the app for a new session on the home screen (an app event), not chat content or typing."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Higher-quality image generations cost the app money each time (rendering and compute), so the daily cap on this reward is permissible under the rule for resources that cost the app money."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card placement is on app chrome in the home banner row (s01), not inside a chat transcript or next to unsafe content, and s01 is marked content safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing_anchor offer. The app charges for higher-quality image generations (l03, s02.e04 lists it as a Luzia+ feature with prices in l07, l08, l09), so the reward reveals a paid benefit."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The proposal cites s02.e04 (the paywall lists 'Higher-quality image generations'), s01.e02 (home upsell badge), and s01.e03 (Try Luzia text). All claims about the paywall, badge, and home screen are supported by the product model."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is time-limited ('Good for 1 image, today only') and quantity-limited (1 image per day, resets at midnight), and only applies to the next image made. Subscribers already get this feature every time, so the sample does not give away the subscription benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears on a persistent surface (the home banner) that the user can choose to open each session, not interrupting a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn rewarded playable (user plays two games to earn a reward). The reward is granted on verified play (both games verified before the card confirms 'Your next image today will be higher quality'). The trigger is an app event (new session, free user, closed paywall before)."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The offer names specific app features: 'higher-quality image generations' (l03), the home badge (s01.e02), the banner row placement, the daily frequency cap tied to image render cost, and the target audience (free users who closed the paywall). It would not read the same in another app."
+ },
+ "other_concern": "The proposal notes that two plays may not cover image generation costs 'in low-paying regions,' raising a potential profitability concern for those geographies. Additionally, the product model lists no observed free-tier limit on image generations, so it is unclear whether free users can already make lower-quality images freely or if there is an undisclosed cap.",
+ "fixable": false
+}
