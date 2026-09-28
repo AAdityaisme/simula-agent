@@ -95,11 +95,12 @@ def test_a_crashing_stage_leaves_a_failure_record(runs, monkeypatch):
 
     def boom(ctx):
         raise RuntimeError("playwright fell over")
-    cli.main(["run", "janitorai", "--new", "--allow-fixtures", "--fixture", f"model={GOLDEN}", "--from", "model"])
+    mock = importlib.import_module("simula.stages.mock")
+    monkeypatch.setattr(mock, "run", lambda ctx: None)
+    cli.main(["mock", "janitorai", "--allow-fixtures", "--fixture", f"model={GOLDEN}"])
     run_dir = latest(runs)
-    (run_dir / "mock").mkdir(exist_ok=True)
-    (run_dir / "mock" / "done.json").write_text("{}")
-    monkeypatch.setattr(importlib.import_module("simula.stages.mock"), "run", boom)
+    assert (run_dir / "mock" / "done.json").exists()
+    monkeypatch.setattr(mock, "run", boom)
     with pytest.raises(RuntimeError):
         cli.main(["mock", "janitorai", "--run", run_dir.name, "--allow-fixtures"])
     assert not (run_dir / "mock" / "done.json").exists()

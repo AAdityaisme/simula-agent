@@ -11223,7 +11223,8 @@
    "id": "m05",
    "kind": "other",
    "evidence_ids": [
-    "s01.e49"
+    "s01.e49",
+    "s01.e61"
    ],
    "summary": "Character cards show their prompt size in tokens.",
    "observed_numbers": [
@@ -11317,5 +11318,7 @@
   "source": "fixture",
   "explorer_run_id": null,
   "fixture_path": "tests/fixtures/golden/janitorai"
- }
+ },
+ "terms": [],
+ "questions": []
 }
