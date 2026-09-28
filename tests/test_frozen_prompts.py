@@ -6,13 +6,13 @@ import pytest
 
 from simula import llm
 from simula.config import ROOT
-from simula.stages import judge
+from simula.stages import judge, propose
 from tests.judge_helpers import ctx_for, live, seed
 
 
 def test_every_judge_prompt_is_frozen_at_its_current_hash():
     assert judge.frozen_problems() == []
-    assert set(judge.prompt_hashes()) == {"prompts/judge/rubric.md", "prompts/judge/revise.md"}
+    assert set(judge.prompt_hashes()) == {"prompts/judge/rubric.md", "prompts/judge/revise.md", judge.RENDERED}
 
 
 @pytest.fixture
@@ -58,3 +58,12 @@ def test_the_stage_refuses_before_any_model_call(scratch, tmp_path, monkeypatch)
 
 def test_the_repo_root_prompts_are_what_the_stage_reads():
     assert judge.PROMPTS == ROOT / "prompts" / "judge"
+
+
+def test_a_code_change_to_what_the_judge_sees_is_refused_like_a_prompt_change(monkeypatch):
+    judge.check_frozen()
+    text = propose.model_text
+    monkeypatch.setattr(propose, "model_text", lambda model: text(model) + "\nA new line the judge now reads.")
+    assert judge.frozen_problems() == [f"{judge.RENDERED} changed since it was frozen"]
+    with pytest.raises(judge.PromptsChanged):
+        judge.check_frozen()

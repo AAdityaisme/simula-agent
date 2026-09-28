@@ -37,8 +37,15 @@ class PromptsChanged(RuntimeError):
 
 # ---------- frozen prompts ----------
 
+RENDERED = "rendered judge message (tests/fixtures/judge/pin.json)"
+
+
 def prompt_hashes() -> dict[str, str]:
-    return {str(p.relative_to(ROOT)): sha256(p) for p in sorted(PROMPTS.glob("*.md"))}
+    """The judge prompt files, plus the code-built judge message for one pinned candidate: after validation, a
+    change to what the judge sees counts as a prompt change, wherever it comes from."""
+    from simula.validate import pinned_message
+    files = {str(p.relative_to(ROOT)): sha256(p) for p in sorted(PROMPTS.glob("*.md"))}
+    return files | {RENDERED: hashlib.sha256(pinned_message().encode()).hexdigest()}
 
 
 def frozen_problems() -> list[str]:

@@ -26,6 +26,7 @@ from simula.stages import judge, propose
 FIXTURES = ROOT / "tests" / "fixtures"
 CASES = FIXTURES / "judge"
 OUT = ROOT / "validation"
+PIN = CASES / "pin.json"
 LLM_CHECKS = GATES + JUDGMENT
 C8 = "c8_economics"
 JUDGES = ["judge_1", "judge_2"]
@@ -98,13 +99,24 @@ MODEL = dict(app_version="", run_id="fixture", device={}, edges=[], flows=[], me
 
 
 def load_model(ref: str) -> ProductModel:
-    """A golden product model, or a sketch of one for an app outside the test set: a sketch writes only what a
-    judge reads (app, app_category, states with name, purpose, content_rating and elements with id, text, role,
-    mechanics, value_ledger, open_questions) and code fills the rest with empty defaults."""
-    data = json.loads((FIXTURES / ref).read_text())
+    """A golden product model, or a sketch of one for an app outside the test set."""
+    return fill_model(json.loads((FIXTURES / ref).read_text()))
+
+
+def fill_model(data: dict) -> ProductModel:
+    """A sketch writes only what a judge reads (app, app_category, states with name, purpose, content_rating and
+    elements with id, text, role, mechanics, value_ledger, open_questions); code fills the rest with empty
+    defaults. A full product model passes through unchanged."""
     states = [{**STATE, **s, "elements": [{**ELEMENT, **e} for e in s.get("elements", [])]}
               for s in data.get("states", [])]
     return ProductModel.model_validate({**MODEL, **data, "states": states})
+
+
+def pinned_message() -> str:
+    """The judge's user message for the one pinned candidate (tests/fixtures/judge/pin.json), rendered by the
+    stage's own code; its hash is frozen with the prompts."""
+    data = json.loads(PIN.read_text())
+    return judge.judge_messages(as_candidate(data["candidate"], "pin"), fill_model(data["model"]))[0]["content"][0]["text"]
 
 
 def as_candidate(draft: dict, case_id: str) -> Candidate:
