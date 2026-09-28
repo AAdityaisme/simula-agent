@@ -3,7 +3,7 @@ import time
 import pytest
 
 from simula import llm
-from simula.contracts import CandidateDraft, CandidatesFile, LedgerItem, LensOutput, Mechanic
+from simula.contracts import CandidateDraft, CandidatesFile, LedgerItem, LensOutput, Mechanic, Term
 from simula.stages import Ctx, propose
 from simula.stages.propose import anchor_ids, check, daily_cap, depths, finish, in_chat
 from tests.conftest import APPS
@@ -374,3 +374,25 @@ def test_mock_coverage_counts_before_the_scope_filter_and_lists_what_it_dropped(
     assert ("Mock coverage: 1 of 2 ideas start on a screen the mock draws (counted before the mock-scope filter); "
             "the filter dropped 1:") in text
     assert f"  - c02 · Off the map · trigger {outside.id} {outside.name}" in text
+
+
+def with_terms(model):
+    """The golden plus one app term whose meaning was never observed and one that was."""
+    terms = [Term(term="Zap Credits", meaning="meaning not observed", defined_by=[], used_in=[], observed=False),
+             Term(term="Pro", meaning="The paid plan.", defined_by=[], used_in=[], observed=True)]
+    return model.model_copy(update={"terms": terms})
+
+
+@pytest.mark.parametrize("field", ["title", "offer_copy", "after_reward"])
+def test_an_idea_using_a_term_whose_meaning_was_never_observed_is_dropped(model, field):
+    m = with_terms(model)
+    c = candidate(m, **{field: "Play once for 3 zap\xa0credits."})
+    assert check(c, m) == 'uses "Zap Credits", whose meaning was never observed'
+
+
+def test_an_observed_term_can_be_used_and_the_unobserved_one_is_listed_for_the_proposer(model):
+    m = with_terms(model)
+    assert check(candidate(m, offer_copy="Play once for a day of Pro."), m) is None
+    text = propose.model_text(m)
+    assert '- "Zap Credits"' in text and '- "Pro"' not in text
+    assert "never observed" not in propose.model_text(model.model_copy(update={"terms": []}))
