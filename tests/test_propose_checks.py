@@ -436,7 +436,7 @@ def test_an_unsafe_screen_shows_its_id_name_and_rating_but_no_text(model):
 # experience items, so the proposer's prompt must not change; a golden or model_text change repins these.
 GOLDEN_MODEL_TEXT = {
     "janitorai": "c44ad48e9351abe5b69767a34e84c57575f0266a36a8295c831184f7f522e7ea",
-    "luzia": "8940e4b90b042b872334718a5bc7dd1ca71616a46b6ebacdedab58d515fcef81",
+    "luzia": "f7b1ed44b4520276e588fe44aedb8707e790c4728dcc71c22c4af69b649a1b44",
     "aol": "c02ea5e553b72f264b5f6036aabded856eb1af1c6c5d322dd3880389433f60be",
 }
 

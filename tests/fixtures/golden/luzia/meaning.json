@@ -65,7 +65,7 @@
    "id": "s07",
    "kind": "screen",
    "name": "Chat thread",
-   "purpose": "An existing chat with the Teacher persona, message bar and a notifications prompt. Chat content stays out of the mock.",
+   "purpose": "An existing chat with the Teacher persona, message bar and a notifications prompt.",
    "tree": "luzia-chat-thread"
   }
  ],
