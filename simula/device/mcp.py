@@ -150,24 +150,30 @@ class Phone:
     """The app under test on the one Android device mobile-mcp lists. Reads retry once after a respawn;
     actions never repeat (the first one may have landed), so their timeout goes to the caller."""
 
-    def __init__(self, server: Server, package: str, scratch: Path, names: set[str] = frozenset()):
+    def __init__(self, server: Server, package: str, scratch: Path, serial: str | None = None,
+                 avd: str | None = None):
         self.server, self.package, self.scratch = server, package, scratch
         self.list_seconds: list[float] = []
-        self.device = self.find_device(names)
+        self.device = self.find_device(serial, avd)
 
-    def find_device(self, names: set[str]) -> str:
-        """mobile-mcp's id for the device whose id or name is in names (an adb serial, an emulator's AVD name),
-        or the first Android device when names is empty. The list comes back empty now and then while adb is
-        busy."""
+    def find_device(self, serial: str | None, avd: str | None) -> str:
+        """mobile-mcp's id for this device: the one whose id is the adb serial, else the one named for the
+        emulator's AVD; the first Android device when neither is given. Two emulators of one AVD look alike to
+        mobile-mcp, so more than one match is an error. The list comes back empty now and then while adb is busy."""
         for attempt in range(1, DEVICE_ATTEMPTS + 1):
             devices = json.loads(reply_text(self.server.call("mobile_list_available_devices", START_TIMEOUT_S)))
-            android = [d for d in devices.get("devices", []) if d.get("platform") == "android"
-                       and (not names or {d.get("id"), d.get("name")} & names)]
-            if android:
-                return android[0]["id"]
+            android = [d for d in devices.get("devices", []) if d.get("platform") == "android"]
+            matches = ([d for d in android if d.get("id") == serial]
+                       or [d for d in android if avd and avd in (d.get("id"), d.get("name"))]
+                       if serial or avd else android[:1])
+            if len(matches) > 1:
+                raise SystemExit(f"{len(matches)} mobile-mcp devices match {serial} / {avd}: two emulators of one "
+                                 "AVD can't be told apart; run one per AVD")
+            if matches:
+                return matches[0]["id"]
             if attempt < DEVICE_ATTEMPTS:
                 time.sleep(DEVICE_RETRY_PAUSE_S)
-        raise SystemExit(f"no Android device {' / '.join(sorted(names))} online: start the emulator first")
+        raise SystemExit(f"no Android device {serial or avd or ''} online: start the emulator first")
 
     def call(self, tool: str, timeout: float = ACTION_TIMEOUT_S, retry: bool = False, **args) -> dict:
         """One tool call. A 'Device not found' answer (mobilecli loses the device now and then while the emulator

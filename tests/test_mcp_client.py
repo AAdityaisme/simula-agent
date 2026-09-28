@@ -1,6 +1,7 @@
 """A hung mobile-mcp call times out on the client, the server's process tree is killed, and a new session
 answers. Reads retry once after the respawn; actions don't (the first one may have landed)."""
 
+import json
 import os
 import sys
 from pathlib import Path
@@ -110,3 +111,30 @@ class RefusesActions(FlakyServer):
 def test_an_action_that_errors_raises(tmp_path, action):
     with pytest.raises(mcp.McpReplyError, match="failed"):
         action(mcp.Phone(RefusesActions(0), "com.example.app", tmp_path))
+
+
+class Lists(FlakyServer):
+    def __init__(self, devices):
+        super().__init__(0)
+        self.devices = devices
+
+    def call(self, tool, timeout, **args):
+        if tool == "mobile_list_available_devices":
+            return {"content": [{"type": "text", "text": json.dumps({"devices": self.devices})}]}
+        return super().call(tool, timeout, **args)
+
+
+def device(id, name):
+    return {"id": id, "name": name, "platform": "android"}
+
+
+def test_the_device_whose_id_is_the_serial_wins(tmp_path):
+    server = Lists([device("simula", "simula"), device("emulator-5556", "other")])
+    assert mcp.Phone(server, "x", tmp_path, "emulator-5556", "other").device == "emulator-5556"
+    assert mcp.Phone(server, "x", tmp_path, "emulator-5554", "simula").device == "simula"
+
+
+def test_two_devices_of_one_avd_are_an_error(tmp_path):
+    server = Lists([device("simula", "simula"), device("simula", "simula")])
+    with pytest.raises(SystemExit, match="can't be told apart"):
+        mcp.Phone(server, "x", tmp_path, "emulator-5554", "simula")

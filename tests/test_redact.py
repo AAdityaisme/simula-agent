@@ -58,7 +58,7 @@ def test_the_small_settle_screenshot_stays_in_scratch(tmp_path, monkeypatch):
         def close(self):
             pass
 
-    def phone(server, package, scratch, names):
+    def phone(server, package, scratch, serial, avd):
         seen["scratch"] = scratch
         raise RuntimeError("stop before the device")
     monkeypatch.setattr(stage, "Server", Server)

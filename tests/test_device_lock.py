@@ -57,3 +57,33 @@ def test_several_devices_and_no_flag_is_a_clear_error(monkeypatch):
     monkeypatch.delenv("ANDROID_SERIAL", raising=False)
     with pytest.raises(SystemExit, match="--device"):
         doctor.resolve_serial(None)
+
+
+def test_the_lock_holds_the_holders_pid(locks):
+    import os
+    with doctor.emulator_lock("emulator-5554", wait_s=0):
+        assert (locks / "simula-emu-emulator-5554.lock" / "pid").read_text() == str(os.getpid())
+
+
+def test_a_lock_whose_holder_died_is_broken(locks):
+    import subprocess
+    import sys
+    dead = subprocess.Popen([sys.executable, "-c", "pass"])
+    dead.wait()
+    stale = locks / "simula-emu-emulator-5554.lock"
+    stale.mkdir()
+    (stale / "pid").write_text(str(dead.pid))
+    with doctor.emulator_lock("emulator-5554", wait_s=0):
+        assert (stale / "pid").read_text() != str(dead.pid)
+    assert not list(locks.iterdir())
+
+
+def test_a_lock_whose_holder_lives_is_waited_on(locks):
+    import os
+    held = locks / "simula-emu-emulator-5554.lock"
+    held.mkdir()
+    (held / "pid").write_text(str(os.getppid()))
+    with pytest.raises(TimeoutError):
+        with doctor.emulator_lock("emulator-5554", wait_s=0):
+            pass
+    assert held.exists()

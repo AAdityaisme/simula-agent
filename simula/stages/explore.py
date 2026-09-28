@@ -1293,8 +1293,8 @@ def run(ctx: Ctx) -> None:
     with emulator_lock(serial, wait_s=LOCK_WAIT_S):
         server = Server(cwd=out)
         try:
-            names = {serial, adb_shell(serial, ["getprop", "ro.boot.qemu.avd_name"])} - {None, ""}
-            ex = Explorer(ctx, Phone(server, ctx.app["package"], out / ".scratch", names), out)
+            avd = adb_shell(serial, ["getprop", "ro.boot.qemu.avd_name"]) or None
+            ex = Explorer(ctx, Phone(server, ctx.app["package"], out / ".scratch", serial, avd), out)
             ex.serial = serial
             explore_app(ex)
         finally:

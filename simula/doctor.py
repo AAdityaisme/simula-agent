@@ -50,21 +50,56 @@ def resolve_serial(flag: str | None) -> str:
 
 @contextmanager
 def emulator_lock(serial: str, wait_s: int = 120):
-    """One lock per device (a mkdir, so it is atomic), so two explores can run on two emulators."""
+    """One lock per device (a mkdir, so it is atomic), so two explores can run on two emulators. The holder writes
+    its pid inside; a lock whose holder died (SIGKILL, a closed terminal) is broken instead of waited on."""
     lock = LOCK_DIR / f"simula-emu-{serial}.lock"
     deadline = time.monotonic() + wait_s
     while True:
         try:
             lock.mkdir()
+            (lock / "pid").write_text(str(os.getpid()))
             break
         except FileExistsError:
+            if holder_dead(lock):
+                break_lock(lock)
+                continue
             if time.monotonic() > deadline:
                 raise TimeoutError(f"{lock} held by another process for {wait_s}s")
             time.sleep(5)
     try:
         yield
     finally:
-        lock.rmdir()
+        shutil.rmtree(lock, ignore_errors=True)
+
+
+def holder_dead(lock: Path) -> bool:
+    """The pid inside is gone. A lock with no pid file is dead once it is a minute old (the holder writes it
+    right after the mkdir; older checkouts' locks have none)."""
+    try:
+        pid = int((lock / "pid").read_text())
+    except (FileNotFoundError, ValueError):
+        try:
+            return time.time() - lock.stat().st_mtime > 60
+        except FileNotFoundError:
+            return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return True
+    except PermissionError:
+        return False
+    return False
+
+
+def break_lock(lock: Path) -> None:
+    # ponytail: two waiters that both saw the dead holder can race, one moving the other's fresh lock; the window
+    # is one rename wide. An flock would close it, if two explorers ever start on one device in the same second.
+    stale = lock.with_name(f"{lock.name}.stale-{os.getpid()}")
+    try:
+        lock.rename(stale)
+    except OSError:
+        return
+    shutil.rmtree(stale, ignore_errors=True)
 
 
 def check_local() -> None:
