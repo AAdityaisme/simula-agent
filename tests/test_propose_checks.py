@@ -421,3 +421,11 @@ def test_citing_a_measured_experience_is_context_not_a_missing_id(model):
     [anchor], *_ = finish([candidate(m, kind="existing_anchor", adds=None, anchor_evidence_ids=["exp1"])], m, "annotate")
     assert anchor.dropped_reason == "existing_anchor cites no paywall, limit, currency, or entitlement element"
 
+
+def test_an_unsafe_screen_shows_its_id_name_and_rating_but_no_text(model):
+    root_id = root(model)
+    states = [s.model_copy(update={"content_rating": "unsafe"}) if s.id == root_id else s for s in model.states]
+    text = propose.model_text(model.model_copy(update={"states": states}))
+    state = next(s for s in states if s.id == root_id)
+    assert f"#### {state.id} {state.name} ({state.kind}; content unsafe)\n- (text left out: unsafe content)" in text
+    assert state.elements and not any(f"- {e.id} " in text for e in state.elements)
