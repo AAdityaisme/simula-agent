@@ -839,6 +839,7 @@ def run(ctx: Ctx) -> None:
         try:
             flows.append(build_flow(ctx, model, source, candidates[d.candidate_id], d, e))
         except Exception as error:  # one idea's failure (a hung page, a broken edit) must not cost the whole deck
+            shutil.rmtree(out / d.candidate_id, ignore_errors=True)
             not_built.append((d, f"{type(error).__name__}: {str(error).splitlines()[0] if str(error) else ''}"[:300]))
     for d, why in not_built:
         run_trace(run_dir, stage="flows", step=f"build:{d.candidate_id}", decider="code", outcome="error",
