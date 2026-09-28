@@ -78,9 +78,13 @@ def model_text(model: ProductModel) -> str:
     lines += [f"- {m.id} [{m.kind}, {m.status}] {m.summary} Evidence: {', '.join(m.evidence_ids) or 'none'}."
               + (f" Numbers seen: {', '.join(m.observed_numbers)}." if m.observed_numbers else "")
               for m in model.mechanics] or ["- none observed"]
+    measured = [i for i in model.value_ledger if i.kind == "experience"]
     lines += ["", "### Value ledger (verbatim app text)"]
     lines += [f'- {i.id} [{i.kind}] "{i.verbatim}" Evidence: {", ".join(i.evidence_ids)}.'
-              for i in model.value_ledger] or ["- empty"]
+              for i in model.value_ledger if i.kind != "experience"] or ["- empty"]
+    if measured:
+        lines += ["", "### Measured experience (what the explorer saw when repeating the core action)"]
+        lines += [f"- {i.id} {i.verbatim} Evidence: {', '.join(i.evidence_ids)}." for i in measured]
     if model.cross_screen_values:
         lines += ["", "### Values shown on several screens"]
         lines += [f'- {v.label}: "{v.value_text}" ({", ".join(v.evidence_ids)})' for v in model.cross_screen_values]
