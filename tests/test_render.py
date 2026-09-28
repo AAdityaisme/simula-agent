@@ -1,11 +1,14 @@
 """Rendering geometry and the code-owned navigation runtime, on every golden."""
 
+import re
+import time
+
 import pytest
 from PIL import Image
 
 from simula import render
 from simula.contracts import Edge
-from simula.render import content_dp, open_mock, render_and_validate, screenshot_screens
+from simula.render import content_dp, open_mock, render_and_validate
 from simula.stages.mock import copy_assets, pick_scope, scope_edges, with_runtime
 from tests.conftest import APPS, FIXTURES
 from tests.mock_fake import golden, skeleton_html
@@ -108,10 +111,16 @@ def test_an_edge_with_no_element_is_not_a_missing_edge(tmp_path, model):
     assert report.passed, report.errors
 
 
-def test_the_same_page_renders_to_the_same_bytes(tmp_path, model):
+def test_every_image_is_loaded_before_the_first_screenshot_even_a_lazy_one_on_a_hidden_screen(tmp_path, model):
     mock_dir, screens = write_mock(tmp_path, model)
-    renders = []
-    for n in range(2):
-        with open_mock(mock_dir) as (page, _):
-            renders.append([p.read_bytes() for p in screenshot_screens(page, screens, tmp_path / f"take{n}")])
-    assert renders[0] == renders[1]
+    Image.new("RGB", (64, 64), "red").save(mock_dir / "assets" / "lazy.png")
+    lazy = '<img loading="lazy" src="assets/lazy.png" style="width:40px;height:40px">'
+    page_html = (mock_dir / "index.html").read_text()
+    page_html = re.sub(rf'<section data-screen="{screens[1]}"[^>]*>', lambda m: m.group(0) + lazy, page_html, count=1)
+    (mock_dir / "index.html").write_text(page_html)
+    start = time.monotonic()
+    with open_mock(mock_dir) as (page, _):
+        opened = time.monotonic() - start
+        loaded = page.evaluate("() => [...document.images].every(i => i.complete && i.naturalWidth > 0)")
+    assert loaded and opened < render.DECODE_WAIT_MS / 1000
+    assert render_and_validate(mock_dir, model, screens).passed
