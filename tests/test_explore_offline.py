@@ -537,3 +537,29 @@ def test_a_chosen_chat_that_cant_be_reached_gives_way_to_jevs_next_chat(tmp_path
     stage.explore_app(ex)
     assert tour_chat and ex.core.name.startswith("open an item and send messages") and phone.sent == ex.core_reps
     assert any(r.startswith(f"could not get to {tour_chat[0]}") for r in ex.core_results)
+
+
+def test_the_walk_scrolls_a_long_item_page_to_its_main_action_at_the_end(tmp_path, monkeypatch):
+    from PIL import Image
+    from tests.fake_device import Screen
+    back = {"ref": "@back", "type": "android.widget.Button", "text": "", "identifier": "x:id/back",
+            "coordinates": {"x": 42, "y": 168, "width": 84, "height": 84}}
+    go = {"ref": "@go", "type": "android.view.ViewGroup", "text": "Chat with Avarus",
+          "coordinates": {"x": 88, "y": 2198, "width": 904, "height": 102}}
+
+    def long_page(clock):
+        phone = janitor_like(clock)
+        pages = [f"page{n}" for n in range(6)]
+        for n, name in enumerate(pages):
+            text = {"ref": "@p", "type": "android.widget.TextView", "text": f"Paragraph {n} of a long description",
+                    "coordinates": {"x": 42, "y": 700, "width": 996, "height": 120}}
+            shade = (40 * n % 255, 20, 200 - 30 * n)
+            phone.screens[name] = Screen([back, text] + ([go] if n == 5 else []),
+                                         Image.new("RGB", (1080, 2400), shade), PACKAGE)
+        phone.swipes.update(zip(pages, pages[1:]))
+        phone.taps[("limited", "JJK - GOJO’S RELATIVE")] = "page0"
+        phone.taps[("page5", "Chat with Avarus")] = "chat"
+        return phone
+    ex, phone = explore(tmp_path, monkeypatch, phone_factory=long_page)
+    assert ex.core.kind == "chat" and phone.sent
+    assert ("tap", "page5", "Chat with Avarus") in phone.log
