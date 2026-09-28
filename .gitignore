@@ -3,3 +3,9 @@
 __pycache__/
 *.pyc
 .DS_Store
+node_modules/
+config/models.local.toml
+.pytest_cache/
+# Real replay runs and their cache get force-added in PR 8; stub and scratch runs stay local.
+runs/
+cache/

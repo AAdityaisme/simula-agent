@@ -1,0 +1,2 @@
+# What exploration tries to answer before it stops early. Unanswered items become open questions.
+items = ["root", "all_tabs", "paywall_or_membership", "settings", "limit"]
