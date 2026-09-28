@@ -235,8 +235,15 @@ class Explorer:
         raise NeedRelaunch("the app is not responding")
 
     def measure_device(self) -> None:
-        w, h = self.phone.screen_size()
-        _, elements = self.phone.elements()
+        """Screen size, density, and insets, read with the app closed: an animating feed can keep uiautomator
+        from ever getting an idle dump. The defaults stand if the device still won't answer."""
+        try:
+            self.phone.terminate()
+            w, h = self.phone.screen_size()
+            _, elements = self.phone.elements()
+        except DEVICE_ERRORS as e:
+            self.note("device", f"kept the default geometry: {type(e).__name__}: {e}"[:200], outcome="error")
+            return
         density = adb_value(self.serial, ["wm", "density"], "density:")
         self.device = ob.device_from(elements, w, h, int(density) if density and density.isdigit() else 420)
 
