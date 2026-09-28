@@ -132,3 +132,19 @@ def test_a_tap_the_device_refuses_is_logged_as_an_error_not_done(tmp_path, monke
     refused = [line for line in lines if "refused the tap" in line.change_summary]
     assert len(refused) == 1 and refused[0].outcome == "error" and refused[0].to_state is None
     assert len(ex.states) >= 8
+
+
+def test_a_logo_splash_is_never_taken_for_the_root(tmp_path, monkeypatch):
+    from tests.fake_device import Screen
+
+    def logo_first(clock):
+        phone = janitor_like(clock)
+        logo = {"ref": "@logo", "type": "android.widget.ImageView", "text": "", "label": "App logo",
+                "coordinates": {"x": 390, "y": 1050, "width": 300, "height": 300}}
+        phone.screens["splash"] = Screen([logo], phone.screens["launch"].image, phone.screens["launch"].package)
+        phone.splash, phone.splash_screen = 12, "splash"
+        return phone
+    ex, _ = new_explorer(tmp_path, monkeypatch, logo_first)
+    stage.explore_app(ex)
+    assert all(c.label != "App logo" for s in ex.states for c in s.cands)
+    assert ex.root is not None and not ex.stop_reason.startswith("blocked root")

@@ -544,11 +544,11 @@ class Explorer:
         agree."""
         splash_deadline = self.clock() + SPLASH_WAIT_S
         obs = self.look(splash_deadline)
-        while obs is None or ((not obs.cands or obs.fg != self.package) and self.clock() < splash_deadline):
+        while obs is None or ((not self.launchable(obs) or obs.fg != self.package) and self.clock() < splash_deadline):
             self.sleep(1.5)
             obs = self.look(splash_deadline)
         deadline = self.clock() + LAUNCH_WAIT_S
-        while obs.fg == self.package and self.clock() < deadline and (not obs.cands or (
+        while obs.fg == self.package and self.clock() < deadline and (not self.launchable(obs) or (
                 expect and not ob.same_state(obs.fp, expect.fp) and not ob.dialog_box(obs.cands, self.device))):
             self.sleep(1.5)
             obs = self.observe()
@@ -559,6 +559,10 @@ class Explorer:
                 return again
             obs = again
         return obs
+
+    def launchable(self, obs: Obs) -> bool:
+        """A launch screen shows at least two labeled controls or a tab bar; a logo alone is a splash."""
+        return sum(bool(c.tree_label) for c in obs.cands) >= 2 or bool(ob.tab_bar(obs.cands, self.device))
 
     def look(self, deadline: float) -> Obs | None:
         """An observation during a cold start, or None while the device can't answer yet (a loaded emulator
@@ -594,7 +598,7 @@ class Explorer:
         hit = next((t for t in ob.texts(obs.elements, self.device) if ob.BLOCKING.search(t)), None)
         if hit:
             return f"a blocking screen at launch: {hit[:80]!r}"
-        return None if obs.cands else "no controls on the launch screen"
+        return None if self.launchable(obs) else "no controls on the launch screen (fewer than two labeled, no tab bar)"
 
     def back_to_root(self) -> None:
         """A relaunch that restored a deeper screen goes back up to 4 times to the launch screen. A screen that

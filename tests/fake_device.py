@@ -73,6 +73,7 @@ class FakePhone:
     hung_lists: int = 0
     device: str = "fake-1"
     after_sends: dict[int, str] = field(default_factory=dict)
+    splash_screen: str | None = None
     chat_top: int = 401
 
     def __post_init__(self):
@@ -88,7 +89,7 @@ class FakePhone:
     def current_elements(self) -> list[dict]:
         if self.splash_left:
             self.splash_left -= 1
-            return []
+            return list(self.screens[self.splash_screen].elements) if self.splash_screen else []
         elements = list(self.screens[self.screen].elements)
         if self.screen not in self.replies:
             return elements
