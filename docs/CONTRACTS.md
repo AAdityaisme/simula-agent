@@ -140,7 +140,7 @@ Code writes every number and id; a model writes meaning keyed by ids code gave i
 - `window.simula.go(id)`, `window.simula.state()`, `window.simula.reset()`.
 - No screenshot wallpaper: no single `<img>` may cover more than 40% of a screen's content area.
 - Flow screens added in stage 7: `data-screen="new:<slug>"`, `data-flow="<candidate id>"`.
-- Scope is chosen by code (stage 2): the root, every state showing a paywall, limit, currency, or ad, every state showing any other mechanic (a modal or sheet brings its parent), and every state on the core flows; no fixed cap; a tab or depth-1 screen is in only when it is on a flow or holds a mechanic; never `blocked` or `external`. An `unsafe` rating does not remove a state (ratings can be wrong; decided 2026-09-28). `ProductModel.mock_order` lists the scope in that priority order (added 2026-09-28).
+- Scope is chosen by code (stage 2): the root, every state showing a paywall, limit, currency, or ad, every state showing any other mechanic (a modal or sheet brings its parent), and every state on the core flows; no fixed cap; a tab or depth-1 screen is in only when it is on a flow or holds a mechanic; never `blocked` or `external`. An `unsafe` state stays out unless it is on a core flow, where a gap would break the flow (decided 2026-09-28, replacing "unsafe never removes a state"). `ProductModel.mock_order` lists the scope in that priority order (added 2026-09-28).
 
 ## 8. Trace, cache, money
 

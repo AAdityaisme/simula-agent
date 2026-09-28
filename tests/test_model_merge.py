@@ -193,7 +193,7 @@ def test_mock_scope_is_chosen_by_code(app):
         assert parent is None or (parent in scope and scope.index(parent) < scope.index(sid)), sid
     unsafe = [m.model_copy(update={"content_rating": "unsafe"}) for m in answer.states]
     rated = stage.apply_meaning(states, answer.model_copy(update={"states": unsafe}), KEYWORDS)
-    assert stage.mock_scope(rated, edges, answer) == scope, "an unsafe rating never removes a state"
+    assert set(stage.mock_scope(rated, edges, answer)) <= flow_states, "with every state unsafe, only flow states stay"
 
 
 def test_a_modal_in_scope_brings_its_parent_first():
@@ -207,7 +207,7 @@ def test_a_modal_in_scope_brings_its_parent_first():
                                                observed_numbers=[], status="observed")])
     assert stage.mock_scope(states, [], meaning) == ["s01", "s02", "s03"]
     unsafe_parent = [states[0], states[1].model_copy(update={"content_rating": "unsafe"}), states[2]]
-    assert stage.mock_scope(unsafe_parent, [], meaning) == ["s01", "s02", "s03"]
+    assert stage.mock_scope(unsafe_parent, [], meaning) == ["s01"]
     blocked_parent = [states[0], states[1].model_copy(update={"kind": "blocked"}), states[2]]
     assert stage.mock_scope(blocked_parent, [], meaning) == ["s01"]
 
@@ -295,6 +295,14 @@ def test_scope_is_root_then_money_screens_then_other_mechanics_then_the_core_flo
     order = stage.mock_scope(states, edges, meaning)
     assert order == ["s01", paywall, filler[0], *flow]
     assert not set(order) & set(tabs + filler[1:])
+
+    unsafe = {flow[1], filler[0], tabs[0]}
+    rated = [s.model_copy(update={"content_rating": "unsafe"}) if s.id in unsafe else s for s in states]
+    meaning.mechanics.append(Mechanic(id="m3", kind="other", evidence_ids=[tabs[0]], summary="x",
+                                      observed_numbers=[], status="observed"))
+    order = stage.mock_scope(rated, edges, meaning)
+    assert flow[1] in order, "an unsafe state on a core flow stays, so the flow isn't broken"
+    assert filler[0] not in order and tabs[0] not in order, "an unsafe state holding only a mechanic stays out"
 
 
 # ---------- the whole stage ----------
