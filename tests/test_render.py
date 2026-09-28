@@ -4,7 +4,8 @@ import pytest
 from PIL import Image
 
 from simula import render
-from simula.render import content_dp, open_mock, render_and_validate
+from simula.contracts import Edge
+from simula.render import content_dp, open_mock, render_and_validate, screenshot_screens
 from simula.stages.mock import copy_assets, pick_scope, scope_edges, with_runtime
 from tests.conftest import APPS, FIXTURES
 from tests.mock_fake import golden, skeleton_html
@@ -95,3 +96,22 @@ def test_fonts_that_fail_to_load_are_not_a_contract_error(tmp_path, model, monke
     (mock_dir / "index.html").write_text(html.replace("</head>", link + "</head>", 1))
     report = render_and_validate(mock_dir, model, screens)
     assert report.passed, report.errors
+
+
+def test_an_edge_with_no_element_is_not_a_missing_edge(tmp_path, model):
+    home, other = [s.id for s in pick_scope(model)[:2]]
+    back = Edge(id=f"{other}.back>{home}", from_state=other, to_state=home, element_id=None, action="back",
+                transition="back", change_summary="system back")
+    model = model.model_copy(update={"edges": model.edges + [back]})
+    mock_dir, screens = write_mock(tmp_path, model)
+    report = render_and_validate(mock_dir, model, screens)
+    assert report.passed, report.errors
+
+
+def test_the_same_page_renders_to_the_same_bytes(tmp_path, model):
+    mock_dir, screens = write_mock(tmp_path, model)
+    renders = []
+    for n in range(2):
+        with open_mock(mock_dir) as (page, _):
+            renders.append([p.read_bytes() for p in screenshot_screens(page, screens, tmp_path / f"take{n}")])
+    assert renders[0] == renders[1]

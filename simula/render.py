@@ -82,6 +82,8 @@ def open_mock(mock_dir: Path):
         page.on("requestfailed", failed)
         page.goto((mock_dir / "index.html").as_uri())
         page.wait_for_load_state("networkidle")
+        # Screenshots of a half-decoded image differ byte for byte, and QA's cache keys hash them.
+        page.evaluate("() => Promise.all([...document.images].map(i => i.decode().catch(() => null)))")
         try:
             yield page, log
         finally:
@@ -157,7 +159,7 @@ def _edge_errors(facts: dict, model: ProductModel, screens: list[str]) -> list[C
     present = {s["id"] for s in facts["screens"]}
     placed = {e["id"] for e in facts["edges"]}
     errors = [_error("missing_edge", f"no data-edge=\"{e.id}\"", e.from_state) for e in model.edges
-              if e.from_state in screens and e.to_state in screens and e.id not in placed]
+              if e.element_id and e.from_state in screens and e.to_state in screens and e.id not in placed]
     for e in facts["edges"]:
         eid, transition, screen = e["id"], e["transition"], e["screen"]
         target = eid.split(">")[-1]
