@@ -1,4 +1,8 @@
-"""The QA score: the formula, dropped terms, masking (copied assets and dynamic regions), and the per-screen average."""
+"""The QA score: the formula, dropped terms, masking (copied pixels where they sit over their origin, and dynamic
+regions), what earns bounds and nav credit, and the per-screen average."""
+
+import re
+from itertools import count
 
 import numpy as np
 import pytest
@@ -91,3 +95,70 @@ def test_a_screen_without_tagged_elements_scores_on_nav_and_ssim_only(tmp_path):
     s = version.metrics.screens[0]
     assert version.screens[0]["tagged"] == 0 and version.screens[0]["taps"] == 0
     assert s.score == pytest.approx(qa.screen_score(None, None, s.ssim_masked))
+
+
+@pytest.fixture(params=APPS)
+def one_screen(request, tmp_path):
+    """The first screen that draws copied assets, and a measure() for edits of its skeleton mock."""
+    app = request.param
+    run_dir = seed_model(tmp_path / "run", app)
+    model = golden(app)
+    state = next(s for s in mock.pick_scope(model) if any(mock.usable_asset(e, model.device) for e in s.elements))
+    mock.copy_assets(run_dir / "model", run_dir / "mock", [state], model.device)
+    rounds = count()
+
+    def measure(edit=lambda html: html):
+        html = qa.rebuild(edit(skeleton_html(model, [state.id])), model, [state.id])
+        return qa.measure(ctx_for(run_dir, app), model, [state], next(rounds), html)
+    return run_dir, state, measure
+
+
+def coverage(version) -> float:
+    return version.metrics.screens[0].masked_coverage
+
+
+def redraw(draw):
+    """An edit that swaps each copied <img> of the skeleton for draw(src, style, attrs)."""
+    img = re.compile(r'<img src="(assets/[^"]+\.png)" style="([^"]*)"([^>]*)>')
+    return lambda html: img.sub(lambda m: draw(*m.groups()), html)
+
+
+def with_css(rule: str):
+    return lambda html: html.replace("</head>", f"<style>{rule}</style></head>")
+
+
+def test_copied_assets_are_masked_as_an_img_or_a_css_background(one_screen):
+    _, _, measure = one_screen
+    base = coverage(measure())
+    background = redraw(lambda src, style, attrs: f'<div style="{style};background:url({src}) 0 0/100% 100%"'
+                                                  f"{attrs}></div>")
+    assert base < 1.0
+    assert coverage(measure(background)) == pytest.approx(base)
+
+
+def test_copies_drawn_away_from_their_origin_mask_nothing_there(one_screen):
+    _, _, measure = one_screen
+    corner = redraw(lambda src, style, attrs: f'<img src="{src}" style="position:absolute;left:0;top:0;width:4px;'
+                                              f'height:4px"{attrs}>')
+    assert coverage(measure(corner)) > coverage(measure())
+
+
+@pytest.mark.parametrize("hide", ["visibility:hidden", "opacity:0"])
+def test_an_invisible_data_el_gets_no_bounds_credit(one_screen, hide):
+    _, state, measure = one_screen
+    eid = sorted(mock.tagged_ids(state))[0]
+    version = measure(with_css(f'[data-el="{eid}"]{{{hide}!important}}'))
+    assert version.metrics.screens[0].bounds_ok_share < 1.0
+    assert eid in [m["id"] for m in version.screens[0]["misses"]]
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_a_tap_target_outside_its_screen_fails(tmp_path, app):
+    run_dir = seed_model(tmp_path / "run", app)
+    model = golden(app)
+    scope = mock.pick_scope(model)
+    edge = mock.scope_edges(model, scope)[0]
+    mock.copy_assets(run_dir / "model", run_dir / "mock", scope, model.device)
+    html = with_css(f'[data-edge="{edge.id}"]{{top:1500px!important}}')(skeleton_html(model))
+    version = qa.measure(ctx_for(run_dir, app), model, scope, 0, qa.rebuild(html, model, [s.id for s in scope]))
+    assert {t["edge"]: t["problem"] for t in version.taps}[edge.id] == "the tag sits outside its screen"

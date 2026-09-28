@@ -15,7 +15,7 @@ from playwright.sync_api import Error as PlaywrightError
 from simula import config, llm, qa_metrics, render
 from simula.config import ROOT
 from simula.contracts import (SCHEMA_VERSION, ContractError, Critique, Edge, Edit, Edits, ProductModel, QAMetrics,
-                              ScreenMetrics, State)
+                              Rect, ScreenMetrics, State)
 from simula.runlog import read_trace, run_trace, write_exhibit
 from simula.stages import Ctx, mock
 
@@ -71,7 +71,11 @@ def run(ctx: Ctx) -> None:
         html = rebuild(html, model, screens)
         write_json(ctx.run_dir / "qa" / f"round{n}" / "critique.json", critique.model_dump())
         write_json(ctx.run_dir / "qa" / f"round{n}" / "edits.json", {"edits": results})
-        new = measure(ctx, model, scope, n, html)
+        try:
+            new = measure(ctx, model, scope, n, html)
+        except PlaywrightError as e:
+            stop = f"round {n} broke the page ({str(e).splitlines()[0][:200]}), so its edits were discarded"
+            break
         gain = new.score - best.score
         kept = gain >= 0
         rounds.append(summary(new, kept, results))
@@ -122,13 +126,15 @@ def measure(ctx: Ctx, model: ProductModel, scope: list[State], n: int, html: str
     return Version(n, html, metrics, details, taps, flows, errors)
 
 
-def measure_screen(ctx: Ctx, model: ProductModel, state: State, round_dir, boxes: dict, images: set[str],
+def measure_screen(ctx: Ctx, model: ProductModel, state: State, round_dir, boxes: dict, images: list,
                    taps: list[dict]) -> dict:
-    """Scores one screen. Masked out of SSIM: the real screen's art the mock copied (so a pasted crop earns nothing),
-    and regions that change between visits."""
+    """Scores one screen. Masked out of SSIM: wherever a copied image sits over the spot it was cropped from (so a
+    pasted crop earns nothing, and a misplaced one is scored), and regions that change between visits."""
     real = Image.open(ctx.run_dir / "model" / state.canonical_png)
     render_path = round_dir / "mock" / f"{state.id}.png"
-    masked = ([e.rect_dp for e in state.elements if e.id in images]
+    origins = {f"assets/{e.id}.png": e.rect_dp for e in state.elements} | art_origins(ctx)
+    copies = [qa_metrics.overlap(origins[src], drawn) for src, drawn in images if src in origins]
+    masked = ([r for r in copies if r]
               + [qa_metrics.device_to_dp(r, model.device) for r in state.dynamic_regions])
     pixels = qa_metrics.compare(real, Image.open(render_path), masked)
     save_png(render.content_dp(Image.open(render_path)), render_path)
@@ -153,6 +159,13 @@ def measure_screen(ctx: Ctx, model: ProductModel, state: State, round_dir, boxes
             "taps_passed": passed, "misses": misses}
 
 
+def art_origins(ctx: Ctx) -> dict:
+    """mock/art.json: each art crop's src and the content-dp rect it was cut from (absent before PR 3b)."""
+    path = ctx.run_dir / "mock" / "art.json"
+    art = json.loads(path.read_text()) if path.exists() else {}
+    return {src: Rect(**r) for src, r in art.items() if src.startswith("assets/")}
+
+
 def screen_score(bounds: float | None, nav: float | None, ssim: float | None) -> float:
     """10 × (0.5 bounds + 0.3 nav + 0.2 SSIM). A term with nothing to measure (no tagged element, no tap, too little
     unmasked screen) is dropped and the others are reweighted."""
@@ -171,6 +184,10 @@ def tap(page, edge: Edge) -> str | None:
     if tags.count() == 0:
         return "no data-edge tag on its screen"
     transition = tags.first.get_attribute("data-transition")
+    box, screen = tags.first.bounding_box(), page.locator(f'[data-screen="{edge.from_state}"]').bounding_box()
+    if box and screen and not (screen["x"] <= box["x"] + box["width"] / 2 <= screen["x"] + screen["width"]
+                               and screen["y"] <= box["y"] + box["height"] / 2 <= screen["y"] + screen["height"]):
+        return "the tag sits outside its screen"
     try:
         tags.first.click(timeout=CLICK_TIMEOUT_MS)
     except PlaywrightError as e:

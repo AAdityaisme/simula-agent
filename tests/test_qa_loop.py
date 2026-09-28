@@ -1,5 +1,5 @@
 """The QA loop with a fake critic and fixer: the 0.3 stop rule, the discard rule, the best version approved, the
-fixer's effort per round, and a failed model call that never blocks the slides."""
+fixer's effort per round, and a failed model call or a broken page that never blocks the slides."""
 
 import json
 
@@ -137,3 +137,18 @@ def test_the_whole_stage_runs_on_every_golden(tmp_path, monkeypatch, app):
         sorted(p.name for p in (run_dir / "mock" / "assets").iterdir())
     assert "| 1 | " in (run_dir / "exhibits" / "04-qa.md").read_text() and "discarded" in report["stop_reason"]
     assert ContractReport.model_validate_json((run_dir / "mock" / "contract_report.json").read_text()).passed
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_a_fixer_edit_that_breaks_the_page_is_discarded_and_the_delivered_mock_approved(tmp_path, monkeypatch, app):
+    run_dir = seed_model(tmp_path / "run", app)
+    monkeypatch.setattr(llm, "call", fake_builder([]))
+    mock.run(ctx_for(run_dir, app))
+    delivered = (run_dir / "mock" / "index.html").read_text()
+    unclosed = Edit(find="<body>", replace="<body><!-- an unclosed comment swallows the runtime", reason="r")
+    monkeypatch.setattr(llm, "call", fake_llm([], lambda n: [unclosed]))
+    qa.run(ctx_for(run_dir, app))
+
+    report = json.loads((run_dir / "qa" / "qa_report.json").read_text())
+    assert report["approved_round"] == 0 and "round 1 broke the page" in report["stop_reason"]
+    assert approved_html(run_dir) == delivered

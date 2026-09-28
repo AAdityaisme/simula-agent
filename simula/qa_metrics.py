@@ -18,20 +18,26 @@ MIN_COVERAGE = 0.3
 BOUNDS_TOLERANCE_DP = 4.0
 IDENTITY_GATE = 0.985
 
-# On the section shown now: each data-el's box in the section's coordinates (content dp), and the element ids of the
-# asset images it draws.
-SCREEN_DOM = """(id) => {
+# On the section shown now: each visible data-el's box in the section's coordinates (content dp), and every copied
+# image it draws (an <img> or a CSS background from assets/) with the box it is drawn in.
+SCREEN_DOM = r"""(id) => {
   const section = document.querySelector(`[data-screen="${CSS.escape(id)}"]`);
   if (!section) return {boxes: {}, images: []};
   const origin = section.getBoundingClientRect();
+  const local = r => ({x: r.left - origin.left, y: r.top - origin.top, w: r.width, h: r.height});
+  const seen = el => el.checkVisibility({opacityProperty: true, visibilityProperty: true});
   const boxes = {};
   for (const el of section.querySelectorAll('[data-el]')) {
     const r = el.getBoundingClientRect();
-    if (r.width > 0 && r.height > 0 && !(el.dataset.el in boxes))
-      boxes[el.dataset.el] = {x: r.left - origin.left, y: r.top - origin.top, w: r.width, h: r.height};
+    if (r.width > 0 && r.height > 0 && seen(el) && !(el.dataset.el in boxes)) boxes[el.dataset.el] = local(r);
   }
-  const images = [...section.querySelectorAll('img')].map(i => i.getAttribute('src') ?? '')
-    .map(src => src.match(/^assets\/(.+)\.png$/)?.[1]).filter(Boolean);
+  const images = [];
+  for (const el of section.querySelectorAll('*')) {
+    const src = el.tagName === 'IMG' ? el.getAttribute('src') ?? ''
+      : getComputedStyle(el).backgroundImage.match(/assets\/[^\/"')]+\.png/)?.[0] ?? '';
+    const r = el.getBoundingClientRect();
+    if (/^assets\/[^\/]+\.png$/.test(src) && r.width > 0 && r.height > 0 && seen(el)) images.push({src, ...local(r)});
+  }
   return {boxes, images};
 }"""
 
@@ -97,10 +103,16 @@ def identity_render(real: Image.Image, device: Device = Device()) -> Image.Image
         return Image.open(Path(tmp) / "render.png").copy()
 
 
-def screen_dom(page, screen: str) -> tuple[dict[str, Rect], set[str]]:
-    """For the screen on show: every data-el with a visible box (content dp), and the assets it draws."""
+def screen_dom(page, screen: str) -> tuple[dict[str, Rect], list[tuple[str, Rect]]]:
+    """For the screen on show: every visible data-el's box (content dp), and each copied image with its drawn box."""
     dom = page.evaluate(SCREEN_DOM, screen)
-    return {eid: Rect(**box) for eid, box in dom["boxes"].items()}, set(dom["images"])
+    images = [(i.pop("src"), Rect(**i)) for i in dom["images"]]
+    return {eid: Rect(**box) for eid, box in dom["boxes"].items()}, images
+
+
+def overlap(a: Rect, b: Rect) -> Rect | None:
+    x0, y0, x1, y1 = max(a.x, b.x), max(a.y, b.y), min(a.x + a.w, b.x + b.w), min(a.y + a.h, b.y + b.h)
+    return Rect(x=x0, y=y0, w=x1 - x0, h=y1 - y0) if x1 > x0 and y1 > y0 else None
 
 
 def within(got: Rect | None, want: Rect, tolerance: float = BOUNDS_TOLERANCE_DP) -> bool:
