@@ -40,3 +40,17 @@ def test_sending_and_typing_only_in_the_core_loop():
 
 def test_dismiss_never_picks_a_denied_control():
     assert dismiss_control([control("Cancel subscription"), control("Not now")]).label == "Not now"
+
+
+def test_a_reason_is_never_its_text_twice():
+    assert denied(control("Start free trial")) == "start free trial"
+
+
+def test_the_exhibit_counts_denied_taps_that_reached_the_device(tmp_path, monkeypatch):
+    from simula.stages import explore as stage
+    from tests.fake_device import explorer
+    from tests.test_explore_offline import janitor_like
+    ex, phone = explorer(tmp_path, monkeypatch, janitor_like)
+    ex.perform(stage.Move("tap", control("Subscribe now")), control("Subscribe now"))
+    ex.perform(stage.Move("tap", control("Settings")), control("Settings"))
+    assert ex.denied_executed == 1

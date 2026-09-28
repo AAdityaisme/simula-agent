@@ -303,7 +303,7 @@ def find(cands: list[Candidate], want: Candidate) -> Candidate | None:
 def denied(c: Candidate, upsell: bool = False, core: bool = False) -> str | None:
     """The deny-list word that blocks this tap, or None. On an upsell screen its call-to-action words are
     denied too. Sending and typing belong to the core-loop pass only."""
-    text = f"{c.label} {c.tree_label}"
+    text = "\n".join(dict.fromkeys(t for t in (c.label, c.tree_label) if t))
     hit = DENY.search(text) or (DENY_ON_UPSELL.search(text) if upsell else None) \
         or (None if core else DENY_IN_TOUR.search(text))
     if hit:

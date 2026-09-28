@@ -2,6 +2,7 @@
 moves to another screen by the tapped element's words (or its center, for controls without words)."""
 
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -17,7 +18,8 @@ from simula.stages import explore as stage
 FIXTURES = Path(__file__).parent / "fixtures" / "trees"
 PREFIX = "Found these elements on screen: "
 PACKAGE = "com.janitor.ai"
-PREFER = ("JJK", "Kang Jun-Seo", "Upgrade to", "Limited Only", "icon")
+PREFER = ("JJK", "Kang Jun-Seo", "Upgrade to", "icon")
+RESTRICTIVE = re.compile(r"\b(only|safe|sfw)\b", re.IGNORECASE)
 
 
 @dataclass
@@ -175,7 +177,7 @@ class FakePhone:
 
 def fake_jev(state, instructions, labels, backend):
     if "content or safety filter" in instructions:
-        pick = next((i for i, label in enumerate(labels) if "Limited" in label), len(labels) - 1)
+        pick = next((i for i, label in enumerate(labels) if RESTRICTIVE.search(label)), len(labels) - 1)
     elif "comes to this app" in instructions:
         pick = next((i for i, label in enumerate(labels) if label.startswith("send a message")), 0)
     else:

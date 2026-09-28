@@ -58,7 +58,7 @@ WALK_STEPS = 3
 
 RANK_QUESTION = "Which tap most likely reveals a limit, a paywall, a currency, an ad, or a new core screen of the app?"
 FILTER_QUESTION = ("A content or safety filter decides how much adult or unsafe content the app shows (for "
-                   "example 'SFW only', 'Safe mode', 'Hide NSFW', 'Limited'). Which control sets or opens such a "
+                   "example 'SFW only', 'Safe mode', 'Hide NSFW', 'Family mode'). Which control sets or opens such a "
                    "filter? If the filter's options are visible, pick the most restrictive one. Pick the last option "
                    "if no control here is a content or safety filter.")
 FILTER_MENU_QUESTION = "Which option is the most restrictive content setting (shows the least adult or unsafe content)?"
@@ -211,6 +211,7 @@ class Explorer:
         self.started = clock()
         self.secrets = redact_list()
         self.redacted = 0
+        self.denied_executed = 0
         (out / "states").mkdir(parents=True, exist_ok=True)
         self.scratch = out / ".scratch"
         self.scratch.mkdir(exist_ok=True)
@@ -369,7 +370,7 @@ class Explorer:
             return s
         outcome = "ok"
         try:
-            self.perform(move, live)
+            self.perform(move, live, s.upsell, core=purpose == "core")
         except McpTimeout:
             outcome = "timeout"
             self.hang(s)
@@ -403,8 +404,12 @@ class Explorer:
         self.current = to
         return to
 
-    def perform(self, move: Move, live: ob.Candidate | None) -> None:
+    def perform(self, move: Move, live: ob.Candidate | None, upsell: bool = False, core: bool = False) -> None:
+        """The one place a move reaches the device. A tap the deny-list flags is counted here, whoever sent it,
+        so the exhibit's count is measured, not assumed."""
         if move.action == "tap":
+            if ob.denied(live, upsell=upsell, core=core):
+                self.denied_executed += 1
             self.phone.tap(*live.point)
         elif move.action == "back":
             self.phone.back()
@@ -1044,7 +1049,7 @@ class Explorer:
                     total += 1
                     if move.cand and live is None:
                         continue
-                    self.perform(move, live)
+                    self.perform(move, live, ob.is_upsell(self.obs.elements, self.device))
                     seen = self.observe().fp
                     if ob.same_state(seen, self.by_id[to_sid].fp):
                         matched += 1
@@ -1243,7 +1248,7 @@ def exhibit(ex: Explorer, app_version: str | None) -> str:
     lines += [f"  - check {n}: {'verified' if ok else 'NOT verified'} by screenshot (`{path}`)"
               for n, ok, path in ex.filter_checks]
     lines += [f"- Checklist answered: {', '.join(answered) or 'none'}; open: {', '.join(still_open) or 'none'}",
-              f"- Denied taps: {sum(1 for _ in denied_lines(ex))} logged, 0 executed", ""]
+              f"- Denied taps: {sum(1 for _ in denied_lines(ex))} logged, {ex.denied_executed} executed", ""]
     if seconds:
         lines += ["## Settle signal", "",
                   f"Element-list call time over {len(seconds)} calls: median {seconds[len(seconds) // 2]:.2f} s, "
