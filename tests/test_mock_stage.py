@@ -166,7 +166,7 @@ def test_the_mock_opens_on_the_first_screen_that_is_not_a_dialog(tmp_path, monke
     model = golden(app)
     home = mock.pick_scope(model)[0]
     dialog = home.model_copy(update={"id": "s00", "kind": "modal", "parent_id": home.id, "elements": []})
-    model = model.model_copy(update={"states": [dialog] + model.states})
+    model = model.model_copy(update={"states": [dialog] + model.states, "mock_order": ["s00", *model.mock_order]})
     (run_dir / "model" / "product_model.json").write_text(model.model_dump_json())
     monkeypatch.setattr(llm, "call", fake_builder([]))
     mock.run(ctx_for(run_dir, app))
