@@ -122,11 +122,15 @@ def test_leaving_the_app_records_an_external_state_then_goes_back(run):
     assert all(by_from[s.sid].action == "back" for s in external)
 
 
-def test_billing_screen_gets_back_at_once_and_a_relaunch_recovers(run):
-    ex, _ = run
+def test_billing_screen_gets_back_at_once(run):
+    ex, phone = run
     trace = runlog.read_trace(ex.run_dir / "trace.jsonl")
     assert any(line.step == "billing" for line in trace)
-    assert ex.relaunches >= 1
+    on_billing = [entry for entry in phone.log if entry[0] != "shot" and entry[1:2] == ("billing",)]
+    assert on_billing and all(entry == ("back", "billing") for entry in on_billing)
+    seen = [n for n, entry in enumerate(phone.log) if entry == ("shot", "billing")]
+    assert all(phone.log[n + 1] == ("back", "billing") for n in seen)
+    assert "English only" in (ex.run_dir / "exhibits" / "01-explore.md").read_text()
 
 
 def test_a_revisit_records_dynamic_regions(run):

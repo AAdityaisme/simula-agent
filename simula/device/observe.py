@@ -29,7 +29,9 @@ CONTENT_BITS = 12
 DENY = re.compile(r"log ?out|sign ?out|delete|remove|cancel|subscribe|buy|pay|purchase|restore|confirm|"
                   r"start\b.{0,24}\btrial|report|block|clear|email|password|security|persona|follow|favorit|like|"
                   r"heart|hide|terms|privacy|continue with|rate us|review|camera|photo|gallery|allow|permission|"
-                  r"install|open in", re.IGNORECASE)
+                  r"install|open in|submit|place order|check ?out|proceed|donat|\btip\b|\brate\b|give \d stars?|"
+                  r"sign ?in|sign ?up|log ?in|create account|save changes|publish|\bpost\b", re.IGNORECASE)
+TOGGLE = re.compile(r"Switch|CheckBox|ToggleButton", re.IGNORECASE)
 DENY_ON_UPSELL = re.compile(r"continue|try|start|get|claim|unlock|join|redeem|activate", re.IGNORECASE)
 DENY_IN_TOUR = re.compile(r"send|swipe|regenerate", re.IGNORECASE)
 DENY_IN_CORE = re.compile(r"gift|coin|gem|tip|donat|credit", re.IGNORECASE)
@@ -43,7 +45,7 @@ PAYWALL = re.compile(rf"{PRICE.pattern}|subscription|membership|free trial|per (
                      r"/ ?(month|week|year|mo)\b", re.IGNORECASE)
 PRIMARY = re.compile(r"\b(chat|message|talk|start|begin)\b", re.IGNORECASE)
 CREATE = re.compile(r"\W*(generate|play|draw|spin|roll|scan)\b", re.IGNORECASE)
-ENTRY = re.compile(r"upgrade|\bplans?\b|premium|\bplus\b|\bpro\b|\+|membership|subscription", re.IGNORECASE)
+ENTRY = re.compile(r"upgrade|\bplans?\b|premium|\bplus\b|\bpro\b|(?<!\d)\+|membership|subscription", re.IGNORECASE)
 LIMIT = re.compile(r"\blimits?\b|\bremaining\b|\bquota\b|resets? in|out of (free )?(messages|credits|swipes|chats|"
                    r"articles)|no more (free )?\w+|\bleft today\b", re.IGNORECASE)
 DIGITS = re.compile(r"\d")
@@ -305,14 +307,17 @@ def find(cands: list[Candidate], want: Candidate) -> Candidate | None:
     return min(same, key=lambda c: abs(center(c.rect)[0] - wx) + abs(center(c.rect)[1] - wy), default=None)
 
 
-def denied(c: Candidate, upsell: bool = False, core: bool = False) -> str | None:
+def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bool = False) -> str | None:
     """The deny-list word that blocks this tap, or None. On an upsell screen its call-to-action words are
-    denied too. Sending and typing belong to the core-loop pass only."""
+    denied too. Sending and typing belong to the core-loop pass only. A switch or checkbox could undo the
+    content filter, so only the filter's own row may flip one (toggle_ok)."""
     text = "\n".join(dict.fromkeys(t for t in (c.label, c.tree_label) if t))
     hit = DENY.search(text) or (DENY_ON_UPSELL.search(text) if upsell else None) \
         or (DENY_IN_CORE if core else DENY_IN_TOUR).search(text)
     if hit:
         return hit.group(0).lower()
+    if TOGGLE.search(c.kind) and not toggle_ok:
+        return "toggle"
     if c.kind == "EditText" and not core:
         return "text input"
     return None

@@ -358,7 +358,7 @@ class Explorer:
         if self.touring and purpose in ("tour", "nav") and self.actions >= self.limits["actions"]:
             raise Stop(f"action cap ({self.limits['actions']})")
         if move.cand and move.action == "tap":
-            reason = ob.denied(move.cand, upsell=s.upsell, core=purpose == "core")
+            reason = ob.denied(move.cand, upsell=s.upsell, core=purpose == "core", toggle_ok=purpose == "filter")
             if reason:
                 self.log(s, None, move, move.cand, "unknown", f"denied: {reason}", "denied")
                 s.tried.add(move.cand.key)
@@ -372,7 +372,7 @@ class Explorer:
             return s
         outcome = "ok"
         try:
-            self.perform(move, live, s.upsell, core=purpose == "core")
+            self.perform(move, live, s.upsell, core=purpose == "core", toggle_ok=purpose == "filter")
         except McpTimeout:
             outcome = "timeout"
             self.hang(s)
@@ -388,6 +388,7 @@ class Explorer:
             self.log(s, None, move, ob.find(s.cands, move.cand) if move.cand else None, "unknown",
                      f"observing after the move failed: {type(e).__name__}", "error")
             raise
+        self.escape_billing()
         # a chat pass stays on the chat while its composer shows: the growing conversation is not a new state
         chatting = purpose == "core" and self.core.kind == "chat" and self.live_composer()
         to = s if chatting else self.record(obs, s, move, before.cands)
@@ -406,13 +407,40 @@ class Explorer:
         if move.cand and move.cand.key in self.tab_keys():
             self.tab_to.setdefault(move.cand.key, to.sid)
         self.current = to
-        return to
+        if to.fg in BILLING:
+            back = Move("back", why="the store's billing screen")
+            self.current = self.record(self.observe(), to, back, [])
+            self.log(to, self.current, back, None, "back", "", "ok")
+        return self.current
 
-    def perform(self, move: Move, live: ob.Candidate | None, upsell: bool = False, core: bool = False) -> None:
+    def escape_billing(self) -> bool:
+        """The store's billing screen gets BACK the moment it is seen, before anything else can run. What was
+        observed is still recorded and logged as evidence."""
+        if not (self.obs and self.obs.fg in BILLING):
+            return False
+        self.note("billing", f"the store's billing screen opened ({self.obs.fg}); pressed BACK at once",
+                  outcome="blocked")
+        self.phone.back()
+        return True
+
+    def safe_tap(self, c: ob.Candidate, why: str) -> bool:
+        """A tap outside act() (the replay check, a quiet relaunch): the same deny-list, and only while the app
+        itself is in front."""
+        upsell = ob.is_upsell(self.obs.elements, self.device)
+        reason = (f"{self.obs.fg} is in front" if self.obs.fg != self.package else
+                  ob.denied(c, upsell=upsell, toggle_ok=c.key in {t.key for t in self.filter_taps}))
+        if reason:
+            self.note(why, f"{c.label[:30]!r} not tapped: {reason}", outcome="blocked")
+            return False
+        self.perform(Move("tap", c), c, upsell, toggle_ok=True)
+        return True
+
+    def perform(self, move: Move, live: ob.Candidate | None, upsell: bool = False, core: bool = False,
+                toggle_ok: bool = False) -> None:
         """The one place a move reaches the device. A tap the deny-list flags is counted here, whoever sent it,
         so the exhibit's count is measured, not assumed."""
         if move.action == "tap":
-            if ob.denied(live, upsell=upsell, core=core):
+            if ob.denied(live, upsell=upsell, core=core, toggle_ok=toggle_ok):
                 self.denied_executed += 1
             self.phone.tap(*live.point)
         elif move.action == "back":
@@ -589,13 +617,14 @@ class Explorer:
             for n, tap in enumerate(self.filter_taps):
                 if n == len(self.filter_taps) - 1 and self.stands_out(tap):
                     break
-                self.act(Move("tap", tap, decider="code", why="re-apply the content filter"), purpose="setup")
+                self.act(Move("tap", tap, decider="code", why="re-apply the content filter"), purpose="filter")
         if self.filter_taps:
             self.check_filter()
 
     def find_filter(self) -> list[ob.Candidate]:
         home = self.current
-        opts = [c for c in home.cands if c.tree_label and not ob.denied(c) and c.key not in self.tab_keys()]
+        opts = [c for c in home.cands if c.tree_label and not ob.denied(c, toggle_ok=True)
+                and c.key not in self.tab_keys()]
         if not opts:
             return []
         pick = self.pick(home, opts, FILTER_QUESTION, "filter", none_label=NO_FILTER)
@@ -604,12 +633,12 @@ class Explorer:
             return []
         taps = [pick]
         if not self.stands_out(pick):
-            opened = self.act(Move("tap", pick, decider="jev", why="content filter"), purpose="setup")
+            opened = self.act(Move("tap", pick, decider="jev", why="content filter"), purpose="filter")
             if opened is not home and opened.kind in ("modal", "sheet"):
-                option = self.pick(opened, [c for c in opened.cands if not ob.denied(c)], FILTER_MENU_QUESTION,
-                                   "filter.menu")
+                option = self.pick(opened, [c for c in opened.cands if not ob.denied(c, toggle_ok=True)],
+                                   FILTER_MENU_QUESTION, "filter.menu")
                 if option:
-                    self.act(Move("tap", option, decider="jev", why="content filter option"), purpose="setup")
+                    self.act(Move("tap", option, decider="jev", why="content filter option"), purpose="filter")
                     taps.append(option)
         self.note("filter", "content filter: " + " > ".join(repr(t.label) for t in taps), decider="jev")
         return taps
@@ -793,9 +822,10 @@ class Explorer:
             yield Move("swipe", direction="down", why="scroll back"), self.by_id[x.unscroll_to]
 
     def leave_external(self) -> None:
-        if self.obs.fg in BILLING:
-            self.note("billing", f"the store's billing screen opened ({self.obs.fg}); pressing BACK at once",
-                      outcome="blocked")
+        if self.obs is None:
+            self.resync()
+            if self.current.kind != "external":
+                return
         self.act(Move("back", why="return from another app"), purpose="nav")
         if self.current.kind == "external":
             self.relaunch(why=f"BACK did not return from {self.obs.fg}")
@@ -1121,8 +1151,13 @@ class Explorer:
                     total += 1
                     if move.cand and live is None:
                         continue
-                    self.perform(move, live, ob.is_upsell(self.obs.elements, self.device))
+                    if move.action == "tap" and not self.safe_tap(live, "replay"):
+                        break
+                    if move.action != "tap":
+                        self.perform(move, live)
                     seen = self.observe().fp
+                    if self.escape_billing():
+                        self.observe()
                     if ob.same_state(seen, self.by_id[to_sid].fp):
                         matched += 1
                     else:
@@ -1143,12 +1178,14 @@ class Explorer:
             if not ob.dialog_box(self.obs.cands, self.device):
                 break
             close = ob.dismiss_control(self.obs.cands)
-            self.perform(Move("tap", close) if close else Move("back"), close)
+            if close is None:
+                self.perform(Move("back"), None)
+            elif not self.safe_tap(close, "replay"):
+                break
             self.observe()
         for n, tap in enumerate(self.filter_taps):
             live = ob.find(self.obs.cands, tap)
-            if live and not (n == len(self.filter_taps) - 1 and self.stands_out(tap)):
-                self.perform(Move("tap", tap), live)
+            if live and not (n == len(self.filter_taps) - 1 and self.stands_out(tap)) and self.safe_tap(live, "replay"):
                 self.observe()
 
     # ---------- Jev and Sonnet ----------
@@ -1320,7 +1357,9 @@ def exhibit(ex: Explorer, app_version: str | None) -> str:
     lines += [f"  - check {n}: {'verified' if ok else 'NOT verified'} by screenshot (`{path}`)"
               for n, ok, path in ex.filter_checks]
     lines += [f"- Checklist answered: {', '.join(answered) or 'none'}; open: {', '.join(still_open) or 'none'}",
-              f"- Denied taps: {sum(1 for _ in denied_lines(ex))} logged, {ex.denied_executed} executed", ""]
+              f"- Denied taps: {sum(1 for _ in denied_lines(ex))} logged, {ex.denied_executed} executed. The deny-list "
+             "is English only: a confirm button in another language isn't caught, and the store's billing screen "
+             "getting BACK at once is the guard that works in any language (Play purchases only).", ""]
     if seconds:
         lines += ["## Settle signal", "",
                   f"Element-list call time over {len(seconds)} calls: median {seconds[len(seconds) // 2]:.2f} s, "
