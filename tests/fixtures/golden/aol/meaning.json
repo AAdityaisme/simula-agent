@@ -1,0 +1,152 @@
+{
+ "app_version": "7.81.0",
+ "app_category": "content",
+ "states": [
+  {
+   "id": "s01",
+   "tree": "aol-a",
+   "kind": "screen",
+   "name": "Home · Top Stories",
+   "in_mock_scope": true,
+   "purpose": "Root. News feed with category pills, weather bar, story cards, display ad slots, bottom bar Inbox / Home.",
+   "labels": {
+    "@e102": "Inbox tab"
+   },
+   "roles": {
+    "@e102": "tab"
+   }
+  },
+  {
+   "id": "s02",
+   "screen": "04-article",
+   "kind": "screen",
+   "name": "Article",
+   "in_mock_scope": true,
+   "purpose": "Article page: byline, hero image, body text, share and comment bar. Screenshot only."
+  },
+  {
+   "id": "s03",
+   "screen": "11-nav-inbox-login",
+   "kind": "blocked",
+   "name": "Inbox sign-in",
+   "in_mock_scope": false,
+   "blocked_reason": "login wall",
+   "purpose": "Mail tab asks for a sign-in. Screenshot only."
+  },
+  {
+   "id": "s04",
+   "screen": "05-tab-entertainment",
+   "kind": "screen",
+   "name": "Entertainment",
+   "in_mock_scope": true,
+   "purpose": "Entertainment category feed. Screenshot only."
+  },
+  {
+   "id": "s05",
+   "screen": "08-sports-article-with-ad",
+   "kind": "screen",
+   "name": "Article with in-article ad",
+   "in_mock_scope": true,
+   "purpose": "An article with a native ad inside the body. Screenshot only."
+  }
+ ],
+ "edges": [
+  {
+   "from": [
+    "s01",
+    "When to set your clocks back"
+   ],
+   "to": "s02",
+   "summary": "opens the article"
+  },
+  {
+   "from": [
+    "s01",
+    "Inbox"
+   ],
+   "to": "s03",
+   "summary": "bottom bar: Inbox asks for sign-in"
+  },
+  {
+   "from": [
+    "s01",
+    "Entertainment"
+   ],
+   "to": "s04",
+   "summary": "category pill switches the feed"
+  }
+ ],
+ "mechanics": [
+  {
+   "id": "m01",
+   "kind": "ad",
+   "evidence": [
+    [
+     "s01",
+     "AD"
+    ]
+   ],
+   "status": "observed",
+   "summary": "Display ad slot between feed stories, labeled AD; often renders empty on the emulator."
+  },
+  {
+   "id": "m02",
+   "kind": "other",
+   "evidence": [
+    [
+     "s01",
+     "Save this article"
+    ]
+   ],
+   "status": "observed",
+   "summary": "Save-for-later on every story card."
+  }
+ ],
+ "ledger": [],
+ "open_questions": [
+  "No paywall, limit, or currency was seen on the home feed.",
+  "The Inbox needs a sign-in (blocked).",
+  "Which ad formats fill on a real device is unknown; the emulator often shows empty slots."
+ ],
+ "checklist_answered": [
+  "root",
+  "all_tabs"
+ ],
+ "checklist_open": [
+  "paywall_or_membership",
+  "settings",
+  "limit"
+ ],
+ "flows": [
+  {
+   "id": "f01",
+   "name": "Read a story",
+   "purpose": "From the home feed to an article.",
+   "path": [
+    "s01",
+    "s02"
+   ],
+   "evidence": [
+    [
+     "s01",
+     "When to set"
+    ]
+   ]
+  },
+  {
+   "id": "f02",
+   "name": "Browse a category",
+   "purpose": "Switch the feed with a category pill.",
+   "path": [
+    "s01",
+    "s04"
+   ],
+   "evidence": [
+    [
+     "s01",
+     "Entertainment"
+    ]
+   ]
+  }
+ ]
+}

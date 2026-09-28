@@ -1,0 +1,215 @@
+{
+ "app_version": "5.44.0",
+ "app_category": "chat",
+ "states": [
+  {
+   "id": "s01",
+   "tree": "luzia-b",
+   "kind": "screen",
+   "name": "Chats (home)",
+   "in_mock_scope": true,
+   "purpose": "Root. Assistant prompt card, new-chat personas, Custom Bestie and virtual-pet banners, recent chats, bottom tabs Chat / Services / Create.",
+   "labels": {
+    "@e30": "Subscription badge",
+    "@e33": "Settings button"
+   },
+   "roles": {
+    "@e30": "upsell badge",
+    "@e33": "icon button",
+    "@e68": "tab",
+    "@e71": "tab"
+   }
+  },
+  {
+   "id": "s02",
+   "screen": "07-luzia-plus-paywall",
+   "kind": "screen",
+   "name": "Subscription paywall",
+   "in_mock_scope": true,
+   "purpose": "Full paywall: feature list, weekly / monthly / annual plans, free-trial button. Screenshot only (no tree)."
+  },
+  {
+   "id": "s03",
+   "screen": "06-settings",
+   "kind": "screen",
+   "name": "Settings",
+   "in_mock_scope": true,
+   "purpose": "Upgrade banner, memories, preferences, support, account. Screenshot only."
+  },
+  {
+   "id": "s04",
+   "screen": "04-toki-pet-modal",
+   "kind": "modal",
+   "parent": "s01",
+   "name": "Virtual pet intro",
+   "in_mock_scope": true,
+   "purpose": "Onboarding modal for the virtual pet; appeared unprompted. Screenshot only."
+  },
+  {
+   "id": "s05",
+   "screen": "02-tab-services",
+   "kind": "screen",
+   "name": "Services",
+   "in_mock_scope": true,
+   "purpose": "Routines and tasks; empty state with a Start something button. Screenshot only."
+  },
+  {
+   "id": "s06",
+   "screen": "03-tab-create",
+   "kind": "screen",
+   "name": "Create",
+   "in_mock_scope": true,
+   "purpose": "Mini-app marketplace with a Create app button. Screenshot only."
+  },
+  {
+   "id": "s07",
+   "screen": "05-chat-teacher-thread",
+   "kind": "screen",
+   "name": "Chat thread",
+   "in_mock_scope": false,
+   "purpose": "An existing chat with a persona. Screenshot only; chat content stays out of the mock."
+  }
+ ],
+ "edges": [
+  {
+   "from": [
+    "s01",
+    "Try Luzia"
+   ],
+   "to": "s02",
+   "summary": "subscription badge opens the paywall"
+  },
+  {
+   "from": [
+    "s01",
+    "@e33"
+   ],
+   "to": "s03",
+   "summary": "settings button opens settings"
+  },
+  {
+   "from": [
+    "s01",
+    "Services"
+   ],
+   "to": "s05",
+   "summary": "bottom bar: Services"
+  },
+  {
+   "from": [
+    "s01",
+    "@e71"
+   ],
+   "to": "s06",
+   "summary": "bottom bar: Create"
+  },
+  {
+   "from": [
+    "s01",
+    "Our new chat"
+   ],
+   "to": "s07",
+   "summary": "opens the recent chat"
+  }
+ ],
+ "mechanics": [
+  {
+   "id": "m01",
+   "kind": "paywall",
+   "evidence": [
+    [
+     "s01",
+     "Try Luzia"
+    ]
+   ],
+   "status": "observed",
+   "summary": "Subscription badge on home that opens a full paywall (plans and prices seen only in a screenshot)."
+  },
+  {
+   "id": "m02",
+   "kind": "other",
+   "evidence": [
+    [
+     "s01",
+     "Meet Toki"
+    ]
+   ],
+   "status": "observed",
+   "summary": "Virtual pet the user creates and takes care of."
+  },
+  {
+   "id": "m03",
+   "kind": "other",
+   "evidence": [
+    [
+     "s01",
+     "Custom Bestie"
+    ]
+   ],
+   "status": "observed",
+   "summary": "User-built custom AI expert."
+  }
+ ],
+ "ledger": [
+  {
+   "id": "l01",
+   "kind": "paywall_bullet",
+   "verbatim": "Try Luzia",
+   "evidence": [
+    "s01",
+    "Try Luzia"
+   ]
+  }
+ ],
+ "open_questions": [
+  "The paywall's plans, prices, and feature list exist only in a screenshot, so there are no verbatim bullets from a tree.",
+  "No free-tier limit was observed.",
+  "What the virtual pet needs from the user (care loop, currency) is unknown."
+ ],
+ "checklist_answered": [
+  "root",
+  "all_tabs",
+  "paywall_or_membership",
+  "settings"
+ ],
+ "checklist_open": [
+  "limit"
+ ],
+ "flows": [
+  {
+   "id": "f01",
+   "name": "See the subscription offer",
+   "purpose": "From the home badge to the full paywall.",
+   "path": [
+    "s01",
+    "s02"
+   ],
+   "evidence": [
+    [
+     "s01",
+     "Try Luzia"
+    ]
+   ]
+  },
+  {
+   "id": "f02",
+   "name": "Continue a chat",
+   "purpose": "From home to a recent chat.",
+   "path": [
+    "s01",
+    "s07"
+   ],
+   "evidence": []
+  },
+  {
+   "id": "f03",
+   "name": "Explore mini-apps",
+   "purpose": "From home to the Create tab marketplace.",
+   "path": [
+    "s01",
+    "s06"
+   ],
+   "evidence": []
+  }
+ ]
+}

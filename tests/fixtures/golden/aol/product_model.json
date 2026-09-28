@@ -1,0 +1,2205 @@
+{
+ "schema_version": 1,
+ "app": "aol",
+ "app_version": "7.81.0",
+ "app_category": "content",
+ "run_id": "golden",
+ "device": {
+  "w_px": 1080,
+  "h_px": 2400,
+  "density": 420,
+  "scale": 2.625,
+  "content_top_px": 136,
+  "content_bottom_px": 2337
+ },
+ "states": [
+  {
+   "id": "s01",
+   "kind": "screen",
+   "parent_id": null,
+   "name": "Home · Top Stories",
+   "purpose": "Root. News feed with category pills, weather bar, story cards, display ad slots, bottom bar Inbox / Home.",
+   "fingerprint": "fixture:tree:aol-a",
+   "canonical_png": "states/s01.png",
+   "elements": [
+    {
+     "id": "s01.e01",
+     "mcp_ref": "@e31",
+     "type": "FrameLayout",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 136.0,
+      "w": 1080.0,
+      "h": 294.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 0.0,
+      "w": 411.43,
+      "h": 112.0
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e01.png",
+     "fg_hex": "#ffd327",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e02",
+     "mcp_ref": "@e32",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 136.0,
+      "w": 1080.0,
+      "h": 158.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 0.0,
+      "w": 411.43,
+      "h": 60.19
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e02.png",
+     "fg_hex": "#1d2228",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e03",
+     "mcp_ref": "@e33",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 163.0,
+      "w": 828.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 10.29,
+      "w": 315.43,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e03.png",
+     "fg_hex": "#1d2228",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e04",
+     "mcp_ref": "@e34",
+     "type": "ImageView",
+     "text": "",
+     "label": "Sidebar button. Double tap or slide two fingers from the left of the screen to expand.",
+     "source": "mcp",
+     "rect_px": {
+      "x": 29.0,
+      "y": 163.0,
+      "w": 126.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 11.05,
+      "y": 10.29,
+      "w": 48.0,
+      "h": 48.0
+     },
+     "role": "image",
+     "asset_png": "assets/s01.e04.png",
+     "fg_hex": null,
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e05",
+     "mcp_ref": "@e35",
+     "type": "LinearLayout",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 155.0,
+      "y": 163.0,
+      "w": 473.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 59.05,
+      "y": 10.29,
+      "w": 180.19,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e05.png",
+     "fg_hex": "#1d2228",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e06",
+     "mcp_ref": "@e36",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 155.0,
+      "y": 163.0,
+      "w": 132.0,
+      "h": 59.0
+     },
+     "rect_dp": {
+      "x": 59.05,
+      "y": 10.29,
+      "w": 50.29,
+      "h": 22.48
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e06.png",
+     "fg_hex": "#1d2228",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e07",
+     "mcp_ref": "@e37",
+     "type": "TextView",
+     "text": "Home",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 171.0,
+      "y": 163.0,
+      "w": 116.0,
+      "h": 59.0
+     },
+     "rect_dp": {
+      "x": 65.14,
+      "y": 10.29,
+      "w": 44.19,
+      "h": 22.48
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#1d2228",
+     "bg_hex": "#ffffff",
+     "font_px": 59.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e08",
+     "mcp_ref": "@e38",
+     "type": "TextView",
+     "text": "See the latest news",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 171.0,
+      "y": 222.0,
+      "w": 457.0,
+      "h": 67.0
+     },
+     "rect_dp": {
+      "x": 65.14,
+      "y": 32.76,
+      "w": 174.1,
+      "h": 25.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#1d2228",
+     "bg_hex": "#ffffff",
+     "font_px": 67.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e09",
+     "mcp_ref": "@e39",
+     "type": "ImageButton",
+     "text": "",
+     "label": "Access your saved articles",
+     "source": "mcp",
+     "rect_px": {
+      "x": 828.0,
+      "y": 168.0,
+      "w": 105.0,
+      "h": 105.0
+     },
+     "rect_dp": {
+      "x": 315.43,
+      "y": 12.19,
+      "w": 40.0,
+      "h": 40.0
+     },
+     "role": "button",
+     "asset_png": null,
+     "fg_hex": "#1d2228",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e10",
+     "mcp_ref": "@e40",
+     "type": "ImageButton",
+     "text": "",
+     "label": "Search",
+     "source": "mcp",
+     "rect_px": {
+      "x": 954.0,
+      "y": 168.0,
+      "w": 105.0,
+      "h": 105.0
+     },
+     "rect_dp": {
+      "x": 363.43,
+      "y": 12.19,
+      "w": 40.0,
+      "h": 40.0
+     },
+     "role": "button",
+     "asset_png": null,
+     "fg_hex": "#1d2228",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e11",
+     "mcp_ref": "@e41",
+     "type": "ComposeView",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 283.0,
+      "w": 1080.0,
+      "h": 147.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 56.0,
+      "w": 411.43,
+      "h": 56.0
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e11.png",
+     "fg_hex": "#ffd327",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e12",
+     "mcp_ref": "@e42",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 53.0,
+      "y": 294.0,
+      "w": 239.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 20.19,
+      "y": 60.19,
+      "w": 91.05,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e12.png",
+     "fg_hex": "#ffffff",
+     "bg_hex": "#ffd327",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e13",
+     "mcp_ref": "@e43",
+     "type": "TextView",
+     "text": "Top Stories",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 95.0,
+      "y": 338.0,
+      "w": 155.0,
+      "h": 38.0
+     },
+     "rect_dp": {
+      "x": 36.19,
+      "y": 76.95,
+      "w": 59.05,
+      "h": 14.48
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffd327",
+     "font_px": 38.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e14",
+     "mcp_ref": "@e44",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 313.0,
+      "y": 294.0,
+      "w": 284.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 119.24,
+      "y": 60.19,
+      "w": 108.19,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e14.png",
+     "fg_hex": "#000000",
+     "bg_hex": "#f0f3f5",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e15",
+     "mcp_ref": "@e45",
+     "type": "TextView",
+     "text": "Entertainment",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 355.0,
+      "y": 338.0,
+      "w": 200.0,
+      "h": 38.0
+     },
+     "rect_dp": {
+      "x": 135.24,
+      "y": 76.95,
+      "w": 76.19,
+      "h": 14.48
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#f0f3f5",
+     "font_px": 38.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e16",
+     "mcp_ref": "@e46",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 618.0,
+      "y": 294.0,
+      "w": 159.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 235.43,
+      "y": 60.19,
+      "w": 60.57,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e16.png",
+     "fg_hex": "#000000",
+     "bg_hex": "#f0f3f5",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e17",
+     "mcp_ref": "@e47",
+     "type": "TextView",
+     "text": "Local",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 660.0,
+      "y": 338.0,
+      "w": 75.0,
+      "h": 38.0
+     },
+     "rect_dp": {
+      "x": 251.43,
+      "y": 76.95,
+      "w": 28.57,
+      "h": 14.48
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#f0f3f5",
+     "font_px": 38.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e18",
+     "mcp_ref": "@e48",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 798.0,
+      "y": 294.0,
+      "w": 176.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 304.0,
+      "y": 60.19,
+      "w": 67.05,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e18.png",
+     "fg_hex": "#000000",
+     "bg_hex": "#f0f3f5",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e19",
+     "mcp_ref": "@e49",
+     "type": "TextView",
+     "text": "Sports",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 840.0,
+      "y": 338.0,
+      "w": 92.0,
+      "h": 38.0
+     },
+     "rect_dp": {
+      "x": 320.0,
+      "y": 76.95,
+      "w": 35.05,
+      "h": 14.48
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#f0f3f5",
+     "font_px": 38.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e20",
+     "mcp_ref": "@e50",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 995.0,
+      "y": 294.0,
+      "w": 85.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 379.05,
+      "y": 60.19,
+      "w": 32.38,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e20.png",
+     "fg_hex": "#000000",
+     "bg_hex": "#f0f3f5",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e21",
+     "mcp_ref": "@e51",
+     "type": "TextView",
+     "text": "Business",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 1037.0,
+      "y": 338.0,
+      "w": 43.0,
+      "h": 38.0
+     },
+     "rect_dp": {
+      "x": 395.05,
+      "y": 76.95,
+      "w": 16.38,
+      "h": 14.48
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#f0f3f5",
+     "font_px": 38.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e22",
+     "mcp_ref": "@e52",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 430.0,
+      "w": 1080.0,
+      "h": 1970.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 112.0,
+      "w": 411.43,
+      "h": 750.48
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#b4bda6",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e23",
+     "mcp_ref": "@e53",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 430.0,
+      "w": 1080.0,
+      "h": 1970.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 112.0,
+      "w": 411.43,
+      "h": 750.48
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#b4bda6",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e24",
+     "mcp_ref": "@e54",
+     "type": "FrameLayout",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 430.0,
+      "w": 1080.0,
+      "h": 1970.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 112.0,
+      "w": 411.43,
+      "h": 750.48
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#b4bda6",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e25",
+     "mcp_ref": "@e55",
+     "type": "ViewPager",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 430.0,
+      "w": 1080.0,
+      "h": 1970.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 112.0,
+      "w": 411.43,
+      "h": 750.48
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#b4bda6",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e26",
+     "mcp_ref": "@e56",
+     "type": "RecyclerView",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 430.0,
+      "w": 1080.0,
+      "h": 1970.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 112.0,
+      "w": 411.43,
+      "h": 750.48
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#b4bda6",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e27",
+     "mcp_ref": "@e57",
+     "type": "ComposeView",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 430.0,
+      "w": 1080.0,
+      "h": 194.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 112.0,
+      "w": 411.43,
+      "h": 73.9
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e27.png",
+     "fg_hex": "#515151",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e28",
+     "mcp_ref": "@e58",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 80.0,
+      "y": 464.0,
+      "w": 921.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 30.48,
+      "y": 124.95,
+      "w": 350.86,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e28.png",
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e29",
+     "mcp_ref": "@e59",
+     "type": "TextView",
+     "text": "Tap here for weather",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 133.0,
+      "y": 496.0,
+      "w": 713.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 50.67,
+      "y": 137.14,
+      "w": 271.62,
+      "h": 24.0
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 63.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e30",
+     "mcp_ref": "@e60",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 846.0,
+      "y": 465.0,
+      "w": 126.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 322.29,
+      "y": 125.33,
+      "w": 48.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e30.png",
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e31",
+     "mcp_ref": "@e61",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 624.0,
+      "w": 1080.0,
+      "h": 884.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 185.9,
+      "w": 411.43,
+      "h": 336.76
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e31.png",
+     "fg_hex": "#98bca5",
+     "bg_hex": "#eae8e1",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e32",
+     "mcp_ref": "@e62",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 624.0,
+      "w": 1080.0,
+      "h": 608.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 185.9,
+      "w": 411.43,
+      "h": 231.62
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e32.png",
+     "fg_hex": "#97bba5",
+     "bg_hex": "#e3e2ce",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e33",
+     "mcp_ref": "@e63",
+     "type": "ImageView",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 624.0,
+      "w": 1080.0,
+      "h": 608.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 185.9,
+      "w": 411.43,
+      "h": 231.62
+     },
+     "role": "image",
+     "asset_png": "assets/s01.e33.png",
+     "fg_hex": "#97bba5",
+     "bg_hex": "#e3e2ce",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e34",
+     "mcp_ref": "@e64",
+     "type": "ImageView",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 53.0,
+      "y": 1248.0,
+      "w": 47.0,
+      "h": 47.0
+     },
+     "rect_dp": {
+      "x": 20.19,
+      "y": 423.62,
+      "w": 17.9,
+      "h": 17.9
+     },
+     "role": "image",
+     "asset_png": null,
+     "fg_hex": "#fffdfe",
+     "bg_hex": "#f50082",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e35",
+     "mcp_ref": "@e65",
+     "type": "TextView",
+     "text": "Yahoo Sports",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 100.0,
+      "y": 1250.0,
+      "w": 219.0,
+      "h": 43.0
+     },
+     "rect_dp": {
+      "x": 38.1,
+      "y": 424.38,
+      "w": 83.43,
+      "h": 16.38
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#5c646b",
+     "bg_hex": "#ffffff",
+     "font_px": 43.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e36",
+     "mcp_ref": "@e66",
+     "type": "TextView",
+     "text": "Darling mound moment between legendary pitcher and daughter will make you a bit emotional",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 1300.0,
+      "w": 1080.0,
+      "h": 140.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 443.43,
+      "w": 411.43,
+      "h": 53.33
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#232a31",
+     "bg_hex": "#ffffff",
+     "font_px": 140.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e37",
+     "mcp_ref": "@e67",
+     "type": "TextView",
+     "text": "1d ago",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 53.0,
+      "y": 1455.0,
+      "w": 94.0,
+      "h": 38.0
+     },
+     "rect_dp": {
+      "x": 20.19,
+      "y": 502.48,
+      "w": 35.81,
+      "h": 14.48
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#5e656c",
+     "bg_hex": "#ffffff",
+     "font_px": 38.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e38",
+     "mcp_ref": "@e68",
+     "type": "ImageView",
+     "text": "",
+     "label": "Save this article",
+     "source": "mcp",
+     "rect_px": {
+      "x": 189.0,
+      "y": 1453.0,
+      "w": 42.0,
+      "h": 42.0
+     },
+     "rect_dp": {
+      "x": 72.0,
+      "y": 501.71,
+      "w": 16.0,
+      "h": 16.0
+     },
+     "role": "image",
+     "asset_png": null,
+     "fg_hex": "#5b636a",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e39",
+     "mcp_ref": "@e69",
+     "type": "ImageView",
+     "text": "",
+     "label": "Share this news article",
+     "source": "mcp",
+     "rect_px": {
+      "x": 273.0,
+      "y": 1453.0,
+      "w": 42.0,
+      "h": 42.0
+     },
+     "rect_dp": {
+      "x": 104.0,
+      "y": 501.71,
+      "w": 16.0,
+      "h": 16.0
+     },
+     "role": "image",
+     "asset_png": null,
+     "fg_hex": "#5b636a",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e40",
+     "mcp_ref": "@e70",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 624.0,
+      "w": 1080.0,
+      "h": 884.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 185.9,
+      "w": 411.43,
+      "h": 336.76
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e40.png",
+     "fg_hex": "#98bca5",
+     "bg_hex": "#eae8e1",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e41",
+     "mcp_ref": "@e71",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 624.0,
+      "w": 1080.0,
+      "h": 608.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 185.9,
+      "w": 411.43,
+      "h": 231.62
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e41.png",
+     "fg_hex": "#97bba5",
+     "bg_hex": "#e3e2ce",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e42",
+     "mcp_ref": "@e72",
+     "type": "ImageView",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 624.0,
+      "w": 1080.0,
+      "h": 608.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 185.9,
+      "w": 411.43,
+      "h": 231.62
+     },
+     "role": "image",
+     "asset_png": "assets/s01.e42.png",
+     "fg_hex": "#97bba5",
+     "bg_hex": "#e3e2ce",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e43",
+     "mcp_ref": "@e73",
+     "type": "ImageView",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 53.0,
+      "y": 1248.0,
+      "w": 47.0,
+      "h": 47.0
+     },
+     "rect_dp": {
+      "x": 20.19,
+      "y": 423.62,
+      "w": 17.9,
+      "h": 17.9
+     },
+     "role": "image",
+     "asset_png": null,
+     "fg_hex": "#fffdfe",
+     "bg_hex": "#f50082",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e44",
+     "mcp_ref": "@e74",
+     "type": "TextView",
+     "text": "Good Housekeeping",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 100.0,
+      "y": 1250.0,
+      "w": 325.0,
+      "h": 43.0
+     },
+     "rect_dp": {
+      "x": 38.1,
+      "y": 424.38,
+      "w": 123.81,
+      "h": 16.38
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#5e656c",
+     "bg_hex": "#ffffff",
+     "font_px": 43.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e45",
+     "mcp_ref": "@e75",
+     "type": "TextView",
+     "text": "FDA announces new nationwide recall on blood pressure medication",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 1300.0,
+      "w": 1080.0,
+      "h": 140.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 443.43,
+      "w": 411.43,
+      "h": 53.33
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#232a31",
+     "bg_hex": "#ffffff",
+     "font_px": 140.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e46",
+     "mcp_ref": "@e76",
+     "type": "TextView",
+     "text": "12h ago",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 53.0,
+      "y": 1455.0,
+      "w": 111.0,
+      "h": 38.0
+     },
+     "rect_dp": {
+      "x": 20.19,
+      "y": 502.48,
+      "w": 42.29,
+      "h": 14.48
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#5e656c",
+     "bg_hex": "#ffffff",
+     "font_px": 38.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e47",
+     "mcp_ref": "@e77",
+     "type": "ImageView",
+     "text": "",
+     "label": "Save this article",
+     "source": "mcp",
+     "rect_px": {
+      "x": 206.0,
+      "y": 1453.0,
+      "w": 42.0,
+      "h": 42.0
+     },
+     "rect_dp": {
+      "x": 78.48,
+      "y": 501.71,
+      "w": 16.0,
+      "h": 16.0
+     },
+     "role": "image",
+     "asset_png": null,
+     "fg_hex": "#5b636a",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e48",
+     "mcp_ref": "@e78",
+     "type": "ImageView",
+     "text": "",
+     "label": "Share this news article",
+     "source": "mcp",
+     "rect_px": {
+      "x": 290.0,
+      "y": 1453.0,
+      "w": 42.0,
+      "h": 42.0
+     },
+     "rect_dp": {
+      "x": 110.48,
+      "y": 501.71,
+      "w": 16.0,
+      "h": 16.0
+     },
+     "role": "image",
+     "asset_png": null,
+     "fg_hex": "#5b636a",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e49",
+     "mcp_ref": "@e79",
+     "type": "ComposeView",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 1508.0,
+      "w": 1080.0,
+      "h": 294.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 522.67,
+      "w": 411.43,
+      "h": 112.0
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e49.png",
+     "fg_hex": "#5c646b",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e50",
+     "mcp_ref": "@e80",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 1508.0,
+      "w": 1080.0,
+      "h": 294.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 522.67,
+      "w": 411.43,
+      "h": 112.0
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e50.png",
+     "fg_hex": "#5c646b",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e51",
+     "mcp_ref": "@e81",
+     "type": "FrameLayout",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 1508.0,
+      "w": 1080.0,
+      "h": 294.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 522.67,
+      "w": 411.43,
+      "h": 112.0
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e51.png",
+     "fg_hex": "#5c646b",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e52",
+     "mcp_ref": "@e82",
+     "type": "FrameLayout",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 1508.0,
+      "w": 1080.0,
+      "h": 294.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 522.67,
+      "w": 411.43,
+      "h": 112.0
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e52.png",
+     "fg_hex": "#5c646b",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e53",
+     "mcp_ref": "@e83",
+     "type": "TextView",
+     "text": "AD",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 522.0,
+      "y": 1637.0,
+      "w": 35.0,
+      "h": 36.0
+     },
+     "rect_dp": {
+      "x": 198.86,
+      "y": 571.81,
+      "w": 13.33,
+      "h": 13.71
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#5c646b",
+     "bg_hex": "#ffffff",
+     "font_px": 36.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e54",
+     "mcp_ref": "@e84",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 1802.0,
+      "w": 1080.0,
+      "h": 367.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 634.67,
+      "w": 411.43,
+      "h": 139.81
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e54.png",
+     "fg_hex": "#a76c21",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e55",
+     "mcp_ref": "@e85",
+     "type": "ImageView",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 53.0,
+      "y": 1828.0,
+      "w": 47.0,
+      "h": 47.0
+     },
+     "rect_dp": {
+      "x": 20.19,
+      "y": 644.57,
+      "w": 17.9,
+      "h": 17.9
+     },
+     "role": "image",
+     "asset_png": null,
+     "fg_hex": "#009bff",
+     "bg_hex": "#c0e5ff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e56",
+     "mcp_ref": "@e86",
+     "type": "TextView",
+     "text": "USA TODAY",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 100.0,
+      "y": 1830.0,
+      "w": 198.0,
+      "h": 43.0
+     },
+     "rect_dp": {
+      "x": 38.1,
+      "y": 645.33,
+      "w": 75.43,
+      "h": 16.38
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#5b636a",
+     "bg_hex": "#ffffff",
+     "font_px": 43.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e57",
+     "mcp_ref": "@e87",
+     "type": "TextView",
+     "text": "When to set your clocks back. The 2026 daylight saving time start, end",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 53.0,
+      "y": 1888.0,
+      "w": 646.0,
+      "h": 201.0
+     },
+     "rect_dp": {
+      "x": 20.19,
+      "y": 667.43,
+      "w": 246.1,
+      "h": 76.57
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#232a31",
+     "bg_hex": "#ffffff",
+     "font_px": 201.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e58",
+     "mcp_ref": "@e88",
+     "type": "TextView",
+     "text": "10h ago",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 53.0,
+      "y": 2091.0,
+      "w": 113.0,
+      "h": 38.0
+     },
+     "rect_dp": {
+      "x": 20.19,
+      "y": 744.76,
+      "w": 43.05,
+      "h": 14.48
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#5e656c",
+     "bg_hex": "#ffffff",
+     "font_px": 38.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e59",
+     "mcp_ref": "@e89",
+     "type": "ImageView",
+     "text": "",
+     "label": "Save this article",
+     "source": "mcp",
+     "rect_px": {
+      "x": 208.0,
+      "y": 2089.0,
+      "w": 42.0,
+      "h": 42.0
+     },
+     "rect_dp": {
+      "x": 79.24,
+      "y": 744.0,
+      "w": 16.0,
+      "h": 16.0
+     },
+     "role": "image",
+     "asset_png": null,
+     "fg_hex": "#5b636a",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e60",
+     "mcp_ref": "@e90",
+     "type": "ImageView",
+     "text": "",
+     "label": "Share this news article",
+     "source": "mcp",
+     "rect_px": {
+      "x": 292.0,
+      "y": 2089.0,
+      "w": 42.0,
+      "h": 42.0
+     },
+     "rect_dp": {
+      "x": 111.24,
+      "y": 744.0,
+      "w": 16.0,
+      "h": 16.0
+     },
+     "role": "image",
+     "asset_png": null,
+     "fg_hex": "#5b636a",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e61",
+     "mcp_ref": "@e91",
+     "type": "ImageView",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 712.0,
+      "y": 1828.0,
+      "w": 315.0,
+      "h": 315.0
+     },
+     "rect_dp": {
+      "x": 271.24,
+      "y": 644.57,
+      "w": 120.0,
+      "h": 120.0
+     },
+     "role": "image",
+     "asset_png": "assets/s01.e61.png",
+     "fg_hex": "#c99541",
+     "bg_hex": "#bd7a16",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e62",
+     "mcp_ref": "@e92",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 2169.0,
+      "w": 1080.0,
+      "h": 231.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 774.48,
+      "w": 411.43,
+      "h": 88.0
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e62.png",
+     "fg_hex": "#666666",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e63",
+     "mcp_ref": "@e93",
+     "type": "ImageView",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 53.0,
+      "y": 2195.0,
+      "w": 47.0,
+      "h": 47.0
+     },
+     "rect_dp": {
+      "x": 20.19,
+      "y": 784.38,
+      "w": 17.9,
+      "h": 17.9
+     },
+     "role": "image",
+     "asset_png": null,
+     "fg_hex": null,
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e64",
+     "mcp_ref": "@e94",
+     "type": "TextView",
+     "text": "Men's Journal",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 100.0,
+      "y": 2197.0,
+      "w": 220.0,
+      "h": 43.0
+     },
+     "rect_dp": {
+      "x": 38.1,
+      "y": 785.14,
+      "w": 83.81,
+      "h": 16.38
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#6e7780",
+     "bg_hex": "#ffffff",
+     "font_px": 43.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e65",
+     "mcp_ref": "@e95",
+     "type": "TextView",
+     "text": "USPS quietly announces major price change starting Oct. 4",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 53.0,
+      "y": 2255.0,
+      "w": 646.0,
+      "h": 140.0
+     },
+     "rect_dp": {
+      "x": 20.19,
+      "y": 807.24,
+      "w": 246.1,
+      "h": 53.33
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#666666",
+     "bg_hex": "#ffffff",
+     "font_px": 140.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e66",
+     "mcp_ref": "@e99",
+     "type": "ImageView",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 712.0,
+      "y": 2195.0,
+      "w": 315.0,
+      "h": 205.0
+     },
+     "rect_dp": {
+      "x": 271.24,
+      "y": 784.38,
+      "w": 120.0,
+      "h": 78.1
+     },
+     "role": "image",
+     "asset_png": "assets/s01.e66.png",
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e67",
+     "mcp_ref": "@e100",
+     "type": "FrameLayout",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 2022.0,
+      "w": 1080.0,
+      "h": 231.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 718.48,
+      "w": 411.43,
+      "h": 88.0
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e67.png",
+     "fg_hex": "#a46120",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e68",
+     "mcp_ref": "@e101",
+     "type": "ComposeView",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 2187.0,
+      "w": 1080.0,
+      "h": 213.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 781.33,
+      "w": 411.43,
+      "h": 81.14
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e68.png",
+     "fg_hex": "#666666",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e69",
+     "mcp_ref": "@e102",
+     "type": "View",
+     "text": "",
+     "label": "Inbox tab",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 2187.0,
+      "w": 540.0,
+      "h": 150.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 781.33,
+      "w": 205.71,
+      "h": 57.14
+     },
+     "role": "tab",
+     "asset_png": null,
+     "fg_hex": "#6e7780",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e70",
+     "mcp_ref": "@e103",
+     "type": "TextView",
+     "text": "Inbox",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 238.0,
+      "y": 2287.0,
+      "w": 64.0,
+      "h": 35.0
+     },
+     "rect_dp": {
+      "x": 90.67,
+      "y": 819.43,
+      "w": 24.38,
+      "h": 13.33
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#7e848a",
+     "bg_hex": "#ffffff",
+     "font_px": 35.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e71",
+     "mcp_ref": "@e104",
+     "type": "TextView",
+     "text": "Home",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 775.0,
+      "y": 2287.0,
+      "w": 70.0,
+      "h": 35.0
+     },
+     "rect_dp": {
+      "x": 295.24,
+      "y": 819.43,
+      "w": 26.67,
+      "h": 13.33
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#515151",
+     "bg_hex": "#ffffff",
+     "font_px": 35.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e72",
+     "mcp_ref": "@e105",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 2232.0,
+      "w": 1080.0,
+      "h": 168.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 798.48,
+      "w": 411.43,
+      "h": 64.0
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e72.png",
+     "fg_hex": "#666666",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    }
+   ],
+   "in_mock_scope": true,
+   "content_rating": "safe",
+   "dynamic_regions": [],
+   "blocked_reason": null
+  },
+  {
+   "id": "s02",
+   "kind": "screen",
+   "parent_id": null,
+   "name": "Article",
+   "purpose": "Article page: byline, hero image, body text, share and comment bar. Screenshot only.",
+   "fingerprint": "fixture:screen:04-article",
+   "canonical_png": "states/s02.png",
+   "elements": [],
+   "in_mock_scope": true,
+   "content_rating": "safe",
+   "dynamic_regions": [],
+   "blocked_reason": null
+  },
+  {
+   "id": "s03",
+   "kind": "blocked",
+   "parent_id": null,
+   "name": "Inbox sign-in",
+   "purpose": "Mail tab asks for a sign-in. Screenshot only.",
+   "fingerprint": "fixture:screen:11-nav-inbox-login",
+   "canonical_png": "states/s03.png",
+   "elements": [],
+   "in_mock_scope": false,
+   "content_rating": "safe",
+   "dynamic_regions": [],
+   "blocked_reason": "login wall"
+  },
+  {
+   "id": "s04",
+   "kind": "screen",
+   "parent_id": null,
+   "name": "Entertainment",
+   "purpose": "Entertainment category feed. Screenshot only.",
+   "fingerprint": "fixture:screen:05-tab-entertainment",
+   "canonical_png": "states/s04.png",
+   "elements": [],
+   "in_mock_scope": true,
+   "content_rating": "safe",
+   "dynamic_regions": [],
+   "blocked_reason": null
+  },
+  {
+   "id": "s05",
+   "kind": "screen",
+   "parent_id": null,
+   "name": "Article with in-article ad",
+   "purpose": "An article with a native ad inside the body. Screenshot only.",
+   "fingerprint": "fixture:screen:08-sports-article-with-ad",
+   "canonical_png": "states/s05.png",
+   "elements": [],
+   "in_mock_scope": true,
+   "content_rating": "safe",
+   "dynamic_regions": [],
+   "blocked_reason": null
+  }
+ ],
+ "edges": [
+  {
+   "id": "s01.e57>s02",
+   "from_state": "s01",
+   "to_state": "s02",
+   "element_id": "s01.e57",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": "opens the article"
+  },
+  {
+   "id": "s01.e69>s03",
+   "from_state": "s01",
+   "to_state": "s03",
+   "element_id": "s01.e69",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Inbox asks for sign-in"
+  },
+  {
+   "id": "s01.e15>s04",
+   "from_state": "s01",
+   "to_state": "s04",
+   "element_id": "s01.e15",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": "category pill switches the feed"
+  }
+ ],
+ "flows": [
+  {
+   "id": "f01",
+   "name": "Read a story",
+   "purpose": "From the home feed to an article.",
+   "edge_ids": [
+    "s01.e57>s02"
+   ],
+   "evidence_ids": [
+    "s01.e57"
+   ]
+  },
+  {
+   "id": "f02",
+   "name": "Browse a category",
+   "purpose": "Switch the feed with a category pill.",
+   "edge_ids": [
+    "s01.e15>s04"
+   ],
+   "evidence_ids": [
+    "s01.e15"
+   ]
+  }
+ ],
+ "mechanics": [
+  {
+   "id": "m01",
+   "kind": "ad",
+   "evidence_ids": [
+    "s01.e53"
+   ],
+   "summary": "Display ad slot between feed stories, labeled AD; often renders empty on the emulator.",
+   "observed_numbers": [],
+   "status": "observed"
+  },
+  {
+   "id": "m02",
+   "kind": "other",
+   "evidence_ids": [
+    "s01.e38"
+   ],
+   "summary": "Save-for-later on every story card.",
+   "observed_numbers": [],
+   "status": "observed"
+  }
+ ],
+ "cross_screen_values": [],
+ "value_ledger": [],
+ "open_questions": [
+  "No paywall, limit, or currency was seen on the home feed.",
+  "The Inbox needs a sign-in (blocked).",
+  "Which ad formats fill on a real device is unknown; the emulator often shows empty slots."
+ ],
+ "coverage": {
+  "states_found": 5,
+  "actions_taken": 0,
+  "stop_reason": "fixture: assembled from captures",
+  "checklist_answered": [
+   "root",
+   "all_tabs"
+  ],
+  "checklist_open": [
+   "paywall_or_membership",
+   "settings",
+   "limit"
+  ]
+ },
+ "provenance": {
+  "source": "fixture",
+  "explorer_run_id": null,
+  "fixture_path": "tests/fixtures/golden/aol"
+ }
+}
