@@ -4,7 +4,7 @@ You get: the rewarded-ad bible (below), its cost table, and the app's product mo
 
 ## Return
 
-1 or 2 candidates, as JSON matching the schema. Return 2 when you can find two different, good ideas (not two versions of one idea: a different moment, a different reward, or a different screen); 1 when only one is good. Only if every idea you can think of would break a rule, return a single candidate with `kind: "no_opportunity"`, a `title` that says so, and the reason in `rationale` (fill the other fields with empty strings, zeros, and empty lists, `for_users: "everyone"`, and `grants_id: null`).
+1 or 2 candidates, as JSON matching the schema. Return 2 different, good ideas (not two versions of one idea: a different moment, a different reward, or a different screen). Return 1 only when every second idea you can think of would break a rule. Only if every idea you can think of would break a rule, return a single candidate with `kind: "no_opportunity"`, a `title` that says so, and the reason in `rationale` (fill the other fields with empty strings, zeros, and empty lists, `for_users: "everyone"`, and `grants_id: null`).
 
 ## Kinds
 
@@ -46,6 +46,8 @@ The bible calls some fields by other names: its `adapted_from` is `bible_mechani
 ## Rules
 
 - Check what the app already offers before you propose. If the product model already shows the same thing free (a free trial of the plan, a free sample of the feature), a rewarded taste of it adds nothing; don't propose it.
+- When a free trial is shown on the same screen as a paid benefit, the trial already gives that benefit to people who don't pay. Don't offer free users or everyone a piece of it; offer them something the trial doesn't give (a new resource, `grants_id: null`), or offer payers more of it. Code drops the rest.
+- Offering payers more of a paid benefit needs an amount to add to: a number on its paywall line, or a limit the product model shows as observed. Without either, code drops the idea.
 - Anything the product model lists as not observed (its open questions, a mechanic whose status is `unknown`) can't carry an idea. Build on what was seen.
 - The reward is granted only when Simula verifies the play, once. Declining, closing, or an ad failure leaves the app as it was.
 - No cash or cash-equivalent rewards, no rewards for installs, ratings, or reviews, no rewards for time spent.
