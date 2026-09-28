@@ -266,8 +266,8 @@ class ScreenMetrics(Strict):
     ssim_masked: float | None
     pixelmatch_ratio: float | None
     masked_coverage: float
-    bounds_ok_share: float
-    nav_pass_rate: float
+    bounds_ok_share: float | None
+    nav_pass_rate: float | None
     score: float
 
 

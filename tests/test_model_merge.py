@@ -112,6 +112,23 @@ def test_a_number_its_evidence_does_not_show_is_dropped_but_the_mechanic_stays(a
     assert next(m for m in kept.mechanics if m.id == "m-num").observed_numbers == [element.text, element.text]
 
 
+def test_a_number_is_observed_only_where_the_screen_shows_it_whole(app):
+    _, states, edges, answer = app
+    state = next(s for s in states if s.elements)
+
+    def kept_numbers(screen_text):
+        element = state.elements[0].model_copy(update={"text": screen_text, "label": ""})
+        shown = [s.model_copy(update={"elements": [element, *s.elements[1:]]}) if s is state else s for s in states]
+        mechanic = Mechanic(id="m-99", kind="other", evidence_ids=[element.id], summary="x",
+                            observed_numbers=["99"], status="observed")
+        kept, _ = stage.check_meaning(answer.model_copy(update={"mechanics": [*answer.mechanics, mechanic]}),
+                                      shown, edges)
+        return next(m for m in kept.mechanics if m.id == "m-99").observed_numbers
+
+    assert kept_numbers("$199") == []
+    assert kept_numbers("$99") == ["99"] and kept_numbers("99 credits") == ["99"]
+
+
 def test_flows_with_missing_or_disconnected_edges_are_rejected(app):
     name, states, edges, answer = app
     a, b = next((a, b) for a in edges for b in edges if a.to_state != b.from_state)
@@ -210,6 +227,20 @@ def test_a_modal_in_scope_brings_its_parent_first():
     assert stage.mock_scope(unsafe_parent, [], meaning) == ["s01"]
     blocked_parent = [states[0], states[1].model_copy(update={"kind": "blocked"}), states[2]]
     assert stage.mock_scope(blocked_parent, [], meaning) == ["s01"]
+
+
+def test_a_sheet_over_a_modal_brings_the_whole_stack_parent_first():
+    def state(sid, kind="screen", parent=None):
+        return State(id=sid, kind=kind, parent_id=parent, name="", purpose="", fingerprint="", canonical_png="",
+                     elements=[], in_mock_scope=False, content_rating="safe", dynamic_regions=[], blocked_reason=None)
+    states = [state("s01"), state("s02"), state("s03", "modal", "s02"), state("s04", "sheet", "s03")]
+    meaning = ModelMeaning(app_category="other", states=[], elements=[], flows=[], cross_screen_values=[],
+                           value_ledger=[], open_questions=[], terms=[],
+                           mechanics=[Mechanic(id="m1", kind="paywall", evidence_ids=["s04"], summary="x",
+                                               observed_numbers=[], status="observed")])
+    assert stage.mock_scope(states, [], meaning) == ["s01", "s02", "s03", "s04"]
+    unsafe_screen = [states[0], states[1].model_copy(update={"content_rating": "unsafe"}), *states[2:]]
+    assert stage.mock_scope(unsafe_screen, [], meaning) == ["s01"]
 
 
 def test_the_model_may_not_write_measured_experience(app):

@@ -16,6 +16,7 @@ from pathlib import Path
 from pydantic import BaseModel, ValidationError
 
 from simula import config
+from simula.runfolder import write_json_atomic
 from simula.runlog import read_trace, record_fallback, trace
 
 CACHE = config.ROOT / "cache"
@@ -30,6 +31,7 @@ class LLMFailure(Exception):
     def __init__(self, outcome: str, detail: str = "", raw: str = "", tokens_in: int = 0, tokens_out: int = 0):
         super().__init__(f"{outcome}: {detail}")
         self.outcome = outcome
+        self.detail = detail
         self.raw = raw
         self.tokens_in = tokens_in
         self.tokens_out = tokens_out
@@ -114,7 +116,7 @@ def cache_read(key: str, cache_dir: Path = CACHE) -> Reply | None:
 def cache_write(key: str, reply: Reply, cache_dir: Path = CACHE) -> None:
     cache_dir.mkdir(exist_ok=True)
     data = {k: v for k, v in reply.__dict__.items() if k != "headers"}
-    (cache_dir / f"{key}.json").write_text(json.dumps(data, indent=1))
+    write_json_atomic(cache_dir / f"{key}.json", json.dumps(data, indent=1))
 
 
 # ---------- money ----------
@@ -164,7 +166,7 @@ def _spent(stream, tokens_in_estimate: int) -> tuple[int, int]:
         snapshot = stream.current_message_snapshot
     except (AssertionError, AttributeError):
         return tokens_in_estimate, 0
-    # ponytail: thinking the API doesn't stream back isn't counted; charge the worst case if that ever matters
+    # Known limit: thinking the API doesn't stream back isn't counted; charge the worst case if that ever matters
     streamed = sum(len(getattr(b, "text", None) or getattr(b, "thinking", None) or "") for b in snapshot.content) // 3
     return snapshot.usage.input_tokens, max(snapshot.usage.output_tokens, streamed)
 
@@ -186,6 +188,7 @@ def _drain(stream, total_timeout: float | None, tokens_in_estimate: int):
 def call_anthropic(model: str, system: str, messages: list[dict], effort: str | None,
                    schema: type[BaseModel] | None, max_tokens: int, total_timeout: float | None = None) -> Reply:
     import anthropic
+    import httpx2
     caps = config.models()[model]
     streaming = max_tokens > caps["stream_above"]
     # On a stream the read timeout is the gap between chunks, so a stalled stream fails after 60 s.
@@ -223,6 +226,11 @@ def call_anthropic(model: str, system: str, messages: list[dict], effort: str | 
             raise CapReached(f"provider usage limit reached: {e}") from e
         raise _failure("error", e) from e
     except (anthropic.APIStatusError, anthropic.APIConnectionError) as e:
+        raise _failure("error", e) from e
+    # The SDK types errors on the request, not while a stream is read: a stall mid-stream is a raw httpx2 error.
+    except httpx2.TimeoutException as e:
+        raise _failure("timeout", e) from e
+    except httpx2.TransportError as e:
         raise _failure("error", e) from e
     text = "".join(block.text for block in message.content if block.type == "text")
     usage = message.usage
@@ -311,19 +319,29 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
               "schema": json_schema_for(provider, schema) if schema else None}
     keys = [cache_key(provider, model, system, messages, params, attempt) for attempt in range(attempts)]
     last, pending = LLMFailure("error", "no attempt made"), []
+    recorded = {}
+    for key in keys:  # up to the first recorded answer; the attempts after it are never read
+        recorded[key] = None if no_cache else cache_read(key, cache_dir)
+        if recorded[key] and not recorded[key].failure:
+            break
+    # Recorded failures replay under --replay, and on a normal run only when a later attempt has a recorded
+    # answer, so the run follows its recorded path there for free. A chain that ended in failure is tried
+    # fresh from the first attempt: whoever reruns a failed call wants a new try.
+    follow = replay or any(r and not r.failure for r in recorded.values())
     for key in keys:
-        cached = None if no_cache else cache_read(key, cache_dir)
+        cached = recorded.get(key) if follow else None
         if cached is None:
             pending.append(key)
         elif cached.failure:
             last = LLMFailure(cached.failure, cached.stop_reason, raw=cached.text)
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
                   tokens_in=cached.tokens_in, tokens_out=cached.tokens_out, cache_hit=True, outcome=cached.failure,
-                  note="recorded failed attempt")
+                  note=f"key {key[:12]} recorded failed attempt")
         else:
             result = _parse(cached, schema)
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
-                  tokens_in=cached.tokens_in, tokens_out=cached.tokens_out, cache_hit=True, outcome="ok")
+                  tokens_in=cached.tokens_in, tokens_out=cached.tokens_out, cache_hit=True, outcome="ok",
+                  note=f"key {key[:12]}")
             return result, cached
     if not pending:
         raise last
@@ -341,15 +359,20 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
             budget.charge(cost, worst)
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
                   tokens_in=e.tokens_in, tokens_out=e.tokens_out, usd=round(cost, 6), outcome=e.outcome,
-                  note=str(e)[:200])
+                  note=f"key {key[:12]} {str(e)[:200]}")
+            cache_write(key, Reply(text=e.raw, model=model, tokens_in=e.tokens_in, tokens_out=e.tokens_out,
+                                   stop_reason=e.detail, failure=e.outcome), cache_dir)
             continue
+        except BaseException:
+            budget.charge(0.0, worst)  # an untyped exit (a bug, Ctrl-C, a cap) still gives back its hold
+            raise
         cost = usd(model, reply.tokens_in, reply.tokens_out, reply.tokens_cached)
         budget.charge(cost, worst)
         outcome, result = _check(reply, schema)
         trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
               tokens_in=reply.tokens_in, tokens_out=reply.tokens_out, tokens_cached=reply.tokens_cached,
               usd=round(cost, 6), outcome=outcome,
-              note=f"{time.monotonic() - started:.1f}s" + ("" if outcome == "ok" else f" stop={reply.stop_reason}"))
+              note=f"key {key[:12]} {time.monotonic() - started:.1f}s" + ("" if outcome == "ok" else f" stop={reply.stop_reason}"))
         if outcome == "ok":
             cache_write(key, reply, cache_dir)
             return result, reply
@@ -375,17 +398,30 @@ def _parse(reply: Reply, schema: type[BaseModel] | None):
 
 
 def without_refused_images(images: list, attempt) -> tuple[object, list]:
-    """Calls attempt(images); on a refusal, bisects the set and drops the images that trigger it."""
+    """Calls attempt(images); on a refusal, bisects the set and drops the images that trigger it. A refusal
+    that leaves no image to send is raised like any refusal, never answered with None."""
     try:
         return attempt(images), []
     except LLMFailure as e:
-        if e.outcome != "refusal" or not images:
+        if e.outcome != "refusal" or len(images) < 2:
             raise
-        if len(images) == 1:
-            return None, images
     half = len(images) // 2
-    _, bad_left = without_refused_images(images[:half], attempt)
-    _, bad_right = without_refused_images(images[half:], attempt)
-    skipped = bad_left + bad_right
+    skipped = _refused(images[:half], attempt) + _refused(images[half:], attempt)
     kept = [img for img in images if not any(img is s for s in skipped)]
+    if not kept:
+        raise LLMFailure("refusal", f"all {len(images)} screenshots were refused")
     return attempt(kept), skipped
+
+
+def _refused(images: list, attempt) -> list:
+    """The images in this set that draw a refusal, found by bisecting."""
+    try:
+        attempt(images)
+        return []
+    except LLMFailure as e:
+        if e.outcome != "refusal":
+            raise
+    if len(images) == 1:
+        return images
+    half = len(images) // 2
+    return _refused(images[:half], attempt) + _refused(images[half:], attempt)

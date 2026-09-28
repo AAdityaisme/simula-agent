@@ -5128,7 +5128,7 @@
    "fingerprint": "fixture:screen:08-sports-article-with-ad",
    "canonical_png": "states/s05.png",
    "elements": [],
-   "in_mock_scope": true,
+   "in_mock_scope": false,
    "content_rating": "safe",
    "dynamic_regions": [],
    "blocked_reason": null
@@ -7128,5 +7128,11 @@
   "fixture_path": "tests/fixtures/golden/aol"
  },
  "terms": [],
- "questions": []
+ "questions": [],
+ "mock_order": [
+  "s01",
+  "s06",
+  "s02",
+  "s04"
+ ]
 }

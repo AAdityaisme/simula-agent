@@ -199,7 +199,7 @@ def resolve_ids(c: Candidate, model: ProductModel) -> tuple[Candidate, str]:
 
 
 def in_chat(placement: str) -> bool:
-    # ponytail: keyword check per clause, skipping a clause whose negation sits right before the chat word
+    # Known limit: keyword check per clause, skipping a clause whose negation sits right before the chat word
     # ("never shown in a chat"); recall belongs to the judge's brand-safety gate
     clauses = re.split(r"[.;,()]", placement)
     return any(CHAT_PLACEMENT.search(c) and not NEGATED.search(c) for c in clauses)
@@ -301,7 +301,7 @@ def depths(model: ProductModel) -> dict[str, int]:
 
 
 def daily_cap(frequency_cap: str) -> int:
-    # ponytail: reads "N per day" (or "N a day", "N/day", "N times a day") out of free text, else 1; durations
+    # Known limit: reads "N per day" (or "N a day", "N/day", "N times a day") out of free text, else 1; durations
     # and clock times ("every 24 hours", "resets at 00:00") are ignored. A structured cap field would fix it.
     match = re.search(r"(\d+)\s*(?:x\s*|times\s*)?(?:per|a|/|each)\s*day", frequency_cap, re.I)
     return max(1, int(match.group(1))) if match else 1
