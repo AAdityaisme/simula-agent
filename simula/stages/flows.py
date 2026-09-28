@@ -433,7 +433,8 @@ def walk(flow_dir: Path, c: Candidate, ad: str | None, ad_at: int) -> tuple[list
 
 
 def words(text: str) -> str:
-    return " ".join(re.findall(r"[a-z0-9]+", text.casefold()))
+    """Text as its words in any script, so the copy check ignores punctuation, case, and line breaks."""
+    return " ".join(re.findall(r"\w+", text.casefold()))
 
 
 def walk_decline(flow_dir: Path, c: Candidate, ad: str | None, ad_at: int) -> tuple[bool | None, str]:
@@ -450,7 +451,8 @@ def walk_decline(flow_dir: Path, c: Candidate, ad: str | None, ad_at: int) -> tu
             if not reached:
                 return None, f"couldn't reach the offer: {why}"
         offer = state(page)
-        shown = words(c.offer_copy) in words(page.locator(f'[data-screen="{offer}"]').inner_text())
+        copy = words(c.offer_copy)
+        shown = bool(copy) and copy in words(page.locator(f'[data-screen="{offer}"]').inner_text())
         back = [b for b in page.locator(f'[data-screen="{offer}"] [data-edge][data-transition="back"]').all()
                 if b.is_visible()]
         if not back:
