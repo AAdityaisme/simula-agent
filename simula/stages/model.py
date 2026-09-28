@@ -669,7 +669,7 @@ def run(ctx: Ctx) -> None:
               note=f"{len(states)} states, {sum(len(s.elements) for s in states)} elements, {len(edges)} edges"
                    + (f"; {len(notes)} explore lines not taken as given" if notes else ""))
 
-    # ponytail: past the naming budget, later states' elements go unnamed; split the call if a run ever gets there
+    # Known limit: past the naming budget, later states' elements go unnamed; split the call if a run ever gets there
     name_limit = (max_tokens(ctx.profile) - ANSWER_RESERVE_TOKENS) // TOKENS_PER_NAME
     dump = describe(states, edges, ctx.app, device, name_limit, experience)
     shots = [(s.id, png_bytes(content_png(images[s.id], device)))
