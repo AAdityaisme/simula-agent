@@ -4,7 +4,7 @@ You get: the rewarded-ad bible (below), its cost table, and the app's product mo
 
 ## Return
 
-1 or 2 candidates, as JSON matching the schema. Return 2 when you can find two different, good ideas (not two versions of one idea: a different moment, a different reward, or a different screen); 1 when only one is good. Only if every idea you can think of would break a rule, return a single candidate with `kind: "no_opportunity"`, a `title` that says so, and the reason in `rationale` (fill the other fields with empty strings, zeros, and empty lists).
+1 or 2 candidates, as JSON matching the schema. Return 2 when you can find two different, good ideas (not two versions of one idea: a different moment, a different reward, or a different screen); 1 when only one is good. Only if every idea you can think of would break a rule, return a single candidate with `kind: "no_opportunity"`, a `title` that says so, and the reason in `rationale` (fill the other fields with empty strings, zeros, and empty lists, `for_users: "everyone"`, and `grants_id: null`).
 
 ## Kinds
 
@@ -27,6 +27,8 @@ The bible calls some fields by other names: its `adapted_from` is `bible_mechani
 - `placement`: the app-chrome surface that shows the offer (a banner under the header, a sheet over the paywall, a card in a list). Never inside a chat transcript or conversation thread.
 - `offer_copy`: the exact words shown before the ad, stating the action and the reward with a number and a duration.
 - `reward`: `kind` is one of the bible's nine reward kinds; `unit`, `amount`, `duration` say what the user gets. Keep it smaller or shorter than the paid version. Name `unit` with the app's own word for the benefit, the word on the paywall bullet or ledger line the idea rests on (if the paywall bullet says "messages", the unit is "messages", not "replies" or "chats"), so two ideas that grant the same thing carry the same unit. Code treats two ideas with the same unit as one idea.
+- `for_users`: who is offered the reward: `free` (users who don't pay), `paying` (subscribers), or `everyone`.
+- `grants_id`: the value-ledger id (like `l03`) of the paid benefit the reward is a piece of, or more of, or `null` when the reward is something new the app doesn't sell; code treats two ideas with the same `grants_id` and `for_users` as one idea.
 - `cost_inputs`: fill what the reward kind needs, zeros elsewhere. `inference`: `inference_count` (replies granted), `tokens_out` per reply, and your estimate of `tokens_in` per reply (code prices the context at 2k and 8k input tokens either way). `image`: `inference_count` (images). `voice` and `feature_time`: `minutes`. `currency` and `content_unlock`: `currency_amount` = the USD price the app charges for exactly what this reward grants (0 if no price is observed; the cost line then says the cost isn't counted). A cosmetic, streak_protection, or queue_priority reward carries no replies or tokens. Don't hide an inference reward under a cheaper kind; code checks.
 - `frequency_cap`: a daily count with a reset, like `3 per day, resets at midnight local time`.
 - `decline_path`, `ad_fail_path`: what happens on "no", and on no fill or failed verification. The app must stay exactly as usable as before, and a failed ad never uses up an attempt.
