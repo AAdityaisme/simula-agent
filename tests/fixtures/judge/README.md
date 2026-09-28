@@ -26,7 +26,7 @@ Ids: lowercase with dashes, no underscores (`kg-fitness-01`, `pd-g-policy-flagra
 }
 ```
 
-`model` is a path under `tests/fixtures/`: `golden/<app>/product_model.json` for a test app, or a sketch. `filled_by` marks each candidate field the source didn't state, `"aadi"` or `"agent"` (deck ideas).
+`model` is a path under `tests/fixtures/`: `golden/<app>/product_model.json` for a test app, or a sketch. `in_test_set` must match it (true exactly when the model is a golden one); the loader refuses a mismatch, so the outside-the-test-set requirement can't be met by a label. `filled_by` marks each candidate field the source didn't state, `"aadi"` or `"agent"` (deck ideas).
 
 A sketch holds only what a judge reads; code fills the rest with empty defaults:
 

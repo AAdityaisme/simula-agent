@@ -120,11 +120,21 @@ def mutate(base: dict, change: dict) -> dict:
     return {**base, field: {**old, **value} if isinstance(old, dict) and isinstance(value, dict) else value}
 
 
+def check_test_set(name: str, in_test_set: bool, ref: str) -> None:
+    """The out-of-test-set spread can't be faked with a label: a test-set app uses its golden model, any other app
+    brings its own sketch."""
+    if in_test_set != ref.startswith("golden/"):
+        raise ValueError(f"{name}: in_test_set is {in_test_set} but its model is {ref}; a test-set app uses a golden "
+                         "model and any other app a sketch under judge/known_good/models/")
+
+
 def load_cases(root: Path = CASES) -> list[Case]:
     goods = {g.id: g for g in (KnownGood.model_validate_json(p.read_text())
                                for p in sorted((root / "known_good").glob("*.json")))}
     planted = [(path, Planted.model_validate_json(path.read_text()))
                for path in sorted((root / "planted").glob("*.json"))]
+    for g in goods.values():
+        check_test_set(f"known_good/{g.id}.json", g.in_test_set, g.model)
     refs = {g.model for g in goods.values()} | {p.model for _, p in planted if p.model}
     models = {ref: load_model(ref) for ref in refs}
     cases = [Case(g.id, g.source, as_candidate(g.candidate, g.id), models[g.model], g.app, g.app_type,
@@ -136,6 +146,7 @@ def load_cases(root: Path = CASES) -> list[Case]:
             if p.base or p.change or not (p.from_run and p.model and p.app and p.app_type):
                 raise ValueError(f"{path.name}: a real candidate needs from_run, model, app, and app_type, "
                                  "and no base or change")
+            check_test_set(path.name, p.in_test_set, p.model)
             cases.append(Case(p.id, "planted", as_candidate(p.candidate, p.id), models[p.model], p.app, p.app_type,
                               p.in_test_set, p.target, p.tier, p.expect_economics))
             continue

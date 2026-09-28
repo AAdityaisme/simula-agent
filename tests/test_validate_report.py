@@ -220,6 +220,13 @@ def test_the_loader_refuses_a_malformed_planted_case(fixture_dir, bad, message):
         validate.load_cases(fixture_dir)
 
 
+def test_an_out_of_set_label_on_a_golden_model_is_refused(fixture_dir):
+    good = json.loads((fixture_dir / "known_good" / "kg-aol-01.json").read_text())
+    write(fixture_dir / "known_good" / "kg-aol-01.json", {**good, "app": "fitness", "in_test_set": False})
+    with pytest.raises(ValueError, match="a test-set app uses a golden model"):
+        validate.load_cases(fixture_dir)
+
+
 def test_a_sketch_model_for_an_app_outside_the_test_set_loads_and_judges(tmp_path, monkeypatch):
     monkeypatch.setattr(validate, "FIXTURES", tmp_path)
     write(tmp_path / "judge" / "known_good" / "models" / "fitness.json", {
