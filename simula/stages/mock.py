@@ -81,7 +81,7 @@ def run(ctx: Ctx) -> None:
     copy_assets(model_dir, mock_dir, scope, model.device)
 
     html = within_wall(lambda: generate(ctx, model, scope), WALL_SECONDS, ctx)
-    (mock_dir / "index.html").write_text(with_runtime(html, screens[0]))
+    (mock_dir / "index.html").write_text(with_runtime(stamp_transitions(html, model), screens[0]))
 
     report = render.render_and_validate(mock_dir, model, screens)
     (mock_dir / "contract_report.json").write_text(report.model_dump_json(indent=1))
@@ -210,16 +210,19 @@ def brief(model: ProductModel, scope: list[State]) -> str:
     edges = scope_edges(model, scope)
     edge_ids = {e.id for e in edges}
     flows = [{"name": f.name, "edge_ids": [i for i in f.edge_ids if i in edge_ids]} for f in model.flows]
+    screens = [state_brief(s, model.device) for s in scope]
     data = {
         "app": model.app,
-        "screens": [state_brief(s, model.device) for s in scope],
+        "image_files": [e["asset"] for s in screens for e in s["elements"] if "asset" in e],
+        "screens": screens,
         "edges": [{"id": e.id, "from": e.from_state, "to": e.to_state, "element": e.element_id,
                    "transition": e.transition} for e in edges],
         "flows": [f for f in flows if f["edge_ids"]],
         "cross_screen_values": [v.model_dump() for v in model.cross_screen_values],
     }
     return ("The product model for the screens to mock. Rects are in CSS px relative to the screen's section "
-            "(content coordinates). `tag: false` elements are drawn but carry no data-el.\n\n"
+            "(content coordinates). `tag: false` elements are drawn but carry no data-el. `image_files` is every "
+            "image that exists and `edges` every data-edge allowed: never invent another id or file name.\n\n"
             + json.dumps(data, separators=(",", ":")))
 
 
@@ -247,6 +250,19 @@ def extract_html(text: str) -> str:
     if start == -1 or end == -1:
         raise ValueError("the mock builder returned no ```html block")
     return text[start:end + len("</html>")]
+
+
+def stamp_transitions(html: str, model: ProductModel) -> str:
+    """Code owns every edge's transition, so code writes data-transition onto each known data-edge tag."""
+    transitions = {e.id: e.transition for e in model.edges}
+
+    def stamp(tag: re.Match) -> str:
+        edge = re.search(r'data-edge="([^"]*)"', tag.group(0)).group(1)
+        if edge not in transitions:
+            return tag.group(0)
+        bare = re.sub(r'\sdata-transition="[^"]*"', "", tag.group(0))
+        return bare.replace(f'data-edge="{edge}"', f'data-edge="{edge}" data-transition="{transitions[edge]}"', 1)
+    return re.sub(r'<[^>]*\sdata-edge="[^"]*"[^>]*>', stamp, html)
 
 
 def with_runtime(html: str, root: str) -> str:

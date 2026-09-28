@@ -94,3 +94,14 @@ def test_runtime_goes_inside_head_and_body(app):
     html = mock.with_runtime(skeleton_html(golden(app)), "s01")
     assert html.index('id="simula-runtime"') < html.index("</head>")
     assert html.index('id="simula-runtime-js"') < html.index("</body>")
+
+
+def test_code_stamps_each_known_edge_with_its_transition(app):
+    model = golden(app)
+    edge = model.edges[0]
+    html = (f'<a data-edge="{edge.id}">x</a><b data-transition="modal" data-edge="{edge.id}"></b>'
+            '<i data-edge="new:x" data-transition="push"></i>')
+    stamped = mock.stamp_transitions(html, model)
+    assert stamped.count(f'data-edge="{edge.id}" data-transition="{edge.transition}"') == 2
+    assert 'data-transition="modal"' not in stamped or edge.transition == "modal"
+    assert '<i data-edge="new:x" data-transition="push"></i>' in stamped
