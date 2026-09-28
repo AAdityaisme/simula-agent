@@ -396,3 +396,12 @@ def test_an_observed_term_can_be_used_and_the_unobserved_one_is_listed_for_the_p
     text = propose.model_text(m)
     assert '- "Zap Credits"' in text and '- "Pro"' not in text
     assert "never observed" not in propose.model_text(model.model_copy(update={"terms": []}))
+
+
+def test_a_short_unobserved_term_matches_only_as_a_whole_word(model):
+    pro = Term(term="Pro", meaning="meaning not observed", defined_by=[], used_in=[], observed=False)
+    m = model.model_copy(update={"terms": [pro]})
+    assert check(candidate(m, title="Try Pro today"), m) == 'uses "Pro", whose meaning was never observed'
+    assert check(candidate(m, title="Protect your streak"), m) is None
+    assert propose.uses_term("Janitor+", "Said no to janitor+? Play once.")
+    assert propose.uses_term("Zap Credits", "3 zap\xa0\xa0credits") and not propose.uses_term("Zap", "Zappy")
