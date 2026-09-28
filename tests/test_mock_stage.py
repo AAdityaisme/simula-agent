@@ -1,4 +1,4 @@
-"""Stage 3's code paths around the one model call: scope limits, tagging, retry, the wall, HTML extraction."""
+"""Stage 3's code paths around each batch's model call: scope limits, tagging, retry, the wall, HTML extraction."""
 
 import pytest
 
@@ -7,7 +7,7 @@ from simula.runlog import read_trace
 from simula.stages import mock
 from tests.conftest import APPS
 from tests.mock_fake import golden, seed_model, skeleton_html
-from tests.test_mock_isolation import ctx_for
+from tests.test_mock_isolation import ctx_for, fake_builder
 
 
 @pytest.fixture(params=APPS)
@@ -15,14 +15,12 @@ def app(request):
     return request.param
 
 
-def test_scope_never_holds_unsafe_or_blocked_states_and_stops_at_8(app):
+def test_scope_is_exactly_the_model_stages_scope_whatever_the_rating(app):
     model = golden(app)
-    states = [s.model_copy(update={"in_mock_scope": True}) for s in model.states]
+    states = [s.model_copy(update={"in_mock_scope": i % 2 == 0}) for i, s in enumerate(model.states)]
     states[0] = states[0].model_copy(update={"content_rating": "unsafe"})
     scope = mock.pick_scope(model.model_copy(update={"states": states}))
-    assert len(scope) <= mock.MAX_SCREENS
-    assert all(s.content_rating != "unsafe" and s.kind != "blocked" for s in scope)
-    assert states[0].id not in {s.id for s in scope}
+    assert [s.id for s in scope] == [s.id for s in states if s.in_mock_scope]
 
 
 def test_only_the_first_two_items_of_a_repeated_list_are_tagged(app):
@@ -39,9 +37,16 @@ def test_only_the_first_two_items_of_a_repeated_list_are_tagged(app):
 def test_no_offered_asset_breaks_the_wallpaper_rule(app):
     model = golden(app)
     for state in mock.pick_scope(model):
-        brief = mock.state_brief(state, model.device)
+        brief = mock.state_brief(state, model.device, {})
         offered = {e["id"] for e in brief["elements"] if "asset" in e}
         assert offered == {e.id for e in state.elements if mock.usable_asset(e, model.device)}
+
+
+BRIEF = [{"type": "text", "text": "the batch brief"}]
+
+
+def budget() -> llm.Budget:
+    return llm.Budget("mock", 15.0)
 
 
 def test_max_tokens_retries_once_at_high_with_shorter_css(tmp_path, monkeypatch):
@@ -54,8 +59,7 @@ def test_max_tokens_retries_once_at_high_with_shorter_css(tmp_path, monkeypatch)
             raise llm.LLMFailure("max_tokens", "cut off")
         return "```html\n<html><body></body></html>\n```", None
     monkeypatch.setattr(llm, "call", call)
-    model = golden("janitorai")
-    html = mock.generate(ctx_for(run_dir, "janitorai", profile="real"), model, mock.pick_scope(model))
+    html = mock.generate(ctx_for(run_dir, "janitorai", profile="real"), BRIEF, budget(), "batch1")
     assert html.startswith("<html>")
     assert efforts[0][0] == "xhigh" and efforts[1] == ("high", mock.SHORTER)
     assert read_trace(run_dir / "trace.jsonl")[-1].outcome == "retry"
@@ -67,9 +71,8 @@ def test_other_failures_are_not_retried(tmp_path, monkeypatch):
     def call(**kwargs):
         raise llm.LLMFailure("refusal", "no")
     monkeypatch.setattr(llm, "call", call)
-    model = golden("luzia")
     with pytest.raises(llm.LLMFailure):
-        mock.generate(ctx_for(run_dir, "luzia"), model, mock.pick_scope(model))
+        mock.generate(ctx_for(run_dir, "luzia"), BRIEF, budget(), "batch1")
 
 
 def test_html_comes_out_of_a_fence_or_a_bare_document():
@@ -154,8 +157,20 @@ def test_each_attempt_is_one_call_under_its_own_wall_and_a_timeout_is_not_retrie
             raise llm.LLMFailure("max_tokens", "cut off")
         raise llm.LLMFailure("timeout", "passed the wall")
     monkeypatch.setattr(llm, "call", call)
-    model = golden("aol")
     with pytest.raises(llm.LLMFailure) as e:
-        mock.generate(ctx_for(run_dir, "aol", profile="real"), model, mock.pick_scope(model))
+        mock.generate(ctx_for(run_dir, "aol", profile="real"), BRIEF, budget(), "batch1")
     assert e.value.outcome == "timeout"
     assert calls == [("xhigh", 1, mock.WALL_SECONDS), ("high", 1, mock.WALL_SECONDS)]
+
+
+def test_the_mock_opens_on_the_first_screen_that_is_not_a_dialog(tmp_path, monkeypatch, app):
+    run_dir = seed_model(tmp_path / "run", app)
+    model = golden(app)
+    home = mock.pick_scope(model)[0]
+    dialog = home.model_copy(update={"id": "s00", "kind": "modal", "parent_id": home.id, "elements": []})
+    model = model.model_copy(update={"states": [dialog] + model.states})
+    (run_dir / "model" / "product_model.json").write_text(model.model_dump_json())
+    monkeypatch.setattr(llm, "call", fake_builder([]))
+    mock.run(ctx_for(run_dir, app))
+    assert mock.pick_scope(model)[0].id == "s00" and mock.home_id(mock.pick_scope(model)) == home.id
+    assert f'const ROOT = "{home.id}"' in (run_dir / "mock" / "index.html").read_text()
