@@ -49,6 +49,14 @@ def resolve_run(app: str, run_id: str | None) -> Path:
     return run_dir.resolve()
 
 
+def find_run(run_id: str) -> Path:
+    """Resolves a bare run id to its folder, whichever app it belongs to."""
+    matches = sorted(RUNS.glob(f"*/{run_id}"))
+    if len(matches) != 1:
+        raise SystemExit(f"run id {run_id!r} matches {len(matches)} runs under {RUNS}")
+    return resolve_run(matches[0].parent.name, run_id)
+
+
 def sha256(path: Path) -> str:
     h = hashlib.sha256()
     with open(path, "rb") as f:

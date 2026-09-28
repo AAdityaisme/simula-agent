@@ -87,6 +87,11 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
         runlog.needs_human(ctx.run_dir, stage, "$ cap reached", str(e), [f"{stage}/failure.json"],
                            f"simula {stage} {ctx.app['name']} --run {ctx.run_dir.name} --usd-cap <higher>")
         raise
+    except (Exception, ReplayMiss) as e:
+        reason = f"{type(e).__name__}: {e}"
+        runfolder.write_failure(stage_dir, reason)
+        runlog.run_trace(ctx.run_dir, stage=stage, step="run", decider="code", outcome="error", note=reason[:300])
+        raise
     runfolder.write_done(stage_dir, ctx.run_dir, inputs, prompts, params, [stage_dir], provenance)
     runlog.run_trace(ctx.run_dir, stage=stage, step="done", decider="code", note=provenance.source)
     usd_total = sum(line.usd for line in runlog.read_trace(ctx.run_dir / "trace.jsonl"))
@@ -97,12 +102,16 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     return True
 
 
-def open_run(args, stage_hint: str | None = None) -> Ctx:
+def open_run(args) -> Ctx:
     app = config.app_config(args.app)
     fixtures = dict(f.split("=", 1) for f in getattr(args, "fixture", None) or [])
+    creating = getattr(args, "new", False) or (args.run is None and not (runfolder.RUNS / args.app / "latest").exists())
     if fixtures and not args.allow_fixtures:
         raise runfolder.FixtureRefused("--fixture needs --allow-fixtures: fixtures are test data only")
-    if getattr(args, "new", False) or (args.run is None and not (runfolder.RUNS / args.app / "latest").exists()):
+    if fixtures and not creating:
+        raise runfolder.FixtureRefused("--fixture only seeds a run this call creates (add --new): "
+                                       "a fixture must never enter an existing run")
+    if creating:
         run_dir = runfolder.new_run(args.app, fixture=args.allow_fixtures and bool(fixtures))
         provenance = Provenance(source="fixture", fixture_path=";".join(fixtures.values())) if fixtures \
             else Provenance(source="explorer_run", explorer_run_id=run_dir.name)
@@ -134,7 +143,7 @@ def cmd_run(args) -> int:
 
 
 def cmd_note(args) -> int:
-    run_dir = Path(args.run).resolve() if args.run else None
+    run_dir = runfolder.find_run(args.run) if args.run else None
     runlog.note(args.text, args.usd, run_dir)
     print(f"noted in {(run_dir / 'trace.jsonl') if run_dir else runlog.BUILD_TRACE}")
     return 0
@@ -165,7 +174,8 @@ def add_run_flags(p: argparse.ArgumentParser) -> None:
                    help="let the explorer create a guest account if the app asks for one")
     p.add_argument("--allow-fixtures", action="store_true", help="accept fixture inputs (test data only)")
     p.add_argument("--fixture", action="append", metavar="STAGE=PATH",
-                   help="seed a stage folder from a fixture (needs --allow-fixtures)")
+                   help="the only way a fixture enters a run: seeds a stage folder in the run this call "
+                        "creates (needs --new or no existing run, and --allow-fixtures)")
 
 
 def parser() -> argparse.ArgumentParser:
@@ -198,7 +208,7 @@ def parser() -> argparse.ArgumentParser:
     n = sub.add_parser("note", help="log a hand fix or build spend")
     n.add_argument("text")
     n.add_argument("--usd", type=float, default=0.0)
-    n.add_argument("--run", help="run folder path; default logs to build/trace.jsonl")
+    n.add_argument("--run", metavar="ID", help="run id under runs/<app>/; default logs to build/trace.jsonl")
     n.set_defaults(func=cmd_note)
     return p
 

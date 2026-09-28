@@ -76,3 +76,44 @@ def test_chain_skips_a_stage_whose_hashes_match(runs, built_stages):
 def test_real_runs_are_never_suffixed(runs):
     cli.main(["run", "luzia", "--new"])
     assert not (runs / "luzia" / "latest").resolve().name.endswith("-fixture")
+
+
+def test_fixture_is_never_seeded_into_an_existing_run(runs):
+    cli.main(["run", "janitorai", "--new"])
+    run_dir = latest(runs)
+    before = sorted(p.name for p in run_dir.iterdir())
+    manifest = (run_dir / "manifest.json").read_text()
+    code = cli.main(["run", "janitorai", "--allow-fixtures", "--fixture", f"model={GOLDEN}", "--from", "mock"])
+    assert code == 2
+    assert latest(runs) == run_dir
+    assert sorted(p.name for p in run_dir.iterdir()) == before
+    assert (run_dir / "manifest.json").read_text() == manifest
+
+
+def test_a_crashing_stage_leaves_a_failure_record(runs, monkeypatch):
+    import importlib
+
+    def boom(ctx):
+        raise RuntimeError("playwright fell over")
+    cli.main(["run", "janitorai", "--new", "--allow-fixtures", "--fixture", f"model={GOLDEN}", "--from", "model"])
+    run_dir = latest(runs)
+    (run_dir / "mock").mkdir(exist_ok=True)
+    (run_dir / "mock" / "done.json").write_text("{}")
+    monkeypatch.setattr(importlib.import_module("simula.stages.mock"), "run", boom)
+    with pytest.raises(RuntimeError):
+        cli.main(["mock", "janitorai", "--run", run_dir.name, "--allow-fixtures"])
+    assert not (run_dir / "mock" / "done.json").exists()
+    assert "RuntimeError: playwright fell over" in (run_dir / "mock" / "failure.json").read_text()
+    last = read_trace(run_dir / "trace.jsonl")[-1]
+    assert (last.stage, last.outcome) == ("mock", "error")
+
+
+def test_note_resolves_a_bare_run_id(runs, tmp_path, monkeypatch):
+    cli.main(["run", "luzia", "--new"])
+    run_dir = (runs / "luzia" / "latest").resolve()
+    monkeypatch.chdir(tmp_path)
+    assert cli.main(["note", "fixed a label by hand", "--run", run_dir.name]) == 0
+    assert read_trace(run_dir / "trace.jsonl")[-1].note == "fixed a label by hand"
+    with pytest.raises(SystemExit):
+        cli.main(["note", "x", "--run", "no-such-run"])
+    assert not (tmp_path / "no-such-run").exists()
