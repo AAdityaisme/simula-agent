@@ -328,7 +328,7 @@ def run(ctx: Ctx) -> None:
 
 def why(d: Decision, c: Candidate) -> str:
     if c.dropped_reason:
-        return f"; dropped by propose: {c.dropped_reason}"
+        return f"; dropped by code: {c.dropped_reason}"
     parts = ([f"gates failed: {', '.join(d.gate_fails)}"] if d.gate_fails else []) \
         + ([f"split: {', '.join(d.judgment_splits)}"] if d.judgment_splits else []) \
         + ([f"rerun {d.rerun_stage} (human-gated)"] if d.rerun_stage else [])
