@@ -80,7 +80,7 @@ def run(ctx: Ctx) -> None:
     run_trace(ctx.run_dir, stage="mock", step="scope", decider="code", note=" ".join(screens))
     copy_assets(model_dir, mock_dir, scope, model.device)
 
-    html = within_wall(lambda: generate(ctx, model, scope), WALL_SECONDS, ctx)
+    html = generate(ctx, model, scope)
     (mock_dir / "index.html").write_text(with_runtime(stamp_transitions(html, model), screens[0]))
 
     report = render.render_and_validate(mock_dir, model, screens)
@@ -142,10 +142,11 @@ def generate(ctx: Ctx, model: ProductModel, scope: list[State]) -> str:
     budget = llm.Budget.for_stage("mock", ctx.run_dir / "trace.jsonl", ctx.usd_cap)
 
     def ask(effort, content):
-        text, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="mock", step="generate",
-                           model=role["model"], effort=effort, system=system, messages=[{"role": "user", "content": content}],
-                           max_tokens=role.get("max_tokens", 64000), budget=budget,
-                           no_cache=ctx.no_cache, replay=ctx.replay)
+        text, _ = within_wall(lambda: llm.call(
+            trace_path=ctx.run_dir / "trace.jsonl", stage="mock", step="generate", model=role["model"],
+            effort=effort, system=system, messages=[{"role": "user", "content": content}],
+            max_tokens=role.get("max_tokens", 64000), budget=budget, no_cache=ctx.no_cache, replay=ctx.replay),
+            WALL_SECONDS, ctx)
         return extract_html(text)
 
     effort = role.get("effort")
@@ -161,7 +162,8 @@ def generate(ctx: Ctx, model: ProductModel, scope: list[State]) -> str:
 
 
 def within_wall(fn, seconds: float, ctx: Ctx):
-    """Runs fn on a daemon thread and gives up after `seconds`: one streamed call can outlive every idle timeout."""
+    """Runs one model attempt on a daemon thread and gives up after `seconds`: a streamed call can outlive
+    every idle timeout."""
     result = {}
 
     def target():
