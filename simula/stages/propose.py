@@ -104,7 +104,11 @@ def model_text(model: ProductModel) -> str:
 
 def state_text(state) -> list[str]:
     over = f", over {state.parent_id}" if state.parent_id else ""
-    lines = [f"#### {state.id} {state.name} ({state.kind}{over}; content {state.content_rating})", state.purpose]
+    lines = [f"#### {state.id} {state.name} ({state.kind}{over}; content {state.content_rating})"]
+    if state.content_rating == "unsafe":
+        # Its text could get every lens call refused, and check() never lets an offer trigger here.
+        return lines + ["- (text left out: unsafe content)"]
+    lines.append(state.purpose)
     named = [e for e in state.elements if e.text or e.label]
     lines += [f"- {e.id} {e.role}: {' / '.join(t for t in (e.text, e.label) if t)}" for e in named]
     return lines if named else lines + ["- (no element list captured for this screen)"]
