@@ -9,6 +9,7 @@ from PIL import Image, ImageDraw
 
 from simula import decide, llm, runlog
 from simula.contracts import Manifest, Provenance
+from simula.device.mcp import McpTimeout
 from simula.device.observe import dhash, words
 from simula.stages import Ctx
 from simula.stages import explore as stage
@@ -67,6 +68,7 @@ class FakePhone:
     replies: dict[str, list[str]] = field(default_factory=dict)
     dirty: dict[str, tuple[int, int, int, int]] = field(default_factory=dict)
     splash: int = 0
+    hung_lists: int = 0
     device: str = "fake-1"
 
     def __post_init__(self):
@@ -91,6 +93,10 @@ class FakePhone:
 
     def elements(self):
         self.tick()
+        if self.hung_lists:
+            self.hung_lists -= 1
+            self.tick(40.0)
+            raise McpTimeout("mobile_list_elements_on_screen took over 20s")
         self.list_seconds.append(0.3)
         elements = self.current_elements()
         return {"content": [{"type": "text", "text": PREFIX + json.dumps(elements)}], "isError": False}, elements

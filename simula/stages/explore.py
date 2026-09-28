@@ -466,10 +466,10 @@ class Explorer:
         still loading placeholders for many seconds, so a launch also waits until two looks LAUNCH_QUIET_S apart
         agree."""
         splash_deadline = self.clock() + SPLASH_WAIT_S
-        obs = self.observe()
-        while not obs.cands and obs.fg == self.package and self.clock() < splash_deadline:
+        obs = self.look(splash_deadline)
+        while obs is None or (not obs.cands and obs.fg == self.package and self.clock() < splash_deadline):
             self.sleep(1.5)
-            obs = self.observe()
+            obs = self.look(splash_deadline)
         deadline = self.clock() + LAUNCH_WAIT_S
         while obs.fg == self.package and self.clock() < deadline and (not obs.cands or (
                 expect and not ob.same_state(obs.fp, expect.fp) and not ob.dialog_box(obs.cands, self.device))):
@@ -482,6 +482,17 @@ class Explorer:
                 return again
             obs = again
         return obs
+
+    def look(self, deadline: float) -> Obs | None:
+        """An observation during a cold start, or None while the device can't answer yet (a loaded emulator
+        can take over 20 s per element dump while the app starts). Past the deadline the error stands."""
+        try:
+            return self.observe()
+        except (McpTimeout, McpReplyError) as e:
+            if self.clock() >= deadline:
+                raise
+            self.note("launch", f"the device didn't answer yet: {type(e).__name__}", outcome="timeout")
+            return None
 
     def normalize(self) -> None:
         """Records any launch banner or dialog before dismissing it, so a launch paywall is never lost."""

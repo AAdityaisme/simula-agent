@@ -237,3 +237,14 @@ def test_a_failed_capture_in_the_core_loop_keeps_the_tour(tmp_path, monkeypatch)
     assert any("McpReplyError" in r for r in ex.core_results)
     failed = [line for line in lines(ex) if line.outcome == "error"]
     assert any("observing after the move failed" in line.change_summary for line in failed)
+
+
+def test_a_cold_start_that_times_out_the_first_dumps_still_explores(tmp_path, monkeypatch):
+    def slow_start(clock):
+        phone = janitor_like(clock)
+        phone.hung_lists = 2
+        return phone
+    ex, _ = explore(tmp_path, monkeypatch, phone_factory=slow_start)
+    assert ex.root is not None and len(ex.states) >= 8
+    notes = [line.note for line in runlog.read_trace(ex.run_dir / "trace.jsonl") if line.step == "launch"]
+    assert notes and "McpTimeout" in notes[0]
