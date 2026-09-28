@@ -92,6 +92,8 @@ def candidate_text(c: Candidate, model: ProductModel) -> str:
         if eid not in elements:
             return f"- {eid}: not in the product model"
         s, e = elements[eid]
+        if s.content_rating == "unsafe":
+            return f"- {eid} on {s.id} {s.name}: (text left out: unsafe content)"
         return f"- {eid} on {s.id} {s.name}: {e.role or e.type}: " + " / ".join(f'"{t}"' for t in (e.text, e.label) if t)
 
     grant = ledger.get(c.grants_id)

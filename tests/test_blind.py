@@ -101,3 +101,13 @@ def test_both_judges_get_the_same_rubric_and_no_other_system_prompt(monkeypatch)
                         budget=None)
     assert systems[0][1] == systems[1][1] == judge.read_prompt("rubric.md")
     assert systems[0][0] != systems[1][0]
+
+
+def test_cited_evidence_on_an_unsafe_screen_is_not_quoted():
+    model = golden("janitorai")
+    state = next(s for s in model.states if any(e.text for e in s.elements))
+    element = next(e for e in state.elements if e.text)
+    unsafe = model.model_copy(update={"states": [s.model_copy(update={"content_rating": "unsafe"}) if s.id == state.id
+                                                 else s for s in model.states]})
+    text = judge.candidate_text(idea(unsafe, anchor_evidence_ids=[element.id]), unsafe)
+    assert f"{element.id} on {state.id}" in text and f'"{element.text}"' not in text.split("cited evidence:")[1].split("what makes")[0]
