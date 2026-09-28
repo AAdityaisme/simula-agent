@@ -146,19 +146,20 @@ def _anthropic_content(parts: list[dict]) -> list[dict]:
             for p in parts]
 
 
-def _spent(stream, tokens_in_estimate: int, max_tokens: int) -> tuple[int, int]:
+def _spent(stream, tokens_in_estimate: int) -> tuple[int, int]:
     """What an aborted stream already cost: the snapshot's usage, with output at least what was streamed (the
-    API sends the final output count only at the end), or the worst case when no message had started."""
+    API sends the final output count only at the end). With no snapshot, message_start never arrived, so
+    nothing was generated: only the estimated input is charged."""
     try:
         snapshot = stream.current_message_snapshot
     except (AssertionError, AttributeError):
-        return tokens_in_estimate, max_tokens
+        return tokens_in_estimate, 0
     # ponytail: thinking the API doesn't stream back isn't counted; charge the worst case if that ever matters
     streamed = sum(len(getattr(b, "text", None) or getattr(b, "thinking", None) or "") for b in snapshot.content) // 3
     return snapshot.usage.input_tokens, max(snapshot.usage.output_tokens, streamed)
 
 
-def _drain(stream, total_timeout: float | None, tokens_in_estimate: int, max_tokens: int):
+def _drain(stream, total_timeout: float | None, tokens_in_estimate: int):
     """Reads the stream to its final message. On an abort (our total timeout or an SDK error mid-stream) the
     tokens already spent ride on the raised error."""
     deadline = time.monotonic() + total_timeout if total_timeout else None
@@ -168,7 +169,7 @@ def _drain(stream, total_timeout: float | None, tokens_in_estimate: int, max_tok
                 raise LLMFailure("timeout", f"passed the {total_timeout:.0f}s total timeout")
         return stream.get_final_message()
     except Exception as e:
-        e.tokens_in, e.tokens_out = _spent(stream, tokens_in_estimate, max_tokens)
+        e.tokens_in, e.tokens_out = _spent(stream, tokens_in_estimate)
         raise
 
 
@@ -195,7 +196,7 @@ def call_anthropic(model: str, system: str, messages: list[dict], effort: str | 
     try:
         if streaming:
             with client.messages.stream(**kwargs) as stream:
-                message = _drain(stream, total_timeout, estimate_tokens_in(system, messages), max_tokens)
+                message = _drain(stream, total_timeout, estimate_tokens_in(system, messages))
                 headers = stream.response.headers
         else:
             raw = client.messages.with_raw_response.create(**kwargs)

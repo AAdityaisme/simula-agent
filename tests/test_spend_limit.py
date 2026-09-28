@@ -125,7 +125,7 @@ def aborted_call(monkeypatch, stream, tmp_path):
     budget = llm.Budget("mock", 100.0)
     with pytest.raises(llm.LLMFailure) as failure:
         llm.call(trace_path=tmp_path / "trace.jsonl", stage="mock", step="t", model="claude-opus-5-5", effort="xhigh",
-                 system="", messages=[{"role": "user", "content": [{"type": "text", "text": "hi"}]}],
+                 system="", messages=[{"role": "user", "content": [{"type": "text", "text": "build the mock " * 200}]}],
                  max_tokens=64000, budget=budget, cache_dir=tmp_path / "cache", attempts=1, total_timeout=60)
     return failure.value, budget, read_trace(tmp_path / "trace.jsonl")[-1]
 
@@ -141,10 +141,10 @@ def test_an_aborted_stream_is_charged_its_snapshot_with_output_at_least_what_str
     assert (line.tokens_in, line.tokens_out, line.outcome) == (5000, 11_000, "timeout")
 
 
-def test_an_aborted_stream_without_a_snapshot_is_charged_the_worst_case(monkeypatch, tmp_path):
+def test_a_stream_that_never_started_is_charged_only_its_input(monkeypatch, tmp_path):
     failure, budget, line = aborted_call(monkeypatch, AbortedStream(), tmp_path)
-    assert failure.tokens_out == 64000 and budget.spent == pytest.approx(llm.usd("claude-opus-5-5", failure.tokens_in, 64000))
-    assert line.usd > 1.0
+    assert failure.tokens_in > 0 and failure.tokens_out == 0
+    assert budget.spent == pytest.approx(llm.usd("claude-opus-5-5", failure.tokens_in, 0)) and line.usd < 0.01
 
 
 def test_a_usage_limit_stops_the_run_with_needs_human_and_exit_4(runs, tmp_path, monkeypatch):
