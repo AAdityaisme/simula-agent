@@ -63,7 +63,7 @@ def seed_run(root, app: str):
     return run_dir
 
 
-def fake_edits(c, page: str, wire_accept: bool = True) -> Edits:
+def fake_edits(c, page: str, wire_accept: bool = True, mark_ad: bool = True) -> Edits:
     """What a good editor returns for any idea: an entry point on the trigger, the offer, and an empty ad screen."""
     trigger, offer, ad = (s.state_id for s in c.flow_steps[:3])
     tag = re.search(rf'<section[^>]*data-screen="{trigger}"[^>]*>', page).group(0)
@@ -74,26 +74,27 @@ def fake_edits(c, page: str, wire_accept: bool = True) -> Edits:
     screens = (f'<section data-screen="{offer}" data-flow="{c.id}" data-parent="{trigger}">'
                f'<p {button.format(200)}>{c.offer_copy}</p>{accept if wire_accept else ""}'
                f'<button data-edge="{offer}>{trigger}" data-transition="back" {button.format(360)}>No thanks</button>'
-               f'</section><section data-screen="{ad}" data-flow="{c.id}" data-parent="{trigger}" data-ad></section>')
+               "</section>" + (f'<section data-screen="{ad}" data-flow="{c.id}" data-parent="{trigger}" data-ad>'
+                               "</section>" if mark_ad else ""))
     return Edits(edits=[Edit(find=tag, replace=tag + entry, reason="entry point"),
                         Edit(find="</body>", replace=screens + "</body>", reason="offer and ad screens"),
                         Edit(find="not in the page", replace="x", reason="a find that can't apply")])
 
 
-def fake_editor(run_dir, wire_accept: bool = True):
+def fake_editor(run_dir, wire_accept: bool = True, mark_ad: bool = True):
     ideas = {c.id: c for c in CandidatesFile.model_validate_json(
         (run_dir / "propose" / "candidates.json").read_text()).candidates}
 
     def call(**kwargs):
         page = flows.strip_runtime((run_dir / "mock" / "index.html").read_text())
-        return fake_edits(ideas[kwargs["step"].split(":")[1]], page, wire_accept), None
+        return fake_edits(ideas[kwargs["step"].split(":")[1]], page, wire_accept, mark_ad), None
     return call
 
 
-def run_flows(root, app: str, wire_accept: bool = True):
+def run_flows(root, app: str, wire_accept: bool = True, mark_ad: bool = True):
     run_dir = seed_run(root, app)
     with pytest.MonkeyPatch.context() as mp:
-        mp.setattr(llm, "call", fake_editor(run_dir, wire_accept))
+        mp.setattr(llm, "call", fake_editor(run_dir, wire_accept, mark_ad))
         flows.run(ctx_for(run_dir, app))
     return run_dir
 
@@ -186,6 +187,13 @@ def test_a_step_that_wont_tap_through_shows_the_last_good_screen_marked_not_wire
     broken = [line for line in read_trace(run_dir / "trace.jsonl") if line.step == "walk:c01" and line.outcome == "error"]
     assert broken and "step 3 not wired" in broken[0].note
     assert "## Not wired" in (run_dir / "exhibits" / "07-flows.md").read_text()
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_code_adds_the_ad_screen_when_the_editor_marks_none(tmp_path, app):
+    run_dir = run_flows(tmp_path, app, mark_ad=False)
+    assert "| 4 / 4 | 1 |" in (run_dir / "exhibits" / "07-flows.md").read_text()
+    assert any("code added the ad screen at step 3" in line.note for line in read_trace(run_dir / "trace.jsonl"))
 
 
 def test_default_selection_is_accepted_and_conditional_best_rank_first_at_most_four():
