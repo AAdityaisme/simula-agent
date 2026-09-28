@@ -75,6 +75,7 @@ class FakePhone:
     after_sends: dict[int, str] = field(default_factory=dict)
     splash_screen: str | None = None
     generating: float = 0.0
+    busy_label: str = "Cancel"
     chat_top: int = 401
 
     def __post_init__(self):
@@ -98,8 +99,8 @@ class FakePhone:
         if self.draft:
             elements = [{**e, "text": self.draft} if e is box else e for e in elements]
         if self.clock.t < self.busy_until:
-            elements = [{**e, "text": "Cancel", "label": "", "enabled": False} if "send" in words(e).lower() else e
-                        for e in elements]
+            busy = {"text": self.busy_label, "label": "", "enabled": False}
+            elements = [{**e, **busy} if "send" in words(e).lower() else e for e in elements]
         self.reply_polls += 1
         return elements + [{"ref": f"@m{n}", "type": "android.widget.TextView", "text": text,
                             "coordinates": {"x": x, "y": y, "width": w, "height": h}}
@@ -177,7 +178,8 @@ class FakePhone:
                          key=lambda e: e["coordinates"]["width"] * e["coordinates"]["height"])
         keys = [element_key(e) for e in holding] or ["nothing"]
         self.log.append(("tap", self.screen, keys[0]))
-        if self.screen in self.replies and self.draft and any("send" in k.lower() for k in keys):
+        if self.screen in self.replies and self.draft and self.clock.t >= self.busy_until and any(
+                "send" in k.lower() for k in keys):
             self.send()
         self.go(next((self.taps[(self.screen, k)] for k in keys if (self.screen, k) in self.taps), None))
 

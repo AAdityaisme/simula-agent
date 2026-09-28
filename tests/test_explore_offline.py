@@ -563,3 +563,50 @@ def test_the_walk_scrolls_a_long_item_page_to_its_main_action_at_the_end(tmp_pat
     ex, phone = explore(tmp_path, monkeypatch, phone_factory=long_page)
     assert ex.core.kind == "chat" and phone.sent
     assert ("tap", "page5", "Chat with Avarus") in phone.log
+
+
+def test_a_stop_control_right_of_the_box_is_never_taken_for_send_while_a_reply_is_written(tmp_path, monkeypatch):
+    def stop_where_send_goes(clock):
+        phone = chatty(clock)
+        phone.generating, phone.busy_label = 30.0, "Stop"
+        for e in phone.screens["chat"].elements:
+            if (e.get("identifier") or "").endswith("sendButton"):
+                e["coordinates"] = {**e["coordinates"], "x": 1014, "width": 66}
+            if "Audio Button" in (e.get("label") or ""):
+                e["coordinates"] = {**e["coordinates"], "x": 1020}
+        return phone
+    ex, phone = explore(tmp_path, monkeypatch, phone_factory=stop_where_send_goes, budget="deep")
+    assert phone.sent == ex.core_reps == 8 and not ex.core_hit
+    assert not any(entry[:1] == ("tap",) and entry[2] == "Stop" for entry in phone.log)
+
+
+def test_a_send_that_opens_another_screen_with_a_text_box_is_not_taken_for_the_chat(tmp_path, monkeypatch):
+    from PIL import Image
+    from tests.fake_device import Screen
+
+    def other_box_after_two(clock):
+        phone = chatty(clock)
+        chat = phone.screens["chat"]
+        elements = [{**e, "text": "Report a problem"} if e.get("text") == "Teacher" else e for e in chat.elements]
+        phone.screens["other"] = Screen(elements, Image.new("RGB", (1080, 2400), (200, 230, 200)), PACKAGE)
+        phone.after_sends = {2: "other"}
+        return phone
+    ex, phone = explore(tmp_path, monkeypatch, phone_factory=other_box_after_two, budget="deep")
+    assert not any(entry[0] == "type" and entry[1] == "other" for entry in phone.log)
+
+
+def test_the_walk_stops_scrolling_a_page_that_no_longer_moves(tmp_path, monkeypatch):
+    from PIL import Image
+    from tests.fake_device import Screen
+    back = {"ref": "@back", "type": "android.widget.Button", "text": "", "identifier": "x:id/back",
+            "coordinates": {"x": 42, "y": 168, "width": 84, "height": 84}}
+    bio = {"ref": "@bio", "type": "android.widget.TextView", "text": "A short page with nothing to start",
+           "coordinates": {"x": 42, "y": 700, "width": 996, "height": 120}}
+
+    def short_page(clock):
+        phone = janitor_like(clock)
+        phone.screens["short"] = Screen([back, bio], Image.new("RGB", (1080, 2400), (60, 20, 80)), PACKAGE)
+        phone.taps[("limited", "JJK - GOJO’S RELATIVE")] = "short"
+        return phone
+    ex, phone = explore(tmp_path, monkeypatch, phone_factory=short_page)
+    assert sum(entry == ("swipe", "short", "up") for entry in phone.log) == 2

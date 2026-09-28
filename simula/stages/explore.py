@@ -393,7 +393,7 @@ class Explorer:
             raise
         self.escape_billing()
         # a chat pass stays on the chat while its composer shows: the growing conversation is not a new state
-        chatting = purpose == "core" and self.core.kind == "chat" and self.live_box() and not self.covering(before)
+        chatting = purpose == "core" and self.core.kind == "chat" and self.same_chat() and not self.covering(before)
         to = s if chatting else self.record(obs, s, move, before.cands)
         if to is s and not summary:
             summary = ob.change_summary(before.elements, obs.elements, self.device)
@@ -1012,16 +1012,19 @@ class Explorer:
         if o.kind != "chat":
             return self.describe(o.state)
         box = o.controls[0]
-        said = [t for y, t in self.texts_by_y(o.state) if ob.TOP_CHROME_BOTTOM_PX <= y < box.rect.y][-3:]
+        said = [t for y, t in self.texts_by_y(o.state.elements) if ob.TOP_CHROME_BOTTOM_PX <= y < box.rect.y][-3:]
         return (f"screen {o.state.sid} is a conversation titled {self.chat_title(o.state)!r}; its last messages: "
                 + (" | ".join(t[:100] for t in said) or "none yet"))
 
     def chat_title(self, s: Seen) -> str:
-        top = [t for y, t in self.texts_by_y(s) if y < ob.TOP_CHROME_BOTTOM_PX]
+        return self.title_of(s.elements)
+
+    def title_of(self, elements: list[dict]) -> str:
+        top = [t for y, t in self.texts_by_y(elements) if y < ob.TOP_CHROME_BOTTOM_PX]
         return top[0][:60] if top else ""
 
-    def texts_by_y(self, s: Seen) -> list[tuple[int, str]]:
-        return sorted((e["coordinates"]["y"], e["text"].strip()) for e in s.elements
+    def texts_by_y(self, elements: list[dict]) -> list[tuple[int, str]]:
+        return sorted((e["coordinates"]["y"], e["text"].strip()) for e in elements
                       if ob.in_content(e, self.device) and (e.get("text") or "").strip())
 
     def walk_to_input(self, feed: CoreAction) -> CoreAction | None:
@@ -1044,7 +1047,7 @@ class Explorer:
         self.act(Move("tap", item, why="core loop: look inside an item"), purpose="nav")
         if self.current is feed.state:
             return None
-        tapped, swipes = set(), 0
+        tapped, swipes, still = set(), 0, 0
         while self.current.kind == "screen":
             here = self.current
             chat = self.live_composer()
@@ -1059,10 +1062,11 @@ class Explorer:
             if len(tapped) == WALK_STEPS:
                 break
             steps = self.walk_steps(self.obs.cands, here.upsell, tapped)
-            if not steps and swipes < WALK_SWIPES:
-                swipes += 1
+            if not steps and swipes < WALK_SWIPES and still < 2:
+                swipes, shown = swipes + 1, ob.texts(self.obs.elements, self.device)
                 self.act(Move("swipe", direction="up", why="core loop: the item's main action may be further down"),
                          purpose="nav")
+                still = still + 1 if self.obs and ob.texts(self.obs.elements, self.device) == shown else 0
                 continue
             move = (self.ranked_move(here, steps) if len(steps) > 1 else
                     Move("tap", steps[0], why="the only main action") if steps else None)
@@ -1125,18 +1129,29 @@ class Explorer:
     def at_core(self, n: int) -> bool:
         """After the first pass a chat stays where it is: the conversation grows, so it never matches its first
         capture again, and walking 'back' to it would leave it. Anything else walks back to the core state."""
-        if n > 1 and self.core.kind == "chat" and self.live_box():
+        if n > 1 and self.core.kind == "chat" and self.same_chat():
             self.until_send_returns()
             self.current = self.core.state
             return True
         return self.goto(self.core.state)
 
     def until_send_returns(self) -> None:
-        """A reply still being written shows a stop control where send was; the next message waits for it."""
+        """A reply still being written shows a stop control where send was (enabled or not, and maybe where a
+        position rule would take it for send); the next message waits for the chat's own send control."""
         deadline = self.clock() + REPLY_WAIT_S
-        while not self.live_composer() and self.live_box() and self.clock() < deadline:
+        own = self.core.controls[1]
+
+        def busy() -> bool:
+            live = ob.find(self.obs.cands, own)
+            return live is None or live.label != own.label
+        while self.live_box() and busy() and self.clock() < deadline:
             self.sleep(2.0)
             self.observe()
+
+    def same_chat(self) -> bool:
+        """Still in the chosen chat: a text box in the lower half under the chat's own title. Everything else on a
+        chat changes as it grows."""
+        return bool(self.live_box()) and self.title_of(self.obs.elements) == self.chat_title(self.core.state)
 
     def core_once(self, n: int) -> tuple[str, str]:
         """One pass of the core action. Returns its measurement and what stopped the loop, if anything."""
