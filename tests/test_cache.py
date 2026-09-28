@@ -331,3 +331,24 @@ def test_a_crash_mid_write_never_leaves_a_torn_cache_file(tmp_path, monkeypatch)
     monkeypatch.undo()
     assert llm.cache_read("k", tmp_path).text == '{"word": "old"}'
     assert [p.name for p in tmp_path.iterdir()] == ["k.json"]
+
+
+def test_a_refused_only_screenshot_is_a_traced_refusal_not_a_none_answer(tmp_path, monkeypatch):
+    def refuses(model, system, messages, effort, schema, max_tokens, total_timeout=None):
+        return llm.Reply(text="", model=model, stop_reason="refusal")
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", refuses)
+    with pytest.raises(llm.LLMFailure) as failure:
+        llm.without_refused_images([b"\x89PNG"], lambda kept: call(tmp_path, messages=message(png=kept[0]),
+                                                                    attempts=1)[0])
+    assert failure.value.outcome == "refusal"
+    assert [line.outcome for line in read_trace(tmp_path / "trace.jsonl")] == ["refusal"]
+
+
+def test_bisecting_drops_only_refused_screenshots_and_refuses_when_none_is_left():
+    def attempt(kept):
+        if "bad" in kept:
+            raise llm.LLMFailure("refusal", "no")
+        return len(kept)
+    assert llm.without_refused_images(["ok", "bad", "fine"], attempt) == (2, ["bad"])
+    with pytest.raises(llm.LLMFailure, match="refusal"):
+        llm.without_refused_images(["bad", "bad"], attempt)
