@@ -78,6 +78,7 @@ def test_two_bad_answers_raise_a_typed_failure(tmp_path, monkeypatch):
     with pytest.raises(llm.LLMFailure) as failure:
         call(tmp_path)
     assert failure.value.outcome == "schema_fail"
+    assert failure.value.raw == "still nope"
     assert not (tmp_path / "cache").exists() or not list((tmp_path / "cache").iterdir())
 
 
