@@ -1,19 +1,24 @@
 """The QA loop with a fake critic and fixer: the 0.3 stop rule, the discard rule, the best version approved, the
 fixer's effort per round, a failed model call or a broken page that never blocks the slides, and a replay that
-doesn't depend on render bytes."""
+doesn't depend on render bytes. The critic in groups of screens and undrawn screens run on a synthetic 12-screen
+model."""
 
 import json
+import re
+import threading
+import time
 from dataclasses import replace
 
 import pytest
 from PIL import Image
 
 from simula import config, llm, render
-from simula.contracts import ContractError, ContractReport, Critique, Edit, Edits, Fix, ProductModel, QAMetrics
+from simula.contracts import (ContractError, ContractReport, Critique, Edit, Edits, Fix, ProductModel, QAMetrics,
+                              ScreenMetrics)
 from simula.runlog import read_trace
 from simula.stages import mock, qa
 from tests.conftest import APPS
-from tests.mock_fake import seed_model
+from tests.mock_fake import golden, seed_model
 from tests.test_mock_isolation import ctx_for, fake_builder
 
 
@@ -237,3 +242,170 @@ def test_a_replay_whose_renders_differ_makes_no_model_call_and_ends_where_the_re
         record.unlink()
     with pytest.raises(llm.ReplayMiss):
         qa.run(replace(ctx_for(run_dir, app), replay=True))
+
+
+# ---------- a synthetic 12-screen model: the critic in groups, undrawn screens ----------
+
+@pytest.fixture
+def twelve(tmp_path, monkeypatch, request):
+    """A run of the app's golden with its in-scope states cloned under new state and element ids until 12 screens
+    are in scope. main's 8-screen cap is lifted (PR 3c removes it)."""
+    monkeypatch.setattr(mock, "MAX_SCREENS", 20, raising=False)
+    app = request.param
+    model = golden(app)
+    scope = mock.pick_scope(model)
+    clones = []
+    for k in range(12 - len(scope)):
+        state, sid = scope[k % len(scope)], f"x{k + 1:02}"
+        elements = [e.model_copy(update={"id": sid + e.id[len(state.id):]}) for e in state.elements]
+        clones.append(state.model_copy(update={"id": sid, "parent_id": None, "elements": elements}))
+    model = model.model_copy(update={"states": [*model.states, *clones]})
+    run_dir = seed_model(tmp_path / "run", app)
+    (run_dir / "model" / "product_model.json").write_text(model.model_dump_json())
+    assert len(mock.pick_scope(model)) == 12
+    return app, run_dir, model, [s.id for s in mock.pick_scope(model)]
+
+
+def measured_twelve(run_dir, model, errors=()) -> qa.Version:
+    """Round 0 of a 12-screen mock as QA would hold it, without rendering: tiny images, even scores."""
+    screens = []
+    for i, state in enumerate(mock.pick_scope(model)):
+        for kind in ("real", "mock", "heatmap"):
+            path = run_dir / "qa" / "round0" / kind / f"{state.id}.png"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            Image.new("RGB", (4, 4), (i, 0, 0)).save(path)
+        metrics = ScreenMetrics(state_id=state.id, ssim_masked=0.5, pixelmatch_ratio=None, masked_coverage=1.0,
+                                bounds_ok_share=1.0, nav_pass_rate=1.0, score=5.0)
+        screens.append({"metrics": metrics, "name": state.name, "tagged": 0, "taps": 0, "taps_passed": 0, "misses": []})
+    metrics = QAMetrics(round=0, screens=[s["metrics"] for s in screens], cross_screen_failures=[], score=5.0)
+    return qa.Version(0, "<html><body></body></html>", metrics, screens, [], [], list(errors))
+
+
+def shown(kwargs) -> list[str]:
+    """The screens a call's images are of, in order."""
+    captions = [p["text"] for p in kwargs["messages"][0]["content"] if p["type"] == "text" and p["text"].endswith(":")]
+    return list(dict.fromkeys(c.split(" ")[0] for c in captions))
+
+
+def told(kwargs) -> dict:
+    text = kwargs["messages"][0]["content"][-1]["text"]
+    return json.loads(re.search(r"(?:The numbers|What to fix):\n(.*?)\n\n", text, re.S)[1])
+
+
+def fake_critic(calls: list, fail_on=(), pause=0.0):
+    """A critic that fixes each screen it is shown, plus one data-el every group names. Tracks how many run at once."""
+    lock, running = threading.Lock(), [0]
+
+    def call(**kwargs):
+        seen = shown(kwargs)
+        with lock:
+            running[0] += 1
+            calls.append({"seen": seen, "told": told(kwargs), "running": running[0]})
+        time.sleep(pause)
+        with lock:
+            running[0] -= 1
+        if kwargs["schema"] is Edits:
+            return Edits(edits=[]), None
+        if seen[0] in fail_on:
+            raise llm.LLMFailure("refusal", "no")
+        fixes = [Fix(element_id=sid, problem="p", fix=f"group of {seen[0]}") for sid in seen]
+        return Critique(fixes=[*fixes, Fix(element_id="shared", problem="p", fix=f"group of {seen[0]}")],
+                        summary=seen[0]), None
+    return call
+
+
+def criticize(run_dir, app, version):
+    return qa.criticize(ctx_for(run_dir, app), llm.Budget("qa", 12.0), version, [], 1)
+
+
+@pytest.mark.parametrize("twelve", APPS, indirect=True)
+def test_the_critic_sees_12_screens_in_3_groups_of_4_in_order_and_their_fixes_merge_by_data_el(twelve, monkeypatch):
+    app, run_dir, model, ids = twelve
+    page_wide = ContractError(kind="console_error", detail="page-wide", screen=None)
+    on_ten = ContractError(kind="unknown_el", detail="on the tenth screen", screen=ids[9])
+    calls = []
+    monkeypatch.setattr(llm, "call", fake_critic(calls))
+    critique = criticize(run_dir, app, measured_twelve(run_dir, model, [page_wide, on_ten]))
+
+    groups = sorted(calls, key=lambda c: ids.index(c["seen"][0]))
+    assert [c["seen"] for c in groups] == [ids[0:4], ids[4:8], ids[8:12]]
+    assert [[s["screen"] for s in c["told"]["screens"]] for c in groups] == [ids[0:4], ids[4:8], ids[8:12]]
+    assert [[e["detail"] for e in c["told"]["contract_errors"]] for c in groups] == \
+        [["page-wide"], [], ["on the tenth screen"]]
+    assert [f.element_id for f in critique.fixes] == [*ids[0:4], "shared", *ids[4:12]]
+    assert next(f for f in critique.fixes if f.element_id == "shared").fix == f"group of {ids[0]}"
+    assert critique.summary == " ".join([ids[0], ids[4], ids[8]])
+
+
+@pytest.mark.parametrize("twelve", APPS, indirect=True)
+def test_critic_groups_run_in_parallel_up_to_the_limit(twelve, monkeypatch):
+    app, run_dir, model, _ = twelve
+    monkeypatch.setattr(qa, "PARALLEL_CRITICS", 2)
+    calls = []
+    monkeypatch.setattr(llm, "call", fake_critic(calls, pause=0.2))
+    criticize(run_dir, app, measured_twelve(run_dir, model))
+    assert len(calls) == 3 and max(c["running"] for c in calls) == 2
+
+
+@pytest.mark.parametrize("twelve", APPS, indirect=True)
+def test_a_failed_group_is_skipped_and_only_all_failing_stops_the_round(twelve, monkeypatch):
+    app, run_dir, model, ids = twelve
+    version = measured_twelve(run_dir, model)
+    monkeypatch.setattr(llm, "call", fake_critic([], fail_on={ids[4]}))
+    critique = criticize(run_dir, app, version)
+    assert [f.element_id for f in critique.fixes] == [*ids[0:4], "shared", *ids[8:12]]
+    assert "group skipped" in read_trace(run_dir / "trace.jsonl")[-1].note
+    monkeypatch.setattr(llm, "call", fake_critic([], fail_on={ids[0], ids[4], ids[8]}))
+    with pytest.raises(llm.LLMFailure):
+        criticize(run_dir, app, version)
+
+
+@pytest.mark.parametrize("twelve", APPS, indirect=True)
+def test_the_fixer_gets_only_the_screens_the_critique_names(twelve, monkeypatch):
+    app, run_dir, model, ids = twelve
+    with_elements = next(s for s in mock.pick_scope(model) if s.elements)
+    page_wide = ContractError(kind="console_error", detail="page-wide", screen=None)
+    critique = Critique(fixes=[Fix(element_id=ids[10], problem="p", fix="f"),
+                               Fix(element_id=with_elements.elements[0].id, problem="p", fix="f"),
+                               Fix(element_id="not.in.the.model", problem="p", fix="f")], summary="s")
+    calls = []
+    monkeypatch.setattr(llm, "call", fake_critic(calls))
+    qa.fix(ctx_for(run_dir, app), llm.Budget("qa", 12.0), model, measured_twelve(run_dir, model, [page_wide]),
+           critique, 1)
+    named = [sid for sid in ids if sid in {ids[10], with_elements.id}]
+    assert calls[0]["seen"] == named
+    assert [s["screen"] for s in calls[0]["told"]["screens"]] == named
+    assert [e["detail"] for e in calls[0]["told"]["contract_errors"]] == ["page-wide"]
+
+
+@pytest.mark.parametrize("twelve", APPS, indirect=True)
+def test_undrawn_screens_are_reported_and_never_scored_criticized_or_fixed(twelve, monkeypatch):
+    app, run_dir, model, ids = twelve
+    monkeypatch.setattr(llm, "call", fake_builder([]))
+    mock.run(ctx_for(run_dir, app))
+    undrawn = ids[4:8]
+    page = run_dir / "mock" / "index.html"
+    html = page.read_text()
+    for sid in undrawn:
+        html = re.sub(rf'(<section data-screen="{sid}"[^>]*>).*?(</section>)', r"\1<p>screen not drawn</p>\2", html,
+                      flags=re.S)
+    page.write_text(html)
+    errors = [ContractError(kind="undrawn_screen", detail="screen not drawn: refusal", screen=sid) for sid in undrawn]
+    (run_dir / "mock" / "contract_report.json").write_text(
+        ContractReport(passed=False, screens=ids, errors=errors).model_dump_json())
+    calls = []
+    monkeypatch.setattr(llm, "call", fake_critic(calls))
+    qa.run(ctx_for(run_dir, app))
+
+    report = json.loads((run_dir / "qa" / "qa_report.json").read_text())
+    drawn = [sid for sid in ids if sid not in undrawn]
+    assert report["undrawn_screens"] == [{"screen": sid, "reason": "screen not drawn: refusal"} for sid in undrawn]
+    assert [s["state_id"] for s in report["screens"]] == drawn
+    assert calls and all(set(c["seen"]).isdisjoint(undrawn) for c in calls)
+    assert report["status"] == "approved" and not report["contract_errors"]
+    edges = {e.id: e for e in mock.scope_edges(model, mock.pick_scope(model))}
+    for flow in (f for f in model.flows if f.edge_ids and all(i in edges for i in f.edge_ids)):
+        crosses = any({edges[i].from_state, edges[i].to_state} & set(undrawn) for i in flow.edge_ids)
+        status = next(w["status"] for w in report["flows"] if w["flow"] == flow.id)
+        assert status == ("undrawn" if crosses else "passed")
+    assert "didn't draw" in (run_dir / "exhibits" / "04-qa.md").read_text()

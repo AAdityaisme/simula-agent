@@ -206,4 +206,4 @@ def test_an_edge_with_no_element_is_never_tapped_and_a_flow_takes_it_by_navigati
     version = qa.measure(ctx_for(run_dir, app), model, scope, 0, html)
     assert back.id not in [t["edge"] for t in version.taps] and not version.failed_taps()
     assert version.flows == [{"flow": "fback", "name": "There and back", "status": "passed", "problem": None,
-                              "navigated": [back.id]}]
+                              "screen": None, "navigated": [back.id]}]

@@ -8,6 +8,7 @@ import hashlib
 import json
 import re
 import shutil
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 
 from PIL import Image
@@ -15,8 +16,8 @@ from playwright.sync_api import Error as PlaywrightError
 
 from simula import config, llm, qa_metrics, render, runfolder
 from simula.config import ROOT
-from simula.contracts import (SCHEMA_VERSION, ContractError, Critique, Edge, Edit, Edits, ProductModel, QAMetrics,
-                              Rect, ScreenMetrics, State)
+from simula.contracts import (SCHEMA_VERSION, ContractError, ContractReport, Critique, Edge, Edit, Edits, ProductModel,
+                              QAMetrics, Rect, ScreenMetrics, State)
 from simula.runlog import read_trace, run_trace, write_exhibit
 from simula.stages import Ctx, mock
 
@@ -25,6 +26,8 @@ MIN_GAIN = 0.3
 WEIGHTS = {"bounds": 0.5, "nav": 0.3, "ssim": 0.2}
 CLICK_TIMEOUT_MS = 1500
 CRITIC_MAX_TOKENS = 16000
+CRITIC_SCREENS = 4
+PARALLEL_CRITICS = 4
 FIXER_MAX_TOKENS = 64000
 RECORDS = llm.CACHE / "qa"
 RUNTIME = re.compile(r'<style id="simula-runtime">.*?</style>\n?|<script id="simula-runtime-js">.*?</script>\n?', re.S)
@@ -64,7 +67,7 @@ def run(ctx: Ctx) -> None:
     for n in range(1, MAX_ROUNDS + 1):
         try:
             critique = criticize(ctx, budget, best, history, n)
-            edits = fix(ctx, budget, best, critique, n)
+            edits = fix(ctx, budget, model, best, critique, n)
         except (llm.LLMFailure, llm.CapReached) as e:
             stop = f"round {n} stopped before any edit: {e}"
             run_trace(ctx.run_dir, stage="qa", step=f"round{n}", decider="code", outcome="error", note=stop[:300])
@@ -95,7 +98,7 @@ def run(ctx: Ctx) -> None:
     run_trace(ctx.run_dir, stage="qa", step="stop", decider="code", note=stop)
 
     approve(ctx, best)
-    report = qa_report(best, rounds, stop, disagreement)
+    report = qa_report(best, rounds, stop, disagreement, undrawn_screens(ctx))
     write_json(ctx.run_dir / "qa" / "qa_report.json", report)
     write_exhibit(ctx.run_dir, 4, "qa", exhibit(ctx, model, best, rounds, report))
 
@@ -140,12 +143,15 @@ def measure_or_replay(ctx: Ctx, model: ProductModel, scope: list[State], n: int,
 
 
 def measure(ctx: Ctx, model: ProductModel, scope: list[State], n: int, html: str) -> Version:
-    """Renders one version in its own round folder and measures everything the score and the critic need."""
+    """Renders one version in its own round folder and measures everything the score and the critic need, on the
+    screens stage 3 drew: a placeholder for an undrawn screen is reported, never scored or fixed."""
     round_dir = ctx.run_dir / "qa" / f"round{n}"
     round_dir.mkdir(parents=True, exist_ok=True)
     (round_dir / "index.html").write_text(html)
     shutil.copytree(ctx.run_dir / "mock" / "assets", round_dir / "assets", dirs_exist_ok=True)
-    screens = [s.id for s in scope]
+    undrawn = undrawn_screens(ctx)
+    drawn = [s for s in scope if s.id not in undrawn]
+    screens = [s.id for s in drawn]
     with render.open_mock(round_dir) as (page, log):
         errors = [e.model_copy(update={"detail": e.detail.replace(round_dir.resolve().as_uri() + "/", "")})
                   for e in render.check_contract(page, log, round_dir, model, screens)]
@@ -154,9 +160,9 @@ def measure(ctx: Ctx, model: ProductModel, scope: list[State], n: int, html: str
         for sid in screens:
             page.evaluate("id => window.simula.go(id)", sid)
             dom[sid] = qa_metrics.screen_dom(page, sid)
-        taps = check_taps(page, model, scope)
-        flows = walk_flows(page, model, scope)
-    details = [measure_screen(ctx, model, s, round_dir, *dom[s.id], taps) for s in scope]
+        taps = check_taps(page, model, drawn)
+        flows = walk_flows(page, model, scope, set(undrawn))
+    details = [measure_screen(ctx, model, s, round_dir, *dom[s.id], taps) for s in drawn]
     metrics = QAMetrics(round=n, screens=[d["metrics"] for d in details], cross_screen_failures=[],
                         score=sum(d["metrics"].score for d in details) / len(details))
     write_json(round_dir / "metrics.json", json.loads(metrics.model_dump_json()))
@@ -206,6 +212,13 @@ def art_origins(ctx: Ctx) -> dict:
     return {src: Rect(**r) for src, r in data.get("art", data).items() if src.startswith("assets/")}
 
 
+def undrawn_screens(ctx: Ctx) -> dict[str, str]:
+    """Screens stage 3 left as placeholders (a batch that failed), with why, from mock/contract_report.json."""
+    path = ctx.run_dir / "mock" / "contract_report.json"
+    report = ContractReport.model_validate_json(path.read_text()) if path.exists() else None
+    return {e.screen: e.detail for e in report.errors if e.kind == "undrawn_screen"} if report else {}
+
+
 def screen_score(bounds: float | None, nav: float | None, ssim: float | None) -> float:
     """10 × (0.5 bounds + 0.3 nav + 0.2 SSIM). A term with nothing to measure (no tagged element, no tap, too little
     unmasked screen) is dropped and the others are reweighted."""
@@ -251,23 +264,28 @@ def check_taps(page, model: ProductModel, scope: list[State]) -> list[dict]:
     return checks
 
 
-def walk_flows(page, model: ProductModel, scope: list[State]) -> list[dict]:
+def walk_flows(page, model: ProductModel, scope: list[State], undrawn: set[str] = frozenset()) -> list[dict]:
     """Walks each core flow from its first screen by tapping, never jumping over a hop that has an element to tap. A
     hop with none (BACK, a swipe) is taken by navigation, the way the system would, and listed as navigated. A flow
-    that leaves the mock's scope can't be walked and is reported as such."""
+    that leaves the mock's scope can't be walked, nor one through a screen stage 3 didn't draw; each is reported as
+    such. A failed walk names the screen of the hop that broke."""
     edges = {e.id: e for e in mock.scope_edges(model, scope)}
     walks = []
     for flow in model.flows:
-        walk = {"flow": flow.id, "name": flow.name, "status": "out_of_scope", "problem": None,
+        walk = {"flow": flow.id, "name": flow.name, "status": "out_of_scope", "problem": None, "screen": None,
                 "navigated": [i for i in flow.edge_ids if i in edges and not edges[i].element_id]}
-        if flow.edge_ids and all(i in edges for i in flow.edge_ids):
-            walk["problem"] = walk_one(page, [edges[i] for i in flow.edge_ids])
-            walk["status"] = "failed" if walk["problem"] else "passed"
+        hops = [edges[i] for i in flow.edge_ids if i in edges]
+        if flow.edge_ids and len(hops) == len(flow.edge_ids):
+            if any({e.from_state, e.to_state} & undrawn for e in hops):
+                walk["status"] = "undrawn"
+            else:
+                walk["screen"], walk["problem"] = walk_one(page, hops) or (None, None)
+                walk["status"] = "failed" if walk["problem"] else "passed"
         walks.append(walk)
     return walks
 
 
-def walk_one(page, edges: list[Edge]) -> str | None:
+def walk_one(page, edges: list[Edge]) -> tuple[str, str] | None:
     page.evaluate("id => window.simula.go(id)", edges[0].from_state)
     for edge in edges:
         if not edge.element_id:
@@ -275,44 +293,91 @@ def walk_one(page, edges: list[Edge]) -> str | None:
             continue
         problem = tap(page, edge)
         if problem:
-            return f"{edge.id}: {problem}"
+            return edge.from_state, f"{edge.id}: {problem}"
     return None
 
 
 # ---------- critic and fixer ----------
 
 def criticize(ctx: Ctx, budget: llm.Budget, version: Version, history: list[dict], n: int) -> Critique:
+    """One critic call per group of at most CRITIC_SCREENS screens, in the order QA measured them (the mock's order),
+    at most PARALLEL_CRITICS at once; their fixes merge by data-el. A group whose call fails is skipped, unless every
+    group fails."""
+    screens = version.screens
+    groups = [screens[i:i + CRITIC_SCREENS] for i in range(0, len(screens), CRITIC_SCREENS)] or [[]]
+
+    def one(k: int, group: list[dict]):
+        try:
+            return criticize_group(ctx, budget, version, history, n, k, group)
+        except llm.LLMFailure as e:
+            return e
+
+    # ponytail: llm.Budget doesn't hold a call's worst case while it is in flight, so parallel groups can pass the
+    # cap by what they spend together (same as the mock's batches); PR 5's Budget hold fixes it.
+    with ThreadPoolExecutor(PARALLEL_CRITICS) as pool:
+        results = list(pool.map(one, range(1, len(groups) + 1), groups))
+    critiques = [r for r in results if isinstance(r, Critique)]
+    if not critiques:
+        raise results[0]
+    for k, r in enumerate(results, 1):
+        if not isinstance(r, Critique):
+            run_trace(ctx.run_dir, stage="qa", step=f"critic r{n} g{k}", decider="code", outcome="error",
+                      note=f"group skipped, the other groups' fixes are used: {r}"[:300])
+    return merge_critiques(critiques)
+
+
+def criticize_group(ctx: Ctx, budget: llm.Budget, version: Version, history: list[dict], n: int, k: int,
+                    group: list[dict]) -> Critique:
+    """The critic on one group. Page-wide contract errors (no screen) go to the first group only."""
     role = config.roles(ctx.profile)["qa_critic"]
     round_dir = ctx.run_dir / "qa" / f"round{version.round}"
     content = []
-    for s in version.screens:
+    for s in group:
         sid = s["metrics"].state_id
         for kind, what in (("real", "the real screen"), ("mock", "the mock"), ("heatmap", "the heatmap")):
             content += [{"type": "text", "text": f"{sid} ({s['name']}), {what}:"},
                         {"type": "image", "png": (round_dir / kind / f"{sid}.png").read_bytes()}]
-    content.append({"type": "text", "text": "The numbers:\n" + json.dumps(numbers(version), separators=(",", ":"))
+    ids = {s["metrics"].state_id for s in group} | ({None} if k == 1 else set())
+    content.append({"type": "text", "text": "The numbers:\n" + json.dumps(numbers(version, ids), separators=(",", ":"))
                     + "\n\nEarlier rounds:\n" + json.dumps(history, separators=(",", ":"))})
-    return ask(ctx, budget, version, step=f"critic r{n}", model=role["model"], effort=role.get("effort"),
+    return ask(ctx, budget, version, step=f"critic r{n} g{k}", model=role["model"], effort=role.get("effort"),
                system=prompt("critic"), content=content, max_tokens=role.get("max_tokens", CRITIC_MAX_TOKENS),
                schema=Critique)
 
 
-def fix(ctx: Ctx, budget: llm.Budget, version: Version, critique: Critique, n: int) -> Edits:
+def merge_critiques(critiques: list[Critique]) -> Critique:
+    """The groups' fix lists as one, in group order; a data-el two groups both name keeps the first group's fix."""
+    fixes = {}
+    for critique in critiques:
+        for f in critique.fixes:
+            fixes.setdefault(f.element_id, f)
+    return Critique(fixes=list(fixes.values()), summary=" ".join(c.summary for c in critiques))
+
+
+def fix(ctx: Ctx, budget: llm.Budget, model: ProductModel, version: Version, critique: Critique, n: int) -> Edits:
+    """The fixer gets the whole page, but only the screens the critique names (and their numbers)."""
     role = config.roles(ctx.profile)["qa_fixer"]
     effort = role.get("effort_last_round", role.get("effort")) if n == MAX_ROUNDS else role.get("effort")
     round_dir = ctx.run_dir / "qa" / f"round{version.round}"
+    named = named_screens(model, critique)
     content = []
-    for s in version.screens:
+    for s in (s for s in version.screens if s["metrics"].state_id in named):
         sid = s["metrics"].state_id
         content += [{"type": "text", "text": f"{sid} ({s['name']}), the real screen; 1 image px = 1 CSS px of its section:"},
                     {"type": "image", "png": (round_dir / "real" / f"{sid}.png").read_bytes()}]
-    task = {"fixes": [f.model_dump() for f in critique.fixes], **numbers(version)}
+    task = {"fixes": [f.model_dump() for f in critique.fixes], **numbers(version, named | {None})}
     content.append({"type": "text", "text": "What to fix:\n" + json.dumps(task, separators=(",", ":"))
                     + "\n\nThe page, without the navigation runtime (code adds it back after your edits):\n```html\n"
                     + without_runtime(version.html) + "\n```"})
     return ask(ctx, budget, version, step=f"fixer r{n}", model=role["model"], effort=effort,
                system=prompt("fixer") + "\n\n" + mock.contract_text(), content=content,
                max_tokens=role.get("max_tokens", FIXER_MAX_TOKENS), schema=Edits)
+
+
+def named_screens(model: ProductModel, critique: Critique) -> set[str]:
+    """The screens a critique's fixes are on: each fix names a data-el id or a screen id."""
+    owner = {e.id: s.id for s in model.states for e in s.elements} | {s.id: s.id for s in model.states}
+    return {owner[f.element_id] for f in critique.fixes if f.element_id in owner}
 
 
 def ask(ctx: Ctx, budget: llm.Budget, version: Version, *, step: str, model: str, effort: str | None, system: str,
@@ -333,15 +398,19 @@ def ask(ctx: Ctx, budget: llm.Budget, version: Version, *, step: str, model: str
     return answer
 
 
-def numbers(version: Version) -> dict:
-    """What code measured, in the form the critic and the fixer read."""
+def numbers(version: Version, ids: set | None = None) -> dict:
+    """What code measured, in the form the critic and the fixer read: for the screens in ids (None in ids takes the
+    page-wide contract errors), or everything."""
+    def on(screen) -> bool:
+        return ids is None or screen in ids
     screens = [{"screen": s["metrics"].state_id, "name": s["name"], "score": round(s["metrics"].score, 2),
                 "ssim": None if s["metrics"].ssim_masked is None else round(s["metrics"].ssim_masked, 3),
                 "data_el_within_4dp": f"{s['tagged'] - len(s['misses'])}/{s['tagged']}",
-                "data_el_misses": s["misses"]} for s in version.screens]
-    return {"score": round(version.score, 2), "screens": screens, "failed_taps": version.failed_taps(),
-            "failed_flows": version.failed_flows(),
-            "contract_errors": [e.model_dump() for e in version.contract_errors]}
+                "data_el_misses": s["misses"]} for s in version.screens if on(s["metrics"].state_id)]
+    return {"score": round(version.score, 2), "screens": screens,
+            "failed_taps": [t for t in version.failed_taps() if on(t["screen"])],
+            "failed_flows": [f for f in version.failed_flows() if on(f["screen"])],
+            "contract_errors": [e.model_dump() for e in version.contract_errors if on(e.screen)]}
 
 
 def prompt(name: str) -> str:
@@ -378,13 +447,13 @@ def apply_edits(html: str, edits: list[Edit]) -> tuple[str, list[dict]]:
 # ---------- replay records ----------
 
 def inputs_digest(ctx: Ctx) -> str:
-    """What QA reads besides the page: the model (not the run it was written in), and the real screens, assets and
-    art it draws from."""
+    """What QA reads besides the page: the model (not the run it was written in), the real screens, assets and art
+    it draws from, and which screens stage 3 left undrawn."""
     model = ProductModel.model_validate_json((ctx.run_dir / "model" / "product_model.json").read_text())
     files = [ctx.run_dir / "model" / s.canonical_png for s in mock.pick_scope(model)]
     files += [ctx.run_dir / "mock" / "assets", ctx.run_dir / "mock" / "art.json"]
     return digest([model.model_dump(mode="json", exclude={"run_id", "provenance"}),
-                   [h.model_dump() for h in runfolder.hashes(files, ctx.run_dir)]])
+                   [h.model_dump() for h in runfolder.hashes(files, ctx.run_dir)], undrawn_screens(ctx)])
 
 
 def digest(data) -> str:
@@ -430,12 +499,14 @@ def summary(version: Version, kept: bool, edits: list[dict] = ()) -> dict:
             "edits_applied": sum(e["applied"] for e in edits), "edits_rejected": sum(not e["applied"] for e in edits)}
 
 
-def qa_report(best: Version, rounds: list[dict], stop: str, disagreement: dict | None) -> dict:
+def qa_report(best: Version, rounds: list[dict], stop: str, disagreement: dict | None,
+              undrawn: dict[str, str]) -> dict:
     """qa_incomplete when the approved version still fails navigation; flows still run on it, with that label."""
     incomplete = bool(best.failed_taps() or best.failed_flows())
     return {"status": "qa_incomplete" if incomplete else "approved", "approved_round": best.round,
             "score": round(best.score, 3), "stop_reason": stop, "rounds": rounds,
             "keep_rule_disagreement": disagreement,
+            "undrawn_screens": [{"screen": sid, "reason": why} for sid, why in undrawn.items()],
             "screens": [{**json.loads(s["metrics"].model_dump_json()), "name": s["name"], "tagged": s["tagged"],
                          "taps": s["taps"], "data_el_misses": s["misses"]} for s in best.screens],
             "failed_taps": best.failed_taps(), "flows": best.flows,
@@ -469,6 +540,9 @@ def exhibit(ctx: Ctx, model: ProductModel, best: Version, rounds: list[dict], re
     lines += [f"| {f['flow']} | {f['name']} | {f['status'].replace('_', ' ')}{': ' + f['problem'] if f['problem'] else ''}"
               f"{' (navigated, no element to tap: ' + ', '.join(f['navigated']) + ')' if f['navigated'] else ''} |"
               for f in best.flows]
+    if report["undrawn_screens"]:
+        lines += ["", "Screens stage 3 didn't draw (placeholders: not scored, not sent to the critic or the fixer):",
+                  *[f"- {u['screen']}: {u['reason']}" for u in report["undrawn_screens"]]]
     if best.failed_taps():
         lines += ["", "Taps that still fail:", *[f"- `{t['edge']}`: {t['problem']}" for t in best.failed_taps()]]
     if best.contract_errors:
