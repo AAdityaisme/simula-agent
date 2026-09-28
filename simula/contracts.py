@@ -299,6 +299,8 @@ class CandidateDraft(Strict):
     advertiser_category: str
     character_use: str
     flow_steps: list[FlowStep]
+    after_reward: str = Field(default="", description="What the user sees when the reward runs out, and why "
+                              "that moves them toward paying, returning, or watching again.")
     rationale: str
 
 

@@ -107,6 +107,7 @@ runs/<app>/latest -> <run_id>
 - Fixed named fields wherever the keys are known: the judge's 5 gates and 6 judgment checks are properties, not a map.
 - No `minLength`, `maximum`, or `pattern` (the API drops them). Code checks those after parsing.
 - `CostInputs.currency_amount`: the USD price the app charges for exactly what the reward grants; 0 when no price was observed.
+- `CandidateDraft.after_reward` (added in PR 5, Aadi-approved): one plain sentence on what the user sees when the reward runs out and why that moves them toward paying, returning, or watching again. It defaults to `""` so older files parse; propose drops a candidate that leaves it empty.
 
 ## 6. Who writes which field
 
