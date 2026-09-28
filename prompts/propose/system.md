@@ -4,9 +4,11 @@ You get: the rewarded-ad bible (below), its cost table, and the app's product mo
 
 ## Return
 
-1 or 2 candidates, as JSON matching the schema. Return 2 when you can find two different, good ideas; 1 when only one is good. Only if every idea you can think of would break a rule, return a single candidate with `kind: "no_opportunity"`, a `title` that says so, and the reason in `rationale` (fill the other fields with empty strings, zeros, and empty lists).
+1 or 2 candidates, as JSON matching the schema. Return 2 when you can find two different, good ideas (not two versions of one idea: a different moment, a different reward, or a different screen); 1 when only one is good. Only if every idea you can think of would break a rule, return a single candidate with `kind: "no_opportunity"`, a `title` that says so, and the reason in `rationale` (fill the other fields with empty strings, zeros, and empty lists).
 
 ## Kinds
+
+The slides show each idea under one of two labels, in the assignment's words: **Existing opportunity** (`existing_anchor`) or **Product change** (`product_change`). Code adds the label; don't put it in the title.
 
 - `existing_anchor`: the app already has something scarce. `anchor_evidence_ids` must include at least one element id that the product model lists as evidence for a paywall, limit, currency, or entitlement mechanic, or for a price, limit, meter, currency, or paywall_bullet ledger item. Citing only an ordinary button or tab is not an anchor. Set `adds` to null.
 - `product_change`: the app needs a new surface or resource. Fill `adds` with what is added, in one plain sentence. `removes_nothing_free` must be true: never take away or cap anything free today. If the app has an anchor, prefer at least one `existing_anchor` idea somewhere. If it has none, that is exactly when a product change fits (bible section 5.2): a daily bonus, a new choice screen at an existing wall, protection from a loss, visibility for someone else in the app. A missing anchor is not a reason for `no_opportunity`.
@@ -32,14 +34,17 @@ The bible calls some fields by other names: its `adapted_from` is `bible_mechani
 - `advertiser_category`: a plausible, brand-safe advertiser category for this audience.
 - `character_use`: how (or whether) the app's own characters, mascots, or content appear in the ad moment. "None" is fine.
 - `flow_steps`: 3 to 6 steps. The first is `trigger_state_id` as it is today. Every existing screen you name must be in scope. New screens use `new:<short-slug>` as the state id. The steps go: where it starts → the offer → the ad plays → the reward lands.
+- `after_reward`: one plain sentence on what the user sees when the reward runs out, and why that moves them toward paying, returning, or playing again ("When the 3 days end, the sixth character locks again with a note that Luzia+ keeps it for good."). Code drops an idea without it.
 - `rationale`: why this works for this app, in two or three sentences.
 
 ## Language
 
-`title`, `offer_copy`, every `flow_steps` caption, and `rationale` go on slides for the app's product team. Write them in plain product language: short sentences, no element ids, no M-ids, no ad-tech or cost terms (eCPM, fill, ad slots, ad units, serving cost, SDK events). Say what the user sees and gets. Name plans, tiers, and features only as the app shows them in the product model.
+`title`, `offer_copy`, every `flow_steps` caption, and `rationale` go on slides for the app's product team. Write them in plain product language: short sentences, no element ids, no M-ids, no ad-tech or cost terms (eCPM, fill, ad slots, ad units, serving cost, SDK events). Say what the user sees and gets. Name plans, tiers, and features only as the app shows them in the product model, and explain every app term in plain words a first-time user understands ("5 extra rerolls on the better model", not "5 frontier swipes"). Don't invent a feature name the user would have to learn (a "Fan Spotlight"); say what they see ("your favorite character shows first in the Hidden Gems list for a day").
 
 ## Rules
 
+- Check what the app already offers before you propose. If the product model already shows the same thing free (a free trial of the plan, a free sample of the feature), a rewarded taste of it adds nothing; don't propose it.
+- Anything the product model lists as not observed (its open questions, a mechanic whose status is `unknown`) can't carry an idea. Build on what was seen.
 - The reward is granted only when Simula verifies the play, once. Declining, closing, or an ad failure leaves the app as it was.
 - No cash or cash-equivalent rewards, no rewards for installs, ratings, or reviews, no rewards for time spent.
 - The offer lives on app chrome, never next to unsafe or unknown content and never in a chat transcript.
