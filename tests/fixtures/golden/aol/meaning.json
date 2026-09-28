@@ -4,25 +4,32 @@
  "states": [
   {
    "id": "s01",
-   "tree": "aol-a",
+   "tree": "aol-home",
    "kind": "screen",
    "name": "Home · Top Stories",
    "in_mock_scope": true,
-   "purpose": "Root. News feed with category pills, weather bar, story cards, display ad slots, bottom bar Inbox / Home.",
-   "labels": {
-    "@e102": "Inbox tab"
-   },
+   "purpose": "Root. News feed with category pills, weather bar, story cards, a native ad slot below the first story, bottom bar Inbox / Home.",
+   "labels": {},
    "roles": {
-    "@e102": "tab"
-   }
+    "@e102": "tab",
+    "@e103": "tab"
+   },
+   "dynamic_regions": [
+    {
+     "x": 0,
+     "y": 1508,
+     "w": 1080,
+     "h": 320
+    }
+   ]
   },
   {
    "id": "s02",
-   "screen": "04-article",
    "kind": "screen",
    "name": "Article",
    "in_mock_scope": true,
-   "purpose": "Article page: byline, hero image, body text, share and comment bar. Screenshot only."
+   "purpose": "In-app article reader: byline, hero image, body text, share and comment bar.",
+   "tree": "aol-article"
   },
   {
    "id": "s03",
@@ -35,11 +42,11 @@
   },
   {
    "id": "s04",
-   "screen": "05-tab-entertainment",
    "kind": "screen",
    "name": "Entertainment",
    "in_mock_scope": true,
-   "purpose": "Entertainment category feed. Screenshot only."
+   "purpose": "Entertainment category feed.",
+   "tree": "aol-tab-entertainment"
   },
   {
    "id": "s05",
@@ -48,6 +55,14 @@
    "name": "Article with in-article ad",
    "in_mock_scope": true,
    "purpose": "An article with a native ad inside the body. Screenshot only."
+  },
+  {
+   "id": "s06",
+   "tree": "aol-home-scrolled",
+   "kind": "screen",
+   "name": "Home · Top Stories, scrolled",
+   "in_mock_scope": true,
+   "purpose": "The home feed scrolled down: the toolbar collapses to the pill bar and the native ad card sits between stories."
   }
  ],
  "edges": [
@@ -83,11 +98,15 @@
    "evidence": [
     [
      "s01",
-     "AD"
+     "@e74"
+    ],
+    [
+     "s06",
+     "@e70"
     ]
    ],
    "status": "observed",
-   "summary": "Display ad slot between feed stories, labeled AD; often renders empty on the emulator."
+   "summary": "Existing native ad placement in the home feed, below the first story: a sponsored card labeled Ad (Taboola in the 09-28 capture). Fill varies: the same slot was empty (just an AD label) 7 minutes later."
   },
   {
    "id": "m02",
@@ -106,7 +125,7 @@
  "open_questions": [
   "No paywall, limit, or currency was seen on the home feed.",
   "The Inbox needs a sign-in (blocked).",
-  "Which ad formats fill on a real device is unknown; the emulator often shows empty slots."
+  "Which network fills the feed ad slot varies by session (Taboola on 09-28, direct cards on 09-27), and it is sometimes empty."
  ],
  "checklist_answered": [
   "root",
