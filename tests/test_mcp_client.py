@@ -69,3 +69,27 @@ def test_a_failed_dump_is_read_again(tmp_path, monkeypatch):
     assert phone.elements()[1][0]["ref"] == "@e1" and len(phone.list_seconds) == 3
     with pytest.raises(mcp.McpReplyError):
         mcp.Phone(FlakyServer(3), "com.example.app", tmp_path).elements()
+
+
+class LosesTheDevice(FlakyServer):
+    """mobilecli's 'Device not found' answer, a set number of times, then a real reply."""
+
+    def __init__(self, losses: int):
+        super().__init__(0)
+        self.losses = losses
+
+    def call(self, tool, timeout, **args):
+        if tool == "mobile_get_foreground_app" and self.losses:
+            self.losses -= 1
+            return {"content": [{"type": "text", "text": 'Device "simula" not found. Use the '
+                                                         'mobile_list_available_devices tool.'}], "isError": True}
+        if tool == "mobile_get_foreground_app":
+            return {"content": [{"type": "text", "text": "Foreground app: Janitor (com.janitor.ai)"}]}
+        return super().call(tool, timeout, **args)
+
+
+def test_a_lost_device_is_asked_again(tmp_path, monkeypatch):
+    monkeypatch.setattr(mcp, "LIST_RETRY_PAUSE_S", 0)
+    assert mcp.Phone(LosesTheDevice(2), "com.janitor.ai", tmp_path).foreground() == "com.janitor.ai"
+    with pytest.raises(mcp.McpReplyError):
+        mcp.Phone(LosesTheDevice(3), "com.janitor.ai", tmp_path).foreground()

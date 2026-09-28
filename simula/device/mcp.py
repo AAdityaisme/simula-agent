@@ -28,6 +28,7 @@ STOP_TIMEOUT_S = 15.0
 LIST_ATTEMPTS = 3
 LIST_RETRY_PAUSE_S = 1.5
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
+DEVICE_LOST = re.compile(r'Device ".*" not found')
 
 
 class McpTimeout(Exception):
@@ -167,6 +168,15 @@ class Phone:
         raise SystemExit(f"no Android device {' / '.join(sorted(names))} online: start the emulator first")
 
     def call(self, tool: str, timeout: float = ACTION_TIMEOUT_S, retry: bool = False, **args) -> dict:
+        """One tool call. A 'Device not found' answer (mobilecli loses the device now and then while the emulator
+        is busy) means nothing ran, so it is asked again, even for an action."""
+        for attempt in range(1, LIST_ATTEMPTS + 1):
+            reply = self.call_once(tool, timeout, retry, **args)
+            if not (reply.get("isError") and DEVICE_LOST.search(reply_text(reply))) or attempt == LIST_ATTEMPTS:
+                return reply
+            time.sleep(2 * LIST_RETRY_PAUSE_S)
+
+    def call_once(self, tool: str, timeout: float, retry: bool, **args) -> dict:
         try:
             return self.server.call(tool, timeout, device=self.device, **args)
         except McpTimeout:
