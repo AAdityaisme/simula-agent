@@ -8,7 +8,7 @@ from dataclasses import replace
 import pytest
 from PIL import Image
 
-from simula import llm, render
+from simula import config, llm, render
 from simula.contracts import ContractReport, Critique, Edit, Edits, Fix, ProductModel, QAMetrics
 from simula.runlog import read_trace
 from simula.stages import mock, qa
@@ -94,6 +94,16 @@ def test_the_fixer_runs_high_then_xhigh_in_round_3_and_the_critic_gets_the_histo
     critics = [c for c in calls if c["schema"] is Critique]
     history = critics[1]["messages"][0]["content"][-1]["text"]
     assert '"round":1,"score_before":5.0,"score_after":6.0,"kept":true' in history
+
+
+@pytest.mark.parametrize("profile", ["dev", "real"])
+def test_the_fixer_has_room_to_think_on_a_whole_page_and_streams(scripted, profile):
+    _, calls, play = scripted
+    play([5.0, 6.0, 7.0, 8.0], profile=profile)
+    fixers = [c for c in calls if c["schema"] is Edits]
+    assert fixers and all(c["max_tokens"] == 64000 for c in fixers)
+    assert all(c["max_tokens"] > config.models()[c["model"]]["stream_above"] for c in fixers)
+    assert all(c["max_tokens"] == 16000 for c in calls if c["schema"] is Critique)
 
 
 def test_rejected_edits_are_logged_and_reach_the_next_critic(scripted):

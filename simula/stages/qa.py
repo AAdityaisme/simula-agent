@@ -24,8 +24,8 @@ MAX_ROUNDS = 3
 MIN_GAIN = 0.3
 WEIGHTS = {"bounds": 0.5, "nav": 0.3, "ssim": 0.2}
 CLICK_TIMEOUT_MS = 1500
-CRITIC_MAX_TOKENS = 8000
-FIXER_MAX_TOKENS = 32000
+CRITIC_MAX_TOKENS = 16000
+FIXER_MAX_TOKENS = 64000
 RECORDS = llm.CACHE / "qa"
 RUNTIME = re.compile(r'<style id="simula-runtime">.*?</style>\n?|<script id="simula-runtime-js">.*?</script>\n?', re.S)
 
