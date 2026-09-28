@@ -22,7 +22,8 @@ def no_device(request, monkeypatch):
     def refuse(*args, **kwargs):
         raise NotImplementedError("PR 1: offline tests never start mobile-mcp")
     monkeypatch.setattr(explore, "Server", refuse)
-    monkeypatch.setattr(explore, "emulator_lock", lambda **kwargs: contextlib.nullcontext())
+    monkeypatch.setattr(explore, "emulator_lock", lambda *args, **kwargs: contextlib.nullcontext())
+    monkeypatch.setattr(explore, "resolve_serial", lambda flag: flag or "offline-test")
 
 
 @pytest.fixture

@@ -14,7 +14,7 @@ from simula import config, decide, llm, runlog
 from simula.cli import mobile_mcp_version, package_version
 from simula.config import ROOT
 
-LOCK = Path("/tmp/simula-emu.lock")
+LOCK_DIR = Path("/tmp")
 EXPECTED = {"mobile-mcp": "1.0.5", "mcp": "2.2.0"}
 results: list[tuple[str, bool, str]] = []
 
@@ -31,21 +31,40 @@ def adb() -> str | None:
     return str(path) if path.exists() else shutil.which("adb")
 
 
+def online(tool: str) -> list[str]:
+    out = subprocess.run([tool, "devices"], capture_output=True, text=True, timeout=20).stdout
+    return [line.split()[0] for line in out.splitlines()[1:] if line.endswith("\tdevice")]
+
+
+def resolve_serial(flag: str | None) -> str:
+    """--device, else ANDROID_SERIAL, else the only device adb lists."""
+    if flag or os.environ.get("ANDROID_SERIAL"):
+        return flag or os.environ["ANDROID_SERIAL"]
+    tool = adb()
+    devices = online(tool) if tool else []
+    if len(devices) != 1:
+        raise SystemExit(f"{len(devices)} devices online ({', '.join(devices) or 'none'}): "
+                         "start one, or pick one with --device SERIAL")
+    return devices[0]
+
+
 @contextmanager
-def emulator_lock(wait_s: int = 120):
+def emulator_lock(serial: str, wait_s: int = 120):
+    """One lock per device (a mkdir, so it is atomic), so two explores can run on two emulators."""
+    lock = LOCK_DIR / f"simula-emu-{serial}.lock"
     deadline = time.monotonic() + wait_s
     while True:
         try:
-            LOCK.mkdir()
+            lock.mkdir()
             break
         except FileExistsError:
             if time.monotonic() > deadline:
-                raise TimeoutError(f"{LOCK} held by another process for {wait_s}s")
+                raise TimeoutError(f"{lock} held by another process for {wait_s}s")
             time.sleep(5)
     try:
         yield
     finally:
-        LOCK.rmdir()
+        lock.rmdir()
 
 
 def check_local() -> None:
@@ -83,14 +102,13 @@ def check_emulator() -> None:
     tool = adb()
     if not check("adb found", tool is not None, tool or "set ANDROID_HOME or `source setup/env.sh`"):
         return
+    devices = online(tool)
+    emulators = [serial for serial in devices if serial.startswith("emulator-")]
+    if not check("emulator online", bool(emulators), ", ".join(devices) or "no device"):
+        return
+    serial = os.environ.get("ANDROID_SERIAL") or emulators[0]
     try:
-        with emulator_lock():
-            devices = subprocess.run([tool, "devices"], capture_output=True, text=True, timeout=20).stdout
-            online = [line.split()[0] for line in devices.splitlines()[1:] if line.endswith("\tdevice")]
-            emulators = [serial for serial in online if serial.startswith("emulator-")]
-            if not check("emulator online", bool(emulators), ", ".join(online) or "no device"):
-                return
-            serial = emulators[0]
+        with emulator_lock(serial):
             for app in sorted(p.stem for p in (config.CONFIG / "apps").glob("*.toml")):
                 package = config.app_config(app)["package"]
                 out = subprocess.run([tool, "-s", serial, "shell", "dumpsys", "package", package],

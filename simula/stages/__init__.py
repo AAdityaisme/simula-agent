@@ -44,4 +44,5 @@ class Ctx:
     allow_account_create: bool = False
     no_send: bool = True
     probe: bool = False
+    device: str | None = None
 

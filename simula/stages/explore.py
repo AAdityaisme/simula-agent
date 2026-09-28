@@ -26,7 +26,7 @@ from simula.contracts import (ActionLine, Coverage, Device, ExploreFile, HardScr
                               Rect, StateFile, VisionElement)
 from simula.device import observe as ob
 from simula.device.mcp import McpReplyError, McpTimeout, Phone, Server
-from simula.doctor import adb, emulator_lock
+from simula.doctor import adb, emulator_lock, resolve_serial
 from simula.runlog import needs_human, now, run_trace, update_manifest, write_exhibit
 from simula.stages import Ctx
 
@@ -159,6 +159,7 @@ class Explorer:
     def __init__(self, ctx: Ctx, phone, out: Path, clock=time.monotonic, sleep=time.sleep, goal: str | None = None):
         """goal: an optional sentence that replaces the ranker's question, for a later goal-directed pass."""
         self.ctx, self.phone, self.out, self.goal, self.run_dir = ctx, phone, out, goal, ctx.run_dir
+        self.serial = ctx.device or phone.device
         self.clock, self.sleep = clock, sleep
         self.package = ctx.app["package"]
         self.trace_path = ctx.run_dir / "trace.jsonl"
@@ -229,7 +230,7 @@ class Explorer:
     def measure_device(self) -> None:
         w, h = self.phone.screen_size()
         _, elements = self.phone.elements()
-        density = adb_value(self.phone.device, ["wm", "density"], "density:")
+        density = adb_value(self.serial, ["wm", "density"], "density:")
         self.device = ob.device_from(elements, w, h, int(density) if density and density.isdigit() else 420)
 
     # ---------- recording ----------
@@ -391,7 +392,7 @@ class Explorer:
             return "back"
         if to.kind in ("modal", "sheet") and to is not s:
             return "modal"
-        if to is self.root and s is not self.root:
+        if to is self.root and s is not self.root and move.action == "tap":
             return "replace"
         return "push"
 
@@ -1074,18 +1075,19 @@ def mean_color(image: Image.Image, r: Rect) -> np.ndarray:
     return np.asarray(crop, dtype=float).reshape(-1, 3).mean(axis=0)
 
 
-def adb_value(device: str, args: list[str], marker: str) -> str | None:
-    """A read-only adb fact (density, app version). mobile-mcp has no call for these."""
+def adb_shell(serial: str, args: list[str]) -> str | None:
+    """A read-only adb fact (density, app version, AVD name). mobile-mcp has no call for these."""
     tool = adb()
     if not tool:
         return None
-    for serial in ([device], []):
-        out = subprocess.run([tool, *(["-s", *serial] if serial else []), "shell", *args],
-                             capture_output=True, text=True, timeout=30)
-        values = [line.split(marker, 1)[1].strip() for line in out.stdout.splitlines() if marker in line]
-        if out.returncode == 0 and values:
-            return values[-1]
-    return None
+    out = subprocess.run([tool, "-s", serial, "shell", *args], capture_output=True, text=True, timeout=30)
+    return out.stdout.strip() if out.returncode == 0 else None
+
+
+def adb_value(serial: str, args: list[str], marker: str) -> str | None:
+    lines = (adb_shell(serial, args) or "").splitlines()
+    values = [line.split(marker, 1)[1].strip() for line in lines if marker in line]
+    return values[-1] if values else None
 
 
 def exhibit(ex: Explorer, app_version: str | None) -> str:
@@ -1094,6 +1096,7 @@ def exhibit(ex: Explorer, app_version: str | None) -> str:
     fast = sum(t < 2.0 for t in seconds)
     kinds = Counter(s.kind for s in ex.states)
     lines = [f"# Explore: {ex.ctx.app['name']} ({ex.package} {app_version or 'version unknown'})", "",
+             f"- Device: `{ex.serial}` (mobile-mcp `{ex.phone.device}`)",
              f"- Budget `{ex.ctx.budget}`: {ex.actions} actions, stop: **{ex.stop_reason}**",
              f"- States: {len(ex.states)} ({', '.join(f'{n} {k}' for k, n in sorted(kinds.items()))})",
              f"- Bottom tabs: {len(ex.tabs)} found, {sum(bool(ex.tab_to.get(t.key)) for t in ex.tabs)} visited",
@@ -1136,11 +1139,14 @@ def run(ctx: Ctx) -> None:
     out = ctx.run_dir / "explore"
     shutil.rmtree(out, ignore_errors=True)
     out.mkdir(parents=True)
+    serial = resolve_serial(ctx.device)
     signal.signal(signal.SIGTERM, lambda *_: sys.exit("explore stopped by SIGTERM"))
-    with emulator_lock(wait_s=LOCK_WAIT_S):
+    with emulator_lock(serial, wait_s=LOCK_WAIT_S):
         server = Server(cwd=out)
         try:
-            ex = Explorer(ctx, Phone(server, ctx.app["package"], out), out)
+            names = {serial, adb_shell(serial, ["getprop", "ro.boot.qemu.avd_name"])} - {None, ""}
+            ex = Explorer(ctx, Phone(server, ctx.app["package"], out, names), out)
+            ex.serial = serial
             explore_app(ex)
         finally:
             server.close()
@@ -1148,7 +1154,9 @@ def run(ctx: Ctx) -> None:
 
 def explore_app(ex: Explorer) -> None:
     ex.measure_device()
-    app_version = adb_value(ex.phone.device, ["dumpsys", "package", ex.package], "versionName=")
+    app_version = adb_value(ex.serial, ["dumpsys", "package", ex.package], "versionName=")
+    run_trace(ex.ctx.run_dir, stage="explore", step="device", decider="code",
+              note=f"serial {ex.serial}, mobile-mcp device {ex.phone.device}")
     try:
         ex.tour()
     except Stop as e:

@@ -114,7 +114,8 @@ def device_from(elements: list[dict], w_px: int, h_px: int, density: int) -> Dev
 def redact(reply: dict, image: Image.Image, secrets: list[str]) -> tuple[dict, list[dict]]:
     """Replaces every listed string (any case) and every email address in the element list with [redacted] and
     paints a solid box over those elements in the image, before anything reads or saves them."""
-    pattern = re.compile("|".join([EMAIL.pattern] + [re.escape(s.strip()) for s in secrets if s.strip()]), re.IGNORECASE)
+    listed = [re.escape(s.strip()) for s in secrets if s.strip()]
+    pattern = re.compile("|".join([EMAIL.pattern, *listed]), re.IGNORECASE)
     elements = json.loads(reply["content"][0]["text"].removeprefix(ELEMENTS_PREFIX))
     draw = ImageDraw.Draw(image)
     for e in elements:

@@ -147,21 +147,24 @@ class Phone:
     """The app under test on the one Android device mobile-mcp lists. Reads retry once after a respawn;
     actions never repeat (the first one may have landed), so their timeout goes to the caller."""
 
-    def __init__(self, server: Server, package: str, scratch: Path):
+    def __init__(self, server: Server, package: str, scratch: Path, names: set[str] = frozenset()):
         self.server, self.package, self.scratch = server, package, scratch
         self.list_seconds: list[float] = []
-        self.device = self.find_device()
+        self.device = self.find_device(names)
 
-    def find_device(self) -> str:
-        """The first Android device mobile-mcp lists. The list comes back empty now and then while adb is busy."""
+    def find_device(self, names: set[str]) -> str:
+        """mobile-mcp's id for the device whose id or name is in names (an adb serial, an emulator's AVD name),
+        or the first Android device when names is empty. The list comes back empty now and then while adb is
+        busy."""
         for attempt in range(1, LIST_ATTEMPTS + 1):
             devices = json.loads(reply_text(self.server.call("mobile_list_available_devices", START_TIMEOUT_S)))
-            android = [d["id"] for d in devices.get("devices", []) if d.get("platform") == "android"]
+            android = [d for d in devices.get("devices", []) if d.get("platform") == "android"
+                       and (not names or {d.get("id"), d.get("name")} & names)]
             if android:
-                return android[0]
+                return android[0]["id"]
             if attempt < LIST_ATTEMPTS:
                 time.sleep(2 * LIST_RETRY_PAUSE_S)
-        raise SystemExit("no Android device online: start the emulator first")
+        raise SystemExit(f"no Android device {' / '.join(sorted(names))} online: start the emulator first")
 
     def call(self, tool: str, timeout: float = ACTION_TIMEOUT_S, retry: bool = False, **args) -> dict:
         try:

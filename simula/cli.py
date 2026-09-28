@@ -127,7 +127,8 @@ def open_run(args) -> Ctx:
         runlog.run_trace(run_dir, stage=stage, step="seed", decider="human", note=f"fixture {path}")
     return Ctx(app=app, run_dir=run_dir, profile=args.profile, no_cache=args.no_cache, replay=args.replay,
                usd_cap=args.usd_cap, allow_fixtures=args.allow_fixtures, budget=args.budget,
-               allow_account_create=args.allow_account_create, probe=getattr(args, "probe", False))
+               allow_account_create=args.allow_account_create, probe=getattr(args, "probe", False),
+               device=getattr(args, "device", None))
 
 
 def cmd_stage(args) -> int:
@@ -193,12 +194,16 @@ def parser() -> argparse.ArgumentParser:
         add_run_flags(s)
         if stage == "explore":
             s.add_argument("--probe", action="store_true", help="allow the bounded chat probe (<= 8 messages)")
+            s.add_argument("--device", metavar="SERIAL", help="adb serial to explore on (default: ANDROID_SERIAL, "
+                                                              "else the only device online)")
         s.set_defaults(func=cmd_stage)
 
     r = sub.add_parser("run", help="chain all seven stages; skips a stage whose hashes still match")
     add_run_flags(r)
     r.add_argument("--new", action="store_true", help="start a new run folder")
     r.add_argument("--from", dest="from_stage", choices=STAGES, help="rerun from this stage onward")
+    r.add_argument("--device", metavar="SERIAL", help="adb serial to explore on (default: ANDROID_SERIAL, "
+                                                      "else the only device online)")
     r.set_defaults(func=cmd_run)
 
     for name, pr, text in [("validate-judge", 6, "judge validation report"), ("label", 6, "blind human labels"),

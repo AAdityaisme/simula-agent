@@ -30,11 +30,13 @@ Also set `SIMULA_REDACT` in `.env` to a comma-separated list of the emulator acc
 ```sh
 uv run simula doctor [--keys]
 uv run simula explore|model|mock|qa|propose|judge|flows APP [--run ID]
-uv run simula run APP [--new] [--from STAGE] [--budget deep|transfer]
+uv run simula run APP [--new] [--from STAGE] [--budget deep|transfer] [--device SERIAL]
 uv run simula note "what I fixed by hand" [--usd 0.40]
 ```
 
 `APP` is a file in `config/apps/`; its only field is the package name. Every stage command also takes `--profile real|dev`, `--no-cache`, `--replay` (cache only, no network, no device), `--usd-cap`, `--allow-account-create`, and `--allow-fixtures`.
+
+`--device SERIAL` picks the emulator for `explore` and `run` (default: `ANDROID_SERIAL`, else the only device online). Each device has its own lock (`/tmp/simula-emu-<serial>.lock`), so two explores can run at once on two emulators; a second explore on the same device waits for the first.
 
 ## Tests
 
@@ -44,6 +46,10 @@ uv run pytest -m live            # real API calls, a few cents
 ```
 
 Golden product models for JanitorAI, Luzia, and AOL live in `tests/fixtures/golden/`. They are test data only; rebuild them with `uv run python tests/fixtures/golden/build_golden.py`.
+
+## What I'd build next
+
+A device pool and a job queue. Today each explore takes one device's lock and waits for it. The next step is a small queue of `(app, budget)` jobs and a pool that hands each job the next free emulator (booting a read-only copy of the AVD when all are busy), so a batch of apps explores in parallel with no one picking serials by hand.
 
 ## Troubleshooting
 
