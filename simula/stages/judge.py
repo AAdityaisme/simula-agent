@@ -23,7 +23,9 @@ FROZEN = ROOT / "config" / "frozen_prompts.toml"
 CHECKS = GATES + JUDGMENT
 # An idea resting on something never observed fails one of these; the CONDITIONAL fallback never rescues it.
 PREMISE = ("c1_revealed_value", "c2_evidence")
-MAX_TOKENS = 16000
+# One over config/models.toml's stream_above (16000, checked with >): judge calls stream, so a stall fails after
+# 60 s idle with no SDK retries, and a reply lost mid-stream is still charged.
+MAX_TOKENS = 16001
 SURVIVORS = ("accept", "conditional")
 ECON_CONDITION = {"CONDITIONAL": "The cost to serve isn't known", "FAIL": "It may cost more to serve than a view earns"}
 DEFAULT_JUDGES = ["judge_1"]
@@ -260,10 +262,20 @@ def revise(ctx: Ctx, c: Candidate, verdicts: list[Verdict], model: ProductModel,
     return propose.with_bucket(propose.rank(new, model, mode))
 
 
+def swap_in(work: Path, out: Path) -> None:
+    """Replaces judge/ with the finished work folder in two renames, so a run always has a whole judge/."""
+    old = out.with_name(out.name + ".old")
+    shutil.rmtree(old, ignore_errors=True)
+    if out.exists():
+        os.replace(out, old)
+    os.replace(work, out)
+    shutil.rmtree(old, ignore_errors=True)
+
+
 # ---------- stage ----------
 
-def judge_all(ctx: Ctx, candidates: list[Candidate], model: ProductModel, judges: list[str], budget: llm.Budget,
-              round_: int) -> tuple[dict[str, dict[str, Verdict]], dict[str, list[str]]]:
+def judge_all(ctx: Ctx, work: Path, candidates: list[Candidate], model: ProductModel, judges: list[str],
+              budget: llm.Budget, round_: int) -> tuple[dict[str, dict[str, Verdict]], dict[str, list[str]]]:
     """Every judge on every idea, one candidate per call, in parallel. Returns each candidate's verdicts by judge
     and their paths; a judge whose call failed twice is missing."""
     roles = config.roles(ctx.profile)
@@ -279,9 +291,9 @@ def judge_all(ctx: Ctx, candidates: list[Candidate], model: ProductModel, judges
             run_trace(ctx.run_dir, stage="judge", step=f"judge:{c.id}:{judge}:r{round_}", decider="code",
                       outcome=e.outcome, note="judge call failed twice; the candidate goes to a person")
             return c.id, judge, None, None
-        path = f"judge/verdicts/{c.id}_{judge}_r{round_}.json"
-        write_json_atomic(ctx.run_dir / path, v.model_dump_json(indent=1))
-        return c.id, judge, v, path
+        name = f"{c.id}_{judge}_r{round_}.json"
+        write_json_atomic(work / "verdicts" / name, v.model_dump_json(indent=1))
+        return c.id, judge, v, f"judge/verdicts/{name}"
 
     with ThreadPoolExecutor(max_workers=max(1, min(8, len(jobs)))) as pool:
         results = list(pool.map(one, jobs))
@@ -298,22 +310,30 @@ def run(ctx: Ctx) -> None:
     check_frozen(os.environ.get("SIMULA_UNFREEZE") == "1")
     model = ProductModel.model_validate_json((ctx.run_dir / "model" / "product_model.json").read_text())
     candidates = CandidatesFile.model_validate_json((ctx.run_dir / "propose" / "candidates.json").read_text()).candidates
-    out = ctx.run_dir / "judge"
-    # A rerun starts clean, so no queue, no-opportunity note, or verdict from an earlier attempt survives it.
-    shutil.rmtree(out, ignore_errors=True)
-    (out / "verdicts").mkdir(parents=True)
+    # judge/ is built aside and swapped in whole at the end: a failed replay or a cap keeps the last good judge/,
+    # and nothing from an earlier attempt (a queue, a no-opportunity note, a verdict) outlives it.
+    work = ctx.run_dir / "judge.tmp"
+    shutil.rmtree(work, ignore_errors=True)
+    (work / "verdicts").mkdir(parents=True)
+    try:
+        judge_run(ctx, work, model, candidates)
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def judge_run(ctx: Ctx, work: Path, model: ProductModel, candidates: list[Candidate]) -> None:
     mode = config.profiles()["economics_mode"]
     judges = config.profiles().get("judges", DEFAULT_JUDGES)
     budget = llm.Budget.for_stage("judge", ctx.run_dir / "trace.jsonl", ctx.usd_cap)
 
-    verdicts, paths = judge_all(ctx, candidates, model, judges, budget, 1)
+    verdicts, paths = judge_all(ctx, work, candidates, model, judges, budget, 1)
     decisions = {c.id: decide(c, [*verdicts[c.id].values()], len(judges), mode, paths[c.id]) for c in candidates}
     to_revise = [c for c in candidates if revisable(c, decisions[c.id], [*verdicts[c.id].values()])]
     with ThreadPoolExecutor(max_workers=max(1, len(to_revise))) as pool:
         revised = [r for r in pool.map(lambda c: revise(ctx, c, [*verdicts[c.id].values()], model, mode, budget),
                                        to_revise) if r]
     if revised:
-        v2, p2 = judge_all(ctx, revised, model, judges, budget, 2)
+        v2, p2 = judge_all(ctx, work, revised, model, judges, budget, 2)
         verdicts |= v2
         decisions |= {r.id: decide(r, [*v2[r.id].values()], len(judges), mode, p2[r.id],
                                    revision_of=r.id.removesuffix("-rev")) for r in revised}
@@ -334,11 +354,12 @@ def run(ctx: Ctx) -> None:
                   outcome="ok" if d.final in SURVIVORS else "denied",
                   note=f"{d.final} {d.checks_passed}/{d.checks_total}" + why(d, everyone[d.candidate_id]))
 
-    write_json_atomic(out / "revisions.json", CandidatesFile(candidates=revised).model_dump_json(indent=1))
-    write_json_atomic(out / "decisions.json", DecisionsFile(decisions=final).model_dump_json(indent=1))
-    write_queue(ctx, final, everyone, verdicts)
+    write_json_atomic(work / "revisions.json", CandidatesFile(candidates=revised).model_dump_json(indent=1))
+    write_json_atomic(work / "decisions.json", DecisionsFile(decisions=final).model_dump_json(indent=1))
+    write_queue(ctx, work, final, everyone, verdicts)
     if not any(d.final in SURVIVORS for d in final):
-        (out / "no-opportunity.md").write_text(no_opportunity(final, everyone, verdicts))
+        (work / "no-opportunity.md").write_text(no_opportunity(final, everyone, verdicts))
+    swap_in(work, ctx.run_dir / "judge")
     write_exhibit(ctx.run_dir, 6, "judge", exhibit(final, everyone, verdicts, judges, ctx.profile, mode))
 
 
@@ -353,7 +374,7 @@ def why(d: Decision, c: Candidate) -> str:
 
 # ---------- human-readable outputs ----------
 
-def write_queue(ctx: Ctx, decisions: list[Decision], candidates: dict[str, Candidate],
+def write_queue(ctx: Ctx, work: Path, decisions: list[Decision], candidates: dict[str, Candidate],
                 verdicts: dict[str, dict[str, Verdict]]) -> None:
     waiting = [d for d in decisions if d.final == "needs_human"]
     if not waiting:
@@ -374,7 +395,7 @@ def write_queue(ctx: Ctx, decisions: list[Decision], candidates: dict[str, Candi
         lines += ["", "**Evidence:** " + ", ".join(f"`{p}`" for p in d.verdict_paths), "",
                   "**Continue with:** nothing to run; flows leaves it out. A person reads the reasons and decides "
                   "whether the idea is worth a hand revision.", ""]
-    (ctx.run_dir / "judge" / "human-queue.md").write_text("\n".join(lines))
+    (work / "human-queue.md").write_text("\n".join(lines))
     needs_human(ctx.run_dir, "judge", f"{len(waiting)} candidate(s) need a person",
                 "the judges split or a judge call failed", ["judge/human-queue.md"],
                 f"read judge/human-queue.md, then `simula flows {app} --run {run_id}`")

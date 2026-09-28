@@ -86,7 +86,7 @@ def test_one_candidate_per_call(tmp_path, monkeypatch):
     ctx = type("Ctx", (), dict(run_dir=tmp_path, profile="dev", no_cache=False, replay=False))
     (tmp_path / "judge" / "verdicts").mkdir(parents=True)
     budget = llm.Budget("judge", 1.0)
-    verdicts, _ = judge.judge_all(ctx, cands, model, ["judge_1"], budget, 1)
+    verdicts, _ = judge.judge_all(ctx, tmp_path / "judge", cands, model, ["judge_1"], budget, 1)
     assert len(seen) == 3 and all(t.count("## Proposal") == 1 for t in seen)
     assert all(sum(f"title: {c.title}" in t for c in cands) == 1 for t in seen)
     assert {cid: list(v) for cid, v in verdicts.items()} == {c.id: ["judge_1"] for c in cands}
