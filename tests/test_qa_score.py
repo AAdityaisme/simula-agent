@@ -183,7 +183,8 @@ def test_a_tap_target_outside_its_screen_fails(tmp_path, app):
 @pytest.mark.parametrize("app", APPS)
 def test_the_rebuilt_page_opens_on_the_first_screen_that_is_not_a_dialog(app):
     model = golden(app)
-    first, second = mock.pick_scope(model)[:2]
+    first, *rest = mock.pick_scope(model)
+    second = next(s for s in rest if s.parent_id is None)
     dialog = first.model_copy(update={"parent_id": second.id})
     model = model.model_copy(update={"states": [dialog if s.id == first.id else s for s in model.states]})
     screens = [s.id for s in mock.pick_scope(model)]
