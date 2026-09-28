@@ -204,8 +204,8 @@ def test_the_loop_stops_at_a_dialog_the_send_opened_not_at_words_in_a_reply(tmp_
     loop = [LoopLine.model_validate_json(raw) for raw in (ex.out / "actions.jsonl").read_text().splitlines()]
     passes = [line for line in loop if line.loop_pass]
     assert passes and all(line.loop_pass >= 1 for line in passes)
-    assert [line.loop_stop for line in loop if line.loop_stop] == ["paywall"]
-    assert len(phone.typed) == 1 and ex.core_hit.startswith("paywall")
+    assert [line.loop_stop for line in loop if line.loop_stop] == ["dialog opened"]
+    assert len(phone.typed) == 1 and ex.core_hit.startswith("dialog opened")
     tour = [line for line in loop if line.loop_pass is None and line.outcome == "ok"]
     assert tour and not any(line.loop_stop for line in tour)
 
@@ -294,7 +294,8 @@ def test_a_limit_dialog_stops_the_loop_on_the_pass_it_appears(tmp_path, monkeypa
         return phone
     ex, phone = explore(tmp_path, monkeypatch, phone_factory=limited, budget="deep")
     stops = [(line.loop_pass, line.loop_stop) for line in lines(ex) if line.loop_stop]
-    assert phone.sent == 3 and [n for n, _ in stops] == [3] and ex.core_hit.endswith("on pass 3")
+    assert phone.sent == 3 and stops == [(3, "dialog opened")] and ex.core_hit.endswith("on pass 3")
+    assert "limit" in ex.checklist()[0]
 
 
 def test_the_walk_asks_the_ranker_among_several_and_never_taps_one_twice(tmp_path, monkeypatch):
@@ -335,3 +336,39 @@ def test_a_send_gift_button_on_the_chat_row_is_never_tapped(tmp_path, monkeypatc
         return phone
     ex, phone = explore(tmp_path, monkeypatch, phone_factory=gifting)
     assert phone.sent and not any(entry[:1] == ("tap",) and entry[2] == "Send gift" for entry in phone.log)
+
+
+def test_the_launch_teaser_is_never_the_paywall_and_its_call_to_action_is_followed(tmp_path, monkeypatch):
+    def plans_behind_the_teaser(clock):
+        phone = janitor_like(clock)
+        phone.screens["plans"] = capture("luzia", "luzia-paywall", package=PACKAGE)
+        phone.taps[("launch", "See janitor+")] = "plans"
+        return phone
+    ex, phone = explore(tmp_path, monkeypatch, phone_factory=plans_behind_the_teaser)
+    paywall = ex.by_id[ex.paywall]
+    assert paywall.priced and not paywall.launch and ("tap", "launch", "See janitor+") in phone.log
+    assert "paywall_or_membership" in ex.checklist()[0]
+    assert "prices: " in (ex.run_dir / "exhibits" / "01-explore.md").read_text()
+
+
+def test_teaser_words_and_content_words_answer_nothing_on_the_checklist(run):
+    ex, _ = run
+    answered, still_open = ex.checklist()
+    assert {"paywall_or_membership", "limit"} <= set(still_open)
+    assert any(s.upsell and s.launch for s in ex.states) and not ex.priced_paywall()
+
+
+def test_with_no_price_anywhere_the_best_upsell_stands_marked_no_price_seen(tmp_path, monkeypatch):
+    def unpriced_upgrade(clock):
+        phone = janitor_like(clock)
+        plans = capture("luzia", "luzia-paywall", package=PACKAGE)
+        plans.elements = [{**e, "text": "Monthly membership"} if ob.PRICE.search(e.get("text") or "") else e
+                          for e in plans.elements]
+        phone.screens["plans"] = plans
+        phone.taps[("drawer", "Upgrade to Janitor Plus")] = "plans"
+        return phone
+    ex, _ = explore(tmp_path, monkeypatch, phone_factory=unpriced_upgrade)
+    paywall = ex.by_id[ex.paywall]
+    assert paywall.upsell and not paywall.priced and not paywall.launch
+    assert "no price seen" in (ex.run_dir / "exhibits" / "01-explore.md").read_text()
+    assert "paywall_or_membership" in ex.checklist()[1]

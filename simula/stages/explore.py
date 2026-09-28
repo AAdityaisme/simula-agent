@@ -132,6 +132,7 @@ class Seen:
     settle_s: float
     captured_at: str
     upsell: bool
+    priced: bool = False
     via: str = ""
     box: Rect | None = None
     unscroll_to: str | None = None
@@ -287,6 +288,7 @@ class Explorer:
                     settled=obs.settled,
                     settle_s=obs.settle_s,
                     captured_at=now(), upsell=ob.is_upsell(obs.elements, self.device),
+                    priced=ob.priced(obs.elements, self.device),
                     via=move.cand.label if move and move.cand else "", box=box,
                     unscroll_to=came_from.sid if came_from and move.action == "swipe" else None)
         self.states.append(seen)
@@ -466,14 +468,7 @@ class Explorer:
     def relaunch(self, first: bool = False, why: str = "") -> None:
         """Terminate, launch, settle, record and dismiss launch dialogs, then re-apply the content filter."""
         if not first:
-            self.relaunch_reasons.append(why)
-            cap = MAX_RELAUNCHES + (0 if self.touring else CORE_RELAUNCHES)
-            if self.relaunches >= cap:
-                self.human(f"the explorer needed relaunch {cap + 1}", f"{cap} relaunches used")
-                raise Stop("relaunch cap")
-            self.relaunches += 1
-            if self.current:
-                self.log(self.current, self.root, Move("relaunch", why=why), None, "unknown", "", "ok")
+            self.count_relaunch(why)
         self.phone.terminate()
         self.phone.launch()
         self.wait_for_app(None if first else self.launch_root)
@@ -494,6 +489,25 @@ class Explorer:
             self.back_to_root()
         self.apply_filter(first)
         self.segments.append([])
+
+    def count_relaunch(self, why: str) -> None:
+        self.relaunch_reasons.append(why)
+        cap = MAX_RELAUNCHES + (0 if self.touring else CORE_RELAUNCHES)
+        if self.relaunches >= cap:
+            self.human(f"the explorer needed relaunch {cap + 1}", f"{cap} relaunches used")
+            raise Stop("relaunch cap")
+        self.relaunches += 1
+        if self.current:
+            self.log(self.current, self.root, Move("relaunch", why=why), None, "unknown", "", "ok")
+
+    def reopen(self, dialog: Seen) -> bool:
+        """A relaunch that stops at a launch dialog instead of dismissing it, to follow its call to action."""
+        self.count_relaunch(f"reopen the launch dialog {dialog.sid}")
+        self.phone.terminate()
+        self.phone.launch()
+        self.wait_for_app(dialog)
+        self.current = self.record(self.obs, None, None, [])
+        return self.current is dialog
 
     def wait_for_app(self, expect: Seen | None = None) -> Obs:
         """Observes after a launch, waiting up to SPLASH_WAIT_S for a splash to end (a cold start on a busy
@@ -843,28 +857,45 @@ class Explorer:
     # ---------- the paywall and the core loop ----------
 
     def paywall_pass(self) -> None:
-        """If the tour captured no upsell, opens one on purpose: follows one entry control (upgrade, plans,
-        premium, plus) once, reads it to the end, and goes back. Confirm words stay denied."""
+        """A paywall counts once a screen that isn't the launch teaser shows a price. Until then, follows an entry
+        control (upgrade, plans, premium, plus, the teaser's own call to action) at most twice, reads what opens to
+        the end, and goes back. Confirm words stay denied. With no price anywhere, the best upsell seen stands."""
         self.touring = False
-        captured = next((s for s in self.states if s.upsell and s.kind != "external"), None)
-        if captured:
-            self.paywall = captured.sid
-            return
-        entries = sorted(((s, c) for s in self.states if s.kind in ("screen", "modal", "sheet") and not s.launch
-                          for c in s.cands if ob.ENTRY.search(c.label) and not ob.denied(c, upsell=s.upsell)),
-                         key=lambda sc: sc[0].depth)
+        entries = sorted(((s, c) for s in self.states if s.kind in ("screen", "modal", "sheet")
+                          for c in [self.entry(s)] if c), key=lambda sc: (sc[0].launch, sc[0].depth))
         for s, entry in entries[:2]:
-            if not self.goto(s):
-                continue
-            self.act(Move("tap", entry, why="open the upsell on purpose"), purpose="nav")
-            if self.current.kind == "external":
-                self.leave_external()
-            elif self.current.upsell:
-                self.paywall = self.current.sid
-                self.read_upsell()
-                self.act(Move("back", why="out of the upsell"), purpose="nav")
-                return
-        self.note("paywall", f"no upsell reached ({len(entries)} entry controls seen)")
+            if self.priced_paywall():
+                break
+            if self.reopen(s) if s.launch else self.goto(s):
+                self.follow_entry(entry)
+            if s.launch:
+                self.relaunch(why="the launch screen again, with the content filter, after the launch dialog")
+        priced = self.priced_paywall()
+        best = priced or max((s for s in self.states if s.upsell and not s.launch and s.kind != "external"),
+                             key=lambda s: sum(bool(ob.PAYWALL.search(t)) for t in ob.texts(s.elements, self.device)),
+                             default=None)
+        self.paywall = best.sid if best else None
+        if not priced:
+            self.note("paywall", f"no price seen ({len(entries)} entry controls)")
+
+    def entry(self, s: Seen) -> ob.Candidate | None:
+        """The screen's best upsell entry: a control over a line of text (a dialog's title says "plus" too), then
+        the shortest."""
+        found = [c for c in s.cands if ob.ENTRY.search(c.label) and not ob.DISMISS.match(c.label.strip())
+                 and not ob.denied(c, upsell=s.upsell)]
+        return min(found, key=lambda c: (c.kind == "TextView", len(c.label.split())), default=None)
+
+    def follow_entry(self, entry: ob.Candidate) -> None:
+        self.act(Move("tap", entry, why="open the upsell on purpose"), purpose="nav")
+        if self.current.kind == "external":
+            self.leave_external()
+        elif self.current.upsell and not self.current.launch:
+            self.read_upsell()
+            self.act(Move("back", why="out of the upsell"), purpose="nav")
+
+    def priced_paywall(self) -> Seen | None:
+        return next((s for s in self.states if s.priced and not s.launch and s.kind in ("screen", "modal", "sheet")),
+                    None)
 
     def core_options(self) -> list[CoreAction]:
         options = []
@@ -1049,9 +1080,9 @@ class Explorer:
         if self.core.kind == "chat":
             return self.chat_stop(here, before, move)
         if here is not s and here.kind in ("modal", "sheet"):
-            return ("paywall" if here.upsell else f"{here.kind} opened"), here.sid
+            return ("paywall" if here.priced else f"{here.kind} opened"), here.sid
         if here is not s and here.upsell:
-            return "paywall", here.sid
+            return ("paywall" if here.priced else "upsell screen"), here.sid
         moved = ob.counters(before.elements, self.obs.elements, self.device, [(0, ob.TOP_CHROME_BOTTOM_PX)])
         return ("counter", moved[0]) if moved else ("", "")
 
@@ -1061,7 +1092,7 @@ class Explorer:
         prices and timestamps included, never does."""
         if here.kind in ("modal", "sheet"):
             inside = [e for e in here.elements if here.box is None or ob.inside(ob.rect(e), here.box)]
-            return ("paywall" if ob.is_upsell(inside, self.device) else "dialog opened"), here.sid
+            return ("paywall" if ob.priced(inside, self.device) else "dialog opened"), here.sid
         box = next((c for c in self.obs.cands if c.kind == "EditText"), None)
         if box is None:
             return "input gone", here.sid
@@ -1224,9 +1255,9 @@ class Explorer:
         answered = {
             "root": self.root is not None,
             "all_tabs": all(self.tab_to.get(t.key) for t in self.tabs),
-            "paywall_or_membership": any(s.upsell for s in self.states),
+            "paywall_or_membership": self.priced_paywall() is not None,
             "settings": any("settings" in s.via.lower() for s in self.states),
-            "limit": any(ob.LIMIT.search(t) for s in self.states for t in ob.texts(s.elements, self.device)),
+            "limit": bool(self.core_hit),
         }
         return [i for i in items if answered.get(i)], [i for i in items if not answered.get(i)]
 
@@ -1282,7 +1313,7 @@ def exhibit(ex: Explorer, app_version: str | None) -> str:
              f"- Bottom tabs: {len(ex.tabs)} found, {sum(bool(ex.tab_to.get(t.key)) for t in ex.tabs)} visited",
              f"- Relaunches: {ex.relaunches} (tour cap {MAX_RELAUNCHES}, then {CORE_RELAUNCHES} for the passes after)",
              *[f"  - {n}: {why}" for n, why in enumerate(ex.relaunch_reasons, start=1)],
-             f"- Paywall or plans screen captured: {'yes, ' + ex.paywall if ex.paywall else 'no'}",
+             f"- Paywall or plans screen captured: {paywall_line(ex)}",
              f"- Content filter: {' > '.join(repr(t.label) for t in ex.filter_taps) or 'none found'}",
              f"- Redaction: {len(ex.secrets)} strings listed in SIMULA_REDACT; {ex.redacted} element texts "
              f"redacted at capture"]
@@ -1308,6 +1339,14 @@ def exhibit(ex: Explorer, app_version: str | None) -> str:
         words = next((c.tree_label for c in s.cands if c.tree_label), "")[:50].replace("|", "/")
         lines.append(f"| {s.sid} | {s.kind} | {s.parent or ''} | {s.depth} | {words} |")
     return "\n".join(lines) + "\n"
+
+
+def paywall_line(ex: Explorer) -> str:
+    if not ex.paywall:
+        return "no"
+    prices = [t for t in ob.texts(ex.by_id[ex.paywall].elements, ex.device) if ob.PRICE.search(t)]
+    return f"yes, {ex.paywall}, prices: {'; '.join(repr(p) for p in prices[:6])}" if prices \
+        else f"yes, {ex.paywall}, no price seen"
 
 
 def denied_lines(ex: Explorer):

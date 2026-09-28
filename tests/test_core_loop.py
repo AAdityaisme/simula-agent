@@ -102,3 +102,13 @@ def test_a_gift_button_on_the_row_is_never_the_send_control():
     assert ob.composer([box, gift, send], DEVICE) == (box, send)
     for word in ("Send gift", "100 coins", "Gems", "Tip the creator", "Donate", "Buy credits"):
         assert ob.denied(control(word, "Button", 0, 0, 10, 10, "@x"), core=True), word
+
+
+def test_a_price_is_what_makes_a_paywall():
+    def shows(text):
+        return ob.priced([{"ref": "@p", "type": "android.widget.TextView", "text": text,
+                           "coordinates": {"x": 42, "y": 900, "width": 600, "height": 60}}], DEVICE)
+    for text in ("$4.99 / month", "9,99 €", "₹199", "USD 4.99", "$\xa039.99", "£12"):
+        assert shows(text), text
+    for text in ("18+", "v2.5.0.136", "1,000 members", "Top 10", "Subscription"):
+        assert not shows(text), text

@@ -37,8 +37,10 @@ DISMISS = re.compile(r"^(close\b.*|not now|later|maybe later|no,? thanks|skip|di
 ANR = re.compile(r"isn.t responding|not responding", re.IGNORECASE)
 BLOCKING = re.compile(r"emulator|rooted|captcha|verify (that )?you.?re (a )?human|age verification|"
                       r"date of birth|not supported on this device", re.IGNORECASE)
-PAYWALL = re.compile(r"[$€£]\s?\d|subscription|membership|free trial|per (month|week|year)|/ ?(month|week|year|mo)\b",
-                     re.IGNORECASE)
+CURRENCY = r"[$€£¥₹]|\b(?:USD|EUR|GBP|INR|JPY|CAD|AUD)\b"
+PRICE = re.compile(rf"(?:{CURRENCY})\s?\d|\d(?:[\d.,]*\d)?\s?(?:{CURRENCY})", re.IGNORECASE)
+PAYWALL = re.compile(rf"{PRICE.pattern}|subscription|membership|free trial|per (month|week|year)|"
+                     r"/ ?(month|week|year|mo)\b", re.IGNORECASE)
 PRIMARY = re.compile(r"\b(chat|message|talk|start|begin)\b", re.IGNORECASE)
 CREATE = re.compile(r"\W*(generate|play|draw|spin|roll|scan)\b", re.IGNORECASE)
 ENTRY = re.compile(r"upgrade|\bplans?\b|premium|\bplus\b|\bpro\b|\+|membership|subscription", re.IGNORECASE)
@@ -407,6 +409,11 @@ def texts(elements: list[dict], device: Device) -> set[str]:
 
 def is_upsell(elements: list[dict], device: Device) -> bool:
     return any(PAYWALL.search(t) for t in texts(elements, device))
+
+
+def priced(elements: list[dict], device: Device) -> bool:
+    """Shows a price ($4.99, 9,99 €, ₹199, USD 4.99): what makes an upsell a paywall, not a teaser."""
+    return any(PRICE.search(t) for t in texts(elements, device))
 
 
 # ---------- the core loop ----------
