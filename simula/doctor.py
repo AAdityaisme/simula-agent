@@ -10,7 +10,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from simula import config, decide, llm
+from simula import config, decide, llm, runlog
 from simula.cli import mobile_mcp_version, package_version
 from simula.config import ROOT
 
@@ -109,6 +109,14 @@ class Ping(BaseModel):
 PING = [{"role": "user", "content": [{"type": "text", "text": 'Reply with ok=true and word="ready".'}]}]
 
 
+def log_spend(decider: str, model: str, label: str, tokens_in: int = 0, tokens_out: int = 0, usd: float = 0.0,
+              outcome: str = "ok", effort: str | None = None, confidence: float | None = None) -> None:
+    """Every paid doctor probe leaves one line in build/trace.jsonl, so doctor runs need no hand-typed notes."""
+    runlog.trace(runlog.BUILD_TRACE, stage="build", step="doctor", decider=decider, model=model, effort=effort,
+                 confidence=confidence, tokens_in=tokens_in, tokens_out=tokens_out, usd=round(usd, 6),
+                 outcome=outcome, note=label)
+
+
 def ping(label: str, model: str, effort: str | None, max_tokens: int = 1024) -> dict:
     provider = config.models()[model]["provider"]
     started = time.monotonic()
@@ -117,8 +125,10 @@ def ping(label: str, model: str, effort: str | None, max_tokens: int = 1024) -> 
         parsed = Ping.model_validate_json(reply.text)
     except Exception as e:  # noqa: BLE001 - doctor reports any provider failure
         check(label, False, f"{type(e).__name__}: {str(e)[:160]}")
+        log_spend("model", model, label, outcome="error", effort=effort)
         return {"ok": False, "error": type(e).__name__}
     cost = llm.usd(model, reply.tokens_in, reply.tokens_out, reply.tokens_cached)
+    log_spend("model", model, label, reply.tokens_in, reply.tokens_out, cost, effort=effort)
     check(label, parsed.ok, f"{reply.model} · {reply.tokens_in}/{reply.tokens_out} tok · ${cost:.4f} · "
                             f"{time.monotonic() - started:.1f}s · stop={reply.stop_reason}")
     for key, value in sorted(reply.headers.items()):
@@ -130,14 +140,19 @@ def haiku_effort_probe() -> bool:
     """Returns whether Haiku accepts output_config.effort. The dev profile never sends it either way."""
     import anthropic
     client = anthropic.Anthropic(max_retries=0, timeout=60)
+    model = "claude-haiku-4-5-20251001"
     try:
-        client.messages.create(model="claude-haiku-4-5-20251001", max_tokens=16, output_config={"effort": "low"},
-                               messages=[{"role": "user", "content": "Say ok."}])
-        check("haiku with effort", True, "accepted (dev profile still omits it)")
-        return True
+        message = client.messages.create(model=model, max_tokens=16, output_config={"effort": "low"},
+                                         messages=[{"role": "user", "content": "Say ok."}])
     except anthropic.BadRequestError as e:
         check("haiku with effort", True, f"rejected as expected: {str(e)[:100]}")
+        log_spend("model", model, "haiku with effort (rejected, unbilled)", outcome="error", effort="low")
         return False
+    usage = message.usage
+    log_spend("model", model, "haiku with effort", usage.input_tokens, usage.output_tokens,
+              llm.usd(model, usage.input_tokens, usage.output_tokens), effort="low")
+    check("haiku with effort", True, "accepted (dev profile still omits it)")
+    return True
 
 
 def jev_probe(backend: str, n_options: int) -> dict:
@@ -147,8 +162,12 @@ def jev_probe(backend: str, n_options: int) -> dict:
         result = decide.ask_choice(state, "Which tap most likely reveals a paywall?", labels, backend)
     except Exception as e:  # noqa: BLE001 - doctor reports any backend failure
         check(f"jev {backend} ({n_options} options)", False, f"{type(e).__name__}: {str(e)[:160]}")
+        log_spend("jev", decide.ADAPTER_MODEL if backend == "adapter" else "jev-latest",
+                  f"jev {backend} probe", outcome="error")
         return {"ok": False, "error": type(e).__name__}
     right = result.option_id == f"o{n_options:02d}"
+    log_spend("jev", result.model, f"jev {backend} probe ({n_options} options)", result.tokens_in,
+              result.tokens_out, result.usd, confidence=result.confidence)
     check(f"jev {backend} ({n_options} options)", right,
           f"{result.model} picked {result.option_id} conf {result.confidence:.2f} · {result.seconds:.2f}s "
           f"· {result.tokens_in}/{result.tokens_out} tok · ${result.usd:.5f}")
