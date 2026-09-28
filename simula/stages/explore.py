@@ -947,15 +947,19 @@ class Explorer:
                     None)
 
     def core_options(self) -> list[CoreAction]:
-        """What a user might come to do, for Jev to choose from. A conversation found inside a feed item replaces a
-        chat the tour saw elsewhere: it is reached the way a user starts one, by a path that replays, while a chat
-        reached through a tab can be whichever one was open last."""
+        """What a user might come to do, for Jev to choose from. A conversation inside a feed item comes first (it
+        is reached the way a user starts one, by a path that replays), but a chat the tour saw stays a choice: which
+        text box is the conversation with the app's AI is Jev's call."""
         feed = self.feed_option()
-        inside = self.walk_to_input(feed) if feed else None
+        try:
+            inside = self.walk_to_input(feed) if feed else None
+        except Stop as e:
+            self.note("core", f"the walk into an item stopped: {e}", outcome="error")
+            inside = None
         options = [inside] if inside else []
         seen = next(((s, found) for s in self.states if s.kind == "screen"
                      for found in [ob.composer(s.cands, self.device)] if found), None)
-        if seen and not (inside and inside.kind == "chat"):
+        if seen:
             s, found = seen
             options.append(CoreAction("chat", s, list(found), f"send messages in a conversation and read the replies "
                                                               f"({self.chat_title(s)!r}; text box + send on {s.sid})"))
@@ -1147,8 +1151,11 @@ class Explorer:
         written puts a stop control there)."""
         if self.obs is None or self.obs.fg != self.package or ob.dialog_box(self.obs.cands, self.device):
             return None
+        return self.lower_box(self.obs.cands)
+
+    def lower_box(self, cands: list[ob.Candidate]) -> ob.Candidate | None:
         middle = (self.device.content_top_px + self.device.content_bottom_px) / 2
-        return next((c for c in self.obs.cands if c.kind == "EditText" and ob.center(c.rect)[1] > middle), None)
+        return next((c for c in cands if c.kind == "EditText" and ob.center(c.rect)[1] > middle), None)
 
     def covering(self, before: Obs) -> list[ob.Candidate]:
         """A sheet in the chat's own window leaves the composer in the tree: it shows as a second text box in the
@@ -1167,10 +1174,12 @@ class Explorer:
         return [e for e in s.elements if s.box is None or ob.inside(ob.rect(e), s.box)]
 
     def sheet_words(self, before: Obs) -> str:
-        """What a sheet over the composer says: the new words in the lower half of the screen."""
-        middle, old = (self.device.content_top_px + self.device.content_bottom_px) / 2, ob.texts(before.elements,
-                                                                                                    self.device)
-        return self.named([e for e in self.obs.elements if e["coordinates"]["y"] >= middle and ob.words(e) not in old])
+        """What a sheet over the composer says: the new words reaching down where the text box was. The
+        conversation above it, the new reply included, is content and never names a stop."""
+        box, old = self.lower_box(before.cands), ob.texts(before.elements, self.device)
+        floor = box.rect.y if box else (self.device.content_top_px + self.device.content_bottom_px) / 2
+        return self.named([e for e in self.obs.elements if e["coordinates"]["y"] + e["coordinates"]["height"] > floor
+                           and ob.words(e) not in old])
 
     def named(self, elements: list[dict]) -> str:
         """A dialog's or sheet's own words, never the conversation's: a price makes it a paywall, limit words a
@@ -1214,7 +1223,8 @@ class Explorer:
         disabled once a message is typed, or a counter moving beside the composer. The conversation's own text,
         prices and timestamps included, never does."""
         if here.kind in ("modal", "sheet"):
-            return self.named(self.within(here)) or "dialog opened", here.sid
+            window = ob.dialog_box(self.obs.cands, self.device)
+            return self.named(self.within(here) if window else self.sheet_words(before)) or "dialog opened", here.sid
         if self.covering(before):
             return self.sheet_words(before) or "sheet opened", here.sid
         box = next((c for c in self.obs.cands if c.kind == "EditText"), None)

@@ -447,7 +447,7 @@ def test_the_walk_scrolls_to_a_main_action_below_the_fold_and_takes_a_long_one_l
     assert not any(entry[:3] == ("tap", "detail", BIO) for entry in phone.log)
 
 
-def test_a_conversation_inside_a_feed_item_replaces_a_chat_the_tour_reached_through_a_tab(tmp_path, monkeypatch):
+def test_a_conversation_inside_a_feed_item_comes_first_and_the_tour_chat_stays_a_choice(tmp_path, monkeypatch):
     ex, _ = new_explorer(tmp_path, monkeypatch, janitor_like)
     asked = []
 
@@ -459,7 +459,7 @@ def test_a_conversation_inside_a_feed_item_replaces_a_chat_the_tour_reached_thro
     stage.explore_app(ex)
     labels, = asked
     assert labels[0].startswith("open an item and send messages in its conversation")
-    assert not any(label.startswith("send messages in a conversation") for label in labels)
+    assert any(label.startswith("send messages in a conversation") for label in labels)
 
 
 def test_a_reply_still_being_written_neither_ends_the_chat_nor_leaves_it(tmp_path, monkeypatch):
@@ -471,3 +471,33 @@ def test_a_reply_still_being_written_neither_ends_the_chat_nor_leaves_it(tmp_pat
     assert phone.sent == ex.core_reps == 8 and not ex.core_hit
     assert not any("could not get back" in r for r in ex.core_results)
     assert not any(entry[:1] == ("tap",) and entry[2] == "Cancel" for entry in phone.log)
+
+
+def test_a_walk_into_an_item_that_runs_out_of_relaunches_still_lets_jev_choose(tmp_path, monkeypatch):
+    ex, phone = new_explorer(tmp_path, monkeypatch, chatty, budget="deep")
+
+    def stopped(feed):
+        raise stage.Stop("relaunch cap")
+    monkeypatch.setattr(ex, "walk_to_input", stopped)
+    stage.explore_app(ex)
+    assert ex.core.kind == "chat" and phone.sent == 8
+    assert not any("core_loop stopped" in r for r in ex.core_results)
+
+
+def test_the_new_reply_never_names_what_stopped_the_chat(tmp_path, monkeypatch):
+    def voice_sheet_after_two(clock):
+        phone = chatty(clock)
+        phone.replies["chat"] = ["Hi! Ask me anything.", "I've hit my limits before, so I pace myself."]
+        chat = phone.screens["chat"]
+        sheet = [{"ref": "@sheet", "type": "android.view.ViewGroup", "text": "Choose a voice for this character",
+                  "coordinates": {"x": 0, "y": 1700, "width": 1080, "height": 637}},
+                 {"ref": "@voice", "type": "android.widget.Button", "text": "Voice one",
+                  "coordinates": {"x": 100, "y": 2150, "width": 880, "height": 120}}]
+        phone.screens["chat_sheet"] = type(chat)(chat.elements + sheet, chat.image, chat.package)
+        phone.replies["chat_sheet"] = phone.replies["chat"]
+        phone.chats["chat_sheet"] = phone.chats.setdefault("chat", [])
+        phone.after_sends = {2: "chat_sheet"}
+        return phone
+    ex, phone = explore(tmp_path, monkeypatch, phone_factory=voice_sheet_after_two, budget="deep")
+    stops = [(line.loop_pass, line.loop_stop) for line in lines(ex) if line.loop_stop]
+    assert phone.sent == 2 and stops == [(2, "input gone")] and "limit" not in ex.checklist()[0]
