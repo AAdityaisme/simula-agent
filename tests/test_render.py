@@ -3,6 +3,7 @@
 import pytest
 from PIL import Image
 
+from simula import render
 from simula.render import content_dp, open_mock, render_and_validate
 from simula.stages.mock import copy_assets, pick_scope, scope_edges, with_runtime
 from tests.conftest import APPS, FIXTURES
@@ -85,3 +86,12 @@ def test_an_overlay_never_paints_over_its_parent(tmp_path, model):
             assert page.evaluate(background, modal.id) == "rgba(0, 0, 0, 0)"
             assert page.evaluate(background, modal.parent_id) == "rgb(0, 0, 0)"
 
+
+def test_fonts_that_fail_to_load_are_not_a_contract_error(tmp_path, model, monkeypatch):
+    monkeypatch.setattr(render, "FONT_HOSTS", ("fonts.invalid",))
+    mock_dir, screens = write_mock(tmp_path, model)
+    html = (mock_dir / "index.html").read_text()
+    link = '<link rel="stylesheet" href="https://fonts.invalid/css2?family=Roboto">'
+    (mock_dir / "index.html").write_text(html.replace("</head>", link + "</head>", 1))
+    report = render_and_validate(mock_dir, model, screens)
+    assert report.passed, report.errors

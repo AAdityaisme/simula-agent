@@ -71,7 +71,7 @@ def open_mock(mock_dir: Path):
             log["console"].append(msg.text)
 
     def failed(request):
-        if request.url not in log["blocked"]:
+        if request.url not in log["blocked"] and urlparse(request.url).hostname not in FONT_HOSTS:
             log["failed"].append(request.url)
 
     with sync_playwright() as p:
