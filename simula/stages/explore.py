@@ -540,7 +540,8 @@ class Explorer:
         """Observes after a launch, waiting up to SPLASH_WAIT_S for a splash to end (a cold start on a busy
         emulator took over a minute), then up to LAUNCH_WAIT_S for the launch screen seen before. A feed can sit on
         still loading placeholders for many seconds, so a launch also waits until two looks LAUNCH_QUIET_S apart
-        agree."""
+        agree. Until the splash deadline, a dump that times out is only "not yet"; the last good look stands, since
+        nothing has moved on the screen since."""
         splash_deadline = self.clock() + SPLASH_WAIT_S
         obs = self.look(splash_deadline)
         while obs is None or ((not self.launchable(obs) or obs.fg != self.package) and self.clock() < splash_deadline):
@@ -550,13 +551,16 @@ class Explorer:
         while obs.fg == self.package and self.clock() < deadline and (not self.launchable(obs) or (
                 expect and not ob.same_state(obs.fp, expect.fp) and not ob.dialog_box(obs.cands, self.device))):
             self.sleep(1.5)
-            obs = self.observe()
+            obs = self.look(splash_deadline) or obs
         while not (expect and ob.same_state(obs.fp, expect.fp)) and obs.fg == self.package and self.clock() < deadline:
             self.sleep(LAUNCH_QUIET_S)
-            again = self.observe()
-            if ob.same_state(again.fp, obs.fp):
+            again = self.look(splash_deadline)
+            if again and ob.same_state(again.fp, obs.fp):
                 return again
-            obs = again
+            obs = again or obs
+        if self.obs is not obs:
+            obs.image.save(self.scratch / "now.png")
+            self.obs = obs
         return obs
 
     def launchable(self, obs: Obs) -> bool:

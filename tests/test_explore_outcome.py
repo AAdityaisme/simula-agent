@@ -148,3 +148,22 @@ def test_a_logo_splash_is_never_taken_for_the_root(tmp_path, monkeypatch):
     stage.explore_app(ex)
     assert all(c.label != "App logo" for s in ex.states for c in s.cands)
     assert ex.root is not None and not ex.stop_reason.startswith("blocked root")
+
+
+def test_a_dump_that_times_out_while_the_launch_screen_settles_still_explores(tmp_path, monkeypatch):
+    def settles_slowly(clock):
+        phone = janitor_like(clock)
+        save, settled = phone.screenshot, []
+
+        def screenshot(path, size=None):
+            out = save(path, size)
+            if phone.screen == "launch" and not phone.splash_left:
+                settled.append(path)
+                if len(settled) == 2:
+                    phone.hung_lists = 1
+            return out
+        phone.screenshot = screenshot
+        return phone
+    ex, _ = new_explorer(tmp_path, monkeypatch, settles_slowly)
+    stage.explore_app(ex)
+    assert ex.root is not None and len(ex.states) >= 8
