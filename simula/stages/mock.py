@@ -6,6 +6,7 @@ import json
 import re
 import shutil
 from collections import Counter
+from html.parser import HTMLParser
 
 from PIL import Image
 
@@ -80,7 +81,8 @@ def run(ctx: Ctx) -> None:
     copy_assets(model_dir, mock_dir, scope, model.device)
 
     html = generate(ctx, model, scope)
-    (mock_dir / "index.html").write_text(with_runtime(stamp_transitions(html, model), screens[0]))
+    html = with_runtime(wire_edges(html, model, screens), screens[0])
+    (mock_dir / "index.html").write_text(html)
 
     report = render.render_and_validate(mock_dir, model, screens)
     (mock_dir / "contract_report.json").write_text(report.model_dump_json(indent=1))
@@ -229,17 +231,71 @@ def extract_html(text: str) -> str:
     return text[start:end + len("</html>")]
 
 
-def stamp_transitions(html: str, model: ProductModel) -> str:
-    """Code owns every edge's transition, so code writes data-transition onto each known data-edge tag."""
-    transitions = {e.id: e.transition for e in model.edges}
+class StartTags(HTMLParser):
+    """Every start tag in a page: its decoded attributes and where its source text sits."""
 
-    def stamp(tag: re.Match) -> str:
-        edge = re.search(r'data-edge="([^"]*)"', tag.group(0)).group(1)
-        if edge not in transitions:
-            return tag.group(0)
-        bare = re.sub(r'\sdata-transition="[^"]*"', "", tag.group(0))
-        return bare.replace(f'data-edge="{edge}"', f'data-edge="{edge}" data-transition="{transitions[edge]}"', 1)
-    return re.sub(r'<[^>]*\sdata-edge="[^"]*"[^>]*>', stamp, html)
+    def __init__(self, html: str):
+        super().__init__(convert_charrefs=True)
+        self.tags = []
+        self._line_starts = [0] + [i + 1 for i, c in enumerate(html) if c == "\n"]
+        self.feed(html)
+        self.close()
+
+    def handle_starttag(self, name, attrs):
+        line, col = self.getpos()
+        start, text = self._line_starts[line - 1] + col, self.get_starttag_text()
+        self.tags.append({"name": name, "attrs": dict(attrs), "start": start, "end": start + len(text),
+                          "self_closing": text.endswith("/>")})
+
+
+def wire_edges(html: str, model: ProductModel, screens: list[str]) -> str:
+    """Code owns every edge. It writes each known data-edge tag's data-transition, and puts an in-scope edge
+    the builder left out on the tag that already carries its element's data-el."""
+    edges = {e.id: e for e in model.edges}
+    tags = StartTags(html).tags
+    placed = {t["attrs"].get("data-edge") for t in tags}
+    by_element = {}
+    for t in tags:
+        if t["attrs"].get("data-el"):
+            by_element.setdefault(t["attrs"]["data-el"], t)
+    changed = {}
+    for e in model.edges:
+        tag = by_element.get(e.element_id)
+        missing = e.from_state in screens and e.to_state in screens and e.id not in placed
+        if missing and tag and "data-edge" not in tag["attrs"]:
+            tag["attrs"]["data-edge"] = e.id
+            changed[tag["start"]] = tag
+    for t in tags:
+        edge = edges.get(t["attrs"].get("data-edge"))
+        if edge and t["attrs"].get("data-transition") != edge.transition:
+            t["attrs"] = _with_transition(t["attrs"], edge.transition)
+            changed[t["start"]] = t
+    return _rewrite(html, sorted(changed.values(), key=lambda t: t["start"]))
+
+
+def _with_transition(attrs: dict, transition: str) -> dict:
+    out = {}
+    for name, value in attrs.items():
+        if name != "data-transition":
+            out[name] = value
+        if name == "data-edge":
+            out["data-transition"] = transition
+    return out
+
+
+def _rewrite(html: str, tags: list[dict]) -> str:
+    """Re-serializes only the given start tags and leaves every other byte of the page as the builder wrote it."""
+    parts, at = [], 0
+    for t in tags:
+        attrs = "".join(f" {name}" if value is None else f' {name}="{_attr_value(value)}"'
+                        for name, value in t["attrs"].items())
+        parts += [html[at:t["start"]], f"<{t['name']}{attrs}{' /' if t['self_closing'] else ''}>"]
+        at = t["end"]
+    return "".join(parts) + html[at:]
+
+
+def _attr_value(value: str) -> str:
+    return value.replace("&", "&amp;").replace('"', "&quot;")
 
 
 def with_runtime(html: str, root: str) -> str:
@@ -259,8 +315,9 @@ def _insert_before(html: str, tag: str, snippet: str) -> str:
 # ---------- exhibit ----------
 
 def exhibit(ctx: Ctx, model: ProductModel, scope: list[State], html: str, report) -> str:
-    placed = Counter(i.split(".")[0] for i in re.findall(r'data-el="([^"]+)"', html))
-    wired = set(re.findall(r'data-edge="([^"]+)"', html))
+    attrs = [t["attrs"] for t in StartTags(html).tags]
+    placed = Counter(a["data-el"].split(".")[0] for a in attrs if a.get("data-el"))
+    wired = {a["data-edge"] for a in attrs if a.get("data-edge")}
     edges = scope_edges(model, scope)
     lines = [f"# Mock: {model.app}", "",
              f"Contract: **{'PASS' if report.passed else 'FAIL'}** ({len(report.errors)} errors). "

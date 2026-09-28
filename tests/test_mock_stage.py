@@ -85,15 +85,63 @@ def test_runtime_goes_inside_head_and_body(app):
     assert html.index('id="simula-runtime-js"') < html.index("</body>")
 
 
-def test_code_stamps_each_known_edge_with_its_transition(app):
+def attrs_of(html: str) -> list[dict]:
+    return [t["attrs"] for t in mock.StartTags(html).tags]
+
+
+def test_every_known_edge_tag_gets_its_transition_however_it_is_written(app):
     model = golden(app)
-    edge = model.edges[0]
-    html = (f'<a data-edge="{edge.id}">x</a><b data-transition="modal" data-edge="{edge.id}"></b>'
-            '<i data-edge="new:x" data-transition="push"></i>')
-    stamped = mock.stamp_transitions(html, model)
-    assert stamped.count(f'data-edge="{edge.id}" data-transition="{edge.transition}"') == 2
-    assert 'data-transition="modal"' not in stamped or edge.transition == "modal"
-    assert '<i data-edge="new:x" data-transition="push"></i>' in stamped
+    screens = [s.id for s in mock.pick_scope(model)]
+    edge = mock.scope_edges(model, mock.pick_scope(model))[0]
+    escaped = edge.id.replace(">", "&gt;")
+    html = (f'<a data-edge="{edge.id}">x</a>'
+            f'<b data-transition="modal" data-edge="{edge.id}"></b>'
+            f"<i data-edge='{edge.id}'></i>"
+            f'<u data-edge="{escaped}"></u>'
+            f'<s title="a>b" data-edge="{edge.id}"/>'
+            '<i data-edge="new:x" data-transition="push"></i><p>untouched &amp; text</p>')
+    wired = mock.wire_edges(html, model, screens)
+    stamped = [a for a in attrs_of(wired) if a.get("data-edge") == edge.id]
+    assert len(stamped) == 5 and all(a["data-transition"] == edge.transition for a in stamped)
+    assert {"data-edge": "new:x", "data-transition": "push"} in attrs_of(wired)
+    assert wired.endswith('<i data-edge="new:x" data-transition="push"></i><p>untouched &amp; text</p>')
+    assert mock.wire_edges(wired, model, screens) == wired
+
+
+def test_a_missing_edge_goes_on_the_tag_that_carries_its_element(app):
+    model = golden(app)
+    screens = [s.id for s in mock.pick_scope(model)]
+    edges = mock.scope_edges(model, mock.pick_scope(model))
+    first, others = edges[0], [e for e in edges[1:] if e.element_id != edges[0].element_id]
+    html = f'<div data-el="{first.element_id}" class="tab">x</div>'
+    if others:
+        html += f'<div data-el="{others[0].element_id}" data-edge="{first.id}"></div>'
+    wired = attrs_of(mock.wire_edges(html, model, screens))
+    if others:
+        assert wired[0] == {"data-el": first.element_id, "class": "tab"}
+        assert wired[1]["data-edge"] == first.id
+    else:
+        assert wired[0] == {"data-el": first.element_id, "class": "tab", "data-edge": first.id,
+                            "data-transition": first.transition}
+    out_of_scope = [sid for sid in screens if sid != first.to_state]
+    assert "data-edge" not in attrs_of(mock.wire_edges(html, model, out_of_scope))[0]
+
+
+def test_an_edge_without_an_element_is_never_placed(app):
+    model = golden(app)
+    screens = [s.id for s in mock.pick_scope(model)]
+    edge = mock.scope_edges(model, mock.pick_scope(model))[0].model_copy(update={"element_id": None})
+    model = model.model_copy(update={"edges": [edge]})
+    html = "<html><body><div>x</div></body></html>"
+    assert mock.wire_edges(html, model, screens) == html
+
+
+def test_applying_the_runtime_twice_leaves_exactly_one(app):
+    html = skeleton_html(golden(app))
+    twice = mock.with_runtime(mock.with_runtime(html, "s01"), "s02")
+    assert twice.count('id="simula-runtime"') == 1 and twice.count('id="simula-runtime-js"') == 1
+    assert 'const ROOT = "s02"' in twice
+    assert mock.with_runtime(twice, "s02") == twice
 
 
 def test_each_attempt_is_one_call_under_its_own_wall_and_a_timeout_is_not_retried(tmp_path, monkeypatch):
@@ -111,11 +159,3 @@ def test_each_attempt_is_one_call_under_its_own_wall_and_a_timeout_is_not_retrie
         mock.generate(ctx_for(run_dir, "aol", profile="real"), model, mock.pick_scope(model))
     assert e.value.outcome == "timeout"
     assert calls == [("xhigh", 1, mock.WALL_SECONDS), ("high", 1, mock.WALL_SECONDS)]
-
-
-def test_applying_the_runtime_twice_leaves_exactly_one(app):
-    html = skeleton_html(golden(app))
-    twice = mock.with_runtime(mock.with_runtime(html, "s01"), "s02")
-    assert twice.count('id="simula-runtime"') == 1 and twice.count('id="simula-runtime-js"') == 1
-    assert 'const ROOT = "s02"' in twice
-    assert mock.with_runtime(twice, "s02") == twice

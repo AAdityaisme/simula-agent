@@ -1,5 +1,7 @@
 """Stage 3 reads model/ only: a run folder holding nothing but model/ still produces a rendered, valid mock."""
 
+import re
+
 import pytest
 
 from simula import llm
@@ -15,11 +17,16 @@ def ctx_for(run_dir, app, profile="dev") -> Ctx:
                usd_cap=None, allow_fixtures=True)
 
 
+def without_edges(html: str) -> str:
+    """A builder that places every element but forgets every tap: code must wire them all."""
+    return re.sub(r' data-(edge|transition)="[^"]*"', "", html)
+
+
 def fake_builder(calls: list):
     def call(**kwargs):
         calls.append(kwargs)
         model = ProductModel.model_validate_json((kwargs["trace_path"].parent / "model" / "product_model.json").read_text())
-        return f"Here it is.\n```html\n{skeleton_html(model)}\n```\n", None
+        return f"Here it is.\n```html\n{without_edges(skeleton_html(model))}\n```\n", None
     return call
 
 
