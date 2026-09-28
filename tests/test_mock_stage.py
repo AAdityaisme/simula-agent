@@ -1,4 +1,4 @@
-"""Stage 3's code paths around the one model call: scope limits, tagging, retry, the wall, HTML extraction."""
+"""Stage 3's code paths around each batch's model call: scope limits, tagging, retry, the wall, HTML extraction."""
 
 import pytest
 
@@ -15,14 +15,12 @@ def app(request):
     return request.param
 
 
-def test_scope_never_holds_unsafe_or_blocked_states_and_stops_at_8(app):
+def test_scope_is_every_in_scope_state_but_unsafe_or_blocked_ones(app):
     model = golden(app)
     states = [s.model_copy(update={"in_mock_scope": True}) for s in model.states]
     states[0] = states[0].model_copy(update={"content_rating": "unsafe"})
     scope = mock.pick_scope(model.model_copy(update={"states": states}))
-    assert len(scope) <= mock.MAX_SCREENS
-    assert all(s.content_rating != "unsafe" and s.kind != "blocked" for s in scope)
-    assert states[0].id not in {s.id for s in scope}
+    assert [s.id for s in scope] == [s.id for s in states[1:] if s.kind != "blocked"]
 
 
 def test_only_the_first_two_items_of_a_repeated_list_are_tagged(app):
@@ -44,6 +42,13 @@ def test_no_offered_asset_breaks_the_wallpaper_rule(app):
         assert offered == {e.id for e in state.elements if mock.usable_asset(e, model.device)}
 
 
+BRIEF = [{"type": "text", "text": "the batch brief"}]
+
+
+def budget() -> llm.Budget:
+    return llm.Budget("mock", 15.0)
+
+
 def test_max_tokens_retries_once_at_high_with_shorter_css(tmp_path, monkeypatch):
     run_dir = seed_model(tmp_path / "run", "janitorai")
     efforts = []
@@ -54,8 +59,7 @@ def test_max_tokens_retries_once_at_high_with_shorter_css(tmp_path, monkeypatch)
             raise llm.LLMFailure("max_tokens", "cut off")
         return "```html\n<html><body></body></html>\n```", None
     monkeypatch.setattr(llm, "call", call)
-    model = golden("janitorai")
-    html = mock.generate(ctx_for(run_dir, "janitorai", profile="real"), model, mock.pick_scope(model), {})
+    html = mock.generate(ctx_for(run_dir, "janitorai", profile="real"), BRIEF, budget(), "batch1")
     assert html.startswith("<html>")
     assert efforts[0][0] == "xhigh" and efforts[1] == ("high", mock.SHORTER)
     assert read_trace(run_dir / "trace.jsonl")[-1].outcome == "retry"
@@ -67,9 +71,8 @@ def test_other_failures_are_not_retried(tmp_path, monkeypatch):
     def call(**kwargs):
         raise llm.LLMFailure("refusal", "no")
     monkeypatch.setattr(llm, "call", call)
-    model = golden("luzia")
     with pytest.raises(llm.LLMFailure):
-        mock.generate(ctx_for(run_dir, "luzia"), model, mock.pick_scope(model), {})
+        mock.generate(ctx_for(run_dir, "luzia"), BRIEF, budget(), "batch1")
 
 
 def test_html_comes_out_of_a_fence_or_a_bare_document():
@@ -154,9 +157,8 @@ def test_each_attempt_is_one_call_under_its_own_wall_and_a_timeout_is_not_retrie
             raise llm.LLMFailure("max_tokens", "cut off")
         raise llm.LLMFailure("timeout", "passed the wall")
     monkeypatch.setattr(llm, "call", call)
-    model = golden("aol")
     with pytest.raises(llm.LLMFailure) as e:
-        mock.generate(ctx_for(run_dir, "aol", profile="real"), model, mock.pick_scope(model), {})
+        mock.generate(ctx_for(run_dir, "aol", profile="real"), BRIEF, budget(), "batch1")
     assert e.value.outcome == "timeout"
     assert calls == [("xhigh", 1, mock.WALL_SECONDS), ("high", 1, mock.WALL_SECONDS)]
 

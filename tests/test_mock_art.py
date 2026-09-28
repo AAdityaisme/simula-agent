@@ -106,7 +106,8 @@ def test_the_brief_offers_art_on_its_element_and_in_image_files(app):
     scope = mock.pick_scope(model)
     target = next(e for s in scope for e in s.elements if e.in_mock and not e.asset_png)
     rect = Rect(x=target.rect_dp.x, y=target.rect_dp.y, w=48, h=48)
-    data = json.loads(mock.brief(model, scope, {target.id: rect}).split("\n\n", 1)[1])
+    screens = [s.id for s in scope]
+    data = json.loads(mock.brief(model, scope, screens, {target.id: rect}).split("\n\n", 1)[1])
     entry = next(e for s in data["screens"] for e in s["elements"] if e["id"] == target.id)
     assert entry["art"] == {"src": mock.art_src(target.id), "rect": rect.model_dump()}
     assert mock.art_src(target.id) in data["image_files"]
@@ -117,11 +118,13 @@ def test_image_files_lists_every_art_file_the_stage_wrote(tmp_path, monkeypatch,
     calls = []
     monkeypatch.setattr(llm, "call", fake_builder(calls))
     mock.run(ctx_for(run_dir, app))
-    data = json.loads(calls[0]["messages"][0]["content"][-1]["text"].split("\n\n", 1)[1])
+    briefs = [json.loads(call["messages"][0]["content"][-1]["text"].split("\n\n", 1)[1]) for call in calls]
+    image_files = [src for data in briefs for src in data["image_files"]]
     art = json.loads((run_dir / "mock" / "art.json").read_text())["art"]
-    assert set(art) <= set(data["image_files"])
-    assert all((run_dir / "mock" / src).exists() for src in data["image_files"])
-    offered = {e["art"]["src"]: e["art"]["rect"] for s in data["screens"] for e in s["elements"] if "art" in e}
+    assert set(art) <= set(image_files)
+    assert all((run_dir / "mock" / src).exists() for src in image_files)
+    offered = {e["art"]["src"]: e["art"]["rect"] for data in briefs for s in data["screens"] for e in s["elements"]
+               if "art" in e}
     assert offered == art
 
 

@@ -1,5 +1,5 @@
-"""Goal 2: the interactive mock. One model call writes the HTML from model/ alone; code adds navigation,
-renders every screen, and checks the mock contract."""
+"""Goal 2: the interactive mock. Parallel model calls each draw a batch of screens from model/ alone; code joins
+the batches into one page, adds navigation, renders every screen, and checks the mock contract."""
 
 import io
 import json
@@ -7,18 +7,28 @@ import math
 import re
 import shutil
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
+from html import escape
 from html.parser import HTMLParser
+from urllib.parse import quote_plus
 
 import numpy as np
 from PIL import Image
 
 from simula import config, llm, render
 from simula.config import ROOT
-from simula.contracts import Device, Edge, Element, ProductModel, Rect, State
+from simula.contracts import ContractError, ContractReport, Device, Edge, Element, ProductModel, Rect, State
 from simula.runlog import read_trace, run_trace, write_exhibit
 from simula.stages import Ctx
 
-MAX_SCREENS = 8
+# ponytail: a fixed batch size. If a batch still runs out of output tokens, size batches from measured tokens per screen.
+BATCH_SCREENS = 4
+PARALLEL_BATCHES = 4
+DIALOGS = ("modal", "sheet")
+PALETTE_SIZE = 4
+FONT_NAME = re.compile(r"[A-Za-z0-9 ]+")
+STYLE = re.compile(r"<style\b[^>]*>(.*?)</style>", re.S | re.I)
+UNDRAWN_STYLE = "margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888"
 TAGGED_PER_REPEAT = 2
 WALL_SECONDS = 30 * 60
 IMAGE_LONG_SIDE = 1568
@@ -82,27 +92,60 @@ def run(ctx: Ctx) -> None:
     model = ProductModel.model_validate_json((model_dir / "product_model.json").read_text())
     scope = pick_scope(model)
     screens = [s.id for s in scope]
-    run_trace(ctx.run_dir, stage="mock", step="scope", decider="code", note=" ".join(screens))
+    groups = batches(scope)
+    run_trace(ctx.run_dir, stage="mock", step="scope", decider="code",
+              note=" | ".join(" ".join(s.id for s in batch) for batch in groups))
     copy_assets(model_dir, mock_dir, scope, model.device)
     art = crop_art(model_dir, mock_dir, scope, model.device)
 
-    html = generate(ctx, model, scope, art)
-    html = with_runtime(wire_edges(html, model, screens), home_id(scope))
+    style = shared_style(scope)
+    parts, undrawn = draw_batches(ctx, model, groups, screens, art, style)
+    html = with_runtime(wire_edges(stitch(style, fonts_of(scope), parts), model, screens), home_id(scope))
     (mock_dir / "index.html").write_text(html)
 
-    report = render.render_and_validate(mock_dir, model, screens)
+    checked = render.render_and_validate(mock_dir, model, screens)
+    errors = [ContractError(kind="undrawn_screen", detail=f"screen not drawn: {reason}", screen=sid)
+              for sid, reason in undrawn.items()] + checked.errors
+    report = ContractReport(passed=not errors, screens=screens, errors=errors)
     (mock_dir / "contract_report.json").write_text(report.model_dump_json(indent=1))
     run_trace(ctx.run_dir, stage="mock", step="contract", decider="code", outcome="ok" if report.passed else "error",
-              note=f"{len(screens)} screens rendered, {len(report.errors)} contract errors")
-    write_exhibit(ctx.run_dir, 3, "mock", exhibit(ctx, model, scope, html, report))
+              note=f"{len(screens)} screens rendered, {len(undrawn)} not drawn, {len(errors)} contract errors")
+    write_exhibit(ctx.run_dir, 3, "mock", exhibit(ctx, model, scope, groups, undrawn, html, report))
 
 
 def pick_scope(model: ProductModel) -> list[State]:
-    """The model stage chose the scope; this only enforces the contract's limits on it."""
+    """The model stage chose the scope and its priority order (`mock_order`); this drops what the contract forbids
+    and keeps that order. States mock_order leaves out follow in state order."""
     scope = [s for s in model.states if s.in_mock_scope and s.kind != "blocked" and s.content_rating != "unsafe"]
     if not scope:
         raise ValueError("the product model has no state in mock scope")
-    return scope[:MAX_SCREENS]
+    rank = {sid: i for i, sid in enumerate(getattr(model, "mock_order", None) or [])}
+    return sorted(scope, key=lambda s: rank.get(s.id, len(rank)))
+
+
+def batches(scope: list[State]) -> list[list[State]]:
+    """Consecutive screens in priority order, at most BATCH_SCREENS per batch. A modal or sheet joins the batch of
+    the screen it sits on, so a batch holding a screen with more dialogs than that can run over."""
+    by_id = {s.id: s for s in scope}
+    units = {}
+    for state in scope:
+        units.setdefault(anchor(state, by_id), []).append(state)
+    groups = []
+    for unit in units.values():
+        if groups and len(groups[-1]) + len(unit) <= BATCH_SCREENS:
+            groups[-1] += unit
+        else:
+            groups.append(list(unit))
+    return groups
+
+
+def anchor(state: State, by_id: dict[str, State]) -> str:
+    """The in-scope screen a dialog is drawn over (through dialogs over dialogs), or the state itself."""
+    seen = set()
+    while state.kind in DIALOGS and state.parent_id in by_id and state.id not in seen:
+        seen.add(state.id)
+        state = by_id[state.parent_id]
+    return state.id
 
 
 def home_id(scope: list[State]) -> str:
@@ -253,16 +296,63 @@ def contains(a: Rect, b: Rect) -> bool:
     return a.x <= b.x and a.y <= b.y and a.x + a.w >= b.x + b.w and a.y + a.h >= b.y + b.h
 
 
-# ---------- the model call ----------
+# ---------- the model calls, one per batch ----------
 
-def generate(ctx: Ctx, model: ProductModel, scope: list[State], art: dict[str, Rect]) -> str:
-    role = config.roles(ctx.profile)["mock_builder"]
-    system = system_prompt()
-    content = screenshots(ctx, scope) + [{"type": "text", "text": brief(model, scope, art)}]
+def draw_batches(ctx: Ctx, model: ProductModel, groups: list[list[State]], screens: list[str], art: dict[str, Rect],
+                 style: str) -> tuple[list[tuple[str, str]], dict[str, str]]:
+    """Each batch's (CSS, sections), drawn at most PARALLEL_BATCHES at once, and the screens not drawn with why.
+    A batch that fails becomes placeholder sections and the rest still ship; the stage fails only if all fail."""
     budget = llm.Budget.for_stage("mock", ctx.run_dir / "trace.jsonl", ctx.usd_cap)
 
+    def draw(n: int, batch: list[State]):
+        try:
+            return batch_parts(generate(ctx, batch_content(ctx, model, batch, screens, art, style), budget, f"batch{n}"))
+        except (llm.LLMFailure, llm.CapReached, ValueError) as e:
+            return e
+
+    # ponytail: the batches share one Budget, and llm.Budget.reserve doesn't hold a call's worst case while it is in
+    # flight, so parallel calls can pass the cap by what they spend together. Fix belongs in llm.Budget.
+    with ThreadPoolExecutor(PARALLEL_BATCHES) as pool:
+        results = list(pool.map(draw, range(1, len(groups) + 1), groups))
+    failures = [r for r in results if isinstance(r, BaseException)]
+    if len(failures) == len(results):
+        raise failures[0]
+    parts, undrawn = [], {}
+    for n, (batch, result) in enumerate(zip(groups, results), 1):
+        if isinstance(result, BaseException):
+            reason = failure_reason(result)
+            undrawn |= {s.id: reason for s in batch}
+            run_trace(ctx.run_dir, stage="mock", step=f"batch{n}", decider="code", outcome=failure_outcome(result),
+                      note=f"not drawn: {' '.join(s.id for s in batch)}: {reason}"[:300])
+            result = ("", placeholders(batch, reason))
+        parts.append(result)
+    return parts, undrawn
+
+
+def failure_reason(e: BaseException) -> str:
+    return (f"$ cap reached: {e}" if isinstance(e, llm.CapReached) else str(e))[:200]
+
+
+def failure_outcome(e: BaseException) -> str:
+    return "cap" if isinstance(e, llm.CapReached) else getattr(e, "outcome", "error")
+
+
+def placeholders(batch: list[State], reason: str) -> str:
+    return "\n".join(f'<section data-screen="{s.id}"{parent_attr(s)}><p style="{UNDRAWN_STYLE}">'
+                     f"screen not drawn: {escape(reason)}</p></section>" for s in batch)
+
+
+def parent_attr(state: State) -> str:
+    return f' data-parent="{state.parent_id}"' if state.kind in DIALOGS and state.parent_id else ""
+
+
+def generate(ctx: Ctx, content: list[dict], budget: llm.Budget, step: str) -> str:
+    """One batch's call. An answer cut off at max_tokens is retried once, at lower effort, asking for shorter CSS."""
+    role = config.roles(ctx.profile)["mock_builder"]
+    system = system_prompt()
+
     def ask(effort, content):
-        text, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="mock", step="generate", model=role["model"],
+        text, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="mock", step=step, model=role["model"],
                            effort=effort, system=system, messages=[{"role": "user", "content": content}],
                            max_tokens=role.get("max_tokens", 64000), budget=budget, no_cache=ctx.no_cache,
                            replay=ctx.replay, attempts=1, total_timeout=WALL_SECONDS)
@@ -275,9 +365,16 @@ def generate(ctx: Ctx, model: ProductModel, scope: list[State], art: dict[str, R
         if e.outcome != "max_tokens":
             raise
     retry_effort = RETRY_EFFORT.get(effort, effort)
-    run_trace(ctx.run_dir, stage="mock", step="generate", decider="code", outcome="retry",
+    run_trace(ctx.run_dir, stage="mock", step=step, decider="code", outcome="retry",
               note=f"max_tokens: retrying at effort={retry_effort} with shorter CSS")
     return ask(retry_effort, content + [{"type": "text", "text": SHORTER}])
+
+
+def batch_content(ctx: Ctx, model: ProductModel, batch: list[State], screens: list[str], art: dict[str, Rect],
+                  style: str) -> list[dict]:
+    return screenshots(ctx, batch) + [
+        {"type": "text", "text": f"The page's shared style, already in the page:\n<style>\n{style}\n</style>"},
+        {"type": "text", "text": brief(model, batch, screens, art)}]
 
 
 def system_prompt() -> str:
@@ -304,22 +401,24 @@ def screenshots(ctx: Ctx, scope: list[State]) -> list[dict]:
     return parts
 
 
-def brief(model: ProductModel, scope: list[State], art: dict[str, Rect]) -> str:
-    edges = scope_edges(model, scope)
+def brief(model: ProductModel, batch: list[State], screens: list[str], art: dict[str, Rect]) -> str:
+    """The product model for one batch. Its edges start on the batch's screens and may end on any in-scope screen."""
+    ids = {s.id for s in batch}
+    edges = [e for e in model.edges if e.from_state in ids and e.to_state in screens]
     edge_ids = {e.id for e in edges}
     flows = [{"name": f.name, "edge_ids": [i for i in f.edge_ids if i in edge_ids]} for f in model.flows]
-    screens = [state_brief(s, model.device, art) for s in scope]
-    elements = [e for s in screens for e in s["elements"]]
+    drawn = [state_brief(s, model.device, art) for s in batch]
+    elements = [e for s in drawn for e in s["elements"]]
     data = {
         "app": model.app,
         "image_files": [e["asset"] for e in elements if "asset" in e] + [e["art"]["src"] for e in elements if "art" in e],
-        "screens": screens,
+        "screens": drawn,
         "edges": [{"id": e.id, "from": e.from_state, "to": e.to_state, "element": e.element_id,
                    "transition": e.transition} for e in edges],
         "flows": [f for f in flows if f["edge_ids"]],
         "cross_screen_values": [v.model_dump() for v in model.cross_screen_values],
     }
-    return ("The product model for the screens to mock. Rects are in CSS px relative to the screen's section "
+    return ("The product model for the screens in your batch. Rects are in CSS px relative to the screen's section "
             "(content coordinates). `tag: false` elements are drawn but carry no data-el. `image_files` is every "
             "image that exists and `edges` every data-edge allowed: never invent another id or file name.\n\n"
             + json.dumps(data, separators=(",", ":")))
@@ -350,6 +449,52 @@ def extract_html(text: str) -> str:
     if start == -1 or end == -1:
         raise ValueError("the mock builder returned no ```html block")
     return text[start:end + len("</html>")]
+
+
+def batch_parts(html: str) -> tuple[str, str]:
+    """A batch's answer as (its CSS, its sections). Takes the body's inside when the answer is a whole document."""
+    css = "\n".join(part.strip() for part in STYLE.findall(html))
+    markup = STYLE.sub("", html)
+    body = re.search(r"<body\b[^>]*>(.*)</body>", markup, re.S | re.I)
+    return css, (body.group(1) if body else markup).strip()
+
+
+# ---------- one page from every batch ----------
+
+def shared_style(scope: list[State]) -> str:
+    """Written once by code for the whole page: the most used fills, text colors and fonts of the in-scope elements
+    as CSS variables, and the body in the first of each."""
+    elements = [e for s in scope for e in s.elements if e.in_mock]
+    palette = {"bg": most_used(e.bg_hex for e in elements) or ["#ffffff"],
+               "fg": most_used(e.fg_hex for e in elements) or ["#000000"],
+               "font": [f'"{f}",system-ui,sans-serif' for f in fonts_of(scope)] or ["system-ui,sans-serif"]}
+    variables = [f"--{name}-{i}:{value}" for name, values in palette.items() for i, value in enumerate(values, 1)]
+    return ":root{" + ";".join(variables) + "}\nbody{background:var(--bg-1);font-family:var(--font-1)}"
+
+
+def fonts_of(scope: list[State]) -> list[str]:
+    return most_used(e.font_guess for s in scope for e in s.elements
+                     if e.in_mock and e.font_guess != "unknown" and FONT_NAME.fullmatch(e.font_guess))
+
+
+def most_used(values) -> list[str]:
+    return [v for v, _ in Counter(v for v in values if v).most_common(PALETTE_SIZE)]
+
+
+def fonts_link(fonts: list[str]) -> str:
+    if not fonts:
+        return ""
+    families = "&".join(f"family={quote_plus(f)}:wght@400;500;600;700" for f in fonts)
+    return f'<link rel="stylesheet" href="https://fonts.googleapis.com/css2?{families}&display=swap">'
+
+
+def stitch(style: str, fonts: list[str], parts: list[tuple[str, str]]) -> str:
+    """One page: the fonts and the shared style once, each batch's own CSS, then every batch's sections in order."""
+    head = ['<meta charset="utf-8">', fonts_link(fonts), f'<style id="simula-shared">\n{style}\n</style>']
+    head += [f'<style data-batch="{n}">\n{css}\n</style>' for n, (css, _) in enumerate(parts, 1) if css]
+    body = [markup for _, markup in parts]
+    return ("<!doctype html>\n<html><head>\n" + "\n".join(h for h in head if h) + "\n</head><body>\n"
+            + "\n".join(body) + "\n</body></html>\n")
 
 
 class StartTags(HTMLParser):
@@ -435,7 +580,8 @@ def _insert_before(html: str, tag: str, snippet: str) -> str:
 
 # ---------- exhibit ----------
 
-def exhibit(ctx: Ctx, model: ProductModel, scope: list[State], html: str, report) -> str:
+def exhibit(ctx: Ctx, model: ProductModel, scope: list[State], groups: list[list[State]], undrawn: dict[str, str],
+            html: str, report: ContractReport) -> str:
     attrs = [t["attrs"] for t in StartTags(html).tags]
     placed = Counter(a["data-el"].split(".")[0] for a in attrs if a.get("data-el"))
     wired = {a["data-edge"] for a in attrs if a.get("data-edge")}
@@ -443,7 +589,12 @@ def exhibit(ctx: Ctx, model: ProductModel, scope: list[State], html: str, report
     lines = [f"# Mock: {model.app}", "",
              f"Contract: **{'PASS' if report.passed else 'FAIL'}** ({len(report.errors)} errors). "
              f"Model spend this stage: ${stage_usd(ctx):.4f}.", "",
-             "| Screen | Name | data-el placed / expected | Render |", "|---|---|---|---|"]
+             "| Batch | Screens | Result |", "|---|---|---|"]
+    for n, batch in enumerate(groups, 1):
+        reason = undrawn.get(batch[0].id)
+        result = f"not drawn: {reason.replace('|', '/')}" if reason else "drawn"
+        lines.append(f"| {n} | {' '.join(s.id for s in batch)} | {result} |")
+    lines += ["", "| Screen | Name | data-el placed / expected | Render |", "|---|---|---|---|"]
     for s in scope:
         lines.append(f"| {s.id} | {s.name} | {placed[s.id]} / {len(tagged_ids(s))} | `mock/renders/{s.id}.png` |")
     lines += ["", f"Edges wired: {len(wired & {e.id for e in edges})} / {len(edges)} in scope."]
