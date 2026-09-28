@@ -26,11 +26,11 @@ IMAGE_LONG_SIDE = 1568
 MAX_TOKENS = 64000
 ANSWER_RESERVE_TOKENS = 8000
 TOKENS_PER_NAME = 30
-SCOPE_CAP = 8
 QUESTION_CAP = 5
 NOT_OBSERVED = "meaning not observed"
 MEASURE = re.compile(r"^(?P<what>.*?)\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>[^\d\s]*)$")
 MONEY_KINDS = ("paywall", "limit", "currency")
+SCOPE_KINDS = (*MONEY_KINDS, "ad")
 EDGE_ACTIONS = ("tap", "swipe", "back", "type")
 ROLE_BY_CLASS = {"TextView": "text", "Button": "button", "ImageButton": "button", "ImageView": "image",
                  "EditText": "text input"}
@@ -476,27 +476,24 @@ def code_roles(states: list[State], edges: list[Edge]) -> list[State]:
 # ---------- scope and assets ----------
 
 def mock_scope(states: list[State], edges: list[Edge], meaning: ModelMeaning) -> list[str]:
-    """Root, then states showing a paywall, limit, or currency, then every state on the core flows (in flow
-    order), then states with any other mechanic, then tabs, then depth-1 states; a modal brings its parent
-    first; at most 8; never unsafe, blocked, or outside the app. Money screens are few and matter most, so a
-    long flow can't crowd them out; flows come before tabs so the mock shows the app being used."""
+    """The experience the mock draws, in priority order: the root, every state showing a paywall, limit,
+    currency, or ad (a modal or sheet brings its parent first), then every state on the core flows in flow
+    order. No cap, and nothing else: a tab or depth-1 screen is in only when it is on a flow or holds one of
+    those mechanics. Never unsafe, blocked, or outside the app. The product model keeps every state."""
     by_id = {s.id: s for s in states}
     edge_by_id = {e.id: e for e in edges}
     eligible = {s.id for s in states if s.content_rating != "unsafe" and s.kind not in ("blocked", "external")}
     root = next((s.id for s in states if s.kind == "screen"), None)
     flow_states = [sid for f in meaning.flows for i in f.edge_ids if i in edge_by_id
                    for sid in (edge_by_id[i].from_state, edge_by_id[i].to_state)]
-    money = [i.split(".")[0] for m in meaning.mechanics if m.kind in MONEY_KINDS for i in m.evidence_ids]
-    other_mechanics = [i.split(".")[0] for m in meaning.mechanics if m.kind not in MONEY_KINDS for i in m.evidence_ids]
-    tabs = [e.to_state for e in edges if e.transition == "tab"]
-    depth1 = [e.to_state for e in edges if e.from_state == root]
+    mechanic_states = [i.split(".")[0] for m in meaning.mechanics if m.kind in SCOPE_KINDS for i in m.evidence_ids]
     ordered = []
-    for sid in [root, *money, *flow_states, *other_mechanics, *tabs, *depth1]:
+    for sid in [root, *mechanic_states, *flow_states]:
         parent = by_id[sid].parent_id if sid in by_id else None
         if parent and parent not in eligible:
             continue
         ordered += [parent, sid] if parent else [sid]
-    return list(dict.fromkeys(s for s in ordered if s in eligible))[:SCOPE_CAP]
+    return list(dict.fromkeys(s for s in ordered if s in eligible))
 
 
 def finish_elements(state: State, scope: set[str], tapped: set[str], image: Image.Image, out: Path,
@@ -560,7 +557,6 @@ def render_md(model: ProductModel) -> str:
 
 
 def exhibit(model: ProductModel, rounds: list[list[str]], notes: list[str]) -> str:
-    scope = [s.id for s in model.states if s.in_mock_scope]
     lines = ["# 02 · model", "",
              f"- {len(model.states)} states, {sum(len(s.elements) for s in model.states)} elements, "
              f"{len(model.edges)} edges (all from explore, code-owned)",
@@ -571,7 +567,7 @@ def exhibit(model: ProductModel, rounds: list[list[str]], notes: list[str]) -> s
              f"- app terms: {len(model.terms)}, meaning not observed for: "
              + (", ".join(t.term for t in model.terms if not t.observed) or "none"),
              f"- open questions for the explorer: {len(model.questions)}",
-             f"- mock scope (code): {', '.join(scope) or 'none'}",
+             f"- mock scope (code, priority order): {', '.join(model.mock_order) or 'none'}",
              "- ratings: " + ", ".join(f"{s.id} {s.content_rating}" for s in model.states)]
     for n, rejected in enumerate(rounds, start=1):
         title = "first answer" if n == 1 else "retry"
@@ -662,9 +658,10 @@ def run(ctx: Ctx) -> None:
 
     states = apply_meaning(states, meaning, config.profiles()["content"]["adult_keywords"])
     states = code_roles(states, edges)
-    scope = set(mock_scope(states, edges, meaning))
+    mock_order = mock_scope(states, edges, meaning)
+    scope = set(mock_order)
     states = [finish_elements(s, scope, tapped, images[s.id], out, device) for s in states]
-    run_trace(ctx.run_dir, stage="model", step="scope", decider="code", note=", ".join(sorted(scope)))
+    run_trace(ctx.run_dir, stage="model", step="scope", decider="code", note=", ".join(mock_order))
 
     model = ProductModel(
         app=ctx.app["name"], app_version=explore.app_version or "unknown", app_category=meaning.app_category,
@@ -673,7 +670,7 @@ def run(ctx: Ctx) -> None:
         value_ledger=meaning.value_ledger + experience, open_questions=[q.question for q in meaning.open_questions],
         coverage=explore.coverage, provenance=runfolder.upstream_provenance(ctx.run_dir, ["explore"]),
         terms=resolve_terms(meaning, states),
-        questions=[OpenQuestion(**q.model_dump()) for q in meaning.open_questions])
+        questions=[OpenQuestion(**q.model_dump()) for q in meaning.open_questions], mock_order=mock_order)
     (out / "product_model.json").write_text(model.model_dump_json(indent=1))
     (out / "product_model.md").write_text(render_md(model))
     write_exhibit(ctx.run_dir, 2, "model", exhibit(model, rounds, notes))

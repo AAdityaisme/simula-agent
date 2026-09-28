@@ -181,8 +181,12 @@ def test_mock_scope_is_chosen_by_code(app):
     rated = stage.apply_meaning(states, answer, KEYWORDS)
     scope = stage.mock_scope(rated, edges, answer)
     by_id = {s.id: s for s in rated}
-    assert 1 <= len(scope) <= stage.SCOPE_CAP
     assert scope[0] == next(s.id for s in rated if s.kind == "screen")
+    edge_by_id = {e.id: e for e in edges}
+    flow_states = {sid for f in answer.flows for i in f.edge_ids for sid in (edge_by_id[i].from_state, edge_by_id[i].to_state)}
+    money = {i.split(".")[0] for m in answer.mechanics if m.kind in stage.SCOPE_KINDS for i in m.evidence_ids}
+    reasons = flow_states | money | {by_id[s].parent_id for s in money if s in by_id}
+    assert set(scope[1:]) <= reasons
     assert all(by_id[s].content_rating != "unsafe" and by_id[s].kind not in ("blocked", "external") for s in scope)
     for sid in scope:
         parent = by_id[sid].parent_id
@@ -262,43 +266,33 @@ def test_questions_need_a_real_start_state_and_are_capped(app):
     assert [q.id for q in kept.open_questions] == ["q0", "q1", "q2", "q3", "q4"]
 
 
-def synthetic_app(flow_length: int, limit_on_flow: bool):
-    """Root s01 with 6 tabs and one core flow from the root; the flow ends at a limit modal, or the limit is a
-    separate paywall screen one tap from the root."""
+def test_scope_is_root_then_money_screens_then_the_core_flow_and_nothing_else():
+    """20 eligible states: 6 tabs, a 4-state core flow, a paywall over the root, and filler (depth-1 screens,
+    one with a non-scope mechanic)."""
     def state(sid, kind="screen", parent=None):
         return State(id=sid, kind=kind, parent_id=parent, name="", purpose="", fingerprint="", canonical_png="",
                      elements=[], in_mock_scope=False, content_rating="safe", dynamic_regions=[], blocked_reason=None)
 
-    def edge(a, b, transition):
+    def edge(a, b, transition="push"):
         return Edge(id=f"{a}.tap>{b}", from_state=a, to_state=b, element_id=None, action="tap",
                     transition=transition, change_summary="")
-    tabs = [f"s{n:02d}" for n in range(2, 8)]
-    flow = [f"s{n:02d}" for n in range(8, 8 + flow_length)]
-    limit = flow[-1] if limit_on_flow else "s99"
-    states = [state("s01"), *map(state, tabs), *map(state, flow[:-1]),
-              state(flow[-1], "modal", flow[-2]) if limit_on_flow else state(flow[-1]), state("s99")]
-    edges = [edge("s01", t, "tab") for t in tabs] + [edge("s01", "s99", "push")]
+    ids = [f"s{n:02d}" for n in range(1, 21)]
+    tabs, flow, paywall, filler = ids[1:7], ids[7:11], ids[11], ids[12:]
+    states = [state(sid, "modal", "s01") if sid == paywall else state(sid) for sid in ids]
     hops = list(zip(["s01", *flow[:-1]], flow))
-    edges += [edge(a, b, "modal" if limit_on_flow and b == flow[-1] else "push") for a, b in hops]
-    meaning = ModelMeaning(app_category="chat", states=[], elements=[], cross_screen_values=[], value_ledger=[],
-                           open_questions=[], terms=[],
-                           flows=[Flow(id="f1", name="core", purpose="x", edge_ids=[f"{a}.tap>{b}" for a, b in hops],
-                                       evidence_ids=[])],
-                           mechanics=[Mechanic(id="m1", kind="limit", evidence_ids=[limit], summary="x",
-                                               observed_numbers=[], status="observed")])
-    return states, edges, meaning, tabs, flow
-
-
-def test_the_limit_screen_then_the_core_flow_come_before_tabs():
-    states, edges, meaning, tabs, flow = synthetic_app(4, limit_on_flow=True)
-    scope = stage.mock_scope(states, edges, meaning)
-    assert scope == ["s01", "s10", "s11", "s08", "s09", *tabs[:3]]
-
-
-def test_a_flow_long_enough_to_fill_the_cap_still_leaves_the_paywall_in_scope():
-    states, edges, meaning, tabs, flow = synthetic_app(10, limit_on_flow=False)
-    scope = stage.mock_scope(states, edges, meaning)
-    assert len(scope) == stage.SCOPE_CAP and scope[:2] == ["s01", "s99"] and scope[2:] == flow[:6]
+    edges = ([edge("s01", t, "tab") for t in tabs] + [edge(a, b) for a, b in hops] + [edge("s01", paywall, "modal")]
+             + [edge("s01", f) for f in filler])
+    meaning = ModelMeaning(
+        app_category="chat", states=[], elements=[], cross_screen_values=[], value_ledger=[], open_questions=[],
+        terms=[], flows=[Flow(id="f1", name="core", purpose="x", edge_ids=[f"{a}.tap>{b}" for a, b in hops],
+                              evidence_ids=[])],
+        mechanics=[Mechanic(id="m1", kind="paywall", evidence_ids=[paywall], summary="x", observed_numbers=[],
+                            status="observed"),
+                   Mechanic(id="m2", kind="entitlement", evidence_ids=[filler[0]], summary="x", observed_numbers=[],
+                            status="observed")])
+    order = stage.mock_scope(states, edges, meaning)
+    assert order == ["s01", paywall, *flow]
+    assert not set(order) & set(tabs + filler)
 
 
 # ---------- the whole stage ----------
@@ -341,6 +335,8 @@ def test_the_stage_writes_a_valid_model(name, tmp_path, monkeypatch):
     assert all((out / e.asset_png).exists() for s in model.states for e in s.elements if e.asset_png)
     tapped = {e.element_id for e in model.edges if e.element_id}
     scope = {s.id for s in model.states if s.in_mock_scope}
+    assert set(model.mock_order) == scope and len(model.mock_order) == len(scope)
+    assert model.mock_order[0] == next(s.id for s in model.states if s.kind == "screen")
     assert all(e.in_mock for s in model.states for e in s.elements if e.id in tapped and s.id in scope)
     assert model.flows
     md = (out / "product_model.md").read_text()
