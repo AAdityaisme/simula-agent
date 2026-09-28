@@ -267,16 +267,16 @@ def is_art(path: Path) -> bool:
         return min(image.size) >= ART_MIN_PX
 
 
-def blur_css(model: ProductModel, trigger: str, assets: Path) -> str:
-    """Card art on a screen not rated safe is blurred, in the flow's mock and on every slide. New screens take their
-    trigger screen's rating."""
-    risky = [s.id for s in model.states if s.in_mock_scope and s.content_rating != "safe"]
-    art = [p.name for p in sorted(assets.glob("*.png")) if is_art(p)] if assets.exists() else []
-    if not risky or not art:
+def blur_css(model: ProductModel, assets: Path) -> str:
+    """Card art from a screen not rated safe is blurred wherever it is drawn (a new flow screen can reuse it on a safe
+    screen), in the flow's mock and on every slide. Assets are named by element id, so the prefix is the source
+    screen."""
+    risky = {s.id for s in model.states if s.content_rating != "safe"}
+    art = [p.name for p in sorted(assets.glob("*.png")) if p.name.split(".")[0] in risky and is_art(p)]
+    if not art:
         return ""
-    screens = [f'[data-screen="{sid}"]' for sid in risky] + (["[data-flow]"] if trigger in risky else [])
     images = [f'img[src="assets/{name}"],[style*="{name}"]' for name in art]
-    return f":is({','.join(screens)}) :is({','.join(images)}){{filter:blur(14px)!important}}\n"
+    return f":is({','.join(images)}){{filter:blur(14px)!important}}\n"
 
 
 def with_flow_css(html: str, blur: str) -> str:
@@ -436,7 +436,7 @@ def build_flow(ctx: Ctx, model: ProductModel, source: Path, c: Candidate, decisi
     if (source / "assets").exists():
         shutil.copytree(source / "assets", flow_dir / "assets")
     original = (source / "index.html").read_text()
-    blur = blur_css(model, c.trigger_state_id, flow_dir / "assets")
+    blur = blur_css(model, flow_dir / "assets")
     (flow_dir / "index.html").write_text(with_flow_css(original, blur))
     before = screenshot_before(flow_dir, c.flow_steps[0].state_id)
 
