@@ -39,7 +39,7 @@ def stage_params(stage: str, ctx: Ctx) -> dict:
     roles = config.roles(ctx.profile)
     return {"app": ctx.app, "profile": ctx.profile, "roles": {r: roles[r] for r in ROLES[stage]},
             "economics_mode": config.profiles()["economics_mode"] if stage in ("propose", "judge", "flows") else None,
-            "no_send": ctx.no_send, "probe": ctx.probe,
+            "no_send": ctx.no_send,
             "budget": config.budget(ctx.budget) if stage == "explore" else None,
             "allow_account_create": ctx.allow_account_create if stage == "explore" else None}
 
@@ -61,7 +61,7 @@ def new_manifest(run_dir: Path, app: dict, args, provenance: Provenance) -> Mani
         prompt_hashes={str(p.relative_to(ROOT)): runfolder.sha256(p) for p in sorted((ROOT / "prompts").rglob("*.md"))},
         app_package=app["package"], app_version=None, mobile_mcp_version=mobile_mcp_version(),
         playwright_version=package_version("playwright"), caps_usd=config.profiles()["caps_usd"],
-        no_send=True, provenance=provenance, stages_done=[], usd_total=0.0,
+        no_send=getattr(args, "no_send", False), provenance=provenance, stages_done=[], usd_total=0.0,
     )
 
 
@@ -70,6 +70,10 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     stage_dir = ctx.run_dir / stage
     provenance = runfolder.upstream_provenance(ctx.run_dir, UPSTREAM[stage])
     runfolder.require_real(provenance, ctx.allow_fixtures)
+    if stage == "explore" and not force and runfolder.read_done(stage_dir):
+        runlog.run_trace(ctx.run_dir, stage=stage, step="skip", decider="code",
+                         note="a finished explore is reused as it is; --new or --from explore explores again")
+        return True
     inputs, prompts, params = stage_inputs(stage, ctx), prompt_files(stage), stage_params(stage, ctx)
     if not force and runfolder.is_done(stage_dir, ctx.run_dir, inputs, prompts, params):
         runlog.run_trace(ctx.run_dir, stage=stage, step="skip", decider="code", note="hashes match")
@@ -127,7 +131,7 @@ def open_run(args) -> Ctx:
         runlog.run_trace(run_dir, stage=stage, step="seed", decider="human", note=f"fixture {path}")
     return Ctx(app=app, run_dir=run_dir, profile=args.profile, no_cache=args.no_cache, replay=args.replay,
                usd_cap=args.usd_cap, allow_fixtures=args.allow_fixtures, budget=args.budget,
-               allow_account_create=args.allow_account_create, probe=getattr(args, "probe", False),
+               allow_account_create=args.allow_account_create, no_send=getattr(args, "no_send", False),
                device=getattr(args, "device", None))
 
 
@@ -193,7 +197,7 @@ def parser() -> argparse.ArgumentParser:
         s = sub.add_parser(stage, help=f"run the {stage} stage")
         add_run_flags(s)
         if stage == "explore":
-            s.add_argument("--probe", action="store_true", help="allow the bounded chat probe (<= 8 messages)")
+            s.add_argument("--no-send", action="store_true", help="skip the core-loop pass (sends nothing)")
             s.add_argument("--device", metavar="SERIAL", help="adb serial to explore on (default: ANDROID_SERIAL, "
                                                               "else the only device online)")
         s.set_defaults(func=cmd_stage)
@@ -202,6 +206,7 @@ def parser() -> argparse.ArgumentParser:
     add_run_flags(r)
     r.add_argument("--new", action="store_true", help="start a new run folder")
     r.add_argument("--from", dest="from_stage", choices=STAGES, help="rerun from this stage onward")
+    r.add_argument("--no-send", action="store_true", help="explore without the core-loop pass (sends nothing)")
     r.add_argument("--device", metavar="SERIAL", help="adb serial to explore on (default: ANDROID_SERIAL, "
                                                       "else the only device online)")
     r.set_defaults(func=cmd_run)

@@ -42,7 +42,6 @@ class Ctx:
     allow_fixtures: bool
     budget: str = "transfer"
     allow_account_create: bool = False
-    no_send: bool = True
-    probe: bool = False
+    no_send: bool = False
     device: str | None = None
 

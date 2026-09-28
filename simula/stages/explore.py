@@ -51,6 +51,7 @@ REPLY_WAIT_S = 45
 LOAD_WAIT_S = 20
 QUIET_S = 2.0
 REPLAY_MINUTES = 8
+SPLASH_WAIT_S = 90
 LAUNCH_WAIT_S = 30
 LAUNCH_QUIET_S = 3
 WALK_STEPS = 3
@@ -171,7 +172,7 @@ class Explorer:
         self.budget = llm.Budget.for_stage("explore", self.trace_path, ctx.usd_cap)
         self.cache_dir = llm.CACHE
         self.limits = config.budget(ctx.budget)
-        self.may_send = ctx.probe or not ctx.no_send
+        self.may_send = not ctx.no_send
         self.core_reps = CORE_REPS.get(ctx.budget, 3) if self.may_send else 0
         self.tour_seconds = self.limits["wall_minutes"] * 60 - self.core_reps * CORE_SECONDS_PER_REP
         self.device = Device()
@@ -460,11 +461,16 @@ class Explorer:
         self.segments.append([])
 
     def wait_for_app(self, expect: Seen | None = None) -> Obs:
-        """Observes after a launch, waiting up to LAUNCH_WAIT_S for a splash to end and, on a relaunch, for the
-        launch screen seen before. A feed can sit on still loading placeholders for many seconds, so a launch
-        also waits until two looks LAUNCH_QUIET_S apart agree."""
-        deadline = self.clock() + LAUNCH_WAIT_S
+        """Observes after a launch, waiting up to SPLASH_WAIT_S for a splash to end (a cold start on a busy
+        emulator took over a minute), then up to LAUNCH_WAIT_S for the launch screen seen before. A feed can sit on
+        still loading placeholders for many seconds, so a launch also waits until two looks LAUNCH_QUIET_S apart
+        agree."""
+        splash_deadline = self.clock() + SPLASH_WAIT_S
         obs = self.observe()
+        while not obs.cands and obs.fg == self.package and self.clock() < splash_deadline:
+            self.sleep(1.5)
+            obs = self.observe()
+        deadline = self.clock() + LAUNCH_WAIT_S
         while obs.fg == self.package and self.clock() < deadline and (not obs.cands or (
                 expect and not ob.same_state(obs.fp, expect.fp) and not ob.dialog_box(obs.cands, self.device))):
             self.sleep(1.5)
