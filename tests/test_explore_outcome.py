@@ -61,3 +61,24 @@ def test_a_blocked_root_after_the_full_splash_wait_is_done(tmp_path, monkeypatch
     assert phone.clock.t >= stage.SPLASH_WAIT_S
     assert (out / "done.json").exists() and not (out / "failure.json").exists()
     assert (ex.run_dir / "needs-human.md").exists()
+
+
+@pytest.mark.parametrize("error", [SystemExit("explore stopped by SIGTERM"), TimeoutError("respawn"),
+                                   KeyboardInterrupt(), RuntimeError("the server died")],
+                         ids=["SystemExit", "TimeoutError", "KeyboardInterrupt", "RuntimeError"])
+def test_a_crash_on_the_first_core_loop_screenshot_keeps_the_tour(tmp_path, monkeypatch, error):
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    save = phone.screenshot
+
+    def screenshot(path, size=None):
+        if ex.core is not None:
+            raise error
+        return save(path, size)
+    phone.screenshot = screenshot
+    with pytest.raises(type(error)):
+        stage.explore_app(ex)
+    assert ex.core is not None and len(ex.states) >= 8
+    assert (ex.out / "explore.json").exists()
+    assert all((ex.out / "states" / f"{s.sid}.json").exists() for s in ex.states)
+    assert (ex.run_dir / "exhibits" / "01-explore.md").exists()
+    assert any(f"core_loop crashed: {type(error).__name__}" in r for r in ex.core_results)

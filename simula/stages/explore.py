@@ -1266,10 +1266,36 @@ def run(ctx: Ctx) -> None:
 
 
 def explore_app(ex: Explorer) -> None:
-    ex.measure_device()
-    app_version = adb_value(ex.serial, ["dumpsys", "package", ex.package], "versionName=")
-    run_trace(ex.ctx.run_dir, stage="explore", step="device", decider="code",
-              note=f"serial {ex.serial}, mobile-mcp device {ex.phone.device}")
+    """Every phase's failure is logged; whatever was captured is written, even when one ends the process."""
+    app_version = None
+    try:
+        ex.measure_device()
+        app_version = adb_value(ex.serial, ["dumpsys", "package", ex.package], "versionName=")
+        run_trace(ex.ctx.run_dir, stage="explore", step="device", decider="code",
+                  note=f"serial {ex.serial}, mobile-mcp device {ex.phone.device}")
+        run_tour(ex)
+        if ex.root and not ex.stop_reason.startswith(("blocked root", "second hang")):
+            for phase in (ex.paywall_pass, ex.core_loop, ex.verify_replay):
+                try:
+                    phase()
+                except (Stop, llm.CapReached, *DEVICE_ERRORS) as e:
+                    ex.core_results.append(f"{phase.__name__} stopped: {type(e).__name__}: {e}"[:200])
+                    ex.note(phase.__name__, str(e)[:200], outcome="error")
+                except BaseException as e:
+                    ex.core_results.append(f"{phase.__name__} crashed: {type(e).__name__}: {e}"[:200])
+                    ex.note(phase.__name__, f"crashed: {type(e).__name__}: {e}"[:200], outcome="error")
+                    raise
+    finally:
+        ex.write(app_version)
+        update_manifest(ex.ctx.run_dir, app_version=app_version)
+        write_exhibit(ex.ctx.run_dir, 1, "explore", exhibit(ex, app_version))
+        run_trace(ex.ctx.run_dir, stage="explore", step="summary", decider="code",
+                  note=f"{len(ex.states)} states, {ex.actions} actions, stop: {ex.stop_reason}")
+    if not ex.states or ex.stop_reason.startswith(DEVICE_STOPS):
+        raise ExploreFailed(ex.stop_reason or "no state was recorded")
+
+
+def run_tour(ex: Explorer) -> None:
     try:
         ex.tour()
     except Stop as e:
@@ -1279,18 +1305,9 @@ def explore_app(ex: Explorer) -> None:
     except DEVICE_ERRORS as e:
         ex.stop_reason = f"device error: {type(e).__name__}: {e}"[:200]
         ex.note("tour", ex.stop_reason, outcome="error")
-    ex.tour_actions = ex.actions
-    if ex.root and not ex.stop_reason.startswith(("blocked root", "second hang")):
-        for phase in (ex.paywall_pass, ex.core_loop, ex.verify_replay):
-            try:
-                phase()
-            except (Stop, llm.CapReached, *DEVICE_ERRORS) as e:
-                ex.core_results.append(f"{phase.__name__} stopped: {type(e).__name__}: {e}"[:200])
-                ex.note(phase.__name__, str(e)[:200], outcome="error")
-    ex.write(app_version)
-    update_manifest(ex.ctx.run_dir, app_version=app_version)
-    write_exhibit(ex.ctx.run_dir, 1, "explore", exhibit(ex, app_version))
-    run_trace(ex.ctx.run_dir, stage="explore", step="summary", decider="code",
-              note=f"{len(ex.states)} states, {ex.actions} actions, stop: {ex.stop_reason}")
-    if not ex.states or ex.stop_reason.startswith(DEVICE_STOPS):
-        raise ExploreFailed(ex.stop_reason or "no state was recorded")
+    except BaseException as e:
+        ex.stop_reason = f"crashed: {type(e).__name__}: {e}"[:200]
+        ex.note("tour", ex.stop_reason, outcome="error")
+        raise
+    finally:
+        ex.tour_actions = ex.actions
