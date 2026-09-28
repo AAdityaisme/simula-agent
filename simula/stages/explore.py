@@ -912,22 +912,35 @@ class Explorer:
         if not self.goto(feed.state):
             return feed
         self.act(Move("tap", feed.controls[0], why="core loop: look inside an item"), purpose="nav")
+        tapped = set()
         for _ in range(WALK_STEPS):
             here = self.current
+            if here.kind != "screen":
+                break
             chat = self.chat_here()
             if chat:
                 return CoreAction("chat", here, list(chat), f"send a message on {here.sid} (inside an item "
                                                             f"from {feed.state.sid})")
-            action = self.input_action(here) if here.kind == "screen" else None
+            action = self.input_action(here)
             if action:
                 return CoreAction("action", here, [action], f"tap {action.label[:40]!r} on {here.sid}")
-            step = next((c for c in here.cands if ob.PRIMARY.search(c.label)
-                         and not ob.denied(c, upsell=here.upsell)), None) if here.kind == "screen" else None
-            if step is None:
+            steps = self.walk_steps(here, tapped)
+            move = (self.ranked_move(here, steps) if len(steps) > 1 else
+                    Move("tap", steps[0], why="the only main action") if steps else None)
+            if move is None or move.action != "tap":
                 break
-            self.act(Move("tap", step, why="core loop: the item's main action"), purpose="nav")
+            tapped.add(move.cand.key)
+            self.act(Move("tap", move.cand, decider=move.decider, why="core loop: the item's main action"),
+                     purpose="nav")
         self.note("core", "no input control inside the item: the core action stays opening items")
         return feed
+
+    def walk_steps(self, here: Seen, tapped: set[str]) -> list[ob.Candidate]:
+        """The item's main-action controls: a button, or a short label (Chat, New chat, Start), never a line of
+        content that happens to say "chat" or "start", and never one already tapped."""
+        return [c for c in here.cands if ob.PRIMARY.search(c.label)
+                and (c.kind in ("Button", "ImageButton") or len(c.label.split()) <= 3)
+                and c.key not in tapped and c.key not in self.tab_keys() and not ob.denied(c, upsell=here.upsell)]
 
     def core_loop(self) -> None:
         self.touring = False

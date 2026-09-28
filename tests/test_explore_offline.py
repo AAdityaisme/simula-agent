@@ -208,16 +208,26 @@ def test_the_loop_stops_at_a_dialog_the_send_opened_not_at_words_in_a_reply(tmp_
     assert tour and not any(line.loop_stop for line in tour)
 
 
-def test_a_feed_item_whose_main_action_opens_a_chat_becomes_the_core_action(tmp_path, monkeypatch):
-    def detail_first(clock):
-        phone = janitor_like(clock)
-        phone.screens["detail"] = capture("luzia", "luzia-home", package=PACKAGE)
-        phone.taps[("limited", "JJK - GOJO’S RELATIVE")] = "detail"
-        phone.taps[("detail", "New chat")] = "chat"
-        return phone
+BIO = "Start the story as her rival from the academy"
+
+
+def detail_first(clock):
+    """A feed item opens a detail page whose bio says "start" above its real New chat control."""
+    phone = janitor_like(clock)
+    detail = capture("luzia", "luzia-home", package=PACKAGE)
+    detail.elements.insert(0, {"ref": "@bio", "type": "android.widget.TextView", "text": BIO,
+                               "coordinates": {"x": 42, "y": 700, "width": 996, "height": 120}})
+    phone.screens["detail"] = detail
+    phone.taps[("limited", "JJK - GOJO’S RELATIVE")] = "detail"
+    phone.taps[("detail", "New chat")] = "chat"
+    return phone
+
+
+def test_the_walk_into_an_item_passes_the_bio_and_reaches_the_composer(tmp_path, monkeypatch):
     ex, phone = explore(tmp_path, monkeypatch, phone_factory=detail_first)
-    assert ex.core.kind == "chat" and phone.typed
+    assert ex.core.kind == "chat" and phone.sent
     assert ("tap", "detail", "New chat") in phone.log
+    assert not any(entry[:3] == ("tap", "detail", BIO) for entry in phone.log)
 
 
 def test_a_failed_capture_in_the_core_loop_keeps_the_tour(tmp_path, monkeypatch):
@@ -283,3 +293,18 @@ def test_a_limit_dialog_stops_the_loop_on_the_pass_it_appears(tmp_path, monkeypa
     ex, phone = explore(tmp_path, monkeypatch, phone_factory=limited, budget="deep")
     stops = [(line.loop_pass, line.loop_stop) for line in lines(ex) if line.loop_stop]
     assert phone.sent == 3 and [n for n, _ in stops] == [3] and ex.core_hit.endswith("on pass 3")
+
+
+def test_the_walk_asks_the_ranker_among_several_and_never_taps_one_twice(tmp_path, monkeypatch):
+    def two_actions(clock):
+        phone = detail_first(clock)
+        dead = {"ref": "@start", "type": "android.widget.Button", "text": "Start chat icon",
+                "coordinates": {"x": 42, "y": 1850, "width": 300, "height": 100}}
+        phone.screens["detail"].elements.insert(1, dead)
+        return phone
+    ex, phone = explore(tmp_path, monkeypatch, phone_factory=two_actions)
+    trace = runlog.read_trace(ex.run_dir / "trace.jsonl")
+    walk = [line for line in trace if "(core loop: the item's main action)" in line.note]
+    assert ex.core.kind == "chat" and phone.sent
+    assert [line.note.split("'")[1] for line in walk] == ["Start chat icon", "New chat"]
+    assert walk[0].decider == "jev"
