@@ -385,7 +385,7 @@ def test_a_sheet_over_the_tab_bar_is_closed_with_back_not_a_relaunch(tmp_path, m
 def test_a_stop_that_is_not_a_limit_leaves_the_limit_open(run):
     ex, _ = run
     assert not ex.core_hit and "limit" in ex.checklist()[1]
-    assert stage.LIMIT_STOPS == ("counter", "input disabled", "paywall")
+    assert stage.LIMIT_STOPS == ("counter", "input disabled", "paywall", "limit")
 
 
 def test_a_sheet_over_the_chat_in_its_own_window_stops_the_loop(tmp_path, monkeypatch):
