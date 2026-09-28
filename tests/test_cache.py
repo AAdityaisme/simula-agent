@@ -194,6 +194,27 @@ def test_declared_fallback_is_used_and_traced(tmp_path, monkeypatch):
     assert any(n.startswith(f"declared fallback used: {MODEL} -> gpt-6-luna") for n in notes)
 
 
+def test_a_transport_failure_is_recorded_and_replays_under_replay(tmp_path, monkeypatch):
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", failing_provider([]))
+    with pytest.raises(llm.LLMFailure):
+        call(tmp_path)
+    assert [json.loads(p.read_text())["failure"] for p in (tmp_path / "cache").glob("*.json")] == ["error", "error"]
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
+    with pytest.raises(llm.LLMFailure) as failure:
+        call(tmp_path, replay=True)
+    assert str(failure.value) == "error: 429 rate limited"
+
+
+def test_replay_of_a_primary_error_gives_the_fallbacks_answer_with_no_calls(tmp_path, monkeypatch):
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", failing_provider([]))
+    monkeypatch.setitem(llm.PROVIDERS, "openai", fake_provider(['{"word": "luna"}'], []))
+    call(tmp_path, fallback="gpt-6-luna")
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
+    monkeypatch.setitem(llm.PROVIDERS, "openai", None)
+    result, _ = call(tmp_path, fallback="gpt-6-luna", replay=True)
+    assert result.word == "luna"
+
+
 def test_no_fallback_unless_declared(tmp_path, monkeypatch):
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", failing_provider([]))
     with pytest.raises(llm.LLMFailure):
@@ -292,7 +313,7 @@ def test_a_failed_attempt_is_recorded_and_releases_its_hold_and_a_failed_chain_r
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "second"}'], rerun_calls))
     result, _ = call(tmp_path, budget=budget)
     recorded = sorted(json.loads(p.read_text()).get("failure", "") for p in (tmp_path / "cache").glob("*.json"))
-    assert result.word == "second" and len(rerun_calls) == 1 and recorded == [""]
+    assert result.word == "second" and len(rerun_calls) == 1 and recorded == ["", "timeout"]
     assert budget.held == pytest.approx(0)
 
 
@@ -306,6 +327,8 @@ def test_a_stalled_stream_is_a_typed_timeout_that_charges_what_streamed(tmp_path
     assert budget.held == pytest.approx(0) and budget.spent == pytest.approx(streamed)
     last = read_trace(tmp_path / "trace.jsonl")[-1]
     assert (last.outcome, last.usd) == ("timeout", round(streamed, 6))
+    entry = json.loads(next((tmp_path / "cache").glob("*.json")).read_text())
+    assert (entry["failure"], entry["tokens_in"], entry["tokens_out"]) == ("timeout", 1000, 100)
 
 
 def test_an_untyped_exit_gives_back_its_hold(tmp_path, monkeypatch):

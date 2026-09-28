@@ -31,6 +31,7 @@ class LLMFailure(Exception):
     def __init__(self, outcome: str, detail: str = "", raw: str = "", tokens_in: int = 0, tokens_out: int = 0):
         super().__init__(f"{outcome}: {detail}")
         self.outcome = outcome
+        self.detail = detail
         self.raw = raw
         self.tokens_in = tokens_in
         self.tokens_out = tokens_out
@@ -355,6 +356,8 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
                   tokens_in=e.tokens_in, tokens_out=e.tokens_out, usd=round(cost, 6), outcome=e.outcome,
                   note=f"key {key[:12]} {str(e)[:200]}")
+            cache_write(key, Reply(text=e.raw, model=model, tokens_in=e.tokens_in, tokens_out=e.tokens_out,
+                                   stop_reason=e.detail, failure=e.outcome), cache_dir)
             continue
         except BaseException:
             budget.charge(0.0, worst)  # an untyped exit (a bug, Ctrl-C, a cap) still gives back its hold
