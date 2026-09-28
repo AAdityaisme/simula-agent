@@ -251,8 +251,8 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
 
     per_check = {k: [c for c in planted if c.target == k] for k in LLM_CHECKS}
     complete = all(pair_complete(v) for v in [*per_check.values(), c8])
-    types = sorted({c.app_type for c in cases if c.source != "deck"})
-    outside = sorted({c.app for c in cases if c.source != "deck" and not c.in_test_set})
+    types = sorted({c.app_type for c in planted + c8})
+    outside = sorted({c.app for c in planted + c8 if not c.in_test_set})
     spread = len(types) >= MIN_APP_TYPES and bool(outside)
     c8_right = [c for c in c8 if economics_result(c.candidate, c.model) == c.expect_economics]
 
@@ -260,7 +260,8 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
              + ", ".join(judges) + ". Prompts frozen in `config/frozen_prompts.toml`.", "",
              f"Fixtures: {len(planted)} planted LLM cases ({len(subtle)} subtle), {len(c8)} C8 cases, "
              f"{len(goods)} known-good (bases and real-run ideas), {len(deck)} deck ideas; "
-             f"app types: {', '.join(types) or 'none'}; apps outside the test set: {', '.join(outside) or 'none'}."]
+             f"planted app types: {', '.join(types) or 'none'}; planted apps outside the test set: "
+             f"{', '.join(outside) or 'none'}."]
     if not complete:
         lines += ["", f"**Fixtures incomplete:** the gate needs 1 flagrant + 1 subtle planted case for each of the "
                   f"{len(LLM_CHECKS)} LLM-judged checks and for {C8} ({2 * len(LLM_CHECKS) + 2} cases); "
@@ -344,7 +345,7 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
                 lines.append(f"| {c.id} | {who} | {', '.join(fails) or 'none'} | {reason} | |")
 
     gate = [(f"fixtures complete (1 flagrant + 1 subtle per LLM check and for {C8})", complete),
-            (f"fixtures span ≥ {MIN_APP_TYPES} app types, one app outside the test set "
+            (f"planted defects span ≥ {MIN_APP_TYPES} app types, one app outside the test set "
              f"({len(types)} types, {len(outside)} outside)", spread),
             (f"{C8}: the economics code gives the expected result ({len(c8_right)}/{len(c8)})",
              bool(c8) and len(c8_right) == len(c8))]

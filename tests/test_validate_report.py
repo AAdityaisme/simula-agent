@@ -132,7 +132,16 @@ def test_a_missing_c8_case_or_a_narrow_app_spread_fails_the_gate():
     assert not passed and "c8_economics has 1" in text
     cases = [c.__class__(**{**c.__dict__, "in_test_set": True}) for c in build_cases()]
     text, passed = run_report(cases, judged(cases))
-    assert not passed and "✗ fixtures span ≥ 3 app types, one app outside the test set" in text
+    assert not passed and "✗ planted defects span ≥ 3 app types, one app outside the test set" in text
+
+
+def test_known_good_ideas_cannot_meet_the_app_spread_for_the_planted_defects():
+    cases = [c.__class__(**{**c.__dict__, "app": "janitorai", "app_type": "companion chat", "in_test_set": True})
+             if c.source == "planted" else c for c in build_cases()]
+    m = golden("aol")
+    cases += [Case("kg-fitness", "base", idea(m, "kg-fitness"), m, "fitness", "fitness", False)]
+    text, passed = run_report(cases, judged(cases))
+    assert not passed and "✗ planted defects span ≥ 3 app types, one app outside the test set (1 types, 0 outside)" in text
 
 
 def test_a_c8_case_the_economics_code_gets_wrong_fails_the_gate():
