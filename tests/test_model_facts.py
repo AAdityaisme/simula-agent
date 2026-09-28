@@ -268,3 +268,37 @@ def test_no_core_loop_means_no_experience_facts(tmp_path):
     states, _ = stage.load_states(explore, DEVICE)
     edges, _ = stage.load_edges(explore, states)
     assert stage.loop_facts(explore, states, edges) == []
+
+
+def loop_line(step: int, n: int, summary: str, **extra) -> ActionLine:
+    return ActionLine(**{"step": step, "from_state": "s01", "to_state": "s01", "action": "type", "mcp_ref": None,
+                         "tap_px": None, "transition": "unknown", "change_summary": summary, "outcome": "ok",
+                         "loop_pass": n, **extra})
+
+
+def with_loop(tmp_path, *lines: ActionLine):
+    explore = build(APPS[0], tmp_path / "explore")
+    with open(explore / "actions.jsonl", "a") as f:
+        f.writelines(line.model_dump_json() + "\n" for line in lines)
+    states, _ = stage.load_states(explore, DEVICE)
+    edges, _ = stage.load_edges(explore, states)
+    return stage.loop_facts(explore, states, edges)
+
+
+def test_measurements_in_different_units_are_never_mixed(tmp_path):
+    measured, _ = with_loop(tmp_path, loop_line(900, 1, "reply started 2 s"), loop_line(901, 2, "reply started 4 s"),
+                            loop_line(902, 3, "reply started 900 ms"))
+    assert "reply started median 3 s (min 2, max 4, n=2); reply started median 900 ms (min 900, max 900, n=1)" \
+        in measured.verbatim
+
+
+def test_a_stop_on_a_denied_pass_is_kept(tmp_path):
+    measured, outcome = with_loop(tmp_path, loop_line(900, 1, "reply started 2 s"), loop_line(901, 2, "reply started 3 s"),
+                                  loop_line(902, 3, "", to_state=None, outcome="denied", loop_stop="paywall"))
+    assert measured.verbatim.startswith("Core action over 2 passes (explore steps 900-902)")
+    assert outcome.verbatim == "paywall appeared on pass 3 of the core action (explore steps 900-902)"
+
+
+def test_a_stop_is_kept_even_when_no_pass_ran(tmp_path):
+    (outcome,) = with_loop(tmp_path, loop_line(900, 1, "", to_state=None, outcome="denied", loop_stop="paywall"))
+    assert outcome.verbatim.startswith("paywall appeared on pass 1") and outcome.evidence_ids == ["s01"]
