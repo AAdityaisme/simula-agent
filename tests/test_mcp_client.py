@@ -89,7 +89,7 @@ class LosesTheDevice(FlakyServer):
 
 
 def test_a_lost_device_is_asked_again(tmp_path, monkeypatch):
-    monkeypatch.setattr(mcp, "LIST_RETRY_PAUSE_S", 0)
-    assert mcp.Phone(LosesTheDevice(2), "com.janitor.ai", tmp_path).foreground() == "com.janitor.ai"
+    monkeypatch.setattr(mcp, "DEVICE_RETRY_PAUSE_S", 0)
+    assert mcp.Phone(LosesTheDevice(5), "com.janitor.ai", tmp_path).foreground() == "com.janitor.ai"
     with pytest.raises(mcp.McpReplyError):
-        mcp.Phone(LosesTheDevice(3), "com.janitor.ai", tmp_path).foreground()
+        mcp.Phone(LosesTheDevice(6), "com.janitor.ai", tmp_path).foreground()

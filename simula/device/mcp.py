@@ -27,6 +27,8 @@ START_TIMEOUT_S = 60.0
 STOP_TIMEOUT_S = 15.0
 LIST_ATTEMPTS = 3
 LIST_RETRY_PAUSE_S = 1.5
+DEVICE_ATTEMPTS = 6
+DEVICE_RETRY_PAUSE_S = 5.0
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 DEVICE_LOST = re.compile(r'Device ".*" not found')
 
@@ -157,24 +159,24 @@ class Phone:
         """mobile-mcp's id for the device whose id or name is in names (an adb serial, an emulator's AVD name),
         or the first Android device when names is empty. The list comes back empty now and then while adb is
         busy."""
-        for attempt in range(1, LIST_ATTEMPTS + 1):
+        for attempt in range(1, DEVICE_ATTEMPTS + 1):
             devices = json.loads(reply_text(self.server.call("mobile_list_available_devices", START_TIMEOUT_S)))
             android = [d for d in devices.get("devices", []) if d.get("platform") == "android"
                        and (not names or {d.get("id"), d.get("name")} & names)]
             if android:
                 return android[0]["id"]
-            if attempt < LIST_ATTEMPTS:
-                time.sleep(2 * LIST_RETRY_PAUSE_S)
+            if attempt < DEVICE_ATTEMPTS:
+                time.sleep(DEVICE_RETRY_PAUSE_S)
         raise SystemExit(f"no Android device {' / '.join(sorted(names))} online: start the emulator first")
 
     def call(self, tool: str, timeout: float = ACTION_TIMEOUT_S, retry: bool = False, **args) -> dict:
         """One tool call. A 'Device not found' answer (mobilecli loses the device now and then while the emulator
         is busy) means nothing ran, so it is asked again, even for an action."""
-        for attempt in range(1, LIST_ATTEMPTS + 1):
+        for attempt in range(1, DEVICE_ATTEMPTS + 1):
             reply = self.call_once(tool, timeout, retry, **args)
-            if not (reply.get("isError") and DEVICE_LOST.search(reply_text(reply))) or attempt == LIST_ATTEMPTS:
+            if not (reply.get("isError") and DEVICE_LOST.search(reply_text(reply))) or attempt == DEVICE_ATTEMPTS:
                 return reply
-            time.sleep(2 * LIST_RETRY_PAUSE_S)
+            time.sleep(DEVICE_RETRY_PAUSE_S)
 
     def call_once(self, tool: str, timeout: float, retry: bool, **args) -> dict:
         try:
