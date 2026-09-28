@@ -1,9 +1,11 @@
 import json
+from types import SimpleNamespace
 
+import httpx2
 import pytest
 from pydantic import BaseModel
 
-from simula import llm
+from simula import llm, runfolder
 from simula.runlog import read_trace
 
 MODEL = "claude-haiku-4-5-20251001"
@@ -238,11 +240,25 @@ class SlowStream:
         self.finished = True
 
 
-def test_total_timeout_cancels_a_stream_that_keeps_going(monkeypatch):
+class StalledStream(SlowStream):
+    """Streams a little, then the connection goes quiet until the read timeout fires."""
+    current_message_snapshot = SimpleNamespace(content=[SimpleNamespace(text="x" * 300)],
+                                               usage=SimpleNamespace(input_tokens=1000, output_tokens=1))
+
+    def __iter__(self):
+        yield "event"
+        raise httpx2.ReadTimeout("The read operation timed out")
+
+
+def serve_stream(monkeypatch, stream):
     import anthropic
-    stream, clock = SlowStream(), iter(range(0, 10_000, 10))
     client = type("Client", (), {"messages": type("Messages", (), {"stream": lambda self, **kw: stream})()})()
     monkeypatch.setattr(anthropic, "Anthropic", lambda **kw: client)
+
+
+def test_total_timeout_cancels_a_stream_that_keeps_going(monkeypatch):
+    stream, clock = SlowStream(), iter(range(0, 10_000, 10))
+    serve_stream(monkeypatch, stream)
     monkeypatch.setattr(llm.time, "monotonic", lambda: next(clock))
     with pytest.raises(llm.LLMFailure) as failure:
         llm.call_anthropic(MODEL, "", message(), None, None, max_tokens=20_000, total_timeout=60)
@@ -271,3 +287,46 @@ def test_a_failed_attempt_is_recorded_and_releases_its_hold_so_a_rerun_pays_only
     recorded = sorted(json.loads(p.read_text()).get("failure", "") for p in (tmp_path / "cache").glob("*.json"))
     assert result.word == "second" and len(rerun_calls) == 1 and recorded == ["", "schema_fail"]
     assert budget.held == pytest.approx(0)
+
+
+def test_a_stalled_stream_is_a_typed_timeout_that_charges_what_streamed(tmp_path, monkeypatch):
+    serve_stream(monkeypatch, StalledStream())
+    budget = llm.Budget("model", 1.0)
+    with pytest.raises(llm.LLMFailure) as failure:
+        call(tmp_path, budget=budget, max_tokens=20_000, attempts=1)
+    streamed = llm.usd(MODEL, 1000, 100)  # 300 streamed chars at ~3 chars a token
+    assert failure.value.outcome == "timeout"
+    assert budget.held == pytest.approx(0) and budget.spent == pytest.approx(streamed)
+    last = read_trace(tmp_path / "trace.jsonl")[-1]
+    assert (last.outcome, last.usd) == ("timeout", round(streamed, 6))
+
+
+def test_an_untyped_exit_gives_back_its_hold(tmp_path, monkeypatch):
+    def interrupted(*args, **kwargs):
+        raise KeyboardInterrupt
+    budget = llm.Budget("model", 1.0)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", interrupted)
+    with pytest.raises(KeyboardInterrupt):
+        call(tmp_path, budget=budget)
+    assert budget.held == pytest.approx(0) and budget.spent == 0
+
+
+def test_every_model_trace_line_names_the_cache_file_behind_it(tmp_path, monkeypatch):
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"nope": 1}', '{"word": "ok"}'], []))
+    call(tmp_path)
+    call(tmp_path)
+    stored = {p.stem[:12] for p in (tmp_path / "cache").glob("*.json")}
+    notes = [line.note.split() for line in read_trace(tmp_path / "trace.jsonl")]
+    assert len(notes) == 4 and all(n[0] == "key" and n[1] in stored for n in notes)
+
+
+def test_a_crash_mid_write_never_leaves_a_torn_cache_file(tmp_path, monkeypatch):
+    llm.cache_write("k", llm.Reply(text='{"word": "old"}', model=MODEL), tmp_path)
+
+    def crash(src, dst):
+        raise KeyboardInterrupt
+    monkeypatch.setattr(runfolder.os, "replace", crash)
+    with pytest.raises(KeyboardInterrupt):
+        llm.cache_write("k", llm.Reply(text="x" * 100_000, model=MODEL), tmp_path)
+    monkeypatch.undo()
+    assert llm.cache_read("k", tmp_path).text == '{"word": "old"}'
