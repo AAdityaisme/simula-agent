@@ -24,9 +24,10 @@ STREAM_IDLE_TIMEOUT_S = 60.0
 
 
 class LLMFailure(Exception):
-    def __init__(self, outcome: str, detail: str = ""):
+    def __init__(self, outcome: str, detail: str = "", raw: str = ""):
         super().__init__(f"{outcome}: {detail}")
         self.outcome = outcome
+        self.raw = raw
 
 
 class CapReached(SystemExit):
@@ -273,7 +274,7 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
         if outcome == "ok":
             cache_write(key, reply, cache_dir)
             return result, reply
-        last = LLMFailure(outcome, reply.stop_reason)
+        last = LLMFailure(outcome, reply.stop_reason, raw=reply.text)
     raise last
 
 

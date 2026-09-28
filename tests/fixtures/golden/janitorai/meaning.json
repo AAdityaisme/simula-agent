@@ -458,10 +458,18 @@
     [
      "s02",
      "Not now"
+    ],
+    [
+     "s09",
+     "Upgrade to"
+    ],
+    [
+     "s09",
+     "Billing"
     ]
    ],
    "status": "observed",
-   "summary": "Subscription announcement over home, with See janitor+ and Not now."
+   "summary": "Janitor+ subscription offer with two entry points: an announcement over home at launch (See janitor+ / Not now) and a persistent Upgrade to Janitor Plus button in the profile menu, next to Billing."
   },
   {
    "id": "m02",
@@ -501,22 +509,6 @@
    ],
    "status": "inferred",
    "summary": "Free users get fewer monthly swipes and normal-priority routing (implied by the subscriber bullets; not seen directly)."
-  },
-  {
-   "id": "m04",
-   "kind": "paywall",
-   "evidence": [
-    [
-     "s09",
-     "Upgrade to"
-    ],
-    [
-     "s09",
-     "Billing"
-    ]
-   ],
-   "status": "observed",
-   "summary": "Persistent upgrade entry in the profile menu, next to Billing."
   },
   {
    "id": "m05",
@@ -570,15 +562,6 @@
    "evidence": [
     "s02",
     "Golden"
-   ]
-  },
-  {
-   "id": "l05",
-   "kind": "paywall_bullet",
-   "verbatim": "Upgrade to Janitor Plus",
-   "evidence": [
-    "s09",
-    "Upgrade to Janitor Plus"
    ]
   },
   {

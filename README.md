@@ -10,6 +10,7 @@ Needs: macOS or Linux, Python 3.12 + [uv](https://docs.astral.sh/uv/), Node 20+,
 
 ```sh
 uv sync
+chflags -R nohidden .venv 2>/dev/null || true   # macOS only; no-op elsewhere
 npm ci                                   # pins @mobilenext/mobile-mcp 1.0.5
 uv run playwright install chromium
 cp .env.example .env                     # then fill in the three keys
@@ -41,3 +42,7 @@ uv run pytest -m live            # real API calls, a few cents
 ```
 
 Golden product models for JanitorAI, Luzia, and AOL live in `tests/fixtures/golden/`. They are test data only; rebuild them with `uv run python tests/fixtures/golden/build_golden.py`.
+
+## Troubleshooting
+
+`ModuleNotFoundError: No module named 'simula'` on a Mac with iCloud Desktop & Documents sync: iCloud marks files under `.venv` hidden, and Python 3.12.2+ skips hidden `.pth` files, which breaks the editable install. Run the `chflags` line from Setup again, or clone outside `~/Desktop`.
