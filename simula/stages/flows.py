@@ -680,13 +680,20 @@ def why_html(flow: dict, model: ProductModel, run_dir: Path) -> str:
     return f'<div class="why">{html}</div>'
 
 
-def cover_html(app: str, flows: list[dict]) -> str:
+def cover_html(app: str, flows: list[dict], unbuilt: int = 0) -> str:
     items = "".join(f'<li><span class="chip {"existing" if f["candidate"].kind == "existing_anchor" else "change"}">'
                     f'{escape(BUCKETS.get(f["candidate"].kind, ""))}</span>{escape(plain(caption(f["candidate"])))}</li>'
                     for f in flows)
-    body = (f"<ol>{items}</ol><p class='how'>Each idea in six slides: where it starts, what changes, the offer, the "
-            "ad, what the user gets, and why it works.</p>" if flows else
-            "<p class='how'>No idea passed every check. The appendix shows every idea's scores and reasons.</p>")
+    notes = []
+    if flows:
+        notes.append("Each idea in six slides: where it starts, what changes, the offer, the ad, what the user gets, "
+                     "and why it works.")
+    if unbuilt:
+        notes.append(f"{unbuilt} {'more ' if flows else ''}idea(s) passed the review but couldn't be drawn; the "
+                     "appendix says why.")
+    if not flows and not unbuilt:
+        notes.append("No idea passed every check. The appendix shows every idea's scores and reasons.")
+    body = (f"<ol>{items}</ol>" if flows else "") + "".join(f"<p class='how'>{n}</p>" for n in notes)
     return f'<section class="slide cover"><h1>Rewarded-ad ideas for {escape(app)}</h1>{body}</section>'
 
 
@@ -704,7 +711,8 @@ def verdict_table(decision: Decision, run_dir: Path) -> str:
     return f"<table><tr><th>Check</th>{head}</tr>{''.join(rows)}</table>{concerns}"
 
 
-def appendix_html(decisions: list[Decision], candidates: dict[str, Candidate], run_dir: Path) -> str:
+def appendix_html(decisions: list[Decision], candidates: dict[str, Candidate], not_built: list[tuple[Decision, str]],
+                  run_dir: Path) -> str:
     cards = []
     for d in decisions:
         c = candidates.get(d.candidate_id)
@@ -719,6 +727,8 @@ def appendix_html(decisions: list[Decision], candidates: dict[str, Candidate], r
             facts.append(f"Revision of {escape(d.revision_of)}")
         if d.failure_type:
             facts.append(f"Failure type {escape(d.failure_type)}, rerun {escape(d.rerun_stage or '')}")
+        if c and c.dropped_reason:
+            facts.append(f"<b>Dropped by code:</b> {escape(c.dropped_reason)}")
         if c:
             steps = " → ".join(s.state_id for s in c.flow_steps)
             facts += [f"<b>Cost line:</b> {escape(c.economics.assumption_line) if c.economics else 'not priced'}",
@@ -733,17 +743,21 @@ def appendix_html(decisions: list[Decision], candidates: dict[str, Candidate], r
     rule = ("The simulated ad follows Simula's SDK lifecycle: the reward is granted on REWARD_VERIFIED only, once. "
             "CLICKED, CLOSED, EARNED_REWARD, LOAD_FAILED, and REWARD_VERIFICATION_FAILED never grant it, and "
             "closing the ad or a failure returns the user to where the offer appeared.")
+    unbuilt = "".join(f"<li>{escape(d.candidate_id)} · "
+                      f"{escape(candidates[d.candidate_id].title) if d.candidate_id in candidates else ''}: "
+                      f"not built: {escape(why)}</li>" for d, why in not_built)
     return ('<section class="appendix"><h2>Appendix: how the review scored every idea</h2>'
-            f'<p class="rule">{rule}</p>{"".join(cards)}'
-            + (f"<h3>Dropped by code before the review</h3><ul>{listed}</ul>" if dropped else "") + "</section>")
+            f'<p class="rule">{rule}</p>'
+            + (f'<h3>Not built</h3><ul class="not-built">{unbuilt}</ul>' if not_built else "") + "".join(cards)
+            + (f"<h3>Dropped by code</h3><ul>{listed}</ul>" if dropped else "") + "</section>")
 
 
-def deck(ctx: Ctx, model: ProductModel, flows: list[dict], decisions: list[Decision],
-         candidates: dict[str, Candidate]) -> str:
-    slides = [cover_html(ctx.app["name"], flows)]
+def deck(ctx: Ctx, model: ProductModel, flows: list[dict], not_built: list[tuple[Decision, str]],
+         decisions: list[Decision], candidates: dict[str, Candidate]) -> str:
+    slides = [cover_html(ctx.app["name"], flows, len(not_built))]
     for flow in flows:
         slides += idea_slides(flow, model, ctx.run_dir)
-    slides.append(appendix_html(decisions, candidates, ctx.run_dir))
+    slides.append(appendix_html(decisions, candidates, not_built, ctx.run_dir))
     watermark = ('<div class="watermark">FIXTURE TEST DATA · not a deliverable</div>'
                  if ctx.run_dir.name.endswith("-fixture") else "")
     return Template(TEMPLATE.read_text()).substitute(title=f"Rewarded-ad ideas for {escape(ctx.app['name'])}",
@@ -764,21 +778,39 @@ def write_pdf(slides: Path) -> Path:
 
 # ---------- stage ----------
 
-def exhibit(flows: list[dict], chosen_from: str, source: Path, run_dir: Path, usd: float) -> str:
+def decline_text(flow: dict) -> str:
+    if flow["decline"]:
+        return f"{NOT_WIRED}: {flow['decline']}"
+    return "ok" if flow["copy_shown"] else "ok; the offer screen doesn't show the offer copy"
+
+
+def exhibit(flows: list[dict], not_built: list[tuple[Decision, str]], chosen_from: str, source: Path,
+            run_dir: Path, usd: float) -> str:
     lines = ["# 07 · flows", "", f"{len(flows)} idea(s) drawn ({chosen_from}), from `{source.relative_to(run_dir)}/`. "
              f"Model spend this stage: ${usd:.4f}.", "",
-             "| Idea | Verdict | Edits applied / rejected | Steps wired | Grants in the walk | Flow mock |",
-             "|---|---|---|---|---|---|"]
+             "| Idea | Verdict | Edits applied / rejected | Steps wired | Grants in the walk | Saying no | Flow mock |",
+             "|---|---|---|---|---|---|---|"]
     for f in flows:
         c, wired = f["candidate"], sum(s["wired"] for s in f["shots"])
         lines.append(f"| {c.id} · {caption(c)} | {f['decision'].final} | {f['applied']} / {len(f['rejected'])} | "
-                     f"{wired} / {len(f['shots'])} | {f['grants']} | `flows/{c.id}/index.html` |")
+                     f"{wired} / {len(f['shots'])} | {f['grants']} | {decline_text(f)} | `flows/{c.id}/index.html` |")
     broken = [(f["candidate"].id, n, s) for f in flows for n, s in enumerate(f["shots"], 1) if not s["wired"]]
     if broken:
         lines += ["", f"## {NOT_WIRED.capitalize()}", ""]
         lines += [f"- {cid} step {n} (`{s['state_id']}`): {s['why']}" for cid, n, s in broken]
+    if not_built:
+        lines += ["", "## Not built", ""] + [f"- {d.candidate_id}: {why}" for d, why in not_built]
     lines += ["", "Deck: `flows/slides.html`, `flows/slides.pdf`."]
     return "\n".join(lines) + "\n"
+
+
+def unbuildable(c: Candidate | None) -> str | None:
+    """Why an idea can't be drawn before anything is paid for, or None."""
+    if c is None:
+        return "its candidate isn't in propose/candidates.json or judge/revisions.json"
+    if len(c.flow_steps) < 2:
+        return "its flow has one step, so there is nothing to tap through"
+    return None
 
 
 def run(ctx: Ctx) -> None:
@@ -789,17 +821,27 @@ def run(ctx: Ctx) -> None:
     out.mkdir(exist_ok=True)
     approvals = load_approvals(out)
     clean(out)
-    chosen = [d for d in select(decisions, approvals) if d.candidate_id in candidates]
+    chosen = select(decisions, approvals)
     chosen_from = "narrowed by flows/approvals.json" if approvals is not None else "accepted + conditional"
     run_trace(run_dir, stage="flows", step="select", decider="code",
               note=f"{chosen_from}: {' '.join(d.candidate_id for d in chosen) or 'none'}")
     source = mock_source(run_dir)
     page = strip_runtime((source / "index.html").read_text())
     budget = llm.Budget.for_stage("flows", run_dir / "trace.jsonl", ctx.usd_cap)
-    with ThreadPoolExecutor(max_workers=max(1, len(chosen))) as pool:
-        edits = list(pool.map(lambda d: ask_editor(ctx, candidates[d.candidate_id], model, page, budget), chosen))
-    flows = [build_flow(ctx, model, source, candidates[d.candidate_id], d, e) for d, e in zip(chosen, edits)]
-    (out / "slides.html").write_text(deck(ctx, model, flows, decisions, candidates))
+    not_built = [(d, why) for d in chosen if (why := unbuildable(candidates.get(d.candidate_id)))]
+    buildable = [d for d in chosen if not unbuildable(candidates.get(d.candidate_id))]
+    with ThreadPoolExecutor(max_workers=max(1, len(buildable))) as pool:
+        edits = list(pool.map(lambda d: ask_editor(ctx, candidates[d.candidate_id], model, page, budget), buildable))
+    flows = []
+    for d, e in zip(buildable, edits):
+        try:
+            flows.append(build_flow(ctx, model, source, candidates[d.candidate_id], d, e))
+        except Exception as error:  # one idea's failure (a hung page, a broken edit) must not cost the whole deck
+            not_built.append((d, f"{type(error).__name__}: {str(error).splitlines()[0] if str(error) else ''}"[:300]))
+    for d, why in not_built:
+        run_trace(run_dir, stage="flows", step=f"build:{d.candidate_id}", decider="code", outcome="error",
+                  note=f"not built: {why}"[:300])
+    (out / "slides.html").write_text(deck(ctx, model, flows, not_built, decisions, candidates))
     write_pdf(out / "slides.html")
     usd = sum(line.usd for line in read_trace(run_dir / "trace.jsonl") if line.stage == "flows")
-    write_exhibit(run_dir, 7, "flows", exhibit(flows, chosen_from, source, run_dir, usd))
+    write_exhibit(run_dir, 7, "flows", exhibit(flows, not_built, chosen_from, source, run_dir, usd))
