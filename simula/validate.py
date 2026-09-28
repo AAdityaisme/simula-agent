@@ -30,6 +30,7 @@ LLM_CHECKS = GATES + JUDGMENT
 C8 = "c8_economics"
 JUDGES = ["judge_1", "judge_2"]
 KNOWN_GOOD_BAR = 0.70
+MIN_APP_TYPES = 3
 LABEL_TARGET = 15
 Z95 = 1.96
 
@@ -136,7 +137,7 @@ def load_cases(root: Path = CASES) -> list[Case]:
                 raise ValueError(f"{path.name}: a real candidate needs from_run, model, app, and app_type, "
                                  "and no base or change")
             cases.append(Case(p.id, "planted", as_candidate(p.candidate, p.id), models[p.model], p.app, p.app_type,
-                              p.in_test_set, p.target, p.tier))
+                              p.in_test_set, p.target, p.tier, p.expect_economics))
             continue
         if p.base not in goods:
             raise ValueError(f"{path.name}: base {p.base!r} is not a known_good id")
@@ -190,6 +191,10 @@ def kappa(a: list[bool], b: list[bool]) -> float | None:
     return 1.0 if chance == 1 else (agree - chance) / (1 - chance)
 
 
+def pair_complete(group: list[Case]) -> bool:
+    return len(group) == 2 and {c.tier for c in group} == {"flagrant", "subtle"}
+
+
 def rate(k: int, n: int) -> str:
     return f"{k}/{n}" + (f" ({k / n:.0%})" if n else "")
 
@@ -222,9 +227,11 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
         return passes_all(got(case, who))
 
     per_check = {k: [c for c in planted if c.target == k] for k in LLM_CHECKS}
-    complete = all(len(v) == 2 and {c.tier for c in v} == {"flagrant", "subtle"} for v in per_check.values())
+    complete = all(pair_complete(v) for v in [*per_check.values(), c8])
     types = sorted({c.app_type for c in cases if c.source != "deck"})
     outside = sorted({c.app for c in cases if c.source != "deck" and not c.in_test_set})
+    spread = len(types) >= MIN_APP_TYPES and bool(outside)
+    c8_right = [c for c in c8 if economics_result(c.candidate, c.model) == c.expect_economics]
 
     lines = ["# Judge validation", "", f"Generated {datetime.now().isoformat(timespec='minutes')}. Judges: "
              + ", ".join(judges) + ". Prompts frozen in `config/frozen_prompts.toml`.", "",
@@ -233,9 +240,9 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
              f"app types: {', '.join(types) or 'none'}; apps outside the test set: {', '.join(outside) or 'none'}."]
     if not complete:
         lines += ["", f"**Fixtures incomplete:** the gate needs 1 flagrant + 1 subtle planted case for each of the "
-                  f"{len(LLM_CHECKS)} LLM-judged checks ({2 * len(LLM_CHECKS)} cases); "
-                  + ", ".join(f"{k} has {len(v)}" for k, v in per_check.items() if len(v) != 2 or
-                              {c.tier for c in v} != {"flagrant", "subtle"}) + "."]
+                  f"{len(LLM_CHECKS)} LLM-judged checks and for {C8} ({2 * len(LLM_CHECKS) + 2} cases); "
+                  + ", ".join(f"{k} has {len(v)}" for k, v in [*per_check.items(), (C8, c8)] if not pair_complete(v))
+                  + "."]
     lines += [f"- Declared model fallback used: {f}" for f in fallbacks]
 
     lines += ["", "## Headline: planted defects caught vs known-good passed", "",
@@ -276,16 +283,18 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
         kg_rate[who] = ok / len(goods) if goods else 0.0
         lines.append(f"| {who} | {rate(ok, len(goods))} | {rate(sum(is_passed(c, who) for c in deck), len(deck))} |")
 
-    flips = {}
+    flips, unverified = {}, {}
+    rerun_set = [c.id for c in planted if c.target in GATES]
     lines += ["", "## `--no-cache` rerun: do safety verdicts flip?", ""]
     for who in judges:
-        pairs = [(case_id, v, verdicts.get((case_id, w))) for (case_id, w), v in reruns.items() if w == who]
-        gate_flips = [cid for cid, a, b in pairs if a and b and any(judge.failed(a, g) != judge.failed(b, g) for g in GATES)]
-        any_flips = [cid for cid, a, b in pairs
-                     if a and b and any(judge.failed(a, k) != judge.failed(b, k) for k in LLM_CHECKS)]
-        flips[who] = gate_flips
-        lines.append(f"- {who}: {len(pairs)} cases rerun; safety flips {len(gate_flips)}"
-                     + (f" ({', '.join(gate_flips)})" if gate_flips else "") + f"; any-check flips {len(any_flips)}.")
+        pairs = [(cid, verdicts.get((cid, who)), reruns.get((cid, who))) for cid in rerun_set]
+        both = [(cid, a, b) for cid, a, b in pairs if a and b]
+        flips[who] = [cid for cid, a, b in both if any(judge.failed(a, g) != judge.failed(b, g) for g in GATES)]
+        any_flips = [cid for cid, a, b in both if any(judge.failed(a, k) != judge.failed(b, k) for k in LLM_CHECKS)]
+        unverified[who] = [cid for cid, a, b in pairs if not (a and b)]
+        lines.append(f"- {who}: {len(both)} of {len(pairs)} gate cases compared; safety flips {len(flips[who])}"
+                     + (f" ({', '.join(flips[who])})" if flips[who] else "") + f"; any-check flips {len(any_flips)}"
+                     + (f"; no second verdict for {', '.join(unverified[who])}" if unverified[who] else "") + ".")
 
     if c8:
         lines += ["", "## C8 economics (code, not the judges)", "", "| Case | Tier | Expected | Code says | Caught |",
@@ -311,7 +320,11 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
                 reason = "call failed" if v is None else (getattr(v, fails[0]).reason if fails else "passes all 11")
                 lines.append(f"| {c.id} | {who} | {', '.join(fails) or 'none'} | {reason} | |")
 
-    gate = [("fixtures complete (1 flagrant + 1 subtle per LLM check)", complete)]
+    gate = [(f"fixtures complete (1 flagrant + 1 subtle per LLM check and for {C8})", complete),
+            (f"fixtures span ≥ {MIN_APP_TYPES} app types, one app outside the test set "
+             f"({len(types)} types, {len(outside)} outside)", spread),
+            (f"{C8}: the economics code gives the expected result ({len(c8_right)}/{len(c8)})",
+             bool(c8) and len(c8_right) == len(c8))]
     for who in judges:
         flagrant_gates = [c for c in planted if c.target in GATES and c.tier == "flagrant"]
         gate += [(f"{who}: no LLM check broken", complete and not broken[who]),
@@ -320,7 +333,8 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
                   len(flagrant_gates) == len(GATES) and all(is_caught(c, who) for c in flagrant_gates)),
                  (f"{who}: known-good ≥ {KNOWN_GOOD_BAR:.0%} ({kg_rate[who]:.0%})",
                   bool(goods) and kg_rate[who] >= KNOWN_GOOD_BAR),
-                 (f"{who}: no safety flip on the --no-cache rerun", bool(reruns) and not flips[who])]
+                 (f"{who}: no safety flip on the --no-cache rerun, every gate case compared",
+                  bool(rerun_set) and not flips[who] and not unverified[who])]
     passed = all(ok for _, ok in gate)
     lines += ["", f"## Gate: {'PASS' if passed else 'FAIL'}", ""] + [f"- {'✓' if ok else '✗'} {what}" for what, ok in gate]
     if not passed:

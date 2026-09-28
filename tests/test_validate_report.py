@@ -22,8 +22,8 @@ def build_cases() -> list[Case]:
     cases = [Case(f"kg-{m.app}", "base", idea(m, f"kg-{m.app}"), m, m.app, TYPES[m.app], True) for m in models]
     for n, (check, tier) in enumerate((k, t) for k in LLM_CHECKS for t in ("flagrant", "subtle")):
         m = models[n % 3]
-        cases.append(Case(f"pd-{check}-{tier}", "planted", idea(m, f"pd-{n}"), m, m.app, TYPES[m.app], True,
-                          check, tier))
+        app, app_type, in_set = ("fitness", "fitness", False) if n % 4 == 3 else (m.app, TYPES[m.app], True)
+        cases.append(Case(f"pd-{check}-{tier}", "planted", idea(m, f"pd-{n}"), m, app, app_type, in_set, check, tier))
     m = models[0]
     no_tokens = idea(m, "c8-a", reward={"kind": "inference", "unit": "replies", "amount": 5, "duration": "today"},
                      cost_inputs={"inference_count": 5, "tokens_in": 2000, "tokens_out": 0, "minutes": 0,
@@ -126,6 +126,31 @@ def test_a_safety_verdict_that_flips_on_the_rerun_fails_the_gate():
     assert not passed and "safety flips 1 (pd-g_policy-subtle)" in text
 
 
+def test_a_missing_c8_case_or_a_narrow_app_spread_fails_the_gate():
+    cases = [c for c in build_cases() if c.id != "c8-subtle"]
+    text, passed = run_report(cases, judged(cases))
+    assert not passed and "c8_economics has 1" in text
+    cases = [c.__class__(**{**c.__dict__, "in_test_set": True}) for c in build_cases()]
+    text, passed = run_report(cases, judged(cases))
+    assert not passed and "✗ fixtures span ≥ 3 app types, one app outside the test set" in text
+
+
+def test_a_c8_case_the_economics_code_gets_wrong_fails_the_gate():
+    cases = [c.__class__(**{**c.__dict__, "expect_economics": "FAIL"}) if c.id == "c8-subtle" else c
+             for c in build_cases()]
+    text, passed = run_report(cases, judged(cases))
+    assert not passed and "✗ c8_economics: the economics code gives the expected result (1/2)" in text
+
+
+def test_a_gate_case_without_a_second_verdict_is_unverified_not_stable():
+    cases = build_cases()
+    verdicts = judged(cases)
+    reruns = rerun(verdicts, cases)
+    reruns[("pd-g_no_cash-subtle", "judge_1")] = None
+    text, passed = validate.report(cases, verdicts, reruns, {}, ["judge_1"])
+    assert not passed and "9 of 10 gate cases compared" in text and "no second verdict for pd-g_no_cash-subtle" in text
+
+
 def test_incomplete_fixtures_fail_the_gate_and_say_what_is_missing():
     cases = [c for c in build_cases() if c.target != "c6_fits_simula"]
     text, passed = run_report(cases, judged(cases))
@@ -224,6 +249,12 @@ def test_a_real_candidate_can_be_a_planted_case(fixture_dir):
                                                        model="golden/aol/product_model.json"))
     with pytest.raises(ValueError, match="no base or change"):
         validate.load_cases(fixture_dir)
+    write(fixture_dir / "planted" / "pd.json", planted(base=None, change=None, target=C8, tier="subtle",
+                                                       expect_economics="PASS", from_run="round 6 c07", app="aol",
+                                                       app_type="news", model="golden/aol/product_model.json",
+                                                       candidate=real))
+    case = next(c for c in validate.load_cases(fixture_dir) if c.source == "planted")
+    assert case.expect_economics == "PASS"
 
 
 def test_real_run_ideas_count_toward_the_known_good_bar_and_deck_ideas_do_not():
