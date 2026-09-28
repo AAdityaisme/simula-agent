@@ -32,11 +32,14 @@ def git_dirty() -> bool:
 
 
 def new_run(app: str, fixture: bool = False) -> Path:
-    runs = RUNS
-    run_id = datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + git_sha() + ("-fixture" if fixture else "")
-    run_dir = runs / app / run_id
+    base = datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + git_sha() + ("-fixture" if fixture else "")
+    run_id, n = base, 1
+    while (RUNS / app / run_id).exists():
+        n += 1
+        run_id = f"{base}-{n}"
+    run_dir = RUNS / app / run_id
     run_dir.mkdir(parents=True)
-    latest = runs / app / "latest"
+    latest = RUNS / app / "latest"
     latest.unlink(missing_ok=True)
     latest.symlink_to(run_id)
     return run_dir

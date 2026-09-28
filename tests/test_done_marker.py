@@ -83,3 +83,39 @@ def test_failure_replaces_done(run):
     runfolder.write_failure(run / "model", "boom")
     assert not (run / "model" / "done.json").exists()
     assert (run / "model" / "failure.json").exists()
+
+
+def test_same_second_runs_get_a_numbered_suffix(runs, monkeypatch):
+    from datetime import datetime
+
+    class Frozen(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime(2026, 9, 28, 1, 2, 3)
+    monkeypatch.setattr(runfolder, "datetime", Frozen)
+    monkeypatch.setattr(runfolder, "git_sha", lambda: "abc1234")
+    names = [runfolder.new_run("aol").name for _ in range(3)]
+    assert names == ["20260928-010203-abc1234", "20260928-010203-abc1234-2", "20260928-010203-abc1234-3"]
+    assert (runs / "aol" / "latest").resolve().name == names[-1]
+
+
+def test_editing_a_file_outside_the_run_folder_reruns_the_stage(runs, tmp_path, monkeypatch):
+    from simula import cli, stages
+    knowledge = tmp_path / "bible.md"
+    knowledge.write_text("v1")
+    monkeypatch.setitem(stages.EXTRA_INPUTS, "propose", [str(knowledge)])
+    cli.main(["run", "janitorai", "--new"])
+    ctx = cli.open_run(cli.parser().parse_args(["propose", "janitorai"]))
+    inputs = cli.stage_inputs("propose", ctx)
+    assert knowledge in inputs
+    (ctx.run_dir / "propose").mkdir()
+    runfolder.write_done(ctx.run_dir / "propose", ctx.run_dir, inputs, [], {}, [ctx.run_dir / "propose"], REAL)
+    assert runfolder.is_done(ctx.run_dir / "propose", ctx.run_dir, cli.stage_inputs("propose", ctx), [], {})
+    knowledge.write_text("v2")
+    assert not runfolder.is_done(ctx.run_dir / "propose", ctx.run_dir, cli.stage_inputs("propose", ctx), [], {})
+
+
+def test_real_stage_inputs_include_the_bible_and_the_contract():
+    from simula.stages import EXTRA_INPUTS
+    assert EXTRA_INPUTS["propose"] == EXTRA_INPUTS["judge"] == ["bible"]
+    assert EXTRA_INPUTS["mock"] == ["docs/CONTRACTS.md"]

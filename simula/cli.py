@@ -11,7 +11,7 @@ from simula import config, runfolder, runlog
 from simula.config import ROOT, STAGES
 from simula.contracts import Manifest, Provenance
 from simula.llm import CapReached, ReplayMiss
-from simula.stages import ROLES, UPSTREAM, Ctx
+from simula.stages import EXTRA_INPUTS, ROLES, UPSTREAM, Ctx
 
 EXIT_NOT_BUILT, EXIT_CAP = 3, 4
 
@@ -45,7 +45,9 @@ def stage_params(stage: str, ctx: Ctx) -> dict:
 
 
 def stage_inputs(stage: str, ctx: Ctx) -> list[Path]:
-    return [ROOT / "config" / "apps" / f"{ctx.app['name']}.toml"] + [ctx.run_dir / up for up in UPSTREAM[stage]]
+    return ([ROOT / "config" / "apps" / f"{ctx.app['name']}.toml"]
+            + [ROOT / path for path in EXTRA_INPUTS.get(stage, [])]
+            + [ctx.run_dir / up for up in UPSTREAM[stage]])
 
 
 def new_manifest(run_dir: Path, app: dict, args, provenance: Provenance) -> Manifest:
