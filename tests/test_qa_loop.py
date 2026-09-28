@@ -114,6 +114,13 @@ def test_a_round_that_adds_a_contract_error_is_discarded_even_if_the_score_rises
     assert report["keep_rule_disagreement"]["score_only_approves"] == 1
 
 
+def test_a_round_that_repairs_a_contract_error_never_stops_the_loop_on_a_small_gain(scripted):
+    _, _, play = scripted
+    report = play([5.0, 6.0, 6.1, 6.2], errors=[3, 2, 1, 0])
+    assert [r["round"] for r in report["rounds"]] == [0, 1, 2, 3]
+    assert report["approved_round"] == 3 and report["stop_reason"] == "all 3 rounds ran"
+
+
 def test_with_equal_contract_errors_the_higher_score_wins(scripted):
     _, _, play = scripted
     report = play([5.0, 6.0, 5.5], errors=[2, 2, 2])
@@ -246,6 +253,7 @@ def test_a_replay_whose_renders_differ_makes_no_model_call_and_ends_where_the_re
     monkeypatch.setattr(llm, "call", no_cache_entry)
     qa.run(replace(ctx_for(run_dir, app), replay=True))
     assert json.loads((run_dir / "qa" / "qa_report.json").read_text()) == recorded
+    assert "Replayed: the scores are the recorded run's" in (run_dir / "exhibits" / "04-qa.md").read_text()
 
     replayed = [line for line in read_trace(run_dir / "trace.jsonl") if "recorded for this page" in line.note]
     assert [line.outcome for line in replayed if line.step in ("critic r1 g2", "fixer r2")] == ["refusal", "refusal"]

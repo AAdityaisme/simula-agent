@@ -91,8 +91,9 @@ def run(ctx: Ctx) -> None:
         if not kept:
             stop = f"round {n} {worse(new, best)}, so its edits were discarded"
             break
+        repaired = len(new.contract_errors) < len(best.contract_errors)
         best = new
-        if n >= 2 and gain < MIN_GAIN:
+        if n >= 2 and gain < MIN_GAIN and not repaired:
             stop = f"round {n} gained {gain:.2f} (< {MIN_GAIN})"
             break
     run_trace(ctx.run_dir, stage="qa", step="stop", decider="code", note=stop)
@@ -541,6 +542,8 @@ def exhibit(ctx: Ctx, model: ProductModel, best: Version, rounds: list[dict], re
              f"`qa/approved/`). Stop: {report['stop_reason']}. Model spend this stage: ${stage_usd(ctx):.4f}.", "",
              "Round 0 is the mock as stage 3 delivered it; round N is the page after N fix rounds. A round is kept "
              "when it has fewer contract errors, or as many and a score at least as high. " + keep_rule_line(report),
+             *(["", "Replayed: the scores are the recorded run's; the images in `qa/round<N>/` are this machine's "
+                    "renders, so they can differ slightly from what was scored."] if ctx.replay else []),
              "",
              "| Round | Score | Contract errors | Failed taps | Failed flows | Edits applied / rejected | Kept |",
              "|---|---|---|---|---|---|---|"]
