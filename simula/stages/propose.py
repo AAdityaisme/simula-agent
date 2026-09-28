@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from string import Template
 
-from simula import config, economics, llm, text
+from simula import config, economics, llm
 from simula.config import ROOT
 from simula.contracts import (BenefitNames, Candidate, CandidatesFile, LedgerItem, Lens, LensesFile, LensOutput,
                               ProductModel)
@@ -145,11 +145,17 @@ def unobserved_terms(model: ProductModel) -> list[str]:
     return [t.term for t in model.terms if not t.observed]
 
 
+def uses_term(term: str, words: str) -> bool:
+    """`term` as a whole word or phrase in `words`, ignoring case; any whitespace run matches any other, as in
+    simula.text.find. Boundaries are "no word character next to it", so a term ending in "+" still matches."""
+    parts = term.split()
+    pattern = r"(?<!\w)" + r"\s+".join(re.escape(p) for p in parts) + r"(?!\w)"
+    return bool(parts) and re.search(pattern, words, re.IGNORECASE) is not None
+
+
 def jargon(c: Candidate, model: ProductModel) -> str | None:
-    # ponytail: text.find matches inside a longer word too ("Pro" in "Product"); add word boundaries if it bites
     return next((f'uses "{term}", whose meaning was never observed' for term in unobserved_terms(model)
-                 if any(text.find(term, words, ignore_case=True) for words in (c.title, c.offer_copy, c.after_reward))),
-                None)
+                 if any(uses_term(term, words) for words in (c.title, c.offer_copy, c.after_reward))), None)
 
 
 def anchor_ids(model: ProductModel) -> set[str]:
