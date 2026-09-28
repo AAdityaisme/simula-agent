@@ -15,12 +15,12 @@ def app(request):
     return request.param
 
 
-def test_scope_is_every_in_scope_state_but_unsafe_or_blocked_ones(app):
+def test_scope_is_exactly_the_model_stages_scope_whatever_the_rating(app):
     model = golden(app)
-    states = [s.model_copy(update={"in_mock_scope": True}) for s in model.states]
+    states = [s.model_copy(update={"in_mock_scope": i % 2 == 0}) for i, s in enumerate(model.states)]
     states[0] = states[0].model_copy(update={"content_rating": "unsafe"})
     scope = mock.pick_scope(model.model_copy(update={"states": states}))
-    assert [s.id for s in scope] == [s.id for s in states[1:] if s.kind != "blocked"]
+    assert [s.id for s in scope] == [s.id for s in states if s.in_mock_scope]
 
 
 def test_only_the_first_two_items_of_a_repeated_list_are_tagged(app):

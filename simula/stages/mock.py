@@ -114,9 +114,9 @@ def run(ctx: Ctx) -> None:
 
 
 def pick_scope(model: ProductModel) -> list[State]:
-    """The model stage chose the scope and its priority order (`mock_order`); this drops what the contract forbids
-    and keeps that order. States mock_order leaves out follow in state order."""
-    scope = [s for s in model.states if s.in_mock_scope and s.kind != "blocked" and s.content_rating != "unsafe"]
+    """Exactly the model stage's scope (it owns which states are in, unsafe and blocked ones included), in its
+    priority order `mock_order`. States mock_order leaves out follow in state order."""
+    scope = [s for s in model.states if s.in_mock_scope]
     if not scope:
         raise ValueError("the product model has no state in mock scope")
     rank = {sid: i for i, sid in enumerate(getattr(model, "mock_order", None) or [])}
