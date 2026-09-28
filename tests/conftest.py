@@ -1,14 +1,28 @@
+import contextlib
 import json
 from pathlib import Path
 
 import pytest
 
 from simula import runfolder
+from simula.stages import explore
 
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = ROOT / "tests" / "fixtures"
 APPS = ("janitorai", "luzia", "aol")
 PREFIX = "Found these elements on screen: "
+
+
+@pytest.fixture(autouse=True)
+def no_device(request, monkeypatch):
+    """Offline tests never reach the emulator: a chained run stops where explore would start mobile-mcp."""
+    if request.node.get_closest_marker("live"):
+        return
+
+    def refuse(*args, **kwargs):
+        raise NotImplementedError("PR 1: offline tests never start mobile-mcp")
+    monkeypatch.setattr(explore, "Server", refuse)
+    monkeypatch.setattr(explore, "emulator_lock", lambda **kwargs: contextlib.nullcontext())
 
 
 @pytest.fixture

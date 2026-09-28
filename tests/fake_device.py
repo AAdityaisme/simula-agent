@@ -1,0 +1,218 @@
+"""A fake phone built from fixture captures, for offline explorer tests. Each screen is a real tree + PNG; a tap
+moves to another screen by the tapped element's words (or its center, for controls without words)."""
+
+import json
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from PIL import Image, ImageDraw
+
+from simula import decide, llm, runlog
+from simula.contracts import Manifest, Provenance
+from simula.device.observe import dhash, words
+from simula.stages import Ctx
+from simula.stages import explore as stage
+
+FIXTURES = Path(__file__).parent / "fixtures" / "trees"
+PREFIX = "Found these elements on screen: "
+PACKAGE = "com.janitor.ai"
+PREFER = ("JJK", "Kang Jun-Seo", "Upgrade to", "Limited Only", "icon")
+
+
+@dataclass
+class Screen:
+    elements: list[dict]
+    image: Image.Image
+    package: str
+
+
+def capture(app: str, name: str, package: str | None = None) -> Screen:
+    reply = json.loads((FIXTURES / app / f"{name}.elements.json").read_text())
+    elements = json.loads(reply["content"][0]["text"][len(PREFIX):])
+    png = FIXTURES / app / f"{name}.png"
+    image = Image.open(png).convert("RGB") if png.exists() else Image.new("RGB", (1080, 2400), (240, 240, 240))
+    fg = json.loads((FIXTURES / app / f"{name}.foreground.json").read_text())["content"][0]["text"]
+    return Screen(elements, image, package or fg.rsplit("(", 1)[1].rstrip(")"))
+
+
+def blank(package: str) -> Screen:
+    return Screen([], Image.new("RGB", (1080, 2400), (20, 20, 20)), package)
+
+
+def element_key(e: dict) -> str:
+    c = e["coordinates"]
+    ident = (e.get("identifier") or "").rsplit("/", 1)[-1]
+    return words(e) or ident or f"{c['x'] + c['width'] // 2},{c['y'] + c['height'] // 2}"
+
+
+class Clock:
+    def __init__(self):
+        self.t = 0.0
+
+    def __call__(self) -> float:
+        return self.t
+
+    def sleep(self, seconds: float) -> None:
+        self.t += seconds
+
+
+@dataclass
+class FakePhone:
+    screens: dict[str, Screen]
+    start: str
+    taps: dict[tuple[str, str], str]
+    clock: Clock
+    backs: dict[str, str] = field(default_factory=dict)
+    swipes: dict[str, str] = field(default_factory=dict)
+    replies: dict[str, list[str]] = field(default_factory=dict)
+    dirty: dict[str, tuple[int, int, int, int]] = field(default_factory=dict)
+    device: str = "fake-1"
+
+    def __post_init__(self):
+        self.screen, self.history, self.log, self.typed = self.start, [], [], []
+        self.list_seconds, self.shots, self.reply_polls = [], {}, 0
+        self.screens.setdefault("launcher", blank("com.android.launcher"))
+
+    def tick(self, seconds: float = 0.3) -> None:
+        self.clock.t += seconds
+
+    def current_elements(self) -> list[dict]:
+        elements = list(self.screens[self.screen].elements)
+        if self.screen in self.replies and self.typed:
+            self.reply_polls += 1
+            text = " ".join(self.replies[self.screen])[: 40 * self.reply_polls]
+            elements.append({"ref": "@r1", "type": "android.widget.TextView", "text": text,
+                             "coordinates": {"x": 42, "y": 900, "width": 996, "height": 200}})
+        return elements
+
+    def elements(self):
+        self.tick()
+        self.list_seconds.append(0.3)
+        elements = self.current_elements()
+        return {"content": [{"type": "text", "text": PREFIX + json.dumps(elements)}], "isError": False}, elements
+
+    def image(self) -> Image.Image:
+        image = self.screens[self.screen].image.copy()
+        seen = self.shots.get(self.screen, 0)
+        if self.screen in self.dirty and seen > 1:
+            ImageDraw.Draw(image).rectangle(self.dirty[self.screen], fill=(255, 255, 255))
+        return image
+
+    def small_hash(self) -> int:
+        self.tick()
+        return dhash(self.image())
+
+    def screenshot(self, path: Path, size=None) -> Path:
+        self.tick()
+        self.shots[self.screen] = self.shots.get(self.screen, 0) + 1
+        self.image().save(path)
+        return path
+
+    def foreground(self) -> str:
+        self.tick(0.1)
+        return self.screens[self.screen].package
+
+    def screen_size(self) -> tuple[int, int]:
+        return 1080, 2400
+
+    def go(self, target: str | None) -> None:
+        if target and target != self.screen:
+            self.history.append(self.screen)
+            self.screen = target
+
+    def tap_element(self, e: dict | None) -> None:
+        key = element_key(e) if e else "nothing"
+        self.log.append(("tap", self.screen, key))
+        self.go(self.taps.get((self.screen, key)))
+
+    def tap_ref(self, ref: str) -> None:
+        self.tick()
+        self.tap_element(next((e for e in self.current_elements() if e["ref"] == ref), None))
+
+    def tap(self, x: int, y: int) -> None:
+        self.tick()
+        holding = [e for e in self.current_elements() if e["coordinates"]["x"] <= x < e["coordinates"]["x"]
+                   + e["coordinates"]["width"] and e["coordinates"]["y"] <= y < e["coordinates"]["y"]
+                   + e["coordinates"]["height"]]
+        self.tap_element(min(holding, key=lambda e: e["coordinates"]["width"] * e["coordinates"]["height"],
+                             default=None))
+
+    def back(self) -> None:
+        self.tick()
+        self.log.append(("back", self.screen))
+        if self.screen in self.backs:
+            self.screen = self.backs[self.screen]
+        else:
+            self.screen = self.history.pop() if self.history else "launcher"
+
+    def swipe(self, direction: str) -> None:
+        self.tick()
+        self.log.append(("swipe", self.screen, direction))
+        self.go(self.swipes.get(self.screen))
+
+    def type_text(self, text: str) -> None:
+        self.tick()
+        self.log.append(("type", self.screen, text))
+        self.typed.append(text)
+        self.reply_polls = 0
+
+    def launch(self) -> None:
+        self.tick(2.0)
+        self.log.append(("launch",))
+        self.screen, self.history = self.start, []
+
+    def terminate(self) -> None:
+        self.tick()
+
+
+# ---------- a run with fake Jev and a fake Sonnet ----------
+
+def fake_jev(state, instructions, labels, backend):
+    if "content or safety filter" in instructions:
+        pick = next((i for i, label in enumerate(labels) if "Limited" in label), len(labels) - 1)
+    elif "comes to this app" in instructions:
+        pick = next((i for i, label in enumerate(labels) if label.startswith("send a message")), 0)
+    else:
+        pick = next((i for i, label in enumerate(labels) for word in PREFER if word in label), 0)
+    probabilities = {f"o{i + 1:02d}": 0.7 if i == pick else 0.3 / max(len(labels) - 1, 1) for i in range(len(labels))}
+    return decide.ChoiceResult(option_id=f"o{pick + 1:02d}", confidence=0.7, probabilities=probabilities,
+                               model="jev-fake", tokens_in=120, tokens_out=0, usd=0.00001, seconds=0.1)
+
+
+def fake_sonnet(model, system, messages, effort, schema, max_tokens, total_timeout=None):
+    text = messages[0]["content"][1]["text"]
+    if schema.__name__ == "IconPass":
+        wanted = text.split("Name these boxes: ", 1)[1].split(".", 1)[0]
+        ids = [int(n) for n in wanted.split(", ") if n.isdigit()]
+        body = {"names": [{"box_id": n, "name": f"icon {n}"} for n in ids], "extra_points": []}
+    else:
+        body = {"action": "done", "element_id": None, "text": None, "direction": None, "reason": "nothing left"}
+    return llm.Reply(text=json.dumps(body), model=model, tokens_in=1500, tokens_out=60)
+
+
+def new_run(tmp_path, **ctx_overrides) -> Ctx:
+    run_dir = tmp_path / "runs" / "janitorai" / "r1"
+    run_dir.mkdir(parents=True)
+    runlog.write_manifest(run_dir, Manifest(
+        run_id="r1", app="janitorai", created_at="now", git_sha="x", git_dirty=False, profile="real",
+        budget="transfer", allow_account_create=False, roles={}, prompt_hashes={}, app_package=PACKAGE,
+        app_version=None, mobile_mcp_version=None, playwright_version=None, caps_usd={}, no_send=False,
+        provenance=Provenance(source="explorer_run"), stages_done=[], usd_total=0.0))
+    ctx = dict(app={"name": "janitorai", "package": PACKAGE}, run_dir=run_dir, profile="real", no_cache=False,
+               replay=False, usd_cap=None, allow_fixtures=False, budget="transfer", no_send=False)
+    return Ctx(**{**ctx, **ctx_overrides})
+
+
+def explore(tmp_path, monkeypatch, phone_factory, cache_dir=None, **ctx_overrides):
+    """Runs the whole explore stage on a fake phone; returns the explorer and the phone."""
+    monkeypatch.delenv("SIMULA_JEV_BACKEND", raising=False)
+    monkeypatch.setattr(decide, "ask_choice", fake_jev)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_sonnet)
+    monkeypatch.setattr(stage, "adb_value", lambda *a: None)
+    ctx = new_run(tmp_path, **ctx_overrides)
+    clock = Clock()
+    phone = phone_factory(clock)
+    ex = stage.Explorer(ctx, phone, ctx.run_dir / "explore", clock=clock, sleep=clock.sleep)
+    ex.cache_dir = cache_dir or tmp_path / "cache"
+    stage.explore_app(ex)
+    return ex, phone
