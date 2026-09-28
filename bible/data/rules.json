@@ -1,0 +1,153 @@
+{
+ "policy_floor": [
+  {
+   "rule": "Classic rewarded ads must only be shown after an affirmative, unambiguous user opt-in.",
+   "source_claim_ids": [
+    "F01"
+   ],
+   "applies_to": "rewarded"
+  },
+  {
+   "rule": "Disclose the required action and the reward, clearly and conspicuously, before every single rewarded-ad instance.",
+   "source_claim_ids": [
+    "F02"
+   ],
+   "applies_to": "rewarded, rewarded_interstitial"
+  },
+  {
+   "rule": "The ad must be skippable/dismissible; never force interaction to completion.",
+   "source_claim_ids": [
+    "F03"
+   ],
+   "applies_to": "rewarded"
+  },
+  {
+   "rule": "Never offer direct monetary (cash or cash-equivalent) rewards, under any circumstance.",
+   "source_claim_ids": [
+    "F04"
+   ],
+   "applies_to": "rewarded, rewarded_interstitial, offerwall"
+  },
+  {
+   "rule": "Declining or skipping must not impede or degrade normal app use.",
+   "source_claim_ids": [
+    "F05"
+   ],
+   "applies_to": "rewarded"
+  },
+  {
+   "rule": "Deliver the promised reward once the required action is actually completed.",
+   "source_claim_ids": [
+    "F06"
+   ],
+   "applies_to": "rewarded, rewarded_interstitial"
+  },
+  {
+   "rule": "Rewarded interstitials run on an opt-out model: show an intro screen announcing the reward with a skip option, rather than requiring a prior opt-in tap.",
+   "source_claim_ids": [
+    "F07",
+    "F08"
+   ],
+   "applies_to": "rewarded_interstitial"
+  },
+  {
+   "rule": "If a rewarded ad unlocks in-app content/currency that also has a paid purchase path, that paid path must go through platform in-app purchase (Apple), not a custom unlock mechanism.",
+   "source_claim_ids": [
+    "F12"
+   ],
+   "applies_to": "rewarded (iOS)"
+  },
+  {
+   "rule": "Incentivizing users to watch an ad or complete an in-app action is allowed on iOS; incentivizing ratings, reviews, or app-store actions (installs) is not, and neither can be forced for access.",
+   "source_claim_ids": [
+    "F13",
+    "F21"
+   ],
+   "applies_to": "all formats (iOS + Android)"
+  },
+  {
+   "rule": "Never gate app functionality on ATT tracking consent, and never incentivize giving that consent, for ad targeting purposes.",
+   "source_claim_ids": [
+    "F14",
+    "F15",
+    "F16"
+   ],
+   "applies_to": "ad targeting/measurement (iOS)"
+  },
+  {
+   "rule": "Kids Category apps (Apple) must carry no third-party advertising or analytics at all; child-directed apps on Android must follow the Families Ads and Monetization Policy.",
+   "source_claim_ids": [
+    "F17",
+    "F20"
+   ],
+   "applies_to": "child-directed apps"
+  },
+  {
+   "rule": "On a child-directed property, verifiable parental consent gates both personal-data collection and, depending on what the ad network collects, whether ad networks may run at all.",
+   "source_claim_ids": [
+    "F28",
+    "F29",
+    "F30"
+   ],
+   "applies_to": "child-directed apps (COPPA, US)"
+  },
+  {
+   "rule": "Google Play's general disruptive-ads / unexpected-placement restrictions (including the ~15-second non-closeable cap) are waived specifically for genuine opt-in rewarded ad units.",
+   "source_claim_ids": [
+    "F18",
+    "F19"
+   ],
+   "applies_to": "rewarded (Android)"
+  },
+  {
+   "rule": "Grant the reward immediately client-side for UX, but reconcile every grant against a signed server-to-server callback before treating it as final; this is anti-fraud infrastructure, not a UX nicety.",
+   "source_claim_ids": [
+    "F22",
+    "F23",
+    "F24",
+    "F25"
+   ],
+   "applies_to": "rewarded (all networks with SSV support: AdMob, AppLovin MAX, Unity)"
+  },
+  {
+   "rule": "Design the reward trigger around a discrete, completed action (an ad view, a specific task) rather than raw accumulated engagement or screen time \u2014 the latter is the exact pattern EU regulators forced off the market for minors'-mental-health/addictive-design reasons (historical, program withdrawn).",
+   "source_claim_ids": [
+    "F26"
+   ],
+   "applies_to": "any engagement-reward design, EU market especially"
+  }
+ ],
+ "format_differences": [
+  {
+   "format": "rewarded",
+   "opt_in_required": true,
+   "notes": "User-initiated; must be an affirmative, unambiguous opt-in before the ad shows; skippable; no direct monetary reward.",
+   "source_claim_ids": [
+    "F01",
+    "F03",
+    "F04"
+   ]
+  },
+  {
+   "format": "rewarded_interstitial",
+   "opt_in_required": false,
+   "notes": "Shown automatically at natural app transitions, not user-initiated; opt-out model via an intro screen that announces the reward and lets the user skip.",
+   "source_claim_ids": [
+    "F07",
+    "F08"
+   ]
+  },
+  {
+   "format": "app_open",
+   "opt_in_required": null,
+   "notes": "No primary AdMob rewarded-specific policy text found naming app-open ads as a reward-capable format; treated as out of scope / gap, not asserted either way.",
+   "source_claim_ids": []
+  },
+  {
+   "format": "offerwall",
+   "opt_in_required": null,
+   "notes": "No primary AdMob/AppLovin/Unity policy page found that names 'offerwall' specifically; typically a mediation/third-party SDK surface (a list of multiple reward offers) rather than a native single-network ad-unit type. Flagged as a gap.",
+   "source_claim_ids": []
+  }
+ ]
+}

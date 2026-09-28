@@ -1,0 +1,164 @@
+{
+ "_about": "Rewarded-video eCPM (USD per 1,000 completed views, publisher side) for break-even checks. low = Appodeal regional data (via Mistplay, page 2026-03-13, data updated Q4 2024). central/high = newer or higher sources where one exists; where only one source exists, low = central = high and single_source=true. No public Simula eCPM exists; Simula's direct-deal playables may earn more (unknown). All vendor data, not audited.",
+ "benchmarks": [
+  {
+   "region": "na",
+   "platform": "android",
+   "low": 9.2,
+   "central": 10.16,
+   "high": 16.49,
+   "single_source": false,
+   "sources": [
+    "D02 Appodeal/Mistplay NA Android $9.20",
+    "D15 BusinessOfApps US Android $10.16 (updated 2026-09-25)",
+    "D13 Playio US Android $16.49 (2026-05-18)"
+   ]
+  },
+  {
+   "region": "na",
+   "platform": "ios",
+   "low": 13.9,
+   "central": 16.33,
+   "high": 19.63,
+   "single_source": false,
+   "sources": [
+    "D02 NA iOS $13.90",
+    "D15 US iOS $16.33",
+    "D13 US iOS $19.63"
+   ]
+  },
+  {
+   "region": "europe",
+   "platform": "android",
+   "low": 5.1,
+   "central": 5.1,
+   "high": 5.1,
+   "single_source": true,
+   "sources": [
+    "D02"
+   ]
+  },
+  {
+   "region": "europe",
+   "platform": "ios",
+   "low": 8.8,
+   "central": 8.8,
+   "high": 8.8,
+   "single_source": true,
+   "sources": [
+    "D02"
+   ]
+  },
+  {
+   "region": "latam",
+   "platform": "android",
+   "low": 1.9,
+   "central": 1.9,
+   "high": 1.9,
+   "single_source": true,
+   "sources": [
+    "D02"
+   ]
+  },
+  {
+   "region": "latam",
+   "platform": "ios",
+   "low": 3.75,
+   "central": 3.75,
+   "high": 3.75,
+   "single_source": true,
+   "sources": [
+    "D02"
+   ]
+  },
+  {
+   "region": "apac",
+   "platform": "android",
+   "low": 8.2,
+   "central": 8.2,
+   "high": 8.2,
+   "single_source": true,
+   "sources": [
+    "D02"
+   ]
+  },
+  {
+   "region": "apac",
+   "platform": "ios",
+   "low": 7.5,
+   "central": 7.5,
+   "high": 7.5,
+   "single_source": true,
+   "sources": [
+    "D02"
+   ]
+  },
+  {
+   "region": "middle_east",
+   "platform": "android",
+   "low": 2.3,
+   "central": 2.3,
+   "high": 2.3,
+   "single_source": true,
+   "sources": [
+    "D02"
+   ]
+  },
+  {
+   "region": "middle_east",
+   "platform": "ios",
+   "low": 8.4,
+   "central": 8.4,
+   "high": 8.4,
+   "single_source": true,
+   "sources": [
+    "D02"
+   ]
+  }
+ ],
+ "country_rewarded_avg_both_platforms": {
+  "us": 15.15,
+  "uae": 14.55,
+  "australia": 13.8,
+  "switzerland": 12.2,
+  "ireland": 12.1,
+  "south_korea": 12.0,
+  "japan": 10.8,
+  "uk": 10.65,
+  "_source": "D03 Mistplay 2026-03-13 (Appodeal data)"
+ },
+ "other_formats_na": {
+  "interstitial_android": 9.7,
+  "interstitial_ios": 13.6,
+  "interstitial_us_both": 12.65,
+  "banner_android": 0.55,
+  "banner_ios": 0.35,
+  "offerwall_android_avg": 400,
+  "offerwall_industry_avg": 530,
+  "_sources": "D04, D05 (Mistplay 2026-03-13); D06 offerwall (TapJoy/ironSource via Mistplay). No verified playable-specific eCPM found (B30's range failed verification).",
+  "_note": "Offerwall eCPM is per 1,000 offerwall impressions where users complete installs/tasks; not comparable to a single rewarded view."
+ },
+ "web_display_cpm": {
+  "all_verticals": 1.42,
+  "in_app": 1.7,
+  "_source": "D22 snippet-only aggregator, undated. Low confidence; use only as an order of magnitude."
+ },
+ "rates": {
+  "rewarded_completion": {
+   "value": 0.8,
+   "note": "AdMob 'well-performing' benchmark (F11/B02); vendors claim >90-95% (B14, D12)"
+  },
+  "dau_engaging_well_performing": {
+   "value": 0.5,
+   "note": "AdMob playbook (B02)"
+  },
+  "opt_in_uplift_vs_other_formats": {
+   "value": "20-40%",
+   "note": "AdMob playbook (B01)"
+  },
+  "share_users_who_ever_iap": {
+   "value": 0.02,
+   "note": "'less than 2% of app users make in-app purchases', Unity 2024 report via Verve (D26), secondhand"
+  }
+ }
+}
