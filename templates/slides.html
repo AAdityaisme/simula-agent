@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>$title</title>
+<style>
+@page{size:1280px 720px;margin:0}
+*{box-sizing:border-box}
+body{margin:0;background:#e9ebef;color:#16181d;font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.slide{position:relative;width:1280px;height:720px;margin:24px auto;background:#fff;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08);page-break-after:always;break-after:page}
+header{position:absolute;left:64px;right:64px;top:30px;display:flex;align-items:center;gap:12px;font-size:15px;color:#4b5160}
+header .idea{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header .count{color:#9aa0ab;font-variant-numeric:tabular-nums}
+.chip{display:inline-block;flex:none;border-radius:999px;padding:4px 12px;font-size:13px;font-weight:700;letter-spacing:.01em}
+.chip.existing{background:#e3f5ec;color:#0f6b44}
+.chip.change{background:#ece7ff;color:#4b32c3}
+.chip.conditional{background:#fff1d6;color:#8a5200;text-transform:uppercase;letter-spacing:.06em}
+h2{position:absolute;left:64px;top:70px;margin:0;font-size:40px;line-height:1.1;letter-spacing:-.01em;display:flex;align-items:center;gap:16px}
+.num{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;background:#3b5bfd;color:#fff;font-size:22px}
+.callouts{position:absolute;left:64px;top:170px;width:484px;display:flex;flex-direction:column;gap:16px}
+.callout{border-left:4px solid #3b5bfd;padding:6px 0 6px 16px}
+.callout b{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280}
+.callout p{margin:4px 0 0;font-size:20px;line-height:1.35}
+.phone{position:absolute;border-radius:26px;border:6px solid #16181d;background:#16181d;overflow:hidden;box-shadow:0 12px 32px rgba(22,24,29,.22)}
+.phone img{display:block;width:100%;height:100%;object-fit:cover}
+.notwired{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) rotate(-8deg);background:#d92d20;color:#fff;font-weight:800;text-transform:uppercase;letter-spacing:.08em;padding:8px 16px;border-radius:8px;font-size:18px}
+.phone-text{position:absolute;text-align:center}
+.phone-caption{margin:0;font-size:13px;line-height:1.35;color:#4b5160}
+.marks{position:absolute;inset:0;width:1280px;height:720px;pointer-events:none;overflow:visible}
+.marks line{stroke:#3b5bfd;stroke-width:3}
+.marks .ring{fill:none;stroke:#3b5bfd;stroke-width:4}
+footer{position:absolute;left:64px;right:64px;bottom:22px;font-size:14px;color:#4b5160;border-top:1px solid #e5e7eb;padding-top:10px}
+.why{position:absolute;left:64px;right:64px;top:170px;display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
+.why-block{background:#f5f6f8;border-radius:16px;padding:22px}
+.why-block b{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280}
+.why-block p{margin:8px 0 0;font-size:18px;line-height:1.4}
+.condition{grid-column:1/-1;background:#fff1d6;border-radius:16px;padding:16px 22px;font-size:18px}
+.cover{padding:120px 96px}
+.cover h1{margin:0 0 36px;font-size:52px;letter-spacing:-.02em}
+.cover ol{margin:0;padding-left:28px;font-size:22px}
+.cover li{margin:14px 0}
+.cover li .chip{margin-right:12px;vertical-align:2px}
+.cover .how{margin-top:36px;color:#6b7280;font-size:18px}
+.appendix{width:1280px;margin:24px auto;padding:48px 64px;background:#fff;break-before:page;font-size:13px}
+.appendix h2{position:static;font-size:30px;margin:0 0 12px}
+.appendix .rule{color:#4b5160}
+.judged{break-inside:avoid;margin:20px 0;padding-top:12px;border-top:1px solid #e5e7eb}
+.judged h3{margin:0 0 6px;font-size:17px}
+.judged p{margin:3px 0}
+table{border-collapse:collapse;width:100%;margin:8px 0}
+th,td{border:1px solid #e5e7eb;padding:4px 8px;text-align:left;vertical-align:top}
+th{background:#f5f6f8}
+th:first-child{width:30%}
+td.pass{color:#0f6b44}
+td.fail{color:#b42318}
+.watermark{position:fixed;left:0;top:300px;width:1280px;text-align:center;transform:rotate(-14deg);font-size:64px;font-weight:900;color:rgba(217,45,32,.16);pointer-events:none;z-index:99;letter-spacing:.04em}
+@media print{body{background:#fff}.slide,.appendix{margin:0;box-shadow:none}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs><marker id="head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#3b5bfd"/></marker></defs></svg>
+$slides
+</body>
+</html>
