@@ -4,8 +4,9 @@ finished explore as it is: only --new or --from explore explores again."""
 import pytest
 
 from simula import cli, runfolder
-from simula.contracts import Provenance
+from simula.contracts import Coverage, Device, ExploreFile, Provenance
 from simula.runlog import read_manifest, read_trace
+from simula.stages import model
 
 
 def latest(runs):
@@ -30,17 +31,27 @@ def test_the_manifest_records_no_send(runs):
 def finished_explore(run_dir):
     explore = run_dir / "explore"
     explore.mkdir(exist_ok=True)
-    (explore / "explore.json").write_text("{}")
+    coverage = Coverage(states_found=0, actions_taken=0, stop_reason="made by an earlier explore",
+                        checklist_answered=[], checklist_open=[])
+    (explore / "explore.json").write_text(ExploreFile(
+        app_package="com.janitor.ai", app_version=None, budget="transfer", relaunches=0, content_filter=None,
+        blocked_state_ids=[], coverage=coverage, device=Device()).model_dump_json())
     runfolder.write_done(explore, run_dir, [], [], {"made": "by an earlier explore"}, [explore],
                          Provenance(source="explorer_run", explorer_run_id=run_dir.name))
 
 
-def test_run_reuses_a_finished_explore_even_when_its_params_changed(runs):
+def not_built(ctx):
+    raise NotImplementedError("stubbed: this test is about explore")
+
+
+def test_run_reuses_a_finished_explore_even_when_its_params_changed(runs, monkeypatch):
+    monkeypatch.setattr(model, "run", not_built)
     cli.main(["run", "janitorai", "--new"])
     run_dir = latest(runs)
     finished_explore(run_dir)
-    cli.main(["run", "janitorai", "--no-send", "--budget", "deep"])
-    assert (run_dir / "explore" / "explore.json").read_text() == "{}"
+    before = (run_dir / "explore" / "explore.json").read_text()
+    assert cli.main(["run", "janitorai", "--no-send", "--budget", "deep"]) == cli.EXIT_NOT_BUILT
+    assert (run_dir / "explore" / "explore.json").read_text() == before
     skip = [line for line in read_trace(run_dir / "trace.jsonl") if line.stage == "explore" and line.step == "skip"]
     assert skip and "--from explore" in skip[-1].note
 

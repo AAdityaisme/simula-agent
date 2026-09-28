@@ -189,15 +189,7 @@ def test_replay_flag_refuses_to_drive_the_device(tmp_path):
         stage.run(new_run(tmp_path, replay=True))
 
 
-class LoopLine(ActionLine):
-    """ActionLine as PR 2 extends it (loop_pass, loop_stop), until that contract change merges."""
-    loop_pass: int | None = None
-    loop_stop: str | None = None
-
-
 def test_the_loop_stops_at_a_dialog_the_send_opened_not_at_words_in_a_reply(tmp_path, monkeypatch):
-    monkeypatch.setattr(stage, "ActionLine", LoopLine)
-
     def limited(clock):
         phone = janitor_like(clock)
         phone.replies["chat"] = ["I've hit my limits before, and pushed past them."]
@@ -205,7 +197,7 @@ def test_the_loop_stops_at_a_dialog_the_send_opened_not_at_words_in_a_reply(tmp_
         phone.taps[("chat", "sendButton")] = "limit"
         return phone
     ex, phone = explore(tmp_path, monkeypatch, phone_factory=limited)
-    loop = [LoopLine.model_validate_json(raw) for raw in (ex.out / "actions.jsonl").read_text().splitlines()]
+    loop = lines(ex)
     passes = [line for line in loop if line.loop_pass]
     assert passes and all(line.loop_pass >= 1 for line in passes)
     assert [line.loop_stop for line in loop if line.loop_stop] == ["dialog opened"]

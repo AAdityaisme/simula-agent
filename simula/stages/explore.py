@@ -328,9 +328,8 @@ class Explorer:
         fields = dict(step=self.step, from_state=s.sid, to_state=to.sid if to else None, action=move.action,
                       mcp_ref=canonical.ref if canonical else None,
                       tap_px=Point(x=point[0], y=point[1]) if move.action == "tap" and point else None,
-                      transition=transition, change_summary=summary, outcome=outcome)
-        if "loop_pass" in ActionLine.model_fields:  # PR 2 adds loop_pass and loop_stop to the contract
-            fields.update(loop_pass=loop_pass, loop_stop=loop_stop)
+                      transition=transition, change_summary=summary, outcome=outcome, loop_pass=loop_pass,
+                      loop_stop=loop_stop)
         line = ActionLine(**fields)
         with open(self.out / "actions.jsonl", "a") as f:
             f.write(line.model_dump_json() + "\n")
