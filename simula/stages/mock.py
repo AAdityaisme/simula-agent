@@ -321,7 +321,8 @@ def draw_batches(ctx: Ctx, model: ProductModel, groups: list[list[State]], scree
         results = list(pool.map(draw, range(1, len(groups) + 1), groups))
     failures = [r for r in results if isinstance(r, BaseException)]
     if len(failures) == len(results):
-        raise failures[0]
+        # A cap failure gets the CLI's needs-human instructions (raise --usd-cap), so it wins over any other.
+        raise next((f for f in failures if isinstance(f, llm.CapReached)), failures[0])
     parts, undrawn, errors = [], {}, []
     for n, (batch, result) in enumerate(zip(groups, results), 1):
         if isinstance(result, BaseException):
