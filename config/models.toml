@@ -1,0 +1,61 @@
+# Prices are USD per million tokens (docs read 2026-09-27). stream_above = max_tokens at which calls must stream.
+
+[models.claude-opus-5-5]
+provider = "anthropic"
+supports_effort = true
+supports_xhigh = true
+max_out = 64000
+stream_above = 16000
+price_in = 4.00
+price_out = 20.00
+price_cached_in = 0.20
+
+[models.claude-sonnet-5]
+provider = "anthropic"
+supports_effort = true
+supports_xhigh = true
+max_out = 64000
+stream_above = 16000
+price_in = 2.00
+price_out = 10.00
+price_cached_in = 0.20
+
+[models.claude-haiku-4-5-20251001]
+provider = "anthropic"
+supports_effort = false
+supports_xhigh = false
+max_out = 64000
+stream_above = 16000
+price_in = 1.00
+price_out = 5.00
+price_cached_in = 0.10
+
+[models.gpt-6-sol]
+provider = "openai"
+supports_effort = true
+supports_xhigh = true
+max_out = 128000
+stream_above = 1000000
+price_in = 2.00
+price_out = 10.00
+price_cached_in = 0.20
+
+[models.gpt-6-luna]
+provider = "openai"
+supports_effort = true
+supports_xhigh = true
+max_out = 128000
+stream_above = 1000000
+price_in = 0.10
+price_out = 0.50
+price_cached_in = 0.01
+
+[models.jev-latest]
+provider = "typesafe"
+supports_effort = false
+supports_xhigh = false
+max_out = 0
+stream_above = 1000000
+price_in = 0.042
+price_out = 0.0
+price_cached_in = 0.042

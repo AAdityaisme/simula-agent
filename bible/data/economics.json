@@ -1,0 +1,169 @@
+{
+ "_about": "Cost to serve ONE grant of a reward, by reward_kind. The proposer fills the required fields per idea; code fills the rest from these defaults and computes break_even_ecpm = 1000 * cost / views_per_grant (see bible/breakeven.py). Cases: favorable = cheapest plausible, central = default, unfavorable = most expensive plausible. Fields marked assumption:true have no source; they are stated so the app team can replace them.",
+ "formula": "break_even_ecpm_usd = 1000 * reward_cost_usd / views_per_grant. Verdict: PASS if break-even(central) <= benchmark.low for the app's main region/platform; CONDITIONAL if break-even(favorable) <= benchmark.high; else FAIL.",
+ "reward_kinds": {
+  "inference": {
+   "cost_term": "count * (tokens_in * usd_per_mtok_in + tokens_out * usd_per_mtok_out) / 1e6",
+   "required_fields": [
+    "count"
+   ],
+   "defaults": {
+    "tokens_in": {
+     "favorable": 1500,
+     "central": 4000,
+     "unfavorable": 10000
+    },
+    "tokens_out": {
+     "favorable": 150,
+     "central": 300,
+     "unfavorable": 600
+    },
+    "usd_per_mtok_in": {
+     "favorable": 0.1,
+     "central": 0.25,
+     "unfavorable": 1.0
+    },
+    "usd_per_mtok_out": {
+     "favorable": 0.32,
+     "central": 2.0,
+     "unfavorable": 5.0
+    }
+   },
+   "sources": {
+    "prices": "favorable = DeepInfra Llama-3.3-70B-Turbo $0.10/$0.32 (E18); central = OpenAI gpt-5-mini $0.25/$2.00 (E05); unfavorable = Claude Haiku 4.5 $1/$5 (E01). All live pricing pages read 2026-09-27.",
+    "tokens_in": "assumption:true. No measured tokens-per-turn source for companion apps survived verification (E28/E29 failed). Central 4,000 = character definition + short recent history.",
+    "tokens_out": "assumption:true. Central 300 tokens per reply."
+   },
+   "note": "Prompt caching cuts input cost ~90% on cache hits (E02, E05). If the app caches the character card, pass usd_per_mtok_in at the cached rate."
+  },
+  "image": {
+   "cost_term": "count * usd_per_image",
+   "required_fields": [
+    "count"
+   ],
+   "defaults": {
+    "usd_per_image": {
+     "favorable": 0.025,
+     "central": 0.034,
+     "unfavorable": 0.067
+    }
+   },
+   "sources": {
+    "prices": "favorable = FLUX dev on fal.ai $0.025 (E21); central = Gemini 3.1 Flash Lite Image 1K $0.0336 (E13); unfavorable = Gemini 3.1 Flash Image 1K $0.067 (E12)."
+   }
+  },
+  "voice": {
+   "cost_term": "minutes * usd_per_minute",
+   "required_fields": [
+    "minutes"
+   ],
+   "defaults": {
+    "usd_per_minute": {
+     "favorable": 0.0135,
+     "central": 0.045,
+     "unfavorable": 0.09
+    }
+   },
+   "sources": {
+    "prices": "OpenAI tts-1 $15/1M chars (E09); ElevenLabs Flash $0.05 and v3 $0.10 per 1k chars (E22). Converted at 900 characters per spoken minute (assumption:true, ~150 words/min)."
+   }
+  },
+  "feature_time": {
+   "cost_term": "minutes * ads_per_minute * displaced_ecpm_usd / 1000  (ads the app no longer shows during an ad-free or premium window)",
+   "required_fields": [
+    "minutes"
+   ],
+   "defaults": {
+    "ads_per_minute": {
+     "favorable": 0.1,
+     "central": 0.2,
+     "unfavorable": 0.5
+    },
+    "displaced_ecpm_usd": {
+     "favorable": 0.55,
+     "central": 9.7,
+     "unfavorable": 13.6
+    }
+   },
+   "sources": {
+    "displaced_ecpm_usd": "favorable = NA Android banner $0.55 (D05); central = NA Android interstitial $9.70; unfavorable = NA iOS interstitial $13.60 (D04).",
+    "ads_per_minute": "assumption:true. Replace with the app's observed ad load from the product model."
+   },
+   "note": "If the window unlocks a PAID feature rather than removing ads, use currency/cannibalization reasoning instead and say so."
+  },
+  "content_unlock": {
+   "cost_term": "units * (ads_per_unit * displaced_ecpm_usd / 1000 + p_would_pay * unit_price_usd)",
+   "required_fields": [
+    "units",
+    "unit_price_usd"
+   ],
+   "defaults": {
+    "ads_per_unit": {
+     "favorable": 0,
+     "central": 0,
+     "unfavorable": 0
+    },
+    "displaced_ecpm_usd": {
+     "favorable": 1.42,
+     "central": 1.42,
+     "unfavorable": 1.7
+    },
+    "p_would_pay": {
+     "favorable": 0.01,
+     "central": 0.02,
+     "unfavorable": 0.05
+    }
+   },
+   "sources": {
+    "p_would_pay": "central 0.02 from 'less than 2% of app users make in-app purchases' (Unity 2024 via Verve, D26, secondhand). favorable/unfavorable are assumption:true.",
+    "displaced_ecpm_usd": "web display CPM $1.42 / in-app $1.70 (D22, snippet-only, low confidence)."
+   },
+   "note": "For ad-supported content (news, feeds) set ads_per_unit to the ads a page/episode would have carried. For paywalled content set unit_price_usd to the coin/IAP price of one unit."
+  },
+  "currency": {
+   "cost_term": "amount * usd_per_unit * p_would_pay  (cannibalization: the chance the user would have bought it instead)",
+   "required_fields": [
+    "amount",
+    "usd_per_unit"
+   ],
+   "defaults": {
+    "p_would_pay": {
+     "favorable": 0.01,
+     "central": 0.02,
+     "unfavorable": 0.05
+    }
+   },
+   "sources": {
+    "p_would_pay": "as content_unlock"
+   },
+   "note": "usd_per_unit = the app's cheapest IAP price divided by the units it buys. If the currency is spent on inference (messages, images), cost it as inference/image, not currency."
+  },
+  "cosmetic": {
+   "cost_term": "0 (no marginal cost)",
+   "required_fields": [],
+   "defaults": {
+    "usd": 0.0
+   }
+  },
+  "queue_priority": {
+   "cost_term": "0 marginal tokens; capacity cost at peak is real but unknown",
+   "required_fields": [],
+   "defaults": {
+    "usd": 0.0
+   }
+  },
+  "streak_protection": {
+   "cost_term": "0 (no marginal cost)",
+   "required_fields": [],
+   "defaults": {
+    "usd": 0.0
+   }
+  }
+ },
+ "category_cost_terms": {
+  "ai_chat": "inference (messages), image (generated images), voice (TTS minutes). The reward IS the cost.",
+  "content_news": "displaced ad revenue (ads not shown) or a paid unlock given away (p_would_pay * price).",
+  "games": "near 0 marginal cost; the risk is economy inflation and IAP cannibalization, not serving cost.",
+  "subscription_feature": "cannibalization: value of the subscription benefit times the chance the user would have paid. Keep rewards partial and temporary."
+ }
+}

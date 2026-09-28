@@ -1,0 +1,38 @@
+# Labeled capture pairs for the fingerprint test (PR 1). Captures are in trees/<app>/.
+# Every pair of captures listed under `captures` is DIFFERENT unless it appears in `same`.
+# Source: merge check 2026-09-27 (architecture/merged/DIFF.md §4.2), pixel-checked.
+
+captures = [
+  "janitorai/j02_home", "janitorai/j03_home_again", "janitorai/j04_tab1", "janitorai/j05_tab2",
+  "janitorai/j06_tab3", "janitorai/j07_tab4", "janitorai/j08_tab5", "janitorai/j10_drawer_settled",
+  "janitorai/janitorai-a", "janitorai/janitorai-b", "janitorai/janitorai-favorites",
+  "janitorai/janitorai-following", "janitorai/janitorai-hidden", "janitorai/janitorai-limited",
+  "janitorai/janitorai-trending", "luzia/luzia-a", "luzia/luzia-b", "aol/aol-a", "aol/aol-b",
+  "luzia/luzia-home", "luzia/luzia-home-repeat", "luzia/luzia-home-scrolled", "luzia/luzia-paywall",
+  "luzia/luzia-tab-services", "luzia/luzia-tab-create", "luzia/luzia-tab-create-scrolled", "luzia/luzia-chat-thread",
+  "luzia/luzia-settings", "luzia/luzia-settings-scrolled", "luzia/luzia-pet-intro",
+  "aol/aol-home", "aol/aol-home-repeat", "aol/aol-home-scrolled", "aol/aol-article", "aol/aol-article-external",
+  "aol/aol-tab-entertainment", "aol/aol-tab-local", "aol/aol-tab-sports",
+]
+
+same = [
+  ["janitorai/j02_home", "janitorai/j03_home_again"],
+  ["janitorai/j02_home", "janitorai/j06_tab3"],            # j06 is the My Chats tab again
+  ["janitorai/j03_home_again", "janitorai/j06_tab3"],
+  ["janitorai/janitorai-a", "janitorai/janitorai-b"],
+  ["janitorai/janitorai-limited", "janitorai/janitorai-trending"],  # pixel-identical: that tap changed nothing
+  ["aol/aol-a", "aol/aol-b"],                              # pixel-identical, but the tree changed 105 -> 96 nodes
+  # 2026-09-28 topup. Chats home, a day apart; luzia-home-scrolled is byte-identical (the screen doesn't scroll).
+  ["luzia/luzia-home", "luzia/luzia-home-repeat"],
+  ["luzia/luzia-home", "luzia/luzia-home-scrolled"],
+  ["luzia/luzia-home-repeat", "luzia/luzia-home-scrolled"],
+  ["luzia/luzia-b", "luzia/luzia-home"],
+  ["luzia/luzia-b", "luzia/luzia-home-repeat"],
+  ["luzia/luzia-b", "luzia/luzia-home-scrolled"],
+  # AOL home: the feed ad slot filled (Taboola) in aol-home and empty in aol-home-repeat, stories below shift 26 px.
+  ["aol/aol-home", "aol/aol-home-repeat"],
+  ["aol/aol-a", "aol/aol-home"],
+  ["aol/aol-a", "aol/aol-home-repeat"],
+  ["aol/aol-b", "aol/aol-home"],
+  ["aol/aol-b", "aol/aol-home-repeat"],
+]

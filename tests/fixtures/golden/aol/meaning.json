@@ -1,0 +1,171 @@
+{
+ "app_version": "7.81.0",
+ "app_category": "content",
+ "states": [
+  {
+   "id": "s01",
+   "tree": "aol-home",
+   "kind": "screen",
+   "name": "Home · Top Stories",
+   "in_mock_scope": true,
+   "purpose": "Root. News feed with category pills, weather bar, story cards, a native ad slot below the first story, bottom bar Inbox / Home.",
+   "labels": {},
+   "roles": {
+    "@e102": "tab",
+    "@e103": "tab"
+   },
+   "dynamic_regions": [
+    {
+     "x": 0,
+     "y": 1508,
+     "w": 1080,
+     "h": 320
+    }
+   ]
+  },
+  {
+   "id": "s02",
+   "kind": "screen",
+   "name": "Article",
+   "in_mock_scope": true,
+   "purpose": "In-app article reader: byline, hero image, body text, share and comment bar.",
+   "tree": "aol-article"
+  },
+  {
+   "id": "s03",
+   "screen": "11-nav-inbox-login",
+   "kind": "blocked",
+   "name": "Inbox sign-in",
+   "in_mock_scope": false,
+   "blocked_reason": "login wall",
+   "purpose": "Mail tab asks for a sign-in. Screenshot only."
+  },
+  {
+   "id": "s04",
+   "kind": "screen",
+   "name": "Entertainment",
+   "in_mock_scope": true,
+   "purpose": "Entertainment category feed.",
+   "tree": "aol-tab-entertainment"
+  },
+  {
+   "id": "s05",
+   "screen": "08-sports-article-with-ad",
+   "kind": "screen",
+   "name": "Article with in-article ad",
+   "in_mock_scope": true,
+   "purpose": "An article with a native ad inside the body. Screenshot only."
+  },
+  {
+   "id": "s06",
+   "tree": "aol-home-scrolled",
+   "kind": "screen",
+   "name": "Home · Top Stories, scrolled",
+   "in_mock_scope": true,
+   "purpose": "The home feed scrolled down: the toolbar collapses to the pill bar and the native ad card sits between stories."
+  }
+ ],
+ "edges": [
+  {
+   "from": [
+    "s01",
+    "When to set your clocks back"
+   ],
+   "to": "s02",
+   "summary": "opens the article"
+  },
+  {
+   "from": [
+    "s01",
+    "Inbox"
+   ],
+   "to": "s03",
+   "summary": "bottom bar: Inbox asks for sign-in"
+  },
+  {
+   "from": [
+    "s01",
+    "Entertainment"
+   ],
+   "to": "s04",
+   "summary": "category pill switches the feed"
+  }
+ ],
+ "mechanics": [
+  {
+   "id": "m01",
+   "kind": "ad",
+   "evidence": [
+    [
+     "s01",
+     "@e74"
+    ],
+    [
+     "s06",
+     "@e70"
+    ]
+   ],
+   "status": "observed",
+   "summary": "Existing native ad placement in the home feed, below the first story: a sponsored card labeled Ad (Taboola in the 09-28 capture). Fill varies: the same slot was empty (just an AD label) 7 minutes later."
+  },
+  {
+   "id": "m02",
+   "kind": "other",
+   "evidence": [
+    [
+     "s01",
+     "Save this article"
+    ]
+   ],
+   "status": "observed",
+   "summary": "Save-for-later on every story card."
+  }
+ ],
+ "ledger": [],
+ "open_questions": [
+  "No paywall, limit, or currency was seen on the home feed.",
+  "The Inbox needs a sign-in (blocked).",
+  "Which network fills the feed ad slot varies by session (Taboola on 09-28, direct cards on 09-27), and it is sometimes empty."
+ ],
+ "checklist_answered": [
+  "root",
+  "all_tabs"
+ ],
+ "checklist_open": [
+  "paywall_or_membership",
+  "settings",
+  "limit"
+ ],
+ "flows": [
+  {
+   "id": "f01",
+   "name": "Read a story",
+   "purpose": "From the home feed to an article.",
+   "path": [
+    "s01",
+    "s02"
+   ],
+   "evidence": [
+    [
+     "s01",
+     "When to set"
+    ]
+   ]
+  },
+  {
+   "id": "f02",
+   "name": "Browse a category",
+   "purpose": "Switch the feed with a category pill.",
+   "path": [
+    "s01",
+    "s04"
+   ],
+   "evidence": [
+    [
+     "s01",
+     "Entertainment"
+    ]
+   ]
+  }
+ ]
+}

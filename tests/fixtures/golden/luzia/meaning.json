@@ -1,0 +1,364 @@
+{
+ "app_version": "5.44.0",
+ "app_category": "chat",
+ "states": [
+  {
+   "id": "s01",
+   "tree": "luzia-b",
+   "kind": "screen",
+   "name": "Chats (home)",
+   "in_mock_scope": true,
+   "purpose": "Root. Assistant prompt card, new-chat personas, Custom Bestie and virtual-pet banners, recent chats, bottom tabs Chat / Services / Create.",
+   "labels": {
+    "@e30": "Luzia+ upsell badge",
+    "@e33": "Settings button"
+   },
+   "roles": {
+    "@e30": "upsell badge",
+    "@e33": "icon button",
+    "@e68": "tab",
+    "@e71": "tab"
+   }
+  },
+  {
+   "id": "s02",
+   "kind": "screen",
+   "name": "Subscription paywall",
+   "in_mock_scope": true,
+   "purpose": "Full Luzia+ paywall: six-item feature list, Weekly / Monthly (Most popular) / Annual plans, a 3-day free-trial button, Terms & Conditions.",
+   "tree": "luzia-paywall"
+  },
+  {
+   "id": "s03",
+   "kind": "screen",
+   "name": "Settings",
+   "in_mock_scope": true,
+   "purpose": "Upgrade to Luzia+ row (opens the paywall), memories, preferences (language, theme, offline model, pet and haptics toggles), support, account.",
+   "tree": "luzia-settings",
+   "labels": {
+    "@e28": "Back button"
+   },
+   "roles": {
+    "@e28": "icon button"
+   }
+  },
+  {
+   "id": "s04",
+   "kind": "modal",
+   "parent": "s01",
+   "name": "Virtual pet intro",
+   "in_mock_scope": true,
+   "purpose": "Onboarding modal for the virtual pet over home: Meet me / Later, and a note that the pet can be turned off in Settings. Opened from the home pet banner (it also appeared unprompted once).",
+   "tree": "luzia-pet-intro"
+  },
+  {
+   "id": "s05",
+   "kind": "screen",
+   "name": "Services",
+   "in_mock_scope": true,
+   "purpose": "Routines and tasks; empty state with a Start something button.",
+   "tree": "luzia-tab-services"
+  },
+  {
+   "id": "s06",
+   "kind": "screen",
+   "name": "Create",
+   "in_mock_scope": true,
+   "purpose": "Mini-app marketplace (My Apps / Explore) with a Create app button.",
+   "tree": "luzia-tab-create"
+  },
+  {
+   "id": "s07",
+   "kind": "screen",
+   "name": "Chat thread",
+   "in_mock_scope": false,
+   "purpose": "An existing chat with the Teacher persona, message bar and a notifications prompt. Chat content stays out of the mock.",
+   "tree": "luzia-chat-thread"
+  }
+ ],
+ "edges": [
+  {
+   "from": [
+    "s01",
+    "Try Luzia"
+   ],
+   "to": "s02",
+   "summary": "upsell badge opens the paywall"
+  },
+  {
+   "from": [
+    "s03",
+    "@e33"
+   ],
+   "to": "s02",
+   "summary": "settings upgrade row opens the paywall"
+  },
+  {
+   "from": [
+    "s01",
+    "@e33"
+   ],
+   "to": "s03",
+   "summary": "settings button opens settings"
+  },
+  {
+   "from": [
+    "s01",
+    "Services"
+   ],
+   "to": "s05",
+   "summary": "bottom bar: Services"
+  },
+  {
+   "from": [
+    "s01",
+    "@e71"
+   ],
+   "to": "s06",
+   "summary": "bottom bar: Create"
+  },
+  {
+   "from": [
+    "s01",
+    "Our new chat"
+   ],
+   "to": "s07",
+   "summary": "opens the recent chat"
+  },
+  {
+   "from": [
+    "s01",
+    "Meet Toki"
+   ],
+   "to": "s04",
+   "summary": "pet banner opens the pet intro"
+  }
+ ],
+ "mechanics": [
+  {
+   "id": "m01",
+   "kind": "paywall",
+   "evidence": [
+    [
+     "s01",
+     "Try Luzia"
+    ],
+    [
+     "s03",
+     "@e33"
+    ],
+    [
+     "s02",
+     "2× images & longer chats"
+    ],
+    [
+     "s02",
+     "Advanced reasoning mode"
+    ],
+    [
+     "s02",
+     "Higher-quality image generations"
+    ],
+    [
+     "s02",
+     "Voice chat with Luzia"
+    ],
+    [
+     "s02",
+     "Create up to 5 AI characters"
+    ],
+    [
+     "s02",
+     "Exclusive tools"
+    ],
+    [
+     "s02",
+     "$ 1.99"
+    ],
+    [
+     "s02",
+     "$ 4.99"
+    ],
+    [
+     "s02",
+     "$ 39.99"
+    ],
+    [
+     "s02",
+     "Start 3-day"
+    ]
+   ],
+   "status": "observed",
+   "numbers": [
+    "$ 1.99",
+    "$ 4.99",
+    "$ 39.99",
+    "3-day",
+    "5"
+   ],
+   "summary": "Luzia+ subscription with two entry points (the home badge and the Upgrade to Luzia+ row in Settings); the paywall lists six features, three plans (Weekly $1.99, Monthly $4.99 marked Most popular, Annual $39.99) and a 3-day free trial."
+  },
+  {
+   "id": "m02",
+   "kind": "other",
+   "evidence": [
+    [
+     "s01",
+     "Meet Toki"
+    ]
+   ],
+   "status": "observed",
+   "summary": "Virtual pet the user creates and takes care of."
+  },
+  {
+   "id": "m03",
+   "kind": "other",
+   "evidence": [
+    [
+     "s01",
+     "Custom Bestie"
+    ]
+   ],
+   "status": "observed",
+   "summary": "User-built custom AI expert."
+  }
+ ],
+ "ledger": [
+  {
+   "id": "l01",
+   "kind": "paywall_bullet",
+   "verbatim": "2× images & longer chats",
+   "evidence": [
+    "s02",
+    "2× images & longer chats"
+   ]
+  },
+  {
+   "id": "l02",
+   "kind": "paywall_bullet",
+   "verbatim": "Advanced reasoning mode",
+   "evidence": [
+    "s02",
+    "Advanced reasoning mode"
+   ]
+  },
+  {
+   "id": "l03",
+   "kind": "paywall_bullet",
+   "verbatim": "Higher-quality image generations",
+   "evidence": [
+    "s02",
+    "Higher-quality image generations"
+   ]
+  },
+  {
+   "id": "l04",
+   "kind": "paywall_bullet",
+   "verbatim": "Voice chat with Luzia",
+   "evidence": [
+    "s02",
+    "Voice chat with Luzia"
+   ]
+  },
+  {
+   "id": "l05",
+   "kind": "paywall_bullet",
+   "verbatim": "Create up to 5 AI characters",
+   "evidence": [
+    "s02",
+    "Create up to 5 AI characters"
+   ]
+  },
+  {
+   "id": "l06",
+   "kind": "paywall_bullet",
+   "verbatim": "Exclusive tools",
+   "evidence": [
+    "s02",
+    "Exclusive tools"
+   ]
+  },
+  {
+   "id": "l07",
+   "kind": "price",
+   "verbatim": "$ 1.99",
+   "evidence": [
+    "s02",
+    "$ 1.99"
+   ]
+  },
+  {
+   "id": "l08",
+   "kind": "price",
+   "verbatim": "$ 4.99",
+   "evidence": [
+    "s02",
+    "$ 4.99"
+   ]
+  },
+  {
+   "id": "l09",
+   "kind": "price",
+   "verbatim": "$ 39.99",
+   "evidence": [
+    "s02",
+    "$ 39.99"
+   ]
+  }
+ ],
+ "open_questions": [
+  "What the trial converts to, and what the free tier is missing beyond the six listed features, is not on screen.",
+  "No free-tier limit was observed.",
+  "What the virtual pet needs from the user (care loop, currency) is unknown."
+ ],
+ "checklist_answered": [
+  "root",
+  "all_tabs",
+  "paywall_or_membership",
+  "settings"
+ ],
+ "checklist_open": [
+  "limit"
+ ],
+ "flows": [
+  {
+   "id": "f01",
+   "name": "See the subscription offer",
+   "purpose": "From the home badge to the full paywall.",
+   "path": [
+    "s01",
+    "s02"
+   ],
+   "evidence": [
+    [
+     "s01",
+     "Try Luzia"
+    ],
+    [
+     "s02",
+     "Start 3-day"
+    ]
+   ]
+  },
+  {
+   "id": "f02",
+   "name": "Continue a chat",
+   "purpose": "From home to a recent chat.",
+   "path": [
+    "s01",
+    "s07"
+   ],
+   "evidence": []
+  },
+  {
+   "id": "f03",
+   "name": "Explore mini-apps",
+   "purpose": "From home to the Create tab marketplace.",
+   "path": [
+    "s01",
+    "s06"
+   ],
+   "evidence": []
+  }
+ ]
+}

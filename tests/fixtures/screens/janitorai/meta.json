@@ -1,0 +1,11 @@
+{
+ "app": "janitorai",
+ "package": "com.janitor.ai",
+ "versionName": "2.5.0",
+ "versionCode": 136,
+ "density": "420dpi",
+ "size": "1080x2400",
+ "captured": "2026-09-27",
+ "account": "redacted (test account)",
+ "mode": "app default 'Safe Mode' (NSFW hidden, LLM tuned SFW) per setup/ACCOUNTS.md"
+}

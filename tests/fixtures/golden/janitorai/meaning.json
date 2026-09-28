@@ -1,0 +1,675 @@
+{
+ "app_version": "2.5.0",
+ "app_category": "chat",
+ "states": [
+  {
+   "id": "s01",
+   "tree": "j04_tab1",
+   "kind": "screen",
+   "name": "Home · Hidden Gems",
+   "purpose": "Root. Character discovery feed: All / Limited Only filter, feed tabs (Following, Favorites, Trending, Hidden Gems), a two-column grid of character cards with tags and token counts.",
+   "in_mock_scope": true,
+   "rating": "mixed",
+   "labels": {
+    "@e94": "Home tab",
+    "@e95": "Search tab",
+    "@e96": "My Chats tab",
+    "@e97": "Notifications tab",
+    "@e98": "Profile tab",
+    "@e30": "Menu"
+   },
+   "roles": {
+    "@e94": "tab",
+    "@e95": "tab",
+    "@e96": "tab",
+    "@e97": "tab",
+    "@e98": "tab",
+    "@e30": "icon button"
+   }
+  },
+  {
+   "id": "s02",
+   "tree": "j01_launch",
+   "kind": "modal",
+   "name": "Janitor+ announcement",
+   "purpose": "Subscription upsell shown over home on some launches: four benefit bullets, See janitor+ / Not now.",
+   "in_mock_scope": true,
+   "rating": "safe",
+   "parent": "s01"
+  },
+  {
+   "id": "s03",
+   "tree": "janitorai-limited",
+   "kind": "screen",
+   "name": "Home · Trending · Limited Only",
+   "purpose": "The same feed on the Trending tab with the most restrictive content filter (Limited Only) on.",
+   "in_mock_scope": true,
+   "rating": "safe",
+   "labels": {
+    "@e112": "Home tab",
+    "@e113": "Search tab",
+    "@e114": "My Chats tab",
+    "@e115": "Notifications tab",
+    "@e116": "Profile tab"
+   },
+   "roles": {
+    "@e112": "tab",
+    "@e113": "tab",
+    "@e114": "tab",
+    "@e115": "tab",
+    "@e116": "tab"
+   }
+  },
+  {
+   "id": "s04",
+   "tree": "janitorai-following",
+   "kind": "screen",
+   "name": "Home · Following (empty)",
+   "purpose": "Following feed; empty for a new guest account.",
+   "in_mock_scope": false,
+   "rating": "safe",
+   "labels": {
+    "@e45": "Home tab",
+    "@e46": "Search tab",
+    "@e47": "My Chats tab",
+    "@e48": "Notifications tab",
+    "@e49": "Profile tab"
+   },
+   "roles": {
+    "@e45": "tab",
+    "@e46": "tab",
+    "@e47": "tab",
+    "@e48": "tab",
+    "@e49": "tab"
+   }
+  },
+  {
+   "id": "s05",
+   "tree": "j05_tab2",
+   "kind": "screen",
+   "name": "Search",
+   "purpose": "Search box, trait filter chips, and a result grid.",
+   "in_mock_scope": true,
+   "rating": "mixed",
+   "labels": {
+    "@e118": "Home tab",
+    "@e119": "Search tab",
+    "@e120": "My Chats tab",
+    "@e121": "Notifications tab",
+    "@e122": "Profile tab"
+   },
+   "roles": {
+    "@e118": "tab",
+    "@e119": "tab",
+    "@e120": "tab",
+    "@e121": "tab",
+    "@e122": "tab"
+   }
+  },
+  {
+   "id": "s06",
+   "tree": "j02_home",
+   "kind": "screen",
+   "name": "My Chats",
+   "purpose": "The user's chats with characters; one existing chat.",
+   "in_mock_scope": true,
+   "rating": "safe",
+   "labels": {
+    "@e37": "Home tab",
+    "@e38": "Search tab",
+    "@e39": "My Chats tab",
+    "@e40": "Notifications tab",
+    "@e41": "Profile tab"
+   },
+   "roles": {
+    "@e37": "tab",
+    "@e38": "tab",
+    "@e39": "tab",
+    "@e40": "tab",
+    "@e41": "tab"
+   }
+  },
+  {
+   "id": "s07",
+   "tree": "j07_tab4",
+   "kind": "screen",
+   "name": "Notifications",
+   "purpose": "Notification list; empty.",
+   "in_mock_scope": true,
+   "rating": "safe",
+   "labels": {
+    "@e33": "Home tab",
+    "@e34": "Search tab",
+    "@e35": "My Chats tab",
+    "@e36": "Notifications tab",
+    "@e37": "Profile tab"
+   },
+   "roles": {
+    "@e33": "tab",
+    "@e34": "tab",
+    "@e35": "tab",
+    "@e36": "tab",
+    "@e37": "tab"
+   }
+  },
+  {
+   "id": "s08",
+   "tree": "j08_tab5",
+   "kind": "screen",
+   "name": "Profile",
+   "purpose": "The user's profile: handle, following/followers counts, their characters, personas, scripts.",
+   "in_mock_scope": true,
+   "rating": "safe",
+   "labels": {
+    "@e49": "Home tab",
+    "@e50": "Search tab",
+    "@e51": "My Chats tab",
+    "@e52": "Notifications tab",
+    "@e53": "Profile tab",
+    "@e29": "Menu"
+   },
+   "roles": {
+    "@e49": "tab",
+    "@e50": "tab",
+    "@e51": "tab",
+    "@e52": "tab",
+    "@e53": "tab",
+    "@e29": "icon button"
+   }
+  },
+  {
+   "id": "s09",
+   "tree": "j10_drawer_settled",
+   "kind": "sheet",
+   "name": "Profile menu",
+   "purpose": "Side drawer: Following, Blocks, Media Library, Settings, Billing, Upgrade to Janitor Plus, Get Help, Logout.",
+   "in_mock_scope": true,
+   "rating": "safe",
+   "parent": "s08"
+  }
+ ],
+ "edges": [
+  {
+   "from": [
+    "s01",
+    "@e95"
+   ],
+   "to": "s05",
+   "summary": "bottom bar: Search tab"
+  },
+  {
+   "from": [
+    "s01",
+    "@e96"
+   ],
+   "to": "s06",
+   "summary": "bottom bar: My Chats tab"
+  },
+  {
+   "from": [
+    "s01",
+    "@e97"
+   ],
+   "to": "s07",
+   "summary": "bottom bar: Notifications tab"
+  },
+  {
+   "from": [
+    "s01",
+    "@e98"
+   ],
+   "to": "s08",
+   "summary": "bottom bar: Profile tab"
+  },
+  {
+   "from": [
+    "s03",
+    "@e113"
+   ],
+   "to": "s05",
+   "summary": "bottom bar: Search tab"
+  },
+  {
+   "from": [
+    "s03",
+    "@e114"
+   ],
+   "to": "s06",
+   "summary": "bottom bar: My Chats tab"
+  },
+  {
+   "from": [
+    "s03",
+    "@e115"
+   ],
+   "to": "s07",
+   "summary": "bottom bar: Notifications tab"
+  },
+  {
+   "from": [
+    "s03",
+    "@e116"
+   ],
+   "to": "s08",
+   "summary": "bottom bar: Profile tab"
+  },
+  {
+   "from": [
+    "s04",
+    "@e46"
+   ],
+   "to": "s05",
+   "summary": "bottom bar: Search tab"
+  },
+  {
+   "from": [
+    "s04",
+    "@e47"
+   ],
+   "to": "s06",
+   "summary": "bottom bar: My Chats tab"
+  },
+  {
+   "from": [
+    "s04",
+    "@e48"
+   ],
+   "to": "s07",
+   "summary": "bottom bar: Notifications tab"
+  },
+  {
+   "from": [
+    "s04",
+    "@e49"
+   ],
+   "to": "s08",
+   "summary": "bottom bar: Profile tab"
+  },
+  {
+   "from": [
+    "s05",
+    "@e118"
+   ],
+   "to": "s01",
+   "summary": "bottom bar: Home tab"
+  },
+  {
+   "from": [
+    "s05",
+    "@e120"
+   ],
+   "to": "s06",
+   "summary": "bottom bar: My Chats tab"
+  },
+  {
+   "from": [
+    "s05",
+    "@e121"
+   ],
+   "to": "s07",
+   "summary": "bottom bar: Notifications tab"
+  },
+  {
+   "from": [
+    "s05",
+    "@e122"
+   ],
+   "to": "s08",
+   "summary": "bottom bar: Profile tab"
+  },
+  {
+   "from": [
+    "s06",
+    "@e37"
+   ],
+   "to": "s01",
+   "summary": "bottom bar: Home tab"
+  },
+  {
+   "from": [
+    "s06",
+    "@e38"
+   ],
+   "to": "s05",
+   "summary": "bottom bar: Search tab"
+  },
+  {
+   "from": [
+    "s06",
+    "@e40"
+   ],
+   "to": "s07",
+   "summary": "bottom bar: Notifications tab"
+  },
+  {
+   "from": [
+    "s06",
+    "@e41"
+   ],
+   "to": "s08",
+   "summary": "bottom bar: Profile tab"
+  },
+  {
+   "from": [
+    "s07",
+    "@e33"
+   ],
+   "to": "s01",
+   "summary": "bottom bar: Home tab"
+  },
+  {
+   "from": [
+    "s07",
+    "@e34"
+   ],
+   "to": "s05",
+   "summary": "bottom bar: Search tab"
+  },
+  {
+   "from": [
+    "s07",
+    "@e35"
+   ],
+   "to": "s06",
+   "summary": "bottom bar: My Chats tab"
+  },
+  {
+   "from": [
+    "s07",
+    "@e37"
+   ],
+   "to": "s08",
+   "summary": "bottom bar: Profile tab"
+  },
+  {
+   "from": [
+    "s08",
+    "@e49"
+   ],
+   "to": "s01",
+   "summary": "bottom bar: Home tab"
+  },
+  {
+   "from": [
+    "s08",
+    "@e50"
+   ],
+   "to": "s05",
+   "summary": "bottom bar: Search tab"
+  },
+  {
+   "from": [
+    "s08",
+    "@e51"
+   ],
+   "to": "s06",
+   "summary": "bottom bar: My Chats tab"
+  },
+  {
+   "from": [
+    "s08",
+    "@e52"
+   ],
+   "to": "s07",
+   "summary": "bottom bar: Notifications tab"
+  },
+  {
+   "from": [
+    "s02",
+    "Not now"
+   ],
+   "to": "s01",
+   "summary": "announcement dismissed; home feed underneath"
+  },
+  {
+   "from": [
+    "s01",
+    "Trending"
+   ],
+   "to": "s03",
+   "summary": "feed switches to Trending (s03 was captured after Limited Only was also tapped)"
+  },
+  {
+   "from": [
+    "s01",
+    "Following"
+   ],
+   "to": "s04",
+   "summary": "feed switches to Following; empty for a new account"
+  },
+  {
+   "from": [
+    "s08",
+    "@e29"
+   ],
+   "to": "s09",
+   "summary": "profile menu slides in over the profile"
+  }
+ ],
+ "mechanics": [
+  {
+   "id": "m01",
+   "kind": "paywall",
+   "evidence": [
+    [
+     "s02",
+     "See janitor+"
+    ],
+    [
+     "s02",
+     "Not now"
+    ],
+    [
+     "s09",
+     "Upgrade to"
+    ],
+    [
+     "s09",
+     "Billing"
+    ]
+   ],
+   "status": "observed",
+   "summary": "Janitor+ subscription offer with two entry points: an announcement over home at launch (See janitor+ / Not now) and a persistent Upgrade to Janitor Plus button in the profile menu, next to Billing."
+  },
+  {
+   "id": "m02",
+   "kind": "entitlement",
+   "evidence": [
+    [
+     "s02",
+     "5×"
+    ],
+    [
+     "s02",
+     "Priority"
+    ],
+    [
+     "s02",
+     "Generous"
+    ],
+    [
+     "s02",
+     "Golden"
+    ]
+   ],
+   "status": "observed",
+   "numbers": [
+    "5×"
+   ],
+   "summary": "Subscriber benefits: 5x context, priority routing, more monthly swipes on frontier models, a golden checkmark."
+  },
+  {
+   "id": "m03",
+   "kind": "limit",
+   "evidence": [
+    [
+     "s02",
+     "Generous"
+    ]
+   ],
+   "status": "inferred",
+   "summary": "Free users get fewer monthly swipes and normal-priority routing (implied by the subscriber bullets; not seen directly)."
+  },
+  {
+   "id": "m05",
+   "kind": "other",
+   "evidence": [
+    [
+     "s01",
+     "1.8k tokens"
+    ]
+   ],
+   "status": "observed",
+   "numbers": [
+    "1.8k",
+    "2.2k"
+   ],
+   "summary": "Character cards show their prompt size in tokens."
+  }
+ ],
+ "ledger": [
+  {
+   "id": "l01",
+   "kind": "paywall_bullet",
+   "verbatim": "5× context for better memory",
+   "evidence": [
+    "s02",
+    "5×"
+   ]
+  },
+  {
+   "id": "l02",
+   "kind": "paywall_bullet",
+   "verbatim": "Priority routing for faster replies",
+   "evidence": [
+    "s02",
+    "Priority"
+   ]
+  },
+  {
+   "id": "l03",
+   "kind": "paywall_bullet",
+   "verbatim": "Generous monthly swipes with our frontier models",
+   "evidence": [
+    "s02",
+    "Generous"
+   ]
+  },
+  {
+   "id": "l04",
+   "kind": "paywall_bullet",
+   "verbatim": "Golden checkmark next to your username",
+   "evidence": [
+    "s02",
+    "Golden"
+   ]
+  },
+  {
+   "id": "l06",
+   "kind": "actor",
+   "verbatim": "Hidden Gems show characters from smaller creators",
+   "evidence": [
+    "s01",
+    "￼Hidden Gems"
+   ]
+  },
+  {
+   "id": "l07",
+   "kind": "meter",
+   "verbatim": "1.8k tokens",
+   "evidence": [
+    "s01",
+    "1.8k tokens"
+   ]
+  }
+ ],
+ "cross_screen_values": [
+  {
+   "id": "v01",
+   "label": "Following count",
+   "value": "0",
+   "evidence": [
+    [
+     "s08",
+     "0"
+    ],
+    [
+     "s09",
+     "0"
+    ]
+   ]
+  }
+ ],
+ "open_questions": [
+  "The subscription price is not in any captured tree.",
+  "The free-tier limit (swipes, messages, or queue priority) was not observed; needs the chat probe.",
+  "The subscription announcement appeared on 1 of 8 relaunches; its trigger is unknown."
+ ],
+ "checklist_answered": [
+  "root",
+  "all_tabs",
+  "paywall_or_membership"
+ ],
+ "checklist_open": [
+  "settings",
+  "limit"
+ ],
+ "flows": [
+  {
+   "id": "f01",
+   "name": "Discover a character",
+   "purpose": "Browse the home feed, switch feed tabs, and find characters.",
+   "path": [
+    "s01",
+    "s03"
+   ],
+   "evidence": [
+    [
+     "s01",
+     "Trending"
+    ]
+   ]
+  },
+  {
+   "id": "f02",
+   "name": "Dismiss the launch upsell",
+   "purpose": "The subscription announcement appears over home; the user declines it.",
+   "path": [
+    "s02",
+    "s01"
+   ],
+   "evidence": [
+    [
+     "s02",
+     "Not now"
+    ]
+   ]
+  },
+  {
+   "id": "f03",
+   "name": "Reach the upgrade entry",
+   "purpose": "From home to profile to the menu that holds Upgrade and Billing.",
+   "path": [
+    "s01",
+    "s08",
+    "s09"
+   ],
+   "evidence": [
+    [
+     "s09",
+     "Upgrade to"
+    ]
+   ]
+  },
+  {
+   "id": "f04",
+   "name": "Return to a chat",
+   "purpose": "From home to the list of the user's chats.",
+   "path": [
+    "s01",
+    "s06"
+   ],
+   "evidence": []
+  }
+ ]
+}

@@ -1,0 +1,126 @@
+[
+ {
+  "id": "H-cash-equivalent-reward-ban",
+  "pattern": "Cash-equivalent rewards (points redeemable for vouchers/cash) instead of in-app value",
+  "what_happened": "TikTok Lite's Tasks & Rewards program let users earn points redeemable for real-world vouchers and creator payments. The EU Commission opened formal DSA proceedings within weeks of launch, citing addiction/minor-safety risk; TikTok suspended it in 2 days and permanently withdrew it from the EU under a legally binding commitment 4 months later.",
+  "evidence": "DSA Art. 66 proceedings opened 2024-04-22, suspended 2024-04-24, permanently withdrawn under legally binding commitment 2024-08-05 (first case closed under the DSA); violation risk up to 6% of global annual turnover.",
+  "date": "2024-04-22 to 2024-08-05",
+  "lesson_rule": "Never design a reward that is cash or a cash-equivalent (redeemable for money, gift cards, or transferable value). This is also the explicit AdMob/Apple policy floor, not just an EU-specific risk \u2014 treat it as a hard constraint on any proposed mechanic, not a regional caveat.",
+  "source_claim_ids": [
+   "H01",
+   "H02",
+   "H03"
+  ]
+ },
+ {
+  "id": "H-free-tier-squeeze-reads-as-extortion",
+  "pattern": "Replacing a lenient free-tier limiter with a stricter one and framing it as a UX improvement",
+  "what_happened": "Duolingo replaced Hearts (lose 1 per wrong answer) with Energy (deplete per answer, right or wrong), marketed as reducing frustration for beginners. Long-tenured free users experienced sharp session-count drops (6-7 lessons down to 3-4) and described it as a forced choice between deleting the app or subscribing.",
+  "evidence": "A 949-day-streak user: 'It pushes you to either delete the app or pay the subscription.' To finish a normal session, a free user needs 4-5 rewarded-ad views or ~600 in-game coins (author estimates weeks to earn). Free users are ~90% of Duolingo's base.",
+  "date": "2025-10-15 (report date; rollout described as ongoing at time of writing)",
+  "lesson_rule": "A tightened free-tier limiter framed as 'for your own good' will be read by long-tenured free users as monetization coercion if the stated rationale (protecting beginners) doesn't match who is actually affected (everyone, including flawless players). Test the mechanic against your most loyal free cohort, not just new users, before shipping.",
+  "source_claim_ids": [
+   "H04",
+   "H05",
+   "H06"
+  ]
+ },
+ {
+  "id": "H-ad-placement-escalation-breaks-trust",
+  "pattern": "Escalating ad intrusiveness in stages, each stage breaking a previously implicit promise",
+  "what_happened": "Character.AI introduced ads only between character switches (~July 2025), then escalated to full-screen ads mid-conversation (Oct 2025), then added chat-feature caps (swipes/go-ons/memos) for free users on top of the ads (March 2026). Each escalation triggered a fresh wave of backlash rather than habituation.",
+  "evidence": "Reddit thread on the mid-chat escalation: nearly 1,000 upvotes, 70+ comments; user quote: 'I thought they weren't going to do that.'",
+  "date": "2025-07 through 2026-03",
+  "lesson_rule": "Ad intrusiveness that escalates in visible steps does not average out \u2014 each step re-triggers backlash because it breaks the specific promise made at the prior step ('we'll never interrupt an active chat'). If escalation is planned, don't promise a ceiling you intend to raise.",
+  "source_claim_ids": [
+   "H07",
+   "H08"
+  ]
+ },
+ {
+  "id": "H-context-mismatched-promotion-hits-payers-too",
+  "pattern": "Ad-like content injected into a conversational surface without tight contextual relevance",
+  "what_happened": "OpenAI tested in-chat 'app suggestions' (e.g., Peloton) that fired on unrelated conversations. A $200/mo ChatGPT Pro subscriber was shown the irrelevant suggestion; OpenAI disabled the feature within the weekend after public backlash.",
+  "evidence": "OpenAI's own spokesperson: 'the lack of relevancy makes it a bad/confusing experience.'",
+  "date": "2025-12-01 to 2025-12-02",
+  "lesson_rule": "Contextual mismatch is worse than ad frequency: one irrelevant promotional surface, shown even once to a paying user, can force a feature rollback within days. Any proposed mechanic that injects promotional content into a conversation needs a hard relevance gate, not just a frequency cap \u2014 and paying-user exposure must be treated as a separate risk from free-user exposure, not assumed away by 'subscribers don't see ads.'",
+  "source_claim_ids": [
+   "H09",
+   "H10"
+  ]
+ },
+ {
+  "id": "H-conversation-content-as-ad-signal",
+  "pattern": "Using AI chat conversation content itself as an ad-targeting signal",
+  "what_happened": "Meta will use Meta AI chatbot conversations as an ad-personalization signal across Facebook/Instagram/WhatsApp/Messenger from 2025-12-16, with no opt-out \u2014 but explicitly excluded the EU, UK, and South Korea due to stronger privacy law.",
+  "evidence": "Regional carve-out for GDPR-equivalent jurisdictions is itself evidence the practice is legally fragile where enforced; 36 consumer/privacy groups filed FTC complaints over the related AI-training data use.",
+  "date": "Policy announced by 2025-10-07, effective 2025-12-16",
+  "lesson_rule": "Never use conversation content as a targeting signal for ads inside the same app (this matches Simula's own public privacy commitment to never receive chat content \u2014 triggers must be app events, not inferred from what a user said). If a proposer ever suggests 'infer interest from what the user typed and target an ad,' that is a policy violation of Simula's stated model, not just a generic privacy risk.",
+  "source_claim_ids": [
+   "H11",
+   "H12"
+  ],
+  "verification_note": "claims ['H12'] FAILED re-fetch; do not rely on the parts they support"
+ },
+ {
+  "id": "H-cannibalization-claims-are-vendor-sourced",
+  "pattern": "Ad-network 'rewarded ads don't cannibalize IAP, they cause it' claims are self-interested and dated",
+  "what_happened": "The most widely cited number in the industry (rewarded-ad engagers 4.5x more likely to buy, spend 4x more) comes from a 2017 Tapjoy-commissioned study \u2014 Tapjoy sells rewarded-ad infrastructure. No neutral academic study isolating a causal cannibalization/complementarity effect for rewarded video specifically was found in this research pass.",
+  "evidence": "4.5x IAP likelihood, >4x spend, 34% more daily sessions, up to 9x in two apps \u2014 all from the same one 2017 vendor study, repeated verbatim across ad-tech marketing content for 9 years.",
+  "date": "2017-08-01 (original study); still the primary citation as of 2026",
+  "lesson_rule": "Treat 'rewarded ads increase IAP' as a correlational, vendor-sourced claim, not a causal finding \u2014 the underlying mechanism (engaged users buy more regardless of ad exposure) is a plausible confound. Use these numbers as a directional argument for trying rewarded ads, never as a break-even input without a controlled test of your own app.",
+  "source_claim_ids": [
+   "H13",
+   "H14"
+  ]
+ },
+ {
+  "id": "H-incentivized-install-fraud-and-load-failure",
+  "pattern": "Reward mechanics that pay for an install or an ad view are exploitable by fraud and by simple ad-server failure",
+  "what_happened": "Incentivized install/CPI campaigns attract fraud (fake or farmed installs that uninstall immediately after claiming reward, depressing measured LTV) and rewarded-video ad slots routinely fail to load (AdMob 'no fill' error code 3) due to inventory, geography, or unpublished-app status.",
+  "evidence": "Search-snippet-only fraud-rate figures (57% iOS / 70% Android install-level fraud on certain campaign types) could not be independently page-verified this pass and should be re-checked before use; AdMob no-fill behavior is documented directly in Google's own developer support forum.",
+  "date": "undated / ongoing SDK behavior",
+  "lesson_rule": "Any proposed mechanic that rewards an install or a completed external action needs fraud controls (server-side verification, not client-trust) built in from the design stage, and any mechanic that rewards 'watch this ad' must define what happens to the user's attempt when the ad server has no fill \u2014 never silently consume the user's action if no ad was actually shown.",
+  "source_claim_ids": [
+   "H15",
+   "H16",
+   "H17"
+  ]
+ },
+ {
+  "id": "H-child-directed-ad-targeting-is-a-hard-legal-floor",
+  "pattern": "Targeted advertising against child users or child-directed content without proper consent",
+  "what_happened": "Disney paid a $10M FTC penalty because mislabeled YouTube videos let child-directed content collect data from under-13 viewers, used for targeted advertising to children. A 2026-04-22-enforceable COPPA Rule update now requires separate opt-in parental consent per third party a child's data is disclosed to, explicitly including ad-targeting disclosures.",
+  "evidence": "$10M civil penalty (proposed 2025-09-02, court-approved 2025-12); rule change requires per-partner consent, not one blanket consent, as of 2026-04-22.",
+  "date": "2025-09-02 settlement; 2026-04-22 rule enforceable",
+  "lesson_rule": "Any proposed mechanic must never target ads at child users or child-directed content/flows without verified per-partner parental opt-in consent \u2014 this is a hard legal floor with an active $10M+ enforcement precedent, not a theoretical risk. If an app's audience or content could plausibly include under-13 users, flag age-gating as a prerequisite before proposing any ad-based reward at all.",
+  "source_claim_ids": [
+   "H18",
+   "H19"
+  ]
+ },
+ {
+  "id": "H-reward-inflation-devalues-the-whole-economy",
+  "pattern": "Ungoverned reward currency issuance (including rewarded-ad payouts) inflates and devalues the in-app economy",
+  "what_happened": "Game-economy design practice treats rewarded-ad grants as a 'faucet' alongside login bonuses and quest rewards; when faucets aren't matched by enough currency 'sinks' (upgrades, gated content), the currency inflates and every reward \u2014 including the ad-earned one \u2014 loses perceived value.",
+  "evidence": "Design-theory framing, not a named incident: 'Too many sources without meaningful sinks lead to inflation and the trivialization of progress.'",
+  "date": "undated (design-theory / vendor guidance)",
+  "lesson_rule": "Any proposed mechanic that grants a persistent in-app currency or resource for watching an ad must specify a matching sink (something worth spending it on that's scarce), or the mechanic will self-devalue over weeks even if user reception is positive at launch.",
+  "source_claim_ids": [
+   "H20"
+  ]
+ },
+ {
+  "id": "H-ad-fatigue-and-frequency-caps",
+  "pattern": "Ad fatigue: repeated exposure to the same reward/offer erodes its perceived value and, for forced (non-rewarded) formats, drives measurable session abandonment",
+  "what_happened": "An ad-placement vendor frames overuse bluntly (a bonus offer becomes 'background noise' by the tenth exposure). Separately, non-consensual interstitial ads shown every level in casual games are associated with 15-25% first-session abandonment in vendor-reported data. Neither figure is from a controlled, published study.",
+  "evidence": "Vendor-stated frequency-cap heuristics (casual: 6-10/session, 15-20/day; mid-core: 3-6/session, 10-15/day; hardcore: 2-4/session, 8-12/day) are directional, not derived from a cited retention experiment.",
+  "date": "undated (vendor guidance, current as of 2026 blog content)",
+  "lesson_rule": "Frequency caps should be treated as a starting heuristic to A/B test against your own D1/D7 retention, not as a validated number to hard-code \u2014 the only rigorous version of this claim found in this pass is 'test it yourself with a retention holdout,' which is itself the correct decision rule to hand the proposer.",
+  "source_claim_ids": [
+   "H21",
+   "H22",
+   "H23"
+  ]
+ }
+]

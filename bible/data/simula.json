@@ -1,0 +1,270 @@
+{
+ "formats": [
+  {
+   "name": "Native Ad / NativeAdSlot",
+   "platforms": [
+    "React",
+    "React Native",
+    "Kotlin/Android",
+    "Swift/iOS"
+   ],
+   "description": "Inline ad card that fits naturally into feeds/content streams/chat UI",
+   "source_claim_ids": [
+    "G01",
+    "G05",
+    "G06",
+    "G07"
+   ]
+  },
+  {
+   "name": "Interstitial Ad",
+   "platforms": [
+    "React Native",
+    "Kotlin/Android",
+    "Swift/iOS"
+   ],
+   "description": "Full-screen ad with preload/show lifecycle",
+   "source_claim_ids": [
+    "G05",
+    "G06",
+    "G07"
+   ]
+  },
+  {
+   "name": "Rewarded Ad (play-to-earn)",
+   "platforms": [
+    "React Native",
+    "Kotlin/Android",
+    "Swift/iOS"
+   ],
+   "description": "Play-to-earn ad with server-side reward verification",
+   "source_claim_ids": [
+    "G05",
+    "G06",
+    "G07",
+    "G08"
+   ]
+  },
+  {
+   "name": "Character Selector",
+   "platforms": [
+    "React Native"
+   ],
+   "description": "Pre-built character discovery UI component",
+   "source_claim_ids": [
+    "G05"
+   ]
+  },
+  {
+   "name": "In-Chat Ad Slot (InChatAdSlot)",
+   "platforms": [
+    "React (web, @simula/ads)"
+   ],
+   "description": "Ad placement blended into chat UI, takes prior messages as context",
+   "source_claim_ids": [
+    "G01"
+   ]
+  },
+  {
+   "name": "Mini Games (MiniGameMenu)",
+   "platforms": [
+    "React (web, @simula/ads)"
+   ],
+   "description": "Playable mini-game experiences with ad monetization; public demo repo uno-multiplayer implements 'Watch to Block' reward-ad penalty mechanic in an UNO minigame",
+   "source_claim_ids": [
+    "G01",
+    "G14"
+   ]
+  }
+ ],
+ "events": [
+  {
+   "name": "LOADED",
+   "notes": "Ad creative finished loading (interstitial/rewarded)",
+   "source_claim_ids": [
+    "G09"
+   ]
+  },
+  {
+   "name": "LOAD_FAILED",
+   "source_claim_ids": [
+    "G09"
+   ]
+  },
+  {
+   "name": "DISPLAYED",
+   "notes": "Impression/display started; resets clickCount/wasClicked",
+   "source_claim_ids": [
+    "G09",
+    "G04"
+   ]
+  },
+  {
+   "name": "IMPRESSION",
+   "source_claim_ids": [
+    "G09"
+   ]
+  },
+  {
+   "name": "DISPLAY_FAILED",
+   "source_claim_ids": [
+    "G09"
+   ]
+  },
+  {
+   "name": "CLICKED",
+   "notes": "No reward should be inferred from CLICKED",
+   "source_claim_ids": [
+    "G09",
+    "G03"
+   ]
+  },
+  {
+   "name": "PAID",
+   "source_claim_ids": [
+    "G09"
+   ]
+  },
+  {
+   "name": "CLOSED",
+   "notes": "No reward should be inferred from CLOSED",
+   "source_claim_ids": [
+    "G09",
+    "G03"
+   ]
+  },
+  {
+   "name": "EARNED_REWARD",
+   "notes": "Preliminary CLIENT-SIDE signal that play-time/unit-end threshold was met; NOT the grant trigger",
+   "source_claim_ids": [
+    "G09",
+    "G03"
+   ]
+  },
+  {
+   "name": "REWARD_VERIFIED",
+   "notes": "Fires after SERVER-SIDE verification, includes a rewardToken; this is the correct grant trigger per Simula's own docs",
+   "source_claim_ids": [
+    "G09"
+   ]
+  },
+  {
+   "name": "REWARD_VERIFICATION_FAILED",
+   "source_claim_ids": [
+    "G09"
+   ]
+  }
+ ],
+ "reward_grant_rule": "Simula's own React Native SDK docs state explicitly: grant the in-app reward on REWARD_VERIFIED, never on EARNED_REWARD. EARNED_REWARD is a client-side signal that the play-time/unit-end threshold was met but is not proof of a valid, unfaked completion; REWARD_VERIFIED fires only after the SDK's server-side verification call succeeds and carries a rewardToken. Flow: user plays -> EARNED_REWARD (client) -> SDK calls server to verify -> REWARD_VERIFIED (server-confirmed) -> app grants the reward. Native SDK docs (Kotlin/Swift) add: for 'contract 2' video units the reward is anchored at unit_end (the final gate: the primary video's gate, or a rendered fallback end-screen's gate if the primary fails before its own gate) rather than at any earlier click/close event; an explicit verified:false response permanently denies that reward, while a malformed/missing verification response stays retryable.",
+ "data_simula_receives": [
+  "primaryUserID (publisher-supplied, described in docs as a 'hashed user ID for better ad targeting')",
+  "SimulaAdContext: search terms, content tags, category, title, description, user profile/email (if the publisher supplies it), custom JSON (e.g. recentCharacters), NSFW flag",
+  "Privacy/consent signals: IAB TCF v2.2 consent string, CCPA/USP string, GPP string, GDPR-applicability flag, COPPA child-directed flag, advertising-ID opt-in",
+  "Device/connection data per simula.ad privacy policy: advertising identifier (IDFA/GAID where permitted), IP address, device type/model, OS+version, language, time zone, mobile carrier, network type",
+  "Standard server log data: browser type, OS, referring URLs, pages visited",
+  "General location inferred from IP (country/region only, not precise GPS)",
+  "Publisher metadata: up to 10 string key/value pairs attached per ad load/impression (keys <=64 unicode code points, no '$' prefix or '.', values <=256 code points); explicitly NOT for PII, credentials, tokens or secrets (Kotlin README)",
+  "Simula privacy policy states it does NOT receive publisher-app chat/conversation content, including messages exchanged with AI characters, and does not knowingly process sensitive personal info (health, financial, biometric)"
+ ],
+ "trigger_constraints": [
+  "Reward must be granted on REWARD_VERIFIED (server-confirmed), not on EARNED_REWARD (client-only) or on CLICKED/CLOSED",
+  "For rewarded video 'contract 2' units, reward authority sits at unit_end (the final gate reached), not at an earlier event; an admitted primary video that fails before its own gate can still earn if a rendered fallback end-screen reaches its gate",
+  "verified:false from the server permanently reconciles (denies) that reward; a malformed/absent verification response remains retryable rather than treated as a denial",
+  "Publisher metadata is capped at 10 entries per ad load and must exclude PII/secrets",
+  "Staging/dev backend selection requires an explicit host-app manifest/plist flag (SimulaStagingEnvironmentEnabled) AND an exact X.Y.Z-dev.N build; stable SDK builds refuse staging and fail closed to production",
+  "First valid API key + environment 'own' the native SDK for the process lifetime; switching either requires a cold app restart (INITIALIZATION_CONFLICT otherwise)"
+ ],
+ "repos": [
+  {
+   "name": "simula-ad-sdk",
+   "description": null,
+   "pushed_at": "2026-07-22T23:07:25Z",
+   "notes": "Web/React SDK, npm package @simula/ads; ad formats: InChatAdSlot, NativeBanner, MiniGameMenu. MIT license.",
+   "source_claim_ids": [
+    "G01",
+    "G10"
+   ]
+  },
+  {
+   "name": "simula-ad-sdk-react-native",
+   "description": null,
+   "pushed_at": "2026-09-26T16:22:59Z",
+   "notes": "npm package @simula/ads-react-native. Ad formats: NativeAd, Interstitial, Rewarded, Character Selector. Requires RN 0.77+, React 16.8+, iOS 15+/Android API 24+.",
+   "source_claim_ids": [
+    "G05"
+   ]
+  },
+  {
+   "name": "simula-ad-sdk-kotlin",
+   "description": null,
+   "pushed_at": "2026-09-26T14:38:14Z",
+   "notes": "Android/Jetpack Compose native SDK, Android API 24+.",
+   "source_claim_ids": [
+    "G06"
+   ]
+  },
+  {
+   "name": "simula-ad-sdk-swift",
+   "description": null,
+   "pushed_at": "2026-09-26T14:59:09Z",
+   "notes": "iOS/SwiftUI native SDK, iOS 15+. Ships PrivacyInfo.xcprivacy, supports TCF/CCPA/GPP, COPPA, ATT.",
+   "source_claim_ids": [
+    "G07"
+   ]
+  },
+  {
+   "name": "react-mock-public",
+   "description": null,
+   "pushed_at": "2026-02-02T04:05:42Z",
+   "notes": "Generic Next.js starter (create-next-app boilerplate README); package.json name is 'my-v0-project', confirming v0-generated scaffold. No Simula-specific ad code visible in README.",
+   "source_claim_ids": [
+    "G11"
+   ]
+  },
+  {
+   "name": "flutter-mock-public",
+   "description": null,
+   "pushed_at": "2026-02-02T04:53:27Z",
+   "notes": "Flutter mock app README says it is styled to look like the CHAI app; demonstrates Simula NativeAdSlot inserted every 3rd grid position using conversation context.",
+   "source_claim_ids": [
+    "G12"
+   ]
+  },
+  {
+   "name": "Fandom",
+   "description": null,
+   "pushed_at": "2026-04-15T09:50:41Z",
+   "notes": "React+Vite/Next boilerplate README; package.json name 'my-v0-project' (v0-generated) and lists @simula/ads@1.3.9 as a dependency.",
+   "source_claim_ids": [
+    "G13"
+   ]
+  },
+  {
+   "name": "AnuNeko",
+   "description": null,
+   "pushed_at": "2026-02-05T00:23:56Z",
+   "notes": "No README present (404 on GitHub contents API) -- could not source contents."
+  },
+  {
+   "name": "emochi",
+   "description": null,
+   "pushed_at": "2026-02-09T23:56:23Z",
+   "notes": "No README present (404 on GitHub contents API) -- could not source contents."
+  },
+  {
+   "name": "uno-multiplayer",
+   "description": "UNO multiplayer mini game with interactive NPCs",
+   "pushed_at": "2026-02-14T13:02:48Z",
+   "notes": "Expo/React Native app, package.json name 'rewarded-mini-games'. README documents a 'Watch to Block' reward-ad penalty mechanic, 1 human + 3 NPC players, AI difficulty tiers.",
+   "source_claim_ids": [
+    "G14"
+   ]
+  },
+  {
+   "name": "Simula-API-Take-Home",
+   "description": null,
+   "pushed_at": "2026-07-21T04:46:50Z",
+   "notes": "Public backend take-home referenced in project CLAUDE.md; not re-analyzed here (already cloned locally per project notes)."
+  }
+ ]
+}
