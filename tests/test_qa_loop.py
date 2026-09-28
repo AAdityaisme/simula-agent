@@ -219,7 +219,8 @@ def test_a_fixer_edit_that_breaks_the_page_is_discarded_and_the_delivered_mock_a
 def test_a_replay_whose_renders_differ_makes_no_model_call_and_ends_where_the_recorded_run_did(
         tmp_path, monkeypatch, records, app):
     """The recorded run has a critic group that refuses (skipped) and a fixer that fails (the loop stops); the replay
-    has to fail the same way to end in the same place."""
+    has to fail the same way to end in the same place. Groups of 2 give every golden a second critic group."""
+    monkeypatch.setattr(qa, "CRITIC_SCREENS", 2)
     run_dir = seed_model(tmp_path / "run", app)
     monkeypatch.setattr(llm, "call", fake_builder([]))
     mock.run(ctx_for(run_dir, app))
