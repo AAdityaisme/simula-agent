@@ -26,10 +26,11 @@ MAX_LEDGER_LENSES = 2
 ANCHOR_MECHANICS = {"paywall", "limit", "currency", "entitlement"}
 ANCHOR_LEDGER = {"price", "limit", "meter", "currency", "paywall_bullet"}
 CHAT_PLACEMENT = re.compile(
-    r"\bin-chat\b|\b(inside|within|into|in) (a|the|this|their|your) (chat|conversation|transcript)\b(?! (list|tab))|"
-    r"\bmid[- ]conversation\b|\bbetween (chat )?(messages|replies)\b|\b(chat|message) bubble|\bchat transcript\b",
+    r"\bin-chat\b|\b(inside|within|into|in)\s+(a|the|this|their|your)\s+(chat|conversation|transcript)\b"
+    r"(?!\s+(list|tab))|\bmid(-|\s+)conversation\b|\bbetween\s+(chat\s+)?(messages|replies)\b|"
+    r"\b(chat|message)\s+bubble|\bchat\s+transcript\b",
     re.I)
-NEGATED = re.compile(r"\b(not|never|outside|away from)\b[^.;,]{0,20}\b(chat|conversation|transcript)", re.I)
+NEGATED = re.compile(r"\b(not|never|outside|away\s+from)\b[^.;,]{0,20}\b(chat|conversation|transcript)", re.I)
 SAFE_TRIGGER_RATINGS = {"safe", "mixed"}
 # The assignment's two buckets, shown first on every candidate's title.
 BUCKETS = {"existing_anchor": "Existing opportunity", "product_change": "Product change"}
@@ -151,11 +152,6 @@ def jargon(c: Candidate, model: ProductModel) -> str | None:
                 None)
 
 
-def plain(text: str) -> str:
-    """Every run of whitespace, non-breaking spaces included, as one space (the rule PR 2's model stage uses)."""
-    return " ".join(text.split())
-
-
 def anchor_ids(model: ProductModel) -> set[str]:
     return ({i for m in model.mechanics if m.kind in ANCHOR_MECHANICS for i in m.evidence_ids}
             | {i for item in model.value_ledger if item.kind in ANCHOR_LEDGER for i in item.evidence_ids})
@@ -188,7 +184,7 @@ def resolve_ids(c: Candidate, model: ProductModel) -> tuple[Candidate, str]:
 def in_chat(placement: str) -> bool:
     # ponytail: keyword check per clause, skipping a clause whose negation sits right before the chat word
     # ("never shown in a chat"); recall belongs to the judge's brand-safety gate
-    clauses = re.split(r"[.;,()]", plain(placement))
+    clauses = re.split(r"[.;,()]", placement)
     return any(CHAT_PLACEMENT.search(c) and not NEGATED.search(c) for c in clauses)
 
 
@@ -210,7 +206,7 @@ def grants_problem(c: Candidate, model: ProductModel) -> str | None:
 
 
 def uncounted_problem(c: Candidate, benefit: LedgerItem, model: ProductModel) -> str | None:
-    bullet = plain(benefit.verbatim)
+    bullet = benefit.verbatim
     if benefit.kind != "paywall_bullet" or c.for_users != "paying":
         return None
     if re.search(r"\d", bullet) or observed_limit(model, benefit.evidence_ids):
@@ -290,7 +286,7 @@ def depths(model: ProductModel) -> dict[str, int]:
 def daily_cap(frequency_cap: str) -> int:
     # ponytail: reads "N per day" (or "N a day", "N/day", "N times a day") out of free text, else 1; durations
     # and clock times ("every 24 hours", "resets at 00:00") are ignored. A structured cap field would fix it.
-    match = re.search(r"(\d+)\s*(?:x\s*|times\s*)?(?:per|a|/|each)\s*day", plain(frequency_cap), re.I)
+    match = re.search(r"(\d+)\s*(?:x\s*|times\s*)?(?:per|a|/|each)\s*day", frequency_cap, re.I)
     return max(1, int(match.group(1))) if match else 1
 
 
@@ -323,7 +319,7 @@ def name_benefits(ctx: Ctx, live: list[Candidate], budget: llm.Budget, step: str
     if not live:
         return {}, {}
     role = config.roles(ctx.profile)["propose_dedupe"]
-    paid = [f'- {i.id}: "{plain(i.verbatim)}"' for i in model.value_ledger if i.kind == "paywall_bullet"]
+    paid = [f'- {i.id}: "{i.verbatim}"' for i in model.value_ledger if i.kind == "paywall_bullet"]
     prompt = Template(read_input(PROMPTS / "dedupe.md")).substitute(paid="\n".join(paid) or "- none",
                                                                    ideas=ideas_text(live))
     try:
@@ -341,7 +337,7 @@ def name_benefits(ctx: Ctx, live: list[Candidate], budget: llm.Budget, step: str
 
 
 def fold(name: str) -> str:
-    return " ".join(word.removesuffix("s") for word in plain(name).casefold().replace("-", " ").split())
+    return " ".join(word.removesuffix("s") for word in name.casefold().replace("-", " ").split())
 
 
 def users_overlap(a: str, b: str) -> bool:
