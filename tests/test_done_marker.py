@@ -1,6 +1,7 @@
 import pytest
 
 from simula import runfolder
+from simula.config import ROOT
 from simula.contracts import Provenance
 
 REAL = Provenance(source="explorer_run", explorer_run_id="r1")
@@ -118,7 +119,16 @@ def test_editing_a_file_outside_the_run_folder_reruns_the_stage(runs, tmp_path, 
 def test_real_stage_inputs_include_the_bible_and_the_contract():
     from simula.stages import EXTRA_INPUTS
     assert EXTRA_INPUTS["propose"] == EXTRA_INPUTS["judge"] == ["bible"]
-    assert EXTRA_INPUTS["mock"] == ["docs/CONTRACTS.md"]
+    assert EXTRA_INPUTS["mock"] == EXTRA_INPUTS["qa"] == ["docs/CONTRACTS.md"]
+
+
+def test_flows_reruns_when_the_mock_the_model_its_templates_or_the_contract_change(runs):
+    from simula import cli
+    cli.main(["run", "janitorai", "--new"])
+    ctx = cli.open_run(cli.parser().parse_args(["flows", "janitorai"]))
+    inputs = cli.stage_inputs("flows", ctx)
+    for path in (ctx.run_dir / "mock", ctx.run_dir / "model", ROOT / "templates", ROOT / "docs" / "CONTRACTS.md"):
+        assert path in inputs
 
 
 def test_bytecode_caches_are_not_stage_inputs(tmp_path):
