@@ -90,3 +90,16 @@ def test_a_page_without_the_runtime_fails_once(tmp_path, model):
     with open_mock(mock_dir) as (page, log):
         errors = check_contract(page, log, mock_dir, model, screens)
     assert [e.kind for e in errors] == ["missing_api"]
+
+
+def test_missing_and_misplaced_edges_are_named(tmp_path, model):
+    first, second = two_screens(model)
+    edge = next(e for e in scope_edges(model, pick_scope(model)) if e.from_state == first and e.to_state == second)
+    html = skeleton_html(model, [first, second])
+    tag = f' data-edge="{edge.id}" data-transition="{edge.transition}"'
+    missing = validate(tmp_path / "missing", model, html.replace(tag, "", 1), [first, second])
+    assert ("missing_edge", first) in {(e.kind, e.screen) for e in missing.errors}
+    moved = inject(html.replace(tag, "", 1), second, f"<div{tag}></div>")
+    misplaced = validate(tmp_path / "misplaced", model, moved, [first, second])
+    assert ("wrong_screen", second) in {(e.kind, e.screen) for e in misplaced.errors}
+    assert "missing_edge" not in {e.kind for e in misplaced.errors}

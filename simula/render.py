@@ -105,7 +105,7 @@ def check_contract(page, log: dict, mock_dir: Path, model: ProductModel, screens
     facts = page.evaluate(PAGE_FACTS)
     if not facts["hasApi"]:
         return [ContractError(kind="missing_api", detail="window.simula.go/state/reset not defined", screen=None)]
-    return (_screen_errors(facts, model, screens) + _element_errors(facts, model) + _edge_errors(facts, model)
+    return (_screen_errors(facts, model, screens) + _element_errors(facts, model) + _edge_errors(facts, model, screens)
             + _image_errors(facts, mock_dir) + _shown_errors(page, screens) + _log_errors(log, facts, mock_dir))
 
 
@@ -153,16 +153,20 @@ def _element_errors(facts: dict, model: ProductModel) -> list[ContractError]:
             for e in facts["els"] if e["id"] not in known]
 
 
-def _edge_errors(facts: dict, model: ProductModel) -> list[ContractError]:
+def _edge_errors(facts: dict, model: ProductModel, screens: list[str]) -> list[ContractError]:
     edges = {e.id: e for e in model.edges}
     present = {s["id"] for s in facts["screens"]}
-    errors = []
+    placed = {e["id"] for e in facts["edges"]}
+    errors = [_error("missing_edge", f"no data-edge=\"{e.id}\"", e.from_state) for e in model.edges
+              if e.from_state in screens and e.to_state in screens and e.id not in placed]
     for e in facts["edges"]:
         eid, transition, screen = e["id"], e["transition"], e["screen"]
         target = eid.split(">")[-1]
         known = edges.get(eid)
         if known is None and "new:" not in eid:
             errors.append(_error("unknown_edge", f"data-edge={eid!r} is not an edge in the model", screen))
+        if known and screen != known.from_state:
+            errors.append(_error("wrong_screen", f"{eid} sits in {screen!r}; the edge starts at {known.from_state!r}", screen))
         if target not in present:
             errors.append(_error("dangling_edge", f"{eid} points at {target!r}, which has no data-screen", screen))
         if transition is None:
