@@ -140,7 +140,7 @@ Code writes every number and id; a model writes meaning keyed by ids code gave i
 - `window.simula.go(id)`, `window.simula.state()`, `window.simula.reset()`.
 - No screenshot wallpaper: no single `<img>` may cover more than 40% of a screen's content area.
 - Flow screens added in stage 7: `data-screen="new:<slug>"`, `data-flow="<candidate id>"`.
-- Scope is chosen by code (stage 2): the root, every state showing a paywall, limit, currency, or ad (a modal or sheet brings its parent), and every state on the core flows; no fixed cap; a tab or depth-1 screen is in only when it is on a flow or holds one of those mechanics; never `unsafe`, `blocked`, or `external`. `ProductModel.mock_order` lists the scope in that priority order (added 2026-09-28).
+- Scope is chosen by code (stage 2): the root, every state showing a paywall, limit, currency, or ad, every state showing any other mechanic (a modal or sheet brings its parent), and every state on the core flows; no fixed cap; a tab or depth-1 screen is in only when it is on a flow or holds a mechanic; never `unsafe`, `blocked`, or `external`. `ProductModel.mock_order` lists the scope in that priority order (added 2026-09-28).
 
 ## 8. Trace, cache, money
 

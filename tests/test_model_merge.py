@@ -184,7 +184,7 @@ def test_mock_scope_is_chosen_by_code(app):
     assert scope[0] == next(s.id for s in rated if s.kind == "screen")
     edge_by_id = {e.id: e for e in edges}
     flow_states = {sid for f in answer.flows for i in f.edge_ids for sid in (edge_by_id[i].from_state, edge_by_id[i].to_state)}
-    money = {i.split(".")[0] for m in answer.mechanics if m.kind in stage.SCOPE_KINDS for i in m.evidence_ids}
+    money = {i.split(".")[0] for m in answer.mechanics for i in m.evidence_ids}
     reasons = flow_states | money | {by_id[s].parent_id for s in money if s in by_id}
     assert set(scope[1:]) <= reasons
     assert all(by_id[s].content_rating != "unsafe" and by_id[s].kind not in ("blocked", "external") for s in scope)
@@ -266,9 +266,9 @@ def test_questions_need_a_real_start_state_and_are_capped(app):
     assert [q.id for q in kept.open_questions] == ["q0", "q1", "q2", "q3", "q4"]
 
 
-def test_scope_is_root_then_money_screens_then_the_core_flow_and_nothing_else():
+def test_scope_is_root_then_money_screens_then_other_mechanics_then_the_core_flow_and_nothing_else():
     """20 eligible states: 6 tabs, a 4-state core flow, a paywall over the root, and filler (depth-1 screens,
-    one with a non-scope mechanic)."""
+    one with an entitlement mechanic)."""
     def state(sid, kind="screen", parent=None):
         return State(id=sid, kind=kind, parent_id=parent, name="", purpose="", fingerprint="", canonical_png="",
                      elements=[], in_mock_scope=False, content_rating="safe", dynamic_regions=[], blocked_reason=None)
@@ -291,8 +291,8 @@ def test_scope_is_root_then_money_screens_then_the_core_flow_and_nothing_else():
                    Mechanic(id="m2", kind="entitlement", evidence_ids=[filler[0]], summary="x", observed_numbers=[],
                             status="observed")])
     order = stage.mock_scope(states, edges, meaning)
-    assert order == ["s01", paywall, *flow]
-    assert not set(order) & set(tabs + filler)
+    assert order == ["s01", paywall, filler[0], *flow]
+    assert not set(order) & set(tabs + filler[1:])
 
 
 # ---------- the whole stage ----------

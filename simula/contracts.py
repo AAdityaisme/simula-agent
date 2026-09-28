@@ -181,7 +181,8 @@ class ProductModel(Strict):
     questions: list[OpenQuestion] = Field(default=[], description="The open questions an explore pass can act on, "
                                           "most monetization-relevant first, at most 5; open_questions holds their text.")
     mock_order: list[str] = Field(default=[], description="The in-scope state ids in priority order: root, paywall/"
-                                  "limit/currency/ad states (a modal after its parent), then core-flow states.")
+                                  "limit/currency/ad states, other mechanic states (a modal after its parent), "
+                                  "then core-flow states.")
 
 
 # Stage 2's one model call fills only meaning, keyed by ids code gave it.

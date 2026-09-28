@@ -477,16 +477,19 @@ def code_roles(states: list[State], edges: list[Edge]) -> list[State]:
 
 def mock_scope(states: list[State], edges: list[Edge], meaning: ModelMeaning) -> list[str]:
     """The experience the mock draws, in priority order: the root, every state showing a paywall, limit,
-    currency, or ad (a modal or sheet brings its parent first), then every state on the core flows in flow
-    order. No cap, and nothing else: a tab or depth-1 screen is in only when it is on a flow or holds one of
-    those mechanics. Never unsafe, blocked, or outside the app. The product model keeps every state."""
+    currency, or ad, then every state showing any other mechanic (a modal or sheet brings its parent first),
+    then every state on the core flows in flow order. No cap, and nothing else: a tab or depth-1 screen is in
+    only when it is on a flow or holds a mechanic. Never unsafe, blocked, or outside the app. The product model
+    keeps every state. Every mechanic's screen stays in, because propose drops an idea whose trigger screen
+    isn't mocked."""
     by_id = {s.id: s for s in states}
     edge_by_id = {e.id: e for e in edges}
     eligible = {s.id for s in states if s.content_rating != "unsafe" and s.kind not in ("blocked", "external")}
     root = next((s.id for s in states if s.kind == "screen"), None)
     flow_states = [sid for f in meaning.flows for i in f.edge_ids if i in edge_by_id
                    for sid in (edge_by_id[i].from_state, edge_by_id[i].to_state)]
-    mechanic_states = [i.split(".")[0] for m in meaning.mechanics if m.kind in SCOPE_KINDS for i in m.evidence_ids]
+    first = sorted(meaning.mechanics, key=lambda m: m.kind not in SCOPE_KINDS)
+    mechanic_states = [i.split(".")[0] for m in first for i in m.evidence_ids]
     ordered = []
     for sid in [root, *mechanic_states, *flow_states]:
         parent = by_id[sid].parent_id if sid in by_id else None
