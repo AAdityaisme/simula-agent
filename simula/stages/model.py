@@ -28,6 +28,7 @@ ANSWER_RESERVE_TOKENS = 8000
 TOKENS_PER_NAME = 30
 QUESTION_CAP = 5
 NOT_OBSERVED = "meaning not observed"
+LOOP_UNITS = ("s", "chars")
 MEASURE = re.compile(r"^(?P<what>.*?)\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>[^\d\s]*)$")
 MONEY_KINDS = ("paywall", "limit", "currency")
 SCOPE_KINDS = (*MONEY_KINDS, "ad")
@@ -206,32 +207,46 @@ def measurements(summary: str) -> list[tuple[str, float, str]]:
     return found
 
 
+def pass_measurements(lines: list[ActionLine]) -> list[tuple[str, float, str]]:
+    """One pass's measurements: the timing parts (units s or chars) of the last line of the pass that has any.
+    A pass writes several lines (tap the box, type, send; or open, back) and only one carries the timing."""
+    for a in reversed(lines):
+        found = [m for m in measurements(a.change_summary) if m[2] in LOOP_UNITS]
+        if found:
+            return found
+    return []
+
+
 def loop_facts(explore_dir: Path, states: list[State], edges: list[Edge]) -> list[LedgerItem]:
     """The measured free experience, from the explorer's core-loop passes: one item with each measurement's
-    median, min, max and n, and one saying what stopped the loop, or that nothing did. A stop counts from any
-    pass, even one whose action was denied; measurements only from passes that ran."""
+    median, min, max and n, and one saying what stopped the loop, or that nothing did. Passes are counted by
+    distinct loop_pass, not by line. A stop counts from any line, even a denied one; measurements only from
+    lines that ran."""
     loop = [a for a in read_actions(explore_dir) if a.loop_pass is not None]
     if not loop:
         return []
     passes = [a for a in loop if a.outcome == "ok"]
+    by_pass: dict[int, list[ActionLine]] = {}
+    for a in passes:
+        by_pass.setdefault(a.loop_pass, []).append(a)
     by_state, known = {s.id: s for s in states}, {e.id for e in edges}
     # A pass that recorded no edge still ran on its state; the step range in the text points at its action line.
     evidence = sorted({edge_for(by_state[a.from_state], a)[1] for a in passes if a.from_state in by_state} & known) \
         or sorted({a.from_state for a in loop} & by_state.keys())
     steps = f"explore steps {loop[0].step}-{loop[-1].step}"
     values: dict[tuple[str, str], list[float]] = {}
-    for a in passes:
-        for what, value, unit in measurements(a.change_summary):
+    for lines in by_pass.values():
+        for what, value, unit in pass_measurements(lines):
             values.setdefault((what, unit), []).append(value)
     items = []
     if values:
         parts = [f"{what} median {statistics.median(v):g}{'' if unit == what else ' ' + unit} "
                  f"(min {min(v):g}, max {max(v):g}, n={len(v)})" for (what, unit), v in values.items()]
         items.append(LedgerItem(id="exp1", kind="experience", evidence_ids=evidence,
-                                verbatim=f"Core action over {len(passes)} passes ({steps}): " + "; ".join(parts)))
+                                verbatim=f"Core action over {len(by_pass)} passes ({steps}): " + "; ".join(parts)))
     stop = next((a for a in loop if a.loop_stop), None)
     outcome = (f"{stop.loop_stop} appeared on pass {stop.loop_pass} of the core action" if stop else
-               f"After {len(passes)} passes of the core action nothing limited it: no limit, paywall, or ad appeared")
+               f"After {len(by_pass)} passes of the core action nothing limited it: no limit, paywall, or ad appeared")
     items.append(LedgerItem(id=f"exp{len(items) + 1}", kind="experience", evidence_ids=evidence,
                             verbatim=f"{outcome} ({steps})"))
     return items

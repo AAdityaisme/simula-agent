@@ -234,19 +234,21 @@ def test_measurements_parse_the_explorers_summary():
     assert stage.measurements("reply arrived") == []
 
 
+@pytest.mark.parametrize("shape", ["chat", "feed"])
 @pytest.mark.parametrize("name", APPS)
-def test_core_loop_passes_become_experience_facts(name, tmp_path):
+def test_core_loop_passes_become_experience_facts(name, shape, tmp_path):
     explore = build(name, tmp_path / "explore")
-    lines = add_core_loop(explore, passes=5)
+    lines = add_core_loop(explore, passes=5, shape=shape)
+    assert len(lines) == 5 * (3 if shape == "chat" else 2)
     states, _ = stage.load_states(explore, DEVICE)
     edges, _ = stage.load_edges(explore, states)
     measured, outcome = stage.loop_facts(explore, states, edges)
-    root = lines[0].from_state
     steps = f"explore steps {lines[0].step}-{lines[-1].step}"
+    verb = "reply" if shape == "chat" else "load"
     assert (measured.kind, outcome.kind) == ("experience", "experience")
-    assert measured.evidence_ids == outcome.evidence_ids == [f"{root}.type>{root}"]
+    assert measured.evidence_ids == outcome.evidence_ids and set(measured.evidence_ids) <= {e.id for e in edges}
     assert measured.verbatim == (f"Core action over 5 passes ({steps}): "
-                                 "reply started median 2.7 s (min 1.9, max 3.5, n=5); "
+                                 f"{verb} started median 2.7 s (min 1.9, max 3.5, n=5); "
                                  "finished median 10.5 s (min 7.5, max 13.5, n=5); "
                                  "chars median 600 (min 400, max 800, n=5)")
     assert outcome.verbatim == f"After 5 passes of the core action nothing limited it: no limit, paywall, or ad appeared ({steps})"
@@ -285,11 +287,21 @@ def with_loop(tmp_path, *lines: ActionLine):
     return stage.loop_facts(explore, states, edges)
 
 
+def test_a_pass_is_counted_once_and_measured_only_from_its_timing_line(tmp_path):
+    lines = [loop_line(900 + 3 * n, n, "counter 3 → 2, 5 credits") for n in (1, 2)]
+    lines += [loop_line(901 + 3 * n, n, "typed 40 chars") for n in (1, 2)]
+    lines += [loop_line(902 + 3 * n, n, f"reply started {n} s, {100 * n} chars") for n in (1, 2)]
+    measured, outcome = with_loop(tmp_path, *sorted(lines, key=lambda a: a.step))
+    assert "over 2 passes" in measured.verbatim and outcome.verbatim.startswith("After 2 passes")
+    assert "reply started median 1.5 s (min 1, max 2, n=2); chars median 150 (min 100, max 200, n=2)" in measured.verbatim
+    assert "credits" not in measured.verbatim and "typed" not in measured.verbatim
+
+
 def test_measurements_in_different_units_are_never_mixed(tmp_path):
-    measured, _ = with_loop(tmp_path, loop_line(900, 1, "reply started 2 s"), loop_line(901, 2, "reply started 4 s"),
-                            loop_line(902, 3, "reply started 900 ms"))
-    assert "reply started median 3 s (min 2, max 4, n=2); reply started median 900 ms (min 900, max 900, n=1)" \
-        in measured.verbatim
+    measured, _ = with_loop(tmp_path, loop_line(900, 1, "reply 2 s"), loop_line(901, 2, "reply 4 s"),
+                            loop_line(902, 3, "reply 300 chars, reply started 900 ms"))
+    assert "reply median 3 s (min 2, max 4, n=2); reply median 300 chars (min 300, max 300, n=1)" in measured.verbatim
+    assert "ms" not in measured.verbatim.split("): ", 1)[1], "only s and chars are core-loop units"
 
 
 def test_a_stop_on_a_denied_pass_is_kept(tmp_path):

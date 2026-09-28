@@ -5,7 +5,9 @@ come from the raw captures. TEST DATA ONLY.
     uv run python tests/explore_fixture.py OUT_DIR      # writes OUT_DIR/<app>/ for every test app
 
 The captures never ran the core loop, so `add_core_loop` appends synthetic core-loop passes (made-up
-timings in the explorer's format) on the root screen, for the loop-facts code and the dev gate.
+timings in the explorer's format) on the root screen, for the loop-facts code and the dev gate. Like the
+explorer, a pass writes several lines with the same loop_pass: a chat pass taps the box, types, and sends (the
+send line carries the timing); a feed pass opens an item (carrying the timing) and goes back.
 """
 
 import json
@@ -70,25 +72,42 @@ def build(app: str, out: Path) -> Path:
     return out
 
 
-def loop_summary(n: int) -> str:
-    return f"reply started {1.5 + 0.4 * n:.1f} s, finished {6 + 1.5 * n:.1f} s, {300 + 100 * n} chars"
+def loop_summary(n: int, verb: str = "reply") -> str:
+    return f"{verb} started {1.5 + 0.4 * n:.1f} s, finished {6 + 1.5 * n:.1f} s, {300 + 100 * n} chars"
 
 
-def add_core_loop(out: Path, passes: int = 3, stop_at: int | None = None) -> list[ActionLine]:
-    """Appends one line per core-loop pass on the root screen. With stop_at, that pass opens the first modal
-    or sheet (or stays put if there is none) and records what stopped the loop."""
+def add_core_loop(out: Path, passes: int = 3, stop_at: int | None = None, shape: str = "chat") -> list[ActionLine]:
+    """Appends every line of each core-loop pass on the root screen. With stop_at, that pass's measured line
+    opens the first modal or sheet (or stays put if there is none) and records what stopped the loop."""
     states = [StateFile.model_validate_json(p.read_text()) for p in sorted((out / "states").glob("*.json"))
               if "." not in p.stem]
     root = next(s.state_id for s in states if s.kind == "screen")
     overlay = next((s.state_id for s in states if s.kind in ("modal", "sheet")), root)
-    first = sum(1 for _ in open(out / "actions.jsonl")) + 1
-    lines = [ActionLine(step=first + n - 1, from_state=root, to_state=overlay if n == stop_at else root, action="type",
-                        mcp_ref=None, tap_px=None, transition="modal" if n == stop_at and overlay != root else "unknown",
-                        change_summary=loop_summary(n), outcome="ok", loop_pass=n,
-                        loop_stop="limit banner" if n == stop_at else None)
-             for n in range(1, (stop_at or passes) + 1)]
+    item = next((s.state_id for s in states if s.kind == "screen" and s.state_id != root), root)
+    step = sum(1 for _ in open(out / "actions.jsonl"))
+    lines = []
+
+    def line(n: int, action: str, to: str, summary: str = "", transition: str = "unknown", stop: bool = False):
+        nonlocal step
+        step += 1
+        lines.append(ActionLine(step=step, from_state=lines[-1].to_state if lines and lines[-1].loop_pass == n
+                                else root, to_state=to, action=action, mcp_ref=None, tap_px=None,
+                                transition=transition, change_summary=summary, outcome="ok", loop_pass=n,
+                                loop_stop="limit banner" if stop else None))
+
+    for n in range(1, (stop_at or passes) + 1):
+        stop = n == stop_at
+        if shape == "chat":
+            line(n, "tap", root)
+            line(n, "type", root)
+            line(n, "tap", overlay if stop else root, loop_summary(n), "modal" if stop and overlay != root else "unknown",
+                 stop)
+        else:
+            line(n, "tap", overlay if stop else item, loop_summary(n, "load"), "modal" if stop else "push", stop)
+            if not stop:
+                line(n, "back", root, transition="back")
     with open(out / "actions.jsonl", "a") as f:
-        f.writelines(line.model_dump_json() + "\n" for line in lines)
+        f.writelines(a.model_dump_json() + "\n" for a in lines)
     return lines
 
 
