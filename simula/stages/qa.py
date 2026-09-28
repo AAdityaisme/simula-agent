@@ -4,6 +4,7 @@ numbers, a fixer edits the page, code re-wires navigation, and the best version 
 qa/round0 is the mock as stage 3 delivered it; qa/roundN is the version after N fix rounds, with the critique and
 edits that made it."""
 
+import hashlib
 import json
 import re
 import shutil
@@ -12,7 +13,7 @@ from dataclasses import dataclass
 from PIL import Image
 from playwright.sync_api import Error as PlaywrightError
 
-from simula import config, llm, qa_metrics, render
+from simula import config, llm, qa_metrics, render, runfolder
 from simula.config import ROOT
 from simula.contracts import (SCHEMA_VERSION, ContractError, Critique, Edge, Edit, Edits, ProductModel, QAMetrics,
                               Rect, ScreenMetrics, State)
@@ -25,6 +26,7 @@ WEIGHTS = {"bounds": 0.5, "nav": 0.3, "ssim": 0.2}
 CLICK_TIMEOUT_MS = 1500
 CRITIC_MAX_TOKENS = 8000
 FIXER_MAX_TOKENS = 32000
+RECORDS = llm.CACHE / "qa"
 RUNTIME = re.compile(r'<style id="simula-runtime">.*?</style>\n?|<script id="simula-runtime-js">.*?</script>\n?', re.S)
 
 
@@ -57,7 +59,7 @@ def run(ctx: Ctx) -> None:
     shutil.rmtree(ctx.run_dir / "qa", ignore_errors=True)
     budget = llm.Budget.for_stage("qa", ctx.run_dir / "trace.jsonl", ctx.usd_cap)
 
-    best = measure(ctx, model, scope, 0, (ctx.run_dir / "mock" / "index.html").read_text())
+    best = measure_or_replay(ctx, model, scope, 0, (ctx.run_dir / "mock" / "index.html").read_text())
     rounds, history, stop = [summary(best, kept=True)], [], f"all {MAX_ROUNDS} rounds ran"
     for n in range(1, MAX_ROUNDS + 1):
         try:
@@ -72,7 +74,7 @@ def run(ctx: Ctx) -> None:
         write_json(ctx.run_dir / "qa" / f"round{n}" / "critique.json", critique.model_dump())
         write_json(ctx.run_dir / "qa" / f"round{n}" / "edits.json", {"edits": results})
         try:
-            new = measure(ctx, model, scope, n, html)
+            new = measure_or_replay(ctx, model, scope, n, html)
         except PlaywrightError as e:
             stop = f"round {n} broke the page ({str(e).splitlines()[0][:200]}), so its edits were discarded"
             break
@@ -98,6 +100,22 @@ def run(ctx: Ctx) -> None:
 
 
 # ---------- measuring one version ----------
+
+def measure_or_replay(ctx: Ctx, model: ProductModel, scope: list[State], n: int, html: str) -> Version:
+    """Renders aren't byte-stable (image decode timing, a machine's fonts), so each measurement is recorded under the
+    page and its inputs, and --replay takes the recorded numbers: the loop then decides, and asks the models, exactly
+    as the recorded run did."""
+    version = measure(ctx, model, scope, n, html)
+    path = record_path("measure", n, html, inputs_digest(ctx))
+    if ctx.replay and path.exists():
+        version = version_from(json.loads(path.read_text()), n, html)
+        write_json(ctx.run_dir / "qa" / f"round{n}" / "metrics.json", json.loads(version.metrics.model_dump_json()))
+        run_trace(ctx.run_dir, stage="qa", step=f"round{n}", decider="code",
+                  note=f"replay: the recorded measurements, score {version.score:.2f}")
+    else:
+        write_record(path, version_record(version))
+    return version
+
 
 def measure(ctx: Ctx, model: ProductModel, scope: list[State], n: int, html: str) -> Version:
     """Renders one version in its own round folder and measures everything the score and the critic need."""
@@ -246,12 +264,9 @@ def criticize(ctx: Ctx, budget: llm.Budget, version: Version, history: list[dict
                         {"type": "image", "png": (round_dir / kind / f"{sid}.png").read_bytes()}]
     content.append({"type": "text", "text": "The numbers:\n" + json.dumps(numbers(version), separators=(",", ":"))
                     + "\n\nEarlier rounds:\n" + json.dumps(history, separators=(",", ":"))})
-    critique, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="qa", step=f"critic r{n}",
-                           model=role["model"], effort=role.get("effort"), system=prompt("critic"),
-                           messages=[{"role": "user", "content": content}],
-                           max_tokens=role.get("max_tokens", CRITIC_MAX_TOKENS), budget=budget, schema=Critique,
-                           no_cache=ctx.no_cache, replay=ctx.replay)
-    return critique
+    return ask(ctx, budget, version, step=f"critic r{n}", model=role["model"], effort=role.get("effort"),
+               system=prompt("critic"), content=content, max_tokens=role.get("max_tokens", CRITIC_MAX_TOKENS),
+               schema=Critique)
 
 
 def fix(ctx: Ctx, budget: llm.Budget, version: Version, critique: Critique, n: int) -> Edits:
@@ -267,12 +282,27 @@ def fix(ctx: Ctx, budget: llm.Budget, version: Version, critique: Critique, n: i
     content.append({"type": "text", "text": "What to fix:\n" + json.dumps(task, separators=(",", ":"))
                     + "\n\nThe page, without the navigation runtime (code adds it back after your edits):\n```html\n"
                     + without_runtime(version.html) + "\n```"})
-    edits, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="qa", step=f"fixer r{n}", model=role["model"],
-                        effort=effort, system=prompt("fixer") + "\n\n" + mock.contract_text(),
-                        messages=[{"role": "user", "content": content}],
-                        max_tokens=role.get("max_tokens", FIXER_MAX_TOKENS), budget=budget, schema=Edits,
-                        no_cache=ctx.no_cache, replay=ctx.replay)
-    return edits
+    return ask(ctx, budget, version, step=f"fixer r{n}", model=role["model"], effort=effort,
+               system=prompt("fixer") + "\n\n" + mock.contract_text(), content=content,
+               max_tokens=role.get("max_tokens", FIXER_MAX_TOKENS), schema=Edits)
+
+
+def ask(ctx: Ctx, budget: llm.Budget, version: Version, *, step: str, model: str, effort: str | None, system: str,
+        content: list[dict], max_tokens: int, schema):
+    """llm.call, with the answer also recorded under what the model was shown, each render stood in for by the page
+    it was rendered from (the real screens are in the inputs). --replay looks there first, so it never depends on
+    render bytes."""
+    texts = [p["text"] for p in content if p["type"] == "text"]
+    path = record_path(step, model, effort, max_tokens, system, version.html, texts, inputs_digest(ctx))
+    if ctx.replay and path.exists():
+        run_trace(ctx.run_dir, stage="qa", step=step, decider="model", model=model, effort=effort, cache_hit=True,
+                  note="replay: the answer recorded for this page")
+        return schema.model_validate_json(path.read_text())
+    answer, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="qa", step=step, model=model, effort=effort,
+                         system=system, messages=[{"role": "user", "content": content}], max_tokens=max_tokens,
+                         budget=budget, schema=schema, no_cache=ctx.no_cache, replay=ctx.replay)
+    write_record(path, answer.model_dump_json())
+    return answer
 
 
 def numbers(version: Version) -> dict:
@@ -313,6 +343,45 @@ def apply_edits(html: str, edits: list[Edit]) -> tuple[str, list[dict]]:
         results.append({**edit.model_dump(), "applied": applied,
                         "why": "" if applied else f"find matches the page {matches} times, not once"})
     return html, results
+
+
+# ---------- replay records ----------
+
+def inputs_digest(ctx: Ctx) -> str:
+    """What QA reads besides the page: the model (not the run it was written in), and the real screens, assets and
+    art it draws from."""
+    model = ProductModel.model_validate_json((ctx.run_dir / "model" / "product_model.json").read_text())
+    files = [ctx.run_dir / "model" / s.canonical_png for s in mock.pick_scope(model)]
+    files += [ctx.run_dir / "mock" / "assets", ctx.run_dir / "mock" / "art.json"]
+    return digest([model.model_dump(mode="json", exclude={"run_id", "provenance"}),
+                   [h.model_dump() for h in runfolder.hashes(files, ctx.run_dir)]])
+
+
+def digest(data) -> str:
+    return hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
+
+
+def record_path(*key):
+    return RECORDS / f"{digest(key)}.json"
+
+
+def write_record(path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text)
+
+
+def version_record(v: Version) -> str:
+    return json.dumps({"metrics": json.loads(v.metrics.model_dump_json()),
+                       "screens": [{**s, "metrics": json.loads(s["metrics"].model_dump_json())} for s in v.screens],
+                       "taps": v.taps, "flows": v.flows,
+                       "contract_errors": [e.model_dump(mode="json") for e in v.contract_errors]})
+
+
+def version_from(record: dict, n: int, html: str) -> Version:
+    return Version(n, html, QAMetrics.model_validate(record["metrics"]),
+                   [{**s, "metrics": ScreenMetrics.model_validate(s["metrics"])} for s in record["screens"]],
+                   record["taps"], record["flows"],
+                   [ContractError.model_validate(e) for e in record["contract_errors"]])
 
 
 # ---------- outputs ----------

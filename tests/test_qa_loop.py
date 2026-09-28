@@ -1,17 +1,26 @@
 """The QA loop with a fake critic and fixer: the 0.3 stop rule, the discard rule, the best version approved, the
-fixer's effort per round, and a failed model call or a broken page that never blocks the slides."""
+fixer's effort per round, a failed model call or a broken page that never blocks the slides, and a replay that
+doesn't depend on render bytes."""
 
 import json
+from dataclasses import replace
 
 import pytest
+from PIL import Image
 
-from simula import llm
+from simula import llm, render
 from simula.contracts import ContractReport, Critique, Edit, Edits, Fix, ProductModel, QAMetrics
 from simula.runlog import read_trace
 from simula.stages import mock, qa
 from tests.conftest import APPS
 from tests.mock_fake import seed_model
 from tests.test_mock_isolation import ctx_for, fake_builder
+
+
+@pytest.fixture(autouse=True)
+def records(tmp_path, monkeypatch):
+    monkeypatch.setattr(qa, "RECORDS", tmp_path / "records")
+    return tmp_path / "records"
 
 
 def fake_llm(calls: list, edits=lambda n: []):
@@ -152,3 +161,42 @@ def test_a_fixer_edit_that_breaks_the_page_is_discarded_and_the_delivered_mock_a
     report = json.loads((run_dir / "qa" / "qa_report.json").read_text())
     assert report["approved_round"] == 0 and "round 1 broke the page" in report["stop_reason"]
     assert approved_html(run_dir) == delivered
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_a_replay_whose_renders_differ_makes_no_model_call_and_ends_where_the_recorded_run_did(
+        tmp_path, monkeypatch, records, app):
+    run_dir = seed_model(tmp_path / "run", app)
+    monkeypatch.setattr(llm, "call", fake_builder([]))
+    mock.run(ctx_for(run_dir, app))
+    delivered = (run_dir / "mock" / "index.html").read_text()
+    first = next(t["attrs"]["data-el"] for t in mock.StartTags(delivered).tags if "data-el" in t["attrs"])
+    rounds = {1: [Edit(find="</body>", replace="<!-- round 1 --></body>", reason="r")],
+              2: [Edit(find=f'data-el="{first}"', replace=f'data-x="{first}"', reason="r")]}
+    monkeypatch.setattr(llm, "call", fake_llm([], lambda n: rounds.get(n, [])))
+    qa.run(ctx_for(run_dir, app))
+    recorded = json.loads((run_dir / "qa" / "qa_report.json").read_text())
+
+    screenshot = render.screenshot_screens
+
+    def one_pixel_off(page, screens, out_dir):
+        paths = screenshot(page, screens, out_dir)
+        for path in paths:
+            image = Image.open(path).convert("RGB")
+            center = (image.width // 2, image.height // 2)
+            r, g, b = image.getpixel(center)
+            image.putpixel(center, (r ^ 1, g, b))
+            image.save(path)
+        return paths
+
+    def no_cache_entry(**kwargs):
+        raise llm.ReplayMiss(f"--replay: no cached response for qa/{kwargs['step']}")
+    monkeypatch.setattr(render, "screenshot_screens", one_pixel_off)
+    monkeypatch.setattr(llm, "call", no_cache_entry)
+    qa.run(replace(ctx_for(run_dir, app), replay=True))
+    assert json.loads((run_dir / "qa" / "qa_report.json").read_text()) == recorded
+
+    for record in records.iterdir():
+        record.unlink()
+    with pytest.raises(llm.ReplayMiss):
+        qa.run(replace(ctx_for(run_dir, app), replay=True))
