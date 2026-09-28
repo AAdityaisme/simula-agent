@@ -1,2 +1,4 @@
-# Judge prompt hashes, pinned in PR 6 before the first real run. Empty until then.
+# Judge prompt hashes. The judge refuses a prompt that differs. After changing one, re-freeze and re-run validate-judge.
 [prompts]
+"prompts/judge/revise.md" = "684f2ae55a998099c3833345479b74442155ea3a2591f1229d03bbeed458bb07"
+"prompts/judge/rubric.md" = "24fccb85ff146af703773f90b154040c23b9c473347796ecb5f1381405d5665c"
