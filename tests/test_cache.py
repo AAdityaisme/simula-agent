@@ -64,12 +64,13 @@ def test_second_call_is_a_cache_hit(tmp_path, monkeypatch):
     assert [line.cache_hit for line in read_trace(tmp_path / "trace.jsonl")] == [False, True]
 
 
-def test_invalid_response_is_not_cached_and_retried(tmp_path, monkeypatch):
+def test_invalid_response_is_cached_only_as_a_failed_attempt_and_retried(tmp_path, monkeypatch):
     calls = []
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"nope": 1}', '{"word": "ok"}'], calls))
     result, _ = call(tmp_path)
     assert result.word == "ok" and len(calls) == 2
-    assert len(list((tmp_path / "cache").glob("*.json"))) == 1
+    entries = [json.loads(p.read_text()) for p in (tmp_path / "cache").glob("*.json")]
+    assert sorted(e["failure"] for e in entries) == ["", "schema_fail"]
     assert [line.outcome for line in read_trace(tmp_path / "trace.jsonl")] == ["schema_fail", "ok"]
 
 
@@ -79,7 +80,52 @@ def test_two_bad_answers_raise_a_typed_failure(tmp_path, monkeypatch):
         call(tmp_path)
     assert failure.value.outcome == "schema_fail"
     assert failure.value.raw == "still nope"
-    assert not (tmp_path / "cache").exists() or not list((tmp_path / "cache").iterdir())
+    entries = [json.loads(p.read_text()) for p in (tmp_path / "cache").glob("*.json")]
+    assert [e["failure"] for e in entries] == ["schema_fail", "schema_fail"]
+
+
+def test_recorded_failures_replay_as_the_same_failure_without_a_call(tmp_path, monkeypatch):
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['nope', 'still nope'], []))
+    with pytest.raises(llm.LLMFailure):
+        call(tmp_path)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
+    for replay in (True, False):
+        with pytest.raises(llm.LLMFailure) as failure:
+            call(tmp_path, replay=replay)
+        assert (failure.value.outcome, failure.value.raw) == ("schema_fail", "still nope")
+
+
+def test_a_failed_one_attempt_call_replays_to_the_callers_own_retry(tmp_path, monkeypatch):
+    """The mock stage's shape: its first call fails at max_tokens, then it retries with a different call."""
+    def provider(model, system, messages, effort, schema, max_tokens, total_timeout=None):
+        calls.append(effort)
+        if effort == "xhigh":
+            return llm.Reply(text="<html>cut", model=model, tokens_in=100, tokens_out=100, stop_reason="max_tokens")
+        return llm.Reply(text='{"word": "short"}', model=model, tokens_in=100, tokens_out=10)
+
+    def stage(**extra):
+        try:
+            return call(tmp_path, effort="xhigh", attempts=1, **extra)[0]
+        except llm.LLMFailure as e:
+            assert e.outcome == "max_tokens"
+            return call(tmp_path, effort="high", attempts=1, **extra)[0]
+
+    calls = []
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider)
+    assert stage().word == "short" and calls == ["xhigh", "high"]
+    assert stage().word == "short" and calls == ["xhigh", "high"]
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
+    assert stage(replay=True).word == "short"
+
+
+def test_a_rerun_skips_recorded_failed_attempts_and_pays_only_for_the_next(tmp_path, monkeypatch):
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['nope'], []))
+    with pytest.raises(IndexError):  # attempt 1 dies before answering, so only attempt 0 is recorded
+        call(tmp_path)
+    rerun_calls = []
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "second"}'], rerun_calls))
+    result, _ = call(tmp_path)
+    assert result.word == "second" and len(rerun_calls) == 1
 
 
 def test_no_cache_skips_reads(tmp_path, monkeypatch):
