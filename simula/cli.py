@@ -39,7 +39,7 @@ def stage_params(stage: str, ctx: Ctx) -> dict:
     roles = config.roles(ctx.profile)
     return {"app": ctx.app, "profile": ctx.profile, "roles": {r: roles[r] for r in ROLES[stage]},
             "economics_mode": config.profiles()["economics_mode"] if stage in ("propose", "judge", "flows") else None,
-            "no_send": ctx.no_send,
+            "no_send": ctx.no_send if stage == "explore" else None,
             "budget": config.budget(ctx.budget) if stage == "explore" else None,
             "allow_account_create": ctx.allow_account_create if stage == "explore" else None}
 
@@ -135,7 +135,19 @@ def open_run(args) -> Ctx:
                device=getattr(args, "device", None))
 
 
+def built_on_latest_explore(app: str) -> list[str]:
+    latest = runfolder.RUNS / app / "latest"
+    return [s for s in STAGES[1:] if latest.exists() and runfolder.read_done(latest.resolve() / s)]
+
+
 def cmd_stage(args) -> int:
+    replacing = args.command == "explore" and not args.new and args.run is None
+    built = built_on_latest_explore(args.app) if replacing else []
+    if built:
+        print(f"the latest {args.app} run has {', '.join(built)} built on its explore, "
+              "so explore won't replace it: add --new for a new run, or --run ID to replace that run's explore",
+              file=sys.stderr)
+        return 2
     ctx = open_run(args)
     return 0 if run_stage(args.command, ctx, force=True) else EXIT_NOT_BUILT
 
@@ -197,6 +209,7 @@ def parser() -> argparse.ArgumentParser:
         s = sub.add_parser(stage, help=f"run the {stage} stage")
         add_run_flags(s)
         if stage == "explore":
+            s.add_argument("--new", action="store_true", help="explore into a new run folder")
             s.add_argument("--no-send", action="store_true", help="skip the core-loop pass (sends nothing)")
             s.add_argument("--device", metavar="SERIAL", help="adb serial to explore on (default: ANDROID_SERIAL, "
                                                               "else the only device online)")

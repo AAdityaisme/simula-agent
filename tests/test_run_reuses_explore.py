@@ -52,3 +52,31 @@ def test_from_explore_explores_again(runs):
     cli.main(["run", "janitorai", "--from", "explore"])
     assert not (run_dir / "explore" / "explore.json").exists()
     assert read_trace(run_dir / "trace.jsonl")[-1].outcome == "not_built"
+
+
+def test_no_send_changes_only_explores_params(tmp_path):
+    from simula.stages import Ctx
+    ctx = {"app": {"name": "janitorai", "package": "com.janitor.ai"}, "run_dir": tmp_path, "profile": "real",
+           "no_cache": False, "replay": False, "usd_cap": None, "allow_fixtures": False}
+    for stage in cli.STAGES:
+        same = cli.stage_params(stage, Ctx(**ctx, no_send=True)) == cli.stage_params(stage, Ctx(**ctx, no_send=False))
+        assert same == (stage != "explore"), stage
+
+
+def test_explore_new_starts_a_new_run(runs):
+    cli.main(["run", "janitorai", "--new"])
+    first = latest(runs)
+    assert cli.main(["explore", "janitorai", "--new"]) == cli.EXIT_NOT_BUILT
+    assert latest(runs) != first
+
+
+def test_explore_wont_replace_an_explore_later_stages_were_built_on(runs, capsys):
+    cli.main(["run", "janitorai", "--new"])
+    run_dir = latest(runs)
+    finished_explore(run_dir)
+    (run_dir / "model").mkdir()
+    runfolder.write_done(run_dir / "model", run_dir, [], [], {}, [run_dir / "model"],
+                         Provenance(source="explorer_run", explorer_run_id=run_dir.name))
+    assert cli.main(["explore", "janitorai"]) == 2
+    assert "model" in capsys.readouterr().err and (run_dir / "explore" / "explore.json").exists()
+    assert cli.main(["explore", "janitorai", "--run", run_dir.name]) == cli.EXIT_NOT_BUILT
