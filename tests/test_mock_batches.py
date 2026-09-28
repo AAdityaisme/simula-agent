@@ -16,6 +16,12 @@ def app(request):
     return request.param
 
 
+@pytest.fixture
+def two_batches(monkeypatch):
+    """Batches of 2, so every golden draws in at least two batches (AOL's whole scope fits one batch of 4)."""
+    monkeypatch.setattr(mock, "BATCH_SCREENS", 2)
+
+
 def state(sid: str, kind: str = "screen", parent: str | None = None) -> State:
     return golden("janitorai").states[0].model_copy(update={"id": sid, "kind": kind, "parent_id": parent, "elements": []})
 
@@ -114,7 +120,7 @@ def failing_on(first_screen: str, calls: list):
     return call
 
 
-def test_a_failed_batch_becomes_placeholders_and_the_rest_ship(tmp_path, monkeypatch, app):
+def test_a_failed_batch_becomes_placeholders_and_the_rest_ship(tmp_path, monkeypatch, app, two_batches):
     run_dir = seed_model(tmp_path / "run", app)
     model = golden(app)
     scope = mock.pick_scope(model)
@@ -152,7 +158,7 @@ def test_the_stage_fails_only_when_every_batch_fails(tmp_path, monkeypatch, app)
 
 
 
-def test_when_every_batch_fails_a_cap_failure_is_the_one_raised(tmp_path, monkeypatch, app):
+def test_when_every_batch_fails_a_cap_failure_is_the_one_raised(tmp_path, monkeypatch, app, two_batches):
     run_dir = seed_model(tmp_path / "run", app)
     first = mock.pick_scope(golden(app))[0].id
 
@@ -257,7 +263,7 @@ def test_a_batch_rule_outside_its_own_screens_is_a_contract_error(tmp_path, monk
     assert (error.kind, error.screen) == ("unscoped_css", first[0].id) and error.detail.startswith("'p'")
 
 
-def test_a_section_for_another_batchs_screen_is_a_contract_error(tmp_path, monkeypatch, app):
+def test_a_section_for_another_batchs_screen_is_a_contract_error(tmp_path, monkeypatch, app, two_batches):
     run_dir = seed_model(tmp_path / "run", app)
     first, second = mock.batches(mock.pick_scope(golden(app)))[:2]
     monkeypatch.setattr(llm, "call", first_batch_adds(f'<section data-screen="{second[0].id}"></section>'))

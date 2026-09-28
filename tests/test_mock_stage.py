@@ -19,7 +19,7 @@ def test_scope_is_exactly_the_model_stages_scope_whatever_the_rating(app):
     model = golden(app)
     states = [s.model_copy(update={"in_mock_scope": i % 2 == 0}) for i, s in enumerate(model.states)]
     states[0] = states[0].model_copy(update={"content_rating": "unsafe"})
-    scope = mock.pick_scope(model.model_copy(update={"states": states}))
+    scope = mock.pick_scope(model.model_copy(update={"states": states, "mock_order": []}))
     assert [s.id for s in scope] == [s.id for s in states if s.in_mock_scope]
 
 
@@ -168,7 +168,7 @@ def test_the_mock_opens_on_the_first_screen_that_is_not_a_dialog(tmp_path, monke
     model = golden(app)
     home = mock.pick_scope(model)[0]
     dialog = home.model_copy(update={"id": "s00", "kind": "modal", "parent_id": home.id, "elements": []})
-    model = model.model_copy(update={"states": [dialog] + model.states})
+    model = model.model_copy(update={"states": [dialog] + model.states, "mock_order": ["s00", *model.mock_order]})
     (run_dir / "model" / "product_model.json").write_text(model.model_dump_json())
     monkeypatch.setattr(llm, "call", fake_builder([]))
     mock.run(ctx_for(run_dir, app))
