@@ -21,22 +21,22 @@ The bible calls some fields by other names: its `adapted_from` is `bible_mechani
 - `bible_mechanic`: the catalog M-id you adapted (like `M17`), or `none`.
 - `what_is_different_here`: what in this app makes the idea work here, naming its screens or elements.
 - `trigger_event`: an app event the app can detect without reading chat (a counter hits zero, a paywall is dismissed, a locked item is tapped, the Nth session). Never a topic or sentiment.
-- `trigger_state_id`: the id of the existing screen where the offer appears (like `s01`), not an element id.
+- `trigger_state_id`: the id of the existing screen where the offer appears (like `s01`), not an element id. It must be one of the screens in scope, since the slides can only draw those.
 - `placement`: the app-chrome surface that shows the offer (a banner under the header, a sheet over the paywall, a card in a list). Never inside a chat transcript or conversation thread.
 - `offer_copy`: the exact words shown before the ad, stating the action and the reward with a number and a duration.
 - `reward`: `kind` is one of the bible's nine reward kinds; `unit`, `amount`, `duration` say what the user gets. Keep it smaller or shorter than the paid version.
-- `cost_inputs`: fill what the reward kind needs, zeros elsewhere. `inference`: `inference_count` (replies granted), `tokens_in` and `tokens_out` per reply. `image`: `inference_count` (images). `voice` and `feature_time`: `minutes`. `currency` and `content_unlock`: `currency_amount` = the USD price the app charges for exactly what this reward grants (0 if no price is observed). Don't hide an inference reward under a cheaper kind; code checks.
+- `cost_inputs`: fill what the reward kind needs, zeros elsewhere. `inference`: `inference_count` (replies granted), `tokens_out` per reply, and your estimate of `tokens_in` per reply (code prices the context at 2k and 8k input tokens either way). `image`: `inference_count` (images). `voice` and `feature_time`: `minutes`. `currency` and `content_unlock`: `currency_amount` = the USD price the app charges for exactly what this reward grants (0 if no price is observed; the cost line then says the cost isn't counted). A cosmetic, streak_protection, or queue_priority reward carries no replies or tokens. Don't hide an inference reward under a cheaper kind; code checks.
 - `frequency_cap`: a daily count with a reset, like `3 per day, resets at midnight local time`.
 - `decline_path`, `ad_fail_path`: what happens on "no", and on no fill or failed verification. The app must stay exactly as usable as before, and a failed ad never uses up an attempt.
 - `subscriber_treatment`: what paying users see.
 - `advertiser_category`: a plausible, brand-safe advertiser category for this audience.
 - `character_use`: how (or whether) the app's own characters, mascots, or content appear in the ad moment. "None" is fine.
-- `flow_steps`: 3 to 6 steps. The first is `trigger_state_id` as it is today. New screens use `new:<short-slug>` as the state id. The steps go: where it starts → the offer → the ad plays → the reward lands.
+- `flow_steps`: 3 to 6 steps. The first is `trigger_state_id` as it is today. Every existing screen you name must be in scope. New screens use `new:<short-slug>` as the state id. The steps go: where it starts → the offer → the ad plays → the reward lands.
 - `rationale`: why this works for this app, in two or three sentences.
 
 ## Language
 
-`title`, `offer_copy`, every `flow_steps` caption, and `rationale` go on slides for the app's product team. Write them in plain product language: short sentences, no element ids, no M-ids, no ad-tech terms (eCPM, fill rate, SDK events). Say what the user sees and gets.
+`title`, `offer_copy`, every `flow_steps` caption, and `rationale` go on slides for the app's product team. Write them in plain product language: short sentences, no element ids, no M-ids, no ad-tech or cost terms (eCPM, fill, ad slots, ad units, serving cost, SDK events). Say what the user sees and gets. Name plans, tiers, and features only as the app shows them in the product model.
 
 ## Rules
 
