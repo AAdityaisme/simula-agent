@@ -29,6 +29,7 @@ MAX_IDEAS = 4
 MAX_TOKENS = 16000
 SURVIVED = ("accept", "conditional")
 CLICK_MS = 2000
+PLAY_MS = 5000
 ART_MIN_PX = 240
 SLIDE_W, SLIDE_H = 1280, 720
 VIEW_W, VIEW_H = render.VIEWPORT["width"], render.VIEWPORT["height"]
@@ -351,8 +352,7 @@ def advance(page, target: str, ad: str | None) -> tuple[bool, dict | None, str]:
     if current == target:
         return True, None, ""
     if current == ad:
-        page.evaluate("() => window.simulaAd.complete()")
-        return state(page) == target, None, f"the verified play led to {state(page)}, not {target}"
+        return play(page, ad, target)
     link = tappable(page, current, target)
     if link is None:
         return False, None, f"no tappable element on {current} leads to {target}"
@@ -364,12 +364,25 @@ def advance(page, target: str, ad: str | None) -> tuple[bool, dict | None, str]:
     return state(page) == target, box, f"the tap led to {state(page)}, not {target}"
 
 
+def play(page, ad: str, target: str) -> tuple[bool, dict | None, str]:
+    """Taps the game's Play button like a user, then runs the page clock past the play and its verification."""
+    button = page.locator(f'[data-screen="{ad}"] .sa-play')
+    box = button.bounding_box()
+    try:
+        button.click(timeout=CLICK_MS)
+    except PlaywrightTimeout:
+        return False, None, "the game's Play button can't be tapped (something covers it)"
+    page.clock.run_for(PLAY_MS)
+    return state(page) == target, box, f"the verified play led to {state(page)}, not {target}"
+
+
 def walk(flow_dir: Path, c: Candidate, ad: str | None, ad_at: int) -> tuple[list[dict], dict]:
     """Taps through the flow's steps and screenshots each. A step that won't tap through keeps the last good
     screenshot and is marked not wired. Returns the shots and what the page recorded."""
     screens = flow_dir / "screens"
     shots, last = [], None
     with render.open_mock(flow_dir) as (page, log):
+        page.clock.install()
         for i, step in enumerate(c.flow_steps):
             if i == 0:
                 wired, tap, why = show(page, step.state_id), None, f"{step.state_id} isn't in the page"

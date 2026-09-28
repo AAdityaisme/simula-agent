@@ -206,6 +206,14 @@ def test_code_owns_the_ad_screen_when_the_editor_marks_none(tmp_path, app, ad_se
     assert any(f"code {done} ad screen at step 3" in line.note for line in read_trace(run_dir / "trace.jsonl"))
 
 
+@pytest.mark.parametrize("app", APPS)
+def test_the_walk_taps_play_so_a_covered_play_button_is_not_wired(tmp_path, app):
+    run_dir = run_flows(tmp_path, app, block_play=True)
+    assert "| 3 / 4 | 0 |" in (run_dir / "exhibits" / "07-flows.md").read_text()
+    broken = [line.note for line in read_trace(run_dir / "trace.jsonl") if line.step == "walk:c01"]
+    assert any("step 4 not wired: the game's Play button can't be tapped" in note for note in broken)
+
+
 def test_default_selection_is_accepted_and_conditional_best_rank_first_at_most_four():
     decisions = [decision("c01", "reject", 9.0), decision("c02", "accept", 1.0), decision("c03", "conditional", 3.0),
                  decision("c04", "needs_human", 5.0), *(decision(f"c1{n}", "accept", 0.5) for n in range(4))]
