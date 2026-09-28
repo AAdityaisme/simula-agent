@@ -7,6 +7,7 @@ Messages use one provider-neutral shape:
 import base64
 import hashlib
 import json
+import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -51,9 +52,13 @@ class Reply:
 
 @dataclass
 class Budget:
+    """A stage's $ cap. Each call holds its worst case from reserve() until charge() settles it, so calls
+    running at the same time can't pass the cap together."""
     stage: str
     cap: float
     spent: float = 0.0
+    held: float = 0.0
+    lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
 
     @classmethod
     def for_stage(cls, stage: str, trace_path: Path, cap: float | None = None) -> "Budget":
@@ -61,12 +66,17 @@ class Budget:
         return cls(stage, config.stage_cap(stage) if cap is None else cap, spent)
 
     def reserve(self, worst_usd: float) -> None:
-        if self.spent + worst_usd > self.cap:
-            raise CapReached(f"{self.stage}: next call could cost ${worst_usd:.2f}, "
-                             f"${self.spent:.2f} of ${self.cap:.2f} already spent; raise with --usd-cap")
+        with self.lock:
+            if self.spent + self.held + worst_usd > self.cap:
+                raise CapReached(f"{self.stage}: next call could cost ${worst_usd:.2f}, ${self.spent:.2f} of "
+                                 f"${self.cap:.2f} already spent, ${self.held:.2f} held by calls in flight; "
+                                 "raise with --usd-cap")
+            self.held += worst_usd
 
-    def charge(self, usd: float) -> None:
-        self.spent += usd
+    def charge(self, usd: float, reserved: float = 0.0) -> None:
+        with self.lock:
+            self.spent += usd
+            self.held -= reserved
 
 
 # ---------- cache ----------
@@ -263,17 +273,19 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
         raise ReplayMiss(f"--replay: no cached response for {stage}/{step} (key {keys[0][:12]})")
     last = LLMFailure("error", "no attempt made")
     for key in keys:
-        budget.reserve(worst_case_usd(model, estimate_tokens_in(system, messages), max_tokens))
+        worst = worst_case_usd(model, estimate_tokens_in(system, messages), max_tokens)
+        budget.reserve(worst)
         started = time.monotonic()
         try:
             reply = PROVIDERS[provider](model, system, messages, effort, schema, max_tokens, total_timeout)
         except LLMFailure as e:
+            budget.charge(0.0, worst)
             last = e
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
                   outcome=e.outcome, note=str(e)[:200])
             continue
         cost = usd(model, reply.tokens_in, reply.tokens_out, reply.tokens_cached)
-        budget.charge(cost)
+        budget.charge(cost, worst)
         outcome, result = _check(reply, schema)
         trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
               tokens_in=reply.tokens_in, tokens_out=reply.tokens_out, tokens_cached=reply.tokens_cached,
