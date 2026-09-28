@@ -71,7 +71,7 @@ def test_annotate_never_drops_or_ranks_down(app):
     cases = verdict_cases(model)
     assert {v: economics.annotate(c, model.app_category).verdict for v, c in cases.items()} == \
         {v: v for v in cases}
-    out = finish(list(cases.values()), model, "annotate")
+    out, _ = finish(list(cases.values()), model, "annotate")
     assert all(c.dropped_reason is None for c in out)
     assert len({c.rank_score for c in out}) == 1
 
@@ -91,3 +91,54 @@ def test_gate_boundaries(usd, verdict):
     assert economics.annotate(c, model.app_category).verdict == verdict
     kept = economics.apply([c], model.app_category, "gate")[0]
     assert (kept.dropped_reason is None) == (verdict != "FAIL")
+
+
+@pytest.mark.parametrize("kind, field", [("image", "inference_count"), ("voice", "minutes"),
+                                         ("feature_time", "minutes"), ("inference", "inference_count")])
+def test_a_reward_without_its_required_input_is_malformed(kind, field):
+    c = candidate(golden("aol"), reward=reward(kind), cost_inputs=NO_COST)
+    assert economics.input_problem(c)
+    filled = {**NO_COST, field: 3, "tokens_out": 300 if kind == "inference" else 0}
+    assert economics.input_problem(candidate(golden("aol"), reward=reward(kind), cost_inputs=filled)) is None
+
+
+def test_a_zero_cost_kind_carrying_replies_is_malformed():
+    c = candidate(golden("janitorai"), cost_inputs={**NO_COST, "inference_count": 3, "tokens_out": 300})
+    assert "doesn't match" in economics.input_problem(c)
+
+
+@pytest.mark.parametrize("kind, category, why", [
+    ("currency", "chat", "no price observed"),
+    ("content_unlock", "chat", "no price observed"),
+    ("feature_time", "chat", "a timed taste of a paid feature"),
+    ("feature_time", "learning", "a timed taste of a paid feature"),
+])
+def test_an_uncounted_cost_says_so_and_is_never_a_pass(kind, category, why):
+    c = candidate(golden("janitorai"), reward=reward(kind), cost_inputs={**NO_COST, "minutes": 30})
+    econ = economics.annotate(c, category)
+    assert econ.assumption_line.startswith(f"Serving cost not counted: {why}")
+    assert "Costs nothing extra" not in econ.assumption_line
+    assert econ.verdict == "CONDITIONAL"
+
+
+def test_the_line_names_the_numbers_that_drive_it():
+    model = golden("aol")
+    window = economics.annotate(candidate(model, reward=reward("feature_time"),
+                                          cost_inputs={**NO_COST, "minutes": 30}), "content").assumption_line
+    assert "0.2 ads a minute" in window and "$9.70 eCPM" in window and "banners ($0.55 eCPM)" in window
+    coins = economics.annotate(candidate(model, reward=reward("currency", 10),
+                                         cost_inputs={**NO_COST, "currency_amount": 0.1}), "game").assumption_line
+    assert "2% chance" in coins
+    replies = economics.annotate(candidate(model, reward=reward("inference", 3), cost_inputs={
+        **NO_COST, "inference_count": 3, "tokens_out": 300}), "chat").assumption_line
+    assert "3 replies of 300 tokens out, at $0.25 / $2.00 per million tokens" in replies
+    assert "8k figure" in replies
+
+
+def test_the_verdict_is_taken_at_8k_context():
+    # 20 replies: favorable prices at 8k break even at $17.92, over NA's high $16.49; at the bible's
+    # default 1.5k they would be CONDITIONAL
+    c = candidate(golden("janitorai"), reward=reward("inference", 20),
+                  cost_inputs={**NO_COST, "inference_count": 20, "tokens_in": 4000, "tokens_out": 300})
+    assert economics.annotate(c, "chat").verdict == "FAIL"
+    assert economics.apply([c], "chat", "gate")[0].dropped_reason

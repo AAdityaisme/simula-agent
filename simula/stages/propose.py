@@ -22,10 +22,11 @@ MAX_LEDGER_LENSES = 2
 ANCHOR_MECHANICS = {"paywall", "limit", "currency", "entitlement"}
 ANCHOR_LEDGER = {"price", "limit", "meter", "currency", "paywall_bullet"}
 CHAT_PLACEMENT = re.compile(
-    r"\bin-chat\b|\b(inside|within|into|in) (a|the|this|their) (chat|conversation|transcript)\b(?! (list|tab|screen))|"
+    r"\bin-chat\b|\b(inside|within|into|in) (a|the|this|their|your) (chat|conversation|transcript)\b(?! (list|tab))|"
     r"\bmid[- ]conversation\b|\bbetween (chat )?(messages|replies)\b|\b(chat|message) bubble|\bchat transcript\b",
     re.I)
-NEGATION = re.compile(r"\b(not|never|no|outside|away from)\b", re.I)
+NEGATED = re.compile(r"\b(not|never|outside|away from)\b[^.;,]{0,20}\b(chat|conversation|transcript)", re.I)
+SAFE_TRIGGER_RATINGS = {"safe", "mixed"}
 
 FIXED_LENSES = [
     Lens(id="free_at_limit", name="Free user at a limit", kind="fixed", ledger_ids=[],
@@ -109,19 +110,19 @@ def lens_prompt(model: ProductModel, lens: Lens) -> str:
         lens_id=lens.id, lens_name=lens.name, lens_focus=lens.focus, product_model=model_text(model))
 
 
-def ask_lens(ctx: Ctx, model: ProductModel, lens: Lens, system: str, budget: llm.Budget) -> list[Candidate]:
+def ask_lens(ctx: Ctx, model: ProductModel, lens: Lens, system: str, budget: llm.Budget) -> list[Candidate] | None:
+    """The lens's drafts, or None when its call failed twice."""
     role = config.roles(ctx.profile)["proposer"]
     messages = [{"role": "user", "content": [{"type": "text", "text": lens_prompt(model, lens)}]}]
     try:
         output, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="propose", step=f"lens:{lens.id}",
                              model=role["model"], effort=role.get("effort"), system=system, messages=messages,
                              max_tokens=min(MAX_TOKENS, config.models()[role["model"]]["max_out"]), budget=budget,
-                             schema=LensOutput,
-                             no_cache=ctx.no_cache, replay=ctx.replay)
+                             schema=LensOutput, no_cache=ctx.no_cache, replay=ctx.replay)
     except llm.LLMFailure as e:
         run_trace(ctx.run_dir, stage="propose", step=f"lens:{lens.id}", decider="code", outcome=e.outcome,
                   note="lens skipped after its retry failed")
-        return []
+        return None
     return [Candidate(**{**draft.model_dump(), "lens": lens.id}) for draft in output.candidates[:2]]
 
 
@@ -136,37 +137,52 @@ def mechanic_ids() -> set[str]:
     return {m["id"] for m in json.loads(read_input(BIBLE / "data" / "mechanics.json"))["mechanics"]}
 
 
-def resolve_ids(c: Candidate, model: ProductModel) -> Candidate:
+def resolve_ids(c: Candidate, model: ProductModel) -> tuple[Candidate, str]:
     """Models cite a mechanic or ledger id where an element id belongs, or an element where a state belongs.
-    Both point at something real, so code maps them to the ids it checks."""
+    Both point at something real, so code maps them to the ids it checks. Returns the candidate and a note
+    listing every repair ("" when none)."""
     groups = {m.id: m.evidence_ids for m in model.mechanics} | {i.id: i.evidence_ids for i in model.value_ledger}
+    repairs = [f"{i} -> {','.join(groups[i])}" for i in c.anchor_evidence_ids if i in groups]
     anchors = list(dict.fromkeys(e for i in c.anchor_evidence_ids for e in groups.get(i, [i])))
-    steps = [s if s.state_id.startswith("new:") else s.model_copy(update={"state_id": s.state_id.split(".")[0]})
-             for s in c.flow_steps]
-    return c.model_copy(update={"anchor_evidence_ids": anchors, "trigger_state_id": c.trigger_state_id.split(".")[0],
-                                "flow_steps": steps})
+
+    def screen(state_id: str) -> str:
+        if state_id.startswith("new:") or "." not in state_id:
+            return state_id
+        repairs.append(f"{state_id} -> {state_id.split('.')[0]}")
+        return state_id.split(".")[0]
+
+    trigger = screen(c.trigger_state_id)
+    steps = [s.model_copy(update={"state_id": screen(s.state_id)}) for s in c.flow_steps]
+    fixed = c.model_copy(update={"anchor_evidence_ids": anchors, "trigger_state_id": trigger, "flow_steps": steps})
+    return fixed, "; ".join(dict.fromkeys(repairs))
 
 
 def in_chat(placement: str) -> bool:
-    # ponytail: keyword check per clause, skipping negated ones ("never shown in a chat"); the judge's
-    # brand-safety gate reads the placement properly
+    # ponytail: keyword check per clause, skipping a clause whose negation sits right before the chat word
+    # ("never shown in a chat"); recall belongs to the judge's brand-safety gate
     clauses = re.split(r"[.;,()]", placement)
-    return any(CHAT_PLACEMENT.search(c) and not NEGATION.search(c) for c in clauses)
+    return any(CHAT_PLACEMENT.search(c) and not NEGATED.search(c) for c in clauses)
 
 
 def check(c: Candidate, model: ProductModel) -> str | None:
     """Returns why a candidate is dropped, or None when it passes every code check."""
-    states = {s.id for s in model.states}
+    states = {s.id: s for s in model.states}
     elements = {e.id for s in model.states for e in s.elements}
     unknown = [i for i in c.anchor_evidence_ids if i not in elements]
-    bad_steps = [s.state_id for s in c.flow_steps if s.state_id not in states and not s.state_id.startswith("new:")]
-    inputs = c.cost_inputs
+    existing_steps = [s.state_id for s in c.flow_steps if not s.state_id.startswith("new:")]
+    bad_steps = [i for i in existing_steps if i not in states]
     if unknown:
         return f"cites evidence ids that don't exist: {', '.join(unknown)}"
     if c.trigger_state_id not in states:
         return f"trigger state {c.trigger_state_id!r} doesn't exist"
     if bad_steps or not c.flow_steps:
         return f"flow steps name states that don't exist: {', '.join(bad_steps) or 'no steps'}"
+    outside = list(dict.fromkeys(i for i in [c.trigger_state_id, *existing_steps] if not states[i].in_mock_scope))
+    if outside:
+        return f"names screens outside the mock scope, which the slides can't draw: {', '.join(outside)}"
+    trigger = states[c.trigger_state_id]
+    if trigger.content_rating not in SAFE_TRIGGER_RATINGS:
+        return f"trigger screen {trigger.id} has {trigger.content_rating} content; the offer can't render next to it"
     if c.bible_mechanic.strip().lower() != "none" and c.bible_mechanic not in mechanic_ids():
         return f"bible_mechanic {c.bible_mechanic!r} is not an M-id in the bible"
     if c.kind == "existing_anchor" and not set(c.anchor_evidence_ids) & anchor_ids(model):
@@ -175,8 +191,8 @@ def check(c: Candidate, model: ProductModel) -> str | None:
         return "product_change doesn't say what it adds"
     if c.kind == "product_change" and not c.removes_nothing_free:
         return "product_change removes or caps something free"
-    if c.reward.kind == "inference" and not (inputs.inference_count and inputs.tokens_in and inputs.tokens_out):
-        return "inference reward without reply count and token counts"
+    if problem := economics.input_problem(c):
+        return problem
     if in_chat(c.placement):
         return "placement is inside a chat transcript, not app chrome"
     return None
@@ -185,9 +201,9 @@ def check(c: Candidate, model: ProductModel) -> str | None:
 # ---------- reach and rank ----------
 
 def depths(model: ProductModel) -> dict[str, int]:
-    """Taps from the root (the first state explore saw). A tab switch costs nothing; a modal sits at its
-    parent's depth when no recorded edge reaches it."""
-    depth = {model.states[0].id: 0}
+    """Taps from the root (the lowest-numbered `screen` state, docs/CONTRACTS.md). A tab switch costs nothing;
+    a modal sits at its parent's depth when no recorded edge reaches it."""
+    depth = {min(s.id for s in model.states if s.kind == "screen"): 0}
     changed = True
     while changed:
         changed = False
@@ -204,9 +220,10 @@ def depths(model: ProductModel) -> dict[str, int]:
 
 
 def daily_cap(frequency_cap: str) -> int:
-    # ponytail: first number in the free-text cap ("3 per day" -> 3), else 1; a structured cap field would fix it
-    match = re.search(r"\d+", frequency_cap)
-    return int(match.group()) if match else 1
+    # ponytail: reads "N per day" (or "N a day", "N/day", "N times a day") out of free text, else 1; durations
+    # and clock times ("every 24 hours", "resets at 00:00") are ignored. A structured cap field would fix it.
+    match = re.search(r"(\d+)\s*(?:x\s*|times\s*)?(?:per|a|/|each)\s*day", frequency_cap, re.I)
+    return max(1, int(match.group(1))) if match else 1
 
 
 def rank(c: Candidate, model: ProductModel, mode: str) -> Candidate:
@@ -221,27 +238,30 @@ def rank(c: Candidate, model: ProductModel, mode: str) -> Candidate:
     return c.model_copy(update={"reach_score": reach, "rank_score": round(score, 6)})
 
 
-def finish(drafts: list[Candidate], model: ProductModel, mode: str) -> list[Candidate]:
-    """Numbers the drafts, checks, prices, and ranks them. Live candidates come first, best first; dropped
-    ones are kept with their reason."""
-    checked = []
-    for n, c in enumerate(drafts, 1):
-        c = resolve_ids(c, model)
+def finish(drafts: list[Candidate], model: ProductModel, mode: str) -> tuple[list[Candidate], dict[str, str]]:
+    """Numbers the drafts, repairs near-miss ids, checks, prices, and ranks them. Returns the candidates (live
+    first, best first; dropped ones kept with their reason) and the id repairs by candidate id."""
+    checked, repairs = [], {}
+    for n, draft in enumerate(drafts, 1):
+        c, repaired = resolve_ids(draft.model_copy(update={"id": f"c{n:02d}"}), model)
+        if repaired:
+            repairs[c.id] = repaired
         reason = f"no opportunity: {c.rationale}" if c.kind == "no_opportunity" else check(c, model)
-        checked.append(c.model_copy(update={"id": f"c{n:02d}", "dropped_reason": reason}))
+        checked.append(c.model_copy(update={"dropped_reason": reason}))
     ranked = [rank(c, model, mode) for c in economics.apply(checked, model.app_category, mode)]
     live = sorted((c for c in ranked if not c.dropped_reason), key=lambda c: -c.rank_score)
     over = [c.model_copy(update={"dropped_reason": f"over the {MAX_CANDIDATES}-candidate cap"})
             for c in live[MAX_CANDIDATES:]]
-    return live[:MAX_CANDIDATES] + over + [c for c in ranked if c.dropped_reason]
+    return live[:MAX_CANDIDATES] + over + [c for c in ranked if c.dropped_reason], repairs
 
 
 # ---------- stage ----------
 
-def exhibit(lenses: list[Lens], candidates: list[Candidate]) -> str:
+def exhibit(lenses: list[Lens], candidates: list[Candidate], repairs: dict[str, str]) -> str:
     live = [c for c in candidates if not c.dropped_reason]
     lines = ["# 05 · propose", "", f"{len(lenses)} lenses, {len(live)} live candidates, "
-             f"{len(candidates) - len(live)} dropped.", "", "| Lens | Kind | Focus |", "|---|---|---|"]
+             f"{len(candidates) - len(live)} dropped, {len(repairs)} with near-miss ids repaired by code "
+             f"(`resolve:<id>` lines in trace.jsonl).", "", "| Lens | Kind | Focus |", "|---|---|---|"]
     lines += [f"| {l.name} | {l.kind} | {l.focus} |" for l in lenses]
     lines += ["", "## Candidates, by reach"]
     for c in live:
@@ -264,11 +284,16 @@ def run(ctx: Ctx) -> None:
     write_json_atomic(out / "lenses.json", LensesFile(lenses=lenses).model_dump_json(indent=1))
     budget = llm.Budget.for_stage("propose", ctx.run_dir / "trace.jsonl", ctx.usd_cap)
     system = system_prompt()
-    drafts = [c for lens in lenses for c in ask_lens(ctx, model, lens, system, budget)]
-    candidates = finish(drafts, model, config.profiles()["economics_mode"])
+    answers = [ask_lens(ctx, model, lens, system, budget) for lens in lenses]
+    if all(a is None for a in answers):
+        raise RuntimeError("every lens call failed; see trace.jsonl")
+    drafts = [c for a in answers if a for c in a]
+    candidates, repairs = finish(drafts, model, config.profiles()["economics_mode"])
+    for cid, note in repairs.items():
+        run_trace(ctx.run_dir, stage="propose", step=f"resolve:{cid}", decider="code", note=note[:300])
     for c in candidates:
         if c.dropped_reason:
             run_trace(ctx.run_dir, stage="propose", step=f"check:{c.id}", decider="code", outcome="denied",
                       note=c.dropped_reason[:300])
     write_json_atomic(out / "candidates.json", CandidatesFile(candidates=candidates).model_dump_json(indent=1))
-    write_exhibit(ctx.run_dir, 5, "propose", exhibit(lenses, candidates))
+    write_exhibit(ctx.run_dir, 5, "propose", exhibit(lenses, candidates, repairs))

@@ -1,11 +1,13 @@
 """PR 5's merge gate on each app's latest run. Produce the runs first:
-    uv run simula run APP --new --allow-fixtures --fixture model=tests/fixtures/golden/APP --from propose
+    uv run simula run APP --new --allow-fixtures --fixture model=tests/fixtures/golden/APP --from propose \
+        --profile real
 """
 
 import pytest
 
 from simula import runfolder
 from simula.contracts import CandidatesFile, LensesFile, ProductModel
+from simula.runlog import read_trace
 from simula.stages.propose import anchor_ids
 from tests.conftest import APPS
 
@@ -16,7 +18,7 @@ pytestmark = pytest.mark.live
 def run(request):
     run_dir = runfolder.RUNS / request.param / "latest"
     if not (run_dir / "propose" / "candidates.json").exists():
-        pytest.skip(f"no propose output in {run_dir}")
+        pytest.fail(f"no propose output in {run_dir}; run the command in this file's docstring first")
     return run_dir
 
 
@@ -25,10 +27,12 @@ def test_merge_gate(run):
     lenses = LensesFile.model_validate_json((run / "propose" / "lenses.json").read_text()).lenses
     live = [c for c in CandidatesFile.model_validate_json((run / "propose" / "candidates.json").read_text()).candidates
             if not c.dropped_reason]
+    answered = {t.step for t in read_trace(run / "trace.jsonl")
+                if t.stage == "propose" and t.step.startswith("lens:") and t.outcome == "ok"}
     states = {s.id for s in model.states}
     elements = {e.id for s in model.states for e in s.elements}
     assert len(live) >= 4
-    assert len(lenses) >= 3
+    assert len(answered) >= 3
     assert all(set(c.anchor_evidence_ids) <= elements and c.trigger_state_id in states for c in live)
     assert all(c.economics and c.economics.assumption_line for c in live)
     if any(i.kind == "actor" for i in model.value_ledger):

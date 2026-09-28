@@ -15,6 +15,11 @@ REGION, PLATFORM = "na", "android"
 CONTENT_WITH_ADS = {"content"}
 # In these apps a feature-time reward is a taste of a paid feature (cannibalization, judged by C4), not ad-free time.
 PAID_FEATURE_APPS = {"chat", "learning"}
+ZERO_COST_KINDS = {"cosmetic", "streak_protection", "queue_priority"}
+# Where each of the bible's required fields comes from in a candidate. A price may be 0 (none observed); the
+# line then says the cost isn't counted. Every other required field must be filled.
+FIELD_SOURCE = {"count": "inference_count", "minutes": "minutes", "units": "amount", "amount": "amount",
+                "unit_price_usd": None, "usd_per_unit": None}
 
 
 def _load_breakeven():
@@ -27,32 +32,87 @@ def _load_breakeven():
 breakeven = _load_breakeven()
 
 
-def bible_params(candidate: Candidate, app_category: str) -> tuple[dict, str]:
-    """Maps the proposer's reward and cost_inputs onto breakeven.py's fields, plus the reading used."""
+def input_problem(candidate: Candidate) -> str | None:
+    """Why a candidate's cost inputs can't price its reward kind, or None."""
+    reward, inputs = candidate.reward, candidate.cost_inputs
+    econ, _ = breakeven.load()
+    if reward.kind in ZERO_COST_KINDS:
+        if inputs.inference_count or inputs.tokens_in or inputs.tokens_out:
+            return f"reward kind {reward.kind} doesn't match its cost inputs (it carries model replies or tokens)"
+        return None
+    values = {"inference_count": inputs.inference_count, "minutes": inputs.minutes, "amount": reward.amount}
+    missing = [f for f in econ["reward_kinds"][reward.kind]["required_fields"]
+               if FIELD_SOURCE[f] and values[FIELD_SOURCE[f]] <= 0]
+    if reward.kind == "inference" and inputs.tokens_out <= 0:
+        missing.append("tokens_out")
+    return f"{reward.kind} reward without {', '.join(missing)}" if missing else None
+
+
+def central(kind: str, params: dict) -> dict:
+    """The inputs breakeven.py prices at the central case: the bible's defaults, overridden by params."""
+    econ, _ = breakeven.load()
+    defaults = econ["reward_kinds"][kind]["defaults"]
+    return {**{k: v["central"] if isinstance(v, dict) else v for k, v in defaults.items()}, **params}
+
+
+def favorable(kind: str, field: str) -> float:
+    econ, _ = breakeven.load()
+    return econ["reward_kinds"][kind]["defaults"][field]["favorable"]
+
+
+def describe(candidate: Candidate, app_category: str) -> tuple[dict, str | None, str]:
+    """Maps the proposer's reward onto breakeven.py's inputs. Returns (params, why the cost isn't counted or
+    None, the assumptions behind the number in words)."""
     reward, inputs = candidate.reward, candidate.cost_inputs
     kind = reward.kind
+    price = inputs.currency_amount
     if kind == "inference":
-        return {"count": inputs.inference_count, "tokens_out": inputs.tokens_out}, "fresh model replies"
+        p = {"count": inputs.inference_count, "tokens_out": inputs.tokens_out}
+        c = central(kind, p)
+        return p, None, (f"{c['count']} replies of {c['tokens_out']} tokens out, at ${c['usd_per_mtok_in']:.2f} / "
+                         f"${c['usd_per_mtok_out']:.2f} per million tokens in / out (central prices); "
+                         f"the verdict uses the 8k figure")
     if kind == "image":
-        return {"count": inputs.inference_count}, "generated images"
+        p = {"count": inputs.inference_count}
+        return p, None, f"{p['count']} images at ${central(kind, p)['usd_per_image']:.3f} each (central price)"
     if kind == "voice":
-        return {"minutes": inputs.minutes}, "generated voice minutes"
+        p = {"minutes": inputs.minutes}
+        return p, None, f"{p['minutes']:g} minutes at ${central(kind, p)['usd_per_minute']:.3f} a minute (central price)"
     if kind == "feature_time":
         if app_category in PAID_FEATURE_APPS:
             return {"minutes": inputs.minutes, "ads_per_minute": 0}, \
-                "a timed taste of a paid feature (no serving cost; the lost-sale risk is the subscription check's)"
-        return {"minutes": inputs.minutes}, "ads the app no longer shows during the window"
+                "a timed taste of a paid feature; its cost is lost sales, judged by the subscription check", \
+                f"{inputs.minutes:g} minutes of a paid feature; if it includes more or better replies, cost those as replies"
+        p = {"minutes": inputs.minutes}
+        c = central(kind, p)
+        banner = favorable(kind, "displaced_ecpm_usd")
+        econ, _ = breakeven.load()
+        banner_be = breakeven.break_even_ecpm(
+            breakeven.reward_cost(kind, {**p, "displaced_ecpm_usd": banner}, "central", econ))
+        return p, None, (f"{inputs.minutes:g} ad-free minutes at {c['ads_per_minute']:g} ads a minute, each worth "
+                         f"${c['displaced_ecpm_usd']:.2f} eCPM (the NA Android interstitial rate); if the ads it hides "
+                         f"are banners (${banner:.2f} eCPM), it pays for itself above ${banner_be:.2f}")
     if kind == "content_unlock":
         units = max(reward.amount, 1)
         ads = 1 if app_category in CONTENT_WITH_ADS else 0
-        reading = "one ad slot displaced per unlocked item" if ads else "a paid unlock given away"
-        return {"units": units, "unit_price_usd": inputs.currency_amount / units, "ads_per_unit": ads}, reading
+        p = {"units": units, "unit_price_usd": price / units, "ads_per_unit": ads}
+        c = central(kind, p)
+        words = f"{units:g} unlocked item(s)"
+        if ads:
+            words += f", one ad slot per item at ${c['displaced_ecpm_usd']:.2f} CPM"
+        if price:
+            words += f", a price of ${c['unit_price_usd']:.2f} each with a {c['p_would_pay']:.0%} chance the user would have paid"
+        elif ads:
+            words += "; no price observed, so lost sales are not counted"
+        return p, None if price or ads else "no price observed", words
     if kind == "currency":
-        return {"amount": 1, "usd_per_unit": inputs.currency_amount}, \
-            "currency the user might otherwise have bought"
+        p = {"amount": 1, "usd_per_unit": price}
+        words = (f"${price:.2f} of currency at the app's price, with a {central(kind, p)['p_would_pay']:.0%} chance "
+                 f"the user would have bought it")
+        return p, None if price else "no price observed", words
     if kind == "queue_priority":
-        return {}, "no marginal serving cost (peak-capacity cost is real but unknown)"
-    return {}, "no marginal serving cost"
+        return {}, None, "no marginal serving cost (the peak-capacity cost is real but unknown)"
+    return {}, None, "no marginal serving cost"
 
 
 def costs(kind: str, params: dict) -> tuple[float, float]:
@@ -66,9 +126,11 @@ def benchmarks() -> dict:
     return {(b["region"], b["platform"]): b for b in ecpm["benchmarks"]}
 
 
-def cost_line(kind: str, cost_2k: float, cost_8k: float, reading: str) -> str:
+def cost_line(kind: str, cost_2k: float, cost_8k: float, not_counted: str | None, assumptions: str) -> str:
     be_2k, be_8k = breakeven.break_even_ecpm(cost_2k), breakeven.break_even_ecpm(cost_8k)
-    if cost_8k == 0:
+    if not_counted:
+        head = f"Serving cost not counted: {not_counted}."
+    elif kind in ZERO_COST_KINDS:
         head = "Costs nothing extra to serve, so any completed view pays for it."
     elif kind == "inference":
         head = (f"Costs ~${cost_2k:.4f} per reward to serve; pays for itself above ${be_2k:.2f} eCPM "
@@ -77,20 +139,22 @@ def cost_line(kind: str, cost_2k: float, cost_8k: float, reading: str) -> str:
         head = f"Costs ~${cost_2k:.4f} per reward to serve; pays for itself above ${be_2k:.2f} eCPM."
     na, latam = benchmarks()[(REGION, PLATFORM)], benchmarks()[("latam", PLATFORM)]
     return (f"{head} A rewarded view earns ${na['low']:.2f}-{na['high']:.2f} eCPM in North America on Android, "
-            f"${latam['low']:.2f} in LATAM. Assumes {reading}, central serving prices, one view per reward, "
-            f"and a publisher-net eCPM (share 1).")
+            f"${latam['low']:.2f} in LATAM. Assumes {assumptions}; one view per reward; a publisher-net eCPM "
+            f"(share 1).")
 
 
 def annotate(candidate: Candidate, app_category: str) -> Economics:
     kind = candidate.reward.kind
-    params, reading = bible_params(candidate, app_category)
+    params, not_counted, assumptions = describe(candidate, app_category)
     cost_2k, cost_8k = costs(kind, params)
-    result = breakeven.verdict(kind, params, REGION, PLATFORM)
+    result = breakeven.verdict(kind, {**params, "tokens_in": CONTEXTS[1]}, REGION, PLATFORM)
+    # A cost the line can't count is never a PASS: it depends on the missing number.
+    verdict = "CONDITIONAL" if not_counted else result["verdict"]
     return Economics(cost_2k=round(cost_2k, 6), cost_8k=round(cost_8k, 6),
                      breakeven_ecpm_2k=round(breakeven.break_even_ecpm(cost_2k), 2),
                      breakeven_ecpm_8k=round(breakeven.break_even_ecpm(cost_8k), 2),
-                     benchmark_ecpm=result["benchmark"]["central"], verdict=result["verdict"],
-                     assumption_line=cost_line(kind, cost_2k, cost_8k, reading))
+                     benchmark_ecpm=result["benchmark"]["central"], verdict=verdict,
+                     assumption_line=cost_line(kind, cost_2k, cost_8k, not_counted, assumptions))
 
 
 def apply(candidates: list[Candidate], app_category: str, mode: str) -> list[Candidate]:
