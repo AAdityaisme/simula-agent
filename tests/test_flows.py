@@ -73,13 +73,13 @@ def fake_edits(c, page: str, wire_accept: bool = True, ad_section: str = "marked
     entry = (f'<button data-edge="{trigger}>{offer}" data-transition="modal" {button.format(20)}>Get it</button>'
              f'<div data-reward {button.format(70)}>Badge on</div>')
     accept = f'<button data-edge="{offer}>{ad}" data-transition="modal" {button.format(300)}>Play</button>'
-    ad_attrs = {"marked": " data-ad", "unmarked": ""}
+    ad_attrs = {"marked": f' data-parent="{trigger}" data-ad', "unmarked": ""}
     screens = (f'<section data-screen="{offer}" data-flow="{c.id}" data-parent="{trigger}">'
                f'<p {button.format(200)}>{c.offer_copy}</p>{accept if wire_accept else ""}'
                f'<button data-edge="{offer}>{trigger}" data-transition="back" {button.format(360)}>No thanks</button>'
                "</section>")
     if ad_section in ad_attrs:
-        screens += (f'<section data-screen="{ad}" data-flow="{c.id}" data-parent="{trigger}"{ad_attrs[ad_section]}>'
+        screens += (f'<section data-screen="{ad}" data-flow="{c.id}"{ad_attrs[ad_section]}>'
                     "<p>the editor's own game</p></section>")
     edits = [Edit(find=tag, replace=tag + entry, reason="entry point"),
              Edit(find="</body>", replace=screens + "</body>", reason="offer and ad screens"),
@@ -111,6 +111,11 @@ def run_flows(root, app: str, **options):
 @pytest.fixture(scope="module", params=APPS)
 def built(request, tmp_path_factory):
     return run_flows(tmp_path_factory.mktemp(request.param), request.param)
+
+
+def golden_idea(run_dir, cid: str = "c01"):
+    ideas = CandidatesFile.model_validate_json((run_dir / "propose" / "candidates.json").read_text()).candidates
+    return next(c for c in ideas if c.id == cid)
 
 
 def slides(run_dir) -> list[tuple[str, str, str]]:
@@ -204,6 +209,10 @@ def test_code_owns_the_ad_screen_when_the_editor_marks_none(tmp_path, app, ad_se
     run_dir = run_flows(tmp_path, app, ad_section=ad_section)
     assert "| 4 / 4 | 1 |" in (run_dir / "exhibits" / "07-flows.md").read_text()
     assert any(f"code {done} ad screen at step 3" in line.note for line in read_trace(run_dir / "trace.jsonl"))
+    trigger, _, ad = (s.state_id for s in golden_idea(run_dir).flow_steps[:3])
+    with render.open_mock(run_dir / "flows" / "c01") as (page, _):
+        page.evaluate("id => window.simula.go(id)", ad)
+        assert page.locator(f'[data-screen="{trigger}"]').is_visible()
 
 
 @pytest.mark.parametrize("app", APPS)

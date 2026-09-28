@@ -299,13 +299,14 @@ def flow_js(c: Candidate, ad: str | None, after_ad: str) -> str:
 
 
 def mark_ad(html: str, sid: str, c: Candidate) -> tuple[str, str]:
-    """Makes sid the ad screen: marks the editor's section for it, or adds an empty one. Code draws the ad inside
-    either way. Returns the page and which of the two it did."""
+    """Makes sid the ad screen, drawn over the trigger screen: marks the editor's section for it, or adds an empty
+    one. Code draws the ad inside either way. Returns the page and which of the two it did."""
+    parent = c.flow_steps[0].state_id
     tag = next((t for t in StartTags(html).tags if t["name"] == "section" and t["attrs"].get("data-screen") == sid),
                None)
     if tag:
-        return html[:tag["end"] - 1] + " data-ad" + html[tag["end"] - 1:], "marked the editor's"
-    parent = c.flow_steps[0].state_id
+        attrs = " data-ad" + ("" if "data-parent" in tag["attrs"] else f' data-parent="{parent}"')
+        return html[:tag["end"] - 1] + attrs + html[tag["end"] - 1:], "marked the editor's"
     section = f'<section data-screen="{sid}" data-flow="{c.id}" data-parent="{parent}" data-ad></section>\n'
     return _insert_before(html, "</body>", section), "added the"
 
