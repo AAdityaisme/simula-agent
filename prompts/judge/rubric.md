@@ -14,7 +14,7 @@ Product facts come only from the product model. Something the model lists under 
 
 ## Judgment checks
 
-- `c1_revealed_value` fails if: the app neither charges for nor limits the resource the reward gives; or, for a product change, the new resource is neither a slice of something the app charges for nor tied to a core loop the model observed.
+- `c1_revealed_value` depends on the proposal's kind. An existing opportunity (`existing_anchor`) fails if the app neither charges for nor limits the resource the reward gives. A product change (`product_change`) adds a resource the app doesn't have yet, so it fails only if that new resource is neither a slice of something the app charges for nor tied to a core loop the model observed (its "Core flows").
 - `c2_evidence` fails if: a claim the proposal makes about the app (a limit, a price, a screen, a feature, a behavior) isn't supported by the product model. Code already checked that every cited id exists. Check what the cited elements actually say, and whether each claim rests on something observed rather than on an open question.
 - `c4_protects_subscription` fails if: the reward gives away the subscription's main benefit without a limit. A time-limited or quantity-limited sample passes.
 - `c5_moment` fails if: the offer interrupts a task the user is in the middle of, and it is neither at a moment of need (a limit just hit, a locked item just tapped, a finished action) nor on a persistent surface the user can choose to open.
