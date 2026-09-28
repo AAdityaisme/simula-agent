@@ -169,6 +169,16 @@ def test_replay_after_a_retry_hits_the_cache(tmp_path, monkeypatch):
     assert result.word == "good"
 
 
+def test_a_broken_later_entry_does_not_block_a_recorded_first_answer(tmp_path, monkeypatch):
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "first"}'], []))
+    call(tmp_path)
+    params = {"effort": None, "max_tokens": 100, "schema": llm.json_schema_for("anthropic", Answer)}
+    (tmp_path / "cache" / f"{key(params=params, attempt=1)}.json").write_text("{torn")
+    assert len(list((tmp_path / "cache").glob("*.json"))) == 2
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
+    assert call(tmp_path)[0].word == "first"
+
+
 def test_rerun_after_a_retry_makes_no_paid_call(tmp_path, monkeypatch):
     calls = []
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"nope": 1}', '{"word": "good"}'], calls))
