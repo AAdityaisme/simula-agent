@@ -24,9 +24,10 @@ STREAM_IDLE_TIMEOUT_S = 60.0
 
 
 class LLMFailure(Exception):
-    def __init__(self, outcome: str, detail: str = ""):
+    def __init__(self, outcome: str, detail: str = "", raw: str = ""):
         super().__init__(f"{outcome}: {detail}")
         self.outcome = outcome
+        self.raw = raw
 
 
 class CapReached(SystemExit):
@@ -135,7 +136,7 @@ def _anthropic_content(parts: list[dict]) -> list[dict]:
 
 
 def call_anthropic(model: str, system: str, messages: list[dict], effort: str | None,
-                   schema: type[BaseModel] | None, max_tokens: int) -> Reply:
+                   schema: type[BaseModel] | None, max_tokens: int, total_timeout: float | None = None) -> Reply:
     import anthropic
     caps = config.models()[model]
     streaming = max_tokens > caps["stream_above"]
@@ -156,6 +157,10 @@ def call_anthropic(model: str, system: str, messages: list[dict], effort: str | 
     try:
         if streaming:
             with client.messages.stream(**kwargs) as stream:
+                deadline = time.monotonic() + total_timeout if total_timeout else None
+                for _ in stream:
+                    if deadline and time.monotonic() > deadline:
+                        raise LLMFailure("timeout", f"passed the {total_timeout:.0f}s total timeout")
                 message = stream.get_final_message()
                 headers = stream.response.headers
         else:
@@ -182,7 +187,7 @@ def _openai_content(parts: list[dict]) -> list[dict]:
 
 
 def call_openai(model: str, system: str, messages: list[dict], effort: str | None,
-                schema: type[BaseModel] | None, max_tokens: int) -> Reply:
+                schema: type[BaseModel] | None, max_tokens: int, total_timeout: float | None = None) -> Reply:
     import openai
     client = openai.OpenAI(max_retries=2, timeout=REQUEST_TIMEOUT_S)
     kwargs = {"model": model, "max_output_tokens": max_tokens,
@@ -219,13 +224,16 @@ PROVIDERS = {"anthropic": call_anthropic, "openai": call_openai}
 
 def call(*, trace_path: Path, stage: str, step: str, model: str, effort: str | None, system: str,
          messages: list[dict], max_tokens: int, budget: Budget, schema: type[BaseModel] | None = None,
-         no_cache: bool = False, replay: bool = False, cache_dir: Path = CACHE, fallback: str | None = None):
-    """Returns (parsed schema object or text, Reply). Retries a typed failure once, then tries the declared
-    fallback model if one is given, then raises LLMFailure."""
+         no_cache: bool = False, replay: bool = False, cache_dir: Path = CACHE, fallback: str | None = None,
+         attempts: int = 2, total_timeout: float | None = None):
+    """Returns (parsed schema object or text, Reply). Makes up to `attempts` tries (a typed failure is retried),
+    then tries the declared fallback model if one is given, then raises LLMFailure. `total_timeout` bounds one
+    streamed Anthropic attempt end to end."""
     try:
         return _call_model(trace_path=trace_path, stage=stage, step=step, model=model, effort=effort, system=system,
                            messages=messages, max_tokens=max_tokens, budget=budget, schema=schema,
-                           no_cache=no_cache, replay=replay, cache_dir=cache_dir)
+                           no_cache=no_cache, replay=replay, cache_dir=cache_dir, attempts=attempts,
+                           total_timeout=total_timeout)
     except LLMFailure as e:
         if not fallback or e.outcome not in ("error", "timeout"):
             raise
@@ -234,15 +242,16 @@ def call(*, trace_path: Path, stage: str, step: str, model: str, effort: str | N
         record_fallback(trace_path.parent, note)
         return _call_model(trace_path=trace_path, stage=stage, step=step, model=fallback, effort=effort, system=system,
                            messages=messages, max_tokens=max_tokens, budget=budget, schema=schema,
-                           no_cache=no_cache, replay=replay, cache_dir=cache_dir)
+                           no_cache=no_cache, replay=replay, cache_dir=cache_dir, attempts=attempts,
+                           total_timeout=total_timeout)
 
 
 def _call_model(*, trace_path, stage, step, model, effort, system, messages, max_tokens, budget, schema,
-                no_cache, replay, cache_dir):
+                no_cache, replay, cache_dir, attempts, total_timeout):
     provider = config.models()[model]["provider"]
     params = {"effort": effort, "max_tokens": max_tokens,
               "schema": json_schema_for(provider, schema) if schema else None}
-    keys = [cache_key(provider, model, system, messages, params, attempt) for attempt in range(2)]
+    keys = [cache_key(provider, model, system, messages, params, attempt) for attempt in range(attempts)]
     for key in [] if no_cache else keys:
         cached = cache_read(key, cache_dir)
         if cached:
@@ -257,7 +266,7 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
         budget.reserve(worst_case_usd(model, estimate_tokens_in(system, messages), max_tokens))
         started = time.monotonic()
         try:
-            reply = PROVIDERS[provider](model, system, messages, effort, schema, max_tokens)
+            reply = PROVIDERS[provider](model, system, messages, effort, schema, max_tokens, total_timeout)
         except LLMFailure as e:
             last = e
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
@@ -273,7 +282,7 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
         if outcome == "ok":
             cache_write(key, reply, cache_dir)
             return result, reply
-        last = LLMFailure(outcome, reply.stop_reason)
+        last = LLMFailure(outcome, reply.stop_reason, raw=reply.text)
     raise last
 
 

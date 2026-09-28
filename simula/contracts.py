@@ -268,7 +268,7 @@ class CostInputs(Strict):
     tokens_in: int
     tokens_out: int
     minutes: float
-    currency_amount: float
+    currency_amount: float = Field(description="The USD price the app charges for exactly what the reward grants; 0 when no price was observed.")
 
 
 class FlowStep(Strict):
@@ -372,6 +372,36 @@ class Decision(Strict):
     rerun_stage: str | None
 
 
+# ---------- explore/ -> model/ hand-off (docs/CONTRACTS.md §3) ----------
+
+class Point(Strict):
+    x: int
+    y: int
+
+
+class ActionLine(Strict):
+    """one line of explore/actions.jsonl"""
+    step: int
+    from_state: str
+    to_state: str | None
+    action: Literal["tap", "swipe", "back", "type", "relaunch"]
+    mcp_ref: str | None
+    tap_px: Point | None
+    transition: Transition
+    change_summary: str
+    outcome: Literal["ok", "denied", "timeout", "error"]
+
+
+class IconLabel(Strict):
+    mcp_ref: str
+    name: str
+
+
+class VisionElement(Strict):
+    name: str
+    rect_px: Rect
+
+
 # ---------- file-level wrappers: every JSON file a stage writes carries schema_version ----------
 
 class StateFile(Strict):
@@ -388,6 +418,9 @@ class StateFile(Strict):
     settle_seconds: float
     dynamic_regions: list[Rect] = Field(description="Device px.")
     captured_at: str
+    icon_labels: list[IconLabel] = []
+    vision_elements: list[VisionElement] = []
+    blocked_reason: str | None = None
 
 
 class ExploreFile(Strict):
@@ -400,6 +433,7 @@ class ExploreFile(Strict):
     content_filter: str | None
     blocked_state_ids: list[str]
     coverage: Coverage
+    device: Device = Device()
 
 
 class ContractError(Strict):

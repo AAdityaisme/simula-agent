@@ -21,7 +21,7 @@ def message(text="hi", png=None):
 
 
 def fake_provider(texts, calls):
-    def provider(model, system, messages, effort, schema, max_tokens):
+    def provider(model, system, messages, effort, schema, max_tokens, total_timeout=None):
         calls.append(model)
         return llm.Reply(text=texts.pop(0), model=model, tokens_in=100, tokens_out=10)
     return provider
@@ -78,6 +78,7 @@ def test_two_bad_answers_raise_a_typed_failure(tmp_path, monkeypatch):
     with pytest.raises(llm.LLMFailure) as failure:
         call(tmp_path)
     assert failure.value.outcome == "schema_fail"
+    assert failure.value.raw == "still nope"
     assert not (tmp_path / "cache").exists() or not list((tmp_path / "cache").iterdir())
 
 
@@ -122,7 +123,7 @@ def test_rerun_after_a_retry_makes_no_paid_call(tmp_path, monkeypatch):
 
 
 def failing_provider(calls):
-    def provider(model, system, messages, effort, schema, max_tokens):
+    def provider(model, system, messages, effort, schema, max_tokens, total_timeout=None):
         calls.append(model)
         raise llm.LLMFailure("error", "429 rate limited")
     return provider
@@ -162,3 +163,42 @@ def test_fallback_is_recorded_in_the_run_manifest(runs, monkeypatch):
     monkeypatch.setitem(llm.PROVIDERS, "openai", fake_provider(['{"word": "luna"}'], []))
     call(run_dir, trace_path=run_dir / "trace.jsonl", fallback="gpt-6-luna")
     assert read_manifest(run_dir).fallbacks_used == [f"declared fallback used: {MODEL} -> gpt-6-luna after error"]
+
+
+def test_one_attempt_means_one_try_and_one_cache_key(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(["bad", '{"word": "never"}'], calls))
+    with pytest.raises(llm.LLMFailure):
+        call(tmp_path, attempts=1)
+    assert calls == [MODEL]
+
+
+class SlowStream:
+    """Yields events forever; the fake clock moves 10 s per event."""
+    def __init__(self):
+        self.closed = self.finished = False
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.closed = True
+
+    def __iter__(self):
+        while True:
+            yield "event"
+
+    def get_final_message(self):
+        self.finished = True
+
+
+def test_total_timeout_cancels_a_stream_that_keeps_going(monkeypatch):
+    import anthropic
+    stream, clock = SlowStream(), iter(range(0, 10_000, 10))
+    client = type("Client", (), {"messages": type("Messages", (), {"stream": lambda self, **kw: stream})()})()
+    monkeypatch.setattr(anthropic, "Anthropic", lambda **kw: client)
+    monkeypatch.setattr(llm.time, "monotonic", lambda: next(clock))
+    with pytest.raises(llm.LLMFailure) as failure:
+        llm.call_anthropic(MODEL, "", message(), None, None, max_tokens=20_000, total_timeout=60)
+    assert failure.value.outcome == "timeout"
+    assert stream.closed and not stream.finished

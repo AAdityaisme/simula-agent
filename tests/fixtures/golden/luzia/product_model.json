@@ -55,7 +55,7 @@
      "mcp_ref": "@e30",
      "type": "View",
      "text": "",
-     "label": "Subscription badge",
+     "label": "Luzia+ upsell badge",
      "source": "mcp",
      "rect_px": {
       "x": 567.0,
@@ -1265,10 +1265,599 @@
    "kind": "screen",
    "parent_id": null,
    "name": "Subscription paywall",
-   "purpose": "Full paywall: feature list, weekly / monthly / annual plans, free-trial button. Screenshot only (no tree).",
-   "fingerprint": "fixture:screen:07-luzia-plus-paywall",
+   "purpose": "Full Luzia+ paywall: six-item feature list, Weekly / Monthly (Most popular) / Annual plans, a 3-day free-trial button, Terms & Conditions.",
+   "fingerprint": "fixture:tree:luzia-paywall",
    "canonical_png": "states/s02.png",
-   "elements": [],
+   "elements": [
+    {
+     "id": "s02.e01",
+     "mcp_ref": "@e30",
+     "type": "TextView",
+     "text": "Unlock Luzia+",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 349.0,
+      "y": 964.0,
+      "w": 382.0,
+      "h": 73.0
+     },
+     "rect_dp": {
+      "x": 132.95,
+      "y": 315.43,
+      "w": 145.52,
+      "h": 27.81
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 73.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e02",
+     "mcp_ref": "@e31",
+     "type": "TextView",
+     "text": "2× images & longer chats",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 168.0,
+      "y": 1106.0,
+      "w": 496.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 64.0,
+      "y": 369.52,
+      "w": 188.95,
+      "h": 20.19
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 53.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e03",
+     "mcp_ref": "@e32",
+     "type": "TextView",
+     "text": "Advanced reasoning mode",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 168.0,
+      "y": 1211.0,
+      "w": 535.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 64.0,
+      "y": 409.52,
+      "w": 203.81,
+      "h": 20.19
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 53.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e04",
+     "mcp_ref": "@e33",
+     "type": "TextView",
+     "text": "Higher-quality image generations",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 168.0,
+      "y": 1316.0,
+      "w": 670.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 64.0,
+      "y": 449.52,
+      "w": 255.24,
+      "h": 20.19
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 53.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e05",
+     "mcp_ref": "@e34",
+     "type": "TextView",
+     "text": "Voice chat with Luzia",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 168.0,
+      "y": 1421.0,
+      "w": 406.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 64.0,
+      "y": 489.52,
+      "w": 154.67,
+      "h": 20.19
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 53.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e06",
+     "mcp_ref": "@e35",
+     "type": "TextView",
+     "text": "Create up to 5 AI characters",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 168.0,
+      "y": 1526.0,
+      "w": 544.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 64.0,
+      "y": 529.52,
+      "w": 207.24,
+      "h": 20.19
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 53.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e07",
+     "mcp_ref": "@e36",
+     "type": "TextView",
+     "text": "Exclusive tools",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 168.0,
+      "y": 1631.0,
+      "w": 292.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 64.0,
+      "y": 569.52,
+      "w": 111.24,
+      "h": 20.19
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 53.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e08",
+     "mcp_ref": "@e37",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 1880.0,
+      "w": 318.0,
+      "h": 174.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 664.38,
+      "w": 121.14,
+      "h": 66.29
+     },
+     "role": "container",
+     "asset_png": "assets/s02.e08.png",
+     "fg_hex": "#666666",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e09",
+     "mcp_ref": "@e38",
+     "type": "TextView",
+     "text": "Weekly",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 66.0,
+      "y": 1917.0,
+      "w": 140.0,
+      "h": 49.0
+     },
+     "rect_dp": {
+      "x": 25.14,
+      "y": 678.48,
+      "w": 53.33,
+      "h": 18.67
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 49.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e10",
+     "mcp_ref": "@e39",
+     "type": "TextView",
+     "text": "$ 1.99",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 66.0,
+      "y": 1979.0,
+      "w": 85.0,
+      "h": 40.0
+     },
+     "rect_dp": {
+      "x": 25.14,
+      "y": 702.1,
+      "w": 32.38,
+      "h": 15.24
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#6a6a6a",
+     "bg_hex": "#ffffff",
+     "font_px": 40.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e11",
+     "mcp_ref": "@e40",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 381.0,
+      "y": 1880.0,
+      "w": 318.0,
+      "h": 174.0
+     },
+     "rect_dp": {
+      "x": 145.14,
+      "y": 664.38,
+      "w": 121.14,
+      "h": 66.29
+     },
+     "role": "container",
+     "asset_png": "assets/s02.e11.png",
+     "fg_hex": "#663466",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e12",
+     "mcp_ref": "@e41",
+     "type": "TextView",
+     "text": "Monthly",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 405.0,
+      "y": 1919.0,
+      "w": 142.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 154.29,
+      "y": 679.24,
+      "w": 54.1,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e13",
+     "mcp_ref": "@e42",
+     "type": "TextView",
+     "text": "$ 4.99",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 405.0,
+      "y": 1979.0,
+      "w": 93.0,
+      "h": 40.0
+     },
+     "rect_dp": {
+      "x": 154.29,
+      "y": 702.1,
+      "w": 35.43,
+      "h": 15.24
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#6e6e6e",
+     "bg_hex": "#ffffff",
+     "font_px": 40.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e14",
+     "mcp_ref": "@e43",
+     "type": "TextView",
+     "text": "Most popular",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 438.0,
+      "y": 1861.0,
+      "w": 205.0,
+      "h": 40.0
+     },
+     "rect_dp": {
+      "x": 166.86,
+      "y": 657.14,
+      "w": 78.1,
+      "h": 15.24
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#090909",
+     "bg_hex": "#e8e6e8",
+     "font_px": 40.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e15",
+     "mcp_ref": "@e44",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 720.0,
+      "y": 1880.0,
+      "w": 318.0,
+      "h": 174.0
+     },
+     "rect_dp": {
+      "x": 274.29,
+      "y": 664.38,
+      "w": 121.14,
+      "h": 66.29
+     },
+     "role": "container",
+     "asset_png": "assets/s02.e15.png",
+     "fg_hex": "#666666",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e16",
+     "mcp_ref": "@e45",
+     "type": "TextView",
+     "text": "Annual",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 744.0,
+      "y": 1917.0,
+      "w": 129.0,
+      "h": 49.0
+     },
+     "rect_dp": {
+      "x": 283.43,
+      "y": 678.48,
+      "w": 49.14,
+      "h": 18.67
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 49.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e17",
+     "mcp_ref": "@e46",
+     "type": "TextView",
+     "text": "$ 39.99",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 744.0,
+      "y": 1979.0,
+      "w": 111.0,
+      "h": 40.0
+     },
+     "rect_dp": {
+      "x": 283.43,
+      "y": 702.1,
+      "w": 42.29,
+      "h": 15.24
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#6d6d6d",
+     "bg_hex": "#ffffff",
+     "font_px": 40.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e18",
+     "mcp_ref": "@e47",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 2092.0,
+      "w": 1080.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 745.14,
+      "w": 411.43,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s02.e18.png",
+     "fg_hex": "#ffffff",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e19",
+     "mcp_ref": "@e48",
+     "type": "TextView",
+     "text": "Start 3-day free Trial",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 338.0,
+      "y": 2128.0,
+      "w": 404.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 128.76,
+      "y": 758.86,
+      "w": 153.9,
+      "h": 20.19
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#fefefe",
+     "bg_hex": "#000000",
+     "font_px": 53.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e20",
+     "mcp_ref": "@e49",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 396.0,
+      "y": 2191.0,
+      "w": 289.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 150.86,
+      "y": 782.86,
+      "w": 110.1,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s02.e20.png",
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e21",
+     "mcp_ref": "@e50",
+     "type": "TextView",
+     "text": "Terms & Conditions",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 396.0,
+      "y": 2234.0,
+      "w": 289.0,
+      "h": 40.0
+     },
+     "rect_dp": {
+      "x": 150.86,
+      "y": 799.24,
+      "w": 110.1,
+      "h": 15.24
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#646363",
+     "bg_hex": "#ffffff",
+     "font_px": 40.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    }
+   ],
    "in_mock_scope": true,
    "content_rating": "safe",
    "dynamic_regions": [],
@@ -1279,10 +1868,1439 @@
    "kind": "screen",
    "parent_id": null,
    "name": "Settings",
-   "purpose": "Upgrade banner, memories, preferences, support, account. Screenshot only.",
-   "fingerprint": "fixture:screen:06-settings",
+   "purpose": "Upgrade to Luzia+ row (opens the paywall), memories, preferences (language, theme, offline model, pet and haptics toggles), support, account.",
+   "fingerprint": "fixture:tree:luzia-settings",
    "canonical_png": "states/s03.png",
-   "elements": [],
+   "elements": [
+    {
+     "id": "s03.e01",
+     "mcp_ref": "@e28",
+     "type": "View",
+     "text": "",
+     "label": "Back button",
+     "source": "mcp",
+     "rect_px": {
+      "x": 21.0,
+      "y": 136.0,
+      "w": 126.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 8.0,
+      "y": 0.0,
+      "w": 48.0,
+      "h": 48.0
+     },
+     "role": "icon button",
+     "asset_png": null,
+     "fg_hex": "#282828",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e02",
+     "mcp_ref": "@e29",
+     "type": "TextView",
+     "text": "Settings",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 434.0,
+      "y": 166.0,
+      "w": 212.0,
+      "h": 66.0
+     },
+     "rect_dp": {
+      "x": 165.33,
+      "y": 11.43,
+      "w": 80.76,
+      "h": 25.14
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#000000",
+     "font_px": 66.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e03",
+     "mcp_ref": "@e31",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 304.0,
+      "w": 996.0,
+      "h": 147.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 64.0,
+      "w": 379.43,
+      "h": 56.0
+     },
+     "role": "container",
+     "asset_png": "assets/s03.e03.png",
+     "fg_hex": "#6625ab",
+     "bg_hex": "#481a78",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e04",
+     "mcp_ref": "@e32",
+     "type": "View",
+     "text": "",
+     "label": "Upgrade to Luzia+",
+     "source": "mcp",
+     "rect_px": {
+      "x": 84.0,
+      "y": 346.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 32.0,
+      "y": 80.0,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#8a32e6",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e05",
+     "mcp_ref": "@e33",
+     "type": "TextView",
+     "text": "Upgrade to Luzia+",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 179.0,
+      "y": 355.0,
+      "w": 315.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 68.19,
+      "y": 83.43,
+      "w": 120.0,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#6d27b5",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e06",
+     "mcp_ref": "@e34",
+     "type": "View",
+     "text": "",
+     "label": "Upgrade to Luzia+",
+     "source": "mcp",
+     "rect_px": {
+      "x": 933.0,
+      "y": 346.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 355.43,
+      "y": 80.0,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#0b0412",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e07",
+     "mcp_ref": "@e35",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 493.0,
+      "w": 996.0,
+      "h": 147.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 136.0,
+      "w": 379.43,
+      "h": 56.0
+     },
+     "role": "container",
+     "asset_png": "assets/s03.e07.png",
+     "fg_hex": "#dedefc",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e08",
+     "mcp_ref": "@e36",
+     "type": "View",
+     "text": "",
+     "label": "Manage memories",
+     "source": "mcp",
+     "rect_px": {
+      "x": 84.0,
+      "y": 535.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 32.0,
+      "y": 152.0,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#4264fc",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e09",
+     "mcp_ref": "@e37",
+     "type": "TextView",
+     "text": "Manage memories",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 179.0,
+      "y": 544.0,
+      "w": 320.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 68.19,
+      "y": 155.43,
+      "w": 121.9,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#282828",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e10",
+     "mcp_ref": "@e38",
+     "type": "View",
+     "text": "",
+     "label": "Manage memories",
+     "source": "mcp",
+     "rect_px": {
+      "x": 933.0,
+      "y": 535.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 355.43,
+      "y": 152.0,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e11",
+     "mcp_ref": "@e39",
+     "type": "TextView",
+     "text": "Preferences",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 682.0,
+      "w": 212.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 208.0,
+      "w": 80.76,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#8e8e8e",
+     "bg_hex": "#000000",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e12",
+     "mcp_ref": "@e40",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 749.0,
+      "w": 996.0,
+      "h": 176.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 233.52,
+      "w": 379.43,
+      "h": 67.05
+     },
+     "role": "container",
+     "asset_png": "assets/s03.e12.png",
+     "fg_hex": "#cbcbec",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e13",
+     "mcp_ref": "@e41",
+     "type": "View",
+     "text": "",
+     "label": "App language",
+     "source": "mcp",
+     "rect_px": {
+      "x": 84.0,
+      "y": 806.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 32.0,
+      "y": 255.24,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#4264fc",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e14",
+     "mcp_ref": "@e42",
+     "type": "TextView",
+     "text": "App language",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 179.0,
+      "y": 791.0,
+      "w": 242.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 68.19,
+      "y": 249.52,
+      "w": 92.19,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#282828",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e15",
+     "mcp_ref": "@e43",
+     "type": "TextView",
+     "text": "English",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 179.0,
+      "y": 837.0,
+      "w": 122.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 68.19,
+      "y": 267.05,
+      "w": 46.48,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#cbcbcb",
+     "bg_hex": "#282828",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e16",
+     "mcp_ref": "@e44",
+     "type": "View",
+     "text": "",
+     "label": "App language",
+     "source": "mcp",
+     "rect_px": {
+      "x": 933.0,
+      "y": 806.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 355.43,
+      "y": 255.24,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e17",
+     "mcp_ref": "@e45",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 925.0,
+      "w": 996.0,
+      "h": 176.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 300.57,
+      "w": 379.43,
+      "h": 67.05
+     },
+     "role": "container",
+     "asset_png": "assets/s03.e17.png",
+     "fg_hex": "#cbcbcb",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e18",
+     "mcp_ref": "@e46",
+     "type": "View",
+     "text": "",
+     "label": "Theme",
+     "source": "mcp",
+     "rect_px": {
+      "x": 84.0,
+      "y": 982.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 32.0,
+      "y": 322.29,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#4264fc",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e19",
+     "mcp_ref": "@e47",
+     "type": "TextView",
+     "text": "Theme",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 179.0,
+      "y": 967.0,
+      "w": 117.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 68.19,
+      "y": 316.57,
+      "w": 44.57,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#282828",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e20",
+     "mcp_ref": "@e48",
+     "type": "TextView",
+     "text": "Dark Mode",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 179.0,
+      "y": 1013.0,
+      "w": 186.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 68.19,
+      "y": 334.1,
+      "w": 70.86,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#cbcbcb",
+     "bg_hex": "#282828",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e21",
+     "mcp_ref": "@e49",
+     "type": "View",
+     "text": "",
+     "label": "Theme",
+     "source": "mcp",
+     "rect_px": {
+      "x": 933.0,
+      "y": 982.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 355.43,
+      "y": 322.29,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e22",
+     "mcp_ref": "@e50",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 1101.0,
+      "w": 996.0,
+      "h": 176.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 367.62,
+      "w": 379.43,
+      "h": 67.05
+     },
+     "role": "container",
+     "asset_png": "assets/s03.e22.png",
+     "fg_hex": "#cbcbcb",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e23",
+     "mcp_ref": "@e51",
+     "type": "View",
+     "text": "",
+     "label": "Offline AI-Model",
+     "source": "mcp",
+     "rect_px": {
+      "x": 84.0,
+      "y": 1158.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 32.0,
+      "y": 389.33,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#4264fc",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e24",
+     "mcp_ref": "@e52",
+     "type": "TextView",
+     "text": "Offline AI-Model",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 179.0,
+      "y": 1143.0,
+      "w": 292.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 68.19,
+      "y": 383.62,
+      "w": 111.24,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#282828",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e25",
+     "mcp_ref": "@e53",
+     "type": "TextView",
+     "text": "Manage AI models",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 179.0,
+      "y": 1189.0,
+      "w": 312.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 68.19,
+      "y": 401.14,
+      "w": 118.86,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#cacaca",
+     "bg_hex": "#282828",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e26",
+     "mcp_ref": "@e54",
+     "type": "View",
+     "text": "",
+     "label": "Offline AI-Model",
+     "source": "mcp",
+     "rect_px": {
+      "x": 933.0,
+      "y": 1158.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 355.43,
+      "y": 389.33,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e27",
+     "mcp_ref": "@e55",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 1277.0,
+      "w": 996.0,
+      "h": 168.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 434.67,
+      "w": 379.43,
+      "h": 64.0
+     },
+     "role": "container",
+     "asset_png": "assets/s03.e27.png",
+     "fg_hex": "#00b23b",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e28",
+     "mcp_ref": "@e56",
+     "type": "View",
+     "text": "",
+     "label": "Toki",
+     "source": "mcp",
+     "rect_px": {
+      "x": 84.0,
+      "y": 1330.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 32.0,
+      "y": 454.86,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#4264fc",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e29",
+     "mcp_ref": "@e57",
+     "type": "TextView",
+     "text": "Toki",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 179.0,
+      "y": 1338.0,
+      "w": 70.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 68.19,
+      "y": 457.9,
+      "w": 26.67,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#282828",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e30",
+     "mcp_ref": "@e58",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 849.0,
+      "y": 1298.0,
+      "w": 147.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 323.43,
+      "y": 442.67,
+      "w": 56.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s03.e30.png",
+     "fg_hex": "#282828",
+     "bg_hex": "#28b23b",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e31",
+     "mcp_ref": "@e59",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 1445.0,
+      "w": 996.0,
+      "h": 168.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 498.67,
+      "w": 379.43,
+      "h": 64.0
+     },
+     "role": "container",
+     "asset_png": "assets/s03.e31.png",
+     "fg_hex": "#7777b9",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e32",
+     "mcp_ref": "@e60",
+     "type": "View",
+     "text": "",
+     "label": "Haptic Feedback",
+     "source": "mcp",
+     "rect_px": {
+      "x": 84.0,
+      "y": 1498.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 32.0,
+      "y": 518.86,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#4264fc",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e33",
+     "mcp_ref": "@e61",
+     "type": "TextView",
+     "text": "Haptic Feedback",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 179.0,
+      "y": 1506.0,
+      "w": 299.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 68.19,
+      "y": 521.9,
+      "w": 113.9,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#282828",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e34",
+     "mcp_ref": "@e62",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 849.0,
+      "y": 1466.0,
+      "w": 147.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 323.43,
+      "y": 506.67,
+      "w": 56.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s03.e34.png",
+     "fg_hex": "#282828",
+     "bg_hex": "#666666",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e35",
+     "mcp_ref": "@e63",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 1613.0,
+      "w": 996.0,
+      "h": 168.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 562.67,
+      "w": 379.43,
+      "h": 64.0
+     },
+     "role": "container",
+     "asset_png": "assets/s03.e35.png",
+     "fg_hex": "#b4b4c7",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e36",
+     "mcp_ref": "@e64",
+     "type": "View",
+     "text": "",
+     "label": "Enable Floating Widget",
+     "source": "mcp",
+     "rect_px": {
+      "x": 84.0,
+      "y": 1666.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 32.0,
+      "y": 582.86,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#4264fc",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e37",
+     "mcp_ref": "@e65",
+     "type": "TextView",
+     "text": "Enable Floating Widget",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 179.0,
+      "y": 1674.0,
+      "w": 405.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 68.19,
+      "y": 585.9,
+      "w": 154.29,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#282828",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e38",
+     "mcp_ref": "@e66",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 849.0,
+      "y": 1634.0,
+      "w": 147.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 323.43,
+      "y": 570.67,
+      "w": 56.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s03.e38.png",
+     "fg_hex": "#282828",
+     "bg_hex": "#666666",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e39",
+     "mcp_ref": "@e67",
+     "type": "TextView",
+     "text": "Support",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 1823.0,
+      "w": 145.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 642.67,
+      "w": 55.24,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#8e8e8e",
+     "bg_hex": "#000000",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e40",
+     "mcp_ref": "@e68",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 1890.0,
+      "w": 996.0,
+      "h": 147.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 668.19,
+      "w": 379.43,
+      "h": 56.0
+     },
+     "role": "container",
+     "asset_png": "assets/s03.e40.png",
+     "fg_hex": "#d5d5fc",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e41",
+     "mcp_ref": "@e69",
+     "type": "View",
+     "text": "",
+     "label": "Contact us",
+     "source": "mcp",
+     "rect_px": {
+      "x": 84.0,
+      "y": 1932.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 32.0,
+      "y": 684.19,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#4264fc",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e42",
+     "mcp_ref": "@e70",
+     "type": "TextView",
+     "text": "Contact us",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 179.0,
+      "y": 1941.0,
+      "w": 191.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 68.19,
+      "y": 687.62,
+      "w": 72.76,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#282828",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e43",
+     "mcp_ref": "@e71",
+     "type": "View",
+     "text": "",
+     "label": "Contact us",
+     "source": "mcp",
+     "rect_px": {
+      "x": 933.0,
+      "y": 1932.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 355.43,
+      "y": 684.19,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e44",
+     "mcp_ref": "@e72",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 2037.0,
+      "w": 996.0,
+      "h": 147.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 724.19,
+      "w": 379.43,
+      "h": 56.0
+     },
+     "role": "container",
+     "asset_png": "assets/s03.e44.png",
+     "fg_hex": "#bfbffc",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e45",
+     "mcp_ref": "@e73",
+     "type": "View",
+     "text": "",
+     "label": "Rate us",
+     "source": "mcp",
+     "rect_px": {
+      "x": 84.0,
+      "y": 2079.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 32.0,
+      "y": 740.19,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#4264fc",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e46",
+     "mcp_ref": "@e74",
+     "type": "TextView",
+     "text": "Rate us",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 179.0,
+      "y": 2088.0,
+      "w": 127.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 68.19,
+      "y": 743.62,
+      "w": 48.38,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#282828",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e47",
+     "mcp_ref": "@e75",
+     "type": "View",
+     "text": "",
+     "label": "Rate us",
+     "source": "mcp",
+     "rect_px": {
+      "x": 933.0,
+      "y": 2079.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 355.43,
+      "y": 740.19,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e48",
+     "mcp_ref": "@e76",
+     "type": "TextView",
+     "text": "Account",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 2226.0,
+      "w": 150.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 796.19,
+      "w": 57.14,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#8e8e8e",
+     "bg_hex": "#000000",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e49",
+     "mcp_ref": "@e77",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 2293.0,
+      "w": 996.0,
+      "h": 107.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 821.71,
+      "w": 379.43,
+      "h": 40.76
+     },
+     "role": "container",
+     "asset_png": "assets/s03.e49.png",
+     "fg_hex": "#282828",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e50",
+     "mcp_ref": "@e78",
+     "type": "View",
+     "text": "",
+     "label": "Account & Data",
+     "source": "mcp",
+     "rect_px": {
+      "x": 84.0,
+      "y": 2335.0,
+      "w": 63.0,
+      "h": 2.0
+     },
+     "rect_dp": {
+      "x": 32.0,
+      "y": 837.71,
+      "w": 24.0,
+      "h": 0.76
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": null,
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e51",
+     "mcp_ref": "@e80",
+     "type": "View",
+     "text": "",
+     "label": "Account & Data",
+     "source": "mcp",
+     "rect_px": {
+      "x": 933.0,
+      "y": 2335.0,
+      "w": 63.0,
+      "h": 2.0
+     },
+     "rect_dp": {
+      "x": 355.43,
+      "y": 837.71,
+      "w": 24.0,
+      "h": 0.76
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": null,
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    }
+   ],
    "in_mock_scope": true,
    "content_rating": "safe",
    "dynamic_regions": [],
@@ -1293,10 +3311,263 @@
    "kind": "modal",
    "parent_id": "s01",
    "name": "Virtual pet intro",
-   "purpose": "Onboarding modal for the virtual pet; appeared unprompted. Screenshot only.",
-   "fingerprint": "fixture:screen:04-toki-pet-modal",
+   "purpose": "Onboarding modal for the virtual pet over home: Meet me / Later, and a note that the pet can be turned off in Settings. Opened from the home pet banner (it also appeared unprompted once).",
+   "fingerprint": "fixture:tree:luzia-pet-intro",
    "canonical_png": "states/s04.png",
-   "elements": [],
+   "elements": [
+    {
+     "id": "s04.e01",
+     "mcp_ref": "@e26",
+     "type": "FrameLayout",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 120.0,
+      "y": 136.0,
+      "w": 840.0,
+      "h": 2201.0
+     },
+     "rect_dp": {
+      "x": 45.71,
+      "y": 0.0,
+      "w": 320.0,
+      "h": 838.48
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#b2aae5",
+     "bg_hex": "#0f141d",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s04.e02",
+     "mcp_ref": "@e27",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 834.0,
+      "y": 581.0,
+      "w": 126.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 317.71,
+      "y": 169.52,
+      "w": 48.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s04.e02.png",
+     "fg_hex": "#d2d2d2",
+     "bg_hex": "#1d1d1d",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s04.e03",
+     "mcp_ref": "@e28",
+     "type": "TextView",
+     "text": "Tok-Tok! I'm Toki and I need your help!",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 162.0,
+      "y": 1285.0,
+      "w": 756.0,
+      "h": 132.0
+     },
+     "rect_dp": {
+      "x": 61.71,
+      "y": 437.71,
+      "w": 288.0,
+      "h": 50.29
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#000000",
+     "font_px": 132.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s04.e04",
+     "mcp_ref": "@e29",
+     "type": "TextView",
+     "text": "I want to grow and become as powerful as Luzia. Care for me to see me grow!",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 162.0,
+      "y": 1428.0,
+      "w": 756.0,
+      "h": 92.0
+     },
+     "rect_dp": {
+      "x": 61.71,
+      "y": 492.19,
+      "w": 288.0,
+      "h": 35.05
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#c9c9c9",
+     "bg_hex": "#000000",
+     "font_px": 92.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s04.e05",
+     "mcp_ref": "@e30",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 162.0,
+      "y": 1552.0,
+      "w": 756.0,
+      "h": 121.0
+     },
+     "rect_dp": {
+      "x": 61.71,
+      "y": 539.43,
+      "w": 288.0,
+      "h": 46.1
+     },
+     "role": "container",
+     "asset_png": "assets/s04.e05.png",
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s04.e06",
+     "mcp_ref": "@e31",
+     "type": "TextView",
+     "text": "Meet me",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 488.0,
+      "y": 1588.0,
+      "w": 178.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 185.9,
+      "y": 553.14,
+      "w": 67.81,
+      "h": 20.19
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 53.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s04.e07",
+     "mcp_ref": "@e32",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 162.0,
+      "y": 1673.0,
+      "w": 756.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 61.71,
+      "y": 585.52,
+      "w": 288.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s04.e07.png",
+     "fg_hex": "#000000",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s04.e08",
+     "mcp_ref": "@e33",
+     "type": "TextView",
+     "text": "Later",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 488.0,
+      "y": 1709.0,
+      "w": 105.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 185.9,
+      "y": 599.24,
+      "w": 40.0,
+      "h": 20.19
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#282828",
+     "font_px": 53.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s04.e09",
+     "mcp_ref": "@e34",
+     "type": "TextView",
+     "text": "You can turn me on & off anytime in Settings.",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 220.0,
+      "y": 1808.0,
+      "w": 641.0,
+      "h": 40.0
+     },
+     "rect_dp": {
+      "x": 83.81,
+      "y": 636.95,
+      "w": 244.19,
+      "h": 15.24
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#b9b9b9",
+     "bg_hex": "#000000",
+     "font_px": 40.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    }
+   ],
    "in_mock_scope": true,
    "content_rating": "safe",
    "dynamic_regions": [],
@@ -1307,10 +3578,459 @@
    "kind": "screen",
    "parent_id": null,
    "name": "Services",
-   "purpose": "Routines and tasks; empty state with a Start something button. Screenshot only.",
-   "fingerprint": "fixture:screen:02-tab-services",
+   "purpose": "Routines and tasks; empty state with a Start something button.",
+   "fingerprint": "fixture:tree:luzia-tab-services",
    "canonical_png": "states/s05.png",
-   "elements": [],
+   "elements": [
+    {
+     "id": "s05.e01",
+     "mcp_ref": "@e29",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 21.0,
+      "y": 136.0,
+      "w": 126.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 8.0,
+      "y": 0.0,
+      "w": 48.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s05.e01.png",
+     "fg_hex": "#282828",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s05.e02",
+     "mcp_ref": "@e30",
+     "type": "TextView",
+     "text": "Services",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 431.0,
+      "y": 166.0,
+      "w": 218.0,
+      "h": 66.0
+     },
+     "rect_dp": {
+      "x": 164.19,
+      "y": 11.43,
+      "w": 83.05,
+      "h": 25.14
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#000000",
+     "font_px": 66.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s05.e03",
+     "mcp_ref": "@e31",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 828.0,
+      "y": 136.0,
+      "w": 105.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 315.43,
+      "y": 0.0,
+      "w": 40.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s05.e03.png",
+     "fg_hex": "#282828",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s05.e04",
+     "mcp_ref": "@e32",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 933.0,
+      "y": 136.0,
+      "w": 126.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 355.43,
+      "y": 0.0,
+      "w": 48.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s05.e04.png",
+     "fg_hex": "#282828",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s05.e05",
+     "mcp_ref": "@e33",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 442.0,
+      "y": 256.0,
+      "w": 196.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 168.38,
+      "y": 45.71,
+      "w": 74.67,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s05.e05.png",
+     "fg_hex": "#ffffff",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s05.e06",
+     "mcp_ref": "@e34",
+     "type": "TextView",
+     "text": "Routines",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 474.0,
+      "y": 299.0,
+      "w": 132.0,
+      "h": 40.0
+     },
+     "rect_dp": {
+      "x": 180.57,
+      "y": 62.1,
+      "w": 50.29,
+      "h": 15.24
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 40.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s05.e07",
+     "mcp_ref": "@e35",
+     "type": "TextView",
+     "text": "Loading content",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 373.0,
+      "y": 1320.0,
+      "w": 334.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 142.1,
+      "y": 451.05,
+      "w": 127.24,
+      "h": 20.19
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#000000",
+     "font_px": 53.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s05.e08",
+     "mcp_ref": "@e36",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 11.0,
+      "y": 2169.0,
+      "w": 338.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 4.19,
+      "y": 774.48,
+      "w": 128.76,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s05.e08.png",
+     "fg_hex": "#cbcbcb",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s05.e09",
+     "mcp_ref": "@e37",
+     "type": "View",
+     "text": "",
+     "label": "Chat",
+     "source": "mcp",
+     "rect_px": {
+      "x": 149.0,
+      "y": 2172.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 56.76,
+      "y": 775.62,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#cbcbcb",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s05.e10",
+     "mcp_ref": "@e38",
+     "type": "TextView",
+     "text": "Chat",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 138.0,
+      "y": 2246.0,
+      "w": 84.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 52.57,
+      "y": 803.81,
+      "w": 32.0,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#c7c7c7",
+     "bg_hex": "#000000",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s05.e11",
+     "mcp_ref": "@e39",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 370.0,
+      "y": 2169.0,
+      "w": 339.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 140.95,
+      "y": 774.48,
+      "w": 129.14,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s05.e11.png",
+     "fg_hex": "#112255",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s05.e12",
+     "mcp_ref": "@e40",
+     "type": "View",
+     "text": "",
+     "label": "Services",
+     "source": "mcp",
+     "rect_px": {
+      "x": 508.0,
+      "y": 2172.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 193.52,
+      "y": 775.62,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#4264fc",
+     "bg_hex": "#112255",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s05.e13",
+     "mcp_ref": "@e41",
+     "type": "TextView",
+     "text": "Services",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 465.0,
+      "y": 2246.0,
+      "w": 149.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 177.14,
+      "y": 803.81,
+      "w": 56.76,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#000000",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s05.e14",
+     "mcp_ref": "@e42",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 730.0,
+      "y": 2169.0,
+      "w": 339.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 278.1,
+      "y": 774.48,
+      "w": 129.14,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s05.e14.png",
+     "fg_hex": "#cbcbcb",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s05.e15",
+     "mcp_ref": "@e43",
+     "type": "View",
+     "text": "",
+     "label": "Create",
+     "source": "mcp",
+     "rect_px": {
+      "x": 868.0,
+      "y": 2172.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 330.67,
+      "y": 775.62,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#cbcbcb",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s05.e16",
+     "mcp_ref": "@e44",
+     "type": "TextView",
+     "text": "Create",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 841.0,
+      "y": 2246.0,
+      "w": 118.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 320.38,
+      "y": 803.81,
+      "w": 44.95,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#c9c9c9",
+     "bg_hex": "#000000",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    }
+   ],
    "in_mock_scope": true,
    "content_rating": "safe",
    "dynamic_regions": [],
@@ -1321,10 +4041,487 @@
    "kind": "screen",
    "parent_id": null,
    "name": "Create",
-   "purpose": "Mini-app marketplace with a Create app button. Screenshot only.",
-   "fingerprint": "fixture:screen:03-tab-create",
+   "purpose": "Mini-app marketplace (My Apps / Explore) with a Create app button.",
+   "fingerprint": "fixture:tree:luzia-tab-create",
    "canonical_png": "states/s06.png",
-   "elements": [],
+   "elements": [
+    {
+     "id": "s06.e01",
+     "mcp_ref": "@e28",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 142.0,
+      "w": 236.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 2.29,
+      "w": 89.9,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s06.e01.png",
+     "fg_hex": "#8e8e8e",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e02",
+     "mcp_ref": "@e29",
+     "type": "TextView",
+     "text": "My Apps",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 168.0,
+      "w": 236.0,
+      "h": 73.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 12.19,
+      "w": 89.9,
+      "h": 27.81
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#8e8e8e",
+     "bg_hex": "#000000",
+     "font_px": 73.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e03",
+     "mcp_ref": "@e30",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 320.0,
+      "y": 141.0,
+      "w": 210.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 121.9,
+      "y": 1.9,
+      "w": 80.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s06.e03.png",
+     "fg_hex": "#ffffff",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e04",
+     "mcp_ref": "@e31",
+     "type": "TextView",
+     "text": "Explore",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 320.0,
+      "y": 157.0,
+      "w": 210.0,
+      "h": 73.0
+     },
+     "rect_dp": {
+      "x": 121.9,
+      "y": 8.0,
+      "w": 80.0,
+      "h": 27.81
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#000000",
+     "font_px": 73.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e05",
+     "mcp_ref": "@e32",
+     "type": "View",
+     "text": "",
+     "label": "Search",
+     "source": "mcp",
+     "rect_px": {
+      "x": 933.0,
+      "y": 141.0,
+      "w": 126.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 355.43,
+      "y": 1.9,
+      "w": 48.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#282828",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e06",
+     "mcp_ref": "@e33",
+     "type": "TextView",
+     "text": "Loading content",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 373.0,
+      "y": 1278.0,
+      "w": 334.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 142.1,
+      "y": 435.05,
+      "w": 127.24,
+      "h": 20.19
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#000000",
+     "font_px": 53.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e07",
+     "mcp_ref": "@e34",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 1975.0,
+      "w": 996.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 700.57,
+      "w": 379.43,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s06.e07.png",
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e08",
+     "mcp_ref": "@e35",
+     "type": "TextView",
+     "text": "Create app",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 427.0,
+      "y": 2011.0,
+      "w": 227.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 162.67,
+      "y": 714.29,
+      "w": 86.48,
+      "h": 20.19
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 53.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e09",
+     "mcp_ref": "@e36",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 11.0,
+      "y": 2169.0,
+      "w": 338.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 4.19,
+      "y": 774.48,
+      "w": 128.76,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s06.e09.png",
+     "fg_hex": "#cbcbcb",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e10",
+     "mcp_ref": "@e37",
+     "type": "View",
+     "text": "",
+     "label": "Chat",
+     "source": "mcp",
+     "rect_px": {
+      "x": 149.0,
+      "y": 2172.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 56.76,
+      "y": 775.62,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#cbcbcb",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e11",
+     "mcp_ref": "@e38",
+     "type": "TextView",
+     "text": "Chat",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 138.0,
+      "y": 2246.0,
+      "w": 84.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 52.57,
+      "y": 803.81,
+      "w": 32.0,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#c7c7c7",
+     "bg_hex": "#000000",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e12",
+     "mcp_ref": "@e39",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 370.0,
+      "y": 2169.0,
+      "w": 339.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 140.95,
+      "y": 774.48,
+      "w": 129.14,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s06.e12.png",
+     "fg_hex": "#cbcbcb",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e13",
+     "mcp_ref": "@e40",
+     "type": "View",
+     "text": "",
+     "label": "Services",
+     "source": "mcp",
+     "rect_px": {
+      "x": 508.0,
+      "y": 2172.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 193.52,
+      "y": 775.62,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#cbcbcb",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e14",
+     "mcp_ref": "@e41",
+     "type": "TextView",
+     "text": "Services",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 467.0,
+      "y": 2246.0,
+      "w": 146.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 177.9,
+      "y": 803.81,
+      "w": 55.62,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#c6c6c6",
+     "bg_hex": "#000000",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e15",
+     "mcp_ref": "@e42",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 730.0,
+      "y": 2169.0,
+      "w": 339.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 278.1,
+      "y": 774.48,
+      "w": 129.14,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s06.e15.png",
+     "fg_hex": "#112255",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e16",
+     "mcp_ref": "@e43",
+     "type": "View",
+     "text": "",
+     "label": "Create",
+     "source": "mcp",
+     "rect_px": {
+      "x": 868.0,
+      "y": 2172.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 330.67,
+      "y": 775.62,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#4264fc",
+     "bg_hex": "#112255",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e17",
+     "mcp_ref": "@e44",
+     "type": "TextView",
+     "text": "Create",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 839.0,
+      "y": 2246.0,
+      "w": 121.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 319.62,
+      "y": 803.81,
+      "w": 46.1,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#000000",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    }
+   ],
    "in_mock_scope": true,
    "content_rating": "safe",
    "dynamic_regions": [],
@@ -1335,10 +4532,963 @@
    "kind": "screen",
    "parent_id": null,
    "name": "Chat thread",
-   "purpose": "An existing chat with a persona. Screenshot only; chat content stays out of the mock.",
-   "fingerprint": "fixture:screen:05-chat-teacher-thread",
+   "purpose": "An existing chat with the Teacher persona, message bar and a notifications prompt. Chat content stays out of the mock.",
+   "fingerprint": "fixture:tree:luzia-chat-thread",
    "canonical_png": "states/s07.png",
-   "elements": [],
+   "elements": [
+    {
+     "id": "s07.e01",
+     "mcp_ref": "@e29",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 401.0,
+      "w": 996.0,
+      "h": 2.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 100.95,
+      "w": 379.43,
+      "h": 0.76
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e02",
+     "mcp_ref": "@e30",
+     "type": "TextView",
+     "text": "Hello, I'm Teacher. Ask me for advice, answers, or let's talk about whatever you want. What would you like to talk about today?",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 401.0,
+      "w": 996.0,
+      "h": 2.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 100.95,
+      "w": 379.43,
+      "h": 0.76
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#000000",
+     "font_px": 2.0,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e03",
+     "mcp_ref": "@e31",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 435.0,
+      "w": 996.0,
+      "h": 167.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 113.9,
+      "w": 379.43,
+      "h": 63.62
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#112255",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e04",
+     "mcp_ref": "@e32",
+     "type": "TextView",
+     "text": "fsfsd",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 231.0,
+      "y": 456.0,
+      "w": 104.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 88.0,
+      "y": 121.9,
+      "w": 39.62,
+      "h": 20.19
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#fefefe",
+     "bg_hex": "#112255",
+     "font_px": 53.0,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e05",
+     "mcp_ref": "@e33",
+     "type": "TextView",
+     "text": "00:00",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 918.0,
+      "y": 541.0,
+      "w": 99.0,
+      "h": 40.0
+     },
+     "rect_dp": {
+      "x": 349.71,
+      "y": 154.29,
+      "w": 37.71,
+      "h": 15.24
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#cbcbcb",
+     "bg_hex": "#112255",
+     "font_px": 40.0,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e06",
+     "mcp_ref": "@e34",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 634.0,
+      "w": 996.0,
+      "h": 222.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 189.71,
+      "w": 379.43,
+      "h": 84.57
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#acacac",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e07",
+     "mcp_ref": "@e35",
+     "type": "TextView",
+     "text": "Hello, what would you like to know? Remember that sometimes my answer may not be exact.",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 634.0,
+      "w": 996.0,
+      "h": 106.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 189.71,
+      "w": 379.43,
+      "h": 40.38
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#fefefe",
+     "bg_hex": "#000000",
+     "font_px": 106.0,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e08",
+     "mcp_ref": "@e36",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 21.0,
+      "y": 751.0,
+      "w": 105.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 8.0,
+      "y": 234.29,
+      "w": 40.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#282828",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e09",
+     "mcp_ref": "@e37",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 126.0,
+      "y": 751.0,
+      "w": 126.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 48.0,
+      "y": 234.29,
+      "w": 48.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#282828",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e10",
+     "mcp_ref": "@e38",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 618.0,
+      "y": 751.0,
+      "w": 105.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 235.43,
+      "y": 234.29,
+      "w": 40.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e11",
+     "mcp_ref": "@e39",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 723.0,
+      "y": 751.0,
+      "w": 105.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 275.43,
+      "y": 234.29,
+      "w": 40.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e12",
+     "mcp_ref": "@e40",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 828.0,
+      "y": 751.0,
+      "w": 105.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 315.43,
+      "y": 234.29,
+      "w": 40.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e13",
+     "mcp_ref": "@e41",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 933.0,
+      "y": 751.0,
+      "w": 126.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 355.43,
+      "y": 234.29,
+      "w": 48.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#dedede",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e14",
+     "mcp_ref": "@e42",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 21.0,
+      "y": 1644.0,
+      "w": 1038.0,
+      "h": 331.0
+     },
+     "rect_dp": {
+      "x": 8.0,
+      "y": 574.48,
+      "w": 395.43,
+      "h": 126.1
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e15",
+     "mcp_ref": "@e43",
+     "type": "TextView",
+     "text": "Turn on notifications",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 148.0,
+      "y": 1686.0,
+      "w": 350.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 56.38,
+      "y": 590.48,
+      "w": 133.33,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#282828",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e16",
+     "mcp_ref": "@e44",
+     "type": "TextView",
+     "text": "Get a ping when Luzia replies or finishes something for you.",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 148.0,
+      "y": 1737.0,
+      "w": 806.0,
+      "h": 92.0
+     },
+     "rect_dp": {
+      "x": 56.38,
+      "y": 609.9,
+      "w": 307.05,
+      "h": 35.05
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#cacaca",
+     "bg_hex": "#282828",
+     "font_px": 92.0,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e17",
+     "mcp_ref": "@e45",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 63.0,
+      "y": 1834.0,
+      "w": 954.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 24.0,
+      "y": 646.86,
+      "w": 363.43,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#282828",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e18",
+     "mcp_ref": "@e46",
+     "type": "TextView",
+     "text": "Turn on",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 488.0,
+      "y": 1877.0,
+      "w": 105.0,
+      "h": 40.0
+     },
+     "rect_dp": {
+      "x": 185.9,
+      "y": 663.24,
+      "w": 40.0,
+      "h": 15.24
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 40.0,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e19",
+     "mcp_ref": "@e47",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 944.0,
+      "y": 1634.0,
+      "w": 126.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 359.62,
+      "y": 570.67,
+      "w": 48.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e20",
+     "mcp_ref": "@e48",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 1996.0,
+      "w": 1080.0,
+      "h": 404.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 708.57,
+      "w": 411.43,
+      "h": 153.9
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#363636",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e21",
+     "mcp_ref": "@e49",
+     "type": "EditText",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 2028.0,
+      "w": 996.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 720.76,
+      "w": 379.43,
+      "h": 48.0
+     },
+     "role": "text input",
+     "asset_png": null,
+     "fg_hex": "#cbcbcb",
+     "bg_hex": "#363636",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e22",
+     "mcp_ref": "@e50",
+     "type": "TextView",
+     "text": "Ask Teacher",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 2043.0,
+      "w": 236.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 726.48,
+      "w": 89.9,
+      "h": 20.19
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#cbcbcb",
+     "bg_hex": "#363636",
+     "font_px": 53.0,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e23",
+     "mcp_ref": "@e51",
+     "type": "Button",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 21.0,
+      "y": 2133.0,
+      "w": 126.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 8.0,
+      "y": 760.76,
+      "w": 48.0,
+      "h": 48.0
+     },
+     "role": "button",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#363636",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e24",
+     "mcp_ref": "@e52",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 933.0,
+      "y": 2133.0,
+      "w": 126.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 355.43,
+      "y": 760.76,
+      "w": 48.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#363636",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e25",
+     "mcp_ref": "@e53",
+     "type": "View",
+     "text": "",
+     "label": "Audio Button: Tap twice or hold to record. Slide up for hands-free mode, left to cancel. Release to send.",
+     "source": "mcp",
+     "rect_px": {
+      "x": 970.0,
+      "y": 2170.0,
+      "w": 52.0,
+      "h": 52.0
+     },
+     "rect_dp": {
+      "x": 369.52,
+      "y": 774.86,
+      "w": 19.81,
+      "h": 19.81
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e26",
+     "mcp_ref": "@e54",
+     "type": "TextView",
+     "text": "Luzia is AI and can make mistakes. Verify important information.",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 21.0,
+      "y": 2280.0,
+      "w": 1038.0,
+      "h": 36.0
+     },
+     "rect_dp": {
+      "x": 8.0,
+      "y": 816.76,
+      "w": 395.43,
+      "h": 13.71
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#adadad",
+     "bg_hex": "#000000",
+     "font_px": 36.0,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e27",
+     "mcp_ref": "@e56",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 21.0,
+      "y": 147.0,
+      "w": 126.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 8.0,
+      "y": 4.19,
+      "w": 48.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#282828",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e28",
+     "mcp_ref": "@e57",
+     "type": "View",
+     "text": "",
+     "label": "User avatar",
+     "source": "mcp",
+     "rect_px": {
+      "x": 147.0,
+      "y": 157.0,
+      "w": 105.0,
+      "h": 105.0
+     },
+     "rect_dp": {
+      "x": 56.0,
+      "y": 8.0,
+      "w": 40.0,
+      "h": 40.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#907964",
+     "bg_hex": "#112255",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e29",
+     "mcp_ref": "@e58",
+     "type": "TextView",
+     "text": "Teacher",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 273.0,
+      "y": 177.0,
+      "w": 422.0,
+      "h": 66.0
+     },
+     "rect_dp": {
+      "x": 104.0,
+      "y": 15.62,
+      "w": 160.76,
+      "h": 25.14
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#000000",
+     "font_px": 66.0,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e30",
+     "mcp_ref": "@e59",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 716.0,
+      "y": 147.0,
+      "w": 217.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 272.76,
+      "y": 4.19,
+      "w": 82.67,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e31",
+     "mcp_ref": "@e60",
+     "type": "TextView",
+     "text": "New",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 748.0,
+      "y": 190.0,
+      "w": 69.0,
+      "h": 40.0
+     },
+     "rect_dp": {
+      "x": 284.95,
+      "y": 20.57,
+      "w": 26.29,
+      "h": 15.24
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#282828",
+     "font_px": 40.0,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e32",
+     "mcp_ref": "@e61",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 933.0,
+      "y": 147.0,
+      "w": 126.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 355.43,
+      "y": 4.19,
+      "w": 48.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#282828",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e33",
+     "mcp_ref": "@e62",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 275.0,
+      "w": 996.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 52.95,
+      "w": 379.43,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s07.e34",
+     "mcp_ref": "@e63",
+     "type": "TextView",
+     "text": "Our new chat",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 63.0,
+      "y": 315.0,
+      "w": 954.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 24.0,
+      "y": 68.19,
+      "w": 363.43,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#cacaca",
+     "bg_hex": "#282828",
+     "font_px": 46.0,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    }
+   ],
    "in_mock_scope": false,
    "content_rating": "safe",
    "dynamic_regions": [],
@@ -1353,7 +5503,16 @@
    "element_id": "s01.e03",
    "action": "tap",
    "transition": "push",
-   "change_summary": "subscription badge opens the paywall"
+   "change_summary": "upsell badge opens the paywall"
+  },
+  {
+   "id": "s03.e05>s02",
+   "from_state": "s03",
+   "to_state": "s02",
+   "element_id": "s03.e05",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": "settings upgrade row opens the paywall"
   },
   {
    "id": "s01.e05>s03",
@@ -1390,6 +5549,15 @@
    "action": "tap",
    "transition": "push",
    "change_summary": "opens the recent chat"
+  },
+  {
+   "id": "s01.e26>s04",
+   "from_state": "s01",
+   "to_state": "s04",
+   "element_id": "s01.e26",
+   "action": "tap",
+   "transition": "modal",
+   "change_summary": "pet banner opens the pet intro"
   }
  ],
  "flows": [
@@ -1401,7 +5569,8 @@
     "s01.e03>s02"
    ],
    "evidence_ids": [
-    "s01.e03"
+    "s01.e03",
+    "s02.e19"
    ]
   },
   {
@@ -1428,10 +5597,27 @@
    "id": "m01",
    "kind": "paywall",
    "evidence_ids": [
-    "s01.e03"
+    "s01.e03",
+    "s03.e05",
+    "s02.e02",
+    "s02.e03",
+    "s02.e04",
+    "s02.e05",
+    "s02.e06",
+    "s02.e07",
+    "s02.e10",
+    "s02.e13",
+    "s02.e17",
+    "s02.e19"
    ],
-   "summary": "Subscription badge on home that opens a full paywall (plans and prices seen only in a screenshot).",
-   "observed_numbers": [],
+   "summary": "Luzia+ subscription with two entry points (the home badge and the Upgrade to Luzia+ row in Settings); the paywall lists six features, three plans (Weekly $1.99, Monthly $4.99 marked Most popular, Annual $39.99) and a 3-day free trial.",
+   "observed_numbers": [
+    "$ 1.99",
+    "$ 4.99",
+    "$ 39.99",
+    "3-day",
+    "5"
+   ],
    "status": "observed"
   },
   {
@@ -1460,14 +5646,78 @@
   {
    "id": "l01",
    "kind": "paywall_bullet",
-   "verbatim": "Try Luzia",
+   "verbatim": "2× images & longer chats",
    "evidence_ids": [
-    "s01.e03"
+    "s02.e02"
+   ]
+  },
+  {
+   "id": "l02",
+   "kind": "paywall_bullet",
+   "verbatim": "Advanced reasoning mode",
+   "evidence_ids": [
+    "s02.e03"
+   ]
+  },
+  {
+   "id": "l03",
+   "kind": "paywall_bullet",
+   "verbatim": "Higher-quality image generations",
+   "evidence_ids": [
+    "s02.e04"
+   ]
+  },
+  {
+   "id": "l04",
+   "kind": "paywall_bullet",
+   "verbatim": "Voice chat with Luzia",
+   "evidence_ids": [
+    "s02.e05"
+   ]
+  },
+  {
+   "id": "l05",
+   "kind": "paywall_bullet",
+   "verbatim": "Create up to 5 AI characters",
+   "evidence_ids": [
+    "s02.e06"
+   ]
+  },
+  {
+   "id": "l06",
+   "kind": "paywall_bullet",
+   "verbatim": "Exclusive tools",
+   "evidence_ids": [
+    "s02.e07"
+   ]
+  },
+  {
+   "id": "l07",
+   "kind": "price",
+   "verbatim": "$ 1.99",
+   "evidence_ids": [
+    "s02.e10"
+   ]
+  },
+  {
+   "id": "l08",
+   "kind": "price",
+   "verbatim": "$ 4.99",
+   "evidence_ids": [
+    "s02.e13"
+   ]
+  },
+  {
+   "id": "l09",
+   "kind": "price",
+   "verbatim": "$ 39.99",
+   "evidence_ids": [
+    "s02.e17"
    ]
   }
  ],
  "open_questions": [
-  "The paywall's plans, prices, and feature list exist only in a screenshot, so there are no verbatim bullets from a tree.",
+  "What the trial converts to, and what the free tier is missing beyond the six listed features, is not on screen.",
   "No free-tier limit was observed.",
   "What the virtual pet needs from the user (care loop, currency) is unknown."
  ],

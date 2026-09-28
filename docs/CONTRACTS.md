@@ -77,6 +77,20 @@ runs/<app>/latest -> <run_id>
 - `failure.json` replaces `done.json` when a stage fails.
 - Stage 3 (mock) reads `model/` only: the model folder carries its own canonical screenshots (`model/states/`), so another agent could mock the app without the explore folder.
 
+### explore/ → model/ hand-off (PR 1 writes, PR 2 reads)
+
+- `explore/states/<sid>.json` (`StateFile`): `screenshot` and `elements_reply` are paths relative to `explore/` (`states/<sid>.png`, `states/<sid>.elements.json`). `elements_reply` is the raw `mobile_list_elements_on_screen` result saved as JSON (`{"content": [{"type": "text", "text": "Found these elements on screen: [...]"}], "isError": false}`), and `""` only when no tree was captured. These two files are the state's **canonical capture**, taken the first time the state was seen. Every `mcp_ref` anywhere in `explore/` refers to that state's canonical capture.
+- State ids are `s01`, `s02`, … in discovery order. The root is the lowest-numbered state whose kind is `screen`.
+- `icon_labels` names listed elements that have no text or label (the Sonnet icon pass), by `mcp_ref`; stage 2 writes the name into `Element.label`. `vision_elements` are controls the tree doesn't list: a name plus a `rect_px` box (a 48 dp square around the model's point, clipped to the content area); stage 2 turns each into an `Element` with `source: vision` and `mcp_ref: null`. `blocked_reason` is set whenever `kind` is `blocked`.
+- `explore/explore.json` (`ExploreFile`) carries `device`: screen size, density, and the content insets measured from the status-bar and gesture-bar elements. Stage 2 copies it into `ProductModel.device` and uses it for every `rect_dp`, crop, and color.
+- `explore/actions.jsonl`: one `ActionLine` per action the explorer executed or denied, in order.
+  - `action` is `tap | swipe | back | type | relaunch`. Only the first four can become edges; `relaunch` lines are bookkeeping.
+  - `mcp_ref` is the tapped element's ref in `from_state`'s canonical capture (the explorer maps a tap made on a revisit back to it by label and bucketed rect), or `null` for back, swipe, and vision taps. `tap_px` is where the tap landed, in device px (`null` if the action wasn't a tap). Stage 2 uses the `mcp_ref` element only if its rect contains `tap_px`; otherwise the smallest canonical element that contains `tap_px`; otherwise none.
+  - `to_state` is the state the move reached, or `null` when the action was denied or never ran. A move that leaves the app has `outcome: ok` and `to_state` = the recorded `external` state.
+  - `outcome` is `ok | denied | timeout | error`. Only `ok` lines with a `to_state` become edges. A move that stays on the same state becomes an edge only when `change_summary` is non-empty (a counter "3 → 2", a toggle).
+  - `transition` follows the Edge rule in §6 and is set by the explorer when the move is recorded.
+- Edge ids: `<element id>><to_state>` when a listed or vision element was tapped, else `<from_state>.<action>><to_state>` (e.g. `s03.back>s01`). The first recorded move between the same element and target wins. Edges with `element_id: null` have no `data-el` to hang on; the mock wires `back` edges to its back control and may skip the rest.
+
 ## 4. Provenance: fixtures are test data only
 
 - `tests/fixtures/` and the golden models build and unit-test stages. They never produce a deliverable.
@@ -92,6 +106,7 @@ runs/<app>/latest -> <run_id>
 - At most 4 levels of nesting; `extra="forbid"`.
 - Fixed named fields wherever the keys are known: the judge's 5 gates and 6 judgment checks are properties, not a map.
 - No `minLength`, `maximum`, or `pattern` (the API drops them). Code checks those after parsing.
+- `CostInputs.currency_amount`: the USD price the app charges for exactly what the reward grants; 0 when no price was observed.
 
 ## 6. Who writes which field
 
@@ -113,7 +128,7 @@ Code writes every number and id; a model writes meaning keyed by ids code gave i
 
 - One static `mock/index.html`, inline CSS/JS, no build step. Images only from `assets/<element_id>.png`. Google Fonts allowed; every other request is blocked.
 - `<section data-screen="s03">` per in-scope state. Modals: `data-screen="s07" data-parent="s03"`, drawn as an overlay.
-- `data-el="s03.e07"` on each `in_mock` element (first 2 items of a repeated list only).
+- `data-el="s03.e07"` on each `in_mock` element; only the `data-el` tag is limited to the first 2 items of a repeated list. `in_mock` means "the mock draws this element", and every element that starts an edge is `in_mock`.
 - `data-edge="s03.e07>s05"` on each tappable element, plus **`data-transition="push|modal|tab|back|replace|unknown"`** copied from the edge. A click shows the edge's `to_state` screen with that transition: push slides, modal fades in an overlay, tab switches instantly; `prefers-reduced-motion` turns animation off. `unknown` renders as `push`, and QA skips the transition check for it.
 - `data-chrome="header|tabbar"` on shared chrome (one shared DOM fragment). `data-value="<cross_screen_value id>"` on shared values.
 - `window.simula.go(id)`, `window.simula.state()`, `window.simula.reset()`.

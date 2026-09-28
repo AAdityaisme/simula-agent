@@ -11186,9 +11186,11 @@
    "kind": "paywall",
    "evidence_ids": [
     "s02.e09",
-    "s02.e11"
+    "s02.e11",
+    "s09.e31",
+    "s09.e29"
    ],
-   "summary": "Subscription announcement over home, with See janitor+ and Not now.",
+   "summary": "Janitor+ subscription offer with two entry points: an announcement over home at launch (See janitor+ / Not now) and a persistent Upgrade to Janitor Plus button in the profile menu, next to Billing.",
    "observed_numbers": [],
    "status": "observed"
   },
@@ -11216,17 +11218,6 @@
    "summary": "Free users get fewer monthly swipes and normal-priority routing (implied by the subscriber bullets; not seen directly).",
    "observed_numbers": [],
    "status": "inferred"
-  },
-  {
-   "id": "m04",
-   "kind": "paywall",
-   "evidence_ids": [
-    "s09.e31",
-    "s09.e29"
-   ],
-   "summary": "Persistent upgrade entry in the profile menu, next to Billing.",
-   "observed_numbers": [],
-   "status": "observed"
   },
   {
    "id": "m05",
@@ -11284,14 +11275,6 @@
    "verbatim": "Golden checkmark next to your username",
    "evidence_ids": [
     "s02.e08"
-   ]
-  },
-  {
-   "id": "l05",
-   "kind": "paywall_bullet",
-   "verbatim": "Upgrade to Janitor Plus",
-   "evidence_ids": [
-    "s09.e31"
    ]
   },
   {

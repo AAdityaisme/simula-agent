@@ -68,11 +68,21 @@ def test_money_mechanics_cite_elements(model):
             assert m.evidence_ids, m.id
 
 
-def test_every_paywall_state_carries_a_verbatim_bullet(model):
-    bullet_states = {i.split(".")[0] for l in model.value_ledger if l.kind == "paywall_bullet" for i in l.evidence_ids}
+def test_every_paywall_mechanic_has_three_verbatim_bullets(model):
     for m in model.mechanics:
         if m.kind == "paywall":
-            assert {i.split(".")[0] for i in m.evidence_ids} & bullet_states, m.id
+            cited = {i.split(".")[0] for i in m.evidence_ids}
+            bullets = [l for l in model.value_ledger
+                       if l.kind == "paywall_bullet" and {i.split(".")[0] for i in l.evidence_ids} & cited]
+            assert len(bullets) >= 3, m.id
+
+
+def test_dynamic_regions_sit_inside_the_content_area(model):
+    d = model.device
+    for state in model.states:
+        for r in state.dynamic_regions:
+            assert 0 <= r.x and r.x + r.w <= d.w_px, state.id
+            assert d.content_top_px <= r.y and r.y + r.h <= d.content_bottom_px, state.id
 
 
 def test_files_exist_with_the_content_crop_size(model):
