@@ -43,7 +43,7 @@ EdgeAction = Literal["tap", "swipe", "back", "type"]
 Transition = Literal["push", "modal", "tab", "back", "replace", "unknown"]
 MechanicKind = Literal["paywall", "limit", "currency", "entitlement", "ad", "streak", "other"]
 ClaimStatus = Literal["observed", "inferred", "unknown"]
-LedgerKind = Literal["price", "limit", "meter", "currency", "paywall_bullet", "actor"]
+LedgerKind = Literal["price", "limit", "meter", "currency", "paywall_bullet", "actor", "experience"]
 AppCategory = Literal["chat", "content", "learning", "game", "utility", "other"]
 
 
@@ -122,6 +122,31 @@ class LedgerItem(Strict):
     evidence_ids: list[str]
 
 
+class TermMeaning(Strict):
+    """An app-specific word a mechanic or ledger line uses (a feature name, a unit, a plan tier)."""
+    term: str
+    meaning: str = Field(description="One plain-language line.")
+    defined_by: list[str] = Field(description="Element ids whose text defines or explains the term.")
+    used_in: list[str] = Field(description="Mechanic or ledger ids that use the term.")
+
+
+class Term(TermMeaning):
+    observed: bool = Field(description="Code: false when no cited element's text carries the term; the meaning "
+                                       "then reads 'meaning not observed' and nothing may build on it.")
+
+
+class QuestionDraft(Strict):
+    """Something the captures could not answer that another explore pass could."""
+    id: str
+    question: str
+    start_state: str = Field(description="The state id where the explorer should begin.")
+    look_for: str = Field(description="One plain sentence on what would answer it.")
+
+
+class OpenQuestion(QuestionDraft):
+    answered: bool = False
+
+
 class Coverage(Strict):
     states_found: int
     actions_taken: int
@@ -152,6 +177,12 @@ class ProductModel(Strict):
     open_questions: list[str]
     coverage: Coverage
     provenance: Provenance
+    terms: list[Term] = []
+    questions: list[OpenQuestion] = Field(default=[], description="The open questions an explore pass can act on, "
+                                          "most monetization-relevant first, at most 5; open_questions holds their text.")
+    mock_order: list[str] = Field(default=[], description="The in-scope state ids in priority order: root, paywall/"
+                                  "limit/currency/ad states, other mechanic states (a modal after its parent), "
+                                  "then core-flow states.")
 
 
 # Stage 2's one model call fills only meaning, keyed by ids code gave it.
@@ -177,7 +208,8 @@ class ModelMeaning(Strict):
     mechanics: list[Mechanic]
     cross_screen_values: list[CrossScreenValue]
     value_ledger: list[LedgerItem]
-    open_questions: list[str]
+    terms: list[TermMeaning]
+    open_questions: list[QuestionDraft]
 
 
 # ---------- explore (stage 1) model calls ----------
@@ -390,6 +422,10 @@ class ActionLine(Strict):
     transition: Transition
     change_summary: str
     outcome: Literal["ok", "denied", "timeout", "error"]
+    loop_pass: int | None = Field(default=None, description="1, 2, ... when this line is one pass of the core loop; "
+                                  "null for tour moves.")
+    loop_stop: str | None = Field(default=None, description="On the pass where a limit, paywall, or ad appeared: what "
+                                  "it was, in a few words. The loop stops there.")
 
 
 class IconLabel(Strict):
