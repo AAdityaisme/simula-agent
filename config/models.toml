@@ -4,7 +4,7 @@
 provider = "anthropic"
 supports_effort = true
 supports_xhigh = true
-max_out = 64000
+max_out = 128000
 stream_above = 16000
 price_in = 4.00
 price_out = 20.00
@@ -14,7 +14,7 @@ price_cached_in = 0.20
 provider = "anthropic"
 supports_effort = true
 supports_xhigh = true
-max_out = 64000
+max_out = 128000
 stream_above = 16000
 price_in = 2.00
 price_out = 10.00
