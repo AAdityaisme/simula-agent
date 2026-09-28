@@ -116,6 +116,7 @@ class FakePhone:
         self.tick()
         self.shots[self.screen] = self.shots.get(self.screen, 0) + 1
         self.image().save(path)
+        self.log.append(("shot", self.screen))
         return path
 
     def foreground(self) -> str:

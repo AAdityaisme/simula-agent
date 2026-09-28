@@ -218,6 +218,7 @@ class Explorer:
     # ---------- observing ----------
 
     def observe(self) -> Obs:
+        self.obs = None
         settled = ob.settle(self.phone.elements, self.phone.small_hash, self.device, self.clock, self.sleep)
         if any(ob.ANR.search(ob.words(e)) for e in settled.elements):
             return self.answer_anr(settled.elements)
@@ -242,6 +243,14 @@ class Explorer:
             self.phone.tap(*wait.point)
             return self.observe()
         raise NeedRelaunch("the app is not responding")
+
+    def resync(self) -> None:
+        """After a failed capture: a fresh look at the screen (a relaunch if the device still can't give one), so
+        no move is ever aimed from an old screen."""
+        try:
+            self.current = self.record(self.observe(), None, None, [])
+        except (McpReplyError, McpTimeout) as e:
+            self.relaunch(why=f"no fresh look after a failed capture: {type(e).__name__}")
 
     def measure_device(self) -> None:
         """Screen size, density, and insets, read with the app closed: an animating feed can keep uiautomator
@@ -335,6 +344,13 @@ class Explorer:
     def act(self, move: Move, purpose: str = "tour", watch=None, loop: int | None = None) -> Seen:
         """Runs one move from the current state, observes, records where it landed, and logs the line. On a
         core-loop pass, loop is the pass number and the line records what stopped the loop, if anything."""
+        if self.obs is None:
+            planned = self.current
+            self.resync()
+            if self.current is not planned:
+                self.note("resync", f"after a failed capture the screen is {self.current.sid}, not {planned.sid}: "
+                                    f"{move.action} skipped", outcome="error")
+                return self.current
         s, before = self.current, self.obs
         if self.touring and purpose in ("tour", "nav") and self.actions >= self.limits["actions"]:
             raise Stop(f"action cap ({self.limits['actions']})")
@@ -785,6 +801,8 @@ class Explorer:
             if reason:
                 raise Stop(reason)
             try:
+                if self.obs is None:
+                    self.resync()
                 if self.current.kind == "external":
                     self.leave_external()
                     continue

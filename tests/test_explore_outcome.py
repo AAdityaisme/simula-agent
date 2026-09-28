@@ -82,3 +82,30 @@ def test_a_crash_on_the_first_core_loop_screenshot_keeps_the_tour(tmp_path, monk
     assert all((ex.out / "states" / f"{s.sid}.json").exists() for s in ex.states)
     assert (ex.run_dir / "exhibits" / "01-explore.md").exists()
     assert any(f"core_loop crashed: {type(error).__name__}" in r for r in ex.core_results)
+
+
+def test_after_a_failed_capture_the_next_tap_is_aimed_from_a_fresh_look(tmp_path, monkeypatch):
+    from simula.device.mcp import McpReplyError
+
+    def flaky(clock):
+        phone = janitor_like(clock)
+        save, armed = phone.screenshot, [True]
+
+        def screenshot(path, size=None):
+            if armed[0] and phone.screen == "search":
+                armed[0] = False
+                raise McpReplyError("screenshot not written")
+            return save(path, size)
+        phone.screenshot = screenshot
+        return phone
+    ex, phone = new_explorer(tmp_path, monkeypatch, flaky)
+    stage.explore_app(ex)
+    shot_on = None
+    for entry in phone.log:
+        if entry[0] == "shot":
+            shot_on = entry[1]
+        elif entry[0] == "tap":
+            assert entry[1] == shot_on, f"a tap on {entry[1]} was aimed from a look at {shot_on}"
+        elif entry[0] in ("back", "swipe", "launch"):
+            shot_on = None
+    assert any(entry == ("shot", "search") for entry in phone.log)
