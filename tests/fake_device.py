@@ -215,11 +215,11 @@ class FakePhone:
 
 # ---------- a run with fake Jev and a fake Sonnet ----------
 
-def fake_jev(state, instructions, labels, backend, core_pick="send a message"):
+def fake_jev(state, instructions, labels, backend, core_pick="send messages"):
     if "content or safety filter" in instructions:
         pick = next((i for i, label in enumerate(labels) if RESTRICTIVE.search(label)), len(labels) - 1)
     elif "comes to this app" in instructions:
-        pick = next((i for i, label in enumerate(labels) if label.startswith(core_pick)), 0)
+        pick = next((i for i, label in enumerate(labels) if core_pick in label), 0)
     else:
         pick = next((i for i, label in enumerate(labels) for word in PREFER if word in label), 0)
     probabilities = {f"o{i + 1:02d}": 0.7 if i == pick else 0.3 / max(len(labels) - 1, 1) for i in range(len(labels))}

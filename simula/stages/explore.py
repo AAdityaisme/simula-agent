@@ -949,12 +949,13 @@ class Explorer:
         for s in self.states:
             found = ob.composer(s.cands, self.device) if s.kind == "screen" else None
             if found:
-                options.append(CoreAction("chat", s, list(found), f"send a message on {s.sid} "
-                                                                    f"({found[0].label or 'text box'})"))
+                options.append(CoreAction("chat", s, list(found), f"send messages in a conversation and read the "
+                                                                    f"replies ({self.chat_title(s)!r}; text box + "
+                                                                    f"send on {s.sid})"))
                 break
         feed = self.feed_option()
         options += [feed] if feed else []
-        options += [CoreAction("action", s, [c], f"tap {c.label[:40]!r} on {s.sid}")
+        options += [CoreAction("action", s, [c], f"tap {c.label[:40]!r} again and again on {s.sid}")
                     for s in self.states if s.kind == "screen" for c in [self.input_action(s)] if c]
         if feed and not any(o.kind in ("chat", "action") for o in options):
             inside = self.walk_to_input(feed)
@@ -968,7 +969,8 @@ class Explorer:
         if not feeds:
             return None
         s, items = max(feeds, key=lambda f: len(f[1]))
-        return CoreAction("feed", s, items, f"open an item from the list on {s.sid} (e.g. {items[0].label[:40]!r})")
+        return CoreAction("feed", s, items, f"open and read items from the list on {s.sid} "
+                                            f"(e.g. {items[0].label[:40]!r})")
 
     def input_action(self, s: Seen) -> ob.Candidate | None:
         """A button that makes new content on each tap (Play, Generate, Draw, Spin ...): at most three words, so
@@ -981,8 +983,9 @@ class Explorer:
         options = self.core_options()
         if not options:
             return None
-        shown = {s.sid: s for s in [o.state for o in options] + [s for s in self.states if s.kind == "screen"]}
-        seen = "; ".join(self.describe(s) for s in shown.values())[:3000]
+        evidence = {o.state.sid: self.evidence(o) for o in options}
+        rest = [self.describe(s) for s in self.states if s.kind == "screen" and s.sid not in evidence]
+        seen = "; ".join([*evidence.values(), *rest])[:3000]
         try:
             result = decide.choose(self.trace_path, "explore", "core", seen, CORE_QUESTION,
                                    [o.name for o in options] + [NO_CORE], **self.jev_options())
@@ -990,6 +993,24 @@ class Explorer:
             return next((o for o in options if o.kind == "chat"), options[0])
         index = decide.index_of(result.option_id)
         return options[index] if index < len(options) else None
+
+    def evidence(self, o: CoreAction) -> str:
+        """What Jev sees of an option's own screen. A conversation is told by its title and its last messages, so a
+        chat with the app's AI reads differently from a comment thread or a message to another person."""
+        if o.kind != "chat":
+            return self.describe(o.state)
+        box = o.controls[0]
+        said = [t for y, t in self.texts_by_y(o.state) if ob.TOP_CHROME_BOTTOM_PX <= y < box.rect.y][-3:]
+        return (f"screen {o.state.sid} is a conversation titled {self.chat_title(o.state)!r}; its last messages: "
+                + (" | ".join(t[:100] for t in said) or "none yet"))
+
+    def chat_title(self, s: Seen) -> str:
+        top = [t for y, t in self.texts_by_y(s) if y < ob.TOP_CHROME_BOTTOM_PX]
+        return top[0][:60] if top else ""
+
+    def texts_by_y(self, s: Seen) -> list[tuple[int, str]]:
+        return sorted((e["coordinates"]["y"], e["text"].strip()) for e in s.elements
+                      if ob.in_content(e, self.device) and (e.get("text") or "").strip())
 
     def walk_to_input(self, feed: CoreAction) -> CoreAction | None:
         """Opening an item is a step, not the core action: goes into the first item and takes its main action
@@ -1006,11 +1027,13 @@ class Explorer:
                 break
             chat = self.chat_here()
             if chat:
-                return CoreAction("chat", here, list(chat), f"send a message on {here.sid} (inside an item "
-                                                            f"from {feed.state.sid})")
+                return CoreAction("chat", here, list(chat), f"open an item and send messages in its conversation "
+                                                            f"({self.chat_title(here)!r}; text box + send inside "
+                                                            f"the item, {here.sid})")
             action = self.input_action(here)
             if action:
-                return CoreAction("action", here, [action], f"tap {action.label[:40]!r} on {here.sid}")
+                return CoreAction("action", here, [action], f"open an item and tap {action.label[:40]!r} inside it "
+                                                            f"again and again ({here.sid})")
             steps = self.walk_steps(here, tapped)
             move = (self.ranked_move(here, steps) if len(steps) > 1 else
                     Move("tap", steps[0], why="the only main action") if steps else None)

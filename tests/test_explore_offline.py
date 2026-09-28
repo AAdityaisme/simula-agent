@@ -318,7 +318,7 @@ def test_when_jev_says_feed_a_comment_box_inside_an_item_is_never_typed_into(tmp
         phone.taps[("limited", "JJK - GOJO’S RELATIVE")] = "comments"
         return phone
     ex, phone = new_explorer(tmp_path, monkeypatch, news_like)
-    monkeypatch.setattr(decide, "ask_choice", functools.partial(fake_jev, core_pick="open an item"))
+    monkeypatch.setattr(decide, "ask_choice", functools.partial(fake_jev, core_pick="open and read items"))
     stage.explore_app(ex)
     assert ex.core.kind == "feed" and not phone.typed and not phone.sent
 
@@ -417,3 +417,21 @@ def test_a_sheet_over_the_chat_in_its_own_window_stops_the_loop(tmp_path, monkey
     ex, phone = explore(tmp_path, monkeypatch, phone_factory=sheet_after_two, budget="deep")
     stops = [(line.loop_pass, line.loop_stop) for line in lines(ex) if line.loop_stop]
     assert phone.sent == 2 and len(stops) == 1 and stops[0][0] == 2
+
+
+def test_jev_sees_what_repeating_each_option_means_and_the_conversation_itself(tmp_path, monkeypatch):
+    ex, _ = new_explorer(tmp_path, monkeypatch, detail_first)
+    asked = []
+
+    def recording(state, instructions, labels, backend):
+        if instructions == stage.CORE_QUESTION:
+            asked.append((state, labels))
+        return fake_jev(state, instructions, labels, backend)
+    monkeypatch.setattr(decide, "ask_choice", recording)
+    stage.explore_app(ex)
+    (state, labels), = asked
+    inside = next(label for label in labels if label.startswith("open an item and send messages in its conversation"))
+    assert "'Teacher'" in inside and "text box + send inside the item" in inside
+    assert any(label.startswith("open and read items from the list") for label in labels)
+    assert state.startswith(f"screen {ex.core.state.sid} is a conversation titled 'Teacher'; its last messages:")
+    assert "Get a ping when Luzia replies" in state
