@@ -54,6 +54,7 @@ CHECK_NAMES = {
 }
 
 FLOW_CSS = """body:not(.simula-rewarded) [data-reward]{display:none!important}
+[data-screen]{isolation:isolate}
 .sa-dim{position:absolute;inset:0;background:rgba(8,10,14,.72)}
 .sa-card{position:absolute;left:28px;right:28px;top:140px;border-radius:20px;background:#fff;color:#16181d;padding:18px;font:15px/1.35 system-ui,-apple-system,Roboto,sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.4)}
 .sa-top{display:flex;justify-content:space-between;align-items:center}
@@ -203,13 +204,15 @@ def editor_brief(c: Candidate, model: ProductModel, page: str) -> str:
     steps = [f"{n}. {s.state_id} ({names.get(s.state_id, 'new screen')}): {s.caption}"
              for n, s in enumerate(c.flow_steps, 1)]
     drawn = [f"- {sid} {names.get(sid, '')}" for sid in re.findall(r'<section[^>]*data-screen="([^"]+)"', page)]
+    new = list(dict.fromkeys(s.state_id for s in c.flow_steps if s.state_id.startswith("new:")))
     return "\n".join([
         f"Idea {c.id} ({BUCKETS.get(c.kind, c.kind)}): {caption(c)}", "",
         f"Trigger: {c.trigger_event}", f"Starts on: {c.trigger_state_id}", f"Placement of the offer: {c.placement}",
         f"Offer copy (verbatim): {c.offer_copy}", f"Reward: {reward_line(c)}",
         f"If they say no: {c.decline_path}", f"If the ad fails: {c.ad_fail_path}",
         f"When the reward runs out: {c.after_reward}", f"Subscribers: {c.subscriber_treatment}", "",
-        "Steps, in order:", *steps, "", "Screens already in the page:", *drawn, "",
+        "Steps, in order:", *steps, "", f"New screens to add, one section each (one of them is the ad): {', '.join(new)}",
+        "", "Screens already in the page:", *drawn, "",
         "The page (code removed its navigation runtime and adds it back after your edits):",
         "```html", page, "```"])
 
@@ -294,15 +297,20 @@ def flow_js(c: Candidate, ad: str | None, after_ad: str) -> str:
     return f'<script id="simula-flow-js">\n{FLOW_JS.replace("__FLOW__", data)}\n</script>\n'
 
 
-def flow_page(original: str, edited: str, c: Candidate, blur: str) -> tuple[str, str | None, int]:
+def flow_page(original: str, edited: str, c: Candidate, blur: str) -> tuple[str, str | None, int, bool]:
     """The edited page with the navigation runtime, the flow's CSS, and the simulated ad. Returns it with the ad's
-    screen id and its step index."""
+    screen id, its step index, and whether code had to add the ad's screen because the editor marked none."""
     step_ids = [s.state_id for s in c.flow_steps]
     ad = ad_screen(edited, step_ids)
     at = ad_index(step_ids, ad)
+    added = ad is None and step_ids[at].startswith("new:") and f'data-screen="{step_ids[at]}"' not in edited
+    if added:
+        ad = step_ids[at]
+        section = f'<section data-screen="{ad}" data-flow="{c.id}" data-parent="{step_ids[0]}" data-ad></section>\n'
+        edited = _insert_before(edited, "</body>", section)
     after_ad = step_ids[at + 1] if ad in step_ids and at + 1 < len(step_ids) else step_ids[0]
     html = with_flow_css(with_runtime(edited, page_root(original)), blur)
-    return _insert_before(html, "</body>", flow_js(c, ad, after_ad)), ad, at
+    return _insert_before(html, "</body>", flow_js(c, ad, after_ad)), ad, at, added
 
 
 # ---------- the tap-through ----------
@@ -396,7 +404,10 @@ def build_flow(ctx: Ctx, model: ProductModel, source: Path, c: Candidate, decisi
     applied = len(edits.edits) - len(rejected) if edits else 0
     run_trace(ctx.run_dir, stage="flows", step=f"edits:{c.id}", decider="code", outcome="ok" if applied else "error",
               note=f"{applied} applied, {len(rejected)} rejected" + (f"; first: {rejected[0]}" if rejected else ""))
-    html, ad, ad_at = flow_page(original, edited, c, blur)
+    html, ad, ad_at, added = flow_page(original, edited, c, blur)
+    if added:
+        run_trace(ctx.run_dir, stage="flows", step=f"edits:{c.id}", decider="code",
+                  note=f"no screen was marked data-ad; code added the ad screen at step {ad_at + 1} ({ad})")
     (flow_dir / "index.html").write_text(html)
 
     shots, recorded = walk(flow_dir, c, ad, ad_at)
@@ -499,7 +510,8 @@ def idea_slides(flow: dict, model: ProductModel, run_dir: Path) -> list[str]:
         return [{"png": last, "wired": False, "caption": "", "tap": None}]
 
     start = [{"png": flow["before"], "wired": bool(flow["before"]), "caption": "", "tap": None}]
-    change = shots[:1]
+    same_screen = len(shots) > 1 and shots[1]["state_id"] == shots[0]["state_id"]
+    change = [{**shots[0], "tap": shots[0]["tap"] or (shots[1]["tap"] if same_screen else None)}]
     offer = with_captions(shots[1:at] or shots[:1])
     ad = with_captions(shots[at:at + 1]) or missing(shots[:at])
     value = with_captions(shots[at + 1:]) or missing(shots)

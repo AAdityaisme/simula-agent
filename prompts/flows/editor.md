@@ -12,6 +12,8 @@ You add one rewarded-ad idea to a clickable mock of a mobile app, so its product
 - Every step whose id starts with `new:` gets its own `<section data-screen="new:<slug>" data-flow="<idea id>">`, using the step's id exactly.
 - A sheet, dialog, banner, or card drawn over an existing screen also gets `data-parent="<that screen's id>"`, and draws only its own panel: code shows the screen beneath it.
 - Every screen is a 411 × 838 CSS px box. Position new elements with `position:absolute`, like the page does, and keep them inside the box.
+- New elements carry no `data-el`: that attribute names only elements the product model recorded.
+- Everything you add to an existing screen must stay visible and tappable: give it `z-index:20` so nothing the screen already draws covers it. To make an existing button the entry point, lay a transparent element carrying the new edge exactly over it.
 - **The ad step.** Exactly one step is the ad: the step where the user plays the short sponsored game. Draw it as an empty section with `data-ad`, over the screen it plays on: `<section data-screen="new:<slug>" data-flow="<idea id>" data-parent="<screen id>" data-ad></section>`. Code draws the game inside it, grants the reward only when the play is verified, and then moves to the step after it. Closing the game or a failure goes back to the first step with nothing changed.
 
 ## Wiring
