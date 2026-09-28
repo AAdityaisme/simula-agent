@@ -391,11 +391,18 @@ def is_upsell(elements: list[dict], device: Device) -> bool:
 
 # ---------- the core loop ----------
 
-def composer(cands: list[Candidate]) -> tuple[Candidate, Candidate] | None:
-    """A text box plus its send control: a chat. A text box alone is a search or a form."""
-    box = next((c for c in cands if c.kind == "EditText"), None)
+def composer(cands: list[Candidate], device: Device) -> tuple[Candidate, Candidate] | None:
+    """A chat: a text box in the lower half of the screen plus its send control, which says "send" or sits just
+    past the box's right edge. A text box near the top is a search."""
+    middle = (device.content_top_px + device.content_bottom_px) / 2
+    box = next((c for c in cands if c.kind == "EditText" and center(c.rect)[1] > middle), None)
+    if box is None:
+        return None
     send = next((c for c in cands if re.search(r"send", c.label, re.IGNORECASE)), None)
-    return (box, send) if box and send else None
+    right = [c for c in cands if c.rect.x >= box.rect.x + box.rect.w - 24 and c.rect.y < box.rect.y + box.rect.h
+             and box.rect.y < c.rect.y + c.rect.h and not denied(c, core=True)]
+    send = send or min(right, key=lambda c: c.rect.x, default=None)
+    return (box, send) if send else None
 
 
 def feed_items(cands: list[Candidate], device: Device, exclude: set[str] = frozenset()) -> list[Candidate]:

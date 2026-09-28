@@ -36,6 +36,7 @@ TAPS_PER_STATE = 6
 SWIPES_PER_STATE = 2
 UPSELL_SWIPES = 8
 MAX_RELAUNCHES = 3
+CORE_RELAUNCHES = 1
 STALE_ACTIONS = 10
 NOOPS_BEFORE_SONNET = 3
 UNSURE = 0.35
@@ -122,6 +123,7 @@ class Seen:
     upsell: bool
     via: str = ""
     box: Rect | None = None
+    unscroll_to: str | None = None
     tried: set = field(default_factory=set)
     waiting: dict = field(default_factory=dict)
     noop_run: int = 0
@@ -247,10 +249,12 @@ class Explorer:
         seen = Seen(sid=sid, kind=kind, parent=came_from.sid if came_from and kind != "screen" else None,
                     fp=obs.fp, fg=obs.fg, cands=cands, elements=obs.elements,
                     depth=1 if tab_move else (came_from.depth + 1 if came_from else 0),
-                    back_to=came_from.sid if came_from and not tab_move else None, settled=obs.settled,
+                    back_to=came_from.sid if came_from and not tab_move and move.action != "swipe" else None,
+                    settled=obs.settled,
                     settle_s=obs.settle_s,
                     captured_at=now(), upsell=ob.is_upsell(obs.elements, self.device),
-                    via=move.cand.label if move and move.cand else "", box=box)
+                    via=move.cand.label if move and move.cand else "", box=box,
+                    unscroll_to=came_from.sid if came_from and move.action == "swipe" else None)
         self.states.append(seen)
         self.by_id[sid] = seen
         self.last_new_at = self.actions
@@ -406,8 +410,9 @@ class Explorer:
     def relaunch(self, first: bool = False) -> None:
         """Terminate, launch, settle, record and dismiss launch dialogs, then re-apply the content filter."""
         if not first:
-            if self.relaunches >= MAX_RELAUNCHES:
-                self.human("the explorer needed a fourth relaunch", f"{MAX_RELAUNCHES} relaunches used")
+            cap = MAX_RELAUNCHES + (0 if self.touring else CORE_RELAUNCHES)
+            if self.relaunches >= cap:
+                self.human(f"the explorer needed relaunch {cap + 1}", f"{cap} relaunches used")
                 raise Stop("relaunch cap")
             self.relaunches += 1
             if self.current:
@@ -481,7 +486,7 @@ class Explorer:
         shows the bottom tabs is a top screen already, and BACK there would leave the app."""
         for _ in range(4):
             here = self.current
-            if here is self.launch_root or here.kind == "external" or any(ob.find(here.cands, t) for t in self.tabs):
+            if here is self.launch_root or here.kind == "external" or self.shows_tabs(here):
                 return
             self.act(Move("back", why="relaunch landed off the launch screen"), purpose="setup")
 
@@ -649,6 +654,9 @@ class Explorer:
             if self.current is target:
                 return True
             hops = self.route(self.current, target)
+            if hops is None and self.current.kind != "external" and not self.shows_tabs(self.current):
+                self.act(Move("back", why="no recorded way back from here"), purpose="nav")
+                hops = [] if self.current is target else self.route(self.current, target)
             for move, expected in hops or []:
                 self.act(move, purpose="nav")
                 if self.current is not expected:
@@ -658,6 +666,9 @@ class Explorer:
             if attempt == 1:
                 self.relaunch()
         return self.current is target
+
+    def shows_tabs(self, s: Seen) -> bool:
+        return any(ob.find(s.cands, t) for t in self.tabs)
 
     def route(self, src: Seen, dst: Seen) -> list[tuple[Move, Seen]] | None:
         came = {src.sid: None}
@@ -688,6 +699,8 @@ class Explorer:
                 yield Move("tap", tab, why="tab"), self.by_id[self.tab_to[tab.key]]
         if x.back_to and not any(a == x.sid and m.action == "back" for (a, _), m in self.edges.items()):
             yield Move("back", why="back"), self.by_id[x.back_to]
+        if x.unscroll_to:
+            yield Move("swipe", direction="down", why="scroll back"), self.by_id[x.unscroll_to]
 
     def leave_external(self) -> None:
         if self.obs.fg in BILLING:
@@ -754,7 +767,7 @@ class Explorer:
     def core_options(self) -> list[CoreAction]:
         options = []
         for s in self.states:
-            found = ob.composer(s.cands) if s.kind == "screen" else None
+            found = ob.composer(s.cands, self.device) if s.kind == "screen" else None
             if found:
                 options.append(CoreAction("chat", s, list(found), f"send a message on {s.sid} "
                                                                     f"({found[0].label or 'text box'})"))
@@ -837,7 +850,7 @@ class Explorer:
                      watch=lambda: self.watch(before, LOAD_WAIT_S, "load"), loop=(n, before))
         line = self.last_summary
         hit = f"{self.stop_kind} ({self.stop_evidence})" if self.stop_kind else ""
-        chat = ob.composer(self.current.cands) if core.kind != "chat" and self.current.kind == "screen" else None
+        chat = ob.composer(self.current.cands, self.device) if core.kind != "chat" and self.current.kind == "screen" else None
         if chat and not hit:
             self.core = CoreAction("chat", self.current, list(chat), f"send a message on {self.current.sid} "
                                                                      f"(opened from {core.state.sid})")
@@ -1143,7 +1156,7 @@ def explore_app(ex: Explorer) -> None:
     except llm.CapReached as e:
         ex.stop_reason = f"$ cap: {e}"
     ex.tour_actions = ex.actions
-    if not ex.stop_reason.startswith(("blocked root", "second hang", "relaunch cap")):
+    if not ex.stop_reason.startswith(("blocked root", "second hang")):
         try:
             ex.core_loop()
             ex.verify_replay()

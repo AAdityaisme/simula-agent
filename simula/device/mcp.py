@@ -6,7 +6,6 @@ import concurrent.futures
 import json
 import os
 import re
-import tempfile
 import threading
 import time
 from pathlib import Path
@@ -91,7 +90,7 @@ class Server:
     def __init__(self, cwd: Path, command: list[str] | None = None):
         command = command or ["node", str(SERVER_JS)]
         self.params = StdioServerParameters(command=command[0], args=command[1:], cwd=str(cwd), env=server_env())
-        self.errlog = open(Path(tempfile.gettempdir()) / "simula-mobile-mcp.log", "a")
+        self.errlog = open(os.devnull, "w")  # mobile-mcp logs every raw reply there, before redaction
         self.loop = asyncio.new_event_loop()
         threading.Thread(target=self.loop.run_forever, daemon=True).start()
         self.respawns = 0
@@ -151,11 +150,18 @@ class Phone:
     def __init__(self, server: Server, package: str, scratch: Path):
         self.server, self.package, self.scratch = server, package, scratch
         self.list_seconds: list[float] = []
-        devices = json.loads(reply_text(self.server.call("mobile_list_available_devices", START_TIMEOUT_S)))
-        android = [d["id"] for d in devices.get("devices", []) if d.get("platform") == "android"]
-        if not android:
-            raise SystemExit("no Android device online: start the emulator first")
-        self.device = android[0]
+        self.device = self.find_device()
+
+    def find_device(self) -> str:
+        """The first Android device mobile-mcp lists. The list comes back empty now and then while adb is busy."""
+        for attempt in range(1, LIST_ATTEMPTS + 1):
+            devices = json.loads(reply_text(self.server.call("mobile_list_available_devices", START_TIMEOUT_S)))
+            android = [d["id"] for d in devices.get("devices", []) if d.get("platform") == "android"]
+            if android:
+                return android[0]
+            if attempt < LIST_ATTEMPTS:
+                time.sleep(2 * LIST_RETRY_PAUSE_S)
+        raise SystemExit("no Android device online: start the emulator first")
 
     def call(self, tool: str, timeout: float = ACTION_TIMEOUT_S, retry: bool = False, **args) -> dict:
         try:

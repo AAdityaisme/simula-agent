@@ -17,12 +17,13 @@ def cands(app: str, name: str) -> list[ob.Candidate]:
 
 
 def test_a_chat_screen_yields_a_composer_and_its_send_control():
-    box, send = ob.composer(cands("luzia", "luzia-chat-thread"))
+    box, send = ob.composer(cands("luzia", "luzia-chat-thread"), DEVICE)
     assert box.kind == "EditText" and send.ident == "sendButton"
 
 
 def test_a_text_box_without_send_is_not_a_chat():
-    assert ob.composer(cands("janitorai", "j02_home")) is None
+    assert ob.composer(cands("janitorai", "j02_home"), DEVICE) is None
+    assert ob.composer(cands("aol", "aol-home"), DEVICE) is None
 
 
 def test_feed_screens_yield_their_items():
