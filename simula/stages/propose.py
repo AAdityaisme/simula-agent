@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from string import Template
 
-from simula import config, economics, llm
+from simula import config, economics, llm, text
 from simula.config import ROOT
 from simula.contracts import (BenefitNames, Candidate, CandidatesFile, LedgerItem, Lens, LensesFile, LensOutput,
                               ProductModel)
@@ -88,6 +88,9 @@ def model_text(model: ProductModel) -> str:
         path = [edges[i].from_state for i in f.edge_ids[:1]] + [edges[i].to_state for i in f.edge_ids]
         lines.append(f"- {f.id} {f.name}: {f.purpose} ({' -> '.join(path)})")
     lines += ["", "### Open questions (not observed)"] + [f"- {q}" for q in model.open_questions]
+    if unobserved := unobserved_terms(model):
+        lines += ["", "### App terms whose meaning was never observed (don't use them in a title, offer_copy, or "
+                      "after_reward; code drops an idea that does)"] + [f'- "{t}"' for t in unobserved]
     lines += ["", "### Screens in scope"]
     for s in model.states:
         if s.in_mock_scope:
@@ -136,6 +139,17 @@ def ask_lens(ctx: Ctx, model: ProductModel, lens: Lens, system: str, budget: llm
 
 
 # ---------- code checks ----------
+
+def unobserved_terms(model: ProductModel) -> list[str]:
+    return [t.term for t in model.terms if not t.observed]
+
+
+def jargon(c: Candidate, model: ProductModel) -> str | None:
+    # ponytail: text.find matches inside a longer word too ("Pro" in "Product"); add word boundaries if it bites
+    return next((f'uses "{term}", whose meaning was never observed' for term in unobserved_terms(model)
+                 if any(text.find(term, words, ignore_case=True) for words in (c.title, c.offer_copy, c.after_reward))),
+                None)
+
 
 def plain(text: str) -> str:
     """Every run of whitespace, non-breaking spaces included, as one space (the rule PR 2's model stage uses)."""
@@ -243,6 +257,8 @@ def check(c: Candidate, model: ProductModel) -> str | None:
         return problem
     if not c.after_reward.strip():
         return "doesn't say what the user sees when the reward runs out"
+    if problem := jargon(c, model):
+        return problem
     if problem := grants_problem(c, model):
         return problem
     if in_chat(c.placement):
