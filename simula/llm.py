@@ -25,10 +25,19 @@ STREAM_IDLE_TIMEOUT_S = 60.0
 
 
 class LLMFailure(Exception):
-    def __init__(self, outcome: str, detail: str = "", raw: str = ""):
+    """A typed failure. tokens_in / tokens_out are what the failed attempt still cost (an aborted stream)."""
+    def __init__(self, outcome: str, detail: str = "", raw: str = "", tokens_in: int = 0, tokens_out: int = 0):
         super().__init__(f"{outcome}: {detail}")
         self.outcome = outcome
         self.raw = raw
+        self.tokens_in = tokens_in
+        self.tokens_out = tokens_out
+
+
+def _failure(outcome: str, error: Exception) -> "LLMFailure":
+    """An LLMFailure that keeps whatever an aborted stream already spent (set on the error by _drain)."""
+    return LLMFailure(outcome, str(error), tokens_in=getattr(error, "tokens_in", 0),
+                      tokens_out=getattr(error, "tokens_out", 0))
 
 
 class CapReached(SystemExit):
@@ -137,6 +146,32 @@ def _anthropic_content(parts: list[dict]) -> list[dict]:
             for p in parts]
 
 
+def _spent(stream, tokens_in_estimate: int, max_tokens: int) -> tuple[int, int]:
+    """What an aborted stream already cost: the snapshot's usage, with output at least what was streamed (the
+    API sends the final output count only at the end), or the worst case when no message had started."""
+    try:
+        snapshot = stream.current_message_snapshot
+    except (AssertionError, AttributeError):
+        return tokens_in_estimate, max_tokens
+    # ponytail: thinking the API doesn't stream back isn't counted; charge the worst case if that ever matters
+    streamed = sum(len(getattr(b, "text", None) or getattr(b, "thinking", None) or "") for b in snapshot.content) // 3
+    return snapshot.usage.input_tokens, max(snapshot.usage.output_tokens, streamed)
+
+
+def _drain(stream, total_timeout: float | None, tokens_in_estimate: int, max_tokens: int):
+    """Reads the stream to its final message. On an abort (our total timeout or an SDK error mid-stream) the
+    tokens already spent ride on the raised error."""
+    deadline = time.monotonic() + total_timeout if total_timeout else None
+    try:
+        for _ in stream:
+            if deadline and time.monotonic() > deadline:
+                raise LLMFailure("timeout", f"passed the {total_timeout:.0f}s total timeout")
+        return stream.get_final_message()
+    except Exception as e:
+        e.tokens_in, e.tokens_out = _spent(stream, tokens_in_estimate, max_tokens)
+        raise
+
+
 def call_anthropic(model: str, system: str, messages: list[dict], effort: str | None,
                    schema: type[BaseModel] | None, max_tokens: int, total_timeout: float | None = None) -> Reply:
     import anthropic
@@ -144,7 +179,8 @@ def call_anthropic(model: str, system: str, messages: list[dict], effort: str | 
     streaming = max_tokens > caps["stream_above"]
     # On a stream the read timeout is the gap between chunks, so a stalled stream fails after 60 s.
     timeout = anthropic.Timeout(REQUEST_TIMEOUT_S, read=STREAM_IDLE_TIMEOUT_S) if streaming else REQUEST_TIMEOUT_S
-    client = anthropic.Anthropic(max_retries=2, timeout=timeout)
+    # A streamed call retries through our attempts loop, which charges each try; the SDK's retries would not.
+    client = anthropic.Anthropic(max_retries=0 if streaming else 2, timeout=timeout)
     output_config = {}
     if effort and caps["supports_effort"]:
         output_config["effort"] = effort
@@ -159,26 +195,24 @@ def call_anthropic(model: str, system: str, messages: list[dict], effort: str | 
     try:
         if streaming:
             with client.messages.stream(**kwargs) as stream:
-                deadline = time.monotonic() + total_timeout if total_timeout else None
-                for _ in stream:
-                    if deadline and time.monotonic() > deadline:
-                        raise LLMFailure("timeout", f"passed the {total_timeout:.0f}s total timeout")
-                message = stream.get_final_message()
+                message = _drain(stream, total_timeout, estimate_tokens_in(system, messages), max_tokens)
                 headers = stream.response.headers
         else:
             raw = client.messages.with_raw_response.create(**kwargs)
             message, headers = raw.parse(), raw.headers
     except anthropic.APITimeoutError as e:
-        raise LLMFailure("timeout", str(e)) from e
+        raise _failure("timeout", e) from e
     except anthropic.RateLimitError as e:
         if "spend" in str(e).lower():
             raise CapReached(f"provider spend limit reached: {e}") from e
-        raise LLMFailure("error", str(e)) from e
+        raise _failure("error", e) from e
     except anthropic.BadRequestError as e:
         # A console usage limit comes back as a 400, not a 429.
         if "usage limit" in str(e).lower():
             raise CapReached(f"provider usage limit reached: {e}") from e
-        raise
+        raise _failure("error", e) from e
+    except (anthropic.APIStatusError, anthropic.APIConnectionError) as e:
+        raise _failure("error", e) from e
     text = "".join(block.text for block in message.content if block.type == "text")
     usage = message.usage
     cached = getattr(usage, "cache_read_input_tokens", 0) or 0
@@ -217,7 +251,9 @@ def call_openai(model: str, system: str, messages: list[dict], effort: str | Non
     except openai.BadRequestError as e:
         if re.search(r"billing[ _]hard[ _]limit", str(e), re.IGNORECASE):
             raise CapReached(f"provider billing limit reached: {e}") from e
-        raise
+        raise LLMFailure("error", str(e)) from e
+    except (openai.APIStatusError, openai.APIConnectionError) as e:
+        raise LLMFailure("error", str(e)) from e
     response = raw.parse()
     refused = any(c.type == "refusal" for item in response.output if item.type == "message" for c in item.content)
     stop = "refusal" if refused else "max_tokens" if response.status == "incomplete" else "end_turn"
@@ -289,8 +325,11 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
             reply = PROVIDERS[provider](model, system, messages, effort, schema, max_tokens, total_timeout)
         except LLMFailure as e:
             last = e
+            cost = usd(model, e.tokens_in, e.tokens_out)
+            budget.charge(cost)
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
-                  outcome=e.outcome, note=str(e)[:200])
+                  tokens_in=e.tokens_in, tokens_out=e.tokens_out, usd=round(cost, 6), outcome=e.outcome,
+                  note=str(e)[:200])
             continue
         cost = usd(model, reply.tokens_in, reply.tokens_out, reply.tokens_cached)
         budget.charge(cost)
