@@ -37,6 +37,7 @@ RUNTIME_BLOCKS = (r'<style id="simula-runtime">.*?</style>\n?', r'<script id="si
 IDS = re.compile(r"\s*\(?\b(?:s\d{2}(?:\.e\d+)?|c\d{2}|M\d{1,3}|new:[\w-]+)\b\)?")
 FAIL_NOTE = "That didn't go through. Nothing was used, and the app is as it was."
 NOT_WIRED = "not wired"
+CODES = re.compile(r"\b(?:g|c\d)_[a-z_]+\b")
 
 PARTS = {"start": "Where it starts", "change": "What changes", "offer": "The offer", "ad": "The ad plays",
          "value": "What they get", "why": "Why this works for your app"}
@@ -52,6 +53,19 @@ CHECK_NAMES = {
     "c5_moment": "C5 right moment",
     "c6_fits_simula": "C6 fits Simula",
     "c7_specific": "C7 specific to this app",
+}
+PLAIN_CHECKS = {
+    "g_policy": "a fair, opt-in offer",
+    "g_no_cash": "no cash reward",
+    "g_no_chat_content": "no chat content needed",
+    "g_no_free_removal": "nothing free taken away",
+    "g_brand_safety": "a brand-safe place for the offer",
+    "c1_revealed_value": "people already value what it gives",
+    "c2_evidence": "backed by what was seen in the app",
+    "c4_protects_subscription": "protects the subscription",
+    "c5_moment": "the right moment",
+    "c6_fits_simula": "fits a rewarded game",
+    "c7_specific": "specific to this app",
 }
 
 FLOW_CSS = """body:not(.simula-rewarded) [data-reward]{display:none!important}
@@ -165,7 +179,8 @@ def caption(c: Candidate) -> str:
 
 
 def plain(text: str) -> str:
-    """Slide text: no ids a product team would have to decode."""
+    """Slide text: no ids or check codes a product team would have to decode."""
+    text = CODES.sub(lambda m: PLAIN_CHECKS.get(m.group(0), m.group(0)), text)
     return " ".join(IDS.sub("", text).split())
 
 
@@ -513,13 +528,43 @@ def verdicts(decision: Decision, run_dir: Path) -> list[tuple[str, Verdict]]:
             for p in decision.verdict_paths if (run_dir / p).exists()]
 
 
-def condition(decision: Decision, run_dir: Path) -> str:
-    """A CONDITIONAL idea's condition, in the judge's words: the first judgment check a judge failed."""
+def failed_checks(decision: Decision, run_dir: Path) -> list[tuple[str, str]]:
+    """(check, the first failing judge's reason) for every check some judge failed, in check order."""
+    failed = {}
     for _, verdict in verdicts(decision, run_dir):
-        failed = next((getattr(verdict, k) for k in JUDGMENT if not getattr(verdict, k).passed), None)
-        if failed:
-            return failed.reason
-    return "It passed every safety gate but not every quality check."
+        for key in GATES + JUDGMENT:
+            check = getattr(verdict, key)
+            if not check.passed:
+                failed.setdefault(key, check.reason)
+    return list(failed.items())
+
+
+def cost_question(c: Candidate) -> str | None:
+    """The cost line's verdict in plain words, with no numbers (the appendix has them). A CONDITIONAL cost of zero is
+    one the line couldn't count."""
+    e = c.economics
+    if e is None or e.verdict == "PASS":
+        return None
+    if e.verdict == "FAIL":
+        return "it may cost more to serve than a view earns"
+    if e.cost_2k == 0:
+        return "what it costs to serve wasn't observed"
+    return "a view pays for what it costs to serve only where ad prices are high"
+
+
+def condition(decision: Decision, c: Candidate, run_dir: Path) -> str:
+    """A CONDITIONAL idea's condition in one sentence. It names only checks a judge failed, in plain words, and when
+    every check passed it says so and gives the cost question instead."""
+    failed = failed_checks(decision, run_dir)
+    cost = cost_question(c)
+    tail = f" Also, {cost}; the cost line in the appendix has the numbers." if cost else ""
+    if failed:
+        return "It didn't pass " + "; ".join(f"{PLAIN_CHECKS[k]} ({reason})" for k, reason in failed) + "." + tail
+    if decision.checks_passed < decision.checks_total:
+        return f"It passed {decision.checks_passed} of {decision.checks_total} checks; the appendix shows which." + tail
+    if cost:
+        return f"It passed every check, but {cost}. The cost line in the appendix has the numbers."
+    return "It passed every check; the appendix has the review's notes."
 
 
 def with_captions(shots: list[dict]) -> list[dict]:
@@ -568,7 +613,7 @@ def why_html(flow: dict, model: ProductModel, run_dir: Path) -> str:
                    for label, text in blocks)
     if decision.final == "conditional":
         html += (f'<div class="condition"><b>Recommended with one condition:</b> '
-                 f"{escape(plain(condition(decision, run_dir)))}</div>")
+                 f"{escape(plain(condition(decision, c, run_dir)))}</div>")
     return f'<div class="why">{html}</div>'
 
 
