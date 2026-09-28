@@ -65,9 +65,24 @@ def new_manifest(run_dir: Path, app: dict, args, provenance: Provenance) -> Mani
     )
 
 
+def upstream_problem(run_dir: Path, stage: str) -> str | None:
+    """Why a stage can't run yet: an upstream stage that never finished, or failed after it last did."""
+    for up in UPSTREAM[stage]:
+        done, failure = run_dir / up / "done.json", run_dir / up / "failure.json"
+        if not done.exists():
+            return f"{up} is not done" + (f" (see {up}/failure.json)" if failure.exists() else f"; run `simula {up}` first")
+        if failure.exists() and failure.stat().st_mtime > done.stat().st_mtime:
+            return f"{up} failed after it last finished (see {up}/failure.json)"
+    return None
+
+
 def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     """Runs one stage unless its done.json still matches. Returns False when the stage isn't built yet."""
     stage_dir = ctx.run_dir / stage
+    problem = upstream_problem(ctx.run_dir, stage)
+    if problem:
+        runlog.run_trace(ctx.run_dir, stage=stage, step="upstream", decider="code", outcome="blocked", note=problem)
+        raise SystemExit(f"{stage} can't run: {problem}")
     provenance = runfolder.upstream_provenance(ctx.run_dir, UPSTREAM[stage])
     runfolder.require_real(provenance, ctx.allow_fixtures)
     inputs, prompts, params = stage_inputs(stage, ctx), prompt_files(stage), stage_params(stage, ctx)
@@ -89,7 +104,8 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
         runlog.needs_human(ctx.run_dir, stage, "$ cap reached", str(e), [f"{stage}/failure.json"],
                            f"simula {stage} {ctx.app['name']} --run {ctx.run_dir.name} --usd-cap <higher>")
         raise
-    except (Exception, ReplayMiss) as e:
+    except BaseException as e:
+        # Every other exit, SystemExit and Ctrl-C included, still leaves a failure record; then it propagates.
         reason = f"{type(e).__name__}: {e}"
         runfolder.write_failure(stage_dir, reason)
         runlog.run_trace(ctx.run_dir, stage=stage, step="run", decider="code", outcome="error", note=reason[:300])
