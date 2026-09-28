@@ -405,3 +405,19 @@ def test_a_short_unobserved_term_matches_only_as_a_whole_word(model):
     assert check(candidate(m, title="Protect your streak"), m) is None
     assert propose.uses_term("Janitor+", "Said no to janitor+? Play once.")
     assert propose.uses_term("Zap Credits", "3 zap\xa0\xa0credits") and not propose.uses_term("Zap", "Zappy")
+
+
+def with_experience(model):
+    fact = LedgerItem(id="exp1", kind="experience", verbatim="Replies took 2.1 s (median of 5 passes)",
+                      evidence_ids=[e.id for e in model.edges[:1]])
+    return model.model_copy(update={"value_ledger": model.value_ledger + [fact]})
+
+
+def test_citing_a_measured_experience_is_context_not_a_missing_id(model):
+    m = with_experience(model)
+    [out], repairs, _ = finish([candidate(m, anchor_evidence_ids=["exp1"])], m, "annotate")
+    assert out.dropped_reason is None and out.anchor_evidence_ids == []
+    assert repairs == {"c01": "exp1 -> nothing (a measured experience, not an element)"}
+    [anchor], *_ = finish([candidate(m, kind="existing_anchor", adds=None, anchor_evidence_ids=["exp1"])], m, "annotate")
+    assert anchor.dropped_reason == "existing_anchor cites no paywall, limit, currency, or entitlement element"
+
