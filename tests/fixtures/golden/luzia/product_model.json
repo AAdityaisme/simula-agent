@@ -5739,5 +5739,7 @@
   "source": "fixture",
   "explorer_run_id": null,
   "fixture_path": "tests/fixtures/golden/luzia"
- }
+ },
+ "terms": [],
+ "questions": []
 }
