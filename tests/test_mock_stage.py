@@ -19,7 +19,7 @@ def test_scope_is_exactly_the_model_stages_scope_whatever_the_rating(app):
     model = golden(app)
     states = [s.model_copy(update={"in_mock_scope": i % 2 == 0}) for i, s in enumerate(model.states)]
     states[0] = states[0].model_copy(update={"content_rating": "unsafe"})
-    scope = mock.pick_scope(model.model_copy(update={"states": states}))
+    scope = mock.pick_scope(model.model_copy(update={"states": states, "mock_order": []}))
     assert [s.id for s in scope] == [s.id for s in states if s.in_mock_scope]
 
 
