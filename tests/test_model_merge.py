@@ -228,7 +228,7 @@ def test_a_term_keeps_its_meaning_only_when_a_cited_element_carries_it(app):
     carrier = next(e for s in states for e in s.elements if len(e.text.split()) >= 2)
     word = carrier.text.split()[-1]
     other = next(e for s in states for e in s.elements if e.text and word.lower() not in e.text.lower())
-    answer.mechanics.append(Mechanic(id="m-term", kind="other", evidence_ids=[carrier.id], summary=f"Uses {word}.",
+    answer.mechanics.append(Mechanic(id="m-term", kind="other", evidence_ids=[states[0].id], summary=f"Uses {word}.",
                                      observed_numbers=[], status="observed"))
     answer.terms += [TermMeaning(term=word.upper(), meaning="a plain meaning", defined_by=[carrier.id, "s01.e999"],
                                  used_in=["m-term"]),
@@ -239,6 +239,17 @@ def test_a_term_keeps_its_meaning_only_when_a_cited_element_carries_it(app):
     observed, unobserved = stage.resolve_terms(kept, states)
     assert (observed.observed, observed.meaning, observed.defined_by) == (True, "a plain meaning", [carrier.id])
     assert (unobserved.observed, unobserved.meaning, unobserved.defined_by) == (False, stage.NOT_OBSERVED, [])
+
+
+def test_the_line_that_uses_a_term_cannot_define_it(app):
+    _, states, edges, answer = app
+    bullet = next(e for s in states for e in s.elements if len(e.text.split()) >= 2)
+    word = bullet.text.split()[-1]
+    answer.value_ledger.append(LedgerItem(id="l-term", kind="meter", verbatim=bullet.text, evidence_ids=[bullet.id]))
+    answer.terms.append(TermMeaning(term=word, meaning="a guess", defined_by=[bullet.id], used_in=["l-term"]))
+    kept, rejected = stage.check_meaning(answer, states, edges)
+    (term,) = stage.resolve_terms(kept, states)
+    assert rejected == [] and (term.observed, term.meaning, term.defined_by) == (False, stage.NOT_OBSERVED, [])
 
 
 def test_questions_need_a_real_start_state_and_are_capped(app):

@@ -425,9 +425,11 @@ def keyword_floor(state: State, keywords: list[str]) -> ContentRating:
 
 
 def resolve_terms(meaning: ModelMeaning, states: list[State]) -> list[Term]:
-    """A term keeps its meaning only when a cited element's own text carries it; otherwise it is marked
-    'meaning not observed' and nothing downstream may build on it."""
+    """A term keeps its meaning only when a cited element's own text carries it, and that element is not the
+    evidence of a line that uses the term (a bullet can't define itself); otherwise it is marked 'meaning not
+    observed' and nothing downstream may build on it."""
     elements = {e.id: e for s in states for e in s.elements}
+    evidence = {m.id: m.evidence_ids for m in meaning.mechanics} | {i.id: i.evidence_ids for i in meaning.value_ledger}
 
     def carries(eid: str, term: str) -> bool:
         e = elements.get(eid)
@@ -435,7 +437,8 @@ def resolve_terms(meaning: ModelMeaning, states: list[State]) -> list[Term]:
 
     terms = []
     for t in meaning.terms:
-        defined_by = [i for i in t.defined_by if carries(i, t.term)]
+        using = {e for i in t.used_in for e in evidence.get(i, [])}
+        defined_by = [i for i in t.defined_by if i not in using and carries(i, t.term)]
         terms.append(Term(term=t.term, meaning=t.meaning if defined_by else NOT_OBSERVED, defined_by=defined_by,
                           used_in=t.used_in, observed=bool(defined_by)))
     return terms
