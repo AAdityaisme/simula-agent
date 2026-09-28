@@ -106,6 +106,7 @@ runs/<app>/latest -> <run_id>
 - At most 4 levels of nesting; `extra="forbid"`.
 - Fixed named fields wherever the keys are known: the judge's 5 gates and 6 judgment checks are properties, not a map.
 - No `minLength`, `maximum`, or `pattern` (the API drops them). Code checks those after parsing.
+- `CostInputs.currency_amount`: the USD price the app charges for exactly what the reward grants; 0 when no price was observed.
 
 ## 6. Who writes which field
 
