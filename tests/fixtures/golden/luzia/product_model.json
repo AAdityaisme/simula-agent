@@ -3363,12 +3363,12 @@
       "h": 48.0
      },
      "role": "container",
-     "asset_png": "assets/s04.e02.png",
+     "asset_png": null,
      "fg_hex": "#d2d2d2",
      "bg_hex": "#1d1d1d",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -3396,7 +3396,7 @@
      "bg_hex": "#000000",
      "font_px": 132.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -3424,7 +3424,7 @@
      "bg_hex": "#000000",
      "font_px": 92.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -3447,12 +3447,12 @@
       "h": 46.1
      },
      "role": "container",
-     "asset_png": "assets/s04.e05.png",
+     "asset_png": null,
      "fg_hex": "#000000",
      "bg_hex": "#ffffff",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -3480,7 +3480,7 @@
      "bg_hex": "#ffffff",
      "font_px": 53.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -3503,12 +3503,12 @@
       "h": 48.0
      },
      "role": "container",
-     "asset_png": "assets/s04.e07.png",
+     "asset_png": null,
      "fg_hex": "#000000",
      "bg_hex": "#282828",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -3536,7 +3536,7 @@
      "bg_hex": "#282828",
      "font_px": 53.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -3564,11 +3564,11 @@
      "bg_hex": "#000000",
      "font_px": 40.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     }
    ],
-   "in_mock_scope": true,
+   "in_mock_scope": false,
    "content_rating": "safe",
    "dynamic_regions": [],
    "blocked_reason": null
@@ -3602,12 +3602,12 @@
       "h": 48.0
      },
      "role": "container",
-     "asset_png": "assets/s05.e01.png",
+     "asset_png": null,
      "fg_hex": "#282828",
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -3635,7 +3635,7 @@
      "bg_hex": "#000000",
      "font_px": 66.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -3658,12 +3658,12 @@
       "h": 48.0
      },
      "role": "container",
-     "asset_png": "assets/s05.e03.png",
+     "asset_png": null,
      "fg_hex": "#282828",
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -3686,12 +3686,12 @@
       "h": 48.0
      },
      "role": "container",
-     "asset_png": "assets/s05.e04.png",
+     "asset_png": null,
      "fg_hex": "#282828",
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -3714,12 +3714,12 @@
       "h": 48.0
      },
      "role": "container",
-     "asset_png": "assets/s05.e05.png",
+     "asset_png": null,
      "fg_hex": "#ffffff",
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -3747,7 +3747,7 @@
      "bg_hex": "#ffffff",
      "font_px": 40.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -3775,7 +3775,7 @@
      "bg_hex": "#000000",
      "font_px": 53.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -3798,12 +3798,12 @@
       "h": 48.0
      },
      "role": "container",
-     "asset_png": "assets/s05.e08.png",
+     "asset_png": null,
      "fg_hex": "#cbcbcb",
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -3831,7 +3831,7 @@
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -3859,7 +3859,7 @@
      "bg_hex": "#000000",
      "font_px": 46.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -3882,12 +3882,12 @@
       "h": 48.0
      },
      "role": "container",
-     "asset_png": "assets/s05.e11.png",
+     "asset_png": null,
      "fg_hex": "#112255",
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -3915,7 +3915,7 @@
      "bg_hex": "#112255",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -3943,7 +3943,7 @@
      "bg_hex": "#000000",
      "font_px": 46.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -3966,12 +3966,12 @@
       "h": 48.0
      },
      "role": "container",
-     "asset_png": "assets/s05.e14.png",
+     "asset_png": null,
      "fg_hex": "#cbcbcb",
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -3999,7 +3999,7 @@
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -4027,11 +4027,11 @@
      "bg_hex": "#000000",
      "font_px": 46.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     }
    ],
-   "in_mock_scope": true,
+   "in_mock_scope": false,
    "content_rating": "safe",
    "dynamic_regions": [],
    "blocked_reason": null
@@ -4589,7 +4589,7 @@
      "bg_hex": "#000000",
      "font_px": 2.0,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -4612,12 +4612,12 @@
       "h": 63.62
      },
      "role": "container",
-     "asset_png": null,
+     "asset_png": "assets/s07.e03.png",
      "fg_hex": "#000000",
      "bg_hex": "#112255",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -4645,7 +4645,7 @@
      "bg_hex": "#112255",
      "font_px": 53.0,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -4673,7 +4673,7 @@
      "bg_hex": "#112255",
      "font_px": 40.0,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -4696,12 +4696,12 @@
       "h": 84.57
      },
      "role": "container",
-     "asset_png": null,
+     "asset_png": "assets/s07.e06.png",
      "fg_hex": "#acacac",
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -4729,7 +4729,7 @@
      "bg_hex": "#000000",
      "font_px": 106.0,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -4752,12 +4752,12 @@
       "h": 48.0
      },
      "role": "container",
-     "asset_png": null,
+     "asset_png": "assets/s07.e08.png",
      "fg_hex": "#282828",
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -4780,12 +4780,12 @@
       "h": 48.0
      },
      "role": "container",
-     "asset_png": null,
+     "asset_png": "assets/s07.e09.png",
      "fg_hex": "#282828",
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -4808,12 +4808,12 @@
       "h": 48.0
      },
      "role": "container",
-     "asset_png": null,
+     "asset_png": "assets/s07.e10.png",
      "fg_hex": "#ffffff",
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -4836,12 +4836,12 @@
       "h": 48.0
      },
      "role": "container",
-     "asset_png": null,
+     "asset_png": "assets/s07.e11.png",
      "fg_hex": "#ffffff",
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -4864,12 +4864,12 @@
       "h": 48.0
      },
      "role": "container",
-     "asset_png": null,
+     "asset_png": "assets/s07.e12.png",
      "fg_hex": "#ffffff",
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -4892,12 +4892,12 @@
       "h": 48.0
      },
      "role": "container",
-     "asset_png": null,
+     "asset_png": "assets/s07.e13.png",
      "fg_hex": "#dedede",
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -4920,12 +4920,12 @@
       "h": 126.1
      },
      "role": "container",
-     "asset_png": null,
+     "asset_png": "assets/s07.e14.png",
      "fg_hex": "#ffffff",
      "bg_hex": "#282828",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -4953,7 +4953,7 @@
      "bg_hex": "#282828",
      "font_px": 46.0,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -4981,7 +4981,7 @@
      "bg_hex": "#282828",
      "font_px": 92.0,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -5004,12 +5004,12 @@
       "h": 48.0
      },
      "role": "container",
-     "asset_png": null,
+     "asset_png": "assets/s07.e17.png",
      "fg_hex": "#282828",
      "bg_hex": "#ffffff",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -5037,7 +5037,7 @@
      "bg_hex": "#ffffff",
      "font_px": 40.0,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -5060,12 +5060,12 @@
       "h": 48.0
      },
      "role": "container",
-     "asset_png": null,
+     "asset_png": "assets/s07.e19.png",
      "fg_hex": "#000000",
      "bg_hex": "#282828",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -5088,12 +5088,12 @@
       "h": 153.9
      },
      "role": "container",
-     "asset_png": null,
+     "asset_png": "assets/s07.e20.png",
      "fg_hex": "#000000",
      "bg_hex": "#363636",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -5116,12 +5116,12 @@
       "h": 48.0
      },
      "role": "text input",
-     "asset_png": null,
+     "asset_png": "assets/s07.e21.png",
      "fg_hex": "#cbcbcb",
      "bg_hex": "#363636",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -5149,7 +5149,7 @@
      "bg_hex": "#363636",
      "font_px": 53.0,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -5172,12 +5172,12 @@
       "h": 48.0
      },
      "role": "button",
-     "asset_png": null,
+     "asset_png": "assets/s07.e23.png",
      "fg_hex": "#000000",
      "bg_hex": "#363636",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -5200,12 +5200,12 @@
       "h": 48.0
      },
      "role": "container",
-     "asset_png": null,
+     "asset_png": "assets/s07.e24.png",
      "fg_hex": "#ffffff",
      "bg_hex": "#363636",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -5233,7 +5233,7 @@
      "bg_hex": "#ffffff",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -5261,7 +5261,7 @@
      "bg_hex": "#000000",
      "font_px": 36.0,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -5284,12 +5284,12 @@
       "h": 48.0
      },
      "role": "container",
-     "asset_png": null,
+     "asset_png": "assets/s07.e27.png",
      "fg_hex": "#282828",
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -5317,7 +5317,7 @@
      "bg_hex": "#112255",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -5345,7 +5345,7 @@
      "bg_hex": "#000000",
      "font_px": 66.0,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -5368,12 +5368,12 @@
       "h": 48.0
      },
      "role": "container",
-     "asset_png": null,
+     "asset_png": "assets/s07.e30.png",
      "fg_hex": "#000000",
      "bg_hex": "#282828",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -5401,7 +5401,7 @@
      "bg_hex": "#282828",
      "font_px": 40.0,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -5424,12 +5424,12 @@
       "h": 48.0
      },
      "role": "container",
-     "asset_png": null,
+     "asset_png": "assets/s07.e32.png",
      "fg_hex": "#282828",
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -5452,12 +5452,12 @@
       "h": 48.0
      },
      "role": "container",
-     "asset_png": null,
+     "asset_png": "assets/s07.e33.png",
      "fg_hex": "#000000",
      "bg_hex": "#282828",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     },
     {
@@ -5485,11 +5485,11 @@
      "bg_hex": "#282828",
      "font_px": 46.0,
      "font_guess": "unknown",
-     "in_mock": false,
+     "in_mock": true,
      "repeat_group": null
     }
    ],
-   "in_mock_scope": false,
+   "in_mock_scope": true,
    "content_rating": "safe",
    "dynamic_regions": [],
    "blocked_reason": null
@@ -5741,5 +5741,12 @@
   "fixture_path": "tests/fixtures/golden/luzia"
  },
  "terms": [],
- "questions": []
+ "questions": [],
+ "mock_order": [
+  "s01",
+  "s03",
+  "s02",
+  "s07",
+  "s06"
+ ]
 }
