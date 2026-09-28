@@ -203,10 +203,11 @@ def could_fall_back(c: Candidate, d: Decision, verdicts: list[Verdict]) -> bool:
 
 def superseded(revised: list[Candidate], decisions: dict[str, Decision],
                verdicts: dict[str, dict[str, Verdict]]) -> set[str]:
-    """Originals whose revision stands in for them: one that survived or could itself be the fallback. A revision
-    that made the idea worse leaves its original in play."""
-    return {r.id.removesuffix("-rev") for r in revised
-            if decisions[r.id].final in SURVIVORS or could_fall_back(r, decisions[r.id], [*verdicts[r.id].values()])}
+    """Originals whose revision stands in for them: one that survived, or a reject the fallback could pick. A revision
+    that made the idea worse, or that waits on a person, leaves its original in play."""
+    def stands_in(r: Candidate, d: Decision) -> bool:
+        return d.final in SURVIVORS or (d.final == "reject" and could_fall_back(r, d, [*verdicts[r.id].values()]))
+    return {r.id.removesuffix("-rev") for r in revised if stands_in(r, decisions[r.id])}
 
 
 def fallback_pick(decisions: list[Decision], candidates: dict[str, Candidate],

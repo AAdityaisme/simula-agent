@@ -320,3 +320,13 @@ def test_a_revision_the_naming_call_links_to_an_uncounted_paid_benefit_is_droppe
     revision = CandidatesFile.model_validate_json((run_dir / "judge" / "revisions.json").read_text()).candidates[0]
     assert "linked by the benefit-naming call" in revision.dropped_reason
     assert decisions_of(run_dir)[rev_id].final == "reject"
+
+
+def test_a_revision_waiting_on_a_person_leaves_its_original_in_play():
+    m = golden("aol")
+    revision = idea(m, "c01-rev")
+    waiting = judge.decide(revision, [verdict()], TWO, "annotate")
+    assert waiting.final == "needs_human"
+    assert judge.superseded([revision], {"c01-rev": waiting}, {"c01-rev": {"judge_1": verdict()}}) == set()
+    accepted = judge.decide(revision, [verdict()], ONE, "annotate")
+    assert judge.superseded([revision], {"c01-rev": accepted}, {"c01-rev": {"judge_1": verdict()}}) == {"c01"}
