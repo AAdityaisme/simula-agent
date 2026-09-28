@@ -1,0 +1,87 @@
+"""Trace lines, the run manifest, needs-human files, exhibits, and hand-fix notes."""
+
+import json
+import platform
+import subprocess
+from datetime import datetime
+from pathlib import Path
+
+from simula.config import ROOT
+from simula.contracts import Manifest, TraceLine
+from simula.runfolder import write_json_atomic
+
+BUILD_TRACE = ROOT / "build" / "trace.jsonl"
+
+
+def now() -> str:
+    return datetime.now().isoformat(timespec="seconds")
+
+
+def trace(path: Path, **fields) -> TraceLine:
+    line = TraceLine(ts=now(), **fields)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a") as f:
+        f.write(line.model_dump_json() + "\n")
+    return line
+
+
+def run_trace(run_dir: Path, **fields) -> TraceLine:
+    return trace(run_dir / "trace.jsonl", **fields)
+
+
+def read_trace(path: Path) -> list[TraceLine]:
+    if not path.exists():
+        return []
+    return [TraceLine.model_validate_json(line) for line in path.read_text().splitlines() if line]
+
+
+def write_manifest(run_dir: Path, manifest: Manifest) -> None:
+    write_json_atomic(run_dir / "manifest.json", manifest.model_dump_json(indent=1))
+
+
+def read_manifest(run_dir: Path) -> Manifest:
+    return Manifest.model_validate_json((run_dir / "manifest.json").read_text())
+
+
+def update_manifest(run_dir: Path, **changes) -> Manifest:
+    manifest = read_manifest(run_dir).model_copy(update=changes)
+    write_manifest(run_dir, manifest)
+    return manifest
+
+
+def notify(title: str, message: str) -> bool:
+    if platform.system() != "Darwin":
+        return False
+    script = f"display notification {json.dumps(message)} with title {json.dumps(title)}"
+    return subprocess.run(["osascript", "-e", script], capture_output=True).returncode == 0
+
+
+def needs_human(run_dir: Path, stage: str, what: str, why: str, evidence: list[str], command: str) -> Path:
+    path = run_dir / "needs-human.md"
+    lines = [f"## {now()} · {stage}", "", f"**Needed:** {what}", "", f"**Why:** {why}", "",
+             "**Evidence:**", *[f"- `{e}`" for e in evidence], "", f"**Continue with:** `{command}`", "", ""]
+    with open(path, "a") as f:
+        f.write("\n".join(lines))
+    sent = notify("simula needs you", f"{run_dir.parent.name}: {what}")
+    run_trace(run_dir, stage=stage, step="needs_human", decider="code", outcome="blocked",
+              note=what if sent else f"{what} (notification failed; see needs-human.md)")
+    return path
+
+
+def fixture_banner(run_dir: Path) -> str:
+    if run_dir.name.endswith("-fixture"):
+        return "> **FIXTURE TEST DATA, not a deliverable.**\n\n"
+    return ""
+
+
+def write_exhibit(run_dir: Path, number: int, stage: str, markdown: str) -> Path:
+    path = run_dir / "exhibits" / f"{number:02d}-{stage}.md"
+    path.parent.mkdir(exist_ok=True)
+    path.write_text(fixture_banner(run_dir) + markdown)
+    return path
+
+
+def note(text: str, usd: float = 0.0, run_dir: Path | None = None) -> TraceLine:
+    path = run_dir / "trace.jsonl" if run_dir else BUILD_TRACE
+    return trace(path, stage="build" if run_dir is None else "hand_fix", step="note", decider="human",
+                 usd=usd, note=text)
