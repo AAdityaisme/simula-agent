@@ -5,6 +5,7 @@ import json
 import os
 import shutil
 import subprocess
+import threading
 from datetime import datetime
 from pathlib import Path
 
@@ -98,7 +99,9 @@ def _rel(path: Path, base: Path) -> str:
 
 
 def write_json_atomic(path: Path, data: str) -> None:
-    tmp = path.with_suffix(path.suffix + ".tmp")
+    """Writes to a temp file, then renames it over the target, so a reader never sees half a file. The temp
+    name is per process and thread, so two writers of one path can't interleave."""
+    tmp = path.with_name(f"{path.name}.{os.getpid()}-{threading.get_ident()}.tmp")
     tmp.write_text(data)
     os.replace(tmp, path)
 
