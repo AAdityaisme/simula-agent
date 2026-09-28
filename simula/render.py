@@ -12,7 +12,6 @@ from simula.contracts import ContractError, ContractReport, Device, ProductModel
 
 VIEWPORT = {"width": 411, "height": 914}
 SCALE = 2.625
-TOP_INSET, BOTTOM_INSET = 51.8, 24.0
 FONT_HOSTS = ("fonts.googleapis.com", "fonts.gstatic.com")
 TRANSITIONS = ("push", "modal", "tab", "back", "replace", "unknown")
 WALLPAPER_SHARE = 0.4
