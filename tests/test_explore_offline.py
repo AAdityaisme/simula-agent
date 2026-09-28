@@ -380,3 +380,18 @@ def test_a_sheet_over_the_tab_bar_is_closed_with_back_not_a_relaunch(tmp_path, m
     assert not any(why.startswith("tap toward") for why in ex.relaunch_reasons)
     trace = runlog.read_trace(ex.run_dir / "trace.jsonl")
     assert any("covers the tab bar" in line.note for line in trace)
+
+
+def test_a_chosen_chat_that_cant_be_reached_again_is_reached_through_an_item(tmp_path, monkeypatch):
+    unreachable = [True]
+    at_core = stage.Explorer.at_core
+
+    def first_goto_fails(self, n):
+        if unreachable[0]:
+            unreachable[0] = False
+            return False
+        return at_core(self, n)
+    monkeypatch.setattr(stage.Explorer, "at_core", first_goto_fails)
+    ex, phone = explore(tmp_path, monkeypatch, phone_factory=detail_first)
+    assert ex.core.kind == "chat" and phone.sent == ex.core_reps
+    assert "could not get back" not in " ".join(ex.core_results)

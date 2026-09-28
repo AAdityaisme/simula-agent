@@ -951,20 +951,23 @@ class Explorer:
                 options.append(CoreAction("chat", s, list(found), f"send a message on {s.sid} "
                                                                     f"({found[0].label or 'text box'})"))
                 break
-        main = {self.root.sid, *self.tab_to.values()}
-        feeds = [(s, ob.feed_items(s.cands, self.device, self.tab_keys())) for s in self.states if s.sid in main]
-        feeds = [(s, items) for s, items in feeds if items]
-        if feeds:
-            s, items = max(feeds, key=lambda f: len(f[1]))
-            options.append(CoreAction("feed", s, items, f"open an item from the list on {s.sid} "
-                                                        f"(e.g. {items[0].label[:40]!r})"))
+        feed = self.feed_option()
+        options += [feed] if feed else []
         options += [CoreAction("action", s, [c], f"tap {c.label[:40]!r} on {s.sid}")
                     for s in self.states if s.kind == "screen" for c in [self.input_action(s)] if c]
-        feed = next((o for o in options if o.kind == "feed"), None)
         if feed and not any(o.kind in ("chat", "action") for o in options):
             inside = self.walk_to_input(feed)
             options = ([inside] if inside else []) + options
         return options[:10]
+
+    def feed_option(self) -> CoreAction | None:
+        main = {self.root.sid, *self.tab_to.values()}
+        feeds = [(s, ob.feed_items(s.cands, self.device, self.tab_keys())) for s in self.states if s.sid in main]
+        feeds = [(s, items) for s, items in feeds if items]
+        if not feeds:
+            return None
+        s, items = max(feeds, key=lambda f: len(f[1]))
+        return CoreAction("feed", s, items, f"open an item from the list on {s.sid} (e.g. {items[0].label[:40]!r})")
 
     def input_action(self, s: Seen) -> ob.Candidate | None:
         """A button that makes new content on each tap (Play, Generate, Draw, Spin ...): at most three words, so
@@ -1042,7 +1045,7 @@ class Explorer:
                 self.core_results.append("stopped: out of time")
                 return
             try:
-                if not self.at_core(n):
+                if not self.at_core(n) and not (n == 1 and self.chat_through_an_item()):
                     self.core_results.append(f"pass {n}: could not get back to {self.core.state.sid}")
                     return
                 result, hit = self.core_once(n)
@@ -1063,6 +1066,17 @@ class Explorer:
             self.current = self.core.state
             return True
         return self.goto(self.core.state)
+
+    def chat_through_an_item(self) -> bool:
+        """The chosen chat can't be reached again (a tab that reopens whichever chat was open last lands there
+        only by chance): walks into the first feed item to its composer instead, the same kind of core action."""
+        feed = self.feed_option() if self.core.kind == "chat" else None
+        inside = self.walk_to_input(feed) if feed else None
+        if inside is None or inside.kind != "chat":
+            return False
+        self.note("core", f"{self.core.state.sid} can't be reached again; the chat is {inside.name}")
+        self.core = inside
+        return True
 
     def core_once(self, n: int) -> tuple[str, str]:
         """One pass of the core action. Returns its measurement and what stopped the loop, if anything."""
