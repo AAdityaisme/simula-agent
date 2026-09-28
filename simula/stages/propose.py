@@ -395,13 +395,21 @@ def topup_lens(live: list[Candidate], names: dict[str, str]) -> Lens:
                       "another moment, amount, or duration.")
 
 
+def mock_coverage(candidates: list[Candidate], model: ProductModel) -> str:
+    live = [c for c in candidates if not c.dropped_reason]
+    drawn = {s.id for s in model.states if s.in_mock_scope}
+    return f"{sum(c.trigger_state_id in drawn for c in live)} of {len(live)} live ideas start on a screen the mock draws"
+
+
 # ---------- stage ----------
 
-def exhibit(lenses: list[Lens], candidates: list[Candidate], repairs: dict[str, str], topup: str) -> str:
+def exhibit(lenses: list[Lens], candidates: list[Candidate], repairs: dict[str, str], model: ProductModel,
+            topup: str) -> str:
     live = [c for c in candidates if not c.dropped_reason]
     lines = ["# 05 · propose", "", f"{len(lenses)} lenses, {len(live)} live candidates, "
              f"{len(candidates) - len(live)} dropped, {len(repairs)} with near-miss ids repaired by code "
-             f"(`resolve:<id>` lines in trace.jsonl).", "", f"- Top-up call: {topup}.", "", "| Lens | Kind | Focus |", "|---|---|---|"]
+             f"(`resolve:<id>` lines in trace.jsonl).", "", f"- Mock coverage: {mock_coverage(candidates, model)}.",
+             f"- Top-up call: {topup}.", "", "| Lens | Kind | Focus |", "|---|---|---|"]
     lines += [f"| {l.name} | {l.kind} | {l.focus} |" for l in lenses]
     lines += ["", "## Candidates, by reach"]
     for c in live:
@@ -454,4 +462,4 @@ def run(ctx: Ctx) -> None:
             run_trace(ctx.run_dir, stage="propose", step=f"check:{c.id}", decider="code", outcome="denied",
                       note=c.dropped_reason[:300])
     write_json_atomic(out / "candidates.json", CandidatesFile(candidates=candidates).model_dump_json(indent=1))
-    write_exhibit(ctx.run_dir, 5, "propose", exhibit(lenses, candidates, repairs, topup))
+    write_exhibit(ctx.run_dir, 5, "propose", exhibit(lenses, candidates, repairs, model, topup))

@@ -327,6 +327,7 @@ def test_the_top_up_fires_once_when_dedupe_leaves_fewer_than_four(model, tmp_pat
     assert any(c.lens == "topup" and c.dropped_reason == "duplicate of c01: same benefit (gold badge)" for c in out)
     exhibit = next((tmp_path / "exhibits").glob("05-*.md")).read_text()
     assert "Top-up call: fired (1 distinct after dedupe, under 4; 1 after the top-up)." in exhibit
+    assert "Mock coverage: 1 of 1 live ideas start on a screen the mock draws." in exhibit
 
 
 def test_no_top_up_with_four_distinct_ideas(model, tmp_path, monkeypatch):
