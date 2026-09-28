@@ -1,9 +1,9 @@
 import pytest
 
 from simula import llm
-from simula.contracts import CandidateDraft, LedgerItem, LensOutput
+from simula.contracts import CandidateDraft, LedgerItem, LensOutput, Mechanic
 from simula.stages import Ctx, propose
-from simula.stages.propose import anchor_ids, check, daily_cap, depths, finish, free_offers, in_chat
+from simula.stages.propose import anchor_ids, check, daily_cap, depths, finish, in_chat
 from tests.conftest import APPS
 from tests.propose_fixtures import anchored, candidate, golden, root
 
@@ -111,7 +111,18 @@ def test_the_same_reward_on_different_screens_is_a_duplicate(model):
               candidate(model, reward=elsewhere, trigger_state_id=other_screen(model), frequency_cap="5 per day")]
     by_id = {c.id: c for c in finish(drafts, model, "annotate")[0]}
     assert by_id["c02"].dropped_reason is None
-    assert by_id["c01"].dropped_reason == "duplicate of c02: same reward (gold badges)"
+    assert by_id["c01"].dropped_reason == "duplicate of c02: same reward (gold badge)"
+
+
+def test_the_same_benefit_for_the_same_users_is_a_duplicate_whatever_the_wording(model):
+    meter = LedgerItem(id="x1", kind="meter", verbatim="3 chats left", evidence_ids=[])
+    metered = model.model_copy(update={"value_ledger": model.value_ledger + [meter]})
+    drafts = [candidate(metered, title="Two more chats", grants_id="x1"),
+              candidate(metered, title="Keep talking a little longer", grants_id="x1", frequency_cap="3 per day",
+                        reward={"kind": "cosmetic", "unit": "extra conversation", "amount": 2, "duration": "today"})]
+    by_id = {c.id: c for c in finish(drafts, metered, "annotate")[0]}
+    assert by_id["c02"].dropped_reason is None
+    assert by_id["c01"].dropped_reason == "duplicate of c02: same reward (x1 for free users)"
 
 
 def test_different_rewards_on_one_screen_are_both_kept(model):
@@ -124,17 +135,55 @@ def test_no_after_reward_is_dropped(model):
     assert "runs out" in check(candidate(model, after_reward="  "), model)
 
 
-def test_a_taste_of_what_a_free_trial_already_gives_is_dropped(model):
-    if not anchor_ids(model):
-        pytest.skip("no anchor to cite")
-    trial = LedgerItem(id="t1", kind="paywall_bullet", verbatim="Start\xa07-day free trial", evidence_ids=[])
-    with_trial = model.model_copy(update={"value_ledger": model.value_ledger + [trial]})
-    taste = anchored(model, title="Try the paid feature for a day")
-    assert "already offers this" in check(taste, with_trial)
-    assert check(anchored(model, title="One more slot for 3 days"), with_trial) is None
-    assert check(candidate(model, title="Try a new theme"), with_trial) is None
-    if not free_offers(model):
-        assert check(taste, model) is None
+def paywalled(model, bullet, limit=False):
+    """The golden plus a synthetic paywall bullet `b1` on its paywall screen, a free trial on that screen, and
+    optionally an observed limit on the bullet."""
+    screen = next((i.evidence_ids[0].split(".")[0] for i in model.value_ledger if i.kind == "paywall_bullet"), None)
+    if screen is None:
+        pytest.skip("no paywall")
+    bullet_id = f"{screen}.e999"
+    trial = next(e for s in model.states for e in s.elements).model_copy(
+        update={"id": f"{screen}.e998", "text": "Start 3-day free\xa0trial", "label": ""})
+    states = [s.model_copy(update={"elements": s.elements + [trial]}) if s.id == screen else s for s in model.states]
+    cap = Mechanic(id="mx", kind="limit", evidence_ids=[bullet_id], summary="A cap", observed_numbers=[],
+                   status="observed")
+    return model.model_copy(update={
+        "states": states, "mechanics": model.mechanics + [cap] * limit,
+        "value_ledger": model.value_ledger + [LedgerItem(id="b1", kind="paywall_bullet", verbatim=bullet,
+                                                         evidence_ids=[bullet_id])]})
+
+
+@pytest.mark.parametrize("users", ["free", "everyone"])
+def test_a_piece_of_a_bullet_the_free_trial_already_gives_is_dropped(model, users):
+    m = paywalled(model, "Up to 5 chats a day")
+    assert "which the free trial on that screen already gives" in check(candidate(m, grants_id="b1",
+                                                                                 for_users=users), m)
+
+
+def test_more_of_a_bullet_with_a_number_for_payers_is_kept(model):
+    m = paywalled(model, "Up to 5 chats a day")
+    assert check(candidate(m, grants_id="b1", for_users="paying"), m) is None
+
+
+def test_more_of_a_bullet_nobody_counted_for_payers_is_dropped(model):
+    m = paywalled(model, "Smarter replies")
+    assert "no amount or cap for it was observed" in check(candidate(m, grants_id="b1", for_users="paying"), m)
+    capped = paywalled(model, "Smarter replies", limit=True)
+    assert check(candidate(capped, grants_id="b1", for_users="paying"), capped) is None
+
+
+def test_a_new_resource_or_an_unknown_ledger_id(model):
+    m = paywalled(model, "Smarter replies")
+    assert check(candidate(m, grants_id=None, for_users="free"), m) is None
+    assert "is not a ledger id" in check(candidate(m, grants_id="nope"), m)
+
+
+def test_no_paywall_means_no_grants_rule_fires(model):
+    if any(i.kind == "paywall_bullet" for i in model.value_ledger):
+        pytest.skip("has a paywall")
+    for grants_id in [None] + [i.id for i in model.value_ledger]:
+        for users in ("free", "paying", "everyone"):
+            assert check(candidate(model, grants_id=grants_id, for_users=users), model) is None
 
 
 def test_non_breaking_spaces_are_plain_spaces():

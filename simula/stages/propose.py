@@ -30,7 +30,6 @@ SAFE_TRIGGER_RATINGS = {"safe", "mixed"}
 # The assignment's two buckets, shown first on every candidate's title.
 BUCKETS = {"existing_anchor": "Existing opportunity", "product_change": "Product change"}
 FREE_OFFER = re.compile(r"\bfree\b[^.;,]{0,20}\btrial\b|\btrial\b[^.;,]{0,20}\bfree\b", re.I)
-TASTE = re.compile(r"\b(try|taste|trial|sample)\b", re.I)
 
 FIXED_LENSES = [
     Lens(id="free_at_limit", name="Free user at a limit", kind="fixed", ledger_ids=[],
@@ -173,12 +172,35 @@ def in_chat(placement: str) -> bool:
     return any(CHAT_PLACEMENT.search(c) and not NEGATED.search(c) for c in clauses)
 
 
-def free_offers(model: ProductModel) -> list[str]:
-    """What the app already gives away free (a free trial), read from its ledger and its paywall, limit,
-    currency, and entitlement evidence."""
-    elements = {e.id: e for s in model.states for e in s.elements}
-    texts = [plain(f"{elements[i].text} {elements[i].label}") for i in sorted(anchor_ids(model)) if i in elements]
-    return [t for t in texts + [plain(i.verbatim) for i in model.value_ledger] if FREE_OFFER.search(t)]
+def free_trial(model: ProductModel, screens: set[str]) -> str | None:
+    """The first free-trial text shown on any of these screens."""
+    texts = (plain(" ".join(t for t in (e.text, e.label) if t))
+             for s in model.states if s.id in screens for e in s.elements)
+    return next((t for t in texts if FREE_OFFER.search(t)), None)
+
+
+def observed_limit(model: ProductModel, evidence_ids: list[str]) -> bool:
+    return any(m.kind == "limit" and m.status == "observed" and set(m.evidence_ids) & set(evidence_ids)
+               for m in model.mechanics)
+
+
+def grants_problem(c: Candidate, model: ProductModel) -> str | None:
+    """Why the paid benefit the reward is a piece of rules the idea out, or None: the free trial on the benefit's
+    screen already gives it to non-payers, or payers would get more of an amount nobody saw."""
+    if not c.grants_id:
+        return None
+    benefit = next((i for i in model.value_ledger if i.id == c.grants_id), None)
+    if benefit is None:
+        return f"grants_id {c.grants_id!r} is not a ledger id"
+    if benefit.kind != "paywall_bullet":
+        return None
+    bullet = plain(benefit.verbatim)
+    trial = free_trial(model, {i.split(".")[0] for i in benefit.evidence_ids})
+    if trial and c.for_users != "paying":
+        return f'a piece of "{bullet}", which the free trial on that screen already gives: "{trial}"'
+    if c.for_users == "paying" and not re.search(r"\d", bullet) and not observed_limit(model, benefit.evidence_ids):
+        return f'gives payers more of "{bullet}", but no amount or cap for it was observed'
+    return None
 
 
 def check(c: Candidate, model: ProductModel) -> str | None:
@@ -212,11 +234,8 @@ def check(c: Candidate, model: ProductModel) -> str | None:
         return problem
     if not c.after_reward.strip():
         return "doesn't say what the user sees when the reward runs out"
-    # ponytail: a taste of a paid feature is what a free trial already is; code spots the trial and the idea's
-    # own "try / taste" framing by words, and the judge reads the meaning
-    offers = free_offers(model)
-    if offers and c.kind == "existing_anchor" and TASTE.search(plain(f"{c.title} {c.offer_copy}")):
-        return f'the app already offers this: "{offers[0]}"'
+    if problem := grants_problem(c, model):
+        return problem
     if in_chat(c.placement):
         return "placement is inside a chat transcript, not app chrome"
     return None
@@ -263,18 +282,21 @@ def rank(c: Candidate, model: ProductModel, mode: str) -> Candidate:
 
 
 def reward_key(c: Candidate) -> str:
+    """What dedupe compares: the paid benefit and who gets it when the idea names one, else the reward's unit."""
+    if c.grants_id:
+        return f"{c.grants_id} for {c.for_users} users"
     # ponytail: the unit's words, case-folded, each with a plural "s" stripped; synonyms ("badge" vs
     # "checkmark") slip through. The prompt asks for the app's own word so one benefit gets one unit.
     return " ".join(word.removesuffix("s") for word in plain(c.reward.unit).casefold().split())
 
 
 def dedupe(ranked: list[Candidate]) -> list[Candidate]:
-    """Takes live candidates best first. One whose reward unit names the same thing as a better-ranked one's is
-    dropped as its duplicate, whatever its trigger."""
+    """Takes live candidates best first. One that gives the same reward as a better-ranked one (see reward_key)
+    is dropped as its duplicate, whatever its trigger."""
     out = []
     for c in ranked:
         twin = next((k for k in out if reward_key(c) and reward_key(k) == reward_key(c)), None)
-        reason = f"duplicate of {twin.id}: same reward ({plain(twin.reward.unit)})" if twin else None
+        reason = f"duplicate of {twin.id}: same reward ({reward_key(twin)})" if twin else None
         out.append(c.model_copy(update={"dropped_reason": reason}))
     return out
 
