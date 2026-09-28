@@ -36,12 +36,12 @@ The bible calls some fields by other names: its `adapted_from` is `bible_mechani
 - `advertiser_category`: a plausible, brand-safe advertiser category for this audience.
 - `character_use`: how (or whether) the app's own characters, mascots, or content appear in the ad moment. "None" is fine.
 - `flow_steps`: 3 to 6 steps. The first is `trigger_state_id` as it is today. Every existing screen you name must be in scope. New screens use `new:<short-slug>` as the state id. The steps go: where it starts → the offer → the ad plays → the reward lands.
-- `after_reward`: one plain sentence on what the user sees when the reward runs out, and why that moves them toward paying, returning, or playing again ("When the 3 days end, the sixth character locks again with a note that Luzia+ keeps it for good."). Code drops an idea without it.
+- `after_reward`: one plain sentence on what the user sees when the reward runs out, and why that moves them toward paying, returning, or playing again ("When the 3 days end, the extra slot locks again with a note that the paid plan keeps it for good."). Code drops an idea without it.
 - `rationale`: why this works for this app, in two or three sentences.
 
 ## Language
 
-`title`, `offer_copy`, every `flow_steps` caption, and `rationale` go on slides for the app's product team. Write them in plain product language: short sentences, no element ids, no M-ids, no ad-tech or cost terms (eCPM, fill, ad slots, ad units, serving cost, SDK events). Say what the user sees and gets. Name plans, tiers, and features only as the app shows them in the product model, and explain every app term in plain words a first-time user understands ("5 extra rerolls on the better model", not "5 frontier swipes"). Don't invent a feature name the user would have to learn (a "Fan Spotlight"); say what they see ("your favorite character shows first in the Hidden Gems list for a day").
+`title`, `offer_copy`, every `flow_steps` caption, and `rationale` go on slides for the app's product team. Write them in plain product language: short sentences, no element ids, no M-ids, no ad-tech or cost terms (eCPM, fill, ad slots, ad units, serving cost, SDK events). Say what the user sees and gets. Name plans, tiers, and features only as the app shows them in the product model, and explain every app term in plain words a first-time user understands ("5 extra replies from the stronger model", not "5 turbo pulls"). Don't invent a feature name the user would have to learn (a "Fan Spotlight"); say what they see ("your favorite creator shows first in the discovery list for a day").
 
 ## Rules
 
