@@ -323,6 +323,7 @@ def assert_contained(run_dir, reason: str):
     not_built = re.search(r'<ul class="not-built">(.*?)</ul>', deck, re.S).group(1)
     assert "c02 · " in not_built and reason in html.unescape(not_built)
     assert (run_dir / "flows" / "slides.pdf").read_bytes().startswith(b"%PDF")
+    assert not (run_dir / "flows" / "c02").exists()
     exhibit = (run_dir / "exhibits" / "07-flows.md").read_text()
     assert "## Not built" in exhibit and f"- c02: " in exhibit and reason in exhibit
     assert "1 idea(s) passed the review but couldn't be drawn" in html.unescape(deck).replace("1 more", "1")
@@ -376,6 +377,12 @@ def test_a_new_control_that_returns_to_the_first_step_goes_back(app):
     fixed, relabeled = flows.decline_edges(page, first, {e.id for e in model.edges})
     assert relabeled == 1
     assert fixed == page.replace('data-transition="replace"', 'data-transition="back"')
+
+
+def test_the_copy_check_reads_words_in_any_script():
+    assert flows.words("「広告を見て」30分 無料!") == "広告を見て 30分 無料"
+    assert flows.words("Échale un vistazo, ¡gratis!") == "échale un vistazo gratis"
+    assert flows.words("!!!") == ""
 
 
 def test_code_dropped_ideas_show_their_reason_on_the_card(built):
