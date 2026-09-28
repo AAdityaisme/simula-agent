@@ -60,7 +60,7 @@ def run(ctx: Ctx) -> None:
     budget = llm.Budget.for_stage("qa", ctx.run_dir / "trace.jsonl", ctx.usd_cap)
 
     best = measure_or_replay(ctx, model, scope, 0, (ctx.run_dir / "mock" / "index.html").read_text())
-    rounds, history, stop = [summary(best, kept=True)], [], f"all {MAX_ROUNDS} rounds ran"
+    rounds, history, stop, disagreement = [summary(best, kept=True)], [], f"all {MAX_ROUNDS} rounds ran", None
     for n in range(1, MAX_ROUNDS + 1):
         try:
             critique = criticize(ctx, budget, best, history, n)
@@ -79,13 +79,14 @@ def run(ctx: Ctx) -> None:
             stop = f"round {n} broke the page ({str(e).splitlines()[0][:200]}), so its edits were discarded"
             break
         gain = new.score - best.score
-        kept = gain >= 0
+        kept = rank(new) <= rank(best)
+        disagreement = disagreement or keep_rule_disagreement(new, best, kept)
         rounds.append(summary(new, kept, results))
         history.append({"round": n, "score_before": round(best.score, 2), "score_after": round(new.score, 2),
                         "kept": kept, "fixes": [f"{f.element_id}: {f.problem}" for f in critique.fixes],
                         "rejected_edits": [r["why"] for r in results if not r["applied"]]})
         if not kept:
-            stop = f"round {n} lowered the score {best.score:.2f} → {new.score:.2f}, so its edits were discarded"
+            stop = f"round {n} {worse(new, best)}, so its edits were discarded"
             break
         best = new
         if n >= 2 and gain < MIN_GAIN:
@@ -94,9 +95,30 @@ def run(ctx: Ctx) -> None:
     run_trace(ctx.run_dir, stage="qa", step="stop", decider="code", note=stop)
 
     approve(ctx, best)
-    report = qa_report(best, rounds, stop)
+    report = qa_report(best, rounds, stop, disagreement)
     write_json(ctx.run_dir / "qa" / "qa_report.json", report)
     write_exhibit(ctx.run_dir, 4, "qa", exhibit(ctx, model, best, rounds, report))
+
+
+def rank(v: Version) -> tuple[int, float]:
+    """Fewest contract errors first (each is a broken tap or edge in the clickable mock and the slides), then the
+    higher score (which is mostly cosmetic)."""
+    return len(v.contract_errors), -v.score
+
+
+def worse(new: Version, best: Version) -> str:
+    if len(new.contract_errors) > len(best.contract_errors):
+        return f"added contract errors ({len(best.contract_errors)} → {len(new.contract_errors)})"
+    return f"lowered the score {best.score:.2f} → {new.score:.2f}"
+
+
+def keep_rule_disagreement(new: Version, best: Version, kept: bool) -> dict | None:
+    """Where a score-only keep rule would have decided this round the other way, and the round it would approve."""
+    if (new.score >= best.score) == kept:
+        return None
+    return {"round": new.round, "score_only_approves": best.round if kept else new.round,
+            "contract_errors": [len(best.contract_errors), len(new.contract_errors)],
+            "score": [round(best.score, 3), round(new.score, 3)]}
 
 
 # ---------- measuring one version ----------
@@ -400,11 +422,12 @@ def summary(version: Version, kept: bool, edits: list[dict] = ()) -> dict:
             "edits_applied": sum(e["applied"] for e in edits), "edits_rejected": sum(not e["applied"] for e in edits)}
 
 
-def qa_report(best: Version, rounds: list[dict], stop: str) -> dict:
+def qa_report(best: Version, rounds: list[dict], stop: str, disagreement: dict | None) -> dict:
     """qa_incomplete when the approved version still fails navigation; flows still run on it, with that label."""
     incomplete = bool(best.failed_taps() or best.failed_flows())
     return {"status": "qa_incomplete" if incomplete else "approved", "approved_round": best.round,
             "score": round(best.score, 3), "stop_reason": stop, "rounds": rounds,
+            "keep_rule_disagreement": disagreement,
             "screens": [{**json.loads(s["metrics"].model_dump_json()), "name": s["name"], "tagged": s["tagged"],
                          "taps": s["taps"], "data_el_misses": s["misses"]} for s in best.screens],
             "failed_taps": best.failed_taps(), "flows": best.flows,
@@ -417,7 +440,9 @@ def exhibit(ctx: Ctx, model: ProductModel, best: Version, rounds: list[dict], re
     lines = [f"# QA: {model.app}", "",
              f"Status: {status}. Score {rounds[0]['score']:.2f} → {best.score:.2f} (round {best.round}, copied to "
              f"`qa/approved/`). Stop: {report['stop_reason']}. Model spend this stage: ${stage_usd(ctx):.4f}.", "",
-             "Round 0 is the mock as stage 3 delivered it; round N is the page after N fix rounds.", "",
+             "Round 0 is the mock as stage 3 delivered it; round N is the page after N fix rounds. A round is kept "
+             "when it has fewer contract errors, or as many and a score at least as high. " + keep_rule_line(report),
+             "",
              "| Round | Score | Contract errors | Failed taps | Failed flows | Edits applied / rejected | Kept |",
              "|---|---|---|---|---|---|---|"]
     lines += [f"| {r['round']} | {r['score']:.2f} | {r['contract_errors']} | {r['failed_taps']} | {r['failed_flows']} | "
@@ -441,6 +466,15 @@ def exhibit(ctx: Ctx, model: ProductModel, best: Version, rounds: list[dict], re
         lines += ["", "Contract errors on the approved version:",
                   *[f"- {e.kind} ({e.screen or 'page'}): {e.detail}" for e in best.contract_errors]]
     return "\n".join(lines) + "\n"
+
+
+def keep_rule_line(report: dict) -> str:
+    d = report["keep_rule_disagreement"]
+    if not d:
+        return "A score-only rule would have approved the same round."
+    return (f"A score-only rule would have approved round {d['score_only_approves']} instead: round {d['round']} went "
+            f"from {d['contract_errors'][0]} to {d['contract_errors'][1]} contract errors and from score "
+            f"{d['score'][0]:.2f} to {d['score'][1]:.2f}.")
 
 
 def stage_usd(ctx: Ctx) -> float:

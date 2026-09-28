@@ -9,7 +9,7 @@ import pytest
 from PIL import Image
 
 from simula import config, llm, render
-from simula.contracts import ContractReport, Critique, Edit, Edits, Fix, ProductModel, QAMetrics
+from simula.contracts import ContractError, ContractReport, Critique, Edit, Edits, Fix, ProductModel, QAMetrics
 from simula.runlog import read_trace
 from simula.stages import mock, qa
 from tests.conftest import APPS
@@ -40,10 +40,12 @@ def scripted(tmp_path, monkeypatch):
     (run_dir / "mock" / "index.html").write_text("<html><body>v0</body></html>")
     calls = []
 
-    def play(scores, profile="dev", edits=lambda n: [Edit(find=f"v{n - 1}", replace=f"v{n}", reason="r")]):
+    def play(scores, profile="dev", edits=lambda n: [Edit(find=f"v{n - 1}", replace=f"v{n}", reason="r")],
+             errors=None):
         def measure(ctx, model, scope, n, html):
             metrics = QAMetrics(round=n, screens=[], cross_screen_failures=[], score=scores[n])
-            return qa.Version(n, html, metrics, [], [], [], [])
+            broken = [ContractError(kind="invented_edge", detail="d", screen=None)] * (errors[n] if errors else 0)
+            return qa.Version(n, html, metrics, [], [], [], broken)
         monkeypatch.setattr(qa, "measure", measure)
         monkeypatch.setattr(qa, "rebuild", lambda html, model, screens: html)
         monkeypatch.setattr(llm, "call", fake_llm(calls, edits))
@@ -85,6 +87,31 @@ def test_a_first_round_that_lowers_the_score_approves_the_mock_as_delivered(scri
     report = play([5.0, 4.0])
     assert report["approved_round"] == 0
     assert approved_html(run_dir) == (run_dir / "mock" / "index.html").read_text()
+
+
+def test_a_round_that_fixes_a_contract_error_is_kept_even_if_the_score_dips(scripted):
+    run_dir, _, play = scripted
+    report = play([5.0, 4.8, 4.7], errors=[1, 0, 0])
+    assert [(r["round"], r["kept"]) for r in report["rounds"]] == [(0, True), (1, True), (2, False)]
+    assert report["approved_round"] == 1 and "v1" in approved_html(run_dir)
+    assert report["keep_rule_disagreement"] == {"round": 1, "score_only_approves": 0, "contract_errors": [1, 0],
+                                                "score": [5.0, 4.8]}
+
+
+def test_a_round_that_adds_a_contract_error_is_discarded_even_if_the_score_rises(scripted):
+    _, _, play = scripted
+    report = play([5.0, 6.0], errors=[0, 1])
+    assert [(r["round"], r["kept"]) for r in report["rounds"]] == [(0, True), (1, False)]
+    assert report["approved_round"] == 0 and "added contract errors (0 → 1)" in report["stop_reason"]
+    assert report["keep_rule_disagreement"]["score_only_approves"] == 1
+
+
+def test_with_equal_contract_errors_the_higher_score_wins(scripted):
+    _, _, play = scripted
+    report = play([5.0, 6.0, 5.5], errors=[2, 2, 2])
+    assert [(r["round"], r["kept"]) for r in report["rounds"]] == [(0, True), (1, True), (2, False)]
+    assert report["approved_round"] == 1 and "lowered the score 6.00 → 5.50" in report["stop_reason"]
+    assert report["keep_rule_disagreement"] is None
 
 
 def test_the_fixer_runs_high_then_xhigh_in_round_3_and_the_critic_gets_the_history(scripted):
