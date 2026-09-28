@@ -4,6 +4,7 @@ rejects get one Opus revision, and code ranks what survives."""
 import hashlib
 import json
 import os
+import shutil
 import tomllib
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -288,7 +289,9 @@ def run(ctx: Ctx) -> None:
     model = ProductModel.model_validate_json((ctx.run_dir / "model" / "product_model.json").read_text())
     candidates = CandidatesFile.model_validate_json((ctx.run_dir / "propose" / "candidates.json").read_text()).candidates
     out = ctx.run_dir / "judge"
-    (out / "verdicts").mkdir(parents=True, exist_ok=True)
+    # A rerun starts clean, so no queue, no-opportunity note, or verdict from an earlier attempt survives it.
+    shutil.rmtree(out, ignore_errors=True)
+    (out / "verdicts").mkdir(parents=True)
     mode = config.profiles()["economics_mode"]
     judges = config.profiles().get("judges", DEFAULT_JUDGES)
     budget = llm.Budget.for_stage("judge", ctx.run_dir / "trace.jsonl", ctx.usd_cap)

@@ -223,3 +223,17 @@ def test_a_failed_judge_call_queues_the_candidate_for_a_person(tmp_path, monkeyp
     assert [(d.final, d.rerun_stage) for d in decisions] == [("needs_human", "judge")]
     assert f"simula judge {app}" in (run_dir / "judge" / "human-queue.md").read_text()
     assert (run_dir / "needs-human.md").exists()
+
+
+def test_a_rerun_leaves_nothing_from_an_earlier_attempt(tmp_path, monkeypatch):
+    app = "luzia"
+    run_dir = seed(tmp_path, app, live(app, {}))
+    stale = run_dir / "judge"
+    (stale / "verdicts").mkdir(parents=True)
+    for name in ("human-queue.md", "no-opportunity.md", "verdicts/c09_judge_1_r1.json"):
+        (stale / name).write_text("from an earlier attempt")
+    call, _ = fake_llm({})
+    monkeypatch.setattr(llm, "call", call)
+    judge.run(ctx_for(app, run_dir))
+    assert sorted(p.name for p in stale.rglob("*")) == ["c01_judge_1_r1.json", "decisions.json", "revisions.json",
+                                                        "verdicts"]
