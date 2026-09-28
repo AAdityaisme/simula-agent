@@ -13,7 +13,7 @@ NO_COST = {"inference_count": 0, "tokens_in": 0, "tokens_out": 0, "minutes": 0, 
 
 
 def reward(kind, amount=1):
-    return {"kind": kind, "unit": "unit", "amount": amount, "duration": "today"}
+    return {"kind": kind, "unit": kind, "amount": amount, "duration": "today"}
 
 
 def verdict_cases(model):

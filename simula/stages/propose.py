@@ -3,7 +3,6 @@ code checks every answer, adds the cost line, and ranks by reach."""
 
 import json
 import re
-from difflib import SequenceMatcher
 from pathlib import Path
 from string import Template
 
@@ -32,7 +31,6 @@ SAFE_TRIGGER_RATINGS = {"safe", "mixed"}
 BUCKETS = {"existing_anchor": "Existing opportunity", "product_change": "Product change"}
 FREE_OFFER = re.compile(r"\bfree\b[^.;,]{0,20}\btrial\b|\btrial\b[^.;,]{0,20}\bfree\b", re.I)
 TASTE = re.compile(r"\b(try|taste|trial|sample)\b", re.I)
-SIMILAR_TITLES = 0.8
 
 FIXED_LENSES = [
     Lens(id="free_at_limit", name="Free user at a limit", kind="fixed", ledger_ids=[],
@@ -264,19 +262,20 @@ def rank(c: Candidate, model: ProductModel, mode: str) -> Candidate:
     return c.model_copy(update={"reach_score": reach, "rank_score": round(score, 6)})
 
 
-def same_idea(a: Candidate, b: Candidate) -> bool:
-    if (a.trigger_state_id, a.reward.kind) == (b.trigger_state_id, b.reward.kind):
-        return True
-    return SequenceMatcher(None, plain(a.title).lower(), plain(b.title).lower()).ratio() >= SIMILAR_TITLES
+def reward_key(c: Candidate) -> str:
+    # ponytail: the unit's words, case-folded, each with a plural "s" stripped; synonyms ("badge" vs
+    # "checkmark") slip through. The prompt asks for the app's own word so one benefit gets one unit.
+    return " ".join(word.removesuffix("s") for word in plain(c.reward.unit).casefold().split())
 
 
 def dedupe(ranked: list[Candidate]) -> list[Candidate]:
-    """Takes live candidates best first. One that repeats a better-ranked one (same trigger screen and reward
-    kind, or a near-identical title) is dropped as its duplicate."""
+    """Takes live candidates best first. One whose reward unit names the same thing as a better-ranked one's is
+    dropped as its duplicate, whatever its trigger."""
     out = []
     for c in ranked:
-        twin = next((k for k in out if not k.dropped_reason and same_idea(k, c)), None)
-        out.append(c.model_copy(update={"dropped_reason": f"duplicate of {twin.id}"}) if twin else c)
+        twin = next((k for k in out if reward_key(c) and reward_key(k) == reward_key(c)), None)
+        reason = f"duplicate of {twin.id}: same reward ({plain(twin.reward.unit)})" if twin else None
+        out.append(c.model_copy(update={"dropped_reason": reason}))
     return out
 
 

@@ -99,17 +99,25 @@ def test_existing_opportunity_label(model):
     assert out.title == "Existing opportunity: Unlock one more for 3 days"
 
 
-def test_duplicates_keep_the_better_ranked_one(model):
-    same_moment = [candidate(model, title="A badge"),
-                   candidate(model, title="A different badge story", frequency_cap="3 per day")]
-    out, _ = finish(same_moment + distinct(model)[1:], model, "annotate")
-    by_id = {c.id: c for c in out}
-    assert by_id["c01"].dropped_reason == "duplicate of c02" and by_id["c02"].dropped_reason is None
-    similar = [distinct(model)[0], candidate(model, title="A badge for a week!",
-                                             reward={"kind": "streak_protection", "unit": "save", "amount": 1,
-                                                     "duration": "a day"})]
-    assert [c.dropped_reason for c in finish(similar, model, "annotate")[0]] == [None, "duplicate of c01"]
-    assert all(c.dropped_reason is None for c in finish(distinct(model), model, "annotate")[0])
+def other_screen(model):
+    return next(s.id for s in model.states
+                if s.in_mock_scope and s.id != root(model) and s.content_rating in propose.SAFE_TRIGGER_RATINGS)
+
+
+def test_the_same_reward_on_different_screens_is_a_duplicate(model):
+    badge = {"kind": "cosmetic", "unit": "Gold  Badge", "amount": 1, "duration": "7 days"}
+    elsewhere = {**badge, "unit": "gold badges"}
+    drafts = [candidate(model, reward=badge),
+              candidate(model, reward=elsewhere, trigger_state_id=other_screen(model), frequency_cap="5 per day")]
+    by_id = {c.id: c for c in finish(drafts, model, "annotate")[0]}
+    assert by_id["c02"].dropped_reason is None
+    assert by_id["c01"].dropped_reason == "duplicate of c02: same reward (gold badges)"
+
+
+def test_different_rewards_on_one_screen_are_both_kept(model):
+    badge = {"kind": "cosmetic", "unit": "badge", "amount": 1, "duration": "7 days"}
+    drafts = [candidate(model, reward=badge), candidate(model, reward={**badge, "unit": "profile frame"})]
+    assert [c.dropped_reason for c in finish(drafts, model, "annotate")[0]] == [None, None]
 
 
 def test_no_after_reward_is_dropped(model):
