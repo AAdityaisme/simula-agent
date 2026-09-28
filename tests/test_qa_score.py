@@ -1,7 +1,9 @@
 """The QA score: the formula, dropped terms, masking (copied pixels where they sit over their origin, and dynamic
 regions), what earns bounds and nav credit, and the per-screen average."""
 
+import json
 import re
+import shutil
 from itertools import count
 
 import numpy as np
@@ -141,6 +143,20 @@ def test_copies_drawn_away_from_their_origin_mask_nothing_there(one_screen):
     corner = redraw(lambda src, style, attrs: f'<img src="{src}" style="position:absolute;left:0;top:0;width:4px;'
                                               f'height:4px"{attrs}>')
     assert coverage(measure(corner)) > coverage(measure())
+
+
+def test_art_crops_are_masked_when_art_json_lists_their_origin(one_screen):
+    run_dir, state, measure = one_screen
+    base = coverage(measure())
+    assets = run_dir / "mock" / "assets"
+    for png in list(assets.glob("*.png")):
+        shutil.copyfile(png, assets / f"{png.stem}.art.png")
+    as_art = redraw(lambda src, style, attrs: f'<img src="{src[:-4]}.art.png" style="{style}"{attrs}>')
+    assert coverage(measure(as_art)) > base
+    art = {f"assets/{e.id}.art.png": e.rect_dp.model_dump()
+           for e in state.elements if (assets / f"{e.id}.png").exists()}
+    (run_dir / "mock" / "art.json").write_text(json.dumps({"schema_version": 1, "art": art}))
+    assert coverage(measure(as_art)) == pytest.approx(base)
 
 
 @pytest.mark.parametrize("hide", ["visibility:hidden", "opacity:0"])

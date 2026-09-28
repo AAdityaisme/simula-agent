@@ -160,10 +160,10 @@ def measure_screen(ctx: Ctx, model: ProductModel, state: State, round_dir, boxes
 
 
 def art_origins(ctx: Ctx) -> dict:
-    """mock/art.json: each art crop's src and the content-dp rect it was cut from (absent before PR 3b)."""
+    """mock/art.json: each art crop's src and the content-dp rect it was cut from. No file, no art."""
     path = ctx.run_dir / "mock" / "art.json"
-    art = json.loads(path.read_text()) if path.exists() else {}
-    return {src: Rect(**r) for src, r in art.items() if src.startswith("assets/")}
+    data = json.loads(path.read_text()) if path.exists() else {}
+    return {src: Rect(**r) for src, r in data.get("art", data).items() if src.startswith("assets/")}
 
 
 def screen_score(bounds: float | None, nav: float | None, ssim: float | None) -> float:
