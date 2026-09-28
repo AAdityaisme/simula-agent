@@ -25,7 +25,10 @@ def test_every_app_has_trees_and_screens(app):
 def test_trees_are_raw_mobile_mcp_replies(path):
     elements = tree(path.parent.name, path.name.removesuffix(".elements.json"))
     assert elements and all({"ref", "type", "coordinates"} <= set(e) for e in elements)
-    assert Image.open(path.with_name(path.name.replace(".elements.json", ".png"))).size == (1080, 2400)
+    png = path.with_name(path.name.replace(".elements.json", ".png"))
+    if path.name.endswith("-external.elements.json"):
+        return  # a tap left the app; the capture kept only the tree and the foreground package
+    assert Image.open(png).size == (1080, 2400)
 
 
 def test_no_account_details_in_any_text_fixture():
