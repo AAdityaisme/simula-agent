@@ -55,6 +55,7 @@ LAUNCH_WAIT_S = 30
 LAUNCH_QUIET_S = 3
 WALK_STEPS = 3
 WALK_SWIPES = 2
+WALK_ITEMS = 3
 ONE_LINE_DP = 32
 COMPOSER_BAND_PX = 150
 LIMIT_STOPS = ("counter", "input disabled", "paywall", "limit")
@@ -984,11 +985,13 @@ class Explorer:
         return next((c for c in cands if c.tree_label and len(c.label.split()) <= 3 and ob.CREATE.match(c.label)
                      and c.key not in self.tab_keys() and not ob.denied(c, upsell=upsell)), None)
 
-    def choose_core(self) -> CoreAction | None:
-        """Jev names the core action among what the tour saw, or none of them."""
+    def choose_core(self) -> list[CoreAction]:
+        """Jev names the core action among what the tour saw, or none of them. Its other choices of the same kind
+        follow in its own order, for when the one it named can't be reached again: a feed answer never becomes a
+        chat."""
         options = self.core_options()
         if not options:
-            return None
+            return []
         evidence = {o.state.sid: self.evidence(o) for o in options}
         rest = [self.describe(s) for s in self.states if s.kind == "screen" and s.sid not in evidence]
         seen = "; ".join([*evidence.values(), *rest])[:3000]
@@ -996,9 +999,12 @@ class Explorer:
             result = decide.choose(self.trace_path, "explore", "core", seen, CORE_QUESTION,
                                    [o.name for o in options] + [NO_CORE], **self.jev_options())
         except decide.JevFailed:
-            return next((o for o in options if o.kind == "chat"), options[0])
-        index = decide.index_of(result.option_id)
-        return options[index] if index < len(options) else None
+            return [o for o in options if o.kind == "chat"] or options[:1]
+        first, *rest = decide.ordered(result, list(range(len(options) + 1)))
+        if first == len(options):
+            return []
+        pick = options[first]
+        return [pick, *(options[i] for i in rest if i < len(options) and options[i].kind == pick.kind)]
 
     def evidence(self, o: CoreAction) -> str:
         """What Jev sees of an option's own screen. A conversation is told by its title and its last messages, so a
@@ -1022,10 +1028,22 @@ class Explorer:
         """Opening an item is a step, not the core action: goes into the first item and takes its main action
         (Chat, Start ...) up to WALK_STEPS times, until a text box with send or a play/generate button shows. What it
         finds is one more option for Jev, never a replacement for Jev's answer: a text box inside an item may be a
-        comment box or a message to another person."""
+        comment box or a message to another person. One item's page can lack the action the others have, so up to
+        WALK_ITEMS items are tried."""
+        for n, item in enumerate(feed.controls[:WALK_ITEMS]):
+            if n and self.current.kind == "screen" and self.current is not feed.state:
+                self.act(Move("back", why="core loop: back to the list for the next item"), purpose="nav")
+            found = self.walk_into(feed, item)
+            if found:
+                return found
+        return None
+
+    def walk_into(self, feed: CoreAction, item: ob.Candidate) -> CoreAction | None:
         if not self.goto(feed.state):
             return None
-        self.act(Move("tap", feed.controls[0], why="core loop: look inside an item"), purpose="nav")
+        self.act(Move("tap", item, why="core loop: look inside an item"), purpose="nav")
+        if self.current is feed.state:
+            return None
         tapped, swipes = set(), 0
         while self.current.kind == "screen":
             here = self.current
@@ -1053,7 +1071,7 @@ class Explorer:
             tapped.add(move.cand.key)
             self.act(Move("tap", move.cand, decider=move.decider, why="core loop: the item's main action"),
                      purpose="nav")
-        self.note("core", "no input control inside the item")
+        self.note("core", f"no input control inside {item.label[:40]!r}")
         return None
 
     def walk_steps(self, cands: list[ob.Candidate], upsell: bool, tapped: set[str]) -> list[ob.Candidate]:
@@ -1071,19 +1089,26 @@ class Explorer:
         if not self.may_send:
             self.core_results.append("off (--no-send)")
             return
-        choice = self.choose_core()
-        if choice is None:
+        ranked = self.choose_core()
+        if not ranked:
             self.core_results.append("no core action found on the screens seen")
             return
-        self.core = choice
-        self.note("core", f"core action: {self.core.name}", decider="jev")
+        for choice in ranked:
+            self.core = choice
+            self.note("core", f"core action: {self.core.name}", decider="jev")
+            if self.at_core(1):
+                break
+            self.core_results.append(f"could not get to {choice.state.sid}; Jev's next choice of the same kind "
+                                     f"follows, if any")
+        else:
+            return
         deadline = self.clock() + self.core_reps * CORE_SECONDS_PER_REP
         for n in range(1, self.core_reps + 1):
             if self.clock() > deadline:
                 self.core_results.append("stopped: out of time")
                 return
             try:
-                if not self.at_core(n):
+                if n > 1 and not self.at_core(n):
                     self.core_results.append(f"pass {n}: could not get back to {self.core.state.sid}")
                     return
                 result, hit = self.core_once(n)

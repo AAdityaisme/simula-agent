@@ -501,3 +501,39 @@ def test_the_new_reply_never_names_what_stopped_the_chat(tmp_path, monkeypatch):
     ex, phone = explore(tmp_path, monkeypatch, phone_factory=voice_sheet_after_two, budget="deep")
     stops = [(line.loop_pass, line.loop_stop) for line in lines(ex) if line.loop_stop]
     assert phone.sent == 2 and stops == [(2, "input gone")] and "limit" not in ex.checklist()[0]
+
+
+def test_the_walk_tries_the_next_item_when_the_first_has_no_main_action(tmp_path, monkeypatch):
+    from PIL import Image
+    from tests.fake_device import Screen
+    back = {"ref": "@back", "type": "android.widget.Button", "text": "", "identifier": "x:id/back",
+            "coordinates": {"x": 42, "y": 168, "width": 84, "height": 84}}
+    bio = {"ref": "@bio", "type": "android.widget.TextView", "text": "She lives down the hall and needs a hero",
+           "coordinates": {"x": 42, "y": 700, "width": 996, "height": 120}}
+
+    def bare_first(clock):
+        phone = detail_first(clock)
+        phone.screens["bare"] = Screen([back, bio], Image.new("RGB", (1080, 2400), (60, 20, 80)), PACKAGE)
+        phone.taps[("limited", "JJK - GOJO’S RELATIVE")] = "bare"
+        phone.taps[("limited", "Adrian & Eleanor || Your Dad & Stepmom")] = "detail"
+        return phone
+    ex, phone = explore(tmp_path, monkeypatch, phone_factory=bare_first)
+    assert ex.core.kind == "chat" and phone.sent
+    assert ("back", "bare") in phone.log and ("tap", "detail", "New chat") in phone.log
+
+
+def test_a_chosen_chat_that_cant_be_reached_gives_way_to_jevs_next_chat(tmp_path, monkeypatch):
+    ex, phone = new_explorer(tmp_path, monkeypatch, detail_first, budget="deep")
+    monkeypatch.setattr(decide, "ask_choice",
+                        functools.partial(fake_jev, core_pick="send messages in a conversation and read"))
+    goto, tour_chat = ex.goto, []
+
+    def the_tour_chat_is_gone(target):
+        if ex.core is not None and target is ex.core.state and ex.core.name.startswith("send messages in"):
+            tour_chat.append(target.sid)
+            return False
+        return goto(target)
+    monkeypatch.setattr(ex, "goto", the_tour_chat_is_gone)
+    stage.explore_app(ex)
+    assert tour_chat and ex.core.name.startswith("open an item and send messages") and phone.sent == ex.core_reps
+    assert any(r.startswith(f"could not get to {tour_chat[0]}") for r in ex.core_results)
