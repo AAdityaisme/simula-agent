@@ -85,7 +85,13 @@ class NeedRelaunch(Exception):
     pass
 
 
+class ExploreFailed(Exception):
+    """A device error ended the tour, or nothing was recorded: the CLI writes failure.json, never done.json, so
+    `simula run` can't reuse it. A blocked root seen after the full splash wait is a result, not a failure."""
+
+
 DEVICE_ERRORS = (McpReplyError, McpTimeout, NeedRelaunch)
+DEVICE_STOPS = ("device error", "second hang")
 
 
 @dataclass
@@ -467,7 +473,7 @@ class Explorer:
         agree."""
         splash_deadline = self.clock() + SPLASH_WAIT_S
         obs = self.look(splash_deadline)
-        while obs is None or (not obs.cands and obs.fg == self.package and self.clock() < splash_deadline):
+        while obs is None or ((not obs.cands or obs.fg != self.package) and self.clock() < splash_deadline):
             self.sleep(1.5)
             obs = self.look(splash_deadline)
         deadline = self.clock() + LAUNCH_WAIT_S
@@ -1286,3 +1292,5 @@ def explore_app(ex: Explorer) -> None:
     write_exhibit(ex.ctx.run_dir, 1, "explore", exhibit(ex, app_version))
     run_trace(ex.ctx.run_dir, stage="explore", step="summary", decider="code",
               note=f"{len(ex.states)} states, {ex.actions} actions, stop: {ex.stop_reason}")
+    if not ex.states or ex.stop_reason.startswith(DEVICE_STOPS):
+        raise ExploreFailed(ex.stop_reason or "no state was recorded")

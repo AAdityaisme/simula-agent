@@ -208,8 +208,8 @@ def new_run(tmp_path, **ctx_overrides) -> Ctx:
     return Ctx(**{**ctx, **ctx_overrides})
 
 
-def explore(tmp_path, monkeypatch, phone_factory, cache_dir=None, **ctx_overrides):
-    """Runs the whole explore stage on a fake phone; returns the explorer and the phone."""
+def explorer(tmp_path, monkeypatch, phone_factory, cache_dir=None, **ctx_overrides):
+    """An explorer on a fake phone with fake Jev and Sonnet, not run yet."""
     monkeypatch.delenv("SIMULA_JEV_BACKEND", raising=False)
     monkeypatch.setattr(decide, "ask_choice", fake_jev)
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_sonnet)
@@ -219,5 +219,11 @@ def explore(tmp_path, monkeypatch, phone_factory, cache_dir=None, **ctx_override
     phone = phone_factory(clock)
     ex = stage.Explorer(ctx, phone, ctx.run_dir / "explore", clock=clock, sleep=clock.sleep)
     ex.cache_dir = cache_dir or tmp_path / "cache"
+    return ex, phone
+
+
+def explore(tmp_path, monkeypatch, phone_factory, cache_dir=None, **ctx_overrides):
+    """Runs the whole explore stage on a fake phone; returns the explorer and the phone."""
+    ex, phone = explorer(tmp_path, monkeypatch, phone_factory, cache_dir, **ctx_overrides)
     stage.explore_app(ex)
     return ex, phone
