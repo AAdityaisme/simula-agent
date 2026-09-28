@@ -435,3 +435,37 @@ def test_jev_sees_what_repeating_each_option_means_and_the_conversation_itself(t
     assert any(label.startswith("open and read items from the list") for label in labels)
     assert state.startswith(f"screen {ex.core.state.sid} is a conversation titled 'Teacher'; its last messages:")
     assert "Get a ping when Luzia replies" in state
+
+
+def test_the_walk_scrolls_to_a_main_action_below_the_fold_and_takes_a_long_one_line_label(tmp_path, monkeypatch):
+    from PIL import Image
+    from tests.fake_device import Screen
+    back = {"ref": "@back", "type": "android.widget.Button", "text": "", "identifier": "x:id/back",
+            "coordinates": {"x": 42, "y": 168, "width": 84, "height": 84}}
+    bio = {"ref": "@bio", "type": "android.widget.TextView", "text": BIO,
+           "coordinates": {"x": 42, "y": 700, "width": 996, "height": 120}}
+    long_chat = {"ref": "@go", "type": "android.widget.TextView", "text": "Chat with Vac the Kinectic",
+                 "coordinates": {"x": 399, "y": 2200, "width": 400, "height": 41}}
+
+    def below_the_fold(clock):
+        phone = janitor_like(clock)
+        phone.screens["detail"] = Screen([back, bio], Image.new("RGB", (1080, 2400), (60, 20, 80)), PACKAGE)
+        phone.screens["detail_end"] = Screen([back, bio, long_chat], Image.new("RGB", (1080, 2400), (90, 40, 20)),
+                                             PACKAGE)
+        phone.taps[("limited", "JJK - GOJO’S RELATIVE")] = "detail"
+        phone.swipes["detail"] = "detail_end"
+        phone.taps[("detail_end", "Chat with Vac the Kinectic")] = "chat"
+        return phone
+    unreachable = [True]
+    at_core = stage.Explorer.at_core
+
+    def first_goto_fails(self, n):
+        if unreachable[0]:
+            unreachable[0] = False
+            return False
+        return at_core(self, n)
+    monkeypatch.setattr(stage.Explorer, "at_core", first_goto_fails)
+    ex, phone = explore(tmp_path, monkeypatch, phone_factory=below_the_fold)
+    assert ex.core.kind == "chat" and phone.sent == ex.core_reps
+    assert ("tap", "detail_end", "Chat with Vac the Kinectic") in phone.log
+    assert not any(entry[:3] == ("tap", "detail", BIO) for entry in phone.log)

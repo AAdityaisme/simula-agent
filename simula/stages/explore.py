@@ -54,6 +54,8 @@ SPLASH_WAIT_S = 90
 LAUNCH_WAIT_S = 30
 LAUNCH_QUIET_S = 3
 WALK_STEPS = 3
+WALK_SWIPES = 2
+ONE_LINE_DP = 32
 COMPOSER_BAND_PX = 150
 LIMIT_STOPS = ("counter", "input disabled", "paywall")
 
@@ -956,7 +958,7 @@ class Explorer:
         feed = self.feed_option()
         options += [feed] if feed else []
         options += [CoreAction("action", s, [c], f"tap {c.label[:40]!r} again and again on {s.sid}")
-                    for s in self.states if s.kind == "screen" for c in [self.input_action(s)] if c]
+                    for s in self.states if s.kind == "screen" for c in [self.input_action(s.cands, s.upsell)] if c]
         if feed and not any(o.kind in ("chat", "action") for o in options):
             inside = self.walk_to_input(feed)
             options = ([inside] if inside else []) + options
@@ -972,11 +974,11 @@ class Explorer:
         return CoreAction("feed", s, items, f"open and read items from the list on {s.sid} "
                                             f"(e.g. {items[0].label[:40]!r})")
 
-    def input_action(self, s: Seen) -> ob.Candidate | None:
+    def input_action(self, cands: list[ob.Candidate], upsell: bool) -> ob.Candidate | None:
         """A button that makes new content on each tap (Play, Generate, Draw, Spin ...): at most three words, so
         a sentence that starts with "Create" is not one."""
-        return next((c for c in s.cands if c.tree_label and len(c.label.split()) <= 3 and ob.CREATE.match(c.label)
-                     and c.key not in self.tab_keys() and not ob.denied(c, upsell=s.upsell)), None)
+        return next((c for c in cands if c.tree_label and len(c.label.split()) <= 3 and ob.CREATE.match(c.label)
+                     and c.key not in self.tab_keys() and not ob.denied(c, upsell=upsell)), None)
 
     def choose_core(self) -> CoreAction | None:
         """Jev names the core action among what the tour saw, or none of them."""
@@ -1020,21 +1022,26 @@ class Explorer:
         if not self.goto(feed.state):
             return None
         self.act(Move("tap", feed.controls[0], why="core loop: look inside an item"), purpose="nav")
-        tapped = set()
-        for _ in range(WALK_STEPS):
+        tapped, swipes = set(), 0
+        while self.current.kind == "screen":
             here = self.current
-            if here.kind != "screen":
-                break
-            chat = self.chat_here()
+            chat = self.live_composer()
             if chat:
                 return CoreAction("chat", here, list(chat), f"open an item and send messages in its conversation "
                                                             f"({self.chat_title(here)!r}; text box + send inside "
                                                             f"the item, {here.sid})")
-            action = self.input_action(here)
+            action = self.input_action(self.obs.cands, here.upsell)
             if action:
                 return CoreAction("action", here, [action], f"open an item and tap {action.label[:40]!r} inside it "
                                                             f"again and again ({here.sid})")
-            steps = self.walk_steps(here, tapped)
+            if len(tapped) == WALK_STEPS:
+                break
+            steps = self.walk_steps(self.obs.cands, here.upsell, tapped)
+            if not steps and swipes < WALK_SWIPES:
+                swipes += 1
+                self.act(Move("swipe", direction="up", why="core loop: the item's main action may be further down"),
+                         purpose="nav")
+                continue
             move = (self.ranked_move(here, steps) if len(steps) > 1 else
                     Move("tap", steps[0], why="the only main action") if steps else None)
             if move is None or move.action != "tap":
@@ -1045,12 +1052,15 @@ class Explorer:
         self.note("core", "no input control inside the item")
         return None
 
-    def walk_steps(self, here: Seen, tapped: set[str]) -> list[ob.Candidate]:
-        """The item's main-action controls: a button, or a short label (Chat, New chat, Start), never a line of
-        content that happens to say "chat" or "start", and never one already tapped."""
-        return [c for c in here.cands if ob.PRIMARY.search(c.label)
-                and (c.kind in ("Button", "ImageButton") or len(c.label.split()) <= 3)
-                and c.key not in tapped and c.key not in self.tab_keys() and not ob.denied(c, upsell=here.upsell)]
+    def walk_steps(self, cands: list[ob.Candidate], upsell: bool, tapped: set[str]) -> list[ob.Candidate]:
+        """The item's main-action controls: a button, a short label (Chat, New chat, Start), or one line that starts
+        with the action (Chat with <a long name>); never a paragraph or a list row that happens to say "chat" or
+        "start", and never one already tapped."""
+        one_line = ONE_LINE_DP * self.device.scale
+        return [c for c in cands if ob.PRIMARY.search(c.label)
+                and (c.kind in ("Button", "ImageButton") or len(c.label.split()) <= 3
+                     or (ob.PRIMARY.match(c.label) and c.rect.h <= one_line))
+                and c.key not in tapped and c.key not in self.tab_keys() and not ob.denied(c, upsell=upsell)]
 
     def core_loop(self) -> None:
         self.touring = False
@@ -1130,9 +1140,6 @@ class Explorer:
 
     def stop_text(self) -> str:
         return f"{self.stop_kind} ({self.stop_evidence})" if self.stop_kind else ""
-
-    def chat_here(self) -> tuple[ob.Candidate, ob.Candidate] | None:
-        return ob.composer(self.current.cands, self.device) if self.current.kind == "screen" else None
 
     def live_composer(self) -> tuple[ob.Candidate, ob.Candidate] | None:
         """The text box and its send control on the screen as it is now."""
