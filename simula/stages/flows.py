@@ -297,20 +297,31 @@ def flow_js(c: Candidate, ad: str | None, after_ad: str) -> str:
     return f'<script id="simula-flow-js">\n{FLOW_JS.replace("__FLOW__", data)}\n</script>\n'
 
 
-def flow_page(original: str, edited: str, c: Candidate, blur: str) -> tuple[str, str | None, int, bool]:
+def mark_ad(html: str, sid: str, c: Candidate) -> tuple[str, str]:
+    """Makes sid the ad screen: marks the editor's section for it, or adds an empty one. Code draws the ad inside
+    either way. Returns the page and which of the two it did."""
+    tag = next((t for t in StartTags(html).tags if t["name"] == "section" and t["attrs"].get("data-screen") == sid),
+               None)
+    if tag:
+        return html[:tag["end"] - 1] + " data-ad" + html[tag["end"] - 1:], "marked the editor's"
+    parent = c.flow_steps[0].state_id
+    section = f'<section data-screen="{sid}" data-flow="{c.id}" data-parent="{parent}" data-ad></section>\n'
+    return _insert_before(html, "</body>", section), "added the"
+
+
+def flow_page(original: str, edited: str, c: Candidate, blur: str) -> tuple[str, str | None, int, str]:
     """The edited page with the navigation runtime, the flow's CSS, and the simulated ad. Returns it with the ad's
-    screen id, its step index, and whether code had to add the ad's screen because the editor marked none."""
+    screen id, its step index, and what code did when the editor marked no ad screen ("" when it marked one)."""
     step_ids = [s.state_id for s in c.flow_steps]
     ad = ad_screen(edited, step_ids)
     at = ad_index(step_ids, ad)
-    added = ad is None and step_ids[at].startswith("new:") and f'data-screen="{step_ids[at]}"' not in edited
-    if added:
+    fallback = ""
+    if ad is None and step_ids[at].startswith("new:"):
         ad = step_ids[at]
-        section = f'<section data-screen="{ad}" data-flow="{c.id}" data-parent="{step_ids[0]}" data-ad></section>\n'
-        edited = _insert_before(edited, "</body>", section)
+        edited, fallback = mark_ad(edited, ad, c)
     after_ad = step_ids[at + 1] if ad in step_ids and at + 1 < len(step_ids) else step_ids[0]
     html = with_flow_css(with_runtime(edited, page_root(original)), blur)
-    return _insert_before(html, "</body>", flow_js(c, ad, after_ad)), ad, at, added
+    return _insert_before(html, "</body>", flow_js(c, ad, after_ad)), ad, at, fallback
 
 
 # ---------- the tap-through ----------
@@ -404,10 +415,10 @@ def build_flow(ctx: Ctx, model: ProductModel, source: Path, c: Candidate, decisi
     applied = len(edits.edits) - len(rejected) if edits else 0
     run_trace(ctx.run_dir, stage="flows", step=f"edits:{c.id}", decider="code", outcome="ok" if applied else "error",
               note=f"{applied} applied, {len(rejected)} rejected" + (f"; first: {rejected[0]}" if rejected else ""))
-    html, ad, ad_at, added = flow_page(original, edited, c, blur)
-    if added:
+    html, ad, ad_at, fallback = flow_page(original, edited, c, blur)
+    if fallback:
         run_trace(ctx.run_dir, stage="flows", step=f"edits:{c.id}", decider="code",
-                  note=f"no screen was marked data-ad; code added the ad screen at step {ad_at + 1} ({ad})")
+                  note=f"no screen was marked data-ad; code {fallback} ad screen at step {ad_at + 1} ({ad})")
     (flow_dir / "index.html").write_text(html)
 
     shots, recorded = walk(flow_dir, c, ad, ad_at)

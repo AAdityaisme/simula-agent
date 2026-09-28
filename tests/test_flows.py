@@ -63,38 +63,47 @@ def seed_run(root, app: str):
     return run_dir
 
 
-def fake_edits(c, page: str, wire_accept: bool = True, mark_ad: bool = True) -> Edits:
-    """What a good editor returns for any idea: an entry point on the trigger, the offer, and an empty ad screen."""
+def fake_edits(c, page: str, wire_accept: bool = True, ad_section: str = "marked", block_play: bool = False) -> Edits:
+    """What a good editor returns for any idea: an entry point on the trigger, the offer, and an empty ad screen.
+    ad_section "unmarked" draws the ad screen without data-ad, "missing" leaves it out; block_play covers the game's
+    Play button."""
     trigger, offer, ad = (s.state_id for s in c.flow_steps[:3])
     tag = re.search(rf'<section[^>]*data-screen="{trigger}"[^>]*>', page).group(0)
     button = 'style="position:absolute;left:20px;top:{}px;z-index:5"'
     entry = (f'<button data-edge="{trigger}>{offer}" data-transition="modal" {button.format(20)}>Get it</button>'
              f'<div data-reward {button.format(70)}>Badge on</div>')
     accept = f'<button data-edge="{offer}>{ad}" data-transition="modal" {button.format(300)}>Play</button>'
+    ad_attrs = {"marked": " data-ad", "unmarked": ""}
     screens = (f'<section data-screen="{offer}" data-flow="{c.id}" data-parent="{trigger}">'
                f'<p {button.format(200)}>{c.offer_copy}</p>{accept if wire_accept else ""}'
                f'<button data-edge="{offer}>{trigger}" data-transition="back" {button.format(360)}>No thanks</button>'
-               "</section>" + (f'<section data-screen="{ad}" data-flow="{c.id}" data-parent="{trigger}" data-ad>'
-                               "</section>" if mark_ad else ""))
-    return Edits(edits=[Edit(find=tag, replace=tag + entry, reason="entry point"),
-                        Edit(find="</body>", replace=screens + "</body>", reason="offer and ad screens"),
-                        Edit(find="not in the page", replace="x", reason="a find that can't apply")])
+               "</section>")
+    if ad_section in ad_attrs:
+        screens += (f'<section data-screen="{ad}" data-flow="{c.id}" data-parent="{trigger}"{ad_attrs[ad_section]}>'
+                    "<p>the editor's own game</p></section>")
+    edits = [Edit(find=tag, replace=tag + entry, reason="entry point"),
+             Edit(find="</body>", replace=screens + "</body>", reason="offer and ad screens"),
+             Edit(find="not in the page", replace="x", reason="a find that can't apply")]
+    if block_play:
+        edits.append(Edit(find="</head>", replace="<style>.sa-play{pointer-events:none}</style></head>",
+                          reason="something covers Play"))
+    return Edits(edits=edits)
 
 
-def fake_editor(run_dir, wire_accept: bool = True, mark_ad: bool = True):
+def fake_editor(run_dir, **options):
     ideas = {c.id: c for c in CandidatesFile.model_validate_json(
         (run_dir / "propose" / "candidates.json").read_text()).candidates}
 
     def call(**kwargs):
         page = flows.strip_runtime((run_dir / "mock" / "index.html").read_text())
-        return fake_edits(ideas[kwargs["step"].split(":")[1]], page, wire_accept, mark_ad), None
+        return fake_edits(ideas[kwargs["step"].split(":")[1]], page, **options), None
     return call
 
 
-def run_flows(root, app: str, wire_accept: bool = True, mark_ad: bool = True):
+def run_flows(root, app: str, **options):
     run_dir = seed_run(root, app)
     with pytest.MonkeyPatch.context() as mp:
-        mp.setattr(llm, "call", fake_editor(run_dir, wire_accept, mark_ad))
+        mp.setattr(llm, "call", fake_editor(run_dir, **options))
         flows.run(ctx_for(run_dir, app))
     return run_dir
 
@@ -190,10 +199,11 @@ def test_a_step_that_wont_tap_through_shows_the_last_good_screen_marked_not_wire
 
 
 @pytest.mark.parametrize("app", APPS)
-def test_code_adds_the_ad_screen_when_the_editor_marks_none(tmp_path, app):
-    run_dir = run_flows(tmp_path, app, mark_ad=False)
+@pytest.mark.parametrize("ad_section, done", [("missing", "added the"), ("unmarked", "marked the editor's")])
+def test_code_owns_the_ad_screen_when_the_editor_marks_none(tmp_path, app, ad_section, done):
+    run_dir = run_flows(tmp_path, app, ad_section=ad_section)
     assert "| 4 / 4 | 1 |" in (run_dir / "exhibits" / "07-flows.md").read_text()
-    assert any("code added the ad screen at step 3" in line.note for line in read_trace(run_dir / "trace.jsonl"))
+    assert any(f"code {done} ad screen at step 3" in line.note for line in read_trace(run_dir / "trace.jsonl"))
 
 
 def test_default_selection_is_accepted_and_conditional_best_rank_first_at_most_four():
