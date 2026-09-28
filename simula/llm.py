@@ -7,6 +7,7 @@ Messages use one provider-neutral shape:
 import base64
 import hashlib
 import json
+import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -172,6 +173,11 @@ def call_anthropic(model: str, system: str, messages: list[dict], effort: str | 
         if "spend" in str(e).lower():
             raise CapReached(f"provider spend limit reached: {e}") from e
         raise LLMFailure("error", str(e)) from e
+    except anthropic.BadRequestError as e:
+        # A console usage limit comes back as a 400, not a 429.
+        if "usage limit" in str(e).lower():
+            raise CapReached(f"provider usage limit reached: {e}") from e
+        raise
     text = "".join(block.text for block in message.content if block.type == "text")
     usage = message.usage
     cached = getattr(usage, "cache_read_input_tokens", 0) or 0
@@ -207,6 +213,10 @@ def call_openai(model: str, system: str, messages: list[dict], effort: str | Non
         if "quota" in str(e).lower():
             raise CapReached(f"provider quota reached: {e}") from e
         raise LLMFailure("error", str(e)) from e
+    except openai.BadRequestError as e:
+        if re.search(r"billing[ _]hard[ _]limit", str(e), re.IGNORECASE):
+            raise CapReached(f"provider billing limit reached: {e}") from e
+        raise
     response = raw.parse()
     refused = any(c.type == "refusal" for item in response.output if item.type == "message" for c in item.content)
     stop = "refusal" if refused else "max_tokens" if response.status == "incomplete" else "end_turn"
