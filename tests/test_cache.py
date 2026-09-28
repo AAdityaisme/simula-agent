@@ -86,15 +86,18 @@ def test_two_bad_answers_raise_a_typed_failure(tmp_path, monkeypatch):
     assert [e["failure"] for e in entries] == ["schema_fail", "schema_fail"]
 
 
-def test_recorded_failures_replay_as_the_same_failure_without_a_call(tmp_path, monkeypatch):
+def test_a_chain_that_ended_in_failure_replays_under_replay_and_is_tried_fresh_on_a_rerun(tmp_path, monkeypatch):
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['nope', 'still nope'], []))
     with pytest.raises(llm.LLMFailure):
         call(tmp_path)
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
-    for replay in (True, False):
-        with pytest.raises(llm.LLMFailure) as failure:
-            call(tmp_path, replay=replay)
-        assert (failure.value.outcome, failure.value.raw) == ("schema_fail", "still nope")
+    with pytest.raises(llm.LLMFailure) as failure:
+        call(tmp_path, replay=True)
+    assert (failure.value.outcome, failure.value.raw) == ("schema_fail", "still nope")
+    rerun_calls = []
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "fresh"}'], rerun_calls))
+    result, _ = call(tmp_path)
+    assert result.word == "fresh" and len(rerun_calls) == 1
 
 
 def test_a_failed_one_attempt_call_replays_to_the_callers_own_retry(tmp_path, monkeypatch):
@@ -115,19 +118,23 @@ def test_a_failed_one_attempt_call_replays_to_the_callers_own_retry(tmp_path, mo
     calls = []
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider)
     assert stage().word == "short" and calls == ["xhigh", "high"]
-    assert stage().word == "short" and calls == ["xhigh", "high"]
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
     assert stage(replay=True).word == "short"
+    # On a normal rerun the failed call is a chain that ended in failure, so it gets a new try; the caller's
+    # retry is a different call, and its recorded answer is still free.
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider)
+    assert stage().word == "short" and calls == ["xhigh", "high", "xhigh"]
 
 
-def test_a_rerun_skips_recorded_failed_attempts_and_pays_only_for_the_next(tmp_path, monkeypatch):
+def test_a_rerun_of_an_interrupted_chain_with_no_recorded_answer_starts_fresh(tmp_path, monkeypatch):
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['nope'], []))
     with pytest.raises(IndexError):  # attempt 1 dies before answering, so only attempt 0 is recorded
         call(tmp_path)
     rerun_calls = []
-    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "second"}'], rerun_calls))
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "first"}'], rerun_calls))
     result, _ = call(tmp_path)
-    assert result.word == "second" and len(rerun_calls) == 1
+    assert result.word == "first" and len(rerun_calls) == 1
+    assert [line.cache_hit for line in read_trace(tmp_path / "trace.jsonl")][-1:] == [False]
 
 
 def test_no_cache_skips_reads(tmp_path, monkeypatch):
@@ -266,7 +273,7 @@ def test_total_timeout_cancels_a_stream_that_keeps_going(monkeypatch):
     assert stream.closed and not stream.finished
 
 
-def test_a_failed_attempt_is_recorded_and_releases_its_hold_so_a_rerun_pays_only_for_the_next(tmp_path, monkeypatch):
+def test_a_failed_attempt_is_recorded_and_releases_its_hold_and_a_failed_chain_reruns_fresh(tmp_path, monkeypatch):
     first_calls = []
 
     def first_run(model, system, messages, effort, schema, max_tokens, total_timeout=None):
@@ -285,7 +292,7 @@ def test_a_failed_attempt_is_recorded_and_releases_its_hold_so_a_rerun_pays_only
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "second"}'], rerun_calls))
     result, _ = call(tmp_path, budget=budget)
     recorded = sorted(json.loads(p.read_text()).get("failure", "") for p in (tmp_path / "cache").glob("*.json"))
-    assert result.word == "second" and len(rerun_calls) == 1 and recorded == ["", "schema_fail"]
+    assert result.word == "second" and len(rerun_calls) == 1 and recorded == [""]
     assert budget.held == pytest.approx(0)
 
 

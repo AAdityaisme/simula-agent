@@ -318,8 +318,13 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
               "schema": json_schema_for(provider, schema) if schema else None}
     keys = [cache_key(provider, model, system, messages, params, attempt) for attempt in range(attempts)]
     last, pending = LLMFailure("error", "no attempt made"), []
+    recorded = {key: None if no_cache else cache_read(key, cache_dir) for key in keys}
+    # Recorded failures replay under --replay, and on a normal run only when a later attempt has a recorded
+    # answer, so the run follows its recorded path there for free. A chain that ended in failure is tried
+    # fresh from the first attempt: whoever reruns a failed call wants a new try.
+    follow = replay or any(r and not r.failure for r in recorded.values())
     for key in keys:
-        cached = None if no_cache else cache_read(key, cache_dir)
+        cached = recorded[key] if follow else None
         if cached is None:
             pending.append(key)
         elif cached.failure:
