@@ -303,12 +303,18 @@ def recheck(ctx: Ctx, revisions: list[Candidate], candidates: list[Candidate], d
 
 
 def swap_in(work: Path, out: Path) -> None:
-    """Replaces judge/ with the finished work folder in two renames, so a run always has a whole judge/."""
+    """Replaces judge/ with the finished work folder in two renames, putting the old one back if the second fails,
+    so a run always has a whole judge/."""
     old = out.with_name(out.name + ".old")
     shutil.rmtree(old, ignore_errors=True)
     if out.exists():
         os.replace(out, old)
-    os.replace(work, out)
+    try:
+        os.replace(work, out)
+    except BaseException:
+        if old.exists() and not out.exists():
+            os.replace(old, out)
+        raise
     shutil.rmtree(old, ignore_errors=True)
 
 

@@ -79,6 +79,23 @@ def test_a_failed_replay_leaves_the_previous_judge_folder_intact(tmp_path, provi
     assert not (run_dir / "judge.tmp").exists() and not (run_dir / "judge.old").exists()
 
 
+def test_a_swap_that_fails_halfway_puts_the_old_judge_folder_back(tmp_path, monkeypatch):
+    out, work = tmp_path / "judge", tmp_path / "judge.tmp"
+    out.mkdir()
+    (out / "decisions.json").write_text("last good")
+    work.mkdir()
+    rename = judge.os.replace
+
+    def second_fails(src, dst):
+        if src == work:
+            raise OSError("disk full")
+        rename(src, dst)
+    monkeypatch.setattr(judge.os, "replace", second_fails)
+    with pytest.raises(OSError):
+        judge.swap_in(work, out)
+    assert (out / "decisions.json").read_text() == "last good" and not (tmp_path / "judge.old").exists()
+
+
 class FakeStream:
     def __init__(self, text):
         self.text, self.response = text, SimpleNamespace(headers={})
