@@ -289,8 +289,12 @@ def check_meaning(meaning: ModelMeaning, states: list[State], edges: list[Edge])
         missing = [i for i in ids if i not in state_ids and i not in elements]
         return f"unknown ids {missing}" if missing else None
 
-    def shown_in(evidence_ids, words: str) -> bool:
-        return any(words and (words in elements[i].text or words in elements[i].label)
+    def shown_in(evidence_ids, words: str, spaced: bool = True) -> bool:
+        """Trees carry non-breaking and odd spaces a model can't type back, so whitespace is normalized
+        (a quote) or ignored (a number); every other character must match."""
+        def norm(t: str) -> str:
+            return (" " if spaced else "").join(t.split())
+        return any(norm(words) and (norm(words) in norm(elements[i].text) or norm(words) in norm(elements[i].label))
                    for i in evidence_ids if i in elements)
 
     def flow_problem(f):
@@ -314,10 +318,10 @@ def check_meaning(meaning: ModelMeaning, states: list[State], edges: list[Edge])
         return unknown(item.evidence_ids)
 
     def shown_numbers(m):
-        for n in m.observed_numbers:
-            if not shown_in(m.evidence_ids, n):
-                rejected.append(f"mechanic {m.id}: number {n!r} is not shown in its evidence elements")
-        return m.model_copy(update={"observed_numbers": [n for n in m.observed_numbers if shown_in(m.evidence_ids, n)]})
+        shown = [n for n in m.observed_numbers if shown_in(m.evidence_ids, n, spaced=False)]
+        rejected.extend(f"mechanic {m.id}: number {n!r} is not shown in its evidence elements"
+                        for n in m.observed_numbers if n not in shown)
+        return m.model_copy(update={"observed_numbers": shown})
 
     cleaned = meaning.model_copy(update={
         "states": keep(meaning.states, lambda s: None if s.state_id in state_ids else "unknown state", "state",

@@ -82,8 +82,8 @@ def test_a_ledger_item_that_is_not_verbatim_is_rejected(app):
     assert "ok" in {i.id for i in kept.value_ledger}
 
 
-def test_a_ledger_line_may_not_span_text_and_label():
-    element = Element(id="s01.e01", mcp_ref="@e1", type="Button", text="Go", label="Premium", source="mcp",
+def test_a_ledger_line_may_not_span_text_and_label_but_whitespace_is_normalized():
+    element = Element(id="s01.e01", mcp_ref="@e1", type="Button", text="Go\xa0 $\xa01.99", label="Premium", source="mcp",
                       rect_px=Rect(x=0, y=200, w=100, h=50), rect_dp=Rect(x=0, y=24, w=38, h=19), role="button",
                       asset_png=None, fg_hex=None, bg_hex=None, font_px=None, font_guess="unknown", in_mock=False,
                       repeat_group=None)
@@ -93,10 +93,13 @@ def test_a_ledger_line_may_not_span_text_and_label():
     answer = ModelMeaning(app_category="other", states=[StateMeaning(state_id="s01", name="x", purpose="x",
                                                                      content_rating="safe")],
                           elements=[], flows=[], mechanics=[], cross_screen_values=[], open_questions=[],
-                          value_ledger=[LedgerItem(id="span", kind="price", verbatim="Go Premium", evidence_ids=["s01.e01"]),
-                                        LedgerItem(id="label", kind="price", verbatim="Premium", evidence_ids=["s01.e01"])])
+                          value_ledger=[LedgerItem(id="span", kind="price", verbatim="$ 1.99 Premium", evidence_ids=["s01.e01"]),
+                                        LedgerItem(id="label", kind="price", verbatim="Premium", evidence_ids=["s01.e01"]),
+                                        LedgerItem(id="nbsp", kind="price", verbatim="Go $ 1.99", evidence_ids=["s01.e01"]),
+                                        LedgerItem(id="respaced", kind="price", verbatim="Go $1.99", evidence_ids=["s01.e01"])])
     kept, rejected = stage.check_meaning(answer, [state], [])
-    assert [i.id for i in kept.value_ledger] == ["label"] and rejected[0].startswith("ledger span")
+    assert [i.id for i in kept.value_ledger] == ["label", "nbsp"]
+    assert [r.split(":")[0] for r in rejected] == ["ledger span", "ledger respaced"]
 
 
 def test_a_money_mechanic_must_cite_an_element(app):
@@ -110,11 +113,12 @@ def test_a_money_mechanic_must_cite_an_element(app):
 def test_a_number_its_evidence_does_not_show_is_dropped_but_the_mechanic_stays(app):
     _, states, edges, answer, baseline = app
     element = next(e for s in states for e in s.elements if e.text)
+    squeezed = "".join(element.text.split())
     answer.mechanics.append(Mechanic(id="m-num", kind="other", evidence_ids=[element.id], summary="x",
-                                     observed_numbers=[element.text, "$9.99"], status="observed"))
+                                     observed_numbers=[element.text, squeezed, "$9.99"], status="observed"))
     kept, rejected = new_rejections(answer, states, edges, baseline)
     assert rejected == ["mechanic m-num: number '$9.99' is not shown in its evidence elements"]
-    assert next(m for m in kept.mechanics if m.id == "m-num").observed_numbers == [element.text]
+    assert next(m for m in kept.mechanics if m.id == "m-num").observed_numbers == [element.text, squeezed]
 
 
 def test_flows_with_missing_or_disconnected_edges_are_rejected(app):
