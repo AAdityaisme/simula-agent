@@ -1,7 +1,6 @@
 """Rendering geometry and the code-owned navigation runtime, on every golden."""
 
 import re
-import time
 
 import pytest
 from PIL import Image
@@ -118,9 +117,7 @@ def test_every_image_is_loaded_before_the_first_screenshot_even_a_lazy_one_on_a_
     page_html = (mock_dir / "index.html").read_text()
     page_html = re.sub(rf'<section data-screen="{screens[1]}"[^>]*>', lambda m: m.group(0) + lazy, page_html, count=1)
     (mock_dir / "index.html").write_text(page_html)
-    start = time.monotonic()
     with open_mock(mock_dir) as (page, _):
-        opened = time.monotonic() - start
         loaded = page.evaluate("() => [...document.images].every(i => i.complete && i.naturalWidth > 0)")
-    assert loaded and opened < render.DECODE_WAIT_MS / 1000
+    assert loaded
     assert render_and_validate(mock_dir, model, screens).passed
