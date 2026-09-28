@@ -38,8 +38,9 @@ BLOCKING = re.compile(r"emulator|rooted|captcha|verify (that )?you.?re (a )?huma
                       r"date of birth|not supported on this device", re.IGNORECASE)
 PAYWALL = re.compile(r"[$€£]\s?\d|subscription|membership|free trial|per (month|week|year)|/ ?(month|week|year|mo)\b",
                      re.IGNORECASE)
-AD = re.compile(r"\bsponsored\b|\bads?\b|advertisement", re.IGNORECASE)
-CREATE = re.compile(r"\W*(generate|create|new|start|play|draw|make|scan)\b", re.IGNORECASE)
+PRIMARY = re.compile(r"\b(chat|message|talk|start|begin)\b", re.IGNORECASE)
+CREATE = re.compile(r"\W*(generate|play|draw|spin|roll|scan)\b", re.IGNORECASE)
+ENTRY = re.compile(r"upgrade|\bplans?\b|premium|\bplus\b|\bpro\b|\+|membership|subscription", re.IGNORECASE)
 LIMIT = re.compile(r"\blimits?\b|\bremaining\b|\bquota\b|resets? in|out of (free )?(messages|credits|swipes|chats|"
                    r"articles)|no more (free )?\w+|\bleft today\b", re.IGNORECASE)
 DIGITS = re.compile(r"\d")
@@ -233,17 +234,17 @@ def short_id(identifier: str | None) -> str:
 
 
 def controls(elements: list[dict], device: Device) -> list[Candidate]:
-    """Tappable-looking elements in the content area. A text (not a nested control's label) inside a larger
-    element is merged into it. A big element without words that holds two or more different texts is a layout,
-    not a control; a small one is a control that content scrolled under, like a tab. Words without a letter
-    ("8", "1 / 102") are counters, not controls."""
+    """Tappable-looking elements in the content area. The list is parent-first, so an element's own texts come
+    after it: those (not a nested control's label) merge into it, and content that scrolled under an overlay,
+    which comes before it, doesn't. A big element without words that holds two or more different texts is a
+    layout, not a control. Words without a letter ("8", "1 / 102") are counters, not controls."""
     content = [e for e in elements if in_content(e, device) and area(rect(e)) < LAYOUT_SHARE * content_area(device)
                and rect(e).y + rect(e).h <= device.content_bottom_px + 16]
     found = []
-    for e in content:
+    for n, e in enumerate(content):
         r = rect(e)
-        held = {o["text"].strip() for o in content
-                if o is not e and (o.get("text") or "").strip() and inside(rect(o), r) and area(rect(o)) < area(r)}
+        held = {o["text"].strip() for o in content[n + 1:]
+                if (o.get("text") or "").strip() and inside(rect(o), r) and area(rect(o)) < area(r)}
         own = words(e)
         if not own and len(held) > 1 and area(r) >= 0.02 * content_area(device):
             continue
@@ -366,6 +367,18 @@ def changed_boxes(a: Image.Image, b: Image.Image, device: Device, cell: int = 40
         r0, c0, r1, c1 = region.bbox
         boxes.append(Rect(x=c0 * cell, y=top + r0 * cell, w=(c1 - c0) * cell, h=(r1 - r0) * cell))
     return boxes
+
+
+def counters(before: list[dict], after: list[dict], device: Device, bands: list[tuple[int, int]]) -> list[str]:
+    """Short numbers that changed in place ("5 left" → "4 left") inside the given y bands (the header, the input
+    bar): UI chrome, never the content that scrolls between them."""
+    def at(elements):
+        return {(bucket(e["coordinates"]["x"], device), bucket(e["coordinates"]["y"], device)): words(e)
+                for e in elements if in_content(e, device) and words(e) and len(words(e)) <= 30
+                and any(y0 <= e["coordinates"]["y"] < y1 for y0, y1 in bands)}
+    old, new = at(before), at(after)
+    return [f"{old[p]} → {new[p]}" for p in old.keys() & new.keys()
+            if old[p] != new[p] and DIGITS.search(old[p]) and DIGITS.search(new[p])]
 
 
 def change_summary(before: list[dict], after: list[dict], device: Device, limit: int = 160) -> str:

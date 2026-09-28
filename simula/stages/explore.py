@@ -36,7 +36,7 @@ TAPS_PER_STATE = 6
 SWIPES_PER_STATE = 2
 UPSELL_SWIPES = 8
 MAX_RELAUNCHES = 3
-CORE_RELAUNCHES = 1
+CORE_RELAUNCHES = 2
 STALE_ACTIONS = 10
 NOOPS_BEFORE_SONNET = 3
 UNSURE = 0.35
@@ -53,6 +53,7 @@ QUIET_S = 2.0
 REPLAY_MINUTES = 8
 LAUNCH_WAIT_S = 30
 LAUNCH_QUIET_S = 3
+WALK_STEPS = 3
 
 RANK_QUESTION = "Which tap most likely reveals a limit, a paywall, a currency, an ad, or a new core screen of the app?"
 FILTER_QUESTION = ("A content or safety filter decides how much adult or unsafe content the app shows (for "
@@ -81,6 +82,9 @@ class Stop(Exception):
 
 class NeedRelaunch(Exception):
     pass
+
+
+DEVICE_ERRORS = (McpReplyError, McpTimeout, NeedRelaunch)
 
 
 @dataclass
@@ -124,6 +128,7 @@ class Seen:
     via: str = ""
     box: Rect | None = None
     unscroll_to: str | None = None
+    launch: bool = False
     tried: set = field(default_factory=set)
     waiting: dict = field(default_factory=dict)
     noop_run: int = 0
@@ -190,6 +195,8 @@ class Explorer:
         self.core: CoreAction | None = None
         self.core_results: list[str] = []
         self.core_hit = ""
+        self.paywall: str | None = None
+        self.relaunch_reasons: list[str] = []
         self.last_summary = ""
         self.stop_kind = self.stop_evidence = ""
         self.tour_actions = 0
@@ -309,9 +316,9 @@ class Explorer:
 
     # ---------- acting ----------
 
-    def act(self, move: Move, purpose: str = "tour", watch=None, loop: tuple[int, set[str]] | None = None) -> Seen:
+    def act(self, move: Move, purpose: str = "tour", watch=None, loop: int | None = None) -> Seen:
         """Runs one move from the current state, observes, records where it landed, and logs the line. On a
-        core-loop pass, loop is (pass number, texts on screen before the pass) and the line records any stop."""
+        core-loop pass, loop is the pass number and the line records what stopped the loop, if anything."""
         s, before = self.current, self.obs
         if self.touring and purpose in ("tour", "nav") and self.actions >= self.limits["actions"]:
             raise Stop(f"action cap ({self.limits['actions']})")
@@ -335,15 +342,20 @@ class Explorer:
             outcome = "timeout"
             self.hang(s)
         self.actions += 1
-        summary = watch() if watch else ""
-        obs = self.observe()
+        try:
+            summary = watch() if watch else ""
+            obs = self.observe()
+        except (McpReplyError, McpTimeout) as e:
+            self.log(s, None, move, ob.find(s.cands, move.cand) if move.cand else None, "unknown",
+                     f"observing after the move failed: {type(e).__name__}", "error")
+            raise
         to = self.record(obs, s, move, before.cands)
         if to is s and not summary:
             summary = ob.change_summary(before.elements, obs.elements, self.device)
         canonical = ob.find(s.cands, move.cand) if move.cand else None
-        self.stop_kind, self.stop_evidence = self.hit(loop[1]) if loop else ("", "")
-        self.log(s, to, move, canonical or live, self.transition(s, to, move), summary, outcome,
-                 loop[0] if loop else None, self.stop_kind or None)
+        self.stop_kind, self.stop_evidence = self.hit(s, to, before) if loop else ("", "")
+        self.log(s, to, move, canonical or live, self.transition(s, to, move), summary, outcome, loop,
+                 self.stop_kind or None)
         if purpose == "tour":
             self.after_tour_move(s, move, to, summary)
         if self.touring and purpose in ("tour", "nav") and self.segments:
@@ -408,16 +420,17 @@ class Explorer:
 
     # ---------- launching ----------
 
-    def relaunch(self, first: bool = False) -> None:
+    def relaunch(self, first: bool = False, why: str = "") -> None:
         """Terminate, launch, settle, record and dismiss launch dialogs, then re-apply the content filter."""
         if not first:
+            self.relaunch_reasons.append(why)
             cap = MAX_RELAUNCHES + (0 if self.touring else CORE_RELAUNCHES)
             if self.relaunches >= cap:
                 self.human(f"the explorer needed relaunch {cap + 1}", f"{cap} relaunches used")
                 raise Stop("relaunch cap")
             self.relaunches += 1
             if self.current:
-                self.log(self.current, self.root, Move("relaunch", why="back to the root"), None, "unknown", "", "ok")
+                self.log(self.current, self.root, Move("relaunch", why=why), None, "unknown", "", "ok")
         self.phone.terminate()
         self.phone.launch()
         self.wait_for_app(None if first else self.launch_root)
@@ -464,7 +477,7 @@ class Explorer:
             if box is None:
                 return
             dialog = self.record(self.obs, None, None, [])
-            dialog.done, dialog.depth = True, 0
+            dialog.done, dialog.depth, dialog.launch = True, 0, True
             self.current = dialog
             close = ob.dismiss_control(dialog.cands)
             self.act(Move("tap", close, why="dismiss a launch dialog") if close else
@@ -588,7 +601,8 @@ class Explorer:
         chosen = ob.find(s.cands, self.filter_taps[-1]) if self.filter_taps else None
         if chosen:
             cy = ob.center(chosen.rect)[1]
-            keys |= {c.key for c in s.cands if abs(ob.center(c.rect)[1] - cy) < 24 and abs(c.rect.h - chosen.rect.h) < 24}
+            keys |= {c.key for c in s.cands
+                     if abs(ob.center(c.rect)[1] - cy) < 24 and abs(c.rect.h - chosen.rect.h) < 24}
         return keys
 
     def has_work(self, s: Seen) -> bool:
@@ -658,14 +672,16 @@ class Explorer:
             if hops is None and self.current.kind != "external" and not self.shows_tabs(self.current):
                 self.act(Move("back", why="no recorded way back from here"), purpose="nav")
                 hops = [] if self.current is target else self.route(self.current, target)
+            why = f"no recorded way from {self.current.sid} to {target.sid}"
             for move, expected in hops or []:
                 self.act(move, purpose="nav")
                 if self.current is not expected:
+                    why = f"{move.action} toward {expected.sid} landed on {self.current.sid}"
                     break
             if self.current is target:
                 return True
             if attempt == 1:
-                self.relaunch()
+                self.relaunch(why=why)
         return self.current is target
 
     def shows_tabs(self, s: Seen) -> bool:
@@ -709,7 +725,7 @@ class Explorer:
                       outcome="blocked")
         self.act(Move("back", why="return from another app"), purpose="nav")
         if self.current.kind == "external":
-            self.relaunch()
+            self.relaunch(why=f"BACK did not return from {self.obs.fg}")
 
     def read_upsell(self) -> None:
         """Scrolls an upsell to its end so every benefit and price is captured verbatim; never taps inside it."""
@@ -758,12 +774,36 @@ class Explorer:
                     self.read_upsell()
             except NeedRelaunch as e:
                 self.note("relaunch", str(e))
-                self.relaunch()
+                self.relaunch(why=str(e))
             except (McpTimeout, McpReplyError) as e:
                 self.hang(self.current)
                 self.note("hang", str(e)[:200], outcome="timeout")
 
-    # ---------- the core loop ----------
+    # ---------- the paywall and the core loop ----------
+
+    def paywall_pass(self) -> None:
+        """If the tour captured no upsell, opens one on purpose: follows one entry control (upgrade, plans,
+        premium, plus) once, reads it to the end, and goes back. Confirm words stay denied."""
+        self.touring = False
+        captured = next((s for s in self.states if s.upsell and s.kind != "external"), None)
+        if captured:
+            self.paywall = captured.sid
+            return
+        entries = sorted(((s, c) for s in self.states if s.kind in ("screen", "modal", "sheet") and not s.launch
+                          for c in s.cands if ob.ENTRY.search(c.label) and not ob.denied(c, upsell=s.upsell)),
+                         key=lambda sc: sc[0].depth)
+        for s, entry in entries[:2]:
+            if not self.goto(s):
+                continue
+            self.act(Move("tap", entry, why="open the upsell on purpose"), purpose="nav")
+            if self.current.kind == "external":
+                self.leave_external()
+            elif self.current.upsell:
+                self.paywall = self.current.sid
+                self.read_upsell()
+                self.act(Move("back", why="out of the upsell"), purpose="nav")
+                return
+        self.note("paywall", f"no upsell reached ({len(entries)} entry controls seen)")
 
     def core_options(self) -> list[CoreAction]:
         options = []
@@ -780,12 +820,15 @@ class Explorer:
             s, items = max(feeds, key=lambda f: len(f[1]))
             options.append(CoreAction("feed", s, items, f"open an item from the list on {s.sid} "
                                                         f"(e.g. {items[0].label[:40]!r})"))
-        for s in self.states:
-            for c in s.cands:
-                if (s.kind == "screen" and c.tree_label and len(c.label) <= 40 and ob.CREATE.match(c.label)
-                        and not ob.denied(c, s.upsell)):
-                    options.append(CoreAction("action", s, [c], f"tap {c.label[:40]!r} on {s.sid}"))
+        options += [CoreAction("action", s, [c], f"tap {c.label[:40]!r} on {s.sid}")
+                    for s in self.states if s.kind == "screen" for c in [self.input_action(s)] if c]
         return options[:10]
+
+    def input_action(self, s: Seen) -> ob.Candidate | None:
+        """A button that makes new content on each tap (Play, Generate, Draw, Spin ...): at most three words, so
+        a sentence that starts with "Create" is not one."""
+        return next((c for c in s.cands if c.tree_label and len(c.label.split()) <= 3 and ob.CREATE.match(c.label)
+                     and c.key not in self.tab_keys() and not ob.denied(c, upsell=s.upsell)), None)
 
     def choose_core(self) -> CoreAction | None:
         """Jev names the core action among what the tour saw, or none of them."""
@@ -801,15 +844,40 @@ class Explorer:
         index = decide.index_of(result.option_id)
         return options[index] if index < len(options) else None
 
+    def walk_to_input(self, feed: CoreAction) -> CoreAction:
+        """Opening an item is a step, not the core action: goes into the first item and takes its main action
+        (Chat, Start ...) up to WALK_STEPS times, until a text box with send or a play/generate button shows.
+        With none (a news app), the core action stays opening items."""
+        if not self.goto(feed.state):
+            return feed
+        self.act(Move("tap", feed.controls[0], why="core loop: look inside an item"), purpose="nav")
+        for _ in range(WALK_STEPS):
+            here = self.current
+            chat = self.chat_here()
+            if chat:
+                return CoreAction("chat", here, list(chat), f"send a message on {here.sid} (inside an item "
+                                                            f"from {feed.state.sid})")
+            action = self.input_action(here) if here.kind == "screen" else None
+            if action:
+                return CoreAction("action", here, [action], f"tap {action.label[:40]!r} on {here.sid}")
+            step = next((c for c in here.cands if ob.PRIMARY.search(c.label)
+                         and not ob.denied(c, upsell=here.upsell)), None) if here.kind == "screen" else None
+            if step is None:
+                break
+            self.act(Move("tap", step, why="core loop: the item's main action"), purpose="nav")
+        self.note("core", "no input control inside the item: the core action stays opening items")
+        return feed
+
     def core_loop(self) -> None:
         self.touring = False
         if not self.may_send:
             self.core_results.append("off (--no-send)")
             return
-        self.core = self.choose_core()
-        if self.core is None:
+        choice = self.choose_core()
+        if choice is None:
             self.core_results.append("no core action found on the screens seen")
             return
+        self.core = self.walk_to_input(choice) if choice.kind == "feed" else choice
         self.note("core", f"core action: {self.core.name}", decider="jev")
         deadline = self.clock() + self.core_reps * CORE_SECONDS_PER_REP
         for n in range(1, self.core_reps + 1):
@@ -818,15 +886,15 @@ class Explorer:
                 return
             try:
                 if not self.goto(self.core.state):
-                    self.core_results.append(f"rep {n}: could not get back to {self.core.state.sid}")
+                    self.core_results.append(f"pass {n}: could not get back to {self.core.state.sid}")
                     return
                 result, hit = self.core_once(n)
-            except (NeedRelaunch, McpTimeout) as e:
-                self.core_results.append(f"rep {n}: {e}")
+            except DEVICE_ERRORS as e:
+                self.core_results.append(f"pass {n}: {type(e).__name__}: {e}"[:200])
                 return
-            self.core_results.append(f"rep {n}: {result}")
+            self.core_results.append(f"pass {n}: {result or 'no measurement'}")
             if hit:
-                self.core_hit = f"{hit} after {n} repetition{'s' if n > 1 else ''}"
+                self.core_hit = f"{hit} on pass {n}"
                 if self.current.upsell:
                     self.read_upsell()
                 return
@@ -838,31 +906,29 @@ class Explorer:
         if core.kind == "chat":
             message = CORE_MESSAGES[(n - 1) % len(CORE_MESSAGES)]
             box, send = core.controls
-            loop = (n, before | {message})
-            self.act(Move("tap", box, why="core loop: focus the text box"), purpose="core", loop=loop)
+            self.act(Move("tap", box, why="core loop: focus the text box"), purpose="core", loop=n)
             if not self.stop_kind:
-                self.act(Move("type", text=message, why="core loop: type"), purpose="core", loop=loop)
+                self.act(Move("type", text=message, why="core loop: type"), purpose="core", loop=n)
             if not self.stop_kind:
-                self.act(Move("tap", self.shifted(send, box), why="core loop: send"), purpose="core", loop=loop,
-                         watch=lambda: self.watch(loop[1], REPLY_WAIT_S, "reply"))
-        else:
-            item = core.controls[(n - 1) % len(core.controls)]
-            self.act(Move("tap", item, why=f"core loop: {core.kind}"), purpose="core",
-                     watch=lambda: self.watch(before, LOAD_WAIT_S, "load"), loop=(n, before))
-        line = self.last_summary
-        hit = f"{self.stop_kind} ({self.stop_evidence})" if self.stop_kind else ""
-        chat = ob.composer(self.current.cands, self.device) if core.kind != "chat" and self.current.kind == "screen" else None
-        if chat and not hit:
-            self.core = CoreAction("chat", self.current, list(chat), f"send a message on {self.current.sid} "
-                                                                     f"(opened from {core.state.sid})")
-            self.note("core", f"that item opened a chat: the core action is now {self.core.name}", decider="code")
-            return line, hit
-        if not hit and core.kind != "chat":
+                self.act(Move("tap", self.shifted(send, box), why="core loop: send"), purpose="core", loop=n,
+                         watch=lambda: self.watch(before | {message}, REPLY_WAIT_S, "reply"))
+            return self.last_summary, self.stop_text()
+        control = core.controls[(n - 1) % len(core.controls)]
+        verb = "load" if core.kind == "feed" else "result"
+        self.act(Move("tap", control, why=f"core loop: {core.kind}"), purpose="core", loop=n,
+                 watch=lambda: self.watch(before, LOAD_WAIT_S, verb))
+        if not self.stop_kind:
             if self.current.kind == "external":
                 self.leave_external()
             elif self.current is not core.state:
-                self.act(Move("back", why="core loop: back to the list"), purpose="core", loop=(n, before))
-        return line, hit
+                self.act(Move("back", why="core loop: back"), purpose="core", loop=n)
+        return self.last_summary, self.stop_text()
+
+    def stop_text(self) -> str:
+        return f"{self.stop_kind} ({self.stop_evidence})" if self.stop_kind else ""
+
+    def chat_here(self) -> tuple[ob.Candidate, ob.Candidate] | None:
+        return ob.composer(self.current.cands, self.device) if self.current.kind == "screen" else None
 
     def shifted(self, c: ob.Candidate, anchor: ob.Candidate) -> ob.Candidate:
         """Where c sits now, keeping its offset from anchor: the keyboard moves a composer bar as one piece."""
@@ -886,17 +952,25 @@ class Explorer:
         self.last_summary = ob.timing_line(verb, samples, max_s)
         return self.last_summary
 
-    def hit(self, before: set[str]) -> tuple[str, str]:
-        """A hard limit, paywall, or ad that a core-loop move brought up: a few words for loop_stop, and the
-        evidence. Empty when nothing did."""
-        new = ob.texts(self.obs.elements, self.device) - before
-        for name, pattern in (("limit", ob.LIMIT), ("paywall", ob.PAYWALL), ("ad", ob.AD)):
-            found = next((t for t in new if pattern.search(t)), None)
-            if found:
-                return name, repr(found[:60])
-        if self.current.kind in ("modal", "sheet"):
-            return f"{self.current.kind} opened", self.current.sid
-        return ("left the app", self.obs.fg) if self.current.kind == "external" else ("", "")
+    def hit(self, s: Seen, here: Seen, before: Obs) -> tuple[str, str]:
+        """What a core-loop move brought up that ends the loop, read from what changed on screen and never from
+        words in content: the store's billing screen, a new dialog or sheet, an upsell screen, the text box gone,
+        or a counter in the header or the input bar moving. A few words for loop_stop, and the evidence."""
+        chat = self.core.kind == "chat"
+        if here.kind == "external":
+            if self.obs.fg in BILLING:
+                return "billing", self.obs.fg
+            return ("left the app", self.obs.fg) if chat else ("", "")
+        if here is not s and here.kind in ("modal", "sheet"):
+            return ("paywall" if here.upsell else f"{here.kind} opened"), here.sid
+        if here is not s and here.upsell:
+            return "paywall", here.sid
+        box = next((c for c in self.obs.cands if c.kind == "EditText"), None)
+        if chat and box is None:
+            return "input gone", here.sid
+        bands = [(0, ob.TOP_CHROME_BOTTOM_PX)] + ([(int(box.rect.y) - 150, self.device.h_px)] if box else [])
+        moved = ob.counters(before.elements, self.obs.elements, self.device, bands)
+        return ("counter", moved[0]) if moved else ("", "")
 
     # ---------- the replay check ----------
 
@@ -917,8 +991,14 @@ class Explorer:
                     if move.cand and live is None:
                         continue
                     self.perform(move, live)
-                    matched += ob.same_state(self.observe().fp, self.by_id[to_sid].fp)
-            except (NeedRelaunch, McpTimeout) as e:
+                    seen = self.observe().fp
+                    if ob.same_state(seen, self.by_id[to_sid].fp):
+                        matched += 1
+                    else:
+                        near = next((s.sid for s in self.states if ob.same_state(s.fp, seen)), "a new screen")
+                        self.note("replay.miss", f"{move.action} {move.cand.label[:30] if move.cand else ''} "
+                                                 f"expected {to_sid}, reached {near}", outcome="error")
+            except DEVICE_ERRORS as e:
                 self.note("replay", f"segment stopped: {e}", outcome="error")
         self.replay = (matched, total)
         self.note("replay", f"{matched}/{total} replayed moves reached the recorded state")
@@ -1100,7 +1180,9 @@ def exhibit(ex: Explorer, app_version: str | None) -> str:
              f"- Budget `{ex.ctx.budget}`: {ex.actions} actions, stop: **{ex.stop_reason}**",
              f"- States: {len(ex.states)} ({', '.join(f'{n} {k}' for k, n in sorted(kinds.items()))})",
              f"- Bottom tabs: {len(ex.tabs)} found, {sum(bool(ex.tab_to.get(t.key)) for t in ex.tabs)} visited",
-             f"- Relaunches: {ex.relaunches} of {MAX_RELAUNCHES}",
+             f"- Relaunches: {ex.relaunches} (tour cap {MAX_RELAUNCHES}, then {CORE_RELAUNCHES} for the passes after)",
+             *[f"  - {n}: {why}" for n, why in enumerate(ex.relaunch_reasons, start=1)],
+             f"- Paywall or plans screen captured: {'yes, ' + ex.paywall if ex.paywall else 'no'}",
              f"- Content filter: {' > '.join(repr(t.label) for t in ex.filter_taps) or 'none found'}"]
     lines += [f"  - check {n}: {'verified' if ok else 'NOT verified'} by screenshot (`{path}`)"
               for n, ok, path in ex.filter_checks]
@@ -1111,10 +1193,11 @@ def exhibit(ex: Explorer, app_version: str | None) -> str:
                   f"Element-list call time over {len(seconds)} calls: median {seconds[len(seconds) // 2]:.2f} s, "
                   f"p90 {seconds[int(len(seconds) * 0.9)]:.2f} s, max {seconds[-1]:.2f} s; "
                   f"{fast}/{len(seconds)} under the 2 s settle threshold.", ""]
+    passes = sum(r.startswith("pass ") for r in ex.core_results)
     lines += ["## Core loop (the free experience)", "",
-              f"Core action: {ex.core.name if ex.core else 'none'}", ""]
+              f"Core action: {ex.core.name if ex.core else 'none'}; {passes} of {ex.core_reps} passes.", ""]
     lines += [f"- {r}" for r in ex.core_results]
-    lines += [f"- First hard stop: {ex.core_hit}" if ex.core_hit else "- No limit, paywall, or ad appeared.", ""]
+    lines += [f"- Stopped by: {ex.core_hit}" if ex.core_hit else "- Nothing stopped the loop.", ""]
     matched, total = ex.replay
     lines += ["## Replay check", "", f"{matched}/{total} replayed moves reached the recorded state"
               + (f" ({100 * matched / total:.0f}%)." if total else "."), "",
@@ -1163,13 +1246,17 @@ def explore_app(ex: Explorer) -> None:
         ex.stop_reason = str(e)
     except llm.CapReached as e:
         ex.stop_reason = f"$ cap: {e}"
+    except DEVICE_ERRORS as e:
+        ex.stop_reason = f"device error: {type(e).__name__}: {e}"[:200]
+        ex.note("tour", ex.stop_reason, outcome="error")
     ex.tour_actions = ex.actions
-    if not ex.stop_reason.startswith(("blocked root", "second hang")):
-        try:
-            ex.core_loop()
-            ex.verify_replay()
-        except (Stop, llm.CapReached) as e:
-            ex.core_results.append(f"stopped: {e}")
+    if ex.root and not ex.stop_reason.startswith(("blocked root", "second hang")):
+        for phase in (ex.paywall_pass, ex.core_loop, ex.verify_replay):
+            try:
+                phase()
+            except (Stop, llm.CapReached, *DEVICE_ERRORS) as e:
+                ex.core_results.append(f"{phase.__name__} stopped: {type(e).__name__}: {e}"[:200])
+                ex.note(phase.__name__, str(e)[:200], outcome="error")
     ex.write(app_version)
     update_manifest(ex.ctx.run_dir, app_version=app_version)
     write_exhibit(ex.ctx.run_dir, 1, "explore", exhibit(ex, app_version))

@@ -124,18 +124,17 @@ class FakePhone:
             self.history.append(self.screen)
             self.screen = target
 
-    def tap_element(self, e: dict | None) -> None:
-        key = element_key(e) if e else "nothing"
-        self.log.append(("tap", self.screen, key))
-        self.go(self.taps.get((self.screen, key)))
-
     def tap(self, x: int, y: int) -> None:
+        """The smallest element under the point gets the tap; one with no mapping passes it to the next one out,
+        the way a parent view handles a click its child ignores."""
         self.tick()
-        holding = [e for e in self.current_elements() if e["coordinates"]["x"] <= x < e["coordinates"]["x"]
-                   + e["coordinates"]["width"] and e["coordinates"]["y"] <= y < e["coordinates"]["y"]
-                   + e["coordinates"]["height"]]
-        self.tap_element(min(holding, key=lambda e: e["coordinates"]["width"] * e["coordinates"]["height"],
-                             default=None))
+        holding = sorted((e for e in self.current_elements() if e["coordinates"]["x"] <= x < e["coordinates"]["x"]
+                          + e["coordinates"]["width"] and e["coordinates"]["y"] <= y < e["coordinates"]["y"]
+                          + e["coordinates"]["height"]),
+                         key=lambda e: e["coordinates"]["width"] * e["coordinates"]["height"])
+        keys = [element_key(e) for e in holding] or ["nothing"]
+        self.log.append(("tap", self.screen, keys[0]))
+        self.go(next((self.taps[(self.screen, k)] for k in keys if (self.screen, k) in self.taps), None))
 
     def back(self) -> None:
         self.tick()

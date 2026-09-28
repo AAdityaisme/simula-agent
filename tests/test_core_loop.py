@@ -60,3 +60,14 @@ def test_upsell_screens_are_recognized():
     paywall = parse_elements(json.loads((TREES / "luzia" / "luzia-paywall.elements.json").read_text()))
     home = parse_elements(json.loads((TREES / "aol" / "aol-home.elements.json").read_text()))
     assert ob.is_upsell(paywall, DEVICE) and not ob.is_upsell(home, DEVICE)
+
+
+def test_a_counter_in_the_header_counts_and_a_changing_reply_does_not():
+    def tree(counter, reply):
+        return [{"ref": "@e1", "type": "android.widget.TextView", "text": counter,
+                 "coordinates": {"x": 700, "y": 180, "width": 300, "height": 50}},
+                {"ref": "@e2", "type": "android.widget.TextView", "text": reply,
+                 "coordinates": {"x": 42, "y": 1200, "width": 900, "height": 60}}]
+    bands = [(0, ob.TOP_CHROME_BOTTOM_PX)]
+    assert ob.counters(tree("5 left", "at 3 pm"), tree("4 left", "at 4 pm"), DEVICE, bands) == ["5 left → 4 left"]
+    assert ob.counters(tree("5 left", "at 3 pm"), tree("5 left", "at 4 pm"), DEVICE, bands) == []

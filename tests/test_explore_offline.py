@@ -186,18 +186,54 @@ class LoopLine(ActionLine):
     loop_stop: str | None = None
 
 
-def test_core_loop_lines_carry_their_pass_and_stop_at_a_limit(tmp_path, monkeypatch):
+def test_the_loop_stops_at_a_dialog_the_send_opened_not_at_words_in_a_reply(tmp_path, monkeypatch):
     monkeypatch.setattr(stage, "ActionLine", LoopLine)
 
     def limited(clock):
         phone = janitor_like(clock)
-        phone.replies["chat"] = ["You've reached your daily message limit. Upgrade for more."]
+        phone.replies["chat"] = ["I've hit my limits before, and pushed past them."]
+        phone.screens["limit"] = capture("janitorai", "j01_launch")
+        phone.taps[("chat", "sendButton")] = "limit"
         return phone
     ex, phone = explore(tmp_path, monkeypatch, phone_factory=limited)
     loop = [LoopLine.model_validate_json(raw) for raw in (ex.out / "actions.jsonl").read_text().splitlines()]
     passes = [line for line in loop if line.loop_pass]
     assert passes and all(line.loop_pass >= 1 for line in passes)
-    assert [line.loop_stop for line in loop if line.loop_stop] == ["limit"]
-    assert len(phone.typed) == 1 and ex.core_hit.startswith("limit")
+    assert [line.loop_stop for line in loop if line.loop_stop] == ["paywall"]
+    assert len(phone.typed) == 1 and ex.core_hit.startswith("paywall")
     tour = [line for line in loop if line.loop_pass is None and line.outcome == "ok"]
     assert tour and not any(line.loop_stop for line in tour)
+
+
+def test_a_feed_item_whose_main_action_opens_a_chat_becomes_the_core_action(tmp_path, monkeypatch):
+    def detail_first(clock):
+        phone = janitor_like(clock)
+        phone.screens["detail"] = capture("luzia", "luzia-home", package=PACKAGE)
+        phone.taps[("limited", "JJK - GOJO’S RELATIVE")] = "detail"
+        phone.taps[("detail", "New chat")] = "chat"
+        return phone
+    ex, phone = explore(tmp_path, monkeypatch, phone_factory=detail_first)
+    assert ex.core.kind == "chat" and phone.typed
+    assert ("tap", "detail", "New chat") in phone.log
+
+
+def test_a_failed_capture_in_the_core_loop_keeps_the_tour(tmp_path, monkeypatch):
+    from simula.device.mcp import McpReplyError
+
+    def flaky(clock):
+        phone = janitor_like(clock)
+        save = phone.screenshot
+
+        def screenshot(path, size=None):
+            if phone.typed:
+                raise McpReplyError("screenshot not written")
+            return save(path, size)
+        phone.screenshot = screenshot
+        return phone
+    ex, _ = explore(tmp_path, monkeypatch, phone_factory=flaky)
+    explore_file = ExploreFile.model_validate_json((ex.out / "explore.json").read_text())
+    assert explore_file.coverage.states_found >= 8
+    assert all((ex.out / "states" / f"{s.sid}.json").exists() for s in ex.states)
+    assert any("McpReplyError" in r for r in ex.core_results)
+    failed = [line for line in lines(ex) if line.outcome == "error"]
+    assert any("observing after the move failed" in line.change_summary for line in failed)

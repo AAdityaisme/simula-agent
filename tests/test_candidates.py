@@ -76,3 +76,21 @@ def test_a_control_is_refound_by_its_words_after_the_bar_recenters():
     moved = [c if c is not sports else ob.Candidate(**{**c.__dict__, "rect": ob.Rect(x=300, y=c.rect.y, w=c.rect.w,
                                                                                         h=c.rect.h)}) for c in home]
     assert ob.find(moved, sports).rect.x == 300
+
+
+def box(ref, kind, x, y, w, h, text=""):
+    return {"ref": ref, "type": f"android.view.{kind}", "text": text,
+            "coordinates": {"x": x, "y": y, "width": w, "height": h}}
+
+
+def test_content_scrolled_under_a_tab_does_not_label_it():
+    feed_tag = box("@e1", "TextView", 290, 2200, 110, 40, text="#proud")
+    tabs = [box(f"@t{n}", "ViewGroup", 72 + 192 * n, 2170, 167, 167) for n in range(5)]
+    cands = ob.controls([feed_tag, *tabs], DEVICE)
+    assert [c.tree_label for c in ob.tab_bar(cands, DEVICE)] == [""] * 5
+    assert all(c.tree_label != "#proud" for c in cands)
+
+
+def test_own_text_after_a_control_still_labels_it():
+    tab, label = box("@t1", "ViewGroup", 72, 2170, 167, 167), box("@e2", "TextView", 90, 2280, 120, 40, text="Home")
+    assert [c.tree_label for c in ob.controls([tab, label], DEVICE)] == ["Home"]
