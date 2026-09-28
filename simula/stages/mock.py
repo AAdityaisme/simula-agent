@@ -243,7 +243,10 @@ def stamp_transitions(html: str, model: ProductModel) -> str:
 
 
 def with_runtime(html: str, root: str) -> str:
-    """Adds the code-owned navigation runtime, so every mock moves between screens the same way."""
+    """Adds the code-owned navigation runtime, so every mock moves between screens the same way. Replaces a
+    runtime already in the page, so QA and flows can re-apply it after every edit."""
+    html = re.sub(r'<style id="simula-runtime">.*?</style>\n?', "", html, flags=re.S)
+    html = re.sub(r'<script id="simula-runtime-js">.*?</script>\n?', "", html, flags=re.S)
     html = _insert_before(html, "</head>", RUNTIME_CSS)
     return _insert_before(html, "</body>", RUNTIME_JS % json.dumps(root))
 

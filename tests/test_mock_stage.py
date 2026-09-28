@@ -111,3 +111,11 @@ def test_each_attempt_is_one_call_under_its_own_wall_and_a_timeout_is_not_retrie
         mock.generate(ctx_for(run_dir, "aol", profile="real"), model, mock.pick_scope(model))
     assert e.value.outcome == "timeout"
     assert calls == [("xhigh", 1, mock.WALL_SECONDS), ("high", 1, mock.WALL_SECONDS)]
+
+
+def test_applying_the_runtime_twice_leaves_exactly_one(app):
+    html = skeleton_html(golden(app))
+    twice = mock.with_runtime(mock.with_runtime(html, "s01"), "s02")
+    assert twice.count('id="simula-runtime"') == 1 and twice.count('id="simula-runtime-js"') == 1
+    assert 'const ROOT = "s02"' in twice
+    assert mock.with_runtime(twice, "s02") == twice
