@@ -8,7 +8,7 @@ import pytest
 
 from simula import llm
 from simula.config import app_config
-from simula.contracts import (Device, Element, ElementMeaning, Flow, LedgerItem, Mechanic, ModelMeaning,
+from simula.contracts import (Device, Edge, Element, ElementMeaning, Flow, LedgerItem, Mechanic, ModelMeaning,
                               ProductModel, QuestionDraft, Rect, State, StateMeaning, TermMeaning)
 from simula.runlog import read_trace
 from simula.stages import Ctx
@@ -260,6 +260,30 @@ def test_questions_need_a_real_start_state_and_are_capped(app):
     kept, rejected = stage.check_meaning(answer, states, edges)
     assert rejected == ["question nowhere: start_state 's99' is not a recorded state"]
     assert [q.id for q in kept.open_questions] == ["q0", "q1", "q2", "q3", "q4"]
+
+
+def test_core_flow_states_come_before_tabs():
+    def state(sid, kind="screen", parent=None):
+        return State(id=sid, kind=kind, parent_id=parent, name="", purpose="", fingerprint="", canonical_png="",
+                     elements=[], in_mock_scope=False, content_rating="safe", dynamic_regions=[], blocked_reason=None)
+
+    def edge(a, b, transition):
+        return Edge(id=f"{a}.tap>{b}", from_state=a, to_state=b, element_id=None, action="tap",
+                    transition=transition, change_summary="")
+    tabs = [f"s{n:02d}" for n in range(2, 8)]
+    flow = ["s08", "s09", "s10", "s11"]
+    states = [state("s01"), *map(state, tabs), *map(state, flow[:3]), state("s11", "modal", "s10")]
+    edges = [edge("s01", t, "tab") for t in tabs]
+    hops = list(zip(["s01", *flow[:-1]], flow))
+    edges += [edge(a, b, "modal" if b == "s11" else "push") for a, b in hops]
+    meaning = ModelMeaning(app_category="chat", states=[], elements=[], cross_screen_values=[], value_ledger=[],
+                           open_questions=[], terms=[],
+                           flows=[Flow(id="f1", name="core", purpose="x", edge_ids=[f"{a}.tap>{b}" for a, b in hops],
+                                       evidence_ids=[])],
+                           mechanics=[Mechanic(id="m1", kind="limit", evidence_ids=["s11"], summary="x",
+                                               observed_numbers=[], status="observed")])
+    scope = stage.mock_scope(states, edges, meaning)
+    assert scope == ["s01", *flow, *tabs[:3]]
 
 
 # ---------- the whole stage ----------
