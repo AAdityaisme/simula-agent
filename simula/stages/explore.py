@@ -769,25 +769,34 @@ class Explorer:
         return Move("tap", by_key[key], decider="jev" if len(opts) > 1 else "code", why="ranked")
 
     def goto(self, target: Seen) -> bool:
-        """Walks recorded moves to the target, checking every hop; relaunches once if a hop lands elsewhere."""
-        for attempt in (1, 2):
-            if self.current is target:
-                return True
+        """Walks recorded moves to the target, checking every hop. A tab tap that changes nothing means something
+        (a sheet, a drawer) covers the tab bar: BACK closes it once and the walk starts over. Any other miss
+        relaunches once."""
+        relaunched = backed = False
+        while self.current is not target:
             hops = self.route(self.current, target)
             if hops is None and self.current.kind != "external" and not self.shows_tabs(self.current):
                 self.act(Move("back", why="no recorded way back from here"), purpose="nav")
                 hops = [] if self.current is target else self.route(self.current, target)
-            why = f"no recorded way from {self.current.sid} to {target.sid}"
+            why, covered = f"no recorded way from {self.current.sid} to {target.sid}", False
             for move, expected in hops or []:
+                here = self.current
                 self.act(move, purpose="nav")
                 if self.current is not expected:
                     why = f"{move.action} toward {expected.sid} landed on {self.current.sid}"
+                    covered = self.current is here and move.cand is not None and move.cand.key in self.tab_keys()
                     break
             if self.current is target:
                 return True
-            if attempt == 1:
+            if covered and not backed:
+                backed = True
+                self.act(Move("back", why="a tab tap changed nothing: something covers the tab bar"), purpose="nav")
+            elif relaunched:
+                return False
+            else:
+                relaunched = True
                 self.relaunch(why=why)
-        return self.current is target
+        return True
 
     def shows_tabs(self, s: Seen) -> bool:
         return any(ob.find(s.cands, t) for t in self.tabs)

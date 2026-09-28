@@ -368,3 +368,15 @@ def test_with_no_price_anywhere_the_best_upsell_stands_marked_no_price_seen(tmp_
     assert paywall.upsell and not paywall.priced and not paywall.launch
     assert "no price seen" in (ex.run_dir / "exhibits" / "01-explore.md").read_text()
     assert "paywall_or_membership" in ex.checklist()[1]
+
+
+def test_a_sheet_over_the_tab_bar_is_closed_with_back_not_a_relaunch(tmp_path, monkeypatch):
+    def sheet_over_tabs(clock):
+        phone = janitor_like(clock)
+        phone.screens["sheet"] = capture("janitorai", "j06_tab3")
+        phone.taps[("chats", "996,209")] = "sheet"
+        return phone
+    ex, phone = explore(tmp_path, monkeypatch, phone_factory=sheet_over_tabs, budget="deep")
+    assert not any(why.startswith("tap toward") for why in ex.relaunch_reasons)
+    trace = runlog.read_trace(ex.run_dir / "trace.jsonl")
+    assert any("covers the tab bar" in line.note for line in trace)
