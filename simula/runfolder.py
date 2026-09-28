@@ -100,10 +100,15 @@ def _rel(path: Path, base: Path) -> str:
 
 def write_json_atomic(path: Path, data: str) -> None:
     """Writes to a temp file, then renames it over the target, so a reader never sees half a file. The temp
-    name is per process and thread, so two writers of one path can't interleave."""
+    name is per process and thread, so two writers of one path can't interleave; a write that stops early
+    removes it, so no stray temp file lands among a stage's hashed outputs."""
     tmp = path.with_name(f"{path.name}.{os.getpid()}-{threading.get_ident()}.tmp")
-    tmp.write_text(data)
-    os.replace(tmp, path)
+    try:
+        tmp.write_text(data)
+        os.replace(tmp, path)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
 
 
 def write_done(stage_dir: Path, run_dir: Path, inputs: list[Path], prompts: list[Path], params: dict,

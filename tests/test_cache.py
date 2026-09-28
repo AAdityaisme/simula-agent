@@ -330,3 +330,4 @@ def test_a_crash_mid_write_never_leaves_a_torn_cache_file(tmp_path, monkeypatch)
         llm.cache_write("k", llm.Reply(text="x" * 100_000, model=MODEL), tmp_path)
     monkeypatch.undo()
     assert llm.cache_read("k", tmp_path).text == '{"word": "old"}'
+    assert [p.name for p in tmp_path.iterdir()] == ["k.json"]
