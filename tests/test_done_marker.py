@@ -119,3 +119,11 @@ def test_real_stage_inputs_include_the_bible_and_the_contract():
     from simula.stages import EXTRA_INPUTS
     assert EXTRA_INPUTS["propose"] == EXTRA_INPUTS["judge"] == ["bible"]
     assert EXTRA_INPUTS["mock"] == ["docs/CONTRACTS.md"]
+
+
+def test_bytecode_caches_are_not_stage_inputs(tmp_path):
+    (tmp_path / "__pycache__").mkdir()
+    (tmp_path / "__pycache__" / "lens.cpython-312.pyc").write_bytes(b"\x00")
+    (tmp_path / "stray.pyc").write_bytes(b"\x00")
+    (tmp_path / "lens.py").write_text("x = 1")
+    assert runfolder.expand([tmp_path]) == [tmp_path / "lens.py"]

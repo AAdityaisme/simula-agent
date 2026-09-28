@@ -10,6 +10,7 @@ captures = [
   "janitorai/janitorai-trending", "luzia/luzia-a", "luzia/luzia-b", "aol/aol-a", "aol/aol-b",
   "luzia/luzia-home", "luzia/luzia-home-repeat", "luzia/luzia-home-scrolled", "luzia/luzia-paywall",
   "luzia/luzia-tab-services", "luzia/luzia-tab-create", "luzia/luzia-tab-create-scrolled", "luzia/luzia-chat-thread",
+  "luzia/luzia-settings", "luzia/luzia-settings-scrolled", "luzia/luzia-pet-intro",
   "aol/aol-home", "aol/aol-home-repeat", "aol/aol-home-scrolled", "aol/aol-article", "aol/aol-article-external",
   "aol/aol-tab-entertainment", "aol/aol-tab-local", "aol/aol-tab-sports",
 ]
