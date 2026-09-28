@@ -207,3 +207,17 @@ def test_an_edge_with_no_element_is_never_tapped_and_a_flow_takes_it_by_navigati
     assert back.id not in [t["edge"] for t in version.taps] and not version.failed_taps()
     assert version.flows == [{"flow": "fback", "name": "There and back", "status": "passed", "problem": None,
                               "screen": None, "navigated": [back.id]}]
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_the_home_follows_the_mocks_order_not_the_state_order(app):
+    """A parent-less dialog listed before the root in the model's states must not become QA's home."""
+    model = golden(app)
+    root, second, *rest = mock.pick_scope(model)
+    dialog = second.model_copy(update={"kind": "modal", "parent_id": None})
+    states = [dialog, *(s for s in model.states if s.id != second.id)]
+    model = model.model_copy(update={"states": states, "mock_order": [root.id, dialog.id, *(s.id for s in rest)]})
+    screens = [s.id for s in mock.pick_scope(model)]
+    assert [s.id for s in model.states].index(dialog.id) < [s.id for s in model.states].index(root.id)
+    assert mock.home_id(mock.pick_scope(model)) == root.id
+    assert f'const ROOT = "{root.id}"' in qa.rebuild(skeleton_html(model), model, screens)

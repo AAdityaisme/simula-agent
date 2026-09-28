@@ -447,9 +447,9 @@ def without_runtime(html: str) -> str:
 
 def rebuild(html: str, model: ProductModel, screens: list[str]) -> str:
     """Code takes navigation back after every edit batch: it re-wires every model edge and adds the runtime again,
-    opening on the mock's home screen."""
-    scope = [s for s in model.states if s.id in screens]
-    return mock.with_runtime(mock.wire_edges(html, model, screens), mock.home_id(scope))
+    opening on the mock's home screen. screens keep the mock's order, which decides the home."""
+    states = {s.id: s for s in model.states}
+    return mock.with_runtime(mock.wire_edges(html, model, screens), mock.home_id([states[sid] for sid in screens]))
 
 
 def apply_edits(html: str, edits: list[Edit]) -> tuple[str, list[dict]]:
