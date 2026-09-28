@@ -183,7 +183,7 @@ def measure_screen(ctx: Ctx, model: ProductModel, state: State, round_dir, boxes
     pasted crop earns nothing, and a misplaced one is scored), and regions that change between visits."""
     real = Image.open(ctx.run_dir / "model" / state.canonical_png)
     render_path = round_dir / "mock" / f"{state.id}.png"
-    origins = {f"assets/{e.id}.png": e.rect_dp for e in state.elements} | art_origins(ctx)
+    origins = {f"assets/{e.id}.png": e.rect_dp for e in state.elements} | art_origins(ctx, state)
     copies = [qa_metrics.overlap(origins[src], drawn) for src, drawn in images if src in origins]
     masked = ([r for r in copies if r]
               + [qa_metrics.device_to_dp(r, model.device) for r in state.dynamic_regions])
@@ -210,11 +210,12 @@ def measure_screen(ctx: Ctx, model: ProductModel, state: State, round_dir, boxes
             "taps_passed": passed, "misses": misses}
 
 
-def art_origins(ctx: Ctx) -> dict:
-    """mock/art.json: each art crop's src and the content-dp rect it was cut from. No file, no art."""
+def art_origins(ctx: Ctx, state: State) -> dict:
+    """The art crops of this screen's own elements in mock/art.json, each src with the content-dp rect it was cut
+    from, so art reused from another screen earns no mask here. No file, no art."""
     path = ctx.run_dir / "mock" / "art.json"
-    data = json.loads(path.read_text()) if path.exists() else {}
-    return {src: Rect(**r) for src, r in data.get("art", data).items() if src.startswith("assets/")}
+    art = json.loads(path.read_text())["art"] if path.exists() else {}
+    return {mock.art_src(e.id): Rect(**art[mock.art_src(e.id)]) for e in state.elements if mock.art_src(e.id) in art}
 
 
 def mock_screens(ctx: Ctx, model: ProductModel) -> list[State]:
@@ -571,6 +572,9 @@ def exhibit(ctx: Ctx, model: ProductModel, best: Version, rounds: list[dict], re
     if best.contract_errors:
         lines += ["", "Contract errors on the approved version:",
                   *[f"- {e.kind} ({e.screen or 'page'}): {e.detail}" for e in best.contract_errors]]
+    lines += ["", "Known limit: when the critic refuses a group of screens, that group gets no fixes that round "
+                  "(and the round stops if every group refuses). The refused images aren't bisected out to keep the "
+                  "rest of the group."]
     return "\n".join(lines) + "\n"
 
 

@@ -221,3 +221,38 @@ def test_the_home_follows_the_mocks_order_not_the_state_order(app):
     assert [s.id for s in model.states].index(dialog.id) < [s.id for s in model.states].index(root.id)
     assert mock.home_id(mock.pick_scope(model)) == root.id
     assert f'const ROOT = "{root.id}"' in qa.rebuild(skeleton_html(model), model, screens)
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_art_reused_from_another_screen_earns_no_mask_there(tmp_path, app):
+    run_dir = seed_model(tmp_path / "run", app)
+    model = golden(app)
+    scope = mock.pick_scope(model)[:3]
+    a_screen, b_screen = scope[:2]
+
+    def apart(r: Rect, q: Rect, gap: float = 8) -> bool:
+        return r.x + r.w + gap < q.x or q.x + q.w + gap < r.x or r.y + r.h + gap < q.y or q.y + q.h + gap < r.y
+    a, b = next((a, b) for a in a_screen.elements for b in b_screen.elements
+                if min(a.rect_dp.w, a.rect_dp.h, b.rect_dp.w, b.rect_dp.h) >= 20 and apart(a.rect_dp, b.rect_dp))
+    assets = run_dir / "mock" / "assets"
+    assets.mkdir(parents=True)
+    for e in (a, b):
+        Image.new("RGB", (8, 8), "red").save(run_dir / "mock" / mock.art_src(e.id))
+    art = {mock.art_src(e.id): e.rect_dp.model_dump() for e in (a, b)}
+    (run_dir / "mock" / "art.json").write_text(json.dumps({"schema_version": 1, "art": art}))
+
+    def img(e) -> str:
+        r = e.rect_dp
+        box = f"position:absolute;left:{r.x}px;top:{r.y}px;width:{r.w}px;height:{r.h}px"
+        return f'<img src="{mock.art_src(e.id)}" style="{box}">'
+
+    def coverage_by_screen(n: int, on_b: str) -> list[float]:
+        sections = "".join(f'<section data-screen="{s.id}">{on_b if s is b_screen else ""}</section>' for s in scope)
+        html = qa.rebuild(f"<!doctype html><html><head></head><body>{sections}</body></html>", model,
+                          [s.id for s in scope])
+        return [s.masked_coverage for s in qa.measure(ctx_for(run_dir, app), model, scope, n, html).metrics.screens]
+    blank, own, own_and_reused = coverage_by_screen(0, ""), coverage_by_screen(1, img(b)), \
+        coverage_by_screen(2, img(b) + img(a))
+    assert own[1] < blank[1]
+    assert own_and_reused[1] == pytest.approx(own[1])
+    assert own_and_reused[0] == blank[0] and own_and_reused[2] == blank[2]
