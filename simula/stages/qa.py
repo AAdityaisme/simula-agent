@@ -242,21 +242,24 @@ def tap(page, edge: Edge) -> str | None:
 
 
 def check_taps(page, model: ProductModel, scope: list[State]) -> list[dict]:
-    """Every in-scope edge of the model, whether or not the page carries it."""
+    """Every in-scope edge of the model that starts on an element, whether or not the page carries it. An edge with
+    no element (BACK, a swipe) has nothing on screen to tap."""
     checks = []
-    for edge in mock.scope_edges(model, scope):
+    for edge in (e for e in mock.scope_edges(model, scope) if e.element_id):
         page.evaluate("id => window.simula.go(id)", edge.from_state)
         checks.append({"screen": edge.from_state, "edge": edge.id, "problem": tap(page, edge)})
     return checks
 
 
 def walk_flows(page, model: ProductModel, scope: list[State]) -> list[dict]:
-    """Walks each core flow from its first screen by tapping, never jumping. A flow that leaves the mock's scope
-    can't be walked and is reported as such."""
+    """Walks each core flow from its first screen by tapping, never jumping over a hop that has an element to tap. A
+    hop with none (BACK, a swipe) is taken by navigation, the way the system would, and listed as navigated. A flow
+    that leaves the mock's scope can't be walked and is reported as such."""
     edges = {e.id: e for e in mock.scope_edges(model, scope)}
     walks = []
     for flow in model.flows:
-        walk = {"flow": flow.id, "name": flow.name, "status": "out_of_scope", "problem": None}
+        walk = {"flow": flow.id, "name": flow.name, "status": "out_of_scope", "problem": None,
+                "navigated": [i for i in flow.edge_ids if i in edges and not edges[i].element_id]}
         if flow.edge_ids and all(i in edges for i in flow.edge_ids):
             walk["problem"] = walk_one(page, [edges[i] for i in flow.edge_ids])
             walk["status"] = "failed" if walk["problem"] else "passed"
@@ -267,6 +270,9 @@ def walk_flows(page, model: ProductModel, scope: list[State]) -> list[dict]:
 def walk_one(page, edges: list[Edge]) -> str | None:
     page.evaluate("id => window.simula.go(id)", edges[0].from_state)
     for edge in edges:
+        if not edge.element_id:
+            page.evaluate("id => window.simula.go(id)", edge.to_state)
+            continue
         problem = tap(page, edge)
         if problem:
             return f"{edge.id}: {problem}"
@@ -350,8 +356,10 @@ def without_runtime(html: str) -> str:
 
 
 def rebuild(html: str, model: ProductModel, screens: list[str]) -> str:
-    """Code takes navigation back after every edit batch: it re-wires every model edge and adds the runtime again."""
-    return mock.with_runtime(mock.wire_edges(html, model, screens), screens[0])
+    """Code takes navigation back after every edit batch: it re-wires every model edge and adds the runtime again,
+    opening on the mock's home screen."""
+    scope = [s for s in model.states if s.id in screens]
+    return mock.with_runtime(mock.wire_edges(html, model, screens), mock.home_id(scope))
 
 
 def apply_edits(html: str, edits: list[Edit]) -> tuple[str, list[dict]]:
@@ -458,7 +466,8 @@ def exhibit(ctx: Ctx, model: ProductModel, best: Version, rounds: list[dict], re
         lines.append(f"| {m.state_id} | {s['name']} | {m.score:.2f} | {ssim} ({m.masked_coverage:.0%}) | {bounds} | "
                      f"{taps} | `qa/round{best.round}/heatmap/{m.state_id}.png` |")
     lines += ["", "| Flow | Name | Walk |", "|---|---|---|"]
-    lines += [f"| {f['flow']} | {f['name']} | {f['status'].replace('_', ' ')}{': ' + f['problem'] if f['problem'] else ''} |"
+    lines += [f"| {f['flow']} | {f['name']} | {f['status'].replace('_', ' ')}{': ' + f['problem'] if f['problem'] else ''}"
+              f"{' (navigated, no element to tap: ' + ', '.join(f['navigated']) + ')' if f['navigated'] else ''} |"
               for f in best.flows]
     if best.failed_taps():
         lines += ["", "Taps that still fail:", *[f"- `{t['edge']}`: {t['problem']}" for t in best.failed_taps()]]

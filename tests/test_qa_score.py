@@ -11,7 +11,7 @@ import pytest
 from PIL import Image
 
 from simula import qa_metrics
-from simula.contracts import Rect
+from simula.contracts import Edge, Flow, Rect
 from simula.stages import mock, qa
 from tests.conftest import APPS, FIXTURES
 from tests.mock_fake import golden, seed_model, skeleton_html
@@ -178,3 +178,31 @@ def test_a_tap_target_outside_its_screen_fails(tmp_path, app):
     html = with_css(f'[data-edge="{edge.id}"]{{top:1500px!important}}')(skeleton_html(model))
     version = qa.measure(ctx_for(run_dir, app), model, scope, 0, qa.rebuild(html, model, [s.id for s in scope]))
     assert {t["edge"]: t["problem"] for t in version.taps}[edge.id] == "the tag sits outside its screen"
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_the_rebuilt_page_opens_on_the_first_screen_that_is_not_a_dialog(app):
+    model = golden(app)
+    first, second = mock.pick_scope(model)[:2]
+    dialog = first.model_copy(update={"parent_id": second.id})
+    model = model.model_copy(update={"states": [dialog if s.id == first.id else s for s in model.states]})
+    screens = [s.id for s in mock.pick_scope(model)]
+    assert f'const ROOT = "{second.id}"' in qa.rebuild(skeleton_html(model), model, screens)
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_an_edge_with_no_element_is_never_tapped_and_a_flow_takes_it_by_navigation(tmp_path, app):
+    run_dir = seed_model(tmp_path / "run", app)
+    model = golden(app)
+    scope = mock.pick_scope(model)
+    tap = mock.scope_edges(model, scope)[0]
+    back = Edge(id=f"{tap.to_state}.back>{tap.from_state}", from_state=tap.to_state, to_state=tap.from_state,
+                element_id=None, action="back", transition="back", change_summary="system back")
+    flow = Flow(id="fback", name="There and back", purpose="p", edge_ids=[tap.id, back.id, tap.id], evidence_ids=[])
+    model = model.model_copy(update={"edges": [*model.edges, back], "flows": [flow]})
+    mock.copy_assets(run_dir / "model", run_dir / "mock", scope, model.device)
+    html = qa.rebuild(skeleton_html(model), model, [s.id for s in scope])
+    version = qa.measure(ctx_for(run_dir, app), model, scope, 0, html)
+    assert back.id not in [t["edge"] for t in version.taps] and not version.failed_taps()
+    assert version.flows == [{"flow": "fback", "name": "There and back", "status": "passed", "problem": None,
+                              "navigated": [back.id]}]
