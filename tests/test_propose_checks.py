@@ -1,7 +1,9 @@
+import time
+
 import pytest
 
 from simula import llm
-from simula.contracts import CandidateDraft, LedgerItem, LensOutput, Mechanic
+from simula.contracts import CandidateDraft, CandidatesFile, LedgerItem, LensOutput, Mechanic
 from simula.stages import Ctx, propose
 from simula.stages.propose import anchor_ids, check, daily_cap, depths, finish, in_chat
 from tests.conftest import APPS
@@ -242,13 +244,14 @@ def test_a_trigger_next_to_unsafe_or_unknown_content_is_dropped(model, rating):
     assert f"{rating} content" in check(candidate(rated), rated)
 
 
-def run_with(model, tmp_path, monkeypatch, fail_lenses):
+def run_with(model, tmp_path, monkeypatch, fail_lenses, delay=None):
     (tmp_path / "model").mkdir()
     (tmp_path / "propose").mkdir()
     (tmp_path / "model" / "product_model.json").write_text(model.model_dump_json())
     draft = CandidateDraft(**{k: v for k, v in candidate(model).model_dump().items() if k in CandidateDraft.model_fields})
 
     def fake_call(*, step, **_):
+        time.sleep((delay or {}).get(step, 0))
         if step.removeprefix("lens:") in fail_lenses:
             raise llm.LLMFailure("timeout", "provider down")
         return LensOutput(candidates=[draft]), None
@@ -269,3 +272,13 @@ def test_every_lens_failing_fails_the_stage(model, tmp_path, monkeypatch):
 def test_one_lens_failing_still_finishes(model, tmp_path, monkeypatch):
     run_with(model, tmp_path, monkeypatch, {"free_at_limit"})
     assert (tmp_path / "propose" / "candidates.json").exists()
+
+
+def test_lenses_run_at_the_same_time_and_keep_their_order(model, tmp_path, monkeypatch):
+    lenses = propose.build_lenses(model)
+    delay = {f"lens:{l.id}": 0.2 * (len(lenses) - n) for n, l in enumerate(lenses)}
+    started = time.monotonic()
+    run_with(model, tmp_path, monkeypatch, set(), delay)
+    assert time.monotonic() - started < max(delay.values()) + 0.3 < sum(delay.values())
+    out = CandidatesFile.model_validate_json((tmp_path / "propose" / "candidates.json").read_text()).candidates
+    assert [c.lens for c in sorted(out, key=lambda c: c.id)][:len(lenses)] == [l.id for l in lenses]

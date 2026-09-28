@@ -3,6 +3,7 @@ code checks every answer, adds the cost line, and ranks by reach."""
 
 import json
 import re
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from string import Template
 
@@ -113,17 +114,19 @@ def lens_prompt(model: ProductModel, lens: Lens) -> str:
         lens_id=lens.id, lens_name=lens.name, lens_focus=lens.focus, product_model=model_text(model))
 
 
-def ask_lens(ctx: Ctx, model: ProductModel, lens: Lens, system: str, budget: llm.Budget) -> list[Candidate] | None:
+def ask_lens(ctx: Ctx, model: ProductModel, lens: Lens, system: str, budget: llm.Budget,
+             step: str | None = None) -> list[Candidate] | None:
     """The lens's drafts, or None when its call failed twice."""
     role = config.roles(ctx.profile)["proposer"]
+    step = step or f"lens:{lens.id}"
     messages = [{"role": "user", "content": [{"type": "text", "text": lens_prompt(model, lens)}]}]
     try:
-        output, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="propose", step=f"lens:{lens.id}",
+        output, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="propose", step=step,
                              model=role["model"], effort=role.get("effort"), system=system, messages=messages,
                              max_tokens=min(MAX_TOKENS, config.models()[role["model"]]["max_out"]), budget=budget,
                              schema=LensOutput, no_cache=ctx.no_cache, replay=ctx.replay)
     except llm.LLMFailure as e:
-        run_trace(ctx.run_dir, stage="propose", step=f"lens:{lens.id}", decider="code", outcome=e.outcome,
+        run_trace(ctx.run_dir, stage="propose", step=step, decider="code", outcome=e.outcome,
                   note="lens skipped after its retry failed")
         return None
     return [Candidate(**{**draft.model_dump(), "lens": lens.id}) for draft in output.candidates[:2]]
@@ -356,7 +359,8 @@ def run(ctx: Ctx) -> None:
     write_json_atomic(out / "lenses.json", LensesFile(lenses=lenses).model_dump_json(indent=1))
     budget = llm.Budget.for_stage("propose", ctx.run_dir / "trace.jsonl", ctx.usd_cap)
     system = system_prompt()
-    answers = [ask_lens(ctx, model, lens, system, budget) for lens in lenses]
+    with ThreadPoolExecutor(max_workers=len(lenses)) as pool:
+        answers = list(pool.map(lambda lens: ask_lens(ctx, model, lens, system, budget), lenses))
     if all(a is None for a in answers):
         raise RuntimeError("every lens call failed; see trace.jsonl")
     drafts = [c for a in answers if a for c in a]
