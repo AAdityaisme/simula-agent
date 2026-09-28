@@ -35,3 +35,13 @@ def test_caps_cover_every_stage():
 def test_budgets_are_run_flags():
     assert config.budget("deep") == {"actions": 80, "wall_minutes": 25}
     assert config.budget("transfer") == {"actions": 40, "wall_minutes": 12}
+
+
+def test_doctor_probes_every_role_at_its_real_settings():
+    from simula.doctor import role_probes
+    probes = role_probes()
+    assert ("claude-opus-5-5", "xhigh", 64000) in probes
+    assert ("gpt-6-sol", "high", 4096) in probes
+    assert ("gpt-6-luna", "high", 4096) in probes
+    probed_roles = {role.removesuffix(" fallback") for roles in probes.values() for role in roles}
+    assert set(config.roles("real")) - {"jev"} <= probed_roles

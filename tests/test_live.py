@@ -29,7 +29,7 @@ def test_structured_call_round_trips_through_the_cache(tmp_path):
 
 @pytest.mark.parametrize("backend", ["typesafe", "adapter"])
 def test_jev_picks_the_paywall_tap(backend):
-    labels = ["Open settings", "Scroll the feed", "See janitor+ (subscription paywall button)", "Open a chat"]
+    labels = ["Open settings", "Scroll the feed", "Upgrade to premium (subscription paywall button)", "Open a chat"]
     result = decide.ask_choice("An app screen. Goal: find the paywall.", "Which tap most likely reveals a paywall?",
                                labels, backend)
     assert result.option_id == "o03"

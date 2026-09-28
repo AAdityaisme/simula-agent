@@ -21,7 +21,7 @@ results: list[tuple[str, bool, str]] = []
 
 def check(name: str, ok: bool, detail: str = "") -> bool:
     results.append((name, ok, detail))
-    print(f"{'ok ' if ok else 'FAIL'}  {name:<34} {detail}")
+    print(f"{'ok ' if ok else 'FAIL'}  {name:<60} {detail}")
     return ok
 
 
@@ -87,12 +87,14 @@ def check_emulator() -> None:
         with emulator_lock():
             devices = subprocess.run([tool, "devices"], capture_output=True, text=True, timeout=20).stdout
             online = [line.split()[0] for line in devices.splitlines()[1:] if line.endswith("\tdevice")]
-            if not check("emulator online", bool(online), ", ".join(online) or "no device"):
+            emulators = [serial for serial in online if serial.startswith("emulator-")]
+            if not check("emulator online", bool(emulators), ", ".join(online) or "no device"):
                 return
+            serial = emulators[0]
             for app in sorted(p.stem for p in (config.CONFIG / "apps").glob("*.toml")):
                 package = config.app_config(app)["package"]
-                out = subprocess.run([tool, "shell", "dumpsys", "package", package], capture_output=True,
-                                     text=True, timeout=30).stdout
+                out = subprocess.run([tool, "-s", serial, "shell", "dumpsys", "package", package],
+                                     capture_output=True, text=True, timeout=30).stdout
                 version = next((line.split("=", 1)[1] for line in out.splitlines() if "versionName=" in line), None)
                 check(f"app {app} installed", version is not None, f"{package} {version or 'not installed'}")
     except TimeoutError as e:
@@ -139,8 +141,8 @@ def haiku_effort_probe() -> bool:
 
 
 def jev_probe(backend: str, n_options: int) -> dict:
-    labels = [f"tap option {i}" for i in range(1, n_options)] + ["See janitor+ (subscription paywall button)"]
-    state = "Explorer candidates on a chat app's home screen. Goal: find the paywall."
+    labels = [f"tap option {i}" for i in range(1, n_options)] + ["Upgrade to premium (subscription paywall button)"]
+    state = "Explorer candidates on an app's home screen. Goal: find the paywall."
     try:
         result = decide.ask_choice(state, "Which tap most likely reveals a paywall?", labels, backend)
     except Exception as e:  # noqa: BLE001 - doctor reports any backend failure
@@ -153,16 +155,34 @@ def jev_probe(backend: str, n_options: int) -> dict:
     return {"ok": right, "model": result.model, "seconds": round(result.seconds, 2)}
 
 
+PROBE_MAX_TOKENS = 4096
+
+
+def role_probes() -> dict[tuple, list[str]]:
+    """Each distinct (model, effort, max_tokens) the real profile uses, with the roles that use it.
+    A declared fallback is probed at its role's effort."""
+    probes: dict[tuple, list[str]] = {}
+    for name, role in config.roles("real").items():
+        if role["model"] == "jev-latest":
+            continue
+        models = [role["model"]] + ([role["declared_fallback"]] if "declared_fallback" in role else [])
+        for model in models:
+            efforts = {role.get("effort"), role.get("effort_last_round")} - {None} or {None}
+            for effort in efforts:
+                key = (model, effort, role.get("max_tokens", PROBE_MAX_TOKENS))
+                probes.setdefault(key, []).append(name if model == role["model"] else f"{name} fallback")
+    probes.setdefault(("claude-haiku-4-5-20251001", None, PROBE_MAX_TOKENS), []).append("dev profile, jev adapter")
+    return probes
+
+
 def check_keys() -> None:
-    found = {
-        "claude-opus-5-5": ping("opus-5-5 xhigh, streamed, json", "claude-opus-5-5", "xhigh", max_tokens=20000),
-        "claude-sonnet-5": ping("sonnet-5 low, json", "claude-sonnet-5", "low"),
-        "claude-haiku-4-5-20251001": ping("haiku-4-5 no effort, json", "claude-haiku-4-5-20251001", None),
-        "gpt-6-sol": ping("gpt-6-sol low, strict json", "gpt-6-sol", "low"),
-        "gpt-6-luna": ping("gpt-6-luna low, strict json", "gpt-6-luna", "low"),
-        "jev-typesafe": jev_probe("typesafe", 16),
-        "jev-adapter": jev_probe("adapter", 10),
-    }
+    found = {}
+    for (model, effort, max_tokens), roles in sorted(role_probes().items(), key=lambda kv: kv[0][0]):
+        label = f"{model} {effort or 'no effort'} {max_tokens // 1000}k"
+        found[f"{model}-{effort or 'none'}-{max_tokens}"] = ping(f"{label} ({', '.join(roles)})"[:60], model, effort,
+                                                                   max_tokens=max_tokens)
+    found["jev-typesafe"] = jev_probe("typesafe", 16)
+    found["jev-adapter"] = jev_probe("adapter", 10)
     haiku_effort = haiku_effort_probe()
     lines = [f"# Written by `simula doctor --keys` at {time.strftime('%Y-%m-%d %H:%M')}. Local only; gitignored.", ""]
     for name, info in found.items():
