@@ -9,7 +9,7 @@ from PIL import Image
 from simula.contracts import ActionLine, Device, Point, ProductModel, Rect, StateFile, VisionElement
 from simula.stages import model as stage
 from tests.conftest import APPS, FIXTURES
-from tests.explore_fixture import build
+from tests.explore_fixture import add_core_loop, build
 
 DEVICE = Device()
 ELEMENT_LINE = re.compile(r"^s\d+\.e\d+ ")
@@ -225,3 +225,46 @@ def test_describe_stops_naming_past_the_budget_except_tapped_controls(app):
     if sum(len(s.elements) for s in states) > 5:
         assert "not listed" in text
     assert "RECORDED EDGES" in text
+
+
+def test_measurements_parse_the_explorers_summary():
+    assert stage.measurements("reply started 2.1 s, finished 9.4 s, 612 chars") == \
+           [("reply started", 2.1, "s"), ("finished", 9.4, "s"), ("chars", 612.0, "chars")]
+    assert stage.measurements("no reply within 45 s") == [("no reply within", 45.0, "s")]
+    assert stage.measurements("reply arrived") == []
+
+
+@pytest.mark.parametrize("name", APPS)
+def test_core_loop_passes_become_experience_facts(name, tmp_path):
+    explore = build(name, tmp_path / "explore")
+    lines = add_core_loop(explore, passes=5)
+    states, _ = stage.load_states(explore, DEVICE)
+    edges, _ = stage.load_edges(explore, states)
+    measured, outcome = stage.loop_facts(explore, states, edges)
+    root = lines[0].from_state
+    steps = f"explore steps {lines[0].step}-{lines[-1].step}"
+    assert (measured.kind, outcome.kind) == ("experience", "experience")
+    assert measured.evidence_ids == outcome.evidence_ids == [f"{root}.type>{root}"]
+    assert measured.verbatim == (f"Core action over 5 passes ({steps}): "
+                                 "reply started median 2.7 s (min 1.9, max 3.5, n=5); "
+                                 "finished median 10.5 s (min 7.5, max 13.5, n=5); "
+                                 "chars median 600 (min 400, max 800, n=5)")
+    assert outcome.verbatim == f"After 5 passes of the core action nothing limited it: no limit, paywall, or ad appeared ({steps})"
+
+
+@pytest.mark.parametrize("name", APPS)
+def test_a_loop_that_hit_a_limit_says_on_which_pass(name, tmp_path):
+    explore = build(name, tmp_path / "explore")
+    add_core_loop(explore, stop_at=2)
+    states, _ = stage.load_states(explore, DEVICE)
+    edges, _ = stage.load_edges(explore, states)
+    outcome = stage.loop_facts(explore, states, edges)[-1]
+    assert outcome.verbatim.startswith("limit banner appeared on pass 2 of the core action")
+    assert set(outcome.evidence_ids) <= {e.id for e in edges}
+
+
+def test_no_core_loop_means_no_experience_facts(tmp_path):
+    explore = build(APPS[0], tmp_path / "explore")
+    states, _ = stage.load_states(explore, DEVICE)
+    edges, _ = stage.load_edges(explore, states)
+    assert stage.loop_facts(explore, states, edges) == []

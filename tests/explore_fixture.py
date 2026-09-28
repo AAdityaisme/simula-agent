@@ -3,6 +3,9 @@ can run before PR 1 exists. The states and taps come from that app's golden mode
 come from the raw captures. TEST DATA ONLY.
 
     uv run python tests/explore_fixture.py OUT_DIR      # writes OUT_DIR/<app>/ for every test app
+
+The captures never ran the core loop, so `add_core_loop` appends synthetic core-loop passes (made-up
+timings in the explorer's format) on the root screen, for the loop-facts code and the dev gate.
 """
 
 import json
@@ -67,6 +70,28 @@ def build(app: str, out: Path) -> Path:
     return out
 
 
+def loop_summary(n: int) -> str:
+    return f"reply started {1.5 + 0.4 * n:.1f} s, finished {6 + 1.5 * n:.1f} s, {300 + 100 * n} chars"
+
+
+def add_core_loop(out: Path, passes: int = 3, stop_at: int | None = None) -> list[ActionLine]:
+    """Appends one line per core-loop pass on the root screen. With stop_at, that pass opens the first modal
+    or sheet (or stays put if there is none) and records what stopped the loop."""
+    states = [StateFile.model_validate_json(p.read_text()) for p in sorted((out / "states").glob("*.json"))
+              if "." not in p.stem]
+    root = next(s.state_id for s in states if s.kind == "screen")
+    overlay = next((s.state_id for s in states if s.kind in ("modal", "sheet")), root)
+    first = sum(1 for _ in open(out / "actions.jsonl")) + 1
+    lines = [ActionLine(step=first + n - 1, from_state=root, to_state=overlay if n == stop_at else root, action="type",
+                        mcp_ref=None, tap_px=None, transition="modal" if n == stop_at and overlay != root else "unknown",
+                        change_summary=loop_summary(n), outcome="ok", loop_pass=n,
+                        loop_stop="limit banner" if n == stop_at else None)
+             for n in range(1, (stop_at or passes) + 1)]
+    with open(out / "actions.jsonl", "a") as f:
+        f.writelines(line.model_dump_json() + "\n" for line in lines)
+    return lines
+
+
 if __name__ == "__main__":
     for name in APPS:
-        print(build(name, Path(sys.argv[1]) / name))
+        print(build(name, Path(sys.argv[1]) / name), add_core_loop(Path(sys.argv[1]) / name)[-1].step)

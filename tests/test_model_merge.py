@@ -1,8 +1,6 @@
 """The merge check and the whole stage, with a recorded answer standing in for the model call.
 
-The recorded answer for each app is its golden model's meaning, so every assertion runs on all three apps.
-A golden may carry an imprecision the check catches (a number its evidence doesn't show); tests compare
-against that baseline instead of assuming the golden is spotless."""
+The recorded answer for each app is its golden model's meaning, so every assertion runs on all three apps."""
 
 import json
 
@@ -11,12 +9,12 @@ import pytest
 from simula import llm
 from simula.config import app_config
 from simula.contracts import (Device, Element, ElementMeaning, Flow, LedgerItem, Mechanic, ModelMeaning,
-                              ProductModel, Rect, State, StateMeaning)
+                              ProductModel, QuestionDraft, Rect, State, StateMeaning, TermMeaning)
 from simula.runlog import read_trace
 from simula.stages import Ctx
 from simula.stages import model as stage
 from tests.conftest import APPS, FIXTURES
-from tests.explore_fixture import build
+from tests.explore_fixture import add_core_loop, build
 
 DEVICE = Device()
 KEYWORDS = ["nsfw", "18+", "explicit"]
@@ -34,7 +32,9 @@ def recorded_answer(g: ProductModel) -> ModelMeaning:
         elements=[ElementMeaning(element_id=e.id, role=e.role, font_guess="Inter")
                   for e in [e for s in g.states for e in s.elements if e.text][::2]],
         flows=g.flows, mechanics=g.mechanics, cross_screen_values=g.cross_screen_values, value_ledger=g.value_ledger,
-        open_questions=g.open_questions)
+        terms=[], open_questions=[QuestionDraft(id=f"q{n}", question=q, start_state=g.states[0].id,
+                                                look_for="the screen that answers it")
+                                  for n, q in enumerate(g.open_questions, start=1)])
 
 
 @pytest.fixture(params=APPS)
@@ -42,42 +42,33 @@ def app(request, tmp_path):
     explore = build(request.param, tmp_path / "explore")
     states, _ = stage.load_states(explore, DEVICE)
     edges, _ = stage.load_edges(explore, states)
-    answer = recorded_answer(golden(request.param))
-    _, baseline = stage.check_meaning(answer, states, edges)
-    return request.param, states, edges, answer, baseline
+    return request.param, states, edges, recorded_answer(golden(request.param))
 
 
-def new_rejections(answer, states, edges, baseline):
+def test_the_recorded_answer_passes_clean(app):
+    _, states, edges, answer = app
     kept, rejected = stage.check_meaning(answer, states, edges)
-    return kept, [r for r in rejected if r not in baseline]
-
-
-def test_the_recorded_answer_loses_at_most_unshown_numbers(app):
-    _, states, edges, answer, baseline = app
-    assert all(r.startswith("mechanic ") and " number " in r for r in baseline)
-    kept, _ = stage.check_meaning(answer, states, edges)
-    assert kept.model_dump(exclude={"mechanics"}) == answer.model_dump(exclude={"mechanics"})
-    assert [m.id for m in kept.mechanics] == [m.id for m in answer.mechanics]
+    assert rejected == [] and kept == answer
 
 
 def test_unknown_ids_are_rejected(app):
-    _, states, edges, answer, baseline = app
+    _, states, edges, answer = app
     answer.states.append(StateMeaning(state_id="s99", name="x", purpose="x", content_rating="safe"))
     answer.elements.append(ElementMeaning(element_id="s01.e999", role="x", font_guess="x"))
     answer.mechanics.append(Mechanic(id="mx", kind="ad", evidence_ids=["s01.e999"], summary="x",
                                      observed_numbers=[], status="observed"))
-    kept, rejected = new_rejections(answer, states, edges, baseline)
+    kept, rejected = stage.check_meaning(answer, states, edges)
     assert [r.split(":")[0] for r in rejected] == ["state s99", "element s01.e999", "mechanic mx"]
     assert "s99" not in {s.state_id for s in kept.states} and "mx" not in {m.id for m in kept.mechanics}
 
 
 def test_a_ledger_item_that_is_not_verbatim_is_rejected(app):
-    _, states, edges, answer, baseline = app
+    _, states, edges, answer = app
     element = next(e for s in states for e in s.elements if e.text)
     answer.value_ledger += [
         LedgerItem(id="ok", kind="meter", verbatim=element.text, evidence_ids=[element.id]),
         LedgerItem(id="bad", kind="price", verbatim=element.text + " (paraphrased)", evidence_ids=[element.id])]
-    kept, rejected = new_rejections(answer, states, edges, baseline)
+    kept, rejected = stage.check_meaning(answer, states, edges)
     assert [r.split(":")[0] for r in rejected] == ["ledger bad"]
     assert "ok" in {i.id for i in kept.value_ledger}
 
@@ -92,7 +83,7 @@ def test_a_ledger_line_may_not_span_text_and_label_but_whitespace_is_normalized(
                   blocked_reason=None)
     answer = ModelMeaning(app_category="other", states=[StateMeaning(state_id="s01", name="x", purpose="x",
                                                                      content_rating="safe")],
-                          elements=[], flows=[], mechanics=[], cross_screen_values=[], open_questions=[],
+                          elements=[], flows=[], mechanics=[], cross_screen_values=[], open_questions=[], terms=[],
                           value_ledger=[LedgerItem(id="span", kind="price", verbatim="$ 1.99 Premium", evidence_ids=["s01.e01"]),
                                         LedgerItem(id="label", kind="price", verbatim="Premium", evidence_ids=["s01.e01"]),
                                         LedgerItem(id="nbsp", kind="price", verbatim="Go $ 1.99", evidence_ids=["s01.e01"]),
@@ -103,46 +94,46 @@ def test_a_ledger_line_may_not_span_text_and_label_but_whitespace_is_normalized(
 
 
 def test_a_money_mechanic_must_cite_an_element(app):
-    _, states, edges, answer, baseline = app
+    _, states, edges, answer = app
     answer.mechanics.append(Mechanic(id="m-state-only", kind="paywall", evidence_ids=[states[0].id], summary="x",
                                      observed_numbers=[], status="inferred"))
-    _, rejected = new_rejections(answer, states, edges, baseline)
+    _, rejected = stage.check_meaning(answer, states, edges)
     assert rejected == ["mechanic m-state-only: a paywall must cite an element"]
 
 
 def test_a_number_its_evidence_does_not_show_is_dropped_but_the_mechanic_stays(app):
-    _, states, edges, answer, baseline = app
+    _, states, edges, answer = app
     element = next(e for s in states for e in s.elements if e.text)
     squeezed = "".join(element.text.split())
     answer.mechanics.append(Mechanic(id="m-num", kind="other", evidence_ids=[element.id], summary="x",
                                      observed_numbers=[element.text, squeezed, "$9.99"], status="observed"))
-    kept, rejected = new_rejections(answer, states, edges, baseline)
+    kept, rejected = stage.check_meaning(answer, states, edges)
     assert rejected == ["mechanic m-num: number '$9.99' is not shown in its evidence elements"]
     assert next(m for m in kept.mechanics if m.id == "m-num").observed_numbers == [element.text, element.text]
 
 
 def test_flows_with_missing_or_disconnected_edges_are_rejected(app):
-    name, states, edges, answer, baseline = app
+    name, states, edges, answer = app
     a, b = next((a, b) for a in edges for b in edges if a.to_state != b.from_state)
     answer.flows += [Flow(id="missing", name="x", purpose="x", edge_ids=["s01.e01>s99"], evidence_ids=[]),
                      Flow(id="empty", name="x", purpose="x", edge_ids=[], evidence_ids=[]),
                      Flow(id="broken", name="x", purpose="x", edge_ids=[a.id, b.id], evidence_ids=[])]
-    kept, rejected = new_rejections(answer, states, edges, baseline)
+    kept, rejected = stage.check_meaning(answer, states, edges)
     assert [r.split(":")[0] for r in rejected] == ["flow missing", "flow empty", "flow broken"]
     assert {f.id for f in kept.flows} == {f.id for f in golden(name).flows}
 
 
 def test_gaps_count_as_rejections_so_they_trigger_the_retry(app):
-    _, states, edges, answer, baseline = app
+    _, states, edges, answer = app
     gappy = answer.model_copy(update={"states": answer.states[1:], "flows": [
         Flow(id="broken", name="x", purpose="x", edge_ids=["nope"], evidence_ids=[])]})
-    _, rejected = new_rejections(gappy, states, edges, baseline)
+    _, rejected = stage.check_meaning(gappy, states, edges)
     assert f"state {states[0].id}: no meaning" in rejected
     assert rejected[-1] == "no core flow survived"
 
 
 def test_the_keyword_floor_raises_a_rating_and_never_lowers_one(app):
-    _, states, _, answer, _ = app
+    _, states, _, answer = app
     target = next(s for s in states if s.elements)
     flagged = target.elements[0].model_copy(update={"text": "NSFW only"})
     states = [s.model_copy(update={"elements": [flagged, *s.elements[1:]]}) if s is target else s for s in states]
@@ -165,7 +156,7 @@ def test_keywords_match_whole_words_only():
 
 
 def test_code_fields_are_never_overwritten(app):
-    _, states, _, answer, _ = app
+    _, states, _, answer = app
     rated = stage.apply_meaning(states, answer, KEYWORDS)
     code_fields = ("id", "kind", "parent_id", "fingerprint", "canonical_png", "dynamic_regions", "blocked_reason")
     for before, after in zip(states, rated):
@@ -175,7 +166,7 @@ def test_code_fields_are_never_overwritten(app):
 
 
 def test_code_names_tabs_and_tapped_boxes_and_fills_fonts(app):
-    _, states, edges, answer, _ = app
+    _, states, edges, answer = app
     named = stage.code_roles(stage.apply_meaning(states, answer, KEYWORDS), edges)
     elements = {e.id: e for s in named for e in s.elements}
     for edge in edges:
@@ -186,7 +177,7 @@ def test_code_names_tabs_and_tapped_boxes_and_fills_fonts(app):
 
 
 def test_mock_scope_is_chosen_by_code(app):
-    _, states, edges, answer, _ = app
+    _, states, edges, answer = app
     rated = stage.apply_meaning(states, answer, KEYWORDS)
     scope = stage.mock_scope(rated, edges, answer)
     by_id = {s.id: s for s in rated}
@@ -207,12 +198,57 @@ def test_a_modal_in_scope_brings_its_parent_first():
                      elements=[], in_mock_scope=False, content_rating="safe", dynamic_regions=[], blocked_reason=None)
     states = [state("s01"), state("s02"), state("s03", "modal", "s02")]
     meaning = ModelMeaning(app_category="other", states=[], elements=[], flows=[], cross_screen_values=[],
-                           value_ledger=[], open_questions=[],
+                           value_ledger=[], open_questions=[], terms=[],
                            mechanics=[Mechanic(id="m1", kind="ad", evidence_ids=["s03"], summary="x",
                                                observed_numbers=[], status="observed")])
     assert stage.mock_scope(states, [], meaning) == ["s01", "s02", "s03"]
     unsafe_parent = [states[0], states[1].model_copy(update={"content_rating": "unsafe"}), states[2]]
     assert stage.mock_scope(unsafe_parent, [], meaning) == ["s01"]
+
+
+def test_the_model_may_not_write_measured_experience(app):
+    _, states, edges, answer = app
+    element = next(e for s in states for e in s.elements if e.text)
+    answer.value_ledger.append(LedgerItem(id="fake", kind="experience", verbatim=element.text,
+                                          evidence_ids=[element.id]))
+    _, rejected = stage.check_meaning(answer, states, edges)
+    assert rejected == ["ledger fake: experience items are measured by code, not written by the model"]
+
+
+def test_evidence_may_cite_an_edge(app):
+    _, states, edges, answer = app
+    answer.mechanics.append(Mechanic(id="m-edge", kind="ad", evidence_ids=[edges[0].id], summary="x",
+                                     observed_numbers=[], status="observed"))
+    _, rejected = stage.check_meaning(answer, states, edges)
+    assert rejected == []
+
+
+def test_a_term_keeps_its_meaning_only_when_a_cited_element_carries_it(app):
+    _, states, edges, answer = app
+    carrier = next(e for s in states for e in s.elements if len(e.text.split()) >= 2)
+    word = carrier.text.split()[-1]
+    other = next(e for s in states for e in s.elements if e.text and word.lower() not in e.text.lower())
+    answer.mechanics.append(Mechanic(id="m-term", kind="other", evidence_ids=[carrier.id], summary=f"Uses {word}.",
+                                     observed_numbers=[], status="observed"))
+    answer.terms += [TermMeaning(term=word.upper(), meaning="a plain meaning", defined_by=[carrier.id, "s01.e999"],
+                                 used_in=["m-term"]),
+                     TermMeaning(term=word, meaning="a guess", defined_by=[other.id], used_in=["m-term"]),
+                     TermMeaning(term="Zorblax", meaning="x", defined_by=[carrier.id], used_in=["m-term"])]
+    kept, rejected = stage.check_meaning(answer, states, edges)
+    assert rejected == ["term 'Zorblax': used_in ['m-term'] names no kept mechanic or ledger line that uses it"]
+    observed, unobserved = stage.resolve_terms(kept, states)
+    assert (observed.observed, observed.meaning, observed.defined_by) == (True, "a plain meaning", [carrier.id])
+    assert (unobserved.observed, unobserved.meaning, unobserved.defined_by) == (False, stage.NOT_OBSERVED, [])
+
+
+def test_questions_need_a_real_start_state_and_are_capped(app):
+    _, states, edges, answer = app
+    answer.open_questions[:] = [QuestionDraft(id=f"q{n}", question="?", start_state=states[0].id, look_for="x")
+                                for n in range(7)]
+    answer.open_questions.insert(1, QuestionDraft(id="nowhere", question="?", start_state="s99", look_for="x"))
+    kept, rejected = stage.check_meaning(answer, states, edges)
+    assert rejected == ["question nowhere: start_state 's99' is not a recorded state"]
+    assert [q.id for q in kept.open_questions] == ["q0", "q1", "q2", "q3", "q4"]
 
 
 # ---------- the whole stage ----------
@@ -259,6 +295,7 @@ def test_the_stage_writes_a_valid_model(name, tmp_path, monkeypatch):
     assert model.flows
     md = (out / "product_model.md").read_text()
     assert md.count("```mermaid") == 1 + len(model.flows)
+    assert model.open_questions == [q.question for q in model.questions] and not any(q.answered for q in model.questions)
     assert (ctx.run_dir / "exhibits" / "02-model.md").exists()
     images = [p for m in calls[0]["messages"] for p in m["content"] if p["type"] == "image"]
     assert 1 <= len(images) <= stage.MAX_IMAGES
@@ -322,3 +359,18 @@ def test_a_failed_call_asks_for_a_human_and_keeps_the_raw_answer(tmp_path, monke
     assert "meaning call failed" in (ctx.run_dir / "needs-human.md").read_text()
     assert (ctx.run_dir / "model" / "raw_reply.txt").read_text() == '{"app_category": "chat", '
     assert json.loads((ctx.run_dir / "trace.jsonl").read_text().splitlines()[-1])["outcome"] == "blocked"
+
+
+@pytest.mark.parametrize("name", APPS)
+def test_core_loop_passes_become_measured_experience_in_the_model(name, tmp_path, monkeypatch):
+    calls = fake_calls(monkeypatch, [recorded_answer(golden(name))])
+    ctx = make_ctx(name, tmp_path)
+    add_core_loop(ctx.run_dir / "explore", passes=4)
+    stage.run(ctx)
+    model = ProductModel.model_validate_json((ctx.run_dir / "model" / "product_model.json").read_text())
+    experience = [i for i in model.value_ledger if i.kind == "experience"]
+    assert [i.id for i in experience] == ["exp1", "exp2"]
+    edges = {e.id for e in model.edges}
+    assert all(set(i.evidence_ids) <= edges for i in experience)
+    assert "MEASURED BY CODE" in calls[0]["messages"][0]["content"][0]["text"]
+    assert experience[0].verbatim in calls[0]["messages"][0]["content"][0]["text"]

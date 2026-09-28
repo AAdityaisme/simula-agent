@@ -4,6 +4,7 @@ and code checks the merge. Reads explore/ only; writes model/ only."""
 import json
 import re
 import shutil
+import statistics
 from collections import Counter
 from io import BytesIO
 from pathlib import Path
@@ -11,9 +12,10 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from simula import config, llm, runfolder
-from simula.contracts import (ActionLine, ContentRating, Device, Edge, Element, ExploreFile, IconLabel,
-                              ModelMeaning, Point, ProductModel, Rect, State, StateFile, VisionElement)
+from simula import config, llm, runfolder, text
+from simula.contracts import (ActionLine, ContentRating, Device, Edge, Element, ExploreFile, IconLabel, LedgerItem,
+                              ModelMeaning, OpenQuestion, Point, ProductModel, Rect, State, StateFile, Term,
+                              VisionElement)
 from simula.runlog import needs_human, run_trace, write_exhibit
 from simula.stages import Ctx
 
@@ -25,6 +27,9 @@ MAX_TOKENS = 64000
 ANSWER_RESERVE_TOKENS = 8000
 TOKENS_PER_NAME = 30
 SCOPE_CAP = 8
+QUESTION_CAP = 5
+NOT_OBSERVED = "meaning not observed"
+MEASURE = re.compile(r"^(?P<what>.*?)\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>[^\d\s]*)$")
 MONEY_KINDS = ("paywall", "limit", "currency")
 EDGE_ACTIONS = ("tap", "swipe", "back", "type")
 ROLE_BY_CLASS = {"TextView": "text", "Button": "button", "ImageButton": "button", "ImageView": "image",
@@ -152,14 +157,22 @@ def tapped_element(state: State, line: ActionLine) -> Element | None:
     return min(holding, key=lambda e: e.rect_px.w * e.rect_px.h) if holding else None
 
 
+def edge_for(state: State, line: ActionLine) -> tuple[Element | None, str]:
+    element = tapped_element(state, line)
+    return element, f"{element.id if element else f'{line.from_state}.{line.action}'}>{line.to_state}"
+
+
+def read_actions(explore_dir: Path) -> list[ActionLine]:
+    path = explore_dir / "actions.jsonl"
+    return [ActionLine.model_validate_json(raw) for raw in path.read_text().splitlines()] if path.exists() else []
+
+
 def load_edges(explore_dir: Path, states: list[State]) -> tuple[list[Edge], list[str]]:
     """One edge per distinct recorded move that reached a state (or changed something in place). The
     transition is the one explore recorded. Returns the edges and a note for every line not taken as given."""
     by_id = {s.id: s for s in states}
     edges, notes = {}, []
-    path = explore_dir / "actions.jsonl"
-    for raw in path.read_text().splitlines() if path.exists() else []:
-        a = ActionLine.model_validate_json(raw)
+    for a in read_actions(explore_dir):
         if a.outcome != "ok" or a.to_state is None or a.action not in EDGE_ACTIONS:
             continue
         if a.from_state == a.to_state and not a.change_summary:
@@ -167,12 +180,11 @@ def load_edges(explore_dir: Path, states: list[State]) -> tuple[list[Edge], list
         if {a.from_state, a.to_state} - by_id.keys():
             notes.append(f"step {a.step}: unknown state in {a.from_state}>{a.to_state}")
             continue
-        element = tapped_element(by_id[a.from_state], a)
+        element, edge_id = edge_for(by_id[a.from_state], a)
         if a.mcp_ref and (element is None or element.mcp_ref != a.mcp_ref):
             where = f"the tap at {a.tap_px.x},{a.tap_px.y}" if a.tap_px else "the tap"
             notes.append(f"step {a.step}: {a.mcp_ref} does not hold {where}; "
                          f"bound to {element.id if element else 'no element'}")
-        edge_id = f"{element.id if element else f'{a.from_state}.{a.action}'}>{a.to_state}"
         edges.setdefault(edge_id, Edge(
             id=edge_id, from_state=a.from_state, to_state=a.to_state, element_id=element.id if element else None,
             action=a.action, transition=a.transition, change_summary=a.change_summary))
@@ -183,6 +195,45 @@ def content_png(image: Image.Image, device: Device) -> Image.Image:
     return image.crop((0, device.content_top_px, device.w_px, device.content_bottom_px))
 
 
+def measurements(summary: str) -> list[tuple[str, float, str]]:
+    """'reply started 2.1 s, finished 9.4 s, 612 chars' -> [('reply started', 2.1, 's'), ('finished', 9.4, 's'),
+    ('chars', 612.0, 'chars')]. Parts without a number are skipped."""
+    found = []
+    for part in summary.split(","):
+        m = MEASURE.match(part.strip())
+        if m:
+            found.append((m["what"] or m["unit"], float(m["value"]), m["unit"]))
+    return found
+
+
+def loop_facts(explore_dir: Path, states: list[State], edges: list[Edge]) -> list[LedgerItem]:
+    """The measured free experience, from the explorer's core-loop passes: one item with each measurement's
+    median, min, max and n, and one saying what stopped the loop, or that nothing did."""
+    passes = [a for a in read_actions(explore_dir) if a.loop_pass is not None and a.outcome == "ok"]
+    if not passes:
+        return []
+    by_state, known = {s.id: s for s in states}, {e.id for e in edges}
+    evidence = sorted({edge_for(by_state[a.from_state], a)[1] for a in passes if a.from_state in by_state} & known) \
+        or sorted({a.from_state for a in passes} & by_state.keys())
+    steps = f"explore steps {passes[0].step}-{passes[-1].step}"
+    values: dict[str, tuple[str, list[float]]] = {}
+    for a in passes:
+        for what, value, unit in measurements(a.change_summary):
+            values.setdefault(what, (unit, []))[1].append(value)
+    items = []
+    if values:
+        parts = [f"{what} median {statistics.median(v):g}{'' if unit == what else ' ' + unit} "
+                 f"(min {min(v):g}, max {max(v):g}, n={len(v)})" for what, (unit, v) in values.items()]
+        items.append(LedgerItem(id="exp1", kind="experience", evidence_ids=evidence,
+                                verbatim=f"Core action over {len(passes)} passes ({steps}): " + "; ".join(parts)))
+    stop = next((a for a in passes if a.loop_stop), None)
+    outcome = (f"{stop.loop_stop} appeared on pass {stop.loop_pass} of the core action" if stop else
+               f"After {len(passes)} passes of the core action nothing limited it: no limit, paywall, or ad appeared")
+    items.append(LedgerItem(id=f"exp{len(items) + 1}", kind="experience", evidence_ids=evidence,
+                            verbatim=f"{outcome} ({steps})"))
+    return items
+
+
 # ---------- the model call ----------
 
 def element_line(e: Element) -> str:
@@ -191,7 +242,8 @@ def element_line(e: Element) -> str:
     return " ".join(p for p in (e.id, e.type, words, f"[{r.x:.0f},{r.y:.0f} {r.w:.0f}x{r.h:.0f}]") if p)
 
 
-def describe(states: list[State], edges: list[Edge], app: dict, device: Device, name_limit: int) -> str:
+def describe(states: list[State], edges: list[Edge], app: dict, device: Device, name_limit: int,
+             experience: list[LedgerItem] = ()) -> str:
     """Lists only what the mock could draw (words, art, or a tapped control). Items of a repeated list after
     the second fold into one line, so a long feed stays short. Past the naming budget only tapped controls
     are still listed."""
@@ -222,6 +274,10 @@ def describe(states: list[State], edges: list[Edge], app: dict, device: Device, 
     lines += ["", "RECORDED EDGES (id: from -> to, action, transition, what changed):"]
     lines += [f"{e.id}: {e.from_state} -> {e.to_state}, {e.action}, {e.transition}, {e.change_summary or '-'}"
               for e in edges] or ["(none)"]
+    lines += ["", "MEASURED BY CODE while the explorer repeated the app's core action (already in the ledger; "
+                  "don't restate them as ledger items):"]
+    lines += [f"{i.id}: {i.verbatim} [evidence {', '.join(i.evidence_ids)}]" for i in experience] or \
+             ["(the core action was not repeated in this run)"]
     return "\n".join(lines)
 
 
@@ -238,7 +294,7 @@ def max_tokens(profile: str) -> int:
     return min(MAX_TOKENS, config.models()[model]["max_out"])
 
 
-def ask_meaning(ctx: Ctx, text: str, shots: list[tuple[str, bytes]],
+def ask_meaning(ctx: Ctx, dump: str, shots: list[tuple[str, bytes]],
                 retry_note: tuple[str, str] | None) -> tuple[ModelMeaning, list[tuple[str, bytes]]]:
     """Returns the answer and the screenshots it was given (a refused one is left out)."""
     role = config.roles(ctx.profile)["model_meaning"]
@@ -246,7 +302,7 @@ def ask_meaning(ctx: Ctx, text: str, shots: list[tuple[str, bytes]],
     budget = llm.Budget.for_stage("model", trace_path, ctx.usd_cap)
 
     def attempt(kept: list[tuple[str, bytes]]) -> ModelMeaning:
-        content = [{"type": "text", "text": text}]
+        content = [{"type": "text", "text": dump}]
         for sid, png in kept:
             content += [{"type": "text", "text": f"Screenshot of {sid}:"}, {"type": "image", "png": png}]
         messages = [{"role": "user", "content": content}]
@@ -289,19 +345,16 @@ def check_meaning(meaning: ModelMeaning, states: list[State], edges: list[Edge])
         return kept
 
     def unknown(ids):
-        missing = [i for i in ids if i not in state_ids and i not in elements]
+        missing = [i for i in ids if i not in state_ids and i not in elements and i not in edge_by_id]
         return f"unknown ids {missing}" if missing else None
 
     def exact_text(evidence_ids, words: str, spaced: bool = True) -> str | None:
-        """The evidence's own text for a model's quote (spaced) or number (not spaced), or None. Trees carry
-        non-breaking spaces a model types as plain ones, so any whitespace run matches any other; every other
-        character must match. Text and label are searched separately."""
-        parts = words.split() if spaced else [c for c in words if not c.isspace()]
-        pattern = (r"\s+" if spaced else r"\s*").join(re.escape(p) for p in parts)
+        """The evidence's own text for a model's quote or number, or None. Text and label are searched
+        separately."""
         for field in (f for i in evidence_ids if i in elements for f in (elements[i].text, elements[i].label)):
-            match = re.search(pattern, field) if pattern else None
-            if match:
-                return match.group(0)
+            found = text.find(words, field, spaced)
+            if found:
+                return found
         return None
 
     def flow_problem(f):
@@ -320,6 +373,8 @@ def check_meaning(meaning: ModelMeaning, states: list[State], edges: list[Edge])
         return unknown(m.evidence_ids)
 
     def ledger_problem(item):
+        if item.kind == "experience":
+            return "experience items are measured by code, not written by the model"
         if exact_text(item.evidence_ids, item.verbatim) is None:
             return f"{item.verbatim!r} is not verbatim in the text or label of its evidence elements"
         return unknown(item.evidence_ids)
@@ -329,6 +384,9 @@ def check_meaning(meaning: ModelMeaning, states: list[State], edges: list[Edge])
         rejected.extend(f"mechanic {m.id}: number {n!r} is not shown in its evidence elements"
                         for n, exact in found if exact is None)
         return m.model_copy(update={"observed_numbers": [exact for _, exact in found if exact]})
+
+    def question_problem(q):
+        return None if q.start_state in state_ids else f"start_state {q.start_state!r} is not a recorded state"
 
     cleaned = meaning.model_copy(update={
         "states": keep(meaning.states, lambda s: None if s.state_id in state_ids else "unknown state", "state",
@@ -340,7 +398,15 @@ def check_meaning(meaning: ModelMeaning, states: list[State], edges: list[Edge])
         "cross_screen_values": keep(meaning.cross_screen_values, lambda v: unknown(v.evidence_ids), "value"),
         "value_ledger": [i.model_copy(update={"verbatim": exact_text(i.evidence_ids, i.verbatim)})
                          for i in keep(meaning.value_ledger, ledger_problem, "ledger")],
+        "open_questions": keep(meaning.open_questions, question_problem, "question")[:QUESTION_CAP],
     })
+    uses = {m.id: m.summary for m in cleaned.mechanics} | {i.id: i.verbatim for i in cleaned.value_ledger}
+
+    def term_problem(t):
+        if not any(i in uses and text.find(t.term, uses[i], ignore_case=True) for i in t.used_in):
+            return f"used_in {t.used_in} names no kept mechanic or ledger line that uses it"
+        return None
+    cleaned = cleaned.model_copy(update={"terms": keep(meaning.terms, term_problem, "term", lambda t: repr(t.term))})
     named = {s.state_id for s in cleaned.states}
     rejected += [f"state {s.id}: no meaning" for s in states if s.id not in named]
     if edges and not cleaned.flows:
@@ -353,6 +419,23 @@ def keyword_floor(state: State, keywords: list[str]) -> ContentRating:
     words = " ".join(e.text + " " + e.label for e in state.elements)
     pattern = "|".join(rf"(?<!\w){re.escape(k)}(?!\w)" for k in keywords)
     return "unsafe" if pattern and re.search(pattern, words, re.IGNORECASE) else state.content_rating
+
+
+def resolve_terms(meaning: ModelMeaning, states: list[State]) -> list[Term]:
+    """A term keeps its meaning only when a cited element's own text carries it; otherwise it is marked
+    'meaning not observed' and nothing downstream may build on it."""
+    elements = {e.id: e for s in states for e in s.elements}
+
+    def carries(eid: str, term: str) -> bool:
+        e = elements.get(eid)
+        return bool(e) and any(text.find(term, f, ignore_case=True) for f in (e.text, e.label))
+
+    terms = []
+    for t in meaning.terms:
+        defined_by = [i for i in t.defined_by if carries(i, t.term)]
+        terms.append(Term(term=t.term, meaning=t.meaning if defined_by else NOT_OBSERVED, defined_by=defined_by,
+                          used_in=t.used_in, observed=bool(defined_by)))
+    return terms
 
 
 def apply_meaning(states: list[State], meaning: ModelMeaning, keywords: list[str]) -> list[State]:
@@ -453,9 +536,14 @@ def render_md(model: ProductModel) -> str:
               + (f" · numbers {', '.join(m.observed_numbers)}" if m.observed_numbers else "") for m in model.mechanics]
     lines += ["", "## Value ledger", ""]
     lines += [f"- {i.kind}: \"{i.verbatim}\" · {', '.join(i.evidence_ids)}" for i in model.value_ledger] or ["- none"]
+    lines += ["", "## App terms", ""]
+    lines += [f"- **{t.term}**: {t.meaning}" + (f" · defined by {', '.join(t.defined_by)}" if t.observed else "")
+              + f" · used in {', '.join(t.used_in)}" for t in model.terms] or ["- none"]
     lines += ["", "## Values shared across screens", ""]
     lines += [f"- {v.label}: {v.value_text} · {', '.join(v.evidence_ids)}" for v in model.cross_screen_values] or ["- none"]
-    lines += ["", "## Open questions", ""] + [f"- {q}" for q in model.open_questions]
+    lines += ["", "## Open questions (for a targeted explore pass)", ""]
+    lines += [f"- {q.id} {q.question} · start at {q.start_state}, look for: {q.look_for}" for q in model.questions] \
+        or ["- none"]
     return "\n".join(lines) + "\n"
 
 
@@ -466,6 +554,11 @@ def exhibit(model: ProductModel, rounds: list[list[str]], notes: list[str]) -> s
              f"{len(model.edges)} edges (all from explore, code-owned)",
              f"- app category: {model.app_category}; {len(model.flows)} core flows; {len(model.mechanics)} mechanics; "
              f"{len(model.value_ledger)} verbatim ledger items",
+             "- measured experience: " + (" · ".join(i.verbatim for i in model.value_ledger if i.kind == "experience")
+                                           or "the core action was not repeated"),
+             f"- app terms: {len(model.terms)}, meaning not observed for: "
+             + (", ".join(t.term for t in model.terms if not t.observed) or "none"),
+             f"- open questions for the explorer: {len(model.questions)}",
              f"- mock scope (code): {', '.join(scope) or 'none'}",
              "- ratings: " + ", ".join(f"{s.id} {s.content_rating}" for s in model.states)]
     for n, rejected in enumerate(rounds, start=1):
@@ -479,12 +572,12 @@ def exhibit(model: ProductModel, rounds: list[list[str]], notes: list[str]) -> s
 
 # ---------- the stage ----------
 
-def understand(ctx: Ctx, text: str, shots: list[tuple[str, bytes]], states: list[State],
+def understand(ctx: Ctx, dump: str, shots: list[tuple[str, bytes]], states: list[State],
                edges: list[Edge]) -> tuple[ModelMeaning, list[list[str]]]:
     """One call, the merge check, and at most one retry with the rejection list. A failed retry keeps the
     checked first answer. Returns the meaning and each round's rejections."""
     try:
-        first, kept = ask_meaning(ctx, text, shots, None)
+        first, kept = ask_meaning(ctx, dump, shots, None)
     except llm.LLMFailure as e:
         if e.raw:
             (ctx.run_dir / "model" / "raw_reply.txt").write_text(e.raw)
@@ -499,7 +592,7 @@ def understand(ctx: Ctx, text: str, shots: list[tuple[str, bytes]], states: list
     problems = ("The merge check rejected these items or found these gaps:\n" + "\n".join(f"- {r}" for r in rejected)
                 + "\nReturn the whole answer again with them fixed or removed. Cite only the given ids.")
     try:
-        second, _ = ask_meaning(ctx, text, kept, (first.model_dump_json(), problems))
+        second, _ = ask_meaning(ctx, dump, kept, (first.model_dump_json(), problems))
     except llm.LLMFailure as e:
         if e.raw:
             (ctx.run_dir / "model" / "raw_reply.txt").write_text(e.raw)
@@ -541,6 +634,7 @@ def run(ctx: Ctx) -> None:
     edges, notes = load_edges(explore_dir, states)
     tapped = {e.element_id for e in edges if e.element_id}
     states = [group_repeats(s, tapped) for s in states]
+    experience = loop_facts(explore_dir, states, edges)
     for s in states:
         content_png(images[s.id], device).save(out / s.canonical_png)
     run_trace(ctx.run_dir, stage="model", step="facts", decider="code",
@@ -549,10 +643,10 @@ def run(ctx: Ctx) -> None:
 
     # ponytail: past the naming budget, later states' elements go unnamed; split the call if a run ever gets there
     name_limit = (max_tokens(ctx.profile) - ANSWER_RESERVE_TOKENS) // TOKENS_PER_NAME
-    text = describe(states, edges, ctx.app, device, name_limit)
+    dump = describe(states, edges, ctx.app, device, name_limit, experience)
     shots = [(s.id, png_bytes(content_png(images[s.id], device)))
              for s in states if s.kind != "external"][:MAX_IMAGES]
-    meaning, rounds = understand(ctx, text, shots, states, edges)
+    meaning, rounds = understand(ctx, dump, shots, states, edges)
 
     states = apply_meaning(states, meaning, config.profiles()["content"]["adult_keywords"])
     states = code_roles(states, edges)
@@ -564,8 +658,10 @@ def run(ctx: Ctx) -> None:
         app=ctx.app["name"], app_version=explore.app_version or "unknown", app_category=meaning.app_category,
         run_id=ctx.run_dir.name, device=device, states=states, edges=edges, flows=meaning.flows,
         mechanics=meaning.mechanics, cross_screen_values=meaning.cross_screen_values,
-        value_ledger=meaning.value_ledger, open_questions=meaning.open_questions, coverage=explore.coverage,
-        provenance=runfolder.upstream_provenance(ctx.run_dir, ["explore"]))
+        value_ledger=meaning.value_ledger + experience, open_questions=[q.question for q in meaning.open_questions],
+        coverage=explore.coverage, provenance=runfolder.upstream_provenance(ctx.run_dir, ["explore"]),
+        terms=resolve_terms(meaning, states),
+        questions=[OpenQuestion(**q.model_dump()) for q in meaning.open_questions])
     (out / "product_model.json").write_text(model.model_dump_json(indent=1))
     (out / "product_model.md").write_text(render_md(model))
     write_exhibit(ctx.run_dir, 2, "model", exhibit(model, rounds, notes))
