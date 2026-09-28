@@ -492,9 +492,9 @@ def code_roles(states: list[State], edges: list[Edge]) -> list[State]:
 
 def mock_scope(states: list[State], edges: list[Edge], meaning: ModelMeaning) -> list[str]:
     """The experience the mock draws, in priority order: the root, every state showing a paywall, limit,
-    currency, or ad, then every state showing any other mechanic (a modal or sheet brings its parent first),
-    then every state on the core flows in flow order. No cap, and nothing else: a tab or depth-1 screen is in
-    only when it is on a flow or holds a mechanic. Never blocked or outside the app. An unsafe screen stays
+    currency, or ad, then every state showing any other mechanic (a modal or sheet brings every layer under
+    it first), then every state on the core flows in flow order. No cap, and nothing else: a tab or depth-1
+    screen is in only when it is on a flow or holds a mechanic. Never blocked or outside the app. An unsafe screen stays
     out (it doesn't belong in a pitch) unless it is on a core flow, where a gap would break the flow. The
     product model keeps every state. Every mechanic's screen stays in, because propose drops an idea whose
     trigger screen isn't mocked."""
@@ -509,10 +509,11 @@ def mock_scope(states: list[State], edges: list[Edge], meaning: ModelMeaning) ->
     mechanic_states = [i.split(".")[0] for m in first for i in m.evidence_ids]
     ordered = []
     for sid in [root, *mechanic_states, *flow_states]:
-        parent = by_id[sid].parent_id if sid in by_id else None
-        if parent and parent not in eligible:
-            continue
-        ordered += [parent, sid] if parent else [sid]
+        chain = [sid]  # a dialog over a dialog needs every layer under it, down to the screen
+        while chain[0] in by_id and by_id[chain[0]].parent_id not in (None, *chain):
+            chain.insert(0, by_id[chain[0]].parent_id)
+        if all(c in eligible for c in chain[:-1]):
+            ordered += chain
     return list(dict.fromkeys(s for s in ordered if s in eligible))
 
 
