@@ -169,10 +169,13 @@ def mechanic_ids() -> set[str]:
 
 def resolve_ids(c: Candidate, model: ProductModel) -> tuple[Candidate, str]:
     """Models cite a mechanic or ledger id where an element id belongs, or an element where a state belongs.
-    Both point at something real, so code maps them to the ids it checks. Returns the candidate and a note
-    listing every repair ("" when none)."""
-    groups = {m.id: m.evidence_ids for m in model.mechanics} | {i.id: i.evidence_ids for i in model.value_ledger}
-    repairs = [f"{i} -> {','.join(groups[i])}" for i in c.anchor_evidence_ids if i in groups]
+    Both point at something real, so code maps them to the ids it checks. An `experience` item is a measured
+    fact whose evidence is edges, not elements, so it maps to nothing: context, not an anchor. Returns the
+    candidate and a note listing every repair ("" when none)."""
+    groups = ({m.id: m.evidence_ids for m in model.mechanics}
+              | {i.id: [] if i.kind == "experience" else i.evidence_ids for i in model.value_ledger})
+    repairs = [f"{i} -> {','.join(groups[i]) or 'nothing (a measured experience, not an element)'}"
+               for i in c.anchor_evidence_ids if i in groups]
     anchors = list(dict.fromkeys(e for i in c.anchor_evidence_ids for e in groups.get(i, [i])))
 
     def screen(state_id: str) -> str:
