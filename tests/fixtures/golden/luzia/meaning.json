@@ -10,7 +10,7 @@
    "in_mock_scope": true,
    "purpose": "Root. Assistant prompt card, new-chat personas, Custom Bestie and virtual-pet banners, recent chats, bottom tabs Chat / Services / Create.",
    "labels": {
-    "@e30": "Subscription badge",
+    "@e30": "Luzia+ upsell badge",
     "@e33": "Settings button"
    },
    "roles": {
@@ -22,11 +22,11 @@
   },
   {
    "id": "s02",
-   "screen": "07-luzia-plus-paywall",
    "kind": "screen",
    "name": "Subscription paywall",
    "in_mock_scope": true,
-   "purpose": "Full paywall: feature list, weekly / monthly / annual plans, free-trial button. Screenshot only (no tree)."
+   "purpose": "Full Luzia+ paywall: six-item feature list, Weekly / Monthly (Most popular) / Annual plans, a 3-day free-trial button, Terms & Conditions.",
+   "tree": "luzia-paywall"
   },
   {
    "id": "s03",
@@ -34,7 +34,7 @@
    "kind": "screen",
    "name": "Settings",
    "in_mock_scope": true,
-   "purpose": "Upgrade banner, memories, preferences, support, account. Screenshot only."
+   "purpose": "Upgrade banner (opens the paywall), memories, preferences, support, account. Screenshot only: the tree capture skipped it because it shows the account identity."
   },
   {
    "id": "s04",
@@ -47,27 +47,27 @@
   },
   {
    "id": "s05",
-   "screen": "02-tab-services",
    "kind": "screen",
    "name": "Services",
    "in_mock_scope": true,
-   "purpose": "Routines and tasks; empty state with a Start something button. Screenshot only."
+   "purpose": "Routines and tasks; empty state with a Start something button.",
+   "tree": "luzia-tab-services"
   },
   {
    "id": "s06",
-   "screen": "03-tab-create",
    "kind": "screen",
    "name": "Create",
    "in_mock_scope": true,
-   "purpose": "Mini-app marketplace with a Create app button. Screenshot only."
+   "purpose": "Mini-app marketplace (My Apps / Explore) with a Create app button.",
+   "tree": "luzia-tab-create"
   },
   {
    "id": "s07",
-   "screen": "05-chat-teacher-thread",
    "kind": "screen",
    "name": "Chat thread",
    "in_mock_scope": false,
-   "purpose": "An existing chat with a persona. Screenshot only; chat content stays out of the mock."
+   "purpose": "An existing chat with the Teacher persona, message bar and a notifications prompt. Chat content stays out of the mock.",
+   "tree": "luzia-chat-thread"
   }
  ],
  "edges": [
@@ -77,7 +77,7 @@
     "Try Luzia"
    ],
    "to": "s02",
-   "summary": "subscription badge opens the paywall"
+   "summary": "upsell badge opens the paywall"
   },
   {
    "from": [
@@ -120,10 +120,57 @@
     [
      "s01",
      "Try Luzia"
+    ],
+    [
+     "s02",
+     "2× images & longer chats"
+    ],
+    [
+     "s02",
+     "Advanced reasoning mode"
+    ],
+    [
+     "s02",
+     "Higher-quality image generations"
+    ],
+    [
+     "s02",
+     "Voice chat with Luzia"
+    ],
+    [
+     "s02",
+     "Create up to 5 AI characters"
+    ],
+    [
+     "s02",
+     "Exclusive tools"
+    ],
+    [
+     "s02",
+     "$ 1.99"
+    ],
+    [
+     "s02",
+     "$ 4.99"
+    ],
+    [
+     "s02",
+     "$ 39.99"
+    ],
+    [
+     "s02",
+     "Start 3-day"
     ]
    ],
    "status": "observed",
-   "summary": "Subscription badge on home that opens a full paywall (plans and prices seen only in a screenshot)."
+   "numbers": [
+    "$ 1.99",
+    "$ 4.99",
+    "$ 39.99",
+    "3-day",
+    "5"
+   ],
+   "summary": "Luzia+ subscription: a home badge opens a paywall listing six features, three plans (Weekly $1.99, Monthly $4.99 marked Most popular, Annual $39.99) and a 3-day free trial."
   },
   {
    "id": "m02",
@@ -154,15 +201,87 @@
   {
    "id": "l01",
    "kind": "paywall_bullet",
-   "verbatim": "Try Luzia",
+   "verbatim": "2× images & longer chats",
    "evidence": [
-    "s01",
-    "Try Luzia"
+    "s02",
+    "2× images & longer chats"
+   ]
+  },
+  {
+   "id": "l02",
+   "kind": "paywall_bullet",
+   "verbatim": "Advanced reasoning mode",
+   "evidence": [
+    "s02",
+    "Advanced reasoning mode"
+   ]
+  },
+  {
+   "id": "l03",
+   "kind": "paywall_bullet",
+   "verbatim": "Higher-quality image generations",
+   "evidence": [
+    "s02",
+    "Higher-quality image generations"
+   ]
+  },
+  {
+   "id": "l04",
+   "kind": "paywall_bullet",
+   "verbatim": "Voice chat with Luzia",
+   "evidence": [
+    "s02",
+    "Voice chat with Luzia"
+   ]
+  },
+  {
+   "id": "l05",
+   "kind": "paywall_bullet",
+   "verbatim": "Create up to 5 AI characters",
+   "evidence": [
+    "s02",
+    "Create up to 5 AI characters"
+   ]
+  },
+  {
+   "id": "l06",
+   "kind": "paywall_bullet",
+   "verbatim": "Exclusive tools",
+   "evidence": [
+    "s02",
+    "Exclusive tools"
+   ]
+  },
+  {
+   "id": "l07",
+   "kind": "price",
+   "verbatim": "$ 1.99",
+   "evidence": [
+    "s02",
+    "$ 1.99"
+   ]
+  },
+  {
+   "id": "l08",
+   "kind": "price",
+   "verbatim": "$ 4.99",
+   "evidence": [
+    "s02",
+    "$ 4.99"
+   ]
+  },
+  {
+   "id": "l09",
+   "kind": "price",
+   "verbatim": "$ 39.99",
+   "evidence": [
+    "s02",
+    "$ 39.99"
    ]
   }
  ],
  "open_questions": [
-  "The paywall's plans, prices, and feature list exist only in a screenshot, so there are no verbatim bullets from a tree.",
+  "What the trial converts to, and what the free tier is missing beyond the six listed features, is not on screen.",
   "No free-tier limit was observed.",
   "What the virtual pet needs from the user (care loop, currency) is unknown."
  ],
@@ -188,6 +307,10 @@
     [
      "s01",
      "Try Luzia"
+    ],
+    [
+     "s02",
+     "Start 3-day"
     ]
    ]
   },
