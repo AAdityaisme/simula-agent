@@ -8,7 +8,6 @@
    "kind": "screen",
    "name": "Home · Hidden Gems",
    "purpose": "Root. Character discovery feed: All / Limited Only filter, feed tabs (Following, Favorites, Trending, Hidden Gems), a two-column grid of character cards with tags and token counts.",
-   "in_mock_scope": true,
    "rating": "mixed",
    "labels": {
     "@e94": "Home tab",
@@ -33,7 +32,6 @@
    "kind": "modal",
    "name": "Janitor+ announcement",
    "purpose": "Subscription upsell shown over home on some launches: four benefit bullets, See janitor+ / Not now.",
-   "in_mock_scope": true,
    "rating": "safe",
    "parent": "s01"
   },
@@ -43,7 +41,6 @@
    "kind": "screen",
    "name": "Home · Trending · Limited Only",
    "purpose": "The same feed on the Trending tab with the most restrictive content filter (Limited Only) on.",
-   "in_mock_scope": true,
    "rating": "safe",
    "labels": {
     "@e112": "Home tab",
@@ -66,7 +63,6 @@
    "kind": "screen",
    "name": "Home · Following (empty)",
    "purpose": "Following feed; empty for a new guest account.",
-   "in_mock_scope": false,
    "rating": "safe",
    "labels": {
     "@e45": "Home tab",
@@ -89,7 +85,6 @@
    "kind": "screen",
    "name": "Search",
    "purpose": "Search box, trait filter chips, and a result grid.",
-   "in_mock_scope": true,
    "rating": "mixed",
    "labels": {
     "@e118": "Home tab",
@@ -112,7 +107,6 @@
    "kind": "screen",
    "name": "My Chats",
    "purpose": "The user's chats with characters; one existing chat.",
-   "in_mock_scope": true,
    "rating": "safe",
    "labels": {
     "@e37": "Home tab",
@@ -135,7 +129,6 @@
    "kind": "screen",
    "name": "Notifications",
    "purpose": "Notification list; empty.",
-   "in_mock_scope": true,
    "rating": "safe",
    "labels": {
     "@e33": "Home tab",
@@ -158,7 +151,6 @@
    "kind": "screen",
    "name": "Profile",
    "purpose": "The user's profile: handle, following/followers counts, their characters, personas, scripts.",
-   "in_mock_scope": true,
    "rating": "safe",
    "labels": {
     "@e49": "Home tab",
@@ -183,7 +175,6 @@
    "kind": "sheet",
    "name": "Profile menu",
    "purpose": "Side drawer: Following, Blocks, Media Library, Settings, Billing, Upgrade to Janitor Plus, Get Help, Logout.",
-   "in_mock_scope": true,
    "rating": "safe",
    "parent": "s08"
   }
