@@ -433,6 +433,7 @@ class Manifest(Strict):
     provenance: Provenance
     stages_done: list[str]
     usd_total: float
+    fallbacks_used: list[str] = []
 
 
 MODEL_FACING = [ModelMeaning, IconPass, HardScreenAction, Critique, Edits, LensOutput, Verdict,

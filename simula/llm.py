@@ -14,11 +14,13 @@ from pathlib import Path
 from pydantic import BaseModel, ValidationError
 
 from simula import config
-from simula.runlog import read_trace, trace
+from simula.runlog import read_trace, record_fallback, trace
 
 CACHE = config.ROOT / "cache"
 IMAGE_TOKENS_WORST = 4784  # high-res tier cap per image (Anthropic vision docs, 2026-09-27)
 RATE_HEADERS = ("anthropic-ratelimit-", "x-ratelimit-", "retry-after")
+REQUEST_TIMEOUT_S = 180.0
+STREAM_IDLE_TIMEOUT_S = 60.0
 
 
 class LLMFailure(Exception):
@@ -135,8 +137,11 @@ def _anthropic_content(parts: list[dict]) -> list[dict]:
 def call_anthropic(model: str, system: str, messages: list[dict], effort: str | None,
                    schema: type[BaseModel] | None, max_tokens: int) -> Reply:
     import anthropic
-    client = anthropic.Anthropic(max_retries=2, timeout=180)
     caps = config.models()[model]
+    streaming = max_tokens > caps["stream_above"]
+    # On a stream the read timeout is the gap between chunks, so a stalled stream fails after 60 s.
+    timeout = anthropic.Timeout(REQUEST_TIMEOUT_S, read=STREAM_IDLE_TIMEOUT_S) if streaming else REQUEST_TIMEOUT_S
+    client = anthropic.Anthropic(max_retries=2, timeout=timeout)
     output_config = {}
     if effort and caps["supports_effort"]:
         output_config["effort"] = effort
@@ -149,7 +154,7 @@ def call_anthropic(model: str, system: str, messages: list[dict], effort: str | 
     if output_config:
         kwargs["output_config"] = output_config
     try:
-        if max_tokens > caps["stream_above"]:
+        if streaming:
             with client.messages.stream(**kwargs) as stream:
                 message = stream.get_final_message()
                 headers = stream.response.headers
@@ -179,7 +184,7 @@ def _openai_content(parts: list[dict]) -> list[dict]:
 def call_openai(model: str, system: str, messages: list[dict], effort: str | None,
                 schema: type[BaseModel] | None, max_tokens: int) -> Reply:
     import openai
-    client = openai.OpenAI(max_retries=2, timeout=180)
+    client = openai.OpenAI(max_retries=2, timeout=REQUEST_TIMEOUT_S)
     kwargs = {"model": model, "max_output_tokens": max_tokens,
               "input": [{"role": m["role"], "content": _openai_content(m["content"])} for m in messages]}
     if system:
@@ -214,22 +219,41 @@ PROVIDERS = {"anthropic": call_anthropic, "openai": call_openai}
 
 def call(*, trace_path: Path, stage: str, step: str, model: str, effort: str | None, system: str,
          messages: list[dict], max_tokens: int, budget: Budget, schema: type[BaseModel] | None = None,
-         no_cache: bool = False, replay: bool = False, cache_dir: Path = CACHE):
-    """Returns (parsed schema object or text, Reply). Retries a typed failure once, then raises LLMFailure."""
+         no_cache: bool = False, replay: bool = False, cache_dir: Path = CACHE, fallback: str | None = None):
+    """Returns (parsed schema object or text, Reply). Retries a typed failure once, then tries the declared
+    fallback model if one is given, then raises LLMFailure."""
+    try:
+        return _call_model(trace_path=trace_path, stage=stage, step=step, model=model, effort=effort, system=system,
+                           messages=messages, max_tokens=max_tokens, budget=budget, schema=schema,
+                           no_cache=no_cache, replay=replay, cache_dir=cache_dir)
+    except LLMFailure as e:
+        if not fallback or e.outcome not in ("error", "timeout"):
+            raise
+        note = f"declared fallback used: {model} -> {fallback} after {e.outcome}"
+        trace(trace_path, stage=stage, step=step, decider="code", model=fallback, outcome="retry", note=note)
+        record_fallback(trace_path.parent, note)
+        return _call_model(trace_path=trace_path, stage=stage, step=step, model=fallback, effort=effort, system=system,
+                           messages=messages, max_tokens=max_tokens, budget=budget, schema=schema,
+                           no_cache=no_cache, replay=replay, cache_dir=cache_dir)
+
+
+def _call_model(*, trace_path, stage, step, model, effort, system, messages, max_tokens, budget, schema,
+                no_cache, replay, cache_dir):
     provider = config.models()[model]["provider"]
     params = {"effort": effort, "max_tokens": max_tokens,
               "schema": json_schema_for(provider, schema) if schema else None}
-    last = LLMFailure("error", "no attempt made")
-    for attempt in range(2):
-        key = cache_key(provider, model, system, messages, params, attempt)
-        cached = None if no_cache else cache_read(key, cache_dir)
+    keys = [cache_key(provider, model, system, messages, params, attempt) for attempt in range(2)]
+    for key in [] if no_cache else keys:
+        cached = cache_read(key, cache_dir)
         if cached:
             result = _parse(cached, schema)
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
                   tokens_in=cached.tokens_in, tokens_out=cached.tokens_out, cache_hit=True, outcome="ok")
             return result, cached
-        if replay:
-            raise ReplayMiss(f"--replay: no cached response for {stage}/{step} (key {key[:12]})")
+    if replay:
+        raise ReplayMiss(f"--replay: no cached response for {stage}/{step} (key {keys[0][:12]})")
+    last = LLMFailure("error", "no attempt made")
+    for key in keys:
         budget.reserve(worst_case_usd(model, estimate_tokens_in(system, messages), max_tokens))
         started = time.monotonic()
         try:

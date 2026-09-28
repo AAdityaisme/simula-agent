@@ -103,3 +103,62 @@ def test_replay_hit_needs_no_provider(tmp_path, monkeypatch):
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
     result, _ = call(tmp_path, replay=True)
     assert result.word == "a"
+
+
+def test_replay_after_a_retry_hits_the_cache(tmp_path, monkeypatch):
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"nope": 1}', '{"word": "good"}'], []))
+    call(tmp_path)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
+    result, _ = call(tmp_path, replay=True)
+    assert result.word == "good"
+
+
+def test_rerun_after_a_retry_makes_no_paid_call(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"nope": 1}', '{"word": "good"}'], calls))
+    call(tmp_path)
+    result, _ = call(tmp_path)
+    assert result.word == "good" and len(calls) == 2
+
+
+def failing_provider(calls):
+    def provider(model, system, messages, effort, schema, max_tokens):
+        calls.append(model)
+        raise llm.LLMFailure("error", "429 rate limited")
+    return provider
+
+
+def test_declared_fallback_is_used_and_traced(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", failing_provider(calls))
+    monkeypatch.setitem(llm.PROVIDERS, "openai", fake_provider(['{"word": "luna"}'], calls))
+    result, reply = call(tmp_path, fallback="gpt-6-luna")
+    assert result.word == "luna" and calls == [MODEL, MODEL, "gpt-6-luna"]
+    notes = [line.note for line in read_trace(tmp_path / "trace.jsonl")]
+    assert any(n.startswith(f"declared fallback used: {MODEL} -> gpt-6-luna") for n in notes)
+
+
+def test_no_fallback_unless_declared(tmp_path, monkeypatch):
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", failing_provider([]))
+    with pytest.raises(llm.LLMFailure):
+        call(tmp_path)
+
+
+def test_a_schema_failure_never_falls_back(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(["bad", "bad"], calls))
+    monkeypatch.setitem(llm.PROVIDERS, "openai", fake_provider(['{"word": "luna"}'], calls))
+    with pytest.raises(llm.LLMFailure):
+        call(tmp_path, fallback="gpt-6-luna")
+    assert "gpt-6-luna" not in calls
+
+
+def test_fallback_is_recorded_in_the_run_manifest(runs, monkeypatch):
+    from simula import cli
+    from simula.runlog import read_manifest
+    cli.main(["run", "janitorai", "--new"])
+    run_dir = (runs / "janitorai" / "latest").resolve()
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", failing_provider([]))
+    monkeypatch.setitem(llm.PROVIDERS, "openai", fake_provider(['{"word": "luna"}'], []))
+    call(run_dir, trace_path=run_dir / "trace.jsonl", fallback="gpt-6-luna")
+    assert read_manifest(run_dir).fallbacks_used == [f"declared fallback used: {MODEL} -> gpt-6-luna after error"]

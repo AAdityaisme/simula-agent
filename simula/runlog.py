@@ -49,6 +49,13 @@ def update_manifest(run_dir: Path, **changes) -> Manifest:
     return manifest
 
 
+def record_fallback(run_dir: Path, note: str) -> None:
+    """Writes a used model fallback into the manifest, when this call belongs to a run."""
+    if (run_dir / "manifest.json").exists():
+        manifest = read_manifest(run_dir)
+        update_manifest(run_dir, fallbacks_used=[*manifest.fallbacks_used, note])
+
+
 def notify(title: str, message: str) -> bool:
     if platform.system() != "Darwin":
         return False
