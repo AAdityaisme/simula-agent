@@ -56,6 +56,7 @@ runs/<app>/<run_id>/                run_id = YYYYMMDD-HHMMSS-<git sha>[-fixture]
 runs/<app>/latest -> <run_id>
 ```
 
+- Spend outside a run has its own trace: `build/trace.jsonl` (build spend, hand fixes via `simula note`, and one line per paid `simula doctor --keys` probe) and `validation/trace.jsonl` (`simula validate-judge`, under its own $20 cap).
 - Run ids are `YYYYMMDD-HHMMSS-<git sha>`, plus `-fixture` for a fixture run, plus `-2`, `-3` … when two runs start in the same second.
 - A stage writes only its own folder. It never edits another stage's.
 - Every JSON file a stage writes carries `schema_version`. Files that hold a list use a wrapper from `contracts.py` (all code-written, none model-facing):
