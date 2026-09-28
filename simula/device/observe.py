@@ -32,6 +32,7 @@ DENY = re.compile(r"log ?out|sign ?out|delete|remove|cancel|subscribe|buy|pay|pu
                   r"install|open in", re.IGNORECASE)
 DENY_ON_UPSELL = re.compile(r"continue|try|start|get|claim|unlock|join|redeem|activate", re.IGNORECASE)
 DENY_IN_TOUR = re.compile(r"send|swipe|regenerate", re.IGNORECASE)
+DENY_IN_CORE = re.compile(r"gift|coin|gem|tip|donat|credit", re.IGNORECASE)
 DISMISS = re.compile(r"^(close\b.*|not now|later|maybe later|no,? thanks|skip|dismiss|got it|x|×|✕)$", re.IGNORECASE)
 ANR = re.compile(r"isn.t responding|not responding", re.IGNORECASE)
 BLOCKING = re.compile(r"emulator|rooted|captcha|verify (that )?you.?re (a )?human|age verification|"
@@ -307,7 +308,7 @@ def denied(c: Candidate, upsell: bool = False, core: bool = False) -> str | None
     denied too. Sending and typing belong to the core-loop pass only."""
     text = "\n".join(dict.fromkeys(t for t in (c.label, c.tree_label) if t))
     hit = DENY.search(text) or (DENY_ON_UPSELL.search(text) if upsell else None) \
-        or (None if core else DENY_IN_TOUR.search(text))
+        or (DENY_IN_CORE if core else DENY_IN_TOUR).search(text)
     if hit:
         return hit.group(0).lower()
     if c.kind == "EditText" and not core:
@@ -411,16 +412,17 @@ def is_upsell(elements: list[dict], device: Device) -> bool:
 # ---------- the core loop ----------
 
 def composer(cands: list[Candidate], device: Device) -> tuple[Candidate, Candidate] | None:
-    """A chat: a text box in the lower half of the screen plus its send control, which says "send" or sits just
-    past the box's right edge. A text box near the top is a search."""
+    """A chat: a text box in the lower half of the screen plus its send control on the box's row, one that says
+    "send" or else the first past the box's right edge. A text box near the top is a search; a "send" elsewhere
+    (a keyboard key, "Send feedback") is not this box's."""
     middle = (device.content_top_px + device.content_bottom_px) / 2
     box = next((c for c in cands if c.kind == "EditText" and center(c.rect)[1] > middle), None)
     if box is None:
         return None
-    send = next((c for c in cands if re.search(r"send", c.label, re.IGNORECASE)), None)
-    right = [c for c in cands if c.rect.x >= box.rect.x + box.rect.w - 24 and c.rect.y < box.rect.y + box.rect.h
-             and box.rect.y < c.rect.y + c.rect.h and not denied(c, core=True)]
-    send = send or min(right, key=lambda c: c.rect.x, default=None)
+    row = [c for c in cands if c is not box and c.rect.y < box.rect.y + box.rect.h
+           and box.rect.y < c.rect.y + c.rect.h and not denied(c, core=True)]
+    send = next((c for c in row if re.search(r"send", c.label, re.IGNORECASE)), None) or min(
+        (c for c in row if c.rect.x >= box.rect.x + box.rect.w - 24), key=lambda c: c.rect.x, default=None)
     return (box, send) if send else None
 
 

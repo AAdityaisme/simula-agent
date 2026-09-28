@@ -883,6 +883,10 @@ class Explorer:
                                                         f"(e.g. {items[0].label[:40]!r})"))
         options += [CoreAction("action", s, [c], f"tap {c.label[:40]!r} on {s.sid}")
                     for s in self.states if s.kind == "screen" for c in [self.input_action(s)] if c]
+        feed = next((o for o in options if o.kind == "feed"), None)
+        if feed and not any(o.kind in ("chat", "action") for o in options):
+            inside = self.walk_to_input(feed)
+            options = ([inside] if inside else []) + options
         return options[:10]
 
     def input_action(self, s: Seen) -> ob.Candidate | None:
@@ -896,7 +900,8 @@ class Explorer:
         options = self.core_options()
         if not options:
             return None
-        seen = "; ".join(self.describe(s) for s in self.states if s.kind == "screen")[:3000]
+        shown = {s.sid: s for s in [o.state for o in options] + [s for s in self.states if s.kind == "screen"]}
+        seen = "; ".join(self.describe(s) for s in shown.values())[:3000]
         try:
             result = decide.choose(self.trace_path, "explore", "core", seen, CORE_QUESTION,
                                    [o.name for o in options] + [NO_CORE], **self.jev_options())
@@ -905,12 +910,13 @@ class Explorer:
         index = decide.index_of(result.option_id)
         return options[index] if index < len(options) else None
 
-    def walk_to_input(self, feed: CoreAction) -> CoreAction:
+    def walk_to_input(self, feed: CoreAction) -> CoreAction | None:
         """Opening an item is a step, not the core action: goes into the first item and takes its main action
-        (Chat, Start ...) up to WALK_STEPS times, until a text box with send or a play/generate button shows.
-        With none (a news app), the core action stays opening items."""
+        (Chat, Start ...) up to WALK_STEPS times, until a text box with send or a play/generate button shows. What it
+        finds is one more option for Jev, never a replacement for Jev's answer: a text box inside an item may be a
+        comment box or a message to another person."""
         if not self.goto(feed.state):
-            return feed
+            return None
         self.act(Move("tap", feed.controls[0], why="core loop: look inside an item"), purpose="nav")
         tapped = set()
         for _ in range(WALK_STEPS):
@@ -932,8 +938,8 @@ class Explorer:
             tapped.add(move.cand.key)
             self.act(Move("tap", move.cand, decider=move.decider, why="core loop: the item's main action"),
                      purpose="nav")
-        self.note("core", "no input control inside the item: the core action stays opening items")
-        return feed
+        self.note("core", "no input control inside the item")
+        return None
 
     def walk_steps(self, here: Seen, tapped: set[str]) -> list[ob.Candidate]:
         """The item's main-action controls: a button, or a short label (Chat, New chat, Start), never a line of
@@ -951,7 +957,7 @@ class Explorer:
         if choice is None:
             self.core_results.append("no core action found on the screens seen")
             return
-        self.core = self.walk_to_input(choice) if choice.kind == "feed" else choice
+        self.core = choice
         self.note("core", f"core action: {self.core.name}", decider="jev")
         deadline = self.clock() + self.core_reps * CORE_SECONDS_PER_REP
         for n in range(1, self.core_reps + 1):

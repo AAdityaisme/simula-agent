@@ -4,7 +4,7 @@ timing is read from a sequence of trees."""
 import json
 from pathlib import Path
 
-from simula.contracts import Device
+from simula.contracts import Device, Rect
 from simula.device import observe as ob
 from simula.device.mcp import parse_elements
 
@@ -81,3 +81,24 @@ def test_a_message_timestamp_beside_the_composer_is_not_a_counter():
     assert ob.counters(tree("5:21 PM"), tree("5:22 PM"), DEVICE, band) == []
     assert ob.counters(tree("1 min ago"), tree("2 min ago"), DEVICE, band) == []
     assert ob.counters(tree("3 messages left"), tree("2 messages left"), DEVICE, band) == ["3 messages left → 2 messages left"]
+
+
+def control(label, kind, x, y, w, h, ref):
+    return ob.Candidate(label=label, kind=kind, rect=Rect(x=x, y=y, w=w, h=h), ref=ref, tree_label=label)
+
+
+def test_the_send_control_sits_on_the_text_box_row():
+    box = control("", "EditText", 42, 2028, 800, 126, "@box")
+    feedback = control("Send feedback", "TextView", 42, 300, 400, 60, "@fb")
+    arrow = control("", "ImageButton", 900, 2040, 110, 110, "@arrow")
+    assert ob.composer([feedback, box, arrow], DEVICE) == (box, arrow)
+    assert ob.composer([feedback, box], DEVICE) is None
+
+
+def test_a_gift_button_on_the_row_is_never_the_send_control():
+    box = control("", "EditText", 42, 2028, 700, 126, "@box")
+    gift = control("Send gift", "Button", 760, 2040, 110, 110, "@gift")
+    send = control("sendButton", "View", 900, 2040, 110, 110, "@send")
+    assert ob.composer([box, gift, send], DEVICE) == (box, send)
+    for word in ("Send gift", "100 coins", "Gems", "Tip the creator", "Donate", "Buy credits"):
+        assert ob.denied(control(word, "Button", 0, 0, 10, 10, "@x"), core=True), word

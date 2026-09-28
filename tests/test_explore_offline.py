@@ -2,17 +2,19 @@
 filter, Jev and Sonnet through the stage's cap and cache, externals, billing, a relaunch, dynamic regions,
 the core-loop pass, and outputs in the frozen explore/ format."""
 
+import functools
 import json
 
 import pytest
 
-from simula import llm, runlog
+from simula import decide, llm, runlog
 from simula.contracts import ActionLine, ExploreFile, StateFile
 from simula.device import observe as ob
 from simula.device.mcp import parse_elements
 from simula.stages import explore as stage
-from tests.fake_device import PACKAGE, Clock, FakePhone, blank, capture, new_run
+from tests.fake_device import PACKAGE, Clock, FakePhone, blank, capture, fake_jev, new_run
 from tests.fake_device import explore as run_explorer
+from tests.fake_device import explorer as new_explorer
 
 TABS = ["155,2253", "347,2253", "540,2253", "732,2253", "924,2253"]
 TRANSITIONS = {"push", "modal", "tab", "back", "replace", "unknown"}
@@ -308,3 +310,28 @@ def test_the_walk_asks_the_ranker_among_several_and_never_taps_one_twice(tmp_pat
     assert ex.core.kind == "chat" and phone.sent
     assert [line.note.split("'")[1] for line in walk] == ["Start chat icon", "New chat"]
     assert walk[0].decider == "jev"
+
+
+def test_when_jev_says_feed_a_comment_box_inside_an_item_is_never_typed_into(tmp_path, monkeypatch):
+    def news_like(clock):
+        phone = janitor_like(clock)
+        del phone.taps[("chats", "Kang Jun-Seo (Idol x Idol)")]
+        phone.screens["comments"] = capture("luzia", "luzia-chat-thread", package=PACKAGE)
+        phone.replies["comments"] = ["Nice article!"]
+        phone.taps[("limited", "JJK - GOJO’S RELATIVE")] = "comments"
+        return phone
+    ex, phone = new_explorer(tmp_path, monkeypatch, news_like)
+    monkeypatch.setattr(decide, "ask_choice", functools.partial(fake_jev, core_pick="open an item"))
+    stage.explore_app(ex)
+    assert ex.core.kind == "feed" and not phone.typed and not phone.sent
+
+
+def test_a_send_gift_button_on_the_chat_row_is_never_tapped(tmp_path, monkeypatch):
+    def gifting(clock):
+        phone = janitor_like(clock)
+        gift = {"ref": "@gift", "type": "android.widget.Button", "text": "Send gift",
+                "coordinates": {"x": 160, "y": 2133, "width": 110, "height": 110}}
+        phone.screens["chat"].elements.insert(0, gift)
+        return phone
+    ex, phone = explore(tmp_path, monkeypatch, phone_factory=gifting)
+    assert phone.sent and not any(entry[:1] == ("tap",) and entry[2] == "Send gift" for entry in phone.log)
