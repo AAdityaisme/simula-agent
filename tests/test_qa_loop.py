@@ -18,7 +18,7 @@ from simula.contracts import (ContractError, ContractReport, Critique, Edit, Edi
 from simula.runlog import read_trace
 from simula.stages import mock, qa
 from tests.conftest import APPS
-from tests.mock_fake import golden, seed_model
+from tests.mock_fake import golden, seed_model, skeleton_html
 from tests.test_mock_isolation import ctx_for, fake_builder
 
 
@@ -381,11 +381,10 @@ def test_the_fixer_gets_only_the_screens_the_critique_names(twelve, monkeypatch)
 @pytest.mark.parametrize("twelve", APPS, indirect=True)
 def test_undrawn_screens_are_reported_and_never_scored_criticized_or_fixed(twelve, monkeypatch):
     app, run_dir, model, ids = twelve
-    monkeypatch.setattr(llm, "call", fake_builder([]))
-    mock.run(ctx_for(run_dir, app))
+    mock.copy_assets(run_dir / "model", run_dir / "mock", mock.pick_scope(model), model.device)
+    html = qa.rebuild(skeleton_html(model), model, ids)
     undrawn = ids[4:8]
     page = run_dir / "mock" / "index.html"
-    html = page.read_text()
     for sid in undrawn:
         html = re.sub(rf'(<section data-screen="{sid}"[^>]*>).*?(</section>)', r"\1<p>screen not drawn</p>\2", html,
                       flags=re.S)
