@@ -209,7 +209,8 @@ class Explorer:
         self.tour_actions = 0
         self.replay = (0, 0)
         self.started = clock()
-        self.secrets = [s.strip() for s in os.environ.get("SIMULA_REDACT", "").split(",") if s.strip()]
+        self.secrets = redact_list()
+        self.redacted = 0
         (out / "states").mkdir(parents=True, exist_ok=True)
         self.scratch = out / ".scratch"
         self.scratch.mkdir(exist_ok=True)
@@ -223,7 +224,8 @@ class Explorer:
         self.anr_waited = False
         shot = self.phone.screenshot(self.scratch / "now.png", (self.device.w_px, self.device.h_px))
         image = Image.open(shot).convert("RGB")
-        reply, elements = ob.redact(settled.reply, image, self.secrets)
+        reply, elements, hits = ob.redact(settled.reply, image, self.secrets)
+        self.redacted += hits
         image.save(shot)
         fg = self.phone.foreground()
         if not settled.ok:
@@ -1213,7 +1215,9 @@ def exhibit(ex: Explorer, app_version: str | None) -> str:
              f"- Relaunches: {ex.relaunches} (tour cap {MAX_RELAUNCHES}, then {CORE_RELAUNCHES} for the passes after)",
              *[f"  - {n}: {why}" for n, why in enumerate(ex.relaunch_reasons, start=1)],
              f"- Paywall or plans screen captured: {'yes, ' + ex.paywall if ex.paywall else 'no'}",
-             f"- Content filter: {' > '.join(repr(t.label) for t in ex.filter_taps) or 'none found'}"]
+             f"- Content filter: {' > '.join(repr(t.label) for t in ex.filter_taps) or 'none found'}",
+             f"- Redaction: {len(ex.secrets)} strings listed in SIMULA_REDACT; {ex.redacted} element texts "
+             f"redacted at capture"]
     lines += [f"  - check {n}: {'verified' if ok else 'NOT verified'} by screenshot (`{path}`)"
               for n, ok, path in ex.filter_checks]
     lines += [f"- Checklist answered: {', '.join(answered) or 'none'}; open: {', '.join(still_open) or 'none'}",
@@ -1246,19 +1250,29 @@ def denied_lines(ex: Explorer):
             yield line
 
 
+def redact_list() -> list[str]:
+    return [s.strip() for s in os.environ.get("SIMULA_REDACT", "").split(",") if s.strip()]
+
+
 def run(ctx: Ctx) -> None:
     if ctx.replay:
         raise llm.ReplayMiss("explore drives the device; --replay reuses a finished explore/ folder")
+    if not redact_list():
+        needs_human(ctx.run_dir, "explore", "SIMULA_REDACT is empty",
+                    "the explorer saves screenshots and element lists, and nothing would hide the account handle",
+                    [".env", ".env.example"], f"simula explore {ctx.app['name']} --run {ctx.run_dir.name}")
+        raise ExploreFailed("SIMULA_REDACT is empty: list the emulator account's handle and names in .env, "
+                            "comma-separated, then explore again")
     out = ctx.run_dir / "explore"
     shutil.rmtree(out, ignore_errors=True)
-    out.mkdir(parents=True)
+    (out / ".scratch").mkdir(parents=True)
     serial = resolve_serial(ctx.device)
     signal.signal(signal.SIGTERM, lambda *_: sys.exit("explore stopped by SIGTERM"))
     with emulator_lock(serial, wait_s=LOCK_WAIT_S):
         server = Server(cwd=out)
         try:
             names = {serial, adb_shell(serial, ["getprop", "ro.boot.qemu.avd_name"])} - {None, ""}
-            ex = Explorer(ctx, Phone(server, ctx.app["package"], out, names), out)
+            ex = Explorer(ctx, Phone(server, ctx.app["package"], out / ".scratch", names), out)
             ex.serial = serial
             explore_app(ex)
         finally:
@@ -1290,7 +1304,8 @@ def explore_app(ex: Explorer) -> None:
         update_manifest(ex.ctx.run_dir, app_version=app_version)
         write_exhibit(ex.ctx.run_dir, 1, "explore", exhibit(ex, app_version))
         run_trace(ex.ctx.run_dir, stage="explore", step="summary", decider="code",
-                  note=f"{len(ex.states)} states, {ex.actions} actions, stop: {ex.stop_reason}")
+                  note=f"{len(ex.states)} states, {ex.actions} actions, stop: {ex.stop_reason}; "
+                       f"{ex.redacted} element texts redacted")
     if not ex.states or ex.stop_reason.startswith(DEVICE_STOPS):
         raise ExploreFailed(ex.stop_reason or "no state was recorded")
 

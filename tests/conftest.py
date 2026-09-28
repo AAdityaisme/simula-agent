@@ -19,6 +19,8 @@ def no_device(request, monkeypatch):
     if request.node.get_closest_marker("live"):
         return
 
+    monkeypatch.setenv("SIMULA_REDACT", "offline-test-handle")
+
     def refuse(*args, **kwargs):
         raise NotImplementedError("PR 1: offline tests never start mobile-mcp")
     monkeypatch.setattr(explore, "Server", refuse)
