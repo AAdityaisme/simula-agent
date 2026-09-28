@@ -108,6 +108,7 @@ runs/<app>/latest -> <run_id>
 - No `minLength`, `maximum`, or `pattern` (the API drops them). Code checks those after parsing.
 - `CostInputs.currency_amount`: the USD price the app charges for exactly what the reward grants; 0 when no price was observed.
 - `CandidateDraft.after_reward` (added in PR 5, Aadi-approved): one plain sentence on what the user sees when the reward runs out and why that moves them toward paying, returning, or watching again. It defaults to `""` so older files parse; propose drops a candidate that leaves it empty.
+- `CandidateDraft.for_users` and `CandidateDraft.grants_id` (added in PR 5, Aadi-approved): who is offered the reward (`free`, `paying`, or `everyone`), and the `value_ledger` id of the paid benefit the reward is a piece of, or more of (null for a new resource). Both are required. Propose drops an idea whose `grants_id` isn't a ledger id, a piece of a paywall bullet offered to non-payers when a free trial sits on the bullet's screen, and more of a bullet for payers when the bullet has no number and no observed limit cites it; it dedupes on (`grants_id`, `for_users`).
 
 ## 6. Who writes which field
 

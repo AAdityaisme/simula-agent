@@ -291,6 +291,9 @@ class CandidateDraft(Strict):
     placement: str
     offer_copy: str
     reward: Reward
+    for_users: Literal["free", "paying", "everyone"] = Field(description="Who is offered the reward.")
+    grants_id: str | None = Field(description="The value_ledger id of the paid benefit the reward is a piece "
+                                  "of, or more of; null when the reward is a new resource.")
     cost_inputs: CostInputs
     frequency_cap: str
     decline_path: str
