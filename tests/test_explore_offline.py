@@ -460,3 +460,14 @@ def test_a_conversation_inside_a_feed_item_replaces_a_chat_the_tour_reached_thro
     labels, = asked
     assert labels[0].startswith("open an item and send messages in its conversation")
     assert not any(label.startswith("send messages in a conversation") for label in labels)
+
+
+def test_a_reply_still_being_written_neither_ends_the_chat_nor_leaves_it(tmp_path, monkeypatch):
+    def slow_replies(clock):
+        phone = chatty(clock)
+        phone.generating = 30.0
+        return phone
+    ex, phone = explore(tmp_path, monkeypatch, phone_factory=slow_replies, budget="deep")
+    assert phone.sent == ex.core_reps == 8 and not ex.core_hit
+    assert not any("could not get back" in r for r in ex.core_results)
+    assert not any(entry[:1] == ("tap",) and entry[2] == "Cancel" for entry in phone.log)

@@ -74,13 +74,14 @@ class FakePhone:
     device: str = "fake-1"
     after_sends: dict[int, str] = field(default_factory=dict)
     splash_screen: str | None = None
+    generating: float = 0.0
     chat_top: int = 401
 
     def __post_init__(self):
         self.screen, self.history, self.log, self.typed = self.start, [], [], []
         self.list_seconds, self.shots, self.reply_polls, self.splash_left = [], {}, 0, 0
         self.chats: dict[str, list[tuple[str, str]]] = {}
-        self.draft, self.sent = "", 0
+        self.draft, self.sent, self.busy_until = "", 0, 0.0
         self.screens.setdefault("launcher", blank("com.android.launcher"))
 
     def tick(self, seconds: float = 0.3) -> None:
@@ -96,6 +97,9 @@ class FakePhone:
         box = next(e for e in elements if e["type"].endswith("EditText"))
         if self.draft:
             elements = [{**e, "text": self.draft} if e is box else e for e in elements]
+        if self.clock.t < self.busy_until:
+            elements = [{**e, "text": "Cancel", "label": "", "enabled": False} if "send" in words(e).lower() else e
+                        for e in elements]
         self.reply_polls += 1
         return elements + [{"ref": f"@m{n}", "type": "android.widget.TextView", "text": text,
                             "coordinates": {"x": x, "y": y, "width": w, "height": h}}
@@ -181,7 +185,7 @@ class FakePhone:
         history = self.chats.setdefault(self.screen, [])
         replies = self.replies[self.screen]
         history.append((self.draft, replies[len(history) % len(replies)]))
-        self.draft, self.reply_polls = "", 0
+        self.draft, self.reply_polls, self.busy_until = "", 0, self.clock.t + self.generating
         self.sent += 1
         self.go(self.after_sends.get(self.sent))
 

@@ -392,7 +392,7 @@ class Explorer:
             raise
         self.escape_billing()
         # a chat pass stays on the chat while its composer shows: the growing conversation is not a new state
-        chatting = purpose == "core" and self.core.kind == "chat" and self.live_composer() and not self.covering(before)
+        chatting = purpose == "core" and self.core.kind == "chat" and self.live_box() and not self.covering(before)
         to = s if chatting else self.record(obs, s, move, before.cands)
         if to is s and not summary:
             summary = ob.change_summary(before.elements, obs.elements, self.device)
@@ -1096,10 +1096,18 @@ class Explorer:
     def at_core(self, n: int) -> bool:
         """After the first pass a chat stays where it is: the conversation grows, so it never matches its first
         capture again, and walking 'back' to it would leave it. Anything else walks back to the core state."""
-        if n > 1 and self.core.kind == "chat" and self.live_composer():
+        if n > 1 and self.core.kind == "chat" and self.live_box():
+            self.until_send_returns()
             self.current = self.core.state
             return True
         return self.goto(self.core.state)
+
+    def until_send_returns(self) -> None:
+        """A reply still being written shows a stop control where send was; the next message waits for it."""
+        deadline = self.clock() + REPLY_WAIT_S
+        while not self.live_composer() and self.live_box() and self.clock() < deadline:
+            self.sleep(2.0)
+            self.observe()
 
     def core_once(self, n: int) -> tuple[str, str]:
         """One pass of the core action. Returns its measurement and what stopped the loop, if anything."""
@@ -1107,7 +1115,7 @@ class Explorer:
         self.last_summary = ""
         if core.kind == "chat":
             message = CORE_MESSAGES[(n - 1) % len(CORE_MESSAGES)]
-            box, _ = self.live_composer() or core.controls
+            box = self.live_box() or core.controls[0]
             self.act(Move("tap", box, why="core loop: focus the text box"), purpose="core", loop=n)
             if not self.stop_kind:
                 self.act(Move("type", text=message, why="core loop: type"), purpose="core", loop=n)
@@ -1132,21 +1140,28 @@ class Explorer:
 
     def live_composer(self) -> tuple[ob.Candidate, ob.Candidate] | None:
         """The text box and its send control on the screen as it is now."""
+        return ob.composer(self.obs.cands, self.device) if self.live_box() else None
+
+    def live_box(self) -> ob.Candidate | None:
+        """The chat's text box on the screen as it is now, whatever shows in the send slot (a reply still being
+        written puts a stop control there)."""
         if self.obs is None or self.obs.fg != self.package or ob.dialog_box(self.obs.cands, self.device):
             return None
-        return ob.composer(self.obs.cands, self.device)
+        middle = (self.device.content_top_px + self.device.content_bottom_px) / 2
+        return next((c for c in self.obs.cands if c.kind == "EditText" and ob.center(c.rect)[1] > middle), None)
 
     def covering(self, before: Obs) -> list[ob.Candidate]:
         """A sheet in the chat's own window leaves the composer in the tree: it shows as a second text box in the
-        lower half, or as new controls lying over the text box (bubbles and hints never do)."""
-        live = ob.composer(self.obs.cands, self.device)
-        if live is None:
+        lower half, or as new controls lying over the text box (bubbles and hints never do, nor a send control
+        relabeled in place while a reply is written)."""
+        box, middle = self.live_box(), (self.device.content_top_px + self.device.content_bottom_px) / 2
+        if box is None:
             return []
-        box, middle = live[0], (self.device.content_top_px + self.device.content_bottom_px) / 2
-        old = {(c.label, c.kind) for c in before.cands}
+        old, spots = {(c.label, c.kind) for c in before.cands}, [c.rect for c in before.cands]
         return [c for c in self.obs.cands if c is not box and (
             (c.kind == "EditText" and ob.center(c.rect)[1] > middle)
-            or ((c.label, c.kind) not in old and ob.overlaps(c.rect, box.rect) and not ob.inside(c.rect, box.rect)))]
+            or ((c.label, c.kind) not in old and c.rect not in spots and ob.overlaps(c.rect, box.rect)
+                and not ob.inside(c.rect, box.rect)))]
 
     def within(self, s: Seen) -> list[dict]:
         return [e for e in s.elements if s.box is None or ob.inside(ob.rect(e), s.box)]
@@ -1206,7 +1221,7 @@ class Explorer:
         if box is None:
             return self.sheet_words(before) or "input gone", here.sid
         live = self.live_composer()
-        if not box.enabled or (move.action == "type" and live and not live[1].enabled):
+        if not box.enabled or (move.action == "type" and (live is None or not live[1].enabled)):
             return "input disabled", here.sid
         band = (int(box.rect.y) - COMPOSER_BAND_PX, int(box.rect.y + box.rect.h) + COMPOSER_BAND_PX)
         moved = ob.counters(before.elements, self.obs.elements, self.device, [band])
