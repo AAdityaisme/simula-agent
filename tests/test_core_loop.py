@@ -112,3 +112,13 @@ def test_a_price_is_what_makes_a_paywall():
         assert shows(text), text
     for text in ("18+", "v2.5.0.136", "1,000 members", "Top 10", "Subscription"):
         assert not shows(text), text
+
+
+def test_a_send_control_in_the_toolbar_under_the_text_box_counts():
+    box = control("", "EditText", 46, 2057, 988, 123, "@box")
+    persona = control("Change who you are in this chat", "Button", 174, 2180, 284, 86, "@persona")
+    write = control("AI write for me", "ViewGroup", 68, 2180, 89, 89, "@write")
+    send = control("Send", "ViewGroup", 922, 2180, 89, 89, "@send")
+    assert ob.composer([box, write, persona, send], DEVICE) == (box, send)
+    far = control("Send", "ViewGroup", 922, 2330, 89, 89, "@far")
+    assert ob.composer([box, write, persona, far], DEVICE) is None

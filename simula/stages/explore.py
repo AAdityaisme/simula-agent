@@ -1367,11 +1367,11 @@ def exhibit(ex: Explorer, app_version: str | None) -> str:
              f"- Relaunches: {ex.relaunches} (tour cap {MAX_RELAUNCHES}, then {CORE_RELAUNCHES} for the passes after)",
              *[f"  - {n}: {why}" for n, why in enumerate(ex.relaunch_reasons, start=1)],
              f"- Paywall or plans screen captured: {paywall_line(ex)}",
-             f"- Content filter: {' > '.join(repr(t.label) for t in ex.filter_taps) or 'none found'}",
-             f"- Redaction: {len(ex.secrets)} strings listed in SIMULA_REDACT; {ex.redacted} element texts "
-             f"redacted at capture"]
+             f"- Content filter: {' > '.join(repr(t.label) for t in ex.filter_taps) or 'none found'}"]
     lines += [f"  - check {n}: {'verified' if ok else 'NOT verified'} by screenshot (`{path}`)"
               for n, ok, path in ex.filter_checks]
+    lines += [f"- Redaction: {len(ex.secrets)} strings listed in SIMULA_REDACT; {ex.redacted} element texts "
+              "redacted at capture"]
     lines += [f"- Checklist answered: {', '.join(answered) or 'none'}; open: {', '.join(still_open) or 'none'}",
               f"- Denied taps: {sum(1 for _ in denied_lines(ex))} logged, {ex.denied_executed} executed. The deny-list "
              "is English only: a confirm button in another language isn't caught, and the store's billing screen "
