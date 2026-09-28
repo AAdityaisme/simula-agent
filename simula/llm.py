@@ -386,17 +386,30 @@ def _parse(reply: Reply, schema: type[BaseModel] | None):
 
 
 def without_refused_images(images: list, attempt) -> tuple[object, list]:
-    """Calls attempt(images); on a refusal, bisects the set and drops the images that trigger it."""
+    """Calls attempt(images); on a refusal, bisects the set and drops the images that trigger it. A refusal
+    that leaves no image to send is raised like any refusal, never answered with None."""
     try:
         return attempt(images), []
     except LLMFailure as e:
-        if e.outcome != "refusal" or not images:
+        if e.outcome != "refusal" or len(images) < 2:
             raise
-        if len(images) == 1:
-            return None, images
     half = len(images) // 2
-    _, bad_left = without_refused_images(images[:half], attempt)
-    _, bad_right = without_refused_images(images[half:], attempt)
-    skipped = bad_left + bad_right
+    skipped = _refused(images[:half], attempt) + _refused(images[half:], attempt)
     kept = [img for img in images if not any(img is s for s in skipped)]
+    if not kept:
+        raise LLMFailure("refusal", f"all {len(images)} screenshots were refused")
     return attempt(kept), skipped
+
+
+def _refused(images: list, attempt) -> list:
+    """The images in this set that draw a refusal, found by bisecting."""
+    try:
+        attempt(images)
+        return []
+    except LLMFailure as e:
+        if e.outcome != "refusal":
+            raise
+    if len(images) == 1:
+        return images
+    half = len(images) // 2
+    return _refused(images[:half], attempt) + _refused(images[half:], attempt)
