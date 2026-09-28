@@ -216,3 +216,38 @@ def test_a_cap_too_small_for_any_batch_stops_the_stage(tmp_path, monkeypatch, ap
     with pytest.raises(llm.CapReached):
         mock.run(ctx)
     assert calls == []
+
+
+
+# ---------- a batch reaching outside its own screens ----------
+
+def first_batch_adds(extra: str):
+    """The fake builder, with extra markup at the top of the first batch's body."""
+    fake = fake_builder([])
+
+    def call(**kwargs):
+        text, reply = fake(**kwargs)
+        return (text.replace("<body>", f"<body>{extra}", 1) if kwargs["step"] == "batch1" else text), reply
+    return call
+
+
+def contract_errors(run_dir) -> list:
+    return ContractReport.model_validate_json((run_dir / "mock" / "contract_report.json").read_text()).errors
+
+
+def test_a_batch_rule_outside_its_own_screens_is_a_contract_error(tmp_path, monkeypatch, app):
+    run_dir = seed_model(tmp_path / "run", app)
+    first = mock.batches(mock.pick_scope(golden(app)))[0]
+    monkeypatch.setattr(llm, "call", first_batch_adds("<style>p{color:red}</style>"))
+    mock.run(ctx_for(run_dir, app))
+    [error] = contract_errors(run_dir)
+    assert (error.kind, error.screen) == ("unscoped_css", first[0].id) and error.detail.startswith("'p'")
+
+
+def test_a_section_for_another_batchs_screen_is_a_contract_error(tmp_path, monkeypatch, app):
+    run_dir = seed_model(tmp_path / "run", app)
+    first, second = mock.batches(mock.pick_scope(golden(app)))[:2]
+    monkeypatch.setattr(llm, "call", first_batch_adds(f'<section data-screen="{second[0].id}"></section>'))
+    mock.run(ctx_for(run_dir, app))
+    [error] = contract_errors(run_dir)
+    assert (error.kind, error.screen) == ("foreign_screen", first[0].id) and second[0].id in error.detail

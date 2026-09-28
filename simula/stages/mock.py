@@ -28,6 +28,8 @@ DIALOGS = ("modal", "sheet")
 PALETTE_SIZE = 4
 FONT_NAME = re.compile(r"[A-Za-z0-9 ]+")
 STYLE = re.compile(r"<style\b[^>]*>(.*?)</style>", re.S | re.I)
+SCREEN_SELECTOR = re.compile(r"""section\[data-screen=["']?([^"'\]]+)["']?\]""")
+GROUP_RULES = ("@media", "@supports", "@container", "@layer")
 UNDRAWN_STYLE = "margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888"
 TAGGED_PER_REPEAT = 2
 WALL_SECONDS = 30 * 60
@@ -99,13 +101,13 @@ def run(ctx: Ctx) -> None:
     art = crop_art(model_dir, mock_dir, scope, model.device)
 
     style = shared_style(scope)
-    parts, undrawn = draw_batches(ctx, model, groups, screens, art, style)
+    parts, undrawn, batch_errors = draw_batches(ctx, model, groups, screens, art, style)
     html = with_runtime(wire_edges(stitch(style, fonts_of(scope), parts), model, screens), home_id(scope))
     (mock_dir / "index.html").write_text(html)
 
     checked = render.render_and_validate(mock_dir, model, screens)
     errors = [ContractError(kind="undrawn_screen", detail=f"screen not drawn: {reason}", screen=sid)
-              for sid, reason in undrawn.items()] + checked.errors
+              for sid, reason in undrawn.items()] + batch_errors + checked.errors
     report = ContractReport(passed=not errors, screens=screens, errors=errors)
     (mock_dir / "contract_report.json").write_text(report.model_dump_json(indent=1))
     run_trace(ctx.run_dir, stage="mock", step="contract", decider="code", outcome="ok" if report.passed else "error",
@@ -119,7 +121,7 @@ def pick_scope(model: ProductModel) -> list[State]:
     scope = [s for s in model.states if s.in_mock_scope]
     if not scope:
         raise ValueError("the product model has no state in mock scope")
-    rank = {sid: i for i, sid in enumerate(getattr(model, "mock_order", None) or [])}
+    rank = {sid: i for i, sid in enumerate(model.mock_order)}
     return sorted(scope, key=lambda s: rank.get(s.id, len(rank)))
 
 
@@ -299,9 +301,10 @@ def contains(a: Rect, b: Rect) -> bool:
 # ---------- the model calls, one per batch ----------
 
 def draw_batches(ctx: Ctx, model: ProductModel, groups: list[list[State]], screens: list[str], art: dict[str, Rect],
-                 style: str) -> tuple[list[tuple[str, str]], dict[str, str]]:
-    """Each batch's (CSS, sections), drawn at most PARALLEL_BATCHES at once, and the screens not drawn with why.
-    A batch that fails becomes placeholder sections and the rest still ship; the stage fails only if all fail."""
+                 style: str) -> tuple[list[tuple[str, str]], dict[str, str], list[ContractError]]:
+    """Each batch's (CSS, sections), drawn at most PARALLEL_BATCHES at once, the screens not drawn with why, and
+    the contract errors of batches that reach outside their own screens. A batch that fails becomes placeholder
+    sections and the rest still ship; the stage fails only if all fail."""
     budget = llm.Budget.for_stage("mock", ctx.run_dir / "trace.jsonl", ctx.usd_cap)
 
     def draw(n: int, batch: list[State]):
@@ -317,7 +320,7 @@ def draw_batches(ctx: Ctx, model: ProductModel, groups: list[list[State]], scree
     failures = [r for r in results if isinstance(r, BaseException)]
     if len(failures) == len(results):
         raise failures[0]
-    parts, undrawn = [], {}
+    parts, undrawn, errors = [], {}, []
     for n, (batch, result) in enumerate(zip(groups, results), 1):
         if isinstance(result, BaseException):
             reason = failure_reason(result)
@@ -325,8 +328,48 @@ def draw_batches(ctx: Ctx, model: ProductModel, groups: list[list[State]], scree
             run_trace(ctx.run_dir, stage="mock", step=f"batch{n}", decider="code", outcome=failure_outcome(result),
                       note=f"not drawn: {' '.join(s.id for s in batch)}: {reason}"[:300])
             result = ("", placeholders(batch, reason))
+        else:
+            errors += outside_errors(batch, *result)
         parts.append(result)
-    return parts, undrawn
+    return parts, undrawn, errors
+
+
+def outside_errors(batch: list[State], css: str, markup: str) -> list[ContractError]:
+    """Batches share one page, so a batch rule not scoped to its own screens, or a section for another batch's
+    screen, changes screens that batch never saw. QA round 1 repairs these like any contract error."""
+    ids, first = {s.id for s in batch}, batch[0].id
+    unscoped = [ContractError(kind="unscoped_css", detail=f"{sel[:120]!r} is not scoped to {' '.join(sorted(ids))}",
+                              screen=first) for sel in top_selectors(css) if not scoped_to(sel, ids)]
+    drawn = [t["attrs"]["data-screen"] for t in StartTags(markup).tags if t["attrs"].get("data-screen")]
+    return unscoped + [ContractError(kind="foreign_screen", detail=f"the batch of {first} drew section {sid!r}",
+                                     screen=first) for sid in drawn if sid not in ids]
+
+
+def top_selectors(css: str) -> list[str]:
+    """The selectors of every rule not nested in another rule, at the top or inside @media-like groups.
+    @keyframes and @font-face bodies hold no selectors."""
+    css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+    selectors, open_blocks, start = [], [], 0
+    for i, ch in enumerate(css):
+        if ch not in "{};":
+            continue
+        prelude, start = css[start:i].strip(), i + 1
+        if ch == "{":
+            nested = any(kind != "group" for kind in open_blocks)
+            kind = "group" if prelude.startswith(GROUP_RULES) else "other" if nested or prelude.startswith("@") else "rule"
+            if kind == "rule":
+                selectors += [sel.strip() for sel in re.split(r",(?![^()]*\))", prelude)]
+            open_blocks.append(kind)
+        elif ch == "}" and open_blocks:
+            open_blocks.pop()
+    return selectors
+
+
+def scoped_to(selector: str, ids: set[str]) -> bool:
+    """True when the selector starts with one of these screens' sections, or an :is()/:where() list of them."""
+    group = re.match(r":(?:is|where)\(([^()]*)\)", selector)
+    heads = group.group(1).split(",") if group else [selector]
+    return all((m := SCREEN_SELECTOR.match(h.strip())) is not None and m.group(1) in ids for h in heads)
 
 
 def failure_reason(e: BaseException) -> str:
