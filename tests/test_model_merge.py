@@ -262,7 +262,9 @@ def test_questions_need_a_real_start_state_and_are_capped(app):
     assert [q.id for q in kept.open_questions] == ["q0", "q1", "q2", "q3", "q4"]
 
 
-def test_core_flow_states_come_before_tabs():
+def synthetic_app(flow_length: int, limit_on_flow: bool):
+    """Root s01 with 6 tabs and one core flow from the root; the flow ends at a limit modal, or the limit is a
+    separate paywall screen one tap from the root."""
     def state(sid, kind="screen", parent=None):
         return State(id=sid, kind=kind, parent_id=parent, name="", purpose="", fingerprint="", canonical_png="",
                      elements=[], in_mock_scope=False, content_rating="safe", dynamic_regions=[], blocked_reason=None)
@@ -271,19 +273,32 @@ def test_core_flow_states_come_before_tabs():
         return Edge(id=f"{a}.tap>{b}", from_state=a, to_state=b, element_id=None, action="tap",
                     transition=transition, change_summary="")
     tabs = [f"s{n:02d}" for n in range(2, 8)]
-    flow = ["s08", "s09", "s10", "s11"]
-    states = [state("s01"), *map(state, tabs), *map(state, flow[:3]), state("s11", "modal", "s10")]
-    edges = [edge("s01", t, "tab") for t in tabs]
+    flow = [f"s{n:02d}" for n in range(8, 8 + flow_length)]
+    limit = flow[-1] if limit_on_flow else "s99"
+    states = [state("s01"), *map(state, tabs), *map(state, flow[:-1]),
+              state(flow[-1], "modal", flow[-2]) if limit_on_flow else state(flow[-1]), state("s99")]
+    edges = [edge("s01", t, "tab") for t in tabs] + [edge("s01", "s99", "push")]
     hops = list(zip(["s01", *flow[:-1]], flow))
-    edges += [edge(a, b, "modal" if b == "s11" else "push") for a, b in hops]
+    edges += [edge(a, b, "modal" if limit_on_flow and b == flow[-1] else "push") for a, b in hops]
     meaning = ModelMeaning(app_category="chat", states=[], elements=[], cross_screen_values=[], value_ledger=[],
                            open_questions=[], terms=[],
                            flows=[Flow(id="f1", name="core", purpose="x", edge_ids=[f"{a}.tap>{b}" for a, b in hops],
                                        evidence_ids=[])],
-                           mechanics=[Mechanic(id="m1", kind="limit", evidence_ids=["s11"], summary="x",
+                           mechanics=[Mechanic(id="m1", kind="limit", evidence_ids=[limit], summary="x",
                                                observed_numbers=[], status="observed")])
+    return states, edges, meaning, tabs, flow
+
+
+def test_the_limit_screen_then_the_core_flow_come_before_tabs():
+    states, edges, meaning, tabs, flow = synthetic_app(4, limit_on_flow=True)
     scope = stage.mock_scope(states, edges, meaning)
-    assert scope == ["s01", *flow, *tabs[:3]]
+    assert scope == ["s01", "s10", "s11", "s08", "s09", *tabs[:3]]
+
+
+def test_a_flow_long_enough_to_fill_the_cap_still_leaves_the_paywall_in_scope():
+    states, edges, meaning, tabs, flow = synthetic_app(10, limit_on_flow=False)
+    scope = stage.mock_scope(states, edges, meaning)
+    assert len(scope) == stage.SCOPE_CAP and scope[:2] == ["s01", "s99"] and scope[2:] == flow[:6]
 
 
 # ---------- the whole stage ----------

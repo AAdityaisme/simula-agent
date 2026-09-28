@@ -476,20 +476,22 @@ def code_roles(states: list[State], edges: list[Edge]) -> list[State]:
 # ---------- scope and assets ----------
 
 def mock_scope(states: list[State], edges: list[Edge], meaning: ModelMeaning) -> list[str]:
-    """Root, then every state on the core flows (in flow order), then states with a mechanic, then tabs, then
-    depth-1 states; a modal brings its parent first; at most 8; never unsafe, blocked, or outside the app.
-    Flows come before tabs so the mock shows the app being used, not just its tab bar."""
+    """Root, then states showing a paywall, limit, or currency, then every state on the core flows (in flow
+    order), then states with any other mechanic, then tabs, then depth-1 states; a modal brings its parent
+    first; at most 8; never unsafe, blocked, or outside the app. Money screens are few and matter most, so a
+    long flow can't crowd them out; flows come before tabs so the mock shows the app being used."""
     by_id = {s.id: s for s in states}
     edge_by_id = {e.id: e for e in edges}
     eligible = {s.id for s in states if s.content_rating != "unsafe" and s.kind not in ("blocked", "external")}
     root = next((s.id for s in states if s.kind == "screen"), None)
     flow_states = [sid for f in meaning.flows for i in f.edge_ids if i in edge_by_id
                    for sid in (edge_by_id[i].from_state, edge_by_id[i].to_state)]
-    mechanic_states = [i.split(".")[0] for m in meaning.mechanics for i in m.evidence_ids]
+    money = [i.split(".")[0] for m in meaning.mechanics if m.kind in MONEY_KINDS for i in m.evidence_ids]
+    other_mechanics = [i.split(".")[0] for m in meaning.mechanics if m.kind not in MONEY_KINDS for i in m.evidence_ids]
     tabs = [e.to_state for e in edges if e.transition == "tab"]
     depth1 = [e.to_state for e in edges if e.from_state == root]
     ordered = []
-    for sid in [root, *flow_states, *mechanic_states, *tabs, *depth1]:
+    for sid in [root, *money, *flow_states, *other_mechanics, *tabs, *depth1]:
         parent = by_id[sid].parent_id if sid in by_id else None
         if parent and parent not in eligible:
             continue
