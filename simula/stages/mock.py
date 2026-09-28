@@ -20,7 +20,7 @@ from simula.stages import Ctx
 
 MAX_SCREENS = 8
 TAGGED_PER_REPEAT = 2
-WALL_SECONDS = 20 * 60
+WALL_SECONDS = 30 * 60
 IMAGE_LONG_SIDE = 1568
 ART_MIN_SIDE = 48
 ART_MIN_COLORS = 120
@@ -87,7 +87,7 @@ def run(ctx: Ctx) -> None:
     art = crop_art(model_dir, mock_dir, scope, model.device)
 
     html = generate(ctx, model, scope, art)
-    html = with_runtime(wire_edges(html, model, screens), screens[0])
+    html = with_runtime(wire_edges(html, model, screens), home_id(scope))
     (mock_dir / "index.html").write_text(html)
 
     report = render.render_and_validate(mock_dir, model, screens)
@@ -103,6 +103,11 @@ def pick_scope(model: ProductModel) -> list[State]:
     if not scope:
         raise ValueError("the product model has no state in mock scope")
     return scope[:MAX_SCREENS]
+
+
+def home_id(scope: list[State]) -> str:
+    """Where the mock opens and simula.reset() returns: the first screen that is not a dialog over another one."""
+    return next((s.id for s in scope if s.parent_id is None), scope[0].id)
 
 
 def tagged_ids(state: State) -> set[str]:
@@ -151,7 +156,8 @@ def crop_art(model_dir, mock_dir, scope: list[State], device: Device) -> dict[st
         for eid, rect in find_art(state, image, device).items():
             crop_px(image, rect, device.scale).save(mock_dir / "assets" / f"{eid}.art.png")
             art[eid] = rect
-    (mock_dir / "art.json").write_text(json.dumps({art_src(eid): r.model_dump() for eid, r in art.items()}, indent=1))
+    listed = {art_src(eid): r.model_dump() for eid, r in art.items()}
+    (mock_dir / "art.json").write_text(json.dumps({"schema_version": 1, "art": listed}, indent=1))
     return art
 
 

@@ -7,7 +7,7 @@ from simula.runlog import read_trace
 from simula.stages import mock
 from tests.conftest import APPS
 from tests.mock_fake import golden, seed_model, skeleton_html
-from tests.test_mock_isolation import ctx_for
+from tests.test_mock_isolation import ctx_for, fake_builder
 
 
 @pytest.fixture(params=APPS)
@@ -159,3 +159,16 @@ def test_each_attempt_is_one_call_under_its_own_wall_and_a_timeout_is_not_retrie
         mock.generate(ctx_for(run_dir, "aol", profile="real"), model, mock.pick_scope(model), {})
     assert e.value.outcome == "timeout"
     assert calls == [("xhigh", 1, mock.WALL_SECONDS), ("high", 1, mock.WALL_SECONDS)]
+
+
+def test_the_mock_opens_on_the_first_screen_that_is_not_a_dialog(tmp_path, monkeypatch, app):
+    run_dir = seed_model(tmp_path / "run", app)
+    model = golden(app)
+    home = mock.pick_scope(model)[0]
+    dialog = home.model_copy(update={"id": "s00", "kind": "modal", "parent_id": home.id, "elements": []})
+    model = model.model_copy(update={"states": [dialog] + model.states})
+    (run_dir / "model" / "product_model.json").write_text(model.model_dump_json())
+    monkeypatch.setattr(llm, "call", fake_builder([]))
+    mock.run(ctx_for(run_dir, app))
+    assert mock.pick_scope(model)[0].id == "s00" and mock.home_id(mock.pick_scope(model)) == home.id
+    assert f'const ROOT = "{home.id}"' in (run_dir / "mock" / "index.html").read_text()

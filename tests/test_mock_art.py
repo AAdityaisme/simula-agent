@@ -87,7 +87,8 @@ def test_every_golden_crop_is_a_picture_clear_of_text(tmp_path, app):
     scope = mock.pick_scope(model)
     mock.copy_assets(FIXTURES / "golden" / app, tmp_path, scope, model.device)
     art = mock.crop_art(FIXTURES / "golden" / app, tmp_path, scope, model.device)
-    assert json.loads((tmp_path / "art.json").read_text()) == {mock.art_src(eid): r.model_dump() for eid, r in art.items()}
+    listed = {mock.art_src(eid): r.model_dump() for eid, r in art.items()}
+    assert json.loads((tmp_path / "art.json").read_text()) == {"schema_version": 1, "art": listed}
     elements = {e.id: e for s in scope for e in s.elements}
     for eid, rect in art.items():
         container = elements[eid]
@@ -117,7 +118,7 @@ def test_image_files_lists_every_art_file_the_stage_wrote(tmp_path, monkeypatch,
     monkeypatch.setattr(llm, "call", fake_builder(calls))
     mock.run(ctx_for(run_dir, app))
     data = json.loads(calls[0]["messages"][0]["content"][-1]["text"].split("\n\n", 1)[1])
-    art = json.loads((run_dir / "mock" / "art.json").read_text())
+    art = json.loads((run_dir / "mock" / "art.json").read_text())["art"]
     assert set(art) <= set(data["image_files"])
     assert all((run_dir / "mock" / src).exists() for src in data["image_files"])
     offered = {e["art"]["src"]: e["art"]["rect"] for s in data["screens"] for e in s["elements"] if "art" in e}
