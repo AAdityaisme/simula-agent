@@ -268,7 +268,7 @@ class CostInputs(Strict):
     tokens_in: int
     tokens_out: int
     minutes: float
-    currency_amount: float
+    currency_amount: float = Field(description="The USD price the app charges for exactly what the reward grants; 0 when no price was observed.")
 
 
 class FlowStep(Strict):

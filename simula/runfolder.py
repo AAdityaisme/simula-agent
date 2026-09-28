@@ -75,7 +75,8 @@ def expand(paths: list[Path]) -> list[Path]:
     files = []
     for p in paths:
         if p.is_dir():
-            files += sorted(f for f in p.rglob("*") if f.is_file() and f.name not in MARKERS)
+            files += sorted(f for f in p.rglob("*") if f.is_file() and f.name not in MARKERS
+                            and f.suffix != ".pyc" and "__pycache__" not in f.relative_to(p).parts)
         elif p.exists():
             files.append(p)
     return files
