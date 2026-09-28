@@ -205,13 +205,13 @@ def crop_art(model_dir, mock_dir, scope: list[State], device: Device) -> dict[st
 
 
 def find_art(state: State, image: Image.Image, device: Device) -> dict[str, Rect]:
-    """For each drawn element with no asset: the largest picture-like region inside it that nothing else is
-    drawn over. image is the state's content-area screenshot."""
+    """For each drawn element with no asset and no text of its own (its words cover its rect): the largest
+    picture-like region inside it that nothing else is drawn over. image is the state's content-area screenshot."""
     screen = content_rect(device)
     cropped = [e.rect_dp for e in state.elements if usable_asset(e, device)]
     art = {}
     for e in state.elements:
-        if not e.in_mock or e.asset_png:
+        if not e.in_mock or e.asset_png or e.text:
             continue
         box = overlap(e.rect_dp, screen)
         blockers = [r for r in (overlap(o.rect_dp, box) for o in state.elements if drawn_over(o, e)) if area(r) > 0]

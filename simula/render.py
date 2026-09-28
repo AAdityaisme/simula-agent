@@ -15,6 +15,12 @@ SCALE = 2.625
 FONT_HOSTS = ("fonts.googleapis.com", "fonts.gstatic.com")
 TRANSITIONS = ("push", "modal", "tab", "back", "replace", "unknown")
 WALLPAPER_SHARE = 0.4
+DECODE_WAIT_MS = 10_000
+
+# Lazy images in hidden screens never load on their own, so each one is switched to eager first.
+DECODE_IMAGES = """() => Promise.race([
+  Promise.all([...document.images].map(i => { i.loading = 'eager'; return i.decode().catch(() => null); })),
+  new Promise(done => setTimeout(done, %d))])""" % DECODE_WAIT_MS
 
 PAGE_FACTS = """() => {
   const screenOf = el => el.closest('[data-screen]')?.dataset.screen ?? null;
@@ -83,7 +89,7 @@ def open_mock(mock_dir: Path):
         page.goto((mock_dir / "index.html").as_uri())
         page.wait_for_load_state("networkidle")
         # Screenshots of a half-decoded image differ byte for byte, and QA's cache keys hash them.
-        page.evaluate("() => Promise.all([...document.images].map(i => i.decode().catch(() => null)))")
+        page.evaluate(DECODE_IMAGES)
         try:
             yield page, log
         finally:

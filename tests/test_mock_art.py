@@ -59,6 +59,13 @@ def test_the_art_is_the_picture_between_the_text_rows(app):
     assert not overlaps(art["s01.e01"], title) and not overlaps(art["s01.e01"], caption)
 
 
+def test_a_text_element_never_gets_art_even_when_its_line_is_picture_like(app):
+    line = Rect(x=16, y=158, w=380, h=80)
+    image = screenshot(line)
+    assert mock.is_picture(mock.crop_px(image, line, golden(app).device.scale))
+    assert art_in(app, [element("s01.e01", **line.model_dump(), text="Good night \U0001F319\u2728\U0001F496\U0001F60D")], image) == {}
+
+
 def test_a_flat_container_has_no_art(app):
     elements = [element("s01.e01", 20, 100, 200, 240), element("s01.e02", 20, 100, 200, 24, text="Title")]
     assert art_in(app, elements, screenshot()) == {}
