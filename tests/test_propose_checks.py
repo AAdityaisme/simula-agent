@@ -396,3 +396,36 @@ def test_an_observed_term_can_be_used_and_the_unobserved_one_is_listed_for_the_p
     text = propose.model_text(m)
     assert '- "Zap Credits"' in text and '- "Pro"' not in text
     assert "never observed" not in propose.model_text(model.model_copy(update={"terms": []}))
+
+
+def test_a_short_unobserved_term_matches_only_as_a_whole_word(model):
+    pro = Term(term="Pro", meaning="meaning not observed", defined_by=[], used_in=[], observed=False)
+    m = model.model_copy(update={"terms": [pro]})
+    assert check(candidate(m, title="Try Pro today"), m) == 'uses "Pro", whose meaning was never observed'
+    assert check(candidate(m, title="Protect your streak"), m) is None
+    assert propose.uses_term("Janitor+", "Said no to janitor+? Play once.")
+    assert propose.uses_term("Zap Credits", "3 zap\xa0\xa0credits") and not propose.uses_term("Zap", "Zappy")
+
+
+def with_experience(model):
+    fact = LedgerItem(id="exp1", kind="experience", verbatim="Replies took 2.1 s (median of 5 passes)",
+                      evidence_ids=[e.id for e in model.edges[:1]])
+    return model.model_copy(update={"value_ledger": model.value_ledger + [fact]})
+
+
+def test_citing_a_measured_experience_is_context_not_a_missing_id(model):
+    m = with_experience(model)
+    [out], repairs, _ = finish([candidate(m, anchor_evidence_ids=["exp1"])], m, "annotate")
+    assert out.dropped_reason is None and out.anchor_evidence_ids == []
+    assert repairs == {"c01": "exp1 -> nothing (a measured experience, not an element)"}
+    [anchor], *_ = finish([candidate(m, kind="existing_anchor", adds=None, anchor_evidence_ids=["exp1"])], m, "annotate")
+    assert anchor.dropped_reason == "existing_anchor cites no paywall, limit, currency, or entitlement element"
+
+
+def test_an_unsafe_screen_shows_its_id_name_and_rating_but_no_text(model):
+    root_id = root(model)
+    states = [s.model_copy(update={"content_rating": "unsafe"}) if s.id == root_id else s for s in model.states]
+    text = propose.model_text(model.model_copy(update={"states": states}))
+    state = next(s for s in states if s.id == root_id)
+    assert f"#### {state.id} {state.name} ({state.kind}; content unsafe)\n- (text left out: unsafe content)" in text
+    assert state.elements and not any(f"- {e.id} " in text for e in state.elements)
