@@ -5,7 +5,7 @@ import pytest
 
 from simula import llm, runlog
 from simula.contracts import GATES, JUDGMENT, CandidatesFile, DecisionsFile, LensOutput
-from simula.stages import judge
+from simula.stages import judge, propose
 from tests.conftest import APPS
 from tests.judge_helpers import ctx_for, fake_llm, idea, live, seed, verdict
 from tests.propose_fixtures import golden
@@ -193,6 +193,7 @@ def test_nothing_accepted_falls_back_to_one_conditional(tmp_path, monkeypatch):
     judge.run(ctx_for(app, run_dir))
     decisions = DecisionsFile.model_validate_json((run_dir / "judge" / "decisions.json").read_text()).decisions
     assert [d.final for d in decisions].count("conditional") == 1
+    assert [d.failure_type for d in decisions if d.final == "conditional"] == [None]
     assert not (run_dir / "judge" / "no-opportunity.md").exists()
     assert "Condition:" in (run_dir / "exhibits" / "06-judge.md").read_text()
 
@@ -256,3 +257,66 @@ def test_an_evidence_fail_the_revision_kept_still_points_at_explore():
     d = judge.decide(idea(golden("aol")), [verdict(["c2_evidence"])], ONE, "annotate")
     assert judge.proposal_fault(d, [verdict(["c2_evidence"])]).rerun_stage == "explore"
     assert judge.proposal_fault(d, []).rerun_stage == "explore"
+
+
+def decisions_of(run_dir):
+    return {d.candidate_id: d for d in
+            DecisionsFile.model_validate_json((run_dir / "judge" / "decisions.json").read_text()).decisions}
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_a_revision_that_made_the_idea_worse_leaves_its_original_as_the_fallback(app, tmp_path, monkeypatch):
+    cands = live(app, {"rationale": "SLOW"})
+    worse = cands[0].model_copy(update={"rationale": "CHATTY"})
+    run_dir = seed(tmp_path, app, cands)
+    call, _ = fake_llm({"SLOW": ["c5_moment"], "CHATTY": ["g_brand_safety"]}, revision=worse)
+    monkeypatch.setattr(llm, "call", call)
+    judge.run(ctx_for(app, run_dir))
+    decisions = decisions_of(run_dir)
+    original = cands[0].id
+    assert (decisions[original].final, decisions[f"{original}-rev"].gate_fails) == ("conditional", ["g_brand_safety"])
+    assert not (run_dir / "judge" / "no-opportunity.md").exists()
+
+
+def test_a_revision_that_survives_still_stands_in_for_its_original(tmp_path, monkeypatch):
+    app = "luzia"
+    cands = live(app, {"rationale": "SLOW"})
+    run_dir = seed(tmp_path, app, cands)
+    call, _ = fake_llm({"SLOW": ["c5_moment"]}, revision=cands[0].model_copy(update={"rationale": "Better."}))
+    monkeypatch.setattr(llm, "call", call)
+    judge.run(ctx_for(app, run_dir))
+    decisions = decisions_of(run_dir)
+    assert (decisions[cands[0].id].final, decisions[f"{cands[0].id}-rev"].final) == ("reject", "accept")
+
+
+def test_a_revision_giving_the_same_benefit_as_a_standing_idea_is_dropped_as_its_duplicate(tmp_path, monkeypatch):
+    app = "janitorai"
+    cands = live(app, {}, {"title": "Second idea", "rationale": "SLOW"})
+    good, weak = cands
+    run_dir = seed(tmp_path, app, cands)
+    call, calls = fake_llm({"SLOW": ["c5_moment"]}, revision=weak.model_copy(update={"rationale": "Better."}),
+                           benefits={good.id: ("a badge", None), f"{weak.id}-rev": ("A badge", None)})
+    monkeypatch.setattr(llm, "call", call)
+    judge.run(ctx_for(app, run_dir))
+    decisions = decisions_of(run_dir)
+    revisions = CandidatesFile.model_validate_json((run_dir / "judge" / "revisions.json").read_text()).candidates
+    assert revisions[0].dropped_reason == f"duplicate of {good.id}: same benefit (a badge)"
+    assert decisions[f"{weak.id}-rev"].final == "reject" and decisions[good.id].final == "accept"
+    assert [c["step"] for c in calls if c["step"] == "judge:revisions"] == ["judge:revisions"]
+
+
+def test_a_revision_the_naming_call_links_to_an_uncounted_paid_benefit_is_dropped(tmp_path, monkeypatch):
+    app = "janitorai"
+    model = golden(app)
+    bullet = next(i for i in model.value_ledger if i.kind == "paywall_bullet" and not any(ch.isdigit() for ch in i.verbatim)
+                  and not propose.observed_limit(model, i.evidence_ids))
+    cands = live(app, {"rationale": "SLOW", "for_users": "paying"})
+    run_dir = seed(tmp_path, app, cands)
+    rev_id = f"{cands[0].id}-rev"
+    call, _ = fake_llm({"SLOW": ["c5_moment"]}, revision=cands[0].model_copy(update={"rationale": "Better."}),
+                       benefits={rev_id: ("more of it", bullet.id)})
+    monkeypatch.setattr(llm, "call", call)
+    judge.run(ctx_for(app, run_dir))
+    revision = CandidatesFile.model_validate_json((run_dir / "judge" / "revisions.json").read_text()).candidates[0]
+    assert "linked by the benefit-naming call" in revision.dropped_reason
+    assert decisions_of(run_dir)[rev_id].final == "reject"

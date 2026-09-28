@@ -1,7 +1,9 @@
 """Fake verdicts and priced candidates for judge tests. App-neutral: every builder takes a golden model."""
 
-from simula.contracts import (GATES, JUDGMENT, Candidate, CandidateDraft, CandidatesFile, Check, Economics, LensOutput,
-                              Verdict)
+import re
+
+from simula.contracts import (GATES, JUDGMENT, BenefitName, BenefitNames, Candidate, CandidateDraft, CandidatesFile,
+                              Check, Economics, LensOutput, Verdict)
 from simula.stages import Ctx, propose
 from tests.propose_fixtures import candidate, golden
 
@@ -41,14 +43,19 @@ def seed(tmp_path, app, candidates):
     return run_dir
 
 
-def fake_llm(rules, revision=None):
+def fake_llm(rules, revision=None, benefits=None):
     """A stand-in for llm.call: a judge fails the checks `rules` maps a marker in the proposal text to; the
-    reviser returns `revision`."""
+    reviser returns `revision`; the benefit-naming call names each idea by `benefits` (idea id -> (benefit,
+    paywall bullet id or None)), or by its own id."""
     calls = []
 
     def call(**kw):
         text = kw["messages"][0]["content"][0]["text"]
         calls.append(kw)
+        if kw["schema"] is BenefitNames:
+            ids = re.findall(r"^(\S+) \| for:", text, re.M)
+            named = [(i, *(benefits or {}).get(i, (i, None))) for i in ids]
+            return BenefitNames(ideas=[BenefitName(id=i, benefit=b, part_of=part) for i, b, part in named]), None
         if kw["schema"] is Verdict:
             proposal = text.split("## Proposal", 1)[1]
             fails = [k for marker, checks in rules.items() if marker in proposal for k in checks]

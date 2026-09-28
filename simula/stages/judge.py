@@ -188,6 +188,20 @@ def revisable(c: Candidate, d: Decision, verdicts: list[Verdict]) -> bool:
             and any(v.fixable for v in verdicts))
 
 
+def could_fall_back(c: Candidate, d: Decision, verdicts: list[Verdict]) -> bool:
+    """An idea code kept that every judge passed on every gate and both premise checks."""
+    return (is_idea(c) and not c.dropped_reason and bool(verdicts) and not d.gate_fails
+            and not set(PREMISE) & set(failed_by_any(verdicts)))
+
+
+def superseded(revised: list[Candidate], decisions: dict[str, Decision],
+               verdicts: dict[str, dict[str, Verdict]]) -> set[str]:
+    """Originals whose revision stands in for them: one that survived or could itself be the fallback. A revision
+    that made the idea worse leaves its original in play."""
+    return {r.id.removesuffix("-rev") for r in revised
+            if decisions[r.id].final in SURVIVORS or could_fall_back(r, decisions[r.id], [*verdicts[r.id].values()])}
+
+
 def fallback_pick(decisions: list[Decision], candidates: dict[str, Candidate],
                   verdicts: dict[str, dict[str, Verdict]], superseded: set[str]) -> str | None:
     """When nothing survives, the best reject that passes every gate and both premise checks: fewest checks
@@ -195,9 +209,7 @@ def fallback_pick(decisions: list[Decision], candidates: dict[str, Candidate],
     if any(d.final in SURVIVORS for d in decisions):
         return None
     eligible = [d for d in decisions if d.final == "reject" and d.candidate_id not in superseded
-                and is_idea(candidates[d.candidate_id]) and not candidates[d.candidate_id].dropped_reason
-                and verdicts.get(d.candidate_id) and not d.gate_fails
-                and not set(PREMISE) & set(failed_by_any([*verdicts[d.candidate_id].values()]))]
+                and could_fall_back(candidates[d.candidate_id], d, [*verdicts.get(d.candidate_id, {}).values()])]
     best = min(eligible, key=lambda d: (-d.checks_passed, -(d.rank_score or 0)), default=None)
     return best and best.candidate_id
 
@@ -260,6 +272,26 @@ def revise(ctx: Ctx, c: Candidate, verdicts: list[Verdict], model: ProductModel,
     reason = f"no opportunity: {new.rationale}" if not is_idea(new) else propose.check(new, model)
     new = economics.apply([new.model_copy(update={"dropped_reason": reason})], model.app_category, mode)[0]
     return propose.with_bucket(propose.rank(new, model, mode))
+
+
+def recheck(ctx: Ctx, revisions: list[Candidate], candidates: list[Candidate], decisions: dict[str, Decision],
+            model: ProductModel, budget: llm.Budget) -> list[Candidate]:
+    """Propose's last two checks on the revisions: the benefit-naming call's paywall-bullet link, and dedupe. A
+    revision that gives the same benefit as an idea still standing (not dropped, not rejected, not its own
+    original) or as a better-ranked revision is dropped as its duplicate."""
+    fresh = sorted((r for r in revisions if is_idea(r) and not r.dropped_reason), key=lambda r: -(r.rank_score or 0))
+    if not fresh:
+        return revisions
+    standing = [c for c in candidates if is_idea(c) and not c.dropped_reason and decisions[c.id].final != "reject"]
+    names, links = propose.name_benefits(ctx, standing + fresh, budget, "judge:revisions", model)
+    reasons, kept = {}, list(standing)
+    for r in fresh:
+        twin, benefit = next(((k, b) for k in kept if (b := propose.same_benefit(k, r, names))), (None, None))
+        reasons[r.id] = (propose.linked_problem(r, links.get(r.id), model)
+                         or (f"duplicate of {twin.id}: same benefit ({benefit})" if twin else None))
+        if not reasons[r.id]:
+            kept.append(r)
+    return [r.model_copy(update={"dropped_reason": reasons[r.id]}) if r.id in reasons else r for r in revisions]
 
 
 def swap_in(work: Path, out: Path) -> None:
@@ -332,6 +364,7 @@ def judge_run(ctx: Ctx, work: Path, model: ProductModel, candidates: list[Candid
     with ThreadPoolExecutor(max_workers=max(1, len(to_revise))) as pool:
         revised = [r for r in pool.map(lambda c: revise(ctx, c, [*verdicts[c.id].values()], model, mode, budget),
                                        to_revise) if r]
+    revised = recheck(ctx, revised, candidates, decisions, model, budget)
     if revised:
         v2, p2 = judge_all(ctx, work, revised, model, judges, budget, 2)
         verdicts |= v2
@@ -342,10 +375,9 @@ def judge_run(ctx: Ctx, work: Path, model: ProductModel, candidates: list[Candid
             decisions[original] = proposal_fault(decisions[original], [*v2[r.id].values()])
 
     everyone = {c.id: c for c in candidates + revised}
-    superseded = {r.id.removesuffix("-rev") for r in revised}
-    pick = fallback_pick(list(decisions.values()), everyone, verdicts, superseded)
+    pick = fallback_pick(list(decisions.values()), everyone, verdicts, superseded(revised, decisions, verdicts))
     if pick:
-        decisions[pick] = decisions[pick].model_copy(update={"final": "conditional"})
+        decisions[pick] = decisions[pick].model_copy(update={"final": "conditional", "failure_type": None})
         run_trace(ctx.run_dir, stage="judge", step="fallback", decider="code",
                   note=f"nothing accepted; {pick} passes every gate and both premise checks -> CONDITIONAL")
     final = ordered(list(decisions.values()))
