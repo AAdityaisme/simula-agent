@@ -21,19 +21,19 @@ def named(run, sample, tmp_path, monkeypatch):
     def fake_call(*, messages, schema, **_):
         prompt = messages[0]["content"][0]["text"]
         assert all(f"{c.id} | for: {c.for_users}" in prompt for c in live)
-        return schema(ideas=[{"id": i, "benefit": b} for i, b in run["names"][sample].items()]), None
+        return schema(ideas=[{"id": i, "benefit": b, "part_of": None} for i, b in run["names"][sample].items()]), None
 
     monkeypatch.setattr(llm, "call", fake_call)
     ctx = Ctx(app={"name": model.app}, run_dir=tmp_path, profile="dev", no_cache=False, replay=False,
               usd_cap=None, allow_fixtures=True)
-    return live, propose.name_benefits(ctx, live, llm.Budget("propose", 1.0), "dedupe")
+    return live, propose.name_benefits(ctx, live, llm.Budget("propose", 1.0), "dedupe", model)
 
 
 @pytest.mark.parametrize("sample", ["1", "2"])
 def test_no_false_merge_and_the_clear_same_pairs_found(sample, tmp_path, monkeypatch):
     scored = []
     for run in RUNS:
-        live, names = named(run, sample, tmp_path, monkeypatch)
+        live, (names, _) = named(run, sample, tmp_path, monkeypatch)
         by_id = {c.id: c for c in live}
         assert set(names) == set(by_id)
         labels = {frozenset((p["a"], p["b"])): p for p in run["pairs"]}

@@ -9,7 +9,8 @@ from string import Template
 
 from simula import config, economics, llm
 from simula.config import ROOT
-from simula.contracts import Candidate, CandidatesFile, Lens, LensesFile, LensOutput, ProductModel, Strict
+from simula.contracts import (Candidate, CandidatesFile, LedgerItem, Lens, LensesFile, LensOutput, ProductModel,
+                              Strict)
 from simula.runfolder import write_json_atomic
 from simula.runlog import run_trace, write_exhibit
 from simula.stages import Ctx
@@ -199,13 +200,27 @@ def grants_problem(c: Candidate, model: ProductModel) -> str | None:
         return f"grants_id {c.grants_id!r} is not a ledger id"
     if benefit.kind != "paywall_bullet":
         return None
+    if problem := trial_problem(c, benefit, model):
+        return f"{problem} (linked by the proposer's grants_id)"
     bullet = plain(benefit.verbatim)
-    trial = free_trial(model, {i.split(".")[0] for i in benefit.evidence_ids})
-    if trial and c.for_users != "paying":
-        return f'a piece of "{bullet}", which the free trial on that screen already gives: "{trial}"'
     if c.for_users == "paying" and not re.search(r"\d", bullet) and not observed_limit(model, benefit.evidence_ids):
         return f'gives payers more of "{bullet}", but no amount or cap for it was observed'
     return None
+
+
+def trial_problem(c: Candidate, bullet: LedgerItem, model: ProductModel) -> str | None:
+    trial = free_trial(model, {i.split(".")[0] for i in bullet.evidence_ids})
+    if trial and c.for_users != "paying":
+        return f'a piece of "{plain(bullet.verbatim)}", which the free trial on that screen already gives: "{trial}"'
+    return None
+
+
+def linked_problem(c: Candidate, bullet_id: str | None, model: ProductModel) -> str | None:
+    """The free-trial check on the paywall bullet the naming call says the idea's benefit is part of, when the
+    proposer's grants_id didn't already name it."""
+    bullet = next((i for i in model.value_ledger if i.id == bullet_id and i.kind == "paywall_bullet"), None)
+    problem = bullet and bullet.id != c.grants_id and trial_problem(c, bullet, model)
+    return f"{problem} (linked by the benefit-naming call)" if problem else None
 
 
 def check(c: Candidate, model: ProductModel) -> str | None:
@@ -289,6 +304,7 @@ def rank(c: Candidate, model: ProductModel, mode: str) -> Candidate:
 class BenefitName(Strict):
     id: str
     benefit: str
+    part_of: str | None
 
 
 class BenefitNames(Strict):
@@ -304,13 +320,17 @@ def ideas_text(live: list[Candidate]) -> str:
     return "\n".join(lines)
 
 
-def name_benefits(ctx: Ctx, live: list[Candidate], budget: llm.Budget, step: str) -> dict[str, str]:
+def name_benefits(ctx: Ctx, live: list[Candidate], budget: llm.Budget, step: str,
+                  model: ProductModel) -> tuple[dict[str, str], dict[str, str]]:
     """One model call names what each live idea gives the user, in a few words, so code can pair ideas that give
-    the same thing. Empty when there is nothing to name or the call failed (dedupe then uses grants_id alone)."""
+    the same thing, and says which paywall bullet (if any) that benefit is part of. Returns names and bullet links
+    by idea id, both empty when there is nothing to name or the call failed (dedupe then uses grants_id alone)."""
     if not live:
-        return {}
+        return {}, {}
     role = config.roles(ctx.profile)["propose_dedupe"]
-    prompt = Template(read_input(PROMPTS / "dedupe.md")).substitute(ideas=ideas_text(live))
+    paid = [f'- {i.id}: "{plain(i.verbatim)}"' for i in model.value_ledger if i.kind == "paywall_bullet"]
+    prompt = Template(read_input(PROMPTS / "dedupe.md")).substitute(paid="\n".join(paid) or "- none",
+                                                                   ideas=ideas_text(live))
     try:
         output, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="propose", step=step,
                              model=role["model"], effort=role.get("effort"), system="",
@@ -320,9 +340,9 @@ def name_benefits(ctx: Ctx, live: list[Candidate], budget: llm.Budget, step: str
     except llm.LLMFailure as e:
         run_trace(ctx.run_dir, stage="propose", step=step, decider="code", outcome=e.outcome,
                   note="benefit naming failed; dedupe used grants_id alone")
-        return {}
-    ids = {c.id for c in live}
-    return {i.id: i.benefit for i in output.ideas if i.id in ids}
+        return {}, {}
+    ideas = [i for i in output.ideas if i.id in {c.id for c in live}]
+    return {i.id: i.benefit for i in ideas}, {i.id: i.part_of for i in ideas if i.part_of}
 
 
 def fold(name: str) -> str:
@@ -362,10 +382,10 @@ def with_bucket(c: Candidate) -> Candidate:
     return c.model_copy(update={"title": f"{BUCKETS[c.kind]}: {c.title}"})
 
 
-def finish(drafts: list[Candidate], model: ProductModel, mode: str, name=lambda live: {}
+def finish(drafts: list[Candidate], model: ProductModel, mode: str, name=lambda live: ({}, {})
            ) -> tuple[list[Candidate], dict[str, str], dict[str, str]]:
     """Numbers the drafts, repairs near-miss ids, checks, prices, ranks, and dedupes them (`name` names the live
-    ones' benefits). Returns the candidates (live first, best first; dropped ones kept with their reason), the id
+    ones' benefits and links them to paywall bullets). Returns the candidates (live first, best first; dropped ones kept with their reason), the id
     repairs by candidate id, and the benefit names."""
     checked, repairs = [], {}
     for n, draft in enumerate(drafts, 1):
@@ -376,12 +396,13 @@ def finish(drafts: list[Candidate], model: ProductModel, mode: str, name=lambda 
         checked.append(c.model_copy(update={"dropped_reason": reason}))
     ranked = [rank(c, model, mode) for c in economics.apply(checked, model.app_category, mode)]
     passing = sorted((c for c in ranked if not c.dropped_reason), key=lambda c: -c.rank_score)
-    names = name(passing)
-    deduped = dedupe(passing, names)
+    names, links = name(passing)
+    passing = [c.model_copy(update={"dropped_reason": linked_problem(c, links.get(c.id), model)}) for c in passing]
+    deduped = dedupe([c for c in passing if not c.dropped_reason], names)
     live = [c for c in deduped if not c.dropped_reason]
     over = [c.model_copy(update={"dropped_reason": f"over the {MAX_CANDIDATES}-candidate cap"})
             for c in live[MAX_CANDIDATES:]]
-    dropped = [c for c in deduped + ranked if c.dropped_reason]
+    dropped = [c for c in deduped + passing + ranked if c.dropped_reason]
     return [with_bucket(c) for c in live[:MAX_CANDIDATES] + over + dropped], repairs, names
 
 
@@ -443,7 +464,7 @@ def run(ctx: Ctx) -> None:
         raise RuntimeError("every lens call failed; see trace.jsonl")
     drafts = [c for a in answers if a for c in a]
     mode = config.profiles()["economics_mode"]
-    candidates, repairs, names = finish(drafts, model, mode, lambda live: name_benefits(ctx, live, budget, "dedupe"))
+    candidates, repairs, names = finish(drafts, model, mode, lambda live: name_benefits(ctx, live, budget, "dedupe", model))
     distinct = live_count(candidates)
     topup = f"not needed ({distinct} distinct after dedupe)"
     if distinct < MIN_DISTINCT:
@@ -451,7 +472,7 @@ def run(ctx: Ctx) -> None:
         extra = ask_lens(ctx, model, topup_lens(live, names), system, budget, step="topup")
         if extra:
             candidates, repairs, names = finish(drafts + extra, model, mode,
-                                                lambda live: name_benefits(ctx, live, budget, "dedupe:topup"))
+                                                lambda live: name_benefits(ctx, live, budget, "dedupe:topup", model))
         topup = (f"fired ({distinct} distinct after dedupe, under {MIN_DISTINCT}; "
                  + (f"{live_count(candidates)} after the top-up)" if extra else "its call failed)"))
     run_trace(ctx.run_dir, stage="propose", step="topup", decider="code", note=topup)

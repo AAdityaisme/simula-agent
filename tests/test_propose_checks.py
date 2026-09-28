@@ -112,7 +112,7 @@ def test_the_same_benefit_name_on_different_screens_is_a_duplicate(model):
               candidate(model, reward={**badge, "unit": "profile flair"}, trigger_state_id=other_screen(model),
                         frequency_cap="5 per day")]
     named = {"c01": "Gold  Badges", "c02": "gold-badge"}
-    by_id = {c.id: c for c in finish(drafts, model, "annotate", lambda live: named)[0]}
+    by_id = {c.id: c for c in finish(drafts, model, "annotate", lambda live: (named, {}))[0]}
     assert by_id["c02"].dropped_reason is None
     assert by_id["c01"].dropped_reason == "duplicate of c02: same benefit (gold-badge)"
 
@@ -132,7 +132,7 @@ def test_the_same_paid_benefit_for_the_same_users_is_a_duplicate_whatever_the_na
                                                      ("paying", "paying", True)])
 def test_a_shared_name_merges_only_overlapping_users(model, a_users, b_users, twins):
     drafts = [candidate(model, for_users=a_users), candidate(model, for_users=b_users)]
-    out = finish(drafts, model, "annotate", lambda live: {"c01": "no ads", "c02": "No ads"})[0]
+    out = finish(drafts, model, "annotate", lambda live: ({"c01": "no ads", "c02": "No ads"}, {}))[0]
     assert sum(bool(c.dropped_reason) for c in out) == twins
 
 
@@ -147,14 +147,14 @@ def test_the_same_paid_benefit_for_different_users_is_not_a_duplicate(model):
 def test_different_names_or_no_names_keep_both(model):
     drafts = [candidate(model), candidate(model)]
     assert [c.dropped_reason for c in finish(drafts, model, "annotate")[0]] == [None, None]
-    named = lambda live: {"c01": "badge", "c02": "profile frame"}
+    named = lambda live: ({"c01": "badge", "c02": "profile frame"}, {})
     assert [c.dropped_reason for c in finish(drafts, model, "annotate", named)[0]] == [None, None]
 
 
 def test_an_idea_is_only_a_duplicate_of_one_that_was_kept(model):
     drafts = [candidate(model, for_users="free", frequency_cap="3 per day"),
               candidate(model, for_users="everyone", frequency_cap="2 per day"), candidate(model, for_users="paying")]
-    out = finish(drafts, model, "annotate", lambda live: {c.id: "no ads" for c in live})[0]
+    out = finish(drafts, model, "annotate", lambda live: ({c.id: "no ads" for c in live}, {}))[0]
     assert {c.id: c.dropped_reason for c in out} == {"c01": None, "c02": "duplicate of c01: same benefit (no ads)",
                                                       "c03": None}
 
@@ -270,9 +270,10 @@ def test_a_trigger_next_to_unsafe_or_unknown_content_is_dropped(model, rating):
     assert f"{rating} content" in check(candidate(rated), rated)
 
 
-def run_with(model, tmp_path, monkeypatch, fail_lenses, delay=None, benefit=None):
+def run_with(model, tmp_path, monkeypatch, fail_lenses, delay=None, benefit=None, part_of=None):
     """Runs the stage on fake calls: every lens and the top-up return one valid draft, and the naming call gives
-    every idea `benefit` (no names when None). Returns each call's step and prompt text."""
+    every idea `benefit` (a different name each when None) and links it to `part_of`. Returns each call's step and
+    prompt text."""
     (tmp_path / "model").mkdir()
     (tmp_path / "propose").mkdir()
     (tmp_path / "model" / "product_model.json").write_text(model.model_dump_json())
@@ -285,7 +286,8 @@ def run_with(model, tmp_path, monkeypatch, fail_lenses, delay=None, benefit=None
         if step.removeprefix("lens:") in fail_lenses:
             raise llm.LLMFailure("timeout", "provider down")
         if schema is propose.BenefitNames:
-            return schema(ideas=[{"id": f"c{n:02d}", "benefit": benefit} for n in range(1, 20)] if benefit else []), None
+            return schema(ideas=[{"id": f"c{n:02d}", "benefit": benefit or f"benefit {n}", "part_of": part_of}
+                                 for n in range(1, 20)]), None
         return LensOutput(candidates=[draft]), None
 
     monkeypatch.setattr(llm, "call", fake_call)
@@ -345,5 +347,17 @@ def test_a_failed_naming_call_leaves_the_paid_benefit_rule_alone(model, tmp_path
     monkeypatch.setattr(llm, "call", failing)
     ctx = Ctx(app={"name": model.app}, run_dir=tmp_path, profile="dev", no_cache=False, replay=False,
               usd_cap=None, allow_fixtures=True)
-    assert propose.name_benefits(ctx, [candidate(model, id="c01")], llm.Budget("propose", 1.0), "dedupe") == {}
+    live = [candidate(model, id="c01")]
+    assert propose.name_benefits(ctx, live, llm.Budget("propose", 1.0), "dedupe", model) == ({}, {})
     assert "grants_id alone" in (tmp_path / "trace.jsonl").read_text()
+
+
+def test_an_idea_the_naming_call_links_to_a_trialed_bullet_is_dropped(model, tmp_path, monkeypatch):
+    m = paywalled(model, "Up to 5 chats a day")
+    calls = run_with(m, tmp_path, monkeypatch, set(), part_of="b1")
+    assert '- b1: "Up to 5 chats a day"' in dict(calls)["dedupe"]
+    out = CandidatesFile.model_validate_json((tmp_path / "propose" / "candidates.json").read_text()).candidates
+    assert out and all(c.grants_id is None for c in out)
+    assert all("which the free trial on that screen already gives" in c.dropped_reason
+               and c.dropped_reason.endswith("(linked by the benefit-naming call)") for c in out)
+    assert "(linked by the benefit-naming call)" in (tmp_path / "trace.jsonl").read_text()
