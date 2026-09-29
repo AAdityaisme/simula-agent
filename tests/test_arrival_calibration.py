@@ -11,6 +11,7 @@ import pytest
 from simula.contracts import Device, Rect
 from simula.device import observe as ob
 from simula.device.mcp import parse_elements
+from simula.stages.explore import title_of
 
 FIX = Path(__file__).parent / "fixtures"
 PAIRS = json.loads((FIX / "arrival" / "pairs.json").read_text())
@@ -23,15 +24,22 @@ def elements(name: str) -> list[dict]:
 
 def judged(row: dict) -> tuple[float, bool]:
     """The structure now, and whether the explorer's rule accepts arrival given the model's recorded answer."""
-    now = elements(row["now"])
-    structure = ob.structure(elements(row["target"]), now, DEVICE, [Rect(**d) for d in row["target_dynamic"]])
-    read = not row["identifying_text"].strip() or ob.shows_text(now, row["identifying_text"], DEVICE)
+    now, target = elements(row["now"]), elements(row["target"])
+    structure = ob.structure(target, now, DEVICE, [Rect(**d) for d in row["target_dynamic"]])
+    read = ob.read_on_screen(now, row["identifying_text"], title_of(target, DEVICE), DEVICE)
     return structure, row["model"] == "same" and read and structure >= ob.STRUCTURE_SAME
 
 
 @pytest.fixture(scope="module")
 def results() -> list[tuple[dict, float, bool]]:
     return [(row, *judged(row)) for row in PAIRS]
+
+
+def test_an_empty_reading_counts_only_when_the_title_shows_or_there_is_none():
+    shown = [{"type": "android.widget.TextView", "text": "Avarus", "coordinates": {"x": 40, "y": 400, "width": 300,
+                                                                                    "height": 60}}]
+    assert ob.read_on_screen(shown, "", "Avarus", DEVICE) and ob.read_on_screen([], "", "", DEVICE)
+    assert not ob.read_on_screen([], "", "Avarus", DEVICE) and not ob.read_on_screen(shown, "Nanami", "Avarus", DEVICE)
 
 
 def test_the_structure_is_what_step_4a_measured(results):

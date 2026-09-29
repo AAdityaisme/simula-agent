@@ -1002,8 +1002,9 @@ class Explorer:
         row = self.filter_row(obs.cands)
         cands = [c for c in obs.cands if c.key not in row]
         controls, ids = listed(cands, self.device)
+        title = title_of(target.elements, self.device)
         text = (f"Goal: {self.goal_of(target)}\nThe target's identifying text: "
-                f"{title_of(target.elements, self.device)!r}\nControls on the current screen (image 2):\n{controls}")
+                f"{title!r}\nControls on the current screen (image 2):\n{controls}")
         self.counts["arrival shots"] += 1
         shot = self.out / "arrival" / f"{self.counts['arrival shots']:03d}.png"
         shot.parent.mkdir(exist_ok=True)
@@ -1015,8 +1016,8 @@ class Explorer:
         except llm.LLMFailure as e:
             self.note(f"{step}.{target.sid}", f"arrival call failed: {e}", outcome="error")
             return Landing(False, None, "failed", structure)
-        # a title that is a logo has no text to read; a text the element list lacks was read off the wrong screen
-        read = not answer.identifying_text.strip() or ob.shows_text(obs.elements, answer.identifying_text, self.device)
+        # a text the element list lacks was read off the wrong screen
+        read = ob.read_on_screen(obs.elements, answer.identifying_text, title, self.device)
         model_same, structure_same = answer.verdict == "same" and read, structure >= ob.STRUCTURE_SAME
         arrived = model_same and structure_same
         move = None if arrived else self.step_toward(answer, cands, ids)

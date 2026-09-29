@@ -498,6 +498,13 @@ def shows_text(elements: list[dict], text: str, device: Device) -> bool:
     return bool(want) and any(want in " ".join(t.split()).casefold() for t in texts(elements, device))
 
 
+def read_on_screen(elements: list[dict], reading: str, title: str, device: Device) -> bool:
+    """The target's identifying text, as the model read it, is on the screen now. An empty reading is the model not
+    finding it, so the target's own title must show instead; only a target with no text title (a logo) has none."""
+    wanted = reading.strip() or title.strip()
+    return not wanted or shows_text(elements, wanted, device)
+
+
 def is_upsell(elements: list[dict], device: Device) -> bool:
     return any(PAYWALL.search(t) for t in texts(elements, device))
 
