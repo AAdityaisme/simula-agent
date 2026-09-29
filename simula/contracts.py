@@ -332,16 +332,17 @@ class CandidateDraft(Strict):
                                   "of, or more of; null when the reward is a new resource.")
     cost_inputs: CostInputs
     frequency_cap: str
-    daily_cap: int = Field(default=0, description="How many times one user can take this offer in a day: the "
-                           "per-user limit only, never a limit per character, item, or screen.")
+    daily_cap: int = Field(description="How many times one user can take this offer in a day: the per-user limit "
+                           "only, never a limit per character, item, or screen. An offer one user can take less "
+                           "than once a day (one-time, weekly, monthly, every few days) is 0.")
     decline_path: str
     ad_fail_path: str
     subscriber_treatment: str
     advertiser_category: str
     character_use: str
     flow_steps: list[FlowStep]
-    after_reward: str = Field(default="", description="What the user sees when the reward runs out, and why "
-                              "that moves them toward paying, returning, or watching again.")
+    after_reward: str = Field(description="What the user sees when the reward runs out, and why that moves them "
+                              "toward paying, returning, or watching again.")
     rationale: str
 
 
@@ -370,12 +371,16 @@ class Economics(Strict):
 
 
 class Candidate(CandidateDraft):
+    # The proposer must answer both (CandidateDraft); a stored file from before either field existed still parses:
+    # a missing daily_cap reads as 0 (less than once a day), and propose drops an idea with no after_reward.
+    daily_cap: int = 0
+    after_reward: str = ""
     economics: Economics | None = None
     reach_score: float | None = None
     rank_score: float | None = None
     dropped_reason: str | None = None
-    flags: list[str] = Field(default=[], description="Concerns code raises that don't drop the idea; the judge "
-                             "sees them.")
+    flags: list[str] = Field(default=[], description="Concerns code raises that don't drop the idea, for the person "
+                             "reading the run; the judge never sees them.")
 
 
 # ---------- judge (stage 6) ----------

@@ -1,9 +1,12 @@
 """Rendering geometry and the code-owned navigation runtime, on every golden."""
 
+import re
+
 import pytest
 from PIL import Image
 
 from simula import render
+from simula.contracts import Edge
 from simula.render import content_dp, open_mock, render_and_validate
 from simula.stages.mock import copy_assets, pick_scope, scope_edges, with_runtime
 from tests.conftest import APPS, FIXTURES
@@ -95,3 +98,26 @@ def test_fonts_that_fail_to_load_are_not_a_contract_error(tmp_path, model, monke
     (mock_dir / "index.html").write_text(html.replace("</head>", link + "</head>", 1))
     report = render_and_validate(mock_dir, model, screens)
     assert report.passed, report.errors
+
+
+def test_an_edge_with_no_element_is_not_a_missing_edge(tmp_path, model):
+    home, other = [s.id for s in pick_scope(model)[:2]]
+    back = Edge(id=f"{other}.back>{home}", from_state=other, to_state=home, element_id=None, action="back",
+                transition="back", change_summary="system back")
+    model = model.model_copy(update={"edges": model.edges + [back]})
+    mock_dir, screens = write_mock(tmp_path, model)
+    report = render_and_validate(mock_dir, model, screens)
+    assert report.passed, report.errors
+
+
+def test_every_image_is_loaded_before_the_first_screenshot_even_a_lazy_one_on_a_hidden_screen(tmp_path, model):
+    mock_dir, screens = write_mock(tmp_path, model)
+    Image.new("RGB", (64, 64), "red").save(mock_dir / "assets" / "lazy.png")
+    lazy = '<img loading="lazy" src="assets/lazy.png" style="width:40px;height:40px">'
+    page_html = (mock_dir / "index.html").read_text()
+    page_html = re.sub(rf'<section data-screen="{screens[1]}"[^>]*>', lambda m: m.group(0) + lazy, page_html, count=1)
+    (mock_dir / "index.html").write_text(page_html)
+    with open_mock(mock_dir) as (page, _):
+        loaded = page.evaluate("() => [...document.images].every(i => i.complete && i.naturalWidth > 0)")
+    assert loaded
+    assert render_and_validate(mock_dir, model, screens).passed

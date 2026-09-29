@@ -113,6 +113,13 @@ def upstream_problem(run_dir: Path, stage: str) -> str | None:
     return None
 
 
+def run_options(ctx: Ctx) -> str:
+    """The run and the options it was opened with, so a printed resume command reruns it the same way."""
+    return " ".join([f"--run {ctx.run_dir.name}", f"--profile {ctx.profile}", f"--budget {ctx.budget}",
+                     *(["--allow-fixtures"] if ctx.allow_fixtures else []),
+                     *(["--allow-account-create"] if ctx.allow_account_create else [])])
+
+
 def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     """Runs one stage unless its done.json still matches. Returns False when the stage isn't built yet."""
     stage_dir = ctx.run_dir / stage
@@ -150,7 +157,8 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
         runfolder.write_failure(stage_dir, str(e))
         runlog.needs_human(ctx.run_dir, stage, "the model provider is refusing calls", str(e),
                            [f"{stage}/failure.json"],
-                           f"simula run {ctx.app['name']} --run {ctx.run_dir.name} --from {stage}")
+                           f"simula run {ctx.app['name']} --from {stage} {run_options(ctx)}"
+                           + (f" --usd-cap {ctx.usd_cap:g}" if ctx.usd_cap is not None else ""))
         raise
     except BaseException as e:
         # Every other exit, SystemExit and Ctrl-C included, still leaves a failure record; then it propagates.
@@ -191,7 +199,7 @@ def finished_outcome(stage: str, ctx: Ctx, result, capped: list[str]) -> StageOu
 
 
 def rerun_command(stage: str, ctx: Ctx) -> str:
-    return f"simula {stage} {ctx.app['name']} --run {ctx.run_dir.name}"
+    return f"simula {stage} {ctx.app['name']} {run_options(ctx)}"
 
 
 def open_run(args) -> Ctx:

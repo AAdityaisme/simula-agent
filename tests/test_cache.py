@@ -25,6 +25,8 @@ def message(text="hi", png=None):
 def fake_provider(texts, calls):
     def provider(model, system, messages, effort, schema, max_tokens, total_timeout=None):
         calls.append(model)
+        if not texts:
+            raise llm.LLMFailure("error", "no reply left")
         return llm.Reply(text=texts.pop(0), model=model, tokens_in=100, tokens_out=10)
     return provider
 
@@ -126,8 +128,8 @@ def test_a_failed_one_attempt_call_replays_to_the_callers_own_retry(tmp_path, mo
 
 def test_a_rerun_of_an_interrupted_chain_with_no_recorded_answer_starts_fresh(tmp_path, monkeypatch):
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['nope'], []))
-    # attempt 1 dies before answering (an untyped error, settled as a typed one), so only attempt 0 is recorded
-    with pytest.raises(llm.LLMFailure, match="error: pop from empty list"):
+    # attempt 1 dies before answering (a typed error), so only attempt 0 is recorded
+    with pytest.raises(llm.LLMFailure, match="error: no reply left"):
         call(tmp_path)
     rerun_calls = []
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "first"}'], rerun_calls))
@@ -442,3 +444,17 @@ def test_a_replay_whose_recorded_entry_is_unreadable_misses_rather_than_take_ano
     with pytest.raises(llm.ReplayMiss, match="can't be read"):
         call(tmp_path, trace_path=tmp_path / "run-a.jsonl", replay=True)
     assert call(tmp_path, trace_path=tmp_path / "run-b.jsonl", replay=True)[0].word == "b", "run b still replays"
+
+
+def test_a_replay_follows_its_own_lost_call_rather_than_another_runs_answer(tmp_path, monkeypatch):
+    def times_out(model, system, messages, effort, schema, max_tokens, total_timeout=None):
+        raise llm.LLMFailure("timeout", "stream stalled")
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "a"}'], []))
+    call(tmp_path, trace_path=tmp_path / "run-a.jsonl", attempts=1)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", times_out)
+    with pytest.raises(llm.LLMFailure):
+        call(tmp_path, trace_path=tmp_path / "run-b.jsonl", attempts=1, no_cache=True)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
+    with pytest.raises(llm.LLMFailure, match="timeout"):
+        call(tmp_path, trace_path=tmp_path / "run-b.jsonl", attempts=1, replay=True)
+    assert call(tmp_path, trace_path=tmp_path / "run-a.jsonl", attempts=1, replay=True)[0].word == "a"
