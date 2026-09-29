@@ -89,7 +89,9 @@ class Budget:
                                  "raise with --usd-cap")
             self.held += worst_usd
 
-    def charge(self, usd: float, reserved: float = 0.0) -> None:
+    def charge(self, usd: float, reserved: float) -> None:
+        """Settles one call: adds what it cost and gives back exactly what its reserve() held. `reserved` has no
+        default, so a caller that forgets to give its hold back fails at once instead of shrinking the cap."""
         with self.lock:
             self.spent += usd
             self.held -= reserved
