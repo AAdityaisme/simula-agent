@@ -1,6 +1,7 @@
 """Goal 2: the interactive mock. Parallel model calls each draw a batch of screens from model/ alone; code joins
 the batches into one page, adds navigation, renders every screen, and checks the mock contract."""
 
+import base64
 import hashlib
 import io
 import json
@@ -34,6 +35,7 @@ FONT_CSS = "https://fonts.googleapis.com/css2?family={family}:wght@400;500;600;7
 FONT_FILE = re.compile(r"url\((https?://[^)\s]+)\)")
 FONT_FACE = re.compile(r"/\*\s*([\w-]+)\s*\*/\s*(@font-face\s*\{[^}]*\})")
 FETCH_TIMEOUT_S = 20
+FONT_RECORDS = llm.CACHE / "fonts"
 # Google Fonts serves woff2 only to a browser it knows; without a user agent it serves TTF.
 CHROME_UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) "
              "Chrome/140.0.0.0 Safari/537.36")
@@ -571,13 +573,14 @@ def vendor_fonts(ctx: Ctx, mock_dir, families: list[str]) -> str:
     """Copies each family's Google Fonts CSS (weights 400-700, the Latin subset) and every woff2 file it names into
     mock/assets/fonts/, so rendering never waits on the network. Returns the page's <link> to that CSS, or "" when no
     family was fetched. A family that can't be fetched is left out, traced, and the page falls back to the system
-    font stack; this never fails the stage."""
+    font stack; this never fails the stage. Every fetch goes through its record, so --replay rebuilds the same fonts
+    offline."""
     font_dir = mock_dir / "assets" / "fonts"
     faces, skipped = [], {}
     for family in families:
         try:
-            css = latin_faces(fetch_twice(FONT_CSS.format(family=quote_plus(family))).decode())
-            files = {url: fetch_twice(url) for url in dict.fromkeys(FONT_FILE.findall(css))}
+            css = latin_faces(fetch_recorded(ctx, FONT_CSS.format(family=quote_plus(family))).decode())
+            files = {url: fetch_recorded(ctx, url) for url in dict.fromkeys(FONT_FILE.findall(css))}
         except (OSError, ValueError) as e:
             skipped[family] = str(e)[:100]
             continue
@@ -601,6 +604,28 @@ def latin_faces(css: str) -> str:
     """Google splits a family's faces by unicode-range, each after a /* subset */ comment: keep the Latin ones, or
     every face when the CSS isn't split that way."""
     return "\n".join(face for subset, face in FONT_FACE.findall(css) if subset == "latin") or css
+
+
+def fetch_recorded(ctx: Ctx, url: str) -> bytes:
+    """A live build fetches and records what it got, the bytes or the error, in the model-call cache keyed by URL.
+    --replay reads only that record: no network, and the same fonts (or the same system fallback) as the live build.
+    With no record it stops, like a model call's replay miss."""
+    path = FONT_RECORDS / f"{hashlib.sha256(url.encode()).hexdigest()}.json"
+    if ctx.replay:
+        if not path.exists():
+            raise llm.ReplayMiss(f"--replay: no recorded fetch of {url} (key {path.stem[:12]})")
+        record = json.loads(path.read_text())
+        if "error" in record:
+            raise OSError(record["error"])
+        return base64.b64decode(record["data"])
+    FONT_RECORDS.mkdir(parents=True, exist_ok=True)
+    try:
+        data = fetch_twice(url)
+    except OSError as e:
+        path.write_text(json.dumps({"url": url, "error": str(e)}))
+        raise
+    path.write_text(json.dumps({"url": url, "data": base64.b64encode(data).decode()}))
+    return data
 
 
 def fetch_twice(url: str) -> bytes:

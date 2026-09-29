@@ -23,11 +23,13 @@ def tree(app: str, name: str) -> list[dict]:
 
 
 @pytest.fixture(autouse=True)
-def no_font_fetch(request, monkeypatch):
-    """Offline tests never fetch web fonts: a test that needs them passes its own fetcher."""
+def no_font_fetch(request, monkeypatch, tmp_path):
+    """Offline tests never fetch web fonts, and their font records stay out of the repo's cache: a test that needs
+    fonts passes its own fetcher."""
     from simula.stages import mock
     if request.node.get_closest_marker("live"):
         return
+    monkeypatch.setattr(mock, "FONT_RECORDS", tmp_path / "font-records")
 
     def refuse(url):
         raise RuntimeError(f"offline tests never fetch {url}")

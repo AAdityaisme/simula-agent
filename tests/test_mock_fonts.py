@@ -1,6 +1,9 @@
 """The mock carries its own fonts: at build, code copies the Google Fonts CSS and woff2 files into mock/assets/fonts/,
 and a fetch that fails leaves a mock with system fonts and one trace line. No test touches the network."""
 
+import base64
+import json
+import re
 import urllib.error
 
 import pytest
@@ -11,6 +14,7 @@ from simula.runlog import read_trace
 from simula.stages import mock
 from tests.conftest import APPS
 from tests.mock_fake import golden, seed_model
+from tests.test_mock_batches import provider_drawing, with_cache_in
 from tests.test_mock_isolation import ctx_for, fake_builder
 
 CSS = """/* cyrillic */
@@ -122,3 +126,82 @@ def test_one_family_that_fails_is_left_out_and_the_others_are_kept(tmp_path, mon
 def test_css_that_isnt_split_by_subset_keeps_every_face():
     css = "@font-face { font-family: 'X'; src: url(https://fonts.gstatic.com/x.woff2); }"
     assert mock.latin_faces(css) == css
+
+
+# ---------- --replay: fonts come from the record, never the network ----------
+
+def refused_family(family: str, calls: list):
+    """Fake Google, except the family Google refuses (a 400, as for a family it doesn't have)."""
+    google = fake_google(calls)
+
+    def fetch(url: str) -> bytes:
+        if family.replace(" ", "+") in url:
+            calls.append(url)
+            raise urllib.error.HTTPError(url, 400, "Bad Request", None, None)
+        return google(url)
+    return fetch
+
+
+def no_network(url: str) -> bytes:
+    raise AssertionError(f"--replay fetched {url}")
+
+
+def mock_files(run_dir) -> dict[str, bytes]:
+    mock_dir = run_dir / "mock"
+    return {str(p.relative_to(mock_dir)): p.read_bytes() for p in sorted(mock_dir.rglob("*")) if p.is_file()}
+
+
+def live_build_with_fonts(tmp_path, monkeypatch, app) -> tuple:
+    """A live build through the real llm.call (stub provider) with Roboto fetched and Lobster refused."""
+    run_dir = seed_model(tmp_path / "run", app)
+    with_fonts(run_dir, app, ["Roboto", "Lobster"])
+    with_cache_in(tmp_path, monkeypatch)
+    fetched, drawn = [], []
+    monkeypatch.setattr(mock, "fetch", refused_family("Lobster", fetched))
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider_drawing(golden(app), drawn))
+    mock.run(ctx_for(run_dir, app))
+    return run_dir, fetched, drawn
+
+
+def replay(run_dir, app) -> None:
+    ctx = ctx_for(run_dir, app)
+    ctx.replay = True
+    mock.run(ctx)
+
+
+def test_a_live_build_records_every_font_fetch_and_its_result(tmp_path, monkeypatch):
+    run_dir, fetched, _ = live_build_with_fonts(tmp_path, monkeypatch, APPS[0])
+    records = [json.loads(p.read_text()) for p in mock.FONT_RECORDS.glob("*.json")]
+    assert sorted(r["url"] for r in records) == sorted(set(fetched)) and len(records) == 4
+    [refused] = [r for r in records if "Lobster" in r["url"]]
+    assert refused == {"url": refused["url"], "error": "HTTP Error 400: Bad Request"}
+    fonts = run_dir / "mock" / "assets" / "fonts"
+    assert sorted(base64.b64decode(r["data"]) for r in records if r["url"].endswith(".woff2")) == \
+        sorted(p.read_bytes() for p in fonts.glob("*.woff2"))
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_a_replay_rebuilds_the_same_mock_with_no_network(tmp_path, monkeypatch, app):
+    """The fetched family comes back byte for byte, and the refused one is refused again, with the same trace note."""
+    run_dir, fetched, drawn = live_build_with_fonts(tmp_path, monkeypatch, app)
+    live = mock_files(run_dir)
+    assert any(name.endswith(".woff2") for name in live)
+    [live_note] = [t.note for t in read_trace(run_dir / "trace.jsonl") if t.step == "fonts"]
+
+    monkeypatch.setattr(mock, "fetch", no_network)
+    replay(run_dir, app)
+    assert mock_files(run_dir) == live
+    assert len(drawn) == len(mock.batches(mock.pick_scope(golden(app))))
+    notes = [t.note for t in read_trace(run_dir / "trace.jsonl") if t.step == "fonts"]
+    assert notes == [live_note, live_note] and "Lobster: HTTP Error 400: Bad Request" in live_note
+
+
+def test_a_replay_with_a_font_record_missing_is_a_replay_miss(tmp_path, monkeypatch):
+    run_dir, _, _ = live_build_with_fonts(tmp_path, monkeypatch, APPS[0])
+    [(url, record)] = [(r["url"], p) for p in mock.FONT_RECORDS.glob("*.json")
+                       if (r := json.loads(p.read_text()))["url"].endswith("latin-700.woff2")]
+    record.unlink()
+
+    monkeypatch.setattr(mock, "fetch", no_network)
+    with pytest.raises(llm.ReplayMiss, match=f"--replay: no recorded fetch of {re.escape(url)}"):
+        replay(run_dir, APPS[0])
