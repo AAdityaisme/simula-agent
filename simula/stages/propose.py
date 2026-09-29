@@ -25,13 +25,19 @@ MIN_DISTINCT = 4
 MAX_LEDGER_LENSES = 2
 ANCHOR_MECHANICS = {"paywall", "limit", "currency", "entitlement"}
 ANCHOR_LEDGER = {"price", "limit", "meter", "currency", "paywall_bullet"}
+# Inside the conversation itself: a message, between messages, pinned in the message list, or a chat or system
+# note. A sheet or dialog over a chat screen is not in here; the judge's brand-safety gate rules on it.
 CHAT_PLACEMENT = re.compile(
-    r"\bin-chat\b|\b(inside|within|into|in)\s+(a|the|this|their|your)\s+(chat|conversation|transcript)\b"
-    r"(?!\s+(list|tab))|\bmid(-|\s+)conversation\b|\bbetween\s+(chat\s+)?(messages|replies)\b|"
-    r"\b(chat|message)\s+bubble|\bchat\s+transcript\b",
+    r"\b(inside|within|into|in)\s+(a|the|this|their|your|any)\s+(chat\s+)?(conversation|transcript|thread)\b"
+    r"(?!\s+(list|tab))|\b(inside|within|into)\s+(a|the|this|their|your|any)\s+chat\b"
+    r"(?!\s+(list|tab|screen|header|composer|input))|\bbetween\s+(chat\s+)?(messages|replies)\b|"
+    r"\b(chat|message)\s+bubble|\bin-chat\s+(message|card|note|reply|banner)\b|"
+    r"\bpinned(\s+\w+)?\s+(in|into|inside|within|to|at\s+the\s+top\s+of)\s+(a|the|this|their|your)\s+"
+    r"(message\s+list|messages|conversation|thread|chat)\b(?!\s+(list|tab|screen))|"
+    r"\b(as|like)\s+an?\s+((chat|system|sponsored|bot|character)\s+)?(message|reply)\b|\b(chat|system)\s+note\b",
     re.I)
-NEGATED = re.compile(r"\b(not|never|outside|away\s+from)\b[^.;,]{0,20}\b(chat|conversation|transcript)", re.I)
-SAFE_TRIGGER_RATINGS = {"safe", "mixed"}
+NEGATED = re.compile(r"\b(not|never|outside|away\s+from)\b[^.;,]{0,20}\b(chat|conversation|transcript|thread|"
+                     r"messages?|note)", re.I)
 # The assignment's two buckets, shown first on every candidate's title.
 BUCKETS = {"existing_anchor": "Existing opportunity", "product_change": "Product change"}
 OUTSIDE_MOCK = "names screens outside the mock scope"
@@ -95,7 +101,8 @@ def model_text(model: ProductModel) -> str:
     lines += ["", "### Open questions (not observed)"] + [f"- {q}" for q in model.open_questions]
     if unobserved := unobserved_terms(model):
         lines += ["", "### App terms whose meaning was never observed (don't use them in a title, offer_copy, or "
-                      "after_reward; code flags an idea that does for the judge)"] + [f'- "{t}"' for t in unobserved]
+                      "after_reward; code flags an idea that does for a person reviewing the output)"]
+        lines += [f'- "{t}"' for t in unobserved]
     lines += ["", "### Screens in scope"]
     for s in model.states:
         if s.in_mock_scope:
@@ -258,8 +265,8 @@ def check(c: Candidate, model: ProductModel) -> str | None:
     if outside:
         return f"{OUTSIDE_MOCK}, which the slides can't draw: {', '.join(outside)}"
     trigger = states[c.trigger_state_id]
-    if trigger.content_rating not in SAFE_TRIGGER_RATINGS:
-        return f"trigger screen {trigger.id} has {trigger.content_rating} content; the offer can't render next to it"
+    if trigger.content_rating == "unsafe":
+        return f"trigger screen {trigger.id} has unsafe content; the offer can't render on or over it"
     if c.bible_mechanic.strip().lower() != "none" and c.bible_mechanic not in mechanic_ids():
         return f"bible_mechanic {c.bible_mechanic!r} is not an M-id in the bible"
     if c.kind == "existing_anchor" and not set(c.anchor_evidence_ids) & anchor_ids(model):
@@ -275,7 +282,7 @@ def check(c: Candidate, model: ProductModel) -> str | None:
     if problem := grants_problem(c, model):
         return problem
     if in_chat(c.placement):
-        return "placement is inside a chat transcript, not app chrome"
+        return "placement is inside the conversation (a message, between messages, pinned, or a chat note)"
     return None
 
 

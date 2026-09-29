@@ -2,4 +2,4 @@
 [prompts]
 "prompts/judge/revise.md" = "684f2ae55a998099c3833345479b74442155ea3a2591f1229d03bbeed458bb07"
 "prompts/judge/rubric.md" = "a46b001550ab22676e0a4e64d40a40cac857cc954cf8f51a4361119eed415a10"
-"rendered judge message (tests/fixtures/judge/pin.json)" = "d84ef22285478968a68e60d31e0590599645b6d1b1674dbf97d31e427c904651"
+"rendered judge message (tests/fixtures/judge/pin.json)" = "253aaa38b6ef3dce1e634938616ff61008f8fed8a38db88f5bed3bfa09395599"
