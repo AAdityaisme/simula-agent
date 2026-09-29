@@ -6,6 +6,7 @@ import pytest
 from PIL import Image
 from playwright.sync_api import Error as PlaywrightError
 
+from simula import render
 from simula.contracts import Edge
 from simula.render import content_dp, open_mock, render_and_validate
 from simula.stages.mock import copy_assets, pick_scope, scope_edges, with_runtime
