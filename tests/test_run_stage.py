@@ -4,6 +4,7 @@ file git doesn't track, and every way a stage can exit still leaves failure.json
 import importlib
 import os
 import shlex
+import shutil
 import subprocess
 import sys
 import threading
@@ -418,15 +419,21 @@ def test_a_call_that_failed_live_fails_the_same_way_under_replay(runs, monkeypat
     assert (run_dir / "mock" / "page.txt").read_text() == live
 
 
-def test_a_stage_that_cannot_replay_keeps_its_committed_marker(runs, monkeypatch, quiet):
+@pytest.mark.parametrize("clears_its_folder", [False, True], ids=["fails_at_once", "clears_its_folder_first"])
+def test_a_stage_that_cannot_replay_keeps_its_committed_marker(runs, monkeypatch, quiet, clears_its_folder):
     def drives_the_device(ctx):
         if ctx.replay:  # as explore does: --replay reuses a finished explore/ folder
+            if clears_its_folder:  # as flows' clean() and QA's rmtree do before they rebuild
+                shutil.rmtree(ctx.run_dir / "mock")
+                (ctx.run_dir / "mock").mkdir()
             raise llm.ReplayMiss("explore drives the device; --replay reuses a finished explore/ folder")
     mock_that(monkeypatch, drives_the_device)
     run_dir = seeded_run(runs)
     committed = (run_dir / "mock" / "done.json").read_bytes()
+    finished = (run_dir / "mock" / "done.json").stat().st_mtime_ns
     assert cli.main(["mock", "janitorai", "--run", run_dir.name, "--allow-fixtures", "--replay"]) == cli.EXIT_CAP
     assert (run_dir / "mock" / "done.json").read_bytes() == committed, "the committed record survives"
+    assert (run_dir / "mock" / "done.json").stat().st_mtime_ns == finished, "with its own time, older than the failure"
     assert "ReplayMiss" in (run_dir / "mock" / "failure.json").read_text()
     assert cli.upstream_problem(run_dir, "qa").startswith("mock failed after it last finished")
     assert not runlog.complete(run_dir, "mock"), "beside a newer failure it counts as not done, as for the stages below"

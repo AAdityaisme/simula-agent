@@ -2,6 +2,7 @@
 
 import argparse
 import importlib
+import os
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -95,26 +96,36 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     stage_dir.mkdir(exist_ok=True)
     # A live rerun's old marker no longer holds. --replay keeps it while the stage runs, so a stage that can't be
     # replayed keeps the run's committed record (beside a newer failure.json, which counts as not done).
+    marker = stage_dir / "done.json"
+    committed = (marker.read_text(), marker.stat()) if ctx.replay and marker.exists() else None
     if not ctx.replay:
-        (stage_dir / "done.json").unlink(missing_ok=True)
+        marker.unlink(missing_ok=True)
+
+    def failed(reason: str) -> None:
+        """Records why the stage stopped. A stage that clears its own folder (flows, QA) also removed the committed
+        marker, so a failed replay puts it back as it was, its time included, before the newer failure.json."""
+        if committed and not marker.exists():
+            runfolder.write_json_atomic(marker, committed[0])
+            os.utime(marker, ns=(committed[1].st_atime_ns, committed[1].st_mtime_ns))
+        runfolder.write_failure(stage_dir, reason)
     runlog.sync_manifest(ctx.run_dir)
     trace_path = ctx.run_dir / "trace.jsonl"
     traced_before = len(runlog.read_trace(trace_path))
     try:
         result = module.run(ctx)
     except NotImplementedError as e:
-        runfolder.write_failure(stage_dir, f"not built yet ({e})")
+        failed(f"not built yet ({e})")
         runlog.run_trace(ctx.run_dir, stage=stage, step="run", decider="code", outcome="not_built",
                          note=f"stub: {e}")
         print(f"stopped at {stage}: not built yet ({e})")
         return False
     except CapReached as e:
-        runfolder.write_failure(stage_dir, str(e))
+        failed(str(e))
         runlog.needs_human(ctx.run_dir, stage, "$ cap reached", str(e), [f"{stage}/failure.json"],
                            raise_cap(stage, ctx))
         raise
     except ProviderUnavailable as e:
-        runfolder.write_failure(stage_dir, str(e))
+        failed(str(e))
         runlog.needs_human(ctx.run_dir, stage, "the model provider is refusing calls", str(e),
                            [f"{stage}/failure.json"],
                            f"simula run {ctx.app['name']} --from {stage} {run_options(ctx)}")
@@ -122,10 +133,10 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     except BaseException as e:
         # Every other exit, SystemExit and Ctrl-C included, still leaves a failure record; then it propagates.
         reason = f"{type(e).__name__}: {e}"
-        runfolder.write_failure(stage_dir, reason)
+        failed(reason)
         runlog.run_trace(ctx.run_dir, stage=stage, step="run", decider="code", outcome="error", note=reason[:300])
         raise
-    (stage_dir / "done.json").unlink(missing_ok=True)  # the stage ran, so an old marker no longer describes its output
+    marker.unlink(missing_ok=True)  # the stage ran, so an old marker no longer describes its output
     runlog.sync_manifest(ctx.run_dir)
     traced = [line for line in runlog.read_trace(trace_path)[traced_before:] if line.stage == stage]
     capped = [split_key(line.note)[1] for line in traced if line.outcome == "cap"]
