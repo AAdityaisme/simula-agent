@@ -2,6 +2,7 @@
 outage, not our cap: ProviderUnavailable fails the stage with no done.json, needs-human.md, exit 5. Any other API error is a typed LLMFailure. An aborted stream is charged for what
 it already spent."""
 
+import re
 from types import SimpleNamespace
 
 import anthropic
@@ -147,6 +148,17 @@ def test_a_stream_that_never_started_is_charged_only_its_input(monkeypatch, tmp_
     assert budget.spent == pytest.approx(llm.usd("claude-opus-5-5", failure.tokens_in, 0)) and line.usd < 0.01
 
 
+def test_a_cap_stop_prints_a_resume_command_with_the_runs_own_options(runs, tmp_path):
+    explore = build("luzia", tmp_path / "explore")
+    code = cli.main(["run", "luzia", "--new", "--allow-fixtures", "--fixture", f"explore={explore}", "--from", "model",
+                     "--profile", "dev", "--usd-cap", "0.000001"])
+    run_dir = (runs / "luzia" / "latest").resolve()
+    human = (run_dir / "needs-human.md").read_text()
+    assert code == cli.EXIT_CAP and "$ cap reached" in human
+    assert (f"simula model luzia --run {run_dir.name} --profile dev --budget transfer --allow-fixtures "
+            "--usd-cap <higher>") in human
+
+
 def test_a_usage_limit_fails_the_stage_with_needs_human_and_exit_5_so_a_rerun_resumes_there(runs, tmp_path,
                                                                                                monkeypatch):
     fake_anthropic(monkeypatch, error_400(anthropic, "https://api.anthropic.com/v1/messages", USAGE_LIMIT))
@@ -157,7 +169,11 @@ def test_a_usage_limit_fails_the_stage_with_needs_human_and_exit_5_so_a_rerun_re
     assert code == cli.EXIT_PROVIDER == 5
     human = (run_dir / "needs-human.md").read_text()
     assert "the model provider is refusing calls" in human and "$ cap reached" not in human
-    assert f"simula run luzia --run {run_dir.name} --from model" in human
+    resume = re.search(r"simula run luzia[^`\n]*", human).group(0)
+    assert resume == (f"simula run luzia --from model --run {run_dir.name} --profile dev --budget transfer "
+                      "--allow-fixtures")
+    # Greptile on 363456b: the printed command dropped --allow-fixtures and the profile; run it as printed.
+    assert cli.main(resume.split()[1:]) == cli.EXIT_PROVIDER
     assert "usage limit" in (run_dir / "model" / "failure.json").read_text()
     assert not (run_dir / "model" / "done.json").exists()
     assert read_trace(run_dir / "trace.jsonl")[-1].outcome == "blocked"
