@@ -471,6 +471,8 @@ def planned_usd(ctx: Ctx, content: list[dict]) -> float:
 def affordable(worst: list[float], cap: float) -> int:
     """How many batches, in priority order, fit the cap at their worst case with one worst case spare for a
     max_tokens retry. Stops at the first that doesn't fit: never skips a batch to fit a cheaper later one."""
+    # ponytail: a priority prefix, so a cached ($0) batch behind the first batch that doesn't fit is left out too, and
+    # a rerun under a tight cap stops the stage. Keep $0 batches past the prefix (keep as a list) if that gets common.
     spare = max(worst, default=0.0)
     return sum(1 for total in accumulate(worst) if total + spare <= cap)
 
