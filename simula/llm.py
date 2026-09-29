@@ -186,6 +186,7 @@ def _drain(stream, total_timeout: float | None, tokens_in_estimate: int):
 def call_anthropic(model: str, system: str, messages: list[dict], effort: str | None,
                    schema: type[BaseModel] | None, max_tokens: int, total_timeout: float | None = None) -> Reply:
     import anthropic
+    import httpx2  # transitive via anthropic, whose client it is
     caps = config.models()[model]
     streaming = max_tokens > caps["stream_above"]
     # On a stream the read timeout is the gap between chunks, so a stalled stream fails after 60 s.
@@ -224,6 +225,8 @@ def call_anthropic(model: str, system: str, messages: list[dict], effort: str | 
         raise _failure("error", e) from e
     except (anthropic.APIStatusError, anthropic.APIConnectionError) as e:
         raise _failure("error", e) from e
+    except httpx2.TransportError as e:  # the SDK doesn't wrap one raised while a stream is read
+        raise _failure("timeout" if isinstance(e, httpx2.TimeoutException) else "error", e) from e
     text = "".join(block.text for block in message.content if block.type == "text")
     usage = message.usage
     cached = getattr(usage, "cache_read_input_tokens", 0) or 0

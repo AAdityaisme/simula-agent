@@ -1,4 +1,5 @@
 import hashlib
+import json
 import time
 
 import pytest
@@ -52,15 +53,19 @@ def test_product_change_that_removes_something_free_is_dropped(model):
 @pytest.mark.parametrize("placement", ["Inside the chat transcript, after the last reply",
                                        "An in-chat card between messages", "A message bubble from the character",
                                        "A card inside the chat that does not block typing",
-                                       "A banner inside the chat, with no close button",
-                                       "A card inside the chat screen", "A pinned card in your chat"])
-def test_chat_transcript_placement_is_dropped(model, placement):
-    assert "chat transcript" in check(candidate(model, placement=placement), model)
+                                       "A banner inside the chat, with no close button", "A pinned card in your chat",
+                                       "Sent as a message from the character", "A system note in the thread",
+                                       "Pinned at the top of the message list", "Shown like a chat reply"])
+def test_an_offer_inside_the_conversation_is_dropped(model, placement):
+    assert "inside the conversation" in check(candidate(model, placement=placement), model)
 
 
 @pytest.mark.parametrize("placement", ["A banner above the chat list", "A sheet over the paywall",
                                        "A card on the pet screen (not in chat)", "A banner in the chat list header",
-                                       "A sheet over the feed. Never shown in a chat."])
+                                       "A sheet over the feed. Never shown in a chat.",
+                                       "A bottom sheet over the chat screen when the daily message limit is hit",
+                                       "A dialog over the chat, never pinned in the message list",
+                                       "A sheet that slides up mid-conversation when the free messages run out"])
 def test_app_chrome_placement_passes(model, placement):
     assert check(candidate(model, placement=placement), model) is None
 
@@ -104,7 +109,7 @@ def test_existing_opportunity_label(model):
 
 def other_screen(model):
     return next(s.id for s in model.states
-                if s.in_mock_scope and s.id != root(model) and s.content_rating in propose.SAFE_TRIGGER_RATINGS)
+                if s.in_mock_scope and s.id != root(model) and s.content_rating != "unsafe")
 
 
 def test_the_same_benefit_name_on_different_screens_is_a_duplicate(model):
@@ -263,11 +268,23 @@ def test_a_trigger_outside_the_mock_scope_is_dropped(model):
     assert "outside the mock scope" in check(candidate(model, flow_steps=steps), model)
 
 
-@pytest.mark.parametrize("rating", ["unsafe", "unknown"])
-def test_a_trigger_next_to_unsafe_or_unknown_content_is_dropped(model, rating):
+def rated(model, rating):
     states = [s.model_copy(update={"content_rating": rating}) if s.id == root(model) else s for s in model.states]
-    rated = model.model_copy(update={"states": states})
-    assert f"{rating} content" in check(candidate(rated), rated)
+    return model.model_copy(update={"states": states})
+
+
+def test_anything_on_or_over_an_unsafe_screen_is_dropped(model):
+    unsafe = rated(model, "unsafe")
+    for placement in ("A banner under the header", "A bottom sheet over the chat screen when the limit is hit"):
+        assert "unsafe content" in check(candidate(unsafe, placement=placement), unsafe)
+
+
+@pytest.mark.parametrize("rating", ["unknown", "mixed", "safe"])
+def test_a_sheet_over_a_chat_screen_not_rated_unsafe_opened_by_a_limit_passes(model, rating):
+    chat = rated(model, rating)
+    c = candidate(chat, placement="A bottom sheet over the chat screen when the daily message limit is hit",
+                  trigger_event="The daily free message counter reaches zero")
+    assert check(c, chat) is None
 
 
 def run_with(model, tmp_path, monkeypatch, fail_lenses, delay=None, benefit=None, part_of=None, draft=None):
@@ -385,27 +402,67 @@ def with_terms(model):
 
 
 @pytest.mark.parametrize("field", ["title", "offer_copy", "after_reward"])
-def test_an_idea_using_a_term_whose_meaning_was_never_observed_is_dropped(model, field):
+def test_an_idea_using_a_term_whose_meaning_was_never_observed_is_flagged_and_stays_live(model, field):
     m = with_terms(model)
     c = candidate(m, **{field: "Play once for 3 zap\xa0credits."})
-    assert check(c, m) == 'uses "Zap Credits", whose meaning was never observed'
+    assert check(c, m) is None
+    [out], *_ = finish([c], m, "annotate")
+    assert out.dropped_reason is None and out.flags == ['uses "Zap Credits", whose meaning was never observed']
 
 
 def test_an_observed_term_can_be_used_and_the_unobserved_one_is_listed_for_the_proposer(model):
     m = with_terms(model)
-    assert check(candidate(m, offer_copy="Play once for a day of Pro."), m) is None
+    [out], *_ = finish([candidate(m, offer_copy="Play once for a day of Pro.")], m, "annotate")
+    assert out.dropped_reason is None and out.flags == []
     text = propose.model_text(m)
-    assert '- "Zap Credits"' in text and '- "Pro"' not in text
+    assert '- "Zap Credits"' in text and '- "Pro"' not in text and "code flags an idea that does for a person reviewing the output" in text
     assert "never observed" not in propose.model_text(model.model_copy(update={"terms": []}))
 
 
-def test_a_short_unobserved_term_matches_only_as_a_whole_word(model):
-    pro = Term(term="Pro", meaning="meaning not observed", defined_by=[], used_in=[], observed=False)
-    m = model.model_copy(update={"terms": [pro]})
-    assert check(candidate(m, title="Try Pro today"), m) == 'uses "Pro", whose meaning was never observed'
-    assert check(candidate(m, title="Protect your streak"), m) is None
+def unobserved(model, *words):
+    terms = [Term(term=w, meaning="meaning not observed", defined_by=[], used_in=[], observed=False) for w in words]
+    return model.model_copy(update={"terms": terms})
+
+
+def test_a_short_unobserved_term_flags_only_as_a_whole_word(model):
+    m = unobserved(model, "Pro")
+    [out], *_ = finish([candidate(m, title="Try Pro today")], m, "annotate")
+    assert out.dropped_reason is None and out.flags == ['uses "Pro", whose meaning was never observed']
+    [out], *_ = finish([candidate(m, title="Protect your streak")], m, "annotate")
+    assert out.dropped_reason is None and out.flags == []
     assert propose.uses_term("Janitor+", "Said no to janitor+? Play once.")
     assert propose.uses_term("Zap Credits", "3 zap\xa0\xa0credits") and not propose.uses_term("Zap", "Zappy")
+
+
+def test_short_terms_inside_ordinary_words_raise_no_flag(model):
+    m = unobserved(model, "AI", "Pro", "Go")
+    words = dict(title="Play again for a golden profile frame", offer_copy="Available daily. Good for 7 days.",
+                 after_reward="The frame goes away, and your profile looks as before.")
+    [out], *_ = finish([candidate(m, **words)], m, "annotate")
+    assert out.dropped_reason is None and out.flags == []
+
+
+def test_two_unobserved_terms_give_two_flags_in_term_order(model):
+    m = unobserved(model, "Zap Credits", "Pro")
+    [out], *_ = finish([candidate(m, title="Try Pro today", offer_copy="Play once for 3 Zap Credits.")], m, "annotate")
+    assert out.dropped_reason is None
+    assert out.flags == ['uses "Zap Credits", whose meaning was never observed',
+                         'uses "Pro", whose meaning was never observed']
+
+
+def test_the_report_and_trace_count_flags_apart_from_drops(model, tmp_path, monkeypatch):
+    run_with(unobserved(model, "Pro"), tmp_path, monkeypatch, set(), draft={"title": "Try Pro today"})
+    out = CandidatesFile.model_validate_json((tmp_path / "propose" / "candidates.json").read_text()).candidates
+    live = [c for c in out if not c.dropped_reason]
+    assert live and all(c.flags == ['uses "Pro", whose meaning was never observed'] for c in live)
+    exhibit = next((tmp_path / "exhibits").glob("05-*.md")).read_text()
+    assert (f"{len(live)} live candidates ({len(live)} flagged for an unobserved term), "
+            f"{len(out) - len(live)} dropped") in exhibit
+    assert "- Flag: uses \"Pro\", whose meaning was never observed" in exhibit
+    trace = [json.loads(line) for line in (tmp_path / "trace.jsonl").read_text().splitlines()]
+    flags = [t for t in trace if t["step"].startswith("flag:")]
+    assert len(flags) == len(live) and all(t["outcome"] == "ok" for t in flags)
+    assert not any("never observed" in (t.get("note") or "") for t in trace if t["outcome"] == "denied")
 
 
 def with_experience(model):

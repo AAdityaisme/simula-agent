@@ -25,13 +25,19 @@ MIN_DISTINCT = 4
 MAX_LEDGER_LENSES = 2
 ANCHOR_MECHANICS = {"paywall", "limit", "currency", "entitlement"}
 ANCHOR_LEDGER = {"price", "limit", "meter", "currency", "paywall_bullet"}
+# Inside the conversation itself: a message, between messages, pinned in the message list, or a chat or system
+# note. A sheet or dialog over a chat screen is not in here; the judge's brand-safety gate rules on it.
 CHAT_PLACEMENT = re.compile(
-    r"\bin-chat\b|\b(inside|within|into|in)\s+(a|the|this|their|your)\s+(chat|conversation|transcript)\b"
-    r"(?!\s+(list|tab))|\bmid(-|\s+)conversation\b|\bbetween\s+(chat\s+)?(messages|replies)\b|"
-    r"\b(chat|message)\s+bubble|\bchat\s+transcript\b",
+    r"\b(inside|within|into|in)\s+(a|the|this|their|your|any)\s+(chat\s+)?(conversation|transcript|thread)\b"
+    r"(?!\s+(list|tab))|\b(inside|within|into)\s+(a|the|this|their|your|any)\s+chat\b"
+    r"(?!\s+(list|tab|screen|header|composer|input))|\bbetween\s+(chat\s+)?(messages|replies)\b|"
+    r"\b(chat|message)\s+bubble|\bin-chat\s+(message|card|note|reply|banner)\b|"
+    r"\bpinned(\s+\w+)?\s+(in|into|inside|within|to|at\s+the\s+top\s+of)\s+(a|the|this|their|your)\s+"
+    r"(message\s+list|messages|conversation|thread|chat)\b(?!\s+(list|tab|screen))|"
+    r"\b(as|like)\s+an?\s+((chat|system|sponsored|bot|character)\s+)?(message|reply)\b|\b(chat|system)\s+note\b",
     re.I)
-NEGATED = re.compile(r"\b(not|never|outside|away\s+from)\b[^.;,]{0,20}\b(chat|conversation|transcript)", re.I)
-SAFE_TRIGGER_RATINGS = {"safe", "mixed"}
+NEGATED = re.compile(r"\b(not|never|outside|away\s+from)\b[^.;,]{0,20}\b(chat|conversation|transcript|thread|"
+                     r"messages?|note)", re.I)
 # The assignment's two buckets, shown first on every candidate's title.
 BUCKETS = {"existing_anchor": "Existing opportunity", "product_change": "Product change"}
 OUTSIDE_MOCK = "names screens outside the mock scope"
@@ -95,7 +101,8 @@ def model_text(model: ProductModel) -> str:
     lines += ["", "### Open questions (not observed)"] + [f"- {q}" for q in model.open_questions]
     if unobserved := unobserved_terms(model):
         lines += ["", "### App terms whose meaning was never observed (don't use them in a title, offer_copy, or "
-                      "after_reward; code drops an idea that does)"] + [f'- "{t}"' for t in unobserved]
+                      "after_reward; code flags an idea that does for a person reviewing the output)"]
+        lines += [f'- "{t}"' for t in unobserved]
     lines += ["", "### Screens in scope"]
     for s in model.states:
         if s.in_mock_scope:
@@ -161,9 +168,11 @@ def uses_term(term: str, words: str) -> bool:
     return bool(parts) and re.search(pattern, words, re.IGNORECASE) is not None
 
 
-def jargon(c: Candidate, model: ProductModel) -> str | None:
-    return next((f'uses "{term}", whose meaning was never observed' for term in unobserved_terms(model)
-                 if any(uses_term(term, words) for words in (c.title, c.offer_copy, c.after_reward))), None)
+def jargon_flags(c: Candidate, model: ProductModel) -> list[str]:
+    """One flag per unobserved term the idea's title, offer, or after_reward uses, in term order. The idea stays
+    live; the judge rules on the flag."""
+    return [f'uses "{term}", whose meaning was never observed' for term in unobserved_terms(model)
+            if any(uses_term(term, words) for words in (c.title, c.offer_copy, c.after_reward))]
 
 
 def anchor_ids(model: ProductModel) -> set[str]:
@@ -256,8 +265,8 @@ def check(c: Candidate, model: ProductModel) -> str | None:
     if outside:
         return f"{OUTSIDE_MOCK}, which the slides can't draw: {', '.join(outside)}"
     trigger = states[c.trigger_state_id]
-    if trigger.content_rating not in SAFE_TRIGGER_RATINGS:
-        return f"trigger screen {trigger.id} has {trigger.content_rating} content; the offer can't render next to it"
+    if trigger.content_rating == "unsafe":
+        return f"trigger screen {trigger.id} has unsafe content; the offer can't render on or over it"
     if c.bible_mechanic.strip().lower() != "none" and c.bible_mechanic not in mechanic_ids():
         return f"bible_mechanic {c.bible_mechanic!r} is not an M-id in the bible"
     if c.kind == "existing_anchor" and not set(c.anchor_evidence_ids) & anchor_ids(model):
@@ -270,12 +279,10 @@ def check(c: Candidate, model: ProductModel) -> str | None:
         return problem
     if not c.after_reward.strip():
         return "doesn't say what the user sees when the reward runs out"
-    if problem := jargon(c, model):
-        return problem
     if problem := grants_problem(c, model):
         return problem
     if in_chat(c.placement):
-        return "placement is inside a chat transcript, not app chrome"
+        return "placement is inside the conversation (a message, between messages, pinned, or a chat note)"
     return None
 
 
@@ -401,7 +408,8 @@ def finish(drafts: list[Candidate], model: ProductModel, mode: str, name=lambda 
         if repaired:
             repairs[c.id] = repaired
         reason = f"no opportunity: {c.rationale}" if c.kind == "no_opportunity" else check(c, model)
-        checked.append(c.model_copy(update={"dropped_reason": reason}))
+        flags = [] if reason else jargon_flags(c, model)
+        checked.append(c.model_copy(update={"dropped_reason": reason, "flags": flags}))
     ranked = [rank(c, model, mode) for c in economics.apply(checked, model.app_category, mode)]
     passing = sorted((c for c in ranked if not c.dropped_reason), key=lambda c: -c.rank_score)
     names, links = name(passing)
@@ -442,9 +450,10 @@ def mock_coverage(candidates: list[Candidate], model: ProductModel) -> list[str]
 def exhibit(lenses: list[Lens], candidates: list[Candidate], repairs: dict[str, str], model: ProductModel,
             topup: str) -> str:
     live = [c for c in candidates if not c.dropped_reason]
-    lines = ["# 05 · propose", "", f"{len(lenses)} lenses, {len(live)} live candidates, "
-             f"{len(candidates) - len(live)} dropped, {len(repairs)} with near-miss ids repaired by code "
-             f"(`resolve:<id>` lines in trace.jsonl).", "", *mock_coverage(candidates, model),
+    flagged = sum(bool(c.flags) for c in live)
+    lines = ["# 05 · propose", "", f"{len(lenses)} lenses, {len(live)} live candidates ({flagged} flagged for an "
+             f"unobserved term), {len(candidates) - len(live)} dropped, {len(repairs)} with near-miss ids repaired "
+             f"by code (`resolve:<id>` lines in trace.jsonl).", "", *mock_coverage(candidates, model),
              f"- Top-up call: {topup}.", "", "| Lens | Kind | Focus |", "|---|---|---|"]
     lines += [f"| {l.name} | {l.kind} | {l.focus} |" for l in lenses]
     lines += ["", "## Candidates, by reach"]
@@ -456,6 +465,7 @@ def exhibit(lenses: list[Lens], candidates: list[Candidate], repairs: dict[str, 
                   f"- When the reward ends: {c.after_reward}",
                   f"- Cost: {c.economics.assumption_line}",
                   f"- Reach scenario: {c.reach_score:g} (trigger depth x daily cap; not a measured audience)"]
+        lines += [f"- Flag: {flag}" for flag in c.flags]
     dropped = [c for c in candidates if c.dropped_reason]
     if dropped:
         lines += ["", "## Dropped by code", ""] + [f"- {c.id} · {c.title}: {c.dropped_reason}" for c in dropped]
@@ -497,5 +507,8 @@ def run(ctx: Ctx) -> None:
         if c.dropped_reason:
             run_trace(ctx.run_dir, stage="propose", step=f"check:{c.id}", decider="code", outcome="denied",
                       note=c.dropped_reason[:300])
+        elif c.flags:
+            run_trace(ctx.run_dir, stage="propose", step=f"flag:{c.id}", decider="code",
+                      note="; ".join(c.flags)[:300])
     write_json_atomic(out / "candidates.json", CandidatesFile(candidates=candidates).model_dump_json(indent=1))
     write_exhibit(ctx.run_dir, 5, "propose", exhibit(lenses, candidates, repairs, model, topup))

@@ -147,6 +147,22 @@ def test_a_stream_that_never_started_is_charged_only_its_input(monkeypatch, tmp_
     assert budget.spent == pytest.approx(llm.usd("claude-opus-5-5", failure.tokens_in, 0)) and line.usd < 0.01
 
 
+class StalledStream(AbortedStream):
+    """Streams one event, then the connection stalls: the SDK lets httpx2's ReadTimeout through unwrapped."""
+    def __iter__(self):
+        yield "event"
+        raise httpx2.ReadTimeout("The read operation timed out")
+
+
+def test_a_stream_that_stalls_mid_answer_is_a_charged_timeout(monkeypatch, tmp_path):
+    snapshot = SimpleNamespace(usage=SimpleNamespace(input_tokens=5000, output_tokens=1),
+                               content=[SimpleNamespace(type="text", text="x" * 3000)])
+    failure, budget, line = aborted_call(monkeypatch, StalledStream(snapshot), tmp_path)
+    assert failure.outcome == "timeout" and "timed out" in str(failure)
+    assert budget.held == 0 and budget.spent == pytest.approx(llm.usd("claude-opus-5-5", 5000, 1000))
+    assert (line.outcome, line.tokens_in, line.tokens_out) == ("timeout", 5000, 1000)
+
+
 def test_a_usage_limit_stops_the_run_with_needs_human_and_exit_4(runs, tmp_path, monkeypatch):
     fake_anthropic(monkeypatch, error_400(anthropic, "https://api.anthropic.com/v1/messages", USAGE_LIMIT))
     explore = build("luzia", tmp_path / "explore")
