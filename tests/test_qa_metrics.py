@@ -45,7 +45,8 @@ def ssim(real: Image.Image, mock_image: Image.Image, masked: list[Rect] = ()) ->
 
 def differing(real: Image.Image, mock_image: Image.Image, masked: list[Rect] = ()) -> float | None:
     """pixelmatch's share of differing pixels, over the pixels the same mask leaves as SSIM's."""
-    return qa_metrics.pixel_diff(real, mock_image, qa_metrics.unmasked(list(masked), (838, 411)))
+    result = qa_metrics.compare(real, mock_image, list(masked))
+    return qa_metrics.pixel_diff(result["real"], result["mock"], result["keep"])
 
 
 def test_an_identical_pair_scores_1(real):
@@ -88,7 +89,7 @@ def test_art_covering_90_percent_earns_no_pixel_score(real):
 def test_a_heatmap_is_content_dp_and_marks_the_changed_box(real):
     box = Rect(x=150, y=300, w=80, h=40)
     result = qa_metrics.compare(real, painted(real, box), [])
-    heat = np.asarray(qa_metrics.heatmap(real, result["map"], result["keep"])).astype(int)
+    heat = np.asarray(qa_metrics.heatmap(result["real"], result["map"], result["keep"])).astype(int)
     assert heat.shape == (838, 411, 3)
     inside, outside = heat[310:330, 160:220], heat[600:700, 20:100]
     assert (inside[..., 0] - inside[..., 1]).mean() > 150
@@ -134,7 +135,7 @@ def test_bounds_round_trip_within_1_dp(tmp_path, app):
     with open_mock(mock_dir) as (page, _):
         for state in mock.pick_scope(model):
             page.evaluate("id => window.simula.go(id)", state.id)
-            boxes, _ = qa_metrics.screen_dom(page, state.id)
+            boxes = qa_metrics.screen_dom(page, state.id).boxes
             for e in state.elements:
                 if e.id in mock.tagged_ids(state) and e.rect_dp.w > 0 and e.rect_dp.h > 0:
                     assert qa_metrics.within(boxes.get(e.id), e.rect_dp, tolerance=1.0), e.id

@@ -196,15 +196,14 @@ def measure(ctx: Ctx, model: ProductModel, scope: list[State], n: int, html: str
         errors = [e.model_copy(update={"detail": e.detail.replace(round_dir.resolve().as_uri() + "/", "")})
                   for e in checked]
         render.screenshot_screens(page, screens, round_dir / "mock")
-        dom, shared = {}, {}
+        dom = {}
         for sid in screens:
             page.evaluate("id => window.simula.go(id)", sid)
             dom[sid] = qa_metrics.screen_dom(page, sid)
-            shared[sid] = qa_metrics.shared_dom(page, sid)
         taps = check_taps(page, model, drawn)
         flows = walk_flows(page, model, scope, set(undrawn))
-    details = [measure_screen(ctx, model, s, round_dir, *dom[s.id], taps) for s in drawn]
-    cross = cross_screen_failures(model, round_dir, shared)
+    details = [measure_screen(ctx, model, s, round_dir, dom[s.id], taps) for s in drawn]
+    cross = cross_screen_failures(model, round_dir, dom)
     metrics = QAMetrics(round=n, screens=[d["metrics"] for d in details],
                         cross_screen_failures=[f["detail"] for f in cross],
                         score=sum(d["metrics"].score for d in details) / len(details))
@@ -216,28 +215,28 @@ def measure(ctx: Ctx, model: ProductModel, scope: list[State], n: int, html: str
     return Version(n, html, metrics, details, taps, flows, errors, cross)
 
 
-def measure_screen(ctx: Ctx, model: ProductModel, state: State, round_dir, boxes: dict, images: list,
+def measure_screen(ctx: Ctx, model: ProductModel, state: State, round_dir, dom: qa_metrics.ScreenDom,
                    taps: list[dict]) -> dict:
     """Scores one screen. Masked out of SSIM: wherever a copied image sits over the spot it was cropped from (so a
     pasted crop earns nothing, and a misplaced one is scored), and regions that change between visits."""
     real = Image.open(ctx.run_dir / "model" / state.canonical_png)
     render_path = round_dir / "mock" / f"{state.id}.png"
     origins = {f"assets/{e.id}.png": e.rect_dp for e in state.elements} | art_origins(ctx, state)
-    copies = [qa_metrics.overlap(origins[src], drawn) for src, drawn in images if src in origins]
+    copies = [qa_metrics.overlap(origins[src], drawn) for src, drawn in dom.images if src in origins]
     masked = ([r for r in copies if r]
               + [qa_metrics.device_to_dp(r, model.device) for r in state.dynamic_regions])
-    rendered = Image.open(render_path)
-    pixels = qa_metrics.compare(real, rendered, masked)
-    differing = qa_metrics.pixel_diff(real, rendered, pixels["keep"])
-    save_png(render.content_dp(rendered), render_path)
-    save_png(render.content_dp(real), round_dir / "real" / f"{state.id}.png")
-    save_png(qa_metrics.heatmap(real, pixels["map"], pixels["keep"]), round_dir / "heatmap" / f"{state.id}.png")
+    pixels = qa_metrics.compare(real, Image.open(render_path), masked)
+    differing = qa_metrics.pixel_diff(pixels["real"], pixels["mock"], pixels["keep"])
+    save_png(Image.fromarray(pixels["mock"]), render_path)
+    save_png(Image.fromarray(pixels["real"]), round_dir / "real" / f"{state.id}.png")
+    save_png(qa_metrics.heatmap(pixels["real"], pixels["map"], pixels["keep"]),
+             round_dir / "heatmap" / f"{state.id}.png")
 
     ids = mock.tagged_ids(state)
     tagged = [e for e in state.elements if e.id in ids]
     misses = [{"id": e.id, "text": e.text or e.label, "want": rect(e.rect_dp),
-               "got": rect(boxes[e.id]) if e.id in boxes else "missing"}
-              for e in tagged if not qa_metrics.within(boxes.get(e.id), e.rect_dp)]
+               "got": rect(dom.boxes[e.id]) if e.id in dom.boxes else "missing"}
+              for e in tagged if not qa_metrics.within(dom.boxes.get(e.id), e.rect_dp)]
     own_taps = [t for t in taps if t["screen"] == state.id]
     passed = sum(not t["problem"] for t in own_taps)
     bounds = 1 - len(misses) / len(tagged) if tagged else None
@@ -251,16 +250,14 @@ def measure_screen(ctx: Ctx, model: ProductModel, state: State, round_dir, boxes
             "taps_passed": passed, "misses": misses}
 
 
-def cross_screen_failures(model: ProductModel, round_dir, shared: dict) -> list[dict]:
+def cross_screen_failures(model: ProductModel, round_dir, dom: dict[str, qa_metrics.ScreenDom]) -> list[dict]:
     """The cross-screen check on one version: shared chrome renders the same on every screen that draws it, and a
     shared value reads the same wherever it appears. Each failure names the screen to fix; failures go to the critic
     and the fixer like any finding, and never into the score."""
-    chrome = {sid: parts for sid, (parts, _) in shared.items()}
-
     def images(kind: str) -> dict:
-        return {sid: Image.open(round_dir / kind / f"{sid}.png") for sid in chrome}
-    return (qa_metrics.chrome_failures(chrome, images("mock"), images("real"))
-            + qa_metrics.value_failures({sid: tags for sid, (_, tags) in shared.items()}, model))
+        return {sid: Image.open(round_dir / kind / f"{sid}.png") for sid in dom}
+    return (qa_metrics.chrome_failures({sid: d.chrome for sid, d in dom.items()}, images("mock"), images("real"))
+            + qa_metrics.value_failures({sid: d.values for sid, d in dom.items()}, model))
 
 
 def art_origins(ctx: Ctx, state: State) -> dict:

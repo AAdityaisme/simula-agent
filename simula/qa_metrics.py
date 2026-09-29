@@ -6,6 +6,7 @@ import math
 import re
 import tempfile
 from pathlib import Path
+from typing import NamedTuple
 
 import numpy as np
 from PIL import Image
@@ -22,53 +23,47 @@ BOUNDS_TOLERANCE_DP = 4.0
 IDENTITY_GATE = 0.985
 PIXELMATCH_THRESHOLD = 0.1
 
-# On the section shown now: each visible data-el's box in the section's coordinates (content dp), and every copied
-# image it draws (an <img> or a CSS background from assets/) with the box it is drawn in.
+# On the section shown now, in the section's coordinates (content dp): each visible data-el's box, every copied image
+# it draws (an <img> or a CSS background from assets/) with the box it is drawn in, the box each data-chrome part
+# covers (all its visible tags), and the text each visible data-value tag shows.
 SCREEN_DOM = r"""(id) => {
   const section = document.querySelector(`[data-screen="${CSS.escape(id)}"]`);
-  if (!section) return {boxes: {}, images: []};
+  if (!section) return {boxes: {}, images: [], chrome: {}, values: []};
   const origin = section.getBoundingClientRect();
   const local = r => ({x: r.left - origin.left, y: r.top - origin.top, w: r.width, h: r.height});
-  const seen = el => el.checkVisibility({opacityProperty: true, visibilityProperty: true});
-  const boxes = {};
-  for (const el of section.querySelectorAll('[data-el]')) {
+  const shown = el => {
     const r = el.getBoundingClientRect();
-    if (r.width > 0 && r.height > 0 && seen(el) && !(el.dataset.el in boxes)) boxes[el.dataset.el] = local(r);
-  }
+    return r.width > 0 && r.height > 0 && el.checkVisibility({opacityProperty: true, visibilityProperty: true});
+  };
+  const boxes = {};
+  for (const el of section.querySelectorAll('[data-el]'))
+    if (shown(el) && !(el.dataset.el in boxes)) boxes[el.dataset.el] = local(el.getBoundingClientRect());
   const images = [];
   for (const el of section.querySelectorAll('*')) {
     const src = el.tagName === 'IMG' ? el.getAttribute('src') ?? ''
       : getComputedStyle(el).backgroundImage.match(/assets\/[^\/"')]+\.png/)?.[0] ?? '';
-    const r = el.getBoundingClientRect();
-    if (/^assets\/[^\/]+\.png$/.test(src) && r.width > 0 && r.height > 0 && seen(el)) images.push({src, ...local(r)});
-  }
-  return {boxes, images};
-}"""
-
-# On the section shown now: the box each data-chrome part covers (all its visible tags, in the section's coordinates),
-# and the text each visible data-value tag shows.
-SHARED_DOM = r"""(id) => {
-  const section = document.querySelector(`[data-screen="${CSS.escape(id)}"]`);
-  if (!section) return {chrome: {}, values: []};
-  const origin = section.getBoundingClientRect();
-  const seen = el => {
-    const r = el.getBoundingClientRect();
-    return r.width > 0 && r.height > 0 && el.checkVisibility({opacityProperty: true, visibilityProperty: true});
-  };
-  const edges = {};
-  for (const el of section.querySelectorAll('[data-chrome]')) {
-    if (!seen(el)) continue;
-    const r = el.getBoundingClientRect(), e = edges[el.dataset.chrome];
-    edges[el.dataset.chrome] = e ? {l: Math.min(e.l, r.left), t: Math.min(e.t, r.top), r: Math.max(e.r, r.right),
-                                    b: Math.max(e.b, r.bottom)} : {l: r.left, t: r.top, r: r.right, b: r.bottom};
+    if (/^assets\/[^\/]+\.png$/.test(src) && shown(el)) images.push({src, ...local(el.getBoundingClientRect())});
   }
   const chrome = {};
-  for (const [kind, e] of Object.entries(edges))
-    chrome[kind] = {x: e.l - origin.left, y: e.t - origin.top, w: e.r - e.l, h: e.b - e.t};
-  const values = [...section.querySelectorAll('[data-value]')].filter(seen)
+  for (const el of section.querySelectorAll('[data-chrome]')) {
+    if (!shown(el)) continue;
+    const r = local(el.getBoundingClientRect()), c = chrome[el.dataset.chrome];
+    chrome[el.dataset.chrome] = !c ? r : {x: Math.min(c.x, r.x), y: Math.min(c.y, r.y),
+      w: Math.max(c.x + c.w, r.x + r.w) - Math.min(c.x, r.x), h: Math.max(c.y + c.h, r.y + r.h) - Math.min(c.y, r.y)};
+  }
+  const values = [...section.querySelectorAll('[data-value]')].filter(shown)
     .map(el => ({id: el.dataset.value, text: el.innerText}));
-  return {chrome, values};
+  return {boxes, images, chrome, values};
 }"""
+
+
+class ScreenDom(NamedTuple):
+    """What QA reads off one drawn screen, in its section's content dp: each data-el's box, each copied image with the
+    box it is drawn in, each data-chrome part's box, and each data-value tag's id and text."""
+    boxes: dict[str, Rect]
+    images: list[tuple[str, Rect]]
+    chrome: dict[str, Rect]
+    values: list[tuple[str, str]]
 
 
 def device_to_dp(rect: Rect, device: Device) -> Rect:
@@ -91,7 +86,8 @@ def unmasked(boxes: list[Rect], shape: tuple[int, int]) -> np.ndarray:
 
 def compare(real: Image.Image, mock: Image.Image, masked: list[Rect]) -> dict:
     """Masked SSIM of a mock screen vs its real screen, both brought to content dp. Returns ssim (None when less
-    than MIN_COVERAGE of the screen is left to score), coverage, and the per-pixel map for the heatmap."""
+    than MIN_COVERAGE of the screen is left to score), coverage, the per-pixel map for the heatmap, and both screens
+    as content-dp arrays, so no caller converts them again."""
     a, b = np.asarray(content_dp(real)), np.asarray(content_dp(mock))
     _, full = structural_similarity(a, b, data_range=255, channel_axis=-1, full=True, win_size=WINDOW)
     ssim_map = full.mean(axis=-1)
@@ -101,22 +97,23 @@ def compare(real: Image.Image, mock: Image.Image, masked: list[Rect]) -> dict:
     scored = keep.copy()
     scored[:HALO], scored[-HALO:], scored[:, :HALO], scored[:, -HALO:] = False, False, False, False
     ssim = float(ssim_map[scored].mean()) if coverage >= MIN_COVERAGE and scored.any() else None
-    return {"ssim": ssim, "coverage": coverage, "map": ssim_map, "keep": keep}
+    return {"ssim": ssim, "coverage": coverage, "map": ssim_map, "keep": keep, "real": a, "mock": b}
 
 
-def pixel_diff(real: Image.Image, mock: Image.Image, keep: np.ndarray) -> float | None:
-    """The second pixel metric, pixelmatch (threshold 0.1, anti-aliased pixels not counted) in content dp: the share
-    of the unmasked pixels (keep, from compare) that differ. None when too little of the screen is left to score, as
-    for SSIM. Reported beside SSIM and never scored: a second view that reads as a plain share of changed pixels."""
+def pixel_diff(real: np.ndarray, mock: np.ndarray, keep: np.ndarray) -> float | None:
+    """The second pixel metric, pixelmatch (threshold 0.1, anti-aliased pixels not counted), on the content-dp arrays
+    compare returns: the share of the unmasked pixels (keep, from compare) that differ. None when too little of the
+    screen is left to score, as for SSIM. Reported beside SSIM and never scored: a second view that reads as a plain
+    share of changed pixels."""
     if keep.mean() < MIN_COVERAGE:
         return None
-    differs = pixelmatch.differing(np.asarray(content_dp(real)), np.asarray(content_dp(mock)), PIXELMATCH_THRESHOLD)
-    return float(differs[keep].mean())
+    return float(pixelmatch.differing(real, mock, PIXELMATCH_THRESHOLD)[keep].mean())
 
 
-def heatmap(real: Image.Image, ssim_map: np.ndarray, keep: np.ndarray) -> Image.Image:
-    """The real screen dimmed to gray, red where the mock differs (1 - SSIM), blue over masked pixels."""
-    gray = np.asarray(content_dp(real).convert("L"), float)[..., None] * 0.45
+def heatmap(real: np.ndarray, ssim_map: np.ndarray, keep: np.ndarray) -> Image.Image:
+    """The real screen (the content-dp array compare returns) dimmed to gray, red where the mock differs (1 - SSIM),
+    blue over masked pixels."""
+    gray = np.asarray(Image.fromarray(real).convert("L"), float)[..., None] * 0.45
     base = np.repeat(gray, 3, axis=-1)
     bad = np.clip(1 - ssim_map, 0, 1)[..., None]
     out = base * (1 - bad) + np.array([255.0, 0, 0]) * bad
@@ -142,11 +139,13 @@ def identity_render(real: Image.Image, device: Device = Device()) -> Image.Image
         return Image.open(Path(tmp) / "render.png").copy()
 
 
-def screen_dom(page, screen: str) -> tuple[dict[str, Rect], list[tuple[str, Rect]]]:
-    """For the screen on show: every visible data-el's box (content dp), and each copied image with its drawn box."""
+def screen_dom(page, screen: str) -> ScreenDom:
+    """Everything QA reads off the DOM of the screen on show, in one evaluate."""
     dom = page.evaluate(SCREEN_DOM, screen)
-    images = [(i.pop("src"), Rect(**i)) for i in dom["images"]]
-    return {eid: Rect(**box) for eid, box in dom["boxes"].items()}, images
+    return ScreenDom(boxes={eid: Rect(**box) for eid, box in dom["boxes"].items()},
+                     images=[(i.pop("src"), Rect(**i)) for i in dom["images"]],
+                     chrome={kind: Rect(**box) for kind, box in dom["chrome"].items()},
+                     values=[(v["id"], v["text"]) for v in dom["values"]])
 
 
 def overlap(a: Rect, b: Rect) -> Rect | None:
@@ -171,12 +170,6 @@ SAME_PART = 0.5
 # content_dp's Lanczos filter reaches 3 dp across an edge, so a box's outer rows mix in whatever is drawn beside it.
 # A chrome box is compared this far inside its edges.
 BLEED_DP = 3
-
-
-def shared_dom(page, screen: str) -> tuple[dict[str, Rect], list[tuple[str, str]]]:
-    """For the screen on show: the box of each data-chrome part (content dp), and each data-value tag's id and text."""
-    dom = page.evaluate(SHARED_DOM, screen)
-    return {kind: Rect(**box) for kind, box in dom["chrome"].items()}, [(v["id"], v["text"]) for v in dom["values"]]
 
 
 def box_slices(box: Rect, shape: tuple, inset: float = 0) -> tuple[slice, slice] | None:
