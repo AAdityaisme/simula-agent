@@ -545,6 +545,13 @@ def test_the_proposer_says_what_was_not_seen_only_in_a_field_the_slides_never_pr
     assert not any("explored screens" in words for words in propose.printed(c))
 
 
+def test_the_proposer_has_an_answer_for_paying_users_when_the_model_shows_no_paid_plan():
+    """subscriber_treatment asks what paying users see. With no paid plan to describe, the proposer wrote "No paid
+    plan was seen" into it, a field the slides print, on 4 of 8 AOL ideas (the bc8724d real run)."""
+    line = next(line for line in SYSTEM.splitlines() if line.startswith("- `subscriber_treatment`:"))
+    assert "no paid plan, it is `Every user sees the same offer.`" in line
+
+
 def with_words(model, field: str, words: str):
     """candidate() with `words` in one field the slides print."""
     base = candidate(model)

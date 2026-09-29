@@ -33,7 +33,7 @@ The bible calls some fields by other names: its `adapted_from` is `bible_mechani
 - `frequency_cap`: a count with its period and reset, like `3 per day, resets at midnight local time` or `1 per week`. Any other limit (per character, per item, per screen) goes here too, in words.
 - `daily_cap`: the per-user number from `frequency_cap`, as a whole number: how many times one user can take this offer in a day. Only the per-user limit, never a limit per character, item, or screen: for `1 per user per day; each character at most 10 times a day`, it is 1. An offer one user can take less than once a day (one-time, weekly, monthly, every few days) is 0. Code ranks on it.
 - `decline_path`, `ad_fail_path`: what happens on "no", and on no fill or failed verification. The app must stay exactly as usable as before, and a failed ad never uses up an attempt.
-- `subscriber_treatment`: what paying users see.
+- `subscriber_treatment`: what paying users see. When the product model shows no paid plan, it is `Every user sees the same offer.`
 - `advertiser_category`: a plausible, brand-safe advertiser category for this audience.
 - `character_use`: how (or whether) the app's own characters, mascots, or content appear in the ad moment. "None" is fine.
 - `flow_steps`: 3 to 6 steps. The first is `trigger_state_id` as it is today. Every existing screen you name must be in scope. New screens use `new:<short-slug>` as the state id. The steps go: where it starts → the offer → the ad plays → the reward lands.
