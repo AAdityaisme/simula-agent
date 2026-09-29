@@ -148,8 +148,12 @@ FLOW_JS = """(() => {
 REWARDED_JS = "on => document.body.classList.toggle('simula-rewarded', on)"
 REWARD_LABELS_JS = """() => [...document.querySelectorAll('[data-reward]')].filter(e => e.checkVisibility())
   .map(e => { const b = e.getBoundingClientRect(); return {text: (e.innerText ?? e.textContent).trim(), box: [b.x, b.y, b.width, b.height]}; })"""
-REPLACED_JS = """() => [...document.querySelectorAll('[data-unrewarded]')]
-  .some(e => { const b = e.getBoundingClientRect(); return e.checkVisibility() && b.width > 0 && b.height > 0; })"""
+REPLACED_JS = """() => [...document.querySelectorAll('[data-unrewarded]')].some(e => {
+  const box = e.getBoundingClientRect();
+  const left = Math.max(box.left, 0), right = Math.min(box.right, innerWidth);
+  const top = Math.max(box.top, 0), bottom = Math.min(box.bottom, innerHeight);
+  return e.checkVisibility() && right > left && bottom > top &&
+    e.contains(document.elementFromPoint((left + right) / 2, (top + bottom) / 2)); })"""
 NOTE_ON_TOP_JS = """() => { const note = document.querySelector('.sa-note');
   if (!note || !note.checkVisibility()) return false;
   const b = note.getBoundingClientRect();
@@ -493,8 +497,9 @@ def play(page, ad: str, target: str) -> tuple[bool, dict | None, str]:
 def reward_effect(page, granted: Path) -> tuple[bool, list[str] | None]:
     """What granting the reward visibly changes on the screen just captured with it granted: whether anything
     changes, and when everything that changes sits inside reward elements that appeared (a label, a badge), their
-    words (None when more than that changes). Something the reward replaces (data-unrewarded) showing with the
-    reward off is more than a label, even when its rewarded form is drawn in the same place."""
+    words (None when more than that changes). Something the reward replaces (data-unrewarded) painted in the
+    captured view with the reward off (on screen, and on top at the middle of what shows) is more than a label, even
+    when its rewarded form is drawn in the same place."""
     labels = page.evaluate(REWARD_LABELS_JS)
     page.evaluate(REWARDED_JS, False)
     replaced = page.evaluate(REPLACED_JS)

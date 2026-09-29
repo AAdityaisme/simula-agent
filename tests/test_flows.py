@@ -530,10 +530,14 @@ REWARD_PAGE = """<style>body{margin:0;background:#fff}p{position:absolute;margin
     ("body.simula-rewarded .card{color:rgb(3,3,3)}", "", "", (False, None)),
     ("", "Level 2 open", "Level 2 locked", (True, None)),
     ("[data-unrewarded]{top:200px!important}", "Level 2 open", "Level 2 locked", (True, None)),
+    ("[data-unrewarded]{top:2000px!important}", "Badge on", "Old badge", (True, ["Badge on"])),
+    (".card{z-index:1;background:#fff;width:200px;height:60px;top:590px!important}", "Badge on", "Old badge",
+     (True, ["Badge on"])),
 ])
 def test_the_reward_effect_names_labels_and_ignores_render_noise(tmp_path, extra, label, before, expected):
     """Only a label appears; a label appears and a card moves; nothing but a 3-level shade (render noise) changes;
-    the unlocked form appears and the locked one the page marked data-unrewarded goes, elsewhere or in its place."""
+    the unlocked form appears and the locked one the page marked data-unrewarded goes, elsewhere or in its place;
+    a data-unrewarded element below the captured view, or covered, changes nothing the capture shows."""
     with sync_playwright() as p:
         page = p.chromium.launch().new_page(viewport=render.VIEWPORT)
         page.set_content(REWARD_PAGE.replace("{flow_css}", flows.FLOW_CSS).replace("{extra}", extra)
