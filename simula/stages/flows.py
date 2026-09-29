@@ -874,9 +874,12 @@ def cover_html(app: str, flows: list[dict], unbuilt: int = 0, status: list[str] 
     if flows:
         notes += ["Each idea takes two slides: its whole flow, step by step, then why it works. The score pages at "
                   "the end score every idea the review saw.", REWARD_RULE]
-    if fallbacks:
+    if fallbacks and unbuilt_fallbacks:
+        notes.append(f"No idea passed every check, so the closest are marked as not a recommendation; "
+                     f"{unbuilt_fallbacks} of them couldn't be drawn, and the score pages at the end say why.")
+    elif fallbacks:
         notes.append("No idea passed every check, so the closest is drawn and marked as not a recommendation.")
-    if unbuilt_fallbacks:
+    elif unbuilt_fallbacks:
         notes.append("No idea passed every check; the closest couldn't be drawn, and the score pages at the end "
                      "say why.")
     if cut:

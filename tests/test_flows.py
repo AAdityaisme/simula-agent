@@ -348,6 +348,25 @@ def test_an_unbuilt_fallback_pick_is_named_as_the_closest_idea_not_as_one_that_p
     assert "passed the review" not in cover, cover
 
 
+def test_a_drawn_and_an_unbuilt_fallback_pick_read_as_one_coherent_line_on_the_cover(tmp_path):
+    one_step = candidate(golden("luzia")).flow_steps[:1]
+    run_dir = seed_run(tmp_path, "luzia", {"c01": {"flow_steps": one_step}})
+    decisions = [decision("c01", "conditional", 2.0, passed=10), decision("c02", "conditional", 1.0, passed=10),
+                 decision("c03", "reject", 3.0, passed=9)]
+    (run_dir / "judge" / "decisions.json").write_text(DecisionsFile(decisions=decisions).model_dump_json())
+    for cid in ("c01", "c02"):
+        path = run_dir / "judge" / "verdicts" / f"{cid}_judge_1_r1.json"
+        path.write_text(verdict(cid, "c5_moment").model_dump_json())
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(llm, "call", fake_editor(run_dir))
+        flows.run(ctx_for(run_dir, "luzia"))
+    deck = (run_dir / "flows" / "slides.html").read_text()
+    cover = text_of(deck.split('<section class="slide cover">')[1].split("</section>")[0])
+    assert ("No idea passed every check, so the closest are marked as not a recommendation; 1 of them couldn't be "
+            "drawn, and the score pages at the end say why.") in cover, cover
+    assert "the closest is drawn" not in cover and "the closest couldn't be drawn" not in cover
+
+
 def test_a_fallback_pick_is_named_on_the_cover_and_its_why_slide_never_says_recommended(tmp_path):
     run_dir = seed_run(tmp_path, "luzia", {"c01": {}})
     decisions = [decision("c01", "conditional", 1.0, passed=10), decision("c03", "reject", 2.0, passed=9)]
