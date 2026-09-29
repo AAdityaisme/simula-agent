@@ -209,6 +209,12 @@ def clean(flows_dir: Path) -> None:
 
 # ---------- plain words ----------
 
+def app_title(model: ProductModel, key: str) -> str:
+    """The app's name for the product team: the model's app_name, read from the screens (pr2 adds the field), else
+    the config key title-cased, never the raw lowercase key."""
+    return getattr(model, "app_name", None) or key.title()
+
+
 def caption(c: Candidate) -> str:
     return c.title.removeprefix(f"{BUCKETS.get(c.kind, '')}: ")
 
@@ -865,13 +871,14 @@ def score_slides(decisions: list[Decision], candidates: dict[str, Candidate], no
 
 def deck(ctx: Ctx, model: ProductModel, flows: list[dict], not_built: list[tuple[Decision, str]],
          decisions: list[Decision], candidates: dict[str, Candidate]) -> str:
-    slides = [cover_html(ctx.app["name"], flows, len(not_built))]
+    app = app_title(model, ctx.app["name"])
+    slides = [cover_html(app, flows, len(not_built))]
     for flow in flows:
         slides += idea_slides(flow, model, ctx.run_dir)
     slides += score_slides(decisions, candidates, not_built, ctx.run_dir)
     watermark = ('<div class="watermark">FIXTURE TEST DATA · not a deliverable</div>'
                  if ctx.run_dir.name.endswith("-fixture") else "")
-    return Template(TEMPLATE.read_text()).substitute(title=f"Rewarded-ad ideas for {escape(ctx.app['name'])}",
+    return Template(TEMPLATE.read_text()).substitute(title=f"Rewarded-ad ideas for {escape(app)}",
                                                      slides=watermark + "\n".join(slides))
 
 

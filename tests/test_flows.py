@@ -207,6 +207,14 @@ def test_the_flow_slide_walks_from_today_to_what_they_get_and_says_each_thing_on
     assert deck.count("When the reward runs out") == 2
 
 
+def test_the_cover_names_the_app_as_the_model_reads_it_else_the_config_key_title_cased(built):
+    deck = (built / "flows" / "slides.html").read_text()
+    app = built.parent.name
+    assert f"<h1>Rewarded-ad ideas for {app.title()}</h1>" in deck and f"<title>Rewarded-ad ideas for {app.title()}" in deck
+    named = golden(app).model_copy(update={"app_name": "Janitor AI"})
+    assert flows.app_title(named, app) == "Janitor AI" and flows.app_title(golden(app), app) == app.title()
+
+
 def test_main_slides_carry_no_ids_or_cost_math(built):
     texts = [text for _, _, text in slides(built)]
     assert texts
