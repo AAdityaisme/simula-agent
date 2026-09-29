@@ -209,7 +209,7 @@ def test_assets_are_cropped_to_their_rect_for_in_scope_states_only(app, tmp_path
             assert not e.in_mock or s.in_mock_scope
 
 
-def test_flat_crops_and_wordless_corner_boxes_get_no_asset(tmp_path):
+def test_flat_crops_get_no_asset_and_wordless_corner_boxes_are_not_drawn(tmp_path):
     """The edge-gesture areas of a real run: wordless boxes in the bottom corners, whose crops show whatever the
     screen has under them. Art and a full-width wordless banner keep their crops."""
     rng = np.random.default_rng(0)
@@ -231,8 +231,9 @@ def test_flat_crops_and_wordless_corner_boxes_get_no_asset(tmp_path):
     (tmp_path / "assets").mkdir()
     done = stage.finish_elements(state, {"s01"}, set(), Image.fromarray(pixels), tmp_path, DEVICE)
     assert [(e.id, bool(e.asset_png), e.in_mock) for e in done.elements] == [
-        ("s01.e01", False, False), ("s01.e02", False, False), ("s01.e03", False, False),
-        ("s01.e04", True, True), ("s01.e05", True, True), ("s01.e06", True, True)]
+        ("s01.e01", False, False), ("s01.e02", False, False), ("s01.e03", False, True),
+        ("s01.e04", True, True), ("s01.e05", True, True), ("s01.e06", True, True)], \
+        "a flat box is drawn from its colors, with no asset"
     assert sorted(p.name for p in (tmp_path / "assets").iterdir()) == ["s01.e04.png", "s01.e05.png", "s01.e06.png"]
 
 
