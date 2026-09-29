@@ -14,7 +14,7 @@ from playwright.sync_api import sync_playwright
 
 from simula import llm, render
 from simula.contracts import (GATES, JUDGMENT, CandidatesFile, Check, Decision, DecisionsFile, Economics, Edit, Edits,
-                              Verdict)
+                              FlowStep, Verdict)
 from simula.runlog import read_trace
 from simula.stages import flows
 from simula.stages.mock import copy_assets, pick_scope, with_runtime
@@ -663,6 +663,43 @@ def test_saying_no_must_return_to_the_start_with_nothing_granted_and_the_offer_m
     assert "saying no changes nothing" not in texts[("c01", "why")].lower()
     assert "Nothing free is taken away, and saying no changes nothing." in texts[("c02", "why")]
     assert any(line.step == "decline:c01" and line.outcome == "error" for line in read_trace(run_dir / "trace.jsonl"))
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_saying_no_taps_the_offers_way_back_not_the_screens_own_close(tmp_path, app):
+    """The offer is drawn on a screen that already has a back control to another screen; saying no must use the
+    offer's own control, which returns to the first step."""
+    model = golden(app)
+    scope = {s.id for s in pick_scope(model)}
+    own = next((e for e in model.edges if e.transition == "back" and e.from_state != e.to_state
+                and {e.from_state, e.to_state} <= scope), None)
+    if own is None:
+        pytest.skip(f"no screen in {app}'s golden scope has its own back control")
+    screen = own.from_state
+    steps = [FlowStep(state_id=state, caption=caption) for state, caption in
+             [(screen, "The screen is open"), (screen, "The offer shows"), ("new:ad", "They play"),
+              (screen, "The bonus shows")]]
+    run_dir = seed_run(tmp_path, app, {"c01": {"trigger_state_id": screen, "flow_steps": steps}})
+    c = golden_idea(run_dir)
+    style = 'style="position:absolute;left:20px;top:{}px;z-index:20"'
+    offer = (f'<p {style.format(500)}>{c.offer_copy}</p><div data-reward {style.format(40)}>Bonus on</div>'
+             f'<button data-edge="{screen}>new:ad" data-transition="modal" {style.format(560)}>Play</button>'
+             f'<button data-edge="{screen}>{screen}" data-transition="back" {style.format(620)}>No thanks</button>')
+
+    def editor(**kwargs):
+        page = flows.strip_runtime((run_dir / "mock" / "index.html").read_text())
+        tag = re.search(rf'<section[^>]*data-screen="{screen}"[^>]*>', page).group(0)
+        close = page.index("</section>", page.index(tag))
+        ad = f'<section data-screen="new:ad" data-flow="c01" data-parent="{screen}" data-ad></section>'
+        return Edits(edits=[Edit(find=page[close - 40:close + 10], replace=page[close - 40:close] + offer
+                                 + page[close:close + 10], reason="offer after the screen's own controls"),
+                            Edit(find="</body>", replace=ad + "</body>", reason="ad")]), None
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(llm, "call", editor)
+        flows.run(ctx_for(run_dir, app))
+    row = next(line for line in (run_dir / "exhibits" / "07-flows.md").read_text().splitlines()
+               if line.startswith("| c01"))
+    assert "| 4 / 4 | 1 | ok | ok |" in row, row
 
 
 @pytest.mark.parametrize("app", APPS)

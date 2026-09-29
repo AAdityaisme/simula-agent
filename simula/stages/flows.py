@@ -555,9 +555,13 @@ def back_where_it_started(page, first: str, action: str) -> str:
     return f"{action} granted the reward" if grants or reward else ""
 
 
+def visible(page, selector: str) -> list:
+    return [el for el in page.locator(selector).all() if el.is_visible()]
+
+
 def walk_decline(flow_dir: Path, c: Candidate, ad: str | None, ad_at: int) -> tuple[bool | None, str]:
-    """The second, short walk: reach the offer, check it shows the offer copy, tap its control that goes back, and
-    check the app is as it was. Returns whether the copy was shown (None when the offer couldn't be reached) and why
+    """The second, short walk: reach the offer, check it shows the offer copy, tap its control that goes back (the
+    one back to the first step before any other, such as the app's own close), and check the app is as it was. Returns whether the copy was shown (None when the offer couldn't be reached) and why
     saying no failed ("" when it worked)."""
     steps = [s.state_id for s in c.flow_steps]
     with render.open_mock(flow_dir) as (page, _):
@@ -567,8 +571,8 @@ def walk_decline(flow_dir: Path, c: Candidate, ad: str | None, ad_at: int) -> tu
         offer = state(page)
         copy = words(c.offer_copy)
         shown = bool(copy) and copy in words(page.locator(f'[data-screen="{offer}"]').inner_text())
-        back = [b for b in page.locator(f'[data-screen="{offer}"] [data-edge][data-transition="back"]').all()
-                if b.is_visible()]
+        goes_back = f'[data-screen="{offer}"] [data-edge][data-transition="back"]'
+        back = visible(page, f'{goes_back}[data-edge$=">{steps[0]}"]') or visible(page, goes_back)
         if not back:
             return shown, f"the offer on {offer} has no visible control that goes back"
         try:
