@@ -477,6 +477,7 @@ def test_a_term_its_screen_explains_is_observed_although_the_ledger_quotes_that_
     for t in terms:
         if t.observed:
             assert RERUN_EXPLAINS[t.term] in set(t.defined_by) & quoted, t.term
+    assert {t.term: t.anchor_taps for t in terms if t.anchor_taps} == {"Janitor Plus": ["s06.e44>s13"]}
 
 
 PAYWALL_BULLETS = ["s13.e02", "s13.e09", "s13.e10", "s13.e11"]  # what the model cited for Janitor Plus
@@ -491,8 +492,11 @@ def test_a_recorded_tap_on_an_anchor_carries_its_term_to_the_screen_it_opened():
     states, meaning, edges, model_labels = real_terms("janitorai-2026-09-29")
     assert "s06.e44>s13" in {g.id for g in edges}
     term = janitor_plus(edges, states, meaning, model_labels)
-    assert (term.observed, term.defined_by) == (True, PAYWALL_BULLETS)
+    assert (term.observed, term.defined_by, term.anchor_taps) == (True, PAYWALL_BULLETS, ["s06.e44>s13"])
     assert not janitor_plus([], states, meaning, model_labels).observed, "with no recorded tap, s13 never names it"
+    md = stage.render_md(golden("janitorai").model_copy(update={"terms": [term]}))
+    line = f"- **Janitor Plus**: {term.meaning} · defined by {', '.join(PAYWALL_BULLETS)} · through tap s06.e44>s13"
+    assert line in md
 
 
 def bare_name(states: list[State]) -> list[State]:
@@ -511,6 +515,45 @@ def test_only_a_tap_on_app_text_that_says_more_than_the_term_carries_it_to_the_n
         edges = [g.model_copy(update={"action": "swipe"}) if g.id == "s06.e44>s13" else g for g in edges]
     term = janitor_plus(edges, states, meaning, model_labels)
     assert (term.observed, term.defined_by) == (False, [])
+
+
+def test_a_tap_that_changed_its_own_screen_opened_nothing():
+    """Red team PR13 @408cd35 #4: an in-place tap on the uncited anchor would make its own screen's cited neighbors
+    count, as if it had opened that screen."""
+    states, meaning, edges, model_labels = real_terms("janitorai-2026-09-29")
+    drafted = next(t for t in meaning.terms if t.term == "Janitor Plus")
+    meaning.terms[:] = [drafted.model_copy(update={"defined_by": ["s06.e42"]})]  # "Billing", beside the anchor
+    in_place = Edge(id="s06.e44>s06", from_state="s06", to_state="s06", element_id="s06.e44", action="tap",
+                    transition="unknown", change_summary="+'Plan selected'")
+    (term,) = stage.resolve_terms(meaning, states, [*edges, in_place], model_labels)
+    assert (term.observed, term.defined_by, term.anchor_taps) == (False, [], [])
+
+
+@pytest.mark.parametrize("cited", [["s15.e04"], ["s03.e08"]], ids=["on-the-screen-a-tap-opened", "on-its-own-screen"])
+def test_a_count_never_defines_its_term_wherever_it_sits(cited):
+    """Red team PR13 @408cd35 #1: explore tapped the row "Kang Jun-Seo (Idol x Idol), 08:52, 7 chats" (s03.e05, an
+    anchor for "chats"), which opened the sheet s15. "7 chats" there (s15.e04) carries the term but is a count, so
+    it can't define it, just like the same count on the list (s03.e08)."""
+    states, meaning, edges, model_labels = real_terms("janitorai-2026-09-29")
+    assert "s03.e05>s15" in {g.id for g in edges}
+    drafted = next(t for t in meaning.terms if t.term == "chats")
+    meaning.terms[:] = [drafted.model_copy(update={"defined_by": cited})]
+    (term,) = stage.resolve_terms(meaning, states, edges, model_labels)
+    assert (term.observed, term.defined_by, term.anchor_taps) == (False, [], [])
+
+
+def test_a_tap_from_any_element_that_names_the_term_carries_it_to_the_screen_it_opened():
+    """The documented known limit, pinned: code can't tell whether the opened screen is about the term, so a tap on
+    an element that names it in passing still carries it. On the five saved real runs every such tap opens a screen
+    about its term: a plan's paywall, a pet's page, a character's chat list."""
+    states, meaning, edges, model_labels = real_terms("janitorai-2026-09-29")
+    drafted = next(t for t in meaning.terms if t.term == "Hidden Gems")
+    meaning.terms[:] = [drafted.model_copy(update={"defined_by": ["s13.e10"]})]
+    unrelated = Edge(id="s01.e15>s13", from_state="s01", to_state="s13", element_id="s01.e15", action="tap",
+                     transition="push", change_summary="")
+    assert not stage.resolve_terms(meaning, states, edges, model_labels)[0].observed
+    (term,) = stage.resolve_terms(meaning, states, [*edges, unrelated], model_labels)
+    assert (term.observed, term.defined_by) == (True, ["s13.e10"])
 
 
 def test_a_sentence_that_only_uses_a_term_counts_if_the_model_cites_it():
@@ -601,6 +644,24 @@ def test_a_term_in_a_script_with_vowel_signs_can_be_observed(term, words):
     meaning.terms[:] = [TermMeaning(term=term, meaning="a unit characters spend", defined_by=["s02.e04"], used_in=[],
                                     everyday=False)]
     (resolved,) = stage.resolve_terms(meaning, states, edges, model_labels)
+    assert (resolved.observed, resolved.defined_by) == (True, ["s02.e04"])
+
+
+@pytest.mark.parametrize("term, words", [("Energy", "⚡️Energy refills every 4 hours"), ("Gems", "💎️Gems: 120 left"),
+                                         ("Premium", "⭐️Premium members skip the line")],
+                         ids=["energy", "gems", "premium"])
+def test_a_term_written_right_after_an_emoji_is_kept_and_observed(term, words):
+    """Red team PR13 @408cd35 #3: the emoji's presentation selector (U+FE0F) is a mark, but it sits on the emoji, not
+    on a letter, so it doesn't join the emoji to the word after it. Before, the merge check dropped such a term."""
+    states, meaning, edges, model_labels = real_terms("janitorai")
+    states = [s.model_copy(update={"elements": [e.model_copy(update={"text": words}) if e.id == "s02.e04" else e
+                                                for e in s.elements]}) for s in states]
+    meaning.value_ledger.append(LedgerItem(id="vl-term", kind="meter", verbatim=words, evidence_ids=["s02.e04"]))
+    meaning.terms[:] = [TermMeaning(term=term, meaning="a unit characters spend", defined_by=["s02.e04"],
+                                    used_in=["vl-term"], everyday=False)]
+    kept, rejected = stage.check_meaning(meaning, states, edges)
+    assert not [r for r in rejected if r.startswith("term") or "vl-term" in r]
+    (resolved,) = stage.resolve_terms(kept, states, edges, model_labels)
     assert (resolved.observed, resolved.defined_by) == (True, ["s02.e04"])
 
 
@@ -712,6 +773,23 @@ def test_the_stage_writes_a_valid_model(name, tmp_path, monkeypatch):
     assert (ctx.run_dir / "exhibits" / "02-model.md").exists()
     images = [p for m in calls[0]["messages"] for p in m["content"] if p["type"] == "image"]
     assert 1 <= len(images) <= stage.MAX_IMAGES
+
+
+def test_a_term_observed_through_a_tap_names_that_tap_in_the_trace_and_the_model(tmp_path, monkeypatch):
+    """Luzia's golden: "Upgrade to Luzia+" (s03.e05) opens the paywall s02, whose bullet "Advanced reasoning mode"
+    (s02.e03) the model cites; nothing cited on s02 names the plan."""
+    answer = recorded_answer(golden("luzia"))
+    answer.terms.append(TermMeaning(term="Luzia+", meaning="The paid plan.", defined_by=["s02.e03"], used_in=["m01"],
+                                    everyday=False))
+    fake_calls(monkeypatch, [answer, answer])
+    ctx = make_ctx("luzia", tmp_path)
+    stage.run(ctx)
+    model = ProductModel.model_validate_json((ctx.run_dir / "model" / "product_model.json").read_text())
+    (term,) = model.terms
+    assert (term.observed, term.defined_by, term.anchor_taps) == (True, ["s02.e03"], ["s03.e05>s02"])
+    [line] = [t for t in read_trace(ctx.run_dir / "trace.jsonl") if t.step == "term_tap"]
+    assert line.note == "Luzia+ observed through tap s03.e05>s02, which opened the screen of s02.e03"
+    assert "· through tap s03.e05>s02" in (ctx.run_dir / "model" / "product_model.md").read_text()
 
 
 def test_a_rejected_answer_is_retried_once_and_both_rounds_are_logged(tmp_path, monkeypatch):

@@ -518,20 +518,24 @@ def keyword_floor(state: State, keywords: list[str]) -> ContentRating:
 
 
 def resolve_terms(meaning: ModelMeaning, states: list[State], edges: list[Edge], model_labels: set[str]) -> list[Term]:
-    """A term keeps its meaning only when a cited element carries it (as a whole word) and, with the term cut out,
-    still says something in words of two or more letters: an anchor. So a bare name or a count ("1.8k tokens") can't
-    define it. Only the element's on-screen text decides; whether the model also quoted it in the ledger doesn't
-    matter. Other cited elements (the bullets under a plan's name) count when they sit on an anchor's screen, or on
-    the screen a recorded tap on an anchor opened ("Upgrade to <term>" opening the plan's benefit list), whatever a
-    mechanic cites as evidence. A label a model wrote (`model_labels`) is never app text, so it neither shows the
-    term nor explains it. Otherwise the term is marked 'meaning not observed', and an idea that uses it is flagged
-    unless the model labeled it `everyday`; the label is kept as written and never makes a term observed. Known
-    limits: a call to action ("Unlock <term>"), a role word in an app's own label ("<term> tab") or a sentence that
-    only uses the term ("monthly <term> with our models") reads as an explanation, and a price on a plan card
-    ("Weekly", "$1.99") doesn't; which cited text explains the term stays the model's call."""
+    """Which terms a screen explains. An anchor is app text that carries the term (as a whole word) and, with the term
+    cut out, still says something in words of two or more letters, so a bare name or a count ("1.8k tokens") is never
+    one. A screen is explained when a cited element on it is an anchor, or when a recorded tap on an anchor (cited or
+    not) opened it: "Upgrade to <term>" opening the plan's benefit list; a tap that changed its own screen opens
+    nothing. On an explained screen, a cited element that carries the term counts only if it is an anchor itself, and
+    one that doesn't (the bullets under a plan's name) counts when it has any word character. `defined_by` keeps what
+    counts, so it holds only the model's own citations and may name none of the anchors; `anchor_taps` names the taps
+    it relied on. Only on-screen text decides: whether the model also quoted an element in the ledger doesn't matter,
+    and a label a model wrote (`model_labels`) is never app text. A term with nothing that counts is marked 'meaning
+    not observed', and an idea that uses it is flagged unless the model labeled it `everyday`; the label is kept as
+    written and never makes a term observed. Known limits: a call to action ("Unlock <term>"), a role word in an app's
+    own label ("<term> tab") or a sentence that only uses the term ("monthly <term> with our models") reads as an
+    explanation, a tap on an element that names the term only in passing (a list row "<name>, 2 <term>") carries it
+    to whatever screen that tap opened, and a price on a plan card ("Weekly", "$1.99") doesn't explain; which cited
+    text explains the term stays the model's call."""
     elements = {e.id: e for s in states for e in s.elements}
     screen = {e.id: s.id for s in states for e in s.elements}
-    taps = [g for g in edges if g.action == "tap" and g.element_id in elements]
+    taps = [g for g in edges if g.action == "tap" and g.element_id in elements and g.to_state != g.from_state]
 
     def app_text(e: Element) -> list[str]:
         return [e.text] if e.id in model_labels else [e.text, e.label]
@@ -539,18 +543,27 @@ def resolve_terms(meaning: ModelMeaning, states: list[State], edges: list[Edge],
     def rest(e: Element, name: re.Pattern[str]) -> str:
         return " ".join(name.sub(" ", f) for f in app_text(e))
 
+    def carries(e: Element, name: re.Pattern[str]) -> bool:
+        return any(name.search(f) for f in app_text(e))
+
     def anchors(e: Element, name: re.Pattern[str]) -> bool:
-        return any(name.search(f) for f in app_text(e)) and WORD.search(rest(e, name)) is not None
+        return carries(e, name) and WORD.search(rest(e, name)) is not None
+
+    def counts(e: Element, name: re.Pattern[str]) -> bool:
+        return anchors(e, name) if carries(e, name) else re.search(r"\w", rest(e, name)) is not None
 
     terms = []
     for t in meaning.terms:
         name = text.phrase(t.term)
         cited = [elements[i] for i in t.defined_by if i in elements]
-        explained = ({screen[e.id] for e in cited if anchors(e, name)}
-                     | {g.to_state for g in taps if anchors(elements[g.element_id], name)})
-        defined_by = [e.id for e in cited if screen[e.id] in explained and re.search(r"\w", rest(e, name))]
+        anchored = {screen[e.id] for e in cited if anchors(e, name)}
+        opened = [g for g in taps if anchors(elements[g.element_id], name)]
+        explained = anchored | {g.to_state for g in opened}
+        defined_by = [e.id for e in cited if screen[e.id] in explained and counts(e, name)]
+        through = {screen[i] for i in defined_by} - anchored
         terms.append(Term(term=t.term, meaning=t.meaning if defined_by else NOT_OBSERVED, defined_by=defined_by,
-                          used_in=t.used_in, everyday=t.everyday, observed=bool(defined_by)))
+                          used_in=t.used_in, everyday=t.everyday, observed=bool(defined_by),
+                          anchor_taps=[g.id for g in opened if g.to_state in through]))
     return terms
 
 
@@ -742,6 +755,7 @@ def render_md(model: ProductModel) -> str:
     lines += ["", "## App terms", ""]
     lines += [f"- **{t.term}**{EVERYDAY if t.everyday else ''}: {t.meaning}"
               + (f" · defined by {', '.join(t.defined_by)}" if t.observed else "")
+              + (f" · through tap {', '.join(t.anchor_taps)}" if t.anchor_taps else "")
               + f" · used in {', '.join(t.used_in)}" for t in model.terms] or ["- none"]
     lines += ["", "## Values shared across screens", ""]
     lines += [f"- {v.label}: {v.value_text} · {', '.join(v.evidence_ids)}" for v in model.cross_screen_values] or ["- none"]
@@ -878,6 +892,11 @@ def run(ctx: Ctx) -> None:
         terms=resolve_terms(meaning, states, edges, model_labels),
         questions=[OpenQuestion(id=f"q{n}", **q.model_dump()) for n, q in enumerate(meaning.open_questions, start=1)],
         mock_order=mock_order)
+    for t in model.terms:
+        if t.anchor_taps:
+            run_trace(ctx.run_dir, stage="model", step="term_tap", decider="code",
+                      note=f"{t.term} observed through tap {', '.join(t.anchor_taps)}, which opened the screen of "
+                           f"{', '.join(t.defined_by)}")
     (out / "product_model.json").write_text(model.model_dump_json(indent=1))
     (out / "product_model.md").write_text(render_md(model))
     write_exhibit(ctx.run_dir, 2, "model", exhibit(model, rounds, notes, assets))

@@ -368,6 +368,9 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
         for file_key in damaged:
             trace(trace_path, stage=stage, step=step, decider="code", model=model, effort=effort, outcome="error",
                   note=f"cache entry {file_key[:12]} can't be read, so it is skipped and a new try goes after it")
+            if file_key[:12] in named:  # the answer this run recorded is gone: never replay another run's in its place
+                raise ReplayMiss(f"--replay: the cached response {stage}/{step} recorded (key {file_key[:12]}) "
+                                 "can't be read")
         chosen[key] = None if no_cache else recorded(tries)
         if chosen[key] and not chosen[key][1].failure:
             break

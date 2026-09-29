@@ -430,3 +430,15 @@ def test_an_unreadable_entry_is_skipped_and_traced_and_the_next_try_goes_after_i
     assert call(tmp_path)[0].word == "b" and len(calls) == 2, "the next run reads the try written after it"
     [skipped] = [line for line in read_trace(tmp_path / "trace.jsonl") if line.outcome == "error"][:1]
     assert "can't be read" in skipped.note and entry.stem[:12] in skipped.note
+
+
+def test_a_replay_whose_recorded_entry_is_unreadable_misses_rather_than_take_another_runs_answer(tmp_path, monkeypatch):
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "a"}', '{"word": "b"}'], []))
+    call(tmp_path, trace_path=tmp_path / "run-a.jsonl")
+    call(tmp_path, trace_path=tmp_path / "run-b.jsonl", no_cache=True)
+    first = tmp_path / "cache" / f"{read_trace(tmp_path / 'run-a.jsonl')[-1].note.split()[1]}"
+    [entry] = [p for p in (tmp_path / "cache").glob("*.json") if p.stem.startswith(first.name)]
+    entry.write_text("{")
+    with pytest.raises(llm.ReplayMiss, match="can't be read"):
+        call(tmp_path, trace_path=tmp_path / "run-a.jsonl", replay=True)
+    assert call(tmp_path, trace_path=tmp_path / "run-b.jsonl", replay=True)[0].word == "b", "run b still replays"
