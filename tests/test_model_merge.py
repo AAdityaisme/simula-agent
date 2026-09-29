@@ -11,7 +11,7 @@ from simula.config import app_config
 from simula.contracts import (Device, Edge, Element, ElementMeaning, Flow, LedgerItem, Mechanic, ModelMeaning,
                               ProductModel, QuestionDraft, Rect, State, StateMeaning, TermMeaning)
 from simula.runlog import read_trace
-from simula.stages import Ctx
+from simula.stages import Ctx, rerun_command
 from simula.stages import model as stage
 from tests.conftest import APPS, FIXTURES
 from tests.explore_fixture import add_core_loop, build
@@ -450,6 +450,7 @@ def test_a_failed_retry_on_a_model_with_gaps_asks_for_a_human_and_continues(tmp_
     assert (ctx.run_dir / "model" / "raw_reply.txt").read_text() == '{"flows": ['
     asked = (ctx.run_dir / "needs-human.md").read_text()
     assert "the product model has gaps" in asked and "no core flow survived" in asked
+    assert "**Continue with:** `simula model luzia --run run --profile dev --budget transfer --allow-fixtures`" in asked
 
 
 def test_a_failed_call_asks_for_a_human_and_keeps_the_raw_answer(tmp_path, monkeypatch):
@@ -457,7 +458,8 @@ def test_a_failed_call_asks_for_a_human_and_keeps_the_raw_answer(tmp_path, monke
     ctx = make_ctx(APPS[2], tmp_path)
     with pytest.raises(llm.LLMFailure):
         stage.run(ctx)
-    assert "meaning call failed" in (ctx.run_dir / "needs-human.md").read_text()
+    asked = (ctx.run_dir / "needs-human.md").read_text()
+    assert "meaning call failed" in asked and f"`{rerun_command('model', ctx)}`" in asked and "--profile dev" in asked
     assert (ctx.run_dir / "model" / "raw_reply.txt").read_text() == '{"app_category": "chat", '
     assert json.loads((ctx.run_dir / "trace.jsonl").read_text().splitlines()[-1])["outcome"] == "blocked"
 
