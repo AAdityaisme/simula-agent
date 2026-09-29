@@ -9,6 +9,7 @@ from playwright.sync_api import Error as PlaywrightError
 from simula import render
 from simula.contracts import Edge
 from simula.render import content_dp, open_mock, render_and_validate
+from simula.render import CAPTURE_REFUSED, screenshot
 from simula.stages.mock import copy_assets, pick_scope, scope_edges, with_runtime
 from tests.conftest import APPS, FIXTURES, ROOT
 from tests.mock_fake import golden, skeleton_html
@@ -126,7 +127,7 @@ def test_every_image_is_loaded_before_the_first_screenshot_even_a_lazy_one_on_a_
 
 class RefusingPage:
     """A page whose first `refusals` captures Chromium refuses with `error`."""
-    def __init__(self, refusals: int, error: str = render.CAPTURE_REFUSED):
+    def __init__(self, refusals: int, error: str = CAPTURE_REFUSED):
         self.calls, self.refusals, self.error = 0, refusals, error
 
     def screenshot(self, **options) -> bytes:
@@ -138,14 +139,14 @@ class RefusingPage:
 
 def test_a_refused_capture_is_tried_once_more_and_nothing_else_is():
     once = RefusingPage(1)
-    assert render.screenshot(once, animations="disabled") == b"png" and once.calls == 2
+    assert screenshot(once, animations="disabled") == b"png" and once.calls == 2
     twice = RefusingPage(2)
-    with pytest.raises(PlaywrightError, match=render.CAPTURE_REFUSED):
-        render.screenshot(twice)
+    with pytest.raises(PlaywrightError, match=CAPTURE_REFUSED):
+        screenshot(twice)
     assert twice.calls == 2
     closed = RefusingPage(1, error="Target page, context or browser has been closed")
     with pytest.raises(PlaywrightError, match="has been closed"):
-        render.screenshot(closed)
+        screenshot(closed)
     assert closed.calls == 1
 
 
