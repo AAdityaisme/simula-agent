@@ -136,7 +136,7 @@ def run(ctx: Ctx) -> None:
     html = with_runtime(wire_edges(stitch(style, fonts, parts), model, screens), home_id(scope))
     (mock_dir / "index.html").write_text(html)
 
-    checked = render.render_and_validate(mock_dir, model, screens)
+    checked = render.render_and_validate(mock_dir, model, screens, crops=crop_origins(model, mock_dir))
     errors = [ContractError(kind="undrawn_screen", detail=f"screen not drawn: {reason}", screen=sid)
               for sid, reason in undrawn.items()] + batch_errors + checked.errors
     report = ContractReport(passed=not errors, screens=screens, errors=errors)
@@ -205,9 +205,10 @@ def scope_edges(model: ProductModel, scope: list[State]) -> list[Edge]:
     return [e for e in model.edges if e.from_state in ids and e.to_state in ids]
 
 
-def usable_asset(e: Element, device: Device) -> bool:
-    """An asset the builder may use: one that, drawn at its rect, stays under the no-wallpaper limit."""
-    return bool(e.in_mock and e.asset_png) and under_wallpaper_limit(e.rect_dp, device)
+def usable_asset(e: Element, elements: list[Element], device: Device) -> bool:
+    """An asset the builder may use. One holding no other element's words or image can't be a screenshot of
+    interface, so it may be any size; any other stays under the no-wallpaper limit."""
+    return bool(e.in_mock and e.asset_png) and (not holds_ui(e, elements) or under_wallpaper_limit(e.rect_dp, device))
 
 
 def under_wallpaper_limit(r: Rect, device: Device) -> bool:
@@ -215,9 +216,35 @@ def under_wallpaper_limit(r: Rect, device: Device) -> bool:
     return area(overlap(r, screen)) <= render.WALLPAPER_SHARE * area(screen)
 
 
+def shows_ui(e: Element) -> bool:
+    """Listed interface: an element with words or an image of its own."""
+    return bool(e.text or e.label or e.asset_png)
+
+
+def holds_ui(e: Element, elements: list[Element]) -> bool:
+    """Whether another element's words or image lie inside e's rect, so a crop of e would bake that interface in."""
+    return any(o.id != e.id and shows_ui(o) and contains(e.rect_dp, o.rect_dp) for o in elements)
+
+
+def crop_origins(model: ProductModel, mock_dir) -> dict[str, tuple[str, Rect]]:
+    """The contract check's exemption list: every code-made image that holds no listed interface, each src with its
+    screen and the content-dp rect it was cut from. That is every art crop in mock_dir/art.json (art search avoids
+    words and images by construction) and every element asset with no other element's words or image inside it."""
+    path = mock_dir / "art.json"
+    art = json.loads(path.read_text())["art"] if path.exists() else {}
+    crops = {}
+    for s in model.states:
+        for e in s.elements:
+            if art_src(e.id) in art:
+                crops[art_src(e.id)] = (s.id, Rect(**art[art_src(e.id)]))
+            if e.asset_png and not holds_ui(e, s.elements):
+                crops[e.asset_png] = (s.id, e.rect_dp)
+    return crops
+
+
 def copy_assets(model_dir, mock_dir, scope: list[State], device: Device) -> None:
     (mock_dir / "assets").mkdir(parents=True, exist_ok=True)
-    for e in (e for s in scope for e in s.elements if usable_asset(e, device)):
+    for e in (e for s in scope for e in s.elements if usable_asset(e, s.elements, device)):
         shutil.copyfile(model_dir / e.asset_png, mock_dir / "assets" / f"{e.id}.png")
 
 
@@ -238,14 +265,14 @@ def crop_art(model_dir, mock_dir, scope: list[State], device: Device) -> dict[st
 
 
 def find_art(state: State, image: Image.Image, device: Device) -> dict[str, Rect]:
-    """For each drawn element with no asset and no text of its own (its words cover its rect): the largest
-    picture-like region inside it that nothing else is drawn over, unless that region is wallpaper-sized.
-    image is the state's content-area screenshot."""
+    """For each element with no asset and no text of its own (its words cover its rect), drawn or a wordless
+    container: the largest picture-like region inside it that nothing else is drawn over. Such a region holds no
+    listed words or image, so it may be any size. image is the state's content-area screenshot."""
     screen = content_rect(device)
-    cropped = [e.rect_dp for e in state.elements if usable_asset(e, device)]
+    cropped = [e.rect_dp for e in state.elements if usable_asset(e, state.elements, device)]
     art = {}
     for e in state.elements:
-        if not e.in_mock or e.asset_png or e.text:
+        if e.asset_png or e.text:
             continue
         box = overlap(e.rect_dp, screen)
         blockers = [r for r in (overlap(o.rect_dp, box) for o in state.elements if drawn_over(o, e)) if area(r) > 0]
@@ -254,9 +281,8 @@ def find_art(state: State, image: Image.Image, device: Device) -> dict[str, Rect
                 continue
             if not is_picture(crop_px(image, rect, device.scale)):
                 continue
-            if under_wallpaper_limit(rect, device):
-                art[e.id] = rect
-                cropped.append(rect)
+            art[e.id] = rect
+            cropped.append(rect)
             break
     return art
 
@@ -265,7 +291,7 @@ def drawn_over(other: Element, container: Element) -> bool:
     """Another element with words or an image of its own. A bigger element around the container is its parent."""
     a, b = other.rect_dp, container.rect_dp
     around = contains(a, b) and area(a) > area(b)
-    return other.id != container.id and bool(other.text or other.label or other.asset_png) and not around
+    return other.id != container.id and shows_ui(other) and not around
 
 
 def free_rects(box: Rect, blockers: list[Rect], min_side: float) -> list[Rect]:
@@ -543,13 +569,13 @@ def state_brief(state: State, device: Device, art: dict[str, Rect]) -> dict:
     tagged = tagged_ids(state)
     elements = []
     for e in state.elements:
-        if not e.in_mock:
+        if not e.in_mock and e.id not in art:
             continue
         item = {"id": e.id, "type": e.type, "text": e.text, "label": e.label, "role": e.role,
                 "x": round(e.rect_dp.x, 1), "y": round(e.rect_dp.y, 1), "w": round(e.rect_dp.w, 1), "h": round(e.rect_dp.h, 1),
                 "fg": e.fg_hex, "bg": e.bg_hex, "font": e.font_guess,
                 "text_h": round(e.font_px / device.scale, 1) if e.font_px else None,
-                "asset": f"assets/{e.id}.png" if usable_asset(e, device) else None, "tag": e.id in tagged,
+                "asset": f"assets/{e.id}.png" if usable_asset(e, state.elements, device) else None, "tag": e.id in tagged,
                 "art": {"src": art_src(e.id), "rect": art[e.id].model_dump()} if e.id in art else None}
         elements.append({k: v for k, v in item.items() if v not in (None, "", "unknown")})
     return {"id": state.id, "kind": state.kind, "parent": state.parent_id, "name": state.name,
