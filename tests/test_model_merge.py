@@ -490,17 +490,20 @@ def test_a_tap_that_changed_its_own_screen_opened_nothing():
     assert (term.observed, term.defined_by, term.anchor_taps) == (False, [], [])
 
 
-@pytest.mark.parametrize("cited", [["s15.e04"], ["s03.e08"]], ids=["on-the-screen-a-tap-opened", "on-its-own-screen"])
-def test_a_count_never_defines_its_term_wherever_it_sits(cited):
+@pytest.mark.parametrize("cited, kept", [(["s15.e04"], []), (["s03.e08"], []), (["s03.e05", "s03.e08"], ["s03.e05"])],
+                         ids=["on-the-screen-a-tap-opened", "on-its-own-screen", "beside-a-cited-anchor"])
+def test_a_count_never_defines_its_term_wherever_it_sits(cited, kept):
     """Red team PR13 @408cd35 #1: explore tapped the row "Kang Jun-Seo (Idol x Idol), 08:52, 7 chats" (s03.e05, an
     anchor for "chats"), which opened the sheet s15. "7 chats" there (s15.e04) carries the term but is a count, so
-    it can't define it, just like the same count on the list (s03.e08)."""
+    it can't define it, just like the same count on the list (s03.e08). Red team PR13 @f9bf25f #3: when the model
+    also cites that row, s03 is explained (the documented in-passing limit), and the count beside it still doesn't
+    count."""
     states, meaning, edges, model_labels = real_terms("janitorai-2026-09-29")
     assert "s03.e05>s15" in {g.id for g in edges}
     drafted = next(t for t in meaning.terms if t.term == "chats")
     meaning.terms[:] = [drafted.model_copy(update={"defined_by": cited})]
     (term,) = stage.resolve_terms(meaning, states, edges, model_labels)
-    assert (term.observed, term.defined_by, term.anchor_taps) == (False, [], [])
+    assert (term.observed, term.defined_by, term.anchor_taps) == (bool(kept), kept, [])
 
 
 def test_a_tap_from_any_element_that_names_the_term_carries_it_to_the_screen_it_opened():
