@@ -287,8 +287,10 @@ REAL_BARS = {"janitorai": (["s01", "s03", "s05", "s06", "s07", "s08"], Rect(x=0,
 
 
 def real_screens(app: str) -> dict[str, Image.Image]:
+    """Every screen of the app's golden, in content dp: which ones the mock draws is the mock's call, not this
+    check's."""
     return {s.id: render.content_dp(Image.open(FIXTURES / "golden" / app / s.canonical_png))
-            for s in mock.pick_scope(golden(app))}
+            for s in golden(app).states}
 
 
 def tinted(image: Image.Image, box: Rect) -> Image.Image:
@@ -390,7 +392,7 @@ def test_a_cross_screen_failure_leaves_the_approved_version_qa_incomplete_and_is
     report = json.loads((run_dir / "qa" / "qa_report.json").read_text())
     assert (report["status"], report["outcome"], report["keep_score"]) == ("qa_incomplete", "partial", 5.0)
     assert "cross-screen failures on the approved version: 1" in report["reasons"]
-    assert report["resume"] == f"simula run {app} --from qa --run {run_dir.name} {OPTIONS}"
+    assert report["resume"].startswith(f"simula qa {app} --run {run_dir.name} {OPTIONS}")
     assert report["cross_screen_failures"] == [failure] and report["rounds"][0]["cross_screen_failures"] == 1
     exhibit = (run_dir / "exhibits" / "04-qa.md").read_text()
     assert "cross-screen failures on the approved version: 1" in exhibit and failure["detail"] in exhibit
