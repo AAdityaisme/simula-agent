@@ -488,7 +488,7 @@ def criticize_group(ctx: Ctx, budget: llm.Budget, version: Version, history: lis
                     + json.dumps(pictures(ctx, ids), separators=(",", ":"))
                     + "\n\nEarlier rounds:\n" + json.dumps(history, separators=(",", ":"))})
     return ask(ctx, budget, version, step=f"critic r{n} g{k}", model=role["model"], effort=role.get("effort"),
-               system=prompt("critic"), content=content, max_tokens=role["max_tokens"],
+               system=prompt("critic"), content=content, max_tokens=config.max_tokens(role),
                schema=Critique)
 
 
@@ -519,7 +519,7 @@ def fix(ctx: Ctx, budget: llm.Budget, model: ProductModel, version: Version, cri
                     + without_runtime(version.html) + "\n```"})
     return ask(ctx, budget, version, step=f"fixer r{n}", model=role["model"], effort=effort,
                system=prompt("fixer") + "\n\n" + mock.contract_text(), content=content,
-               max_tokens=role["max_tokens"], schema=Edits)
+               max_tokens=config.max_tokens(role), schema=Edits)
 
 
 def named_screens(model: ProductModel, critique: Critique) -> set[str]:
