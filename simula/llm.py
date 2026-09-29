@@ -20,6 +20,7 @@ from simula.runfolder import write_json_atomic
 from simula.runlog import read_trace, record_fallback, trace
 
 CACHE = config.ROOT / "cache"
+TRANSPORT = ("timeout", "error")  # a lost call, not an answer: stored so --replay can follow it, retried on a rerun
 IMAGE_TOKENS_WORST = 4784  # high-res tier cap per image (Anthropic vision docs, 2026-09-27)
 RATE_HEADERS = ("anthropic-ratelimit-", "x-ratelimit-", "retry-after")
 REQUEST_TIMEOUT_S = 180.0
@@ -111,6 +112,23 @@ def cache_key(provider: str, model: str, system: str, messages: list[dict], para
 def cache_read(key: str, cache_dir: Path = CACHE) -> Reply | None:
     path = cache_dir / f"{key}.json"
     return Reply(**json.loads(path.read_text())) if path.exists() else None
+
+
+def cache_tries(key: str, cache_dir: Path = CACHE) -> tuple[list[tuple[str, Reply]], str]:
+    """Every recorded try of one attempt, oldest first, as (file key, reply), and the file key a new try goes to.
+    Entries are write-once: a new try of an attempt whose record was a lost call gets the next key."""
+    tries = []
+    while True:
+        file_key = key if not tries else hashlib.sha256(f"{key}:{len(tries)}".encode()).hexdigest()
+        reply = cache_read(file_key, cache_dir)
+        if reply is None:
+            return tries, file_key
+        tries.append((file_key, reply))
+
+
+def trace_keys(trace_path: Path) -> dict[str, int]:
+    """Each cache file a model trace line names (its first 12 hex), with the index of the last line naming it."""
+    return {line.note.split()[1]: n for n, line in enumerate(read_trace(trace_path)) if line.note.startswith("key ")}
 
 
 def cache_write(key: str, reply: Reply, cache_dir: Path = CACHE) -> None:
@@ -319,29 +337,39 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
               "schema": json_schema_for(provider, schema) if schema else None}
     keys = [cache_key(provider, model, system, messages, params, attempt) for attempt in range(attempts)]
     last, pending = LLMFailure("error", "no attempt made"), []
-    recorded = {}
+    named = trace_keys(trace_path) if replay else {}
+
+    def recorded(tries: list[tuple[str, Reply]]) -> tuple[str, Reply] | None:
+        """--replay follows the try this run's trace names last (else the first one). A normal run takes the latest
+        try the model answered: a known failure is never paid for again, and a lost call is transient, so it is
+        tried again."""
+        if replay:
+            used = [t for t in tries if t[0][:12] in named]
+            return max(used, key=lambda t: named[t[0][:12]]) if used else (tries[0] if tries else None)
+        answered = [t for t in tries if t[1].failure not in TRANSPORT]
+        return answered[-1] if answered else None
+
+    chosen, fresh = {}, {}
     for key in keys:  # up to the first recorded answer; the attempts after it are never read
-        recorded[key] = None if no_cache else cache_read(key, cache_dir)
-        if recorded[key] and not recorded[key].failure:
+        tries, fresh[key] = cache_tries(key, cache_dir)
+        chosen[key] = None if no_cache else recorded(tries)
+        if chosen[key] and not chosen[key][1].failure:
             break
-    # Recorded failures replay under --replay, and on a normal run only when a later attempt has a recorded
-    # answer, so the run follows its recorded path there for free. A chain that ended in failure is tried
-    # fresh from the first attempt: whoever reruns a failed call wants a new try.
-    follow = replay or any(r and not r.failure for r in recorded.values())
     for key in keys:
-        cached = recorded.get(key) if follow else None
-        if cached is None:
+        if chosen.get(key) is None:
             pending.append(key)
-        elif cached.failure:
+            continue
+        file_key, cached = chosen[key]
+        if cached.failure:
             last = LLMFailure(cached.failure, cached.stop_reason, raw=cached.text)
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
                   tokens_in=cached.tokens_in, tokens_out=cached.tokens_out, cache_hit=True, outcome=cached.failure,
-                  note=f"key {key[:12]} recorded failed attempt")
+                  note=f"key {file_key[:12]} recorded failed attempt")
         else:
             result = _parse(cached, schema)
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
                   tokens_in=cached.tokens_in, tokens_out=cached.tokens_out, cache_hit=True, outcome="ok",
-                  note=f"key {key[:12]}")
+                  note=f"key {file_key[:12]}")
             return result, cached
     if not pending:
         raise last
@@ -359,9 +387,9 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
             budget.charge(cost, worst)
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
                   tokens_in=e.tokens_in, tokens_out=e.tokens_out, usd=round(cost, 6), outcome=e.outcome,
-                  note=f"key {key[:12]} {str(e)[:200]}")
-            cache_write(key, Reply(text=e.raw, model=model, tokens_in=e.tokens_in, tokens_out=e.tokens_out,
-                                   stop_reason=e.detail, failure=e.outcome), cache_dir)
+                  note=f"key {fresh[key][:12]} {str(e)[:200]}")
+            cache_write(fresh[key], Reply(text=e.raw, model=model, tokens_in=e.tokens_in, tokens_out=e.tokens_out,
+                                          stop_reason=e.detail, failure=e.outcome), cache_dir)
             continue
         except BaseException:
             budget.charge(0.0, worst)  # an untyped exit (a bug, Ctrl-C, a cap) still gives back its hold
@@ -372,14 +400,14 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
         trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
               tokens_in=reply.tokens_in, tokens_out=reply.tokens_out, tokens_cached=reply.tokens_cached,
               usd=round(cost, 6), outcome=outcome,
-              note=f"key {key[:12]} {time.monotonic() - started:.1f}s" + ("" if outcome == "ok" else f" stop={reply.stop_reason}"))
+              note=f"key {fresh[key][:12]} {time.monotonic() - started:.1f}s" + ("" if outcome == "ok" else f" stop={reply.stop_reason}"))
         if outcome == "ok":
-            cache_write(key, reply, cache_dir)
+            cache_write(fresh[key], reply, cache_dir)
             return result, reply
-        # The model answered but the answer failed: record it, so a replay (or a rerun) takes the same path
-        # to the next attempt or the caller's own retry without paying for this one again.
+        # The model answered but the answer failed: record it, so a replay or a rerun takes the same path to the
+        # next attempt or the caller's own retry without paying for this one again.
         reply.failure = outcome
-        cache_write(key, reply, cache_dir)
+        cache_write(fresh[key], reply, cache_dir)
         last = LLMFailure(outcome, reply.stop_reason, raw=reply.text)
     raise last
 

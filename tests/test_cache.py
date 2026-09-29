@@ -86,18 +86,19 @@ def test_two_bad_answers_raise_a_typed_failure(tmp_path, monkeypatch):
     assert [e["failure"] for e in entries] == ["schema_fail", "schema_fail"]
 
 
-def test_a_chain_that_ended_in_failure_replays_under_replay_and_is_tried_fresh_on_a_rerun(tmp_path, monkeypatch):
+def test_a_chain_the_model_answered_badly_is_never_paid_for_again_until_its_input_changes(tmp_path, monkeypatch):
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['nope', 'still nope'], []))
     with pytest.raises(llm.LLMFailure):
         call(tmp_path)
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
-    with pytest.raises(llm.LLMFailure) as failure:
-        call(tmp_path, replay=True)
-    assert (failure.value.outcome, failure.value.raw) == ("schema_fail", "still nope")
+    for replay in (True, False):
+        with pytest.raises(llm.LLMFailure) as failure:
+            call(tmp_path, replay=replay)
+        assert (failure.value.outcome, failure.value.raw) == ("schema_fail", "still nope")
     rerun_calls = []
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "fresh"}'], rerun_calls))
-    result, _ = call(tmp_path)
-    assert result.word == "fresh" and len(rerun_calls) == 1
+    result, _ = call(tmp_path, max_tokens=200)
+    assert result.word == "fresh" and len(rerun_calls) == 1, "a changed input is a new call"
 
 
 def test_a_failed_one_attempt_call_replays_to_the_callers_own_retry(tmp_path, monkeypatch):
@@ -120,10 +121,7 @@ def test_a_failed_one_attempt_call_replays_to_the_callers_own_retry(tmp_path, mo
     assert stage().word == "short" and calls == ["xhigh", "high"]
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
     assert stage(replay=True).word == "short"
-    # On a normal rerun the failed call is a chain that ended in failure, so it gets a new try; the caller's
-    # retry is a different call, and its recorded answer is still free.
-    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider)
-    assert stage().word == "short" and calls == ["xhigh", "high", "xhigh"]
+    assert stage().word == "short", "a rerun follows the recorded max_tokens to the retry's answer, and pays for neither"
 
 
 def test_a_rerun_of_an_interrupted_chain_with_no_recorded_answer_starts_fresh(tmp_path, monkeypatch):
@@ -143,6 +141,9 @@ def test_no_cache_skips_reads(tmp_path, monkeypatch):
     call(tmp_path)
     result, _ = call(tmp_path, no_cache=True)
     assert result.word == "b" and len(calls) == 2
+    assert call(tmp_path)[0].word == "b" and len(calls) == 2, "a normal run then takes the latest answer"
+    assert sorted(json.loads(p.read_text())["text"] for p in (tmp_path / "cache").glob("*.json")) == \
+        ['{"word": "a"}', '{"word": "b"}'], "and the first is kept, not overwritten"
 
 
 def test_replay_miss_fails_before_any_call(tmp_path, monkeypatch):
@@ -225,6 +226,27 @@ def test_replay_of_a_primary_error_gives_the_fallbacks_answer_with_no_calls(tmp_
     assert result.word == "luna"
 
 
+def test_a_timeout_is_tried_again_on_a_rerun_and_each_run_replays_its_own_path(tmp_path, monkeypatch):
+    def times_out(model, system, messages, effort, schema, max_tokens, total_timeout=None):
+        raise llm.LLMFailure("timeout", "stream stalled")
+    run_a, run_b = tmp_path / "a" / "trace.jsonl", tmp_path / "b" / "trace.jsonl"
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", times_out)
+    with pytest.raises(llm.LLMFailure):
+        call(tmp_path, trace_path=run_a, attempts=1)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
+    with pytest.raises(llm.LLMFailure, match="timeout"):
+        call(tmp_path, trace_path=run_a, attempts=1, replay=True)
+    calls = []
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "later"}'], calls))
+    assert call(tmp_path, trace_path=run_b, attempts=1)[0].word == "later" and len(calls) == 1
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
+    with pytest.raises(llm.LLMFailure, match="timeout"):  # the new try never overwrote run A's record
+        call(tmp_path, trace_path=run_a, attempts=1, replay=True)
+    assert call(tmp_path, trace_path=run_b, attempts=1, replay=True)[0].word == "later"
+    assert call(tmp_path, trace_path=tmp_path / "c.jsonl", attempts=1)[0].word == "later", "a rerun is now free"
+    assert sorted(json.loads(p.read_text())["failure"] for p in (tmp_path / "cache").glob("*.json")) == ["", "timeout"]
+
+
 def test_no_fallback_unless_declared(tmp_path, monkeypatch):
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", failing_provider([]))
     with pytest.raises(llm.LLMFailure):
@@ -304,7 +326,7 @@ def test_total_timeout_cancels_a_stream_that_keeps_going(monkeypatch):
     assert stream.closed and not stream.finished
 
 
-def test_a_failed_attempt_is_recorded_and_releases_its_hold_and_a_failed_chain_reruns_fresh(tmp_path, monkeypatch):
+def test_a_failed_attempt_is_recorded_and_releases_its_hold_and_only_a_lost_call_is_tried_again(tmp_path, monkeypatch):
     first_calls = []
 
     def first_run(model, system, messages, effort, schema, max_tokens, total_timeout=None):
@@ -323,7 +345,7 @@ def test_a_failed_attempt_is_recorded_and_releases_its_hold_and_a_failed_chain_r
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "second"}'], rerun_calls))
     result, _ = call(tmp_path, budget=budget)
     recorded = sorted(json.loads(p.read_text()).get("failure", "") for p in (tmp_path / "cache").glob("*.json"))
-    assert result.word == "second" and len(rerun_calls) == 1 and recorded == ["", "timeout"]
+    assert result.word == "second" and len(rerun_calls) == 1 and recorded == ["", "schema_fail", "timeout"]
     assert budget.held == pytest.approx(0)
 
 
