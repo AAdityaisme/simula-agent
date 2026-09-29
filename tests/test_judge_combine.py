@@ -4,7 +4,7 @@ fallback; no-opportunity; checks_passed/total; and the whole stage with a fake m
 import pytest
 
 from simula import llm, runlog
-from simula.contracts import GATES, JUDGMENT, CandidatesFile, DecisionsFile, LensOutput
+from simula.contracts import GATES, JUDGMENT, CandidatesFile, DecisionsFile, LensOutput, Term
 from simula.stages import judge, propose
 from tests.conftest import APPS
 from tests.judge_helpers import ctx_for, fake_llm, idea, live, seed, verdict
@@ -276,6 +276,18 @@ def test_a_revision_that_made_the_idea_worse_leaves_its_original_as_the_fallback
     original = cands[0].id
     assert (decisions[original].final, decisions[f"{original}-rev"].gate_fails) == ("conditional", ["g_brand_safety"])
     assert not (run_dir / "judge" / "no-opportunity.md").exists()
+
+
+def test_a_revision_using_an_unobserved_term_reaches_the_judge_flagged(tmp_path, monkeypatch):
+    app = "luzia"
+    model = golden(app).model_copy(update={"terms": [Term(term="Zap", meaning="meaning not observed", defined_by=[],
+                                                          used_in=[], observed=False)]})
+    c = live(app, {"rationale": "WEAK"})[0]
+    call, _ = fake_llm({}, revision=c.model_copy(update={"title": "Idea 1, better", "offer_copy": "Play for 50 Zap."}))
+    monkeypatch.setattr(llm, "call", call)
+    r = judge.revise(ctx_for(app, tmp_path), c, [verdict(["c7_specific"], fixable=True)], model, "annotate",
+                     llm.Budget("judge", 1.0))
+    assert (r.dropped_reason, r.flags) == (None, ['uses "Zap", whose meaning was never observed'])
 
 
 def test_a_revision_that_survives_still_stands_in_for_its_original(tmp_path, monkeypatch):

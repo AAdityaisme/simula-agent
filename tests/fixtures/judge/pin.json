@@ -88,6 +88,17 @@
   ],
   "open_questions": [
    "What the paid plan costs yearly."
+  ],
+  "terms": [
+   {
+    "term": "Plus",
+    "meaning": "meaning not observed",
+    "defined_by": [],
+    "used_in": [
+     "m02"
+    ],
+    "observed": false
+   }
   ]
  },
  "candidate": {
@@ -143,7 +154,10 @@
     "caption": "The meter reads 1 left."
    }
   ],
-  "after_reward": "Next week the meter resets to 3, and the paid plan removes it for good.",
-  "rationale": "The weekly limit is where free users stop; one extra session keeps them going without giving the plan away."
+  "after_reward": "Next week the meter resets to 3, and Plus removes it for good.",
+  "rationale": "The weekly limit is where free users stop; one extra session keeps them going without giving the plan away.",
+  "flags": [
+   "uses \"Plus\", whose meaning was never observed"
+  ]
  }
 }

@@ -77,9 +77,9 @@ def read_prompt(name: str) -> str:
 # ---------- what a judge sees ----------
 
 def blind_fields(c: Candidate) -> dict:
-    """The proposal as a judge sees it: no id, lens, economics, rank, or propose's drop reason."""
+    """The proposal as a judge sees it: no id, lens, economics, rank, or code's drop reason or flags."""
     return c.model_dump(exclude={"id", "lens", "bible_mechanic", "cost_inputs", "economics", "reach_score",
-                                 "rank_score", "dropped_reason"})
+                                 "rank_score", "dropped_reason", "flags"})
 
 
 def opaque_id(c: Candidate) -> str:
@@ -121,6 +121,8 @@ def candidate_text(c: Candidate, model: ProductModel) -> str:
              f"advertiser category: {c.advertiser_category}", f"characters in the ad moment: {c.character_use}",
              "flow:", *[f"{n}. {screen(s.state_id)}: {s.caption}" for n, s in enumerate(c.flow_steps, 1)],
              f"when the reward runs out: {c.after_reward}", f"rationale: {c.rationale}"]
+    if c.flags:
+        lines += ["Code flags (rule on them under the existing checks):", *[f"- {f}" for f in c.flags]]
     return "\n".join(lines)
 
 
@@ -278,7 +280,9 @@ def revise(ctx: Ctx, c: Candidate, verdicts: list[Verdict], model: ProductModel,
     new = Candidate(**{**output.candidates[0].model_dump(), "id": f"{c.id}-rev", "lens": c.lens})
     new, _ = propose.resolve_ids(new, model)
     reason = f"no opportunity: {new.rationale}" if not is_idea(new) else propose.check(new, model)
-    new = economics.apply([new.model_copy(update={"dropped_reason": reason})], model.app_category, mode)[0]
+    flags = [] if reason else propose.jargon_flags(new, model)
+    new = economics.apply([new.model_copy(update={"dropped_reason": reason, "flags": flags})], model.app_category,
+                          mode)[0]
     return propose.with_bucket(propose.rank(new, model, mode))
 
 
