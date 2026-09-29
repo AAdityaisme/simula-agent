@@ -333,7 +333,7 @@ class CandidateDraft(Strict):
     cost_inputs: CostInputs
     frequency_cap: str
     daily_cap: int = Field(description="How many times one user can take this offer in a day: the per-user limit "
-                           "only, never a limit per character, item, or screen.")
+                           "only, never a limit per character, item, or screen. A one-time or weekly offer is 1.")
     decline_path: str
     ad_fail_path: str
     subscriber_treatment: str
