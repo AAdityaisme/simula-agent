@@ -24,6 +24,9 @@ from tests.test_mock_isolation import ctx_for, fake_builder
 from tests.test_mock_fonts import live_build_with_fonts, no_network, replay
 from tests.test_spend_limit import USAGE_LIMIT, error_400, fake_anthropic
 
+# The options ctx_for and this file's CLI calls open a run with, which a printed resume command carries.
+OPTIONS = "--profile dev --budget transfer --allow-fixtures"
+
 
 @pytest.fixture(autouse=True)
 def records(tmp_path, monkeypatch):
@@ -342,11 +345,12 @@ def test_a_provider_usage_limit_mid_qa_fails_the_stage_instead_of_approving(mock
     assert code == cli.EXIT_PROVIDER != 0
     assert not (mocked_run / "qa" / "done.json").exists() and not (mocked_run / "qa" / "approved").exists()
     assert "usage limit" in (mocked_run / "qa" / "failure.json").read_text()
-    assert f"simula run janitorai --run {mocked_run.name} --from qa" in (mocked_run / "needs-human.md").read_text()
+    human = (mocked_run / "needs-human.md").read_text()
+    assert f"simula run janitorai --from qa --run {mocked_run.name} {OPTIONS}" in human
     assert not list((mocked_run.parent.parent.parent / "cache").glob("*.json"))
 
 
-def test_our_own_cap_in_qa_still_approves_the_best_round(mocked_run):
+def test_our_own_cap_in_qa_still_approves_the_best_round(mocked_run, monkeypatch):
     code = cli.main(["qa", "janitorai", "--run", mocked_run.name, "--allow-fixtures", "--profile", "dev",
                      "--usd-cap", "0.0001"])
     assert code == 0 and (mocked_run / "qa" / "done.json").exists()
@@ -354,7 +358,12 @@ def test_our_own_cap_in_qa_still_approves_the_best_round(mocked_run):
     assert (report["status"], report["outcome"], report["approved_round"]) == ("qa_incomplete", "partial", 0)
     assert "round 1 stopped before any edit: qa: next call could cost" in report["stop_reason"]
     assert report["reasons"] == [f"the review stopped early: {report['stop_reason']}"]
-    assert report["resume"] == f"simula run janitorai --run {mocked_run.name} --from qa"
+    assert report["resume"] == f"simula run janitorai --from qa --run {mocked_run.name} {OPTIONS}"
+    # Greptile on 47a0152: a resume command without the run's options refuses a fixture run. Run it as printed; the
+    # provider refuses every call here, so getting back to QA ends in exit 5 and no model is reached.
+    fake_anthropic(monkeypatch, error_400(anthropic, "https://api.anthropic.com/v1/messages", USAGE_LIMIT))
+    assert cli.main(report["resume"].split()[1:]) == cli.EXIT_PROVIDER
+    assert "usage limit" in (mocked_run / "qa" / "failure.json").read_text()
 
 
 # ---------- a synthetic 12-screen model: the critic in groups, undrawn screens ----------
@@ -522,7 +531,7 @@ def test_undrawn_screens_are_reported_and_never_scored_criticized_or_fixed(twelv
     assert calls and all(set(c["seen"]).isdisjoint(undrawn) for c in calls)
     assert (report["status"], report["outcome"]) == ("qa_incomplete", "partial") and not report["contract_errors"]
     assert report["reasons"][0] == f"the mock left screens undrawn: {', '.join(undrawn)}"
-    assert report["resume"] == f"simula run {app} --run {run_dir.name} --from mock"
+    assert report["resume"] == f"simula run {app} --from mock --run {run_dir.name} {OPTIONS}"
     edges = {e.id: e for e in mock.scope_edges(model, mock.pick_scope(model))}
     for flow in (f for f in model.flows if f.edge_ids and all(i in edges for i in f.edge_ids)):
         crosses = any({edges[i].from_state, edges[i].to_state} & set(undrawn) for i in flow.edge_ids)
