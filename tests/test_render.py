@@ -155,24 +155,32 @@ def test_a_refused_capture_is_tried_once_more_logged_and_nothing_else_is(caplog)
     assert closed.calls == 1 and len(caplog.records) == 2
 
 
+# (file, receiver) pairs whose `.screenshot` isn't a Playwright capture, each with why. The syntax tree can't tell a
+# data field or a device client from a browser page, so each one is named here.
+NOT_BROWSER: dict[tuple[str, str], str] = {
+    ("simula/stages/model.py", "sf"): "StateFile.screenshot, the saved file name of an explore capture",
+    ("simula/stages/explore.py", "self.phone"): "the mobile-mcp device client shooting the phone, not Playwright",
+}
+
+
 def test_every_browser_capture_goes_through_render_screenshot():
-    """Every `.screenshot(...)` call under simula/ (page, frame, tab, locator) is render.screenshot or one of the
-    helper's own two. Calls come from the syntax tree, so spacing, line breaks, comments, and strings can't hide or
-    fake one."""
-    direct, helper_calls = [], 0
+    """Every `.screenshot` under simula/ (page, frame, tab, locator; called in place, bound to a name, or handed to a
+    pool) is render.screenshot, one of the helper's own two, or a receiver in NOT_BROWSER. References come from the
+    syntax tree, so spacing, line breaks, comments, and strings can't hide or fake one."""
+    direct, helper_refs = [], 0
     for path in sorted((ROOT / "simula").rglob("*.py")):
         tree = ast.parse(path.read_text())
         helper = next((node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)
                        and node.name == "screenshot"), None) if path.name == "render.py" else None
         inside = {id(node) for node in ast.walk(helper)} if helper else set()
         for node in ast.walk(tree):
-            if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
-                    and node.func.attr == "screenshot"):
+            if not (isinstance(node, ast.Attribute) and node.attr == "screenshot"):
                 continue
-            if isinstance(node.func.value, ast.Name) and node.func.value.id == "render":
+            receiver = ast.unparse(node.value)
+            if receiver == "render" or (str(path.relative_to(ROOT)), receiver) in NOT_BROWSER:
                 continue
             if id(node) in inside:
-                helper_calls += 1
+                helper_refs += 1
             else:
                 direct.append(f"{path.relative_to(ROOT)}:{node.lineno}")
-    assert direct == [] and helper_calls == 2, (direct, helper_calls)
+    assert direct == [] and helper_refs == 2, (direct, helper_refs)
