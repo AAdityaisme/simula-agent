@@ -471,7 +471,8 @@ def exhibit(lenses: list[Lens], candidates: list[Candidate], repairs: dict[str, 
                   f"- Reward: {c.reward.amount:g} {c.reward.unit} ({c.reward.kind}, {c.reward.duration})",
                   f"- When the reward ends: {c.after_reward}",
                   f"- Cost: {c.economics.assumption_line}",
-                  f"- Reach scenario: {c.reach_score:g} (trigger depth x daily cap; not a measured audience)"]
+                  f"- Reach scenario: {c.reach_score:g} (trigger depth x the proposer's per-user daily cap, "
+                  f"{c.daily_cap}; not a measured audience). The offer's cap: {c.frequency_cap}"]
         lines += [f"- Flag: {flag}" for flag in c.flags]
     dropped = [c for c in candidates if c.dropped_reason]
     if dropped:

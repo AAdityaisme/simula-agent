@@ -252,6 +252,14 @@ def test_reach_reads_the_typed_per_user_cap_never_the_prose(model, frequency_cap
     assert propose.rank(c, model, "annotate").rank_score == 0.5 * daily_cap
 
 
+def test_the_exhibit_shows_the_typed_cap_beside_the_offers_own_cap(model):
+    """Code can't tell a per-user limit from a per-character one in prose, so a person sees both side by side."""
+    offer_cap = "1 per user per day; each character at most 10 times per day"
+    live = finish([candidate(model, frequency_cap=offer_cap, daily_cap=10)], model, "annotate")[0]
+    text = propose.exhibit([], live, {}, model, "not needed")
+    assert f"per-user daily cap, 10; not a measured audience). The offer's cap: {offer_cap}" in text
+
+
 def test_no_daily_cap_is_dropped_and_an_older_file_without_one_still_parses(model):
     assert check(candidate(model, daily_cap=0), model) == "doesn't give a per-user daily cap"
     older = candidate(model).model_dump(exclude={"daily_cap"})
