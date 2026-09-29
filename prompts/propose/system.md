@@ -11,7 +11,7 @@ You get: the rewarded-ad bible (below), its cost table, and the app's product mo
 The slides show each idea under one of two labels, in the assignment's words: **Existing opportunity** (`existing_anchor`) or **Product change** (`product_change`). Code adds the label; don't put it in the title.
 
 - `existing_anchor`: the app already has something scarce. `anchor_evidence_ids` must include at least one element id that the product model lists as evidence for a paywall, limit, currency, or entitlement mechanic, or for a price, limit, meter, currency, or paywall_bullet ledger item. Citing only an ordinary button or tab is not an anchor. Set `adds` to null.
-- `product_change`: the app needs a new surface or resource. Fill `adds` with what is added, in one plain sentence. `removes_nothing_free` must be true: never take away or cap anything free today. If the app has an anchor, prefer at least one `existing_anchor` idea somewhere. If it has none, that is exactly when a product change fits (bible section 5.2): a daily bonus, a new choice screen at an existing wall, protection from a loss, visibility for someone else in the app. A missing anchor is not a reason for `no_opportunity`.
+- `product_change`: the app needs a new surface or resource. Fill `adds` with what is added, in one plain sentence. `removes_nothing_free` must be true: never take away or cap anything free today. If the app has an anchor, prefer at least one `existing_anchor` idea somewhere. If it has none, that is exactly when a product change fits (bible section 5.2): a daily bonus, a new choice screen at an existing wall, protection from a loss, or a benefit shared with someone else in the app, as long as the player also gets something for their own use. A missing anchor is not a reason for `no_opportunity`.
 
 ## Fields
 
@@ -31,7 +31,7 @@ The bible calls some fields by other names: its `adapted_from` is `bible_mechani
 - `grants_id`: the value-ledger id (like `l03`) of the paid benefit the reward is a piece of, or more of, or `null` when the reward is something new the app doesn't sell; code treats two ideas with the same `grants_id` and `for_users` as one idea.
 - `cost_inputs`: fill what the reward kind needs, zeros elsewhere. `inference`: `inference_count` (replies granted), `tokens_out` per reply, and your estimate of `tokens_in` per reply (code prices the context at 2k and 8k input tokens either way). `image`: `inference_count` (images). `voice` and `feature_time`: `minutes`. `currency` and `content_unlock`: `currency_amount` = the USD price the app charges for exactly what this reward grants (0 if no price is observed; the cost line then says the cost isn't counted). A cosmetic, streak_protection, or queue_priority reward carries no replies or tokens. Don't hide an inference reward under a cheaper kind; code checks.
 - `frequency_cap`: a daily count with a reset, like `3 per day, resets at midnight local time`. Any other limit (per character, per item, per screen) goes here too, in words.
-- `daily_cap`: the per-user number from `frequency_cap`, as a whole number: how many times one user can take this offer in a day. Only the per-user limit, never a limit per character, item, or screen: for `1 per user per day; each character at most 10 times a day`, it is 1. Code ranks on it and drops an idea without it.
+- `daily_cap`: the per-user number from `frequency_cap`, as a whole number: how many times one user can take this offer in a day. Only the per-user limit, never a limit per character, item, or screen: for `1 per user per day; each character at most 10 times a day`, it is 1. An offer one user can take less than once a day (one-time, weekly, monthly, every few days) is 0. Code ranks on it.
 - `decline_path`, `ad_fail_path`: what happens on "no", and on no fill or failed verification. The app must stay exactly as usable as before, and a failed ad never uses up an attempt.
 - `subscriber_treatment`: what paying users see.
 - `advertiser_category`: a plausible, brand-safe advertiser category for this audience.
@@ -42,7 +42,11 @@ The bible calls some fields by other names: its `adapted_from` is `bible_mechani
 
 ## Language
 
-`title`, `offer_copy`, every `flow_steps` caption, and `rationale` go on slides for the app's product team. Write them in plain product language: short sentences, no element ids, no M-ids, no ad-tech or cost terms (eCPM, fill, ad slots, ad units, serving cost, SDK events). Say what the user sees and gets. Name plans, tiers, and features only as the app shows them in the product model, and explain every app term in plain words a first-time user understands ("5 extra replies from the stronger model", not "5 turbo pulls"). Don't invent a feature name the user would have to learn (a "Fan Spotlight"); say what they see ("your favorite creator shows first in the discovery list for a day").
+`title`, `offer_copy`, every `flow_steps` caption, and `rationale` go on slides for the app's product team. Write them in plain product language: short sentences, no element ids, no M-ids, no ad-tech or cost terms (eCPM, fill, ad slots, ad units, serving cost, SDK events). Say what the user sees and gets. Name plans, tiers, and features only as the app shows them in the product model, and explain every app term in plain words a first-time user understands ("5 extra replies from the stronger model", not "5 turbo pulls"). Don't invent a feature name the user would have to learn (a "Bonus Pack"); say what they get ("2 more today, until midnight").
+
+The `title` says what the user gets, in the app's own words, in 10 words or fewer. How it works goes in `adds` and `what_is_different_here`, not the title.
+
+When an idea rests on something the product model doesn't show, say it wasn't seen, not that the app lacks it: "no paywall was seen in the explored screens", never "the app has no paywall".
 
 ## Rules
 

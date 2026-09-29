@@ -9,7 +9,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from simula.config import ROOT, STAGES
-from simula.contracts import Manifest, TraceLine
+from simula.contracts import DoneMarker, Manifest, TraceLine
 from simula.runfolder import read_done, write_json_atomic
 
 BUILD_TRACE = ROOT / "build" / "trace.jsonl"
@@ -59,15 +59,25 @@ def sync_manifest(run_dir: Path) -> Manifest:
     return update_manifest(run_dir, stages_done=done, usd_total=round(usd_total, 4))
 
 
-def complete(run_dir: Path, stage: str) -> bool:
-    """Whether the stage's marker shows it complete. A marker that can't be read counts as not done, with a trace line
-    naming it, so it never blocks the run that would rewrite it."""
+def read_marker(run_dir: Path, stage: str) -> DoneMarker | None:
+    """The stage's done.json while it holds. None when there is none, when the stage failed after it last finished
+    (a newer failure.json, the rule upstream stages are held to), or when it can't be read, with a trace line naming
+    it, so it never blocks the run that would rewrite it."""
+    done, failure = run_dir / stage / "done.json", run_dir / stage / "failure.json"
     try:
         marker = read_done(run_dir / stage)
     except (ValidationError, OSError) as e:
         run_trace(run_dir, stage=stage, step="marker", decider="code", outcome="error",
                   note=f"done.json can't be read, so the stage counts as not done: {e}"[:300])
-        return False
+        return None
+    if marker and failure.exists() and failure.stat().st_mtime > done.stat().st_mtime:
+        return None
+    return marker
+
+
+def complete(run_dir: Path, stage: str) -> bool:
+    """Whether the stage's marker shows it complete."""
+    marker = read_marker(run_dir, stage)
     return marker is not None and marker.outcome.status == "complete"
 
 
