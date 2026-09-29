@@ -801,9 +801,9 @@ def condition(decision: Decision, c: Candidate, run_dir: Path) -> str:
 
 
 def why_html(flow: dict, model: ProductModel, run_dir: Path) -> str:
-    c, decision, shots = flow["candidate"], flow["decision"], flow["shots"]
-    gets = shots[-1]["caption"] if len(shots) > flow["ad_at"] + 1 else reward_line(c)
-    blocks = [("What the user gets", gets),
+    c, decision = flow["candidate"], flow["decision"]
+    gets = reward_line(c)  # the offer's terms: the flow slide already shows what the screen does after the play
+    blocks = [("What the user gets", gets[:1].upper() + gets[1:] + "."),
               ("What the app gets", c.rationale),
               ("What it never costs them", f"Nothing free is taken away, and saying no changes nothing. "
                                            f"{c.subscriber_treatment}")]
