@@ -5567,7 +5567,7 @@
      "bg_hex": "#303337",
      "font_px": 71.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -5590,12 +5590,12 @@
       "h": 32.0
      },
      "role": "button",
-     "asset_png": "assets/s05.e02.png",
+     "asset_png": null,
      "fg_hex": "#ffffff",
      "bg_hex": "#303337",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -5618,12 +5618,12 @@
       "h": 42.67
      },
      "role": "text input",
-     "asset_png": "assets/s05.e03.png",
+     "asset_png": null,
      "fg_hex": "#8f9193",
      "bg_hex": "#45484b",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -5646,12 +5646,12 @@
       "h": 43.81
      },
      "role": "container",
-     "asset_png": "assets/s05.e04.png",
+     "asset_png": null,
      "fg_hex": "#ffffff",
      "bg_hex": "#45484b",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -5679,7 +5679,7 @@
      "bg_hex": "#303337",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -5707,7 +5707,7 @@
      "bg_hex": "#303337",
      "font_px": 39.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -5735,7 +5735,7 @@
      "bg_hex": "#303337",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -5763,7 +5763,7 @@
      "bg_hex": "#303337",
      "font_px": 39.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -5791,7 +5791,7 @@
      "bg_hex": "#303337",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -5819,7 +5819,7 @@
      "bg_hex": "#303337",
      "font_px": 39.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -5847,7 +5847,7 @@
      "bg_hex": "#303337",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -5875,7 +5875,7 @@
      "bg_hex": "#303337",
      "font_px": 39.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -5903,7 +5903,7 @@
      "bg_hex": "#2a2b2e",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -5931,7 +5931,7 @@
      "bg_hex": "#2a2b2e",
      "font_px": 39.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -5959,7 +5959,7 @@
      "bg_hex": "#2a2b2e",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -5987,7 +5987,7 @@
      "bg_hex": "#2a2b2e",
      "font_px": 51.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6015,7 +6015,7 @@
      "bg_hex": "#7a65a1",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6043,7 +6043,7 @@
      "bg_hex": "#7e69a2",
      "font_px": 41.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6071,7 +6071,7 @@
      "bg_hex": "#434446",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6099,7 +6099,7 @@
      "bg_hex": "#444548",
      "font_px": 41.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6127,7 +6127,7 @@
      "bg_hex": "#7b65a1",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6155,7 +6155,7 @@
      "bg_hex": "#7d69a2",
      "font_px": 41.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6183,7 +6183,7 @@
      "bg_hex": "#434446",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6211,7 +6211,7 @@
      "bg_hex": "#454648",
      "font_px": 41.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6239,7 +6239,7 @@
      "bg_hex": "#434447",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6267,7 +6267,7 @@
      "bg_hex": "#454648",
      "font_px": 41.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6295,7 +6295,7 @@
      "bg_hex": "#303337",
      "font_px": 42.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6323,7 +6323,7 @@
      "bg_hex": "#303337",
      "font_px": 42.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6351,7 +6351,7 @@
      "bg_hex": "#303337",
      "font_px": 42.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6379,7 +6379,7 @@
      "bg_hex": "#303337",
      "font_px": 42.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6407,7 +6407,7 @@
      "bg_hex": "#303337",
      "font_px": 43.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6435,7 +6435,7 @@
      "bg_hex": "#303337",
      "font_px": 42.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6463,7 +6463,7 @@
      "bg_hex": "#303337",
      "font_px": 42.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6491,7 +6491,7 @@
      "bg_hex": "#303337",
      "font_px": 42.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6519,7 +6519,7 @@
      "bg_hex": "#303337",
      "font_px": 42.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6547,7 +6547,7 @@
      "bg_hex": "#303337",
      "font_px": 42.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6575,7 +6575,7 @@
      "bg_hex": "#303337",
      "font_px": 42.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6603,7 +6603,7 @@
      "bg_hex": "#303337",
      "font_px": 43.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6626,12 +6626,12 @@
       "h": 36.19
      },
      "role": "container",
-     "asset_png": "assets/s05.e39.png",
+     "asset_png": null,
      "fg_hex": "#87888a",
      "bg_hex": "#2d2f33",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6659,7 +6659,7 @@
      "bg_hex": "#303337",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6687,7 +6687,7 @@
      "bg_hex": "#303337",
      "font_px": 43.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6710,12 +6710,12 @@
       "h": 36.19
      },
      "role": "container",
-     "asset_png": "assets/s05.e42.png",
+     "asset_png": null,
      "fg_hex": "#e1e1e1",
      "bg_hex": "#2a2b2e",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6743,7 +6743,7 @@
      "bg_hex": "#5f5050",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6771,7 +6771,7 @@
      "bg_hex": "#472a5e",
      "font_px": 42.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6799,7 +6799,7 @@
      "bg_hex": "#7551a6",
      "font_px": 38.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6827,7 +6827,7 @@
      "bg_hex": "#7e6dd1",
      "font_px": 38.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6855,7 +6855,7 @@
      "bg_hex": "#080a0f",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6883,7 +6883,7 @@
      "bg_hex": "#4f2f66",
      "font_px": 42.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6911,7 +6911,7 @@
      "bg_hex": "#391681",
      "font_px": 38.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6939,7 +6939,7 @@
      "bg_hex": "#3e1d81",
      "font_px": 38.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6967,7 +6967,7 @@
      "bg_hex": "#160729",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -6995,7 +6995,7 @@
      "bg_hex": "#160729",
      "font_px": 34.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7023,7 +7023,7 @@
      "bg_hex": "#1a0b2e",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7051,7 +7051,7 @@
      "bg_hex": "#1a0b2e",
      "font_px": 360.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7079,7 +7079,7 @@
      "bg_hex": "#1c0e31",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7107,7 +7107,7 @@
      "bg_hex": "#1c0e31",
      "font_px": 30.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7135,7 +7135,7 @@
      "bg_hex": "#211536",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7163,7 +7163,7 @@
      "bg_hex": "#211536",
      "font_px": 30.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7191,7 +7191,7 @@
      "bg_hex": "#1c0f31",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7219,7 +7219,7 @@
      "bg_hex": "#1c0f31",
      "font_px": 30.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7247,7 +7247,7 @@
      "bg_hex": "#231838",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7275,7 +7275,7 @@
      "bg_hex": "#241939",
      "font_px": 30.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7303,7 +7303,7 @@
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7331,7 +7331,7 @@
      "bg_hex": "#000000",
      "font_px": 30.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7359,7 +7359,7 @@
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7387,7 +7387,7 @@
      "bg_hex": "#000000",
      "font_px": 30.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7415,7 +7415,7 @@
      "bg_hex": "#160729",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7443,7 +7443,7 @@
      "bg_hex": "#160729",
      "font_px": 34.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7471,7 +7471,7 @@
      "bg_hex": "#1a0c2f",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7499,7 +7499,7 @@
      "bg_hex": "#180a2c",
      "font_px": 120.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7527,7 +7527,7 @@
      "bg_hex": "#190b2e",
      "font_px": 40.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7555,7 +7555,7 @@
      "bg_hex": "#1b0d30",
      "font_px": 120.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7583,7 +7583,7 @@
      "bg_hex": "#1c0f31",
      "font_px": 80.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7611,7 +7611,7 @@
      "bg_hex": "#221737",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7639,7 +7639,7 @@
      "bg_hex": "#231838",
      "font_px": 30.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7667,7 +7667,7 @@
      "bg_hex": "#1c0f31",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7695,7 +7695,7 @@
      "bg_hex": "#1c0f31",
      "font_px": 30.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7723,7 +7723,7 @@
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7751,7 +7751,7 @@
      "bg_hex": "#000000",
      "font_px": 30.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7779,7 +7779,7 @@
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7807,7 +7807,7 @@
      "bg_hex": "#000000",
      "font_px": 30.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7835,7 +7835,7 @@
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7863,7 +7863,7 @@
      "bg_hex": "#000000",
      "font_px": 30.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7891,7 +7891,7 @@
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7919,7 +7919,7 @@
      "bg_hex": "#000000",
      "font_px": 30.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7947,7 +7947,7 @@
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -7975,7 +7975,7 @@
      "bg_hex": "#000000",
      "font_px": 30.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -8003,7 +8003,7 @@
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -8031,7 +8031,7 @@
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -8059,7 +8059,7 @@
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -8087,7 +8087,7 @@
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -8115,7 +8115,7 @@
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -8138,12 +8138,12 @@
       "h": 74.29
      },
      "role": "container",
-     "asset_png": "assets/s05.e93.png",
+     "asset_png": null,
      "fg_hex": null,
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -8166,16 +8166,16 @@
       "h": 74.29
      },
      "role": "container",
-     "asset_png": "assets/s05.e94.png",
+     "asset_png": null,
      "fg_hex": null,
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     }
    ],
-   "in_mock_scope": true,
+   "in_mock_scope": false,
    "content_rating": "mixed",
    "dynamic_regions": [],
    "blocked_reason": null
@@ -8644,12 +8644,12 @@
       "h": 32.0
      },
      "role": "button",
-     "asset_png": "assets/s07.e01.png",
+     "asset_png": null,
      "fg_hex": "#ffffff",
      "bg_hex": "#303337",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -8677,7 +8677,7 @@
      "bg_hex": "#303337",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -8700,12 +8700,12 @@
       "h": 32.0
      },
      "role": "button",
-     "asset_png": "assets/s07.e03.png",
+     "asset_png": null,
      "fg_hex": "#ffffff",
      "bg_hex": "#303337",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -8733,7 +8733,7 @@
      "bg_hex": "#303337",
      "font_px": 50.0,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -8761,7 +8761,7 @@
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -8789,7 +8789,7 @@
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -8817,7 +8817,7 @@
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -8845,7 +8845,7 @@
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -8873,7 +8873,7 @@
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -8896,12 +8896,12 @@
       "h": 74.29
      },
      "role": "container",
-     "asset_png": "assets/s07.e10.png",
+     "asset_png": null,
      "fg_hex": null,
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     },
     {
@@ -8924,16 +8924,16 @@
       "h": 74.29
      },
      "role": "container",
-     "asset_png": "assets/s07.e11.png",
+     "asset_png": null,
      "fg_hex": null,
      "bg_hex": "#000000",
      "font_px": null,
      "font_guess": "unknown",
-     "in_mock": true,
+     "in_mock": false,
      "repeat_group": null
     }
    ],
-   "in_mock_scope": true,
+   "in_mock_scope": false,
    "content_rating": "safe",
    "dynamic_regions": [],
    "blocked_reason": null
@@ -11320,5 +11320,13 @@
   "fixture_path": "tests/fixtures/golden/janitorai"
  },
  "terms": [],
- "questions": []
+ "questions": [],
+ "mock_order": [
+  "s01",
+  "s02",
+  "s08",
+  "s09",
+  "s03",
+  "s06"
+ ]
 }

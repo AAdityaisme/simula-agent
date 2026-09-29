@@ -18,10 +18,8 @@ from simula.stages import Ctx
 BIBLE = ROOT / "bible"
 PROMPTS = ROOT / "prompts" / "propose"
 ALLOWED_INPUTS = (BIBLE, PROMPTS)
-MAX_TOKENS = 16000
 MAX_CANDIDATES = 10
 MAX_PER_LENS = 2  # the system prompt asks each lens for 1 or 2 ideas
-NAMING_MAX_TOKENS = 4000
 MIN_DISTINCT = 4
 MAX_LEDGER_LENSES = 2
 ANCHOR_MECHANICS = {"paywall", "limit", "currency", "entitlement"}
@@ -157,7 +155,7 @@ def ask_lens(ctx: Ctx, model: ProductModel, lens: Lens, system: str, budget: llm
     try:
         output, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="propose", step=step,
                              model=role["model"], effort=role.get("effort"), system=system, messages=messages,
-                             max_tokens=min(MAX_TOKENS, config.models()[role["model"]]["max_out"]), budget=budget,
+                             max_tokens=config.max_tokens(role), budget=budget,
                              schema=LensOutput, no_cache=ctx.no_cache, replay=ctx.replay)
     except llm.LLMFailure as e:
         run_trace(ctx.run_dir, stage="propose", step=step, decider="code", outcome=e.outcome,
@@ -241,7 +239,7 @@ def resolve_ids(c: Candidate, model: ProductModel) -> tuple[Candidate, str]:
 
 
 def in_chat(placement: str) -> bool:
-    # ponytail: keyword check per clause, skipping a clause whose negation sits right before the chat word
+    # Known limit: keyword check per clause, skipping a clause whose negation sits right before the chat word
     # ("never shown in a chat"); recall belongs to the judge's brand-safety gate
     clauses = re.split(r"[.;,()]", placement)
     return any(CHAT_PLACEMENT.search(c) and not NEGATED.search(c) for c in clauses)
@@ -399,7 +397,7 @@ def name_benefits(ctx: Ctx, live: list[Candidate], budget: llm.Budget, step: str
         output, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="propose", step=step,
                              model=role["model"], effort=role.get("effort"), system="",
                              messages=[{"role": "user", "content": [{"type": "text", "text": prompt}]}],
-                             max_tokens=NAMING_MAX_TOKENS, budget=budget, schema=BenefitNames,
+                             max_tokens=config.max_tokens(role), budget=budget, schema=BenefitNames,
                              no_cache=ctx.no_cache, replay=ctx.replay)
     except llm.LLMFailure as e:
         run_trace(ctx.run_dir, stage="propose", step=step, decider="code", outcome=e.outcome,

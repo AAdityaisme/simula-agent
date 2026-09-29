@@ -16,9 +16,11 @@ from pathlib import Path
 from pydantic import BaseModel, ValidationError
 
 from simula import config
+from simula.runfolder import write_json_atomic
 from simula.runlog import read_trace, record_fallback, trace
 
 CACHE = config.ROOT / "cache"
+TRANSPORT = ("timeout", "error")  # a lost call, not an answer: stored so --replay can follow it, retried on a rerun
 IMAGE_TOKENS_WORST = 4784  # high-res tier cap per image (Anthropic vision docs, 2026-09-27)
 RATE_HEADERS = ("anthropic-ratelimit-", "x-ratelimit-", "retry-after")
 REQUEST_TIMEOUT_S = 180.0
@@ -30,6 +32,7 @@ class LLMFailure(Exception):
     def __init__(self, outcome: str, detail: str = "", raw: str = "", tokens_in: int = 0, tokens_out: int = 0):
         super().__init__(f"{outcome}: {detail}")
         self.outcome = outcome
+        self.detail = detail
         self.raw = raw
         self.tokens_in = tokens_in
         self.tokens_out = tokens_out
@@ -75,18 +78,25 @@ class Budget:
     spent: float = 0.0
     held: float = 0.0
     lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
+    trace_path: Path | None = None
 
     @classmethod
     def for_stage(cls, stage: str, trace_path: Path, cap: float | None = None) -> "Budget":
         spent = sum(line.usd for line in read_trace(trace_path) if line.stage == stage)
-        return cls(stage, config.stage_cap(stage) if cap is None else cap, spent)
+        return cls(stage, config.stage_cap(stage) if cap is None else cap, spent, trace_path=trace_path)
 
-    def reserve(self, worst_usd: float) -> None:
+    def reserve(self, worst_usd: float, *, step: str = "budget", key: str | None = None) -> None:
+        """Holds a call's worst case, or refuses it with CapReached. A model call passes its step and cache key, so the
+        run's record of the refusal names the call and --replay stops where the live run did."""
         with self.lock:
             if self.spent + self.held + worst_usd > self.cap:
-                raise CapReached(f"{self.stage}: next call could cost ${worst_usd:.2f}, ${self.spent:.2f} of "
-                                 f"${self.cap:.2f} already spent, ${self.held:.2f} held by calls in flight; "
-                                 "raise with --usd-cap")
+                refused = CapReached(f"{self.stage}: next call could cost ${worst_usd:.2f}, ${self.spent:.2f} of "
+                                     f"${self.cap:.2f} already spent, ${self.held:.2f} held by calls in flight; "
+                                     "raise with --usd-cap")
+                if self.trace_path:  # the run's record that the cap cut this stage short, even if the stage goes on
+                    trace(self.trace_path, stage=self.stage, step=step, decider="code", outcome="cap",
+                          note=(f"key {key[:12]} " if key else "") + str(refused))
+                raise refused
             self.held += worst_usd
 
     def charge(self, usd: float, reserved: float) -> None:
@@ -118,10 +128,49 @@ def cache_read(key: str, cache_dir: Path = CACHE) -> Reply | None:
     return Reply(**json.loads(path.read_text())) if path.exists() else None
 
 
+def cache_tries(key: str, cache_dir: Path = CACHE) -> tuple[list[tuple[str, Reply]], str, list[str]]:
+    """Every readable recorded try of one attempt, oldest first, as (file key, reply); the file key a new try goes to;
+    and the file keys of entries that can't be read. Entries are write-once: a new try of an attempt whose record was
+    a lost call gets the next key, and an unreadable entry is skipped, never overwritten."""
+    tries, damaged, n = [], [], 0
+    while True:
+        file_key = key if n == 0 else hashlib.sha256(f"{key}:{n}".encode()).hexdigest()
+        try:
+            reply = cache_read(file_key, cache_dir)
+        except (ValueError, TypeError):  # not JSON, or not a Reply's fields
+            damaged.append(file_key)
+        else:
+            if reply is None:
+                return tries, file_key, damaged
+            tries.append((file_key, reply))
+        n += 1
+
+
+def split_key(note: str) -> tuple[str | None, str]:
+    """A trace note's cache key (its first 12 hex) and the rest of the note; (None, note) when it names no key."""
+    if not note.startswith("key "):
+        return None, note
+    _, key, *rest = note.split(" ", 2)
+    return key, rest[0] if rest else ""
+
+
+def trace_keys(trace_path: Path) -> tuple[dict[str, int], dict[str, tuple[int, str]]]:
+    """What a run's trace recorded by key: each cache file a model line names, with the index of the last line naming
+    it; and each call its $ cap turned away, with the index and the stop's message."""
+    named, capped = {}, {}
+    for n, line in enumerate(read_trace(trace_path)):
+        key, rest = split_key(line.note)
+        if key and line.outcome == "cap":
+            capped[key] = (n, rest)
+        elif key:
+            named[key] = n
+    return named, capped
+
+
 def cache_write(key: str, reply: Reply, cache_dir: Path = CACHE) -> None:
     cache_dir.mkdir(exist_ok=True)
     data = {k: v for k, v in reply.__dict__.items() if k != "headers"}
-    (cache_dir / f"{key}.json").write_text(json.dumps(data, indent=1))
+    write_json_atomic(cache_dir / f"{key}.json", json.dumps(data, indent=1))
 
 
 # ---------- money ----------
@@ -326,27 +375,71 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
               "schema": json_schema_for(provider, schema) if schema else None}
     keys = [cache_key(provider, model, system, messages, params, attempt) for attempt in range(attempts)]
     last, pending = LLMFailure("error", "no attempt made"), []
+    named, capped = trace_keys(trace_path) if replay else ({}, {})
+
+    def recorded(key: str, tries: list[tuple[str, Reply]]) -> tuple[str, Reply] | None:
+        """--replay follows the try this run's trace names last, unless the run's last record of the call is its $ cap
+        turning it away; a try the run never named is another run's, so it is never taken. A normal run takes the
+        latest try the model answered: a known failure is never paid for again, and a lost call is transient, so it
+        is tried again."""
+        if replay:
+            used = [t for t in tries if t[0][:12] in named]
+            last = max(used, key=lambda t: named[t[0][:12]]) if used else None
+            stop = capped.get(key[:12])
+            if stop and (last is None or stop[0] > named[last[0][:12]]):
+                return None
+            return last
+        answered = [t for t in tries if t[1].failure not in TRANSPORT]
+        return answered[-1] if answered else None
+
+    def last_record(key: str) -> int:
+        """The index of this run's last trace line about one attempt, a try it named or its cap stop; -1 if none."""
+        tries, _, damaged = cache_tries(key, cache_dir)
+        return max([named.get(k[:12], -1) for k in [t[0] for t in tries] + damaged] + [capped.get(key[:12], (-1,))[0]])
+
+    chosen, fresh = {}, {}
+    for n, key in enumerate(keys):  # up to the first recorded answer; the attempts after it are never read
+        tries, fresh[key], damaged = cache_tries(key, cache_dir)
+        for file_key in damaged:
+            trace(trace_path, stage=stage, step=step, decider="code", model=model, effort=effort, outcome="error",
+                  note=f"cache entry {file_key[:12]} can't be read, so it is skipped and a new try goes after it")
+            if file_key[:12] in named:  # the answer this run recorded is gone: never replay another run's in its place
+                raise ReplayMiss(f"--replay: the cached response {stage}/{step} recorded (key {file_key[:12]}) "
+                                 "can't be read")
+        chosen[key] = None if no_cache else recorded(key, tries)
+        if chosen[key] and not chosen[key][1].failure:
+            break
+        # Under --replay, an attempt with nothing to follow is where the run stopped, unless the run went on to a later
+        # attempt after it (past an entry it couldn't read), so the replay stops there too.
+        if replay and chosen[key] is None and not any(last_record(k) > last_record(key) for k in keys[n + 1:]):
+            break
     for key in keys:
-        cached = None if no_cache else cache_read(key, cache_dir)
-        if cached is None:
+        if chosen.get(key) is None:
             pending.append(key)
-        elif cached.failure:
+            continue
+        file_key, cached = chosen[key]
+        if cached.failure:
             last = LLMFailure(cached.failure, cached.stop_reason, raw=cached.text)
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
                   tokens_in=cached.tokens_in, tokens_out=cached.tokens_out, cache_hit=True, outcome=cached.failure,
-                  note="recorded failed attempt")
+                  note=f"key {file_key[:12]} recorded failed attempt")
         else:
             result = _parse(cached, schema)
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
-                  tokens_in=cached.tokens_in, tokens_out=cached.tokens_out, cache_hit=True, outcome="ok")
+                  tokens_in=cached.tokens_in, tokens_out=cached.tokens_out, cache_hit=True, outcome="ok",
+                  note=f"key {file_key[:12]}")
             return result, cached
     if not pending:
         raise last
     if replay:
-        raise ReplayMiss(f"--replay: no cached response for {stage}/{step} (key {pending[0][:12]})")
+        if stop := capped.get(pending[0][:12]):  # the live run's cap turned this call away: stop the same way
+            trace(trace_path, stage=stage, step=step, decider="code", outcome="cap",
+                  note=f"key {pending[0][:12]} {stop[1]}")
+            raise CapReached(stop[1])
+        raise ReplayMiss(f"--replay: no cached response this run recorded for {stage}/{step} (key {pending[0][:12]})")
     for key in pending:
         worst = worst_case_usd(model, estimate_tokens_in(system, messages), max_tokens)
-        budget.reserve(worst)
+        budget.reserve(worst, step=step, key=key)
         started = time.monotonic()
         try:
             reply = PROVIDERS[provider](model, system, messages, effort, schema, max_tokens, total_timeout)
@@ -360,11 +453,16 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
             cost = usd(model, failure.tokens_in, failure.tokens_out)
             budget.charge(cost, worst)
             note = str(e) if retry or not isinstance(e, Exception) else f"{type(e).__name__}, not a provider error: {e}"
+            # Only a retried failure is cached, so only its trace line names a key: a stop or a bug in our own code is
+            # no model answer, and --replay must never look for it.
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
                   tokens_in=failure.tokens_in, tokens_out=failure.tokens_out, usd=round(cost, 6),
-                  outcome=failure.outcome, note=note[:200])
+                  outcome=failure.outcome, note=(f"key {fresh[key][:12]} " if retry else "") + note[:200])
             if not retry:
                 raise
+            cache_write(fresh[key], Reply(text=failure.raw, model=model, tokens_in=failure.tokens_in,
+                                          tokens_out=failure.tokens_out, stop_reason=failure.detail,
+                                          failure=failure.outcome), cache_dir)
             last = failure
             continue
         cost = usd(model, reply.tokens_in, reply.tokens_out, reply.tokens_cached)
@@ -373,14 +471,14 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
         trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
               tokens_in=reply.tokens_in, tokens_out=reply.tokens_out, tokens_cached=reply.tokens_cached,
               usd=round(cost, 6), outcome=outcome,
-              note=f"{time.monotonic() - started:.1f}s" + ("" if outcome == "ok" else f" stop={reply.stop_reason}"))
+              note=f"key {fresh[key][:12]} {time.monotonic() - started:.1f}s" + ("" if outcome == "ok" else f" stop={reply.stop_reason}"))
         if outcome == "ok":
-            cache_write(key, reply, cache_dir)
+            cache_write(fresh[key], reply, cache_dir)
             return result, reply
-        # The model answered but the answer failed: record it, so a replay (or a rerun) takes the same path
-        # to the next attempt or the caller's own retry without paying for this one again.
+        # The model answered but the answer failed: record it, so a replay or a rerun takes the same path to the
+        # next attempt or the caller's own retry without paying for this one again.
         reply.failure = outcome
-        cache_write(key, reply, cache_dir)
+        cache_write(fresh[key], reply, cache_dir)
         last = LLMFailure(outcome, reply.stop_reason, raw=reply.text)
     raise last
 
@@ -409,17 +507,30 @@ def _parse(reply: Reply, schema: type[BaseModel] | None):
 
 
 def without_refused_images(images: list, attempt) -> tuple[object, list]:
-    """Calls attempt(images); on a refusal, bisects the set and drops the images that trigger it."""
+    """Calls attempt(images); on a refusal, bisects the set and drops the images that trigger it. A refusal
+    that leaves no image to send is raised like any refusal, never answered with None."""
     try:
         return attempt(images), []
     except LLMFailure as e:
-        if e.outcome != "refusal" or not images:
+        if e.outcome != "refusal" or len(images) < 2:
             raise
-        if len(images) == 1:
-            return None, images
     half = len(images) // 2
-    _, bad_left = without_refused_images(images[:half], attempt)
-    _, bad_right = without_refused_images(images[half:], attempt)
-    skipped = bad_left + bad_right
+    skipped = _refused(images[:half], attempt) + _refused(images[half:], attempt)
     kept = [img for img in images if not any(img is s for s in skipped)]
+    if not kept:
+        raise LLMFailure("refusal", f"all {len(images)} screenshots were refused")
     return attempt(kept), skipped
+
+
+def _refused(images: list, attempt) -> list:
+    """The images in this set that draw a refusal, found by bisecting."""
+    try:
+        attempt(images)
+        return []
+    except LLMFailure as e:
+        if e.outcome != "refusal":
+            raise
+    if len(images) == 1:
+        return images
+    half = len(images) // 2
+    return _refused(images[:half], attempt) + _refused(images[half:], attempt)
