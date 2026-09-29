@@ -194,14 +194,22 @@ def mechanic_ids() -> set[str]:
 
 def resolve_ids(c: Candidate, model: ProductModel) -> tuple[Candidate, str]:
     """Models cite a mechanic or ledger id where an element id belongs, or an element where a state belongs.
-    Both point at something real, so code maps them to the ids it checks. An `experience` item is a measured
-    fact whose evidence is edges, not elements, so it maps to nothing: context, not an anchor. Returns the
-    candidate and a note listing every repair ("" when none)."""
-    groups = ({m.id: m.evidence_ids for m in model.mechanics}
-              | {i.id: [] if i.kind == "experience" else i.evidence_ids for i in model.value_ledger})
-    repairs = [f"{i} -> {','.join(groups[i]) or 'nothing (a measured experience, not an element)'}"
-               for i in c.anchor_evidence_ids if i in groups]
-    anchors = list(dict.fromkeys(e for i in c.anchor_evidence_ids for e in groups.get(i, [i])))
+    Both point at something real, so code maps them to the ids it checks: a mechanic or ledger id becomes its
+    element evidence only, since a screen or transition can't anchor an idea (an `experience` item, whose evidence
+    is edges, becomes nothing: context, not an anchor). Returns the candidate and a note listing every repair and
+    every id it left out ("" when none)."""
+    elements = {e.id for s in model.states for e in s.elements}
+    groups = {m.id: m.evidence_ids for m in model.mechanics} | {i.id: i.evidence_ids for i in model.value_ledger}
+    anchors, repairs = [], []
+    for cited in c.anchor_evidence_ids:
+        if cited not in groups:
+            anchors.append(cited)
+            continue
+        kept = [e for e in groups[cited] if e in elements]
+        left = [e for e in groups[cited] if e not in elements]
+        anchors += kept
+        repairs.append(f"{cited} -> {','.join(kept) or 'nothing'}"
+                       + (f" ({', '.join(left)} left out: not an element)" if left else ""))
 
     def screen(state_id: str) -> str:
         if state_id.startswith("new:") or "." not in state_id:
@@ -211,7 +219,8 @@ def resolve_ids(c: Candidate, model: ProductModel) -> tuple[Candidate, str]:
 
     trigger = screen(c.trigger_state_id)
     steps = [s.model_copy(update={"state_id": screen(s.state_id)}) for s in c.flow_steps]
-    fixed = c.model_copy(update={"anchor_evidence_ids": anchors, "trigger_state_id": trigger, "flow_steps": steps})
+    fixed = c.model_copy(update={"anchor_evidence_ids": list(dict.fromkeys(anchors)), "trigger_state_id": trigger,
+                                 "flow_steps": steps})
     return fixed, "; ".join(dict.fromkeys(repairs))
 
 
@@ -256,6 +265,20 @@ def linked_problem(c: Candidate, bullet_id: str | None, model: ProductModel) -> 
     return f"{problem} (linked by the benefit-naming call)" if problem else None
 
 
+def evidence_problem(ids: list[str], model: ProductModel) -> str:
+    """Why cited ids can't be evidence: a real screen or transition is not an element id; anything else doesn't
+    exist."""
+    real = {s.id for s in model.states} | {e.id for e in model.edges}
+    missing = [i for i in ids if i not in real]
+    not_elements = [i for i in ids if i in real]
+    problems = []
+    if missing:
+        problems.append(f"cites evidence ids that don't exist: {', '.join(missing)}")
+    if not_elements:
+        problems.append(f"cites {', '.join(not_elements)}, a screen or transition, not an element id")
+    return "; ".join(problems)
+
+
 def check(c: Candidate, model: ProductModel) -> str | None:
     """Returns why a candidate is dropped, or None when it passes every code check."""
     states = {s.id: s for s in model.states}
@@ -264,7 +287,7 @@ def check(c: Candidate, model: ProductModel) -> str | None:
     existing_steps = [s.state_id for s in c.flow_steps if not s.state_id.startswith("new:")]
     bad_steps = [i for i in existing_steps if i not in states]
     if unknown:
-        return f"cites evidence ids that don't exist: {', '.join(unknown)}"
+        return evidence_problem(unknown, model)
     if c.trigger_state_id not in states:
         return f"trigger state {c.trigger_state_id!r} doesn't exist"
     if bad_steps or not c.flow_steps:

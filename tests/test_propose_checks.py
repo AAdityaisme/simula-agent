@@ -281,6 +281,27 @@ def test_mechanic_ledger_and_element_ids_resolve_to_what_they_point_at(model):
     assert out.trigger_state_id == out.flow_steps[0].state_id == element.split(".")[0]
 
 
+def test_a_mechanic_resolves_to_its_element_evidence_only_and_names_what_it_left_out(model):
+    """Red team PR4 #1: a paywall citing a transition made the idea drop as "ids that don't exist"."""
+    if not anchor_ids(model):
+        pytest.skip("no anchor to cite")
+    element = sorted(anchor_ids(model))[0]
+    edge, screen = model.edges[0].id, root(model)
+    paywall = Mechanic(id="m9", kind="paywall", status="observed", summary="A paywall.",
+                       evidence_ids=[element, edge, screen], observed_numbers=[])
+    m = model.model_copy(update={"mechanics": model.mechanics + [paywall]})
+    [out], repairs, _ = finish([anchored(m, anchor_evidence_ids=["m9"])], m, "annotate")
+    assert out.dropped_reason is None and out.anchor_evidence_ids == [element]
+    assert repairs == {"c01": f"m9 -> {element} ({edge}, {screen} left out: not an element)"}
+
+
+def test_a_real_screen_or_transition_cited_as_evidence_is_named_as_the_wrong_kind_of_id(model):
+    edge, screen = model.edges[0].id, root(model)
+    reason = check(candidate(model, anchor_evidence_ids=[edge, screen, "s99.e01"]), model)
+    assert reason == (f"cites evidence ids that don't exist: s99.e01; "
+                      f"cites {edge}, {screen}, a screen or transition, not an element id")
+
+
 def test_a_trigger_outside_the_mock_scope_is_dropped(model):
     outside = [s for s in model.states if not s.in_mock_scope]
     if not outside:
@@ -601,7 +622,7 @@ def test_citing_a_measured_experience_is_context_not_a_missing_id(model):
     m = with_experience(model)
     [out], repairs, _ = finish([candidate(m, anchor_evidence_ids=["exp1"])], m, "annotate")
     assert out.dropped_reason is None and out.anchor_evidence_ids == []
-    assert repairs == {"c01": "exp1 -> nothing (a measured experience, not an element)"}
+    assert repairs == {"c01": f"exp1 -> nothing ({m.edges[0].id} left out: not an element)"}
     [anchor], *_ = finish([candidate(m, kind="existing_anchor", adds=None, anchor_evidence_ids=["exp1"])], m, "annotate")
     assert anchor.dropped_reason == "existing_anchor cites no paywall, limit, currency, or entitlement element"
 
