@@ -10,7 +10,7 @@ Product facts come only from the product model. Something the model lists under 
 - `g_no_cash` fails if: the reward is cash or works like cash (money, a gift card, a voucher, points or tokens that can be withdrawn, sold, transferred to other people, or exchanged outside the app).
 - `g_no_chat_content` fails if: the trigger or the targeting needs chat content: what the user typed, said, or wrote (messages, topics, sentiment, notes), rather than an app event such as a counter reaching zero, a screen opening, or a button tap.
 - `g_no_free_removal` fails if: the idea removes, locks, or caps something users get free today. A new cap is allowed only on a resource that costs the app money each time it is used: model replies or queue priority.
-- `g_brand_safety` fails if: the offer renders inside a chat transcript or conversation thread, or next to content rated `unsafe` or `unknown`. It must live on app chrome (a header, a sheet, a list card, a dialog over a non-chat screen).
+- `g_brand_safety` fails if: the offer is inside the conversation itself (sent as a message, placed between messages, pinned in the message list, or dressed up as a chat or system note); it is on or over a screen rated `unsafe`, or next to content rated `unsafe`; it sits over a chat screen as anything other than a sheet or dialog that an app event opens (a limit hit, a locked item tapped, an action finished); or it is next to content rated `unknown`. The chat screen behind such a sheet or dialog is covered by it and doesn't count as next to the offer. App chrome passes (a header, a list card, a sheet or dialog over a non-chat screen), and so does that sheet or dialog over a chat screen not rated `unsafe`.
 
 ## Judgment checks
 
