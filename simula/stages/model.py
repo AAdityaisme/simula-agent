@@ -483,7 +483,8 @@ def check_meaning(meaning: ModelMeaning, states: list[State], edges: list[Edge])
         "cross_screen_values": keep(meaning.cross_screen_values, lambda v: unknown(v.evidence_ids), "value"),
         "value_ledger": [i.model_copy(update={"verbatim": exact_text(i.evidence_ids, i.verbatim)})
                          for i in keep(meaning.value_ledger, ledger_problem, "ledger")],
-        "open_questions": keep(meaning.open_questions, question_problem, "question")[:QUESTION_CAP],
+        "open_questions": keep(meaning.open_questions, question_problem, "question",
+                               lambda q: repr(q.question))[:QUESTION_CAP],
     })
     uses = {m.id: m.summary for m in cleaned.mechanics} | {i.id: i.verbatim for i in cleaned.value_ledger}
 
@@ -832,7 +833,8 @@ def run(ctx: Ctx) -> None:
         open_questions=[q.question for q in meaning.open_questions],
         coverage=explore.coverage, provenance=runfolder.upstream_provenance(ctx.run_dir, ["explore"]),
         terms=resolve_terms(meaning, states, model_labels),
-        questions=[OpenQuestion(**q.model_dump()) for q in meaning.open_questions], mock_order=mock_order)
+        questions=[OpenQuestion(id=f"q{n}", **q.model_dump()) for n, q in enumerate(meaning.open_questions, start=1)],
+        mock_order=mock_order)
     (out / "product_model.json").write_text(model.model_dump_json(indent=1))
     (out / "product_model.md").write_text(render_md(model))
     write_exhibit(ctx.run_dir, 2, "model", exhibit(model, rounds, notes))

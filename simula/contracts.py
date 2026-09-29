@@ -141,14 +141,15 @@ class Term(TermMeaning):
 
 
 class QuestionDraft(Strict):
-    """Something the captures could not answer that another explore pass could."""
-    id: str
+    """Something the captures could not answer that another explore pass could. No id: code numbers them, which
+    keeps ModelMeaning's schema under the API's compiled-grammar limit (measured 2026-09-29)."""
     question: str
     start_state: str = Field(description="The state id where the explorer should begin.")
     look_for: str = Field(description="One plain sentence on what would answer it.")
 
 
 class OpenQuestion(QuestionDraft):
+    id: str = Field(description="Code: q1, q2, ... in the model's order.")
     answered: bool = False
 
 

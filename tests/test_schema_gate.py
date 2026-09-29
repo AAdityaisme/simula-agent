@@ -9,7 +9,7 @@ from anthropic.lib._parse._transform import transform_schema
 from openai.lib._pydantic import to_strict_json_schema
 from pydantic import BaseModel, ValidationError
 
-from simula.contracts import GATES, JUDGMENT, MODEL_FACING, Verdict
+from simula.contracts import GATES, JUDGMENT, MODEL_FACING, ModelMeaning, Verdict
 
 
 def objects(schema: dict):
@@ -107,3 +107,15 @@ def test_empty_verdict_is_rejected():
         Verdict.model_validate({})
     with pytest.raises(ValidationError):
         Verdict.model_validate_json('{"candidate_id": "c1"}')
+
+
+# Measured 2026-09-29 on claude-opus-5-5: ModelMeaning's schema with 45 properties (every object's, $defs included)
+# is refused with "The compiled grammar is too large"; any 44 of them compile. Stripping descriptions and titles
+# doesn't help, and nesting two fields in a new object doesn't either. A new field needs one out, or the call split.
+MEANING_PROPERTY_LIMIT = 44
+
+
+def test_the_meaning_schema_stays_within_the_measured_grammar_limit():
+    schema = transform_schema(ModelMeaning)
+    properties = len(schema["properties"]) + sum(len(d.get("properties", {})) for d in schema["$defs"].values())
+    assert properties <= MEANING_PROPERTY_LIMIT

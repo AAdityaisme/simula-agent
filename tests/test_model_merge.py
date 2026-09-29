@@ -32,9 +32,8 @@ def recorded_answer(g: ProductModel) -> ModelMeaning:
         elements=[ElementMeaning(element_id=e.id, role=e.role, font_guess="Inter")
                   for e in [e for s in g.states for e in s.elements if e.text][::2]],
         flows=g.flows, mechanics=g.mechanics, cross_screen_values=g.cross_screen_values, value_ledger=g.value_ledger,
-        terms=[], open_questions=[QuestionDraft(id=f"q{n}", question=q, start_state=g.states[0].id,
-                                                look_for="the screen that answers it")
-                                  for n, q in enumerate(g.open_questions, start=1)])
+        terms=[], open_questions=[QuestionDraft(question=q, start_state=g.states[0].id,
+                                                look_for="the screen that answers it") for q in g.open_questions])
 
 
 @pytest.fixture(params=APPS)
@@ -511,12 +510,12 @@ def test_a_term_shows_only_as_a_whole_word():
 
 def test_questions_need_a_real_start_state_and_are_capped(app):
     _, states, edges, answer = app
-    answer.open_questions[:] = [QuestionDraft(id=f"q{n}", question="?", start_state=states[0].id, look_for="x")
+    answer.open_questions[:] = [QuestionDraft(question=f"q{n}?", start_state=states[0].id, look_for="x")
                                 for n in range(7)]
-    answer.open_questions.insert(1, QuestionDraft(id="nowhere", question="?", start_state="s99", look_for="x"))
+    answer.open_questions.insert(1, QuestionDraft(question="nowhere?", start_state="s99", look_for="x"))
     kept, rejected = stage.check_meaning(answer, states, edges)
-    assert rejected == ["question nowhere: start_state 's99' is not a recorded state"]
-    assert [q.id for q in kept.open_questions] == ["q0", "q1", "q2", "q3", "q4"]
+    assert rejected == ["question 'nowhere?': start_state 's99' is not a recorded state"]
+    assert [q.question for q in kept.open_questions] == ["q0?", "q1?", "q2?", "q3?", "q4?"]
 
 
 def test_scope_is_root_then_money_screens_then_other_mechanics_then_the_core_flow_and_nothing_else():
@@ -604,6 +603,7 @@ def test_the_stage_writes_a_valid_model(name, tmp_path, monkeypatch):
     md = (out / "product_model.md").read_text()
     assert md.startswith("# Product model: Shown Name ") and md.count("```mermaid") == 1 + len(model.flows)
     assert model.open_questions == [q.question for q in model.questions] and not any(q.answered for q in model.questions)
+    assert [q.id for q in model.questions] == [f"q{n}" for n in range(1, len(model.questions) + 1)]
     assert (ctx.run_dir / "exhibits" / "02-model.md").exists()
     images = [p for m in calls[0]["messages"] for p in m["content"] if p["type"] == "image"]
     assert 1 <= len(images) <= stage.MAX_IMAGES
