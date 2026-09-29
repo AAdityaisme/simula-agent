@@ -5,7 +5,7 @@ from contextlib import nullcontext
 
 import pytest
 
-from simula import cli
+from simula import cli, runlog
 from simula.stages import explore as stage
 from tests.fake_device import FakePhone, blank
 from tests.fake_device import explorer as new_explorer
@@ -53,6 +53,47 @@ def test_a_device_error_mid_tour_fails_but_keeps_what_it_saw(tmp_path, monkeypat
     assert ex.states and ex.stop_reason.startswith(stage.DEVICE_STOPS)
     assert (out / "failure.json").exists() and not (out / "done.json").exists()
     assert (out / "explore.json").exists()
+
+
+def loses_the_device_in_the_core_loop(clock):
+    from simula.device.mcp import McpReplyError
+    phone = janitor_like(clock)
+    save = phone.screenshot
+
+    def screenshot(path, size=None):
+        if phone.typed:
+            raise McpReplyError('Device "fake-1" not found')
+        return save(path, size)
+    phone.screenshot = screenshot
+    return phone
+
+
+def refuses_twice_on_search(clock):
+    from simula.device.mcp import McpReplyError
+    phone = janitor_like(clock)
+    elements = phone.elements
+
+    def refusing():
+        if phone.screen == "search":
+            raise McpReplyError('Device "fake-1" not found')
+        return elements()
+    phone.elements = refusing
+    return phone
+
+
+def test_a_device_lost_after_the_tour_fails_with_no_done_marker(tmp_path, monkeypatch):
+    ex, _, out = through_cli(tmp_path, monkeypatch, loses_the_device_in_the_core_loop, fails=True)
+    assert ex.stop_reason.startswith("device error in core_loop (tour: ")
+    assert (out / "failure.json").exists() and not (out / "done.json").exists()
+    assert (out / "explore.json").exists() and (ex.run_dir / "needs-human.md").exists()
+
+
+def test_a_device_lost_in_the_tour_is_a_device_error_not_a_hang(tmp_path, monkeypatch):
+    ex, _, out = through_cli(tmp_path, monkeypatch, refuses_twice_on_search, fails=True)
+    assert ex.stop_reason.startswith("device error on s") and "not found" in ex.stop_reason
+    steps = [line.step for line in runlog.read_trace(ex.run_dir / "trace.jsonl")]
+    assert "device" in steps and "hang" not in steps
+    assert (out / "failure.json").exists() and not (out / "done.json").exists()
 
 
 def test_a_blocked_root_after_the_full_splash_wait_is_done(tmp_path, monkeypatch):

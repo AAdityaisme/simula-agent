@@ -96,6 +96,7 @@ class ExploreFailed(Exception):
 
 
 DEVICE_ERRORS = (McpReplyError, McpTimeout, NeedRelaunch)
+DEVICE_LOST = (McpReplyError, McpTimeout)
 DEVICE_STOPS = ("device error", "second hang")
 
 
@@ -440,9 +441,9 @@ class Explorer:
         outcome = "ok"
         try:
             self.perform(move, live, s.upsell, core=purpose == "core", toggle_ok=purpose == "filter")
-        except McpTimeout:
+        except McpTimeout as e:
             outcome = "timeout"
-            self.hang(s)
+            self.hang(s, e)
         except McpReplyError as e:
             self.obs = None
             self.log(s, None, move, live, "unknown", f"the device refused the {move.action}: {e}"[:160], "error")
@@ -573,11 +574,24 @@ class Explorer:
             return "replace"
         return "push"
 
-    def hang(self, s: Seen) -> None:
+    def hang(self, s: Seen, e: Exception) -> None:
+        """A device call failed on s: a timeout is a hang, any other failure a lost device. The second on one screen
+        ends the tour as a device stop, so no done.json is written."""
+        hung = isinstance(e, McpTimeout)
+        self.note("hang" if hung else "device", f"{type(e).__name__}: {e}"[:200],
+                  outcome="timeout" if hung else "error")
         self.hangs[s.sid] += 1
         if self.hangs[s.sid] >= 2:
-            self.human("the device hung twice on one screen", f"two mobile-mcp calls timed out on {s.sid}")
-            raise Stop(f"second hang on {s.sid}")
+            stop = f"second hang on {s.sid}" if hung else f"device error on {s.sid}: {type(e).__name__}: {e}"[:200]
+            self.human("the device failed twice on one screen", stop)
+            raise Stop(stop)
+
+    def lost(self, phase: str, e: Exception) -> None:
+        """The device failed after the tour: whatever the tour found, the run can't be reused as a finished explore."""
+        self.core_results.append(f"{phase} stopped: device error: {type(e).__name__}: {e}"[:200])
+        self.stop_reason = f"device error in {phase} (tour: {self.stop_reason}): {type(e).__name__}: {e}"[:200]
+        self.note(phase, self.stop_reason, outcome="error")
+        self.human("the device failed after the tour", self.stop_reason)
 
     def human(self, what: str, why: str) -> None:
         needs_human(self.ctx.run_dir, "explore", what, why, ["trace.jsonl", "explore/actions.jsonl"],
@@ -1061,9 +1075,8 @@ class Explorer:
             except NeedRelaunch as e:
                 self.note("relaunch", str(e))
                 self.relaunch(why=str(e))
-            except (McpTimeout, McpReplyError) as e:
-                self.hang(self.current)
-                self.note("hang", str(e)[:200], outcome="timeout")
+            except DEVICE_LOST as e:
+                self.hang(self.current, e)
 
     # ---------- the paywall and the core loop ----------
 
@@ -1289,6 +1302,8 @@ class Explorer:
                 result, hit = self.core_once(n)
             except DEVICE_ERRORS as e:
                 self.core_results.append(f"pass {n}: {type(e).__name__}: {e}"[:200])
+                if isinstance(e, DEVICE_LOST):
+                    raise
                 return
             self.core_results.append(f"pass {n}: {result or 'no measurement'}")
             if hit:
@@ -1516,7 +1531,7 @@ class Explorer:
                         near = next((s.sid for s in self.states if ob.same_state(s.fp, seen)), "a new screen")
                         self.note("replay.miss", f"{move.action} {move.cand.label[:30] if move.cand else ''} "
                                                  f"expected {to_sid}, reached {near}", outcome="error")
-            except DEVICE_ERRORS as e:
+            except NeedRelaunch as e:
                 self.note("replay", f"segment stopped: {e}", outcome="error")
         self.replay, self.replay_fingerprint = (meant, total), (matched, total)
         self.note("replay", f"{meant}/{total} replayed moves reached the recorded screen, {matched}/{total} by "
@@ -1816,11 +1831,14 @@ def explore_app(ex: Explorer) -> None:
         run_trace(ex.ctx.run_dir, stage="explore", step="device", decider="code",
                   note=f"serial {ex.serial}, mobile-mcp device {ex.phone.device}")
         run_tour(ex)
-        if ex.root and not ex.stop_reason.startswith(("blocked root", "second hang")):
+        if ex.root and not ex.stop_reason.startswith(("blocked root", *DEVICE_STOPS)):
             for phase in (ex.paywall_pass, ex.core_loop, ex.verify_replay):
                 try:
                     phase()
-                except (Stop, llm.CapReached, *DEVICE_ERRORS) as e:
+                except DEVICE_LOST as e:
+                    ex.lost(phase.__name__, e)
+                    break
+                except (Stop, llm.CapReached, NeedRelaunch) as e:
                     ex.core_results.append(f"{phase.__name__} stopped: {type(e).__name__}: {e}"[:200])
                     ex.note(phase.__name__, str(e)[:200], outcome="error")
                 except BaseException as e:

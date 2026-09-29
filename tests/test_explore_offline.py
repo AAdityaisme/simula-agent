@@ -230,7 +230,7 @@ def test_the_walk_into_an_item_passes_the_bio_and_reaches_the_composer(tmp_path,
     assert not any(entry[:3] == ("tap", "detail", BIO) for entry in phone.log)
 
 
-def test_a_failed_capture_in_the_core_loop_keeps_the_tour(tmp_path, monkeypatch):
+def test_a_device_lost_in_the_core_loop_keeps_the_tour_and_fails_the_explore(tmp_path, monkeypatch):
     from simula.device.mcp import McpReplyError
 
     def flaky(clock):
@@ -243,13 +243,16 @@ def test_a_failed_capture_in_the_core_loop_keeps_the_tour(tmp_path, monkeypatch)
             return save(path, size)
         phone.screenshot = screenshot
         return phone
-    ex, _ = explore(tmp_path, monkeypatch, phone_factory=flaky)
+    ex, _ = new_explorer(tmp_path, monkeypatch, flaky)
+    with pytest.raises(stage.ExploreFailed, match="^device error in core_loop"):
+        stage.explore_app(ex)
     explore_file = ExploreFile.model_validate_json((ex.out / "explore.json").read_text())
     assert explore_file.coverage.states_found >= 8
     assert all((ex.out / "states" / f"{s.sid}.json").exists() for s in ex.states)
     assert any("McpReplyError" in r for r in ex.core_results)
     failed = [line for line in lines(ex) if line.outcome == "error"]
     assert any("observing after the move failed" in line.change_summary for line in failed)
+    assert "device failed after the tour" in (ex.run_dir / "needs-human.md").read_text()
 
 
 def test_a_cold_start_that_times_out_the_first_dumps_still_explores(tmp_path, monkeypatch):
