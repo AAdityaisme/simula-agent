@@ -555,12 +555,15 @@ REWARD_PAGE = """<style>body{margin:0;background:#fff}p{position:absolute;margin
     ("[data-unrewarded]{top:200px!important;pointer-events:none}", "Level 2 open", "Level 2 locked", (True, None)),
     ("[data-unrewarded]{top:200px!important} body::after{content:'';position:fixed;inset:0;z-index:5}", "Level 2 open",
      "Level 2 locked", (True, None)),
+    ("[data-unrewarded]{top:200px!important}", "Level 2 open", '<span style="visibility:visible">Level 2 locked</span>',
+     (True, None)),
 ])
 def test_the_reward_effect_names_labels_and_ignores_render_noise(tmp_path, extra, label, before, expected):
     """Only a label appears; a label appears and a card moves; nothing but a 3-level shade (render noise) changes;
     the unlocked form appears and the locked one the page marked data-unrewarded goes, elsewhere or in its place;
     a data-unrewarded element below the captured view, or covered, changes nothing the capture shows; one in place
-    that ignores the pointer, or sits under a transparent overlay, still does."""
+    that ignores the pointer, sits under a transparent overlay, or paints only through a child that sets its own
+    visibility, still does."""
     with sync_playwright() as p:
         page = p.chromium.launch().new_page(viewport=render.VIEWPORT)
         page.set_content(REWARD_PAGE.replace("{flow_css}", flows.FLOW_CSS).replace("{extra}", extra)

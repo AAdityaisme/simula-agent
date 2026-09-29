@@ -76,7 +76,7 @@ PLAIN_CHECKS = {
 
 FLOW_CSS = """body:not(.simula-rewarded) [data-reward]{display:none!important}
 body.simula-rewarded [data-unrewarded]{display:none!important}
-body.simula-hide-replaced [data-unrewarded]{visibility:hidden!important}
+body.simula-hide-replaced [data-unrewarded]{opacity:0!important}
 [data-screen]{isolation:isolate}
 .sa-dim{position:absolute;inset:0;background:rgba(8,10,14,.72)}
 .sa-card{position:absolute;left:28px;right:28px;top:140px;border-radius:20px;background:var(--bg-1,#fff);color:var(--fg-1,#16181d);padding:18px;font:15px/1.35 var(--font-1,system-ui,-apple-system,Roboto,sans-serif);box-shadow:0 12px 40px rgba(0,0,0,.4)}
@@ -501,7 +501,8 @@ def changes(before: bytes, after: bytes) -> Image.Image:
 def replaced_shows(page, without: bytes) -> bool:
     """Whether something the reward replaces (data-unrewarded) is painted in the capture taken with the reward off:
     the same capture with only those elements hidden differs. Pixels settle what a hit test can't (an element that
-    ignores the pointer, a transparent overlay, one offscreen or covered)."""
+    ignores the pointer, a transparent overlay, one offscreen or covered). Opacity hides all a subtree paints, a child
+    that sets its own visibility included, and moves nothing."""
     if not page.evaluate(HAS_REPLACED_JS):
         return False
     page.evaluate(HIDE_REPLACED_JS, True)
