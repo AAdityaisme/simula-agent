@@ -1,0 +1,71 @@
+{
+ "model": {
+  "app": "pinned-empty-app",
+  "app_category": "utility",
+  "states": [
+   {
+    "id": "s01",
+    "name": "Home",
+    "purpose": "The only screen seen.",
+    "content_rating": "safe",
+    "elements": [
+     {
+      "id": "s01.e01",
+      "text": "Start",
+      "role": "button"
+     }
+    ]
+   }
+  ],
+  "mechanics": [],
+  "value_ledger": [],
+  "open_questions": []
+ },
+ "candidate": {
+  "kind": "product_change",
+  "title": "A badge for a short game",
+  "anchor_evidence_ids": [],
+  "bible_mechanic": "none",
+  "what_is_different_here": "The Today screen already counts free sessions down from 3.",
+  "adds": null,
+  "removes_nothing_free": false,
+  "trigger_event": "The free-session meter reaches 0 of 3.",
+  "trigger_state_id": "s01",
+  "placement": "A card under the meter on Today.",
+  "offer_copy": "Play a short game for 1 extra session this week.",
+  "reward": {
+   "kind": "feature_time",
+   "unit": "sessions",
+   "amount": 1,
+   "duration": "this week"
+  },
+  "for_users": "free",
+  "grants_id": null,
+  "cost_inputs": {
+   "inference_count": 0,
+   "tokens_in": 0,
+   "tokens_out": 0,
+   "minutes": 20,
+   "currency_amount": 0
+  },
+  "frequency_cap": "1 per week, resets Monday",
+  "decline_path": "The card closes; the meter stays at 0 of 3.",
+  "ad_fail_path": "No session is added and the try isn't used up.",
+  "subscriber_treatment": "Subscribers have no meter and never see the card.",
+  "advertiser_category": "Casual mobile games",
+  "character_use": "None",
+  "flow_steps": [
+   {
+    "state_id": "s01",
+    "caption": "Home."
+   },
+   {
+    "state_id": "new:offer",
+    "caption": "The offer."
+   }
+  ],
+  "after_reward": "Next week the meter resets to 3, and Plus removes it for good.",
+  "rationale": "The weekly limit is where free users stop; one extra session keeps them going without giving the plan away.",
+  "flags": []
+ }
+}

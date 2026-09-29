@@ -27,6 +27,8 @@ FIXTURES = ROOT / "tests" / "fixtures"
 CASES = FIXTURES / "judge"
 OUT = ROOT / "validation"
 PIN = CASES / "pin.json"
+# pin.json fills every optional part of the judge's message; pin-empty.json takes each empty branch.
+PINS = [PIN, CASES / "pin-empty.json"]
 LLM_CHECKS = GATES + JUDGMENT
 C8 = "c8_economics"
 JUDGES = ["judge_1", "judge_2"]
@@ -112,10 +114,10 @@ def fill_model(data: dict) -> ProductModel:
     return ProductModel.model_validate({**MODEL, **data, "states": states})
 
 
-def pinned_message() -> str:
-    """The judge's user message for the one pinned candidate (tests/fixtures/judge/pin.json), rendered by the
-    stage's own code; its hash is frozen with the prompts."""
-    data = json.loads(PIN.read_text())
+def pinned_message(pin: Path = PIN) -> str:
+    """The judge's user message for a pinned candidate (tests/fixtures/judge/pin*.json), rendered by the stage's own
+    code; its hash is frozen with the prompts."""
+    data = json.loads(pin.read_text())
     return judge.judge_messages(as_candidate(data["candidate"], "pin"), fill_model(data["model"]))[0]["content"][0]["text"]
 
 

@@ -41,11 +41,12 @@ RENDERED = "rendered judge message (tests/fixtures/judge/pin.json)"
 
 
 def prompt_hashes() -> dict[str, str]:
-    """The judge prompt files, plus the code-built judge message for one pinned candidate: after validation, a
+    """The judge prompt files, plus the code-built judge message for each pinned candidate: after validation, a
     change to what the judge sees counts as a prompt change, wherever it comes from."""
-    from simula.validate import pinned_message
+    from simula.validate import PINS, pinned_message
     files = {str(p.relative_to(ROOT)): sha256(p) for p in sorted(PROMPTS.glob("*.md"))}
-    return files | {RENDERED: hashlib.sha256(pinned_message().encode()).hexdigest()}
+    return files | {f"rendered judge message ({pin.relative_to(config.ROOT)})":
+                    hashlib.sha256(pinned_message(pin).encode()).hexdigest() for pin in PINS}
 
 
 def frozen_problems() -> list[str]:

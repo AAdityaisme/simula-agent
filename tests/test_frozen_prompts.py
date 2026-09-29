@@ -1,18 +1,41 @@
 """Judge prompts are pinned in config/frozen_prompts.toml; the judge refuses a changed one without unfreezing."""
 
+import ast
+import inspect
 import shutil
+import textwrap
 
 import pytest
 
 from simula import llm
 from simula.config import ROOT
 from simula.stages import judge, propose
+from simula.validate import PINS, pinned_message
 from tests.judge_helpers import ctx_for, live, seed
+
+EMPTY = "rendered judge message (tests/fixtures/judge/pin-empty.json)"
 
 
 def test_every_judge_prompt_is_frozen_at_its_current_hash():
     assert judge.frozen_problems() == []
-    assert set(judge.prompt_hashes()) == {"prompts/judge/rubric.md", "prompts/judge/revise.md", judge.RENDERED}
+    assert set(judge.prompt_hashes()) == {"prompts/judge/rubric.md", "prompts/judge/revise.md", judge.RENDERED, EMPTY}
+
+
+def literals(*functions) -> set[str]:
+    """Every string literal with a word in it that these functions can put in the judge's message."""
+    found = set()
+    for f in functions:
+        tree = ast.parse(textwrap.dedent(inspect.getsource(f)))
+        doc = ast.get_docstring(tree.body[0], clean=False)
+        found |= {n.value for n in ast.walk(tree) if isinstance(n, ast.Constant) and isinstance(n.value, str)
+                  and n.value != doc and sum(ch.isalpha() for ch in n.value) >= 3}
+    return found
+
+
+def test_the_pins_reach_every_branch_of_the_judges_message():
+    shown = "\n".join(pinned_message(pin) for pin in PINS)
+    text = literals(propose.model_text, propose.state_text, judge.candidate_text)
+    assert sorted(t for t in text if t not in shown) == []
 
 
 @pytest.fixture
@@ -64,6 +87,6 @@ def test_a_code_change_to_what_the_judge_sees_is_refused_like_a_prompt_change(mo
     judge.check_frozen()
     text = propose.model_text
     monkeypatch.setattr(propose, "model_text", lambda model: text(model) + "\nA new line the judge now reads.")
-    assert judge.frozen_problems() == [f"{judge.RENDERED} changed since it was frozen"]
+    assert judge.frozen_problems() == [f"{judge.RENDERED} changed since it was frozen", f"{EMPTY} changed since it was frozen"]
     with pytest.raises(judge.PromptsChanged):
         judge.check_frozen()

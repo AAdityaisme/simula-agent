@@ -39,6 +39,55 @@
       "role": "price"
      }
     ]
+   },
+   {
+    "id": "s03",
+    "name": "Session done",
+    "kind": "modal",
+    "parent_id": "s01",
+    "purpose": "Shown when a session ends.",
+    "content_rating": "safe",
+    "elements": [
+     {
+      "id": "s03.e01",
+      "text": "1 of 3 free sessions left",
+      "role": "meter"
+     }
+    ]
+   },
+   {
+    "id": "s04",
+    "name": "Community",
+    "purpose": "Posts from other users.",
+    "content_rating": "unsafe",
+    "elements": [
+     {
+      "id": "s04.e01",
+      "text": "a user post",
+      "role": "post"
+     }
+    ]
+   },
+   {
+    "id": "s05",
+    "name": "Loading",
+    "purpose": "A spinner while the plan loads.",
+    "content_rating": "unknown",
+    "elements": []
+   },
+   {
+    "id": "s06",
+    "name": "Settings",
+    "purpose": "Account settings.",
+    "content_rating": "safe",
+    "in_mock_scope": false,
+    "elements": [
+     {
+      "id": "s06.e01",
+      "text": "Sign out",
+      "role": "button"
+     }
+    ]
    }
   ],
   "mechanics": [
@@ -84,6 +133,14 @@
     "evidence_ids": [
      "s02.e01"
     ]
+   },
+   {
+    "id": "l03",
+    "kind": "experience",
+    "verbatim": "Starting a session took 4 seconds each time.",
+    "evidence_ids": [
+     "s01.e02"
+    ]
    }
   ],
   "open_questions": [
@@ -99,13 +156,50 @@
     ],
     "observed": false
    }
+  ],
+  "cross_screen_values": [
+   {
+    "id": "v01",
+    "label": "Free sessions left",
+    "value_text": "2 of 3",
+    "evidence_ids": [
+     "s01.e01",
+     "s03.e01"
+    ]
+   }
+  ],
+  "edges": [
+   {
+    "id": "g01",
+    "from_state": "s01",
+    "to_state": "s02",
+    "element_id": "s01.e02",
+    "action": "tap",
+    "transition": "push",
+    "change_summary": "Opens the paid plan."
+   }
+  ],
+  "flows": [
+   {
+    "id": "f01",
+    "name": "See the plan",
+    "purpose": "Open the paid plan from Today.",
+    "edge_ids": [
+     "g01"
+    ],
+    "evidence_ids": [
+     "s01.e02"
+    ]
+   }
   ]
  },
  "candidate": {
   "kind": "existing_anchor",
   "title": "One extra session this week after the free ones run out",
   "anchor_evidence_ids": [
-   "s01.e01"
+   "s01.e01",
+   "s04.e01",
+   "s09.e09"
   ],
   "bible_mechanic": "none",
   "what_is_different_here": "The Today screen already counts free sessions down from 3.",
@@ -148,6 +242,10 @@
    {
     "state_id": "new:game",
     "caption": "The game plays."
+   },
+   {
+    "state_id": "s09",
+    "caption": "A screen the model never saw."
    },
    {
     "state_id": "s01",
