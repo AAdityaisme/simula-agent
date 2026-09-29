@@ -76,7 +76,7 @@ def test_a_mock_that_places_every_element_and_wires_every_tap_gets_full_bounds_a
 def test_assets_the_mock_draws_are_masked(measured):
     model, scope, version = measured
     for state, s in zip(scope, version.metrics.screens, strict=True):
-        drawn = [e for e in state.elements if mock.usable_asset(e, model.device)]
+        drawn = [e for e in state.elements if mock.usable_asset(e, state.elements, model.device)]
         if drawn or state.dynamic_regions:
             assert s.masked_coverage < 1.0
         else:
@@ -105,7 +105,8 @@ def one_screen(request, tmp_path):
     app = request.param
     run_dir = seed_model(tmp_path / "run", app)
     model = golden(app)
-    state = next(s for s in mock.pick_scope(model) if any(mock.usable_asset(e, model.device) for e in s.elements))
+    state = next(s for s in mock.pick_scope(model)
+                 if any(mock.usable_asset(e, s.elements, model.device) for e in s.elements))
     mock.copy_assets(run_dir / "model", run_dir / "mock", [state], model.device)
     rounds = count()
 
@@ -256,3 +257,20 @@ def test_art_reused_from_another_screen_earns_no_mask_there(tmp_path, app):
     assert own[1] < blank[1]
     assert own_and_reused[1] == pytest.approx(own[1])
     assert own_and_reused[0] == blank[0] and own_and_reused[2] == blank[2]
+
+
+@pytest.mark.parametrize("app", APPS)
+@pytest.mark.parametrize("left, wallpaper", [(0, False), (30, True)])
+def test_a_big_art_crop_passes_the_contract_in_a_qa_round_only_over_its_origin(tmp_path, app, left, wallpaper):
+    run_dir = seed_model(tmp_path / "run", app)
+    model = golden(app)
+    scope = mock.pick_scope(model)
+    mock.copy_assets(run_dir / "model", run_dir / "mock", scope, model.device)
+    src = mock.art_src(scope[0].elements[0].id)
+    Image.new("RGB", (100, 100), "#223344").save(run_dir / "mock" / src)
+    (run_dir / "mock" / "art.json").write_text(
+        json.dumps({"schema_version": 1, "art": {src: Rect(x=0, y=0, w=411, h=600).model_dump()}}))
+    img = f'<img src="{src}" style="position:absolute;left:{left}px;top:0;width:411px;height:600px">'
+    html = qa.rebuild(skeleton_html(model).replace("</section>", img + "</section>", 1), model, [s.id for s in scope])
+    version = qa.measure(ctx_for(run_dir, app), model, scope, 0, html)
+    assert any(e.kind == "wallpaper" and e.screen == scope[0].id for e in version.contract_errors) == wallpaper

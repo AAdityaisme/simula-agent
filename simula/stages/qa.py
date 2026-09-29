@@ -158,8 +158,10 @@ def measure(ctx: Ctx, model: ProductModel, scope: list[State], n: int, html: str
     drawn = [s for s in scope if s.id not in undrawn]
     screens = [s.id for s in drawn]
     with render.open_mock(round_dir) as (page, log):
+        checked = render.check_contract(page, log, round_dir, model, screens,
+                                        crops=mock.crop_origins(model, ctx.run_dir / "mock"))
         errors = [e.model_copy(update={"detail": e.detail.replace(round_dir.resolve().as_uri() + "/", "")})
-                  for e in render.check_contract(page, log, round_dir, model, screens)]
+                  for e in checked]
         render.screenshot_screens(page, screens, round_dir / "mock")
         dom = {}
         for sid in screens:
