@@ -9,7 +9,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 
 from simula import runlog
-from simula.contracts import Device, Rect
+from simula.contracts import Arrival, Device, Rect
 from simula.device import observe as ob
 from simula.device.mcp import parse_elements
 from simula.stages import explore as stage
@@ -72,6 +72,39 @@ def test_a_hop_to_a_changed_screen_arrives_by_what_it_shows_without_a_new_state(
     line = [t for t in runlog.read_trace(ex.run_dir / "trace.jsonl") if t.step == f"arrival.{chats.sid}"][-1]
     assert line.decider == "model" and line.note.startswith(f"arrived at {chats.sid}")
     assert f"explore/states/{chats.sid}.png" in line.note and "explore/arrival/" in line.note
+
+
+def arrival(text: str, verdict: str = "same", element_id: str | None = None) -> Arrival:
+    return Arrival(identifying_text=text, verdict=verdict, confidence=0.9, action="tap" if element_id else None,
+                   element_id=element_id, direction=None, side_effect=False, reason="test")
+
+
+def on_the_filtered_feed(tmp_path, monkeypatch):
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    phone.screen = "limited"
+    ex.current = ex.record(ex.observe(), None, None, None)
+    ex.filter_taps = [next(c for c in ex.obs.cands if c.label == "Limited Only")]
+    return ex
+
+
+def test_a_same_verdict_counts_only_when_its_text_is_on_the_screen(tmp_path, monkeypatch):
+    ex = on_the_filtered_feed(tmp_path, monkeypatch)
+    title = stage.title_of(ex.current.elements, DEVICE)
+    for text, arrived in (("A title from another screen", False), (title.upper(), True), ("", True)):
+        monkeypatch.setattr(ex, "ask", lambda *a, text=text: arrival(text))
+        assert ex.judge(ex.current).arrived is arrived
+    assert ex.counts["model same without its text on screen"] == 1
+
+
+def test_a_model_named_tap_never_touches_the_content_filter_row(tmp_path, monkeypatch):
+    ex = on_the_filtered_feed(tmp_path, monkeypatch)
+    row = {c.label for c in ex.obs.cands if c.key in ex.filter_row(ex.obs.cands)}
+    asked = []
+    monkeypatch.setattr(ex, "ask",
+                        lambda prompt, step, text, *a: asked.append(text) or arrival("", "one_action", "o01"))
+    landing = ex.judge(ex.current)
+    assert {"All", "Limited Only"} <= row and not any(f": {label} (" in asked[0] for label in row)
+    assert landing.move and landing.move.cand.label not in row
 
 
 # ---------- invariant 3: tap only what the screen shows ----------

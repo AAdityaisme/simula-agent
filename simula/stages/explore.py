@@ -808,18 +808,18 @@ class Explorer:
                      for live in [ob.find(self.obs.cands, t)] if live and self.shows(t, live, self.obs)), None)
 
     def options(self, s: Seen) -> list[ob.Candidate]:
-        filter_row = self.filter_row(s)
+        filter_row = self.filter_row(s.cands)
         return [c for c in s.cands if c.key not in s.tried and c.key not in self.tab_keys() and c.key not in filter_row
                 and not ob.denied(c, upsell=s.upsell) and (c.key not in s.waiting or s.visits > s.waiting[c.key])]
 
-    def filter_row(self, s: Seen) -> set[str]:
-        """The content filter's controls on this screen: the opener, and every option in the chosen one's row.
-        The tour never taps them, so it can't undo the filter."""
+    def filter_row(self, cands: list[ob.Candidate]) -> set[str]:
+        """The content filter's controls among a screen's controls: the opener, and every option in the chosen one's
+        row. Neither the tour nor a model-named tap touches them, so nothing undoes the filter."""
         keys = {t.key for t in self.filter_taps}
-        chosen = ob.find(s.cands, self.filter_taps[-1]) if self.filter_taps else None
+        chosen = ob.find(cands, self.filter_taps[-1]) if self.filter_taps else None
         if chosen:
             cy = ob.center(chosen.rect)[1]
-            keys |= {c.key for c in s.cands
+            keys |= {c.key for c in cands
                      if abs(ob.center(c.rect)[1] - cy) < 24 and abs(c.rect.h - chosen.rect.h) < 24}
         return keys
 
@@ -975,7 +975,9 @@ class Explorer:
         disagree it is not arrival; the model's one action or a re-plan follows, and the trace says so."""
         obs = self.obs
         structure = ob.structure(target.elements, obs.elements, self.device, target.dynamic)
-        controls, ids = listed(obs.cands, self.device)
+        row = self.filter_row(obs.cands)
+        cands = [c for c in obs.cands if c.key not in row]
+        controls, ids = listed(cands, self.device)
         text = (f"Goal: {self.goal_of(target)}\nThe target's identifying text: "
                 f"{title_of(target.elements, self.device)!r}\nControls on the current screen (image 2):\n{controls}")
         self.counts["arrival shots"] += 1
@@ -989,17 +991,23 @@ class Explorer:
         except llm.LLMFailure as e:
             self.note(f"{step}.{target.sid}", f"arrival call failed: {e}", outcome="error")
             return Landing(False, None, "failed", structure)
-        model_same, structure_same = answer.verdict == "same", structure >= ob.STRUCTURE_SAME
+        # a title that is a logo has no text to read; a text the element list lacks was read off the wrong screen
+        read = not answer.identifying_text.strip() or ob.shows_text(obs.elements, answer.identifying_text, self.device)
+        model_same, structure_same = answer.verdict == "same" and read, structure >= ob.STRUCTURE_SAME
         arrived = model_same and structure_same
-        move = None if arrived else self.step_toward(answer, obs.cands, ids)
+        move = None if arrived else self.step_toward(answer, cands, ids)
         if step == "arrival":
             self.counts[f"model {answer.verdict}"] += 1
             self.counts["side effects"] += answer.side_effect
+            if answer.verdict == "same" and not read:
+                self.counts["model same without its text on screen"] += 1
             if model_same and not structure_same:
                 self.counts["structure vetoed a model same"] += 1
             if structure_same and not model_same:
                 self.counts["structure same, model not"] += 1
         disagree = " (the signals disagree)" if model_same != structure_same else ""
+        if answer.verdict == "same" and not read:
+            disagree += f" (it read {answer.identifying_text[:40]!r}, which the element list doesn't show)"
         self.note(f"{step}.{target.sid}", f"{'arrived at' if arrived else 'not at'} {target.sid}: model {answer.verdict} "
                                           f"{answer.confidence:.2f}, structure {structure:.2f}{disagree}; "
                                           f"target explore/states/{target.sid}.png, now explore/arrival/{shot.name}; "
@@ -1247,7 +1255,8 @@ class Explorer:
         It counts only when it is a listed control, named with confidence, and still shown on a fresh look
         (invariant 3); anything less keeps the walk going."""
         before, here = self.obs, self.current
-        cands = [c for c in before.cands if c.key not in tapped and c.key not in self.tab_keys()
+        row = self.filter_row(before.cands)
+        cands = [c for c in before.cands if c.key not in tapped and c.key not in self.tab_keys() and c.key not in row
                  and not ob.denied(c, upsell=here.upsell)]
         if not cands:
             return None
@@ -1758,7 +1767,8 @@ def counters(ex: Explorer) -> list[str]:
             f"screen shows)",
             f"model arrival verdicts: {c['model same']} same, {c['model one_action']} one action, "
             f"{c['model elsewhere']} elsewhere; the structure vetoed a model same {c['structure vetoed a model same']} "
-            f"times, and said same where the model did not {c['structure same, model not']} times",
+            f"times, and said same where the model did not {c['structure same, model not']} times; a model same "
+            f"whose identifying text the element list lacks: {c['model same without its text on screen']}",
             f"covered controls not tapped: {c['covered controls']}",
             f"side-effect actions the model saw: {c['side effects']}",
             f"settle waits: {len(waits)} ({', '.join(f'{n} {h}' for h, n in sorted(how.items())) or 'none'}), "

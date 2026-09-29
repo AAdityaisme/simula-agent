@@ -487,6 +487,12 @@ def texts(elements: list[dict], device: Device) -> set[str]:
     return {words(e) for e in elements if in_content(e, device) and words(e)}
 
 
+def shows_text(elements: list[dict], text: str, device: Device) -> bool:
+    """Text the model read off a screenshot is in the element list too: a free check that it read this screen."""
+    want = " ".join(text.split()).casefold()
+    return bool(want) and any(want in " ".join(t.split()).casefold() for t in texts(elements, device))
+
+
 def is_upsell(elements: list[dict], device: Device) -> bool:
     return any(PAYWALL.search(t) for t in texts(elements, device))
 
