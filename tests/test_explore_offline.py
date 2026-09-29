@@ -680,3 +680,16 @@ def test_a_main_screen_button_in_the_apps_own_words_can_be_the_core_action(tmp_p
     stage.explore_app(ex)
     assert ex.core.kind == "action" and ex.core.controls[0].label == "Start lesson"
     assert ("tap", "limited", "Start lesson") in phone.log
+
+
+def test_the_core_question_stays_within_one_choice_of_options(tmp_path, monkeypatch):
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like, budget="deep")
+    asked, choose = [], decide.choose
+
+    def spying(trace_path, stage_name, step, state, instructions, labels, **kwargs):
+        if step == "core":
+            asked.append(labels)
+        return choose(trace_path, stage_name, step, state, instructions, labels, **kwargs)
+    monkeypatch.setattr(decide, "choose", spying)
+    stage.explore_app(ex)
+    assert asked and all(len(labels) <= decide.CHUNK for labels in asked) and stage.NO_CORE in asked[0]
