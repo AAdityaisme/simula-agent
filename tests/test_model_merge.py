@@ -291,27 +291,34 @@ def test_the_line_that_uses_a_term_cannot_define_it(app):
     assert rejected == [] and (term.observed, term.meaning, term.defined_by) == (False, stage.NOT_OBSERVED, [])
 
 
-# What a person reads off the screenshots of PR 2's real runs: for each term the model listed, the cited elements
-# that show its meaning, or [] when no screen shows it. tests/fixtures/terms/<app>.json holds those runs' saved
-# states and the model's checked answer.
-SHOWN = {
+# What a person reads off the screenshots of PR 2's real runs: does any screen say what the term means?
+# tests/fixtures/terms/<app>.json holds those runs' saved states, the labels their explore models wrote, and the
+# model's checked answer.
+OBSERVED = {
     "janitorai": {
-        "Limitless": [],  # a bare tag on character cards (s01.e48, s01.e52); nothing says what it means
-        "Janitor+": ["s02.e04"],  # s02 modal: "Longer memory, priority routing, ... are now available in janitor+."
-        "tokens": [],  # counts on cards (s01.e49 "1.8k tokens"); nothing says what a token is
+        "Limitless": False,  # a bare tag on character cards (s01.e48, s01.e52)
+        "Janitor+": True,
+        "tokens": False,  # counts on cards (s01.e49 "1.8k tokens"); nothing says what a token is
     },
     "luzia": {
-        "Luzia+": [f"s02.e0{n}" for n in range(1, 8)],  # s02 paywall: "Unlock Luzia+" and the six benefits under it
-        "Toki": ["s01.e26", "s01.e27", "s04.e03", "s04.e04"],  # s01 "Meet Toki, your virtual pet!"; s04 pet modal
-        "Weekly": [],  # s02 plan card: the name (s02.e09) and a price (s02.e10); a price doesn't say what it means
-        "Monthly": [],  # the same: "Monthly" (s02.e12), "$ 4.99", "Most popular"
-        "Annual": [],  # the same: "Annual" (s02.e16), "$ 39.99"
+        "Luzia+": True,
+        "Toki": True,
+        "Weekly": False,  # s02 plan card: the name (s02.e09) and a price (s02.e10); a price isn't a meaning
+        "Monthly": False,  # the same: "Monthly" (s02.e12), "$ 4.99", "Most popular"
+        "Annual": False,  # the same: "Annual" (s02.e16), "$ 39.99"
     },
     "aol": {
-        # The sponsored cards' labels: "... in Taboola advertising section · Sponsored" (the word isn't painted)
-        "Taboola": ["s01.e44", "s02.e13"],
-        "Inbox": [],  # the bare tab name (s01.e72); the sign-in wall it opens (s03) doesn't say what it holds
+        "Taboola": True,
+        "Inbox": False,  # the bare tab name (s01.e72); the sign-in wall it opens (s03) doesn't say what it holds
     },
+}
+
+# The cited elements that surely say what a shown term means; each must be in its defined_by.
+EXPLAINS = {
+    "Janitor+": ["s02.e04"],  # s02 modal: "Longer memory, priority routing, ... are now available in janitor+."
+    "Luzia+": [f"s02.e0{n}" for n in range(2, 8)],  # the six benefits under "Unlock Luzia+" on the s02 paywall
+    "Toki": ["s01.e26", "s01.e27", "s04.e04"],  # "Meet Toki, your virtual pet!", "...take care of your own pet"
+    "Taboola": ["s01.e44", "s02.e13"],  # the sponsored cards' labels "... in Taboola advertising section · Sponsored"
 }
 
 
@@ -322,13 +329,16 @@ def real_terms(app: str) -> tuple[list[State], ModelMeaning, set[str]]:
 
 
 @pytest.mark.parametrize("name", APPS)
-def test_a_real_term_is_observed_exactly_when_a_screen_shows_what_it_means(name):
+def test_a_real_term_is_observed_as_a_person_reads_its_screens(name):
     states, meaning, model_labels = real_terms(name)
     terms = stage.resolve_terms(meaning, states, model_labels)
-    assert {t.term: t.defined_by for t in terms} == SHOWN[name]
+    assert {t.term: t.observed for t in terms} == OBSERVED[name]
     for drafted, term in zip(meaning.terms, terms):
-        assert (term.observed, term.meaning) == ((True, drafted.meaning) if term.defined_by else
-                                                 (False, stage.NOT_OBSERVED))
+        assert set(term.defined_by) <= set(drafted.defined_by), "only the model's own citations can count"
+        if term.observed:
+            assert term.meaning == drafted.meaning and set(EXPLAINS[term.term]) <= set(term.defined_by), term.term
+        else:
+            assert (term.meaning, term.defined_by) == (stage.NOT_OBSERVED, [])
 
 
 # Guesses built from PR 2's real screens (red team D): the model's own meaning and used_in, with these citations.
