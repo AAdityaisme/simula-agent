@@ -333,6 +333,21 @@ def test_a_survivor_past_the_cap_is_named_in_the_trace_and_counted_on_the_cover(
     assert {idea for idea, _, _ in slides(run_dir)} == {"c01"}
 
 
+def test_an_unbuilt_fallback_pick_is_named_as_the_closest_idea_not_as_one_that_passed(tmp_path):
+    one_step = candidate(golden("luzia")).flow_steps[:1]
+    run_dir = seed_run(tmp_path, "luzia", {"c01": {"flow_steps": one_step}})
+    decisions = [decision("c01", "conditional", 1.0, passed=10), decision("c03", "reject", 2.0, passed=9)]
+    (run_dir / "judge" / "decisions.json").write_text(DecisionsFile(decisions=decisions).model_dump_json())
+    (run_dir / "judge" / "verdicts" / "c01_judge_1_r1.json").write_text(verdict("c01", "c5_moment").model_dump_json())
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(llm, "call", fake_editor(run_dir))
+        flows.run(ctx_for(run_dir, "luzia"))
+    deck = (run_dir / "flows" / "slides.html").read_text()
+    cover = text_of(deck.split('<section class="slide cover">')[1].split("</section>")[0])
+    assert "No idea passed every check; the closest couldn't be drawn, and the score pages at the end say why." in cover
+    assert "passed the review" not in cover, cover
+
+
 def test_a_fallback_pick_is_named_on_the_cover_and_its_why_slide_never_says_recommended(tmp_path):
     run_dir = seed_run(tmp_path, "luzia", {"c01": {}})
     decisions = [decision("c01", "conditional", 1.0, passed=10), decision("c03", "reject", 2.0, passed=9)]

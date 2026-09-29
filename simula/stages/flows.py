@@ -858,10 +858,10 @@ def idea_slides(flow: dict, model: ProductModel, run_dir: Path, none_accepted: b
 
 
 def cover_html(app: str, flows: list[dict], unbuilt: int = 0, status: list[str] = (), fallbacks: int = 0,
-               cut: int = 0) -> str:
+               cut: int = 0, unbuilt_fallbacks: int = 0) -> str:
     """The overview: every idea in the deck, how to read it, the reward rule every idea follows, whether an idea is
-    only the judge's fallback pick, how many survivors the cap left out, and status lines for anything an earlier
-    stage couldn't finish."""
+    only the judge's fallback pick (drawn, or not drawn), how many survivors the cap left out, and status lines for
+    anything an earlier stage couldn't finish. `unbuilt` counts only ideas that passed the review."""
     items = "".join(f'<li><span class="chip {"existing" if f["candidate"].kind == "existing_anchor" else "change"}">'
                     f'{escape(BUCKETS.get(f["candidate"].kind, ""))}</span>{escape(plain(caption(f["candidate"])))}</li>'
                     for f in flows)
@@ -871,13 +871,16 @@ def cover_html(app: str, flows: list[dict], unbuilt: int = 0, status: list[str] 
                   "the end score every idea the review saw.", REWARD_RULE]
     if fallbacks:
         notes.append("No idea passed every check, so the closest is drawn and marked as not a recommendation.")
+    if unbuilt_fallbacks:
+        notes.append("No idea passed every check; the closest couldn't be drawn, and the score pages at the end "
+                     "say why.")
     if cut:
         notes.append(f"{cut} more idea(s) passed the review; the deck draws only the top {MAX_IDEAS} by rank, and the "
                      "score pages at the end score the rest.")
     if unbuilt:
         notes.append(f"{unbuilt} {'more ' if flows else ''}idea(s) passed the review but couldn't be drawn; the score "
                      "pages at the end say why.")
-    if not flows and not unbuilt:
+    if not flows and not unbuilt and not unbuilt_fallbacks:
         notes.append("No idea passed the review. The score pages at the end show every idea's score and why.")
     body = (f"<ol>{items}</ol>" if flows else "") + "".join(f"<p class='how'>{escape(n)}</p>" for n in [*notes, *status])
     return f'<section class="slide cover"><h1>Rewarded-ad ideas for {escape(app)}</h1>{body}</section>'
@@ -959,7 +962,9 @@ def deck(ctx: Ctx, model: ProductModel, flows: list[dict], not_built: list[tuple
     app = app_title(model, ctx.app["name"])
     none_accepted = not any(d.final == "accept" for d in decisions)
     fallbacks = sum(is_fallback(f["decision"], ctx.run_dir, none_accepted) for f in flows)
-    slides = [cover_html(app, flows, len(not_built), unfinished_stages(ctx.run_dir), fallbacks, cut)]
+    unbuilt_fallbacks = sum(is_fallback(d, ctx.run_dir, none_accepted) for d, _ in not_built)
+    slides = [cover_html(app, flows, len(not_built) - unbuilt_fallbacks, unfinished_stages(ctx.run_dir), fallbacks, cut,
+                         unbuilt_fallbacks)]
     for flow in flows:
         slides += idea_slides(flow, model, ctx.run_dir, none_accepted)
     slides += score_slides(decisions, candidates, not_built, ctx.run_dir)
