@@ -7,6 +7,7 @@ import json
 import tomllib
 from pathlib import Path
 
+import pytest
 from PIL import Image, ImageDraw
 
 from simula import runlog
@@ -266,21 +267,31 @@ def test_the_walk_scrolls_past_the_old_cap_until_the_model_sees_the_start_contro
 def test_a_page_that_scrolls_pictures_under_the_same_text_is_still_moving(tmp_path, monkeypatch):
     def same_text(clock):
         phone = long_page(clock, 5)
+        tall = Image.new("RGB", (1080, 2400 + 11 * 600), (30, 30, 30))  # one long page of pictures, 600 px a swipe
+        draw, pictures = ImageDraw.Draw(tall), []
+        for k in range(tall.height // 300):
+            box = (60 + 40 * (k % 5), 300 * k + 20, 1020 - 70 * (k % 3), 300 * k + 180 + 20 * (k % 5))
+            draw.rectangle(box, fill=(40 * k % 255, 120 + 30 * (k % 4), 200 - 15 * (k % 7)))
+            pictures.append(box)
         for n in range(12):
             page = phone.screens[f"page{n}"]
             para = {**page.elements[1], "text": "A long description"}
-            image = page.image.copy()
-            draw = ImageDraw.Draw(image)
-            for y in range(-400 + 160 * (n % 3), 2400, 480):  # pictures scrolled up by a third of a band each page
-                draw.rectangle((60, y, 1020, y + 240), fill=(250, 220, 60))
-            phone.screens[f"page{n}"] = Screen([page.elements[0], para, *page.elements[2:]], image, PACKAGE)
+            image = tall.crop((0, 600 * n, 1080, 600 * n + 2400))
+            shown = [{"ref": f"@img{k}", "type": "android.widget.ImageView", "text": "",
+                      "coordinates": {"x": x0, "y": y0 - 600 * n, "width": x1 - x0, "height": y1 - y0}}
+                     for k, (x0, y0, x1, y1) in enumerate(pictures) if 300 <= y0 - 600 * n and y1 - 600 * n <= 2100]
+            if n == 5:
+                ImageDraw.Draw(image).rounded_rectangle((88, 2198, 992, 2300), radius=30, fill=(120, 80, 220))
+            phone.screens[f"page{n}"] = Screen([page.elements[0], para, *shown, *page.elements[2:]], image, PACKAGE)
         return phone
     ex, phone = run_explorer(tmp_path, monkeypatch, same_text)
     assert ex.core.kind == "chat" and phone.sent
     assert ("tap", "page5", "Chat with Avarus") in phone.log
 
 
-def test_the_walk_stops_at_the_end_of_a_page_with_a_blinking_ad(tmp_path, monkeypatch):
+@pytest.mark.parametrize("box", [(100, 1500, 400, 1700), (0, 400, 1080, 1000), (0, 400, 1080, 1800)],
+                         ids=["corner_ad", "video_27pct", "background_64pct"])
+def test_the_walk_stops_at_the_end_of_a_page_with_a_blinking_ad(tmp_path, monkeypatch, box):
     def blinking_ad(clock):
         phone, frames = long_page(clock, 99), iter(range(10**6))
         image = phone.image
@@ -288,7 +299,7 @@ def test_the_walk_stops_at_the_end_of_a_page_with_a_blinking_ad(tmp_path, monkey
         def frame():
             out = image()
             if phone.screen.startswith("page") and next(frames) % 2:
-                ImageDraw.Draw(out).rectangle((100, 1500, 400, 1700), fill=(255, 255, 0))
+                ImageDraw.Draw(out).rectangle(box, fill=(255, 255, 0))
             return out
         phone.image = frame
         return phone

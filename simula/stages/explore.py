@@ -1333,12 +1333,12 @@ class Explorer:
                 continue
             if scrolls >= WALK_SCROLLS or still >= 2:
                 break
-            scrolls, shown, looked = scrolls + 1, ob.texts(self.obs.elements, self.device), self.obs.image
+            scrolls, shown, laid = scrolls + 1, ob.texts(self.obs.elements, self.device), self.obs.elements
             self.act(Move("swipe", direction="up", why="core loop: the item's main action may be further down"),
                      purpose="nav")
-            # a scroll moves most of the page; an ad or a GIF that keeps playing in one corner is not movement
+            # a scroll moves the elements; an ad, a GIF or a video playing in place is not movement, however large
             moved = self.obs is None or ob.texts(self.obs.elements, self.device) != shown \
-                or ob.changed_boxes(looked, self.obs.image, self.device) is None
+                or ob.shifted(laid, self.obs.elements, self.device)
             still = 0 if moved else still + 1
         self.note("core", f"no input control inside {item.label[:40]!r}")
         return None

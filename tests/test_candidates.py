@@ -128,3 +128,10 @@ def test_short_buttons_are_the_apps_own_words_not_titles_counters_or_cards():
     assert "Create app" in create
     assert "Trending" in feed and "Build, Share, Explore" not in feed and not any(ch.isdigit() for ch in "".join(feed))
     assert not {c.label for c in ob.feed_items(home, DEVICE, tabs)} & set(feed)
+
+
+def test_a_scroll_moves_the_elements_and_a_redrawn_ad_does_not():
+    def elements(name):
+        return parse_elements(json.loads((TREES / "aol" / f"{name}.elements.json").read_text()))
+    assert ob.shifted(elements("aol-home"), elements("aol-home-scrolled"), DEVICE)
+    assert not ob.shifted(elements("aol-a"), elements("aol-b"), DEVICE)  # its tree changed 105 -> 96 nodes in place

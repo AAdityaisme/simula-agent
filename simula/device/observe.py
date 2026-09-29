@@ -472,6 +472,22 @@ def changed_boxes(a: Image.Image, b: Image.Image, device: Device, cell: int = 40
     return boxes
 
 
+def shifted(before: list[dict], after: list[dict], device: Device) -> bool:
+    """Some element both lists show (the same type, words, left edge and size) sits at another height: a scroll moves
+    the content, while an animation, a video or an ad redrawn in place leaves every element where it was."""
+    def spots(elements: list[dict]) -> dict[tuple, set[float]]:
+        out: dict[tuple, set[float]] = {}
+        for e in elements:
+            if in_content(e, device):
+                r = rect(e)
+                out.setdefault((e["type"], words(e), r.x, r.w, r.h), set()).add(r.y)
+        return out
+    a, b = spots(before), spots(after)
+    # ponytail: identical elements (same type, size, no words) scrolled by exactly their spacing look unmoved; words
+    # elsewhere on the page catch it, a page of nothing but identical pictures would not
+    return any(a[k] != b[k] for k in a.keys() & b.keys())
+
+
 def counters(before: list[dict], after: list[dict], device: Device, bands: list[tuple[int, int]]) -> list[str]:
     """Short numbers that changed in place ("5 left" → "4 left") inside the given y bands (the header, the input
     bar): UI chrome, never the content that scrolls between them."""
