@@ -111,7 +111,11 @@ def test_replay_taps_pass_the_deny_list_and_the_foreground_check(tmp_path, monke
 
 @pytest.mark.parametrize("label", ["Stocks slide as report shows hiring slowdown", "Senate votes to block new tariffs",
                                    "Fans like the new season", "Likely", "Followers", "Preview", "Photos",
-                                   "Personal Finance", "Remove ads", "Close paywall", "Halloween 2025 badge"])
+                                   "Personal Finance", "Remove ads", "Close paywall", "Halloween 2025 badge",
+                                   "Apple to pay $490 million to settle the lawsuit",
+                                   "Senate votes to confirm the nominee",
+                                   "How to delete your old Facebook account", "Why you should not buy a new phone yet",
+                                   "Netflix to cancel its cheapest plan", "What payment methods do you accept?"])
 def test_whole_words_on_control_shaped_labels_only(label):
     assert denied(control(label)) is None
 
@@ -131,6 +135,11 @@ def test_core_words_are_whole_words():
                                          ("Sign in with Google to save your chats", "TextView")])
 def test_actions_stay_denied(label, kind):
     assert denied(control(label, kind))
+
+
+def test_a_long_label_is_denied_when_it_starts_with_the_action():
+    assert denied(control("• Delete my account and all of its data")) == "delete"
+    assert denied(control("Payment will be charged to your Google Play account")) == "payment"
 
 
 def test_remove_ads_opens_an_upsell_and_is_a_confirm_on_one():

@@ -40,11 +40,14 @@ SCRIM_SHARE = 0.84
 
 # Entry words (upgrade, plans, premium, plus, try, remove ads) may open an upsell; confirm words never run. Every
 # stem is a whole word, so "Preview", "Photos" and "Bitcoin" pass. What can't be undone (the account, its data,
-# money) is denied in any label; the rest only on control-shaped labels, since a headline that mentions "report" is
-# not a report button. A toggle's on-state ("Following", "Liked", "Subscribed") stays denied: tapping it undoes it.
+# money) is denied on a control-shaped label, and on a longer one that starts with it ("Delete my account and all of
+# its data"): a headline's verb follows its subject ("Apple to pay $490 million"). The rest is denied only on
+# control-shaped labels, since a headline that mentions "report" is not a report button. A toggle's on-state
+# ("Following", "Liked", "Subscribed") stays denied: tapping it undoes it.
 DENY_ALWAYS = re.compile(r"\b(?:log ?out|sign ?out|sign ?in|sign ?up|log ?in|create account|continue with|delete|"
                          r"remove(?! ads\b)|cancel|(?:un)?subscribed?|buy|pay(?:ments?)?|purchases?|restore|confirm|"
                          r"start\b.{0,24}\btrial|passwords?|place order|check ?out|donat\w*)\b", re.IGNORECASE)
+DENY_COMMAND = re.compile(rf"^\W*({DENY_ALWAYS.pattern})", re.IGNORECASE | re.MULTILINE)
 DENY = re.compile(r"\b(?:report|(?:un)?block|clear|e-?mails?|security|personas?|(?:un)?follow(?:ing)?|"
                   r"(?:un)?favou?rit\w*|(?:un)?liked?|hearts?|hide|terms|privacy|rate us|review|camera|photo|gallery|"
                   r"allow|permissions?|install|open in|submit|proceed|tip|rate|give \d stars?|save changes|publish|"
@@ -374,10 +377,11 @@ def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bo
         return "account text"
     text = ID_WORDS.sub(" ", text)
     shaped = len(c.label.split()) <= CONTROL_WORDS or "Button" in c.kind
-    hit = DENY_ALWAYS.search(text) or (DENY.search(text) if shaped and not toggle_ok else None) \
+    hit = (DENY_ALWAYS if shaped else DENY_COMMAND).search(text) \
+        or (DENY.search(text) if shaped and not toggle_ok else None) \
         or (DENY_ON_UPSELL.search(text) if upsell else None) or (DENY_IN_CORE if core else DENY_IN_TOUR).search(text)
     if hit:
-        return hit.group(0).lower()
+        return hit.group(hit.lastindex or 0).lower()  # a command's word, without the bullet before it
     if TOGGLE.search(c.kind) and not toggle_ok:
         return "toggle"
     if c.kind == "EditText" and not core:
