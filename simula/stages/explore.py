@@ -1453,19 +1453,24 @@ class Explorer:
 
     def watch(self, before: set[str], verb: str, idle: tuple[Image.Image, ob.Candidate] | None = None) -> str:
         """Invariant 2: after the core action the explorer stays until the screen settles: two screenshots
-        SETTLE_GAP_S apart that match, once the result has begun to show and, in a conversation, once the send control
+        SETTLE_GAP_S apart that match, once the result has begun to show (new text, or for an action that isn't a
+        conversation, pixels that changed since the first look) and, in a conversation, once the send control
         looks again as it did before the message (idle: that screenshot and control; a stop control in its place
         means the reply is still coming). While the screen keeps changing, the model is asked every SETTLE_ASK_S
         whether the work is still progressing, finished (only decorative motion is left), or stalled, up to the
         SETTLE_CAP_S outer cap; its finished counts only once the send control is idle again. The new text's timing is
         read from the element list on the way."""
-        start, samples, last, asks, how = self.clock(), [], None, 0, "cap"
+        start, samples, first, last, asks, how = self.clock(), [], None, None, 0, "cap"
         while True:
             reply, elements = self.phone.elements()
             at = self.clock() - start
             samples.append((at, frozenset(ob.texts(elements, self.device) - before)))
             frame = self.frame(reply)
-            if last is not None and ob.reply_timing(samples)[0] is not None and ob.still(last, frame, self.device) \
+            first = first or frame
+            # a reply shows as text; another result (an image, a board) may show only as pixels
+            begun = ob.reply_timing(samples)[0] is not None \
+                or (idle is None and not ob.still(first, frame, self.device))
+            if last is not None and begun and ob.still(last, frame, self.device) \
                     and self.idle_again(idle, elements, frame):
                 how = "settled"
                 break

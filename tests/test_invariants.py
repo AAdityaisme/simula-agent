@@ -189,6 +189,26 @@ def test_a_model_finished_mid_reply_waits_for_send_to_come_back(tmp_path, monkey
     assert not any(entry[:1] == ("tap",) and entry[2] == "Cancel" for entry in phone.log)
 
 
+def test_a_result_that_shows_only_as_pixels_settles_without_waiting_for_the_model(tmp_path, monkeypatch):
+    ex, phone = new_explorer(tmp_path, monkeypatch, chatty, budget="deep")
+    ex.device = DEVICE
+    ex.core = stage.CoreAction("action", None, [], "generate a picture")
+    frames = {"n": 0}
+
+    def drawing(path, size=None):
+        frames["n"] += 1
+        image = Image.new("RGB", (1080, 2400), (240, 240, 240))
+        if frames["n"] > 1:
+            ImageDraw.Draw(image).rectangle((100, 600, 980, 1800), fill=(40, 120, 200))
+        image.save(path)
+        return path
+    phone.screenshot = drawing
+    phone.screen = "chat"
+    ex.watch(ob.texts(phone.current_elements(), DEVICE), "result")
+    (seconds, how), = ex.settles
+    assert how == "settled" and seconds < stage.SETTLE_ASK_S
+
+
 def test_decorative_motion_ends_the_wait_by_the_model_not_the_cap(tmp_path, monkeypatch):
     ex, phone = new_explorer(tmp_path, monkeypatch, chatty, budget="deep")
     ex.device = DEVICE
