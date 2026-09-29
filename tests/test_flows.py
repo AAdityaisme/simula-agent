@@ -1,6 +1,7 @@
 """Stage 7 offline, on every golden: selection, the tap-through, the reward rule, and the deck's parts."""
 
 import html
+import json
 import re
 import shutil
 from contextlib import contextmanager
@@ -218,11 +219,18 @@ def test_the_cover_names_the_app_as_the_model_reads_it_else_the_config_key_title
     assert flows.app_title(named, app) == "Janitor AI" and flows.app_title(golden(app), app) == app.title()
 
 
-def test_the_cover_carries_a_line_for_each_earlier_stage_that_finished_only_part_of_its_work(built):
-    flow = drawn(golden_idea(built), decision("c01", "accept", 1.0))
-    cover = text_of(flows.cover_html("Luzia", [flow], status=["Mock QA was partial: round 1 stopped on the cap."]))
-    assert cover.endswith("Mock QA was partial: round 1 stopped on the cap.")
-    assert "partial" not in text_of(flows.cover_html("Luzia", [flow]))
+def test_the_cover_carries_a_line_for_each_earlier_stage_that_finished_only_part_of_its_work(tmp_path):
+    run_dir = seed_run(tmp_path, "luzia")
+    (run_dir / "qa").mkdir()
+    (run_dir / "qa" / "done.json").write_text(json.dumps({"stage": "qa", "outcome": {
+        "status": "partial", "reasons": ["round 1 stopped on the $ cap"], "resume": "simula run luzia --from qa"}}))
+    (run_dir / "judge" / "done.json").write_text(json.dumps({"stage": "judge", "outcome": {"status": "complete"}}))
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(llm, "call", fake_editor(run_dir))
+        flows.run(ctx_for(run_dir, "luzia"))
+    cover = text_of((run_dir / "flows" / "slides.html").read_text().split('<section class="slide main"')[0])
+    assert cover.endswith("The qa step finished only part of its work: round 1 stopped on the $ cap.")
+    assert "judge step" not in cover
 
 
 def test_main_slides_carry_no_ids_or_cost_math(built):

@@ -18,7 +18,7 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeout
 from playwright.sync_api import sync_playwright
 
 from simula import config, llm, render
-from simula.config import ROOT
+from simula.config import ROOT, STAGES
 from simula.contracts import (GATES, JUDGMENT, Candidate, CandidatesFile, Decision, DecisionsFile, Edit, Edits,
                               ProductModel, Verdict)
 from simula.runlog import read_trace, run_trace, write_exhibit
@@ -901,10 +901,22 @@ def score_slides(decisions: list[Decision], candidates: dict[str, Candidate], no
             for n, body in enumerate(bodies, 1)]
 
 
+def unfinished_stages(run_dir: Path) -> list[str]:
+    """A cover line for each earlier stage whose done.json says it finished only part of its work, with its reasons.
+    The outcome is read as JSON because this branch's DoneMarker predates it (pr0b-shared adds StageOutcome)."""
+    lines = []
+    for stage in STAGES[:STAGES.index("flows")]:
+        path = run_dir / stage / "done.json"
+        outcome = json.loads(path.read_text()).get("outcome") if path.exists() else None
+        if outcome and outcome.get("status") == "partial":
+            lines.append(f"The {stage} step finished only part of its work: {'; '.join(outcome.get('reasons', []))}.")
+    return lines
+
+
 def deck(ctx: Ctx, model: ProductModel, flows: list[dict], not_built: list[tuple[Decision, str]],
          decisions: list[Decision], candidates: dict[str, Candidate]) -> str:
     app = app_title(model, ctx.app["name"])
-    slides = [cover_html(app, flows, len(not_built))]
+    slides = [cover_html(app, flows, len(not_built), unfinished_stages(ctx.run_dir))]
     for flow in flows:
         slides += idea_slides(flow, model, ctx.run_dir)
     slides += score_slides(decisions, candidates, not_built, ctx.run_dir)
