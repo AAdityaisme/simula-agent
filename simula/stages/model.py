@@ -201,9 +201,11 @@ def bracketing_moves(lines: list[ActionLine]) -> set[int]:
 
 
 def value_changes(before: State, after: State) -> str:
-    """Values that changed in one spot between two captures ("7 chats → 8 chats"): the same role at the same left
-    edge, top, and height (the width follows the digits), one text there on each side, the same words, and a
-    different number. A clock time is skipped: it changes by itself."""
+    """Values that changed in one spot between two captures of the same screen ("7 chats → 8 chats"): the same role
+    at the same left edge, top, and height (the width follows the digits), one text there on each side, the same
+    words, and a different number. The captures are one screen when most texts without a number are the same text in
+    the same spot; two lists that share a layout are not, since their cards' stats sit in the same spots. A bare
+    number ("171", "1 / 295") has no word saying what it counts, and a clock time changes by itself: neither is one."""
     def spots(s: State) -> dict[tuple, str]:
         found: dict[tuple, list[str]] = {}
         for e in s.elements:
@@ -211,8 +213,12 @@ def value_changes(before: State, after: State) -> str:
                 found.setdefault((e.role, e.rect_px.x, e.rect_px.y, e.rect_px.h), []).append(e.text)
         return {k: texts[0] for k, texts in found.items() if len(texts) == 1}
     old, new = spots(before), spots(after)
+    old_words, new_words = ([k for k, t in s.items() if not NUMBER.search(t)] for s in (old, new))
+    if 2 * sum(old[k] == new.get(k) for k in old_words) <= max(len(old_words), len(new_words)):
+        return ""
     return "; ".join(f"{old[k]} → {new[k]}" for k in old if k in new and old[k] != new[k]
-                     and NUMBER.sub("#", old[k]) == NUMBER.sub("#", new[k]) and not CLOCK.search(old[k]))
+                     and NUMBER.sub("#", old[k]) == NUMBER.sub("#", new[k])
+                     and WORD.search(NUMBER.sub("", old[k])) and not CLOCK.search(old[k]))
 
 
 def load_edges(explore_dir: Path, states: list[State]) -> tuple[list[Edge], list[str]]:

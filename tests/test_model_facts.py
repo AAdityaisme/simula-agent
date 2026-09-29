@@ -117,24 +117,49 @@ def text_state(sid, *texts) -> State:
                  elements=elements, in_mock_scope=False, content_rating="safe", dynamic_regions=[], blocked_reason=None)
 
 
-def test_a_value_that_changed_in_one_spot_is_what_changed():
-    before = text_state("s01", ("7 chats", 279, 521, 115, 41), ("My Chats", 155, 174, 799, 71),
-                        ("08:52", 900, 450, 90, 40), ("8", 41, 838, 21, 42), ("1", 41, 838, 21, 42),
-                        ("9 coins", 40, 300, 100, 40), ("Only here 5", 40, 1500, 200, 40))
-    after = text_state("s02", ("8 chats", 279, 521, 115, 41), ("Search", 155, 174, 799, 71),
-                       ("09:37", 900, 450, 90, 40), ("8", 41, 838, 21, 42), ("0", 41, 838, 21, 42),
-                       ("10 coins", 40, 300, 118, 40), ("Elsewhere 6", 40, 1600, 200, 40))
+def test_a_value_that_changed_in_one_spot_of_the_same_screen_is_what_changed():
+    title = ("My Chats", 155, 174, 799, 71), ("Sort by recent", 40, 260, 400, 40)
+    before = text_state("s01", *title, ("7 chats", 279, 521, 115, 41), ("08:52", 900, 450, 90, 40),
+                        ("8", 41, 838, 21, 42), ("1", 41, 838, 21, 42), ("9 coins", 40, 300, 100, 40),
+                        ("171", 600, 900, 60, 40), ("1 / 295", 600, 1000, 120, 40), ("Only here 5", 40, 1500, 200, 40))
+    after = text_state("s02", *title, ("8 chats", 279, 521, 115, 41), ("09:37", 900, 450, 90, 40),
+                       ("8", 41, 838, 21, 42), ("0", 41, 838, 21, 42), ("10 coins", 40, 300, 118, 40),
+                       ("20", 600, 900, 40, 40), ("1 / 102", 600, 1000, 120, 40), ("Elsewhere 6", 40, 1600, 200, 40))
     assert stage.value_changes(before, after) == "7 chats → 8 chats; 9 coins → 10 coins", \
-        "a new title, a clock, a spot holding two texts, and a text that moved are not changes"
+        "a bare number, a clock, a spot holding two texts, and a text that moved are not changes"
     assert stage.value_changes(before, before) == ""
+    other = text_state("s03", ("Search", 155, 174, 799, 71), ("Sort by name", 40, 260, 400, 40),
+                       ("8 chats", 279, 521, 115, 41), ("10 coins", 40, 300, 118, 40))
+    assert stage.value_changes(before, other) == "", "another screen with the same layout changed nothing"
+
+
+def capture_state(sid: str, capture: str) -> State:
+    """A state built from one of the JanitorAI fixture captures, as the model stage builds it."""
+    folder = FIXTURES / "trees" / "janitorai"
+    pixels = np.asarray(Image.open(folder / f"{capture}.png").convert("RGB"))
+    elements = stage.build_elements(sid, stage.read_tree(folder / f"{capture}.elements.json"), [], [], pixels, DEVICE)
+    return State(id=sid, kind="screen", parent_id=None, name=sid, purpose="", fingerprint=capture, canonical_png="",
+                 elements=elements, in_mock_scope=False, content_rating="unknown", dynamic_regions=[],
+                 blocked_reason=None)
+
+
+def test_a_tab_to_another_list_with_the_same_layout_changed_no_value(tmp_path):
+    """pairs.toml labels these two captures different screens. Their cards' stats (171 and 20) and page counters
+    (1 / 295 and 1 / 102) sit in the same spots, but they belong to other characters and another list."""
+    states = [capture_state("s01", "j04_tab1"), capture_state("s02", "janitorai-hidden")]
+    (tmp_path / "actions.jsonl").write_text(move(1, "s01", "s02").model_copy(update={"transition": "tab"})
+                                            .model_dump_json() + "\n")
+    edges, _ = stage.load_edges(tmp_path, states)
+    assert [(e.id, e.change_summary) for e in edges] == [("s01.tap>s02", "")]
 
 
 @pytest.mark.parametrize("name", APPS)
 def test_an_edge_says_what_changed_only_when_its_captures_sit_right_around_it(name, tmp_path):
     explore = build(name, tmp_path / "explore")
     states, _, _ = stage.load_states(explore, DEVICE)
-    a = text_state(states[0].id, ("7 chats", 279, 521, 115, 41))
-    b = text_state(states[1].id, ("8 chats", 279, 521, 115, 41))
+    title = ("My Chats", 155, 174, 799, 71)
+    a = text_state(states[0].id, title, ("7 chats", 279, 521, 115, 41))
+    b = text_state(states[1].id, title, ("8 chats", 279, 521, 115, 41))
     lines = [move(1, a.id, b.id), move(2, b.id, a.id), move(3, a.id, b.id, action="swipe"),
              move(4, b.id, a.id, summary="reply started 2 s", action="back")]
     (explore / "actions.jsonl").write_text("".join(line.model_dump_json() + "\n" for line in lines))
