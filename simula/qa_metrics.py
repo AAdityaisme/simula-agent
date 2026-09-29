@@ -164,7 +164,7 @@ def within(got: Rect | None, want: Rect, tolerance: float = BOUNDS_TOLERANCE_DP)
 
 CHROME_GATE = 0.98
 # Real screens that score at least this over a chrome box show the same part there. Measured on JanitorAI's real
-# screens: a highlighted tab costs the pair about 0.02, while a different title or unrelated content costs 0.07 and more.
+# screens: a highlighted tab costs the pair about 0.02; a different title or unrelated content, 0.07 and more.
 SAME_PART = 0.95
 
 
@@ -172,11 +172,6 @@ def shared_dom(page, screen: str) -> tuple[dict[str, Rect], list[tuple[str, str]
     """For the screen on show: the box of each data-chrome part (content dp), and each data-value tag's id and text."""
     dom = page.evaluate(SHARED_DOM, screen)
     return {kind: Rect(**box) for kind, box in dom["chrome"].items()}, [(v["id"], v["text"]) for v in dom["values"]]
-
-
-def union(*rects: Rect) -> Rect:
-    x0, y0 = min(r.x for r in rects), min(r.y for r in rects)
-    return Rect(x=x0, y=y0, w=max(r.x + r.w for r in rects) - x0, h=max(r.y + r.h for r in rects) - y0)
 
 
 def box_ssim(a: np.ndarray, b: np.ndarray, box: Rect) -> float | None:
@@ -206,15 +201,19 @@ def chrome_failures(chrome: dict[str, dict[str, Rect]], mocks: dict[str, Image.I
 
 
 def part_scores(kind: str, chrome: dict, mock: dict, real: dict) -> dict[tuple[str, str], tuple[float, float]]:
-    """(mock SSIM, real SSIM) for each pair of screens whose real screens show the part: SSIM at least SAME_PART at
-    one of the pair's boxes. A screen with no tag of the part is compared at the other screen's box, so a bar left
-    off one screen is caught."""
+    """(mock SSIM, real SSIM) for each pair of screens, over the same box, at the box of either screen where the real
+    screens show the part (SSIM at least SAME_PART), keeping the box where the mock falls furthest below the real app.
+    A bar drawn somewhere else on one screen is caught at the other screen's box, and so is a bar left off a screen
+    that carries no tag of the part."""
     scores = {}
     for a, b in itertools.combinations(chrome, 2):
-        boxes = [chrome[sid][kind] for sid in (a, b) if kind in chrome[sid]]
-        in_app = max((s for s in (box_ssim(real[a], real[b], box) for box in boxes) if s is not None), default=0.0)
-        if in_app >= SAME_PART:
-            scores[a, b] = box_ssim(mock[a], mock[b], union(*boxes)), in_app
+        at_boxes = []
+        for box in (chrome[sid][kind] for sid in (a, b) if kind in chrome[sid]):
+            in_app = box_ssim(real[a], real[b], box)
+            if in_app is not None and in_app >= SAME_PART:
+                at_boxes.append((box_ssim(mock[a], mock[b], box), in_app))
+        if at_boxes:
+            scores[a, b] = min(at_boxes, key=lambda ssims: ssims[0] - ssims[1])
     return scores
 
 
@@ -246,23 +245,21 @@ def part_failure(kind: str, odd: str, others: list[tuple[str, float, float]], ch
     return {"kind": "chrome", "screen": odd, "detail":
             f"{part} renders differently from {', '.join(other for other, _, _ in others)} (SSIM {mock_ssim:.3f}, "
             f"where the real screens score {real_ssim:.3f}): draw it as {like} does, keeping only what the real "
-            "screens show differently (a highlighted tab, a title)" + ("" if marked else f', marked data-chrome="{kind}"')}
-
-
-NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
+            "screens show differently (a highlighted tab, a title)"
+            + ("" if marked else f', marked data-chrome="{kind}"')}
 
 
 def shows(value: str, text: str) -> bool:
-    """Whether a tag's text shows a value. A value with numbers is shown when each of its numbers is a whole number in
-    the tag, whatever words sit around it: '0 Following' and '💎 0' show '0', and '120' shows '120 coins', but '10',
-    '1.0' and 'coins' don't. A value with no number must appear in whole words, in any case and spacing (text.find
-    has no word boundary, so it would take 'Pro' inside 'Proton')."""
-    numbers = NUMBER.findall(value)
-    if numbers:
-        return all(n in NUMBER.findall(text) for n in numbers)
+    """Whether a tag's text shows the whole value, in any case and spacing, with words around it allowed: '0
+    Following' and '💎 120' show '0' and '120'. A number never matches inside a longer one ('10', '1.0' and '1,200'
+    don't show '0' or '200'), and a unit or currency must match too ('120 gems' doesn't show '120 coins', nor '€1.99'
+    '$1.99'). text.find has no word boundary, so it would take 'Pro' inside 'Proton'."""
     words = value.split()
-    pattern = r"(?<!\w)" + r"\s+".join(map(re.escape, words)) + r"(?!\w)"
-    return bool(words) and re.search(pattern, text, re.IGNORECASE) is not None
+    if not words:
+        return False
+    start = r"(?<!\w)(?<!\d[.,])" if words[0][0].isalnum() else ""
+    end = r"(?!\w)(?![.,]\d)" if words[-1][-1].isalnum() else ""
+    return re.search(start + r"\s+".join(map(re.escape, words)) + end, text, re.IGNORECASE) is not None
 
 
 def screen_of(model: ProductModel) -> dict[str, str]:

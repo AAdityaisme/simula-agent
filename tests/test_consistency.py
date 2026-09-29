@@ -21,7 +21,8 @@ from tests.test_qa_loop import fake_critic, measured_twelve, records, told, twel
 BAR_DP = 56
 BAND_DP = 80  # the real screens' shared band is taller than the mock's bar, so resampling at its edge stays outside
 # Band colors that each differ from every other by most of a channel, so no two bands look alike to SSIM.
-PALETTE = [(0, 0, 0), (255, 255, 255), (255, 0, 0), (0, 0, 255), (0, 160, 0), (255, 200, 0), (120, 0, 160), (0, 200, 200)]
+PALETTE = [(0, 0, 0), (255, 255, 255), (255, 0, 0), (0, 0, 255), (0, 160, 0), (255, 200, 0), (120, 0, 160),
+           (0, 200, 200)]
 
 
 def run_with(tmp_path, app: str, model, edit) -> tuple:
@@ -140,6 +141,22 @@ def test_the_screen_that_matches_fewer_others_is_the_one_to_fix_even_when_it_com
     assert [f["screen"] for f in failures] == ["a"] and "from b, c" in failures[0]["detail"]
 
 
+def test_a_bar_the_app_itself_resizes_passes_when_the_mock_resizes_it_the_same():
+    """Mock and real are compared over the same box: at the taller bar's box the resize costs both the same."""
+    screen = Image.new("RGB", (411, 838), "#101014")
+    def shorter(fill: str = "#202226") -> Image.Image:
+        bar = with_tab_bar(screen, lit=0, fill=fill)
+        ImageDraw.Draw(bar).rectangle((0, 780, 410, 785), fill="#101014")
+        return bar
+    real = {"a": with_tab_bar(screen, lit=0), "b": shorter()}
+    parts = {"a": {"tabbar": Rect(x=0, y=780, w=411, h=58)}, "b": {"tabbar": Rect(x=0, y=786, w=411, h=52)}}
+    upper = qa_metrics.box_ssim(np.asarray(real["a"]), np.asarray(real["b"]), parts["a"]["tabbar"])
+    assert qa_metrics.SAME_PART <= upper < qa_metrics.CHROME_GATE
+    assert qa_metrics.chrome_failures(parts, real, real) == []
+    recolored = {**real, "b": shorter(fill="#3a2030")}
+    assert [f["screen"] for f in qa_metrics.chrome_failures(parts, recolored, real)] == ["b"]
+
+
 def test_the_screen_to_copy_is_the_one_most_others_match_not_another_odd_one():
     """b and c are each drawn their own way; d, e and f agree. b and c are told to copy d, never each other."""
     screen = Image.new("RGB", (411, 838), "#101014")
@@ -191,11 +208,11 @@ def test_a_bar_drawn_lower_on_one_screen_fails_though_it_looks_the_same():
 # ---------- data-value ----------
 
 @pytest.mark.parametrize(("value", "text", "shown"), [
-    ("0", "0\nFollowing", True), ("0", "0, Following", True), ("120 coins", "120", True), ("120", "💎 120", True),
-    ("120 coins", "💎 120", True), ("$1.99", "US$1.99 / week", True), ("1 200", "1 200", True),
-    ("Pro", "PRO", True), ("Pro", "Pro plan", True),
+    ("0", "0\nFollowing", True), ("0", "0, Following", True), ("120", "💎 120", True), ("7 chats", "7 chats", True),
+    ("$1.99", "US$1.99 / week", True), ("1 200", "1 200", True), ("Pro", "PRO", True), ("Pro", "Pro plan", True),
     ("0", "10", False), ("0", "1.0", False), ("200", "1,200", False), ("120", "95", False), ("120", "", False),
-    ("120 coins", "coins", False), ("Pro", "Proton", False), ("Pro", "", False),
+    ("120 coins", "coins", False), ("120 coins", "120", False), ("120 coins", "120 gems", False),
+    ("$1.99", "€1.99", False), ("Pro", "Proton", False), ("", "", False),
 ])
 def test_whole_words_decide_whether_a_tag_shows_a_value(value, text, shown):
     assert qa_metrics.shows(value, text) is shown

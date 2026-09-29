@@ -560,8 +560,8 @@ def qa_report(best: Version, rounds: list[dict], stop: str, disagreement: dict |
 
 def exhibit(ctx: Ctx, model: ProductModel, best: Version, rounds: list[dict], report: dict) -> str:
     status = ("**approved**" if report["status"] == "approved"
-              else f"**qa_incomplete**: {len(best.failed_taps())} taps and {len(best.failed_flows())} flows still fail, "
-                   f"{len(best.cross_screen)} cross-screen failures")
+              else f"**qa_incomplete**: {len(best.failed_taps())} taps and {len(best.failed_flows())} flows still "
+                   f"fail, {len(best.cross_screen)} cross-screen failures")
     lines = [f"# QA: {model.app}", "",
              f"Status: {status}. Score {rounds[0]['score']:.2f} → {best.score:.2f} (round {best.round}, copied to "
              f"`qa/approved/`). Stop: {report['stop_reason']}. Model spend this stage: ${stage_usd(ctx):.4f}.", "",
@@ -577,8 +577,8 @@ def exhibit(ctx: Ctx, model: ProductModel, best: Version, rounds: list[dict], re
               f"{r['cross_screen_failures']} | {r['edits_applied']} / {r['edits_rejected']} | "
               f"{'yes' if r['kept'] else 'discarded'} |" for r in rounds]
     lines += ["", f"Approved version (round {best.round}), per screen. A term with nothing to measure shows –.", "",
-              "| Screen | Name | Score | Masked SSIM (coverage) | pixelmatch (pixels differing) | data-el within 4 dp | "
-              "Taps passing | Heatmap |",
+              "| Screen | Name | Score | Masked SSIM (coverage) | pixelmatch (pixels differing) | "
+              "data-el within 4 dp | Taps passing | Heatmap |",
               "|---|---|---|---|---|---|---|---|"]
     for s in best.screens:
         m = s["metrics"]
