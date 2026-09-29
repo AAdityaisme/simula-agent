@@ -37,15 +37,16 @@ OVERLAY_SHARE = 0.9
 SCRIM_SHARE = 0.5
 
 # Entry words (upgrade, plans, premium, plus, try, remove ads) may open an upsell; confirm words never run. Every
-# stem is a whole word, so "Preview", "Photos" and "Bitcoin" pass; DENY applies to control-shaped labels only,
-# since a headline that mentions "report" is not a report button. A toggle's on-state ("Following", "Liked",
-# "Subscribed") stays denied: tapping it undoes it on the account.
-DENY = re.compile(r"\b(?:log ?out|sign ?out|delete|remove(?! ads\b)|cancel|(?:un)?subscribed?|buy|pay(?:ments?)?|"
-                  r"purchases?|restore|confirm|start\b.{0,24}\btrial|report|(?:un)?block|clear|e-?mails?|passwords?|"
-                  r"security|personas?|(?:un)?follow(?:ing)?|(?:un)?favou?rit\w*|(?:un)?liked?|hearts?|hide|terms|"
-                  r"privacy|continue with|rate us|review|camera|photo|gallery|allow|permissions?|install|open in|"
-                  r"submit|place order|check ?out|proceed|donat\w*|tip|rate|give \d stars?|sign ?in|sign ?up|log ?in|"
-                  r"create account|save changes|publish|post)\b", re.IGNORECASE)
+# stem is a whole word, so "Preview", "Photos" and "Bitcoin" pass. What can't be undone (the account, its data,
+# money) is denied in any label; the rest only on control-shaped labels, since a headline that mentions "report" is
+# not a report button. A toggle's on-state ("Following", "Liked", "Subscribed") stays denied: tapping it undoes it.
+DENY_ALWAYS = re.compile(r"\b(?:log ?out|sign ?out|sign ?in|sign ?up|log ?in|create account|continue with|delete|"
+                         r"remove(?! ads\b)|cancel|(?:un)?subscribed?|buy|pay(?:ments?)?|purchases?|restore|confirm|"
+                         r"start\b.{0,24}\btrial|passwords?|place order|check ?out|donat\w*)\b", re.IGNORECASE)
+DENY = re.compile(r"\b(?:report|(?:un)?block|clear|e-?mails?|security|personas?|(?:un)?follow(?:ing)?|"
+                  r"(?:un)?favou?rit\w*|(?:un)?liked?|hearts?|hide|terms|privacy|rate us|review|camera|photo|gallery|"
+                  r"allow|permissions?|install|open in|submit|proceed|tip|rate|give \d stars?|save changes|publish|"
+                  r"post)\b", re.IGNORECASE)
 CONTROL_WORDS = 4
 ID_WORDS = re.compile(r"(?<=[a-z])(?=[A-Z])|_")  # an identifier's words ("buttonFavorite", "btn_like") for \b
 TOGGLE = re.compile(r"Switch|CheckBox|ToggleButton", re.IGNORECASE)
@@ -369,8 +370,8 @@ def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bo
         return "account text"
     text = ID_WORDS.sub(" ", text)
     shaped = len(c.label.split()) <= CONTROL_WORDS or "Button" in c.kind
-    hit = (DENY.search(text) if shaped else None) or (DENY_ON_UPSELL.search(text) if upsell else None) \
-        or (DENY_IN_CORE if core else DENY_IN_TOUR).search(text)
+    hit = DENY_ALWAYS.search(text) or (DENY.search(text) if shaped else None) \
+        or (DENY_ON_UPSELL.search(text) if upsell else None) or (DENY_IN_CORE if core else DENY_IN_TOUR).search(text)
     if hit:
         return hit.group(0).lower()
     if TOGGLE.search(c.kind) and not toggle_ok:

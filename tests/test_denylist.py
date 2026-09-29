@@ -112,7 +112,10 @@ def test_core_words_are_whole_words():
 @pytest.mark.parametrize("label, kind", [("Delete note", "TextView"), ("Unfollow", "TextView"), ("Following", "Button"),
                                          ("Remove from library", "TextView"), ("buttonFavorite", "View"),
                                          ("btn_like", "View"),
-                                         ("Delete my account and all of its data", "Button")])
+                                         ("Delete my account and all of its data", "Button"),
+                                         ("Delete my account and all of its data", "TextView"),
+                                         ("Buy 1,000 coins for a limited time", "ViewGroup"),
+                                         ("Sign in with Google to save your chats", "TextView")])
 def test_actions_stay_denied(label, kind):
     assert denied(control(label, kind))
 
