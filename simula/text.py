@@ -38,11 +38,18 @@ def char_class(codes: list[int]) -> str:
     return "".join(ranges)
 
 
-# Combining marks (Unicode category M): an Indic vowel sign, or an accent written as its own character. Regex \w leaves
-# them out, but they are part of the letter they sit on.
-MARK = char_class([c for c in range(sys.maxunicode + 1) if unicodedata.category(chr(c)).startswith("M")])
-# A letter or digit of a script written with spaces, or a mark written on one (directly or after another mark). A mark
-# on anything else, such as the emoji presentation selector in "⚡️Energy", doesn't join what follows to a word.
+def letter_mark(c: str) -> bool:
+    """A combining mark that is part of the letter it sits on: an Indic vowel sign, or an accent written as its own
+    character. Variation selectors and enclosing marks only draw a symbol, as in the emoji "⚡️" and the keycap "#️⃣"."""
+    return unicodedata.category(c) in ("Mn", "Mc") and not unicodedata.name(c, "").startswith("VARIATION SELECTOR")
+
+
+# Regex \w leaves these marks out, but they belong to their letter.
+MARK = char_class([c for c in range(sys.maxunicode + 1) if letter_mark(chr(c))])
+# A letter or digit of a script written with spaces, or a mark whose previous character is one of those or another mark.
+# A mark written on anything else, such as a decoration on a space ("⋆ ̊"), doesn't join what follows to a word.
+# ponytail: the lookbehind sees one character, so two letter marks stacked on a symbol still join the next word (none in
+# the 6,587 saved captures and fixtures); the third-party `regex` module's variable-width lookbehind would close it.
 SPACED_WORD_CHAR = f"[^\\W{UNSPACED}]"
 SPACED_LETTER = f"(?:{SPACED_WORD_CHAR}|(?![{UNSPACED}])(?<={SPACED_WORD_CHAR}|[{MARK}])[{MARK}])"
 

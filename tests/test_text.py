@@ -49,7 +49,16 @@ def test_a_mark_written_on_a_letter_is_part_of_its_word():
 
 
 def test_a_mark_on_an_emoji_does_not_join_it_to_the_next_word():
-    """The presentation selector U+FE0F is a mark written on the emoji, not on a letter."""
+    """The presentation selector U+FE0F and the keycap U+20E3 only draw a symbol: "#️⃣" is "#", U+FE0F, U+20E3."""
     assert text.phrase("Energy").search("⚡️Energy refills every 4 hours") and text.phrase("Gems").search("💎️Gems: 120")
     assert text.phrase("Premium").search("⭐️Premium members skip the line")
+    assert text.phrase("Tags").search("#️⃣Tags you follow") and text.phrase("Energy").search("1️⃣Energy refills")
+    assert text.phrase("Energy").search("1\u20e3Energy refills"), "a keycap written without its selector, on a digit"
+    assert text.phrase("Info").search("ℹ️Info: how credits work"), "U+2139 is a letter, but its selector only draws it"
     assert not text.phrase("nergy").search("⚡️Energy"), "the word itself still has its edges"
+
+
+def test_a_letter_mark_used_as_a_decoration_does_not_join_the_next_word():
+    """Character bios decorate with letter marks on spaces and symbols ("✴︎ ̊。⋆", " ׁ ׅ You"); one written on a space
+    before a name belongs to no letter."""
+    assert text.phrase("Yuki").search("⋆ ̊Yuki's garden") and text.phrase("MY").search("✴︎ ׁMY rules")

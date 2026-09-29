@@ -609,11 +609,12 @@ def test_a_term_in_a_script_with_vowel_signs_can_be_observed(term, words):
 
 
 @pytest.mark.parametrize("term, words", [("Energy", "⚡️Energy refills every 4 hours"), ("Gems", "💎️Gems: 120 left"),
-                                         ("Premium", "⭐️Premium members skip the line")],
-                         ids=["energy", "gems", "premium"])
+                                         ("Premium", "⭐️Premium members skip the line"),
+                                         ("Tags", "#️⃣Tags you follow: 12")],
+                         ids=["energy", "gems", "premium", "keycap"])
 def test_a_term_written_right_after_an_emoji_is_kept_and_observed(term, words):
-    """Red team PR13 @408cd35 #3: the emoji's presentation selector (U+FE0F) is a mark, but it sits on the emoji, not
-    on a letter, so it doesn't join the emoji to the word after it. Before, the merge check dropped such a term."""
+    """Red team PR13 @408cd35 #3 and @f9bf25f #1: an emoji's presentation selector (U+FE0F) and a keycap (U+20E3) only
+    draw a symbol, so they don't join it to the word after it. Before, the merge check dropped such a term."""
     states, meaning, edges, model_labels = real_terms("janitorai")
     states = [s.model_copy(update={"elements": [e.model_copy(update={"text": words}) if e.id == "s02.e04" else e
                                                 for e in s.elements]}) for s in states]
