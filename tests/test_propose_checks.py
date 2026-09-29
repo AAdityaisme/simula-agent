@@ -53,15 +53,19 @@ def test_product_change_that_removes_something_free_is_dropped(model):
 @pytest.mark.parametrize("placement", ["Inside the chat transcript, after the last reply",
                                        "An in-chat card between messages", "A message bubble from the character",
                                        "A card inside the chat that does not block typing",
-                                       "A banner inside the chat, with no close button",
-                                       "A card inside the chat screen", "A pinned card in your chat"])
-def test_chat_transcript_placement_is_dropped(model, placement):
-    assert "chat transcript" in check(candidate(model, placement=placement), model)
+                                       "A banner inside the chat, with no close button", "A pinned card in your chat",
+                                       "Sent as a message from the character", "A system note in the thread",
+                                       "Pinned at the top of the message list", "Shown like a chat reply"])
+def test_an_offer_inside_the_conversation_is_dropped(model, placement):
+    assert "inside the conversation" in check(candidate(model, placement=placement), model)
 
 
 @pytest.mark.parametrize("placement", ["A banner above the chat list", "A sheet over the paywall",
                                        "A card on the pet screen (not in chat)", "A banner in the chat list header",
-                                       "A sheet over the feed. Never shown in a chat."])
+                                       "A sheet over the feed. Never shown in a chat.",
+                                       "A bottom sheet over the chat screen when the daily message limit is hit",
+                                       "A dialog over the chat, never pinned in the message list",
+                                       "A sheet that slides up mid-conversation when the free messages run out"])
 def test_app_chrome_placement_passes(model, placement):
     assert check(candidate(model, placement=placement), model) is None
 
@@ -105,7 +109,7 @@ def test_existing_opportunity_label(model):
 
 def other_screen(model):
     return next(s.id for s in model.states
-                if s.in_mock_scope and s.id != root(model) and s.content_rating in propose.SAFE_TRIGGER_RATINGS)
+                if s.in_mock_scope and s.id != root(model) and s.content_rating != "unsafe")
 
 
 def test_the_same_benefit_name_on_different_screens_is_a_duplicate(model):
@@ -264,11 +268,23 @@ def test_a_trigger_outside_the_mock_scope_is_dropped(model):
     assert "outside the mock scope" in check(candidate(model, flow_steps=steps), model)
 
 
-@pytest.mark.parametrize("rating", ["unsafe", "unknown"])
-def test_a_trigger_next_to_unsafe_or_unknown_content_is_dropped(model, rating):
+def rated(model, rating):
     states = [s.model_copy(update={"content_rating": rating}) if s.id == root(model) else s for s in model.states]
-    rated = model.model_copy(update={"states": states})
-    assert f"{rating} content" in check(candidate(rated), rated)
+    return model.model_copy(update={"states": states})
+
+
+def test_anything_on_or_over_an_unsafe_screen_is_dropped(model):
+    unsafe = rated(model, "unsafe")
+    for placement in ("A banner under the header", "A bottom sheet over the chat screen when the limit is hit"):
+        assert "unsafe content" in check(candidate(unsafe, placement=placement), unsafe)
+
+
+@pytest.mark.parametrize("rating", ["unknown", "mixed", "safe"])
+def test_a_sheet_over_a_chat_screen_not_rated_unsafe_opened_by_a_limit_passes(model, rating):
+    chat = rated(model, rating)
+    c = candidate(chat, placement="A bottom sheet over the chat screen when the daily message limit is hit",
+                  trigger_event="The daily free message counter reaches zero")
+    assert check(c, chat) is None
 
 
 def run_with(model, tmp_path, monkeypatch, fail_lenses, delay=None, benefit=None, part_of=None, draft=None):
