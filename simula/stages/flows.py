@@ -75,6 +75,7 @@ PLAIN_CHECKS = {
 
 FLOW_CSS = """body:not(.simula-rewarded) [data-reward]{display:none!important}
 body.simula-rewarded [data-unrewarded]{display:none!important}
+body.simula-hide-replaced [data-unrewarded]{opacity:0!important}
 [data-screen]{isolation:isolate}
 .sa-dim{position:absolute;inset:0;background:rgba(8,10,14,.72)}
 .sa-card{position:absolute;left:28px;right:28px;top:140px;border-radius:20px;background:var(--bg-1,#fff);color:var(--fg-1,#16181d);padding:18px;font:15px/1.35 var(--font-1,system-ui,-apple-system,Roboto,sans-serif);box-shadow:0 12px 40px rgba(0,0,0,.4)}
@@ -147,6 +148,8 @@ FLOW_JS = """(() => {
 REWARDED_JS = "on => document.body.classList.toggle('simula-rewarded', on)"
 REWARD_LABELS_JS = """() => [...document.querySelectorAll('[data-reward]')].filter(e => e.checkVisibility())
   .map(e => { const b = e.getBoundingClientRect(); return {text: (e.innerText ?? e.textContent).trim(), box: [b.x, b.y, b.width, b.height]}; })"""
+HAS_REPLACED_JS = "() => document.querySelector('[data-unrewarded]') !== null"
+HIDE_REPLACED_JS = "on => document.body.classList.toggle('simula-hide-replaced', on)"
 NOTE_ON_TOP_JS = """() => { const note = document.querySelector('.sa-note');
   if (!note || !note.checkVisibility()) return false;
   const b = note.getBoundingClientRect();
@@ -487,20 +490,42 @@ def play(page, ad: str, target: str) -> tuple[bool, dict | None, str]:
     return state(page) == target, box, f"the verified play led to {state(page)}, not {target}"
 
 
+def changes(before: bytes, after: bytes) -> Image.Image:
+    """The pixels that differ between two captures by more than render noise, white on black."""
+    with Image.open(io.BytesIO(before)) as a, Image.open(io.BytesIO(after)) as b:
+        diff = ImageChops.difference(a.convert("RGB"), b.convert("RGB")).convert("L")
+    return diff.point(lambda level: 255 if level > RENDER_NOISE else 0)
+
+
+def replaced_shows(page, without: bytes) -> bool:
+    """Whether something the reward replaces (data-unrewarded) is painted in the capture taken with the reward off:
+    the same capture with only those elements hidden differs. Pixels settle what a hit test can't (an element that
+    ignores the pointer, a transparent overlay, one offscreen or covered). Opacity hides all a subtree paints, a child
+    that sets its own visibility included, and moves nothing."""
+    if not page.evaluate(HAS_REPLACED_JS):
+        return False
+    page.evaluate(HIDE_REPLACED_JS, True)
+    hidden = render.screenshot(page, animations="disabled")
+    page.evaluate(HIDE_REPLACED_JS, False)
+    return changes(without, hidden).getbbox() is not None
+
+
 def reward_effect(page, granted: Path) -> tuple[bool, list[str] | None]:
     """What granting the reward visibly changes on the screen just captured with it granted: whether anything
     changes, and when everything that changes sits inside reward elements that appeared (a label, a badge), their
-    words (None when more than that changes)."""
+    words (None when more than that changes). Something the reward replaces that shows with the reward off is more
+    than a label, even when its rewarded form is drawn in the same place."""
     labels = page.evaluate(REWARD_LABELS_JS)
     page.evaluate(REWARDED_JS, False)
     without = render.screenshot(page, animations="disabled")
+    replaced = replaced_shows(page, without)
     page.evaluate(REWARDED_JS, True)
-    with Image.open(granted) as on, Image.open(io.BytesIO(without)) as off:
-        diff = ImageChops.difference(on.convert("RGB"), off.convert("RGB")).convert("L")
-        diff = diff.point(lambda level: 255 if level > RENDER_NOISE else 0)
-        scale = on.width / VIEW_W
+    diff = changes(granted.read_bytes(), without)
     if diff.getbbox() is None:
         return False, None
+    if replaced:
+        return True, None
+    scale = diff.width / VIEW_W
     draw = ImageDraw.Draw(diff)
     for x, y, w, h in (label["box"] for label in labels):
         draw.rectangle([(x - LABEL_PAD) * scale, (y - LABEL_PAD) * scale, (x + w + LABEL_PAD) * scale,
@@ -851,10 +876,10 @@ def idea_slides(flow: dict, model: ProductModel, run_dir: Path, none_accepted: b
 
 
 def cover_html(app: str, flows: list[dict], unbuilt: int = 0, status: list[str] = (), fallbacks: int = 0,
-               cut: int = 0) -> str:
+               cut: int = 0, unbuilt_fallbacks: int = 0) -> str:
     """The overview: every idea in the deck, how to read it, the reward rule every idea follows, whether an idea is
-    only the judge's fallback pick, how many survivors the cap left out, and status lines for anything an earlier
-    stage couldn't finish."""
+    only the judge's fallback pick (drawn, or not drawn), how many survivors the cap left out, and status lines for
+    anything an earlier stage couldn't finish. `unbuilt` counts only ideas that passed the review."""
     items = "".join(f'<li><span class="chip {"existing" if f["candidate"].kind == "existing_anchor" else "change"}">'
                     f'{escape(BUCKETS.get(f["candidate"].kind, ""))}</span>{escape(plain(caption(f["candidate"])))}</li>'
                     for f in flows)
@@ -862,15 +887,21 @@ def cover_html(app: str, flows: list[dict], unbuilt: int = 0, status: list[str] 
     if flows:
         notes += ["Each idea takes two slides: its whole flow, step by step, then why it works. The score pages at "
                   "the end score every idea the review saw.", REWARD_RULE]
-    if fallbacks:
+    if fallbacks and unbuilt_fallbacks:
+        notes.append(f"No idea passed every check, so the closest are marked as not a recommendation; "
+                     f"{unbuilt_fallbacks} of them couldn't be drawn, and the score pages at the end say why.")
+    elif fallbacks:
         notes.append("No idea passed every check, so the closest is drawn and marked as not a recommendation.")
+    elif unbuilt_fallbacks:
+        notes.append("No idea passed every check; the closest couldn't be drawn, and the score pages at the end "
+                     "say why.")
     if cut:
         notes.append(f"{cut} more idea(s) passed the review; the deck draws only the top {MAX_IDEAS} by rank, and the "
                      "score pages at the end score the rest.")
     if unbuilt:
         notes.append(f"{unbuilt} {'more ' if flows else ''}idea(s) passed the review but couldn't be drawn; the score "
                      "pages at the end say why.")
-    if not flows and not unbuilt:
+    if not flows and not unbuilt and not unbuilt_fallbacks:
         notes.append("No idea passed the review. The score pages at the end show every idea's score and why.")
     body = (f"<ol>{items}</ol>" if flows else "") + "".join(f"<p class='how'>{escape(n)}</p>" for n in [*notes, *status])
     return f'<section class="slide cover"><h1>Rewarded-ad ideas for {escape(app)}</h1>{body}</section>'
@@ -952,7 +983,9 @@ def deck(ctx: Ctx, model: ProductModel, flows: list[dict], not_built: list[tuple
     app = app_title(model, ctx.app["name"])
     none_accepted = not any(d.final == "accept" for d in decisions)
     fallbacks = sum(is_fallback(f["decision"], ctx.run_dir, none_accepted) for f in flows)
-    slides = [cover_html(app, flows, len(not_built), unfinished_stages(ctx.run_dir), fallbacks, cut)]
+    unbuilt_fallbacks = sum(is_fallback(d, ctx.run_dir, none_accepted) for d, _ in not_built)
+    slides = [cover_html(app, flows, len(not_built) - unbuilt_fallbacks, unfinished_stages(ctx.run_dir), fallbacks, cut,
+                         unbuilt_fallbacks)]
     for flow in flows:
         slides += idea_slides(flow, model, ctx.run_dir, none_accepted)
     slides += score_slides(decisions, candidates, not_built, ctx.run_dir)
