@@ -204,18 +204,21 @@ def alike(a: np.ndarray, b: np.ndarray, box: Rect) -> np.ndarray | None:
 
 
 def chrome_failures(chrome: dict[str, dict[str, Rect]], mocks: dict[str, Image.Image],
-                    reals: dict[str, Image.Image]) -> list[dict]:
+                    reals: dict[str, Image.Image], dialogs: set[str] = frozenset()) -> list[dict]:
     """Each data-chrome part (a header, a tab bar) must render the same on two screens wherever their real screens
     draw it the same: over those pixels the mock pair must score at least CHROME_GATE. What the real screens draw
     differently there (a highlighted tab, a title) is left out, however large, so the mock may differ there too. A bar
     drawn in another place fails, and so does one left off a screen. chrome maps every drawn screen, in the mock's
-    order, to its parts' boxes (none when it marks none); mocks and reals are content-dp images."""
+    order, to its parts' boxes (none when it marks none); mocks and reals are content-dp images. A dialog is compared
+    only at the parts it marks itself: any other chrome in its render is its parent's, seen through its backdrop and
+    drawn by the parent's section, which is checked as the parent."""
     kinds = dict.fromkeys(kind for parts in chrome.values() for kind in parts)
     if not kinds:
         return []
     mock = {sid: np.asarray(image.convert("RGB")) for sid, image in mocks.items()}
     real = {sid: np.asarray(image.convert("RGB")) for sid, image in reals.items()}
-    return [failure for kind in kinds for failure in part_failures(kind, chrome, mock, real)]
+    return [failure for kind in kinds for failure in part_failures(
+        kind, {sid: parts for sid, parts in chrome.items() if kind in parts or sid not in dialogs}, mock, real)]
 
 
 class PairScore(NamedTuple):

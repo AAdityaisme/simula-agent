@@ -258,14 +258,13 @@ def measure_screen(ctx: Ctx, model: ProductModel, state: State, round_dir, dom: 
 def cross_screen_failures(model: ProductModel, round_dir, dom: dict[str, qa_metrics.ScreenDom]) -> list[dict]:
     """The cross-screen check on one version: shared chrome renders the same on every screen that draws it, and a
     shared value reads the same wherever it appears. Each failure names the screen to fix; failures go to the critic
-    and the fixer like any finding, and never into the score. A dialog is left out of the chrome check: the chrome it
-    shows is its parent's, seen through its backdrop and drawn by the parent's section, which is checked itself."""
+    and the fixer like any finding, and never into the score."""
     dialogs = {s.id for s in model.states if s.kind in mock.DIALOGS and s.parent_id}
-    chrome = {sid: d.chrome for sid, d in dom.items() if sid not in dialogs}
 
     def images(kind: str) -> dict:
-        return {sid: Image.open(round_dir / kind / f"{sid}.png") for sid in chrome}
-    return (qa_metrics.chrome_failures(chrome, images("mock"), images("real"))
+        return {sid: Image.open(round_dir / kind / f"{sid}.png") for sid in dom}
+    return (qa_metrics.chrome_failures({sid: d.chrome for sid, d in dom.items()}, images("mock"), images("real"),
+                                       dialogs)
             + qa_metrics.value_failures({sid: d.values for sid, d in dom.items()}, model))
 
 

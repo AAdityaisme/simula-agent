@@ -84,8 +84,7 @@ def test_a_tab_bar_drawn_differently_on_one_screen_fails_on_that_screen_only(tmp
     share_band(run_dir, model)
     version = qa.measure(ctx_for(run_dir, app), model, scope, 0, html)
     assert [f["screen"] for f in chrome(version)] == [last]
-    detail, dialogs = chrome(version)[0]["detail"], {s.id for s in scope if s.kind in mock.DIALOGS}
-    assert [s.id for s in scope if s.id in detail] == [s.id for s in scope if s.id not in dialogs]
+    assert all(s.id in chrome(version)[0]["detail"] for s in scope)
     assert version.metrics.cross_screen_failures == [f["detail"] for f in version.cross_screen]
 
 
