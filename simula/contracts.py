@@ -133,7 +133,7 @@ class TermMeaning(Strict):
 class Term(TermMeaning):
     observed: bool = Field(description="Code: false unless a cited element carries the term and still says "
                                        "something in words once the term and the ledger lines quoting it are cut; "
-                                       "the meaning then reads 'meaning not observed' and nothing may build on it.")
+                                       "the meaning then reads 'meaning not observed' and an idea that uses it is flagged.")
 
 
 class QuestionDraft(Strict):
@@ -504,6 +504,98 @@ class ContractReport(Strict):
     errors: list[ContractError]
 
 
+class ArtFile(Strict):
+    """mock/art.json: each art crop and the content-dp rect it was cut from, so QA can mask it."""
+    schema_version: int = SCHEMA_VERSION
+    art: dict[str, Rect] = {}
+
+
+class CritiqueFile(Critique):
+    """qa/round<N>/critique.json"""
+    schema_version: int = SCHEMA_VERSION
+
+
+class AppliedEdit(Edit):
+    applied: bool
+    why: str = Field(description="Why code rejected the edit; empty when it was applied.")
+
+
+class EditsFile(Strict):
+    """qa/round<N>/edits.json: the fixer's edits, each with whether code applied it."""
+    schema_version: int = SCHEMA_VERSION
+    edits: list[AppliedEdit]
+
+
+class QARound(Strict):
+    round: int
+    score: float
+    kept: bool
+    contract_errors: int
+    failed_taps: int
+    failed_flows: int
+    edits_applied: int
+    edits_rejected: int
+
+
+class KeepRuleDisagreement(Strict):
+    """A round a score-only keep rule would have decided the other way; each pair is [kept version, new version]."""
+    round: int
+    score_only_approves: int
+    contract_errors: list[int]
+    score: list[float]
+
+
+class UndrawnScreen(Strict):
+    screen: str
+    reason: str
+
+
+class ElementMiss(Strict):
+    """A tagged element the page doesn't draw where the real screen has it."""
+    id: str
+    text: str
+    want: Rect
+    got: Rect | Literal["missing"]
+
+
+class QAScreen(ScreenMetrics):
+    name: str
+    tagged: int
+    taps: int
+    data_el_misses: list[ElementMiss]
+
+
+class TapCheck(Strict):
+    screen: str
+    edge: str
+    problem: str | None
+
+
+class FlowWalk(Strict):
+    flow: str
+    name: str
+    status: Literal["passed", "failed", "out_of_scope", "undrawn"]
+    problem: str | None
+    screen: str | None = None
+    navigated: list[str] = []
+
+
+class QAReport(Strict):
+    """qa/qa_report.json"""
+    schema_version: int = SCHEMA_VERSION
+    status: Literal["approved", "qa_incomplete"]
+    approved_round: int
+    score: float
+    stop_reason: str
+    rounds: list[QARound]
+    keep_rule_disagreement: KeepRuleDisagreement | None = None
+    undrawn_screens: list[UndrawnScreen] = []
+    screens: list[QAScreen]
+    failed_taps: list[TapCheck]
+    flows: list[FlowWalk]
+    contract_errors: list[ContractError]
+
+
 class Lens(Strict):
     id: str
     name: str
@@ -530,7 +622,8 @@ class DecisionsFile(Strict):
     decisions: list[Decision]
 
 
-FILE_WRAPPERS = [StateFile, ExploreFile, ContractReport, LensesFile, CandidatesFile, DecisionsFile]
+FILE_WRAPPERS = [StateFile, ExploreFile, ContractReport, ArtFile, CritiqueFile, EditsFile, QAReport, LensesFile,
+                 CandidatesFile, DecisionsFile]
 
 
 # ---------- run bookkeeping (code-only, so dicts are fine here) ----------

@@ -1,8 +1,9 @@
-"""The stage wrapper: a stage refuses to run on an upstream stage that isn't done, and every way a stage can
-exit still leaves failure.json and a trace line."""
+"""The stage wrapper: a stage refuses to run on an upstream stage that isn't done or while a loader could read a
+file git doesn't track, and every way a stage can exit still leaves failure.json and a trace line."""
 
 import importlib
 import os
+import subprocess
 import sys
 
 import pytest
@@ -71,3 +72,47 @@ def test_every_exit_leaves_a_failure_record(runs, mock_stage, monkeypatch, exit_
     assert not (run_dir / "mock" / "done.json").exists()
     last = read_trace(run_dir / "trace.jsonl")[-1]
     assert (last.stage, last.step, last.outcome) == ("mock", "run", "error")
+
+
+@pytest.fixture
+def checkout(tmp_path, monkeypatch):
+    """A git checkout with one tracked file in each folder a loader reads by glob, standing in for ROOT."""
+    root = tmp_path / "checkout"
+    for rel in ("prompts/mock/builder.md", "config/apps/janitorai.toml", "bible/BIBLE.md", "docs/CONTRACTS.md"):
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text("tracked\n")
+    for args in (["init", "-q"], ["add", "."], ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "x"]):
+        subprocess.run(["git", *args], cwd=root, check=True, capture_output=True)
+    monkeypatch.setattr(cli, "ROOT", root)
+    return root
+
+
+def test_an_untracked_file_a_loader_reads_blocks_the_run_before_any_work(runs, checkout):
+    (checkout / ".gitignore").write_text("*2.md\n")
+    for rel in ("prompts/mock/builder 2.md", "bible/data/extra.json", "prompts/mock/notes.txt",
+                "bible/__pycache__/breakeven.pyc"):
+        (checkout / rel).parent.mkdir(parents=True, exist_ok=True)
+        (checkout / rel).write_text("stray\n")
+    with pytest.raises(SystemExit) as refused:
+        cli.main(["run", "janitorai", "--new"])
+    message = str(refused.value)
+    assert "  bible/data/extra.json\n  prompts/mock/builder 2.md\n" in message, "an ignored copy still blocks"
+    assert "notes.txt" not in message and "pycache" not in message, "no loader picks those up"
+    assert not (runs / "janitorai").exists()
+
+
+def test_a_modified_tracked_prompt_does_not_block(runs, checkout, mock_stage):
+    (checkout / "prompts" / "mock" / "builder.md").write_text("edited while developing\n")
+    assert cli.main(["mock", "janitorai", "--allow-fixtures", "--fixture", f"model={GOLDEN}"]) == 0
+    assert len(mock_stage[1]) == 1
+    assert not any(line.step == "preflight" for line in read_trace(latest(runs) / "trace.jsonl"))
+
+
+def test_without_a_git_checkout_the_check_is_skipped_with_a_trace_note(runs, tmp_path, monkeypatch, mock_stage):
+    unzipped = tmp_path / "unzipped"
+    (unzipped / "prompts" / "mock").mkdir(parents=True)
+    (unzipped / "prompts" / "mock" / "builder 2.md").write_text("never checked\n")
+    monkeypatch.setattr(cli, "ROOT", unzipped)
+    assert cli.main(["mock", "janitorai", "--allow-fixtures", "--fixture", f"model={GOLDEN}"]) == 0
+    [note] = [line for line in read_trace(latest(runs) / "trace.jsonl") if line.step == "preflight"]
+    assert (note.stage, note.outcome) == ("run", "ok") and note.note.startswith("not a git checkout: skipped")

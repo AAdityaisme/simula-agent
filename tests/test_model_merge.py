@@ -229,6 +229,20 @@ def test_a_modal_in_scope_brings_its_parent_first():
     assert stage.mock_scope(blocked_parent, [], meaning) == ["s01"]
 
 
+def test_a_flow_dialog_keeps_its_parent_even_when_the_parent_is_unsafe_and_off_the_flow():
+    """Whether the unsafe parent's content shows under the dialog is the renderer's and the blur's job."""
+    def state(sid, kind="screen", parent=None, rating="safe"):
+        return State(id=sid, kind=kind, parent_id=parent, name="", purpose="", fingerprint="", canonical_png="",
+                     elements=[], in_mock_scope=False, content_rating=rating, dynamic_regions=[], blocked_reason=None)
+    states = [state("s01"), state("s02", rating="unsafe"), state("s03", "modal", "s02")]
+    edges = [Edge(id="s03.e01>s01", from_state="s03", to_state="s01", element_id=None, action="tap",
+                  transition="back", change_summary="")]
+    meaning = ModelMeaning(app_category="other", states=[], elements=[], cross_screen_values=[], value_ledger=[],
+                           open_questions=[], terms=[], mechanics=[],
+                           flows=[Flow(id="f01", name="x", purpose="x", edge_ids=["s03.e01>s01"], evidence_ids=[])])
+    assert stage.mock_scope(states, edges, meaning) == ["s01", "s02", "s03"]
+
+
 def test_a_sheet_over_a_modal_brings_the_whole_stack_parent_first():
     def state(sid, kind="screen", parent=None):
         return State(id=sid, kind=kind, parent_id=parent, name="", purpose="", fingerprint="", canonical_png="",
