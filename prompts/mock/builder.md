@@ -22,4 +22,4 @@ Answer with exactly one fenced block, ```html … ```, holding one `<style>` ele
 - **Copy.** Use the text exactly as given. For text the screenshot shows but the elements don't carry, copy it from the screenshot.
 - **Size.** Keep the CSS compact: shared classes for repeated parts, no comments. Inline styles are fine for positions.
 
-The mock contract below is the full rulebook the joined page is checked against. A validator runs after code joins the batches: every `data-el` must name a real element, every `data-edge` a real edge whose target screen exists, with the edge's exact `data-transition`, and the page must load with no console errors and no network request other than Google Fonts.
+The mock contract below is the full rulebook the joined page is checked against. A validator runs after code joins the batches: every `data-el` must name a real element, every `data-edge` a real edge whose target screen exists, with the edge's exact `data-transition`, and the page must load with no console errors and no network request at all. Code has already put the fonts in the page, so never link or `@import` any outside font or stylesheet.
