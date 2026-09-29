@@ -163,7 +163,7 @@ def crop_art(model_dir, mock_dir, scope: list[State], device: Device) -> dict[st
 
 def find_art(state: State, image: Image.Image, device: Device) -> dict[str, Rect]:
     """For each drawn element with no asset and no text of its own (its words cover its rect): the largest
-    picture-like region inside it that nothing else is drawn over, unless that region is wallpaper-sized.
+    picture-like region inside it that nothing else is drawn over and that is no part of a wallpaper-sized picture.
     image is the state's content-area screenshot."""
     screen = content_rect(device)
     cropped = [e.rect_dp for e in state.elements if usable_asset(e, device)]
@@ -173,16 +173,33 @@ def find_art(state: State, image: Image.Image, device: Device) -> dict[str, Rect
             continue
         box = overlap(e.rect_dp, screen)
         blockers = [r for r in (overlap(o.rect_dp, box) for o in state.elements if drawn_over(o, e)) if area(r) > 0]
-        for rect in free_rects(box, blockers, ART_MIN_SIDE):
-            if any(area(overlap(rect, c)) >= ALREADY_CROPPED * area(rect) for c in cropped):
+        rects = free_rects(box, blockers, ART_MIN_SIDE)
+        wallpaper = joined([r for r in rects if not under_wallpaper_limit(r, device)
+                            and is_picture(crop_px(image, r, device.scale))], rects)
+        for rect in rects:
+            if rect in wallpaper or any(area(overlap(rect, c)) >= ALREADY_CROPPED * area(rect) for c in cropped):
                 continue
-            if not is_picture(crop_px(image, rect, device.scale)):
-                continue
-            if under_wallpaper_limit(rect, device):
+            if is_picture(crop_px(image, rect, device.scale)):
                 art[e.id] = rect
                 cropped.append(rect)
-            break
+                break
     return art
+
+
+def joined(seeds: list[Rect], rects: list[Rect]) -> list[Rect]:
+    """The seeds and every rect joined to one through a chain of overlapping rects: the free space a wallpaper-sized
+    picture fills, so no smaller piece of it passes as a picture of its own."""
+    # ponytail: a separate picture joined to a wallpaper-sized one by free space is taken for part of it, even across
+    # a flat stretch; pr3c's art-by-provenance rule (0d309a8) drops the size limit, and this with it
+    found = list(seeds)
+    grew = True
+    while grew:
+        grew = False
+        for r in rects:
+            if r not in found and any(area(overlap(r, f)) > 0 for f in found):
+                found.append(r)
+                grew = True
+    return found
 
 
 def drawn_over(other: Element, container: Element) -> bool:

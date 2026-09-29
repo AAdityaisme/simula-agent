@@ -86,6 +86,18 @@ def test_art_over_the_wallpaper_limit_is_skipped(app):
     assert art_in(app, elements, image) == {}
 
 
+def test_a_picture_apart_from_a_wallpaper_sized_one_is_found_but_no_piece_of_the_wallpaper_is(app):
+    """A full-width band parts a wallpaper-sized picture from a small one below it, so the small one is a picture of
+    its own. A caption laid on a wallpaper-sized picture parts nothing: every free region beside it is a piece of it."""
+    band = Rect(x=0, y=460, w=411, h=24)
+    elements = [element("s01.e01", 0, 0, 411, 700), element("s01.e02", **band.model_dump(), text="Section")]
+    image = screenshot(Rect(x=0, y=0, w=411, h=460), Rect(x=20, y=520, w=120, h=120))
+    assert art_in(app, elements, image) == {"s01.e01": Rect(x=0, y=484, w=411, h=216)}
+    elements = [element("s01.e01", 0, 0, 411, 700), element("s01.e02", 0, 0, 411, 24, text="Title"),
+                element("s01.e03", 150, 600, 110, 30, text="caption")]
+    assert art_in(app, elements, screenshot(Rect(x=0, y=0, w=411, h=700))) == {}
+
+
 @pytest.mark.parametrize("grow", [0, 1])
 def test_a_region_an_asset_already_covers_is_skipped(app, grow):
     card = Rect(x=20, y=100, w=200, h=240)
