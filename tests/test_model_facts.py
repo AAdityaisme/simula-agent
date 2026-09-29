@@ -395,3 +395,12 @@ def test_a_stop_on_a_denied_pass_is_kept(tmp_path):
 def test_a_stop_is_kept_even_when_no_pass_ran(tmp_path):
     (outcome,) = with_loop(tmp_path, loop_line(900, 1, "", to_state=None, outcome="denied", loop_stop="paywall"))
     assert outcome.verbatim.startswith("paywall appeared on pass 1") and outcome.evidence_ids == ["s01"]
+
+
+def test_tree_text_loses_its_placeholder_characters(tmp_path):
+    explore = build(APPS[0], tmp_path / "explore")
+    states, _, _ = stage.load_states(explore, DEVICE)
+    texts = [e.text + e.label for s in states for e in s.elements]
+    raw = "".join(p.read_text() for p in (explore / "states").glob("*.elements.json"))
+    assert "\ufffc" in raw, "the fixture trees carry the placeholder"
+    assert not any("￼" in t or "�" in t for t in texts)

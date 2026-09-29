@@ -107,15 +107,16 @@ def make_element(eid: str, rect: Rect, kind: str, text: str, label: str, mcp_ref
 
 def build_elements(sid: str, tree: list[dict], icon_labels: list[IconLabel], vision: list[VisionElement],
                    pixels: np.ndarray, device: Device) -> list[Element]:
-    """Listed elements first, in tree order, then the controls only the vision pass saw."""
+    """Listed elements first, in tree order, then the controls only the vision pass saw. Tree text loses its
+    placeholder characters here, so every later stage quotes the text a person sees."""
     names = {i.mcp_ref: i.name for i in icon_labels}
     elements = []
     for e in (e for e in tree if in_content(e, device)):
         c = e["coordinates"]
         elements.append(make_element(
             f"{sid}.e{len(elements) + 1:02d}", Rect(x=c["x"], y=c["y"], w=c["width"], h=c["height"]),
-            e["type"].split(".")[-1], e.get("text") or "", names.get(e["ref"]) or e.get("label") or "", e["ref"],
-            pixels, device))
+            e["type"].split(".")[-1], text.strip_placeholders(e.get("text") or ""),
+            text.strip_placeholders(names.get(e["ref"]) or e.get("label") or ""), e["ref"], pixels, device))
     for v in vision:
         elements.append(make_element(f"{sid}.e{len(elements) + 1:02d}", v.rect_px, "vision", "", v.name, None,
                                      pixels, device))

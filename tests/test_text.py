@@ -35,3 +35,8 @@ def test_a_phrase_is_a_whole_word_where_words_are_spaced_and_a_substring_where_t
     assert text.phrase("トークン").search("トークンを購入") and text.phrase("代币").search("购买代币")
     assert text.phrase("토큰").search("토큰을 구매")
     assert text.phrase(" ").search("anything") is None
+
+
+def test_placeholder_characters_are_stripped_and_nothing_else():
+    assert text.strip_placeholders("￼Hidden Gems show�") == "Hidden Gems show"
+    assert text.strip_placeholders("🧑‍🎨 OC ‏$\xa01.99\n") == "🧑‍🎨 OC ‏$\xa01.99\n"

@@ -20,6 +20,7 @@ from PIL import Image
 from simula.contracts import (Coverage, CrossScreenValue, Device, Edge, Element, Flow, LedgerItem, Mechanic,
                               ModelMeaning, ProductModel, Provenance, Rect, State)
 from simula.stages.model import mock_scope
+from simula.text import strip_placeholders
 
 HERE = Path(__file__).parent
 FIXTURES = HERE.parent
@@ -75,7 +76,8 @@ def build_elements(app: str, spec: dict, image: Image.Image, out: Path, scope: b
     elements = []
     for n, e in enumerate([e for e in load_tree(app, spec["tree"]) if in_content(e)], start=1):
         c, eid = e["coordinates"], f"{sid}.e{n:02d}"
-        text, label = e.get("text") or "", labels.get(e["ref"]) or e.get("label") or ""
+        text = strip_placeholders(e.get("text") or "")
+        label = strip_placeholders(labels.get(e["ref"]) or e.get("label") or "")
         kind = e["type"].split(".")[-1]
         asset = None
         if scope and is_image_like(e) and e["ref"] not in labels:

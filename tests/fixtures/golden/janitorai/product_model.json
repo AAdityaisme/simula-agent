@@ -418,7 +418,7 @@
      "id": "s01.e15",
      "mcp_ref": "@e43",
      "type": "TextView",
-     "text": "￼Hidden Gems show characters from smaller creators with engaging conversations, created in the last 30 days.",
+     "text": "Hidden Gems show characters from smaller creators with engaging conversations, created in the last 30 days.",
      "label": "",
      "source": "mcp",
      "rect_px": {
@@ -5939,7 +5939,7 @@
      "mcp_ref": "@e43",
      "type": "ViewGroup",
      "text": "",
-     "label": "￼",
+     "label": "",
      "source": "mcp",
      "rect_px": {
       "x": 955.0,
@@ -5966,7 +5966,7 @@
      "id": "s05.e16",
      "mcp_ref": "@e44",
      "type": "TextView",
-     "text": "￼",
+     "text": "",
      "label": "",
      "source": "mcp",
      "rect_px": {
