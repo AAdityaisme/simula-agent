@@ -2,6 +2,7 @@
 call per idea adds the idea's new screens; code draws the simulated ad, taps through every step in Playwright, and
 lays out slides for the app's product team, then prints them to PDF."""
 
+import io
 import json
 import math
 import re
@@ -11,7 +12,7 @@ from html import escape
 from pathlib import Path
 from string import Template
 
-from PIL import Image
+from PIL import Image, ImageChops, ImageDraw
 from playwright.sync_api import TimeoutError as PlaywrightTimeout
 from playwright.sync_api import sync_playwright
 
@@ -38,6 +39,9 @@ RUNTIME_BLOCKS = (r'<style id="simula-runtime">.*?</style>\n?', r'<script id="si
 IDS = re.compile(r"\s*\(?\b(?:s\d{2}(?:\.e\d+)?|c\d{2}|M\d{1,3}|new:[\w-]+)\b\)?")
 FAIL_NOTE = "That didn't go through. Nothing was used, and the app is as it was."
 NOT_WIRED = "not wired"
+REWARD_NOT_SHOWN = "reward not shown"
+LABEL_PAD = 16  # a reward label's shadow and anti-aliasing reach this far past its box, in CSS px
+RENDER_NOISE = 8  # Chromium redraws a blurred glow up to 4 levels off after any style change (measured on a real mock)
 CODES = re.compile(r"\b(?:g|c\d)_[a-z_]+\b")
 
 PARTS = ("flow", "why")
@@ -136,6 +140,14 @@ FLOW_JS = """(() => {
     shown = on;
   }).observe(ad, {attributes: true, attributeFilter: ['class']});
 })();"""
+
+REWARDED_JS = "on => document.body.classList.toggle('simula-rewarded', on)"
+REWARD_LABELS_JS = """() => [...document.querySelectorAll('[data-reward]')].filter(e => e.checkVisibility())
+  .map(e => { const b = e.getBoundingClientRect(); return {text: (e.innerText ?? e.textContent).trim(), box: [b.x, b.y, b.width, b.height]}; })"""
+NOTE_ON_TOP_JS = """() => { const note = document.querySelector('.sa-note');
+  if (!note || !note.checkVisibility()) return false;
+  const b = note.getBoundingClientRect();
+  return note.contains(document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2)); }"""
 
 OVERFLOW_JS = """() => [...document.querySelectorAll('.slide')].flatMap((slide, i) => {
   const box = slide.getBoundingClientRect(), footer = slide.querySelector('footer');
@@ -430,9 +442,32 @@ def play(page, ad: str, target: str) -> tuple[bool, dict | None, str]:
     return state(page) == target, box, f"the verified play led to {state(page)}, not {target}"
 
 
+def reward_effect(page, granted: Path) -> tuple[bool, list[str] | None]:
+    """What granting the reward visibly changes on the screen just captured with it granted: whether anything
+    changes, and when everything that changes sits inside reward elements that appeared (a label, a badge), their
+    words (None when more than that changes)."""
+    labels = page.evaluate(REWARD_LABELS_JS)
+    page.evaluate(REWARDED_JS, False)
+    without = page.screenshot(animations="disabled")
+    page.evaluate(REWARDED_JS, True)
+    with Image.open(granted) as on, Image.open(io.BytesIO(without)) as off:
+        diff = ImageChops.difference(on.convert("RGB"), off.convert("RGB")).convert("L")
+        diff = diff.point(lambda level: 255 if level > RENDER_NOISE else 0)
+        scale = on.width / VIEW_W
+    if diff.getbbox() is None:
+        return False, None
+    draw = ImageDraw.Draw(diff)
+    for x, y, w, h in (label["box"] for label in labels):
+        draw.rectangle([(x - LABEL_PAD) * scale, (y - LABEL_PAD) * scale, (x + w + LABEL_PAD) * scale,
+                        (y + h + LABEL_PAD) * scale], fill=0)
+    return True, None if diff.getbbox() else [label["text"] for label in labels if label["text"]]
+
+
 def walk(flow_dir: Path, c: Candidate, ad: str | None, ad_at: int) -> tuple[list[dict], dict]:
     """Taps through the flow's steps and screenshots each. A step that won't tap through keeps the last good
-    screenshot and is marked not wired. Returns the shots and what the page recorded."""
+    screenshot and is marked not wired. On an existing screen after the ad, it also records what the reward visibly
+    changes there (a new screen after the ad exists only once the reward is granted). Returns the shots and what the
+    page recorded."""
     screens = flow_dir / "screens"
     shots, last = [], None
     with render.open_mock(flow_dir) as (page, log):
@@ -450,9 +485,11 @@ def walk(flow_dir: Path, c: Candidate, ad: str | None, ad_at: int) -> tuple[list
                 shots[-1]["tap"] = tap
             if wired:
                 last = f"step-{i}.png"
-                page.screenshot(path=screens / last)
+                page.screenshot(path=screens / last, animations="disabled")
+            shown, labels = (reward_effect(page, screens / last) if wired and i > ad_at
+                             and not step.state_id.startswith("new:") else (None, None))
             shots.append({"state_id": step.state_id, "caption": step.caption, "png": last, "wired": wired,
-                          "tap": None, "why": "" if wired else why})
+                          "tap": None, "why": "" if wired else why, "reward_shown": shown, "reward_labels": labels})
         recorded = page.evaluate("() => window.simulaAd ? {grants: simulaAd.grants(), events: simulaAd.events()} "
                                  ": {grants: 0, events: []}")
         recorded["console"] = log["console"]
@@ -464,19 +501,36 @@ def words(text: str) -> str:
     return " ".join(re.findall(r"\w+", text.casefold()))
 
 
+def reach(page, steps: list[str], ad: str | None) -> str:
+    """Shows the first step, then taps through the rest the way a user would. Returns why it stopped short ("" when
+    it got to the last one)."""
+    if not show(page, steps[0]):
+        return f"{steps[0]} isn't in the page"
+    for target in steps[1:]:
+        reached, _, why = advance(page, target, ad)
+        if not reached:
+            return why
+    return ""
+
+
+def back_where_it_started(page, first: str, action: str) -> str:
+    """Why the app isn't back on the first step with nothing granted and no reward showing ("" when it is)."""
+    grants, reward = page.evaluate("() => [window.simulaAd.grants(), [...document.querySelectorAll("
+                                   "'[data-reward]')].some(e => e.checkVisibility())]")
+    if state(page) != first:
+        return f"{action} led to {state(page)}, not back to {first}"
+    return f"{action} granted the reward" if grants or reward else ""
+
+
 def walk_decline(flow_dir: Path, c: Candidate, ad: str | None, ad_at: int) -> tuple[bool | None, str]:
     """The second, short walk: reach the offer, check it shows the offer copy, tap its control that goes back, and
-    check the app is as it was (back on the first step, nothing granted, no reward showing). Returns whether the copy
-    was shown (None when the offer couldn't be reached) and why saying no failed ("" when it worked)."""
+    check the app is as it was. Returns whether the copy was shown (None when the offer couldn't be reached) and why
+    saying no failed ("" when it worked)."""
     steps = [s.state_id for s in c.flow_steps]
     with render.open_mock(flow_dir) as (page, _):
         page.clock.install()
-        if not show(page, steps[0]):
-            return None, f"{steps[0]} isn't in the page"
-        for target in steps[1:ad_at]:
-            reached, _, why = advance(page, target, ad)
-            if not reached:
-                return None, f"couldn't reach the offer: {why}"
+        if why := reach(page, steps[:ad_at], ad):
+            return None, f"couldn't reach the offer: {why}"
         offer = state(page)
         copy = words(c.offer_copy)
         shown = bool(copy) and copy in words(page.locator(f'[data-screen="{offer}"]').inner_text())
@@ -488,20 +542,28 @@ def walk_decline(flow_dir: Path, c: Candidate, ad: str | None, ad_at: int) -> tu
             back[0].click(timeout=CLICK_MS)
         except PlaywrightTimeout:
             return shown, "the offer's control that goes back can't be tapped (something covers it)"
-        grants, reward = page.evaluate("() => [window.simulaAd.grants(), [...document.querySelectorAll("
-                                       "'[data-reward]')].some(e => e.checkVisibility())]")
-        if state(page) != steps[0]:
-            return shown, f"saying no led to {state(page)}, not back to {steps[0]}"
-        if grants or reward:
-            return shown, "saying no granted the reward"
-    return shown, ""
+        return shown, back_where_it_started(page, steps[0], "saying no")
+
+
+def walk_failed_ad(flow_dir: Path, c: Candidate, ad: str | None, ad_at: int) -> str:
+    """The third walk: reach the ad, fail it the way the SDK reports a load that failed, and check the app is as it
+    was, with a note on top saying nothing was used. Returns why it isn't ("" when it is)."""
+    steps = [s.state_id for s in c.flow_steps]
+    with render.open_mock(flow_dir) as (page, _):
+        page.clock.install()
+        if (why := reach(page, steps[:ad_at + 1], ad)) or state(page) != ad:
+            return f"couldn't reach the ad: {why or 'no step is the ad screen'}"
+        page.evaluate("() => window.simulaAd.emit('LOAD_FAILED')")
+        if why := back_where_it_started(page, steps[0], "a failed ad"):
+            return why
+        return "" if page.evaluate(NOTE_ON_TOP_JS) else "a failed ad shows no note that nothing was used"
 
 
 def screenshot_before(flow_dir: Path, sid: str) -> str | None:
     with render.open_mock(flow_dir) as (page, _):
         if not show(page, sid):
             return None
-        page.screenshot(path=flow_dir / "screens" / "before.png")
+        page.screenshot(path=flow_dir / "screens" / "before.png", animations="disabled")
     return "before.png"
 
 
@@ -536,16 +598,23 @@ def build_flow(ctx: Ctx, model: ProductModel, source: Path, c: Candidate, decisi
         problem = decline or "the offer screen doesn't show the offer copy"
         run_trace(ctx.run_dir, stage="flows", step=f"decline:{c.id}", decider="code", outcome="error",
                   note=f"{NOT_WIRED}: {problem}"[:300])
+    if ad_fail := walk_failed_ad(flow_dir, c, ad, ad_at):
+        run_trace(ctx.run_dir, stage="flows", step=f"failed-ad:{c.id}", decider="code", outcome="error",
+                  note=f"{NOT_WIRED}: {ad_fail}"[:300])
     for n, shot in enumerate(shots):
         if not shot["wired"]:
             run_trace(ctx.run_dir, stage="flows", step=f"walk:{c.id}", decider="code", outcome="error",
                       note=f"step {n + 1} {NOT_WIRED}: {shot['why']}"[:300])
+        elif shot["reward_shown"] is False:
+            run_trace(ctx.run_dir, stage="flows", step=f"walk:{c.id}", decider="code", outcome="error",
+                      note=(f"step {n + 1} {REWARD_NOT_SHOWN}: nothing on {shot['state_id']} changes when the "
+                            "reward is granted")[:300])
     if recorded["console"]:
         run_trace(ctx.run_dir, stage="flows", step=f"walk:{c.id}", decider="code", outcome="error",
                   note=f"{len(recorded['console'])} console errors; first: {recorded['console'][0]}"[:300])
     return {"candidate": c, "decision": decision, "before": before, "shots": shots, "ad_at": ad_at,
             "grants": recorded["grants"], "events": recorded["events"], "applied": applied, "rejected": rejected,
-            "copy_shown": copy_shown, "decline": decline}
+            "copy_shown": copy_shown, "decline": decline, "ad_fail": ad_fail}
 
 
 # ---------- slides ----------
@@ -569,6 +638,14 @@ def step_label(i: int, ad_at: int) -> str:
         "What they get"
 
 
+def labels_text(labels: list[str]) -> str:
+    """What the screen shows when all the reward adds is labels: said as that, not as the effect the idea promises."""
+    if not labels:
+        return "A label appears."
+    quoted = ", ".join(f"“{label}”" for label in labels)
+    return f"A label appears: {quoted}." if len(labels) == 1 else f"Labels appear: {quoted}."
+
+
 def row_phones(flow: dict) -> list[dict]:
     """The flow slide's phones in order: the screen as it is today, then every step the walk took. Each has a label,
     a caption, what the user taps on it, and a red flag for anything the walks couldn't show."""
@@ -578,11 +655,18 @@ def row_phones(flow: dict) -> list[dict]:
     same_screen = len(shots) > 1 and shots[1]["state_id"] == shots[0]["state_id"]
     for i, shot in enumerate(shots):
         tap = shot["tap"] or (shots[1]["tap"] if i == 0 and same_screen else None)
-        flags = [] if shot["wired"] else [NOT_WIRED]
-        text = c.trigger_event if i == 0 else shot["caption"]
+        flags = ([] if shot["wired"] else [NOT_WIRED]) + ([REWARD_NOT_SHOWN] if shot["reward_shown"] is False else [])
+        if i == 0:
+            text = c.trigger_event
+        elif shot["reward_labels"] is not None:
+            text = labels_text(shot["reward_labels"])
+        else:
+            text = shot["caption"]
         phones.append({"label": step_label(i, at), "text": text, "png": shot["png"], "tap": tap, "flags": flags})
     phones[at]["flags"] += (["copy not on the screen"] if flow["copy_shown"] is False else []) + \
                            ([f"saying no: {NOT_WIRED}"] if flow["decline"] else [])  # the screen that makes the offer
+    if flow["ad_fail"] and at + 1 < len(phones):
+        phones[at + 1]["flags"].append(f"a failed ad: {NOT_WIRED}")
     return phones
 
 
@@ -812,6 +896,15 @@ def write_pdf(slides: Path) -> list[str]:
 
 # ---------- stage ----------
 
+def reward_text(flow: dict) -> str:
+    """The exhibit's word on the reward: shown, shown only as labels, or not shown, with the steps."""
+    missing = [str(n) for n, s in enumerate(flow["shots"], 1) if s["reward_shown"] is False]
+    labels = [str(n) for n, s in enumerate(flow["shots"], 1) if s["reward_labels"] is not None]
+    if missing:
+        return f"{REWARD_NOT_SHOWN}: step {', '.join(missing)}"
+    return f"only a label: step {', '.join(labels)}" if labels else "yes"
+
+
 def decline_text(flow: dict) -> str:
     if flow["decline"]:
         return f"{NOT_WIRED}: {flow['decline']}"
@@ -822,16 +915,24 @@ def exhibit(flows: list[dict], not_built: list[tuple[Decision, str]], chosen_fro
             run_dir: Path, usd: float, layout: list[str]) -> str:
     lines = ["# 07 · flows", "", f"{len(flows)} idea(s) drawn ({chosen_from}), from `{source.relative_to(run_dir)}/`. "
              f"Model spend this stage: ${usd:.4f}.", "",
-             "| Idea | Verdict | Edits applied / rejected | Steps wired | Grants in the walk | Saying no | Flow mock |",
-             "|---|---|---|---|---|---|---|"]
+             "| Idea | Verdict | Edits applied / rejected | Steps wired | Grants in the walk | Saying no | A failed ad "
+             "| Reward shown | Flow mock |",
+             "|---|---|---|---|---|---|---|---|---|"]
     for f in flows:
         c, wired = f["candidate"], sum(s["wired"] for s in f["shots"])
         lines.append(f"| {c.id} · {caption(c)} | {f['decision'].final} | {f['applied']} / {len(f['rejected'])} | "
-                     f"{wired} / {len(f['shots'])} | {f['grants']} | {decline_text(f)} | `flows/{c.id}/index.html` |")
+                     f"{wired} / {len(f['shots'])} | {f['grants']} | {decline_text(f)} | "
+                     f"{f'{NOT_WIRED}: ' + f['ad_fail'] if f['ad_fail'] else 'ok'} | {reward_text(f)} | "
+                     f"`flows/{c.id}/index.html` |")
     broken = [(f["candidate"].id, n, s) for f in flows for n, s in enumerate(f["shots"], 1) if not s["wired"]]
     if broken:
         lines += ["", f"## {NOT_WIRED.capitalize()}", ""]
         lines += [f"- {cid} step {n} (`{s['state_id']}`): {s['why']}" for cid, n, s in broken]
+    unseen = [(f["candidate"].id, n, s) for f in flows for n, s in enumerate(f["shots"], 1) if s["reward_shown"] is False]
+    if unseen:
+        lines += ["", f"## {REWARD_NOT_SHOWN.capitalize()}", ""]
+        lines += [f"- {cid} step {n} (`{s['state_id']}`): nothing on it changes when the reward is granted"
+                  for cid, n, s in unseen]
     if not_built:
         lines += ["", "## Not built", ""] + [f"- {d.candidate_id}: {why}" for d, why in not_built]
     if layout:

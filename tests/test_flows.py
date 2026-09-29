@@ -70,16 +70,18 @@ def seed_run(root, app: str, changes: dict | None = None):
 
 
 def fake_edits(c, page: str, wire_accept: bool = True, ad_section: str = "marked", block_play: bool = False,
-               decline_to: str | None = None, show_copy: bool = True, break_page: bool = False) -> Edits:
-    """What a good editor returns for any idea: an entry point on the trigger, the offer, and an empty ad screen.
-    The options plant one defect each: ad_section "unmarked" draws the ad screen without data-ad and "missing" leaves
-    it out; block_play covers the game's Play button; decline_to sends "No thanks" to a new screen instead of back;
-    show_copy=False drops the offer copy; break_page leaves an HTML comment open, which kills the page's scripts."""
+               decline_to: str | None = None, show_copy: bool = True, break_page: bool = False,
+               show_reward: bool = True, hide_note: bool = False) -> Edits:
+    """What a good editor returns for any idea: an entry point on the trigger, the offer, an empty ad screen, and a
+    badge that shows the reward. The options plant one defect each: ad_section "unmarked" draws the ad screen without
+    data-ad and "missing" leaves it out; block_play covers the game's Play button; decline_to sends "No thanks" to a new
+    screen instead of back; show_copy=False drops the offer copy; break_page leaves an HTML comment open, which kills
+    the page's scripts; show_reward=False draws no badge; hide_note hides the note a failed ad shows."""
     trigger, offer, ad = (s.state_id for s in c.flow_steps[:3])
     tag = re.search(rf'<section[^>]*data-screen="{trigger}"[^>]*>', page).group(0)
     button = 'style="position:absolute;left:20px;top:{}px;z-index:5"'
     entry = (f'<button data-edge="{trigger}>{offer}" data-transition="modal" {button.format(20)}>Get it</button>'
-             f'<div data-reward {button.format(70)}>Badge on</div>')
+             + (f'<div data-reward {button.format(70)}>Badge on</div>' if show_reward else ""))
     accept = f'<button data-edge="{offer}>{ad}" data-transition="modal" {button.format(300)}>Play</button>'
     ad_attrs = {"marked": f' data-parent="{trigger}" data-ad', "unmarked": ""}
     no = decline_to or trigger
@@ -99,6 +101,8 @@ def fake_edits(c, page: str, wire_accept: bool = True, ad_section: str = "marked
     if block_play:
         edits.append(Edit(find="</head>", replace="<style>.sa-play{pointer-events:none}</style></head>",
                           reason="something covers Play"))
+    if hide_note:
+        edits.append(Edit(find="</head>", replace="<style>.sa-note{display:none}</style></head>", reason="no note"))
     return Edits(edits=edits)
 
 
@@ -140,10 +144,10 @@ def text_of(fragment: str) -> str:
 
 def drawn(c, d) -> dict:
     """A flow as build_flow returns it, every step wired and the ad at step 3, for building slides without a walk."""
-    shots = [{"state_id": s.state_id, "caption": s.caption, "png": f"step-{i}.png", "wired": True, "tap": None}
-             for i, s in enumerate(c.flow_steps)]
+    shots = [{"state_id": s.state_id, "caption": s.caption, "png": f"step-{i}.png", "wired": True, "tap": None,
+              "reward_shown": None, "reward_labels": None} for i, s in enumerate(c.flow_steps)]
     return {"candidate": c, "decision": d, "before": "before.png", "shots": shots, "ad_at": 2, "copy_shown": True,
-            "decline": ""}
+            "decline": "", "ad_fail": ""}
 
 
 def slides(run_dir) -> list[tuple[str, str, str]]:
@@ -193,7 +197,7 @@ def test_the_flow_slide_walks_from_today_to_what_they_get_and_says_each_thing_on
     phones = flow_phones(built, "c01")
     assert [p["label"] for p in phones] == ["Today", "When it appears", "The offer", "The ad plays", "What they get"]
     assert [p["img"] for p in phones] == ["c01/screens/before.png", *(f"c01/screens/step-{i}.png" for i in range(4))]
-    assert phones[1]["text"] == flows.plain(c.trigger_event) and phones[-1]["text"] == "Badge shows"
+    assert phones[1]["text"] == flows.plain(c.trigger_event) and phones[-1]["text"] == "A label appears: “Badge on”."
     assert not any(p["flags"] for p in phones)
     flow = {(idea, part): text for idea, part, text in slides(built)}[("c01", "flow")]
     for words in (flows.plain(flows.caption(c)), f"The offer says: “{c.offer_copy}” Saying no changes nothing.",
@@ -349,9 +353,60 @@ def test_the_walk_reaches_every_step_and_grants_the_reward_once(built):
     screens = sorted(p.name for p in (built / "flows" / "c01" / "screens").iterdir())
     assert screens == ["before.png", "step-0.png", "step-1.png", "step-2.png", "step-3.png"]
     exhibit = (built / "exhibits" / "07-flows.md").read_text()
-    assert "| c01 · A daily bonus | accept | 2 / 1 | 4 / 4 | 1 | ok |" in exhibit
+    assert "| c01 · A daily bonus | accept | 2 / 1 | 4 / 4 | 1 | ok | ok | only a label: step 4 |" in exhibit
     assert any(line.step == "edits:c01" and "2 applied, 1 rejected" in line.note
                for line in read_trace(built / "trace.jsonl"))
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_a_reward_that_changes_nothing_on_screen_is_marked_not_shown(tmp_path, app):
+    run_dir = run_flows(tmp_path, app, only="c01", show_reward=False)
+    value = flow_phones(run_dir, "c01")[-1]
+    assert value["flags"] == [flows.REWARD_NOT_SHOWN] and value["text"] == "Badge shows"
+    exhibit = (run_dir / "exhibits" / "07-flows.md").read_text()
+    root = golden_idea(run_dir).flow_steps[-1].state_id
+    assert f"| {flows.REWARD_NOT_SHOWN}: step 4 |" in exhibit
+    assert f"## Reward not shown\n\n- c01 step 4 (`{root}`): nothing on it changes when the reward is granted" in exhibit
+    assert "| c02 · A second look | conditional | 2 / 1 | 4 / 4 | 1 | ok | ok | only a label: step 4 |" in exhibit
+    assert any(line.step == "walk:c01" and line.outcome == "error" and flows.REWARD_NOT_SHOWN in line.note
+               for line in read_trace(run_dir / "trace.jsonl"))
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_a_failed_ad_must_bring_the_user_back_with_nothing_granted_and_say_so(tmp_path, app):
+    run_dir = run_flows(tmp_path, app, only="c01", hide_note=True)
+    exhibit = (run_dir / "exhibits" / "07-flows.md").read_text()
+    assert f"| ok | {flows.NOT_WIRED}: a failed ad shows no note that nothing was used |" in exhibit
+    assert "| c02 · A second look | conditional | 2 / 1 | 4 / 4 | 1 | ok | ok |" in exhibit
+    assert flow_phones(run_dir, "c01")[3]["flags"] == [f"a failed ad: {flows.NOT_WIRED}"]
+    assert any(line.step == "failed-ad:c01" and line.outcome == "error" for line in read_trace(run_dir / "trace.jsonl"))
+
+
+REWARD_PAGE = """<style>body{margin:0;background:#fff}p{position:absolute;margin:0;font:16px sans-serif}
+body:not(.simula-rewarded) [data-reward]{display:none}{extra}</style>
+<p style="left:20px;top:20px">Home</p><p data-reward style="left:20px;top:200px">{label}</p>
+<p class="card" style="left:20px;top:400px">A card</p>"""
+
+
+@pytest.mark.parametrize("extra, label, expected", [
+    ("", "Badge on", (True, ["Badge on"])),
+    ("body.simula-rewarded .card{top:300px!important}", "Badge on", (True, None)),
+    ("body.simula-rewarded .card{color:rgb(3,3,3)}", "", (False, None)),
+])
+def test_the_reward_effect_names_labels_and_ignores_render_noise(tmp_path, extra, label, expected):
+    """Only a label appears; a label appears and a card moves; nothing but a 3-level shade (render noise) changes."""
+    with sync_playwright() as p:
+        page = p.chromium.launch().new_page(viewport=render.VIEWPORT)
+        page.set_content(REWARD_PAGE.replace("{extra}", extra).replace("{label}", label))
+        page.evaluate(flows.REWARDED_JS, True)
+        page.screenshot(path=tmp_path / "on.png", animations="disabled")
+        assert flows.reward_effect(page, tmp_path / "on.png") == expected
+
+
+def test_labels_are_quoted_as_what_appears():
+    assert flows.labels_text(["Badge on"]) == "A label appears: “Badge on”."
+    assert flows.labels_text(["A", "B"]) == "Labels appear: “A”, “B”."
+    assert flows.labels_text([]) == "A label appears."
 
 
 def test_reward_only_on_verification_and_only_once(built):
