@@ -75,6 +75,20 @@ def needs_human(run_dir: Path, stage: str, what: str, why: str, evidence: list[s
     return path
 
 
+def resolve_needs_human(run_dir: Path, stage: str) -> None:
+    """Once a stage completes, marks its open requests in needs-human.md done, whatever asked for them (its cap, the
+    provider, a failed check), so the file never asks a person to continue work that has finished."""
+    path = run_dir / "needs-human.md"
+    headers = [line for line in path.read_text().splitlines() if line.startswith("## ")] if path.exists() else []
+    asked = [h for h in headers if h.endswith((f" · {stage}", f" · {stage} · resolved"))]
+    if not asked or asked[-1].endswith(" · resolved"):
+        return
+    with open(path, "a") as f:
+        f.write("\n".join([f"## {now()} · {stage} · resolved", "",
+                           f"**Done:** {stage} finished complete, so the requests above for it need nothing more.", "", ""]))
+    run_trace(run_dir, stage=stage, step="needs_human", decider="code", note="resolved: the stage finished complete")
+
+
 def fixture_banner(run_dir: Path) -> str:
     if run_dir.name.endswith("-fixture"):
         return "> **FIXTURE TEST DATA, not a deliverable.**\n\n"
