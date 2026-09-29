@@ -10,6 +10,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 SCHEMA_VERSION = 1
+OutcomeStatus = Literal["complete", "partial"]  # a stage's done.json and QA's report share it
 
 
 class Strict(BaseModel):
@@ -538,7 +539,7 @@ class EditsFile(Strict):
 
 class QARound(Strict):
     round: int
-    score: float
+    keep_score: float
     kept: bool
     contract_errors: int
     failed_taps: int
@@ -587,15 +588,49 @@ class FlowWalk(Strict):
     status: Literal["passed", "failed", "out_of_scope", "undrawn"]
     problem: str | None
     screen: str | None = None
-    navigated: list[str] = []
+    gestures: list[str]  # the hops taken by a gesture rather than a tap
+
+
+class Structure(Strict):
+    """Tagged elements drawn within 4 dp of where the real screen has them."""
+    tagged: int
+    within_4dp: int
+
+
+class Interaction(Strict):
+    taps: int
+    taps_passing: int
+    flows: int
+    flows_walked: int
+
+
+class ScreenSSIM(Strict):
+    screen: str
+    ssim: float
+
+
+class Visual(Strict):
+    """Masked SSIM: the mean, and each scored screen from the lowest up."""
+    masked_ssim_mean: float | None
+    screens_by_ssim: list[ScreenSSIM]
 
 
 class QAReport(Strict):
-    """qa/qa_report.json"""
+    """qa/qa_report.json. outcome, reasons and resume are the StageOutcome vocabulary; status is QA's label for the
+    same thing. keep_score picks the round QA keeps, and structure, interaction and visual report fidelity apart from
+    it. open_findings is None when no round critiqued the approved version."""
     schema_version: int = SCHEMA_VERSION
     status: Literal["approved", "qa_incomplete"]
+    outcome: OutcomeStatus
+    reasons: list[str]
+    resume: str | None
     approved_round: int
-    score: float
+    keep_score: float
+    keep_score_formula: str
+    structure: Structure
+    interaction: Interaction
+    visual: Visual
+    open_findings: list[Fix] | None
     stop_reason: str
     rounds: list[QARound]
     keep_rule_disagreement: KeepRuleDisagreement | None = None
@@ -667,7 +702,7 @@ class FileHash(Strict):
 
 class StageOutcome(Strict):
     """What a finished stage delivered: all of its work, or part of it, with why and the command that continues it."""
-    status: Literal["complete", "partial"] = "complete"
+    status: OutcomeStatus = "complete"
     reasons: list[str] = []
     resume: str | None = None
 
