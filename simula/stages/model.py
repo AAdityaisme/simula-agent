@@ -703,17 +703,28 @@ def finish_elements(state: State, scope: set[str], tapped: set[str], image: Imag
 
 def hide_parent_copies(states: list[State], tapped: set[str]) -> tuple[list[State], list[str]]:
     """A modal or sheet's capture still lists its parent's elements, under its box and above it behind the backdrop.
-    The mock draws the parent as its own layer and the modal's layer as the backdrop and the modal only, so those
-    copies are not drawn again (in_mock false). An element is the parent's when the parent has one of the same class,
-    words, and box; one that starts an edge stays drawn. Returns the states and the ids no longer drawn."""
+    The mock shows the parent's layer under the modal's, so a copy of what the parent's layer draws is not drawn
+    again (in_mock false). An element is the parent's when the parent's layer draws one of the same class, words, and
+    box; one that starts an edge stays drawn. Returns the states and the ids no longer drawn."""
+    # ponytail: the runtime shows one parent layer, so a dialog over a dialog still draws the screen under both in its
+    # own layer; hide those too once the runtime shows every layer down the data-parent chain
     def key(e: Element) -> tuple:
         return e.type, e.text, e.label, e.rect_px.x, e.rect_px.y, e.rect_px.w, e.rect_px.h
     by_id = {s.id: s for s in states}
     copies: set[str] = set()
+    layers: dict[str, set[tuple]] = {}
+
+    def layer(s: State) -> set[tuple]:
+        """What a state's own layer draws: its drawn elements less its copies of its parent's layer."""
+        if s.id not in layers:
+            dialog = s.kind in ("modal", "sheet") and s.parent_id in by_id
+            theirs = layer(by_id[s.parent_id]) if dialog else set()
+            mine = {e.id for e in s.elements if e.in_mock and key(e) in theirs and e.id not in tapped}
+            copies.update(mine)
+            layers[s.id] = {key(e) for e in s.elements if e.in_mock and e.id not in mine}
+        return layers[s.id]
     for s in states:
-        if s.kind in ("modal", "sheet") and s.parent_id in by_id:
-            theirs = {key(p) for p in by_id[s.parent_id].elements}
-            copies |= {e.id for e in s.elements if e.in_mock and key(e) in theirs and e.id not in tapped}
+        layer(s)
     hidden = [s.model_copy(update={"elements": [e.model_copy(update={"in_mock": False}) if e.id in copies else e
                                                 for e in s.elements]}) for s in states]
     return hidden, sorted(copies)

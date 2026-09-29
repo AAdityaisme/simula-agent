@@ -867,30 +867,43 @@ def test_core_loop_passes_become_measured_experience_in_the_model(name, tmp_path
     assert experience[0].verbatim in calls[0]["messages"][0]["content"][0]["text"]
 
 
+def drawn_state(sid: str, kind: str, parent: str | None, texts: list[tuple[str, int]]) -> State:
+    """A state in the mock's scope whose (text, top) pairs are full-width TextViews, all drawn."""
+    elements = [Element(id=f"{sid}.e{n:02d}", mcp_ref=None, type="TextView", text=t, label="", source="mcp",
+                        rect_px=Rect(x=40, y=y, w=1000, h=100), rect_dp=Rect(x=0, y=0, w=0, h=0), role="text",
+                        asset_png=None, fg_hex=None, bg_hex=None, font_px=None, font_guess="unknown", in_mock=True,
+                        repeat_group=None) for n, (t, y) in enumerate(texts, start=1)]
+    return State(id=sid, kind=kind, parent_id=parent, name="", purpose="", fingerprint="", canonical_png="",
+                 elements=elements, in_mock_scope=True, content_rating="safe", dynamic_regions=[], blocked_reason=None)
+
+
 def test_a_sheets_copies_of_its_parents_elements_are_not_drawn_again():
     """The mock draws the parent as its own layer under a sheet, behind the backdrop, so a copy the sheet's capture
     lists is drawn once, by the parent, whether the sheet covers it or not."""
-    def element(sid, n, text, y, h=100):
-        return Element(id=f"{sid}.e{n:02d}", mcp_ref=None, type="TextView", text=text, label="", source="mcp",
-                       rect_px=Rect(x=40, y=y, w=1000, h=h), rect_dp=Rect(x=0, y=0, w=0, h=0), role="text",
-                       asset_png=None, fg_hex=None, bg_hex=None, font_px=None, font_guess="unknown", in_mock=True,
-                       repeat_group=None)
-
-    def state(sid, kind, parent, elements):
-        return State(id=sid, kind=kind, parent_id=parent, name="", purpose="", fingerprint="", canonical_png="",
-                     elements=elements, in_mock_scope=True, content_rating="safe", dynamic_regions=[],
-                     blocked_reason=None)
     page = [("Header above", 200), ("Card under", 1500), ("Card across the top edge", 1150), ("Tapped under", 1800)]
-    parent = state("s02", "screen", None, [element("s02", n, t, y) for n, (t, y) in enumerate(page, start=1)])
-    sheet = state("s03", "sheet", "s02", [element("s03", n, t, y) for n, (t, y) in enumerate(page, start=1)]
-                  + [element("s03", 5, "Filters", 1250), element("s03", 6, "Header above", 1400)])
-    external = state("s04", "external", "s02", [element("s04", 1, "Header above", 200)])
+    parent = drawn_state("s02", "screen", None, page)
+    sheet = drawn_state("s03", "sheet", "s02", [*page, ("Filters", 1250), ("Header above", 1400)])
+    external = drawn_state("s04", "external", "s02", [("Header above", 200)])
     states, copies = stage.hide_parent_copies([parent, sheet, external], tapped={"s03.e04"})
     assert [(e.text, e.in_mock) for e in states[1].elements] == [
         ("Header above", False), ("Card under", False), ("Card across the top edge", False), ("Tapped under", True),
         ("Filters", True), ("Header above", True)], "the sheet's own text, even words the parent also shows, stays drawn"
     assert all(e.in_mock for e in states[0].elements + states[2].elements), "only a modal or sheet is a layer"
     assert copies == ["s03.e01", "s03.e02", "s03.e03"]
+
+
+def test_a_dialog_over_a_dialog_hides_only_what_the_layer_under_it_draws():
+    """The runtime shows a dialog's layer and its parent's. The paywall's layer leaves the chat to the chat's layer,
+    which isn't shown under the confirm, so the confirm's layer draws the chat itself. The confirm comes first, as a
+    launch dialog can come before its screen."""
+    chat, paywall = [("Chat title", 200), ("Last message", 900)], [("Upgrade to Plus", 1300), ("$9.99 / month", 1400)]
+    states, copies = stage.hide_parent_copies([
+        drawn_state("s05", "modal", "s04", [*chat, *paywall, ("Leave without upgrading?", 1000)]),
+        drawn_state("s03", "screen", None, chat), drawn_state("s04", "modal", "s03", [*chat, *paywall])], set())
+    assert {s.id: [e.text for e in s.elements if e.in_mock] for s in states} == {
+        "s03": ["Chat title", "Last message"], "s04": ["Upgrade to Plus", "$9.99 / month"],
+        "s05": ["Chat title", "Last message", "Leave without upgrading?"]}, "every text shows in a layer on screen"
+    assert copies == ["s04.e01", "s04.e02", "s05.e03", "s05.e04"]
 
 
 def test_the_stage_draws_a_parents_element_once_when_its_sheet_lists_it_too(tmp_path, monkeypatch):
