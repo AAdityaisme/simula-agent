@@ -75,6 +75,17 @@ class Planted(Strict):
     expect_economics: Literal["PASS", "CONDITIONAL", "FAIL", "dropped"] | None = None
 
 
+class Regression(Strict):
+    """tests/fixtures/judge/regression/<id>.json: a real idea the judges must not pass, with the product model the
+    judge saw (only the fields it reads). Held out of the gate; the report shows its verdict."""
+    id: str
+    from_run: str
+    app: str
+    note: str
+    model: dict
+    candidate: dict
+
+
 @dataclass
 class Case:
     id: str
@@ -153,6 +164,9 @@ def load_cases(root: Path = CASES) -> list[Case]:
     models = {ref: load_model(ref) for ref in refs}
     cases = [Case(g.id, g.source, as_candidate(g.candidate, g.id), models[g.model], g.app, g.app_type,
                   g.in_test_set) for g in goods.values()]
+    regressions = [Regression.model_validate_json(p.read_text()) for p in sorted((root / "regression").glob("*.json"))]
+    cases += [Case(r.id, "regression", as_candidate(r.candidate, r.id), fill_model(r.model), r.app, "", True)
+              for r in regressions]
     for path, p in planted:
         if (p.target == C8) != (p.expect_economics is not None):
             raise ValueError(f"{path.name}: expect_economics is set on, and only on, a {C8} case")
@@ -320,6 +334,18 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
         lines.append(f"- {who}: {len(both)} of {len(pairs)} gate cases compared; safety flips {len(flips[who])}"
                      + (f" ({', '.join(flips[who])})" if flips[who] else "") + f"; any-check flips {len(any_flips)}"
                      + (f"; no second verdict for {', '.join(unverified[who])}" if unverified[who] else "") + ".")
+
+    regressions = [c for c in cases if c.source == "regression"]
+    if regressions:
+        lines += ["", "## Regression cases (held out of the gate; the judges must not pass them)", "",
+                  "| Case | " + " | ".join(columns) + " |", "|---|" + "---|" * len(columns)]
+        for c in regressions:
+            cells = []
+            for who in columns:
+                ran = [got(c, j) for j in judges] if who == "combined" else [got(c, who)]
+                fails = judge.failed_by_any([v for v in ran if v])
+                cells.append("✗ passes all 11" if is_passed(c, who) else f"✓ fails {', '.join(fails) or 'a call'}")
+            lines.append(f"| {c.id} | " + " | ".join(cells) + " |")
 
     if c8:
         lines += ["", "## C8 economics (code, not the judges)", "", "| Case | Tier | Expected | Code says | Caught |",
