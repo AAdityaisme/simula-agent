@@ -254,13 +254,14 @@ def test_why_slides_on_real_output_never_claim_a_failed_check_that_passed():
     assert len(chosen) == 4
     for d in chosen:
         c = candidates[d.candidate_id]
-        flow = {"candidate": c, "decision": d, "shots": [{"caption": s.caption} for s in c.flow_steps], "ad_at": 2}
-        text = html.unescape(re.sub(r"<[^>]+>", " ", flows.why_html(flow, golden("luzia"), ROUND6)))
+        flow = {"candidate": c, "decision": d, "shots": [{"caption": s.caption} for s in c.flow_steps], "ad_at": 2,
+                "decline": ""}
+        text = html.unescape(re.sub(r"<[^>]+>", " ", flows.why_html(flow, golden("luzia"), ROUND6, False)))
         assert not re.search(r"\$|eCPM|\b(?:g|c\d)_[a-z]", text), text
         if d.checks_passed == d.checks_total:
             assert "didn't pass" not in text and "not every" not in text
         if d.final == "conditional" and d.checks_passed == d.checks_total:
-            assert "It passed every check" in text
+            assert "closest idea" not in text and "Recommended" not in text
         if c.economics.verdict == "FAIL":
             assert "it may cost more to serve than a view earns" in text
 
@@ -280,16 +281,42 @@ def test_the_reach_line_says_where_the_offer_sits_and_when_it_appears_but_never_
     assert "sits a few taps in" in flows.reach_text(deep, model) and "every visit" not in flows.reach_text(deep, model)
 
 
-def test_a_failed_check_is_named_with_a_cost_question_and_no_numbers():
-    c = candidate(golden("aol")).model_copy(update={"economics": Economics(
-        cost_2k=0.034, cost_8k=0.034, breakeven_ecpm_2k=34, breakeven_ecpm_8k=34, benchmark_ecpm=9.2,
-        verdict="CONDITIONAL", assumption_line="Costs ~$0.0340 per reward to serve.")})
-    d = decision("c01", "conditional", 1.0, passed=10)
-    text = flows.condition(d, c, ROUND6.parent / "nowhere")
-    assert text == "It passed 10 of 11 checks; the last page shows which. Also, a view pays for what it costs to " \
-                   "serve only where ad prices are high; the review's cost line has the numbers."
-    free = c.model_copy(update={"economics": c.economics.model_copy(update={"cost_2k": 0})})
-    assert "wasn't observed" in flows.condition(decision("c01", "conditional", 1.0), free, ROUND6)
+def judged(tmp_path, cid: str, fail: str | None) -> Decision:
+    """A CONDITIONAL decision whose one verdict file fails `fail` (or nothing)."""
+    (tmp_path / "judge" / "verdicts").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "judge" / "verdicts" / f"{cid}_judge_1_r1.json").write_text(verdict(cid, fail).model_dump_json())
+    return decision(cid, "conditional", 1.0, passed=10 if fail else 11)
+
+
+def test_the_judges_fallback_pick_reads_as_the_closest_idea_not_a_recommendation(tmp_path):
+    missed = judged(tmp_path, "c01", "c5_moment")
+    assert flows.condition(missed, tmp_path, none_accepted=True) == (
+        "The closest idea, not a recommendation:",
+        "No idea passed every check. This one passes every safety check but not the right moment "
+        "(c5_moment reason for c01).")
+    assert flows.condition(missed, tmp_path, none_accepted=False) == (
+        "Not every check passed:", "It didn't pass the right moment (c5_moment reason for c01).")
+    assert flows.condition(judged(tmp_path, "c02", "g_policy"), tmp_path, none_accepted=True)[0] == \
+        "Not every check passed:"
+    assert flows.condition(decision("c03", "conditional", 1.0, passed=10), ROUND6.parent / "nowhere", True) == (
+        "Not every check passed:", "It passed 10 of 11 checks; the score pages at the end show which.")
+    assert flows.condition(judged(tmp_path, "c04", None), tmp_path, True) is None
+    assert flows.condition(decision("c05", "accept", 1.0), tmp_path, True) is None
+
+
+def test_a_fallback_pick_is_named_on_the_cover_and_its_why_slide_never_says_recommended(tmp_path):
+    run_dir = seed_run(tmp_path, "luzia", {"c01": {}})
+    decisions = [decision("c01", "conditional", 1.0, passed=10), decision("c03", "reject", 2.0, passed=9)]
+    (run_dir / "judge" / "decisions.json").write_text(DecisionsFile(decisions=decisions).model_dump_json())
+    (run_dir / "judge" / "verdicts" / "c01_judge_1_r1.json").write_text(verdict("c01", "c5_moment").model_dump_json())
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(llm, "call", fake_editor(run_dir))
+        flows.run(ctx_for(run_dir, "luzia"))
+    deck = (run_dir / "flows" / "slides.html").read_text()
+    cover = text_of(deck.split('<section class="slide main"')[0])
+    assert "No idea passed every check, so the closest is drawn and marked as not a recommendation." in cover
+    why = {(idea, part): " ".join(text.split()) for idea, part, text in slides(run_dir)}[("c01", "why")]
+    assert "The closest idea, not a recommendation: No idea passed every check." in why and "Recommended" not in why
 
 
 def test_a_cost_line_that_isnt_pass_is_a_mark_on_every_slide_and_never_the_verdict():
@@ -304,7 +331,7 @@ def test_a_cost_line_that_isnt_pass_is_a_mark_on_every_slide_and_never_the_verdi
         c, marked = ideas[d.candidate_id], ideas[d.candidate_id].economics.verdict != "PASS"
         for final in ("conditional", "accept"):
             texts = [text_of(s) for s in flows.idea_slides(drawn(c, d.model_copy(update={"final": final})), model,
-                                                            ROUND6)]
+                                                            ROUND6, False)]
             for text in texts:
                 assert (f"Cost check: {c.economics.verdict}" in text) == marked
                 assert (" Conditional " in text) == (final == "conditional")
@@ -340,15 +367,25 @@ def test_the_overflow_check_names_each_slide_whose_text_runs_off_it_or_into_its_
     assert found[2].startswith('slide 3: div "word') and found[2].endswith("is cut off")
 
 
-def test_every_slide_fits_on_real_output():
-    """Round 6's long rationales, offer copy, and triggers, as accepted and as CONDITIONAL ideas."""
+def test_every_slide_fits_on_real_output(tmp_path):
+    """Round 6's long rationales, offer copy, and triggers, as accepted ideas and as the judge's fallback pick, whose
+    why slide carries both the missed-check box (with round 6's longest judge reason) and the cost box."""
     decisions = DecisionsFile.model_validate_json((ROUND6 / "judge" / "decisions.json").read_text()).decisions
     ideas, model = flows.load_candidates(ROUND6), golden("luzia")
-    deck = [slide for d in flows.select(decisions, None) for final in ("accept", "conditional")
-            for slide in flows.idea_slides(drawn(ideas[d.candidate_id], d.model_copy(update={"final": final})), model,
-                                           ROUND6)]
+    fallback_run = tmp_path / "run"
+    shutil.copytree(ROUND6, fallback_run)
+    reasons = [getattr(v, k).reason for _, v in flows.verdicts(decisions[0], ROUND6) for k in GATES + JUDGMENT]
+    for path in (fallback_run / "judge" / "verdicts").iterdir():
+        v = Verdict.model_validate_json(path.read_text())
+        path.write_text(v.model_copy(update={"c5_moment": Check(passed=False, reason=max(reasons, key=len))})
+                        .model_dump_json())
+    chosen = flows.select(decisions, None)
+    deck = [slide for d in chosen for slide in flows.idea_slides(drawn(ideas[d.candidate_id], d), model, ROUND6, False)]
+    deck += [slide for d in chosen for slide in flows.idea_slides(
+        drawn(ideas[d.candidate_id], d.model_copy(update={"final": "conditional"})), model, fallback_run, True)]
     deck += flows.score_slides(decisions, ideas, [], ROUND6)
-    assert sum('class="condition"' in s for s in deck) == 7
+    assert sum("The closest idea, not a recommendation" in s for s in deck) == 4
+    assert sum("Cost check (" in s for s in deck) == 6
     assert rendered_overflows("".join(deck)) == []
 
 
@@ -369,7 +406,7 @@ def test_code_flags_show_on_the_score_page_and_reach_no_slide_or_model(tmp_path,
     scores = text_of("".join(flows.score_slides(decisions, ideas, [], run_dir)))
     assert scores.count("flagged by code") == 1
     assert f"flagged by code: {FLAG}" in scores[scores.index("c01 "):scores.index("c02 ")]
-    main = text_of("".join(flows.idea_slides(drawn(ideas["c01"], decisions[0]), model, run_dir)))
+    main = text_of("".join(flows.idea_slides(drawn(ideas["c01"], decisions[0]), model, run_dir, False)))
     page = flows.strip_runtime((run_dir / "mock" / "index.html").read_text())
     editor = flows.editor_brief(ideas["c01"], model, page) + flows.system_prompt()
     assert "Flagged" not in main and FLAG not in main and FLAG not in editor

@@ -50,7 +50,6 @@ PARTS = ("flow", "why")
 WHY_TITLE = "Why this works for your app"
 REWARD_RULE = ("In every idea the user chooses to play. The reward comes once, only after the play is verified, and "
                "closing the game or a failed ad uses nothing up.")
-COST_NUMBERS = "the review's cost line has the numbers"
 VERDICTS = {"accept": "accepted", "conditional": "conditional", "reject": "rejected",
             "needs_human": "waiting on a person"}
 ROW_W, ROW_GAP = SLIDE_W - 2 * 64, 28
@@ -768,19 +767,28 @@ def cost_question(c: Candidate) -> str | None:
     return "a view pays for what it costs to serve only where ad prices are high"
 
 
-def condition(decision: Decision, c: Candidate, run_dir: Path) -> str:
-    """A CONDITIONAL idea's condition in one sentence. It names only checks a judge failed, in plain words, and when
-    every check passed it says so and gives the cost question instead."""
+def is_fallback(decision: Decision, run_dir: Path, none_accepted: bool) -> bool:
+    """The judge's fallback pick: nothing was accepted, so the closest idea goes on as CONDITIONAL with the checks it
+    missed."""
+    return decision.final == "conditional" and none_accepted and bool(failed_checks(decision, run_dir))
+
+
+def condition(decision: Decision, run_dir: Path, none_accepted: bool) -> tuple[str, str] | None:
+    """A CONDITIONAL idea's heading and sentence about the checks it missed, in plain words; None when it missed none
+    (its condition is then its cost line, which the cost box says)."""
+    if decision.final != "conditional":
+        return None
     failed = failed_checks(decision, run_dir)
-    cost = cost_question(c)
-    tail = f" Also, {cost}; {COST_NUMBERS}." if cost else ""
+    names = ", ".join(PLAIN_CHECKS[k] for k, _ in failed)
+    if is_fallback(decision, run_dir, none_accepted) and not any(k in GATES for k, _ in failed):
+        return ("The closest idea, not a recommendation:",
+                f"No idea passed every check. This one passes every safety check but not {names} ({failed[0][1]}).")
     if failed:
-        return "It didn't pass " + "; ".join(f"{PLAIN_CHECKS[k]} ({reason})" for k, reason in failed) + "." + tail
+        return "Not every check passed:", f"It didn't pass {names} ({failed[0][1]})."
     if decision.checks_passed < decision.checks_total:
-        return f"It passed {decision.checks_passed} of {decision.checks_total} checks; the last page shows which." + tail
-    if cost:
-        return f"It passed every check, but {cost}. {COST_NUMBERS.capitalize()}."
-    return "It passed every check; the review's notes say more."
+        return ("Not every check passed:", f"It passed {decision.checks_passed} of {decision.checks_total} checks; "
+                                           f"the score pages at the end show which.")
+    return None
 
 
 def saying_no(flow: dict) -> str:
@@ -788,7 +796,7 @@ def saying_no(flow: dict) -> str:
     return "saying no doesn't bring them back yet" if flow["decline"] else "saying no changes nothing"
 
 
-def why_html(flow: dict, model: ProductModel, run_dir: Path) -> str:
+def why_html(flow: dict, model: ProductModel, run_dir: Path, none_accepted: bool) -> str:
     c, decision = flow["candidate"], flow["decision"]
     gets = reward_line(c)  # the offer's terms: the flow slide already shows what the screen does after the play
     blocks = [("What the user gets", gets[:1].upper() + gets[1:] + "."),
@@ -798,17 +806,17 @@ def why_html(flow: dict, model: ProductModel, run_dir: Path) -> str:
     html = "".join(f'<div class="why-block"><b>{escape(label)}</b><p>{escape(plain(text))}</p></div>'
                    for label, text in blocks)
     html += f'<p class="reach">{escape(plain(reach_text(c, model)))}</p>'
-    if decision.final == "conditional":
-        html += (f'<div class="condition"><b>Recommended with one condition:</b> '
-                 f"{escape(plain(condition(decision, c, run_dir)))}</div>")
-    elif cost := cost_question(c):
+    if note := condition(decision, run_dir, none_accepted):
+        html += f'<div class="condition"><b>{note[0]}</b> {escape(plain(note[1]))}</div>'
+    if cost := cost_question(c):
         html += (f'<div class="condition"><b>Cost check ({c.economics.verdict}):</b> {escape(cost)}. '
-                 f"{COST_NUMBERS.capitalize()}.</div>")
+                 "The review's cost line has the numbers.</div>")
     return f'<div class="why">{html}</div>'
 
 
-def idea_slides(flow: dict, model: ProductModel, run_dir: Path) -> list[str]:
-    """An idea's two slides: its whole flow in one row of phones, then why the system thinks it's a good idea."""
+def idea_slides(flow: dict, model: ProductModel, run_dir: Path, none_accepted: bool) -> list[str]:
+    """An idea's two slides: its whole flow in one row of phones, then why the system thinks it's a good idea
+    (none_accepted: the judge accepted no idea, so a CONDITIONAL one is its fallback pick)."""
     c = flow["candidate"]
     label, new = (("The new part", c.adds) if c.kind == "product_change" and c.adds
                   else ("Where the offer appears", c.placement))
@@ -819,25 +827,27 @@ def idea_slides(flow: dict, model: ProductModel, run_dir: Path) -> list[str]:
             f"{row_html(row_phones(flow), c.id)}<footer>{gets}</footer></div>")
     runs_out = f"<footer><b>When the reward runs out:</b> {escape(plain(c.after_reward))}</footer>" \
         if c.after_reward else ""
-    why = f"<h2>{WHY_TITLE}</h2>{why_html(flow, model, run_dir)}{runs_out}"
+    why = f"<h2>{WHY_TITLE}</h2>{why_html(flow, model, run_dir, none_accepted)}{runs_out}"
     return [slide_html(flow, "flow", body), slide_html(flow, "why", why)]
 
 
-def cover_html(app: str, flows: list[dict], unbuilt: int = 0, status: list[str] = ()) -> str:
-    """The overview: every idea in the deck, how to read it, the reward rule every idea follows, and status lines
-    for anything an earlier stage couldn't finish."""
+def cover_html(app: str, flows: list[dict], unbuilt: int = 0, status: list[str] = (), fallbacks: int = 0) -> str:
+    """The overview: every idea in the deck, how to read it, the reward rule every idea follows, whether an idea is
+    only the judge's fallback pick, and status lines for anything an earlier stage couldn't finish."""
     items = "".join(f'<li><span class="chip {"existing" if f["candidate"].kind == "existing_anchor" else "change"}">'
                     f'{escape(BUCKETS.get(f["candidate"].kind, ""))}</span>{escape(plain(caption(f["candidate"])))}</li>'
                     for f in flows)
     notes = []
     if flows:
-        notes += ["Each idea takes two slides: its whole flow, step by step, then why it works. The last page scores "
-                  "every idea the review saw.", REWARD_RULE]
+        notes += ["Each idea takes two slides: its whole flow, step by step, then why it works. The score pages at "
+                  "the end score every idea the review saw.", REWARD_RULE]
+    if fallbacks:
+        notes.append("No idea passed every check, so the closest is drawn and marked as not a recommendation.")
     if unbuilt:
-        notes.append(f"{unbuilt} {'more ' if flows else ''}idea(s) passed the review but couldn't be drawn; the last "
-                     "page says why.")
+        notes.append(f"{unbuilt} {'more ' if flows else ''}idea(s) passed the review but couldn't be drawn; the score "
+                     "pages at the end say why.")
     if not flows and not unbuilt:
-        notes.append("No idea passed the review. The last page shows every idea's score and why.")
+        notes.append("No idea passed the review. The score pages at the end show every idea's score and why.")
     body = (f"<ol>{items}</ol>" if flows else "") + "".join(f"<p class='how'>{escape(n)}</p>" for n in [*notes, *status])
     return f'<section class="slide cover"><h1>Rewarded-ad ideas for {escape(app)}</h1>{body}</section>'
 
@@ -916,9 +926,11 @@ def unfinished_stages(run_dir: Path) -> list[str]:
 def deck(ctx: Ctx, model: ProductModel, flows: list[dict], not_built: list[tuple[Decision, str]],
          decisions: list[Decision], candidates: dict[str, Candidate]) -> str:
     app = app_title(model, ctx.app["name"])
-    slides = [cover_html(app, flows, len(not_built), unfinished_stages(ctx.run_dir))]
+    none_accepted = not any(d.final == "accept" for d in decisions)
+    fallbacks = sum(is_fallback(f["decision"], ctx.run_dir, none_accepted) for f in flows)
+    slides = [cover_html(app, flows, len(not_built), unfinished_stages(ctx.run_dir), fallbacks)]
     for flow in flows:
-        slides += idea_slides(flow, model, ctx.run_dir)
+        slides += idea_slides(flow, model, ctx.run_dir, none_accepted)
     slides += score_slides(decisions, candidates, not_built, ctx.run_dir)
     watermark = ('<div class="watermark">FIXTURE TEST DATA · not a deliverable</div>'
                  if ctx.run_dir.name.endswith("-fixture") else "")
