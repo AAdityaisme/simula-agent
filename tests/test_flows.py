@@ -17,7 +17,7 @@ from simula.contracts import (GATES, JUDGMENT, CandidatesFile, Check, Decision, 
 from simula.runlog import read_trace
 from simula.stages import flows
 from simula.stages.mock import copy_assets, pick_scope, with_runtime
-from simula.stages.propose import anchor_ids, with_bucket
+from simula.stages.propose import anchor_ids, depths, root_id, with_bucket
 from tests.conftest import APPS, FIXTURES
 from tests.mock_fake import golden, skeleton_html
 from tests.propose_fixtures import anchored, candidate
@@ -199,6 +199,21 @@ def test_why_slides_on_real_output_never_claim_a_failed_check_that_passed():
             assert "It passed every check" in text
         if c.economics.verdict == "FAIL":
             assert "it may cost more to serve than a view earns" in text
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_the_reach_line_says_where_the_offer_sits_and_when_it_appears_but_never_how_many_see_it(app):
+    model = golden(app)
+    depth = depths(model)
+    tab = next(s for s, d in depth.items() if d == 0 and s != root_id(model))
+    places = {root_id(model): "sits on the first screen people see", tab: "sits on a main tab",
+              next(s for s, d in depth.items() if d == 1): "sits one tap from a main screen"}
+    for sid, where in places.items():
+        text = flows.reach_text(candidate(model, trigger_state_id=sid, trigger_event="After 3 days away."), model)
+        assert text == (f"Reach scenario, not a measurement: the offer {where}, and appears only when this happens: "
+                        "After 3 days away.")
+    deep = candidate(model, trigger_state_id="s99", trigger_event="The user saves a story")
+    assert "sits a few taps in" in flows.reach_text(deep, model) and "every visit" not in flows.reach_text(deep, model)
 
 
 def test_a_failed_check_is_named_with_a_cost_question_and_no_numbers():

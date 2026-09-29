@@ -21,7 +21,7 @@ from simula.contracts import (GATES, JUDGMENT, Candidate, CandidatesFile, Decisi
 from simula.runlog import read_trace, run_trace, write_exhibit
 from simula.stages import Ctx
 from simula.stages.mock import StartTags, _insert_before, _rewrite, contract_text, with_runtime
-from simula.stages.propose import BUCKETS, depths
+from simula.stages.propose import BUCKETS, depths, root_id
 
 PROMPTS = ROOT / "prompts" / "flows"
 TEMPLATE = ROOT / "templates" / "slides.html"
@@ -191,11 +191,15 @@ def reward_line(c: Candidate) -> str:
 
 
 def reach_text(c: Candidate, model: ProductModel) -> str:
-    where = {0: "sits on the first screen people see, which every visit passes",
-             1: "sits one tap from the first screen, which about half of visits reach (assumed)"}
+    """Where the offer sits and the moment it appears. Depth says where, never how many people reach it: a tab is
+    depth 0 like the root, and the trigger narrows who sees it (the audience isn't measured)."""
     depth = depths(model).get(c.trigger_state_id, 2)
-    return (f"Reach scenario, not a measurement: the offer "
-            f"{where.get(depth, 'sits a few taps in, which about a quarter of visits reach (assumed)')}.")
+    if depth == 0:
+        where = "sits on the first screen people see" if c.trigger_state_id == root_id(model) else "sits on a main tab"
+    else:
+        where = "sits one tap from a main screen" if depth == 1 else "sits a few taps in"
+    return (f"Reach scenario, not a measurement: the offer {where}, and appears only when this happens: "
+            f"{c.trigger_event.rstrip('.')}.")
 
 
 # ---------- the editor call ----------

@@ -288,10 +288,15 @@ def check(c: Candidate, model: ProductModel) -> str | None:
 
 # ---------- reach and rank ----------
 
+def root_id(model: ProductModel) -> str:
+    """The root: the lowest-numbered `screen` state (docs/CONTRACTS.md)."""
+    return min(s.id for s in model.states if s.kind == "screen")
+
+
 def depths(model: ProductModel) -> dict[str, int]:
-    """Taps from the root (the lowest-numbered `screen` state, docs/CONTRACTS.md). A tab switch costs nothing;
-    a modal sits at its parent's depth when no recorded edge reaches it."""
-    depth = {min(s.id for s in model.states if s.kind == "screen"): 0}
+    """Taps from the root. A tab switch costs nothing; a modal sits at its parent's depth when no recorded edge
+    reaches it."""
+    depth = {root_id(model): 0}
     changed = True
     while changed:
         changed = False
