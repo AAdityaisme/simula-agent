@@ -421,6 +421,20 @@ def test_the_reward_effect_names_labels_and_ignores_render_noise(tmp_path, extra
         assert flows.reward_effect(page, tmp_path / "on.png") == expected
 
 
+@pytest.mark.parametrize("after_ad, expected", [
+    ([dict(wired=False, reward_shown=None, reward_labels=None)], "not reached"),
+    ([dict(wired=True, reward_shown=None, reward_labels=None)], "new screen, not measured"),
+    ([dict(wired=True, reward_shown=None, reward_labels=None), dict(wired=True, reward_shown=False, reward_labels=None)],
+     f"{flows.REWARD_NOT_SHOWN}: step 5"),
+    ([dict(wired=True, reward_shown=True, reward_labels=["Badge on"])], "only a label: step 4"),
+    ([dict(wired=True, reward_shown=True, reward_labels=["Badge on"]), dict(wired=True, reward_shown=True,
+                                                                           reward_labels=None)], "yes"),
+])
+def test_the_exhibit_says_yes_only_when_the_reward_check_ran_and_found_more_than_a_label(after_ad, expected):
+    before = [dict(wired=True, reward_shown=None, reward_labels=None)] * 3
+    assert flows.reward_text({"shots": before + after_ad, "ad_at": 2}) == expected
+
+
 def test_labels_are_quoted_as_what_appears():
     assert flows.labels_text(["Badge on"]) == "A label appears: “Badge on”."
     assert flows.labels_text(["A", "B"]) == "Labels appear: “A”, “B”."
@@ -497,6 +511,8 @@ def test_a_step_that_wont_tap_through_shows_the_last_good_screen_marked_not_wire
     offer, ad = flow_phones(run_dir, "c01")[2:4]
     assert flows.NOT_WIRED in ad["flags"] and not offer["flags"]
     assert ad["img"] == "c01/screens/step-1.png"
+    assert "| 2 / 4 | 0 | ok | " in (run_dir / "exhibits" / "07-flows.md").read_text()
+    assert "| not reached | `flows/c01/index.html` |" in (run_dir / "exhibits" / "07-flows.md").read_text()
     assert not (run_dir / "flows" / "c01" / "screens" / "step-2.png").exists()
     broken = [line for line in read_trace(run_dir / "trace.jsonl") if line.step == "walk:c01" and line.outcome == "error"]
     assert broken and "step 3 not wired" in broken[0].note

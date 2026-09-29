@@ -953,12 +953,20 @@ def write_pdf(slides: Path) -> list[str]:
 # ---------- stage ----------
 
 def reward_text(flow: dict) -> str:
-    """The exhibit's word on the reward: shown, shown only as labels, or not shown, with the steps."""
-    missing = [str(n) for n, s in enumerate(flow["shots"], 1) if s["reward_shown"] is False]
-    labels = [str(n) for n, s in enumerate(flow["shots"], 1) if s["reward_labels"] is not None]
-    if missing:
+    """The exhibit's word on the reward after the ad: not reached, not shown, shown only on new screens (which the
+    on/off check doesn't measure), only a label, or shown."""
+    after = list(enumerate(flow["shots"], 1))[flow["ad_at"] + 1:]
+    reached = [(n, s) for n, s in after if s["wired"]]
+    if not reached:
+        return "not reached"
+    if missing := [str(n) for n, s in reached if s["reward_shown"] is False]:
         return f"{REWARD_NOT_SHOWN}: step {', '.join(missing)}"
-    return f"only a label: step {', '.join(labels)}" if labels else "yes"
+    measured = [(n, s) for n, s in reached if s["reward_shown"]]
+    if not measured:
+        return "new screen, not measured"
+    if all(s["reward_labels"] is not None for _, s in measured):
+        return f"only a label: step {', '.join(str(n) for n, _ in measured)}"
+    return "yes"
 
 
 def decline_text(flow: dict) -> str:
