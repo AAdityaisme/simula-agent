@@ -214,9 +214,11 @@ def test_the_flow_slide_walks_from_today_to_what_they_get_and_says_each_thing_on
 def test_the_cover_names_the_app_as_the_model_reads_it_else_the_config_key_title_cased(built):
     deck = (built / "flows" / "slides.html").read_text()
     app = built.parent.name
-    assert f"<h1>Rewarded-ad ideas for {app.title()}</h1>" in deck and f"<title>Rewarded-ad ideas for {app.title()}" in deck
-    named = golden(app).model_copy(update={"app_name": "Janitor AI"})
-    assert flows.app_title(named, app) == "Janitor AI" and flows.app_title(golden(app), app) == app.title()
+    title = golden(app).app_name or app.title()
+    assert f"<h1>Rewarded-ad ideas for {title}</h1>" in deck and f"<title>Rewarded-ad ideas for {title}" in deck
+    unnamed = golden(app).model_copy(update={"app_name": ""})
+    named = unnamed.model_copy(update={"app_name": "Janitor AI"})
+    assert flows.app_title(named, app) == "Janitor AI" and flows.app_title(unnamed, app) == app.title()
 
 
 def test_the_cover_carries_a_line_for_each_earlier_stage_that_finished_only_part_of_its_work(tmp_path):
@@ -806,9 +808,10 @@ def test_saying_no_taps_the_offers_own_way_back_never_the_apps_close(tmp_path, a
         page = flows.strip_runtime((run_dir / "mock" / "index.html").read_text())
         edits = []
         for sid, markup in added.items():
-            close = page.index("</section>", page.index(re.search(rf'<section[^>]*data-screen="{sid}"', page).group(0)))
-            edits.append(Edit(find=page[close - 40:close + 10], replace=page[close - 40:close] + markup
-                              + page[close:close + 10], reason="added after the screen's own controls"))
+            start = page.index(re.search(rf'<section[^>]*data-screen="{sid}"', page).group(0))
+            section = page[start:page.index("</section>", start) + len("</section>")]
+            edits.append(Edit(find=section, replace=section.removesuffix("</section>") + markup + "</section>",
+                              reason="added after the screen's own controls"))
         ad = f'<section data-screen="new:ad" data-flow="c01" data-parent="{screen}" data-ad></section>'
         return Edits(edits=[*edits, Edit(find="</body>", replace=ad + "</body>", reason="ad")]), None
     with pytest.MonkeyPatch.context() as mp:
