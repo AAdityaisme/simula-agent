@@ -355,6 +355,54 @@ def test_raising_the_cap_after_an_over_budget_run_draws_the_rest(tmp_path, monke
     assert "screen not drawn" not in (run_dir / "mock" / "index.html").read_text()
 
 
+def test_a_batch_that_timed_out_once_is_free_once_a_rerun_answered_it(tmp_path, monkeypatch, app, two_batches):
+    """The planner reads the cache by the call's own rule: the latest try the model answered, past a lost call. So
+    once a rerun fills in a batch that timed out, a later rerun draws everything for free, even under a cap below the
+    spend."""
+    calls = []
+    run_dir, n = priced(tmp_path, monkeypatch, app, calls)
+    model = golden(app)
+    first = mock.batches(mock.pick_scope(model))[0][0].id
+    drawing, lost = provider_drawing(model, calls), []
+
+    def provider(model_id, system, messages, effort, schema, max_tokens, total_timeout=None):
+        if first in batch_screens({"messages": messages}) and not lost:
+            lost.append(first)
+            raise llm.LLMFailure("timeout", "stream idle")
+        return drawing(model_id, system, messages, effort, schema, max_tokens, total_timeout)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider)
+    ctx = ctx_for(run_dir, app)
+    ctx.usd_cap = n + 1.0
+    mock.run(ctx)
+    mock.run(ctx)
+    made = len(calls)
+    lowered = ctx_for(run_dir, app)
+    lowered.usd_cap = 0.25
+    mock.run(lowered)
+    assert len(calls) == made
+    assert json.loads((run_dir / "mock" / "plan.json").read_text())["usd"] == [0.0] * n
+    assert "screen not drawn" not in (run_dir / "mock" / "index.html").read_text()
+
+
+def test_an_unreadable_cache_entry_is_skipped_by_the_planner_as_the_call_skips_it(tmp_path, monkeypatch, app,
+                                                                                two_batches):
+    """A cache entry cut short (an interrupted write): the call skips it and asks again, so the plan prices that batch
+    at its worst case instead of failing the stage."""
+    calls = []
+    run_dir, n = priced(tmp_path, monkeypatch, app, calls)
+    ctx = ctx_for(run_dir, app)
+    ctx.usd_cap = n + 1.0
+    mock.run(ctx)
+    [answered] = [t for t in read_trace(run_dir / "trace.jsonl") if t.step == "batch1" and t.outcome == "ok"]
+    [entry] = (tmp_path / "cache").glob(f"{llm.split_key(answered.note)[0]}*.json")  # the trace names 12 hex
+    entry.write_text(entry.read_text()[:40])
+    ctx.usd_cap = 100.0
+    mock.run(ctx)
+    assert len(calls) == n + 1
+    assert json.loads((run_dir / "mock" / "plan.json").read_text())["usd"] == [1.0] + [0.0] * (n - 1)
+    assert any("can't be read" in t.note for t in read_trace(run_dir / "trace.jsonl"))
+
+
 def test_a_replay_after_a_rerun_draws_the_reruns_page(tmp_path, monkeypatch, app, two_batches):
     """The replay's trace holds both live runs' spend, so planning again would keep fewer batches than the rerun drew."""
     run_dir, _, _ = rerun(tmp_path, monkeypatch, app)

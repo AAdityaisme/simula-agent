@@ -176,11 +176,19 @@ def cache_write(key: str, reply: Reply, cache_dir: Path = CACHE) -> None:
 def answered_from_cache(*, model: str, effort: str | None, system: str, messages: list[dict], max_tokens: int,
                         schema: type[BaseModel] | None = None, cache_dir: Path = CACHE) -> bool:
     """Whether a live call with these arguments takes its first attempt's answer from the cache, so it costs nothing
-    and reserves nothing. A planner asks this so it doesn't price a free call at its worst case."""
+    and reserves nothing. A planner asks this so it doesn't price a free call at its worst case. It reads the cache by
+    the call's own rule: every readable try of the attempt, the latest one the model answered."""
     provider = config.models()[model]["provider"]
     key = cache_key(provider, model, system, messages, request_params(provider, effort, max_tokens, schema), 0)
-    reply = cache_read(key, cache_dir)
-    return reply is not None and not reply.failure
+    chosen = latest_answer(cache_tries(key, cache_dir)[0])
+    return chosen is not None and not chosen[1].failure
+
+
+def latest_answer(tries: list[tuple[str, Reply]]) -> tuple[str, Reply] | None:
+    """A normal run's pick among one attempt's recorded tries (unreadable ones already skipped): the latest the model
+    answered. A known failure is never paid for again; a lost call (TRANSPORT) is transient, so it is tried again."""
+    answered = [t for t in tries if t[1].failure not in TRANSPORT]
+    return answered[-1] if answered else None
 
 
 # ---------- money ----------
@@ -393,8 +401,8 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
 
     def recorded(key: str, tries: list[tuple[str, Reply]]) -> tuple[str, Reply] | None:
         """--replay follows the try this run's trace names last (else the first one), unless the run's last record of
-        the call is its $ cap turning it away. A normal run takes the latest try the model answered: a known failure
-        is never paid for again, and a lost call is transient, so it is tried again."""
+        the call is its $ cap turning it away. A normal run takes latest_answer, the rule a planner asks through
+        answered_from_cache too."""
         if replay:
             used = [t for t in tries if t[0][:12] in named]
             last = max(used, key=lambda t: named[t[0][:12]]) if used else None
@@ -402,8 +410,7 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
             if stop and (last is None or stop[0] > named[last[0][:12]]):
                 return None
             return last or (tries[0] if tries else None)
-        answered = [t for t in tries if t[1].failure not in TRANSPORT]
-        return answered[-1] if answered else None
+        return latest_answer(tries)
 
     chosen, fresh = {}, {}
     for key in keys:  # up to the first recorded answer; the attempts after it are never read
