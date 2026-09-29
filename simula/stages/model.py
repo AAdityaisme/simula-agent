@@ -28,7 +28,8 @@ TOKENS_PER_NAME = 30
 QUESTION_CAP = 5
 NOT_OBSERVED = "meaning not observed"
 EVERYDAY = " (everyday word, never flagged)"
-WORD = re.compile(r"[^\W\d_]{2,}")
+# Two or more letters in a row, each with the marks written on it: "मैसेज" is three letters, not three runs of one.
+WORD = re.compile(f"(?:[^\\W\\d_][{text.MARK}]*){{2,}}")
 LOOP_UNITS = ("s", "chars")
 MEASURE = re.compile(r"^(?P<what>.*?)\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>[^\d\s]*)$")
 MONEY_KINDS = ("paywall", "limit", "currency")

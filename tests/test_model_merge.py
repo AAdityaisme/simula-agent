@@ -516,6 +516,19 @@ def test_a_term_in_a_script_without_spaces_can_be_observed(term, words):
     assert (resolved.observed, resolved.defined_by) == (True, ["s02.e04"])
 
 
+@pytest.mark.parametrize("term, words", [("टोकन", "टोकन से मैसेज भेजें"), ("টোকেন", "টোকেন দিয়ে মেসেজ পাঠান")],
+                         ids=["hindi", "bengali"])
+def test_a_term_in_a_script_with_vowel_signs_can_be_observed(term, words):
+    """Each sentence says "send messages with tokens". Its vowel signs are combining marks, which regex \\w leaves out,
+    so without counting them every word falls apart into one-letter runs."""
+    states, meaning, edges, model_labels = real_terms("janitorai")
+    states = [s.model_copy(update={"elements": [e.model_copy(update={"text": words}) if e.id == "s02.e04" else e
+                                                for e in s.elements]}) for s in states]
+    meaning.terms[:] = [TermMeaning(term=term, meaning="a unit characters spend", defined_by=["s02.e04"], used_in=[])]
+    (resolved,) = stage.resolve_terms(meaning, states, edges, model_labels)
+    assert (resolved.observed, resolved.defined_by) == (True, ["s02.e04"])
+
+
 def test_a_term_shows_only_as_a_whole_word():
     """s01.e48 "Limitless" would explain "Limit" if part of a word counted: "less" is left once "Limit" is cut."""
     states, meaning, edges, model_labels = real_terms("janitorai")

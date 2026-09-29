@@ -2,6 +2,8 @@
 other odd spaces ('$\\xa01.99') that a model types back as plain ones, so whitespace never decides a match."""
 
 import re
+import sys
+import unicodedata
 
 
 def find(quote: str, text: str, spaced: bool = True, ignore_case: bool = False) -> str | None:
@@ -24,14 +26,30 @@ def find(quote: str, text: str, spaced: bool = True, ignore_case: bool = False) 
 # particles written onto the word (Korean), where a word has no boundary to match.
 UNSPACED = ("\u0e00-\u0fff\u1000-\u109f\u1100-\u11ff\u1780-\u17ff\u3000-\u318f\u31f0-\u31ff\u3400-\u4dbf"
             "\u4e00-\u9fff\ua960-\ua97f\uac00-\ud7ff\uf900-\ufaff\uff66-\uffdc\U00020000-\U0003134f")
-SPACED_LETTER = f"[^\\W{UNSPACED}]"
+
+
+def char_class(codes: list[int]) -> str:
+    """The body of a regex character class matching exactly `codes` (sorted), written as ranges."""
+    ranges, start = [], codes[0]
+    for prev, code in zip(codes, codes[1:] + [None]):
+        if code != prev + 1:
+            ranges.append(re.escape(chr(start)) + (f"-{re.escape(chr(prev))}" if prev > start else ""))
+            start = code
+    return "".join(ranges)
+
+
+# Combining marks (Unicode category M): an Indic vowel sign, or an accent written as its own character. Regex \w leaves
+# them out, but they are part of the letter they sit on.
+MARK = char_class([c for c in range(sys.maxunicode + 1) if unicodedata.category(chr(c)).startswith("M")])
+SPACED_LETTER = f"(?:[^\\W{UNSPACED}]|(?![{UNSPACED}])[{MARK}])"
 
 
 def phrase(words: str) -> re.Pattern[str]:
     """`words` as a whole word or phrase, ignoring case; any whitespace run matches any other. An edge in a script
-    written with spaces must not touch another letter or digit of such a script, so a term ending in "+" still
-    matches, "Pro" is not in "Protect", and "Pro" is in "Proを購入". An edge in an unspaced script matches as a
-    substring, so "トークン" is in "トークンを購入". Empty `words` match nothing."""
+    written with spaces must not touch another letter, digit or mark of such a script, so a term ending in "+"
+    still matches, "Pro" is not in "Protect", "कन" is not in "टोकन", and "Pro" is in "Proを購入". An edge in an
+    unspaced script matches as a substring, so "トークン" is in "トークンを購入". Empty `words` match nothing. Known
+    limit: a spaced script that writes case endings onto the word (Telugu "టోకెన్లతో") hides the term there."""
     parts = words.split()
     if not parts:
         return re.compile(r"(?!)")
