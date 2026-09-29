@@ -8,7 +8,7 @@ UPSTREAM = {
     "model": ["explore"],
     "mock": ["model"],
     "qa": ["mock", "model"],
-    "propose": ["model"],
+    "propose": ["model", "mock"],
     "judge": ["propose", "model"],
     "flows": ["qa", "judge", "propose", "mock", "model"],
 }

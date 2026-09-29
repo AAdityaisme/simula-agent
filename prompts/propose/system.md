@@ -24,13 +24,14 @@ The bible calls some fields by other names: its `adapted_from` is `bible_mechani
 - `what_is_different_here`: what in this app makes the idea work here, naming its screens or elements.
 - `trigger_event`: an app event the app can detect without reading chat (a counter hits zero, a paywall is dismissed, a locked item is tapped, the Nth session). Never a topic or sentiment.
 - `trigger_state_id`: the id of the existing screen where the offer appears (like `s01`), not an element id. It must be one of the screens in scope, since the slides can only draw those.
-- `placement`: the app-chrome surface that shows the offer (a banner under the header, a sheet over the paywall, a card in a list). Never inside a chat transcript or conversation thread.
+- `placement`: the surface that shows the offer: app chrome (a banner under the header, a sheet over the paywall, a card in a list), or a sheet or dialog over a chat screen that an app event opens (a limit hit, a locked item tapped, an action finished). Never inside the conversation itself: not a message, not between messages, not pinned in the message list, not dressed up as a chat or system note.
 - `offer_copy`: the exact words shown before the ad, stating the action and the reward with a number and a duration.
 - `reward`: `kind` is one of the bible's nine reward kinds; `unit`, `amount`, `duration` say what the user gets. Keep it smaller or shorter than the paid version. Name `unit` with the app's own word for the benefit, the word on the paywall bullet or ledger line the idea rests on (if the paywall bullet says "messages", the unit is "messages", not "replies" or "chats"), so two ideas that grant the same thing carry the same unit. Code treats two ideas that give the same thing to overlapping users as one idea, whatever their trigger, amount, or duration.
 - `for_users`: who is offered the reward: `free` (users who don't pay), `paying` (subscribers), or `everyone`.
 - `grants_id`: the value-ledger id (like `l03`) of the paid benefit the reward is a piece of, or more of, or `null` when the reward is something new the app doesn't sell; code treats two ideas with the same `grants_id` and `for_users` as one idea.
 - `cost_inputs`: fill what the reward kind needs, zeros elsewhere. `inference`: `inference_count` (replies granted), `tokens_out` per reply, and your estimate of `tokens_in` per reply (code prices the context at 2k and 8k input tokens either way). `image`: `inference_count` (images). `voice` and `feature_time`: `minutes`. `currency` and `content_unlock`: `currency_amount` = the USD price the app charges for exactly what this reward grants (0 if no price is observed; the cost line then says the cost isn't counted). A cosmetic, streak_protection, or queue_priority reward carries no replies or tokens. Don't hide an inference reward under a cheaper kind; code checks.
-- `frequency_cap`: a daily count with a reset, like `3 per day, resets at midnight local time`.
+- `frequency_cap`: a daily count with a reset, like `3 per day, resets at midnight local time`. Any other limit (per character, per item, per screen) goes here too, in words.
+- `daily_cap`: the per-user number from `frequency_cap`, as a whole number: how many times one user can take this offer in a day. Only the per-user limit, never a limit per character, item, or screen: for `1 per user per day; each character at most 10 times a day`, it is 1. Code ranks on it and drops an idea without it.
 - `decline_path`, `ad_fail_path`: what happens on "no", and on no fill or failed verification. The app must stay exactly as usable as before, and a failed ad never uses up an attempt.
 - `subscriber_treatment`: what paying users see.
 - `advertiser_category`: a plausible, brand-safe advertiser category for this audience.
@@ -50,5 +51,5 @@ The bible calls some fields by other names: its `adapted_from` is `bible_mechani
 - Anything the product model lists as not observed (its open questions, a mechanic whose status is `unknown`) can't carry an idea. Build on what was seen.
 - The reward is granted only when Simula verifies the play, once. Declining, closing, or an ad failure leaves the app as it was.
 - No cash or cash-equivalent rewards, no rewards for installs, ratings, or reviews, no rewards for time spent.
-- The offer lives on app chrome, never next to unsafe or unknown content and never in a chat transcript.
+- The offer lives on app chrome or on a sheet or dialog over a chat screen that an app event opens. Never inside the conversation, never on or over a screen rated unsafe, and never next to unsafe or unknown content; the chat a sheet covers doesn't count as next to it.
 - Prefer rewards that cost no fresh model inference. A reward that does must say why the ad pays for it.

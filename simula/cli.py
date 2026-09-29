@@ -11,10 +11,10 @@ from pathlib import Path
 from simula import config, runfolder, runlog
 from simula.config import ROOT, STAGES
 from simula.contracts import Manifest, Provenance, StageOutcome
-from simula.llm import CapReached, ReplayMiss
+from simula.llm import CapReached, ProviderUnavailable, ReplayMiss
 from simula.stages import EXTRA_INPUTS, ROLES, UPSTREAM, Ctx
 
-EXIT_NOT_BUILT, EXIT_CAP = 3, 4
+EXIT_NOT_BUILT, EXIT_CAP, EXIT_PROVIDER = 3, 4, 5
 
 
 def package_version(name: str) -> str | None:
@@ -143,6 +143,12 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
         runfolder.write_failure(stage_dir, str(e))
         runlog.needs_human(ctx.run_dir, stage, "$ cap reached", str(e), [f"{stage}/failure.json"],
                            f"{rerun_command(stage, ctx)} --usd-cap <higher>")
+        raise
+    except ProviderUnavailable as e:
+        runfolder.write_failure(stage_dir, str(e))
+        runlog.needs_human(ctx.run_dir, stage, "the model provider is refusing calls", str(e),
+                           [f"{stage}/failure.json"],
+                           f"simula run {ctx.app['name']} --run {ctx.run_dir.name} --from {stage}")
         raise
     except BaseException as e:
         # Every other exit, SystemExit and Ctrl-C included, still leaves a failure record; then it propagates.
@@ -310,6 +316,9 @@ def main(argv: list[str] | None = None) -> int:
     except (CapReached, ReplayMiss) as e:
         print(e, file=sys.stderr)
         return EXIT_CAP
+    except ProviderUnavailable as e:
+        print(e, file=sys.stderr)
+        return EXIT_PROVIDER
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-# Prices are USD per million tokens (docs read 2026-09-27). stream_above = max_tokens at which calls must stream.
+# Prices are USD per million tokens (docs read 2026-09-27; Sonnet 5.5 read 2026-09-28, same prices as Sonnet 5). stream_above = max_tokens at which calls must stream.
 
 [models.claude-opus-5-5]
 provider = "anthropic"
@@ -10,7 +10,7 @@ price_in = 4.00
 price_out = 20.00
 price_cached_in = 0.20
 
-[models.claude-sonnet-5]
+[models.claude-sonnet-5-5]
 provider = "anthropic"
 supports_effort = true
 supports_xhigh = true
