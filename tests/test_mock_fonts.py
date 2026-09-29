@@ -42,12 +42,19 @@ CSS = """/* cyrillic */
 """
 
 
-def fake_google(calls: list):
+def fake_google(calls: list, apache=(), unlicensed=()):
+    """Google Fonts plus Google's font repository, which files a family under ofl/ unless it is in `apache`, and
+    has no license file at all for the families in `unlicensed`."""
     def fetch(url: str) -> bytes:
         calls.append(url)
         if url.startswith("https://fonts.googleapis.com/css2?family="):
             family = url.split("family=")[1].split(":")[0].replace("+", " ")
             return CSS.replace("{family}", family).replace("{slug}", family.lower().replace(" ", "")).encode()
+        if url.startswith("https://raw.githubusercontent.com/google/fonts/main/"):
+            kind, slug = url.split("/main/")[1].split("/")[:2]
+            if slug in unlicensed or kind != ("apache" if slug in apache else "ofl"):
+                raise urllib.error.HTTPError(url, 404, "Not Found", None, None)
+            return f"Copyright The {slug} Authors. Licensed under {kind}.".encode()
         return b"wOF2 " + url.encode()
     return fetch
 
@@ -199,11 +206,32 @@ def test_a_rerun_leaves_only_the_font_files_it_fetched(tmp_path, monkeypatch):
     monkeypatch.setattr(mock, "fetch", lambda url: google(url) + (b" v2" if url.endswith(".woff2") else b""))
     mock.vendor_fonts(ctx, run_dir / "mock", ["Roboto"], set("Hi"))
     css = (fonts / "fonts.css").read_text()
-    assert sorted(p.name for p in fonts.iterdir()) == sorted(["fonts.css", *re.findall(r"url\(([^)]+)\)", css)])
+    assert sorted(p.name for p in fonts.iterdir()) == sorted(["LICENSE.txt", "fonts.css",
+                                                              *re.findall(r"url\(([^)]+)\)", css)])
     assert all(p.read_bytes().endswith(b" v2") for p in fonts.glob("*.woff2"))
 
     monkeypatch.setattr(mock, "fetch", offline([]))
     assert mock.vendor_fonts(ctx, run_dir / "mock", ["Roboto"], set("Hi")) == "" and not fonts.exists()
+
+
+def test_each_vendored_family_ships_its_license_text(tmp_path, monkeypatch):
+    run_dir = seed_model(tmp_path / "run", APPS[0])
+    monkeypatch.setattr(mock, "fetch", fake_google([], apache={"opensans"}))
+    mock.vendor_fonts(ctx_for(run_dir, APPS[0]), run_dir / "mock", ["Roboto", "Open Sans"], set("Hi"))
+    text = (run_dir / "mock" / "assets" / "fonts" / "LICENSE.txt").read_text()
+    repo = "https://raw.githubusercontent.com/google/fonts/main"
+    assert f"Roboto: {repo}/ofl/roboto/OFL.txt\n\nCopyright The roboto Authors. Licensed under ofl." in text
+    assert f"Open Sans: {repo}/apache/opensans/LICENSE.txt\n\nCopyright The opensans Authors. Licensed under apache." in text
+
+
+def test_a_family_whose_license_cant_be_found_is_not_shipped(tmp_path, monkeypatch):
+    run_dir = seed_model(tmp_path / "run", APPS[0])
+    monkeypatch.setattr(mock, "fetch", fake_google([], unlicensed={"lobster"}))
+    mock.vendor_fonts(ctx_for(run_dir, APPS[0]), run_dir / "mock", ["Roboto", "Lobster"], set("Hi"))
+    fonts = run_dir / "mock" / "assets" / "fonts"
+    assert "Lobster" not in (fonts / "fonts.css").read_text() + (fonts / "LICENSE.txt").read_text()
+    [line] = read_trace(run_dir / "trace.jsonl")
+    assert "Lobster: no license file for Lobster in Google's font repository" in line.note
 
 
 def test_css_that_isnt_split_by_subset_keeps_every_face():
@@ -214,8 +242,9 @@ def test_css_that_isnt_split_by_subset_keeps_every_face():
 # ---------- --replay: fonts come from the record, never the network ----------
 
 def refused_family(family: str, calls: list):
-    """Fake Google, except the family Google refuses (a 400, as for a family it doesn't have)."""
-    google = fake_google(calls)
+    """Fake Google, except the family Google refuses (a 400, as for a family it doesn't have). Roboto's license is
+    filed under apache/, so its first license fetch is a 404 that the replay must take too."""
+    google = fake_google(calls, apache={"roboto"})
 
     def fetch(url: str) -> bytes:
         if family.replace(" ", "+") in url:
@@ -255,7 +284,7 @@ def replay(run_dir, app) -> None:
 def test_a_live_build_records_every_font_fetch_and_its_result(tmp_path, monkeypatch):
     run_dir, fetched, _ = live_build_with_fonts(tmp_path, monkeypatch, APPS[0])
     records = [json.loads(p.read_text()) for p in mock.FONT_RECORDS.glob("*.json")]
-    assert sorted(r["url"] for r in records) == sorted(set(fetched)) and len(records) == 4
+    assert sorted(r["url"] for r in records) == sorted(set(fetched)) and len(records) == 6
     [refused] = [r for r in records if "Lobster" in r["url"]]
     assert refused == {"url": refused["url"], "error": "HTTP Error 400: Bad Request"}
     fonts = run_dir / "mock" / "assets" / "fonts"

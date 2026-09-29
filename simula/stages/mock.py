@@ -34,6 +34,9 @@ PALETTE_SIZE = 4
 FONT_NAME = re.compile(r"[A-Za-z0-9 ]+")
 FONT_CSS = "https://fonts.googleapis.com/css2?family={family}:wght@400;500;600;700&display=swap"
 FONT_FILE = re.compile(r"url\((https?://[^)\s]+)\)")
+# Google's font repository files each family under its license: SIL OFL, Apache 2.0, or the Ubuntu Font Licence.
+FONT_LICENSES = [f"https://raw.githubusercontent.com/google/fonts/main/{kind}/{{slug}}/{name}"
+                 for kind, name in (("ofl", "OFL.txt"), ("apache", "LICENSE.txt"), ("ufl", "UFL.txt"))]
 FONT_FACE = re.compile(r"(?:/\*\s*([^*]*?)\s*\*/\s*)?(@font-face\s*\{[^}]*\})")
 UNICODE_RANGE = re.compile(r"unicode-range:([^;}]*)")
 CODE_POINTS = re.compile(r"U\+([0-9a-fA-F]+)(?:-([0-9a-fA-F]+))?")
@@ -602,14 +605,16 @@ def vendor_fonts(ctx: Ctx, mock_dir, families: list[str], chars: set[str]) -> st
     mock/assets/fonts/, so rendering never waits on the network. Returns the page's <link> to that CSS, or "" when no
     family was fetched. A family that can't be fetched is left out, traced, and the page falls back to the system
     font stack; this never fails the stage. Every fetch goes through its record, so --replay rebuilds the same fonts
-    offline."""
+    offline. The fonts ship with LICENSE.txt, each family's license text, which their licenses require; a family
+    whose license can't be found isn't shipped."""
     font_dir = mock_dir / "assets" / "fonts"
     # A rerun starts empty: QA's replay key hashes all of mock/assets, so a file the page no longer uses would count.
     shutil.rmtree(font_dir, ignore_errors=True)
-    faces, skipped = [], {}
+    faces, licenses, skipped = [], [], {}
     for family in families:
         try:
             css = used_faces(fetch_recorded(ctx, FONT_CSS.format(family=quote_plus(family))).decode(), chars)
+            license = font_license(ctx, family)
             files = {url: fetch_recorded(ctx, url) for url in dict.fromkeys(FONT_FILE.findall(css))}
         except (*FETCH_ERRORS, ValueError) as e:
             skipped[family] = str(e)[:100]
@@ -620,6 +625,7 @@ def vendor_fonts(ctx: Ctx, mock_dir, families: list[str], chars: set[str]) -> st
             (font_dir / name).write_bytes(data)
             css = css.replace(f"url({url})", f"url({name})")
         faces.append(css)
+        licenses.append(license)
     if skipped:
         run_trace(ctx.run_dir, stage="mock", step="fonts", decider="code", outcome="error",
                   note=("webfonts skipped, system fonts used: "
@@ -627,7 +633,20 @@ def vendor_fonts(ctx: Ctx, mock_dir, families: list[str], chars: set[str]) -> st
     if not faces:
         return ""
     (font_dir / "fonts.css").write_text("\n".join(faces) + "\n")
+    (font_dir / "LICENSE.txt").write_text("\n\n".join(licenses) + "\n")
     return '<link rel="stylesheet" href="assets/fonts/fonts.css">'
+
+
+def font_license(ctx: Ctx, family: str) -> str:
+    """The family's license text, headed by the family and where it came from: the first license file Google's font
+    repository has for it (a 404 on the others is recorded like any fetch, so --replay takes the same path)."""
+    slug = family.lower().replace(" ", "")
+    for url in (template.format(slug=slug) for template in FONT_LICENSES):
+        try:
+            return f"{family}: {url}\n\n{fetch_recorded(ctx, url).decode()}"
+        except FETCH_ERRORS:
+            continue
+    raise OSError(f"no license file for {family} in Google's font repository")
 
 
 def used_faces(css: str, chars: set[str]) -> str:
