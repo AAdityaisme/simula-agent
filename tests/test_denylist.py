@@ -94,3 +94,31 @@ def test_replay_taps_pass_the_deny_list_and_the_foreground_check(tmp_path, monke
     assert not ex.safe_tap(control("Settings"), "replay")
     assert not any(entry[0] == "tap" for entry in phone.log) and ex.denied_executed == 0
     assert ob.is_upsell(paywall.elements, ex.device)
+
+
+@pytest.mark.parametrize("label", ["Stocks slide as report shows hiring slowdown", "Senate votes to block new tariffs",
+                                   "Fans like the new season", "Likely", "Followers", "Preview", "Photos",
+                                   "Personal Finance", "Remove ads", "Close paywall", "Halloween 2025 badge"])
+def test_whole_words_on_control_shaped_labels_only(label):
+    assert denied(control(label)) is None
+
+
+def test_core_words_are_whole_words():
+    assert denied(control("Management"), core=True) is None
+    assert denied(control("Bitcoin"), core=True) is None
+    assert denied(control("Send 5 coins"), core=True) == "coins"
+
+
+@pytest.mark.parametrize("label, kind", [("Delete note", "TextView"), ("Unfollow", "TextView"), ("Following", "Button"),
+                                         ("Remove from library", "TextView"), ("buttonFavorite", "View"),
+                                         ("btn_like", "View"),
+                                         ("Delete my account and all of its data", "Button")])
+def test_actions_stay_denied(label, kind):
+    assert denied(control(label, kind))
+
+
+def test_remove_ads_opens_an_upsell_and_is_a_confirm_on_one():
+    from simula.device.observe import ENTRY
+    assert all(ENTRY.search(label) for label in ["Remove ads", "Go ad-free", "No ads for a month"])
+    assert denied(control("Remove ads")) is None
+    assert denied(control("Remove ads"), upsell=True) == "remove"

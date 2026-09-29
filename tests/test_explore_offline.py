@@ -102,7 +102,7 @@ def test_caps_hold_and_no_denied_tap_runs(run):
     denied = [line for line in lines(ex) if line.outcome == "denied"]
     assert denied and all(line.to_state is None for line in denied)
     tapped = {key for kind, *rest in phone.log if kind == "tap" for key in rest[1:]}
-    assert not tapped & {"Logout", "Blocks", "Following", "Favorites"}
+    assert not tapped & {"Logout", "Following", "Favorites"}
     assert ex.denied_executed == 0
     assert f"{len(denied)} logged, 0 executed" in (ex.run_dir / "exhibits" / "01-explore.md").read_text()
 

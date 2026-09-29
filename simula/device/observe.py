@@ -31,16 +31,22 @@ LOOK_BITS = 16
 # called same (the lowest is 0.345). It is also the best value on each app alone.
 STRUCTURE_SAME = 0.34
 
-# Entry words (upgrade, plans, premium, plus, try) may open an upsell; confirm words never run.
-DENY = re.compile(r"log ?out|sign ?out|delete|remove|cancel|subscribe|buy|pay|purchase|restore|confirm|"
-                  r"start\b.{0,24}\btrial|report|block|clear|email|password|security|persona|follow|favorit|like|"
-                  r"heart|hide|terms|privacy|continue with|rate us|review|camera|photo|gallery|allow|permission|"
-                  r"install|open in|submit|place order|check ?out|proceed|donat|\btip\b|\brate\b|give \d stars?|"
-                  r"sign ?in|sign ?up|log ?in|create account|save changes|publish|\bpost\b", re.IGNORECASE)
+# Entry words (upgrade, plans, premium, plus, try, remove ads) may open an upsell; confirm words never run. Every
+# stem is a whole word, so "Preview", "Photos" and "Bitcoin" pass; DENY applies to control-shaped labels only,
+# since a headline that mentions "report" is not a report button. A toggle's on-state ("Following", "Liked",
+# "Subscribed") stays denied: tapping it undoes it on the account.
+DENY = re.compile(r"\b(?:log ?out|sign ?out|delete|remove(?! ads\b)|cancel|(?:un)?subscribed?|buy|pay(?:ments?)?|"
+                  r"purchases?|restore|confirm|start\b.{0,24}\btrial|report|(?:un)?block|clear|e-?mails?|passwords?|"
+                  r"security|personas?|(?:un)?follow(?:ing)?|(?:un)?favou?rit\w*|(?:un)?liked?|hearts?|hide|terms|privacy|"
+                  r"continue with|rate us|review|camera|photo|gallery|allow|permissions?|install|open in|submit|"
+                  r"place order|check ?out|proceed|donat\w*|tip|rate|give \d stars?|sign ?in|sign ?up|log ?in|"
+                  r"create account|save changes|publish|post)\b", re.IGNORECASE)
+CONTROL_WORDS = 4
+ID_WORDS = re.compile(r"(?<=[a-z])(?=[A-Z])|_")  # an identifier's words ("buttonFavorite", "btn_like") for \b
 TOGGLE = re.compile(r"Switch|CheckBox|ToggleButton", re.IGNORECASE)
-DENY_ON_UPSELL = re.compile(r"continue|try|start|get|claim|unlock|join|redeem|activate", re.IGNORECASE)
+DENY_ON_UPSELL = re.compile(r"continue|try|start|get|claim|unlock|join|redeem|activate|\bremove\b", re.IGNORECASE)
 DENY_IN_TOUR = re.compile(r"send|swipe|regenerate", re.IGNORECASE)
-DENY_IN_CORE = re.compile(r"gift|coin|gem|tip|donat|credit", re.IGNORECASE)
+DENY_IN_CORE = re.compile(r"\b(?:gifts?|coins?|gems?|tips?|donat\w*|credits?)\b", re.IGNORECASE)
 DISMISS = re.compile(r"^(close\b.*|not now|later|maybe later|no,? thanks|skip|dismiss|got it|x|×|✕)$", re.IGNORECASE)
 ANR = re.compile(r"isn.t responding|not responding", re.IGNORECASE)
 BLOCKING = re.compile(r"emulator|rooted|captcha|verify (that )?you.?re (a )?human|age verification|"
@@ -50,7 +56,8 @@ PRICE = re.compile(rf"(?:{CURRENCY})\s?\d|\d(?:[\d.,]*\d)?\s?(?:{CURRENCY})", re
 PAYWALL = re.compile(rf"{PRICE.pattern}|subscription|membership|free trial|per (month|week|year)|"
                      r"/ ?(month|week|year|mo)\b", re.IGNORECASE)
 CREATE = re.compile(r"\W*(generate|play|draw|spin|roll|scan)\b", re.IGNORECASE)
-ENTRY = re.compile(r"upgrade|\bplans?\b|premium|\bplus\b|\bpro\b|(?<!\d)\+|membership|subscription", re.IGNORECASE)
+ENTRY = re.compile(r"upgrade|\bplans?\b|premium|\bplus\b|\bpro\b|(?<!\d)\+|membership|subscription|remove ads|"
+                   r"\bad[- ]free\b|\bno ads\b", re.IGNORECASE)
 LIMIT = re.compile(r"\blimits?\b|\bremaining\b|\bquota\b|resets? in|out of (free )?(messages|credits|swipes|chats|"
                    r"articles)|no more (free )?\w+|\bleft today\b", re.IGNORECASE)
 DIGITS = re.compile(r"\d")
@@ -356,7 +363,9 @@ def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bo
     text = "\n".join(dict.fromkeys(t for t in (c.label, c.tree_label) if t))
     if REDACTED in text:
         return "account text"
-    hit = DENY.search(text) or (DENY_ON_UPSELL.search(text) if upsell else None) \
+    text = ID_WORDS.sub(" ", text)
+    shaped = len(c.label.split()) <= CONTROL_WORDS or "Button" in c.kind
+    hit = (DENY.search(text) if shaped else None) or (DENY_ON_UPSELL.search(text) if upsell else None) \
         or (DENY_IN_CORE if core else DENY_IN_TOUR).search(text)
     if hit:
         return hit.group(0).lower()
