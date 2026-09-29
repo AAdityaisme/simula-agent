@@ -8,7 +8,7 @@ from simula import llm
 from simula.contracts import (CandidateDraft, CandidatesFile, ContractError, ContractReport, LedgerItem, LensOutput,
                               Mechanic, Term)
 from simula.stages import Ctx, propose
-from simula.stages.propose import anchor_ids, check, daily_cap, depths, finish, in_chat
+from simula.stages.propose import anchor_ids, check, daily_cap, depths, finish, in_chat, live_count
 from tests.conftest import APPS
 from tests.propose_fixtures import anchored, candidate, golden, root
 
@@ -432,6 +432,34 @@ def test_an_idea_using_a_term_whose_meaning_was_never_observed_is_flagged_and_st
     assert check(c, m) is None
     [out], *_ = finish([c], m, "annotate")
     assert out.dropped_reason is None and out.flags == ['uses "Zap Credits", whose meaning was never observed']
+
+
+def flagged_and_clean(m, flagged_ranks_higher=True):
+    """c01 uses the unobserved term (placed to rank higher, or identical but for its words), c02 is clean."""
+    higher = {"trigger_state_id": other_screen(m), "frequency_cap": "5 per day"} if flagged_ranks_higher else {}
+    return [candidate(m, title="Play for 3 Zap Credits", **higher), candidate(m, title="Play for 3 extra replies")]
+
+
+def test_of_two_twins_the_unflagged_one_is_kept_even_when_the_flagged_one_ranks_higher(model):
+    """Red team A #4: the jargon version survived and its clean twin was dropped as "duplicate of c01"."""
+    m = with_terms(model)
+    drafts = flagged_and_clean(m)
+    scores = {c.id: c.rank_score for c in finish(drafts, m, "annotate")[0]}
+    assert scores["c01"] > scores["c02"]
+    same = lambda live: ({c.id: "extra replies" for c in live}, {})
+    by_id = {c.id: c for c in finish(drafts, m, "annotate", same)[0]}
+    assert by_id["c02"].dropped_reason is None and by_id["c02"].flags == []
+    assert by_id["c01"].dropped_reason == "duplicate of c02: same benefit (extra replies)"
+
+
+@pytest.mark.parametrize("flagged_ranks_higher", [True, False], ids=["flagged-higher", "equal-score"])
+def test_the_cap_keeps_an_unflagged_idea_before_a_flagged_one(model, monkeypatch, flagged_ranks_higher):
+    monkeypatch.setattr(propose, "MAX_CANDIDATES", 1)
+    m = with_terms(model)
+    distinct_names = lambda live: ({"c01": "zap credits", "c02": "extra replies"}, {})
+    out = finish(flagged_and_clean(m, flagged_ranks_higher), m, "annotate", distinct_names)[0]
+    assert [(c.id, c.dropped_reason) for c in out] == [("c02", None), ("c01", "over the 1-candidate cap")]
+    assert live_count(out) == 1
 
 
 def test_an_observed_term_can_be_used_and_the_unobserved_one_is_listed_for_the_proposer(model):
