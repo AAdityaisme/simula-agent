@@ -21,6 +21,7 @@ from simula.stages.flows.wording import NOT_WIRED, REWARD_NOT_SHOWN, caption
 
 MAX_IDEAS = 4
 SURVIVED = ("accept", "conditional")
+OVER_BUDGET = "over the $ budget before its screens could be drawn"
 
 
 def load_candidates(run_dir: Path) -> dict[str, Candidate]:
@@ -174,6 +175,21 @@ def unbuildable(c: Candidate | None) -> str | None:
     return None
 
 
+def edit_all(ctx: Ctx, model: ProductModel, page: str, budget: llm.Budget, chosen: list[Decision],
+             candidates: dict[str, Candidate]) -> tuple[list[tuple[Decision, Edits | None]], list[Decision]]:
+    """One editor call per idea, all at once on the stage's budget. The ideas the $ cap turns away come back apart, so
+    the ones whose edits fit are still drawn; any other failure stops the stage before anything is walked."""
+    with ThreadPoolExecutor(max_workers=max(1, len(chosen))) as pool:
+        asked = [(d, pool.submit(ask_editor, ctx, candidates[d.candidate_id], model, page, budget)) for d in chosen]
+    edited, capped = [], []
+    for d, ask in asked:
+        if isinstance(ask.exception(), llm.CapReached):
+            capped.append(d)
+        else:
+            edited.append((d, ask.result()))
+    return edited, capped
+
+
 def run(ctx: Ctx) -> None:
     run_dir, out = ctx.run_dir, ctx.run_dir / "flows"
     model = ProductModel.model_validate_json((run_dir / "model" / "product_model.json").read_text())
@@ -193,10 +209,10 @@ def run(ctx: Ctx) -> None:
     budget = llm.Budget.for_stage("flows", run_dir / "trace.jsonl", ctx.usd_cap)
     not_built = [(d, why) for d in chosen if (why := unbuildable(candidates.get(d.candidate_id)))]
     buildable = [d for d in chosen if not unbuildable(candidates.get(d.candidate_id))]
-    with ThreadPoolExecutor(max_workers=max(1, len(buildable))) as pool:
-        edits = list(pool.map(lambda d: ask_editor(ctx, candidates[d.candidate_id], model, page, budget), buildable))
+    edited, capped = edit_all(ctx, model, page, budget, buildable, candidates)
+    not_built += [(d, OVER_BUDGET) for d in capped]
     flows = []
-    for d, e in zip(buildable, edits):
+    for d, e in edited:
         try:
             flows.append(build_flow(ctx, model, source, candidates[d.candidate_id], d, e))
         except Exception as error:  # one idea's failure (a hung page, a broken edit) must not cost the whole deck

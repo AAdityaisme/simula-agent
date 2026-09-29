@@ -1,5 +1,6 @@
 """Stage 7 offline, on every golden: selection, the tap-through, the reward rule, and the deck's parts."""
 
+import dataclasses
 import html
 import re
 import shutil
@@ -748,6 +749,35 @@ def assert_contained(run_dir, reason: str):
     exhibit = (run_dir / "exhibits" / "07-flows.md").read_text()
     assert "## Not built" in exhibit and f"- c02: " in exhibit and reason in exhibit
     assert "1 idea(s) passed the review but couldn't be drawn" in html.unescape(deck).replace("1 more", "1")
+
+
+def test_an_idea_the_cap_turns_away_is_not_built_and_the_rest_still_make_the_deck(tmp_path, monkeypatch):
+    """Greptile on #11: a refused editor call escaped the thread pool, and the stage died with no deck."""
+    ideas = ("c01", "c02", "c03", "c04")
+    run_dir = seed_run(tmp_path, "luzia", changes={"c04": {"dropped_reason": None}})
+    ranked = [decision(cid, "accept", 4.0 - n) for n, cid in enumerate(ideas)]
+    (run_dir / "judge" / "decisions.json").write_text(DecisionsFile(decisions=ranked).model_dump_json())
+    for cid in ideas:
+        (run_dir / "judge" / "verdicts" / f"{cid}_judge_1_r1.json").write_text(verdict(cid).model_dump_json())
+    edit = fake_editor(run_dir)
+
+    def held_until_the_end(**kwargs):
+        kwargs["budget"].reserve(1.0, step=kwargs["step"])  # as llm.call does, never settled: $3 fits three calls
+        return edit(**kwargs)
+    monkeypatch.setattr(llm, "call", held_until_the_end)
+    flows.stage.run(dataclasses.replace(ctx_for(run_dir, "luzia"), usd_cap=3.0))
+    drawn_ideas = {idea for idea, _, _ in slides(run_dir)}
+    [capped] = set(ideas) - drawn_ideas
+    assert len(drawn_ideas) == 3 and not (run_dir / "flows" / capped).exists()
+    deck = (run_dir / "flows" / "slides.html").read_text()
+    not_built = html.unescape(re.search(r'<ul class="not-built">(.*?)</ul>', deck, re.S).group(1))
+    assert f"{capped} · " in not_built and flows.stage.OVER_BUDGET in not_built
+    assert "1 more idea(s) passed the review but couldn't be drawn" in html.unescape(deck)
+    assert (run_dir / "flows" / "slides.pdf").read_bytes().startswith(b"%PDF")
+    assert f"- {capped}: {flows.stage.OVER_BUDGET}" in (run_dir / "exhibits" / "07-flows.md").read_text()
+    trace = read_trace(run_dir / "trace.jsonl")
+    assert any(line.step == f"build:{capped}" and flows.stage.OVER_BUDGET in line.note for line in trace)
+    assert [line.step for line in trace if line.outcome == "cap"] == [f"edit:{capped}"],         "the budget's own record of the refusal, which makes run_stage mark the stage partial"
 
 
 def test_a_hung_page_leaves_only_that_idea_not_built(tmp_path, monkeypatch):
