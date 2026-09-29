@@ -756,3 +756,55 @@ def test_a_switch_filter_is_kept_in_its_restrictive_state_never_flipped_blind(tm
     assert [ok for _, ok, _ in ex.filter_checks] == [True, True, True]
     assert sum(entry == ("tap", "root", label) or entry == ("tap", "root_flipped", label) for entry in phone.log) \
         == (0 if shipped_on is restrictive else 2)
+
+
+def playing_ad(loads: bool):
+    """The janitor-like app with an ad that repaints every frame and a feed item on the root; its tap loads a page
+    or does nothing."""
+    def factory(clock):
+        phone = janitor_like(clock)
+        item = {"ref": "@item", "type": "android.widget.TextView", "text": "Top story of the day",
+                "coordinates": {"x": 42, "y": 1850, "width": 996, "height": 120}}
+        phone.screens["root"].elements.append(item)
+        if loads:
+            phone.taps[("root", "Top story of the day")] = "chats"
+        image, frames = phone.image, iter(range(10**6))
+
+        def frame():
+            out = image()
+            ImageDraw.Draw(out).rectangle((100, 1500, 400, 1700), fill=(40 * next(frames) % 255, 90, 200))
+            return out
+        phone.image = frame
+        return phone
+    return factory
+
+
+@pytest.mark.parametrize("loads, completed", [(False, 0), (True, 3)])
+def test_a_feed_pass_counts_only_a_result_outside_what_moves_on_its_own(tmp_path, monkeypatch, loads, completed):
+    ex, phone = new_explorer(tmp_path, monkeypatch, playing_ad(loads), budget="transfer")
+    ex.touring = False
+    phone.screen = "root"
+    ex.current = ex.record(ex.observe(), None, None, None)
+    for _ in range(3):  # the tour came back to the screen, as it does to a tab root, and saw the ad move
+        ex.revisit(ex.current, ex.observe())
+    assert ex.current.dynamic
+    item = next(c for c in ex.current.cands if c.label == "Top story of the day")
+    monkeypatch.setattr(ex, "choose_core", lambda: [stage.CoreAction("feed", ex.current, [item], "open an item")])
+    monkeypatch.setattr(ex, "at_core", lambda n: True)
+    ex.core_loop()
+    attempted = sum(r.startswith("pass ") for r in ex.core_results)
+    assert (attempted, ex.core_completed) == (ex.core_reps, completed)
+    assert ("met no limit" in stage.loop_end(ex, attempted)) is loads
+
+
+@pytest.mark.parametrize("how, seen", [("stalled", False), ("progressing", True)])
+def test_a_result_the_model_calls_stalled_is_never_a_completed_pass(tmp_path, monkeypatch, how, seen):
+    ex, phone = new_explorer(tmp_path, monkeypatch, playing_ad(True))
+    phone.screen = "root"
+    ex.current = ex.record(ex.observe(), None, None, None)
+    monkeypatch.setattr(ex, "idle_again", lambda *args: False)  # never settles by itself, so the model ends it
+    monkeypatch.setattr(ex, "progress", lambda *args: how)
+    before = ob.texts(ex.obs.elements, ex.device)
+    phone.screen = "chats"  # the tap loaded a page
+    ex.watch(before, "load")
+    assert ex.settles[-1][1] == how and ex.last_seen is seen

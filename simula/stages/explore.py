@@ -384,7 +384,11 @@ class Explorer:
 
     def revisit(self, s: Seen, obs: Obs) -> None:
         s.visits += 1
-        boxes = ob.changed_boxes(Image.open(self.out / "states" / f"{s.sid}.png"), obs.image, self.device)
+        self.note_dynamic(s, obs.image)
+
+    def note_dynamic(self, s: Seen, image: Image.Image) -> None:
+        """What changed since the state's saved capture, with nothing tapped, is a region that moves on its own."""
+        boxes = ob.changed_boxes(Image.open(self.out / "states" / f"{s.sid}.png"), image, self.device)
         for b in boxes or []:
             if not any(ob.inside(b, d) for d in s.dynamic):
                 s.dynamic.append(b)
@@ -1443,8 +1447,9 @@ class Explorer:
             return self.last_summary, self.last_seen, self.stop_text()
         control = core.controls[(n - 1) % len(core.controls)]
         verb = "load" if core.kind == "feed" else "result"
+        self.note_dynamic(core.state, self.obs.image)  # an ad that moved since the state was saved isn't a result
         self.act(Move("tap", control, why=f"core loop: {core.kind}"), purpose="core", loop=n,
-                 watch=lambda: self.watch(before, verb))
+                 watch=lambda: self.watch(before, verb, dynamic=core.state.dynamic))
         if not self.stop_kind:
             if self.current.kind in AWAY:
                 self.leave()
@@ -1501,7 +1506,8 @@ class Explorer:
         return ("paywall" if any(ob.PRICE.search(t) for t in texts) else
                 "limit" if any(ob.LIMIT.search(t) for t in texts) else "")
 
-    def watch(self, before: set[str], verb: str, idle: tuple[Image.Image, ob.Candidate] | None = None) -> str:
+    def watch(self, before: set[str], verb: str, idle: tuple[Image.Image, ob.Candidate] | None = None,
+              dynamic: list[Rect] = ()) -> str:
         """Invariant 2: after the core action the explorer stays until the screen settles: two screenshots
         SETTLE_GAP_S apart that match, once the result has begun to show (new text, or for an action that isn't a
         conversation, pixels that changed since the first look) and, in a conversation, once the send control
@@ -1537,8 +1543,29 @@ class Explorer:
         seconds = self.clock() - start
         self.settles.append((round(seconds, 1), how))
         self.note("settle", f"{verb}: {how} after {seconds:.0f} s, {asks} model checks")
-        self.last_summary, self.last_seen = ob.timing_line(verb, samples, seconds), begun
+        self.last_summary = ob.timing_line(verb, samples, seconds)
+        # a conversation's result is the reply's text; any other result must show outside what moves on its own
+        self.last_seen = ob.reply_timing(samples)[0] is not None if idle else \
+            how != "stalled" and self.result_showed(before, elements, (first, last, frame), dynamic)
         return self.last_summary
+
+    def result_showed(self, before: set[str], elements: list[dict], looks: tuple[Image.Image, Image.Image, Image.Image],
+                      dynamic: list[Rect]) -> bool:
+        """Whether an action that isn't a conversation showed a result: new text, or pixels changed since the first
+        look, outside what moves on its own (the core state's recorded dynamic regions, and whatever still moved
+        between the last two looks: an ad, a GIF, a spinner). Most of the screen changing and then holding still is
+        a new page."""
+        first, last, frame = looks
+        moving = ob.changed_boxes(last, frame, self.device)
+        if moving is None:  # most of the screen still moving at the end: nothing held still to count
+            return False
+        changed = ob.changed_boxes(first, frame, self.device)
+        own = [*dynamic, *moving]
+        fresh = [ob.rect(e) for e in elements if ob.in_content(e, self.device) and ob.words(e)
+                 and ob.words(e) not in before]
+        # ponytail: pixels are compared from the first look after the tap, so a pixel-only result drawn before it
+        # (with no new text) isn't seen; pass the pre-tap capture in if that shows up
+        return changed is None or any(not any(ob.overlaps(b, m) for m in own) for b in [*changed, *fresh])
 
     def idle_again(self, idle: tuple[Image.Image, ob.Candidate] | None, elements: list[dict],
                    frame: Image.Image) -> bool:
