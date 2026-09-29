@@ -5,7 +5,7 @@ from contextlib import nullcontext
 
 import pytest
 
-from simula import cli, runlog
+from simula import cli, runfolder, runlog
 from simula.device import observe as ob
 from simula.stages import explore as stage
 from tests.fake_device import FakePhone, blank
@@ -293,3 +293,43 @@ def test_a_screen_turned_sideways_is_recorded_as_rotated_and_left_with_back(tmp_
     assert rotated and not ex.stop_reason.startswith(stage.DEVICE_STOPS)
     assert ("back", "game") in phone.log and not any(e[:2] == ("tap", "game") for e in phone.log)
     assert (out / "done.json").exists()
+
+
+def explored(tmp_path, monkeypatch, factory, **patches):
+    """An explore run through the CLI's run_stage, and the outcome its done.json records."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, factory)
+    for name, value in patches.items():
+        monkeypatch.setattr(ex, name, value)
+    monkeypatch.setattr(stage, "run", lambda ctx: stage.explore_app(ex))
+    cli.run_stage("explore", ex.ctx, force=True)
+    return ex, phone, runfolder.read_done(ex.run_dir / "explore").outcome
+
+
+def silent(clock):
+    phone = janitor_like(clock)
+
+    def send():
+        phone.draft, phone.sent = "", phone.sent + 1
+    phone.send = send
+    return phone
+
+
+def test_an_explore_that_ran_every_pass_is_complete(tmp_path, monkeypatch):
+    ex, phone, outcome = explored(tmp_path, monkeypatch, janitor_like)
+    assert ex.core_completed == ex.core_reps and (outcome.status, outcome.reasons) == ("complete", [])
+
+
+def test_an_explore_stopped_by_the_relaunch_cap_is_partial(tmp_path, monkeypatch):
+    def capped(n):
+        raise stage.Stop("relaunch cap")
+    ex, phone, outcome = explored(tmp_path, monkeypatch, janitor_like, at_core=capped)
+    assert outcome.status == "partial" and outcome.resume.startswith("simula explore janitorai --run ")
+    assert any(r.startswith(f"it used all {ex.relaunches} relaunches allowed") for r in outcome.reasons)
+
+
+def test_an_explore_whose_core_loop_was_cut_short_is_partial(tmp_path, monkeypatch):
+    ex, phone, outcome = explored(tmp_path, monkeypatch, silent)
+    assert phone.sent == ex.core_reps and outcome.status == "partial"
+    assert outcome.reasons == [f"the core loop completed 0 of {ex.core_reps} passes "
+                               f"(last: {ex.core_results[-1]})"]
+    assert "partial output" in (ex.run_dir / "needs-human.md").read_text()
