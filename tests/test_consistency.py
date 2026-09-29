@@ -206,6 +206,38 @@ def test_the_screen_to_copy_is_the_one_drawn_closest_to_its_real_screen_never_an
     assert copies(failures) == {"b": "d", "c": "d"}
 
 
+def test_a_screen_with_a_failure_of_its_own_is_never_the_one_to_copy_though_it_scores_highest():
+    """a draws the bar in the wrong color. b draws a red icon where the app highlights a's tab, so the pair a-b never
+    compares it and b scores a perfect 1 there, but b fails against c. c draws one icon a shade off. a copies c."""
+    screen = Image.new("RGB", (411, 838), "#101014")
+    real = {"a": with_tab_bar(screen, lit=0), "b": with_tab_bar(screen, lit=1), "c": with_tab_bar(screen, lit=2)}
+    red_icon, off_icon = real["b"].copy(), real["c"].copy()
+    ImageDraw.Draw(red_icon).rectangle((28, 786, 74, 832), fill="#ff0000")
+    ImageDraw.Draw(off_icon).rectangle((328, 786, 374, 832), fill="#7a7a7a")
+    mocks = {"a": with_tab_bar(screen, lit=0, fill="#3a2030"), "b": red_icon, "c": off_icon}
+    box = Rect(x=0, y=780, w=411, h=58)
+    failures = qa_metrics.chrome_failures({sid: {"tabbar": box} for sid in mocks}, mocks, real)
+    assert copies(failures) == {"a": "c", "b": "c"}
+
+
+def test_a_screen_that_carries_no_mark_is_checked_at_the_box_a_later_screen_marks():
+    real = with_tab_bar(Image.new("RGB", (411, 838), "#101014"), lit=0)
+    chrome = {"s01": {}, "s02": {"tabbar": Rect(x=0, y=780, w=411, h=58)}}
+    failures = qa_metrics.chrome_failures(chrome, {"s01": Image.new("RGB", (411, 838), "#101014"), "s02": real},
+                                          dict.fromkeys(chrome, real))
+    assert copies(failures) == {"s01": "s02"}
+
+
+def test_a_pair_is_held_to_the_box_where_it_differs_though_it_passes_at_the_other():
+    """b marks its bar 20 dp taller than a does and draws red in those 20 dp, outside a's box."""
+    real = with_tab_bar(Image.new("RGB", (411, 838), "#101014"), lit=0)
+    red_above = real.copy()
+    ImageDraw.Draw(red_above).rectangle((300, 762, 360, 778), fill="#e03030")
+    parts = {"a": {"tabbar": Rect(x=0, y=780, w=411, h=58)}, "b": {"tabbar": Rect(x=0, y=760, w=411, h=78)}}
+    failures = qa_metrics.chrome_failures(parts, {"a": real, "b": red_above}, {"a": real, "b": real})
+    assert copies(failures) == {"b": "a"}
+
+
 def alike_share(a: Image.Image, b: Image.Image, box: Rect) -> float:
     """The share of a box two real screens draw alike."""
     return float(qa_metrics.alike(np.asarray(a), np.asarray(b), box).mean())
