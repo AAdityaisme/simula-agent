@@ -46,7 +46,7 @@ The slides print `title`, `offer_copy`, `after_reward`, `adds`, `placement`, `tr
 
 The `title` says what the user gets, in the app's own words, in 10 words or fewer. How it works goes in `adds` and `what_is_different_here`, not the title.
 
-When an idea rests on something the product model doesn't show, say so only in `what_is_different_here`, and say it wasn't seen, not that the app lacks it: "no paywall was seen in the explored screens", never "the app has no paywall". The fields the slides print say what the user sees and gets ("every user sees the same offer"), never what was or wasn't seen.
+When an idea rests on something the product model doesn't show, say so only in `what_is_different_here`, and say it wasn't seen, not that the app lacks it: "no paywall was seen in the explored screens", never "the app has no paywall". The fields the slides print never say what the app lacks or what wasn't seen; they say what the user sees and gets ("every user sees the same offer").
 
 ## Rules
 
