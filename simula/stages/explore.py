@@ -50,6 +50,7 @@ SETTLE_GAP_S = 3.0
 SETTLE_ASK_S = 30.0
 SETTLE_CAP_S = 180.0
 GOTO_ROUNDS = 4
+CORE_BUTTONS = 6
 REPLAY_MINUTES = 8
 SPLASH_WAIT_S = 90
 LAUNCH_WAIT_S = 30
@@ -1170,9 +1171,20 @@ class Explorer:
             options.append(CoreAction("chat", s, list(found), f"send messages in a conversation and read the replies "
                                                               f"({self.chat_title(s)!r}; text box + send on {s.sid})"))
         options += [feed] if feed else []
-        options += [CoreAction("action", s, [c], f"tap {c.label[:40]!r} again and again on {s.sid}")
-                    for s in self.states if s.kind == "screen" for c in [self.input_action(s.cands, s.upsell)] if c]
-        return options[:10]
+        return (options + self.button_options())[:10]
+
+    def button_options(self) -> list[CoreAction]:
+        """The biggest short-label buttons on the main screens (the launch screen and each tab), so the app's own word
+        for what it does can be the core action; Jev judges which, if any."""
+        main = {self.root.sid, *self.tab_to.values()}
+        found = {}
+        for s in self.states:
+            if s.sid in main and s.kind == "screen":
+                exclude = self.tab_keys() | self.filter_row(s.cands)
+                for c in ob.short_buttons(s.cands, self.device, exclude, title_of(s.elements, self.device)):
+                    found.setdefault(c.label, (s, c))
+        best = sorted(found.values(), key=lambda sc: -ob.area(sc[1].rect))[:CORE_BUTTONS]
+        return [CoreAction("action", s, [c], f"tap {c.label[:40]!r} again and again on {s.sid}") for s, c in best]
 
     def feed_option(self) -> CoreAction | None:
         main = {self.root.sid, *self.tab_to.values()}

@@ -530,6 +530,17 @@ def feed_items(cands: list[Candidate], device: Device, exclude: set[str] = froze
     return best if len(best) >= 2 else []
 
 
+def short_buttons(cands: list[Candidate], device: Device, exclude: set[str] = frozenset(),
+                  title: str = "") -> list[Candidate]:
+    """Controls with a short label that aren't feed cards or text boxes, the biggest first: where an app puts its
+    own word for what it is for ("Start lesson", "Convert", "Generate"), in any language. The screen's title and a
+    label with a number in it (a counter, a time) are not actions."""
+    feed = {c.key for c in feed_items(cands, device, exclude)}
+    return sorted((c for c in cands if c.tree_label and len(c.label.split()) <= 3 and c.kind != "EditText"
+                   and c.label != title and not DIGITS.search(c.label) and c.key not in exclude
+                   and c.key not in feed and not denied(c)), key=lambda c: -area(c.rect))
+
+
 def reply_timing(samples: list[tuple[float, frozenset[str]]]) -> tuple[float | None, float | None, int]:
     """From (seconds since the action, new texts on screen) samples: when new text first appeared, when it
     last changed, and how many characters it ended with."""

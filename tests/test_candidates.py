@@ -108,3 +108,13 @@ def test_content_scrolled_under_a_tab_does_not_label_it():
 def test_own_text_after_a_control_still_labels_it():
     tab, label = box("@t1", "ViewGroup", 72, 2170, 167, 167), box("@e2", "TextView", 90, 2280, 120, 40, text="Home")
     assert [c.tree_label for c in ob.controls([tab, label], DEVICE)] == ["Home"]
+
+
+def test_short_buttons_are_the_apps_own_words_not_titles_counters_or_cards():
+    create = [c.label for c in ob.short_buttons(cands("luzia", "luzia-tab-create"), DEVICE)]
+    home = cands("janitorai", "j04_tab1")
+    tabs = {t.key for t in ob.tab_bar(home, DEVICE)}
+    feed = [c.label for c in ob.short_buttons(home, DEVICE, tabs, title="Build, Share, Explore")]
+    assert "Create app" in create
+    assert "Trending" in feed and "Build, Share, Explore" not in feed and not any(ch.isdigit() for ch in "".join(feed))
+    assert not {c.label for c in ob.feed_items(home, DEVICE, tabs)} & set(feed)

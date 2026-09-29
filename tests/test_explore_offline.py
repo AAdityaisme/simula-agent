@@ -665,3 +665,18 @@ def test_the_exhibit_says_why_each_screen_ended_and_what_it_left_untried(run):
     assert "| id | kind | over | depth | untried | ended by | first words |" in exhibit
     screens = [row for row in rows if row[1] in ("screen", "modal", "sheet")]
     assert screens and all(row[4].isdigit() and row[5] for row in screens)
+
+
+def test_a_main_screen_button_in_the_apps_own_words_can_be_the_core_action(tmp_path, monkeypatch):
+    def lessons(clock):
+        phone = janitor_like(clock)
+        limited = phone.screens["limited"]
+        start = {"ref": "@lesson", "type": "android.widget.Button", "text": "Start lesson",
+                 "coordinates": {"x": 140, "y": 1700, "width": 800, "height": 140}}
+        phone.screens["limited"] = Screen([*limited.elements, start], limited.image, limited.package)
+        return phone
+    ex, phone = new_explorer(tmp_path, monkeypatch, lessons, budget="deep")
+    monkeypatch.setattr(decide, "ask_choice", functools.partial(fake_jev, core_pick="Start lesson"))
+    stage.explore_app(ex)
+    assert ex.core.kind == "action" and ex.core.controls[0].label == "Start lesson"
+    assert ("tap", "limited", "Start lesson") in phone.log
