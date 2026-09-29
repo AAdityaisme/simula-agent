@@ -11,7 +11,7 @@ from simula import config, runfolder, runlog
 from simula.config import ROOT, STAGES
 from simula.contracts import Manifest, Provenance
 from simula.llm import CapReached, ProviderUnavailable, ReplayMiss
-from simula.stages import EXTRA_INPUTS, ROLES, UPSTREAM, Ctx, rerun_command, run_options
+from simula.stages import EXTRA_INPUTS, ROLES, UPSTREAM, Ctx, resume_command
 
 EXIT_NOT_BUILT, EXIT_CAP, EXIT_PROVIDER = 3, 4, 5
 
@@ -87,14 +87,12 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     except CapReached as e:
         runfolder.write_failure(stage_dir, str(e))
         runlog.needs_human(ctx.run_dir, stage, "$ cap reached", str(e), [f"{stage}/failure.json"],
-                           f"{rerun_command(stage, ctx)} --usd-cap <higher>")
+                           resume_command(ctx, stage, e))
         raise
     except ProviderUnavailable as e:
         runfolder.write_failure(stage_dir, str(e))
         runlog.needs_human(ctx.run_dir, stage, "the model provider is refusing calls", str(e),
-                           [f"{stage}/failure.json"],
-                           f"simula run {ctx.app['name']} --from {stage} {run_options(ctx)}"
-                           + (f" --usd-cap {ctx.usd_cap:g}" if ctx.usd_cap is not None else ""))
+                           [f"{stage}/failure.json"], resume_command(ctx, stage, e))
         raise
     except (Exception, ReplayMiss) as e:
         reason = f"{type(e).__name__}: {e}"

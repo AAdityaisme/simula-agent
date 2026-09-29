@@ -19,7 +19,7 @@ from simula.config import ROOT
 from simula.contracts import (SCHEMA_VERSION, ContractError, ContractReport, Critique, Edge, Edit, Edits, Fix,
                               ProductModel, QAMetrics, Rect, ScreenMetrics, State)
 from simula.runlog import read_trace, run_trace, write_exhibit
-from simula.stages import Ctx, mock, run_options
+from simula.stages import FRESH_CALLS, Ctx, mock, resume_command
 
 MAX_ROUNDS = 3
 MIN_GAIN = 0.3
@@ -35,6 +35,10 @@ CRITIC_SCREENS = 4
 PARALLEL_CRITICS = 4
 FIXER_MAX_TOKENS = 64000
 RECORDS = llm.CACHE / "qa"
+# How mock.run and mock.failure_reason word a placeholder's reason, read back by undrawn_cause.
+UNDRAWN_PREFIX = "screen not drawn: "
+CAP_PREFIX = "$ cap reached: "
+FAILED_CALL = re.compile(r"([a-z_]+): (.*)", re.S)
 RUNTIME = re.compile(r'<style id="simula-runtime">.*?</style>\n?|<script id="simula-runtime-js">.*?</script>\n?', re.S)
 
 
@@ -62,14 +66,14 @@ class Version:
 
 @dataclass
 class Loop:
-    """How the fix loop went: a summary per round, why it stopped (and whether a failed or capped model call cut it
-    short), the screens whose latest critic call failed (with the round and why), the first round a score-only keep
-    rule would have decided the other way, and the critic's findings on the approved version (None when no round
-    critiqued it)."""
+    """How the fix loop went: a summary per round, why it stopped (and `cause`, the failed or capped model call that
+    cut it short, if one did), the screens whose latest critic call failed (with the round and the failure), the first
+    round a score-only keep rule would have decided the other way, and the critic's findings on the approved version
+    (None when no round critiqued it)."""
     rounds: list[dict]
     stop: str
-    stopped_early: bool = False
-    missed: dict[str, str] = field(default_factory=dict)
+    cause: BaseException | None = None
+    missed: dict[str, tuple[int, llm.LLMFailure]] = field(default_factory=dict)
     disagreement: dict | None = None
     open_findings: list[Fix] | None = None
 
@@ -100,7 +104,7 @@ def improve(ctx: Ctx, model: ProductModel, scope: list[State], best: Version) ->
             critiqued[best.round] = critique
             edits = fix(ctx, budget, model, best, critique, n)
         except (llm.LLMFailure, llm.CapReached) as e:
-            loop.stop, loop.stopped_early = f"round {n} stopped before any edit: {e}", True
+            loop.stop, loop.cause = f"round {n} stopped before any edit: {e}", e
             run_trace(ctx.run_dir, stage="qa", step=f"round{n}", decider="code", outcome="error",
                       note=loop.stop[:300])
             break
@@ -257,6 +261,17 @@ def mock_screens(ctx: Ctx, model: ProductModel) -> list[State]:
     return [states[sid] for sid in report.screens]
 
 
+def undrawn_cause(detail: str) -> BaseException:
+    """What left a screen undrawn, read back from the reason mock.run gave its placeholder (`UNDRAWN_PREFIX`, then
+    mock.failure_reason's words: `CAP_PREFIX` and the cap's message, `<outcome>: <detail>` for a failed call, or an
+    unusable answer's own words), so the resume can say what draws it."""
+    reason = detail.removeprefix(UNDRAWN_PREFIX)
+    if reason.startswith(CAP_PREFIX):
+        return llm.CapReached(reason.removeprefix(CAP_PREFIX))
+    failed = FAILED_CALL.fullmatch(reason)
+    return llm.LLMFailure(*failed.groups()) if failed else ValueError(reason)
+
+
 def undrawn_screens(ctx: Ctx) -> dict[str, str]:
     """Screens stage 3 left as placeholders (a batch that failed), with why, from mock/contract_report.json."""
     path = ctx.run_dir / "mock" / "contract_report.json"
@@ -407,7 +422,7 @@ def walk_one(page, edges: list[Edge], gestures: dict) -> tuple[str | None, str |
 # ---------- critic and fixer ----------
 
 def criticize(ctx: Ctx, budget: llm.Budget, version: Version, history: list[dict], n: int,
-              missed: dict[str, str] | None = None) -> Critique:
+              missed: dict[str, tuple[int, llm.LLMFailure]] | None = None) -> Critique:
     """One critic call per group of at most CRITIC_SCREENS screens, in the order QA measured them (the mock's order),
     at most PARALLEL_CRITICS at once; their fixes merge by data-el. A group whose call fails is skipped, unless every
     group fails. `missed` keeps each screen whose latest critic call failed: a failed group's screens go in with the
@@ -433,7 +448,7 @@ def criticize(ctx: Ctx, budget: llm.Budget, version: Version, history: list[dict
             for sid in ids:
                 missed.pop(sid, None)
             continue
-        missed.update(dict.fromkeys(ids, f"round {n} {str(r)[:120]}"))
+        missed.update(dict.fromkeys(ids, (n, r)))
         if critiques:
             run_trace(ctx.run_dir, stage="qa", step=f"critic r{n} g{k}", decider="code", outcome="error",
                       note=f"group skipped, the other groups' fixes are used: {r}"[:300])
@@ -644,24 +659,41 @@ def qa_report(ctx: Ctx, best: Version, loop: Loop, undrawn: dict[str, str]) -> d
 
 
 def outcome(ctx: Ctx, best: Version, loop: Loop, undrawn: dict[str, str]) -> dict:
-    """complete, or partial with why and where to start again: screens the mock left undrawn (and the core flows
-    through them), a review a failed or capped model call cut short, screens whose latest critic call failed, or
-    checks the approved version still fails.
+    """complete, or partial with why and the command that gets further. The reasons come in the order a person would
+    fix them: screens the mock left undrawn (with why) and the core flows through them, a review a failed or capped
+    model call cut short, screens whose latest critic call failed, checks the approved version still fails. The
+    resume is built from what caused them (`resume_command`): the mock again while screens are undrawn, else QA again,
+    asking afresh (and saying so) when the loop's own recorded answers are all that fell short.
     A partial mock still goes on to the slides; QA never blocks them."""
     through_undrawn = [f["flow"] for f in best.flows if f["status"] == "undrawn"]
+    failures = "; ".join(dict.fromkeys(f"round {n} {str(e)[:120]}" for n, e in loop.missed.values()))
     reasons = [text for present, text in (
-        (undrawn, f"the mock left screens undrawn: {', '.join(undrawn)}"),
+        (undrawn, f"the mock left screens undrawn: {undrawn_text(undrawn)}"),
         (through_undrawn, f"core flows through an undrawn screen: {', '.join(through_undrawn)}"),
-        (loop.stopped_early, f"the review stopped early: {loop.stop}"),
-        (loop.missed, f"the critic's latest call on these screens failed: {', '.join(loop.missed)} "
-                      f"({'; '.join(dict.fromkeys(loop.missed.values()))})"),
+        (loop.cause, f"the review stopped early: {loop.stop}"),
+        (loop.missed, f"the critic's latest call on these screens failed: {', '.join(loop.missed)} ({failures})"),
         (best.failed_taps(), f"taps that still fail: {', '.join(t['edge'] for t in best.failed_taps())}"),
         (best.failed_flows(), f"core flows that still fail: {', '.join(f['flow'] for f in best.failed_flows())}"),
         (best.contract_errors, f"contract errors on the approved version: {len(best.contract_errors)}"),
     ) if present]
-    start = "mock" if undrawn else "qa"
-    return {"outcome": "partial" if reasons else "complete", "reasons": reasons,
-            "resume": f"simula run {ctx.app['name']} --from {start} {run_options(ctx)}" if reasons else None}
+    if not reasons:
+        return {"outcome": "complete", "reasons": [], "resume": None}
+    if undrawn:
+        resume = resume_command(ctx, "mock", *map(undrawn_cause, undrawn.values()))
+    else:
+        causes = [c for c in (loop.cause, *(e for _, e in loop.missed.values())) if c is not None]
+        resume = resume_command(ctx, "qa", *causes, fresh=not causes)
+    if " --no-cache" in resume:
+        reasons.append(FRESH_CALLS)
+    return {"outcome": "partial", "reasons": reasons, "resume": resume}
+
+
+def undrawn_text(undrawn: dict[str, str]) -> str:
+    """Each undrawn screen with why, screens left undrawn the same way together."""
+    by_reason = {}
+    for sid, detail in undrawn.items():
+        by_reason.setdefault(detail.removeprefix(UNDRAWN_PREFIX), []).append(sid)
+    return "; ".join(f"{', '.join(ids)} ({why})" for why, ids in by_reason.items())
 
 
 def structure(best: Version) -> dict:

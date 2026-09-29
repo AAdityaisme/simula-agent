@@ -11,7 +11,7 @@ import httpx2
 import openai
 import pytest
 
-from simula import cli, llm
+from simula import cli, config, llm
 from simula.runlog import read_trace
 from tests.explore_fixture import build
 
@@ -273,8 +273,12 @@ def test_a_cap_stop_prints_a_resume_command_with_the_runs_own_options(runs, tmp_
     run_dir = (runs / "luzia" / "latest").resolve()
     human = (run_dir / "needs-human.md").read_text()
     assert code == cli.EXIT_CAP and "$ cap reached" in human
+    # The figure the stop names: a whole cap again (the configured one, as this run's was lower) and the call turned
+    # away, on top of what is spent and held.
+    figure = llm.CapReached(json.loads((run_dir / "model" / "failure.json").read_text())["reason"]).usd_needed
+    assert figure > config.stage_cap("model")
     assert (f"simula model luzia --run {run_dir.name} --profile dev --budget transfer --allow-fixtures "
-            "--usd-cap <higher>") in human
+            f"--usd-cap {figure:.2f}") in human
 
 
 def test_a_usage_limit_fails_the_stage_with_needs_human_and_exit_5_so_a_rerun_resumes_there(runs, tmp_path,

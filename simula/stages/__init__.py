@@ -3,6 +3,8 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+from simula.llm import CapReached, ProviderUnavailable
+
 UPSTREAM = {
     "explore": [],
     "model": ["explore"],
@@ -19,6 +21,11 @@ EXTRA_INPUTS = {
     "propose": ["bible"],
     "judge": ["bible"],
 }
+
+# Failures llm never replays on a normal run (lost calls), so a plain rerun calls again.
+TRANSIENT = ("timeout", "error")
+FRESH_CALLS = ("--no-cache asks every model call of the stage again, not only the one that fell short, and the same "
+               "input may be answered the same way.")
 
 ROLES = {
     "explore": ["jev", "explore_vision"],
@@ -56,3 +63,22 @@ def run_options(ctx: Ctx) -> str:
 def rerun_command(stage: str, ctx: Ctx) -> str:
     return f"simula {stage} {ctx.app['name']} {run_options(ctx)}"
 
+
+def resume_command(ctx: Ctx, stage: str, *causes: BaseException, fresh: bool = False) -> str:
+    """The command that gets `stage` past what stopped it short, built from why:
+    - the provider refusing the account: the run again from this stage, as it was opened;
+    - our own $ cap: the stage with --usd-cap raised to the figure the cap names (`<higher>` if it names none);
+    - an answer the cache keeps (a refusal, max_tokens, an answer that failed its schema or couldn't be parsed), or
+      `fresh` (the stage's own recorded answers are what fell short): a normal rerun replays it, so --no-cache;
+    - a lost call (`TRANSIENT`) isn't replayed, so the plain stage.
+    Several causes add their flags up."""
+    if any(isinstance(c, ProviderUnavailable) for c in causes):
+        return (f"simula run {ctx.app['name']} --from {stage} {run_options(ctx)}"
+                + (f" --usd-cap {ctx.usd_cap:g}" if ctx.usd_cap is not None else ""))
+    command = rerun_command(stage, ctx)
+    needed = [c.usd_needed for c in causes if isinstance(c, CapReached)]
+    if needed:
+        command += f" --usd-cap {max(needed):.2f}" if all(needed) else " --usd-cap <higher>"
+    if fresh or any(not isinstance(c, CapReached) and getattr(c, "outcome", None) not in TRANSIENT for c in causes):
+        command += " --no-cache"
+    return command
