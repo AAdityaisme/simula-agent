@@ -6,6 +6,7 @@ import re
 import shutil
 import statistics
 from collections import Counter
+from itertools import count
 from io import BytesIO
 from pathlib import Path
 
@@ -526,6 +527,21 @@ def resolve_terms(meaning: ModelMeaning, states: list[State], model_labels: set[
     return terms
 
 
+def folded_bullets(ledger: list[LedgerItem], states: list[State]) -> list[LedgerItem]:
+    """Every paywall bullet gets a ledger item. The model sees two items of a repeated list and one folded line for
+    the rest, so the third benefit of a paywall list goes missing. Code quotes it whole: an item of the same repeated
+    list, at the same left edge, as a kept paywall bullet, with text and no ledger item yet. Ids are pb1, pb2, ...,
+    skipping any the model used."""
+    elements = {e.id: e for s in states for e in s.elements}
+    cited = {i for item in ledger for i in item.evidence_ids}
+    lists = {(elements[i].repeat_group, elements[i].rect_px.x) for item in ledger if item.kind == "paywall_bullet"
+             for i in item.evidence_ids if i in elements and elements[i].repeat_group}
+    found = [e for e in elements.values() if (e.repeat_group, e.rect_px.x) in lists and e.text and e.id not in cited]
+    taken = {item.id for item in ledger}
+    ids = (f"pb{n}" for n in count(1) if f"pb{n}" not in taken)
+    return [LedgerItem(id=next(ids), kind="paywall_bullet", verbatim=e.text, evidence_ids=[e.id]) for e in found]
+
+
 def apply_meaning(states: list[State], meaning: ModelMeaning, keywords: list[str]) -> list[State]:
     by_state = {m.state_id: m for m in meaning.states}
     by_element = {m.element_id: m for m in meaning.elements}
@@ -774,12 +790,17 @@ def run(ctx: Ctx) -> None:
     scope = set(mock_order)
     states = [finish_elements(s, scope, tapped, images[s.id], out, device) for s in states]
     run_trace(ctx.run_dir, stage="model", step="scope", decider="code", note=", ".join(mock_order))
+    bullets = folded_bullets(meaning.value_ledger, states)
+    quoted = ", ".join(i.evidence_ids[0] for i in bullets) or "none"
+    run_trace(ctx.run_dir, stage="model", step="bullets", decider="code",
+              note=f"paywall bullets quoted from folded lists: {quoted}")
 
     model = ProductModel(
         app=ctx.app["name"], app_version=explore.app_version or "unknown", app_category=meaning.app_category,
         run_id=ctx.run_dir.name, device=device, states=states, edges=edges, flows=meaning.flows,
         mechanics=meaning.mechanics, cross_screen_values=meaning.cross_screen_values,
-        value_ledger=meaning.value_ledger + experience, open_questions=[q.question for q in meaning.open_questions],
+        value_ledger=meaning.value_ledger + bullets + experience,
+        open_questions=[q.question for q in meaning.open_questions],
         coverage=explore.coverage, provenance=runfolder.upstream_provenance(ctx.run_dir, ["explore"]),
         terms=resolve_terms(meaning, states, model_labels),
         questions=[OpenQuestion(**q.model_dump()) for q in meaning.open_questions], mock_order=mock_order)

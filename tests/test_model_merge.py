@@ -257,6 +257,26 @@ def test_a_sheet_over_a_modal_brings_the_whole_stack_parent_first():
     assert stage.mock_scope(unsafe_screen, [], meaning) == ["s01"]
 
 
+def test_a_bullet_folded_out_of_a_kept_paywall_list_gets_its_own_ledger_item():
+    def text(n, words, x, y, group="s01.r1"):
+        return Element(id=f"s01.e{n:02d}", mcp_ref=None, type="TextView", text=words, label="", source="mcp",
+                       rect_px=Rect(x=x, y=y, w=745, h=52), rect_dp=Rect(x=0, y=0, w=0, h=0), role="text",
+                       asset_png=None, fg_hex=None, bg_hex=None, font_px=None, font_guess="unknown", in_mock=False,
+                       repeat_group=group)
+    elements = [text(1, "More memory", 213, 1447), text(2, "Faster replies", 213, 1511),
+                text(3, "A badge by your name", 213, 1692), text(4, "Same size, other column", 40, 2000),
+                text(5, "", 213, 1760), text(6, "Another list", 213, 900, "s01.r2")]
+    states = [State(id="s01", kind="screen", parent_id=None, name="", purpose="", fingerprint="", canonical_png="",
+                    elements=elements, in_mock_scope=False, content_rating="safe", dynamic_regions=[],
+                    blocked_reason=None)]
+    ledger = [LedgerItem(id="pb1", kind="paywall_bullet", verbatim="More memory", evidence_ids=["s01.e01"]),
+              LedgerItem(id="v2", kind="paywall_bullet", verbatim="Faster replies", evidence_ids=["s01.e02"])]
+    assert stage.folded_bullets(ledger, states) == [
+        LedgerItem(id="pb2", kind="paywall_bullet", verbatim="A badge by your name", evidence_ids=["s01.e03"])]
+    assert stage.folded_bullets([i.model_copy(update={"kind": "meter"}) for i in ledger], states) == [], \
+        "only a paywall bullet's list is completed"
+
+
 def test_the_model_may_not_write_measured_experience(app):
     _, states, edges, answer = app
     element = next(e for s in states for e in s.elements if e.text)

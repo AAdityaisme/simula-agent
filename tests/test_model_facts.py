@@ -133,7 +133,8 @@ def test_a_value_that_changed_in_one_spot_is_what_changed():
 def test_an_edge_says_what_changed_only_when_its_captures_sit_right_around_it(name, tmp_path):
     explore = build(name, tmp_path / "explore")
     states, _, _ = stage.load_states(explore, DEVICE)
-    a, b = text_state(states[0].id, ("7 chats", 279, 521, 115, 41)), text_state(states[1].id, ("8 chats", 279, 521, 115, 41))
+    a = text_state(states[0].id, ("7 chats", 279, 521, 115, 41))
+    b = text_state(states[1].id, ("8 chats", 279, 521, 115, 41))
     lines = [move(1, a.id, b.id), move(2, b.id, a.id), move(3, a.id, b.id, action="swipe"),
              move(4, b.id, a.id, summary="reply started 2 s", action="back")]
     (explore / "actions.jsonl").write_text("".join(line.model_dump_json() + "\n" for line in lines))
