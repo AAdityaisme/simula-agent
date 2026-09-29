@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from simula import runfolder
@@ -137,3 +139,77 @@ def test_bytecode_caches_are_not_stage_inputs(tmp_path):
     (tmp_path / "stray.pyc").write_bytes(b"\x00")
     (tmp_path / "lens.py").write_text("x = 1")
     assert runfolder.expand([tmp_path]) == [tmp_path / "lens.py"]
+
+
+# ---------- the code a stage runs ----------
+
+PACKAGE = {  # a package shaped like the stages': judge and flows build on propose, qa and flows on mock
+    "simula/__init__.py": "",
+    "simula/llm.py": "",
+    "simula/render.py": "",
+    "simula/stages/__init__.py": "class Ctx: ...\n",
+    "simula/stages/explore.py": "from simula.stages import Ctx\n",
+    "simula/stages/model.py": "from simula import llm\nfrom simula.stages import Ctx\n",
+    "simula/stages/mock.py": "import simula.render\nfrom simula import llm\n",
+    "simula/stages/qa.py": "from simula.stages import mock\n",
+    "simula/stages/propose.py": "from simula.llm import call\n",
+    "simula/stages/judge.py": "def run(ctx):\n    from simula.stages.propose import rank\n",
+    "simula/stages/flows.py": "from simula.stages import mock, propose\n",
+    "README.md": "# simula\n",
+}
+STAGE_NAMES = ["explore", "model", "mock", "qa", "propose", "judge", "flows"]
+
+
+@pytest.fixture
+def package(tmp_path):
+    root = tmp_path / "checkout"
+    for rel, text in PACKAGE.items():
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text(text)
+    return root
+
+
+def rerun_after_editing(root, rel):
+    before = {s: runfolder.hashes(runfolder.code_files(s, root), root) for s in STAGE_NAMES}
+    (root / rel).write_text((root / rel).read_text() + "# edited\n")
+    return [s for s in STAGE_NAMES if runfolder.hashes(runfolder.code_files(s, root), root) != before[s]]
+
+
+@pytest.mark.parametrize("rel, reruns", [
+    ("simula/stages/propose.py", ["propose", "judge", "flows"]),
+    ("simula/stages/mock.py", ["mock", "qa", "flows"]),
+    ("simula/stages/flows.py", ["flows"]),
+    ("simula/llm.py", ["model", "mock", "qa", "propose", "judge", "flows"]),
+    ("simula/render.py", ["mock", "qa", "flows"]),
+    ("simula/stages/__init__.py", STAGE_NAMES),
+    ("README.md", []),
+])
+def test_editing_code_reruns_exactly_the_stages_that_run_it(package, rel, reruns):
+    assert rerun_after_editing(package, rel) == reruns
+
+
+def test_each_real_stage_hashes_its_own_module_and_its_package():
+    for stage in STAGE_NAMES:
+        files = {str(f.relative_to(ROOT)) for f in runfolder.code_files(stage)}
+        assert {f"simula/stages/{stage}.py", "simula/stages/__init__.py", "simula/__init__.py"} <= files, stage
+
+
+def test_a_code_change_reruns_a_finished_stage(run):
+    code = run / "stage_code.py"
+    code.write_text("RANK = 1\n")
+    runfolder.write_done(run / "model", run, [run / "config.toml"], [run / "prompt.md"], {"effort": "high"},
+                         [run / "model"], REAL, code=[code])
+    assert runfolder.is_done(run / "model", run, [run / "config.toml"], [run / "prompt.md"], {"effort": "high"},
+                             code=[code])
+    code.write_text("RANK = 2\n")
+    assert not runfolder.is_done(run / "model", run, [run / "config.toml"], [run / "prompt.md"], {"effort": "high"},
+                                 code=[code])
+
+
+def test_a_marker_from_before_the_code_check_reruns(run):
+    mark(run)
+    marker = json.loads((run / "model" / "done.json").read_text())
+    del marker["code_hashes"]
+    (run / "model" / "done.json").write_text(json.dumps(marker))
+    assert not runfolder.is_done(run / "model", run, [run / "config.toml"], [run / "prompt.md"], {"effort": "high"},
+                                 code=[run / "prompt.md"])
