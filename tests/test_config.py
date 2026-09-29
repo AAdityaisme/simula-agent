@@ -1,5 +1,6 @@
 """Generality rule: the only per-app input is which app to run."""
 
+import ast
 import tomllib
 
 import pytest
@@ -58,13 +59,45 @@ def test_a_roles_max_tokens_is_capped_at_its_models_max_out():
     assert config.max_tokens({"model": model, "max_tokens": 1000}) == 1000
 
 
-def test_every_call_reads_its_budget_through_the_one_helper():
-    """One rule, one place: a call that read role["max_tokens"] raw would ask for more than its model allows while
-    doctor probed the capped number."""
-    raw = [f"{p.relative_to(config.ROOT)}:{n}" for p in sorted((config.ROOT / "simula").rglob("*.py"))
-           if p.name != "config.py" for n, line in enumerate(p.read_text().splitlines(), 1)
-           if 'role["max_tokens"]' in line or '["max_out"]' in line]
-    assert raw == []
+class BudgetChoices(ast.NodeVisitor):
+    """Each place a module chooses a call's output budget: a max_tokens= keyword that isn't config.max_tokens(...) or
+    a pass-through of a parameter named max_tokens, and each read of a ["max_tokens"] or ["max_out"] key, with the
+    function it sits in. A comment or a string can't hide one, and a constant or a renamed role can't pass as one."""
+
+    def __init__(self):
+        self.where, self.found = ["<module>"], set()
+
+    def visit_FunctionDef(self, node):
+        self.where.append(node.name)
+        self.generic_visit(node)
+        self.where.pop()
+
+    def visit_keyword(self, node):
+        value = node.value
+        helper = (isinstance(value, ast.Call) and isinstance(value.func, ast.Attribute)
+                  and value.func.attr == "max_tokens" and isinstance(value.func.value, ast.Name)
+                  and value.func.value.id == "config")
+        passed_on = isinstance(value, ast.Name) and value.id == "max_tokens"
+        if node.arg == "max_tokens" and not (helper or passed_on):
+            self.found.add(self.where[-1])
+        self.generic_visit(node)
+
+    def visit_Subscript(self, node):
+        if isinstance(node.slice, ast.Constant) and node.slice.value in ("max_tokens", "max_out"):
+            self.found.add(self.where[-1])
+        self.generic_visit(node)
+
+
+def test_every_call_takes_its_budget_from_the_one_helper():
+    """One rule, one place: a call that chose its own number could ask for more than its model allows, or for another
+    budget than the one doctor probes. The two allowed: the rule itself, and doctor's check that Haiku refuses effort,
+    which asks for 16 tokens on no role's behalf."""
+    choices = set()
+    for path in sorted((config.ROOT / "simula").rglob("*.py")):
+        visitor = BudgetChoices()
+        visitor.visit(ast.parse(path.read_text()))
+        choices |= {(str(path.relative_to(config.ROOT)), where) for where in visitor.found}
+    assert choices == {("simula/config.py", "max_tokens"), ("simula/doctor.py", "haiku_effort_probe")}
 
 
 def test_every_role_belongs_to_a_stage_so_changing_it_reruns_that_stage():
