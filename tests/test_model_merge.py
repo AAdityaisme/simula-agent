@@ -280,6 +280,15 @@ def test_a_term_keeps_its_meaning_only_when_a_cited_element_carries_it_and_says_
         "text beside the term on its screen, with no cited element that carries it, is a guess"
 
 
+def test_a_line_uses_a_term_only_as_a_whole_word(app):
+    _, states, edges, answer = app
+    answer.mechanics.append(Mechanic(id="m-term", kind="other", evidence_ids=[states[0].id],
+                                     summary="Protect your streak.", observed_numbers=[], status="observed"))
+    answer.terms.append(TermMeaning(term="Pro", meaning="a guess", defined_by=[], used_in=["m-term"]))
+    _, rejected = stage.check_meaning(answer, states, edges)
+    assert rejected == ["term 'Pro': used_in ['m-term'] names no kept mechanic or ledger line that uses it"]
+
+
 def test_the_line_that_uses_a_term_cannot_define_it(app):
     _, states, edges, answer = app
     bullet = next(e for s in states for e in s.elements if len(e.text.split()) >= 2)

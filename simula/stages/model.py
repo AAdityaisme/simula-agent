@@ -426,7 +426,7 @@ def check_meaning(meaning: ModelMeaning, states: list[State], edges: list[Edge])
     uses = {m.id: m.summary for m in cleaned.mechanics} | {i.id: i.verbatim for i in cleaned.value_ledger}
 
     def term_problem(t):
-        if not any(i in uses and text.find(t.term, uses[i], ignore_case=True) for i in t.used_in):
+        if not any(i in uses and text.phrase(t.term).search(uses[i]) for i in t.used_in):
             return f"used_in {t.used_in} names no kept mechanic or ledger line that uses it"
         return None
     cleaned = cleaned.model_copy(update={"terms": keep(meaning.terms, term_problem, "term", lambda t: repr(t.term))})
