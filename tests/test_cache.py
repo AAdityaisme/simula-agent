@@ -490,3 +490,38 @@ def test_a_replay_stops_at_its_own_cap_rather_than_take_another_runs_answer(tmp_
     with pytest.raises(llm.CapReached):
         call(tmp_path, trace_path=tmp_path / "run-b.jsonl", replay=True)
     assert call(tmp_path, trace_path=tmp_path / "run-a.jsonl", replay=True)[0].word == "a"
+
+
+def lost_then_answered(word):
+    """The model: the first try times out, the second (the next attempt) answers."""
+    tries = [llm.LLMFailure("timeout", "stream idle"), llm.Reply(text=json.dumps({"word": word}), model=MODEL)]
+
+    def provider(model, system, messages, effort, schema, max_tokens, total_timeout=None):
+        reply = tries.pop(0)
+        if isinstance(reply, Exception):
+            raise reply
+        return reply
+    return provider
+
+
+def test_a_replayed_cap_stop_at_attempt_0_never_takes_another_runs_attempt_1_answer(tmp_path, monkeypatch):
+    run_b = tmp_path / "run-b.jsonl"
+    with pytest.raises(llm.CapReached):
+        call(tmp_path, trace_path=run_b, budget=llm.Budget("model", 0.0, trace_path=run_b))
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", lost_then_answered("run-a"))
+    assert call(tmp_path, trace_path=tmp_path / "run-a.jsonl")[0].word == "run-a"
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
+    with pytest.raises(llm.CapReached):
+        call(tmp_path, trace_path=run_b, replay=True)
+    assert call(tmp_path, trace_path=tmp_path / "run-a.jsonl", replay=True)[0].word == "run-a"
+
+
+def test_a_later_cap_stop_in_the_same_run_beats_an_earlier_attempt_1_answer(tmp_path, monkeypatch):
+    trace_path = tmp_path / "trace.jsonl"
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", lost_then_answered("first command"))
+    assert call(tmp_path)[0].word == "first command"
+    with pytest.raises(llm.CapReached):
+        call(tmp_path, no_cache=True, budget=llm.Budget("model", 0.0, trace_path=trace_path))
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
+    with pytest.raises(llm.CapReached):
+        call(tmp_path, replay=True)

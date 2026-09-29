@@ -403,6 +403,8 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
         chosen[key] = None if no_cache else recorded(key, tries)
         if chosen[key] and not chosen[key][1].failure:
             break
+        if replay and chosen[key] is None:  # the run never got past this attempt, so its replay doesn't either
+            break
     for key in keys:
         if chosen.get(key) is None:
             pending.append(key)
