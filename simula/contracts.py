@@ -332,6 +332,8 @@ class CandidateDraft(Strict):
                                   "of, or more of; null when the reward is a new resource.")
     cost_inputs: CostInputs
     frequency_cap: str
+    daily_cap: int = Field(default=0, description="How many times one user can take this offer in a day: the "
+                           "per-user limit only, never a limit per character, item, or screen.")
     decline_path: str
     ad_fail_path: str
     subscriber_treatment: str
