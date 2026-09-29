@@ -4,6 +4,7 @@ the system bars, dialogs and overlays found, vision points inside a box dropped.
 import json
 from pathlib import Path
 
+import numpy as np
 import pytest
 from PIL import Image
 
@@ -82,6 +83,15 @@ def test_a_tall_sheet_over_a_scrim_is_an_overlay_and_a_refreshed_feed_is_not():
     home, again = cands("aol", "aol-home-repeat"), cands("aol", "aol-a")
     shots = [Image.open(TREES / "aol" / f"{n}.png") for n in ("aol-home-repeat", "aol-a")]
     assert ob.overlay_box(home, again, DEVICE, dimmed=lambda b: ob.scrim(*shots, b, DEVICE)) is None
+
+
+@pytest.mark.parametrize("dim,dark", [(0.32, True), (0.6, True), (0.8, True), (0.0, False), (0.05, False)])
+def test_a_scrim_is_any_standard_dimming_from_material_3_up(dim, dark):
+    then = Image.new("RGB", (1080, 2400), (250, 250, 250))
+    now = Image.fromarray((np.asarray(then, dtype=float) * (1 - dim)).astype(np.uint8))
+    box = ob.Rect(x=0, y=DEVICE.content_top_px + 150, w=1080, h=DEVICE.content_bottom_px - DEVICE.content_top_px - 150)
+    assert ob.area(box) >= ob.OVERLAY_SHARE * ob.content_area(DEVICE)
+    assert ob.scrim(then, now, box, DEVICE) is dark
 
 
 def test_a_control_is_refound_by_its_words_after_the_bar_recenters():
