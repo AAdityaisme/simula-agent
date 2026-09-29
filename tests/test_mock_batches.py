@@ -1,13 +1,13 @@
 """Stage 3 draws its scope in parallel batches: batching, stitching, failure isolation, cache replay, the $ cap."""
 
+import json
 import threading
-from types import SimpleNamespace
 
 import pytest
 
-from simula import cli, config, llm
-from simula.contracts import ContractReport, Provenance, State
-from simula.runlog import read_manifest, read_trace, write_manifest
+from simula import llm
+from simula.contracts import ContractReport, State
+from simula.runlog import read_trace
 from simula.stages import mock
 from tests.conftest import APPS
 from tests.mock_fake import golden, seed_model, skeleton_html
@@ -239,8 +239,8 @@ def test_batches_past_the_usd_cap_are_skipped_in_priority_order_before_any_call(
     assert all(e.detail.startswith("screen not drawn: $ cap reached: over budget") for e in undrawn)
     trace = read_trace(run_dir / "trace.jsonl")
     [plan] = [t for t in trace if t.step == "plan"]
-    assert (plan.outcome, plan.note) == ("cap", f"1 of {len(skipped) + 1} batches fit the $2.00 cap at worst case: "
-                                                "$1.00 + $1.00 spare for one retry")
+    assert (plan.outcome, plan.note) == ("cap", f"1 of {len(skipped) + 1} batches fit the $2.00 cap with $0.00 "
+                                                "already spent, at worst case: $1.00 + $1.00 spare for one retry")
     assert {t.step for t in trace if t.outcome == "cap"} == {"plan"} | {f"batch{n}" for n in range(2, len(skipped) + 2)}
     exhibit = (run_dir / "exhibits" / "03-mock.md").read_text()
     assert f"Batch plan: {plan.note}." in exhibit
@@ -248,59 +248,78 @@ def test_batches_past_the_usd_cap_are_skipped_in_priority_order_before_any_call(
     assert f"| 2 | {' '.join(s.id for s in skipped[0])} | not drawn: $ cap reached: over budget" in exhibit
 
 
-def test_a_capped_run_replays_to_the_same_page(tmp_path, monkeypatch, app, two_batches):
-    """A batch the plan left out has no cache entry. The replay plans against the same cap, not what is left of it,
-    so it leaves the same batches out instead of asking the cache for them."""
+def test_a_capped_run_replays_to_the_same_page_whatever_cap_the_replay_is_given(tmp_path, monkeypatch, app,
+                                                                                 two_batches):
+    """A batch the plan left out has no cache entry. The replay reads the live run's recorded plan instead of
+    planning again, so it leaves the same batches out, with no --usd-cap or with any other."""
     calls = []
     run_dir = capped_run(tmp_path, monkeypatch, app, calls)
+    assert json.loads((run_dir / "mock" / "plan.json").read_text()) == {"keep": 1, "cap": 2.0, "spent": 0.0}
     first = (run_dir / "mock" / "index.html").read_text()
 
+    for usd_cap in (None, 2.0, 40.0):
+        replay = ctx_for(run_dir, app)
+        replay.usd_cap, replay.replay = usd_cap, True
+        mock.run(replay)
+        assert len(calls) == 1
+        assert (run_dir / "mock" / "index.html").read_text() == first
+
+
+def test_a_replay_with_no_recorded_plan_stops(tmp_path, monkeypatch, app, two_batches):
+    run_dir = capped_run(tmp_path, monkeypatch, app, [])
+    (run_dir / "mock" / "plan.json").rename(tmp_path / "plan-moved-aside.json")
     replay = ctx_for(run_dir, app)
-    replay.usd_cap, replay.replay = 2.0, True
-    mock.run(replay)
-    assert len(calls) == 1
-    assert (run_dir / "mock" / "index.html").read_text() == first
+    replay.replay = True
+    with pytest.raises(llm.ReplayMiss, match="no recorded batch plan"):
+        mock.run(replay)
 
 
-def live_run_with_manifest(tmp_path, monkeypatch, app, usd_cap):
-    """A live mock in a run folder with a manifest, as the CLI makes it: $1 per batch, batches of 2."""
+def rerun(tmp_path, monkeypatch, app) -> tuple:
+    """A live mock, then a second live one in the same run folder with every cache key new (as after a builder prompt
+    change). Each call holds $1 while in flight and costs $0.50; the cap fits every batch plus one spare, so the first
+    run draws them all and leaves $0.50 per batch spent for the rerun to plan around."""
     run_dir = seed_model(tmp_path / "run", app)
-    write_manifest(run_dir, cli.new_manifest(run_dir, {"name": app, "package": "x"},
-                                             SimpleNamespace(profile="dev", budget="deep", allow_account_create=False),
-                                             Provenance(source="fixture", fixture_path="golden")))
     with_cache_in(tmp_path, monkeypatch)
+    model = golden(app)
     monkeypatch.setattr(mock, "worst_usd", lambda ctx, content: 1.0)
-    calls = []
-    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider_drawing(golden(app), calls))
+    monkeypatch.setattr(llm, "worst_case_usd", lambda model_id, tokens_in, tokens_out: 1.0)
+    monkeypatch.setattr(llm, "usd", lambda model_id, tokens_in, tokens_out, tokens_cached=0: 0.5)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider_drawing(model, []))
+    n = len(mock.batches(mock.pick_scope(model)))
     ctx = ctx_for(run_dir, app)
-    ctx.usd_cap = usd_cap
+    ctx.usd_cap = n + 1.0
     mock.run(ctx)
-    return run_dir, calls
+    ctx.no_cache = True
+    mock.run(ctx)
+    return run_dir, n
 
 
-def test_a_replay_plans_against_the_cap_the_live_run_recorded_not_todays(tmp_path, monkeypatch, app, two_batches):
-    """Live with --usd-cap 2 draws batch 1 only; a replay with no flag used to plan at the configured cap and miss."""
-    run_dir, calls = live_run_with_manifest(tmp_path, monkeypatch, app, usd_cap=2.0)
-    assert read_manifest(run_dir).caps_usd["mock"] == 2.0 and len(calls) == 1
-    first = (run_dir / "mock" / "index.html").read_text()
+def test_a_rerun_plans_against_what_is_left_so_no_planned_batch_is_turned_away(tmp_path, monkeypatch, app,
+                                                                              two_batches):
+    """The $ check counts the mock spend already in the run. Planned against the whole cap, the rerun's plan said
+    every batch fit and the budget's lock then turned planned batches away; against what is left, the plan line is
+    what gets drawn and only the batches it left out are placeholders."""
+    run_dir, n = rerun(tmp_path, monkeypatch, app)
+    spent = 0.5 * n
+    keep = mock.affordable([1.0] * n, n + 1.0 - spent)
+    assert 0 < keep < n
+    trace = [t for t in read_trace(run_dir / "trace.jsonl") if t.stage == "mock"]
+    plan = [t for t in trace if t.step == "plan"][-1]
+    assert plan.note.startswith(f"{keep} of {n} batches fit the ${n + 1:.2f} cap with ${spent:.2f} already spent")
+    undrawn = [t for t in trace[trace.index(plan):] if t.note.startswith("not drawn:")]
+    assert [t.step for t in undrawn] == [f"batch{i}" for i in range(keep + 1, n + 1)]
+    assert all("over budget" in t.note for t in undrawn)
+    assert json.loads((run_dir / "mock" / "plan.json").read_text()) == {"keep": keep, "cap": n + 1.0, "spent": spent}
 
+
+def test_a_replay_after_a_rerun_draws_the_reruns_page(tmp_path, monkeypatch, app, two_batches):
+    """The replay's trace holds both live runs' spend, so planning again would keep fewer batches than the rerun drew."""
+    run_dir, _ = rerun(tmp_path, monkeypatch, app)
+    page = (run_dir / "mock" / "index.html").read_text()
     replay = ctx_for(run_dir, app)
     replay.replay = True
     mock.run(replay)
-    assert len(calls) == 1 and (run_dir / "mock" / "index.html").read_text() == first
-
-
-def test_a_replay_with_a_different_usd_cap_is_refused(tmp_path, monkeypatch, app, two_batches):
-    """Live at the configured cap draws every batch; a replay with --usd-cap 2 used to draw a different page silently."""
-    run_dir, calls = live_run_with_manifest(tmp_path, monkeypatch, app, usd_cap=None)
-    assert read_manifest(run_dir).caps_usd["mock"] == config.stage_cap("mock")
-    first = (run_dir / "mock" / "index.html").read_text()
-
-    replay = ctx_for(run_dir, app)
-    replay.replay, replay.usd_cap = True, 2.0
-    with pytest.raises(llm.ReplayMiss, match=r"ran live with a \$25\.00 cap .* --usd-cap 2 would plan other batches"):
-        mock.run(replay)
-    assert (run_dir / "mock" / "index.html").read_text() == first
+    assert (run_dir / "mock" / "index.html").read_text() == page
 
 
 def test_when_the_plan_fits_the_lock_never_turns_a_batch_away(tmp_path, monkeypatch, app):
