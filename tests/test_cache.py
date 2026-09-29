@@ -1,4 +1,5 @@
 import json
+import re
 from types import SimpleNamespace
 
 import httpx2
@@ -458,3 +459,34 @@ def test_a_replay_follows_its_own_lost_call_rather_than_another_runs_answer(tmp_
     with pytest.raises(llm.LLMFailure, match="timeout"):
         call(tmp_path, trace_path=tmp_path / "run-b.jsonl", attempts=1, replay=True)
     assert call(tmp_path, trace_path=tmp_path / "run-a.jsonl", attempts=1, replay=True)[0].word == "a"
+
+
+def test_a_cap_stop_names_its_call_once_and_replays_as_the_same_stop_until_a_later_answer(tmp_path, monkeypatch):
+    trace_path = tmp_path / "trace.jsonl"
+    calls = []
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "later"}'], calls))
+    with pytest.raises(llm.CapReached) as live:
+        call(tmp_path, budget=llm.Budget("model", 0.0, trace_path=trace_path))
+    [stop] = [line for line in read_trace(trace_path) if line.outcome == "cap"]
+    named, message = llm.split_key(stop.note)
+    assert stop.step == "t" and re.fullmatch("[0-9a-f]{12}", named) and message == str(live.value) and calls == []
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
+    with pytest.raises(llm.CapReached) as replayed:
+        call(tmp_path, replay=True)
+    assert str(replayed.value) == str(live.value), "the replay's own cap doesn't matter: it stops where the run did"
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "later"}'], calls))
+    assert call(tmp_path)[0].word == "later"
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
+    assert call(tmp_path, replay=True)[0].word == "later", "the run's latest record of the call wins"
+
+
+def test_a_replay_stops_at_its_own_cap_rather_than_take_another_runs_answer(tmp_path, monkeypatch):
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "a"}'], []))
+    call(tmp_path, trace_path=tmp_path / "run-a.jsonl")
+    with pytest.raises(llm.CapReached):
+        call(tmp_path, trace_path=tmp_path / "run-b.jsonl", no_cache=True,
+             budget=llm.Budget("model", 0.0, trace_path=tmp_path / "run-b.jsonl"))
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
+    with pytest.raises(llm.CapReached):
+        call(tmp_path, trace_path=tmp_path / "run-b.jsonl", replay=True)
+    assert call(tmp_path, trace_path=tmp_path / "run-a.jsonl", replay=True)[0].word == "a"

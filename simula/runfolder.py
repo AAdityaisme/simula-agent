@@ -77,8 +77,10 @@ def expand(paths: list[Path]) -> list[Path]:
     files = []
     for p in paths:
         if p.is_dir():
-            files += sorted(f for f in p.rglob("*") if f.is_file() and f.name not in MARKERS
-                            and f.suffix != ".pyc" and "__pycache__" not in f.relative_to(p).parts)
+            # A dot-file (Finder's .DS_Store) is OS metadata no loader reads, so it is neither hashed nor preflighted.
+            files += sorted(f for f in p.rglob("*") if f.is_file() and f.name not in MARKERS and f.suffix != ".pyc"
+                            and not any(part == "__pycache__" or part.startswith(".")
+                                        for part in f.relative_to(p).parts))
         elif p.exists():
             files.append(p)
     return files
@@ -166,12 +168,12 @@ def read_done(stage_dir: Path) -> DoneMarker | None:
     return DoneMarker.model_validate_json(path.read_text()) if path.exists() else None
 
 
-def is_done(stage_dir: Path, run_dir: Path, inputs: list[Path], prompts: list[Path], params: dict, *,
-            code: list[Path] | None = None) -> bool:
+def is_done(marker: DoneMarker | None, run_dir: Path, inputs: list[Path], prompts: list[Path], params: dict, *,
+            code: list[Path] | None = None, accept_partial: bool = False) -> bool:
     """A stage is done while it delivered all of its work and its inputs, prompts, params, code and outputs are what
-    they were. A partial stage reruns, its finished calls from the cache, until it completes."""
-    marker = read_done(stage_dir)
-    if marker is None or marker.outcome.status != "complete":
+    they were. A partial stage reruns, its finished calls from the cache, until it completes; `accept_partial` (set
+    under --replay, which can't complete it) takes it as recorded."""
+    if marker is None or (marker.outcome.status != "complete" and not accept_partial):
         return False
     same_outputs = all((run_dir / h.path).exists() and sha256(run_dir / h.path) == h.sha256
                        for h in marker.output_hashes)
@@ -183,8 +185,8 @@ def is_done(stage_dir: Path, run_dir: Path, inputs: list[Path], prompts: list[Pa
 
 
 def write_failure(stage_dir: Path, reason: str) -> None:
+    """Records why the stage stopped. Its done.json is the runner's to keep or remove (see cli.run_stage)."""
     stage_dir.mkdir(parents=True, exist_ok=True)
-    (stage_dir / "done.json").unlink(missing_ok=True)
     write_json_atomic(stage_dir / "failure.json", json.dumps({
         "reason": reason, "at": datetime.now().isoformat(timespec="seconds")}, indent=1))
 

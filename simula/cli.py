@@ -2,67 +2,26 @@
 
 import argparse
 import importlib
-import importlib.metadata
-import json
-import subprocess
 import sys
 from pathlib import Path
 
-from simula import config, runfolder, runlog
+from simula import checkout, config, runfolder, runlog
 from simula.config import ROOT, STAGES
 from simula.contracts import Manifest, Provenance, StageOutcome
-from simula.llm import CapReached, ProviderUnavailable, ReplayMiss
-from simula.stages import EXTRA_INPUTS, ROLES, UPSTREAM, Ctx
+from simula.llm import CapReached, ProviderUnavailable, ReplayMiss, split_key
+from simula.stages import EXTRA_INPUTS, ROLES, UPSTREAM, Ctx, rerun_command, run_options
 
 EXIT_NOT_BUILT, EXIT_CAP, EXIT_PROVIDER = 3, 4, 5
-
-
-def package_version(name: str) -> str | None:
-    try:
-        return importlib.metadata.version(name)
-    except importlib.metadata.PackageNotFoundError:
-        return None
-
-
-def mobile_mcp_version() -> str | None:
-    lock = ROOT / "package-lock.json"
-    if not lock.exists():
-        return None
-    packages = json.loads(lock.read_text()).get("packages", {})
-    return packages.get("node_modules/@mobilenext/mobile-mcp", {}).get("version")
 
 
 def prompt_files(stage: str) -> list[Path]:
     return sorted((ROOT / "prompts" / stage).glob("*.md"))
 
 
-def loader_files() -> list[Path]:
-    """Every file a loader picks up by glob or folder listing rather than by exact name: the prompts, the app
-    configs, and the folders stages read outside their run (EXTRA_INPUTS)."""
-    extra = [ROOT / path for paths in EXTRA_INPUTS.values() for path in paths]
-    return sorted({*(ROOT / "prompts").rglob("*.md"), *(ROOT / "config" / "apps").glob("*.toml"),
-                   *runfolder.expand(extra)})
-
-
-def untracked_inputs() -> list[str] | None:
-    """The loader files in the checkout that git doesn't track, ignored ones included, or None when ROOT isn't its
-    own git checkout."""
-    def git(*args: str) -> str:
-        return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, check=True).stdout
-    try:
-        if Path(git("rev-parse", "--show-toplevel").strip()).resolve() != ROOT.resolve():
-            return None
-        files = [str(p.relative_to(ROOT)) for p in loader_files() if p.is_relative_to(ROOT)]
-        listed = git("--literal-pathspecs", "ls-files", "--others", "-z", "--", *files)
-        return sorted(p for p in listed.split("\0") if p)
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return None
-
-
 def preflight() -> str | None:
     """Refuses to start while a loader could pick up a file git doesn't track, since it would change a prompt or a
     stage input with no error. Returns a note for the run's trace when there is no git checkout to check."""
-    untracked = untracked_inputs()
+    untracked = checkout.untracked_inputs()
     if untracked is None:
         return "not a git checkout: skipped the check that every file a loader reads is tracked"
     if untracked:
@@ -96,8 +55,8 @@ def new_manifest(run_dir: Path, app: dict, args, provenance: Provenance) -> Mani
         allow_account_create=args.allow_account_create,
         roles={name: " ".join(str(v) for v in role.values()) for name, role in roles.items()},
         prompt_hashes={str(p.relative_to(ROOT)): runfolder.sha256(p) for p in sorted((ROOT / "prompts").rglob("*.md"))},
-        app_package=app["package"], app_version=None, mobile_mcp_version=mobile_mcp_version(),
-        playwright_version=package_version("playwright"), caps_usd=config.profiles()["caps_usd"],
+        app_package=app["package"], app_version=None, mobile_mcp_version=checkout.mobile_mcp_version(),
+        playwright_version=checkout.package_version("playwright"), caps_usd=config.profiles()["caps_usd"],
         no_send=True, provenance=provenance, stages_done=[], usd_total=0.0,
     )
 
@@ -113,13 +72,6 @@ def upstream_problem(run_dir: Path, stage: str) -> str | None:
     return None
 
 
-def run_options(ctx: Ctx) -> str:
-    """The run and the options it was opened with, so a printed resume command reruns it the same way."""
-    return " ".join([f"--run {ctx.run_dir.name}", f"--profile {ctx.profile}", f"--budget {ctx.budget}",
-                     *(["--allow-fixtures"] if ctx.allow_fixtures else []),
-                     *(["--allow-account-create"] if ctx.allow_account_create else [])])
-
-
 def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     """Runs one stage unless its done.json still matches. Returns False when the stage isn't built yet."""
     stage_dir = ctx.run_dir / stage
@@ -131,12 +83,16 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     runfolder.require_real(provenance, ctx.allow_fixtures)
     inputs, prompts, params = stage_inputs(stage, ctx), prompt_files(stage), stage_params(stage, ctx)
     code = runfolder.code_files(stage)
-    if not force and runfolder.is_done(stage_dir, ctx.run_dir, inputs, prompts, params, code=code):
+    if not force and runfolder.is_done(runlog.read_marker(ctx.run_dir, stage), ctx.run_dir, inputs, prompts, params,
+                                       code=code, accept_partial=ctx.replay):
         runlog.run_trace(ctx.run_dir, stage=stage, step="skip", decider="code", note="hashes match")
         return True
     module = importlib.import_module(f"simula.stages.{stage}")
     stage_dir.mkdir(exist_ok=True)
-    (stage_dir / "done.json").unlink(missing_ok=True)  # the stage is being redone: its old marker no longer holds
+    # A live rerun's old marker no longer holds. --replay keeps it until the new one is written, so a stage that can't
+    # be replayed never costs the run its committed record.
+    if not ctx.replay:
+        (stage_dir / "done.json").unlink(missing_ok=True)
     runlog.sync_manifest(ctx.run_dir)
     trace_path = ctx.run_dir / "trace.jsonl"
     traced_before = len(runlog.read_trace(trace_path))
@@ -167,7 +123,8 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
         runlog.run_trace(ctx.run_dir, stage=stage, step="run", decider="code", outcome="error", note=reason[:300])
         raise
     traced = [line for line in runlog.read_trace(trace_path)[traced_before:] if line.stage == stage]
-    outcome = finished_outcome(stage, ctx, result, [line.note for line in traced if line.outcome == "cap"])
+    capped = [split_key(line.note)[1] for line in traced if line.outcome == "cap"]
+    outcome = finished_outcome(stage, ctx, result, capped)
     partial = outcome.status == "partial"
     if partial:
         runlog.needs_human(ctx.run_dir, stage, "partial output", "; ".join(outcome.reasons), [f"{stage}/done.json"],
@@ -196,10 +153,6 @@ def finished_outcome(stage: str, ctx: Ctx, result, capped: list[str]) -> StageOu
     if outcome.status == "partial" and not outcome.resume:
         return outcome.model_copy(update={"resume": rerun_command(stage, ctx)})
     return outcome
-
-
-def rerun_command(stage: str, ctx: Ctx) -> str:
-    return f"simula {stage} {ctx.app['name']} {run_options(ctx)}"
 
 
 def open_run(args) -> Ctx:

@@ -85,15 +85,17 @@ class Budget:
         spent = sum(line.usd for line in read_trace(trace_path) if line.stage == stage)
         return cls(stage, config.stage_cap(stage) if cap is None else cap, spent, trace_path=trace_path)
 
-    def reserve(self, worst_usd: float) -> None:
+    def reserve(self, worst_usd: float, *, step: str = "budget", key: str | None = None) -> None:
+        """Holds a call's worst case, or refuses it with CapReached. A model call passes its step and cache key, so the
+        run's record of the refusal names the call and --replay stops where the live run did."""
         with self.lock:
             if self.spent + self.held + worst_usd > self.cap:
                 refused = CapReached(f"{self.stage}: next call could cost ${worst_usd:.2f}, ${self.spent:.2f} of "
                                      f"${self.cap:.2f} already spent, ${self.held:.2f} held by calls in flight; "
                                      "raise with --usd-cap")
                 if self.trace_path:  # the run's record that the cap cut this stage short, even if the stage goes on
-                    trace(self.trace_path, stage=self.stage, step="budget", decider="code", outcome="cap",
-                          note=str(refused))
+                    trace(self.trace_path, stage=self.stage, step=step, decider="code", outcome="cap",
+                          note=(f"key {key[:12]} " if key else "") + str(refused))
                 raise refused
             self.held += worst_usd
 
@@ -144,9 +146,25 @@ def cache_tries(key: str, cache_dir: Path = CACHE) -> tuple[list[tuple[str, Repl
         n += 1
 
 
-def trace_keys(trace_path: Path) -> dict[str, int]:
-    """Each cache file a model trace line names (its first 12 hex), with the index of the last line naming it."""
-    return {line.note.split()[1]: n for n, line in enumerate(read_trace(trace_path)) if line.note.startswith("key ")}
+def split_key(note: str) -> tuple[str | None, str]:
+    """A trace note's cache key (its first 12 hex) and the rest of the note; (None, note) when it names no key."""
+    if not note.startswith("key "):
+        return None, note
+    _, key, *rest = note.split(" ", 2)
+    return key, rest[0] if rest else ""
+
+
+def trace_keys(trace_path: Path) -> tuple[dict[str, int], dict[str, tuple[int, str]]]:
+    """What a run's trace recorded by key: each cache file a model line names, with the index of the last line naming
+    it; and each call its $ cap turned away, with the index and the stop's message."""
+    named, capped = {}, {}
+    for n, line in enumerate(read_trace(trace_path)):
+        key, rest = split_key(line.note)
+        if key and line.outcome == "cap":
+            capped[key] = (n, rest)
+        elif key:
+            named[key] = n
+    return named, capped
 
 
 def cache_write(key: str, reply: Reply, cache_dir: Path = CACHE) -> None:
@@ -357,15 +375,19 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
               "schema": json_schema_for(provider, schema) if schema else None}
     keys = [cache_key(provider, model, system, messages, params, attempt) for attempt in range(attempts)]
     last, pending = LLMFailure("error", "no attempt made"), []
-    named = trace_keys(trace_path) if replay else {}
+    named, capped = trace_keys(trace_path) if replay else ({}, {})
 
-    def recorded(tries: list[tuple[str, Reply]]) -> tuple[str, Reply] | None:
-        """--replay follows the try this run's trace names last (else the first one). A normal run takes the latest
-        try the model answered: a known failure is never paid for again, and a lost call is transient, so it is
-        tried again."""
+    def recorded(key: str, tries: list[tuple[str, Reply]]) -> tuple[str, Reply] | None:
+        """--replay follows the try this run's trace names last (else the first one), unless the run's last record of
+        the call is its $ cap turning it away. A normal run takes the latest try the model answered: a known failure
+        is never paid for again, and a lost call is transient, so it is tried again."""
         if replay:
             used = [t for t in tries if t[0][:12] in named]
-            return max(used, key=lambda t: named[t[0][:12]]) if used else (tries[0] if tries else None)
+            last = max(used, key=lambda t: named[t[0][:12]]) if used else None
+            stop = capped.get(key[:12])
+            if stop and (last is None or stop[0] > named[last[0][:12]]):
+                return None
+            return last or (tries[0] if tries else None)
         answered = [t for t in tries if t[1].failure not in TRANSPORT]
         return answered[-1] if answered else None
 
@@ -378,7 +400,7 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
             if file_key[:12] in named:  # the answer this run recorded is gone: never replay another run's in its place
                 raise ReplayMiss(f"--replay: the cached response {stage}/{step} recorded (key {file_key[:12]}) "
                                  "can't be read")
-        chosen[key] = None if no_cache else recorded(tries)
+        chosen[key] = None if no_cache else recorded(key, tries)
         if chosen[key] and not chosen[key][1].failure:
             break
     for key in keys:
@@ -400,10 +422,14 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
     if not pending:
         raise last
     if replay:
+        if stop := capped.get(pending[0][:12]):  # the live run's cap turned this call away: stop the same way
+            trace(trace_path, stage=stage, step=step, decider="code", outcome="cap",
+                  note=f"key {pending[0][:12]} {stop[1]}")
+            raise CapReached(stop[1])
         raise ReplayMiss(f"--replay: no cached response for {stage}/{step} (key {pending[0][:12]})")
     for key in pending:
         worst = worst_case_usd(model, estimate_tokens_in(system, messages), max_tokens)
-        budget.reserve(worst)
+        budget.reserve(worst, step=step, key=key)
         started = time.monotonic()
         try:
             reply = PROVIDERS[provider](model, system, messages, effort, schema, max_tokens, total_timeout)
