@@ -11,6 +11,7 @@ from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from html import escape
 from html.parser import HTMLParser
+from itertools import accumulate
 import urllib.request
 from urllib.parse import quote_plus
 
@@ -111,7 +112,15 @@ def run(ctx: Ctx) -> None:
 
     style = shared_style(scope)
     fonts = vendor_fonts(ctx, mock_dir, fonts_of(scope))
-    parts, undrawn, batch_errors = draw_batches(ctx, model, groups, screens, art, style)
+    contents = [batch_content(ctx, model, batch, screens, art, style) for batch in groups]
+    budget = llm.Budget.for_stage("mock", ctx.run_dir / "trace.jsonl", ctx.usd_cap)
+    worst = [worst_usd(ctx, content) for content in contents]
+    keep = affordable(worst, budget.cap)
+    plan = (f"{keep} of {len(groups)} batches fit the ${budget.cap:.2f} cap at worst case: "
+            f"${sum(worst[:keep]):.2f} + ${max(worst):.2f} spare for one retry")
+    run_trace(ctx.run_dir, stage="mock", step="plan", decider="code", outcome="ok" if keep == len(groups) else "cap",
+              note=plan)
+    parts, undrawn, batch_errors = draw_batches(ctx, groups, contents, budget, keep)
     html = with_runtime(wire_edges(stitch(style, fonts, parts), model, screens), home_id(scope))
     (mock_dir / "index.html").write_text(html)
 
@@ -122,7 +131,7 @@ def run(ctx: Ctx) -> None:
     (mock_dir / "contract_report.json").write_text(report.model_dump_json(indent=1))
     run_trace(ctx.run_dir, stage="mock", step="contract", decider="code", outcome="ok" if report.passed else "error",
               note=f"{len(screens)} screens rendered, {len(undrawn)} not drawn, {len(errors)} contract errors")
-    write_exhibit(ctx.run_dir, 3, "mock", exhibit(ctx, model, scope, groups, undrawn, html, report))
+    write_exhibit(ctx.run_dir, 3, "mock", exhibit(ctx, model, scope, groups, undrawn, html, report, worst, plan))
 
 
 def pick_scope(model: ProductModel) -> list[State]:
@@ -312,23 +321,44 @@ def contains(a: Rect, b: Rect) -> bool:
 
 # ---------- the model calls, one per batch ----------
 
-def draw_batches(ctx: Ctx, model: ProductModel, groups: list[list[State]], screens: list[str], art: dict[str, Rect],
-                 style: str) -> tuple[list[tuple[str, str]], dict[str, str], list[ContractError]]:
-    """Each batch's (CSS, sections), drawn at most PARALLEL_BATCHES at once, the screens not drawn with why, and
-    the contract errors of batches that reach outside their own screens. A batch that fails becomes placeholder
-    sections and the rest still ship; the stage fails only if all fail."""
-    budget = llm.Budget.for_stage("mock", ctx.run_dir / "trace.jsonl", ctx.usd_cap)
+def affordable(worst: list[float], cap: float) -> int:
+    """How many batches, in priority order, fit the cap at their worst case with one worst case spare for a
+    max_tokens retry. Stops at the first that doesn't fit: never skips a batch to fit a cheaper later one."""
+    spare = max(worst, default=0.0)
+    return sum(1 for total in accumulate(worst) if total + spare <= cap)
 
-    def draw(n: int, batch: list[State]):
+
+def worst_usd(ctx: Ctx, content: list[dict]) -> float:
+    """The most one batch's call can cost: its retry prompt (the longer one) answered up to max_tokens."""
+    role = config.roles(ctx.profile)["mock_builder"]
+    messages = [{"role": "user", "content": content + [{"type": "text", "text": SHORTER}]}]
+    return llm.worst_case_usd(role["model"], llm.estimate_tokens_in(system_prompt(), messages),
+                              role.get("max_tokens", 64000))
+
+
+def draw_batches(ctx: Ctx, groups: list[list[State]], contents: list[list[dict]], budget: llm.Budget,
+                 keep: int) -> tuple[list[tuple[str, str]], dict[str, str], list[ContractError]]:
+    """Each batch's (CSS, sections), drawn at most PARALLEL_BATCHES at once, the screens not drawn with why, and
+    the contract errors of batches that reach outside their own screens. Only the first `keep` batches are asked
+    for; the plan left the rest over budget. A batch that fails becomes placeholder sections and the rest still
+    ship; the stage fails only if all fail."""
+    over = llm.CapReached(f"over budget: batches {keep + 1}-{len(groups)} don't fit the ${budget.cap:.2f} mock cap "
+                          "at worst case; raise with --usd-cap")
+
+    def draw(n: int, content: list[dict]):
+        if n > keep:
+            return over
         try:
-            return batch_parts(generate(ctx, batch_content(ctx, model, batch, screens, art, style), budget, f"batch{n}"))
+            return batch_parts(generate(ctx, content, budget, f"batch{n}"))
         except (llm.LLMFailure, llm.CapReached, ValueError) as e:
             return e
 
-    # ponytail: the batches share one Budget, and llm.Budget.reserve doesn't hold a call's worst case while it is in
-    # flight, so parallel calls can pass the cap by what they spend together. Fix belongs in llm.Budget.
+    # ponytail: the plan fits every first call plus one max_tokens retry at worst case, so the $ check never turns a
+    # planned call away. A second retry in one run is outside the plan: PR 5's lock makes it a placeholder (and that
+    # run's replay misses on it); until the lock lands here, two retries in flight together can pass the cap.
+    # Keep more spare if retries get common.
     with ThreadPoolExecutor(PARALLEL_BATCHES) as pool:
-        results = list(pool.map(draw, range(1, len(groups) + 1), groups))
+        results = list(pool.map(draw, range(1, len(groups) + 1), contents))
     failures = [r for r in results if isinstance(r, BaseException)]
     if len(failures) == len(results):
         # A cap failure gets the CLI's needs-human instructions (raise --usd-cap), so it wins over any other.
@@ -681,7 +711,7 @@ def _insert_before(html: str, tag: str, snippet: str) -> str:
 # ---------- exhibit ----------
 
 def exhibit(ctx: Ctx, model: ProductModel, scope: list[State], groups: list[list[State]], undrawn: dict[str, str],
-            html: str, report: ContractReport) -> str:
+            html: str, report: ContractReport, worst: list[float], plan: str) -> str:
     attrs = [t["attrs"] for t in StartTags(html).tags]
     placed = Counter(a["data-el"].split(".")[0] for a in attrs if a.get("data-el"))
     wired = {a["data-edge"] for a in attrs if a.get("data-edge")}
@@ -689,11 +719,12 @@ def exhibit(ctx: Ctx, model: ProductModel, scope: list[State], groups: list[list
     lines = [f"# Mock: {model.app}", "",
              f"Contract: **{'PASS' if report.passed else 'FAIL'}** ({len(report.errors)} errors). "
              f"Model spend this stage: ${stage_usd(ctx):.4f}.", "",
-             "| Batch | Screens | Result |", "|---|---|---|"]
-    for n, batch in enumerate(groups, 1):
+             f"Batch plan: {plan}.", "",
+             "| Batch | Screens | Result | Worst case |", "|---|---|---|---|"]
+    for n, (batch, cost) in enumerate(zip(groups, worst), 1):
         reason = undrawn.get(batch[0].id)
         result = f"not drawn: {reason.replace('|', '/')}" if reason else "drawn"
-        lines.append(f"| {n} | {' '.join(s.id for s in batch)} | {result} |")
+        lines.append(f"| {n} | {' '.join(s.id for s in batch)} | {result} | ${cost:.2f} |")
     lines += ["", "| Screen | Name | data-el placed / expected | Render |", "|---|---|---|---|"]
     for s in scope:
         lines.append(f"| {s.id} | {s.name} | {placed[s.id]} / {len(tagged_ids(s))} | `mock/renders/{s.id}.png` |")

@@ -57,4 +57,4 @@ def test_only_model_folder_still_renders(tmp_path, monkeypatch, app):
     images = [sum(p["type"] == "image" for p in call["messages"][0]["content"]) for call in calls]
     assert sorted(images) == sorted(len(batch_screens(call)) for call in calls) and sum(images) == len(screens)
     assert all("## 7. Mock contract" in call["system"] for call in calls)
-    assert [line.step for line in read_trace(run_dir / "trace.jsonl")] == ["scope", "contract"]
+    assert [line.step for line in read_trace(run_dir / "trace.jsonl")] == ["scope", "plan", "contract"]
