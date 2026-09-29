@@ -67,7 +67,11 @@ runs/<app>/latest -> <run_id>
 | `explore/states/<sid>.json` | `StateFile` |
 | `model/product_model.json` | `ProductModel` |
 | `mock/contract_report.json` | `ContractReport` |
+| `mock/art.json` | `ArtFile` |
 | `qa/round<N>/metrics.json` | `QAMetrics` |
+| `qa/round<N>/critique.json` | `CritiqueFile` |
+| `qa/round<N>/edits.json` | `EditsFile` |
+| `qa/qa_report.json` | `QAReport` |
 | `propose/lenses.json` | `LensesFile` |
 | `propose/candidates.json` | `CandidatesFile` |
 | `judge/decisions.json` | `DecisionsFile` |
