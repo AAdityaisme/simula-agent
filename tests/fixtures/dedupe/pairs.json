@@ -1,0 +1,3594 @@
+{
+ "source": "agent-takehome/notes/dedupe-experiment-2026-09-28: hand labels (UNSURE rows dropped) and the benefit names Sonnet 5 at effort low gave with the v2 prompt, two samples per run. for_users comes from the run, or from the hand label on runs older than the field.",
+ "runs": [
+  {
+   "app": "aol",
+   "run": "20260928-005537-b4b8047-fixture",
+   "candidates": [
+    {
+     "id": "c01",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Play one short game, read ad-free for 30 minutes",
+     "offer_copy": "Play a short sponsored game and read with no ads in your feed or articles for the next 30 minutes.",
+     "reward": {
+      "kind": "feature_time",
+      "unit": "minutes of ad-free reading (feed and in-article display ads hidden)",
+      "amount": 30.0,
+      "duration": "30 minutes from the moment the game is confirmed"
+     },
+     "rank_score": 2.0
+    },
+    {
+     "id": "c02",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Heavy readers earn a short ad-free reading window",
+     "offer_copy": "You're on a reading streak. Play a short game and read with no ads for the next 20 minutes.",
+     "reward": {
+      "kind": "feature_time",
+      "unit": "minutes of ad-free feed and articles",
+      "amount": 20.0,
+      "duration": "20 minutes from the moment it's granted"
+     },
+     "rank_score": 2.0
+    },
+    {
+     "id": "c03",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Save a reading streak after a missed day",
+     "offer_copy": "You missed yesterday. Play a short game to keep your 12-day reading streak. This saves 1 missed day, one time.",
+     "reward": {
+      "kind": "streak_protection",
+      "unit": "missed day forgiven",
+      "amount": 1.0,
+      "duration": "one time, applied to yesterday"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c04",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Welcome back: 20 minutes of reading with no feed ads",
+     "offer_copy": "Welcome back! Play a short game and read for 20 minutes with no ads in your feed or articles.",
+     "reward": {
+      "kind": "feature_time",
+      "unit": "minutes without display ads in feed and articles",
+      "amount": 20.0,
+      "duration": "20 minutes from when the game ends"
+     },
+     "rank_score": 1.0
+    }
+   ],
+   "names": {
+    "1": {
+     "c01": "ad-free reading",
+     "c02": "ad-free reading",
+     "c03": "streak saved",
+     "c04": "ad-free reading"
+    },
+    "2": {
+     "c01": "no ads",
+     "c02": "no ads",
+     "c03": "streak saved",
+     "c04": "no ads"
+    }
+   },
+   "pairs": [
+    {
+     "a": "c01",
+     "b": "c02",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c04",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c04",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    }
+   ]
+  },
+  {
+   "app": "aol",
+   "run": "20260928-005812-b4b8047-fixture",
+   "candidates": [
+    {
+     "id": "c01",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Play one short game, read ad-free for 30 minutes",
+     "offer_copy": "Play a short sponsored game and read with no ads in your feed or articles for the next 30 minutes.",
+     "reward": {
+      "kind": "feature_time",
+      "unit": "minutes of ad-free reading (feed and in-article display ads hidden)",
+      "amount": 30.0,
+      "duration": "30 minutes from the moment the game is confirmed"
+     },
+     "rank_score": 2.0
+    },
+    {
+     "id": "c02",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Heavy readers earn a short ad-free reading window",
+     "offer_copy": "You're on a reading streak. Play a short game and read with no ads for the next 20 minutes.",
+     "reward": {
+      "kind": "feature_time",
+      "unit": "minutes of ad-free feed and articles",
+      "amount": 20.0,
+      "duration": "20 minutes from the moment it's granted"
+     },
+     "rank_score": 2.0
+    },
+    {
+     "id": "c03",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Save a reading streak after a missed day",
+     "offer_copy": "You missed yesterday. Play a short game to keep your 12-day reading streak. This saves 1 missed day, one time.",
+     "reward": {
+      "kind": "streak_protection",
+      "unit": "missed day forgiven",
+      "amount": 1.0,
+      "duration": "one time, applied to yesterday"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c04",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Welcome back: 20 minutes of reading with no feed ads",
+     "offer_copy": "Welcome back! Play a short game and read for 20 minutes with no ads in your feed or articles.",
+     "reward": {
+      "kind": "feature_time",
+      "unit": "minutes without display ads in feed and articles",
+      "amount": 20.0,
+      "duration": "20 minutes from when the game ends"
+     },
+     "rank_score": 1.0
+    }
+   ],
+   "names": {
+    "1": {
+     "c01": "no ads",
+     "c02": "no ads",
+     "c03": "streak day forgiven",
+     "c04": "no ads"
+    },
+    "2": {
+     "c01": "ad-free reading",
+     "c02": "ad-free reading",
+     "c03": "streak day forgiven",
+     "c04": "ad-free reading"
+    }
+   },
+   "pairs": [
+    {
+     "a": "c01",
+     "b": "c02",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c04",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c04",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    }
+   ]
+  },
+  {
+   "app": "aol",
+   "run": "20260928-012806-6470f91-fixture",
+   "candidates": [
+    {
+     "id": "c01",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Play one short game, read without sponsored stories for 30 minutes",
+     "offer_copy": "Reading a lot today? Play a short game and read without sponsored stories for 30 minutes.",
+     "reward": {
+      "kind": "feature_time",
+      "unit": "minutes without sponsored story cards in the feed and articles",
+      "amount": 30.0,
+      "duration": "30 minutes from when the game is completed"
+     },
+     "rank_score": 2.0
+    },
+    {
+     "id": "c02",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Keep your reading streak alive after a missed day",
+     "offer_copy": "You missed yesterday. Play a short sponsored game to keep your 12-day reading streak. Covers 1 missed day.",
+     "reward": {
+      "kind": "streak_protection",
+      "unit": "missed day covered",
+      "amount": 1.0,
+      "duration": "one missed day, applied once"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c03",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Try a special reader theme for a day",
+     "offer_copy": "Play a short sponsored game to use the Sepia Paper theme on every article for 24 hours.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "reader theme",
+      "amount": 1.0,
+      "duration": "24 hours"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c04",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Save your reading streak after a missed day",
+     "offer_copy": "Your 12-day reading streak is about to reset. Play a short sponsored game to cover the 1 day you missed and keep your streak going today.",
+     "reward": {
+      "kind": "streak_protection",
+      "unit": "missed day covered",
+      "amount": 1.0,
+      "duration": "one-time, applies to the single missed day"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c05",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Welcome-back catch-up with no sponsored stories",
+     "offer_copy": "Welcome back! Play one short sponsored game and catch up on the news with no sponsored stories in your feed for the next 15 minutes.",
+     "reward": {
+      "kind": "feature_time",
+      "unit": "minutes of feed without sponsored story cards",
+      "amount": 15.0,
+      "duration": "15 minutes from the moment the play is confirmed"
+     },
+     "rank_score": 1.0
+    }
+   ],
+   "names": {
+    "1": {
+     "c01": "no sponsored stories",
+     "c02": "streak saved",
+     "c03": "special reader theme",
+     "c04": "streak saved",
+     "c05": "no sponsored stories"
+    },
+    "2": {
+     "c01": "no sponsored stories",
+     "c02": "streak saved",
+     "c03": "special reader theme",
+     "c04": "streak saved",
+     "c05": "no sponsored stories"
+    }
+   },
+   "pairs": [
+    {
+     "a": "c01",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c05",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c04",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    }
+   ]
+  },
+  {
+   "app": "aol",
+   "run": "20260928-022718-ef4bf27-fixture",
+   "candidates": [
+    {
+     "id": "c01",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Play one short game, read for 30 minutes without sponsored stories",
+     "offer_copy": "Reading a lot today? Play one short game and read the next 30 minutes with no sponsored stories in your feed or articles.",
+     "reward": {
+      "kind": "feature_time",
+      "unit": "minutes without ads",
+      "amount": 30.0,
+      "duration": "30 minutes from the moment the game is confirmed"
+     },
+     "rank_score": 2.0
+    },
+    {
+     "id": "c02",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Heavy readers can play once to hide sponsored stories for 30 minutes",
+     "offer_copy": "You've read 5 stories today. Play a short game to hide sponsored stories for the next 30 minutes.",
+     "reward": {
+      "kind": "feature_time",
+      "unit": "minutes without sponsored stories",
+      "amount": 30.0,
+      "duration": "30 minutes from the verified play"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c04",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Keep your reading streak after a missed day",
+     "offer_copy": "You missed yesterday. Play one short game to keep your 9-day reading streak. This save is available until midnight tonight.",
+     "reward": {
+      "kind": "streak_protection",
+      "unit": "streak save",
+      "amount": 1.0,
+      "duration": "covers 1 missed day; offer valid until midnight local time"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c03",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Play once to try a new reading theme for a week",
+     "offer_copy": "Play a short game to use the Night reading theme on every article for 7 days.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "reading theme",
+      "amount": 1.0,
+      "duration": "7 days"
+     },
+     "rank_score": 0.5
+    }
+   ],
+   "names": {
+    "1": {
+     "c01": "no ads",
+     "c02": "no ads",
+     "c04": "streak save",
+     "c03": "unlocked reading theme"
+    },
+    "2": {
+     "c01": "no ads",
+     "c02": "no ads",
+     "c04": "streak save",
+     "c03": "new reading theme"
+    }
+   },
+   "pairs": [
+    {
+     "a": "c01",
+     "b": "c02",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    }
+   ]
+  },
+  {
+   "app": "aol",
+   "run": "20260928-023957-c66428e-fixture",
+   "candidates": [
+    {
+     "id": "c02",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Heavy readers play one short game for 30 minutes without sponsored stories",
+     "offer_copy": "Reading a lot today? Play a short sponsored game and read with no sponsored stories in your feed or articles for 30 minutes.",
+     "reward": {
+      "kind": "feature_time",
+      "unit": "minutes without sponsored stories",
+      "amount": 30.0,
+      "duration": "30 minutes from the moment the game is verified"
+     },
+     "rank_score": 2.0
+    },
+    {
+     "id": "c01",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Play one short game to read with no sponsored cards for 20 minutes",
+     "offer_copy": "Tired of sponsored stories? Play a short game and read with no sponsored cards for the next 20 minutes. No thanks keeps everything as it is.",
+     "reward": {
+      "kind": "feature_time",
+      "unit": "ad-free reading minutes",
+      "amount": 20.0,
+      "duration": "20 minutes from the moment the reward is confirmed"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c04",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Repair a broken reading streak when a lapsed reader comes back",
+     "offer_copy": "Your 6-day reading streak slipped while you were away. Play a short sponsored game to repair it, and your streak continues today as day 7. Repair available until midnight.",
+     "reward": {
+      "kind": "streak_protection",
+      "unit": "streak repair",
+      "amount": 1.0,
+      "duration": "Restores the streak permanently; the repair offer lasts until midnight local time on the day of return"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c03",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Unlock a warm sepia reading page for 7 days from the text size menu",
+     "offer_copy": "Try the sepia reading page: play a short sponsored game and read every article on a warm, easy-on-the-eyes page for 7 days.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "sepia reading page",
+      "amount": 1.0,
+      "duration": "7 days"
+     },
+     "rank_score": 0.5
+    }
+   ],
+   "names": {
+    "1": {
+     "c02": "no sponsored stories",
+     "c01": "no sponsored cards",
+     "c04": "streak repair",
+     "c03": "sepia reading page"
+    },
+    "2": {
+     "c02": "no sponsored stories",
+     "c01": "no sponsored stories",
+     "c04": "streak repaired",
+     "c03": "sepia reading page"
+    }
+   },
+   "pairs": [
+    {
+     "a": "c02",
+     "b": "c01",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    }
+   ]
+  },
+  {
+   "app": "aol",
+   "run": "20260928-024804-c6eda8d-fixture",
+   "candidates": [
+    {
+     "id": "c01",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Fill the empty feed ad spot with a choice: play once, read without sponsored stories for 15 minutes",
+     "offer_copy": "Play a short sponsored game to read with no sponsored stories for 15 minutes.",
+     "reward": {
+      "kind": "feature_time",
+      "unit": "minutes without sponsored stories",
+      "amount": 15.0,
+      "duration": "15 minutes from when the game ends"
+     },
+     "rank_score": 2.0
+    },
+    {
+     "id": "c03",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Save your reading streak after a missed day",
+     "offer_copy": "You missed yesterday. Play a short sponsored game to keep your 12-day reading streak. This covers 1 missed day.",
+     "reward": {
+      "kind": "streak_protection",
+      "unit": "missed day",
+      "amount": 1.0,
+      "duration": "covers the 1 day just missed"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c05",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Keep your reading streak after a missed day",
+     "offer_copy": "You missed a day. Play a short game to keep your 12-day reading streak. The offer lasts until midnight today.",
+     "reward": {
+      "kind": "streak_protection",
+      "unit": "reading streak",
+      "amount": 1.0,
+      "duration": "One restore that fills the missed days and keeps the streak going from today"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c06",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Welcome back: 10 minutes of the feed without ad cards",
+     "offer_copy": "Welcome back. Play a short game and read with no sponsored stories for the next 10 minutes.",
+     "reward": {
+      "kind": "feature_time",
+      "unit": "ad-free minutes",
+      "amount": 10.0,
+      "duration": "10 minutes starting when the reward lands"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c02",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Night and Sepia reading styles for 24 hours from the font-size menu",
+     "offer_copy": "Play a short sponsored game to use Night and Sepia reading styles for 24 hours.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "reading styles",
+      "amount": 2.0,
+      "duration": "24 hours"
+     },
+     "rank_score": 0.5
+    },
+    {
+     "id": "c04",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Try a new reading color theme for 7 days",
+     "offer_copy": "Play a short sponsored game to unlock the sepia and night reading themes for 7 days.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "reading theme",
+      "amount": 2.0,
+      "duration": "7 days"
+     },
+     "rank_score": 0.5
+    }
+   ],
+   "names": {
+    "1": {
+     "c01": "no sponsored stories",
+     "c03": "reading streak saved",
+     "c05": "reading streak saved",
+     "c06": "no sponsored stories",
+     "c02": "night and sepia reading styles",
+     "c04": "night and sepia reading styles"
+    },
+    "2": {
+     "c01": "no sponsored stories",
+     "c03": "reading streak saved",
+     "c05": "reading streak saved",
+     "c06": "no sponsored stories",
+     "c02": "night and sepia reading styles",
+     "c04": "night and sepia reading styles"
+    }
+   },
+   "pairs": [
+    {
+     "a": "c01",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c06",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c05",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c05",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c05",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c05",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c06",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c06",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c04",
+     "label": "SAME",
+     "judgment_call": false
+    }
+   ]
+  },
+  {
+   "app": "janitorai",
+   "run": "20260928-004700-b4b8047-fixture",
+   "candidates": [
+    {
+     "id": "c01",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Watch to unlock a character preview with extended context",
+     "offer_copy": "Watch a quick game to unlock a 24-hour preview of this character's full personality and memory\u2014see how they respond to your style before subscribing.",
+     "reward": {
+      "kind": "feature_time",
+      "unit": "hours",
+      "amount": 24.0,
+      "duration": "24 hours"
+     },
+     "rank_score": 3.0
+    },
+    {
+     "id": "c07",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Watch to Boost a Hidden Gem's Visibility",
+     "offer_copy": "Watch to give this creator a visibility boost. Your play helps them reach more people for 48 hours.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "visibility boost",
+      "amount": 1.0,
+      "duration": "48 hours on creator's characters"
+     },
+     "rank_score": 2.0
+    },
+    {
+     "id": "c02",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Watch to restore monthly swipes on frontier models",
+     "offer_copy": "Out of swipes this month? Watch a quick game to get 3 more swipes on frontier models today\u2014or upgrade to Janitor+ for unlimited.",
+     "reward": {
+      "kind": "feature_time",
+      "unit": "swipes",
+      "amount": 3.0,
+      "duration": "until midnight local time"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c04",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Earn extra swipes on frontier models with a sponsored playable",
+     "offer_copy": "Watch a sponsored game to earn 1 extra swipe on frontier models today.",
+     "reward": {
+      "kind": "currency",
+      "unit": "swipe",
+      "amount": 1.0,
+      "duration": "24 hours"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c06",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Daily Comeback Bonus: Free Swipes on Return",
+     "offer_copy": "Welcome back! Play a quick game to get 2 bonus swipes today.",
+     "reward": {
+      "kind": "currency",
+      "unit": "swipes",
+      "amount": 2.0,
+      "duration": "24 hours"
+     },
+     "rank_score": 1.0
+    }
+   ],
+   "names": {
+    "1": {
+     "c01": "character preview access",
+     "c07": "creator visibility boost",
+     "c02": "extra frontier model swipes",
+     "c04": "extra frontier model swipes",
+     "c06": "extra frontier model swipes"
+    },
+    "2": {
+     "c01": "character preview access",
+     "c07": "creator visibility boost",
+     "c02": "extra swipes",
+     "c04": "extra swipes",
+     "c06": "extra swipes"
+    }
+   },
+   "pairs": [
+    {
+     "a": "c01",
+     "b": "c07",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c07",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c07",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c07",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c04",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c06",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c06",
+     "label": "SAME",
+     "judgment_call": false
+    }
+   ]
+  },
+  {
+   "app": "janitorai",
+   "run": "20260928-005048-b4b8047-fixture",
+   "candidates": [
+    {
+     "id": "c01",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Said no to janitor+? Try faster replies for 30 minutes",
+     "offer_copy": "Not ready for janitor+? Play a short game and get faster replies for the next 30 minutes. Free, once a day.",
+     "reward": {
+      "kind": "queue_priority",
+      "unit": "minutes of priority reply routing",
+      "amount": 30.0,
+      "duration": "30 minutes from when the reward lands"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c04",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Welcome back: faster replies for your first return chat",
+     "offer_copy": "Welcome back! Play a short game to get faster replies for 30 minutes.",
+     "reward": {
+      "kind": "queue_priority",
+      "unit": "minutes of priority reply routing",
+      "amount": 30.0,
+      "duration": "30 minutes from when it lands"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c05",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Said 'Not now' on return? Wear the golden checkmark for a day",
+     "offer_copy": "Not ready for janitor+? Play a short game to wear the golden checkmark for 24 hours.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "golden checkmark next to username",
+      "amount": 1.0,
+      "duration": "24 hours"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c06",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Boost a smaller creator you chat with",
+     "offer_copy": "Help this creator get found. Play a short game to feature their character as a Fan pick in Hidden Gems for 24 hours, and get a Gem Scout badge on your profile for 7 days.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "Gem Scout profile badge plus a 24-hour Fan pick spotlight for the creator's character",
+      "amount": 1.0,
+      "duration": "badge 7 days; spotlight 24 hours"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c07",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Said Not now? Faster replies with Hidden Gems characters for a day",
+     "offer_copy": "No problem. Play a short game to get faster replies in your next 20 messages with Hidden Gems characters from smaller creators, for 24 hours.",
+     "reward": {
+      "kind": "queue_priority",
+      "unit": "priority-routed replies in chats with Hidden Gems characters",
+      "amount": 20.0,
+      "duration": "24 hours"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c02",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Backed out of Upgrade? Earn 3 swipes with the best models today",
+     "offer_copy": "Play a short game and get 3 swipes with our frontier models. Use them any time until midnight tonight.",
+     "reward": {
+      "kind": "inference",
+      "unit": "frontier-model swipes (regenerated replies)",
+      "amount": 3.0,
+      "duration": "until midnight local time today"
+     },
+     "rank_score": 0.5
+    }
+   ],
+   "names": {
+    "1": {
+     "c01": "faster replies",
+     "c04": "faster replies",
+     "c05": "golden checkmark",
+     "c06": "creator spotlight and profile badge",
+     "c07": "faster replies with Hidden Gems characters",
+     "c02": "frontier-model swipes"
+    },
+    "2": {
+     "c01": "faster replies",
+     "c04": "faster replies",
+     "c05": "golden checkmark",
+     "c06": "gem scout spotlight boost",
+     "c07": "faster replies with hidden gems characters",
+     "c02": "frontier-model swipes"
+    }
+   },
+   "pairs": [
+    {
+     "a": "c01",
+     "b": "c04",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c07",
+     "label": "SAME",
+     "judgment_call": true
+    },
+    {
+     "a": "c01",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c07",
+     "label": "SAME",
+     "judgment_call": true
+    },
+    {
+     "a": "c04",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c05",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c05",
+     "b": "c07",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c05",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c06",
+     "b": "c07",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c06",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c07",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    }
+   ]
+  },
+  {
+   "app": "janitorai",
+   "run": "20260928-005811-b4b8047-fixture",
+   "candidates": [
+    {
+     "id": "c01",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Said no to janitor+? Try faster replies for 30 minutes",
+     "offer_copy": "Not ready for janitor+? Play a short game and get faster replies for the next 30 minutes. Free, once a day.",
+     "reward": {
+      "kind": "queue_priority",
+      "unit": "minutes of priority reply routing",
+      "amount": 30.0,
+      "duration": "30 minutes from when the reward lands"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c03",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Spotlight a Hidden Gem you love",
+     "offer_copy": "Love this find? Play a short sponsored game to put this character in the Hidden Gems Fan spotlight for 24 hours. Your name shows as a supporter on the creator's page for 7 days.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "Fan spotlight placement for one character plus a supporter credit",
+      "amount": 1.0,
+      "duration": "24 hours in the spotlight; supporter credit for 7 days"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c04",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Welcome back: faster replies for your first return chat",
+     "offer_copy": "Welcome back! Play a short game to get faster replies for 30 minutes.",
+     "reward": {
+      "kind": "queue_priority",
+      "unit": "minutes of priority reply routing",
+      "amount": 30.0,
+      "duration": "30 minutes from when it lands"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c05",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Said 'Not now' on return? Wear the golden checkmark for a day",
+     "offer_copy": "Not ready for janitor+? Play a short game to wear the golden checkmark for 24 hours.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "golden checkmark next to username",
+      "amount": 1.0,
+      "duration": "24 hours"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c06",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Boost a smaller creator you chat with",
+     "offer_copy": "Help this creator get found. Play a short game to feature their character as a Fan pick in Hidden Gems for 24 hours, and get a Gem Scout badge on your profile for 7 days.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "Gem Scout profile badge plus a 24-hour Fan pick spotlight for the creator's character",
+      "amount": 1.0,
+      "duration": "badge 7 days; spotlight 24 hours"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c07",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Said Not now? Faster replies with Hidden Gems characters for a day",
+     "offer_copy": "No problem. Play a short game to get faster replies in your next 20 messages with Hidden Gems characters from smaller creators, for 24 hours.",
+     "reward": {
+      "kind": "queue_priority",
+      "unit": "priority-routed replies in chats with Hidden Gems characters",
+      "amount": 20.0,
+      "duration": "24 hours"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c02",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Backed out of Upgrade? Earn 3 swipes with the best models today",
+     "offer_copy": "Play a short game and get 3 swipes with our frontier models. Use them any time until midnight tonight.",
+     "reward": {
+      "kind": "inference",
+      "unit": "frontier-model swipes (regenerated replies)",
+      "amount": 3.0,
+      "duration": "until midnight local time today"
+     },
+     "rank_score": 0.5
+    }
+   ],
+   "names": {
+    "1": {
+     "c01": "faster replies",
+     "c03": "Fan spotlight for character",
+     "c04": "faster replies",
+     "c05": "golden checkmark",
+     "c06": "Gem Scout badge and spotlight",
+     "c07": "faster replies with Hidden Gems characters",
+     "c02": "frontier-model swipes"
+    },
+    "2": {
+     "c01": "faster replies",
+     "c03": "fan spotlight and supporter credit",
+     "c04": "faster replies",
+     "c05": "golden checkmark",
+     "c06": "gem scout badge and spotlight",
+     "c07": "faster replies with Hidden Gems characters",
+     "c02": "frontier-model swipes"
+    }
+   },
+   "pairs": [
+    {
+     "a": "c01",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c04",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c07",
+     "label": "SAME",
+     "judgment_call": true
+    },
+    {
+     "a": "c01",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c06",
+     "label": "SAME",
+     "judgment_call": true
+    },
+    {
+     "a": "c03",
+     "b": "c07",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c07",
+     "label": "SAME",
+     "judgment_call": true
+    },
+    {
+     "a": "c04",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c05",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c05",
+     "b": "c07",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c05",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c06",
+     "b": "c07",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c06",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c07",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    }
+   ]
+  },
+  {
+   "app": "janitorai",
+   "run": "20260928-012327-6470f91-fixture",
+   "candidates": [
+    {
+     "id": "c01",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Said 'Not now' to Janitor+? Play a short game for 30 minutes of faster replies",
+     "offer_copy": "Not ready for janitor+? Play a short sponsored game and get priority routing for faster replies for 30 minutes, free.",
+     "reward": {
+      "kind": "queue_priority",
+      "unit": "minutes of priority routing",
+      "amount": 30.0,
+      "duration": "30 minutes from when the reward lands"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c02",
+     "for_users": "paying",
+     "grants_id": null,
+     "title": "Five extra frontier swipes when a subscriber's monthly allowance runs out",
+     "offer_copy": "You've used this month's frontier swipes. Play a short game to get 5 more frontier swipes, good until midnight today.",
+     "reward": {
+      "kind": "inference",
+      "unit": "frontier-model swipes",
+      "amount": 5.0,
+      "duration": "until midnight local time today"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c03",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Feature a favorite small creator's character in Hidden Gems for 24 hours",
+     "offer_copy": "Play a short game to feature this character in Hidden Gems Fan Picks for 24 hours. Your name shows as a supporter.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "Fan Picks feature slot with supporter credit",
+      "amount": 1.0,
+      "duration": "24 hours"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c04",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Welcome-back boost: faster replies when you return to your chat",
+     "offer_copy": "Welcome back. Play a short game to get faster replies for 30 minutes as you pick up your story.",
+     "reward": {
+      "kind": "queue_priority",
+      "unit": "minutes of priority routing",
+      "amount": 30.0,
+      "duration": "30 minutes from when the reward lands"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c05",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Put a Hidden Gem you chat with in the Fan Spotlight",
+     "offer_copy": "Help a smaller creator: play a short sponsored game to put this character in the Hidden Gems Fan Spotlight for 24 hours. You get a Gem Supporter badge on your profile for 7 days.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "Gem Supporter profile badge for the fan, plus one Fan Spotlight placement for the character",
+      "amount": 1.0,
+      "duration": "Badge for 7 days; spotlight for 24 hours"
+     },
+     "rank_score": 1.0
+    }
+   ],
+   "names": {
+    "1": {
+     "c01": "faster replies",
+     "c02": "extra frontier swipes",
+     "c03": "Fan Picks feature slot",
+     "c04": "faster replies",
+     "c05": "Fan Spotlight placement with supporter badge"
+    },
+    "2": {
+     "c01": "faster reply speed",
+     "c02": "extra frontier swipes",
+     "c03": "character feature placement",
+     "c04": "faster reply speed",
+     "c05": "supporter badge and character feature"
+    }
+   },
+   "pairs": [
+    {
+     "a": "c01",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c04",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c05",
+     "label": "SAME",
+     "judgment_call": true
+    },
+    {
+     "a": "c04",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    }
+   ]
+  },
+  {
+   "app": "janitorai",
+   "run": "20260928-020105-d819f4d-fixture",
+   "candidates": [
+    {
+     "id": "c03",
+     "for_users": "paying",
+     "grants_id": null,
+     "title": "Subscribers who use up their monthly frontier-model swipes can play for 3 more today",
+     "offer_copy": "You've used this month's better-model rerolls. Play a short game to get 3 more rerolls on the better model, good until midnight tonight.",
+     "reward": {
+      "kind": "inference",
+      "unit": "frontier-model swipes (rerolled replies)",
+      "amount": 3.0,
+      "duration": "until midnight local time the same day"
+     },
+     "rank_score": 2.0
+    },
+    {
+     "id": "c01",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Said no to Janitor+? Play once for an hour of faster replies",
+     "offer_copy": "Not ready for Janitor+? Play a short sponsored game and get faster replies for the next 60 minutes. Free, once a day.",
+     "reward": {
+      "kind": "queue_priority",
+      "unit": "minutes of priority routing (faster replies)",
+      "amount": 60.0,
+      "duration": "60 minutes from the moment it is granted"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c04",
+     "for_users": "paying",
+     "grants_id": null,
+     "title": "Subscribers can play to feature a small creator's new character at the top of Hidden Gems for a day",
+     "offer_copy": "Enjoying this new character? Play a short game to show it in the first row of Hidden Gems for 24 hours, with your name and golden checkmark credited as a supporter for 30 days.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "featured spot in the first row of Hidden Gems plus a supporter credit",
+      "amount": 1.0,
+      "duration": "24 hours featured; credit shown for 30 days"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c06",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Faster replies for your first return visit",
+     "offer_copy": "Welcome back! Play a short game and your next 20 replies arrive faster, today only.",
+     "reward": {
+      "kind": "queue_priority",
+      "unit": "replies sent with priority routing",
+      "amount": 20.0,
+      "duration": "until midnight local time"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c07",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "After 'Not now' on Janitor+, back a new creator and wear the golden checkmark for a day",
+     "offer_copy": "Not ready for Janitor+? Play a short game to put a new creator's character at the top of Hidden Gems for 24 hours. You get the golden checkmark next to your username for 24 hours too.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "golden checkmark next to username, plus a top spot in Hidden Gems for the chosen creator's character",
+      "amount": 1.0,
+      "duration": "24 hours"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c08",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "At the end of Trending, lift a new creator into Hidden Gems and get credited on their card",
+     "offer_copy": "You've reached the end of Trending. Play a short game to lift a new creator's character to the top of Hidden Gems for 24 hours. Your username shows as a backer on their card for 7 days.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "backer credit with the user's username on the chosen character's card, plus a top Hidden Gems spot for that character",
+      "amount": 1.0,
+      "duration": "credit 7 days; top spot 24 hours"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c02",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Try the golden checkmark on your profile for a day",
+     "offer_copy": "Play a short sponsored game to show the golden checkmark next to your username for 24 hours. Once a day.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "golden checkmark next to username",
+      "amount": 1.0,
+      "duration": "24 hours"
+     },
+     "rank_score": 0.5
+    },
+    {
+     "id": "c05",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Pick an old story back up with longer memory",
+     "offer_copy": "Welcome back to this story. Play a short game and this chat remembers 5\u00d7 more for your next 5 replies today.",
+     "reward": {
+      "kind": "inference",
+      "unit": "replies with 5\u00d7 memory in the chosen chat",
+      "amount": 5.0,
+      "duration": "until midnight local time or 5 replies, whichever comes first"
+     },
+     "rank_score": 1.0
+    }
+   ],
+   "names": {
+    "1": {
+     "c03": "extra frontier-model rerolls",
+     "c01": "faster replies",
+     "c04": "featured character spot with supporter credit",
+     "c06": "faster replies",
+     "c07": "golden checkmark and featured character spot",
+     "c08": "backer credit with featured character spot",
+     "c02": "golden checkmark",
+     "c05": "expanded chat memory"
+    },
+    "2": {
+     "c03": "extra frontier-model rerolls",
+     "c01": "faster replies",
+     "c04": "featured character plus supporter credit",
+     "c06": "faster replies",
+     "c07": "golden checkmark plus featured character",
+     "c08": "backer credit plus featured character",
+     "c02": "golden checkmark",
+     "c05": "extended chat memory"
+    }
+   },
+   "pairs": [
+    {
+     "a": "c03",
+     "b": "c01",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c07",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c08",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c06",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c07",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c08",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c07",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c08",
+     "label": "SAME",
+     "judgment_call": true
+    },
+    {
+     "a": "c04",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c06",
+     "b": "c07",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c06",
+     "b": "c08",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c06",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c06",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c07",
+     "b": "c02",
+     "label": "SAME",
+     "judgment_call": true
+    },
+    {
+     "a": "c07",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c08",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c08",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    }
+   ]
+  },
+  {
+   "app": "janitorai",
+   "run": "20260928-022235-ef4bf27-fixture",
+   "candidates": [
+    {
+     "id": "c01",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "After saying no to Janitor+, play once for an hour of faster replies",
+     "offer_copy": "Not today? Play a short game and get faster replies for 1 hour, the same fast lane Janitor+ members use.",
+     "reward": {
+      "kind": "queue_priority",
+      "unit": "priority routing",
+      "amount": 1.0,
+      "duration": "1 hour from when the game is verified"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c02",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Play once for 3 swipes on the better model, from the Upgrade menu",
+     "offer_copy": "Play a short game to get 3 swipes on our frontier models, good until midnight. A swipe gives you a fresh take on a character's reply.",
+     "reward": {
+      "kind": "inference",
+      "unit": "swipes",
+      "amount": 3.0,
+      "duration": "until midnight local time"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c04",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Put your new character at the top of Hidden Gems for a day",
+     "offer_copy": "Play a short game to show your character in the first row of Hidden Gems for 24 hours.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "Hidden Gems spot",
+      "amount": 1.0,
+      "duration": "24 hours"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c05",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Welcome back: longer memory for the chat you left behind",
+     "offer_copy": "Welcome back. Play a short game to give this chat 5\u00d7 memory for your next 5 replies, good for 24 hours.",
+     "reward": {
+      "kind": "inference",
+      "unit": "replies with 5\u00d7 context",
+      "amount": 5.0,
+      "duration": "24 hours or until the 5 replies are used"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c07",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Help a new character you chat with get seen in Hidden Gems",
+     "offer_copy": "Help this new character get found. Play a short game to move it near the top of Hidden Gems for 24 hours, and get a Supporter mark on your profile for 7 days.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "Supporter mark",
+      "amount": 1.0,
+      "duration": "7 days (character boost lasts 24 hours)"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c03",
+     "for_users": "paying",
+     "grants_id": null,
+     "title": "Extra frontier swipes for Janitor+ members who used up this month's allowance",
+     "offer_copy": "You've used this month's frontier swipes. Play a short game to get 5 more swipes on the frontier models. A swipe is a fresh new version of a reply. Good until midnight today.",
+     "reward": {
+      "kind": "inference",
+      "unit": "swipes",
+      "amount": 5.0,
+      "duration": "until midnight local time today"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c06",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Returning user says Not now to Janitor+: faster replies for an hour",
+     "offer_copy": "Welcome back. Play a short game and your replies skip ahead in line for the next 60 minutes.",
+     "reward": {
+      "kind": "queue_priority",
+      "unit": "priority routing",
+      "amount": 1.0,
+      "duration": "60 minutes"
+     },
+     "rank_score": 1.0
+    }
+   ],
+   "names": {
+    "1": {
+     "c01": "faster reply queue priority",
+     "c02": "frontier model swipes",
+     "c04": "Hidden Gems featured spot",
+     "c05": "extended chat memory",
+     "c07": "Hidden Gems featured spot",
+     "c03": "frontier model swipes",
+     "c06": "faster reply queue priority"
+    },
+    "2": {
+     "c01": "faster reply routing",
+     "c02": "frontier model swipes",
+     "c04": "featured Hidden Gems spot",
+     "c05": "extended chat memory",
+     "c07": "featured Hidden Gems spot",
+     "c07b": "Supporter profile mark",
+     "c03": "frontier model swipes",
+     "c06": "faster reply routing"
+    }
+   },
+   "pairs": [
+    {
+     "a": "c01",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c07",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c06",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c07",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c05",
+     "b": "c07",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c05",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c05",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c07",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c07",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    }
+   ]
+  },
+  {
+   "app": "janitorai",
+   "run": "20260928-023505-c66428e-fixture",
+   "candidates": [
+    {
+     "id": "c01",
+     "for_users": "free",
+     "grants_id": "l02",
+     "title": "Said no to Janitor+? Play once for 30 minutes of faster replies",
+     "offer_copy": "Not ready for Janitor+? Play a short game and get faster replies for the next 30 minutes.",
+     "reward": {
+      "kind": "queue_priority",
+      "unit": "priority routing",
+      "amount": 30.0,
+      "duration": "30 minutes from the moment it is granted"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c04",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Creators can play to show their new character first in Hidden Gems for a day",
+     "offer_copy": "Play a short game to show your character first in Hidden Gems for 24 hours.",
+     "reward": {
+      "kind": "queue_priority",
+      "unit": "Hidden Gems spot",
+      "amount": 1.0,
+      "duration": "24 hours"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c05",
+     "for_users": "free",
+     "grants_id": "l01",
+     "title": "Welcome back: longer memory when you reopen an old chat",
+     "offer_copy": "Welcome back! Play a short game and your character remembers 5\u00d7 more of your story for your next 5 replies today.",
+     "reward": {
+      "kind": "inference",
+      "unit": "messages with 5\u00d7 context",
+      "amount": 5.0,
+      "duration": "next 5 replies, until midnight local time"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c07",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Boost a small creator's character you chat with, and wear a supporter badge",
+     "offer_copy": "Enjoying this character? Play a short game to show it in the top row of Hidden Gems for 24 hours, so more people find its creator. You get a supporter badge on your profile for 7 days.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "supporter badge",
+      "amount": 1.0,
+      "duration": "7 days (the character's top-row spot lasts 24 hours)"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c02",
+     "for_users": "free",
+     "grants_id": "l04",
+     "title": "Left the upgrade page without buying? Play once to wear the golden checkmark for a day",
+     "offer_copy": "Try the Janitor+ golden checkmark: play a short game and it shows next to your username for 24 hours.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "golden checkmark",
+      "amount": 1.0,
+      "duration": "24 hours"
+     },
+     "rank_score": 0.5
+    },
+    {
+     "id": "c06",
+     "for_users": "free",
+     "grants_id": "l02",
+     "title": "Welcome back: an hour of faster replies after saying not now",
+     "offer_copy": "Welcome back! Play a short game for faster replies for the next 60 minutes.",
+     "reward": {
+      "kind": "queue_priority",
+      "unit": "priority routing",
+      "amount": 60.0,
+      "duration": "60 minutes from the moment it lands"
+     },
+     "rank_score": 1.0
+    }
+   ],
+   "names": {
+    "1": {
+     "c01": "faster replies",
+     "c04": "featured spot in Hidden Gems",
+     "c05": "longer memory replies",
+     "c07": "supporter badge",
+     "c02": "golden checkmark",
+     "c06": "faster replies"
+    },
+    "2": {
+     "c01": "faster replies",
+     "c04": "featured spot in Hidden Gems",
+     "c05": "extended chat memory",
+     "c07": "supporter badge",
+     "c02": "golden checkmark",
+     "c06": "faster replies"
+    }
+   },
+   "pairs": [
+    {
+     "a": "c01",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c07",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c06",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c05",
+     "b": "c07",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c05",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c05",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c07",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c07",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    }
+   ]
+  },
+  {
+   "app": "janitorai",
+   "run": "20260928-024508-c6eda8d-fixture",
+   "candidates": [
+    {
+     "id": "c01",
+     "for_users": "free",
+     "grants_id": "l04",
+     "title": "Said no to Janitor+? Play once to wear the golden checkmark for a day",
+     "offer_copy": "Not ready for Janitor+? Play a short game and get the golden checkmark next to your username for 24 hours.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "golden checkmark",
+      "amount": 1.0,
+      "duration": "24 hours"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c02",
+     "for_users": "free",
+     "grants_id": "l02",
+     "title": "Backed out of Upgrade? Play once for 30 minutes of faster replies",
+     "offer_copy": "Want to try faster replies first? Play a short game to get priority routing for the next 30 minutes.",
+     "reward": {
+      "kind": "queue_priority",
+      "unit": "priority routing",
+      "amount": 1.0,
+      "duration": "30 minutes"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c03",
+     "for_users": "paying",
+     "grants_id": null,
+     "title": "Put a small creator's character first in Hidden Gems for a day",
+     "offer_copy": "Play a short game to show Kang Jun-Seo first in Hidden Gems for 24 hours, with your name and golden checkmark as the supporter.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "Hidden Gems boost",
+      "amount": 1.0,
+      "duration": "24 hours"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c04",
+     "for_users": "paying",
+     "grants_id": null,
+     "title": "A gold profile frame for a day, next to the golden checkmark",
+     "offer_copy": "Play a short game to add a gold frame around your profile and username for 24 hours, next to your golden checkmark.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "gold profile frame",
+      "amount": 1.0,
+      "duration": "24 hours"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c07",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Boost a small creator's character from My Chats and wear a supporter badge",
+     "offer_copy": "Enjoying this new character? Play a short game to put it in the first row of Hidden Gems for 24 hours and help its creator get found. You get a supporter badge on your profile for 7 days.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "supporter badge",
+      "amount": 1.0,
+      "duration": "7 days for the badge; 24 hours in the first row of Hidden Gems for the character"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c05",
+     "for_users": "free",
+     "grants_id": "l02",
+     "title": "Welcome-back faster replies for the chat you left behind",
+     "offer_copy": "Welcome back! Play a short game to get priority routing for faster replies for the next 30 minutes.",
+     "reward": {
+      "kind": "queue_priority",
+      "unit": "priority routing",
+      "amount": 1.0,
+      "duration": "30 minutes"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c06",
+     "for_users": "free",
+     "grants_id": "l04",
+     "title": "Try the golden checkmark for 3 days after saying 'Not now'",
+     "offer_copy": "No problem. Want to try the golden checkmark? Play a short game to show it next to your username for 3 days.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "golden checkmark",
+      "amount": 1.0,
+      "duration": "3 days"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c08",
+     "for_users": "free",
+     "grants_id": "l04",
+     "title": "After saying Not now to Janitor+, try the golden checkmark for a day and boost a new character",
+     "offer_copy": "Not ready for Janitor+? Play a short game to wear the golden checkmark next to your username for 24 hours. Your play also moves a new character from a smaller creator up in Hidden Gems for 24 hours.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "golden checkmark",
+      "amount": 1.0,
+      "duration": "24 hours"
+     },
+     "rank_score": 1.0
+    }
+   ],
+   "names": {
+    "1": {
+     "c01": "golden checkmark",
+     "c02": "faster replies",
+     "c03": "Hidden Gems boost",
+     "c04": "gold profile frame",
+     "c07": "supporter badge",
+     "c05": "faster replies",
+     "c06": "golden checkmark",
+     "c08": "golden checkmark"
+    },
+    "2": {
+     "c01": "golden checkmark",
+     "c02": "faster replies",
+     "c03": "Hidden Gems boost",
+     "c04": "gold profile frame",
+     "c07": "supporter badge",
+     "c05": "faster replies",
+     "c06": "golden checkmark",
+     "c08": "golden checkmark"
+    }
+   },
+   "pairs": [
+    {
+     "a": "c01",
+     "b": "c02",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c07",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c06",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c08",
+     "label": "SAME",
+     "judgment_call": true
+    },
+    {
+     "a": "c02",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c07",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c05",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c08",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c07",
+     "label": "SAME",
+     "judgment_call": true
+    },
+    {
+     "a": "c03",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c08",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c07",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c08",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c07",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c07",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c05",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c05",
+     "b": "c08",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c06",
+     "b": "c08",
+     "label": "SAME",
+     "judgment_call": true
+    }
+   ]
+  },
+  {
+   "app": "luzia",
+   "run": "20260928-004817-b4b8047-fixture",
+   "candidates": [
+    {
+     "id": "c01",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Watch to extend daily chats",
+     "offer_copy": "You've used your 5 free chats today. Watch a short game to unlock 2 more chats, or upgrade to Luzia Pro for unlimited.",
+     "reward": {
+      "kind": "inference",
+      "unit": "chats",
+      "amount": 2.0,
+      "duration": "until midnight local time"
+     },
+     "rank_score": 2.0
+    },
+    {
+     "id": "c04",
+     "for_users": "paying",
+     "grants_id": null,
+     "title": "Unlock Mini-Apps Faster: One Ad, One New Creation Slot",
+     "offer_copy": "Create one more AI expert today. Watch a quick game and unlock a bonus creation slot for 24 hours.",
+     "reward": {
+      "kind": "feature_time",
+      "unit": "creation slots",
+      "amount": 1.0,
+      "duration": "24 hours, resets at midnight local time"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c06",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Daily bonus: earn rewards by returning and caring for Toki",
+     "offer_copy": "Toki is hungry! Play a quick game to earn food and help your pet grow. Claim once per day.",
+     "reward": {
+      "kind": "currency",
+      "unit": "pet care tokens or XP",
+      "amount": 10.0,
+      "duration": "no expiry; permanent"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c05",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Unlock a chat after decline: rewarded taste of subscriber features",
+     "offer_copy": "Unlock one subscriber session\u2014no ads, faster replies\u2014by playing a quick game. Get it for 24 hours.",
+     "reward": {
+      "kind": "feature_time",
+      "unit": "hours",
+      "amount": 24.0,
+      "duration": "24 hours, expires at the time shown"
+     },
+     "rank_score": 0.5
+    }
+   ],
+   "names": {
+    "1": {
+     "c01": "extra daily chats",
+     "c04": "extra creation slot",
+     "c06": "pet care tokens",
+     "c05": "temporary subscriber access"
+    },
+    "2": {
+     "c01": "extra chats",
+     "c04": "extra creation slot",
+     "c06": "pet care tokens",
+     "c05": "temporary subscriber access"
+    }
+   },
+   "pairs": [
+    {
+     "a": "c01",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c06",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    }
+   ]
+  },
+  {
+   "app": "luzia",
+   "run": "20260928-005351-b4b8047-fixture",
+   "candidates": [
+    {
+     "id": "c02",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Play a short game to dress up Toki with a daily outfit",
+     "offer_copy": "Play a quick game to unlock today's Toki outfit. Toki keeps it for 7 days.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "Toki outfit",
+      "amount": 1.0,
+      "duration": "7 days"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c03",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Play a short game to spotlight your mini-app in Create for a day",
+     "offer_copy": "Play a quick game to feature your mini-app in Community spotlight for 24 hours.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "spotlight slot for one of the user's own mini-apps",
+      "amount": 1.0,
+      "duration": "24 hours"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c04",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Welcome-back gift for Toki",
+     "offer_copy": "Welcome back! Play one short game and Toki gets a new scarf to wear for 7 days.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "pet accessory",
+      "amount": 1.0,
+      "duration": "7 days"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c01",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Said no to the paywall? Play a short game to dress up Toki for a week",
+     "offer_copy": "Not today? Play a short sponsored game and Toki gets a free outfit for 7 days.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "Toki outfit",
+      "amount": 1.0,
+      "duration": "7 days"
+     },
+     "rank_score": 0.5
+    },
+    {
+     "id": "c05",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Returning users who close the paywall can try Premium briefly",
+     "offer_copy": "Not ready to subscribe? Play one short game and try Premium free for 30 minutes.",
+     "reward": {
+      "kind": "feature_time",
+      "unit": "minutes of Premium access",
+      "amount": 30.0,
+      "duration": "30 minutes, starting when the game ends"
+     },
+     "rank_score": 0.5
+    }
+   ],
+   "names": {
+    "1": {
+     "c02": "Toki outfit",
+     "c03": "mini-app spotlight slot",
+     "c04": "Toki pet accessory",
+     "c01": "Toki outfit",
+     "c05": "temporary Premium access"
+    },
+    "2": {
+     "c02": "Toki outfit",
+     "c03": "mini-app spotlight slot",
+     "c04": "Toki pet accessory",
+     "c01": "Toki outfit",
+     "c05": "temporary Premium access"
+    }
+   },
+   "pairs": [
+    {
+     "a": "c02",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c04",
+     "label": "SAME",
+     "judgment_call": true
+    },
+    {
+     "a": "c02",
+     "b": "c01",
+     "label": "SAME",
+     "judgment_call": true
+    },
+    {
+     "a": "c02",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c01",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c01",
+     "label": "SAME",
+     "judgment_call": true
+    },
+    {
+     "a": "c04",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    }
+   ]
+  },
+  {
+   "app": "luzia",
+   "run": "20260928-005811-b4b8047-fixture",
+   "candidates": [
+    {
+     "id": "c02",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Play a short game to dress up Toki with a daily outfit",
+     "offer_copy": "Play a quick game to unlock today's Toki outfit. Toki keeps it for 7 days.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "Toki outfit",
+      "amount": 1.0,
+      "duration": "7 days"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c03",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Play a short game to spotlight your mini-app in Create for a day",
+     "offer_copy": "Play a quick game to feature your mini-app in Community spotlight for 24 hours.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "spotlight slot for one of the user's own mini-apps",
+      "amount": 1.0,
+      "duration": "24 hours"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c04",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Welcome-back gift for Toki",
+     "offer_copy": "Welcome back! Play one short game and Toki gets a new scarf to wear for 7 days.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "pet accessory",
+      "amount": 1.0,
+      "duration": "7 days"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c01",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Said no to the paywall? Play a short game to dress up Toki for a week",
+     "offer_copy": "Not today? Play a short sponsored game and Toki gets a free outfit for 7 days.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "Toki outfit",
+      "amount": 1.0,
+      "duration": "7 days"
+     },
+     "rank_score": 0.5
+    },
+    {
+     "id": "c05",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Returning users who close the paywall can try Premium briefly",
+     "offer_copy": "Not ready to subscribe? Play one short game and try Premium free for 30 minutes.",
+     "reward": {
+      "kind": "feature_time",
+      "unit": "minutes of Premium access",
+      "amount": 30.0,
+      "duration": "30 minutes, starting when the game ends"
+     },
+     "rank_score": 0.5
+    }
+   ],
+   "names": {
+    "1": {
+     "c02": "Toki outfit",
+     "c03": "mini-app spotlight slot",
+     "c04": "Toki accessory",
+     "c01": "Toki outfit",
+     "c05": "temporary Premium access"
+    },
+    "2": {
+     "c02": "Toki outfit",
+     "c03": "mini-app spotlight slot",
+     "c04": "Toki pet accessory",
+     "c01": "Toki outfit",
+     "c05": "temporary Premium access"
+    }
+   },
+   "pairs": [
+    {
+     "a": "c02",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c04",
+     "label": "SAME",
+     "judgment_call": true
+    },
+    {
+     "a": "c02",
+     "b": "c01",
+     "label": "SAME",
+     "judgment_call": true
+    },
+    {
+     "a": "c02",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c01",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c01",
+     "label": "SAME",
+     "judgment_call": true
+    },
+    {
+     "a": "c04",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    }
+   ]
+  },
+  {
+   "app": "luzia",
+   "run": "20260928-012606-6470f91-fixture",
+   "candidates": [
+    {
+     "id": "c02",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Out of free character spots? Unlock one more for 3 days",
+     "offer_copy": "You've used your free character spots. Play a short sponsored game to unlock 1 extra character spot for 3 days, or get up to 5 with Luzia+.",
+     "reward": {
+      "kind": "content_unlock",
+      "unit": "extra AI character spot",
+      "amount": 1.0,
+      "duration": "72 hours"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c03",
+     "for_users": "paying",
+     "grants_id": null,
+     "title": "Luzia+ members at the 5-character limit can open a 6th slot for a week",
+     "offer_copy": "You've made all 5 of your characters. Play a short sponsored game to open a 6th character slot for 7 days.",
+     "reward": {
+      "kind": "content_unlock",
+      "unit": "extra AI character slot",
+      "amount": 1.0,
+      "duration": "7 days"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c04",
+     "for_users": "paying",
+     "grants_id": null,
+     "title": "A daily Toki outfit that members can earn with one short game",
+     "offer_copy": "Play a short sponsored game to give Toki 1 new outfit today. It's yours to keep.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "Toki outfit or accessory",
+      "amount": 1.0,
+      "duration": "permanent"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c05",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Welcome-back taste of Advanced reasoning mode",
+     "offer_copy": "Welcome back! Play a short game and get 3 answers in Advanced reasoning mode, free for the next 24 hours.",
+     "reward": {
+      "kind": "inference",
+      "unit": "Advanced reasoning mode answers",
+      "amount": 3.0,
+      "duration": "24 hours"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c06",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Toki's welcome-back gift",
+     "offer_copy": "Toki missed you! Play a short game and Toki gets 1 new accessory to keep forever. 1 gift per day.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "Toki accessory",
+      "amount": 1.0,
+      "duration": "permanent"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c01",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Said no to Luzia+? Try Advanced reasoning for 3 replies",
+     "offer_copy": "Not ready for Luzia+? Play a short sponsored game and get Advanced reasoning mode on your next 3 replies today.",
+     "reward": {
+      "kind": "inference",
+      "unit": "Advanced reasoning replies",
+      "amount": 3.0,
+      "duration": "until used or midnight local time, whichever comes first"
+     },
+     "rank_score": 0.5
+    }
+   ],
+   "names": {
+    "1": {
+     "c02": "extra character slot",
+     "c03": "extra character slot",
+     "c04": "Toki outfit",
+     "c05": "Advanced reasoning answers",
+     "c06": "Toki outfit",
+     "c01": "Advanced reasoning answers"
+    },
+    "2": {
+     "c02": "extra character slot",
+     "c03": "extra character slot",
+     "c04": "Toki outfit",
+     "c05": "Advanced reasoning answers",
+     "c06": "Toki outfit",
+     "c01": "Advanced reasoning answers"
+    }
+   },
+   "pairs": [
+    {
+     "a": "c02",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c01",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c01",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c06",
+     "label": "SAME",
+     "judgment_call": true
+    },
+    {
+     "a": "c04",
+     "b": "c01",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c05",
+     "b": "c06",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c05",
+     "b": "c01",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c06",
+     "b": "c01",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    }
+   ]
+  },
+  {
+   "app": "luzia",
+   "run": "20260928-020443-d819f4d-fixture",
+   "candidates": [
+    {
+     "id": "c02",
+     "for_users": "paying",
+     "grants_id": null,
+     "title": "Luzia+ members at 5 characters can play once to add a 6th for 3 days",
+     "offer_copy": "You've made all 5 of your characters. Play a short sponsored game to build a 6th one and keep it for 3 days.",
+     "reward": {
+      "kind": "content_unlock",
+      "unit": "extra custom character slot",
+      "amount": 1.0,
+      "duration": "3 days"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c03",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Play once to try a sponsored color theme for 24 hours",
+     "offer_copy": "Try the Sunset theme across Luzia for 24 hours. Play one short sponsored game to switch it on.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "color theme",
+      "amount": 1.0,
+      "duration": "24 hours"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c05",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Toki missed you: play a quick game on your return to dress Toki up for a week",
+     "offer_copy": "Toki missed you! Play a quick game to unlock a new outfit for Toki for 7 days.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "Toki outfit",
+      "amount": 1.0,
+      "duration": "7 days"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c01",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Closed the Luzia+ offer? Play once for 3 deeper-thinking answers today",
+     "offer_copy": "Not ready for Luzia+? Play a short sponsored game and get 3 answers in Advanced reasoning mode, where Luzia thinks step by step on harder questions. Good until midnight tonight.",
+     "reward": {
+      "kind": "inference",
+      "unit": "replies in Advanced reasoning mode",
+      "amount": 3.0,
+      "duration": "until midnight local time today"
+     },
+     "rank_score": 0.5
+    }
+   ],
+   "names": {
+    "1": {
+     "c02": "extra character slot",
+     "c03": "sponsored color theme",
+     "c05": "Toki outfit",
+     "c01": "Advanced reasoning answers"
+    },
+    "2": {
+     "c02": "extra character slot",
+     "c03": "sponsored color theme",
+     "c05": "Toki outfit",
+     "c01": "Advanced reasoning answers"
+    }
+   },
+   "pairs": [
+    {
+     "a": "c02",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c01",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c03",
+     "b": "c01",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c05",
+     "b": "c01",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    }
+   ]
+  },
+  {
+   "app": "luzia",
+   "run": "20260928-022542-ef4bf27-fixture",
+   "candidates": [
+    {
+     "id": "c02",
+     "for_users": "paying",
+     "grants_id": null,
+     "title": "A sixth AI character for 3 days, for subscribers who have used all five",
+     "offer_copy": "You've made all 5 of your Luzia+ characters. Play a short sponsored game to open a 6th character slot for 3 days.",
+     "reward": {
+      "kind": "content_unlock",
+      "unit": "AI characters",
+      "amount": 1.0,
+      "duration": "3 days"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c01",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Closed the Luzia+ offer? Play once for 2 deep-thinking answers today",
+     "offer_copy": "Not ready for Luzia+? Play a short sponsored game and get 2 answers in Advanced reasoning mode, yours until midnight today.",
+     "reward": {
+      "kind": "inference",
+      "unit": "Advanced reasoning mode answers",
+      "amount": 2.0,
+      "duration": "until midnight local time today"
+     },
+     "rank_score": 0.5
+    },
+    {
+     "id": "c03",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Returning user closes the Luzia+ page: play once for 3 answers in Advanced reasoning mode today",
+     "offer_copy": "Welcome back! Not ready for Luzia+? Play a short game and get 3 answers in Advanced reasoning mode, good until midnight today.",
+     "reward": {
+      "kind": "inference",
+      "unit": "Advanced reasoning mode answers",
+      "amount": 3.0,
+      "duration": "until midnight local time today"
+     },
+     "rank_score": 0.5
+    }
+   ],
+   "names": {
+    "1": {
+     "c02": "extra character slot",
+     "c01": "Advanced reasoning answers",
+     "c03": "Advanced reasoning answers"
+    },
+    "2": {
+     "c02": "extra character slot",
+     "c01": "Advanced reasoning answers",
+     "c03": "Advanced reasoning answers"
+    }
+   },
+   "pairs": [
+    {
+     "a": "c02",
+     "b": "c01",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c03",
+     "label": "SAME",
+     "judgment_call": false
+    }
+   ]
+  },
+  {
+   "app": "luzia",
+   "run": "20260928-024226-c66428e-fixture",
+   "candidates": [
+    {
+     "id": "c02",
+     "for_users": "paying",
+     "grants_id": "l05",
+     "title": "A sixth character slot for 3 days when a subscriber has used all five",
+     "offer_copy": "You've made all 5 of your AI characters. Play a short game to add a 6th character slot for 3 days.",
+     "reward": {
+      "kind": "content_unlock",
+      "unit": "AI characters",
+      "amount": 1.0,
+      "duration": "3 days"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c04",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Welcome-back card: play a short game to wear a new app color theme for 7 days",
+     "offer_copy": "Welcome back! Play a short game and get a new color theme for Luzia for 7 days.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "theme",
+      "amount": 1.0,
+      "duration": "7 days"
+     },
+     "rank_score": 1.0
+    },
+    {
+     "id": "c01",
+     "for_users": "free",
+     "grants_id": null,
+     "title": "Closed the Luzia+ offer? Play a short game for a new color theme",
+     "offer_copy": "Not ready for Luzia+? Play a short sponsored game and unlock a new color theme for the whole app for 3 days.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "color theme",
+      "amount": 1.0,
+      "duration": "3 days"
+     },
+     "rank_score": 0.5
+    },
+    {
+     "id": "c05",
+     "for_users": "everyone",
+     "grants_id": null,
+     "title": "Toki's welcome-back gift: play a short game and Toki starts with an outfit for 7 days",
+     "offer_copy": "Welcome back! Play a short game and Toki starts with a special outfit that stays for 7 days.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "Toki outfit",
+      "amount": 1.0,
+      "duration": "7 days"
+     },
+     "rank_score": 0.5
+    },
+    {
+     "id": "c03",
+     "for_users": "paying",
+     "grants_id": null,
+     "title": "Extra app color themes for subscribers, 7 days per game",
+     "offer_copy": "Play a short game to use 1 new color theme for 7 days.",
+     "reward": {
+      "kind": "cosmetic",
+      "unit": "themes",
+      "amount": 1.0,
+      "duration": "7 days"
+     },
+     "rank_score": 0.5
+    }
+   ],
+   "names": {
+    "1": {
+     "c02": "extra character slot",
+     "c04": "new app color theme",
+     "c01": "new app color theme",
+     "c05": "special Toki outfit",
+     "c03": "new app color theme"
+    },
+    "2": {
+     "c02": "extra character slot",
+     "c04": "new app color theme",
+     "c01": "new app color theme",
+     "c05": "Toki outfit",
+     "c03": "new app color theme"
+    }
+   },
+   "pairs": [
+    {
+     "a": "c02",
+     "b": "c04",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c01",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c02",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c01",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c04",
+     "b": "c03",
+     "label": "SAME",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c05",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c01",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    },
+    {
+     "a": "c05",
+     "b": "c03",
+     "label": "DIFFERENT",
+     "judgment_call": false
+    }
+   ]
+  }
+ ]
+}
