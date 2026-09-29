@@ -440,20 +440,27 @@ def keyword_floor(state: State, keywords: list[str]) -> ContentRating:
 
 
 def resolve_terms(meaning: ModelMeaning, states: list[State]) -> list[Term]:
-    """A term keeps its meaning only when a cited element's own text carries it, and that element is not the
-    evidence of a line that uses the term (a bullet can't define itself); otherwise it is marked 'meaning not
-    observed' and nothing downstream may build on it."""
+    """A cited element explains a term when it sits on a screen that shows the term (as a whole word) and its text
+    or label says more than the term and more than any ledger line quoting the term. So the name alone can't
+    define itself, and neither can a ledger line that uses it ("500 coins"); the bullets under a plan's name or the
+    price on its card can, whatever a mechanic cites as evidence. A term no cited element explains is marked
+    'meaning not observed' and nothing downstream may build on it. Known limit: code can't tell an explanation
+    from other words next to the term (a button reading "Unlock <term>"); what explains it stays the model's call."""
     elements = {e.id: e for s in states for e in s.elements}
-    evidence = {m.id: m.evidence_ids for m in meaning.mechanics} | {i.id: i.evidence_ids for i in meaning.value_ledger}
+    screen = {e.id: s.id for s in states for e in s.elements}
 
-    def carries(eid: str, term: str) -> bool:
-        e = elements.get(eid)
-        return bool(e) and any(text.find(term, f, ignore_case=True) for f in (e.text, e.label))
+    def says_more(field: str, cut: list[re.Pattern[str]]) -> bool:
+        for pattern in cut:
+            field = pattern.sub(" ", field)
+        return re.search(r"\w", field) is not None
 
     terms = []
     for t in meaning.terms:
-        using = {e for i in t.used_in for e in evidence.get(i, [])}
-        defined_by = [i for i in t.defined_by if i not in using and carries(i, t.term)]
+        name = text.phrase(t.term)
+        shown = {screen[e.id] for e in elements.values() if name.search(e.text) or name.search(e.label)}
+        cut = [text.phrase(i.verbatim) for i in meaning.value_ledger if name.search(i.verbatim)] + [name]
+        defined_by = [i for i in t.defined_by if i in elements and screen[i] in shown
+                      and any(says_more(f, cut) for f in (elements[i].text, elements[i].label))]
         terms.append(Term(term=t.term, meaning=t.meaning if defined_by else NOT_OBSERVED, defined_by=defined_by,
                           used_in=t.used_in, observed=bool(defined_by)))
     return terms

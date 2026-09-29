@@ -20,6 +20,12 @@ def find(quote: str, text: str, spaced: bool = True, ignore_case: bool = False) 
     return match.group(0) if match else None
 
 
+def phrase(words: str) -> re.Pattern[str]:
+    """`words` as a whole word or phrase, ignoring case; any whitespace run matches any other. Boundaries are "no
+    word character next to it", so a term ending in "+" still matches and "Pro" is not in "Protect"."""
+    return re.compile(r"(?<!\w)" + r"\s+".join(re.escape(p) for p in words.split()) + r"(?!\w)", re.IGNORECASE)
+
+
 def same(a: str, b: str) -> bool:
     """Equal once whitespace runs are normalized."""
     return a.split() == b.split()
