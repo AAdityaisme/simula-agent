@@ -9,18 +9,20 @@ import threading
 import time
 from dataclasses import replace
 
+import anthropic
 import pytest
 from PIL import Image
 
-from simula import config, llm, qa_metrics, render
+from simula import cli, config, llm, qa_metrics, render
 from simula.contracts import (ContractError, ContractReport, Critique, Edit, Edits, Fix, ProductModel, QAMetrics,
                               ScreenMetrics)
 from simula.runlog import read_trace
 from simula.stages import mock, qa
-from tests.conftest import APPS
+from tests.conftest import APPS, FIXTURES
 from tests.mock_fake import golden, seed_model, skeleton_html
 from tests.test_mock_isolation import ctx_for, fake_builder
 from tests.test_mock_fonts import live_build_with_fonts, no_network, replay
+from tests.test_spend_limit import USAGE_LIMIT, error_400, fake_anthropic
 
 
 @pytest.fixture(autouse=True)
@@ -312,6 +314,41 @@ def test_a_mock_replayed_offline_keeps_qas_replay_key(tmp_path, monkeypatch):
     monkeypatch.setattr(mock, "fetch", no_network)
     replay(run_dir, APPS[0])
     assert measure_key() == live
+
+
+# ---------- a provider outage is not our cap ----------
+
+@pytest.fixture
+def mocked_run(runs, monkeypatch, tmp_path):
+    """A fixture run whose mock the CLI built (offline builder), ready for `simula qa`. QA's model calls then go
+    through the real llm.call, against a temporary cache."""
+    real = llm.call
+    monkeypatch.setattr(llm, "call", fake_builder([]))
+    golden_model = str(FIXTURES / "golden" / "janitorai")
+    assert cli.main(["mock", "janitorai", "--allow-fixtures", "--fixture", f"model={golden_model}", "--profile", "dev"]) == 0
+    monkeypatch.setattr(llm, "call", lambda **kwargs: real(**kwargs, cache_dir=tmp_path / "cache"))
+    return (runs / "janitorai" / "latest").resolve()
+
+
+def test_a_provider_usage_limit_mid_qa_fails_the_stage_instead_of_approving(mocked_run, monkeypatch):
+    """The 2026-09-29 run: QA took the account's usage-limit 400 for its own cap, approved round 0, wrote done.json
+    and exited 0, so a later run would have skipped QA."""
+    fake_anthropic(monkeypatch, error_400(anthropic, "https://api.anthropic.com/v1/messages", USAGE_LIMIT))
+    code = cli.main(["qa", "janitorai", "--run", mocked_run.name, "--allow-fixtures", "--profile", "dev"])
+    assert code == cli.EXIT_PROVIDER != 0
+    assert not (mocked_run / "qa" / "done.json").exists() and not (mocked_run / "qa" / "approved").exists()
+    assert "usage limit" in (mocked_run / "qa" / "failure.json").read_text()
+    assert f"simula run janitorai --run {mocked_run.name} --from qa" in (mocked_run / "needs-human.md").read_text()
+    assert not list((mocked_run.parent.parent.parent / "cache").glob("*.json"))
+
+
+def test_our_own_cap_in_qa_still_approves_the_best_round(mocked_run):
+    code = cli.main(["qa", "janitorai", "--run", mocked_run.name, "--allow-fixtures", "--profile", "dev",
+                     "--usd-cap", "0.0001"])
+    assert code == 0 and (mocked_run / "qa" / "done.json").exists()
+    report = json.loads((mocked_run / "qa" / "qa_report.json").read_text())
+    assert (report["status"], report["approved_round"]) == ("approved", 0)
+    assert "round 1 stopped before any edit: qa: next call could cost" in report["stop_reason"]
 
 
 # ---------- a synthetic 12-screen model: the critic in groups, undrawn screens ----------

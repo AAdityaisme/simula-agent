@@ -41,7 +41,12 @@ def _failure(outcome: str, error: Exception) -> "LLMFailure":
 
 
 class CapReached(SystemExit):
-    pass
+    """Our own $ cap: a planned stop, where the best work so far is valid. Only Budget raises it."""
+
+
+class ProviderUnavailable(SystemExit):
+    """The provider refuses every call (a usage, spend, quota or billing limit on the account): an outage, where
+    nothing is valid. Never cached; the stage fails with no done.json, and a rerun resumes there."""
 
 
 class ReplayMiss(SystemExit):
@@ -205,12 +210,12 @@ def call_anthropic(model: str, system: str, messages: list[dict], effort: str | 
         raise _failure("timeout", e) from e
     except anthropic.RateLimitError as e:
         if "spend" in str(e).lower():
-            raise CapReached(f"provider spend limit reached: {e}") from e
+            raise ProviderUnavailable(f"provider spend limit reached: {e}") from e
         raise _failure("error", e) from e
     except anthropic.BadRequestError as e:
         # A console usage limit comes back as a 400, not a 429.
         if "usage limit" in str(e).lower():
-            raise CapReached(f"provider usage limit reached: {e}") from e
+            raise ProviderUnavailable(f"provider usage limit reached: {e}") from e
         raise _failure("error", e) from e
     except (anthropic.APIStatusError, anthropic.APIConnectionError) as e:
         raise _failure("error", e) from e
@@ -247,11 +252,11 @@ def call_openai(model: str, system: str, messages: list[dict], effort: str | Non
         raise LLMFailure("timeout", str(e)) from e
     except openai.RateLimitError as e:
         if "quota" in str(e).lower():
-            raise CapReached(f"provider quota reached: {e}") from e
+            raise ProviderUnavailable(f"provider quota reached: {e}") from e
         raise LLMFailure("error", str(e)) from e
     except openai.BadRequestError as e:
         if re.search(r"billing[ _]hard[ _]limit", str(e), re.IGNORECASE):
-            raise CapReached(f"provider billing limit reached: {e}") from e
+            raise ProviderUnavailable(f"provider billing limit reached: {e}") from e
         raise LLMFailure("error", str(e)) from e
     except (openai.APIStatusError, openai.APIConnectionError) as e:
         raise LLMFailure("error", str(e)) from e
