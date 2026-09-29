@@ -1,0 +1,2418 @@
+{
+ "source": "PR 2 run runs/luzia/20260928-024353-17d5562-fixture: model/product_model.json states ['s01', 's02', 's04'] and edges, and the model's final answer (cache 3c866a53b838) after check_meaning; model_labels: the elements whose label that run's explore icon or vision pass wrote (explore/states/<sid>.json)",
+ "model_labels": [
+  "s01.e02",
+  "s01.e05"
+ ],
+ "states": [
+  {
+   "id": "s01",
+   "kind": "screen",
+   "parent_id": null,
+   "name": "Home feed",
+   "purpose": "Browse preset AI characters (Teacher, Friend, Elias) and custom chat options. Start new chats or access recent conversations and features like pet care.",
+   "fingerprint": "fixture:tree:luzia-b",
+   "canonical_png": "states/s01.png",
+   "elements": [
+    {
+     "id": "s01.e01",
+     "mcp_ref": "@e29",
+     "type": "TextView",
+     "text": "Chats",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 32.0,
+      "y": 164.0,
+      "w": 514.0,
+      "h": 73.0
+     },
+     "rect_dp": {
+      "x": 12.19,
+      "y": 10.67,
+      "w": 195.81,
+      "h": 27.81
+     },
+     "role": "screen title",
+     "asset_png": null,
+     "fg_hex": "#ebd1ce",
+     "bg_hex": "#173184",
+     "font_px": 73.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e02",
+     "mcp_ref": "@e30",
+     "type": "View",
+     "text": "",
+     "label": "Luzia+ upsell badge",
+     "source": "mcp",
+     "rect_px": {
+      "x": 567.0,
+      "y": 137.0,
+      "w": 271.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 216.0,
+      "y": 0.38,
+      "w": 103.24,
+      "h": 48.0
+     },
+     "role": "upsell badge",
+     "asset_png": null,
+     "fg_hex": "#cd7c6d",
+     "bg_hex": "#182864",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e03",
+     "mcp_ref": "@e31",
+     "type": "TextView",
+     "text": "Try Luzia",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 599.0,
+      "y": 172.0,
+      "w": 143.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 228.19,
+      "y": 13.71,
+      "w": 54.48,
+      "h": 17.52
+     },
+     "role": "call-to-action text",
+     "asset_png": null,
+     "fg_hex": "#08080f",
+     "bg_hex": "#15255d",
+     "font_px": 46.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e04",
+     "mcp_ref": "@e32",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 838.0,
+      "y": 137.0,
+      "w": 105.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 319.24,
+      "y": 0.38,
+      "w": 40.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e04.png",
+     "fg_hex": "#1d2f7a",
+     "bg_hex": "#2f48b3",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e05",
+     "mcp_ref": "@e33",
+     "type": "View",
+     "text": "",
+     "label": "Settings button",
+     "source": "mcp",
+     "rect_px": {
+      "x": 943.0,
+      "y": 137.0,
+      "w": 126.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 359.24,
+      "y": 0.38,
+      "w": 48.0,
+      "h": 48.0
+     },
+     "role": "icon button",
+     "asset_png": null,
+     "fg_hex": "#eff0fb",
+     "bg_hex": "#3048e7",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e06",
+     "mcp_ref": "@e34",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 32.0,
+      "y": 369.0,
+      "w": 1016.0,
+      "h": 169.0
+     },
+     "rect_dp": {
+      "x": 12.19,
+      "y": 88.76,
+      "w": 387.05,
+      "h": 64.38
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#849a91",
+     "bg_hex": "#323d60",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e07",
+     "mcp_ref": "@e35",
+     "type": "TextView",
+     "text": "Luzia",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 85.0,
+      "y": 407.0,
+      "w": 76.0,
+      "h": 40.0
+     },
+     "rect_dp": {
+      "x": 32.38,
+      "y": 103.24,
+      "w": 28.95,
+      "h": 15.24
+     },
+     "role": "character name",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#35416e",
+     "font_px": 40.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": "s01.r1"
+    },
+    {
+     "id": "s01.e08",
+     "mcp_ref": "@e36",
+     "type": "TextView",
+     "text": "How can I help you today?",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 85.0,
+      "y": 447.0,
+      "w": 521.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 32.38,
+      "y": 118.48,
+      "w": 198.48,
+      "h": 20.19
+     },
+     "role": "greeting text",
+     "asset_png": null,
+     "fg_hex": "#34406a",
+     "bg_hex": "#747e84",
+     "font_px": 53.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e09",
+     "mcp_ref": "@e37",
+     "type": "TextView",
+     "text": "New chat",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 638.0,
+      "w": 709.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 191.24,
+      "w": 270.1,
+      "h": 20.19
+     },
+     "role": "section header",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#000000",
+     "font_px": 53.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e10",
+     "mcp_ref": "@e38",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 772.0,
+      "y": 602.0,
+      "w": 266.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 294.1,
+      "y": 177.52,
+      "w": 101.33,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#363636",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e11",
+     "mcp_ref": "@e39",
+     "type": "TextView",
+     "text": "SEE MORE",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 772.0,
+      "y": 642.0,
+      "w": 182.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 294.1,
+      "y": 192.76,
+      "w": 69.33,
+      "h": 17.52
+     },
+     "role": "link text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#000000",
+     "font_px": 46.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e12",
+     "mcp_ref": "@e40",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 728.0,
+      "w": 318.0,
+      "h": 318.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 225.52,
+      "w": 121.14,
+      "h": 121.14
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#767fa6",
+     "bg_hex": "#4264fc",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": "s01.r2"
+    },
+    {
+     "id": "s01.e13",
+     "mcp_ref": "@e41",
+     "type": "View",
+     "text": "",
+     "label": "Teacher",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 728.0,
+      "w": 318.0,
+      "h": 318.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 225.52,
+      "w": 121.14,
+      "h": 121.14
+     },
+     "role": "character card",
+     "asset_png": null,
+     "fg_hex": "#767fa6",
+     "bg_hex": "#4264fc",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s01.r2"
+    },
+    {
+     "id": "s01.e14",
+     "mcp_ref": "@e42",
+     "type": "TextView",
+     "text": "Teacher",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 979.0,
+      "w": 318.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 321.14,
+      "w": 121.14,
+      "h": 17.52
+     },
+     "role": "character label",
+     "asset_png": null,
+     "fg_hex": "#2f439d",
+     "bg_hex": "#6f7ca4",
+     "font_px": 46.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": "s01.r3"
+    },
+    {
+     "id": "s01.e15",
+     "mcp_ref": "@e43",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 381.0,
+      "y": 728.0,
+      "w": 318.0,
+      "h": 318.0
+     },
+     "rect_dp": {
+      "x": 145.14,
+      "y": 225.52,
+      "w": 121.14,
+      "h": 121.14
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#333b56",
+     "bg_hex": "#4264fc",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": "s01.r2"
+    },
+    {
+     "id": "s01.e16",
+     "mcp_ref": "@e44",
+     "type": "View",
+     "text": "",
+     "label": "Friend",
+     "source": "mcp",
+     "rect_px": {
+      "x": 381.0,
+      "y": 728.0,
+      "w": 318.0,
+      "h": 318.0
+     },
+     "rect_dp": {
+      "x": 145.14,
+      "y": 225.52,
+      "w": 121.14,
+      "h": 121.14
+     },
+     "role": "character card",
+     "asset_png": null,
+     "fg_hex": "#333b56",
+     "bg_hex": "#4264fc",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s01.r2"
+    },
+    {
+     "id": "s01.e17",
+     "mcp_ref": "@e45",
+     "type": "TextView",
+     "text": "Friend",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 381.0,
+      "y": 979.0,
+      "w": 318.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 145.14,
+      "y": 321.14,
+      "w": 121.14,
+      "h": 17.52
+     },
+     "role": "character label",
+     "asset_png": null,
+     "fg_hex": "#dbdbdd",
+     "bg_hex": "#2f3a56",
+     "font_px": 46.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": "s01.r3"
+    },
+    {
+     "id": "s01.e18",
+     "mcp_ref": "@e46",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 720.0,
+      "y": 728.0,
+      "w": 318.0,
+      "h": 318.0
+     },
+     "rect_dp": {
+      "x": 274.29,
+      "y": 225.52,
+      "w": 121.14,
+      "h": 121.14
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#2c416e",
+     "bg_hex": "#4264fc",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": "s01.r2"
+    },
+    {
+     "id": "s01.e19",
+     "mcp_ref": "@e47",
+     "type": "View",
+     "text": "",
+     "label": "Elias",
+     "source": "mcp",
+     "rect_px": {
+      "x": 720.0,
+      "y": 728.0,
+      "w": 318.0,
+      "h": 318.0
+     },
+     "rect_dp": {
+      "x": 274.29,
+      "y": 225.52,
+      "w": 121.14,
+      "h": 121.14
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#2c416e",
+     "bg_hex": "#4264fc",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s01.r2"
+    },
+    {
+     "id": "s01.e20",
+     "mcp_ref": "@e48",
+     "type": "TextView",
+     "text": "Elias",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 720.0,
+      "y": 979.0,
+      "w": 318.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 274.29,
+      "y": 321.14,
+      "w": 121.14,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#827d8e",
+     "bg_hex": "#2f4373",
+     "font_px": 46.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": "s01.r3"
+    },
+    {
+     "id": "s01.e21",
+     "mcp_ref": "@e49",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 1109.0,
+      "w": 996.0,
+      "h": 164.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 370.67,
+      "w": 379.43,
+      "h": 62.48
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#4264cb",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e22",
+     "mcp_ref": "@e50",
+     "type": "TextView",
+     "text": "Custom Bestie",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 206.0,
+      "y": 1141.0,
+      "w": 256.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 78.48,
+      "y": 382.86,
+      "w": 97.52,
+      "h": 17.52
+     },
+     "role": "feature title",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#282828",
+     "font_px": 46.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e23",
+     "mcp_ref": "@e51",
+     "type": "TextView",
+     "text": "Make an AI expert tailored to you",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 206.0,
+      "y": 1192.0,
+      "w": 470.0,
+      "h": 40.0
+     },
+     "rect_dp": {
+      "x": 78.48,
+      "y": 402.29,
+      "w": 179.05,
+      "h": 15.24
+     },
+     "role": "feature description",
+     "asset_png": null,
+     "fg_hex": "#bfbfbf",
+     "bg_hex": "#282828",
+     "font_px": 40.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e24",
+     "mcp_ref": "@e52",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 917.0,
+      "y": 1105.0,
+      "w": 126.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 349.33,
+      "y": 369.14,
+      "w": 48.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e24.png",
+     "fg_hex": "#000000",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e25",
+     "mcp_ref": "@e53",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 1336.0,
+      "w": 996.0,
+      "h": 164.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 457.14,
+      "w": 379.43,
+      "h": 62.48
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#b9b0bc",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e26",
+     "mcp_ref": "@e54",
+     "type": "TextView",
+     "text": "Meet Toki, your virtual pet!",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 206.0,
+      "y": 1368.0,
+      "w": 455.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 78.48,
+      "y": 469.33,
+      "w": 173.33,
+      "h": 17.52
+     },
+     "role": "feature title",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#282828",
+     "font_px": 46.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e27",
+     "mcp_ref": "@e55",
+     "type": "TextView",
+     "text": "Create and take care of your own pet",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 206.0,
+      "y": 1419.0,
+      "w": 535.0,
+      "h": 40.0
+     },
+     "rect_dp": {
+      "x": 78.48,
+      "y": 488.76,
+      "w": 203.81,
+      "h": 15.24
+     },
+     "role": "feature description",
+     "asset_png": null,
+     "fg_hex": "#bebebe",
+     "bg_hex": "#282828",
+     "font_px": 40.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e28",
+     "mcp_ref": "@e56",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 917.0,
+      "y": 1332.0,
+      "w": 126.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 349.33,
+      "y": 455.62,
+      "w": 48.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e28.png",
+     "fg_hex": "#000000",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e29",
+     "mcp_ref": "@e57",
+     "type": "TextView",
+     "text": "Keep chatting",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 1568.0,
+      "w": 849.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 545.52,
+      "w": 323.43,
+      "h": 20.19
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#000000",
+     "font_px": 53.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e30",
+     "mcp_ref": "@e58",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 891.0,
+      "y": 1532.0,
+      "w": 53.0,
+      "h": 110.0
+     },
+     "rect_dp": {
+      "x": 339.43,
+      "y": 531.81,
+      "w": 20.19,
+      "h": 41.9
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e30.png",
+     "fg_hex": null,
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e31",
+     "mcp_ref": "@e59",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 944.0,
+      "y": 1532.0,
+      "w": 126.0,
+      "h": 110.0
+     },
+     "rect_dp": {
+      "x": 359.62,
+      "y": 531.81,
+      "w": 48.0,
+      "h": 41.9
+     },
+     "role": "container",
+     "asset_png": "assets/s01.e31.png",
+     "fg_hex": "#282828",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e32",
+     "mcp_ref": "@e60",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 1642.0,
+      "w": 1080.0,
+      "h": 159.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 573.71,
+      "w": 411.43,
+      "h": 60.57
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#a37f64",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e33",
+     "mcp_ref": "@e61",
+     "type": "View",
+     "text": "",
+     "label": "Our new chat",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 1669.0,
+      "w": 105.0,
+      "h": 105.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 584.0,
+      "w": 40.0,
+      "h": 40.0
+     },
+     "role": "button",
+     "asset_png": null,
+     "fg_hex": "#9f7d64",
+     "bg_hex": "#112255",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e34",
+     "mcp_ref": "@e62",
+     "type": "TextView",
+     "text": "Our new chat",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 168.0,
+      "y": 1676.0,
+      "w": 231.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 64.0,
+      "y": 586.67,
+      "w": 88.0,
+      "h": 17.52
+     },
+     "role": "chat item label",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#000000",
+     "font_px": 46.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e35",
+     "mcp_ref": "@e63",
+     "type": "TextView",
+     "text": "Today",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 168.0,
+      "y": 1727.0,
+      "w": 90.0,
+      "h": 40.0
+     },
+     "rect_dp": {
+      "x": 64.0,
+      "y": 606.1,
+      "w": 34.29,
+      "h": 15.24
+     },
+     "role": "timestamp",
+     "asset_png": null,
+     "fg_hex": "#b9b9b9",
+     "bg_hex": "#000000",
+     "font_px": 40.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": "s01.r1"
+    },
+    {
+     "id": "s01.e36",
+     "mcp_ref": "@e64",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 11.0,
+      "y": 2169.0,
+      "w": 338.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 4.19,
+      "y": 774.48,
+      "w": 128.76,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#112255",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": "s01.r4"
+    },
+    {
+     "id": "s01.e37",
+     "mcp_ref": "@e65",
+     "type": "View",
+     "text": "",
+     "label": "Chat",
+     "source": "mcp",
+     "rect_px": {
+      "x": 149.0,
+      "y": 2172.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 56.76,
+      "y": 775.62,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#4264fc",
+     "bg_hex": "#13245a",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e38",
+     "mcp_ref": "@e66",
+     "type": "TextView",
+     "text": "Chat",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 138.0,
+      "y": 2246.0,
+      "w": 85.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 52.57,
+      "y": 803.81,
+      "w": 32.38,
+      "h": 17.52
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#000000",
+     "font_px": 46.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": "s01.r1"
+    },
+    {
+     "id": "s01.e39",
+     "mcp_ref": "@e67",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 370.0,
+      "y": 2169.0,
+      "w": 339.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 140.95,
+      "y": 774.48,
+      "w": 129.14,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#cbcbcb",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": "s01.r4"
+    },
+    {
+     "id": "s01.e40",
+     "mcp_ref": "@e68",
+     "type": "View",
+     "text": "",
+     "label": "Services",
+     "source": "mcp",
+     "rect_px": {
+      "x": 508.0,
+      "y": 2172.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 193.52,
+      "y": 775.62,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "tab",
+     "asset_png": null,
+     "fg_hex": "#cbcbcb",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e41",
+     "mcp_ref": "@e69",
+     "type": "TextView",
+     "text": "Services",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 467.0,
+      "y": 2246.0,
+      "w": 146.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 177.9,
+      "y": 803.81,
+      "w": 55.62,
+      "h": 17.52
+     },
+     "role": "tab label",
+     "asset_png": null,
+     "fg_hex": "#c6c6c6",
+     "bg_hex": "#000000",
+     "font_px": 46.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e42",
+     "mcp_ref": "@e70",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 730.0,
+      "y": 2169.0,
+      "w": 339.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 278.1,
+      "y": 774.48,
+      "w": 129.14,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#cbcbcb",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": "s01.r4"
+    },
+    {
+     "id": "s01.e43",
+     "mcp_ref": "@e71",
+     "type": "View",
+     "text": "",
+     "label": "Create",
+     "source": "mcp",
+     "rect_px": {
+      "x": 868.0,
+      "y": 2172.0,
+      "w": 63.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 330.67,
+      "y": 775.62,
+      "w": 24.0,
+      "h": 24.0
+     },
+     "role": "tab",
+     "asset_png": null,
+     "fg_hex": "#cbcbcb",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s01.e44",
+     "mcp_ref": "@e72",
+     "type": "TextView",
+     "text": "Create",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 841.0,
+      "y": 2246.0,
+      "w": 118.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 320.38,
+      "y": 803.81,
+      "w": 44.95,
+      "h": 17.52
+     },
+     "role": "tab label",
+     "asset_png": null,
+     "fg_hex": "#c9c9c9",
+     "bg_hex": "#000000",
+     "font_px": 46.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    }
+   ],
+   "in_mock_scope": true,
+   "content_rating": "safe",
+   "dynamic_regions": [],
+   "blocked_reason": null
+  },
+  {
+   "id": "s02",
+   "kind": "screen",
+   "parent_id": null,
+   "name": "Subscription paywall",
+   "purpose": "Display Luzia+ upgrade options with benefits and three pricing tiers. User selects a plan or starts a free trial.",
+   "fingerprint": "fixture:tree:luzia-paywall",
+   "canonical_png": "states/s02.png",
+   "elements": [
+    {
+     "id": "s02.e01",
+     "mcp_ref": "@e30",
+     "type": "TextView",
+     "text": "Unlock Luzia+",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 349.0,
+      "y": 964.0,
+      "w": 382.0,
+      "h": 73.0
+     },
+     "rect_dp": {
+      "x": 132.95,
+      "y": 315.43,
+      "w": 145.52,
+      "h": 27.81
+     },
+     "role": "paywall heading",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 73.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e02",
+     "mcp_ref": "@e31",
+     "type": "TextView",
+     "text": "2× images & longer chats",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 168.0,
+      "y": 1106.0,
+      "w": 496.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 64.0,
+      "y": 369.52,
+      "w": 188.95,
+      "h": 20.19
+     },
+     "role": "paywall bullet",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 53.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e03",
+     "mcp_ref": "@e32",
+     "type": "TextView",
+     "text": "Advanced reasoning mode",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 168.0,
+      "y": 1211.0,
+      "w": 535.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 64.0,
+      "y": 409.52,
+      "w": 203.81,
+      "h": 20.19
+     },
+     "role": "paywall bullet",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 53.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e04",
+     "mcp_ref": "@e33",
+     "type": "TextView",
+     "text": "Higher-quality image generations",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 168.0,
+      "y": 1316.0,
+      "w": 670.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 64.0,
+      "y": 449.52,
+      "w": 255.24,
+      "h": 20.19
+     },
+     "role": "paywall bullet",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 53.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e05",
+     "mcp_ref": "@e34",
+     "type": "TextView",
+     "text": "Voice chat with Luzia",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 168.0,
+      "y": 1421.0,
+      "w": 406.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 64.0,
+      "y": 489.52,
+      "w": 154.67,
+      "h": 20.19
+     },
+     "role": "paywall bullet",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 53.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e06",
+     "mcp_ref": "@e35",
+     "type": "TextView",
+     "text": "Create up to 5 AI characters",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 168.0,
+      "y": 1526.0,
+      "w": 544.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 64.0,
+      "y": 529.52,
+      "w": 207.24,
+      "h": 20.19
+     },
+     "role": "paywall bullet",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 53.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e07",
+     "mcp_ref": "@e36",
+     "type": "TextView",
+     "text": "Exclusive tools",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 168.0,
+      "y": 1631.0,
+      "w": 292.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 64.0,
+      "y": 569.52,
+      "w": 111.24,
+      "h": 20.19
+     },
+     "role": "paywall bullet",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 53.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e08",
+     "mcp_ref": "@e37",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 1880.0,
+      "w": 318.0,
+      "h": 174.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 664.38,
+      "w": 121.14,
+      "h": 66.29
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#666666",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": "s02.r1"
+    },
+    {
+     "id": "s02.e09",
+     "mcp_ref": "@e38",
+     "type": "TextView",
+     "text": "Weekly",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 66.0,
+      "y": 1917.0,
+      "w": 140.0,
+      "h": 49.0
+     },
+     "rect_dp": {
+      "x": 25.14,
+      "y": 678.48,
+      "w": 53.33,
+      "h": 18.67
+     },
+     "role": "plan name",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 49.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e10",
+     "mcp_ref": "@e39",
+     "type": "TextView",
+     "text": "$ 1.99",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 66.0,
+      "y": 1979.0,
+      "w": 85.0,
+      "h": 40.0
+     },
+     "rect_dp": {
+      "x": 25.14,
+      "y": 702.1,
+      "w": 32.38,
+      "h": 15.24
+     },
+     "role": "price",
+     "asset_png": null,
+     "fg_hex": "#6a6a6a",
+     "bg_hex": "#ffffff",
+     "font_px": 40.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e11",
+     "mcp_ref": "@e40",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 381.0,
+      "y": 1880.0,
+      "w": 318.0,
+      "h": 174.0
+     },
+     "rect_dp": {
+      "x": 145.14,
+      "y": 664.38,
+      "w": 121.14,
+      "h": 66.29
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#663466",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": "s02.r1"
+    },
+    {
+     "id": "s02.e12",
+     "mcp_ref": "@e41",
+     "type": "TextView",
+     "text": "Monthly",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 405.0,
+      "y": 1919.0,
+      "w": 142.0,
+      "h": 46.0
+     },
+     "rect_dp": {
+      "x": 154.29,
+      "y": 679.24,
+      "w": 54.1,
+      "h": 17.52
+     },
+     "role": "plan name",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 46.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e13",
+     "mcp_ref": "@e42",
+     "type": "TextView",
+     "text": "$ 4.99",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 405.0,
+      "y": 1979.0,
+      "w": 93.0,
+      "h": 40.0
+     },
+     "rect_dp": {
+      "x": 154.29,
+      "y": 702.1,
+      "w": 35.43,
+      "h": 15.24
+     },
+     "role": "price",
+     "asset_png": null,
+     "fg_hex": "#6e6e6e",
+     "bg_hex": "#ffffff",
+     "font_px": 40.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e14",
+     "mcp_ref": "@e43",
+     "type": "TextView",
+     "text": "Most popular",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 438.0,
+      "y": 1861.0,
+      "w": 205.0,
+      "h": 40.0
+     },
+     "rect_dp": {
+      "x": 166.86,
+      "y": 657.14,
+      "w": 78.1,
+      "h": 15.24
+     },
+     "role": "badge text",
+     "asset_png": null,
+     "fg_hex": "#090909",
+     "bg_hex": "#e8e6e8",
+     "font_px": 40.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e15",
+     "mcp_ref": "@e44",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 720.0,
+      "y": 1880.0,
+      "w": 318.0,
+      "h": 174.0
+     },
+     "rect_dp": {
+      "x": 274.29,
+      "y": 664.38,
+      "w": 121.14,
+      "h": 66.29
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#666666",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": "s02.r1"
+    },
+    {
+     "id": "s02.e16",
+     "mcp_ref": "@e45",
+     "type": "TextView",
+     "text": "Annual",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 744.0,
+      "y": 1917.0,
+      "w": 129.0,
+      "h": 49.0
+     },
+     "rect_dp": {
+      "x": 283.43,
+      "y": 678.48,
+      "w": 49.14,
+      "h": 18.67
+     },
+     "role": "plan name",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 49.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e17",
+     "mcp_ref": "@e46",
+     "type": "TextView",
+     "text": "$ 39.99",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 744.0,
+      "y": 1979.0,
+      "w": 111.0,
+      "h": 40.0
+     },
+     "rect_dp": {
+      "x": 283.43,
+      "y": 702.1,
+      "w": 42.29,
+      "h": 15.24
+     },
+     "role": "price",
+     "asset_png": null,
+     "fg_hex": "#6d6d6d",
+     "bg_hex": "#ffffff",
+     "font_px": 40.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e18",
+     "mcp_ref": "@e47",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 2092.0,
+      "w": 1080.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 745.14,
+      "w": 411.43,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e19",
+     "mcp_ref": "@e48",
+     "type": "TextView",
+     "text": "Start 3-day free Trial",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 338.0,
+      "y": 2128.0,
+      "w": 404.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 128.76,
+      "y": 758.86,
+      "w": 153.9,
+      "h": 20.19
+     },
+     "role": "call-to-action text",
+     "asset_png": null,
+     "fg_hex": "#fefefe",
+     "bg_hex": "#000000",
+     "font_px": 53.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e20",
+     "mcp_ref": "@e49",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 396.0,
+      "y": 2191.0,
+      "w": 289.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 150.86,
+      "y": 782.86,
+      "w": 110.1,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s02.e21",
+     "mcp_ref": "@e50",
+     "type": "TextView",
+     "text": "Terms & Conditions",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 396.0,
+      "y": 2234.0,
+      "w": 289.0,
+      "h": 40.0
+     },
+     "rect_dp": {
+      "x": 150.86,
+      "y": 799.24,
+      "w": 110.1,
+      "h": 15.24
+     },
+     "role": "link text",
+     "asset_png": null,
+     "fg_hex": "#646363",
+     "bg_hex": "#ffffff",
+     "font_px": 40.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    }
+   ],
+   "in_mock_scope": true,
+   "content_rating": "safe",
+   "dynamic_regions": [],
+   "blocked_reason": null
+  },
+  {
+   "id": "s04",
+   "kind": "modal",
+   "parent_id": "s01",
+   "name": "Pet intro modal",
+   "purpose": "Introduce Toki virtual pet feature. User can meet the pet or dismiss to continue.",
+   "fingerprint": "fixture:tree:luzia-pet-intro",
+   "canonical_png": "states/s04.png",
+   "elements": [
+    {
+     "id": "s04.e01",
+     "mcp_ref": "@e26",
+     "type": "FrameLayout",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 120.0,
+      "y": 136.0,
+      "w": 840.0,
+      "h": 2201.0
+     },
+     "rect_dp": {
+      "x": 45.71,
+      "y": 0.0,
+      "w": 320.0,
+      "h": 838.48
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#b2aae5",
+     "bg_hex": "#0f141d",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s04.e02",
+     "mcp_ref": "@e27",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 834.0,
+      "y": 581.0,
+      "w": 126.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 317.71,
+      "y": 169.52,
+      "w": 48.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": "assets/s04.e02.png",
+     "fg_hex": "#d2d2d2",
+     "bg_hex": "#1d1d1d",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s04.e03",
+     "mcp_ref": "@e28",
+     "type": "TextView",
+     "text": "Tok-Tok! I'm Toki and I need your help!",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 162.0,
+      "y": 1285.0,
+      "w": 756.0,
+      "h": 132.0
+     },
+     "rect_dp": {
+      "x": 61.71,
+      "y": 437.71,
+      "w": 288.0,
+      "h": 50.29
+     },
+     "role": "modal heading",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#000000",
+     "font_px": 132.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s04.e04",
+     "mcp_ref": "@e29",
+     "type": "TextView",
+     "text": "I want to grow and become as powerful as Luzia. Care for me to see me grow!",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 162.0,
+      "y": 1428.0,
+      "w": 756.0,
+      "h": 92.0
+     },
+     "rect_dp": {
+      "x": 61.71,
+      "y": 492.19,
+      "w": 288.0,
+      "h": 35.05
+     },
+     "role": "modal body text",
+     "asset_png": null,
+     "fg_hex": "#c9c9c9",
+     "bg_hex": "#000000",
+     "font_px": 92.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s04.e05",
+     "mcp_ref": "@e30",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 162.0,
+      "y": 1552.0,
+      "w": 756.0,
+      "h": 121.0
+     },
+     "rect_dp": {
+      "x": 61.71,
+      "y": 539.43,
+      "w": 288.0,
+      "h": 46.1
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s04.e06",
+     "mcp_ref": "@e31",
+     "type": "TextView",
+     "text": "Meet me",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 488.0,
+      "y": 1588.0,
+      "w": 178.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 185.9,
+      "y": 553.14,
+      "w": 67.81,
+      "h": 20.19
+     },
+     "role": "call-to-action button",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#ffffff",
+     "font_px": 53.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s04.e07",
+     "mcp_ref": "@e32",
+     "type": "View",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 162.0,
+      "y": 1673.0,
+      "w": 756.0,
+      "h": 126.0
+     },
+     "rect_dp": {
+      "x": 61.71,
+      "y": 585.52,
+      "w": 288.0,
+      "h": 48.0
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#282828",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s04.e08",
+     "mcp_ref": "@e33",
+     "type": "TextView",
+     "text": "Later",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 488.0,
+      "y": 1709.0,
+      "w": 105.0,
+      "h": 53.0
+     },
+     "rect_dp": {
+      "x": 185.9,
+      "y": 599.24,
+      "w": 40.0,
+      "h": 20.19
+     },
+     "role": "dismiss button",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#282828",
+     "font_px": 53.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s04.e09",
+     "mcp_ref": "@e34",
+     "type": "TextView",
+     "text": "You can turn me on & off anytime in Settings.",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 220.0,
+      "y": 1808.0,
+      "w": 641.0,
+      "h": 40.0
+     },
+     "rect_dp": {
+      "x": 83.81,
+      "y": 636.95,
+      "w": 244.19,
+      "h": 15.24
+     },
+     "role": "modal footer text",
+     "asset_png": null,
+     "fg_hex": "#b9b9b9",
+     "bg_hex": "#000000",
+     "font_px": 40.0,
+     "font_guess": "Inter",
+     "in_mock": true,
+     "repeat_group": null
+    }
+   ],
+   "in_mock_scope": true,
+   "content_rating": "safe",
+   "dynamic_regions": [],
+   "blocked_reason": null
+  }
+ ],
+ "meaning": {
+  "app_category": "chat",
+  "states": [],
+  "elements": [],
+  "flows": [],
+  "mechanics": [
+   {
+    "id": "mech_paywall_luzia_plus",
+    "kind": "paywall",
+    "evidence_ids": [
+     "s01.e02",
+     "s01.e03",
+     "s02.e01",
+     "s02.e02",
+     "s02.e03",
+     "s02.e04",
+     "s02.e05",
+     "s02.e06",
+     "s02.e07",
+     "s02.e09",
+     "s02.e10",
+     "s02.e12",
+     "s02.e13",
+     "s02.e14",
+     "s02.e16",
+     "s02.e17",
+     "s02.e19"
+    ],
+    "summary": "Luzia+ subscription with three tiers: Weekly, Monthly (marked most popular), and Annual. Benefits include doubled images, longer chats, advanced reasoning, higher-quality image generation, voice chat, and custom character creation up to 5.",
+    "observed_numbers": [
+     "3",
+     "5"
+    ],
+    "status": "observed"
+   },
+   {
+    "id": "mech_pet_engagement",
+    "kind": "other",
+    "evidence_ids": [
+     "s01.e26",
+     "s01.e27",
+     "s04.e03",
+     "s04.e04"
+    ],
+    "summary": "Toki virtual pet feature that grows with user engagement. User must care for pet to see it develop. Can be toggled on/off in settings.",
+    "observed_numbers": [],
+    "status": "observed"
+   }
+  ],
+  "cross_screen_values": [],
+  "value_ledger": [
+   {
+    "id": "ledger_weekly_price",
+    "kind": "price",
+    "verbatim": "$ 1.99",
+    "evidence_ids": [
+     "s02.e10"
+    ]
+   },
+   {
+    "id": "ledger_monthly_price",
+    "kind": "price",
+    "verbatim": "$ 4.99",
+    "evidence_ids": [
+     "s02.e13"
+    ]
+   },
+   {
+    "id": "ledger_annual_price",
+    "kind": "price",
+    "verbatim": "$ 39.99",
+    "evidence_ids": [
+     "s02.e17"
+    ]
+   },
+   {
+    "id": "ledger_2x_images",
+    "kind": "paywall_bullet",
+    "verbatim": "2× images & longer chats",
+    "evidence_ids": [
+     "s02.e02"
+    ]
+   },
+   {
+    "id": "ledger_advanced_reasoning",
+    "kind": "paywall_bullet",
+    "verbatim": "Advanced reasoning mode",
+    "evidence_ids": [
+     "s02.e03"
+    ]
+   },
+   {
+    "id": "ledger_image_quality",
+    "kind": "paywall_bullet",
+    "verbatim": "Higher-quality image generations",
+    "evidence_ids": [
+     "s02.e04"
+    ]
+   },
+   {
+    "id": "ledger_voice_chat",
+    "kind": "paywall_bullet",
+    "verbatim": "Voice chat with Luzia",
+    "evidence_ids": [
+     "s02.e05"
+    ]
+   },
+   {
+    "id": "ledger_custom_characters",
+    "kind": "paywall_bullet",
+    "verbatim": "Create up to 5 AI characters",
+    "evidence_ids": [
+     "s02.e06"
+    ]
+   },
+   {
+    "id": "ledger_exclusive_tools",
+    "kind": "paywall_bullet",
+    "verbatim": "Exclusive tools",
+    "evidence_ids": [
+     "s02.e07"
+    ]
+   },
+   {
+    "id": "ledger_most_popular",
+    "kind": "paywall_bullet",
+    "verbatim": "Most popular",
+    "evidence_ids": [
+     "s02.e14"
+    ]
+   },
+   {
+    "id": "ledger_ai_disclaimer",
+    "kind": "actor",
+    "verbatim": "Luzia is AI and can make mistakes. Verify important information.",
+    "evidence_ids": [
+     "s07.e26"
+    ]
+   }
+  ],
+  "terms": [
+   {
+    "term": "Luzia+",
+    "meaning": "Premium subscription tier unlocking advanced chat features, image generation, voice capability, and custom character creation.",
+    "defined_by": [
+     "s02.e01",
+     "s02.e02",
+     "s02.e03",
+     "s02.e04",
+     "s02.e05",
+     "s02.e06",
+     "s02.e07"
+    ],
+    "used_in": [
+     "s01.e02",
+     "s03.e05",
+     "mech_paywall_luzia_plus"
+    ],
+    "everyday": false
+   },
+   {
+    "term": "Toki",
+    "meaning": "A virtual pet companion that grows stronger when the user engages with the app and interacts with the AI.",
+    "defined_by": [
+     "s01.e26",
+     "s01.e27",
+     "s04.e03",
+     "s04.e04"
+    ],
+    "used_in": [
+     "s01.e26",
+     "s01.e27",
+     "s04.e03",
+     "s04.e04",
+     "mech_pet_engagement"
+    ],
+    "everyday": false
+   },
+   {
+    "term": "Weekly",
+    "meaning": "A subscription billing cycle of seven days.",
+    "defined_by": [
+     "s02.e09",
+     "s02.e10"
+    ],
+    "used_in": [
+     "mech_paywall_luzia_plus"
+    ],
+    "everyday": true
+   },
+   {
+    "term": "Monthly",
+    "meaning": "A subscription billing cycle of approximately 30 days, marked as the most popular option.",
+    "defined_by": [
+     "s02.e12",
+     "s02.e13",
+     "s02.e14"
+    ],
+    "used_in": [
+     "mech_paywall_luzia_plus"
+    ],
+    "everyday": true
+   },
+   {
+    "term": "Annual",
+    "meaning": "A subscription billing cycle of 12 months.",
+    "defined_by": [
+     "s02.e16",
+     "s02.e17"
+    ],
+    "used_in": [
+     "mech_paywall_luzia_plus"
+    ],
+    "everyday": true
+   }
+  ],
+  "open_questions": []
+ },
+ "edges": [
+  {
+   "id": "s01.e03>s02",
+   "from_state": "s01",
+   "to_state": "s02",
+   "element_id": "s01.e03",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": "upsell badge opens the paywall"
+  },
+  {
+   "id": "s03.e05>s02",
+   "from_state": "s03",
+   "to_state": "s02",
+   "element_id": "s03.e05",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": "settings upgrade row opens the paywall"
+  },
+  {
+   "id": "s01.e05>s03",
+   "from_state": "s01",
+   "to_state": "s03",
+   "element_id": "s01.e05",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": "settings button opens settings"
+  },
+  {
+   "id": "s01.e40>s05",
+   "from_state": "s01",
+   "to_state": "s05",
+   "element_id": "s01.e40",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Services"
+  },
+  {
+   "id": "s01.e43>s06",
+   "from_state": "s01",
+   "to_state": "s06",
+   "element_id": "s01.e43",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Create"
+  },
+  {
+   "id": "s01.e33>s07",
+   "from_state": "s01",
+   "to_state": "s07",
+   "element_id": "s01.e33",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": "opens the recent chat"
+  },
+  {
+   "id": "s01.e26>s04",
+   "from_state": "s01",
+   "to_state": "s04",
+   "element_id": "s01.e26",
+   "action": "tap",
+   "transition": "modal",
+   "change_summary": "pet banner opens the pet intro"
+  },
+  {
+   "id": "s01.type>s01",
+   "from_state": "s01",
+   "to_state": "s01",
+   "element_id": null,
+   "action": "type",
+   "transition": "unknown",
+   "change_summary": "reply started 1.9 s, finished 7.5 s, 400 chars"
+  }
+ ]
+}

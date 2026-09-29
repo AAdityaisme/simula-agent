@@ -189,9 +189,13 @@ def test_editing_code_reruns_exactly_the_stages_that_run_it(package, rel, reruns
 
 
 def test_each_real_stage_hashes_its_own_module_and_its_package():
+    """A stage split into a package of its own (flows) hashes every module in it, so editing any of them reruns it."""
     for stage in STAGE_NAMES:
         files = {str(f.relative_to(ROOT)) for f in runfolder.code_files(stage)}
-        assert {f"simula/stages/{stage}.py", "simula/stages/__init__.py", "simula/__init__.py"} <= files, stage
+        own = ROOT / "simula" / "stages" / stage
+        modules = {f"{own.relative_to(ROOT)}.py"} if not own.is_dir() else \
+            {str(m.relative_to(ROOT)) for m in own.glob("*.py")}
+        assert modules | {"simula/stages/__init__.py", "simula/__init__.py"} <= files, stage
 
 
 def test_a_code_change_reruns_a_finished_stage(run):
