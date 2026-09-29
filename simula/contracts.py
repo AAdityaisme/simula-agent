@@ -128,13 +128,15 @@ class TermMeaning(Strict):
     meaning: str = Field(description="One plain-language line.")
     defined_by: list[str] = Field(description="Element ids whose text defines or explains the term.")
     used_in: list[str] = Field(description="Mechanic or ledger ids that use the term.")
-    everyday: bool = Field(default=False, description="True when the word's plain-English meaning is what it means "
+    everyday: bool = Field(description="True when the word's plain-English meaning is what it means "
                            "in this app (a plan called Basic or Yearly, a Search tab); false for a coined name, an "
                            "in-app unit or currency, or a common word the app uses in its own sense. An everyday "
                            "term is never flagged.")
 
 
 class Term(TermMeaning):
+    # The model must answer it (TermMeaning); a product model stored before the field existed still parses.
+    everyday: bool = False
     observed: bool = Field(description="Code: false unless a cited element carries the term and still says "
                                        "something in words once the term is cut, judged on its on-screen text alone; "
                                        "the meaning then reads 'meaning not observed' and an idea that uses it is flagged.")
