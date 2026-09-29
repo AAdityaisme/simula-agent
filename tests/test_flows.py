@@ -373,11 +373,40 @@ def test_a_cost_line_that_isnt_pass_is_a_mark_on_every_slide_and_never_the_verdi
 
 
 def rendered_overflows(slides_html: str) -> list[str]:
-    deck = flows.Template(flows.TEMPLATE.read_text()).substitute(title="t", slides=slides_html)
+    deck = flows.deck_html("t", slides_html)
     with sync_playwright() as p:
         page = p.chromium.launch().new_page(viewport={"width": flows.SLIDE_W, "height": flows.SLIDE_H})
         page.set_content(deck)
         return flows.overflows(page)
+
+
+def why_slide(words: int) -> str:
+    return ('<section class="slide main" data-part="why" data-idea="c01"><div class="why">'
+            f'<div class="why-block"><b>What the app gets</b><p>{"word " * words}</p></div></div>'
+            '<footer>When the reward runs out: it ends.</footer></section>')
+
+
+@pytest.mark.parametrize("words, fits", [(150, True), (400, False)])
+def test_a_why_slide_steps_its_text_down_to_fit_and_the_check_reports_what_still_doesnt(words, fits):
+    with sync_playwright() as p:
+        page = p.chromium.launch().new_page(viewport={"width": flows.SLIDE_W, "height": flows.SLIDE_H})
+        page.set_content(flows.deck_html("t", why_slide(words)))
+        problems = flows.overflows(page)
+        size = page.evaluate("document.querySelector('.why').style.fontSize")
+    assert size in ("15px", "14px", "13px") and (problems == []) == fits, (size, problems)
+    if not fits:
+        assert size == "13px" and problems[0].startswith("slide 1 (c01 why)")
+
+
+def test_the_deck_brings_its_own_font_so_it_lays_out_the_same_on_every_machine():
+    with sync_playwright() as p:
+        page = p.chromium.launch().new_page(viewport={"width": flows.SLIDE_W, "height": flows.SLIDE_H})
+        page.set_content(flows.deck_html("t", why_slide(10)))
+        flows.overflows(page)
+        loaded = page.evaluate("() => Promise.all([...document.fonts].map(f => f.load()))"
+                               ".then(faces => faces.filter(f => f.family === 'Inter').map(f => Number(f.weight)))")
+    assert sorted(loaded) == list(flows.FONT_WEIGHTS)
+    assert (flows.FONTS / "OFL.txt").exists()
 
 
 def test_the_overflow_check_names_each_slide_whose_text_runs_off_it_or_into_its_footer():

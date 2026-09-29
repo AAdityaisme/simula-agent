@@ -2,6 +2,7 @@
 call per idea adds the idea's new screens; code draws the simulated ad, taps through every step in Playwright, and
 lays out slides for the app's product team, then prints them to PDF."""
 
+import base64
 import io
 import json
 import math
@@ -27,6 +28,8 @@ from simula.stages.propose import BUCKETS, depths, root_id
 
 PROMPTS = ROOT / "prompts" / "flows"
 TEMPLATE = ROOT / "templates" / "slides.html"
+FONTS = ROOT / "templates" / "fonts"  # Inter, static Latin instances, SIL OFL 1.1 (OFL.txt beside them)
+FONT_WEIGHTS = (400, 700, 800, 900)  # the weights templates/slides.html uses; static, so a PDF embeds TrueType
 MAX_IDEAS = 4
 MAX_TOKENS = 16000
 SURVIVED = ("accept", "conditional")
@@ -956,13 +959,23 @@ def deck(ctx: Ctx, model: ProductModel, flows: list[dict], not_built: list[tuple
     slides += score_slides(decisions, candidates, not_built, ctx.run_dir)
     watermark = ('<div class="watermark">FIXTURE TEST DATA · not a deliverable</div>'
                  if ctx.run_dir.name.endswith("-fixture") else "")
-    return Template(TEMPLATE.read_text()).substitute(title=f"Rewarded-ad ideas for {escape(app)}",
-                                                     slides=watermark + "\n".join(slides))
+    return deck_html(f"Rewarded-ad ideas for {escape(app)}", watermark + "\n".join(slides))
+
+
+def deck_html(title: str, slides: str) -> str:
+    """The slide template filled in. Its font is inlined, so the file lays out, and the overflow check measures, the
+    same on every machine: a system font differs by OS and broke lines differently on Linux."""
+    faces = "".join(f'@font-face{{font-family:Inter;font-weight:{weight};src:url(data:font/woff2;base64,'
+                    f'{base64.b64encode((FONTS / f"inter-latin-{weight}.woff2").read_bytes()).decode()}) format("woff2")}}\n'
+                    for weight in FONT_WEIGHTS)
+    return Template(TEMPLATE.read_text()).substitute(title=title, slides=slides, fonts=faces)
 
 
 def overflows(page) -> list[str]:
     """Where the rendered deck's text or boxes run past a slide's edge, into its footer, or get cut off: one line
-    per outermost element, naming its slide. Screenshots and deliberate ellipses don't count."""
+    per outermost element, naming its slide, measured once the deck's font has loaded and its why slides have fitted
+    their text. Screenshots and deliberate ellipses don't count."""
+    page.wait_for_function("'fitted' in document.documentElement.dataset")
     return page.evaluate(OVERFLOW_JS)
 
 
