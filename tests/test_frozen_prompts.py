@@ -22,8 +22,9 @@ def test_every_judge_prompt_is_frozen_at_its_current_hash():
                                           "judge role judge_1 (real profile)", "judge role judge_2 (real profile)"}
 
 
-@pytest.mark.parametrize("field, value", [("model", "claude-haiku-4-5-20251001"), ("effort", "low")])
-def test_a_judge_model_or_effort_change_is_refused_like_a_prompt_change(monkeypatch, field, value):
+@pytest.mark.parametrize("field, value", [("model", "claude-haiku-4-5-20251001"), ("effort", "low"),
+                                          ("declared_fallback", "claude-haiku-4-5-20251001")])
+def test_a_judge_model_effort_or_fallback_change_is_refused_like_a_prompt_change(monkeypatch, field, value):
     real = config.roles("real")
     changed = {**real, "judge_2": {**real["judge_2"], field: value}}
     monkeypatch.setattr(config, "roles", lambda profile: changed if profile == "real" else real)

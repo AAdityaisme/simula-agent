@@ -52,7 +52,8 @@ def prompt_hashes() -> dict[str, str]:
 def judge_settings() -> dict[str, str]:
     roles, models = config.roles("real"), config.models()
     return {f"judge role {r} (real profile)": f"{roles[r]['model']}, effort {roles[r].get('effort')}, max_tokens "
-                                              f"{min(MAX_TOKENS, models[roles[r]['model']]['max_out'])}"
+                                              f"{min(MAX_TOKENS, models[roles[r]['model']]['max_out'])}, fallback "
+                                              f"{roles[r].get('declared_fallback')}"
             for r in sorted(roles) if r.startswith("judge_")}
 
 

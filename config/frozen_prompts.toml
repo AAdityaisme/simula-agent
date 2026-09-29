@@ -4,5 +4,5 @@
 "prompts/judge/rubric.md" = "9528ca57c3b630b96f969aaf79f22cf8dc1cc78a2d973fe68817448ef4be4ead"
 "rendered judge message (tests/fixtures/judge/pin.json)" = "37730a46c0678222d7d6ea552f69c7f697c1c55e30ee754b5d60ccaa0008f6c5"
 "rendered judge message (tests/fixtures/judge/pin-empty.json)" = "b277bd6f4ae351aed301ad691dc72cda402956af8cc7b44c6b1844c69670f152"
-"judge role judge_1 (real profile)" = "claude-sonnet-5-5, effort high, max_tokens 16001"
-"judge role judge_2 (real profile)" = "gpt-6-sol, effort high, max_tokens 16001"
+"judge role judge_1 (real profile)" = "claude-sonnet-5-5, effort high, max_tokens 16001, fallback None"
+"judge role judge_2 (real profile)" = "gpt-6-sol, effort high, max_tokens 16001, fallback gpt-6-luna"
