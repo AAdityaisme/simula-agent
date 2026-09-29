@@ -34,7 +34,9 @@ PALETTE_SIZE = 4
 FONT_NAME = re.compile(r"[A-Za-z0-9 ]+")
 FONT_CSS = "https://fonts.googleapis.com/css2?family={family}:wght@400;500;600;700&display=swap"
 FONT_FILE = re.compile(r"url\((https?://[^)\s]+)\)")
-FONT_FACE = re.compile(r"/\*\s*([\w-]+)\s*\*/\s*(@font-face\s*\{[^}]*\})")
+FONT_FACE = re.compile(r"(?:/\*\s*([^*]*?)\s*\*/\s*)?(@font-face\s*\{[^}]*\})")
+UNICODE_RANGE = re.compile(r"unicode-range:([^;}]*)")
+CODE_POINTS = re.compile(r"U\+([0-9a-fA-F]+)(?:-([0-9a-fA-F]+))?")
 FETCH_TIMEOUT_S = 20
 FONT_RECORDS = llm.CACHE / "fonts"
 # Every way urllib fails a download: a socket, TLS or HTTP status error (OSError), or a cut-off or malformed
@@ -117,7 +119,7 @@ def run(ctx: Ctx) -> None:
     art = crop_art(model_dir, mock_dir, scope, model.device)
 
     style = shared_style(scope)
-    fonts = vendor_fonts(ctx, mock_dir, fonts_of(scope))
+    fonts = vendor_fonts(ctx, mock_dir, fonts_of(scope), chars_of(scope))
     contents = [batch_content(ctx, model, batch, screens, art, style) for batch in groups]
     budget = llm.Budget.for_stage("mock", ctx.run_dir / "trace.jsonl", plan_cap(ctx))
     worst = [worst_usd(ctx, content) for content in contents]
@@ -590,8 +592,13 @@ def most_used(values) -> list[str]:
     return [v for v, _ in Counter(v for v in values if v).most_common(PALETTE_SIZE)]
 
 
-def vendor_fonts(ctx: Ctx, mock_dir, families: list[str]) -> str:
-    """Copies each family's Google Fonts CSS (weights 400-700, the Latin subset) and every woff2 file it names into
+def chars_of(scope: list[State]) -> set[str]:
+    """Every character the mock draws: the text and labels of the in-scope elements."""
+    return {c for s in scope for e in s.elements if e.in_mock for c in (e.text or "") + (e.label or "")}
+
+
+def vendor_fonts(ctx: Ctx, mock_dir, families: list[str], chars: set[str]) -> str:
+    """Copies each family's Google Fonts CSS (weights 400-700, the faces `chars` needs) and every woff2 file it names into
     mock/assets/fonts/, so rendering never waits on the network. Returns the page's <link> to that CSS, or "" when no
     family was fetched. A family that can't be fetched is left out, traced, and the page falls back to the system
     font stack; this never fails the stage. Every fetch goes through its record, so --replay rebuilds the same fonts
@@ -600,7 +607,7 @@ def vendor_fonts(ctx: Ctx, mock_dir, families: list[str]) -> str:
     faces, skipped = [], {}
     for family in families:
         try:
-            css = latin_faces(fetch_recorded(ctx, FONT_CSS.format(family=quote_plus(family))).decode())
+            css = used_faces(fetch_recorded(ctx, FONT_CSS.format(family=quote_plus(family))).decode(), chars)
             files = {url: fetch_recorded(ctx, url) for url in dict.fromkeys(FONT_FILE.findall(css))}
         except (*FETCH_ERRORS, ValueError) as e:
             skipped[family] = str(e)[:100]
@@ -621,10 +628,27 @@ def vendor_fonts(ctx: Ctx, mock_dir, families: list[str]) -> str:
     return '<link rel="stylesheet" href="assets/fonts/fonts.css">'
 
 
-def latin_faces(css: str) -> str:
-    """Google splits a family's faces by unicode-range, each after a /* subset */ comment: keep the Latin ones, or
-    every face when the CSS isn't split that way."""
-    return "\n".join(face for subset, face in FONT_FACE.findall(css) if subset == "latin") or css
+def used_faces(css: str, chars: set[str]) -> str:
+    """Google splits a family's faces by unicode-range, most after a /* subset */ comment (CJK faces come numbered and
+    uncommented). Keeps the Latin faces always, any face with no range, and each other face whose range covers a
+    character the screens show that Latin doesn't: Google declares Latin last, so the browser tries it first and
+    would never download another face for a character Latin has. A script the screens use gets its font; no other
+    subset is downloaded."""
+    faces = [(subset, face, face_ranges(face)) for subset, face in FONT_FACE.findall(css)]
+    latin = [r for subset, _, ranges in faces if subset == "latin" for r in ranges or []]
+    needed = {p for p in map(ord, chars) if not covers(latin, p)}
+    kept = [face for subset, face, ranges in faces
+            if subset == "latin" or ranges is None or any(covers(ranges, p) for p in needed)]
+    return "\n".join(kept) or css
+
+
+def face_ranges(face: str) -> list[tuple[int, int]] | None:
+    found = UNICODE_RANGE.search(face)
+    return [(int(lo, 16), int(hi or lo, 16)) for lo, hi in CODE_POINTS.findall(found.group(1))] if found else None
+
+
+def covers(ranges: list[tuple[int, int]], point: int) -> bool:
+    return any(lo <= point <= hi for lo, hi in ranges)
 
 
 def fetch_recorded(ctx: Ctx, url: str) -> bytes:

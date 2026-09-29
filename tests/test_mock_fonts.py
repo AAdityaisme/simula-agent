@@ -10,7 +10,7 @@ import urllib.error
 import pytest
 
 from simula import llm
-from simula.contracts import ContractReport
+from simula.contracts import ContractReport, ProductModel
 from simula.runlog import read_trace
 from simula.stages import mock
 from tests.conftest import APPS
@@ -116,7 +116,7 @@ def test_one_family_that_fails_is_left_out_and_the_others_are_kept(tmp_path, mon
             raise urllib.error.HTTPError(url, 400, "Bad Request", None, None)
         return google(url)
     monkeypatch.setattr(mock, "fetch", fetch)
-    link = mock.vendor_fonts(ctx_for(run_dir, APPS[0]), run_dir / "mock", ["Roboto", "Lobster"])
+    link = mock.vendor_fonts(ctx_for(run_dir, APPS[0]), run_dir / "mock", ["Roboto", "Lobster"], set("Hi"))
     css = (run_dir / "mock" / "assets" / "fonts" / "fonts.css").read_text()
     assert link == '<link rel="stylesheet" href="assets/fonts/fonts.css">'
     assert "'Roboto'" in css and "Lobster" not in css
@@ -143,9 +143,55 @@ def test_a_download_cut_off_mid_read_skips_the_family_and_never_fails_the_stage(
     assert line.outcome == "error" and line.note.startswith("webfonts skipped, system fonts used: Roboto: IncompleteRead")
 
 
+SCRIPTS_CSS = """/* cyrillic */
+@font-face { font-family: 'X'; src: url(https://fonts.gstatic.com/x/cyrillic.woff2); unicode-range: U+0400-045F; }
+/* greek */
+@font-face { font-family: 'X'; src: url(https://fonts.gstatic.com/x/greek.woff2); unicode-range: U+0370-03FF; }
+@font-face { font-family: 'X'; src: url(https://fonts.gstatic.com/x/cjk-7.woff2); unicode-range: U+65e5, U+672c-672d; }
+@font-face { font-family: 'X'; src: url(https://fonts.gstatic.com/x/cjk-8.woff2); unicode-range: U+20-7e, U+8a00-8aff; }
+/* latin */
+@font-face { font-family: 'X'; src: url(https://fonts.gstatic.com/x/latin.woff2); unicode-range: U+0000-00FF; }
+"""
+
+
+def kept_files(css: str) -> list[str]:
+    return [url.rsplit("/", 1)[1] for url in mock.FONT_FILE.findall(css)]
+
+
+@pytest.mark.parametrize("text, files", [
+    ("Chat now", ["latin.woff2"]),
+    ("Чат now", ["cyrillic.woff2", "latin.woff2"]),
+    ("日本 chat", ["cjk-7.woff2", "latin.woff2"]),
+    ("日本語", ["cjk-7.woff2", "cjk-8.woff2", "latin.woff2"]),
+    ("", ["latin.woff2"]),
+], ids=["latin", "cyrillic", "japanese", "japanese-2", "no-text"])
+def test_the_latin_faces_are_kept_and_another_subset_only_for_characters_the_screens_show(text, files):
+    """CJK faces come numbered and uncommented, so the range decides, never a subset name or the app. A CJK face that
+    also covers ASCII (as Noto Sans JP's do) isn't downloaded for text Latin already covers."""
+    assert kept_files(mock.used_faces(SCRIPTS_CSS, set(text))) == files
+
+
+def test_a_screen_in_another_script_gets_that_scripts_font_files(tmp_path, monkeypatch):
+    run_dir = seed_model(tmp_path / "run", APPS[0])
+    with_fonts(run_dir, APPS[0], ["Roboto"])
+    model = ProductModel.model_validate_json((run_dir / "model" / "product_model.json").read_text())
+    drawn = next(e for e in mock.pick_scope(model)[0].elements if e.in_mock)
+    states = [s.model_copy(update={"elements": [e.model_copy(update={"text": "Привет"}) if e is drawn else e
+                                                for e in s.elements]}) for s in model.states]
+    (run_dir / "model" / "product_model.json").write_text(model.model_copy(update={"states": states}).model_dump_json())
+    calls = []
+    monkeypatch.setattr(mock, "fetch", fake_google(calls))
+    monkeypatch.setattr(llm, "call", fake_builder([]))
+    mock.run(ctx_for(run_dir, APPS[0]))
+
+    assert sorted(url.rsplit("/", 1)[1] for url in calls if url.endswith(".woff2")) == \
+        ["cyrillic-400.woff2", "latin-400.woff2", "latin-700.woff2"]
+    assert (run_dir / "mock" / "assets" / "fonts" / "fonts.css").read_text().count("@font-face") == 3
+
+
 def test_css_that_isnt_split_by_subset_keeps_every_face():
     css = "@font-face { font-family: 'X'; src: url(https://fonts.gstatic.com/x.woff2); }"
-    assert mock.latin_faces(css) == css
+    assert mock.used_faces(css, set("Hi")) == css
 
 
 # ---------- --replay: fonts come from the record, never the network ----------
