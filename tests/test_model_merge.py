@@ -533,17 +533,20 @@ def test_a_tap_that_changed_its_own_screen_opened_nothing():
     assert (term.observed, term.defined_by, term.anchor_taps) == (False, [], [])
 
 
-@pytest.mark.parametrize("cited", [["s15.e04"], ["s03.e08"]], ids=["on-the-screen-a-tap-opened", "on-its-own-screen"])
-def test_a_count_never_defines_its_term_wherever_it_sits(cited):
+@pytest.mark.parametrize("cited, kept", [(["s15.e04"], []), (["s03.e08"], []), (["s03.e05", "s03.e08"], ["s03.e05"])],
+                         ids=["on-the-screen-a-tap-opened", "on-its-own-screen", "beside-a-cited-anchor"])
+def test_a_count_never_defines_its_term_wherever_it_sits(cited, kept):
     """Red team PR13 @408cd35 #1: explore tapped the row "Kang Jun-Seo (Idol x Idol), 08:52, 7 chats" (s03.e05, an
     anchor for "chats"), which opened the sheet s15. "7 chats" there (s15.e04) carries the term but is a count, so
-    it can't define it, just like the same count on the list (s03.e08)."""
+    it can't define it, just like the same count on the list (s03.e08). Red team PR13 @f9bf25f #3: when the model
+    also cites that row, s03 is explained (the documented in-passing limit), and the count beside it still doesn't
+    count."""
     states, meaning, edges, model_labels = real_terms("janitorai-2026-09-29")
     assert "s03.e05>s15" in {g.id for g in edges}
     drafted = next(t for t in meaning.terms if t.term == "chats")
     meaning.terms[:] = [drafted.model_copy(update={"defined_by": cited})]
     (term,) = stage.resolve_terms(meaning, states, edges, model_labels)
-    assert (term.observed, term.defined_by, term.anchor_taps) == (False, [], [])
+    assert (term.observed, term.defined_by, term.anchor_taps) == (bool(kept), kept, [])
 
 
 def test_a_tap_from_any_element_that_names_the_term_carries_it_to_the_screen_it_opened():
@@ -652,11 +655,12 @@ def test_a_term_in_a_script_with_vowel_signs_can_be_observed(term, words):
 
 
 @pytest.mark.parametrize("term, words", [("Energy", "⚡️Energy refills every 4 hours"), ("Gems", "💎️Gems: 120 left"),
-                                         ("Premium", "⭐️Premium members skip the line")],
-                         ids=["energy", "gems", "premium"])
+                                         ("Premium", "⭐️Premium members skip the line"),
+                                         ("Tags", "#️⃣Tags you follow: 12")],
+                         ids=["energy", "gems", "premium", "keycap"])
 def test_a_term_written_right_after_an_emoji_is_kept_and_observed(term, words):
-    """Red team PR13 @408cd35 #3: the emoji's presentation selector (U+FE0F) is a mark, but it sits on the emoji, not
-    on a letter, so it doesn't join the emoji to the word after it. Before, the merge check dropped such a term."""
+    """Red team PR13 @408cd35 #3 and @f9bf25f #1: an emoji's presentation selector (U+FE0F) and a keycap (U+20E3) only
+    draw a symbol, so they don't join it to the word after it. Before, the merge check dropped such a term."""
     states, meaning, edges, model_labels = real_terms("janitorai")
     states = [s.model_copy(update={"elements": [e.model_copy(update={"text": words}) if e.id == "s02.e04" else e
                                                 for e in s.elements]}) for s in states]
@@ -779,20 +783,22 @@ def test_the_stage_writes_a_valid_model(name, tmp_path, monkeypatch):
     assert 1 <= len(images) <= stage.MAX_IMAGES
 
 
-def test_a_term_observed_through_a_tap_names_that_tap_in_the_trace_and_the_model(tmp_path, monkeypatch):
+@pytest.mark.parametrize("cited", [["s02.e03"], ["s03.e05", "s02.e03"]], ids=["bullet", "anchor-and-bullet"])
+def test_a_term_observed_through_a_tap_names_that_tap_in_the_trace_and_the_model(cited, tmp_path, monkeypatch):
     """Luzia's golden: "Upgrade to Luzia+" (s03.e05) opens the paywall s02, whose bullet "Advanced reasoning mode"
-    (s02.e03) the model cites; nothing cited on s02 names the plan."""
+    (s02.e03) the model cites; nothing cited on s02 names the plan. When the model also cites that anchor, it sits on
+    s03, a screen the tap didn't open (red team PR13 @f9bf25f #2), so the note doesn't say which screen each is on."""
     answer = recorded_answer(golden("luzia"))
-    answer.terms.append(TermMeaning(term="Luzia+", meaning="The paid plan.", defined_by=["s02.e03"], used_in=["m01"],
+    answer.terms.append(TermMeaning(term="Luzia+", meaning="The paid plan.", defined_by=cited, used_in=["m01"],
                                     everyday=False))
     fake_calls(monkeypatch, [answer, answer])
     ctx = make_ctx("luzia", tmp_path)
     stage.run(ctx)
     model = ProductModel.model_validate_json((ctx.run_dir / "model" / "product_model.json").read_text())
     (term,) = model.terms
-    assert (term.observed, term.defined_by, term.anchor_taps) == (True, ["s02.e03"], ["s03.e05>s02"])
+    assert (term.observed, term.defined_by, term.anchor_taps) == (True, cited, ["s03.e05>s02"])
     [line] = [t for t in read_trace(ctx.run_dir / "trace.jsonl") if t.step == "term_tap"]
-    assert line.note == "Luzia+ observed through tap s03.e05>s02, which opened the screen of s02.e03"
+    assert line.note == f"Luzia+ observed through tap s03.e05>s02; defined by {', '.join(cited)}"
     assert "· through tap s03.e05>s02" in (ctx.run_dir / "model" / "product_model.md").read_text()
 
 

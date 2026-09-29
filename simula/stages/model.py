@@ -920,8 +920,8 @@ def run(ctx: Ctx) -> None:
     for t in model.terms:
         if t.anchor_taps:
             run_trace(ctx.run_dir, stage="model", step="term_tap", decider="code",
-                      note=f"{t.term} observed through tap {', '.join(t.anchor_taps)}, which opened the screen of "
-                           f"{', '.join(t.defined_by)}")
+                      note=f"{t.term} observed through tap {', '.join(t.anchor_taps)}; "
+                           f"defined by {', '.join(t.defined_by)}")
     (out / "product_model.json").write_text(model.model_dump_json(indent=1))
     (out / "product_model.md").write_text(render_md(model))
     write_exhibit(ctx.run_dir, 2, "model", exhibit(model, rounds, notes, assets))
