@@ -343,8 +343,10 @@ def test_our_own_cap_in_qa_still_approves_the_best_round(mocked_run):
                      "--usd-cap", "0.0001"])
     assert code == 0 and (mocked_run / "qa" / "done.json").exists()
     report = json.loads((mocked_run / "qa" / "qa_report.json").read_text())
-    assert (report["status"], report["approved_round"]) == ("approved", 0)
+    assert (report["status"], report["outcome"], report["approved_round"]) == ("qa_incomplete", "partial", 0)
     assert "round 1 stopped before any edit: qa: next call could cost" in report["stop_reason"]
+    assert report["reasons"] == [f"the review stopped early: {report['stop_reason']}"]
+    assert report["resume"] == f"simula run janitorai --run {mocked_run.name} --from qa"
 
 
 # ---------- a synthetic 12-screen model: the critic in groups, undrawn screens ----------
@@ -504,7 +506,9 @@ def test_undrawn_screens_are_reported_and_never_scored_criticized_or_fixed(twelv
     assert report["undrawn_screens"] == [{"screen": sid, "reason": "screen not drawn: refusal"} for sid in undrawn]
     assert [s["state_id"] for s in report["screens"]] == drawn
     assert calls and all(set(c["seen"]).isdisjoint(undrawn) for c in calls)
-    assert report["status"] == "approved" and not report["contract_errors"]
+    assert (report["status"], report["outcome"]) == ("qa_incomplete", "partial") and not report["contract_errors"]
+    assert report["reasons"][0] == f"the mock left screens undrawn: {', '.join(undrawn)}"
+    assert report["resume"] == f"simula run {app} --run {run_dir.name} --from mock"
     edges = {e.id: e for e in mock.scope_edges(model, mock.pick_scope(model))}
     for flow in (f for f in model.flows if f.edge_ids and all(i in edges for i in f.edge_ids)):
         crosses = any({edges[i].from_state, edges[i].to_state} & set(undrawn) for i in flow.edge_ids)

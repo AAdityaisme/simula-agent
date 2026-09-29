@@ -62,10 +62,12 @@ class Version:
 
 @dataclass
 class Loop:
-    """How the fix loop went: a summary per round, why it stopped, the first round a score-only keep rule would have
-    decided the other way, and the critic's findings on the approved version (None when no round critiqued it)."""
+    """How the fix loop went: a summary per round, why it stopped (and whether a failed or capped model call cut it
+    short), the first round a score-only keep rule would have decided the other way, and the critic's findings on
+    the approved version (None when no round critiqued it)."""
     rounds: list[dict]
     stop: str
+    stopped_early: bool = False
     disagreement: dict | None = None
     open_findings: list[Fix] | None = None
 
@@ -79,7 +81,7 @@ def run(ctx: Ctx) -> None:
     run_trace(ctx.run_dir, stage="qa", step="stop", decider="code", note=loop.stop)
 
     approve(ctx, best)
-    report = qa_report(best, loop, undrawn_screens(ctx))
+    report = qa_report(ctx, best, loop, undrawn_screens(ctx))
     write_json(ctx.run_dir / "qa" / "qa_report.json", report)
     write_exhibit(ctx.run_dir, 4, "qa", exhibit(ctx, model, best, loop, report))
 
@@ -96,7 +98,7 @@ def improve(ctx: Ctx, model: ProductModel, scope: list[State], best: Version) ->
             critiqued[best.round] = critique
             edits = fix(ctx, budget, model, best, critique, n)
         except (llm.LLMFailure, llm.CapReached) as e:
-            loop.stop = f"round {n} stopped before any edit: {e}"
+            loop.stop, loop.stopped_early = f"round {n} stopped before any edit: {e}", True
             run_trace(ctx.run_dir, stage="qa", step=f"round{n}", decider="code", outcome="error",
                       note=loop.stop[:300])
             break
@@ -608,12 +610,14 @@ def summary(version: Version, kept: bool, edits: list[dict] = ()) -> dict:
             "edits_applied": sum(e["applied"] for e in edits), "edits_rejected": sum(not e["applied"] for e in edits)}
 
 
-def qa_report(best: Version, loop: Loop, undrawn: dict[str, str]) -> dict:
-    """qa_incomplete when the approved version still fails navigation; flows still run on it, with that label.
-    keep_score is the loop's keep metric. structure, interaction and visual report fidelity apart from it, with no
-    pass mark, and open_findings carries what the critic still saw on the approved version."""
-    incomplete = bool(best.failed_taps() or best.failed_flows())
-    return {"status": "qa_incomplete" if incomplete else "approved", "approved_round": best.round,
+def qa_report(ctx: Ctx, best: Version, loop: Loop, undrawn: dict[str, str]) -> dict:
+    """What QA certifies about the approved version. outcome, reasons and resume are the stage-outcome fields
+    done.json shares; status is QA's label for the same thing (approved | qa_incomplete), and flows still run on a
+    partial mock with that label. keep_score is the loop's keep metric. structure, interaction and visual report
+    fidelity apart from it, with no pass mark, and open_findings carries what the critic still saw."""
+    finished = outcome(ctx, best, loop, undrawn)
+    return {"status": "approved" if finished["outcome"] == "complete" else "qa_incomplete", **finished,
+            "approved_round": best.round,
             "keep_score": round(best.score, 3), "keep_score_formula": KEEP_FORMULA,
             "structure": structure(best), "interaction": interaction(best), "visual": visual(best),
             "open_findings": None if loop.open_findings is None else [f.model_dump() for f in loop.open_findings],
@@ -623,6 +627,24 @@ def qa_report(best: Version, loop: Loop, undrawn: dict[str, str]) -> dict:
                          "taps": s["taps"], "data_el_misses": s["misses"]} for s in best.screens],
             "failed_taps": best.failed_taps(), "flows": best.flows,
             "contract_errors": [e.model_dump() for e in best.contract_errors]}
+
+
+def outcome(ctx: Ctx, best: Version, loop: Loop, undrawn: dict[str, str]) -> dict:
+    """complete, or partial with why and where to start again: screens the mock left undrawn (and the core flows
+    through them), a review a failed or capped model call cut short, or checks the approved version still fails.
+    A partial mock still goes on to the slides; QA never blocks them."""
+    through_undrawn = [f["flow"] for f in best.flows if f["status"] == "undrawn"]
+    reasons = [text for present, text in (
+        (undrawn, f"the mock left screens undrawn: {', '.join(undrawn)}"),
+        (through_undrawn, f"core flows through an undrawn screen: {', '.join(through_undrawn)}"),
+        (loop.stopped_early, f"the review stopped early: {loop.stop}"),
+        (best.failed_taps(), f"taps that still fail: {', '.join(t['edge'] for t in best.failed_taps())}"),
+        (best.failed_flows(), f"core flows that still fail: {', '.join(f['flow'] for f in best.failed_flows())}"),
+        (best.contract_errors, f"contract errors on the approved version: {len(best.contract_errors)}"),
+    ) if present]
+    start = "mock" if undrawn else "qa"
+    return {"outcome": "partial" if reasons else "complete", "reasons": reasons,
+            "resume": f"simula run {ctx.app['name']} --run {ctx.run_dir.name} --from {start}" if reasons else None}
 
 
 def structure(best: Version) -> dict:
@@ -659,8 +681,8 @@ def fidelity_lines(report: dict, start: float) -> list[str]:
 
 
 def exhibit(ctx: Ctx, model: ProductModel, best: Version, loop: Loop, report: dict) -> str:
-    status = ("**approved**" if report["status"] == "approved"
-              else f"**qa_incomplete**: {len(best.failed_taps())} taps and {len(best.failed_flows())} flows still fail")
+    status = ("**approved** (outcome complete)" if report["outcome"] == "complete"
+              else f"**qa_incomplete** (outcome partial): {'; '.join(report['reasons'])}. Resume: `{report['resume']}`")
     lines = [f"# QA: {model.app}", "",
              f"Status: {status}. Round {best.round} is approved and copied to `qa/approved/`. Stop: "
              f"{report['stop_reason']}. Model spend this stage: ${stage_usd(ctx):.4f}.", "",

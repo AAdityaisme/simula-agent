@@ -1,9 +1,14 @@
-"""qa_report.json: fidelity reported apart from the loop's keep score, and what the critic still saw on the approved
-version."""
+"""qa_report.json: the stage outcome (complete | partial, reasons, resume), fidelity reported apart from the loop's
+keep score, and what the critic still saw on the approved version."""
 
-from simula.contracts import QAMetrics, ScreenMetrics
+import pytest
+
+from simula import llm
+from simula.contracts import ContractError, QAMetrics, ScreenMetrics
 from simula.stages import qa
-from tests.test_qa_loop import records, scripted  # noqa: F401 (fixtures; records keeps QA's cache in tmp)
+from tests.test_mock_isolation import ctx_for
+# records keeps QA's replay records in tmp; scripted plays the loop on scripted scores.
+from tests.test_qa_loop import approved_html, records, scripted  # noqa: F401
 
 
 def screen(sid: str, ssim: float | None, tagged: int, misses: int) -> dict:
@@ -24,8 +29,8 @@ def version() -> qa.Version:
     return qa.Version(1, "<html></html>", metrics, screens, taps, flows, [])
 
 
-def test_structure_interaction_and_visual_are_reported_apart_from_the_keep_score():
-    report = qa.qa_report(version(), qa.Loop(rounds=[], stop="s"), {})
+def test_structure_interaction_and_visual_are_reported_apart_from_the_keep_score(tmp_path):
+    report = qa.qa_report(ctx_for(tmp_path / "run", "anyapp"), version(), qa.Loop(rounds=[], stop="s"), {})
     assert report["keep_score"] == 8.765 and "not a fidelity percentage" in report["keep_score_formula"]
     assert "score" not in report
     assert report["structure"] == {"tagged": 20, "within_4dp": 17}
@@ -55,3 +60,47 @@ def test_each_round_reports_its_keep_score(scripted):
     assert [r["keep_score"] for r in report["rounds"]] == [5.0, 6.0, 5.5]
     text = (run_dir / "exhibits" / "04-qa.md").read_text()
     assert "Keep score 5.00 → 6.00" in text and "| 2 | 5.50 |" in text
+
+
+def test_a_finished_review_with_every_check_passing_is_complete(scripted):
+    _, _, play = scripted
+    report = play([5.0, 6.0, 5.5])
+    assert (report["status"], report["outcome"], report["reasons"], report["resume"]) == ("approved", "complete", [],
+                                                                                          None)
+
+
+@pytest.mark.parametrize("failure", [llm.LLMFailure("refusal", "no"), llm.CapReached("qa: cap")])
+def test_a_review_a_model_call_cut_short_is_partial_yet_still_approves_its_best_version(scripted, monkeypatch,
+                                                                                       failure):
+    run_dir, _, play = scripted
+
+    def fail(*args, **kwargs):
+        raise failure
+    monkeypatch.setattr(qa, "fix", fail)
+    report = play([5.0])
+    assert (report["status"], report["outcome"], report["approved_round"]) == ("qa_incomplete", "partial", 0)
+    assert report["reasons"] == [f"the review stopped early: round 1 stopped before any edit: {failure}"]
+    assert report["resume"] == f"simula run luzia --run {run_dir.name} --from qa"
+    assert approved_html(run_dir) == "<html><body>v0</body></html>"
+    exhibit = (run_dir / "exhibits" / "04-qa.md").read_text()
+    assert "**qa_incomplete** (outcome partial): the review stopped early" in exhibit
+
+
+def test_contract_errors_left_on_the_approved_version_make_it_partial(scripted):
+    _, _, play = scripted
+    report = play([5.0, 6.0], errors=[1, 2])
+    assert report["approved_round"] == 0
+    assert report["reasons"] == ["contract errors on the approved version: 1"]
+
+
+def test_failing_taps_and_flows_are_named_and_resume_from_qa(tmp_path):
+    best = version()
+    report = qa.qa_report(ctx_for(tmp_path / "run", "anyapp"), best, qa.Loop(rounds=[], stop="s"), {})
+    assert report["reasons"] == ["taps that still fail: s01.e2>s04", "core flows that still fail: f2"]
+    assert report["resume"] == "simula run anyapp --run run --from qa"
+    best.contract_errors.append(ContractError(kind="wallpaper", detail="d", screen="s01"))
+    undrawn = {"s09": "screen not drawn: refusal"}
+    report = qa.qa_report(ctx_for(tmp_path / "run", "anyapp"), best, qa.Loop(rounds=[], stop="s"), undrawn)
+    assert report["reasons"][0] == "the mock left screens undrawn: s09"
+    assert report["reasons"][-1] == "contract errors on the approved version: 1"
+    assert report["resume"] == "simula run anyapp --run run --from mock"
