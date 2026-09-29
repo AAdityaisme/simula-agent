@@ -511,8 +511,8 @@ def mock_scope(states: list[State], edges: list[Edge], meaning: ModelMeaning) ->
 
     flow_states = [sid for f in meaning.flows for i in f.edge_ids if i in edge_by_id
                    for sid in (edge_by_id[i].from_state, edge_by_id[i].to_state)]
-    # A flow modal keeps its parent even when that parent is unsafe: whether its content shows is the renderer's
-    # and the blur's job, not scope's.
+    # A flow modal keeps its parent even when that parent is unsafe, since a gap would break the flow: the mock draws
+    # exactly this scope (nothing blurs it), and propose never triggers an offer on an unsafe screen.
     on_flow = {layer for sid in flow_states for layer in layers(sid)}
     eligible = {s.id for s in states if s.kind not in ("blocked", "external")
                 and (s.content_rating != "unsafe" or s.id in on_flow)}
