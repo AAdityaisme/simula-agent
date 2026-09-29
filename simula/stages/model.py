@@ -30,7 +30,7 @@ QUESTION_CAP = 5
 NOT_OBSERVED = "meaning not observed"
 EVERYDAY = " (everyday word, never flagged)"
 WORD = re.compile(r"[^\W\d_]{2,}")
-LOOP_UNITS = ("s", "chars")
+SCREEN_CHANGE = re.compile(r"→|(?:^|;\s*)[+-]['\"]")
 MEASURE = re.compile(r"^(?P<what>.*?)\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>[^\d\s]*)$")
 NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
 CLOCK = re.compile(r"\b\d{1,2}:\d{2}\b|\bago\b", re.IGNORECASE)
@@ -261,10 +261,11 @@ def measurements(summary: str) -> list[tuple[str, float, str]]:
 
 
 def pass_measurements(lines: list[ActionLine]) -> list[tuple[str, float, str]]:
-    """One pass's measurements: the timing parts (units s or chars) of the last line of the pass that has any.
-    A pass writes several lines (tap the box, type, send; or open, back) and only one carries the timing."""
+    """One pass's measurements, in whatever units the explorer measured: the parts of the last line of the pass
+    that has any. A pass writes several lines (tap the box, type, send; or open, back) and only one carries the
+    measurement; a line that says what changed on screen ("3 left → 2 left", "+'typed text'") never does."""
     for a in reversed(lines):
-        found = [m for m in measurements(a.change_summary) if m[2] in LOOP_UNITS]
+        found = [] if SCREEN_CHANGE.search(a.change_summary) else measurements(a.change_summary)
         if found:
             return found
     return []

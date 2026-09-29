@@ -383,8 +383,16 @@ def test_a_pass_is_counted_once_and_measured_only_from_its_timing_line(tmp_path)
 def test_measurements_in_different_units_are_never_mixed(tmp_path):
     measured, _ = with_loop(tmp_path, loop_line(900, 1, "reply 2 s"), loop_line(901, 2, "reply 4 s"),
                             loop_line(902, 3, "reply 300 chars, reply started 900 ms"))
-    assert "reply median 3 s (min 2, max 4, n=2); reply 300 chars (1 measurement)" in measured.verbatim
-    assert "ms" not in measured.verbatim.split("): ", 1)[1], "only s and chars are core-loop units"
+    assert measured.verbatim.endswith("reply median 3 s (min 2, max 4, n=2); reply 300 chars (1 measurement); "
+                                      "reply started 900 ms (1 measurement)"), "ms is its own unit, never mixed with s"
+
+
+def test_a_loop_that_is_not_a_chat_is_measured_in_its_own_units(tmp_path):
+    lines = [loop_line(900 + 2 * n, n, f"round took {30 + n} s, score {100 * n} points") for n in (1, 2)]
+    lines += [loop_line(903, 1, "3 lives → 2 lives"), loop_line(905, 2, "+'I have 3 cats'")]
+    measured, _ = with_loop(tmp_path, *sorted(lines, key=lambda a: a.step))
+    assert measured.verbatim.endswith("round took median 31.5 s (min 31, max 32, n=2); "
+                                      "score median 150 points (min 100, max 200, n=2)")
 
 
 def test_one_pass_is_said_as_one_measurement_and_an_unlimited_loop_says_the_plan_is_unknown(tmp_path):
