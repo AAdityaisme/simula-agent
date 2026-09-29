@@ -1,16 +1,20 @@
 """A live mock that lost batches: its --replay rebuilds the same page, a replay that misses leaves the committed record
 whole, and the stage reports the lost batches as a partial outcome in done.json."""
 
+import shutil
+
 import anthropic
 import httpx2
 import pytest
 
 from simula import cli, llm, runfolder, runlog
+from simula.contracts import ProductModel
 from simula.runlog import read_trace
 from simula.stages import mock
 from tests.conftest import FIXTURES
 from tests.mock_fake import golden, seed_model, skeleton_html
 from tests.test_mock_batches import provider_drawing, with_cache_in
+from tests.test_mock_fonts import fake_google
 from tests.test_mock_isolation import batch_screens, ctx_for, without_edges
 
 APP = "janitorai"
@@ -142,3 +146,29 @@ def test_batches_the_cap_left_out_are_named_once_and_resume_with_a_higher_cap(ru
     assert len(outcome.reasons) == len(set(outcome.reasons))
     assert all(sum(note in reason for reason in outcome.reasons) == 1 for note in left_out)
     assert outcome.resume.endswith("--usd-cap <higher>")
+
+
+def test_a_replay_that_misses_a_font_record_keeps_the_font_files_its_record_names(runs, tmp_path, monkeypatch):
+    fixture = tmp_path / "model-with-fonts"
+    shutil.copytree(GOLDEN, fixture)
+    model = ProductModel.model_validate_json((fixture / "product_model.json").read_text())
+    states = [s.model_copy(update={"elements": [e.model_copy(update={"font_guess": "Roboto"}) if e.in_mock else e
+                                                for e in s.elements]}) for s in model.states]
+    (fixture / "product_model.json").write_text(model.model_copy(update={"states": states}).model_dump_json())
+    (fixture / "done.json").unlink(missing_ok=True)
+    with_cache_in(tmp_path, monkeypatch)
+    monkeypatch.setattr(mock, "fetch", fake_google([], apache={"roboto"}))
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider_drawing(golden(APP), []))
+    assert cli.main(["mock", APP, "--allow-fixtures", "--fixture", f"model={fixture}"]) == 0
+    run_dir = (runs / APP / "latest").resolve()
+    mock_dir = run_dir / "mock"
+    committed = (mock_dir / "done.json").read_bytes()
+    assert any(p.suffix == ".woff2" for p in (mock_dir / "assets" / "fonts").iterdir())
+    record = next(p for p in (mock_dir / mock.FONT_RECORDS).glob("*.json") if ".woff2" in p.read_text()[:300])
+    record.rename(tmp_path / "record-moved-aside.json")
+
+    assert cli.main(["mock", APP, "--run", run_dir.name, "--allow-fixtures", "--replay"]) == cli.EXIT_CAP
+    assert (mock_dir / "done.json").read_bytes() == committed
+    moved = f"mock/{mock.FONT_RECORDS}/{record.name}"
+    assert [h.path for h in runfolder.read_done(mock_dir).output_hashes
+            if h.path != moved and not (run_dir / h.path).exists()] == []

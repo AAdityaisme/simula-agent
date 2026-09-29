@@ -732,8 +732,10 @@ def vendor_fonts(ctx: Ctx, mock_dir, families: list[str], chars: set[str]) -> st
     offline. The fonts ship with LICENSE.txt, each family's license text, which their licenses require; a family
     whose license can't be found isn't shipped."""
     font_dir = mock_dir / "assets" / "fonts"
-    # A rerun starts empty: QA's replay key hashes all of mock/assets, so a file the page no longer uses would count.
-    shutil.rmtree(font_dir, ignore_errors=True)
+    if not ctx.replay:
+        # A live rerun starts empty: QA's replay key hashes all of mock/assets, so a file the page no longer uses would
+        # count. A replay keeps them, as mock.run keeps assets/: one that misses a record leaves done.json's files whole.
+        shutil.rmtree(font_dir, ignore_errors=True)
     faces, licenses, skipped = [], [], {}
     for family in families:
         try:
