@@ -552,11 +552,12 @@ def test_the_proposer_has_an_answer_for_paying_users_when_the_model_shows_no_pai
     assert "no paid plan, it is `Every user sees the same offer.`" in line
 
 
-def test_the_proposer_writes_the_rationale_as_what_the_app_gets_the_heading_the_slides_print_it_under():
+def test_the_proposer_writes_the_rationale_as_what_the_app_gets_from_what_its_screens_show():
     """Asked "why this works for this app", the proposer rested an app with no anchor on what it lacks ("a news
-    reader with no paid plan or limit") on 2 of 5 live AOL ideas (the b3a1002 real run)."""
+    reader with no paid plan or limit") on 2 of 5 live AOL ideas (the b3a1002 real run). The slides print the
+    rationale under "What the app gets", and it keeps the app's own reasons, from what its screens show."""
     line = next(line for line in SYSTEM.splitlines() if line.startswith("- `rationale`:"))
-    assert line.startswith("- `rationale`: what the app gets") and "`what_is_different_here`" in line
+    assert line.startswith("- `rationale`: what the app gets") and "from what this app's screens show" in line
 
 
 def with_words(model, field: str, words: str):
