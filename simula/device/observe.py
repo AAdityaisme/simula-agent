@@ -31,8 +31,8 @@ LOOK_BITS = 16
 # called same (the lowest is 0.345). It is also the best value on each app alone.
 STRUCTURE_SAME = 0.34
 # A same-window overlay's controls span less than this share of the content area, unless a scrim dims what's above
-# them. Measured on the deep app's 13 recorded runs: every tall sheet (0.927-0.948 of the area) dims the strip above it to
-# about a fifth of its luma (11-12 vs 55-63); a refreshed feed doesn't dim anything.
+# them. Measured on the deep app's 13 recorded runs: every tall sheet (0.927-0.948 of the area) dims the strip above
+# it to about a fifth of its luma (11-12 vs 55-63); a refreshed feed doesn't dim anything.
 OVERLAY_SHARE = 0.9
 SCRIM_SHARE = 0.5
 
@@ -42,9 +42,9 @@ SCRIM_SHARE = 0.5
 # "Subscribed") stays denied: tapping it undoes it on the account.
 DENY = re.compile(r"\b(?:log ?out|sign ?out|delete|remove(?! ads\b)|cancel|(?:un)?subscribed?|buy|pay(?:ments?)?|"
                   r"purchases?|restore|confirm|start\b.{0,24}\btrial|report|(?:un)?block|clear|e-?mails?|passwords?|"
-                  r"security|personas?|(?:un)?follow(?:ing)?|(?:un)?favou?rit\w*|(?:un)?liked?|hearts?|hide|terms|privacy|"
-                  r"continue with|rate us|review|camera|photo|gallery|allow|permissions?|install|open in|submit|"
-                  r"place order|check ?out|proceed|donat\w*|tip|rate|give \d stars?|sign ?in|sign ?up|log ?in|"
+                  r"security|personas?|(?:un)?follow(?:ing)?|(?:un)?favou?rit\w*|(?:un)?liked?|hearts?|hide|terms|"
+                  r"privacy|continue with|rate us|review|camera|photo|gallery|allow|permissions?|install|open in|"
+                  r"submit|place order|check ?out|proceed|donat\w*|tip|rate|give \d stars?|sign ?in|sign ?up|log ?in|"
                   r"create account|save changes|publish|post)\b", re.IGNORECASE)
 CONTROL_WORDS = 4
 ID_WORDS = re.compile(r"(?<=[a-z])(?=[A-Z])|_")  # an identifier's words ("buttonFavorite", "btn_like") for \b
