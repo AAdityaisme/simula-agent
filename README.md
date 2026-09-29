@@ -19,7 +19,7 @@ uv run simula doctor --keys              # checks everything; the key checks cos
 
 | Service | Used for | Key |
 |---|---|---|
-| Anthropic | Opus 5.5 (model meaning, mock, proposer, fixer), Sonnet 5 (screenshots, QA critic, judge 1), Haiku 4.5 (dev profile, Jev fallback) | `ANTHROPIC_API_KEY` |
+| Anthropic | Opus 5.5 (model meaning, mock, proposer, fixer), Sonnet 5.5 (screenshots, QA critic, judge 1), Haiku 4.5 (dev profile, Jev fallback) | `ANTHROPIC_API_KEY` |
 | OpenAI | gpt-6-sol (judge 2), gpt-6-luna (dev profile) | `OPENAI_API_KEY` |
 | TypeSafe | Jev (`jev-latest`): ranks the explorer's next tap | `TYPESAFE_API_KEY` |
 
