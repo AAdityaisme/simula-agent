@@ -91,6 +91,24 @@ def test_spend_is_charged_to_the_stage_budget(tmp_path, jev):
     assert budget.spent == pytest.approx(0.00002)
 
 
+def test_a_jev_question_gives_its_hold_back_when_it_answers_and_when_it_fails(tmp_path, jev, monkeypatch):
+    calls, script = jev
+    monkeypatch.setenv("SIMULA_JEV_BACKEND", "adapter")
+    budget = llm.Budget("explore", 3.0)
+    held = []
+    monkeypatch.setattr(decide, "ask_choice", lambda *a: held.append(budget.held) or answer(n=3))
+    choose(tmp_path, budget=budget)
+    assert held[0] > 0 and budget.held == 0 and budget.spent == pytest.approx(0.00002)
+
+    def failing(*a):
+        held.append(budget.held)
+        raise RuntimeError("backend down")
+    monkeypatch.setattr(decide, "ask_choice", failing)
+    with pytest.raises(decide.JevFailed):
+        choose(tmp_path, labels=("Open", "Close"), budget=budget)
+    assert len(held) == 3 and budget.held == 0 and budget.spent == pytest.approx(0.00002)
+
+
 def test_more_than_ten_options_go_through_a_final_round(tmp_path, jev):
     calls, script = jev
     labels = [f"tap {i}" for i in range(23)]

@@ -106,10 +106,11 @@ def choose(trace_path: Path, stage: str, step: str, state: str, instructions: st
         try:
             result = ask_choice(state, instructions, labels, backend)
         except Exception as e:  # noqa: BLE001 - any backend failure gets one retry, then Sonnet
+            budget.charge(0.0, worst)
             trace(trace_path, stage=stage, step=step, decider="jev", model=priced_as(backend),
                   outcome="retry" if attempt == 1 else "error", note=f"{type(e).__name__}: {str(e)[:160]}")
             continue
-        budget.charge(result.usd)
+        budget.charge(result.usd, worst)
         if result.option_id not in option_ids(labels):
             trace(trace_path, stage=stage, step=step, decider="jev", model=result.model, usd=round(result.usd, 6),
                   outcome="refusal", note=f"answered {result.option_id!r}, not one of the options")
