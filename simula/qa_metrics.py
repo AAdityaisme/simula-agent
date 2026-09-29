@@ -5,7 +5,6 @@ import itertools
 import math
 import re
 import tempfile
-from collections import Counter
 from pathlib import Path
 
 import numpy as np
@@ -189,8 +188,9 @@ def box_slices(box: Rect, shape: tuple, inset: float = 0) -> tuple[slice, slice]
 
 
 def box_ssim(a: np.ndarray, b: np.ndarray, box: Rect) -> float | None:
-    """SSIM of the same box cut from two content-dp images; None when the box is smaller than the SSIM window."""
-    cut = box_slices(box, a.shape)
+    """SSIM of the same box cut from two content-dp images, BLEED_DP inside its edges; None when that is smaller than
+    the SSIM window."""
+    cut = box_slices(box, a.shape, BLEED_DP)
     return None if cut is None else float(structural_similarity(a[cut], b[cut], data_range=255, channel_axis=-1,
                                                                 win_size=WINDOW))
 
@@ -242,24 +242,32 @@ def part_scores(kind: str, chrome: dict, mock: dict, real: dict) -> dict[tuple[s
 
 def part_failures(kind: str, chrome: dict, mock: dict, real: dict) -> list[dict]:
     """One failure per screen whose part differs from another screen's where their real screens draw it alike. Of a
-    pair, the screen that matches fewer others is the one to fix; on a tie, the later in the mock's order."""
-    scores = part_scores(kind, chrome, mock, real)
-    matches = Counter(sid for pair, (mock_ssim, _, _) in scores.items() if mock_ssim >= CHROME_GATE for sid in pair)
-    differs = {}
-    for (a, b), (mock_ssim, share, _) in scores.items():
+    failing pair, the one to fix is the screen whose part matches its own real screen less (the later in the mock's
+    order on a tie), so a screen drawn as the app draws it is never told to change, however many others are wrong."""
+    def fidelity(sid: str, box: Rect) -> float:
+        """How closely a screen's part matches its own real screen: at its own box, or where the other screen of the
+        pair draws the part when it marks none."""
+        score = box_ssim(mock[sid], real[sid], chrome[sid].get(kind, box))
+        return -1.0 if score is None else score
+
+    differs, partners = {}, {}
+    for (a, b), (mock_ssim, share, box) in part_scores(kind, chrome, mock, real).items():
+        partners.setdefault(a, []).append((b, box))
+        partners.setdefault(b, []).append((a, box))
         if mock_ssim < CHROME_GATE:
-            odd, other = (a, b) if matches[a] < matches[b] else (b, a)
+            odd, other = (a, b) if fidelity(a, box) < fidelity(b, box) else (b, a)
             differs.setdefault(odd, []).append((other, mock_ssim, share))
-    return [part_failure(kind, odd, others, chrome, matches) for odd, others in differs.items()]
+
+    def model(sid: str) -> str:
+        """The screen to copy: of those showing the same part in the app, a marked one, drawn closest to its own
+        real screen."""
+        return max(partners[sid], key=lambda partner: (kind in chrome[partner[0]], fidelity(*partner)))[0]
+    return [part_failure(kind, odd, others, model(odd), kind in chrome[odd]) for odd, others in differs.items()]
 
 
-def part_failure(kind: str, odd: str, others: list[tuple[str, float, float]], chrome: dict, matches: Counter) -> dict:
-    """The fix for one screen: the screens it differs from, the worst pair's numbers, and the screen to copy (the
-    marked one that matches the most others, so an odd screen is never told to copy another odd one)."""
+def part_failure(kind: str, odd: str, others: list[tuple[str, float, float]], like: str, marked: bool) -> dict:
+    """The fix for one screen: the screens it differs from, the worst pair's numbers, and the screen to copy."""
     _, mock_ssim, share = min(others, key=lambda o: o[1])
-    marked_others = [other for other, _, _ in others if kind in chrome[other]]
-    like = max(marked_others or [others[0][0]], key=lambda other: matches[other])
-    marked = kind in chrome[odd]
     part = f'data-chrome="{kind}" on {odd}' if marked else f'{odd} has no data-chrome="{kind}", and its place'
     return {"kind": "chrome", "screen": odd, "detail":
             f"{part} renders differently from {', '.join(other for other, _, _ in others)} (SSIM {mock_ssim:.3f} "

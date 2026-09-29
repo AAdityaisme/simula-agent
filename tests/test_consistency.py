@@ -19,6 +19,7 @@ from tests.test_mock_isolation import ctx_for
 from tests.test_qa_loop import fake_critic, measured_twelve, records, told, twelve  # noqa: F401 (fixtures)
 
 BAR_DP = 56
+BAR = "#20252b"
 BAND_DP = 80  # the real screens' shared band is taller than the mock's bar, so resampling at its edge stays outside
 # Band colors that each differ from every other by most of a channel, so no two bands look alike to SSIM.
 PALETTE = [(0, 0, 0), (255, 255, 255), (255, 0, 0), (0, 0, 255), (0, 160, 0), (255, 200, 0), (120, 0, 160),
@@ -52,20 +53,18 @@ def bars(model, colors: dict[str, str] = {}) -> dict[str, str]:
                 f"height:{BAR_DP}px;background:{color};color:#fff;z-index:2;pointer-events:none;display:flex;"
                 f'justify-content:space-around;align-items:center"><span>Home</span><span>Chats</span>'
                 f"<span>You</span></nav>")
-    return {s.id: bar(colors.get(s.id, "#20252b")) for s in mock.pick_scope(model)}
+    return {s.id: bar(colors.get(s.id, BAR)) for s in mock.pick_scope(model)}
 
 
 def share_band(run_dir, model, own_colors: bool = False) -> None:
-    """Gives every in-scope real screen the root's bottom band (the real app draws one bar on every screen), or with
-    own_colors, a band of its own color on each (the app draws its bar differently on every screen)."""
-    scope = mock.pick_scope(model)
-    root = Image.open(run_dir / "model" / scope[0].canonical_png).convert("RGB")
-    box = (0, root.height - round(BAND_DP * model.device.scale), root.width, root.height)
-    band = root.crop(box)
-    for i, s in enumerate(scope):
+    """Gives every in-scope real screen one bottom band in the color bars() draws (the real app draws one bar on every
+    screen, the one the mock draws), or with own_colors, a band of its own color on each (the app draws its bar
+    differently on every screen)."""
+    for i, s in enumerate(mock.pick_scope(model)):
         path = run_dir / "model" / s.canonical_png
         image = Image.open(path).convert("RGB")
-        image.paste(PALETTE[i] if own_colors else band, box)
+        image.paste(PALETTE[i] if own_colors else BAR,
+                    (0, image.height - round(BAND_DP * model.device.scale), image.width, image.height))
         image.save(path)
 
 
@@ -131,7 +130,7 @@ def test_a_bar_the_real_app_draws_differently_on_every_screen_is_not_held_to_one
 
 
 @pytest.mark.parametrize("app", APPS)
-def test_the_screen_that_matches_fewer_others_is_the_one_to_fix_even_when_it_comes_first(app):
+def test_the_screen_whose_bar_differs_from_its_own_real_screen_is_the_one_to_fix_even_when_it_comes_first(app):
     real = render.content_dp(Image.open(FIXTURES / "golden" / app / mock.pick_scope(golden(app))[0].canonical_png))
     odd = real.copy()
     ImageDraw.Draw(odd).rectangle((0, 780, 411, 838), fill="#b03060")
@@ -139,6 +138,32 @@ def test_the_screen_that_matches_fewer_others_is_the_one_to_fix_even_when_it_com
     parts = {sid: {"tabbar": box} for sid in ("a", "b", "c")}
     failures = qa_metrics.chrome_failures(parts, {"a": odd, "b": real, "c": real}, dict.fromkeys(parts, real))
     assert [f["screen"] for f in failures] == ["a"] and "from b, c" in failures[0]["detail"]
+
+
+def copies(failures: list[dict]) -> dict[str, str]:
+    """Each flagged screen and the screen it is told to draw its part like."""
+    return {f["screen"]: f["detail"].split("draw it as ")[1].split(" ")[0] for f in failures}
+
+
+def test_a_screen_drawn_as_the_app_draws_it_is_never_told_to_change_though_most_screens_are_drawn_wrong():
+    """s01 and s02 draw the bar wrong the same way and agree with each other; s03 draws it as the app does."""
+    screen = Image.new("RGB", (411, 838), "#101014")
+    right, wrong = with_tab_bar(screen, lit=0), with_tab_bar(screen, lit=0, fill="#3a2030")
+    box = Rect(x=0, y=780, w=411, h=58)
+    mocks = {"s01": wrong, "s02": wrong, "s03": right}
+    failures = qa_metrics.chrome_failures({sid: {"tabbar": box} for sid in mocks}, mocks, dict.fromkeys(mocks, right))
+    assert copies(failures) == {"s01": "s03", "s02": "s03"}
+
+
+def test_of_two_screens_the_one_drawn_wrong_is_told_to_change_whichever_comes_first():
+    screen = Image.new("RGB", (411, 838), "#101014")
+    right, wrong = with_tab_bar(screen, lit=0), with_tab_bar(screen, lit=0, fill="#3a2030")
+    box = Rect(x=0, y=780, w=411, h=58)
+    for mocks in ({"s01": wrong, "s02": right}, {"s01": right, "s02": wrong}):
+        failures = qa_metrics.chrome_failures({sid: {"tabbar": box} for sid in mocks}, mocks,
+                                              dict.fromkeys(mocks, right))
+        odd = next(sid for sid, image in mocks.items() if image is wrong)
+        assert copies(failures) == {odd: next(sid for sid in mocks if sid != odd)}
 
 
 def test_a_bar_the_app_itself_resizes_passes_when_the_mock_resizes_it_the_same():
@@ -156,15 +181,16 @@ def test_a_bar_the_app_itself_resizes_passes_when_the_mock_resizes_it_the_same()
     assert [f["screen"] for f in qa_metrics.chrome_failures(parts, recolored, real)] == ["b"]
 
 
-def test_the_screen_to_copy_is_the_one_most_others_match_not_another_odd_one():
-    """b and c are each drawn their own way; d, e and f agree. b and c are told to copy d, never each other."""
+def test_the_screen_to_copy_is_the_one_drawn_closest_to_its_real_screen_never_another_odd_one():
+    """b and c are each drawn their own way; d, e and f draw the bar as the app does. b and c copy d, never each
+    other."""
     screen = Image.new("RGB", (411, 838), "#101014")
     real = with_tab_bar(screen, lit=0)
     box = Rect(x=0, y=780, w=411, h=58)
     mocks = {"b": with_tab_bar(screen, lit=0, fill="#3a2030"), "c": with_tab_bar(screen, lit=0, fill="#203a30"),
              "d": real, "e": real, "f": real}
     failures = qa_metrics.chrome_failures({sid: {"tabbar": box} for sid in mocks}, mocks, dict.fromkeys(mocks, real))
-    assert {f["screen"]: f["detail"].split("draw it as ")[1].split(" ")[0] for f in failures} == {"b": "d", "c": "d"}
+    assert copies(failures) == {"b": "d", "c": "d"}
 
 
 def alike_share(a: Image.Image, b: Image.Image, box: Rect) -> float:
@@ -197,17 +223,20 @@ def test_a_highlighted_tab_may_move_as_it_does_in_the_app_but_the_bar_may_not_ch
     assert f"over the {share:.0%} of the box the real screens draw alike" in failures[0]["detail"]
 
 
-def test_a_bar_drawn_lower_on_one_screen_fails_though_it_looks_the_same():
+def test_a_bar_drawn_lower_on_one_screen_fails_there_though_it_looks_the_same():
+    """The app draws one bar at y 700 over content that changes down the screen; b draws the same bar 20 dp lower."""
     image = np.zeros((838, 411, 3), np.uint8)
     image[:, :, 1] = np.arange(838)[:, None] % 256
-    real = Image.fromarray(image)
-    one, other = real.copy(), real.copy()
-    ImageDraw.Draw(one).rectangle((0, 700, 410, 755), fill="#20252b")
-    ImageDraw.Draw(other).rectangle((0, 720, 410, 775), fill="#20252b")
-    parts = {"a": {"tabbar": Rect(x=0, y=700, w=411, h=56)},
-             "b": {"tabbar": Rect(x=0, y=720, w=411, h=56)}}
-    assert [f["screen"] for f in qa_metrics.chrome_failures(parts, {"a": one, "b": other}, {"a": real, "b": real})] \
-        == ["b"]
+    content = Image.fromarray(image)
+
+    def bar_at(y: int) -> Image.Image:
+        out = content.copy()
+        ImageDraw.Draw(out).rectangle((0, y, 410, y + 55), fill="#20252b")
+        return out
+    real = bar_at(700)
+    parts = {"a": {"tabbar": Rect(x=0, y=700, w=411, h=56)}, "b": {"tabbar": Rect(x=0, y=720, w=411, h=56)}}
+    failures = qa_metrics.chrome_failures(parts, {"a": real, "b": bar_at(720)}, {"a": real, "b": real})
+    assert copies(failures) == {"b": "a"}
 
 
 # Where each test app's own screenshots draw its bottom bar, read off the goldens, and the box it fills. The other
@@ -243,6 +272,7 @@ def test_each_apps_own_bar_passes_as_its_screens_draw_it_and_fails_on_the_one_sc
         failures = qa_metrics.chrome_failures(chrome, {**real, odd: tinted(real[odd], box)}, real)
         assert [f["screen"] for f in failures] == [odd]
         assert all(s in failures[0]["detail"] for s in screens if s != odd)
+        assert copies(failures)[odd] in screens
 
 
 # ---------- data-value ----------
