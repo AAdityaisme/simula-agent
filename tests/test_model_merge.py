@@ -303,15 +303,16 @@ def test_a_line_uses_a_term_only_as_a_whole_word(app):
     assert rejected == ["term 'Pro': used_in ['m-term'] names no kept mechanic or ledger line that uses it"]
 
 
-def test_the_line_that_uses_a_term_cannot_define_it(app):
+def test_an_element_the_ledger_also_quotes_defines_its_term_by_its_own_words(app):
     _, states, edges, answer = app
-    bullet = next(e for s in states for e in s.elements if len(e.text.split()) >= 2)
-    word = bullet.text.split()[-1]
-    answer.value_ledger.append(LedgerItem(id="l-term", kind="meter", verbatim=bullet.text, evidence_ids=[bullet.id]))
-    answer.terms.append(TermMeaning(term=word, meaning="a guess", defined_by=[bullet.id], used_in=["l-term"]))
+    bullet = next(e for s in states for e in s.elements if len(set(stage.WORD.findall(e.text.lower()))) >= 2)
+    word = stage.WORD.findall(bullet.text)[-1]
+    answer.value_ledger.append(LedgerItem(id="l-term", kind="paywall_bullet", verbatim=bullet.text,
+                                          evidence_ids=[bullet.id]))
+    answer.terms.append(TermMeaning(term=word, meaning="a plain meaning", defined_by=[bullet.id], used_in=["l-term"]))
     kept, rejected = stage.check_meaning(answer, states, edges)
     (term,) = stage.resolve_terms(kept, states, set())
-    assert rejected == [] and (term.observed, term.meaning, term.defined_by) == (False, stage.NOT_OBSERVED, [])
+    assert rejected == [] and (term.observed, term.meaning, term.defined_by) == (True, "a plain meaning", [bullet.id])
 
 
 # What a person reads off the screenshots of PR 2's real runs: does any screen say what the term means?
@@ -379,6 +380,39 @@ def test_the_everyday_label_is_kept_as_written_and_never_changes_what_was_observ
     terms = stage.resolve_terms(flipped, states, model_labels)
     assert {t.term for t in terms if not t.everyday} == EVERYDAY[name]
     assert {t.term: t.observed for t in terms} == OBSERVED[name]
+
+
+# The approved JanitorAI model-stage rerun (tests/fixtures/terms/janitorai-2026-09-29.json), as a person reads its
+# screens. Every term a screen explains sits on an element the model also quoted in the ledger.
+RERUN_OBSERVED = {
+    "Janitor Plus": False,  # s13 lists its benefits but never names it; the name is only in "Upgrade to Janitor Plus"
+    "Free": False,  # only in "Everything in Free, plus:"
+    "context": True,
+    "Priority routing": True,
+    "swipes": False,  # only used in a sentence: "Generous monthly swipes with our frontier models"
+    "frontier models": False,  # the same sentence
+    "tokens": False,  # counts on cards ("2k tokens") and a bare "Tokens"
+    "Hidden Gems": True,
+    "Golden checkmark": True,
+    "Proxy": False,  # bare: "Proxy", "Proxy allowed"
+    "chats": False,  # a count: "7 chats"
+}
+RERUN_EXPLAINS = {
+    "context": "s13.e02",  # "Keep more of the story in context, get faster replies, and unlock smarter swipes."
+    "Priority routing": "s13.e10",  # "Priority routing for faster replies"
+    "Hidden Gems": "s01.e15",  # "Hidden Gems show characters from smaller creators with engaging conversations, ..."
+    "Golden checkmark": "s13.e12",  # "Golden checkmark next to your username"
+}
+
+
+def test_a_term_its_screen_explains_is_observed_although_the_ledger_quotes_that_element():
+    states, meaning, model_labels = real_terms("janitorai-2026-09-29")
+    quoted = {i for item in meaning.value_ledger for i in item.evidence_ids}
+    terms = stage.resolve_terms(meaning, states, model_labels)
+    assert {t.term: t.observed for t in terms} == RERUN_OBSERVED
+    for t in terms:
+        if t.observed:
+            assert RERUN_EXPLAINS[t.term] in set(t.defined_by) & quoted, t.term
 
 
 def test_product_model_md_and_the_exhibit_show_which_unobserved_terms_are_everyday_words():
