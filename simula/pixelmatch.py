@@ -1,3 +1,20 @@
+# Ported from mapbox/pixelmatch and pixelmatch-py 0.4.0, under their ISC licenses:
+#
+# Copyright (c) 2025, Mapbox
+# Copyright (c) 2019, Mapbox, Wu Haotian
+#
+# Permission to use, copy, modify, and/or distribute this software for any purpose
+# with or without fee is hereby granted, provided that the above copyright notice
+# and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+# FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
+# OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+# TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+# THIS SOFTWARE.
+
 """pixelmatch in numpy: which pixels differ between two opaque RGB images, by YIQ color distance, not counting
 anti-aliased pixels. The algorithm is mapbox/pixelmatch (ISC), step for step as pixelmatch-py 0.4.0 (ISC) runs it;
 tests/test_pixelmatch.py checks it against that package pixel for pixel. The package's per-pixel Python loop took
