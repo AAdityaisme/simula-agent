@@ -76,6 +76,19 @@ def test_toggles_are_denied_outside_the_filter_row():
     assert denied(control("Safe mode", "Switch"), toggle_ok=True) is None
 
 
+@pytest.mark.parametrize("label,kind", [("Hide NSFW", "TextView"), ("Hide NSFW", "Switch"), ("SFW only", "Switch"),
+                                        ("Block explicit content", "Switch"), ("Hide mature content", "Button"),
+                                        ("Safe mode", "CheckBox"), ("Family mode", "TextView")])
+def test_the_filter_questions_own_examples_can_be_applied(label, kind):
+    assert denied(control(label, kind), toggle_ok=True) is None
+
+
+def test_a_filter_row_is_still_held_to_the_account_and_money_words():
+    assert denied(control("Hide NSFW", "Button")) == "hide"
+    assert denied(control("Delete history", "Switch"), toggle_ok=True) == "delete"
+    assert denied(control("Unlock mature content", "Button"), upsell=True, toggle_ok=True) == "unlock"
+
+
 def test_an_age_mark_is_not_an_upsell_entry():
     from simula.device.observe import ENTRY
     assert not ENTRY.search("18+") and ENTRY.search("Upgrade to Luzia+") and ENTRY.search("See janitor+")
