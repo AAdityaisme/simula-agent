@@ -265,8 +265,14 @@ def test_a_replay_whose_renders_differ_makes_no_model_call_and_ends_where_the_re
         raise llm.ReplayMiss(f"--replay: no cached response for qa/{kwargs['step']}")
     monkeypatch.setattr(render, "screenshot_screens", one_pixel_off)
     monkeypatch.setattr(llm, "call", no_cache_entry)
+    mark = len(read_trace(run_dir / "trace.jsonl"))
     qa.run(replace(ctx_for(run_dir, app), replay=True))
     assert json.loads((run_dir / "qa" / "qa_report.json").read_text()) == recorded
+    # Red team 9a98e87 F6: a replayed round traces once, with the recorded numbers the loop decided on, never also
+    # the local render's.
+    measured = [line.note for line in read_trace(run_dir / "trace.jsonl")[mark:]
+                if re.fullmatch(r"round\d+", line.step) and "score" in line.note]
+    assert measured and all(note.startswith("replay: the recorded measurements") for note in measured)
     assert "Replayed: the scores are the recorded run's" in (run_dir / "exhibits" / "04-qa.md").read_text()
 
     replayed = [line for line in read_trace(run_dir / "trace.jsonl") if "recorded for this page" in line.note]

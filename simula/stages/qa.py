@@ -172,7 +172,7 @@ def measure_or_replay(ctx: Ctx, model: ProductModel, scope: list[State], n: int,
         return version
     if not path.exists():
         raise llm.ReplayMiss(f"--replay: qa has no measurement record for round {n}")
-    measure(ctx, model, scope, n, html)
+    measure(ctx, model, scope, n, html, trace=False)
     version = version_from(json.loads(path.read_text()), n, html)
     write_json(ctx.run_dir / "qa" / f"round{n}" / "metrics.json", json.loads(version.metrics.model_dump_json()))
     run_trace(ctx.run_dir, stage="qa", step=f"round{n}", decider="code",
@@ -180,9 +180,10 @@ def measure_or_replay(ctx: Ctx, model: ProductModel, scope: list[State], n: int,
     return version
 
 
-def measure(ctx: Ctx, model: ProductModel, scope: list[State], n: int, html: str) -> Version:
+def measure(ctx: Ctx, model: ProductModel, scope: list[State], n: int, html: str, *, trace: bool = True) -> Version:
     """Renders one version in its own round folder and measures everything the score and the critic need, on the
-    screens stage 3 drew: a placeholder for an undrawn screen is reported, never scored or fixed."""
+    screens stage 3 drew: a placeholder for an undrawn screen is reported, never scored or fixed. A replay renders
+    only for the round folder's images and traces the recorded numbers itself (`trace=False`)."""
     round_dir = ctx.run_dir / "qa" / f"round{n}"
     round_dir.mkdir(parents=True, exist_ok=True)
     (round_dir / "index.html").write_text(html)
@@ -206,9 +207,10 @@ def measure(ctx: Ctx, model: ProductModel, scope: list[State], n: int, html: str
     metrics = QAMetrics(round=n, screens=[d["metrics"] for d in details], cross_screen_failures=[],
                         score=sum(d["metrics"].score for d in details) / len(details))
     write_json(round_dir / "metrics.json", json.loads(metrics.model_dump_json()))
-    run_trace(ctx.run_dir, stage="qa", step=f"round{n}", decider="code",
-              note=f"score {metrics.score:.2f}, {len(errors)} contract errors, "
-                   f"{sum(1 for t in taps if t['problem'])} of {len(taps)} taps failing")
+    if trace:
+        run_trace(ctx.run_dir, stage="qa", step=f"round{n}", decider="code",
+                  note=f"score {metrics.score:.2f}, {len(errors)} contract errors, "
+                       f"{sum(1 for t in taps if t['problem'])} of {len(taps)} taps failing")
     return Version(n, html, metrics, details, taps, flows, errors)
 
 
