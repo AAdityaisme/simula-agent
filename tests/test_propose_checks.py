@@ -5,7 +5,8 @@ import time
 import pytest
 
 from simula import llm
-from simula.contracts import CandidateDraft, CandidatesFile, LedgerItem, LensOutput, Mechanic, Term
+from simula.contracts import (CandidateDraft, CandidatesFile, ContractError, ContractReport, LedgerItem, LensOutput,
+                              Mechanic, Term)
 from simula.stages import Ctx, propose
 from simula.stages.propose import anchor_ids, check, daily_cap, depths, finish, in_chat
 from tests.conftest import APPS
@@ -313,6 +314,29 @@ def run_with(model, tmp_path, monkeypatch, fail_lenses, delay=None, benefit=None
               usd_cap=None, allow_fixtures=True)
     propose.run(ctx)
     return calls
+
+
+def test_a_screen_the_mock_left_undrawn_counts_as_outside_the_mock(model, tmp_path, monkeypatch):
+    """Its section is a placeholder ("screen not drawn: $ cap reached: over budget ... raise with --usd-cap"), so it
+    must never reach an idea or a slide: the proposer isn't offered it, and an idea on it is dropped as off-mock."""
+    home = root(model)
+    (tmp_path / "mock").mkdir()
+    undrawn = ContractError(kind="undrawn_screen", screen=home,
+                            detail="screen not drawn: $ cap reached: over budget: batches 1-1 don't fit the $2.00 "
+                                   "mock cap at worst case; raise with --usd-cap")
+    (tmp_path / "mock" / "contract_report.json").write_text(
+        ContractReport(passed=False, screens=[home], errors=[undrawn]).model_dump_json())
+    calls = run_with(model, tmp_path, monkeypatch, set())
+
+    out = CandidatesFile.model_validate_json((tmp_path / "propose" / "candidates.json").read_text()).candidates
+    assert out and all(c.dropped_reason == f"{propose.OUTSIDE_MOCK}, which the slides can't draw: {home}" for c in out)
+    lens_prompt = next(text for step, text in calls if step.startswith("lens:"))
+    in_scope, others = lens_prompt.split("### Other screens (seen, not in scope)")
+    assert f"#### {home} " not in in_scope and f"\n- {home} " in others
+
+
+def test_with_no_mock_report_the_model_is_used_as_written(model, tmp_path):
+    assert propose.as_drawn(model, tmp_path) == model
 
 
 def test_every_lens_failing_fails_the_stage(model, tmp_path, monkeypatch):

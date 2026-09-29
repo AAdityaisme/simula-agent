@@ -9,8 +9,8 @@ from string import Template
 
 from simula import config, economics, llm
 from simula.config import ROOT
-from simula.contracts import (BenefitNames, Candidate, CandidatesFile, LedgerItem, Lens, LensesFile, LensOutput,
-                              ProductModel)
+from simula.contracts import (BenefitNames, Candidate, CandidatesFile, ContractReport, LedgerItem, Lens, LensesFile,
+                              LensOutput, ProductModel)
 from simula.runfolder import write_json_atomic
 from simula.runlog import run_trace, write_exhibit
 from simula.stages import Ctx
@@ -476,8 +476,21 @@ def live_count(candidates: list[Candidate]) -> int:
     return sum(not c.dropped_reason for c in candidates)
 
 
+def as_drawn(model: ProductModel, run_dir: Path) -> ProductModel:
+    """The model with every screen the mock left as a placeholder (its batch failed, or the $ plan left it out)
+    moved out of mock scope: the proposer isn't shown it as drawable, and no idea may trigger on or step onto it."""
+    report = run_dir / "mock" / "contract_report.json"
+    if not report.exists():
+        return model
+    undrawn = {e.screen for e in ContractReport.model_validate_json(report.read_text()).errors
+               if e.kind == "undrawn_screen"}
+    return model.model_copy(update={"states": [s.model_copy(update={"in_mock_scope": False}) if s.id in undrawn
+                                               else s for s in model.states]})
+
+
 def run(ctx: Ctx) -> None:
-    model = ProductModel.model_validate_json((ctx.run_dir / "model" / "product_model.json").read_text())
+    model = as_drawn(ProductModel.model_validate_json((ctx.run_dir / "model" / "product_model.json").read_text()),
+                     ctx.run_dir)
     out = ctx.run_dir / "propose"
     lenses = build_lenses(model)
     write_json_atomic(out / "lenses.json", LensesFile(lenses=lenses).model_dump_json(indent=1))
