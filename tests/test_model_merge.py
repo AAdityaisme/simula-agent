@@ -438,6 +438,7 @@ def test_a_term_its_screen_explains_is_observed_although_the_ledger_quotes_that_
     for t in terms:
         if t.observed:
             assert RERUN_EXPLAINS[t.term] in set(t.defined_by) & quoted, t.term
+    assert {t.term: t.anchor_taps for t in terms if t.anchor_taps} == {"Janitor Plus": ["s06.e44>s13"]}
 
 
 PAYWALL_BULLETS = ["s13.e02", "s13.e09", "s13.e10", "s13.e11"]  # what the model cited for Janitor Plus
@@ -452,8 +453,11 @@ def test_a_recorded_tap_on_an_anchor_carries_its_term_to_the_screen_it_opened():
     states, meaning, edges, model_labels = real_terms("janitorai-2026-09-29")
     assert "s06.e44>s13" in {g.id for g in edges}
     term = janitor_plus(edges, states, meaning, model_labels)
-    assert (term.observed, term.defined_by) == (True, PAYWALL_BULLETS)
+    assert (term.observed, term.defined_by, term.anchor_taps) == (True, PAYWALL_BULLETS, ["s06.e44>s13"])
     assert not janitor_plus([], states, meaning, model_labels).observed, "with no recorded tap, s13 never names it"
+    md = stage.render_md(golden("janitorai").model_copy(update={"terms": [term]}))
+    line = f"- **Janitor Plus**: {term.meaning} · defined by {', '.join(PAYWALL_BULLETS)} · through tap s06.e44>s13"
+    assert line in md
 
 
 def bare_name(states: list[State]) -> list[State]:
@@ -483,7 +487,7 @@ def test_a_tap_that_changed_its_own_screen_opened_nothing():
     in_place = Edge(id="s06.e44>s06", from_state="s06", to_state="s06", element_id="s06.e44", action="tap",
                     transition="unknown", change_summary="+'Plan selected'")
     (term,) = stage.resolve_terms(meaning, states, [*edges, in_place], model_labels)
-    assert (term.observed, term.defined_by) == (False, [])
+    assert (term.observed, term.defined_by, term.anchor_taps) == (False, [], [])
 
 
 @pytest.mark.parametrize("cited", [["s15.e04"], ["s03.e08"]], ids=["on-the-screen-a-tap-opened", "on-its-own-screen"])
@@ -496,7 +500,7 @@ def test_a_count_never_defines_its_term_wherever_it_sits(cited):
     drafted = next(t for t in meaning.terms if t.term == "chats")
     meaning.terms[:] = [drafted.model_copy(update={"defined_by": cited})]
     (term,) = stage.resolve_terms(meaning, states, edges, model_labels)
-    assert (term.observed, term.defined_by) == (False, [])
+    assert (term.observed, term.defined_by, term.anchor_taps) == (False, [], [])
 
 
 def test_a_tap_from_any_element_that_names_the_term_carries_it_to_the_screen_it_opened():
@@ -728,6 +732,23 @@ def test_the_stage_writes_a_valid_model(name, tmp_path, monkeypatch):
     assert (ctx.run_dir / "exhibits" / "02-model.md").exists()
     images = [p for m in calls[0]["messages"] for p in m["content"] if p["type"] == "image"]
     assert 1 <= len(images) <= stage.MAX_IMAGES
+
+
+def test_a_term_observed_through_a_tap_names_that_tap_in_the_trace_and_the_model(tmp_path, monkeypatch):
+    """Luzia's golden: "Upgrade to Luzia+" (s03.e05) opens the paywall s02, whose bullet "Advanced reasoning mode"
+    (s02.e03) the model cites; nothing cited on s02 names the plan."""
+    answer = recorded_answer(golden("luzia"))
+    answer.terms.append(TermMeaning(term="Luzia+", meaning="The paid plan.", defined_by=["s02.e03"], used_in=["m01"],
+                                    everyday=False))
+    fake_calls(monkeypatch, [answer, answer])
+    ctx = make_ctx("luzia", tmp_path)
+    stage.run(ctx)
+    model = ProductModel.model_validate_json((ctx.run_dir / "model" / "product_model.json").read_text())
+    (term,) = model.terms
+    assert (term.observed, term.defined_by, term.anchor_taps) == (True, ["s02.e03"], ["s03.e05>s02"])
+    [line] = [t for t in read_trace(ctx.run_dir / "trace.jsonl") if t.step == "term_tap"]
+    assert line.note == "Luzia+ observed through tap s03.e05>s02, which opened the screen of s02.e03"
+    assert "· through tap s03.e05>s02" in (ctx.run_dir / "model" / "product_model.md").read_text()
 
 
 def test_a_rejected_answer_is_retried_once_and_both_rounds_are_logged(tmp_path, monkeypatch):
