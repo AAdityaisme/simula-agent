@@ -45,7 +45,12 @@ def _failure(outcome: str, error: Exception) -> "LLMFailure":
 
 
 class CapReached(SystemExit):
-    pass
+    """Our own $ cap: a planned stop, where the best work so far is valid. Only Budget raises it."""
+
+
+class ProviderUnavailable(SystemExit):
+    """The provider refuses every call (a usage, spend, quota or billing limit on the account): an outage, where
+    nothing is valid. Never cached; the stage fails with no done.json, and a rerun resumes there."""
 
 
 class ReplayMiss(SystemExit):
@@ -176,20 +181,20 @@ def _anthropic_content(parts: list[dict]) -> list[dict]:
             for p in parts]
 
 
-def _spent(stream, tokens_in_estimate: int) -> tuple[int, int]:
-    """What an aborted stream already cost: the snapshot's usage, with output at least what was streamed (the
-    API sends the final output count only at the end). With no snapshot, message_start never arrived, so
-    nothing was generated: only the estimated input is charged."""
+def _spent(stream, tokens_in_estimate: int, max_tokens: int) -> tuple[int, int]:
+    """What an aborted stream is charged. With no snapshot, message_start never arrived, so nothing was generated:
+    only the estimated input. Otherwise its worst case, the input the stream reported plus max_tokens of output, or
+    what streamed if that was more: the API bills thinking a stream may not carry, and sends the final output count
+    only at the end, so what streamed is a floor, not the bill."""
     try:
         snapshot = stream.current_message_snapshot
     except (AssertionError, AttributeError):
         return tokens_in_estimate, 0
-    # Known limit: thinking the API doesn't stream back isn't counted; charge the worst case if that ever matters
     streamed = sum(len(getattr(b, "text", None) or getattr(b, "thinking", None) or "") for b in snapshot.content) // 3
-    return snapshot.usage.input_tokens, max(snapshot.usage.output_tokens, streamed)
+    return snapshot.usage.input_tokens, max(snapshot.usage.output_tokens, streamed, max_tokens)
 
 
-def _drain(stream, total_timeout: float | None, tokens_in_estimate: int):
+def _drain(stream, total_timeout: float | None, tokens_in_estimate: int, max_tokens: int):
     """Reads the stream to its final message. On an abort (our total timeout or an SDK error mid-stream) the
     tokens already spent ride on the raised error."""
     deadline = time.monotonic() + total_timeout if total_timeout else None
@@ -199,14 +204,14 @@ def _drain(stream, total_timeout: float | None, tokens_in_estimate: int):
                 raise LLMFailure("timeout", f"passed the {total_timeout:.0f}s total timeout")
         return stream.get_final_message()
     except Exception as e:
-        e.tokens_in, e.tokens_out = _spent(stream, tokens_in_estimate)
+        e.tokens_in, e.tokens_out = _spent(stream, tokens_in_estimate, max_tokens)
         raise
 
 
 def call_anthropic(model: str, system: str, messages: list[dict], effort: str | None,
                    schema: type[BaseModel] | None, max_tokens: int, total_timeout: float | None = None) -> Reply:
     import anthropic
-    import httpx2
+    import httpx2  # transitive via anthropic, whose client it is
     caps = config.models()[model]
     streaming = max_tokens > caps["stream_above"]
     # On a stream the read timeout is the gap between chunks, so a stalled stream fails after 60 s.
@@ -227,7 +232,7 @@ def call_anthropic(model: str, system: str, messages: list[dict], effort: str | 
     try:
         if streaming:
             with client.messages.stream(**kwargs) as stream:
-                message = _drain(stream, total_timeout, estimate_tokens_in(system, messages))
+                message = _drain(stream, total_timeout, estimate_tokens_in(system, messages), max_tokens)
                 headers = stream.response.headers
         else:
             raw = client.messages.with_raw_response.create(**kwargs)
@@ -236,20 +241,17 @@ def call_anthropic(model: str, system: str, messages: list[dict], effort: str | 
         raise _failure("timeout", e) from e
     except anthropic.RateLimitError as e:
         if "spend" in str(e).lower():
-            raise CapReached(f"provider spend limit reached: {e}") from e
+            raise ProviderUnavailable(f"provider spend limit reached: {e}") from e
         raise _failure("error", e) from e
     except anthropic.BadRequestError as e:
         # A console usage limit comes back as a 400, not a 429.
         if "usage limit" in str(e).lower():
-            raise CapReached(f"provider usage limit reached: {e}") from e
+            raise ProviderUnavailable(f"provider usage limit reached: {e}") from e
         raise _failure("error", e) from e
     except (anthropic.APIStatusError, anthropic.APIConnectionError) as e:
         raise _failure("error", e) from e
-    # The SDK types errors on the request, not while a stream is read: a stall mid-stream is a raw httpx2 error.
-    except httpx2.TimeoutException as e:
-        raise _failure("timeout", e) from e
-    except httpx2.TransportError as e:
-        raise _failure("error", e) from e
+    except httpx2.TransportError as e:  # the SDK doesn't wrap one raised while a stream is read
+        raise _failure("timeout" if isinstance(e, httpx2.TimeoutException) else "error", e) from e
     text = "".join(block.text for block in message.content if block.type == "text")
     usage = message.usage
     cached = getattr(usage, "cache_read_input_tokens", 0) or 0
@@ -283,11 +285,11 @@ def call_openai(model: str, system: str, messages: list[dict], effort: str | Non
         raise LLMFailure("timeout", str(e)) from e
     except openai.RateLimitError as e:
         if "quota" in str(e).lower():
-            raise CapReached(f"provider quota reached: {e}") from e
+            raise ProviderUnavailable(f"provider quota reached: {e}") from e
         raise LLMFailure("error", str(e)) from e
     except openai.BadRequestError as e:
         if re.search(r"billing[ _]hard[ _]limit", str(e), re.IGNORECASE):
-            raise CapReached(f"provider billing limit reached: {e}") from e
+            raise ProviderUnavailable(f"provider billing limit reached: {e}") from e
         raise LLMFailure("error", str(e)) from e
     except (openai.APIStatusError, openai.APIConnectionError) as e:
         raise LLMFailure("error", str(e)) from e
@@ -381,19 +383,28 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
         started = time.monotonic()
         try:
             reply = PROVIDERS[provider](model, system, messages, effort, schema, max_tokens, total_timeout)
-        except LLMFailure as e:
-            last = e
-            cost = usd(model, e.tokens_in, e.tokens_out)
+        except BaseException as e:
+            # Whatever ends a call early is settled here, so no hold outlives it: a typed failure, or any other error
+            # raised mid-call (a malformed stream event, a response the SDK can't validate), each charged what it
+            # streamed and retried alike; a stop that must propagate (the provider refusing the account, an
+            # interrupt) is settled and traced, then re-raised.
+            failure = e if isinstance(e, LLMFailure) else _failure(
+                "blocked" if isinstance(e, ProviderUnavailable) else "error", e)
+            cost = usd(model, failure.tokens_in, failure.tokens_out)
             budget.charge(cost, worst)
+            # A stop that propagates is no model answer, not even a lost call: it is never cached, even for --replay,
+            # so its trace line names no key.
+            stops = not isinstance(e, Exception)
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
-                  tokens_in=e.tokens_in, tokens_out=e.tokens_out, usd=round(cost, 6), outcome=e.outcome,
-                  note=f"key {fresh[key][:12]} {str(e)[:200]}")
-            cache_write(fresh[key], Reply(text=e.raw, model=model, tokens_in=e.tokens_in, tokens_out=e.tokens_out,
-                                          stop_reason=e.detail, failure=e.outcome), cache_dir)
+                  tokens_in=failure.tokens_in, tokens_out=failure.tokens_out, usd=round(cost, 6),
+                  outcome=failure.outcome, note=("" if stops else f"key {fresh[key][:12]} ") + str(e)[:200])
+            if stops:
+                raise
+            cache_write(fresh[key], Reply(text=failure.raw, model=model, tokens_in=failure.tokens_in,
+                                          tokens_out=failure.tokens_out, stop_reason=failure.detail,
+                                          failure=failure.outcome), cache_dir)
+            last = failure
             continue
-        except BaseException:
-            budget.charge(0.0, worst)  # an untyped exit (a bug, Ctrl-C, a cap) still gives back its hold
-            raise
         cost = usd(model, reply.tokens_in, reply.tokens_out, reply.tokens_cached)
         budget.charge(cost, worst)
         outcome, result = _check(reply, schema)

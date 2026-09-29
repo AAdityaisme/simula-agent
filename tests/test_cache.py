@@ -126,7 +126,8 @@ def test_a_failed_one_attempt_call_replays_to_the_callers_own_retry(tmp_path, mo
 
 def test_a_rerun_of_an_interrupted_chain_with_no_recorded_answer_starts_fresh(tmp_path, monkeypatch):
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['nope'], []))
-    with pytest.raises(IndexError):  # attempt 1 dies before answering, so only attempt 0 is recorded
+    # attempt 1 dies before answering (an untyped error, settled as a typed one), so only attempt 0 is recorded
+    with pytest.raises(llm.LLMFailure, match="error: pop from empty list"):
         call(tmp_path)
     rerun_calls = []
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "first"}'], rerun_calls))
@@ -349,18 +350,18 @@ def test_a_failed_attempt_is_recorded_and_releases_its_hold_and_only_a_lost_call
     assert budget.held == pytest.approx(0)
 
 
-def test_a_stalled_stream_is_a_typed_timeout_that_charges_what_streamed(tmp_path, monkeypatch):
+def test_a_stalled_stream_is_a_typed_timeout_that_charges_its_worst_case(tmp_path, monkeypatch):
     serve_stream(monkeypatch, StalledStream())
     budget = llm.Budget("model", 1.0)
     with pytest.raises(llm.LLMFailure) as failure:
         call(tmp_path, budget=budget, max_tokens=20_000, attempts=1)
-    streamed = llm.usd(MODEL, 1000, 100)  # 300 streamed chars at ~3 chars a token
+    worst = llm.usd(MODEL, 1000, 20_000)  # the reported input plus max_tokens, more than the ~100 tokens streamed
     assert failure.value.outcome == "timeout"
-    assert budget.held == pytest.approx(0) and budget.spent == pytest.approx(streamed)
+    assert budget.held == pytest.approx(0) and budget.spent == pytest.approx(worst)
     last = read_trace(tmp_path / "trace.jsonl")[-1]
-    assert (last.outcome, last.usd) == ("timeout", round(streamed, 6))
+    assert (last.outcome, last.usd) == ("timeout", round(worst, 6))
     entry = json.loads(next((tmp_path / "cache").glob("*.json")).read_text())
-    assert (entry["failure"], entry["tokens_in"], entry["tokens_out"]) == ("timeout", 1000, 100)
+    assert (entry["failure"], entry["tokens_in"], entry["tokens_out"]) == ("timeout", 1000, 20_000)
 
 
 def test_an_untyped_exit_gives_back_its_hold(tmp_path, monkeypatch):

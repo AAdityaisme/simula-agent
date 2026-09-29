@@ -1,7 +1,8 @@
-"""Money on failure. A provider's own spend limit stops the run cleanly (CapReached: needs-human.md, exit 4),
-even when it arrives as a 400. Any other API error is a typed LLMFailure. An aborted stream is charged for what
-it already spent."""
+"""Money on failure. A provider refusing the account (a usage, spend, quota or billing limit, even as a 400) is an
+outage, not our cap: ProviderUnavailable fails the stage with no done.json, needs-human.md, exit 5. Any other API
+error is a typed LLMFailure. An aborted stream is charged its worst case."""
 
+import json
 from types import SimpleNamespace
 
 import anthropic
@@ -42,9 +43,9 @@ def ask(provider: str, model: str, max_tokens: int = 100):
 
 
 @pytest.mark.parametrize("max_tokens", [100, 64000], ids=["plain", "streamed"])
-def test_an_anthropic_usage_limit_400_is_a_cap(monkeypatch, max_tokens):
+def test_an_anthropic_usage_limit_400_is_a_provider_outage_not_our_cap(monkeypatch, max_tokens):
     fake_anthropic(monkeypatch, error_400(anthropic, "https://api.anthropic.com/v1/messages", USAGE_LIMIT))
-    with pytest.raises(llm.CapReached, match="usage limit"):
+    with pytest.raises(llm.ProviderUnavailable, match="usage limit"):
         ask("anthropic", "claude-haiku-4-5-20251001", max_tokens)
 
 
@@ -55,10 +56,10 @@ def test_any_other_anthropic_400_is_a_typed_error(monkeypatch):
     assert failure.value.outcome == "error"
 
 
-def test_an_openai_billing_limit_400_is_a_cap(monkeypatch):
+def test_an_openai_billing_limit_400_is_a_provider_outage_not_our_cap(monkeypatch):
     fake_openai(monkeypatch, error_400(openai, "https://api.openai.com/v1/responses",
                                        "Billing hard limit has been reached", "billing_hard_limit_reached"))
-    with pytest.raises(llm.CapReached, match="billing limit"):
+    with pytest.raises(llm.ProviderUnavailable, match="billing limit"):
         ask("openai", "gpt-6-luna")
 
 
@@ -130,15 +131,20 @@ def aborted_call(monkeypatch, stream, tmp_path):
     return failure.value, budget, read_trace(tmp_path / "trace.jsonl")[-1]
 
 
-def test_an_aborted_stream_is_charged_its_snapshot_with_output_at_least_what_streamed(monkeypatch, tmp_path):
+@pytest.mark.parametrize("streamed_chars, charged_out", [(33_000, 64_000), (240_000, 80_000)],
+                         ids=["less-than-max-tokens-streamed", "more-streamed"])
+def test_an_aborted_stream_is_charged_its_worst_case_or_what_streamed_if_more(monkeypatch, tmp_path,
+                                                                             streamed_chars, charged_out):
+    """The API bills thinking a stream may not carry, so 11K streamed tokens can't bound the bill: the worst case
+    does (the reported input plus max_tokens), unless what streamed was more."""
     snapshot = SimpleNamespace(usage=SimpleNamespace(input_tokens=5000, output_tokens=1),
                                content=[SimpleNamespace(type="thinking", thinking="t" * 3000),
-                                        SimpleNamespace(type="text", text="x" * 30_000)])
+                                        SimpleNamespace(type="text", text="x" * (streamed_chars - 3000))])
     failure, budget, line = aborted_call(monkeypatch, AbortedStream(snapshot), tmp_path)
-    assert failure.outcome == "timeout" and (failure.tokens_in, failure.tokens_out) == (5000, 11_000)
-    expected = llm.usd("claude-opus-5-5", 5000, 11_000)
+    assert failure.outcome == "timeout" and (failure.tokens_in, failure.tokens_out) == (5000, charged_out)
+    expected = llm.usd("claude-opus-5-5", 5000, charged_out)
     assert budget.spent == pytest.approx(expected) and line.usd == pytest.approx(expected, abs=1e-6)
-    assert (line.tokens_in, line.tokens_out, line.outcome) == (5000, 11_000, "timeout")
+    assert (line.tokens_in, line.tokens_out, line.outcome) == (5000, charged_out, "timeout")
 
 
 def test_a_stream_that_never_started_is_charged_only_its_input(monkeypatch, tmp_path):
@@ -147,14 +153,87 @@ def test_a_stream_that_never_started_is_charged_only_its_input(monkeypatch, tmp_
     assert budget.spent == pytest.approx(llm.usd("claude-opus-5-5", failure.tokens_in, 0)) and line.usd < 0.01
 
 
-def test_a_usage_limit_stops_the_run_with_needs_human_and_exit_4(runs, tmp_path, monkeypatch):
+class StalledStream(AbortedStream):
+    """Streams one event, then the connection stalls: the SDK lets httpx2's ReadTimeout through unwrapped."""
+    def __iter__(self):
+        yield "event"
+        raise httpx2.ReadTimeout("The read operation timed out")
+
+
+def test_a_stream_that_stalls_mid_answer_is_a_charged_timeout(monkeypatch, tmp_path):
+    snapshot = SimpleNamespace(usage=SimpleNamespace(input_tokens=5000, output_tokens=1),
+                               content=[SimpleNamespace(type="text", text="x" * 3000)])
+    failure, budget, line = aborted_call(monkeypatch, StalledStream(snapshot), tmp_path)
+    assert failure.outcome == "timeout" and "timed out" in str(failure)
+    assert budget.held == 0 and budget.spent == pytest.approx(llm.usd("claude-opus-5-5", 5000, 64_000))
+    assert (line.outcome, line.tokens_in, line.tokens_out) == ("timeout", 5000, 64_000)
+
+
+class BrokenStream(AbortedStream):
+    """Streams one event, then fails with an error the SDK raises unwrapped."""
+    def __init__(self, snapshot, error):
+        super().__init__(snapshot)
+        self.error = error
+
+    def __iter__(self):
+        yield "event"
+        raise self.error
+
+
+UNWRAPPED = {
+    "malformed event": json.JSONDecodeError("Expecting value", "data: {", 6),
+    "bad chunk encoding": httpx2.DecodingError("bad gzip"),
+    "unvalidated response": anthropic.APIResponseValidationError(
+        response=httpx2.Response(200, request=httpx2.Request("POST", "https://api.anthropic.com/v1/messages")),
+        body=None),
+}
+
+
+@pytest.mark.parametrize("error", UNWRAPPED.values(), ids=UNWRAPPED.keys())
+def test_any_error_mid_stream_is_charged_traced_and_releases_its_hold(monkeypatch, tmp_path, error):
+    snapshot = SimpleNamespace(usage=SimpleNamespace(input_tokens=5000, output_tokens=1),
+                               content=[SimpleNamespace(type="text", text="x" * 3000)])
+    failure, budget, line = aborted_call(monkeypatch, BrokenStream(snapshot, error), tmp_path)
+    assert failure.outcome == "error" and budget.held == 0 and budget.spent > 0
+    assert (line.decider, line.outcome, line.tokens_in) == ("model", "error", 5000) and line.usd > 0
+
+
+def ask_through_call(tmp_path, budget, max_tokens: int = 100):
+    return llm.call(trace_path=tmp_path / "trace.jsonl", stage="model", step="t", model="claude-haiku-4-5-20251001",
+                    effort=None, system="", messages=[{"role": "user", "content": [{"type": "text", "text": "hi"}]}],
+                    max_tokens=max_tokens, budget=budget, cache_dir=tmp_path / "cache", attempts=1)
+
+
+def test_an_untyped_error_on_a_plain_call_is_a_typed_failure_that_releases_its_hold(monkeypatch, tmp_path):
+    fake_anthropic(monkeypatch, ValueError("the SDK could not read the response"))
+    budget = llm.Budget("model", 10.0)
+    with pytest.raises(llm.LLMFailure, match="error: the SDK could not read the response"):
+        ask_through_call(tmp_path, budget)
+    assert (budget.held, budget.spent) == (0, 0) and read_trace(tmp_path / "trace.jsonl")[-1].outcome == "error"
+
+
+def test_a_provider_usage_limit_stops_the_call_releases_its_hold_and_is_never_cached(monkeypatch, tmp_path):
+    fake_anthropic(monkeypatch, error_400(anthropic, "https://api.anthropic.com/v1/messages", USAGE_LIMIT))
+    budget = llm.Budget("model", 10.0)
+    with pytest.raises(llm.ProviderUnavailable, match="usage limit"):
+        ask_through_call(tmp_path, budget)
+    line = read_trace(tmp_path / "trace.jsonl")[-1]
+    assert (budget.held, budget.spent) == (0, 0) and line.outcome == "blocked"
+    assert not (tmp_path / "cache").exists() or not list((tmp_path / "cache").iterdir())
+    assert not line.note.startswith("key ")  # --replay follows only keys a trace names; an outage has none
+
+
+def test_a_usage_limit_fails_the_stage_with_needs_human_and_exit_5_so_a_rerun_resumes_there(runs, tmp_path,
+                                                                                               monkeypatch):
     fake_anthropic(monkeypatch, error_400(anthropic, "https://api.anthropic.com/v1/messages", USAGE_LIMIT))
     explore = build("luzia", tmp_path / "explore")
     code = cli.main(["run", "luzia", "--new", "--allow-fixtures", "--fixture", f"explore={explore}", "--from", "model",
                      "--profile", "dev"])
     run_dir = (runs / "luzia" / "latest").resolve()
-    assert code == cli.EXIT_CAP
-    assert "$ cap reached" in (run_dir / "needs-human.md").read_text()
+    assert code == cli.EXIT_PROVIDER == 5
+    human = (run_dir / "needs-human.md").read_text()
+    assert "the model provider is refusing calls" in human and "$ cap reached" not in human
+    assert f"simula run luzia --run {run_dir.name} --from model" in human
     assert "usage limit" in (run_dir / "model" / "failure.json").read_text()
     assert not (run_dir / "model" / "done.json").exists()
     assert read_trace(run_dir / "trace.jsonl")[-1].outcome == "blocked"

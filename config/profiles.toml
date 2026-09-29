@@ -29,28 +29,28 @@ flows = 8.0
 # (pairwise) has no call yet and isn't probed.
 [real.roles]
 jev = { model = "jev-latest" }
-explore_vision = { model = "claude-sonnet-5", effort = "low", max_tokens = 2000 }
+explore_vision = { model = "claude-sonnet-5-5", effort = "low", max_tokens = 2000 }
 model_meaning = { model = "claude-opus-5-5", effort = "high", max_tokens = 64000 }
 mock_builder = { model = "claude-opus-5-5", effort = "xhigh", max_tokens = 128000 }
-qa_critic = { model = "claude-sonnet-5", effort = "medium", max_tokens = 16000 }
+qa_critic = { model = "claude-sonnet-5-5", effort = "medium", max_tokens = 16000 }
 qa_fixer = { model = "claude-opus-5-5", effort = "high", effort_last_round = "xhigh", max_tokens = 64000 }
 proposer = { model = "claude-opus-5-5", effort = "high", max_tokens = 16000 }
-propose_dedupe = { model = "claude-sonnet-5", effort = "low", max_tokens = 4000 }
-judge_1 = { model = "claude-sonnet-5", effort = "high", max_tokens = 16001 }
+propose_dedupe = { model = "claude-sonnet-5-5", effort = "low", max_tokens = 4000 }
+judge_1 = { model = "claude-sonnet-5-5", effort = "high", max_tokens = 16001 }
 judge_2 = { model = "gpt-6-sol", effort = "high", declared_fallback = "gpt-6-luna", max_tokens = 16001 }
-pairwise = { model = "claude-sonnet-5", effort = "low" }
+pairwise = { model = "claude-sonnet-5-5", effort = "low" }
 flows_editor = { model = "claude-opus-5-5", effort = "high", max_tokens = 16000 }
 
 [dev.roles]
 jev = { model = "claude-haiku-4-5-20251001", backend = "adapter" }
 explore_vision = { model = "claude-haiku-4-5-20251001", max_tokens = 2000 }
 model_meaning = { model = "claude-haiku-4-5-20251001", max_tokens = 64000 }
-mock_builder = { model = "claude-sonnet-5", effort = "low", max_tokens = 32000 }
+mock_builder = { model = "claude-sonnet-5-5", effort = "low", max_tokens = 32000 }
 qa_critic = { model = "claude-haiku-4-5-20251001", max_tokens = 16000 }
-qa_fixer = { model = "claude-sonnet-5", effort = "low", max_tokens = 64000 }
+qa_fixer = { model = "claude-sonnet-5-5", effort = "low", max_tokens = 64000 }
 proposer = { model = "claude-haiku-4-5-20251001", max_tokens = 16000 }
 propose_dedupe = { model = "claude-haiku-4-5-20251001", max_tokens = 4000 }
 judge_1 = { model = "claude-haiku-4-5-20251001", max_tokens = 16001 }
 judge_2 = { model = "gpt-6-luna", effort = "low", max_tokens = 16001 }
 pairwise = { model = "claude-haiku-4-5-20251001" }
-flows_editor = { model = "claude-sonnet-5", effort = "low", max_tokens = 16000 }
+flows_editor = { model = "claude-sonnet-5-5", effort = "low", max_tokens = 16000 }
