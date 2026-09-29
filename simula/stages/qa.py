@@ -686,12 +686,17 @@ def interaction(best: Version) -> dict:
 
 
 def visual(best: Version) -> dict:
-    """Masked SSIM on its own: the mean, and every scored screen from the lowest up. No pass mark: SSIM punishes a
-    line of text 2 px off about as hard as a missing picture, so it ranks screens for a person to look at."""
-    scored = sorted(((s["metrics"].state_id, s["metrics"].ssim_masked) for s in best.screens
-                     if s["metrics"].ssim_masked is not None), key=lambda pair: pair[1])
-    return {"masked_ssim_mean": round(sum(v for _, v in scored) / len(scored), 3) if scored else None,
-            "screens_by_ssim": [{"screen": sid, "ssim": round(v, 3)} for sid, v in scored]}
+    """Masked SSIM on its own: the mean, and every scored screen from the lowest up, with pixelmatch's share of
+    differing pixels beside it. No pass mark: SSIM punishes a line of text 2 px off about as hard as a missing
+    picture, so it ranks screens for a person to look at."""
+    scored = sorted((s["metrics"] for s in best.screens if s["metrics"].ssim_masked is not None),
+                    key=lambda m: m.ssim_masked)
+    shares = [m.pixelmatch_ratio for m in scored if m.pixelmatch_ratio is not None]
+    return {"masked_ssim_mean": round(sum(m.ssim_masked for m in scored) / len(scored), 3) if scored else None,
+            "pixelmatch_mean": round(sum(shares) / len(shares), 4) if shares else None,
+            "screens_by_ssim": [{"screen": m.state_id, "ssim": round(m.ssim_masked, 3),
+                                 "pixelmatch": None if m.pixelmatch_ratio is None else round(m.pixelmatch_ratio, 4)}
+                                for m in scored]}
 
 
 def fidelity_lines(report: dict, start: float) -> list[str]:
@@ -699,10 +704,11 @@ def fidelity_lines(report: dict, start: float) -> list[str]:
     st, it, vis = report["structure"], report["interaction"], report["visual"]
     lowest = ", ".join(f"{s['screen']} {s['ssim']:.3f}" for s in vis["screens_by_ssim"][:LOWEST_SHOWN])
     ssim = f"mean {vis['masked_ssim_mean']:.3f}, lowest {lowest}" if vis["screens_by_ssim"] else "nothing to score"
+    differing = "" if vis["pixelmatch_mean"] is None else f"; pixelmatch: {vis['pixelmatch_mean']:.2%} of pixels differ"
     return [f"- Structure: {st['within_4dp']} of {st['tagged']} tagged elements within 4 dp of the real screen.",
             f"- Interaction: {it['taps_passing']} of {it['taps']} taps land; "
             f"{it['flows_walked']} of {it['flows']} core flows walked by real input.",
-            f"- Visual: masked SSIM {ssim} (see the heatmaps). No pass mark.",
+            f"- Visual: masked SSIM {ssim}{differing} (see the heatmaps). No pass mark.",
             f"- Keep score {start:.2f} → {report['keep_score']:.2f}: {report['keep_score_formula']}"]
 
 

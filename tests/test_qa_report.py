@@ -11,15 +11,16 @@ from tests.test_mock_isolation import ctx_for
 from tests.test_qa_loop import approved_html, records, scripted  # noqa: F401
 
 
-def screen(sid: str, ssim: float | None, tagged: int, misses: int) -> dict:
-    metrics = ScreenMetrics(state_id=sid, ssim_masked=ssim, pixelmatch_ratio=None, masked_coverage=0.9,
+def screen(sid: str, ssim: float | None, tagged: int, misses: int, differing: float | None = None) -> dict:
+    metrics = ScreenMetrics(state_id=sid, ssim_masked=ssim, pixelmatch_ratio=differing, masked_coverage=0.9,
                             bounds_ok_share=1.0, nav_pass_rate=1.0, score=9.0)
     return {"metrics": metrics, "name": sid, "tagged": tagged, "taps": 0, "taps_passed": 0,
             "misses": [{"id": f"{sid}.e{i}", "text": "", "want": {}, "got": "missing"} for i in range(misses)]}
 
 
 def version() -> qa.Version:
-    screens = [screen("s01", 0.9, 10, 1), screen("s02", None, 0, 0), screen("s03", 0.5, 4, 0), screen("s04", 0.7, 6, 2)]
+    screens = [screen("s01", 0.9, 10, 1, 0.02), screen("s02", None, 0, 0), screen("s03", 0.5, 4, 0, 0.3),
+               screen("s04", 0.7, 6, 2, 0.1)]
     taps = [{"screen": "s01", "edge": "s01.e1>s03", "problem": None},
             {"screen": "s01", "edge": "s01.e2>s04", "problem": "landed on 's01'"}]
     flows = [{"flow": "f1", "name": "a", "status": "passed", "problem": None, "screen": None, "gestures": []},
@@ -35,9 +36,11 @@ def test_structure_interaction_and_visual_are_reported_apart_from_the_keep_score
     assert "score" not in report
     assert report["structure"] == {"tagged": 20, "within_4dp": 17}
     assert report["interaction"] == {"taps": 2, "taps_passing": 1, "flows": 3, "flows_walked": 1}
-    assert report["visual"] == {"masked_ssim_mean": 0.7, "screens_by_ssim": [{"screen": "s03", "ssim": 0.5},
-                                                                          {"screen": "s04", "ssim": 0.7},
-                                                                          {"screen": "s01", "ssim": 0.9}]}
+    assert report["visual"] == {"masked_ssim_mean": 0.7, "pixelmatch_mean": 0.14,
+                                "screens_by_ssim": [{"screen": "s03", "ssim": 0.5, "pixelmatch": 0.3},
+                                                    {"screen": "s04", "ssim": 0.7, "pixelmatch": 0.1},
+                                                    {"screen": "s01", "ssim": 0.9, "pixelmatch": 0.02}]}
+    assert "pixelmatch: 14.00% of pixels differ" in "\n".join(qa.fidelity_lines(report, 5.0))
 
 
 def test_the_critics_findings_on_a_version_it_could_not_improve_stay_open(scripted):
