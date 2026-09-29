@@ -149,14 +149,16 @@ def cost_question(c: Candidate) -> str | None:
 
 
 def is_fallback(decision: Decision, run_dir: Path, none_accepted: bool) -> bool:
-    """The judge's fallback pick: nothing was accepted, so the closest idea goes on as CONDITIONAL with the checks it
-    missed."""
-    return decision.final == "conditional" and none_accepted and bool(failed_checks(decision, run_dir))
+    """The judge's fallback pick: nothing was accepted, so the closest idea goes on as CONDITIONAL with the checks
+    every judge failed. A check only some judges failed is a split (D10), which never makes an idea the fallback."""
+    return decision.final == "conditional" and none_accepted and any(
+        k not in decision.judgment_splits for k, _ in failed_checks(decision, run_dir))
 
 
 def condition(decision: Decision, run_dir: Path, none_accepted: bool) -> tuple[str, str] | None:
-    """A CONDITIONAL idea's heading and sentence about the checks it missed, in plain words; None when it missed none
-    (its condition is then its cost line, which the cost box says)."""
+    """A CONDITIONAL idea's heading and sentence about the checks it missed, in plain words, with both judges'
+    reasons when they split (D10); None when it missed none (its condition is then its cost line, which the cost box
+    says)."""
     if decision.final != "conditional":
         return None
     failed = failed_checks(decision, run_dir)
@@ -164,6 +166,12 @@ def condition(decision: Decision, run_dir: Path, none_accepted: bool) -> tuple[s
     if is_fallback(decision, run_dir, none_accepted) and not any(k in GATES for k, _ in failed):
         return ("The closest idea, not a recommendation:",
                 f"No idea passed every check. This one passes every safety check but not {names} ({failed[0][1]}).")
+    if failed and all(k in decision.judgment_splits for k, _ in failed):
+        k, reason = failed[0]
+        other = next((getattr(v, k).reason for _, v in verdicts(decision, run_dir) if getattr(v, k).passed), None)
+        passing = f" ({other.rstrip('.')})" if other else ""
+        return ("One reviewer wasn't convinced:",
+                f"One reviewer didn't pass {names} ({reason.rstrip('.')}); the other did{passing}.")
     if failed:
         return "Not every check passed:", f"It didn't pass {names} ({failed[0][1]})."
     if decision.checks_passed < decision.checks_total:
@@ -197,7 +205,8 @@ def why_html(flow: dict, model: ProductModel, run_dir: Path, none_accepted: bool
 
 def idea_slides(flow: dict, model: ProductModel, run_dir: Path, none_accepted: bool) -> list[str]:
     """An idea's two slides: its whole flow in one row of phones, then why the system thinks it's a good idea
-    (none_accepted: the judge accepted no idea, so a CONDITIONAL one is its fallback pick)."""
+    (none_accepted: the judge accepted no idea, so a CONDITIONAL one with a check every judge failed is its fallback
+    pick)."""
     c = flow["candidate"]
     label, new = (("The new part", c.adds) if c.kind == "product_change" and c.adds
                   else ("Where the offer appears", c.placement))

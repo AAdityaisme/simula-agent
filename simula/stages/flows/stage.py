@@ -20,6 +20,7 @@ from simula.stages.flows.page import ad_palette_css, blur_css, decline_edges, fl
 from simula.stages.flows.pdf import write_pdf
 from simula.stages.flows.walk import screenshot_before, walk, walk_decline, walk_failed_ad
 from simula.stages.flows.wording import NOT_WIRED, REWARD_NOT_SHOWN, caption
+from simula.stages.judge import ordered
 
 MAX_IDEAS = 4
 SURVIVED = ("accept", "conditional")
@@ -38,8 +39,9 @@ def load_approvals(flows_dir: Path) -> list[str] | None:
 
 
 def survivors(decisions: list[Decision], approvals: list[str] | None) -> list[Decision]:
-    """Accepted and CONDITIONAL ideas, best rank first. flows/approvals.json can only narrow the list."""
-    picked = sorted((d for d in decisions if d.final in SURVIVED), key=lambda d: -(d.rank_score or 0))
+    """Accepted and CONDITIONAL ideas in the judge's order (every accept first, D10). flows/approvals.json can only
+    narrow the list."""
+    picked = [d for d in ordered(decisions) if d.final in SURVIVED]
     if approvals is not None:
         picked = [d for d in picked if d.candidate_id in approvals]
     return picked

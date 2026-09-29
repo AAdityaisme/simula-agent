@@ -237,11 +237,14 @@ def fallback_pick(decisions: list[Decision], candidates: dict[str, Candidate],
 
 
 def ordered(decisions: list[Decision]) -> list[Decision]:
-    """Accepts first by rank_score (code), then CONDITIONAL ideas (a judge split, or the fallback) by rank_score,
-    then those waiting on a person, then rejects. A CONDITIONAL never ranks above an accept (D10); in annotate mode
-    cost never makes an idea CONDITIONAL, so it never moves one."""
-    tier = {"accept": 0, "conditional": 1, "needs_human": 2, "reject": 3}
-    return sorted(decisions, key=lambda d: (tier[d.final], -(d.rank_score or 0), -d.checks_passed))
+    """Accepts first, then CONDITIONAL ideas the judges split on, then other CONDITIONAL ones (the cost line in gate
+    mode, or the fallback), then those waiting on a person, then rejects; by rank_score (code) within each. A
+    CONDITIONAL never ranks above an accept (D10). flows draws the deck in this order."""
+    def tier(d: Decision) -> int:
+        if d.final == "conditional":
+            return 1 if d.judgment_splits else 2
+        return {"accept": 0, "needs_human": 3, "reject": 4}[d.final]
+    return sorted(decisions, key=lambda d: (tier(d), -(d.rank_score or 0), -d.checks_passed))
 
 
 def condition(d: Decision, c: Candidate, verdicts: list[Verdict], mode: str) -> str | None:

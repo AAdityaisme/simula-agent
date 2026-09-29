@@ -707,10 +707,13 @@ def test_the_walk_taps_play_so_a_covered_play_button_is_not_wired(tmp_path, app)
     assert any("step 4 not wired: the game's Play button can't be tapped" in note for note in broken)
 
 
-def test_default_selection_is_accepted_and_conditional_best_rank_first_at_most_four():
+def test_default_selection_is_every_accept_first_then_a_judge_split_then_other_conditionals_at_most_four():
+    """D10: a CONDITIONAL never takes an accept's slot, whatever its rank."""
+    split = decision("c05", "conditional", 4.0).model_copy(update={"judgment_splits": ["c2_evidence"]})
     decisions = [decision("c01", "reject", 9.0), decision("c02", "accept", 1.0), decision("c03", "conditional", 3.0),
-                 decision("c04", "needs_human", 5.0), *(decision(f"c1{n}", "accept", 0.5) for n in range(4))]
-    assert [d.candidate_id for d in flows.stage.select(decisions, None)] == ["c03", "c02", "c10", "c11"]
+                 decision("c04", "needs_human", 5.0), split, *(decision(f"c1{n}", "accept", 0.5) for n in range(4))]
+    assert [d.candidate_id for d in flows.stage.select(decisions, None)] == ["c02", "c10", "c11", "c12"]
+    assert [d.candidate_id for d in flows.stage.select(decisions[:5], None)] == ["c02", "c05", "c03"]
 
 
 def test_approvals_only_narrow():

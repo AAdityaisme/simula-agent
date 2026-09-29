@@ -184,9 +184,11 @@ def test_survivors_come_first_by_rank_then_people_then_rejects():
 def test_an_accept_always_ranks_above_a_conditional():
     # Real Luzia, round 6 (runs/luzia/20260928-042747-6d79ef8-fixture/judge/decisions.json): four survivors tied
     # at 1.0, and the one clean accept, c06, came fourth. Those CONDITIONALs came from the cost line, which annotate
-    # mode no longer does; a split CONDITIONAL (D10) ranks the same way, below every accept even at a higher score.
+    # mode no longer does. A split CONDITIONAL (D10, c05 here) ranks below every accept even at a higher score, and
+    # above every other CONDITIONAL.
     rows = [Decision(candidate_id=cid, final=final, checks_passed=checks, checks_total=11, rank_score=rank,
-                     gate_fails=[], judgment_splits=[], verdict_paths=[], economics_verdict=econ, revision_of=None,
+                     gate_fails=[], judgment_splits=["c2_evidence"] if cid == "c05" else [], verdict_paths=[],
+                     economics_verdict=econ, revision_of=None,
                      failure_type="proposal" if final == "reject" else None, rerun_stage=None)
             for cid, final, rank, checks, econ in [("c02", "conditional", 1.0, 11, "FAIL"),
                                                    ("c03", "conditional", 1.0, 11, "CONDITIONAL"),
@@ -194,9 +196,9 @@ def test_an_accept_always_ranks_above_a_conditional():
                                                    ("c06", "accept", 1.0, 11, "PASS"),
                                                    ("c01", "reject", 0.5, 11, "CONDITIONAL"),
                                                    ("c04", "reject", 0.5, 9, "PASS")]]
-    assert [d.candidate_id for d in judge.ordered(rows)] == ["c06", "c02", "c03", "c05", "c01", "c04"]
-    higher = [d.model_copy(update={"rank_score": 2.0}) if d.candidate_id == "c05" else d for d in rows]
-    assert [d.candidate_id for d in judge.ordered(higher)] == ["c06", "c05", "c02", "c03", "c01", "c04"]
+    assert [d.candidate_id for d in judge.ordered(rows)] == ["c06", "c05", "c02", "c03", "c01", "c04"]
+    higher = [d.model_copy(update={"rank_score": 2.0}) if d.candidate_id == "c03" else d for d in rows]
+    assert [d.candidate_id for d in judge.ordered(higher)] == ["c06", "c05", "c03", "c02", "c01", "c04"]
 
 
 KNOWN_GOOD = ["kg-candycrush-01", "kg-run-aol-c01", "kg-run-janitorai-c02", "kg-run-luzia-c05"]
@@ -219,25 +221,26 @@ def test_every_known_good_idea_judge_1_accepts_reaches_the_deck_with_both_judges
             failed_by_both.append(cid)
             assert d.final == "reject"
         decisions.append(d)
-    deck = [d.candidate_id for d in flows.select(judge.ordered(decisions), None)]
+    deck = [d.candidate_id for d in flows.stage.select(decisions, None)]
     assert accepted_alone and set(accepted_alone) <= set(deck) and not set(failed_by_both) & set(deck)
     finals = [d.final for d in judge.ordered(decisions) if d.final in judge.SURVIVORS]
     assert finals == sorted(finals, key=lambda f: f != "accept")
 
 
-def test_a_split_idea_is_labelled_on_its_slide_with_the_doubt_in_plain_words(tmp_path):
-    m = golden("janitorai")
-    split, clean = idea(m, "c01"), idea(m, "c02")
-    paths = {}
-    for c, verdicts in ((split, two([], ["c2_evidence"])), (clean, two())):
-        paths[c.id] = [f"judge/verdicts/{c.id}_judge_{i}_r1.json" for i in (1, 2)]
-        for path, v in zip(paths[c.id], verdicts):
-            (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
-            (tmp_path / path).write_text(v.model_dump_json())
-    d = judge.decide(split, two([], ["c2_evidence"]), TWO, "annotate", paths[split.id])
+def test_a_split_idea_is_labelled_with_both_reasons_and_never_as_the_fallback(tmp_path):
+    """Nothing accepted and one split idea (run 3 of the saved VF' runs has three): the slide says a reviewer
+    doubted it, with both reasons, and never calls it the judge's fallback pick."""
+    split, verdicts = idea(golden("janitorai"), "c01"), two([], ["c2_evidence"])
+    paths = [f"judge/verdicts/c01_judge_{i}_r1.json" for i in (1, 2)]
+    for path, v in zip(paths, verdicts):
+        (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / path).write_text(v.model_dump_json())
+    d = judge.decide(split, verdicts, TWO, "annotate", paths)
     assert d.final == "conditional"
-    heading, sentence = flows.condition(d, tmp_path, none_accepted=False)
-    assert flows.PLAIN_CHECKS["c2_evidence"] in sentence and "c2_evidence fails here" in sentence
+    assert not flows.deck.is_fallback(d, tmp_path, none_accepted=True)
+    assert flows.deck.condition(d, tmp_path, none_accepted=True) == (
+        "One reviewer wasn't convinced:", f"One reviewer didn't pass {flows.wording.PLAIN_CHECKS['c2_evidence']} "
+                                          "(c2_evidence fails here); the other did (c2_evidence passes here).")
 
 
 # ---------- the whole stage, with a fake model ----------
