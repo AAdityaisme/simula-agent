@@ -278,10 +278,12 @@ def test_a_cross_screen_failure_leaves_the_approved_version_qa_incomplete_and_is
     monkeypatch.setattr(llm, "call", refuse)
     qa.run(ctx_for(run_dir, app))
     report = json.loads((run_dir / "qa" / "qa_report.json").read_text())
-    assert report["status"] == "qa_incomplete" and report["score"] == 5.0
+    assert (report["status"], report["outcome"], report["keep_score"]) == ("qa_incomplete", "partial", 5.0)
+    assert "cross-screen failures on the approved version: 1" in report["reasons"]
+    assert report["resume"] == f"simula run {app} --run {run_dir.name} --from qa"
     assert report["cross_screen_failures"] == [failure] and report["rounds"][0]["cross_screen_failures"] == 1
     exhibit = (run_dir / "exhibits" / "04-qa.md").read_text()
-    assert "1 cross-screen failures" in exhibit and failure["detail"] in exhibit
+    assert "cross-screen failures on the approved version: 1" in exhibit and failure["detail"] in exhibit
     assert "marks `data-chrome` on 0 screens and `data-value` on 0; 1 failures" in exhibit
 
 

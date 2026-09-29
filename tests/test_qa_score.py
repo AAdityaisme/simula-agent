@@ -15,6 +15,7 @@ from simula.contracts import Edge, Flow, Rect
 from simula.stages import mock, qa
 from tests.conftest import APPS, FIXTURES
 from tests.mock_fake import golden, seed_model, skeleton_html
+from tests.test_mock_gestures import gestured
 from tests.test_mock_isolation import ctx_for
 
 
@@ -76,7 +77,7 @@ def test_a_mock_that_places_every_element_and_wires_every_tap_gets_full_bounds_a
 def test_assets_the_mock_draws_are_masked(measured):
     model, scope, version = measured
     for state, s in zip(scope, version.metrics.screens, strict=True):
-        drawn = [e for e in state.elements if mock.usable_asset(e, model.device)]
+        drawn = [e for e in state.elements if mock.usable_asset(e, state.elements, model.device)]
         if drawn or state.dynamic_regions:
             assert s.masked_coverage < 1.0
         else:
@@ -105,7 +106,8 @@ def one_screen(request, tmp_path):
     app = request.param
     run_dir = seed_model(tmp_path / "run", app)
     model = golden(app)
-    state = next(s for s in mock.pick_scope(model) if any(mock.usable_asset(e, model.device) for e in s.elements))
+    state = next(s for s in mock.pick_scope(model)
+                 if any(mock.usable_asset(e, s.elements, model.device) for e in s.elements))
     mock.copy_assets(run_dir / "model", run_dir / "mock", [state], model.device)
     rounds = count()
 
@@ -192,7 +194,7 @@ def test_the_rebuilt_page_opens_on_the_first_screen_that_is_not_a_dialog(app):
 
 
 @pytest.mark.parametrize("app", APPS)
-def test_an_edge_with_no_element_is_never_tapped_and_a_flow_takes_it_by_navigation(tmp_path, app):
+def test_an_edge_with_no_element_is_never_tapped_and_a_flow_takes_it_by_its_gesture(tmp_path, app):
     run_dir = seed_model(tmp_path / "run", app)
     model = golden(app)
     scope = mock.pick_scope(model)
@@ -206,7 +208,7 @@ def test_an_edge_with_no_element_is_never_tapped_and_a_flow_takes_it_by_navigati
     version = qa.measure(ctx_for(run_dir, app), model, scope, 0, html)
     assert back.id not in [t["edge"] for t in version.taps] and not version.failed_taps()
     assert version.flows == [{"flow": "fback", "name": "There and back", "status": "passed", "problem": None,
-                              "screen": None, "navigated": [back.id]}]
+                              "screen": None, "gestures": [back.id]}]
 
 
 @pytest.mark.parametrize("app", APPS)
@@ -256,3 +258,81 @@ def test_art_reused_from_another_screen_earns_no_mask_there(tmp_path, app):
     assert own[1] < blank[1]
     assert own_and_reused[1] == pytest.approx(own[1])
     assert own_and_reused[0] == blank[0] and own_and_reused[2] == blank[2]
+
+
+@pytest.mark.parametrize("app", APPS)
+@pytest.mark.parametrize("left, wallpaper", [(0, False), (30, True)])
+def test_a_big_art_crop_passes_the_contract_in_a_qa_round_only_over_its_origin(tmp_path, app, left, wallpaper):
+    run_dir = seed_model(tmp_path / "run", app)
+    model = golden(app)
+    scope = mock.pick_scope(model)
+    mock.copy_assets(run_dir / "model", run_dir / "mock", scope, model.device)
+    src = mock.art_src(scope[0].elements[0].id)
+    Image.new("RGB", (100, 100), "#223344").save(run_dir / "mock" / src)
+    (run_dir / "mock" / "art.json").write_text(
+        json.dumps({"schema_version": 1, "art": {src: Rect(x=0, y=0, w=411, h=600).model_dump()}}))
+    img = f'<img src="{src}" style="position:absolute;left:{left}px;top:0;width:411px;height:600px">'
+    html = qa.rebuild(skeleton_html(model).replace("</section>", img + "</section>", 1), model, [s.id for s in scope])
+    version = qa.measure(ctx_for(run_dir, app), model, scope, 0, html)
+    assert any(e.kind == "wallpaper" and e.screen == scope[0].id for e in version.contract_errors) == wallpaper
+
+
+def walk(tmp_path, app, model, flow_edges: list[str], edit=lambda html: html) -> dict:
+    """Measures the rebuilt skeleton page of model with one flow over flow_edges; returns that flow's walk."""
+    run_dir = seed_model(tmp_path / "run", app)
+    scope = mock.pick_scope(model)
+    model = model.model_copy(update={"flows": [Flow(id="fw", name="w", purpose="p", edge_ids=flow_edges,
+                                                    evidence_ids=[])]})
+    mock.copy_assets(run_dir / "model", run_dir / "mock", scope, model.device)
+    html = edit(qa.rebuild(skeleton_html(model), model, [s.id for s in scope]))
+    return qa.measure(ctx_for(run_dir, app), model, scope, 0, html).flows[0]
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_a_flow_of_a_swipe_a_back_and_typing_is_walked_by_real_input(tmp_path, app):
+    model, tap, a, c, d, field = gestured(app)
+    hops = [f"{a}.swipe>{c}", f"{c}.back>{a}", f"{a}.type>{d}"]
+    assert walk(tmp_path, app, model, hops) == {"flow": "fw", "name": "w", "status": "passed", "problem": None,
+                                                "screen": None, "gestures": hops}
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_a_back_edge_on_a_drawn_back_control_is_tapped_not_gestured(tmp_path, app):
+    model, tap, a, c, d, field = gestured(app)
+    control = (f'<button data-edge="{c}.back>{a}" data-transition="back" '
+               'style="position:absolute;left:8px;top:8px;width:40px;height:40px;z-index:9"></button>')
+
+    def draw_control(html):
+        opening = re.search(rf'<section[^>]*data-screen="{c}"[^>]*>', html).end()
+        return html[:opening] + control + html[opening:]
+    result = walk(tmp_path, app, model, [f"{a}.swipe>{c}", f"{c}.back>{a}"], draw_control)
+    assert (result["status"], result["gestures"]) == ("passed", [f"{a}.swipe>{c}"])
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_a_hop_the_page_cannot_perform_fails_the_flow_instead_of_being_jumped(tmp_path, app):
+    model, tap, a, c, d, field = gestured(app)
+    result = walk(tmp_path, app, model, [f"{a}.swipe>{c}", f"{c}.back>{a}"], lambda html: mock.ACTIONS_BLOCK.sub("", html))
+    assert (result["status"], result["screen"]) == ("failed", a)
+    assert result["problem"] == f"{a}.swipe>{c}: the page has no swipe from {a} to {c}"
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_the_fixer_never_sees_the_gesture_map_and_rebuild_writes_it_back(app):
+    model, *_ = gestured(app)
+    screens = [s.id for s in mock.pick_scope(model)]
+    page = qa.rebuild(skeleton_html(model), model, screens)
+    assert 'id="simula-actions"' in page and 'id="simula-actions"' not in qa.without_runtime(page)
+    assert qa.rebuild(qa.without_runtime(page), model, screens) == page
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_a_typing_hop_that_stays_on_its_screen_passes_only_when_the_field_shows_the_text(tmp_path, app):
+    model, tap, a, c, d, field = gestured(app)
+    stay = Edge(id=f"{a}.type>{a}", from_state=a, to_state=a, element_id=None, action="type", transition="push",
+                change_summary="+'hello'")
+    model = model.model_copy(update={"edges": [e for e in model.edges if e.action != "type"] + [stay]})
+    assert walk(tmp_path / "editable", app, model, [stay.id])["status"] == "passed"
+    frozen = walk(tmp_path / "frozen", app, model, [stay.id],
+                  lambda html: html.replace("f.contentEditable = 'plaintext-only';", ""))
+    assert (frozen["status"], frozen["problem"]) == ("failed", f"{stay.id}: the text field didn't take the typing")

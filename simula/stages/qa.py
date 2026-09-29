@@ -16,15 +16,20 @@ from playwright.sync_api import Error as PlaywrightError
 
 from simula import config, llm, qa_metrics, render, runfolder
 from simula.config import ROOT
-from simula.contracts import (SCHEMA_VERSION, ContractError, ContractReport, Critique, Edge, Edit, Edits, ProductModel,
-                              QAMetrics, Rect, ScreenMetrics, State)
+from simula.contracts import (SCHEMA_VERSION, ContractError, ContractReport, Critique, Edge, Edit, Edits, Fix,
+                              ProductModel, QAMetrics, Rect, ScreenMetrics, State)
 from simula.runlog import read_trace, run_trace, write_exhibit
 from simula.stages import Ctx, mock
 
 MAX_ROUNDS = 3
 MIN_GAIN = 0.3
 WEIGHTS = {"bounds": 0.5, "nav": 0.3, "ssim": 0.2}
+KEEP_FORMULA = (f"10 × ({' + '.join(f'{w} {term}' for term, w in WEIGHTS.items())}); a term with nothing to measure "
+                "is dropped and the rest reweighted. It picks the round QA keeps; it is not a fidelity percentage.")
+LOWEST_SHOWN = 3
 CLICK_TIMEOUT_MS = 1500
+TYPED = "hello"
+GESTURE_MAP = "() => JSON.parse(document.getElementById('simula-actions')?.textContent || '{}')"
 CRITIC_MAX_TOKENS = 16000
 CRITIC_SCREENS = 4
 PARALLEL_CRITICS = 4
@@ -56,22 +61,47 @@ class Version:
         return [f for f in self.flows if f["status"] == "failed"]
 
 
+@dataclass
+class Loop:
+    """How the fix loop went: a summary per round, why it stopped (and whether a failed or capped model call cut it
+    short), the first round a score-only keep rule would have decided the other way, and the critic's findings on
+    the approved version (None when no round critiqued it)."""
+    rounds: list[dict]
+    stop: str
+    stopped_early: bool = False
+    disagreement: dict | None = None
+    open_findings: list[Fix] | None = None
+
+
 def run(ctx: Ctx) -> None:
     model = ProductModel.model_validate_json((ctx.run_dir / "model" / "product_model.json").read_text())
     scope = mock_screens(ctx, model)
-    screens = [s.id for s in scope]
     shutil.rmtree(ctx.run_dir / "qa", ignore_errors=True)
-    budget = llm.Budget.for_stage("qa", ctx.run_dir / "trace.jsonl", ctx.usd_cap)
+    delivered = measure_or_replay(ctx, model, scope, 0, (ctx.run_dir / "mock" / "index.html").read_text())
+    best, loop = improve(ctx, model, scope, delivered)
+    run_trace(ctx.run_dir, stage="qa", step="stop", decider="code", note=loop.stop)
 
-    best = measure_or_replay(ctx, model, scope, 0, (ctx.run_dir / "mock" / "index.html").read_text())
-    rounds, history, stop, disagreement = [summary(best, kept=True)], [], f"all {MAX_ROUNDS} rounds ran", None
+    approve(ctx, best)
+    report = qa_report(ctx, best, loop, undrawn_screens(ctx))
+    write_json(ctx.run_dir / "qa" / "qa_report.json", report)
+    write_exhibit(ctx.run_dir, 4, "qa", exhibit(ctx, model, best, loop, report))
+
+
+def improve(ctx: Ctx, model: ProductModel, scope: list[State], best: Version) -> tuple[Version, Loop]:
+    """The fix loop from the delivered version: critic, fixer, code re-wires, measure, keep or discard. Returns the
+    best version and how the loop went."""
+    screens = [s.id for s in scope]
+    budget = llm.Budget.for_stage("qa", ctx.run_dir / "trace.jsonl", ctx.usd_cap)
+    loop, history, critiqued = Loop(rounds=[summary(best, kept=True)], stop=f"all {MAX_ROUNDS} rounds ran"), [], {}
     for n in range(1, MAX_ROUNDS + 1):
         try:
             critique = criticize(ctx, budget, best, history, n)
+            critiqued[best.round] = critique
             edits = fix(ctx, budget, model, best, critique, n)
         except (llm.LLMFailure, llm.CapReached) as e:
-            stop = f"round {n} stopped before any edit: {e}"
-            run_trace(ctx.run_dir, stage="qa", step=f"round{n}", decider="code", outcome="error", note=stop[:300])
+            loop.stop, loop.stopped_early = f"round {n} stopped before any edit: {e}", True
+            run_trace(ctx.run_dir, stage="qa", step=f"round{n}", decider="code", outcome="error",
+                      note=loop.stop[:300])
             break
         html, results = apply_edits(without_runtime(best.html), edits.edits)
         html = rebuild(html, model, screens)
@@ -80,29 +110,26 @@ def run(ctx: Ctx) -> None:
         try:
             new = measure_or_replay(ctx, model, scope, n, html)
         except PlaywrightError as e:
-            stop = f"round {n} broke the page ({str(e).splitlines()[0][:200]}), so its edits were discarded"
+            loop.stop = f"round {n} broke the page ({str(e).splitlines()[0][:200]}), so its edits were discarded"
             break
         gain = new.score - best.score
         kept = rank(new) <= rank(best)
-        disagreement = disagreement or keep_rule_disagreement(new, best, kept)
-        rounds.append(summary(new, kept, results))
+        loop.disagreement = loop.disagreement or keep_rule_disagreement(new, best, kept)
+        loop.rounds.append(summary(new, kept, results))
         history.append({"round": n, "score_before": round(best.score, 2), "score_after": round(new.score, 2),
                         "kept": kept, "fixes": [f"{f.element_id}: {f.problem}" for f in critique.fixes],
                         "rejected_edits": [r["why"] for r in results if not r["applied"]]})
         if not kept:
-            stop = f"round {n} {worse(new, best)}, so its edits were discarded"
+            loop.stop = f"round {n} {worse(new, best)}, so its edits were discarded"
             break
         repaired = len(new.contract_errors) < len(best.contract_errors)
         best = new
         if n >= 2 and gain < MIN_GAIN and not repaired:
-            stop = f"round {n} gained {gain:.2f} (< {MIN_GAIN})"
+            loop.stop = f"round {n} gained {gain:.2f} (< {MIN_GAIN})"
             break
-    run_trace(ctx.run_dir, stage="qa", step="stop", decider="code", note=stop)
-
-    approve(ctx, best)
-    report = qa_report(best, rounds, stop, disagreement, undrawn_screens(ctx))
-    write_json(ctx.run_dir / "qa" / "qa_report.json", report)
-    write_exhibit(ctx.run_dir, 4, "qa", exhibit(ctx, model, best, rounds, report))
+    critique = critiqued.get(best.round)
+    loop.open_findings = None if critique is None else critique.fixes
+    return best, loop
 
 
 def rank(v: Version) -> tuple[int, float]:
@@ -159,8 +186,10 @@ def measure(ctx: Ctx, model: ProductModel, scope: list[State], n: int, html: str
     drawn = [s for s in scope if s.id not in undrawn]
     screens = [s.id for s in drawn]
     with render.open_mock(round_dir) as (page, log):
+        checked = render.check_contract(page, log, round_dir, model, screens,
+                                        crops=mock.crop_origins(model, ctx.run_dir / "mock"))
         errors = [e.model_copy(update={"detail": e.detail.replace(round_dir.resolve().as_uri() + "/", "")})
-                  for e in render.check_contract(page, log, round_dir, model, screens)]
+                  for e in checked]
         render.screenshot_screens(page, screens, round_dir / "mock")
         dom, shared = {}, {}
         for sid in screens:
@@ -263,10 +292,14 @@ def screen_score(bounds: float | None, nav: float | None, ssim: float | None) ->
 
 # ---------- navigation ----------
 
+def edge_tags(page, edge: Edge):
+    return page.locator(f'[data-screen="{edge.from_state}"] [data-edge="{edge.id}"]')
+
+
 def tap(page, edge: Edge) -> str | None:
     """Taps an edge's tag on its own screen through Playwright's hit-testing, so a covered, hidden, or zero-size
     target fails. Returns what went wrong, or None."""
-    tags = page.locator(f'[data-screen="{edge.from_state}"] [data-edge="{edge.id}"]')
+    tags = edge_tags(page, edge)
     if tags.count() == 0:
         return "no data-edge tag on its screen"
     transition = tags.first.get_attribute("data-transition")
@@ -287,9 +320,64 @@ def tap(page, edge: Edge) -> str | None:
     return None
 
 
+def gesture(page, edge: Edge, gestures: dict) -> str | None:
+    """Takes an edge that starts on no element through real input, as the page's gesture map (`GESTURE_MAP`) says
+    its runtime performs it: a drag up its screen, Escape, or typing into the screen's text field and Enter.
+    Returns what went wrong, or None."""
+    mapped = gestures.get(edge.from_state, {}).get(edge.action)
+    if not mapped or mapped[0] != edge.to_state:
+        return f"the page has no {edge.action} from {edge.from_state} to {edge.to_state}"
+    if edge.action == "swipe":
+        drag_up(page, edge.from_state)
+    elif edge.action == "back":
+        page.keyboard.press("Escape")
+    else:
+        problem = type_into(page, edge.from_state, mapped[2])
+        if problem:
+            return problem
+    landed = page.evaluate("() => window.simula.state()")
+    return None if landed == edge.to_state else f"landed on {landed!r}"
+
+
+def drag_up(page, screen: str) -> None:
+    box = page.locator(f'[data-screen="{screen}"]').bounding_box()
+    x, y = box["x"] + box["width"] / 2, box["y"] + box["height"] * 0.7
+    page.mouse.move(x, y)
+    page.mouse.down()
+    page.mouse.move(x, y - box["height"] * 0.4, steps=8)
+    page.mouse.up()
+
+
+def type_into(page, screen: str, field: str | None) -> str | None:
+    if field is None:
+        return "its screen has no text field to type into"
+    box = page.locator(f'[data-screen="{screen}"] [data-el="{field}"]')
+    if box.count() == 0:
+        return f"no tag carries its text field {field}"
+    try:
+        box.first.click(timeout=CLICK_TIMEOUT_MS)
+    except PlaywrightError as e:
+        return f"the text field never took the tap ({str(e).splitlines()[0]})"[:300]
+    page.keyboard.type(TYPED)
+    # A type edge often stays on its screen, so landing there proves nothing: the field must show what was typed.
+    if TYPED not in box.first.inner_text():
+        return "the text field didn't take the typing"
+    page.keyboard.press("Enter")
+    return None
+
+
+def take(page, edge: Edge, gestures: dict) -> tuple[str | None, bool]:
+    """One hop the way a person takes it: a tap on the tag the page carries for it (a back edge's too, on a drawn
+    back control), else the gesture of an edge that starts on no element. Returns what went wrong, or None, and
+    whether the hop was a gesture."""
+    if edge.element_id or edge_tags(page, edge).count():
+        return tap(page, edge), False
+    return gesture(page, edge, gestures), True
+
+
 def check_taps(page, model: ProductModel, scope: list[State]) -> list[dict]:
     """Every in-scope edge of the model that starts on an element, whether or not the page carries it. An edge with
-    no element (BACK, a swipe) has nothing on screen to tap."""
+    no element is taken by its gesture in the flow walks."""
     checks = []
     for edge in (e for e in mock.scope_edges(model, scope) if e.element_id):
         page.evaluate("id => window.simula.go(id)", edge.from_state)
@@ -298,36 +386,39 @@ def check_taps(page, model: ProductModel, scope: list[State]) -> list[dict]:
 
 
 def walk_flows(page, model: ProductModel, scope: list[State], undrawn: set[str] = frozenset()) -> list[dict]:
-    """Walks each core flow from its first screen by tapping, never jumping over a hop that has an element to tap. A
-    hop with none (BACK, a swipe) is taken by navigation, the way the system would, and listed as navigated. A flow
-    that leaves the mock's scope can't be walked, nor one through a screen stage 3 didn't draw; each is reported as
-    such. A failed walk names the screen of the hop that broke."""
+    """Walks each core flow the way a person would: simula.go only puts the page on the flow's first screen (setup,
+    never evidence), and every hop is then taken by real input (`take`). A flow that leaves the mock's scope can't be
+    walked, nor one through a screen stage 3 didn't draw; each is reported as such. A failed walk names the screen
+    of the hop that broke; `gestures` lists the hops taken by a gesture rather than a tap."""
     edges = {e.id: e for e in mock.scope_edges(model, scope)}
+    gestures = page.evaluate(GESTURE_MAP)
     walks = []
     for flow in model.flows:
         walk = {"flow": flow.id, "name": flow.name, "status": "out_of_scope", "problem": None, "screen": None,
-                "navigated": [i for i in flow.edge_ids if i in edges and not edges[i].element_id]}
+                "gestures": []}
         hops = [edges[i] for i in flow.edge_ids if i in edges]
         if flow.edge_ids and len(hops) == len(flow.edge_ids):
             if any({e.from_state, e.to_state} & undrawn for e in hops):
                 walk["status"] = "undrawn"
             else:
-                walk["screen"], walk["problem"] = walk_one(page, hops) or (None, None)
+                walk["screen"], walk["problem"], walk["gestures"] = walk_one(page, hops, gestures)
                 walk["status"] = "failed" if walk["problem"] else "passed"
         walks.append(walk)
     return walks
 
 
-def walk_one(page, edges: list[Edge]) -> tuple[str, str] | None:
+def walk_one(page, edges: list[Edge], gestures: dict) -> tuple[str | None, str | None, list[str]]:
+    """Takes one flow's hops in order; returns the screen and problem of the hop that broke (or None, None) and the
+    hops taken by gesture."""
     page.evaluate("id => window.simula.go(id)", edges[0].from_state)
+    gestured = []
     for edge in edges:
-        if not edge.element_id:
-            page.evaluate("id => window.simula.go(id)", edge.to_state)
-            continue
-        problem = tap(page, edge)
+        problem, by_gesture = take(page, edge, gestures)
+        if by_gesture:
+            gestured.append(edge.id)
         if problem:
-            return edge.from_state, f"{edge.id}: {problem}"
-    return None
+            return edge.from_state, f"{edge.id}: {problem}", gestured
+    return None, None, gestured
 
 
 # ---------- critic and fixer ----------
@@ -462,8 +553,9 @@ def prompt(name: str) -> str:
 # ---------- edits ----------
 
 def without_runtime(html: str) -> str:
-    """The page as the fixer sees it: code owns the navigation runtime, so the fixer can neither read nor edit it."""
-    return RUNTIME.sub("", html)
+    """The page as the fixer sees it: code owns the navigation runtime and the gesture map, so the fixer can neither
+    read nor edit them. rebuild writes both back."""
+    return mock.ACTIONS_BLOCK.sub("", RUNTIME.sub("", html))
 
 
 def rebuild(html: str, model: ProductModel, screens: list[str]) -> str:
@@ -536,20 +628,24 @@ def approve(ctx: Ctx, best: Version) -> None:
 
 
 def summary(version: Version, kept: bool, edits: list[dict] = ()) -> dict:
-    return {"round": version.round, "score": round(version.score, 3), "kept": kept,
+    return {"round": version.round, "keep_score": round(version.score, 3), "kept": kept,
             "contract_errors": len(version.contract_errors), "failed_taps": len(version.failed_taps()),
             "failed_flows": len(version.failed_flows()), "cross_screen_failures": len(version.cross_screen),
             "edits_applied": sum(e["applied"] for e in edits), "edits_rejected": sum(not e["applied"] for e in edits)}
 
 
-def qa_report(best: Version, rounds: list[dict], stop: str, disagreement: dict | None,
-              undrawn: dict[str, str]) -> dict:
-    """qa_incomplete when the approved version still fails navigation or the cross-screen check; flows still run on
-    it, with that label."""
-    incomplete = bool(best.failed_taps() or best.failed_flows() or best.cross_screen)
-    return {"status": "qa_incomplete" if incomplete else "approved", "approved_round": best.round,
-            "score": round(best.score, 3), "stop_reason": stop, "rounds": rounds,
-            "keep_rule_disagreement": disagreement,
+def qa_report(ctx: Ctx, best: Version, loop: Loop, undrawn: dict[str, str]) -> dict:
+    """What QA certifies about the approved version. outcome, reasons and resume are the stage-outcome fields
+    done.json shares; status is QA's label for the same thing (approved | qa_incomplete), and flows still run on a
+    partial mock with that label. keep_score is the loop's keep metric. structure, interaction and visual report
+    fidelity apart from it, with no pass mark, and open_findings carries what the critic still saw."""
+    finished = outcome(ctx, best, loop, undrawn)
+    return {"status": "approved" if finished["outcome"] == "complete" else "qa_incomplete", **finished,
+            "approved_round": best.round,
+            "keep_score": round(best.score, 3), "keep_score_formula": KEEP_FORMULA,
+            "structure": structure(best), "interaction": interaction(best), "visual": visual(best),
+            "open_findings": None if loop.open_findings is None else [f.model_dump() for f in loop.open_findings],
+            "stop_reason": loop.stop, "rounds": loop.rounds, "keep_rule_disagreement": loop.disagreement,
             "undrawn_screens": [{"screen": sid, "reason": why} for sid, why in undrawn.items()],
             "screens": [{**json.loads(s["metrics"].model_dump_json()), "name": s["name"], "tagged": s["tagged"],
                          "taps": s["taps"], "data_el_misses": s["misses"]} for s in best.screens],
@@ -558,26 +654,79 @@ def qa_report(best: Version, rounds: list[dict], stop: str, disagreement: dict |
             "cross_screen_failures": best.cross_screen}
 
 
-def exhibit(ctx: Ctx, model: ProductModel, best: Version, rounds: list[dict], report: dict) -> str:
-    status = ("**approved**" if report["status"] == "approved"
-              else f"**qa_incomplete**: {len(best.failed_taps())} taps and {len(best.failed_flows())} flows still "
-                   f"fail, {len(best.cross_screen)} cross-screen failures")
+def outcome(ctx: Ctx, best: Version, loop: Loop, undrawn: dict[str, str]) -> dict:
+    """complete, or partial with why and where to start again: screens the mock left undrawn (and the core flows
+    through them), a review a failed or capped model call cut short, or checks the approved version still fails.
+    A partial mock still goes on to the slides; QA never blocks them."""
+    through_undrawn = [f["flow"] for f in best.flows if f["status"] == "undrawn"]
+    reasons = [text for present, text in (
+        (undrawn, f"the mock left screens undrawn: {', '.join(undrawn)}"),
+        (through_undrawn, f"core flows through an undrawn screen: {', '.join(through_undrawn)}"),
+        (loop.stopped_early, f"the review stopped early: {loop.stop}"),
+        (best.failed_taps(), f"taps that still fail: {', '.join(t['edge'] for t in best.failed_taps())}"),
+        (best.failed_flows(), f"core flows that still fail: {', '.join(f['flow'] for f in best.failed_flows())}"),
+        (best.contract_errors, f"contract errors on the approved version: {len(best.contract_errors)}"),
+        (best.cross_screen, f"cross-screen failures on the approved version: {len(best.cross_screen)}"),
+    ) if present]
+    start = "mock" if undrawn else "qa"
+    return {"outcome": "partial" if reasons else "complete", "reasons": reasons,
+            "resume": f"simula run {ctx.app['name']} --run {ctx.run_dir.name} --from {start}" if reasons else None}
+
+
+def structure(best: Version) -> dict:
+    """Tagged elements drawn within 4 dp of where the real screen has them, pooled over the scored screens."""
+    tagged = sum(s["tagged"] for s in best.screens)
+    return {"tagged": tagged, "within_4dp": tagged - sum(len(s["misses"]) for s in best.screens)}
+
+
+def interaction(best: Version) -> dict:
+    """Taps that land where the model says, and core flows a person can walk by real input."""
+    return {"taps": len(best.taps), "taps_passing": len(best.taps) - len(best.failed_taps()),
+            "flows": len(best.flows), "flows_walked": sum(f["status"] == "passed" for f in best.flows)}
+
+
+def visual(best: Version) -> dict:
+    """Masked SSIM on its own: the mean, and every scored screen from the lowest up. No pass mark: SSIM punishes a
+    line of text 2 px off about as hard as a missing picture, so it ranks screens for a person to look at."""
+    scored = sorted(((s["metrics"].state_id, s["metrics"].ssim_masked) for s in best.screens
+                     if s["metrics"].ssim_masked is not None), key=lambda pair: pair[1])
+    return {"masked_ssim_mean": round(sum(v for _, v in scored) / len(scored), 3) if scored else None,
+            "screens_by_ssim": [{"screen": sid, "ssim": round(v, 3)} for sid, v in scored]}
+
+
+def fidelity_lines(report: dict, start: float) -> list[str]:
+    """The exhibit's three fidelity lines and what the keep score is."""
+    st, it, vis = report["structure"], report["interaction"], report["visual"]
+    lowest = ", ".join(f"{s['screen']} {s['ssim']:.3f}" for s in vis["screens_by_ssim"][:LOWEST_SHOWN])
+    ssim = f"mean {vis['masked_ssim_mean']:.3f}, lowest {lowest}" if vis["screens_by_ssim"] else "nothing to score"
+    return [f"- Structure: {st['within_4dp']} of {st['tagged']} tagged elements within 4 dp of the real screen.",
+            f"- Interaction: {it['taps_passing']} of {it['taps']} taps land; "
+            f"{it['flows_walked']} of {it['flows']} core flows walked by real input.",
+            f"- Visual: masked SSIM {ssim} (see the heatmaps). No pass mark.",
+            f"- Keep score {start:.2f} → {report['keep_score']:.2f}: {report['keep_score_formula']}"]
+
+
+def exhibit(ctx: Ctx, model: ProductModel, best: Version, loop: Loop, report: dict) -> str:
+    status = ("**approved** (outcome complete)" if report["outcome"] == "complete"
+              else f"**qa_incomplete** (outcome partial): {'; '.join(report['reasons'])}. Resume: `{report['resume']}`")
     lines = [f"# QA: {model.app}", "",
-             f"Status: {status}. Score {rounds[0]['score']:.2f} → {best.score:.2f} (round {best.round}, copied to "
-             f"`qa/approved/`). Stop: {report['stop_reason']}. Model spend this stage: ${stage_usd(ctx):.4f}.", "",
+             f"Status: {status}. Round {best.round} is approved and copied to `qa/approved/`. Stop: "
+             f"{report['stop_reason']}. Model spend this stage: ${stage_usd(ctx):.4f}.", "",
+             *fidelity_lines(report, loop.rounds[0]["keep_score"]), "",
              "Round 0 is the mock as stage 3 delivered it; round N is the page after N fix rounds. A round is kept "
-             "when it has fewer contract errors, or as many and a score at least as high. " + keep_rule_line(report),
+             "when it has fewer contract errors, or as many and a keep score at least as high. "
+             + keep_rule_line(report),
              *(["", "Replayed: the scores are the recorded run's; the images in `qa/round<N>/` are this machine's "
                     "renders, so they can differ slightly from what was scored."] if ctx.replay else []),
              "",
-             "| Round | Score | Contract errors | Failed taps | Failed flows | Cross-screen failures | "
+             "| Round | Keep score | Contract errors | Failed taps | Failed flows | Cross-screen failures | "
              "Edits applied / rejected | Kept |",
              "|---|---|---|---|---|---|---|---|"]
-    lines += [f"| {r['round']} | {r['score']:.2f} | {r['contract_errors']} | {r['failed_taps']} | {r['failed_flows']} | "
-              f"{r['cross_screen_failures']} | {r['edits_applied']} / {r['edits_rejected']} | "
-              f"{'yes' if r['kept'] else 'discarded'} |" for r in rounds]
+    lines += [f"| {r['round']} | {r['keep_score']:.2f} | {r['contract_errors']} | {r['failed_taps']} | "
+              f"{r['failed_flows']} | {r['cross_screen_failures']} | {r['edits_applied']} / {r['edits_rejected']} | "
+              f"{'yes' if r['kept'] else 'discarded'} |" for r in loop.rounds]
     lines += ["", f"Approved version (round {best.round}), per screen. A term with nothing to measure shows –.", "",
-              "| Screen | Name | Score | Masked SSIM (coverage) | pixelmatch (pixels differing) | "
+              "| Screen | Name | Keep score | Masked SSIM (coverage) | pixelmatch (pixels differing) | "
               "data-el within 4 dp | Taps passing | Heatmap |",
               "|---|---|---|---|---|---|---|---|"]
     for s in best.screens:
@@ -590,7 +739,7 @@ def exhibit(ctx: Ctx, model: ProductModel, best: Version, rounds: list[dict], re
                      f"{bounds} | {taps} | `qa/round{best.round}/heatmap/{m.state_id}.png` |")
     lines += ["", "| Flow | Name | Walk |", "|---|---|---|"]
     lines += [f"| {f['flow']} | {f['name']} | {f['status'].replace('_', ' ')}{': ' + f['problem'] if f['problem'] else ''}"
-              f"{' (navigated, no element to tap: ' + ', '.join(f['navigated']) + ')' if f['navigated'] else ''} |"
+              f"{' (by gesture: ' + ', '.join(f['gestures']) + ')' if f['gestures'] else ''} |"
               for f in best.flows]
     if report["undrawn_screens"]:
         lines += ["", "Screens stage 3 didn't draw (placeholders: not scored, not sent to the critic or the fixer):",
@@ -605,6 +754,9 @@ def exhibit(ctx: Ctx, model: ProductModel, best: Version, rounds: list[dict], re
     if best.contract_errors:
         lines += ["", "Contract errors on the approved version:",
                   *[f"- {e.kind} ({e.screen or 'page'}): {e.detail}" for e in best.contract_errors]]
+    if loop.open_findings:
+        lines += ["", "What the critic still saw on the approved version (its fixes were discarded or never made):",
+                  *[f"- `{f.element_id}`: {f.problem}" for f in loop.open_findings]]
     lines += ["", "Known limit: when the critic refuses a group of screens, that group gets no fixes that round "
                   "(and the round stops if every group refuses). The refused images aren't bisected out to keep the "
                   "rest of the group."]

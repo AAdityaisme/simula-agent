@@ -60,6 +60,11 @@ ART_MIN_SIDE = 48
 ART_MIN_COLORS = 120
 ALREADY_CROPPED = 0.9
 RETRY_EFFORT = {"max": "high", "xhigh": "high"}
+GESTURES = ("swipe", "back", "type")
+# ponytail: Android's editable widget classes, the only platform explored so far. Add iOS field types with an iOS run.
+TEXT_FIELDS = ("EditText", "AutoCompleteTextView", "MultiAutoCompleteTextView")
+ACTIONS_BLOCK = re.compile(r'<script id="simula-actions" type="application/json">.*?</script>\n?', re.S)
+ACTIONS_JS = '<script id="simula-actions" type="application/json">%s</script>\n'
 SHORTER = "A first attempt ran out of output tokens. Write shorter CSS: shared classes, no repeated rules, no comments."
 
 RUNTIME_CSS = """<style id="simula-runtime">
@@ -75,6 +80,8 @@ body{position:relative}
 @keyframes simula-slide-back{from{transform:translateX(-30%)}}
 @keyframes simula-fade{from{opacity:0}}
 @media (prefers-reduced-motion:reduce){.simula-push,.simula-back,.simula-modal{animation:none}}
+[data-simula-field]{cursor:text;-webkit-user-select:text;user-select:text}
+[data-simula-field]:focus{outline:none}
 </style>
 """
 
@@ -98,7 +105,52 @@ RUNTIME_JS = """<script id="simula-runtime-js">
     document.body.dataset.transition = kind;
     return true;
   }
+  // Edges that start on no element come from code's #simula-actions map: {screen: {action: [to, transition, field]}}.
+  // A drag of 48 px or more is a swipe, or the system back when it starts at the left edge and runs right; Escape is
+  // the system back too; Enter in the screen's text field sends what was typed.
+  let actions = null;
+  const actionsOf = () => actions = actions || JSON.parse(document.getElementById('simula-actions')?.textContent || '{}');
+  const gesture = kind => { const a = (actionsOf()[current] || {})[kind]; return !!a && show(a[0], a[1]); };
+  let start = null, dragged = false;
+  document.addEventListener('pointerdown', e => { start = [e.clientX, e.clientY]; dragged = false; });
+  document.addEventListener('pointercancel', () => { start = null; });
+  // A drag that starts on a picture must stay a swipe: the browser's own image drag would cancel the pointer.
+  document.addEventListener('dragstart', e => e.preventDefault());
+  document.addEventListener('pointerup', e => {
+    if (!start) return;
+    const [x, y] = start, dx = e.clientX - x, dy = e.clientY - y;
+    start = null;
+    if (Math.hypot(dx, dy) < 48) return;
+    dragged = true;
+    if (!(x <= 24 && dx > Math.abs(dy) && gesture('back'))) gesture('swipe');
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') gesture('back');
+    const field = e.target.closest && e.target.closest('[data-simula-field]');
+    if (e.key === 'Enter' && field && field.closest('[data-screen]').dataset.screen === current) {
+      e.preventDefault();
+      gesture('type');
+    }
+  });
+  const fields = () => {
+    for (const [sid, a] of Object.entries(actionsOf())) {
+      const id = a.type && a.type[2];
+      const f = id && document.querySelector(`[data-screen="${CSS.escape(sid)}"] [data-el="${CSS.escape(id)}"]`);
+      if (!f) continue;
+      f.contentEditable = 'plaintext-only';
+      f.tabIndex = 0;
+      f.dataset.simulaField = '';
+      // The drawn placeholder gives way on the first focus, as a real field's hint does.
+      f.addEventListener('focus', () => {
+        if ('simulaTyped' in f.dataset) return;
+        f.dataset.simulaTyped = '';
+        f.textContent = '';
+      });
+    }
+  };
+  document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', fields) : fields();
   document.addEventListener('click', e => {
+    if (dragged) { dragged = false; return; }
     const el = e.target.closest('[data-edge]');
     if (!el) return;
     e.preventDefault();
@@ -136,7 +188,7 @@ def run(ctx: Ctx) -> None:
     html = with_runtime(wire_edges(stitch(style, fonts, parts), model, screens), home_id(scope))
     (mock_dir / "index.html").write_text(html)
 
-    checked = render.render_and_validate(mock_dir, model, screens)
+    checked = render.render_and_validate(mock_dir, model, screens, crops=crop_origins(model, mock_dir))
     errors = [ContractError(kind="undrawn_screen", detail=f"screen not drawn: {reason}", screen=sid)
               for sid, reason in undrawn.items()] + batch_errors + checked.errors
     report = ContractReport(passed=not errors, screens=screens, errors=errors)
@@ -205,9 +257,10 @@ def scope_edges(model: ProductModel, scope: list[State]) -> list[Edge]:
     return [e for e in model.edges if e.from_state in ids and e.to_state in ids]
 
 
-def usable_asset(e: Element, device: Device) -> bool:
-    """An asset the builder may use: one that, drawn at its rect, stays under the no-wallpaper limit."""
-    return bool(e.in_mock and e.asset_png) and under_wallpaper_limit(e.rect_dp, device)
+def usable_asset(e: Element, elements: list[Element], device: Device) -> bool:
+    """An asset the builder may use. One holding no other element's words or image can't be a screenshot of
+    interface, so it may be any size; any other stays under the no-wallpaper limit."""
+    return bool(e.in_mock and e.asset_png) and (not holds_ui(e, elements) or under_wallpaper_limit(e.rect_dp, device))
 
 
 def under_wallpaper_limit(r: Rect, device: Device) -> bool:
@@ -215,9 +268,36 @@ def under_wallpaper_limit(r: Rect, device: Device) -> bool:
     return area(overlap(r, screen)) <= render.WALLPAPER_SHARE * area(screen)
 
 
+def shows_ui(e: Element) -> bool:
+    """Listed interface: an element with words or an image of its own."""
+    return bool(e.text or e.label or e.asset_png)
+
+
+def holds_ui(e: Element, elements: list[Element]) -> bool:
+    """Whether another element's words or image sit on e's rect, even partly (its parents aside), so a crop of e
+    would bake that interface in. These are exactly the elements art search keeps its crops clear of."""
+    return any(drawn_over(o, e) and area(overlap(o.rect_dp, e.rect_dp)) > 0 for o in elements)
+
+
+def crop_origins(model: ProductModel, mock_dir) -> dict[str, tuple[str, Rect]]:
+    """The contract check's exemption list: every code-made image that holds no listed interface, each src with its
+    screen and the content-dp rect it was cut from. That is every art crop in mock_dir/art.json (art search avoids
+    words and images by construction) and every element asset with no other element's words or image inside it."""
+    path = mock_dir / "art.json"
+    art = json.loads(path.read_text())["art"] if path.exists() else {}
+    crops = {}
+    for s in model.states:
+        for e in s.elements:
+            if art_src(e.id) in art:
+                crops[art_src(e.id)] = (s.id, Rect(**art[art_src(e.id)]))
+            if e.asset_png and not holds_ui(e, s.elements):
+                crops[e.asset_png] = (s.id, e.rect_dp)
+    return crops
+
+
 def copy_assets(model_dir, mock_dir, scope: list[State], device: Device) -> None:
     (mock_dir / "assets").mkdir(parents=True, exist_ok=True)
-    for e in (e for s in scope for e in s.elements if usable_asset(e, device)):
+    for e in (e for s in scope for e in s.elements if usable_asset(e, s.elements, device)):
         shutil.copyfile(model_dir / e.asset_png, mock_dir / "assets" / f"{e.id}.png")
 
 
@@ -238,14 +318,14 @@ def crop_art(model_dir, mock_dir, scope: list[State], device: Device) -> dict[st
 
 
 def find_art(state: State, image: Image.Image, device: Device) -> dict[str, Rect]:
-    """For each drawn element with no asset and no text of its own (its words cover its rect): the largest
-    picture-like region inside it that nothing else is drawn over, unless that region is wallpaper-sized.
-    image is the state's content-area screenshot."""
+    """For each element with no asset and no text of its own (its words cover its rect), drawn or a wordless
+    container: the largest picture-like region inside it that nothing else is drawn over. Such a region holds no
+    listed words or image, so it may be any size. image is the state's content-area screenshot."""
     screen = content_rect(device)
-    cropped = [e.rect_dp for e in state.elements if usable_asset(e, device)]
+    cropped = [e.rect_dp for e in state.elements if usable_asset(e, state.elements, device)]
     art = {}
     for e in state.elements:
-        if not e.in_mock or e.asset_png or e.text:
+        if e.asset_png or e.text:
             continue
         box = overlap(e.rect_dp, screen)
         blockers = [r for r in (overlap(o.rect_dp, box) for o in state.elements if drawn_over(o, e)) if area(r) > 0]
@@ -254,9 +334,8 @@ def find_art(state: State, image: Image.Image, device: Device) -> dict[str, Rect
                 continue
             if not is_picture(crop_px(image, rect, device.scale)):
                 continue
-            if under_wallpaper_limit(rect, device):
-                art[e.id] = rect
-                cropped.append(rect)
+            art[e.id] = rect
+            cropped.append(rect)
             break
     return art
 
@@ -265,7 +344,7 @@ def drawn_over(other: Element, container: Element) -> bool:
     """Another element with words or an image of its own. A bigger element around the container is its parent."""
     a, b = other.rect_dp, container.rect_dp
     around = contains(a, b) and area(a) > area(b)
-    return other.id != container.id and bool(other.text or other.label or other.asset_png) and not around
+    return other.id != container.id and shows_ui(other) and not around
 
 
 def free_rects(box: Rect, blockers: list[Rect], min_side: float) -> list[Rect]:
@@ -543,13 +622,13 @@ def state_brief(state: State, device: Device, art: dict[str, Rect]) -> dict:
     tagged = tagged_ids(state)
     elements = []
     for e in state.elements:
-        if not e.in_mock:
+        if not e.in_mock and e.id not in art:
             continue
         item = {"id": e.id, "type": e.type, "text": e.text, "label": e.label, "role": e.role,
                 "x": round(e.rect_dp.x, 1), "y": round(e.rect_dp.y, 1), "w": round(e.rect_dp.w, 1), "h": round(e.rect_dp.h, 1),
                 "fg": e.fg_hex, "bg": e.bg_hex, "font": e.font_guess,
                 "text_h": round(e.font_px / device.scale, 1) if e.font_px else None,
-                "asset": f"assets/{e.id}.png" if usable_asset(e, device) else None, "tag": e.id in tagged,
+                "asset": f"assets/{e.id}.png" if usable_asset(e, state.elements, device) else None, "tag": e.id in tagged,
                 "art": {"src": art_src(e.id), "rect": art[e.id].model_dump()} if e.id in art else None}
         elements.append({k: v for k, v in item.items() if v not in (None, "", "unknown")})
     return {"id": state.id, "kind": state.kind, "parent": state.parent_id, "name": state.name,
@@ -740,8 +819,9 @@ class StartTags(HTMLParser):
 
 
 def wire_edges(html: str, model: ProductModel, screens: list[str]) -> str:
-    """Code owns every edge. It writes each known data-edge tag's data-transition, and puts an in-scope edge
-    the builder left out on the tag that already carries its element's data-el."""
+    """Code owns every edge. It writes each known data-edge tag's data-transition, puts an in-scope edge the
+    builder left out on the tag that already carries its element's data-el, and writes the map of edges that start
+    on no element (`gestures`) for the runtime, replacing any map already in the page."""
     edges = {e.id: e for e in model.edges}
     tags = StartTags(html).tags
     placed = {t["attrs"].get("data-edge") for t in tags}
@@ -761,7 +841,26 @@ def wire_edges(html: str, model: ProductModel, screens: list[str]) -> str:
         if edge and t["attrs"].get("data-transition") != edge.transition:
             t["attrs"] = _with_transition(t["attrs"], edge.transition)
             changed[t["start"]] = t
-    return _rewrite(html, sorted(changed.values(), key=lambda t: t["start"]))
+    html = ACTIONS_BLOCK.sub("", _rewrite(html, sorted(changed.values(), key=lambda t: t["start"])))
+    actions = gestures(model, screens)
+    return _insert_before(html, "</body>", ACTIONS_JS % json.dumps(actions, sort_keys=True)) if actions else html
+
+
+def gestures(model: ProductModel, screens: list[str]) -> dict[str, dict[str, list]]:
+    """The in-scope swipe, back and type edges that start on no element, per screen and action: {screen: {action:
+    [to_state, transition, text field]}}. The runtime performs each from its gesture. A type edge names the screen's
+    first tagged text field, where the typing goes (None when it has none). A second edge with the same action on
+    one screen is left out: the explorer doesn't record which way it swiped."""
+    states = {s.id: s for s in model.states}
+    out = {}
+    for e in model.edges:
+        if e.element_id or e.action not in GESTURES or e.from_state not in screens or e.to_state not in screens:
+            continue
+        state = states[e.from_state]
+        field = next((x.id for x in state.elements if x.type in TEXT_FIELDS and x.id in tagged_ids(state)), None)
+        out.setdefault(e.from_state, {}).setdefault(e.action, [e.to_state, e.transition,
+                                                             field if e.action == "type" else None])
+    return out
 
 
 def _with_transition(attrs: dict, transition: str) -> dict:
