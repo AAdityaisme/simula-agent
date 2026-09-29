@@ -340,6 +340,9 @@ def type_into(page, screen: str, field: str | None) -> str | None:
     except PlaywrightError as e:
         return f"the text field never took the tap ({str(e).splitlines()[0]})"[:300]
     page.keyboard.type(TYPED)
+    # A type edge often stays on its screen, so landing there proves nothing: the field must show what was typed.
+    if TYPED not in box.first.inner_text():
+        return "the text field didn't take the typing"
     page.keyboard.press("Enter")
     return None
 

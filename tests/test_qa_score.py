@@ -324,3 +324,15 @@ def test_the_fixer_never_sees_the_gesture_map_and_rebuild_writes_it_back(app):
     page = qa.rebuild(skeleton_html(model), model, screens)
     assert 'id="simula-actions"' in page and 'id="simula-actions"' not in qa.without_runtime(page)
     assert qa.rebuild(qa.without_runtime(page), model, screens) == page
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_a_typing_hop_that_stays_on_its_screen_passes_only_when_the_field_shows_the_text(tmp_path, app):
+    model, tap, a, c, d, field = gestured(app)
+    stay = Edge(id=f"{a}.type>{a}", from_state=a, to_state=a, element_id=None, action="type", transition="push",
+                change_summary="+'hello'")
+    model = model.model_copy(update={"edges": [e for e in model.edges if e.action != "type"] + [stay]})
+    assert walk(tmp_path / "editable", app, model, [stay.id])["status"] == "passed"
+    frozen = walk(tmp_path / "frozen", app, model, [stay.id],
+                  lambda html: html.replace("f.contentEditable = 'plaintext-only';", ""))
+    assert (frozen["status"], frozen["problem"]) == ("failed", f"{stay.id}: the text field didn't take the typing")
