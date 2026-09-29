@@ -654,6 +654,13 @@ class FileHash(Strict):
     sha256: str
 
 
+class StageOutcome(Strict):
+    """What a finished stage delivered: all of its work, or part of it, with why and the command that continues it."""
+    status: Literal["complete", "partial"] = "complete"
+    reasons: list[str] = []
+    resume: str | None = None
+
+
 class DoneMarker(Strict):
     schema_version: int = SCHEMA_VERSION
     stage: str
@@ -663,6 +670,7 @@ class DoneMarker(Strict):
     code_hashes: list[FileHash] = []  # its module and the simula modules it imports; [] predates hashing code
     output_hashes: list[FileHash]
     provenance: Provenance
+    outcome: StageOutcome = StageOutcome()
     finished_at: str
 
 

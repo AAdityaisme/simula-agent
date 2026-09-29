@@ -8,8 +8,9 @@ import sys
 
 import pytest
 
-from simula import cli, runfolder
-from simula.runlog import read_trace
+from simula import cli, llm, runfolder, runlog
+from simula.contracts import StageOutcome
+from simula.runlog import read_manifest, read_trace
 from tests.conftest import FIXTURES
 
 GOLDEN = FIXTURES / "golden" / "janitorai"
@@ -118,13 +119,93 @@ def test_without_a_git_checkout_the_check_is_skipped_with_a_trace_note(runs, tmp
     assert (note.stage, note.outcome) == ("run", "ok") and note.note.startswith("not a git checkout: skipped")
 
 
-# ---------- what a finished stage ran ----------
+# ---------- what a finished stage ran, and whether it delivered all of its work ----------
+
+@pytest.fixture
+def quiet(monkeypatch):
+    monkeypatch.setattr(runlog, "notify", lambda title, message: True)
+
+
+def mock_that(monkeypatch, behavior):
+    """The mock stage replaced by `behavior(ctx)`, which returns what the stage returns, and then ships a page."""
+    def run(ctx):
+        result = behavior(ctx)
+        (ctx.run_dir / "mock" / "index.html").write_text("<html>")
+        return result
+    monkeypatch.setattr(importlib.import_module("simula.stages.mock"), "run", run)
+
+
+def refused_by_the_budget(ctx):
+    budget = llm.Budget.for_stage("mock", ctx.run_dir / "trace.jsonl", ctx.usd_cap)
+    try:
+        budget.reserve(5.0)
+    except llm.CapReached:
+        pass  # the stage ships what it has, as QA does when its cap stops the rounds
+
+
+def planned_away(ctx):
+    budget = llm.Budget.for_stage("mock", ctx.run_dir / "trace.jsonl", ctx.usd_cap)
+    if budget.cap < 5.0:  # as the mock's batch planner does with batches that don't fit
+        runlog.run_trace(ctx.run_dir, stage="mock", step="plan", decider="code", outcome="cap",
+                         note=f"batches 2-3 don't fit the ${budget.cap:.2f} mock cap at worst case")
+
 
 def rerun(run_dir, *flags):
     """`simula run`'s check of the mock: True when it ran again, False when it skipped on matching hashes."""
     ctx = cli.open_run(cli.parser().parse_args(["run", "janitorai", "--run", run_dir.name, "--allow-fixtures", *flags]))
     assert cli.run_stage("mock", ctx, force=False)
     return read_trace(run_dir / "trace.jsonl")[-1].step != "skip"
+
+
+@pytest.mark.parametrize("behavior, reason", [(refused_by_the_budget, "mock: next call could cost $5.00"),
+                                              (planned_away, "batches 2-3 don't fit the $1.00 mock cap")],
+                         ids=["refused_call", "planned_batches"])
+def test_a_stage_its_cap_cut_short_is_partial_and_says_how_to_continue(runs, monkeypatch, quiet, capsys, behavior,
+                                                                      reason):
+    mock_that(monkeypatch, behavior)
+    cli.main(["mock", "janitorai", "--allow-fixtures", "--fixture", f"model={GOLDEN}", "--usd-cap", "1"])
+    run_dir = latest(runs)
+    marker = runfolder.read_done(run_dir / "mock")
+    assert marker.outcome.status == "partial"
+    assert any(r.startswith(reason) for r in marker.outcome.reasons), marker.outcome.reasons
+    assert marker.outcome.resume == f"simula mock janitorai --run {run_dir.name} --usd-cap <higher>"
+    asked = (run_dir / "needs-human.md").read_text()
+    assert "partial output" in asked and marker.outcome.resume in asked
+    assert "mock: done (partial" in capsys.readouterr().out
+    assert cli.upstream_problem(run_dir, "qa") is None, "a partial mock still feeds QA"
+
+
+def test_a_capped_stage_reruns_until_a_higher_cap_lets_it_finish(runs, monkeypatch, quiet):
+    mock_that(monkeypatch, refused_by_the_budget)
+    cli.main(["mock", "janitorai", "--allow-fixtures", "--fixture", f"model={GOLDEN}", "--usd-cap", "1"])
+    run_dir = latest(runs)
+    assert rerun(run_dir, "--usd-cap", "1"), "the same cap: still capped, so never counted done"
+    assert "mock" not in read_manifest(run_dir).stages_done
+    assert rerun(run_dir, "--usd-cap", "10")
+    marker = runfolder.read_done(run_dir / "mock")
+    assert marker.outcome.status == "complete", "only this run's refusals count"
+    assert "mock" in read_manifest(run_dir).stages_done
+    assert not rerun(run_dir, "--usd-cap", "10")
+
+
+def test_a_cap_that_never_bound_leaves_the_stage_done_under_any_cap(runs, monkeypatch):
+    mock_that(monkeypatch, refused_by_the_budget)
+    run_dir = seeded_run(runs)
+    marker = runfolder.read_done(run_dir / "mock")
+    assert marker.outcome.status == "complete"
+    assert not rerun(run_dir, "--usd-cap", "20") and not rerun(run_dir)
+
+
+def test_a_stage_that_reports_partial_work_is_labeled_and_reruns_until_it_completes(runs, monkeypatch, quiet):
+    reports = [StageOutcome(status="partial", reasons=["2 of 24 taps failed"]), None]
+    mock_that(monkeypatch, lambda ctx: reports.pop(0))
+    run_dir = seeded_run(runs)
+    marker = runfolder.read_done(run_dir / "mock")
+    assert (marker.outcome.status, marker.outcome.reasons) == ("partial", ["2 of 24 taps failed"])
+    assert marker.outcome.resume == f"simula mock janitorai --run {run_dir.name}"
+    assert "2 of 24 taps failed" in (run_dir / "needs-human.md").read_text()
+    assert rerun(run_dir) and runfolder.read_done(run_dir / "mock").outcome.status == "complete"
+    assert not rerun(run_dir)
 
 
 def test_the_chain_reruns_a_stage_whose_code_changed(runs, mock_stage, monkeypatch, tmp_path):

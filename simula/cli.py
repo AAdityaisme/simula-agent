@@ -10,7 +10,7 @@ from pathlib import Path
 
 from simula import config, runfolder, runlog
 from simula.config import ROOT, STAGES
-from simula.contracts import Manifest, Provenance
+from simula.contracts import Manifest, Provenance, StageOutcome
 from simula.llm import CapReached, ReplayMiss
 from simula.stages import EXTRA_INPUTS, ROLES, UPSTREAM, Ctx
 
@@ -129,8 +129,10 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
         return True
     module = importlib.import_module(f"simula.stages.{stage}")
     stage_dir.mkdir(exist_ok=True)
+    trace_path = ctx.run_dir / "trace.jsonl"
+    traced_before = len(runlog.read_trace(trace_path))
     try:
-        module.run(ctx)
+        result = module.run(ctx)
     except NotImplementedError as e:
         runfolder.write_failure(stage_dir, f"not built yet ({e})")
         runlog.run_trace(ctx.run_dir, stage=stage, step="run", decider="code", outcome="not_built",
@@ -140,7 +142,7 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     except CapReached as e:
         runfolder.write_failure(stage_dir, str(e))
         runlog.needs_human(ctx.run_dir, stage, "$ cap reached", str(e), [f"{stage}/failure.json"],
-                           f"simula {stage} {ctx.app['name']} --run {ctx.run_dir.name} --usd-cap <higher>")
+                           f"{rerun_command(stage, ctx)} --usd-cap <higher>")
         raise
     except BaseException as e:
         # Every other exit, SystemExit and Ctrl-C included, still leaves a failure record; then it propagates.
@@ -148,14 +150,39 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
         runfolder.write_failure(stage_dir, reason)
         runlog.run_trace(ctx.run_dir, stage=stage, step="run", decider="code", outcome="error", note=reason[:300])
         raise
-    runfolder.write_done(stage_dir, ctx.run_dir, inputs, prompts, params, [stage_dir], provenance, code=code)
-    runlog.run_trace(ctx.run_dir, stage=stage, step="done", decider="code", note=provenance.source)
-    usd_total = sum(line.usd for line in runlog.read_trace(ctx.run_dir / "trace.jsonl"))
-    done = runlog.read_manifest(ctx.run_dir).stages_done
-    runlog.update_manifest(ctx.run_dir, stages_done=sorted(set(done) | {stage}, key=STAGES.index),
-                           usd_total=round(usd_total, 4))
-    print(f"{stage}: done")
+    capped = [line.note for line in runlog.read_trace(trace_path)[traced_before:]
+              if line.stage == stage and line.outcome == "cap"]
+    outcome = finished_outcome(stage, ctx, result, capped)
+    runfolder.write_done(stage_dir, ctx.run_dir, inputs, prompts, params, [stage_dir], provenance, code=code,
+                         outcome=outcome)
+    partial = outcome.status == "partial"
+    if partial:
+        runlog.needs_human(ctx.run_dir, stage, "partial output", "; ".join(outcome.reasons), [f"{stage}/done.json"],
+                           outcome.resume)
+    runlog.run_trace(ctx.run_dir, stage=stage, step="done", decider="code",
+                     note=provenance.source + (f"; partial: {'; '.join(outcome.reasons)}"[:300] if partial else ""))
+    usd_total = sum(line.usd for line in runlog.read_trace(trace_path))
+    done = set(runlog.read_manifest(ctx.run_dir).stages_done)
+    done = done - {stage} if partial else done | {stage}
+    runlog.update_manifest(ctx.run_dir, stages_done=sorted(done, key=STAGES.index), usd_total=round(usd_total, 4))
+    print(f"{stage}: done" + (" (partial: see needs-human.md)" if partial else ""))
     return True
+
+
+def finished_outcome(stage: str, ctx: Ctx, result, capped: list[str]) -> StageOutcome:
+    """What a stage that returned delivered: what it reported (a stage may return a StageOutcome), made partial when
+    its $ cap turned work away (`capped`, the trace notes saying so), since a higher cap could change the output."""
+    outcome = result if isinstance(result, StageOutcome) else StageOutcome()
+    if capped:
+        return StageOutcome(status="partial", reasons=[*outcome.reasons, *dict.fromkeys(capped)],
+                            resume=f"{rerun_command(stage, ctx)} --usd-cap <higher>")
+    if outcome.status == "partial" and not outcome.resume:
+        return outcome.model_copy(update={"resume": rerun_command(stage, ctx)})
+    return outcome
+
+
+def rerun_command(stage: str, ctx: Ctx) -> str:
+    return f"simula {stage} {ctx.app['name']} --run {ctx.run_dir.name}"
 
 
 def open_run(args) -> Ctx:

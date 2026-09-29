@@ -209,7 +209,7 @@ def test_a_code_change_reruns_a_finished_stage(run):
 def test_a_marker_from_before_the_code_check_reruns(run):
     mark(run)
     marker = json.loads((run / "model" / "done.json").read_text())
-    del marker["code_hashes"]
+    del marker["code_hashes"], marker["outcome"]
     (run / "model" / "done.json").write_text(json.dumps(marker))
     assert not runfolder.is_done(run / "model", run, [run / "config.toml"], [run / "prompt.md"], {"effort": "high"},
                                  code=[run / "prompt.md"])
