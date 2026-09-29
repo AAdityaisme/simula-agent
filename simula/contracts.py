@@ -238,6 +238,34 @@ class HardScreenAction(Strict):
     reason: str
 
 
+class Arrival(Strict):
+    """Is the screen now the target screen, one action away from it, or elsewhere?"""
+    identifying_text: str = Field(description="The target's title or identifying text as read on the current screen, "
+                                              "or an empty string when it is not there.")
+    verdict: Literal["same", "one_action", "elsewhere"]
+    confidence: float
+    action: Literal["tap", "back", "swipe"] | None
+    element_id: str | None
+    direction: Literal["up", "down"] | None
+    side_effect: bool = Field(description="The current screen shows that the last action created or changed "
+                                          "something the goal did not ask for.")
+    reason: str
+
+
+class WalkPick(Strict):
+    """Is the control that starts the core action on screen, and which one?"""
+    on_screen: bool
+    element_id: str | None
+    confidence: float
+    reason: str
+
+
+class Progress(Strict):
+    """While the screen keeps changing after an action: is the work still going, done, or stuck?"""
+    verdict: Literal["progressing", "finished", "stalled"]
+    reason: str
+
+
 # ---------- QA and flows edits (stages 4 and 7) ----------
 
 class Fix(Strict):
@@ -579,5 +607,5 @@ class Manifest(Strict):
     fallbacks_used: list[str] = []
 
 
-MODEL_FACING = [ModelMeaning, IconPass, HardScreenAction, Critique, Edits, LensOutput, Verdict,
-                PairwisePick]
+MODEL_FACING = [ModelMeaning, IconPass, HardScreenAction, Arrival, WalkPick, Progress, Critique, Edits, LensOutput,
+                Verdict, PairwisePick]

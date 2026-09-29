@@ -24,6 +24,12 @@ TAB_BAND_PX = 330
 # top <= 1 and content <= 11, different pairs at top >= 10 or content >= 18.
 TOP_BITS = 8
 CONTENT_BITS = 12
+PATCH_DP = 24
+LOOK_BITS = 16
+# Arrival's structural threshold, picked once in step 4a on labeled pairs from all three test apps (the deep app's
+# recorded runs and the other two apps' fixture captures): the highest value that keeps every true pair the model
+# called same (the lowest is 0.345). It is also the best value on each app alone.
+STRUCTURE_SAME = 0.34
 
 # Entry words (upgrade, plans, premium, plus, try) may open an upsell; confirm words never run.
 DENY = re.compile(r"log ?out|sign ?out|delete|remove|cancel|subscribe|buy|pay|purchase|restore|confirm|"
@@ -43,12 +49,12 @@ CURRENCY = r"[$€£¥₹]|\b(?:USD|EUR|GBP|INR|JPY|CAD|AUD)\b"
 PRICE = re.compile(rf"(?:{CURRENCY})\s?\d|\d(?:[\d.,]*\d)?\s?(?:{CURRENCY})", re.IGNORECASE)
 PAYWALL = re.compile(rf"{PRICE.pattern}|subscription|membership|free trial|per (month|week|year)|"
                      r"/ ?(month|week|year|mo)\b", re.IGNORECASE)
-PRIMARY = re.compile(r"\b(chat|message|talk|start|begin)\b", re.IGNORECASE)
 CREATE = re.compile(r"\W*(generate|play|draw|spin|roll|scan)\b", re.IGNORECASE)
 ENTRY = re.compile(r"upgrade|\bplans?\b|premium|\bplus\b|\bpro\b|(?<!\d)\+|membership|subscription", re.IGNORECASE)
 LIMIT = re.compile(r"\blimits?\b|\bremaining\b|\bquota\b|resets? in|out of (free )?(messages|credits|swipes|chats|"
                    r"articles)|no more (free )?\w+|\bleft today\b", re.IGNORECASE)
 DIGITS = re.compile(r"\d")
+NUMBER = re.compile(r"\d+")
 CLOCK = re.compile(r"\b\d{1,2}:\d{2}\b|\bago\b", re.IGNORECASE)
 LETTER = re.compile(r"[^\W\d_]")
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
@@ -180,9 +186,44 @@ def fingerprint(package: str, elements: list[dict], image: Image.Image, device: 
 
 def same_state(a: Fingerprint, b: Fingerprint) -> bool:
     """Same package, same top chrome, and the same layout or nearly the same pixels (the tree can change
-    on a pixel-identical screen)."""
+    on a pixel-identical screen). This names new states when recording; arrival is judged by what a screen shows."""
     return (a.package == b.package and hamming(a.top, b.top) <= TOP_BITS
             and (a.skeleton == b.skeleton or hamming(a.content, b.content) <= CONTENT_BITS))
+
+
+def structure(target: list[dict], now: list[dict], device: Device, dynamic: list[Rect] = ()) -> float:
+    """Arrival's second signal, read from the element lists instead of the pixels: the multiset overlap (Jaccard) of
+    two screens' texts and classes, each token counted up to 3 times. Numbers are masked, since a count or a time
+    doesn't make a screen another screen, and elements in the target's dynamic regions are left out."""
+    def tokens(elements: list[dict]) -> Counter:
+        kept = [e for e in elements if in_content(e, device)
+                and not any(inside(Rect(x=center(rect(e))[0], y=center(rect(e))[1], w=0, h=0), d) for d in dynamic)]
+        found = Counter(("text", NUMBER.sub("#", words(e))) for e in kept if words(e))
+        found.update(("class", e["type"].split(".")[-1]) for e in kept)
+        return Counter({token: min(n, 3) for token, n in found.items()})
+    a, b = tokens(target), tokens(now)
+    union = sum((a | b).values())
+    return sum((a & b).values()) / union if union else 1.0
+
+
+# ---------- what the screen shows ----------
+
+def looks_same(then: Image.Image, then_rect: Rect, now: Image.Image, now_rect: Rect, device: Device) -> bool:
+    """A recorded control looks now as it did when recorded: its whole crop and a small patch around its tap point
+    (a sheet halfway in covers the tap point before the rest) keep their dHash. dHash reads edges, not colors, so a
+    selected tab's highlight is still the same tab."""
+    def crops(image: Image.Image, r: Rect) -> tuple[Image.Image, Image.Image]:
+        (cx, cy), half = center(r), min(PATCH_DP * device.scale, r.w, r.h) / 2
+        return (image.crop((int(r.x), int(r.y), int(r.x + r.w), int(r.y + r.h))),
+                image.crop((int(cx - half), int(cy - half), int(cx + half), int(cy + half))))
+    return all(hamming(dhash(a), dhash(b)) <= LOOK_BITS
+               for a, b in zip(crops(then, then_rect), crops(now, now_rect), strict=True))
+
+
+def still(a: Image.Image, b: Image.Image, device: Device) -> bool:
+    """Two captures show the same content: no cell of the content area changed. A whole-screen dHash is too coarse
+    to see one new line of a reply, so this is changed_boxes' pixel diff, the tool dynamic regions use."""
+    return changed_boxes(a, b, device) == []
 
 
 # ---------- settle ----------

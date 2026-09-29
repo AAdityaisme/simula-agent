@@ -21,8 +21,8 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from simula import config, decide, llm
-from simula.contracts import (ActionLine, Coverage, Device, ExploreFile, HardScreenAction, IconLabel, IconPass, Point,
-                              Rect, StateFile, VisionElement)
+from simula.contracts import (ActionLine, Arrival, Coverage, Device, ExploreFile, HardScreenAction, IconLabel, IconPass,
+                              Point, Progress, Rect, StateFile, VisionElement, WalkPick)
 from simula.device import observe as ob
 from simula.device.mcp import McpReplyError, McpTimeout, Phone, Server
 from simula.doctor import adb, emulator_lock, online, resolve_serial
@@ -46,17 +46,18 @@ ICON_SCALE = 0.5
 VISION_BOX_DP = 48
 CORE_REPS = {"deep": 8, "transfer": 3}  # ponytail: belongs in profiles.toml budgets; listed under shared-file needs
 CORE_SECONDS_PER_REP = 75
-REPLY_WAIT_S = 45
-LOAD_WAIT_S = 20
-QUIET_S = 2.0
+SETTLE_GAP_S = 3.0
+SETTLE_ASK_S = 30.0
+SETTLE_CAP_S = 180.0
+GOTO_ROUNDS = 4
 REPLAY_MINUTES = 8
 SPLASH_WAIT_S = 90
 LAUNCH_WAIT_S = 30
 LAUNCH_QUIET_S = 3
 WALK_STEPS = 3
-WALK_SWIPES = 8
+WALK_SCROLLS = 30
 WALK_ITEMS = 3
-ONE_LINE_DP = 32
+WALK_SURE = 0.5
 COMPOSER_BAND_PX = 150
 LIMIT_STOPS = ("counter", "input disabled", "paywall", "limit")
 
@@ -165,11 +166,57 @@ class CoreAction:
     name: str
 
 
+@dataclass
+class Landing:
+    """What invariant 1 made of a screen: arrived or not, the one action toward the target the model named, if any,
+    and the two signals."""
+    arrived: bool
+    move: Move | None
+    model: str
+    structure: float
+
+
 def where(c: ob.Candidate, device: Device) -> str:
     x, y = c.point
     row = ("top", "middle", "bottom")[min(2, int(3 * (y - device.content_top_px)
                                               / (device.content_bottom_px - device.content_top_px)))]
     return f"{row} {('left', 'center', 'right')[min(2, int(3 * x / device.w_px))]}"
+
+
+def hop_key(s: Seen, move: Move) -> tuple:
+    return s.sid, move.action, move.cand.key if move.cand else move.direction
+
+
+def label_of(c: ob.Candidate, device: Device) -> str:
+    return f"{c.label[:60] or 'unlabeled ' + c.kind} ({where(c, device)})"
+
+
+def texts_by_y(elements: list[dict], device: Device) -> list[tuple[int, str]]:
+    return sorted((e["coordinates"]["y"], e["text"].strip()) for e in elements
+                  if ob.in_content(e, device) and (e.get("text") or "").strip())
+
+
+def title_of(elements: list[dict], device: Device) -> str:
+    top = [t for y, t in texts_by_y(elements, device) if y < ob.TOP_CHROME_BOTTOM_PX]
+    return top[0][:60] if top else ""
+
+
+def png_half(image: Image.Image) -> bytes:
+    """A (content) crop at half size, as a model call sees it."""
+    image = image.resize((int(image.width * ICON_SCALE), int(image.height * ICON_SCALE)))
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+def content(image: Image.Image, device: Device) -> Image.Image:
+    return image.convert("RGB").crop((0, device.content_top_px, device.w_px, device.content_bottom_px))
+
+
+def listed(cands: list[ob.Candidate], device: Device) -> tuple[str, list[str]]:
+    """The controls of a screen as a model reads them, one id each, and the ids."""
+    ids = list(decide.option_ids([c.label for c in cands]))
+    return "\n".join(f"{i}: {label_of(c, device)}" for i, c in zip(ids, cands, strict=True)) or "none", ids
 
 
 class Explorer:
@@ -217,6 +264,10 @@ class Explorer:
         self.secrets = redact_list()
         self.redacted = 0
         self.denied_executed = 0
+        self.counts: Counter = Counter()
+        self.settles: list[tuple[float, str]] = []
+        self.landing: Landing | None = None
+        self.replay_fingerprint = (0, 0)
         (out / "states").mkdir(parents=True, exist_ok=True)
         self.scratch = out / ".scratch"
         self.scratch.mkdir(exist_ok=True)
@@ -349,9 +400,12 @@ class Explorer:
 
     # ---------- acting ----------
 
-    def act(self, move: Move, purpose: str = "tour", watch=None, loop: int | None = None) -> Seen:
+    def act(self, move: Move, purpose: str = "tour", watch=None, loop: int | None = None,
+            expect: Seen | None = None) -> Seen:
         """Runs one move from the current state, observes, records where it landed, and logs the line. On a
-        core-loop pass, loop is the pass number and the line records what stopped the loop, if anything."""
+        core-loop pass, loop is the pass number and the line records what stopped the loop, if anything. A hop of a
+        route names the state it expects (expect): a landing the fingerprint doesn't match is judged by what it shows
+        (invariant 1), and a recorded control the screen doesn't show is never tapped (invariant 3)."""
         if self.obs is None:
             planned = self.current
             self.resync()
@@ -369,8 +423,15 @@ class Explorer:
                 s.tried.add(move.cand.key)
                 return s
         live = ob.find(before.cands, move.cand) if move.cand else None
-        if move.cand and live is None:
-            self.log(s, None, move, move.cand, "unknown", "control not on the live screen", "error")
+        shown = live is not None and self.shows(move.cand, live, before)
+        if move.cand and not shown:
+            self.counts["covered controls"] += live is not None
+            self.log(s, None, move, move.cand, "unknown",
+                     "control covered on the live screen" if live else "control not on the live screen", "error")
+            if expect:
+                self.counts["hops tried"] += 1
+                self.landing = self.judge(expect)
+                return s
             s.tried.add(move.cand.key)
             if move.cand.key in self.tab_keys():
                 self.tab_to.setdefault(move.cand.key, "")
@@ -395,8 +456,8 @@ class Explorer:
             raise
         self.escape_billing()
         # a chat pass stays on the chat while its composer shows: the growing conversation is not a new state
-        chatting = purpose == "core" and self.core.kind == "chat" and self.same_chat() and not self.covering(before)
-        to = s if chatting else self.record(obs, s, move, before.cands)
+        chatting = purpose == "core" and self.core.kind == "chat" and self.live_box() and not self.covering(before)
+        to = s if chatting else self.land(obs, s, move, before.cands, expect)
         if to is s and not summary:
             summary = ob.change_summary(before.elements, obs.elements, self.device)
         canonical = ob.find(s.cands, move.cand) if move.cand else None
@@ -417,6 +478,31 @@ class Explorer:
             self.current = self.record(self.observe(), to, back, [])
             self.log(to, self.current, back, None, "back", "", "ok")
         return self.current
+
+    def land(self, obs: Obs, s: Seen, move: Move, before: list[ob.Candidate], expect: Seen | None) -> Seen:
+        """Where a move landed. For a hop, the expected state when the fingerprint matches or invariant 1 judges the
+        screen the same place (the new capture is then not a new state); otherwise the recorded state it matches or a
+        new one, with the model's one action toward the expected state kept for goto."""
+        self.landing = None
+        if expect is None:
+            return self.record(obs, s, move, before)
+        self.counts["hops tried"] += 1
+        if ob.same_state(expect.fp, obs.fp) or self.arrived(expect):
+            self.counts["hops arrived"] += 1
+            self.counts["hops arrived by the model"] += self.landing is not None
+            return expect
+        return self.record(obs, s, move, before)
+
+    def shows(self, cand: ob.Candidate, live: ob.Candidate, now: Obs) -> bool:
+        """Invariant 3: a recorded control is tapped only when the screen shows it as it was recorded, compared with
+        its crop in the capture it was recorded from. A control read off the live screen is what the screen shows."""
+        if any(c is cand for c in now.cands):
+            return True
+        owner = next((st for st in self.states if any(c is cand for c in st.cands)), None)
+        if owner is None:
+            return True
+        then = Image.open(self.out / "states" / f"{owner.sid}.png")
+        return ob.looks_same(then, cand.rect, now.image, live.rect, self.device)
 
     def escape_billing(self) -> bool:
         """The store's billing screen gets BACK the moment it is seen, before anything else can run. What was
@@ -702,7 +788,9 @@ class Explorer:
         return {t.key for t in self.tabs}
 
     def next_tab(self) -> ob.Candidate | None:
-        return next((t for t in self.tabs if t.key not in self.tab_to and ob.find(self.obs.cands, t)), None)
+        """An untried tab the screen shows (invariant 3): a sheet or drawer over the tab bar hides them all."""
+        return next((t for t in self.tabs if t.key not in self.tab_to
+                     for live in [ob.find(self.obs.cands, t)] if live and self.shows(t, live, self.obs)), None)
 
     def options(self, s: Seen) -> list[ob.Candidate]:
         filter_row = self.filter_row(s)
@@ -779,39 +867,44 @@ class Explorer:
         return Move("tap", by_key[key], decider="jev" if len(opts) > 1 else "code", why="ranked")
 
     def goto(self, target: Seen) -> bool:
-        """Walks recorded moves to the target, checking every hop. A tab tap that changes nothing means something
-        (a sheet, a drawer) covers the tab bar: BACK closes it once and the walk starts over. Any other miss
-        relaunches once."""
-        relaunched = backed = False
-        while self.current is not target:
-            hops = self.route(self.current, target)
-            if hops is None and self.current.kind != "external" and not self.shows_tabs(self.current):
-                self.act(Move("back", why="no recorded way back from here"), purpose="nav")
-                hops = [] if self.current is target else self.route(self.current, target)
-            why, covered = f"no recorded way from {self.current.sid} to {target.sid}", False
-            for move, expected in hops or []:
-                here = self.current
-                self.act(move, purpose="nav")
-                if self.current is not expected:
-                    why = f"{move.action} toward {expected.sid} landed on {self.current.sid}"
-                    covered = self.current is here and move.cand is not None and move.cand.key in self.tab_keys()
-                    break
+        """Walks recorded moves to the target. A hop that lands elsewhere, or can't tap a control the screen doesn't
+        show, is judged by what the screen shows (invariant 1): one action away takes that action and looks once
+        more; anywhere else re-plans a route from where it is, without the hops that already failed. Only a place with
+        no route on relaunches, once."""
+        relaunched, failed = False, set()
+        for _ in range(GOTO_ROUNDS):
             if self.current is target:
                 return True
-            if covered and not backed:
-                backed = True
-                self.act(Move("back", why="a tab tap changed nothing: something covers the tab bar"), purpose="nav")
-            elif relaunched:
-                return False
-            else:
+            hops = self.route(self.current, target, failed)
+            if hops is None:
+                if relaunched:
+                    return False
                 relaunched = True
-                self.relaunch(why=why)
-        return True
+                self.relaunch(why=f"no recorded way from {self.current.sid} to {target.sid}")
+                continue
+            for move, expected in hops:
+                here = self.current
+                self.act(move, purpose="nav", expect=expected)
+                if self.current is not expected and not self.take_landing(expected):
+                    failed.add(hop_key(here, move))
+                    break
+        return self.current is target
+
+    def take_landing(self, expected: Seen) -> bool:
+        """After a hop missed: the judged screen may be the expected place after all, or one action from it."""
+        landing = self.landing
+        if landing and landing.arrived:
+            self.current = expected
+            self.counts["hops arrived"] += 1
+            self.counts["hops arrived by the model"] += 1
+        elif landing and landing.move:
+            self.act(landing.move, purpose="nav", expect=expected)
+        return self.current is expected
 
     def shows_tabs(self, s: Seen) -> bool:
         return any(ob.find(s.cands, t) for t in self.tabs)
 
-    def route(self, src: Seen, dst: Seen) -> list[tuple[Move, Seen]] | None:
+    def route(self, src: Seen, dst: Seen, failed: set = frozenset()) -> list[tuple[Move, Seen]] | None:
         came = {src.sid: None}
         queue = deque([src])
         while queue:
@@ -819,7 +912,7 @@ class Explorer:
             if x is dst:
                 break
             for move, y in self.links(x):
-                if y.sid not in came and y.kind not in ("external", "blocked"):
+                if y.sid not in came and y.kind not in ("external", "blocked") and hop_key(x, move) not in failed:
                     came[y.sid] = (x, move)
                     queue.append(y)
         if dst.sid not in came:
@@ -842,6 +935,71 @@ class Explorer:
             yield Move("back", why="back"), self.by_id[x.back_to]
         if x.unscroll_to:
             yield Move("swipe", direction="down", why="scroll back"), self.by_id[x.unscroll_to]
+
+    # ---------- arrival (invariant 1) ----------
+
+    def goal_of(self, target: Seen) -> str:
+        """The target in words, from the run's own data: its title and the control that first led there, or the
+        core action Jev chose when the target is where it happens."""
+        if self.core and target is self.core.state:
+            return f"the screen where the app's core action happens: {self.core.name}"
+        via = f", first reached by tapping {target.via[:60]!r}" if target.via else ""
+        return f"screen {target.sid}, a {target.kind} titled {title_of(target.elements, self.device)!r}{via}"
+
+    def arrived(self, target: Seen, step: str = "arrival") -> bool:
+        """The screen now is the target: the fingerprint says so for free, or else invariant 1's judgment does."""
+        if self.obs is not None and ob.same_state(self.obs.fp, target.fp):
+            self.landing = None
+            return True
+        self.landing = self.judge(target, step)
+        return self.landing.arrived
+
+    def judge(self, target: Seen, step: str = "arrival") -> Landing:
+        """What the screen shows, judged against the recorded target by two signals of different kinds: the model
+        (both screenshots and the goal in words) and the element lists' overlap. Arrival needs both. When they
+        disagree it is not arrival; the model's one action or a re-plan follows, and the trace says so."""
+        obs = self.obs
+        structure = ob.structure(target.elements, obs.elements, self.device, target.dynamic)
+        controls, ids = listed(obs.cands, self.device)
+        text = (f"Goal: {self.goal_of(target)}\nThe target's identifying text: "
+                f"{title_of(target.elements, self.device)!r}\nControls on the current screen (image 2):\n{controls}")
+        self.counts["arrival shots"] += 1
+        shot = self.out / "arrival" / f"{self.counts['arrival shots']:03d}.png"
+        shot.parent.mkdir(exist_ok=True)
+        obs.image.save(shot)
+        pngs = [png_half(content(Image.open(self.out / "states" / f"{target.sid}.png"), self.device)),
+                png_half(content(obs.image, self.device))]
+        try:
+            answer = self.ask("arrival", f"{step}.{target.sid}", text, pngs, Arrival, 800)
+        except llm.LLMFailure as e:
+            self.note(f"{step}.{target.sid}", f"arrival call failed: {e}", outcome="error")
+            return Landing(False, None, "failed", structure)
+        model_same, structure_same = answer.verdict == "same", structure >= ob.STRUCTURE_SAME
+        arrived = model_same and structure_same
+        move = None if arrived else self.step_toward(answer, obs.cands, ids)
+        if step == "arrival":
+            self.counts[f"model {answer.verdict}"] += 1
+            self.counts["side effects"] += answer.side_effect
+            if model_same and not structure_same:
+                self.counts["structure vetoed a model same"] += 1
+            if structure_same and not model_same:
+                self.counts["structure same, model not"] += 1
+        disagree = " (the signals disagree)" if model_same != structure_same else ""
+        self.note(f"{step}.{target.sid}", f"{'arrived at' if arrived else 'not at'} {target.sid}: model {answer.verdict} "
+                                          f"{answer.confidence:.2f}, structure {structure:.2f}{disagree}; "
+                                          f"target explore/states/{target.sid}.png, now explore/arrival/{shot.name}; "
+                                          f"{answer.reason}", decider="model")
+        return Landing(arrived, move, answer.verdict, structure)
+
+    def step_toward(self, answer: Arrival, cands: list[ob.Candidate], ids: list[str]) -> Move | None:
+        why = f"arrival: {answer.reason}"[:80]
+        if answer.verdict != "one_action":
+            return None
+        if answer.action == "tap" and answer.element_id in ids:
+            return Move("tap", cands[ids.index(answer.element_id)], decider="model", why=why)
+        if answer.action in ("back", "swipe"):
+            return Move(answer.action, direction=answer.direction or "up", decider="model", why=why)
+        return None
 
     def leave_external(self) -> None:
         if self.obs is None:
@@ -1014,20 +1172,12 @@ class Explorer:
         if o.kind != "chat":
             return self.describe(o.state)
         box = o.controls[0]
-        said = [t for y, t in self.texts_by_y(o.state.elements) if ob.TOP_CHROME_BOTTOM_PX <= y < box.rect.y][-3:]
+        said = [t for y, t in texts_by_y(o.state.elements, self.device) if ob.TOP_CHROME_BOTTOM_PX <= y < box.rect.y][-3:]
         return (f"screen {o.state.sid} is a conversation titled {self.chat_title(o.state)!r}; its last messages: "
                 + (" | ".join(t[:100] for t in said) or "none yet"))
 
     def chat_title(self, s: Seen) -> str:
-        return self.title_of(s.elements)
-
-    def title_of(self, elements: list[dict]) -> str:
-        top = [t for y, t in self.texts_by_y(elements) if y < ob.TOP_CHROME_BOTTOM_PX]
-        return top[0][:60] if top else ""
-
-    def texts_by_y(self, elements: list[dict]) -> list[tuple[int, str]]:
-        return sorted((e["coordinates"]["y"], e["text"].strip()) for e in elements
-                      if ob.in_content(e, self.device) and (e.get("text") or "").strip())
+        return title_of(s.elements, self.device)
 
     def walk_to_input(self, feed: CoreAction) -> CoreAction | None:
         """Opening an item is a step, not the core action: goes into the first item and takes its main action
@@ -1044,13 +1194,16 @@ class Explorer:
         return None
 
     def walk_into(self, feed: CoreAction, item: ob.Candidate) -> CoreAction | None:
+        """Invariant 4: on the item's page, a conversation (text box + send) or a play/generate button ends the walk
+        at once. Otherwise the model says whether the control that starts the core action is on screen; the walk taps
+        it (at most WALK_STEPS times) or scrolls on, until the page stops moving or WALK_SCROLLS."""
         if not self.goto(feed.state):
             return None
         self.act(Move("tap", item, why="core loop: look inside an item"), purpose="nav")
         if self.current is feed.state:
             return None
-        tapped, swipes, still = set(), 0, 0
-        while self.current.kind == "screen":
+        tapped, scrolls, still = set(), 0, 0
+        while self.current.kind == "screen" and self.obs is not None:
             here = self.current
             chat = self.live_composer()
             if chat:
@@ -1061,34 +1214,49 @@ class Explorer:
             if action:
                 return CoreAction("action", here, [action], f"open an item and tap {action.label[:40]!r} inside it "
                                                             f"again and again ({here.sid})")
-            if len(tapped) == WALK_STEPS:
-                break
-            steps = self.walk_steps(self.obs.cands, here.upsell, tapped)
-            if not steps and swipes < WALK_SWIPES and still < 2:
-                swipes, shown = swipes + 1, ob.texts(self.obs.elements, self.device)
-                self.act(Move("swipe", direction="up", why="core loop: the item's main action may be further down"),
-                         purpose="nav")
-                still = still + 1 if self.obs and ob.texts(self.obs.elements, self.device) == shown else 0
+            start = self.start_control(item, tapped) if len(tapped) < WALK_STEPS else None
+            if start:
+                tapped.add(start.key)
+                self.act(Move("tap", start, decider="model", why="core loop: the item's main action"), purpose="nav")
                 continue
-            move = (self.ranked_move(here, steps) if len(steps) > 1 else
-                    Move("tap", steps[0], why="the only main action") if steps else None)
-            if move is None or move.action != "tap":
+            if scrolls >= WALK_SCROLLS or still >= 2:
                 break
-            tapped.add(move.cand.key)
-            self.act(Move("tap", move.cand, decider=move.decider, why="core loop: the item's main action"),
+            scrolls, shown = scrolls + 1, ob.texts(self.obs.elements, self.device)
+            self.act(Move("swipe", direction="up", why="core loop: the item's main action may be further down"),
                      purpose="nav")
+            still = still + 1 if self.obs and ob.texts(self.obs.elements, self.device) == shown else 0
         self.note("core", f"no input control inside {item.label[:40]!r}")
         return None
 
-    def walk_steps(self, cands: list[ob.Candidate], upsell: bool, tapped: set[str]) -> list[ob.Candidate]:
-        """The item's main-action controls: a button, a short label (Chat, New chat, Start), or one line that starts
-        with the action (Chat with <a long name>); never a paragraph or a list row that happens to say "chat" or
-        "start", and never one already tapped."""
-        one_line = ONE_LINE_DP * self.device.scale
-        return [c for c in cands if ob.PRIMARY.search(c.label)
-                and (c.kind in ("Button", "ImageButton") or len(c.label.split()) <= 3
-                     or (ob.PRIMARY.match(c.label) and c.rect.h <= one_line))
-                and c.key not in tapped and c.key not in self.tab_keys() and not ob.denied(c, upsell=upsell)]
+    def start_control(self, item: ob.Candidate, tapped: set[str]) -> ob.Candidate | None:
+        """The model names the control on this screen that starts the core action for the item, if one is visible.
+        It counts only when it is a listed control, named with confidence, and still shown on a fresh look
+        (invariant 3); anything less keeps the walk going."""
+        before, here = self.obs, self.current
+        cands = [c for c in before.cands if c.key not in tapped and c.key not in self.tab_keys()
+                 and not ob.denied(c, upsell=here.upsell)]
+        if not cands:
+            return None
+        controls, ids = listed(cands, self.device)
+        text = (f"Goal: {CORE_QUESTION} Find the control on this page that starts it for the item "
+                f"{item.label[:60]!r}.\nControls on this page:\n{controls}")
+        try:
+            pick = self.ask("walk", f"walk.{here.sid}", text, self.boxed_png(here, cands, ids, before.image),
+                            WalkPick, 400)
+        except llm.LLMFailure as e:
+            self.note(f"walk.{here.sid}", f"walk call failed: {e}", outcome="error")
+            return None
+        named = cands[ids.index(pick.element_id)] if pick.on_screen and pick.element_id in ids else None
+        self.note(f"walk.{here.sid}", f"{'on screen: ' + repr(named.label[:40]) if named else 'not on screen'} "
+                                      f"({pick.confidence:.2f}): {pick.reason}", decider="model")
+        if named is None or pick.confidence < WALK_SURE:
+            return None
+        fresh = self.observe()
+        live = ob.find(fresh.cands, named)
+        if live is None or not ob.looks_same(before.image, named.rect, fresh.image, live.rect, self.device):
+            self.counts["walk picks the screen no longer shows"] += 1
+            return None
+        return live
 
     def core_loop(self) -> None:
         self.touring = False
@@ -1129,31 +1297,17 @@ class Explorer:
                 return
 
     def at_core(self, n: int) -> bool:
-        """After the first pass a chat stays where it is: the conversation grows, so it never matches its first
-        capture again, and walking 'back' to it would leave it. Anything else walks back to the core state."""
-        if n > 1 and self.core.kind == "chat" and self.same_chat():
-            self.until_send_returns()
+        """Invariant 1 at the core screen: the screen as it is now is judged against the core state (a conversation
+        grows, so after a pass it rarely matches its first capture). One action away takes it; anywhere else walks
+        there from the state the screen really is."""
+        if self.obs is None:
+            self.resync()
+        if self.arrived(self.core.state):
             self.current = self.core.state
             return True
-        return self.goto(self.core.state)
-
-    def until_send_returns(self) -> None:
-        """A reply still being written shows a stop control where send was (enabled or not, and maybe where a
-        position rule would take it for send); the next message waits for the chat's own send control."""
-        deadline = self.clock() + REPLY_WAIT_S
-        own = self.core.controls[1]
-
-        def busy() -> bool:
-            live = ob.find(self.obs.cands, own)
-            return live is None or live.label != own.label
-        while self.live_box() and busy() and self.clock() < deadline:
-            self.sleep(2.0)
-            self.observe()
-
-    def same_chat(self) -> bool:
-        """Still in the chosen chat: a text box in the lower half under the chat's own title. Everything else on a
-        chat changes as it grows."""
-        return bool(self.live_box()) and self.title_of(self.obs.elements) == self.chat_title(self.core.state)
+        if self.current is self.core.state:
+            self.current = self.record(self.obs, None, None, [])
+        return self.take_landing(self.core.state) or self.goto(self.core.state)
 
     def core_once(self, n: int) -> tuple[str, str]:
         """One pass of the core action. Returns its measurement and what stopped the loop, if anything."""
@@ -1161,19 +1315,20 @@ class Explorer:
         self.last_summary = ""
         if core.kind == "chat":
             message = CORE_MESSAGES[(n - 1) % len(CORE_MESSAGES)]
-            box = self.live_box() or core.controls[0]
+            box, idle = self.live_box() or core.controls[0], self.live_composer()
+            idle = (self.obs.image, idle[1]) if idle else None
             self.act(Move("tap", box, why="core loop: focus the text box"), purpose="core", loop=n)
             if not self.stop_kind:
                 self.act(Move("type", text=message, why="core loop: type"), purpose="core", loop=n)
             if not self.stop_kind:
                 _, send = self.live_composer()
                 self.act(Move("tap", send, why="core loop: send"), purpose="core", loop=n,
-                         watch=lambda: self.watch(before | {message}, REPLY_WAIT_S, "reply"))
+                         watch=lambda: self.watch(before | {message}, "reply", idle))
             return self.last_summary, self.stop_text()
         control = core.controls[(n - 1) % len(core.controls)]
         verb = "load" if core.kind == "feed" else "result"
         self.act(Move("tap", control, why=f"core loop: {core.kind}"), purpose="core", loop=n,
-                 watch=lambda: self.watch(before, LOAD_WAIT_S, verb))
+                 watch=lambda: self.watch(before, verb))
         if not self.stop_kind:
             if self.current.kind == "external":
                 self.leave_external()
@@ -1230,19 +1385,61 @@ class Explorer:
         return ("paywall" if any(ob.PRICE.search(t) for t in texts) else
                 "limit" if any(ob.LIMIT.search(t) for t in texts) else "")
 
-    def watch(self, before: set[str], max_s: float, verb: str) -> str:
-        """Polls the element list after the action until new text stops changing for QUIET_S."""
-        start, samples = self.clock(), []
-        while self.clock() - start < max_s:
-            _, elements = self.phone.elements()
-            new = frozenset(ob.texts(elements, self.device) - before)
-            samples.append((self.clock() - start, new))
-            started, finished, _ = ob.reply_timing(samples)
-            if started is not None and samples[-1][0] - finished >= QUIET_S:
+    def watch(self, before: set[str], verb: str, idle: tuple[Image.Image, ob.Candidate] | None = None) -> str:
+        """Invariant 2: after the core action the explorer stays until the screen settles: two screenshots
+        SETTLE_GAP_S apart that match, once the result has begun to show and, in a conversation, once the send control
+        looks again as it did before the message (idle: that screenshot and control; a stop control in its place
+        means the reply is still coming). While the screen keeps changing, the model is asked every SETTLE_ASK_S
+        whether the work is still progressing, finished (only decorative motion is left), or stalled, up to the
+        SETTLE_CAP_S outer cap. The new text's timing is read from the element list on the way."""
+        start, samples, last, asks, how = self.clock(), [], None, 0, "cap"
+        while True:
+            reply, elements = self.phone.elements()
+            at = self.clock() - start
+            samples.append((at, frozenset(ob.texts(elements, self.device) - before)))
+            frame = self.frame(reply)
+            if last is not None and ob.reply_timing(samples)[0] is not None and ob.still(last, frame, self.device) \
+                    and self.idle_again(idle, elements, frame):
+                how = "settled"
                 break
-            self.sleep(0.5)
-        self.last_summary = ob.timing_line(verb, samples, max_s)
+            if last is not None and at >= min(SETTLE_CAP_S, (asks + 1) * SETTLE_ASK_S):
+                asks += 1
+                how = self.progress(last, frame, at)
+                if how != "progressing" or at >= SETTLE_CAP_S:
+                    break
+            last = frame
+            self.sleep(max(0.0, SETTLE_GAP_S - (self.clock() - start - at)))
+        seconds = self.clock() - start
+        self.settles.append((round(seconds, 1), how))
+        self.note("settle", f"{verb}: {how} after {seconds:.0f} s, {asks} model checks")
+        self.last_summary = ob.timing_line(verb, samples, seconds)
         return self.last_summary
+
+    def idle_again(self, idle: tuple[Image.Image, ob.Candidate] | None, elements: list[dict],
+                   frame: Image.Image) -> bool:
+        if idle is None:
+            return True
+        live = ob.find(ob.controls(elements, self.device), idle[1])
+        return live is not None and ob.looks_same(idle[0], idle[1].rect, frame, live.rect, self.device)
+
+    def frame(self, reply: dict) -> Image.Image:
+        """A full screenshot for the settle check, redacted with the element list read just before it."""
+        shot = self.phone.screenshot(self.scratch / "frame.png", (self.device.w_px, self.device.h_px))
+        image = Image.open(shot).convert("RGB")
+        ob.redact(reply, image, self.secrets)
+        return image
+
+    def progress(self, before: Image.Image, now: Image.Image, waited: float) -> str:
+        text = (f"The action: one pass of the app's core action ({self.core.name}). It is {waited:.0f} s since the "
+                f"action, and the screen still changes between screenshots {SETTLE_GAP_S:.0f} s apart.")
+        try:
+            answer = self.ask("settle", "settle", text, [png_half(content(before, self.device)),
+                                                         png_half(content(now, self.device))], Progress, 400)
+        except llm.LLMFailure as e:
+            self.note("settle", f"progress call failed: {e}", outcome="error")
+            return "progressing"
+        self.note("settle", f"{answer.verdict} after {waited:.0f} s: {answer.reason}", decider="model")
+        return answer.verdict
 
     def hit(self, s: Seen, here: Seen, before: Obs, move: Move) -> tuple[str, str]:
         """What a core-loop move brought up that ends the loop, read from what changed on screen and never from
@@ -1282,9 +1479,12 @@ class Explorer:
     # ---------- the replay check ----------
 
     def verify_replay(self) -> None:
-        """Replays each recorded segment from a fresh launch and counts moves that reach the recorded state."""
+        """Replays each recorded segment from a fresh launch and counts moves that reach the recorded screen. Same
+        screen is decided as everywhere else (invariant 1: fingerprint, else the model and the structure agree); that
+        is the merge gate's number, and the fingerprint-exact count stands beside it. A control the screen doesn't
+        show is never tapped (invariant 3)."""
         deadline = self.clock() + REPLAY_MINUTES * 60
-        matched = total = 0
+        matched = meant = total = 0
         for segment in self.segments:
             if not segment or self.clock() > deadline:
                 continue
@@ -1295,9 +1495,10 @@ class Explorer:
                         break
                     live = ob.find(self.obs.cands, move.cand) if move.cand else None
                     total += 1
-                    if move.cand and live is None:
+                    if move.cand and (live is None or not self.shows(move.cand, live, self.obs)):
                         self.note("replay.miss", f"{move.action} {move.cand.label[:30]!r} expected on the way to "
-                                                 f"{to_sid}: control not on the live screen", outcome="error")
+                                                 f"{to_sid}: control {'covered' if live else 'not'} on the live "
+                                                 f"screen", outcome="error")
                         break
                     if move.action == "tap" and not self.safe_tap(live, "replay"):
                         break
@@ -1308,14 +1509,17 @@ class Explorer:
                         self.observe()
                     if ob.same_state(seen, self.by_id[to_sid].fp):
                         matched += 1
+                        meant += 1
                     else:
+                        meant += self.judge(self.by_id[to_sid], "replay").arrived
                         near = next((s.sid for s in self.states if ob.same_state(s.fp, seen)), "a new screen")
                         self.note("replay.miss", f"{move.action} {move.cand.label[:30] if move.cand else ''} "
                                                  f"expected {to_sid}, reached {near}", outcome="error")
             except DEVICE_ERRORS as e:
                 self.note("replay", f"segment stopped: {e}", outcome="error")
-        self.replay = (matched, total)
-        self.note("replay", f"{matched}/{total} replayed moves reached the recorded state")
+        self.replay, self.replay_fingerprint = (meant, total), (matched, total)
+        self.note("replay", f"{meant}/{total} replayed moves reached the recorded screen, {matched}/{total} by "
+                            f"fingerprint alone")
 
     def quiet_launch(self) -> None:
         """A relaunch for the replay check: same launch, dialogs, and filter, nothing recorded."""
@@ -1352,31 +1556,29 @@ class Explorer:
                 f"Found so far: {', '.join(found) or 'nothing yet'}.")
 
     def option_label(self, c: ob.Candidate) -> str:
-        return f"{c.label[:60] or 'unlabeled ' + c.kind} ({where(c, self.device)})"
+        return label_of(c, self.device)
 
-    def ask(self, prompt: str, step: str, text: str, png: bytes, schema, max_tokens: int):
+    def ask(self, prompt: str, step: str, text: str, pngs: bytes | list[bytes], schema, max_tokens: int):
         role = config.roles(self.ctx.profile)["explore_vision"]
+        images = [{"type": "image", "png": png} for png in ([pngs] if isinstance(pngs, bytes) else pngs)]
         parsed, _ = llm.call(trace_path=self.trace_path, stage="explore", step=step, model=role["model"],
                              effort=role.get("effort"), system=(PROMPTS / f"{prompt}.md").read_text(),
-                             messages=[{"role": "user", "content": [{"type": "image", "png": png},
-                                                                    {"type": "text", "text": text}]}],
+                             messages=[{"role": "user", "content": [*images, {"type": "text", "text": text}]}],
                              max_tokens=max_tokens, budget=self.budget, schema=schema, no_cache=self.ctx.no_cache,
                              replay=self.ctx.replay, cache_dir=self.cache_dir)
         return parsed
 
-    def boxed_png(self, s: Seen, cands: list[ob.Candidate], names: list[str]) -> bytes:
-        top, bottom = self.device.content_top_px, self.device.content_bottom_px
-        image = Image.open(self.out / "states" / f"{s.sid}.png").convert("RGB").crop((0, top, self.device.w_px, bottom))
+    def boxed_png(self, s: Seen, cands: list[ob.Candidate], names: list[str], image: Image.Image | None = None) -> bytes:
+        """The screen with each control outlined and labeled; s's first capture unless another image is given."""
+        top = self.device.content_top_px
+        image = content(image or Image.open(self.out / "states" / f"{s.sid}.png"), self.device)
         draw, font = ImageDraw.Draw(image), ImageFont.load_default(size=36)
         for c, name in zip(cands, names, strict=True):
             r = c.rect
             draw.rectangle((r.x, r.y - top, r.x + r.w, r.y - top + r.h), outline=(255, 0, 0), width=4)
             draw.rectangle((r.x, r.y - top, r.x + 22 * len(name) + 8, r.y - top + 40), fill=(255, 0, 0))
             draw.text((r.x + 4, r.y - top), name, fill=(255, 255, 255), font=font)
-        image = image.resize((int(image.width * ICON_SCALE), int(image.height * ICON_SCALE)))
-        buffer = io.BytesIO()
-        image.save(buffer, format="PNG")
-        return buffer.getvalue()
+        return png_half(image)
 
     def name_icons(self, s: Seen) -> None:
         """The Sonnet icon pass: names boxes with no words and adds visible controls the tree doesn't list."""
@@ -1518,14 +1720,34 @@ def exhibit(ex: Explorer, app_version: str | None) -> str:
               f"Core action: {ex.core.name if ex.core else 'none'}; {passes} of {ex.core_reps} passes.", ""]
     lines += [f"- {r}" for r in ex.core_results]
     lines += [f"- Stopped by: {ex.core_hit}" if ex.core_hit else "- Nothing stopped the loop.", ""]
-    matched, total = ex.replay
-    lines += ["## Replay check", "", f"{matched}/{total} replayed moves reached the recorded state"
-              + (f" ({100 * matched / total:.0f}%)." if total else "."), "",
+    meant, total = ex.replay
+    matched = ex.replay_fingerprint[0]
+    lines += ["## Replay check", "", f"{meant}/{total} replayed moves reached the recorded screen"
+              + (f" ({100 * meant / total:.0f}%; same screen as the explorer decides it everywhere: the fingerprint, "
+                 f"else the model and the structure agree). Fingerprint alone: {matched}/{total} "
+                 f"({100 * matched / total:.0f}%)." if total else "."), "",
+              "## Invariants", "", *[f"- {line}" for line in counters(ex)], "",
               "## States", "", "| id | kind | over | depth | first words |", "|---|---|---|---|---|"]
     for s in ex.states:
         words = next((c.tree_label for c in s.cands if c.tree_label), "")[:50].replace("|", "/")
         lines.append(f"| {s.sid} | {s.kind} | {s.parent or ''} | {s.depth} | {words} |")
     return "\n".join(lines) + "\n"
+
+
+def counters(ex: Explorer) -> list[str]:
+    """What the four invariants did in this run, in numbers another run can be compared on."""
+    c, waits = ex.counts, ex.settles
+    how = Counter(h for _, h in waits)
+    return [f"hops: {c['hops arrived']}/{c['hops tried']} arrived ({c['hops arrived by the model']} judged by what the "
+            f"screen shows)",
+            f"model arrival verdicts: {c['model same']} same, {c['model one_action']} one action, "
+            f"{c['model elsewhere']} elsewhere; the structure vetoed a model same {c['structure vetoed a model same']} "
+            f"times, and said same where the model did not {c['structure same, model not']} times",
+            f"covered controls not tapped: {c['covered controls']}",
+            f"side-effect actions the model saw: {c['side effects']}",
+            f"settle waits: {len(waits)} ({', '.join(f'{n} {h}' for h, n in sorted(how.items())) or 'none'}), "
+            f"seconds {', '.join(str(sec) for sec, _ in waits) or '-'}",
+            f"walk picks the screen no longer showed: {c['walk picks the screen no longer shows']}"]
 
 
 def paywall_line(ex: Explorer) -> str:
@@ -1611,6 +1833,8 @@ def explore_app(ex: Explorer) -> None:
         run_trace(ex.ctx.run_dir, stage="explore", step="summary", decider="code",
                   note=f"{len(ex.states)} states, {ex.actions} actions, stop: {ex.stop_reason}; "
                        f"{ex.redacted} element texts redacted")
+        run_trace(ex.ctx.run_dir, stage="explore", step="counters", decider="code",
+                  note=json.dumps({**ex.counts, "settles": ex.settles, "replay_fingerprint": ex.replay_fingerprint})[:3000])
     if not ex.states or ex.stop_reason.startswith(DEVICE_STOPS):
         raise ExploreFailed(ex.stop_reason or "no state was recorded")
 

@@ -58,7 +58,7 @@ def parse_elements(reply: dict) -> list[dict]:
 
 
 def parse_foreground(reply: dict) -> str:
-    """'Foreground app: Janitor (com.janitor.ai)' -> 'com.janitor.ai'."""
+    """'Foreground app: Example (com.example.app)' -> 'com.example.app'."""
     match = re.search(r"\(([\w.]+)\)\s*$", reply_text(reply))
     if reply.get("isError") or not match:
         raise McpReplyError(f"no foreground package in {reply_text(reply)[:120]!r}")

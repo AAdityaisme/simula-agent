@@ -1,6 +1,7 @@
 """A fake phone built from fixture captures, for offline explorer tests. Each screen is a real tree + PNG; a tap
 moves to another screen by the tapped element's words (or its center, for controls without words)."""
 
+import io
 import json
 import re
 from dataclasses import dataclass, field
@@ -11,7 +12,7 @@ from PIL import Image, ImageDraw
 from simula import decide, llm, runlog
 from simula.contracts import Manifest, Provenance
 from simula.device.mcp import McpTimeout
-from simula.device.observe import dhash, words
+from simula.device.observe import dhash, hamming, words
 from simula.stages import Ctx
 from simula.stages import explore as stage
 
@@ -133,10 +134,17 @@ class FakePhone:
         return {"content": [{"type": "text", "text": PREFIX + json.dumps(elements)}], "isError": False}, elements
 
     def image(self) -> Image.Image:
+        """The screen's capture, with a stop square where send is while a reply is written, and the chat's bubbles."""
         image = self.screens[self.screen].image.copy()
         seen = self.shots.get(self.screen, 0)
         if self.screen in self.dirty and seen > 1:
             ImageDraw.Draw(image).rectangle(self.dirty[self.screen], fill=(255, 255, 255))
+        if self.screen in self.replies and self.clock.t < self.busy_until:
+            for e in self.screens[self.screen].elements:
+                if "send" in words(e).lower():
+                    c = e["coordinates"]
+                    ImageDraw.Draw(image).rectangle((c["x"], c["y"], c["x"] + c["width"], c["y"] + c["height"]),
+                                                    fill=(200, 30, 30))
         if self.chats.get(self.screen):
             draw = ImageDraw.Draw(image)
             box = next(e for e in self.screens[self.screen].elements if e["type"].endswith("EditText"))
@@ -233,12 +241,36 @@ def fake_jev(state, instructions, labels, backend, core_pick="send messages"):
                                model="jev-fake", tokens_in=120, tokens_out=0, usd=0.00001, seconds=0.1)
 
 
+WALK_PICK = re.compile(r"^(new chat|start chat.*|chat with .*)$", re.IGNORECASE)
+
+
+def header_hash(png: bytes) -> int:
+    image = Image.open(io.BytesIO(png))
+    return dhash(image.crop((0, 0, image.width, image.height // 10)))
+
+
 def fake_sonnet(model, system, messages, effort, schema, max_tokens, total_timeout=None):
-    text = messages[0]["content"][1]["text"]
+    """Sonnet on a fake phone: an arrival is the same place when the two screens share their header; the walk's
+    start control is a chat-starting label; a screen that keeps changing is still working while a stop square shows,
+    and otherwise only decoration moves."""
+    parts = messages[0]["content"]
+    text = parts[-1]["text"]
     if schema.__name__ == "IconPass":
         wanted = text.split("Name these boxes: ", 1)[1].split(".", 1)[0]
         ids = [int(n) for n in wanted.split(", ") if n.isdigit()]
         body = {"names": [{"box_id": n, "name": f"icon {n}"} for n in ids], "extra_points": []}
+    elif schema.__name__ == "Arrival":
+        same = hamming(header_hash(parts[0]["png"]), header_hash(parts[1]["png"])) <= 6
+        body = {"identifying_text": "", "verdict": "same" if same else "elsewhere", "confidence": 0.9, "action": None,
+                "element_id": None, "direction": None, "side_effect": False, "reason": "headers compared"}
+    elif schema.__name__ == "WalkPick":
+        listed = dict(line.split(": ", 1) for line in text.splitlines() if re.match(r"o\d\d: ", line))
+        pick = next((i for i, label in listed.items() if WALK_PICK.match(label.rsplit(" (", 1)[0])), None)
+        body = {"on_screen": pick is not None, "element_id": pick, "confidence": 0.9, "reason": "a start control"}
+    elif schema.__name__ == "Progress":
+        now = Image.open(io.BytesIO(parts[1]["png"])).convert("RGB")
+        busy = (200, 30, 30) in {color for _, color in now.getcolors(1 << 16) or []}
+        body = {"verdict": "progressing" if busy else "finished", "reason": "the stop square" if busy else "decoration"}
     else:
         body = {"action": "done", "element_id": None, "text": None, "direction": None, "reason": "nothing left"}
     return llm.Reply(text=json.dumps(body), model=model, tokens_in=1500, tokens_out=60)

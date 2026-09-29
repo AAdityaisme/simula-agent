@@ -294,7 +294,7 @@ def test_a_limit_dialog_stops_the_loop_on_the_pass_it_appears(tmp_path, monkeypa
     assert "limit" in ex.checklist()[1]
 
 
-def test_the_walk_asks_the_ranker_among_several_and_never_taps_one_twice(tmp_path, monkeypatch):
+def test_the_walk_asks_the_model_for_the_start_control_and_never_taps_one_twice(tmp_path, monkeypatch):
     def two_actions(clock):
         phone = detail_first(clock)
         dead = {"ref": "@start", "type": "android.widget.Button", "text": "Start chat icon",
@@ -306,7 +306,7 @@ def test_the_walk_asks_the_ranker_among_several_and_never_taps_one_twice(tmp_pat
     walk = [line for line in trace if "(core loop: the item's main action)" in line.note]
     assert ex.core.kind == "chat" and phone.sent
     assert [line.note.split("'")[1] for line in walk] == ["Start chat icon", "New chat"]
-    assert walk[0].decider == "jev"
+    assert {line.decider for line in walk} == {"model"}
 
 
 def test_when_jev_says_feed_a_comment_box_inside_an_item_is_never_typed_into(tmp_path, monkeypatch):
@@ -379,7 +379,7 @@ def test_a_sheet_over_the_tab_bar_is_closed_with_back_not_a_relaunch(tmp_path, m
     ex, phone = explore(tmp_path, monkeypatch, phone_factory=sheet_over_tabs, budget="deep")
     assert not any(why.startswith("tap toward") for why in ex.relaunch_reasons)
     trace = runlog.read_trace(ex.run_dir / "trace.jsonl")
-    assert any("covers the tab bar" in line.note for line in trace)
+    assert any("control covered on the live screen" in line.note for line in trace)
 
 
 def test_a_stop_that_is_not_a_limit_leaves_the_limit_open(run):
@@ -526,14 +526,14 @@ def test_a_chosen_chat_that_cant_be_reached_gives_way_to_jevs_next_chat(tmp_path
     ex, phone = new_explorer(tmp_path, monkeypatch, detail_first, budget="deep")
     monkeypatch.setattr(decide, "ask_choice",
                         functools.partial(fake_jev, core_pick="send messages in a conversation and read"))
-    goto, tour_chat = ex.goto, []
+    at_core, tour_chat = ex.at_core, []
 
-    def the_tour_chat_is_gone(target):
-        if ex.core is not None and target is ex.core.state and ex.core.name.startswith("send messages in"):
-            tour_chat.append(target.sid)
+    def the_tour_chat_is_gone(n):
+        if ex.core.name.startswith("send messages in"):
+            tour_chat.append(ex.core.state.sid)
             return False
-        return goto(target)
-    monkeypatch.setattr(ex, "goto", the_tour_chat_is_gone)
+        return at_core(n)
+    monkeypatch.setattr(ex, "at_core", the_tour_chat_is_gone)
     stage.explore_app(ex)
     assert tour_chat and ex.core.name.startswith("open an item and send messages") and phone.sent == ex.core_reps
     assert any(r.startswith(f"could not get to {tour_chat[0]}") for r in ex.core_results)
