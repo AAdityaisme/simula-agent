@@ -471,7 +471,8 @@ def test_a_failed_group_is_skipped_and_only_all_failing_stops_the_round(twelve, 
     assert missed == {}
     monkeypatch.setattr(llm, "call", fake_critic([], fail_on={ids[0], ids[4], ids[8]}))
     with pytest.raises(llm.LLMFailure):
-        criticize(run_dir, app, version)
+        qa.criticize(ctx_for(run_dir, app), llm.Budget("qa", 12.0), version, [], 3, missed=missed)
+    assert missed == dict.fromkeys(ids, "round 3 refusal: no")
 
 
 @pytest.mark.parametrize("twelve", APPS, indirect=True)

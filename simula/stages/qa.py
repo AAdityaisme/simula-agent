@@ -426,18 +426,19 @@ def criticize(ctx: Ctx, budget: llm.Budget, version: Version, history: list[dict
     with ThreadPoolExecutor(PARALLEL_CRITICS) as pool:
         results = list(pool.map(one, range(1, len(groups) + 1), groups))
     critiques = [r for r in results if isinstance(r, Critique)]
-    if not critiques:
-        raise results[0]
     missed = {} if missed is None else missed
     for k, r in enumerate(results, 1):
         ids = [s["metrics"].state_id for s in groups[k - 1]]
         if isinstance(r, Critique):
             for sid in ids:
                 missed.pop(sid, None)
-        else:
+            continue
+        missed.update(dict.fromkeys(ids, f"round {n} {str(r)[:120]}"))
+        if critiques:
             run_trace(ctx.run_dir, stage="qa", step=f"critic r{n} g{k}", decider="code", outcome="error",
                       note=f"group skipped, the other groups' fixes are used: {r}"[:300])
-            missed.update(dict.fromkeys(ids, f"round {n} {str(r)[:120]}"))
+    if not critiques:
+        raise results[0]
     return merge_critiques(critiques)
 
 
