@@ -21,6 +21,7 @@ FONT_WEIGHTS = (400, 700, 800, 900)  # the weights templates/slides.html uses; s
 SLIDE_W, SLIDE_H = 1280, 720
 PARTS = ("flow", "why")
 WHY_TITLE = "Why this works for your app"
+AFTER_PLAY = "A new screen opens after the verified play."
 ROW_W, ROW_GAP = SLIDE_W - 2 * 64, 28
 PHONE_MAX_W, COLUMN_MAX_W, RING_PAD = 160, 220, 5
 # the score table's CSS: 12px text on 15px lines, 7px of padding and border a row, the rows' room between the table's
@@ -58,7 +59,8 @@ def labels_text(labels: list[str]) -> str:
 
 def row_phones(flow: dict) -> list[dict]:
     """The flow slide's phones in order: the screen as it is today, then every step the walk took. Each has a label,
-    a caption, what the user taps on it, and a red flag for anything the walks couldn't show."""
+    a caption, what the user taps on it, and a red flag for anything the walks couldn't show. A new screen after the ad
+    has no reward to switch off and check, so its caption says only what the walk saw: the verified play opened it."""
     c, shots, at = flow["candidate"], flow["shots"], flow["ad_at"]
     phones = [{"label": "Today", "text": shots[0]["caption"], "png": flow["before"], "tap": None,
                "flags": [] if flow["before"] else [NOT_WIRED]}]
@@ -70,6 +72,8 @@ def row_phones(flow: dict) -> list[dict]:
             text = c.trigger_event
         elif shot["reward_labels"] is not None:
             text = labels_text(shot["reward_labels"])
+        elif i > at and shot["wired"] and shot["reward_shown"] is None:
+            text = AFTER_PLAY
         else:
             text = shot["caption"]
         phones.append({"label": step_label(i, at), "text": text, "png": shot["png"], "tap": tap, "flags": flags})

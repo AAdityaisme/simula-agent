@@ -74,8 +74,8 @@ def seed_run(root, app: str, changes: dict | None = None):
 def fake_edits(c, page: str, wire_accept: bool = True, ad_section: str = "marked", block_play: bool = False,
                decline_to: str | None = None, show_copy: bool = True, break_page: bool = False,
                show_reward: bool = True, hide_note: bool = False) -> Edits:
-    """What a good editor returns for any idea: an entry point on the trigger, the offer, an empty ad screen, and a
-    badge that shows the reward. The options plant one defect each: ad_section "unmarked" draws the ad screen without
+    """What a good editor returns for any idea: an entry point on the trigger, the offer, an empty ad screen, a plain
+    screen for each new step after the ad, and a badge that shows the reward. The options plant one defect each: ad_section "unmarked" draws the ad screen without
     data-ad and "missing" leaves it out; block_play covers the game's Play button; decline_to sends "No thanks" to a new
     screen instead of back; show_copy=False drops the offer copy; break_page leaves an HTML comment open, which kills
     the page's scripts; show_reward=False draws no badge; hide_note hides the note a failed ad shows."""
@@ -97,6 +97,8 @@ def fake_edits(c, page: str, wire_accept: bool = True, ad_section: str = "marked
     if ad_section in ad_attrs:
         screens += (f'<section data-screen="{ad}" data-flow="{c.id}"{ad_attrs[ad_section]}>'
                     "<p>the editor's own game</p></section>")
+    screens += "".join(f'<section data-screen="{s.state_id}" data-flow="{c.id}"><p>Back to the app</p></section>'
+                       for s in c.flow_steps[3:] if s.state_id.startswith("new:"))
     edits = [Edit(find=tag, replace=tag + ("<!--" if break_page else "") + entry, reason="entry point"),
              Edit(find="</body>", replace=screens + "</body>", reason="offer and ad screens"),
              Edit(find="not in the page", replace="x", reason="a find that can't apply")]
@@ -145,9 +147,11 @@ def text_of(fragment: str) -> str:
 
 
 def drawn(c, d) -> dict:
-    """A flow as build_flow returns it, every step wired and the ad at step 3, for building slides without a walk."""
+    """A flow as build_flow returns it, every step wired, the ad at step 3, and the reward shown on each existing
+    screen after it, for building slides without a walk."""
     shots = [{"state_id": s.state_id, "caption": s.caption, "png": f"step-{i}.png", "wired": True, "tap": None,
-              "reward_shown": None, "reward_labels": None} for i, s in enumerate(c.flow_steps)]
+              "reward_shown": True if i > 2 and not s.state_id.startswith("new:") else None, "reward_labels": None}
+             for i, s in enumerate(c.flow_steps)]
     return {"candidate": c, "decision": d, "before": "before.png", "shots": shots, "ad_at": 2, "copy_shown": True,
             "decline": "", "ad_fail": ""}
 
@@ -602,6 +606,19 @@ def shot(wired: bool = True, shown: bool | None = None, labels: list[str] | None
 def test_the_exhibit_says_yes_only_when_the_reward_check_ran_and_found_more_than_a_label(after_ad, expected):
     before = [shot()] * 3
     assert flows.stage.reward_text({"shots": before + after_ad, "ad_at": 2}) == expected
+
+
+def test_a_new_screen_after_the_ad_says_only_what_the_walk_saw_not_the_reward_the_idea_claims(tmp_path):
+    """Greptile on #11: a new screen after the ad has no reward to switch off and check, yet its slide caption said the
+    reward was there."""
+    steps = candidate(golden("luzia")).flow_steps
+    claim = "Their three bonus replies are ready."
+    thanks = steps[-1].model_copy(update={"state_id": "new:thanks", "caption": claim})
+    run_dir = run_flows(tmp_path, "luzia", changes={"c01": {"flow_steps": [*steps[:3], thanks]}})
+    last = flow_phones(run_dir, "c01")[-1]
+    assert (last["label"], last["flags"], last["text"]) == ("What they get", [], flows.deck.AFTER_PLAY)
+    assert claim not in text_of((run_dir / "flows" / "slides.html").read_text())
+    assert "| new screen, not measured |" in (run_dir / "exhibits" / "07-flows.md").read_text()
 
 
 def test_labels_are_quoted_as_what_appears():
