@@ -284,6 +284,8 @@ def check(c: Candidate, model: ProductModel) -> str | None:
         return problem
     if not c.after_reward.strip():
         return "doesn't say what the user sees when the reward runs out"
+    if c.daily_cap < 1:
+        return "doesn't give a per-user daily cap"
     if problem := grants_problem(c, model):
         return problem
     if in_chat(c.placement):
@@ -312,19 +314,13 @@ def depths(model: ProductModel) -> dict[str, int]:
     return depth
 
 
-def daily_cap(frequency_cap: str) -> int:
-    # Known limit: reads "N per day" (or "N a day", "N/day", "N times a day") out of free text, else 1; durations
-    # and clock times ("every 24 hours", "resets at 00:00") are ignored. A structured cap field would fix it.
-    match = re.search(r"(\d+)\s*(?:x\s*|times\s*)?(?:per|a|/|each)\s*day", frequency_cap, re.I)
-    return max(1, int(match.group(1))) if match else 1
-
-
 def rank(c: Candidate, model: ProductModel, mode: str) -> Candidate:
-    """reach = eligible users (by the trigger's depth) x daily views: a scenario, not a measured audience."""
+    """reach = eligible users (by the trigger's depth) x daily views (the typed per-user `daily_cap`, never the
+    `frequency_cap` prose): a scenario, not a measured audience."""
     if c.dropped_reason or c.kind == "no_opportunity":
         return c
     weight = {0: 1.0, 1: 0.5}.get(depths(model)[c.trigger_state_id], 0.25)
-    reach = weight * daily_cap(c.frequency_cap)
+    reach = weight * c.daily_cap
     score = reach
     if mode == "gate":
         score = reach * (c.economics.benchmark_ecpm - c.economics.breakeven_ecpm_2k) / 1000
