@@ -730,9 +730,9 @@ def test_saying_no_taps_the_offers_own_way_back_never_the_apps_close(tmp_path, a
     def editor(**kwargs):
         page = flows.strip_runtime((run_dir / "mock" / "index.html").read_text())
         edits = []
-        for sid, html in added.items():
+        for sid, markup in added.items():
             close = page.index("</section>", page.index(re.search(rf'<section[^>]*data-screen="{sid}"', page).group(0)))
-            edits.append(Edit(find=page[close - 40:close + 10], replace=page[close - 40:close] + html
+            edits.append(Edit(find=page[close - 40:close + 10], replace=page[close - 40:close] + markup
                               + page[close:close + 10], reason="added after the screen's own controls"))
         ad = f'<section data-screen="new:ad" data-flow="c01" data-parent="{screen}" data-ad></section>'
         return Edits(edits=[*edits, Edit(find="</body>", replace=ad + "</body>", reason="ad")]), None
