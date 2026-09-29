@@ -1582,8 +1582,9 @@ class Explorer:
                     if ob.same_state(seen, self.by_id[to_sid].fp):
                         matched += 1
                         meant += 1
+                    elif self.judge(self.by_id[to_sid], "replay").arrived:
+                        meant += 1
                     else:
-                        meant += self.judge(self.by_id[to_sid], "replay").arrived
                         near = next((s.sid for s in self.states if ob.same_state(s.fp, seen)), "a new screen")
                         self.note("replay.miss", f"{move.action} {move.cand.label[:30] if move.cand else ''} "
                                                  f"expected {to_sid}, reached {near}", outcome="error")

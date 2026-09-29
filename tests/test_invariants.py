@@ -108,6 +108,23 @@ def test_a_model_named_tap_never_touches_the_content_filter_row(tmp_path, monkey
     assert landing.move and landing.move.cand.label not in row
 
 
+def test_a_replayed_move_judged_the_same_place_is_not_logged_as_a_miss(tmp_path, monkeypatch):
+    ex, phone = run_explorer(tmp_path, monkeypatch, janitor_like)
+    old = phone.screens["chats"]
+    image = old.image.copy()
+    for x in range(0, 1080, 120):
+        ImageDraw.Draw(image).rectangle((x, 700, x + 60, 2100), fill=(230, 230, 230))
+    chip = {"ref": "@chip", "type": "android.widget.Button", "text": "Unread only",
+            "coordinates": {"x": 42, "y": 420, "width": 333, "height": 111}}
+    phone.screens["chats"] = Screen([*old.elements[::-1], chip], image, old.package)
+    ex.scratch.mkdir()
+    seen = len(runlog.read_trace(ex.run_dir / "trace.jsonl"))
+    ex.verify_replay()
+    (meant, total), matched = ex.replay, ex.replay_fingerprint[0]
+    misses = [t for t in runlog.read_trace(ex.run_dir / "trace.jsonl")[seen:] if t.step == "replay.miss"]
+    assert meant > matched and len(misses) == total - meant
+
+
 # ---------- invariant 3: tap only what the screen shows ----------
 
 def band(name: str) -> Image.Image:
