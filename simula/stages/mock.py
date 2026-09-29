@@ -3,6 +3,7 @@ the batches into one page, adds navigation, renders every screen, and checks the
 
 import base64
 import hashlib
+import http.client
 import io
 import json
 import math
@@ -22,7 +23,7 @@ from PIL import Image
 from simula import config, llm, render
 from simula.config import ROOT
 from simula.contracts import ContractError, ContractReport, Device, Edge, Element, ProductModel, Rect, State
-from simula.runlog import read_trace, run_trace, write_exhibit
+from simula.runlog import read_manifest, read_trace, run_trace, update_manifest, write_exhibit
 from simula.stages import Ctx
 
 # ponytail: a fixed batch size. If a batch still runs out of output tokens, size batches from measured tokens per screen.
@@ -33,9 +34,18 @@ PALETTE_SIZE = 4
 FONT_NAME = re.compile(r"[A-Za-z0-9 ]+")
 FONT_CSS = "https://fonts.googleapis.com/css2?family={family}:wght@400;500;600;700&display=swap"
 FONT_FILE = re.compile(r"url\((https?://[^)\s]+)\)")
-FONT_FACE = re.compile(r"/\*\s*([\w-]+)\s*\*/\s*(@font-face\s*\{[^}]*\})")
+URL_TARGET = re.compile(r"url\(\s*['\"]?([^'\")\s]+)")
+# Google's font repository files each family under its license: SIL OFL, Apache 2.0, or the Ubuntu Font Licence.
+FONT_LICENSES = [f"https://raw.githubusercontent.com/google/fonts/main/{kind}/{{slug}}/{name}"
+                 for kind, name in (("ofl", "OFL.txt"), ("apache", "LICENSE.txt"), ("ufl", "UFL.txt"))]
+FONT_FACE = re.compile(r"(?:/\*\s*([^*]*?)\s*\*/\s*)?(@font-face\s*\{[^}]*\})")
+UNICODE_RANGE = re.compile(r"unicode-range:([^;}]*)")
+CODE_POINTS = re.compile(r"U\+([0-9a-fA-F]+)(?:-([0-9a-fA-F]+))?")
 FETCH_TIMEOUT_S = 20
 FONT_RECORDS = llm.CACHE / "fonts"
+# Every way urllib fails a download: a socket, TLS or HTTP status error (OSError), or a cut-off or malformed
+# response (HTTPException, which isn't an OSError).
+FETCH_ERRORS = (OSError, http.client.HTTPException)
 # Google Fonts serves woff2 only to a browser it knows; without a user agent it serves TTF.
 CHROME_UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) "
              "Chrome/140.0.0.0 Safari/537.36")
@@ -113,9 +123,9 @@ def run(ctx: Ctx) -> None:
     art = crop_art(model_dir, mock_dir, scope, model.device)
 
     style = shared_style(scope)
-    fonts = vendor_fonts(ctx, mock_dir, fonts_of(scope))
+    fonts = vendor_fonts(ctx, mock_dir, fonts_of(scope), chars_of(scope))
     contents = [batch_content(ctx, model, batch, screens, art, style) for batch in groups]
-    budget = llm.Budget.for_stage("mock", ctx.run_dir / "trace.jsonl", ctx.usd_cap)
+    budget = llm.Budget.for_stage("mock", ctx.run_dir / "trace.jsonl", plan_cap(ctx))
     worst = [worst_usd(ctx, content) for content in contents]
     keep = affordable(worst, budget.cap)
     plan = (f"{keep} of {len(groups)} batches fit the ${budget.cap:.2f} cap at worst case: "
@@ -322,6 +332,23 @@ def contains(a: Rect, b: Rect) -> bool:
 
 
 # ---------- the model calls, one per batch ----------
+
+def plan_cap(ctx: Ctx) -> float:
+    """The cap the batch plan is made against. A live run records it (after any --usd-cap) in the manifest's
+    caps_usd, and --replay plans against that record, so it draws the batches the live run drew; a different
+    --usd-cap at replay is refused. A run folder with no manifest (a test's) uses the given cap."""
+    cap = config.stage_cap("mock") if ctx.usd_cap is None else ctx.usd_cap
+    if not (ctx.run_dir / "manifest.json").exists():
+        return cap
+    caps = read_manifest(ctx.run_dir).caps_usd
+    if not ctx.replay:
+        update_manifest(ctx.run_dir, caps_usd=caps | {"mock": cap})
+        return cap
+    if ctx.usd_cap is not None and ctx.usd_cap != caps["mock"]:
+        raise llm.ReplayMiss(f"--replay: the mock ran live with a ${caps['mock']:.2f} cap and replays with it; "
+                             f"--usd-cap {ctx.usd_cap:g} would plan other batches, so drop --usd-cap")
+    return caps["mock"]
+
 
 def affordable(worst: list[float], cap: float) -> int:
     """How many batches, in priority order, fit the cap at their worst case with one worst case spare for a
@@ -569,27 +596,40 @@ def most_used(values) -> list[str]:
     return [v for v, _ in Counter(v for v in values if v).most_common(PALETTE_SIZE)]
 
 
-def vendor_fonts(ctx: Ctx, mock_dir, families: list[str]) -> str:
-    """Copies each family's Google Fonts CSS (weights 400-700, the Latin subset) and every woff2 file it names into
+def chars_of(scope: list[State]) -> set[str]:
+    """Every character the mock draws: the text and labels of the in-scope elements."""
+    return {c for s in scope for e in s.elements if e.in_mock for c in (e.text or "") + (e.label or "")}
+
+
+def vendor_fonts(ctx: Ctx, mock_dir, families: list[str], chars: set[str]) -> str:
+    """Copies each family's Google Fonts CSS (weights 400-700, the faces `chars` needs) and every woff2 file it names into
     mock/assets/fonts/, so rendering never waits on the network. Returns the page's <link> to that CSS, or "" when no
     family was fetched. A family that can't be fetched is left out, traced, and the page falls back to the system
     font stack; this never fails the stage. Every fetch goes through its record, so --replay rebuilds the same fonts
-    offline."""
+    offline. The fonts ship with LICENSE.txt, each family's license text, which their licenses require; a family
+    whose license can't be found isn't shipped."""
     font_dir = mock_dir / "assets" / "fonts"
-    faces, skipped = [], {}
+    # A rerun starts empty: QA's replay key hashes all of mock/assets, so a file the page no longer uses would count.
+    shutil.rmtree(font_dir, ignore_errors=True)
+    faces, licenses, skipped = [], [], {}
     for family in families:
         try:
-            css = latin_faces(fetch_recorded(ctx, FONT_CSS.format(family=quote_plus(family))).decode())
+            css = used_faces(fetch_recorded(ctx, FONT_CSS.format(family=quote_plus(family))).decode(), chars)
+            license = font_license(ctx, family)
             files = {url: fetch_recorded(ctx, url) for url in dict.fromkeys(FONT_FILE.findall(css))}
-        except (OSError, ValueError) as e:
+            names = {url: hashlib.sha256(data).hexdigest()[:16] + ".woff2" for url, data in files.items()}
+            for url, name in names.items():
+                css = css.replace(f"url({url})", f"url({name})")
+            if outside := [u for u in URL_TARGET.findall(css) if u not in names.values()]:
+                raise ValueError(f"its CSS still loads {outside[0]}")
+        except (*FETCH_ERRORS, ValueError) as e:
             skipped[family] = str(e)[:100]
             continue
         font_dir.mkdir(parents=True, exist_ok=True)
         for url, data in files.items():
-            name = hashlib.sha256(data).hexdigest()[:16] + ".woff2"
-            (font_dir / name).write_bytes(data)
-            css = css.replace(f"url({url})", f"url({name})")
+            (font_dir / names[url]).write_bytes(data)
         faces.append(css)
+        licenses.append(license)
     if skipped:
         run_trace(ctx.run_dir, stage="mock", step="fonts", decider="code", outcome="error",
                   note=("webfonts skipped, system fonts used: "
@@ -597,13 +637,43 @@ def vendor_fonts(ctx: Ctx, mock_dir, families: list[str]) -> str:
     if not faces:
         return ""
     (font_dir / "fonts.css").write_text("\n".join(faces) + "\n")
+    (font_dir / "LICENSE.txt").write_text("\n\n".join(licenses) + "\n")
     return '<link rel="stylesheet" href="assets/fonts/fonts.css">'
 
 
-def latin_faces(css: str) -> str:
-    """Google splits a family's faces by unicode-range, each after a /* subset */ comment: keep the Latin ones, or
-    every face when the CSS isn't split that way."""
-    return "\n".join(face for subset, face in FONT_FACE.findall(css) if subset == "latin") or css
+def font_license(ctx: Ctx, family: str) -> str:
+    """The family's license text, headed by the family and where it came from: the first license file Google's font
+    repository has for it (a 404 on the others is recorded like any fetch, so --replay takes the same path)."""
+    slug = family.lower().replace(" ", "")
+    for url in (template.format(slug=slug) for template in FONT_LICENSES):
+        try:
+            return f"{family}: {url}\n\n{fetch_recorded(ctx, url).decode()}"
+        except FETCH_ERRORS:
+            continue
+    raise OSError(f"no license file for {family} in Google's font repository")
+
+
+def used_faces(css: str, chars: set[str]) -> str:
+    """Google splits a family's faces by unicode-range, most after a /* subset */ comment (CJK faces come numbered and
+    uncommented). Keeps the Latin faces always, any face with no range, and each other face whose range covers a
+    character the screens show that Latin doesn't: Google declares Latin last, so the browser tries it first and
+    would never download another face for a character Latin has. A script the screens use gets its font; no other
+    subset is downloaded."""
+    faces = [(subset, face, face_ranges(face)) for subset, face in FONT_FACE.findall(css)]
+    latin = [r for subset, _, ranges in faces if subset == "latin" for r in ranges or []]
+    needed = {p for p in map(ord, chars) if not covers(latin, p)}
+    kept = [face for subset, face, ranges in faces
+            if subset == "latin" or ranges is None or any(covers(ranges, p) for p in needed)]
+    return "\n".join(kept) or css
+
+
+def face_ranges(face: str) -> list[tuple[int, int]] | None:
+    found = UNICODE_RANGE.search(face)
+    return [(int(lo, 16), int(hi or lo, 16)) for lo, hi in CODE_POINTS.findall(found.group(1))] if found else None
+
+
+def covers(ranges: list[tuple[int, int]], point: int) -> bool:
+    return any(lo <= point <= hi for lo, hi in ranges)
 
 
 def fetch_recorded(ctx: Ctx, url: str) -> bytes:
@@ -621,7 +691,7 @@ def fetch_recorded(ctx: Ctx, url: str) -> bytes:
     FONT_RECORDS.mkdir(parents=True, exist_ok=True)
     try:
         data = fetch_twice(url)
-    except OSError as e:
+    except FETCH_ERRORS as e:
         path.write_text(json.dumps({"url": url, "error": str(e)}))
         raise
     path.write_text(json.dumps({"url": url, "data": base64.b64encode(data).decode()}))
@@ -631,7 +701,7 @@ def fetch_recorded(ctx: Ctx, url: str) -> bytes:
 def fetch_twice(url: str) -> bytes:
     try:
         return fetch(url)
-    except OSError:
+    except FETCH_ERRORS:
         return fetch(url)
 
 
