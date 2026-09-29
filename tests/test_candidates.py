@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from simula.contracts import Device
 from simula.device import observe as ob
@@ -85,13 +85,33 @@ def test_a_tall_sheet_over_a_scrim_is_an_overlay_and_a_refreshed_feed_is_not():
     assert ob.overlay_box(home, again, DEVICE, dimmed=lambda b: ob.scrim(*shots, b, DEVICE)) is None
 
 
-@pytest.mark.parametrize("dim,dark", [(0.32, True), (0.6, True), (0.8, True), (0.0, False), (0.05, False)])
-def test_a_scrim_is_any_standard_dimming_from_material_3_up(dim, dark):
-    then = Image.new("RGB", (1080, 2400), (250, 250, 250))
-    now = Image.fromarray((np.asarray(then, dtype=float) * (1 - dim)).astype(np.uint8))
+def screen(background: tuple[int, int, int], ink: tuple[int, int, int], seed: int = 0) -> Image.Image:
+    """A screen with lines of text on it, as a real capture has."""
+    image = Image.new("RGB", (1080, 2400), background)
+    draw = ImageDraw.Draw(image)
+    for k in range(26):
+        draw.rectangle((42, 180 + 85 * k, 192 + (137 * k + 61 * seed) % 800, 210 + 85 * k), fill=ink)
+    return image
+
+
+@pytest.mark.parametrize("app, color, alpha, blended", [
+    ("light", (0, 0, 0), 0.32, True),  # Material 3: black at 32%
+    ("light", (0, 0, 0), 0.6, True),  # the framework's dialog dim
+    ("dark", (255, 255, 255), 0.32, True),  # Material 2 on darkColors: onSurface, white, at 32%
+    ("light", (0, 0, 0), 0.05, False),
+    ("light", (0, 0, 0), 0.0, False)])
+def test_a_scrim_is_any_standard_blend_whatever_its_color(app, color, alpha, blended):
+    then = screen((250, 250, 250), (60, 60, 60)) if app == "light" else screen((18, 18, 18), (200, 200, 200))
+    now = Image.blend(then, Image.new("RGB", then.size, color), alpha)
     box = ob.Rect(x=0, y=DEVICE.content_top_px + 150, w=1080, h=DEVICE.content_bottom_px - DEVICE.content_top_px - 150)
     assert ob.area(box) >= ob.OVERLAY_SHARE * ob.content_area(DEVICE)
-    assert ob.scrim(then, now, box, DEVICE) is dark
+    assert ob.scrim(then, now, box, DEVICE) is blended
+
+
+def test_a_refreshed_feed_is_no_scrim_though_it_got_darker():
+    then, now = screen((250, 250, 250), (60, 60, 60)), screen((120, 120, 120), (20, 20, 20), seed=5)
+    box = ob.Rect(x=0, y=DEVICE.content_top_px + 150, w=1080, h=DEVICE.content_bottom_px - DEVICE.content_top_px - 150)
+    assert not ob.scrim(then, now, box, DEVICE)
 
 
 def test_a_control_is_refound_by_its_words_after_the_bar_recenters():

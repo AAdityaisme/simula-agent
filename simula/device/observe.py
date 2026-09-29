@@ -31,10 +31,11 @@ LOOK_BITS = 16
 # called same (the lowest is 0.345). It is also the best value on each app alone.
 STRUCTURE_SAME = 0.34
 # A same-window overlay's controls span less than this share of the content area (the tall sheets recorded so far
-# span 0.927-0.948), unless a scrim dims what's above them. The platform's lightest standard scrim is Material 3's black
-# at 32% (androidx compose material3 ScrimTokens.ContainerOpacity = 0.32f), which leaves 68% of the luma; a dialog's
-# window dim defaults to 60% (frameworks/base themes.xml backgroundDimAmount). The cutoff sits halfway between 68% and
-# no dimming. On 380 recorded transitions and 438 fixture pairs, sheets left under 30% and nothing else under 97%.
+# span 0.927-0.948), unless a scrim blends what's above them with one color. The platform's lightest standard scrims
+# are 32%: Material 3's black (androidx compose material3 ScrimTokens.ContainerOpacity = 0.32f) and Material 2's
+# onSurface (compose material ModalBottomSheetDefaults.scrimColor, alpha 0.32f; white on darkColors), which leave 68%
+# of the strip's contrast; a dialog's window dim defaults to 60% (frameworks/base themes.xml backgroundDimAmount). The
+# cutoff sits halfway between 68% and no blend.
 OVERLAY_SHARE = 0.9
 SCRIM_SHARE = 0.84
 
@@ -427,14 +428,18 @@ def box_kind(box: Rect, device: Device) -> str:
 
 
 def scrim(then: Image.Image, now: Image.Image, box: Rect, device: Device) -> bool:
-    """The content above the box went dark: the dimmed parent over which a tall sheet opens."""
+    """The content above the box was blended with one color: the parent a tall sheet opens over. A blend keeps the
+    strip's picture (the two captures correlate) and scales its contrast by what the scrim leaves, whatever its color:
+    black darkens a light app, and Material 2's scrim on a dark theme is white and lightens it."""
     top, bottom = device.content_top_px, int(box.y)
     if bottom - top < MIN_CONTROL_PX:
         return False
-
-    def luma(image: Image.Image) -> float:
-        return float(np.asarray(image.convert("L"), dtype=float)[top:bottom].mean())
-    return luma(now) < SCRIM_SHARE * luma(then)
+    a = np.asarray(then.convert("L"), dtype=float)[top:bottom].ravel()
+    b = np.asarray(now.convert("L"), dtype=float)[top:bottom].ravel()
+    # ponytail: a strip of one flat color has no picture to keep, so a scrim over it isn't seen; the size rule decides
+    if a.std() < 1 or b.std() == 0:
+        return False
+    return bool(np.corrcoef(a, b)[0, 1] > 0.9 and b.std() < SCRIM_SHARE * a.std())
 
 
 def overlay_box(before: list[Candidate], after: list[Candidate], device: Device,
