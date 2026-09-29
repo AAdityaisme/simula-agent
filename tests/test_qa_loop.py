@@ -405,7 +405,8 @@ def test_our_own_cap_in_qa_approves_the_best_round_and_its_printed_resume_gets_f
 
 def test_a_refused_mock_batch_resumes_with_a_fresh_call_that_draws_it(runs, monkeypatch, tmp_path):
     """Red team 9a98e87 F1 (probe B): the refusal is stored, so `simula run --from mock` made no builder call and left
-    the same screens undrawn. The printed resume asks the mock afresh and says so; run as printed, it draws them."""
+    the same screens undrawn. The printed resume asks the mock afresh and says so, then reruns QA on the new page
+    (Greptile on 71604e9); run as printed, the screens are drawn and QA no longer reports them."""
     calls = []
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", answering_provider(calls, refuse="s06"))
     real = llm.call
@@ -416,14 +417,17 @@ def test_a_refused_mock_batch_resumes_with_a_fresh_call_that_draws_it(runs, monk
     assert cli.main(["qa", "janitorai", "--run", run.name, "--allow-fixtures", "--profile", "dev"]) == 0
     report = json.loads((run / "qa" / "qa_report.json").read_text())
     assert report["reasons"][0].startswith("the mock left screens undrawn: s06") and "(refusal: " in report["reasons"][0]
-    assert report["resume"] == f"simula mock janitorai --run {run.name} {OPTIONS} --no-cache"
+    assert report["resume"] == (f"simula mock janitorai --run {run.name} {OPTIONS} --no-cache "
+                                f"&& simula qa janitorai --run {run.name} {OPTIONS}")
     assert report["reasons"][-1] == FRESH_CALLS
     drawn_before = sum(c[0] == "builder" for c in calls)
 
-    assert cli.main(report["resume"].split()[1:]) == 0
+    assert [cli.main(command.split()[1:]) for command in report["resume"].split(" && ")] == [0, 0]
     assert sum(c[0] == "builder" for c in calls) > drawn_before
     errors = ContractReport.model_validate_json((run / "mock" / "contract_report.json").read_text()).errors
-    assert not [e for e in errors if e.kind == "undrawn_screen"]
+    again = json.loads((run / "qa" / "qa_report.json").read_text())
+    assert not [e for e in errors if e.kind == "undrawn_screen"] and not again["undrawn_screens"]
+    assert not any(reason.startswith("the mock left screens undrawn") for reason in again["reasons"])
 
 
 @pytest.mark.parametrize("drift", [0.0, 0.01], ids=["same-renders", "renders-drift"])
@@ -651,7 +655,8 @@ def test_undrawn_screens_are_reported_and_never_scored_criticized_or_fixed(twelv
     assert calls and all(set(c["seen"]).isdisjoint(undrawn) for c in calls)
     assert (report["status"], report["outcome"]) == ("qa_incomplete", "partial") and not report["contract_errors"]
     assert report["reasons"][0] == f"the mock left screens undrawn: {', '.join(undrawn)} (refusal: no)"
-    assert report["resume"] == f"simula mock {app} --run {run_dir.name} {OPTIONS} --no-cache"
+    assert report["resume"] == (f"simula mock {app} --run {run_dir.name} {OPTIONS} --no-cache "
+                                f"&& simula qa {app} --run {run_dir.name} {OPTIONS}")
     edges = {e.id: e for e in mock.scope_edges(model, mock.pick_scope(model))}
     for flow in (f for f in model.flows if f.edge_ids and all(i in edges for i in f.edge_ids)):
         crosses = any({edges[i].from_state, edges[i].to_state} & set(undrawn) for i in flow.edge_ids)

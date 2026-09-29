@@ -111,7 +111,8 @@ def test_failing_taps_and_flows_are_named_and_resume_from_qa(tmp_path):
     report = qa.qa_report(ctx_for(tmp_path / "run", "anyapp"), best, qa.Loop(rounds=[], stop="s"), undrawn)
     assert report["reasons"][0] == "the mock left screens undrawn: s09, s10 (refusal: no); s11 (timeout: slow)"
     assert report["reasons"][-2:] == ["contract errors on the approved version: 1", FRESH_CALLS]
-    assert report["resume"] == f"simula mock anyapp --run run {OPTIONS} --no-cache"
+    assert report["resume"] == (f"simula mock anyapp --run run {OPTIONS} --no-cache "
+                                f"&& simula qa anyapp --run run {OPTIONS}")
 
 
 @pytest.mark.parametrize("reason, resume", [
@@ -126,10 +127,10 @@ def test_failing_taps_and_flows_are_named_and_resume_from_qa(tmp_path):
 ], ids=["lost-call", "refusal", "max-tokens", "unusable-answer", "cap-with-figure", "cap-without-figure"])
 def test_undrawn_screens_resume_the_mock_by_what_left_them_undrawn(tmp_path, reason, resume):
     """The reasons are the ones mock.failure_reason writes: a stored answer needs a fresh call, a lost call a plain
-    rerun, and the mock's cap the figure it names."""
+    rerun, and the mock's cap the figure it names. QA then reruns on the new page, without the mock's flags."""
     report = qa.qa_report(ctx_for(tmp_path / "run", "anyapp"), version(), qa.Loop(rounds=[], stop="s"),
                           {"s09": f"screen not drawn: {reason}"})
-    assert report["resume"] == f"simula mock anyapp --run run {OPTIONS}{resume}"
+    assert report["resume"] == f"simula mock anyapp --run run {OPTIONS}{resume} && simula qa anyapp --run run {OPTIONS}"
 
 
 @pytest.mark.parametrize("failure", [llm.CapReached("over budget; raise with --usd-cap 18.97"),
