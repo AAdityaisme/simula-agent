@@ -1,6 +1,7 @@
 """Goal 2: the interactive mock. Parallel model calls each draw a batch of screens from model/ alone; code joins
 the batches into one page, adds navigation, renders every screen, and checks the mock contract."""
 
+import hashlib
 import io
 import json
 import math
@@ -10,6 +11,7 @@ from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from html import escape
 from html.parser import HTMLParser
+import urllib.request
 from urllib.parse import quote_plus
 
 import numpy as np
@@ -27,6 +29,13 @@ PARALLEL_BATCHES = 4
 DIALOGS = ("modal", "sheet")
 PALETTE_SIZE = 4
 FONT_NAME = re.compile(r"[A-Za-z0-9 ]+")
+FONT_CSS = "https://fonts.googleapis.com/css2?family={family}:wght@400;500;600;700&display=swap"
+FONT_FILE = re.compile(r"url\((https?://[^)\s]+)\)")
+FONT_FACE = re.compile(r"/\*\s*([\w-]+)\s*\*/\s*(@font-face\s*\{[^}]*\})")
+FETCH_TIMEOUT_S = 20
+# Google Fonts serves woff2 only to a browser it knows; without a user agent it serves TTF.
+CHROME_UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) "
+             "Chrome/140.0.0.0 Safari/537.36")
 STYLE = re.compile(r"<style\b[^>]*>(.*?)</style>", re.S | re.I)
 SCREEN_SELECTOR = re.compile(r"""section\[data-screen=["']?([^"'\]]+)["']?\]""")
 GROUP_RULES = ("@media", "@supports", "@container", "@layer")
@@ -101,8 +110,9 @@ def run(ctx: Ctx) -> None:
     art = crop_art(model_dir, mock_dir, scope, model.device)
 
     style = shared_style(scope)
+    fonts = vendor_fonts(ctx, mock_dir, fonts_of(scope))
     parts, undrawn, batch_errors = draw_batches(ctx, model, groups, screens, art, style)
-    html = with_runtime(wire_edges(stitch(style, fonts_of(scope), parts), model, screens), home_id(scope))
+    html = with_runtime(wire_edges(stitch(style, fonts, parts), model, screens), home_id(scope))
     (mock_dir / "index.html").write_text(html)
 
     checked = render.render_and_validate(mock_dir, model, screens)
@@ -527,16 +537,60 @@ def most_used(values) -> list[str]:
     return [v for v, _ in Counter(v for v in values if v).most_common(PALETTE_SIZE)]
 
 
-def fonts_link(fonts: list[str]) -> str:
-    if not fonts:
+def vendor_fonts(ctx: Ctx, mock_dir, families: list[str]) -> str:
+    """Copies each family's Google Fonts CSS (weights 400-700, the Latin subset) and every woff2 file it names into
+    mock/assets/fonts/, so rendering never waits on the network. Returns the page's <link> to that CSS, or "" when no
+    family was fetched. A family that can't be fetched is left out, traced, and the page falls back to the system
+    font stack; this never fails the stage."""
+    font_dir = mock_dir / "assets" / "fonts"
+    faces, skipped = [], {}
+    for family in families:
+        try:
+            css = latin_faces(fetch_twice(FONT_CSS.format(family=quote_plus(family))).decode())
+            files = {url: fetch_twice(url) for url in dict.fromkeys(FONT_FILE.findall(css))}
+        except (OSError, ValueError) as e:
+            skipped[family] = str(e)[:100]
+            continue
+        font_dir.mkdir(parents=True, exist_ok=True)
+        for url, data in files.items():
+            name = hashlib.sha256(data).hexdigest()[:16] + ".woff2"
+            (font_dir / name).write_bytes(data)
+            css = css.replace(f"url({url})", f"url({name})")
+        faces.append(css)
+    if skipped:
+        run_trace(ctx.run_dir, stage="mock", step="fonts", decider="code", outcome="error",
+                  note=("webfonts skipped, system fonts used: "
+                        + "; ".join(f"{f}: {why}" for f, why in skipped.items()))[:300])
+    if not faces:
         return ""
-    families = "&".join(f"family={quote_plus(f)}:wght@400;500;600;700" for f in fonts)
-    return f'<link rel="stylesheet" href="https://fonts.googleapis.com/css2?{families}&display=swap">'
+    (font_dir / "fonts.css").write_text("\n".join(faces) + "\n")
+    return '<link rel="stylesheet" href="assets/fonts/fonts.css">'
 
 
-def stitch(style: str, fonts: list[str], parts: list[tuple[str, str]]) -> str:
-    """One page: the fonts and the shared style once, each batch's own CSS, then every batch's sections in order."""
-    head = ['<meta charset="utf-8">', fonts_link(fonts), f'<style id="simula-shared">\n{style}\n</style>']
+def latin_faces(css: str) -> str:
+    """Google splits a family's faces by unicode-range, each after a /* subset */ comment: keep the Latin ones, or
+    every face when the CSS isn't split that way."""
+    return "\n".join(face for subset, face in FONT_FACE.findall(css) if subset == "latin") or css
+
+
+def fetch_twice(url: str) -> bytes:
+    try:
+        return fetch(url)
+    except OSError:
+        return fetch(url)
+
+
+def fetch(url: str) -> bytes:
+    """The mock stage's only network call, at build time; tests replace it."""
+    request = urllib.request.Request(url, headers={"User-Agent": CHROME_UA})
+    with urllib.request.urlopen(request, timeout=FETCH_TIMEOUT_S) as response:
+        return response.read()
+
+
+def stitch(style: str, fonts: str, parts: list[tuple[str, str]]) -> str:
+    """One page: the fonts link and the shared style once, each batch's own CSS, then every batch's sections in
+    order."""
+    head = ['<meta charset="utf-8">', fonts, f'<style id="simula-shared">\n{style}\n</style>']
     head += [f'<style data-batch="{n}">\n{css}\n</style>' for n, (css, _) in enumerate(parts, 1) if css]
     body = [markup for _, markup in parts]
     return ("<!doctype html>\n<html><head>\n" + "\n".join(h for h in head if h) + "\n</head><body>\n"

@@ -12,7 +12,6 @@ from simula.contracts import ContractError, ContractReport, Device, ProductModel
 
 VIEWPORT = {"width": 411, "height": 914}
 SCALE = 2.625
-FONT_HOSTS = ("fonts.googleapis.com", "fonts.gstatic.com")
 TRANSITIONS = ("push", "modal", "tab", "back", "replace", "unknown")
 WALLPAPER_SHARE = 0.4
 DECODE_WAIT_MS = 10_000
@@ -56,15 +55,16 @@ SCREEN_FACTS = """(id) => {
 
 @contextmanager
 def open_mock(mock_dir: Path):
-    """Yields (page, log) with the mock loaded at 411x914 @2.625, animation off, and every request blocked
-    except the mock's own files and Google Fonts. log collects console errors, blocked and failed requests."""
+    """Yields (page, log) with the mock loaded at 411x914 @2.625, animation off, and every request blocked except
+    the mock's own files (its fonts included: the mock stage vendors them). log collects console errors, blocked
+    and failed requests."""
     mock_dir = mock_dir.resolve()
     log = {"console": [], "blocked": [], "failed": []}
 
     def route(r):
         url = urlparse(r.request.url)
         local = url.scheme == "file" and Path(unquote(url.path)).resolve().is_relative_to(mock_dir)
-        if local or url.hostname in FONT_HOSTS:
+        if local:
             r.continue_()
         else:
             log["blocked"].append(r.request.url)
@@ -76,7 +76,7 @@ def open_mock(mock_dir: Path):
             log["console"].append(msg.text)
 
     def failed(request):
-        if request.url not in log["blocked"] and urlparse(request.url).hostname not in FONT_HOSTS:
+        if request.url not in log["blocked"]:
             log["failed"].append(request.url)
 
     with sync_playwright() as p:
