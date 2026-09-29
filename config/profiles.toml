@@ -26,28 +26,28 @@ flows = 8.0
 
 [real.roles]
 jev = { model = "jev-latest" }
-explore_vision = { model = "claude-sonnet-5", effort = "low" }
+explore_vision = { model = "claude-sonnet-5-5", effort = "low" }
 model_meaning = { model = "claude-opus-5-5", effort = "high" }
 mock_builder = { model = "claude-opus-5-5", effort = "xhigh", max_tokens = 128000 }
-qa_critic = { model = "claude-sonnet-5", effort = "medium" }
+qa_critic = { model = "claude-sonnet-5-5", effort = "medium" }
 qa_fixer = { model = "claude-opus-5-5", effort = "high", effort_last_round = "xhigh" }
 proposer = { model = "claude-opus-5-5", effort = "high" }
-propose_dedupe = { model = "claude-sonnet-5", effort = "low" }
-judge_1 = { model = "claude-sonnet-5", effort = "high" }
+propose_dedupe = { model = "claude-sonnet-5-5", effort = "low" }
+judge_1 = { model = "claude-sonnet-5-5", effort = "high" }
 judge_2 = { model = "gpt-6-sol", effort = "high", declared_fallback = "gpt-6-luna" }
-pairwise = { model = "claude-sonnet-5", effort = "low" }
+pairwise = { model = "claude-sonnet-5-5", effort = "low" }
 flows_editor = { model = "claude-opus-5-5", effort = "high" }
 
 [dev.roles]
 jev = { model = "claude-haiku-4-5-20251001", backend = "adapter" }
 explore_vision = { model = "claude-haiku-4-5-20251001" }
 model_meaning = { model = "claude-haiku-4-5-20251001" }
-mock_builder = { model = "claude-sonnet-5", effort = "low", max_tokens = 32000 }
+mock_builder = { model = "claude-sonnet-5-5", effort = "low", max_tokens = 32000 }
 qa_critic = { model = "claude-haiku-4-5-20251001" }
-qa_fixer = { model = "claude-sonnet-5", effort = "low" }
+qa_fixer = { model = "claude-sonnet-5-5", effort = "low" }
 proposer = { model = "claude-haiku-4-5-20251001" }
 propose_dedupe = { model = "claude-haiku-4-5-20251001" }
 judge_1 = { model = "claude-haiku-4-5-20251001" }
 judge_2 = { model = "gpt-6-luna", effort = "low" }
 pairwise = { model = "claude-haiku-4-5-20251001" }
-flows_editor = { model = "claude-sonnet-5", effort = "low" }
+flows_editor = { model = "claude-sonnet-5-5", effort = "low" }
