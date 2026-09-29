@@ -354,12 +354,26 @@ def test_a_guess_cited_next_to_a_term_stays_unobserved(name, term, cited, why):
     assert (resolved.observed, resolved.defined_by) == (False, []), why
 
 
-def test_a_real_count_of_a_term_does_not_define_it():
-    """s01.e49 "1.8k tokens" is quoted by a meter line that uses the term, though the term's used_in doesn't list it."""
+# However the ledger quotes JanitorAI's card meters, "1.8k tokens" (s01.e49) and "2.2k tokens" (s01.e61) are counts of
+# tokens, not what a token is (red team D, finding 3). The used_in the model wrote never lists these meter lines.
+COUNTS = [
+    ("s01.e49", {"vl5": "1.8k tokens", "vl6": "2.2k tokens"}, "each card is quoted whole"),
+    ("s01.e49", {"vl5": "1.8k", "vl6": "2.2k"}, "only the numbers are quoted"),
+    ("s01.e49", {}, "no meter line"),
+    ("s01.e61", {"vl5": "1.8k tokens"}, "only the other card is quoted"),
+]
+
+
+@pytest.mark.parametrize("cited, quotes, why", COUNTS, ids=[c[2] for c in COUNTS])
+def test_a_count_of_a_term_never_defines_it(cited, quotes, why):
     states, meaning, model_labels = real_terms("janitorai")
-    meaning.terms[:] = [TermMeaning(term="tokens", meaning="a guess", defined_by=["s01.e49"], used_in=["m2"])]
+    meters = {i.id: i for i in meaning.value_ledger if i.id in ("vl5", "vl6")}
+    meaning.value_ledger[:] = ([i for i in meaning.value_ledger if i.id not in meters]
+                               + [meters[i].model_copy(update={"verbatim": q}) for i, q in quotes.items()])
+    drafted = next(t for t in meaning.terms if t.term == "tokens")
+    meaning.terms[:] = [drafted.model_copy(update={"defined_by": [cited]})]
     (resolved,) = stage.resolve_terms(meaning, states, model_labels)
-    assert (resolved.observed, resolved.defined_by) == (False, [])
+    assert (resolved.observed, resolved.defined_by) == (False, []), why
 
 
 def test_a_term_shows_only_as_a_whole_word():

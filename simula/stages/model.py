@@ -451,8 +451,8 @@ def resolve_terms(meaning: ModelMeaning, states: list[State], model_labels: set[
     name) count when they sit on such an element's screen, whatever a mechanic cites as evidence. A label a model
     wrote (`model_labels`) is never app text, so it neither shows the term nor explains it. Otherwise the term is
     marked 'meaning not observed' and nothing downstream may build on it. Known limits: a call to action
-    ("Unlock <term>") reads as an explanation, and a price on a plan card ("Weekly", "$1.99") doesn't; which cited
-    text explains the term stays the model's call."""
+    ("Unlock <term>") or a role word in an app's own label ("<term> tab") reads as an explanation, and a price on a
+    plan card ("Weekly", "$1.99") doesn't; which cited text explains the term stays the model's call."""
     elements = {e.id: e for s in states for e in s.elements}
     screen = {e.id: s.id for s in states for e in s.elements}
 
