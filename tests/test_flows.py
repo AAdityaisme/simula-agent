@@ -2,6 +2,7 @@
 
 import dataclasses
 import html
+import json
 import re
 import shutil
 import time
@@ -13,7 +14,7 @@ from PIL import Image
 from playwright.sync_api import TimeoutError as PlaywrightTimeout
 from playwright.sync_api import sync_playwright
 
-from simula import llm, render, runfolder
+from simula import llm, render, runfolder, validate
 from simula.contracts import (GATES, JUDGMENT, CandidatesFile, Check, Decision, DecisionsFile, Economics, Edit, Edits,
                               FlowStep, Provenance, StageOutcome, Verdict)
 from simula.runlog import read_trace
@@ -35,6 +36,11 @@ def decision(cid: str, final: str, rank: float, passed: int = 11) -> Decision:
     return Decision(candidate_id=cid, final=final, checks_passed=passed, checks_total=11, rank_score=rank,
                     gate_fails=[], judgment_splits=[], verdict_paths=[f"judge/verdicts/{cid}_judge_1_r1.json"],
                     economics_verdict=None, revision_of=None, failure_type=None, rerun_stage=None)
+
+
+def fallback(cid: str, rank: float) -> Decision:
+    """The judge's fallback pick: a reject made CONDITIONAL, which keeps its failure_type as the judge's mark."""
+    return decision(cid, "conditional", rank, passed=10).model_copy(update={"failure_type": "proposal"})
 
 
 def verdict(cid: str, fail: str | None = None) -> Verdict:
@@ -312,10 +318,11 @@ def test_a_pop_up_is_placed_by_the_screen_it_covers_not_called_a_main_tab(app):
 
 
 def judged(tmp_path, cid: str, fail: str | None) -> Decision:
-    """A CONDITIONAL decision whose one verdict file fails `fail` (or nothing)."""
+    """A CONDITIONAL decision whose one verdict file fails `fail` (or nothing). With one judge a fail is every
+    judge's, so a failing one can only be the judge's fallback pick, which keeps its reject's failure_type."""
     (tmp_path / "judge" / "verdicts").mkdir(parents=True, exist_ok=True)
     (tmp_path / "judge" / "verdicts" / f"{cid}_judge_1_r1.json").write_text(verdict(cid, fail).model_dump_json())
-    return decision(cid, "conditional", 1.0, passed=10 if fail else 11)
+    return fallback(cid, 1.0) if fail else decision(cid, "conditional", 1.0)
 
 
 def test_the_judges_fallback_pick_reads_as_the_closest_idea_not_a_recommendation(tmp_path):
@@ -356,7 +363,7 @@ def test_a_survivor_past_the_cap_is_named_in_the_trace_and_counted_on_the_cover(
 def test_an_unbuilt_fallback_pick_is_named_as_the_closest_idea_not_as_one_that_passed(tmp_path):
     one_step = candidate(golden("luzia")).flow_steps[:1]
     run_dir = seed_run(tmp_path, "luzia", {"c01": {"flow_steps": one_step}})
-    decisions = [decision("c01", "conditional", 1.0, passed=10), decision("c03", "reject", 2.0, passed=9)]
+    decisions = [fallback("c01", 1.0), decision("c03", "reject", 2.0, passed=9)]
     (run_dir / "judge" / "decisions.json").write_text(DecisionsFile(decisions=decisions).model_dump_json())
     (run_dir / "judge" / "verdicts" / "c01_judge_1_r1.json").write_text(verdict("c01", "c5_moment").model_dump_json())
     with pytest.MonkeyPatch.context() as mp:
@@ -371,7 +378,7 @@ def test_an_unbuilt_fallback_pick_is_named_as_the_closest_idea_not_as_one_that_p
 def test_a_drawn_and_an_unbuilt_fallback_pick_read_as_one_coherent_line_on_the_cover(tmp_path):
     one_step = candidate(golden("luzia")).flow_steps[:1]
     run_dir = seed_run(tmp_path, "luzia", {"c01": {"flow_steps": one_step}})
-    decisions = [decision("c01", "conditional", 2.0, passed=10), decision("c02", "conditional", 1.0, passed=10),
+    decisions = [fallback("c01", 2.0), fallback("c02", 1.0),
                  decision("c03", "reject", 3.0, passed=9)]
     (run_dir / "judge" / "decisions.json").write_text(DecisionsFile(decisions=decisions).model_dump_json())
     for cid in ("c01", "c02"):
@@ -389,7 +396,7 @@ def test_a_drawn_and_an_unbuilt_fallback_pick_read_as_one_coherent_line_on_the_c
 
 def test_a_fallback_pick_is_named_on_the_cover_and_its_why_slide_never_says_recommended(tmp_path):
     run_dir = seed_run(tmp_path, "luzia", {"c01": {}})
-    decisions = [decision("c01", "conditional", 1.0, passed=10), decision("c03", "reject", 2.0, passed=9)]
+    decisions = [fallback("c01", 1.0), decision("c03", "reject", 2.0, passed=9)]
     (run_dir / "judge" / "decisions.json").write_text(DecisionsFile(decisions=decisions).model_dump_json())
     (run_dir / "judge" / "verdicts" / "c01_judge_1_r1.json").write_text(verdict("c01", "c5_moment").model_dump_json())
     with pytest.MonkeyPatch.context() as mp:
@@ -495,7 +502,8 @@ def test_every_slide_fits_on_real_output(tmp_path):
     deck = [slide for d in chosen
             for slide in flows.deck.idea_slides(drawn(ideas[d.candidate_id], d), model, ROUND6, False)]
     deck += [slide for d in chosen for slide in flows.deck.idea_slides(
-        drawn(ideas[d.candidate_id], d.model_copy(update={"final": "conditional"})), model, fallback_run, True)]
+        drawn(ideas[d.candidate_id], d.model_copy(update={"final": "conditional", "failure_type": "proposal"})), model,
+        fallback_run, True)]
     deck += flows.deck.score_slides(decisions, ideas, [], ROUND6)
     assert sum("The closest idea, not a recommendation" in s for s in deck) == 4
     assert sum("Cost check (" in s for s in deck) == 6
@@ -707,14 +715,65 @@ def test_the_walk_taps_play_so_a_covered_play_button_is_not_wired(tmp_path, app)
     assert any("step 4 not wired: the game's Play button can't be tapped" in note for note in broken)
 
 
-def test_default_selection_is_every_accept_first_then_a_judge_split_then_other_conditionals_at_most_four():
-    """D10: a CONDITIONAL never takes an accept's slot, whatever its rank."""
-    split = decision("c05", "conditional", 4.0).model_copy(update={"judgment_splits": ["c2_evidence"]})
+def test_default_selection_is_every_accept_first_then_conditional_by_rank_at_most_four():
+    """D10: a CONDITIONAL never takes an accept's slot, whatever its rank. D11: an idea the judges split on isn't
+    drawn unless flows/approvals.json names it."""
+    split = decision("c05", "conditional", 2.0).model_copy(update={"judgment_splits": ["c2_evidence"]})
     decisions = [decision("c01", "reject", 9.0), decision("c02", "accept", 1.0), decision("c03", "conditional", 3.0),
                  decision("c04", "needs_human", 5.0), split, *(decision(f"c1{n}", "accept", 0.5) for n in range(4))]
     assert [d.candidate_id for d in flows.stage.select(decisions, None)] == ["c02", "c10", "c11", "c12"]
-    assert [d.candidate_id for d in flows.stage.select(decisions[:5], None)] == ["c02", "c05", "c03"]
+    assert [d.candidate_id for d in flows.stage.select(decisions[:5], None)] == ["c02", "c03"]
+    assert [d.candidate_id for d in flows.stage.select(decisions, ["c05", "c12"])] == ["c12", "c05"]
 
+
+
+def split_run(tmp_path, approvals: list[str] | None = None):
+    """A seeded run whose c02 the judges split on, with pd-c7-subtle's committed r1 verdicts under VF': judge_1 fails
+    C7 and passes C5, judge_2 the reverse. c01 is accepted."""
+    run_dir = seed_run(tmp_path, "luzia")
+    saved = validate.load_runs(validate.VERDICTS / "VF2")
+    paths = [f"judge/verdicts/c02_{who}_r1.json" for who in validate.JUDGES]
+    for path, who in zip(paths, validate.JUDGES):
+        (run_dir / path).write_text(saved[("pd-c7-subtle", who)][0].model_dump_json())
+    decisions = DecisionsFile.model_validate_json((run_dir / "judge" / "decisions.json").read_text()).decisions
+    decisions = [d.model_copy(update={"judgment_splits": ["c5_moment", "c7_specific"], "verdict_paths": paths,
+                                      "checks_passed": 9}) if d.candidate_id == "c02" else d for d in decisions]
+    (run_dir / "judge" / "decisions.json").write_text(DecisionsFile(decisions=decisions).model_dump_json())
+    if approvals is not None:
+        (run_dir / "flows").mkdir(exist_ok=True)
+        (run_dir / "flows" / "approvals.json").write_text(json.dumps({"approved": approvals}))
+    calls = []
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(llm, "call", fake_editor(run_dir, calls))
+        flows.stage.run(ctx_for(run_dir, "luzia"))
+    return run_dir, calls
+
+
+def test_an_idea_the_judges_split_on_isnt_drawn_and_waits_on_the_needs_your_call_page(tmp_path):
+    run_dir, calls = split_run(tmp_path)
+    assert calls == ["c01"] and (run_dir / "flows" / "c01").is_dir() and not (run_dir / "flows" / "c02").exists()
+    assert {idea for idea, _, _ in slides(run_dir)} == {"c01"}
+    deck = (run_dir / "flows" / "slides.html").read_text()
+    page = text_of(deck.split("<h2>Needs your call")[1].split("</section>")[0])
+    saved = validate.load_runs(validate.VERDICTS / "VF2")
+    j1, j2 = (saved[("pd-c7-subtle", who)][0] for who in validate.JUDGES)
+    for k, no, yes in [("c5_moment", j2, j1), ("c7_specific", j1, j2)]:
+        clause = (f'"{flows.wording.PLAIN_CHECKS[k]}": one reviewer: no ({getattr(no, k).reason.rstrip(".")}); '
+                  f'another: yes ({getattr(yes, k).reason.rstrip(".")}).')
+        assert text_of(html.escape(flows.wording.plain(clause))) in page
+    assert page.index("the right moment") < page.index("specific to this app") and "c02 · " in page
+    assert "flows/approvals.json" in page
+    cover = text_of(deck.split('<section class="slide cover">')[1].split("</section>")[0])
+    assert "1 idea(s) split the reviewers, so they aren't drawn" in cover
+
+
+def test_approving_a_split_idea_draws_it_without_a_conditional_chip(tmp_path):
+    run_dir, calls = split_run(tmp_path, approvals=["c01", "c02"])
+    assert sorted(calls) == ["c01", "c02"] and (run_dir / "flows" / "c02").is_dir()
+    deck = (run_dir / "flows" / "slides.html").read_text()
+    assert "Needs your call" not in deck
+    c02 = re.findall(r'<section class="slide main" data-part="\w+" data-idea="c02">.*?</section>', deck, re.S)
+    assert c02 and not any("chip conditional\">Conditional<" in s for s in c02)
 
 def test_approvals_only_narrow():
     decisions = [decision("c01", "accept", 1.0), decision("c02", "conditional", 0.5), decision("c03", "reject", 2.0)]

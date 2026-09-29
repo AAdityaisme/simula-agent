@@ -54,7 +54,8 @@ def test_a_split_on_a_judgment_check_is_conditional_and_carries_both_reasons():
     d = judge.decide(c, verdicts, TWO, "annotate")
     assert (d.final, d.judgment_splits, d.checks_passed, d.rerun_stage) == ("conditional", ["c5_moment"], 10, None)
     text = judge.condition(d, c, verdicts, "annotate")
-    assert "split on c5_moment" in text and "c5_moment fails here" in text and "c5_moment passes here" in text
+    assert text == ("The judges split: on c5_moment, one fails it (c5_moment fails here) and another passes it "
+                    "(c5_moment passes here).")
 
 
 def test_only_a_lost_call_waits_on_a_person():
@@ -185,7 +186,7 @@ def test_an_accept_always_ranks_above_a_conditional():
     # Real Luzia, round 6 (runs/luzia/20260928-042747-6d79ef8-fixture/judge/decisions.json): four survivors tied
     # at 1.0, and the one clean accept, c06, came fourth. Those CONDITIONALs came from the cost line, which annotate
     # mode no longer does. A split CONDITIONAL (D10, c05 here) ranks below every accept even at a higher score, and
-    # above every other CONDITIONAL.
+    # among CONDITIONAL ideas only rank orders them.
     rows = [Decision(candidate_id=cid, final=final, checks_passed=checks, checks_total=11, rank_score=rank,
                      gate_fails=[], judgment_splits=["c2_evidence"] if cid == "c05" else [], verdict_paths=[],
                      economics_verdict=econ, revision_of=None,
@@ -196,9 +197,9 @@ def test_an_accept_always_ranks_above_a_conditional():
                                                    ("c06", "accept", 1.0, 11, "PASS"),
                                                    ("c01", "reject", 0.5, 11, "CONDITIONAL"),
                                                    ("c04", "reject", 0.5, 9, "PASS")]]
-    assert [d.candidate_id for d in judge.ordered(rows)] == ["c06", "c05", "c02", "c03", "c01", "c04"]
-    higher = [d.model_copy(update={"rank_score": 2.0}) if d.candidate_id == "c03" else d for d in rows]
-    assert [d.candidate_id for d in judge.ordered(higher)] == ["c06", "c05", "c03", "c02", "c01", "c04"]
+    assert [d.candidate_id for d in judge.ordered(rows)] == ["c06", "c02", "c03", "c05", "c01", "c04"]
+    higher = [d.model_copy(update={"rank_score": 2.0}) if d.candidate_id == "c05" else d for d in rows]
+    assert [d.candidate_id for d in judge.ordered(higher)] == ["c06", "c05", "c02", "c03", "c01", "c04"]
 
 
 KNOWN_GOOD = ["kg-candycrush-01", "kg-run-aol-c01", "kg-run-janitorai-c02", "kg-run-luzia-c05"]
@@ -207,7 +208,8 @@ KNOWN_GOOD = ["kg-candycrush-01", "kg-run-aol-c01", "kg-run-janitorai-c02", "kg-
 @pytest.mark.parametrize("n", [1, 2, 3])
 def test_every_known_good_idea_judge_1_accepts_reaches_the_deck_with_both_judges(n):
     """The red team's routing check on the saved VF' runs (validation/verdicts/VF2): before D10, run 3 sent none of the 4
-    known-good ideas to flows, because a judge_2-only c2 fail went to a person. An idea every judge fails stays out."""
+    known-good ideas to flows, because a judge_2-only c2 fail went to a person. Now an accept is drawn and a split
+    waits on the Needs your call page (D11); an idea every judge fails stays out of both."""
     cases = {c.id: c for c in validate.load_cases()}
     runs = validate.load_runs(validate.VERDICTS / "VF2")
     decisions, accepted_alone, failed_by_both = [], [], []
@@ -221,8 +223,10 @@ def test_every_known_good_idea_judge_1_accepts_reaches_the_deck_with_both_judges
             failed_by_both.append(cid)
             assert d.final == "reject"
         decisions.append(d)
-    deck = [d.candidate_id for d in flows.stage.select(decisions, None)]
-    assert accepted_alone and set(accepted_alone) <= set(deck) and not set(failed_by_both) & set(deck)
+    drawn = {d.candidate_id for d in flows.stage.select(decisions, None)}
+    waiting = {d.candidate_id for d in decisions if flows.deck.needs_call(d)}
+    assert drawn == {d.candidate_id for d in decisions if d.final == "accept"} and not drawn & waiting
+    assert accepted_alone and set(accepted_alone) <= drawn | waiting and not set(failed_by_both) & (drawn | waiting)
     finals = [d.final for d in judge.ordered(decisions) if d.final in judge.SURVIVORS]
     assert finals == sorted(finals, key=lambda f: f != "accept")
 
@@ -239,9 +243,48 @@ def test_a_split_idea_is_labelled_with_both_reasons_and_never_as_the_fallback(tm
     assert d.final == "conditional"
     assert not flows.deck.is_fallback(d, tmp_path, none_accepted=True)
     assert flows.deck.condition(d, tmp_path, none_accepted=True) == (
-        "One reviewer wasn't convinced:", f"One reviewer didn't pass {flows.wording.PLAIN_CHECKS['c2_evidence']} "
-                                          "(c2_evidence fails here); the other did (c2_evidence passes here).")
+        "The reviewers disagreed:", f'"{flows.wording.PLAIN_CHECKS["c2_evidence"]}": one reviewer: no '
+                                    "(c2_evidence fails here); another: yes (c2_evidence passes here).")
 
+
+
+def test_a_split_on_two_checks_in_opposite_directions_gives_each_check_both_reasons(tmp_path):
+    """pd-c7-subtle's committed r1 verdicts under VF': judge_1 fails C7 and passes C5, judge_2 the reverse. Each
+    split check gets its own failing and passing reason, in check order, on the slide and in the exhibit."""
+    case = next(c for c in validate.load_cases() if c.id == "pd-c7-subtle")
+    runs = validate.load_runs(validate.VERDICTS / "VF2")
+    verdicts = [runs[("pd-c7-subtle", who)][0] for who in validate.JUDGES]
+    paths = [f"judge/verdicts/{case.id}_{who}_r1.json" for who in validate.JUDGES]
+    for path, v in zip(paths, verdicts):
+        (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / path).write_text(v.model_dump_json())
+    d = judge.decide(case.candidate, verdicts, TWO, "annotate", paths)
+    assert (d.final, d.judgment_splits) == ("conditional", ["c5_moment", "c7_specific"])
+    j1, j2 = verdicts
+    why = {k: (getattr(bad, k).reason.rstrip("."), getattr(good, k).reason.rstrip("."))
+           for k, bad, good in [("c5_moment", j2, j1), ("c7_specific", j1, j2)]}
+    plain = flows.wording.PLAIN_CHECKS
+    assert flows.deck.condition(d, tmp_path, none_accepted=False) == ("The reviewers disagreed:", " ".join(
+        f'"{plain[k]}": one reviewer: no ({no}); another: yes ({yes}).' for k, (no, yes) in why.items()))
+    assert judge.condition(d, case.candidate, verdicts, "annotate") == "The judges split: " + "; ".join(
+        f"on {k}, one fails it ({no}) and another passes it ({yes})" for k, (no, yes) in why.items()) + "."
+
+
+def test_a_gate_mode_fallback_pick_whose_only_misses_are_splits_still_reads_as_the_fallback(tmp_path):
+    """Gate mode: a cost FAIL rejects an idea the judges only split on, and the fallback may pick it. Its kept
+    failure_type marks it, so it reads as the closest idea, never as a split."""
+    c, verdicts = idea(golden("janitorai"), "c01", econ="FAIL"), two([], ["c5_moment"])
+    paths = [f"judge/verdicts/c01_judge_{i}_r1.json" for i in (1, 2)]
+    for path, v in zip(paths, verdicts):
+        (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / path).write_text(v.model_dump_json())
+    d = judge.decide(c, verdicts, TWO, "gate", paths)
+    assert (d.final, d.judgment_splits) == ("reject", ["c5_moment"])
+    assert judge.fallback_pick([d], {c.id: c}, {c.id: dict(zip(validate.JUDGES, verdicts))}, set()) == c.id
+    pick = d.model_copy(update={"final": "conditional"})  # what judge_run does to the pick
+    assert flows.deck.is_fallback(pick, tmp_path, none_accepted=True)
+    assert flows.deck.condition(pick, tmp_path, none_accepted=True)[0] == "The closest idea, not a recommendation:"
+    assert judge.condition(pick, c, verdicts, "gate").startswith("No idea passed every check")
 
 # ---------- the whole stage, with a fake model ----------
 
@@ -303,7 +346,7 @@ def test_nothing_accepted_falls_back_to_one_conditional(tmp_path, monkeypatch):
     judge.run(ctx_for(app, run_dir))
     decisions = DecisionsFile.model_validate_json((run_dir / "judge" / "decisions.json").read_text()).decisions
     assert [d.final for d in decisions].count("conditional") == 1
-    assert [d.failure_type for d in decisions if d.final == "conditional"] == [None]
+    assert [d.failure_type for d in decisions if d.final == "conditional"] == ["proposal"]  # the fallback's mark
     assert not (run_dir / "judge" / "no-opportunity.md").exists()
     assert "Condition:" in (run_dir / "exhibits" / "06-judge.md").read_text()
 

@@ -106,7 +106,8 @@ def slide_html(flow: dict, part: str, body: str) -> str:
     """One of an idea's slides: a header with the idea's labels, then the body (HTML)."""
     c, decision = flow["candidate"], flow["decision"]
     kind = "existing" if c.kind == "existing_anchor" else "change"
-    labels = '<span class="chip conditional">Conditional</span>' if decision.final == "conditional" else ""
+    conditional = decision.final == "conditional" and not needs_call(decision)  # a split is drawn only if approved
+    labels = '<span class="chip conditional">Conditional</span>' if conditional else ""
     if cost_question(c):
         labels += f'<span class="chip conditional">Cost check: {c.economics.verdict}</span>'
     idea = "" if part == "flow" else escape(plain(caption(c)))  # the flow slide's title already names the idea
@@ -126,13 +127,9 @@ def verdicts(decision: Decision, run_dir: Path) -> list[tuple[str, Verdict]]:
 
 def failed_checks(decision: Decision, run_dir: Path) -> list[tuple[str, str]]:
     """(check, the first failing judge's reason) for every check some judge failed, in check order."""
-    failed = {}
-    for _, verdict in verdicts(decision, run_dir):
-        for key in GATES + JUDGMENT:
-            check = getattr(verdict, key)
-            if not check.passed:
-                failed.setdefault(key, check.reason)
-    return list(failed.items())
+    judged = [v for _, v in verdicts(decision, run_dir)]
+    return [(k, next(getattr(v, k).reason for v in judged if not getattr(v, k).passed))
+            for k in GATES + JUDGMENT if any(not getattr(v, k).passed for v in judged)]
 
 
 def cost_question(c: Candidate) -> str | None:
@@ -149,10 +146,22 @@ def cost_question(c: Candidate) -> str | None:
 
 
 def is_fallback(decision: Decision, run_dir: Path, none_accepted: bool) -> bool:
-    """The judge's fallback pick: nothing was accepted, so the closest idea goes on as CONDITIONAL with the checks
-    every judge failed. A check only some judges failed is a split (D10), which never makes an idea the fallback."""
-    return decision.final == "conditional" and none_accepted and any(
-        k not in decision.judgment_splits for k, _ in failed_checks(decision, run_dir))
+    """The judge's fallback pick: nothing was accepted, so the closest idea goes on as CONDITIONAL. The judge marks it
+    by keeping its reject's failure_type; a CONDITIONAL from a judge split (D10) has none."""
+    return decision.final == "conditional" and none_accepted and decision.failure_type is not None
+
+
+def needs_call(decision: Decision) -> bool:
+    """A CONDITIONAL idea the judges split on (D10) that isn't the fallback pick: it isn't drawn unless a person
+    approves it, and waits on the Needs your call page (D11)."""
+    return decision.final == "conditional" and bool(decision.judgment_splits) and decision.failure_type is None
+
+
+def disagreement(k: str, failing: str, judged: list[Verdict]) -> str:
+    """One check the judges split on: the open question in plain words, then both sides."""
+    passing = next((getattr(v, k).reason for v in judged if getattr(v, k).passed), None)
+    return (f'"{PLAIN_CHECKS[k]}": one reviewer: no ({failing.rstrip(".")}); another: yes'
+            + (f" ({passing.rstrip('.')})." if passing else "."))
 
 
 def condition(decision: Decision, run_dir: Path, none_accepted: bool) -> tuple[str, str] | None:
@@ -163,15 +172,12 @@ def condition(decision: Decision, run_dir: Path, none_accepted: bool) -> tuple[s
         return None
     failed = failed_checks(decision, run_dir)
     names = ", ".join(PLAIN_CHECKS[k] for k, _ in failed)
-    if is_fallback(decision, run_dir, none_accepted) and not any(k in GATES for k, _ in failed):
+    if is_fallback(decision, run_dir, none_accepted) and failed and not any(k in GATES for k, _ in failed):
         return ("The closest idea, not a recommendation:",
                 f"No idea passed every check. This one passes every safety check but not {names} ({failed[0][1]}).")
     if failed and all(k in decision.judgment_splits for k, _ in failed):
-        k, reason = failed[0]
-        other = next((getattr(v, k).reason for _, v in verdicts(decision, run_dir) if getattr(v, k).passed), None)
-        passing = f" ({other.rstrip('.')})" if other else ""
-        return ("One reviewer wasn't convinced:",
-                f"One reviewer didn't pass {names} ({reason.rstrip('.')}); the other did{passing}.")
+        judged = [v for _, v in verdicts(decision, run_dir)]
+        return "The reviewers disagreed:", " ".join(disagreement(k, reason, judged) for k, reason in failed)
     if failed:
         return "Not every check passed:", f"It didn't pass {names} ({failed[0][1]})."
     if decision.checks_passed < decision.checks_total:
@@ -205,8 +211,7 @@ def why_html(flow: dict, model: ProductModel, run_dir: Path, none_accepted: bool
 
 def idea_slides(flow: dict, model: ProductModel, run_dir: Path, none_accepted: bool) -> list[str]:
     """An idea's two slides: its whole flow in one row of phones, then why the system thinks it's a good idea
-    (none_accepted: the judge accepted no idea, so a CONDITIONAL one with a check every judge failed is its fallback
-    pick)."""
+    (none_accepted: the judge accepted no idea, so a CONDITIONAL one may be its fallback pick, see is_fallback)."""
     c = flow["candidate"]
     label, new = (("The new part", c.adds) if c.kind == "product_change" and c.adds
                   else ("Where the offer appears", c.placement))
@@ -222,7 +227,7 @@ def idea_slides(flow: dict, model: ProductModel, run_dir: Path, none_accepted: b
 
 
 def cover_html(app: str, flows: list[dict], *, cap: int, unbuilt: int = 0, fallbacks: int = 0,
-               unbuilt_fallbacks: int = 0, cut: int = 0, status: list[str] = ()) -> str:
+               unbuilt_fallbacks: int = 0, cut: int = 0, calls: int = 0, status: list[str] = ()) -> str:
     """The overview: every idea in the deck, how to read it, the reward rule every idea follows, whether an idea is
     only the judge's fallback pick (drawn, or not drawn), how many survivors past the cap of `cap` were left out, and
     status lines for anything an earlier stage couldn't finish. `unbuilt` counts only ideas that passed the review."""
@@ -247,6 +252,9 @@ def cover_html(app: str, flows: list[dict], *, cap: int, unbuilt: int = 0, fallb
     if unbuilt:
         notes.append(f"{unbuilt} {'more ' if flows else ''}idea(s) passed the review but couldn't be drawn; the score "
                      "pages at the end say why.")
+    if calls:
+        notes.append(f"{calls} idea(s) split the reviewers, so they aren't drawn; the Needs your call page at the end "
+                     "lists them.")
     if not flows and not unbuilt and not unbuilt_fallbacks:
         notes.append("No idea passed the review. The score pages at the end show every idea's score and why.")
     body = (f"<ol>{items}</ol>" if flows else "") + "".join(f"<p class='how'>{escape(n)}</p>" for n in [*notes, *status])
@@ -283,6 +291,27 @@ def score_pages(rows: list[tuple[str, int]], budget: int) -> tuple[list[list[str
         pages[-1].append(html)
         used += height
     return pages, used
+
+
+def call_slides(waiting: list[Decision], candidates: dict[str, Candidate], run_dir: Path) -> list[str]:
+    """The last pages (D11): every idea the judges split on that no one approved, each split check as its open
+    question with both sides. None of them is drawn; a person draws one by approving it."""
+    rows = []
+    for d in waiting:
+        judged = [v for _, v in verdicts(d, run_dir)]
+        c = candidates.get(d.candidate_id)
+        clauses = [disagreement(k, why, judged) for k, why in failed_checks(d, run_dir) if k in d.judgment_splits]
+        # plain() would drop the id, and the id is what a person puts in approvals.json
+        lines = [f"{d.candidate_id} · {plain(caption(c)) if c else ''}", *map(plain, clauses)]
+        rows.append((f"<li><b>{escape(lines[0])}</b>" + "".join(f"<br>{escape(line)}" for line in lines[1:]) + "</li>",
+                     SCORE_ROW_PAD_PX + SCORE_LINE_PX * sum(
+                         math.ceil(len(line) / (SCORE_TITLE_CHARS + SCORE_WHY_CHARS)) for line in lines)))
+    pages, _ = score_pages(rows, SCORE_PAGE_PX)
+    return [f'<section class="slide scores"><h2>Needs your call{f" ({n} of {len(pages)})" if len(pages) > 1 else ""}'
+            f'</h2><div class="score-body"><ul class="calls">{"".join(page)}</ul></div>'
+            "<footer>The reviewers split on these ideas, so none is drawn. To draw one, add its id to "
+            "<b>flows/approvals.json</b> and run flows again.</footer></section>"
+            for n, page in enumerate(pages, 1)] if waiting else []
 
 
 def score_slides(decisions: list[Decision], candidates: dict[str, Candidate], not_built: list[tuple[Decision, str]],
@@ -323,16 +352,19 @@ def unfinished_stages(run_dir: Path) -> list[str]:
 
 
 def deck(ctx: Ctx, model: ProductModel, flows: list[dict], not_built: list[tuple[Decision, str]],
-         decisions: list[Decision], candidates: dict[str, Candidate], *, cap: int, cut: int = 0) -> str:
+         decisions: list[Decision], candidates: dict[str, Candidate], *, cap: int, cut: int = 0,
+         waiting: list[Decision] = ()) -> str:
     app = app_title(model, ctx.app["name"])
     none_accepted = not any(d.final == "accept" for d in decisions)
     fallbacks = sum(is_fallback(f["decision"], ctx.run_dir, none_accepted) for f in flows)
     unbuilt_fallbacks = sum(is_fallback(d, ctx.run_dir, none_accepted) for d, _ in not_built)
     slides = [cover_html(app, flows, cap=cap, unbuilt=len(not_built) - unbuilt_fallbacks, fallbacks=fallbacks,
-                         unbuilt_fallbacks=unbuilt_fallbacks, cut=cut, status=unfinished_stages(ctx.run_dir))]
+                         unbuilt_fallbacks=unbuilt_fallbacks, cut=cut, calls=len(waiting),
+                         status=unfinished_stages(ctx.run_dir))]
     for flow in flows:
         slides += idea_slides(flow, model, ctx.run_dir, none_accepted)
     slides += score_slides(decisions, candidates, not_built, ctx.run_dir)
+    slides += call_slides(waiting, candidates, ctx.run_dir)
     watermark = ('<div class="watermark">FIXTURE TEST DATA · not a deliverable</div>'
                  if ctx.run_dir.name.endswith("-fixture") else "")
     return deck_html(f"Rewarded-ad ideas for {escape(app)}", watermark + "\n".join(slides))

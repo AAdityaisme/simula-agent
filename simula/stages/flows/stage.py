@@ -14,7 +14,7 @@ from simula import llm
 from simula.contracts import Candidate, CandidatesFile, Decision, DecisionsFile, Edits, ProductModel
 from simula.runlog import read_trace, run_trace, write_exhibit
 from simula.stages import Ctx
-from simula.stages.flows.deck import deck
+from simula.stages.flows.deck import deck, needs_call
 from simula.stages.flows.editor import apply_edits, ask_editor
 from simula.stages.flows.page import ad_palette_css, blur_css, decline_edges, flow_page, strip_runtime, with_flow_css
 from simula.stages.flows.pdf import write_pdf
@@ -39,12 +39,12 @@ def load_approvals(flows_dir: Path) -> list[str] | None:
 
 
 def survivors(decisions: list[Decision], approvals: list[str] | None) -> list[Decision]:
-    """Accepted and CONDITIONAL ideas in the judge's order (every accept first, D10). flows/approvals.json can only
-    narrow the list."""
+    """Accepted and CONDITIONAL ideas in the judge's order (every accept first, D10), leaving out an idea the judges
+    split on (D11). flows/approvals.json picks among every survivor, a split one included."""
     picked = [d for d in ordered(decisions) if d.final in SURVIVED]
-    if approvals is not None:
-        picked = [d for d in picked if d.candidate_id in approvals]
-    return picked
+    if approvals is None:
+        return [d for d in picked if not needs_call(d)]
+    return [d for d in picked if d.candidate_id in approvals]
 
 
 def select(decisions: list[Decision], approvals: list[str] | None) -> list[Decision]:
@@ -241,10 +241,13 @@ def run(ctx: Ctx) -> None:
     clean(out)
     chosen = select(decisions, approvals)
     cut = survivors(decisions, approvals)[MAX_IDEAS:]
+    picked = {d.candidate_id for d in survivors(decisions, approvals)}
+    waiting = [d for d in ordered(decisions) if needs_call(d) and d.candidate_id not in picked]
     chosen_from = "narrowed by flows/approvals.json" if approvals is not None else "accepted + conditional"
     past_cap = f"; past the cap of {MAX_IDEAS}, not drawn: {' '.join(d.candidate_id for d in cut)}" if cut else ""
+    calls = f"; needs your call: {' '.join(d.candidate_id for d in waiting)}" if waiting else ""
     run_trace(run_dir, stage="flows", step="select", decider="code",
-              note=f"{chosen_from}: {' '.join(d.candidate_id for d in chosen) or 'none'}{past_cap}")
+              note=f"{chosen_from}: {' '.join(d.candidate_id for d in chosen) or 'none'}{past_cap}{calls}")
     source = mock_source(run_dir)
     page = strip_runtime((source / "index.html").read_text())
     budget = llm.Budget.for_stage("flows", run_dir / "trace.jsonl", ctx.usd_cap)
@@ -263,7 +266,7 @@ def run(ctx: Ctx) -> None:
         run_trace(run_dir, stage="flows", step=f"build:{d.candidate_id}", decider="code", outcome="error",
                   note=f"not built: {why}"[:300])
     (out / "slides.html").write_text(deck(ctx, model, flows, not_built, decisions, candidates, cap=MAX_IDEAS,
-                                            cut=len(cut)))
+                                            cut=len(cut), waiting=waiting))
     layout = write_pdf(out / "slides.html")
     for problem in layout:
         run_trace(run_dir, stage="flows", step="layout", decider="code", outcome="error", note=problem[:300])

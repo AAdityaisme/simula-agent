@@ -237,33 +237,29 @@ def fallback_pick(decisions: list[Decision], candidates: dict[str, Candidate],
 
 
 def ordered(decisions: list[Decision]) -> list[Decision]:
-    """Accepts first, then CONDITIONAL ideas the judges split on, then other CONDITIONAL ones (the cost line in gate
-    mode, or the fallback), then those waiting on a person, then rejects; by rank_score (code) within each. A
-    CONDITIONAL never ranks above an accept (D10). flows draws the deck in this order."""
-    def tier(d: Decision) -> int:
-        if d.final == "conditional":
-            return 1 if d.judgment_splits else 2
-        return {"accept": 0, "needs_human": 3, "reject": 4}[d.final]
-    return sorted(decisions, key=lambda d: (tier(d), -(d.rank_score or 0), -d.checks_passed))
+    """Accepts first, then CONDITIONAL ideas, then those waiting on a person, then rejects; by rank_score (code)
+    within each. A CONDITIONAL never ranks above an accept (D10). flows draws the deck in this order."""
+    tier = {"accept": 0, "conditional": 1, "needs_human": 2, "reject": 3}
+    return sorted(decisions, key=lambda d: (tier[d.final], -(d.rank_score or 0), -d.checks_passed))
 
 
 def condition(d: Decision, c: Candidate, verdicts: list[Verdict], mode: str) -> str | None:
-    """The one sentence a CONDITIONAL candidate carries: for the fallback pick, the checks every judge failed; for a
-    judge split, the split checks with a failing and a passing judge's reason (D10). Cost is part of it only in gate
-    mode; in annotate mode it is a separate mark."""
+    """The one sentence a CONDITIONAL candidate carries: for the fallback pick (marked by the failure_type it keeps),
+    the checks it missed; for a judge split, each split check with a failing and a passing judge's reason (D10). Cost
+    is part of it only in gate mode; in annotate mode it is a separate mark."""
     if d.final != "conditional":
         return None
+    def reason(k: str, fails: bool) -> str:
+        return next(getattr(v, k).reason for v in verdicts if failed(v, k) == fails).rstrip(".")
     parts = []
-    missed = [k for k in JUDGMENT if k in failed_by_all(verdicts)]
-    if missed:
-        reason = next(getattr(v, missed[0]).reason for v in verdicts if failed(v, missed[0]))
+    missed = [k for k in JUDGMENT if k in failed_by_any(verdicts)]
+    if d.failure_type and missed:
         parts.append(f"No idea passed every check; this one passes every safety gate but not {', '.join(missed)} "
-                     f"({reason})")
+                     f"({reason(missed[0], True)})")
     elif d.judgment_splits:
-        k = d.judgment_splits[0]
-        fails, passes = (next(getattr(v, k).reason for v in verdicts if failed(v, k) == f) for f in (True, False))
-        parts.append(f"The judges split on {', '.join(d.judgment_splits)}: one fails {k} ({fails.rstrip('.')}) and "
-                     f"one passes it ({passes.rstrip('.')})")
+        parts.append("The judges split: " + "; ".join(
+            f"on {k}, one fails it ({reason(k, True)}) and another passes it ({reason(k, False)})"
+            for k in d.judgment_splits))
     if mode == "gate" and d.economics_verdict in ECON_CONDITION and c.economics:
         parts.append(f"{ECON_CONDITION[d.economics_verdict]}: {c.economics.assumption_line.split('. ')[0]}")
     return " ".join(p.rstrip(".") + "." for p in parts)
@@ -426,7 +422,8 @@ def judge_run(ctx: Ctx, work: Path, model: ProductModel, candidates: list[Candid
     everyone = {c.id: c for c in candidates + revised}
     pick = fallback_pick(list(decisions.values()), everyone, verdicts, superseded(revised, decisions, verdicts))
     if pick:
-        decisions[pick] = decisions[pick].model_copy(update={"final": "conditional", "failure_type": None})
+        # the pick keeps its reject's failure_type: that is how flows and condition() tell it from a split (D10)
+        decisions[pick] = decisions[pick].model_copy(update={"final": "conditional"})
         run_trace(ctx.run_dir, stage="judge", step="fallback", decider="code",
                   note=f"nothing survived; {pick} passes every gate and no premise check every judge failed "
                        "-> CONDITIONAL")
