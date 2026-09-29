@@ -1,5 +1,7 @@
 """Rendering geometry and the code-owned navigation runtime, on every golden."""
 
+import inspect
+import logging
 import re
 
 import pytest
@@ -137,22 +139,27 @@ class RefusingPage:
         return b"png"
 
 
-def test_a_refused_capture_is_tried_once_more_and_nothing_else_is():
+def test_a_refused_capture_is_tried_once_more_logged_and_nothing_else_is(caplog):
+    caplog.set_level(logging.WARNING, logger="simula.render")
     once = RefusingPage(1)
     assert screenshot(once, animations="disabled") == b"png" and once.calls == 2
+    assert [r.getMessage() for r in caplog.records] == [f"Chromium refused a screenshot ({CAPTURE_REFUSED}); "
+                                                         "trying once more"]
     twice = RefusingPage(2)
     with pytest.raises(PlaywrightError, match=CAPTURE_REFUSED):
         screenshot(twice)
-    assert twice.calls == 2
+    assert twice.calls == 2 and len(caplog.records) == 2
     closed = RefusingPage(1, error="Target page, context or browser has been closed")
     with pytest.raises(PlaywrightError, match="has been closed"):
         screenshot(closed)
-    assert closed.calls == 1
+    assert closed.calls == 1 and len(caplog.records) == 2
 
 
 def test_every_browser_capture_goes_through_render_screenshot():
+    """Any `.screenshot(` call (page, frame, tab, locator) under simula/ is render.screenshot or the helper itself."""
+    lines, start = inspect.getsourcelines(screenshot)
+    helper = {f"simula/render.py:{n}" for n in range(start, start + len(lines))}
     direct = [f"{path.relative_to(ROOT)}:{n}" for path in sorted((ROOT / "simula").rglob("*.py"))
-              for n, line in enumerate(path.read_text().splitlines(), 1) if "page.screenshot(" in line]
-    assert direct == ["simula/render.py:" + str(n) for n, line in
-                      enumerate((ROOT / "simula" / "render.py").read_text().splitlines(), 1)
-                      if "return page.screenshot(**options)" in line], direct
+              for n, line in enumerate(path.read_text().splitlines(), 1)
+              if len(re.findall(r"\.screenshot\(", line)) > line.count("render.screenshot(")]
+    assert [d for d in direct if d not in helper] == [] and len(direct) == 2, direct
