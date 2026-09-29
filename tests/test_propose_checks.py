@@ -438,13 +438,65 @@ def with_terms(model):
     return model.model_copy(update={"terms": terms})
 
 
-@pytest.mark.parametrize("field", ["title", "offer_copy", "after_reward"])
+PRINTED = ["title", "offer_copy", "after_reward", "adds", "placement", "trigger_event", "frequency_cap", "rationale",
+           "subscriber_treatment", "reward.unit", "reward.duration", "caption"]
+
+
+def with_words(model, field: str, words: str):
+    """candidate() with `words` in one field the slides print."""
+    base = candidate(model)
+    if field.startswith("reward."):
+        return candidate(model, reward={**base.reward.model_dump(), field.split(".")[1]: words})
+    if field == "caption":
+        steps = [s.model_dump() for s in base.flow_steps]
+        return candidate(model, flow_steps=steps[:-1] + [{**steps[-1], "caption": words}])
+    return candidate(model, **{field: words})
+
+
+@pytest.mark.parametrize("field", PRINTED)
 def test_an_idea_using_a_term_whose_meaning_was_never_observed_is_flagged_and_stays_live(model, field):
     m = with_terms(model)
-    c = candidate(m, **{field: "Play once for 3 zap\xa0credits."})
+    c = with_words(m, field, "Play once for 3 zap\xa0credits.")
     assert check(c, m) is None
     [out], *_ = finish([c], m, "annotate")
     assert out.dropped_reason is None and out.flags == ['uses "Zap Credits", whose meaning was never observed']
+
+
+def janitor_terms(model, free_is_everyday: bool):
+    """Two unobserved terms from the real JanitorAI run: the plan name "Free" ("Everything in Free, plus:") and the
+    tab "Hidden Gems"."""
+    terms = [Term(term="Free", meaning="meaning not observed", defined_by=[], used_in=[], observed=False,
+                  everyday=free_is_everyday),
+             Term(term="Hidden Gems", meaning="meaning not observed", defined_by=[], used_in=[], observed=False)]
+    return model.model_copy(update={"terms": terms})
+
+
+def c10_rev(model, last_caption: str = "Badge shows"):
+    """The real run's c10-rev, a deck idea: "free" only as the everyday adjective, in fields the slides print."""
+    steps = [s.model_dump() for s in candidate(model).flow_steps]
+    steps[0]["caption"] = "A free user reads the $12.99 a month offer and taps close."
+    steps[-1]["caption"] = last_caption
+    return candidate(model, trigger_event="A free user taps close on the paywall without subscribing.",
+                     rationale="It lets free users try a paid perk on their own profile for a day.", flow_steps=steps)
+
+
+def test_a_free_user_is_not_flagged_when_free_is_an_everyday_word(model):
+    m = janitor_terms(model, free_is_everyday=True)
+    [out], *_ = finish([c10_rev(m)], m, "annotate")
+    assert out.dropped_reason is None and out.flags == []
+    assert '- "Free"' not in propose.model_text(m) and '- "Hidden Gems"' in propose.model_text(m)
+
+
+def test_without_the_label_free_flags_as_before(model):
+    m = janitor_terms(model, free_is_everyday=False)
+    [out], *_ = finish([c10_rev(m)], m, "annotate")
+    assert out.flags == ['uses "Free", whose meaning was never observed']
+
+
+def test_an_unobserved_app_name_in_a_caption_is_flagged_beside_an_everyday_word(model):
+    m = janitor_terms(model, free_is_everyday=True)
+    [out], *_ = finish([c10_rev(m, last_caption="Hidden Gems shows the character first for a day.")], m, "annotate")
+    assert out.dropped_reason is None and out.flags == ['uses "Hidden Gems", whose meaning was never observed']
 
 
 def flagged_and_clean(m, flagged_ranks_higher=True):
@@ -480,7 +532,8 @@ def test_an_observed_term_can_be_used_and_the_unobserved_one_is_listed_for_the_p
     [out], *_ = finish([candidate(m, offer_copy="Play once for a day of Pro.")], m, "annotate")
     assert out.dropped_reason is None and out.flags == []
     text = propose.model_text(m)
-    assert '- "Zap Credits"' in text and '- "Pro"' not in text and "code flags an idea that does for a person reviewing the output" in text
+    assert '- "Zap Credits"' in text and '- "Pro"' not in text and "don't use them anywhere in the idea" in text
+    assert "code flags an idea that does for a person reviewing the output" in text
     assert "never observed" not in propose.model_text(model.model_copy(update={"terms": []}))
 
 

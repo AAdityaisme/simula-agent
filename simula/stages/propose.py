@@ -100,8 +100,8 @@ def model_text(model: ProductModel) -> str:
         lines.append(f"- {f.id} {f.name}: {f.purpose} ({' -> '.join(path)})")
     lines += ["", "### Open questions (not observed)"] + [f"- {q}" for q in model.open_questions]
     if unobserved := unobserved_terms(model):
-        lines += ["", "### App terms whose meaning was never observed (don't use them in a title, offer_copy, or "
-                      "after_reward; code flags an idea that does for a person reviewing the output)"]
+        lines += ["", "### App terms whose meaning was never observed (don't use them anywhere in the idea; code "
+                      "flags an idea that does for a person reviewing the output)"]
         lines += [f'- "{t}"' for t in unobserved]
     lines += ["", "### Screens in scope"]
     for s in model.states:
@@ -157,7 +157,8 @@ def ask_lens(ctx: Ctx, model: ProductModel, lens: Lens, system: str, budget: llm
 # ---------- code checks ----------
 
 def unobserved_terms(model: ProductModel) -> list[str]:
-    return [t.term for t in model.terms if not t.observed]
+    """App terms no screen explained, except everyday words: their plain-English meaning is the app's."""
+    return [t.term for t in model.terms if not t.observed and not t.everyday]
 
 
 def uses_term(term: str, words: str) -> bool:
@@ -168,11 +169,17 @@ def uses_term(term: str, words: str) -> bool:
     return bool(parts) and re.search(pattern, words, re.IGNORECASE) is not None
 
 
+def printed(c: Candidate) -> list[str]:
+    """Every field of the idea the slides print word for word."""
+    return [c.title, c.offer_copy, c.after_reward, c.adds or "", c.placement, c.trigger_event, c.frequency_cap,
+            c.rationale, c.subscriber_treatment, c.reward.unit, c.reward.duration, *(s.caption for s in c.flow_steps)]
+
+
 def jargon_flags(c: Candidate, model: ProductModel) -> list[str]:
-    """One flag per unobserved term the idea's title, offer, or after_reward uses, in term order. The idea stays
-    live; the judge rules on the flag."""
+    """One flag per unobserved term anything the slides print of the idea uses, in term order. The idea stays live;
+    the flag is for a person reviewing the output."""
     return [f'uses "{term}", whose meaning was never observed' for term in unobserved_terms(model)
-            if any(uses_term(term, words) for words in (c.title, c.offer_copy, c.after_reward))]
+            if any(uses_term(term, words) for words in printed(c))]
 
 
 def anchor_ids(model: ProductModel) -> set[str]:
