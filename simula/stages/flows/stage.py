@@ -13,8 +13,8 @@ from simula.contracts import Candidate, CandidatesFile, Decision, DecisionsFile,
 from simula.runlog import read_trace, run_trace, write_exhibit
 from simula.stages import Ctx
 from simula.stages.flows.deck import deck
-from simula.stages.flows.editor import apply_edits, ask_editor, strip_runtime
-from simula.stages.flows.page import ad_palette_css, blur_css, decline_edges, flow_page, with_flow_css
+from simula.stages.flows.editor import apply_edits, ask_editor
+from simula.stages.flows.page import ad_palette_css, blur_css, decline_edges, flow_page, strip_runtime, with_flow_css
 from simula.stages.flows.pdf import write_pdf
 from simula.stages.flows.walk import screenshot_before, walk, walk_decline, walk_failed_ad
 from simula.stages.flows.wording import NOT_WIRED, REWARD_NOT_SHOWN, caption

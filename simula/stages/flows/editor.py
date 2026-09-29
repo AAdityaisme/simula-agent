@@ -1,6 +1,5 @@
 """The editor call: the one model call per idea that adds the idea's screens as find/replace edits."""
 
-import json
 import re
 
 from simula import config, llm
@@ -14,17 +13,6 @@ from simula.stages.propose import BUCKETS
 
 PROMPTS = ROOT / "prompts" / "flows"
 MAX_TOKENS = 16000
-RUNTIME_BLOCKS = (r'<style id="simula-runtime">.*?</style>\n?', r'<script id="simula-runtime-js">.*?</script>\n?')
-
-
-def strip_runtime(html: str) -> str:
-    for pattern in RUNTIME_BLOCKS:
-        html = re.sub(pattern, "", html, flags=re.S)
-    return html
-
-
-def page_root(html: str) -> str:
-    return json.loads(re.search(r"const ROOT = (.*?);", html).group(1))
 
 
 def system_prompt() -> str:

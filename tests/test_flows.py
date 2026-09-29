@@ -116,7 +116,7 @@ def fake_editor(run_dir, calls: list | None = None, only: str | None = None, **o
         cid = kwargs["step"].split(":")[1]
         if calls is not None:
             calls.append(cid)
-        page = flows.editor.strip_runtime((run_dir / "mock" / "index.html").read_text())
+        page = flows.page.strip_runtime((run_dir / "mock" / "index.html").read_text())
         return fake_edits(ideas[cid], page, **(options if only in (None, cid) else {})), None
     return call
 
@@ -512,7 +512,7 @@ def test_code_flags_show_on_the_score_page_and_reach_no_slide_or_model(tmp_path,
     assert scores.count("flagged by code") == 1
     assert f"flagged by code: {FLAG}" in scores[scores.index("c01 "):scores.index("c02 ")]
     main = text_of("".join(flows.deck.idea_slides(drawn(ideas["c01"], decisions[0]), model, run_dir, False)))
-    page = flows.editor.strip_runtime((run_dir / "mock" / "index.html").read_text())
+    page = flows.page.strip_runtime((run_dir / "mock" / "index.html").read_text())
     editor = flows.editor.editor_brief(ideas["c01"], model, page) + flows.editor.system_prompt()
     assert "Flagged" not in main and FLAG not in main and FLAG not in editor
 
@@ -818,7 +818,7 @@ def test_saying_no_taps_the_offers_own_way_back_never_the_apps_close(tmp_path, a
         added[first] = f'<button data-edge="{first}>{screen}" data-transition="modal" {style.format(700)}>Open</button>'
 
     def editor(**kwargs):
-        page = flows.editor.strip_runtime((run_dir / "mock" / "index.html").read_text())
+        page = flows.page.strip_runtime((run_dir / "mock" / "index.html").read_text())
         edits = []
         for sid, markup in added.items():
             close = page.index("</section>", page.index(re.search(rf'<section[^>]*data-screen="{sid}"', page).group(0)))

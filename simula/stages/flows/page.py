@@ -9,13 +9,13 @@ from PIL import Image
 
 from simula import render
 from simula.contracts import Candidate, ProductModel
-from simula.stages.flows.editor import page_root
 from simula.stages.flows.wording import FAIL_NOTE, reward_line
 from simula.stages.mock import StartTags, _insert_before, _rewrite, with_runtime
 
 ART_MIN_PX = 240
 VIEW_W, VIEW_H = render.VIEWPORT["width"], render.VIEWPORT["height"]
 ACCENT_MIN_CHROMA = 0.25  # 67 real palettes: accents 0.40-0.85, every other color 0.16 or less, grays 0.06 or less
+RUNTIME_BLOCKS = (r'<style id="simula-runtime">.*?</style>\n?', r'<script id="simula-runtime-js">.*?</script>\n?')
 FLOW_CSS = """body:not(.simula-rewarded) [data-reward]{display:none!important}
 body.simula-rewarded [data-unrewarded]{display:none!important}
 body.simula-hide-replaced [data-unrewarded]{opacity:0!important}
@@ -87,6 +87,16 @@ FLOW_JS = """(() => {
     shown = on;
   }).observe(ad, {attributes: true, attributeFilter: ['class']});
 })();"""
+
+
+def strip_runtime(html: str) -> str:
+    for pattern in RUNTIME_BLOCKS:
+        html = re.sub(pattern, "", html, flags=re.S)
+    return html
+
+
+def page_root(html: str) -> str:
+    return json.loads(re.search(r"const ROOT = (.*?);", html).group(1))
 
 
 def is_art(path: Path) -> bool:
