@@ -298,6 +298,10 @@ def test_a_paywall_captured_twice_has_each_bullet_quoted_once():
     elsewhere = LedgerItem(id="v3", kind="actor", verbatim="A badge by your name", evidence_ids=["s05.e01"])
     assert [i.evidence_ids for i in stage.folded_bullets([*ledger, elsewhere], [capture("s01"), capture("s02")])] == \
         [["s01.e03"]], "the same words quoted as something else still leave the benefit without a paywall bullet"
+    as_limit = [ledger[0], LedgerItem(id="v2", kind="limit", verbatim="Faster replies", evidence_ids=["s01.e02"]),
+                LedgerItem(id="v3", kind="paywall_bullet", verbatim="More memory", evidence_ids=["s02.e01"])]
+    assert [i.evidence_ids for i in stage.folded_bullets(as_limit, [capture("s01"), capture("s02")])] == \
+        [["s01.e03"]], "a bullet the model filed as another kind is quoted on neither capture"
 
 
 def test_the_model_may_not_write_measured_experience(app):
