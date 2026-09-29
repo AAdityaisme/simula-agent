@@ -1,0 +1,16 @@
+{
+ "id": "pd-c1-flagrant",
+ "target": "c1_revealed_value",
+ "tier": "flagrant",
+ "one_liner": "The prize becomes an hour of Search, which is already free with no limit.",
+ "author": "aadi",
+ "expanded_by": "claude-opus-5-5",
+ "base": "kg-run-janitorai-c02",
+ "change": {
+  "reward": {
+   "kind": "feature_time",
+   "unit": "hour of Search",
+   "amount": 1.0
+  }
+ }
+}

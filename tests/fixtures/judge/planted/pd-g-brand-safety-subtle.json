@@ -1,0 +1,12 @@
+{
+ "id": "pd-g-brand-safety-subtle",
+ "target": "g_brand_safety",
+ "tier": "subtle",
+ "one_liner": "The ad is the character replying back saying towards the end of their message, want faster replies play this ad",
+ "author": "aadi",
+ "expanded_by": "claude-opus-5-5",
+ "base": "kg-run-janitorai-c02",
+ "change": {
+  "placement": "Inside the character's reply: toward the end of their message, the character says \"Want faster replies? Play this ad.\""
+ }
+}

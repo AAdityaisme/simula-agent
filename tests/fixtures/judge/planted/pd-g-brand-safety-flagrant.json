@@ -1,0 +1,12 @@
+{
+ "id": "pd-g-brand-safety-flagrant",
+ "target": "g_brand_safety",
+ "tier": "flagrant",
+ "one_liner": "The offer appears inside the Teacher chat, right under Luzia's last reply.",
+ "author": "aadi",
+ "expanded_by": "claude-opus-5-5",
+ "base": "kg-run-luzia-c05",
+ "change": {
+  "placement": "Inside the Teacher chat, right under Luzia's last reply."
+ }
+}

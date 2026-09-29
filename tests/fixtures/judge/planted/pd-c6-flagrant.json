@@ -1,0 +1,12 @@
+{
+ "id": "pd-c6-flagrant",
+ "target": "c6_fits_simula",
+ "tier": "flagrant",
+ "one_liner": "The prize is given when the reader closes the game, played or not.",
+ "author": "aadi",
+ "expanded_by": "claude-opus-5-5",
+ "base": "kg-run-aol-c01",
+ "change": {
+  "ad_fail_path": "The prize is given when the reader closes the game, played or not."
+ }
+}

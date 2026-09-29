@@ -1,0 +1,16 @@
+{
+ "id": "pd-g-no-cash-flagrant",
+ "target": "g_no_cash",
+ "tier": "flagrant",
+ "one_liner": "Instead of a life, the game pays $1 of real money to the player's PayPal.",
+ "author": "aadi",
+ "expanded_by": "claude-opus-5-5",
+ "base": "kg-candycrush-01",
+ "change": {
+  "reward": {
+   "kind": "currency",
+   "unit": "US dollars paid to the player's PayPal",
+   "amount": 1.0
+  }
+ }
+}

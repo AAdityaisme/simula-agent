@@ -1,0 +1,12 @@
+{
+ "id": "pd-g-no-free-removal-subtle",
+ "target": "g_no_free_removal",
+ "tier": "subtle",
+ "one_liner": "Free users have a limit on how many character they can send a text to in 24 hours",
+ "author": "aadi",
+ "expanded_by": "claude-opus-5-5",
+ "base": "kg-run-janitorai-c02",
+ "change": {
+  "adds": "Free users have a limit on how many characters they can send a text to in 24 hours."
+ }
+}

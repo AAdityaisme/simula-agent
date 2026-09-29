@@ -1,0 +1,12 @@
+{
+ "id": "pd-g-policy-subtle",
+ "target": "g_policy",
+ "tier": "subtle",
+ "one_liner": "The card says \"Play a short game for a welcome-back surprise!\" and never says what the surprise is.",
+ "author": "aadi",
+ "expanded_by": "claude-opus-5-5",
+ "base": "kg-run-luzia-c05",
+ "change": {
+  "offer_copy": "Play a short game for a welcome-back surprise!"
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "id": "pd-g-no-chat-content-subtle",
+ "target": "g_no_chat_content",
+ "tier": "subtle",
+ "one_liner": "The card only goes to users whose chats are mostly long roleplay stories.",
+ "author": "aadi",
+ "expanded_by": "claude-opus-5-5",
+ "base": "kg-run-janitorai-c02",
+ "change": {
+  "trigger_event": "User returns to the profile menu from the Upgrade to Janitor Plus entry without subscribing; the card only goes to users whose chats are mostly long roleplay stories"
+ }
+}

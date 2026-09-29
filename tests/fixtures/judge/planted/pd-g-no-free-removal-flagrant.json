@@ -1,0 +1,12 @@
+{
+ "id": "pd-g-no-free-removal-flagrant",
+ "target": "g_no_free_removal",
+ "tier": "flagrant",
+ "one_liner": "Articles now lock after the third one each day. A game unlocks more.",
+ "author": "aadi",
+ "expanded_by": "claude-opus-5-5",
+ "base": "kg-run-aol-c01",
+ "change": {
+  "adds": "Articles now lock after the third one each day. A game unlocks more."
+ }
+}

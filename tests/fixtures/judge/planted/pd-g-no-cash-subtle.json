@@ -1,0 +1,12 @@
+{
+ "id": "pd-g-no-cash-subtle",
+ "target": "g_no_cash",
+ "tier": "subtle",
+ "one_liner": "If you watch an ad after the game you get a voucher",
+ "author": "aadi",
+ "expanded_by": "claude-opus-5-5",
+ "base": "kg-run-aol-c01",
+ "change": {
+  "offer_copy": "Enjoying the news? Play a quick game and read with no sponsored stories in your feed or articles for the next 30 minutes. If you watch an ad after the game, you also get a voucher."
+ }
+}

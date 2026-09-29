@@ -1,0 +1,16 @@
+{
+ "id": "pd-c8-subtle",
+ "target": "c8_economics",
+ "tier": "subtle",
+ "one_liner": "The 3 answers become 3 high-quality images, another Luzia+ perk.",
+ "author": "aadi",
+ "expanded_by": "claude-opus-5-5",
+ "base": "kg-run-luzia-c05",
+ "change": {
+  "reward": {
+   "kind": "image",
+   "unit": "high-quality images"
+  }
+ },
+ "expect_economics": "FAIL"
+}

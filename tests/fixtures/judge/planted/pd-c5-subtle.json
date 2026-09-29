@@ -1,0 +1,12 @@
+{
+ "id": "pd-c5-subtle",
+ "target": "c5_moment",
+ "tier": "subtle",
+ "one_liner": "The card opens as soon as the user taps to start a new chat, before they pick who to talk to.",
+ "author": "aadi",
+ "expanded_by": "claude-opus-5-5",
+ "base": "kg-run-luzia-c05",
+ "change": {
+  "trigger_event": "The user taps to start a new chat; the card opens right away, before they pick who to talk to"
+ }
+}

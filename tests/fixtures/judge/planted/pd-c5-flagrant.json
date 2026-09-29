@@ -1,0 +1,12 @@
+{
+ "id": "pd-c5-flagrant",
+ "target": "c5_moment",
+ "tier": "flagrant",
+ "one_liner": "The offer pops up over the article while the reader is halfway through it.",
+ "author": "aadi",
+ "expanded_by": "claude-opus-5-5",
+ "base": "kg-run-aol-c01",
+ "change": {
+  "trigger_event": "The reader is halfway through an article; the offer pops up over the article"
+ }
+}

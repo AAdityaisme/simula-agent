@@ -1,0 +1,81 @@
+{
+ "id": "pd-c7-flagrant",
+ "target": "c7_specific",
+ "tier": "flagrant",
+ "one_liner": "The idea becomes \"Play a game to get premium for a day,\" with nothing about Luzia in it.",
+ "author": "aadi",
+ "expanded_by": "claude-opus-5-5",
+ "from_run": "kg-run-luzia-c05 (PR 5 round 6: runs/luzia/20260928-042747-6d79ef8-fixture/propose/candidates.json c05), edited: every Luzia detail removed; trigger_state_id and flow screens stay because the schema needs a screen",
+ "app": "luzia",
+ "app_type": "AI assistant chat",
+ "in_test_set": true,
+ "model": "golden/luzia/product_model.json",
+ "candidate": {
+  "id": "c05",
+  "lens": "drifting",
+  "kind": "existing_anchor",
+  "title": "Play a game to get premium for a day",
+  "anchor_evidence_ids": [],
+  "bible_mechanic": "M02",
+  "what_is_different_here": "People like premium features, so a free day of premium is a good reward.",
+  "adds": null,
+  "removes_nothing_free": true,
+  "trigger_event": "The user opens the app",
+  "trigger_state_id": "s01",
+  "placement": "A card in the app",
+  "offer_copy": "Play a game to get premium for a day.",
+  "reward": {
+   "kind": "feature_time",
+   "unit": "day of premium",
+   "amount": 1.0,
+   "duration": "24 hours"
+  },
+  "for_users": "free",
+  "grants_id": null,
+  "cost_inputs": {
+   "inference_count": 0,
+   "tokens_in": 0,
+   "tokens_out": 0,
+   "minutes": 1440.0,
+   "currency_amount": 0.0
+  },
+  "frequency_cap": "1 per day",
+  "decline_path": "Closing the card changes nothing.",
+  "ad_fail_path": "If the game doesn't load or doesn't count, nothing changes and the try isn't used.",
+  "subscriber_treatment": "Subscribers don't see it.",
+  "advertiser_category": "Casual mobile games, streaming services, language and learning apps",
+  "character_use": "None",
+  "flow_steps": [
+   {
+    "state_id": "s01",
+    "caption": "The user opens the app."
+   },
+   {
+    "state_id": "s01",
+    "caption": "A card offers premium for a day for a game."
+   },
+   {
+    "state_id": "new:sponsored-game",
+    "caption": "The user plays the game."
+   },
+   {
+    "state_id": "s01",
+    "caption": "Premium is on for a day."
+   }
+  ],
+  "after_reward": "When the day ends, premium turns off.",
+  "rationale": "Premium for free makes users happy and shows them what they would pay for.",
+  "economics": {
+   "cost_2k": 0.0063,
+   "cost_8k": 0.0108,
+   "breakeven_ecpm_2k": 6.3,
+   "breakeven_ecpm_8k": 10.8,
+   "benchmark_ecpm": 10.16,
+   "verdict": "CONDITIONAL",
+   "assumption_line": "Costs ~$0.0063 per reward to serve; pays for itself above $6.30 eCPM at 2k context ($10.80 at 8k). A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 3 replies of 800 tokens out, at $0.25 / $2.00 per million tokens in / out (central prices); the verdict uses the 8k figure; one view per reward; a publisher-net eCPM (share 1)."
+  },
+  "reach_score": 1.0,
+  "rank_score": 1.0,
+  "dropped_reason": null
+ }
+}

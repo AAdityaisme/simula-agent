@@ -6,6 +6,7 @@ Test data for `uv run python -m simula.validate validate-judge` (ARCHITECTURE §
 - `known_good/models/<app>.json`: a product-model sketch for an app outside the test set.
 - `planted/<id>.json`: a base with exactly one field changed, aimed at one check; or a real candidate from a run that fails one check.
 - `labels/<id>.json`: blind human labels written by `python -m simula.validate label`.
+- `flagged/<id>.json`: a pick that doesn't clearly break its target as written, held out of the gate until Aadi decides; `git mv` it into `planted/` to count it.
 
 Ids: lowercase with dashes, no underscores (`kg-fitness-01`, `pd-g-policy-flagrant`).
 
