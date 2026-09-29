@@ -265,7 +265,8 @@ def test_a_record_that_fails_after_the_stage_ran_leaves_no_marker_so_the_next_ru
     assert "mock" in read_manifest(run_dir).stages_done
 
 
-def test_the_manifest_never_lists_a_stage_whose_marker_failed_to_write(runs, mock_stage, monkeypatch):
+@pytest.mark.parametrize("replay", [[], ["--replay"]], ids=["live", "replay"])
+def test_the_manifest_never_lists_a_stage_whose_marker_failed_to_write(runs, mock_stage, monkeypatch, replay):
     run_dir = seeded_run(runs)
     assert "mock" in read_manifest(run_dir).stages_done
     writes = runfolder.write_done
@@ -274,7 +275,7 @@ def test_the_manifest_never_lists_a_stage_whose_marker_failed_to_write(runs, moc
         raise OSError("an output can't be read")
     monkeypatch.setattr(runfolder, "write_done", unhashable)
     with pytest.raises(OSError):
-        cli.main(["mock", "janitorai", "--run", run_dir.name, "--allow-fixtures"])
+        cli.main(["mock", "janitorai", "--run", run_dir.name, "--allow-fixtures", *replay])
     assert not (run_dir / "mock" / "done.json").exists() and "mock" not in read_manifest(run_dir).stages_done
     monkeypatch.setattr(runfolder, "write_done", writes)
     assert rerun(run_dir) and "mock" in read_manifest(run_dir).stages_done
@@ -415,6 +416,9 @@ def test_a_stage_that_cannot_replay_keeps_its_committed_marker(runs, monkeypatch
     assert (run_dir / "mock" / "done.json").read_bytes() == committed, "the committed record survives"
     assert "ReplayMiss" in (run_dir / "mock" / "failure.json").read_text()
     assert cli.upstream_problem(run_dir, "qa").startswith("mock failed after it last finished")
+    assert not runlog.complete(run_dir, "mock"), "beside a newer failure it counts as not done, as for the stages below"
+    with pytest.raises(llm.ReplayMiss):
+        rerun(run_dir, "--replay")
 
 
 def test_simula_runs_check_reruns_a_stage_whose_marker_is_damaged(runs, mock_stage):

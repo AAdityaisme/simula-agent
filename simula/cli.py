@@ -89,8 +89,8 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
         return True
     module = importlib.import_module(f"simula.stages.{stage}")
     stage_dir.mkdir(exist_ok=True)
-    # A live rerun's old marker no longer holds. --replay keeps it until the new one is written, so a stage that can't
-    # be replayed never costs the run its committed record.
+    # A live rerun's old marker no longer holds. --replay keeps it while the stage runs, so a stage that can't be
+    # replayed keeps the run's committed record (beside a newer failure.json, which counts as not done).
     if not ctx.replay:
         (stage_dir / "done.json").unlink(missing_ok=True)
     runlog.sync_manifest(ctx.run_dir)
@@ -122,6 +122,8 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
         runfolder.write_failure(stage_dir, reason)
         runlog.run_trace(ctx.run_dir, stage=stage, step="run", decider="code", outcome="error", note=reason[:300])
         raise
+    (stage_dir / "done.json").unlink(missing_ok=True)  # the stage ran, so an old marker no longer describes its output
+    runlog.sync_manifest(ctx.run_dir)
     traced = [line for line in runlog.read_trace(trace_path)[traced_before:] if line.stage == stage]
     capped = [split_key(line.note)[1] for line in traced if line.outcome == "cap"]
     outcome = finished_outcome(stage, ctx, result, capped)

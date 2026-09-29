@@ -60,14 +60,19 @@ def sync_manifest(run_dir: Path) -> Manifest:
 
 
 def read_marker(run_dir: Path, stage: str) -> DoneMarker | None:
-    """The stage's done.json, or None when it has none. A marker that can't be read counts as none, with a trace line
-    naming it, so it never blocks the run that would rewrite it."""
+    """The stage's done.json while it holds. None when there is none, when the stage failed after it last finished
+    (a newer failure.json, the rule upstream stages are held to), or when it can't be read, with a trace line naming
+    it, so it never blocks the run that would rewrite it."""
+    done, failure = run_dir / stage / "done.json", run_dir / stage / "failure.json"
     try:
-        return read_done(run_dir / stage)
+        marker = read_done(run_dir / stage)
     except (ValidationError, OSError) as e:
         run_trace(run_dir, stage=stage, step="marker", decider="code", outcome="error",
                   note=f"done.json can't be read, so the stage counts as not done: {e}"[:300])
         return None
+    if marker and failure.exists() and failure.stat().st_mtime > done.stat().st_mtime:
+        return None
+    return marker
 
 
 def complete(run_dir: Path, stage: str) -> bool:
