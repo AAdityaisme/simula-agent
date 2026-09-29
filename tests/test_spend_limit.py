@@ -1,6 +1,6 @@
-"""Money on failure. A provider's own spend limit stops the run cleanly (CapReached: needs-human.md, exit 4),
-even when it arrives as a 400. Any other API error is a typed LLMFailure. An aborted stream is charged for what
-it already spent."""
+"""Money on failure. A provider refusing the account (a usage, spend, quota or billing limit, even as a 400) is an
+outage, not our cap: ProviderUnavailable fails the stage with no done.json, needs-human.md, exit 5. Any other API
+error is a typed LLMFailure. An aborted stream is charged its worst case."""
 
 import json
 from types import SimpleNamespace
@@ -43,9 +43,9 @@ def ask(provider: str, model: str, max_tokens: int = 100):
 
 
 @pytest.mark.parametrize("max_tokens", [100, 64000], ids=["plain", "streamed"])
-def test_an_anthropic_usage_limit_400_is_a_cap(monkeypatch, max_tokens):
+def test_an_anthropic_usage_limit_400_is_a_provider_outage_not_our_cap(monkeypatch, max_tokens):
     fake_anthropic(monkeypatch, error_400(anthropic, "https://api.anthropic.com/v1/messages", USAGE_LIMIT))
-    with pytest.raises(llm.CapReached, match="usage limit"):
+    with pytest.raises(llm.ProviderUnavailable, match="usage limit"):
         ask("anthropic", "claude-haiku-4-5-20251001", max_tokens)
 
 
@@ -56,10 +56,10 @@ def test_any_other_anthropic_400_is_a_typed_error(monkeypatch):
     assert failure.value.outcome == "error"
 
 
-def test_an_openai_billing_limit_400_is_a_cap(monkeypatch):
+def test_an_openai_billing_limit_400_is_a_provider_outage_not_our_cap(monkeypatch):
     fake_openai(monkeypatch, error_400(openai, "https://api.openai.com/v1/responses",
                                        "Billing hard limit has been reached", "billing_hard_limit_reached"))
-    with pytest.raises(llm.CapReached, match="billing limit"):
+    with pytest.raises(llm.ProviderUnavailable, match="billing limit"):
         ask("openai", "gpt-6-luna")
 
 
@@ -212,22 +212,26 @@ def test_an_untyped_error_on_a_plain_call_is_a_typed_failure_that_releases_its_h
     assert (budget.held, budget.spent) == (0, 0) and read_trace(tmp_path / "trace.jsonl")[-1].outcome == "error"
 
 
-def test_a_provider_spend_limit_still_stops_the_call_and_releases_its_hold(monkeypatch, tmp_path):
+def test_a_provider_usage_limit_stops_the_call_releases_its_hold_and_is_never_cached(monkeypatch, tmp_path):
     fake_anthropic(monkeypatch, error_400(anthropic, "https://api.anthropic.com/v1/messages", USAGE_LIMIT))
     budget = llm.Budget("model", 10.0)
-    with pytest.raises(llm.CapReached, match="usage limit"):
+    with pytest.raises(llm.ProviderUnavailable, match="usage limit"):
         ask_through_call(tmp_path, budget)
-    assert (budget.held, budget.spent) == (0, 0) and read_trace(tmp_path / "trace.jsonl")[-1].outcome == "cap"
+    assert (budget.held, budget.spent) == (0, 0) and read_trace(tmp_path / "trace.jsonl")[-1].outcome == "blocked"
+    assert not (tmp_path / "cache").exists() or not list((tmp_path / "cache").iterdir())
 
 
-def test_a_usage_limit_stops_the_run_with_needs_human_and_exit_4(runs, tmp_path, monkeypatch):
+def test_a_usage_limit_fails_the_stage_with_needs_human_and_exit_5_so_a_rerun_resumes_there(runs, tmp_path,
+                                                                                               monkeypatch):
     fake_anthropic(monkeypatch, error_400(anthropic, "https://api.anthropic.com/v1/messages", USAGE_LIMIT))
     explore = build("luzia", tmp_path / "explore")
     code = cli.main(["run", "luzia", "--new", "--allow-fixtures", "--fixture", f"explore={explore}", "--from", "model",
                      "--profile", "dev"])
     run_dir = (runs / "luzia" / "latest").resolve()
-    assert code == cli.EXIT_CAP
-    assert "$ cap reached" in (run_dir / "needs-human.md").read_text()
+    assert code == cli.EXIT_PROVIDER == 5
+    human = (run_dir / "needs-human.md").read_text()
+    assert "the model provider is refusing calls" in human and "$ cap reached" not in human
+    assert f"simula run luzia --run {run_dir.name} --from model" in human
     assert "usage limit" in (run_dir / "model" / "failure.json").read_text()
     assert not (run_dir / "model" / "done.json").exists()
     assert read_trace(run_dir / "trace.jsonl")[-1].outcome == "blocked"
