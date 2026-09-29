@@ -4,6 +4,7 @@ screen shows, and the walk done by the model. Also: no app's name or content any
 prompts."""
 
 import json
+import tomllib
 from pathlib import Path
 
 from PIL import Image, ImageDraw
@@ -263,13 +264,16 @@ def fixture_titles() -> set[str]:
     return titles
 
 
-def test_the_explorer_code_and_prompts_name_no_app_and_no_content():
-    files = [ROOT / "simula" / "stages" / "explore.py", ROOT / "simula" / "decide.py",
-             *(ROOT / "simula" / "device").glob("*.py"), *(ROOT / "prompts" / "explore").glob("*")]
+def test_the_code_prompts_and_config_name_no_app_and_no_content():
+    files = [ROOT / "simula" / "decide.py", *(ROOT / "simula" / "stages").glob("*.py"),
+             *(ROOT / "simula" / "device").glob("*.py"), *(ROOT / "prompts" / "explore").glob("*"),
+             *(ROOT / "prompts" / "model").glob("*"), *(ROOT / "config").glob("*.toml")]
     banned = APP_WORDS + CONTENT + sorted(fixture_titles())
     assert len(banned) > len(APP_WORDS) + len(CONTENT)
     hits = [(f.name, word) for f in files for word in banned if word in f.read_text().lower()]
     assert hits == []
+    for app in (ROOT / "config" / "apps").glob("*.toml"):
+        assert set(tomllib.loads(app.read_text())) == {"package"}, f"{app.name}: an app is its package name only"
 
 
 def test_the_exhibit_reports_the_invariants_counters(tmp_path, monkeypatch):
