@@ -88,6 +88,18 @@ def test_a_tab_bar_drawn_differently_on_one_screen_fails_on_that_screen_only(tmp
 
 
 @pytest.mark.parametrize("app", APPS)
+def test_a_screen_that_leaves_the_tab_bar_off_fails_though_it_carries_no_mark(tmp_path, app):
+    model = golden(app)
+    last = mock.pick_scope(model)[-1].id
+    run_dir, scope, html = run_with(tmp_path, app, model, lambda h: at_top(h, {**bars(model), last: ""}))
+    share_band(run_dir, model)
+    failures = chrome(qa.measure(ctx_for(run_dir, app), model, scope, 0, html))
+    assert [f["screen"] for f in failures] == [last]
+    assert f'{last} has no data-chrome="tabbar"' in failures[0]["detail"]
+    assert failures[0]["detail"].endswith(f'draw it as {scope[0].id} does, marked data-chrome="tabbar"')
+
+
+@pytest.mark.parametrize("app", APPS)
 def test_the_same_tab_bar_on_every_screen_passes(tmp_path, app):
     model = golden(app)
     run_dir, scope, html = run_with(tmp_path, app, model, lambda h: at_top(h, bars(model)))
@@ -133,8 +145,10 @@ def test_a_bar_drawn_lower_on_one_screen_fails_though_it_looks_the_same():
 
 @pytest.mark.parametrize(("value", "text", "shown"), [
     ("0", "0\nFollowing", True), ("0", "0, Following", True), ("120 coins", "120", True), ("120", "💎 120", True),
-    ("Pro", "PRO", True), ("$1.99", "US$1.99 / week", True), ("1 200", "1 200", True),
+    ("120 coins", "💎 120", True), ("$1.99", "US$1.99 / week", True), ("1 200", "1 200", True),
+    ("Pro", "PRO", True), ("Pro", "Pro plan", True),
     ("0", "10", False), ("0", "1.0", False), ("200", "1,200", False), ("120", "95", False), ("120", "", False),
+    ("120 coins", "coins", False), ("Pro", "Proton", False), ("Pro", "", False),
 ])
 def test_whole_words_decide_whether_a_tag_shows_a_value(value, text, shown):
     assert qa_metrics.shows(value, text) is shown

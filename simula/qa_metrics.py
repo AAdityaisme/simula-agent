@@ -173,9 +173,9 @@ def shared_dom(page, screen: str) -> tuple[dict[str, Rect], list[tuple[str, str]
     return {kind: Rect(**box) for kind, box in dom["chrome"].items()}, [(v["id"], v["text"]) for v in dom["values"]]
 
 
-def union(a: Rect, b: Rect) -> Rect:
-    x0, y0 = min(a.x, b.x), min(a.y, b.y)
-    return Rect(x=x0, y=y0, w=max(a.x + a.w, b.x + b.w) - x0, h=max(a.y + a.h, b.y + b.h) - y0)
+def union(*rects: Rect) -> Rect:
+    x0, y0 = min(r.x for r in rects), min(r.y for r in rects)
+    return Rect(x=x0, y=y0, w=max(r.x + r.w for r in rects) - x0, h=max(r.y + r.h for r in rects) - y0)
 
 
 def box_ssim(a: np.ndarray, b: np.ndarray, box: Rect) -> float | None:
@@ -194,16 +194,18 @@ def chrome_failures(chrome: dict[str, dict[str, Rect]], mocks: dict[str, Image.I
     """Each data-chrome part (a header, a tab bar) must render the same on every screen that draws it: SSIM ≥
     CHROME_GATE over both screens' boxes, so a bar drawn in another place fails too. A pair of screens the real app
     draws differently there (a highlighted tab, a screen title) isn't held to it: the real screens must match at one
-    of the two boxes. The screen that matches fewer others is the one to fix; on a tie, the later in the mock's order.
-    chrome maps each screen, in the mock's order, to its parts' boxes; mocks and reals are content-dp images."""
+    of the pair's boxes. A screen with no tag of the part is compared too, at the other screen's box, so a bar left
+    off one screen, or drawn there without its mark and differently, fails wherever the real screens match. The
+    screen that matches fewer others is the one to fix; on a tie, the later in the mock's order. chrome maps every
+    drawn screen, in the mock's order, to its parts' boxes (none when it marks none); mocks and reals are content-dp
+    images."""
     mock = {sid: np.asarray(image.convert("RGB")) for sid, image in mocks.items()}
     real = {sid: np.asarray(image.convert("RGB")) for sid, image in reals.items()}
     failures = []
     for kind in dict.fromkeys(k for parts in chrome.values() for k in parts):
-        screens = [sid for sid in chrome if kind in chrome[sid]]
         scores = {}
-        for a, b in itertools.combinations(screens, 2):
-            boxes = chrome[a][kind], chrome[b][kind]
+        for a, b in itertools.combinations(chrome, 2):
+            boxes = [chrome[sid][kind] for sid in (a, b) if kind in chrome[sid]]
             same_in_app = [s for s in (box_ssim(real[a], real[b], box) for box in boxes) if s is not None]
             if same_in_app and max(same_in_app) >= CHROME_GATE:
                 scores[a, b] = box_ssim(mock[a], mock[b], union(*boxes))
@@ -215,27 +217,29 @@ def chrome_failures(chrome: dict[str, dict[str, Rect]], mocks: dict[str, Image.I
                 differs.setdefault(odd, []).append((other, score))
         for odd, others in differs.items():
             names = ", ".join(other for other, _ in others)
+            like = next((other for other, _ in others if kind in chrome[other]), others[0][0])
+            marked = kind in chrome[odd]
+            part = f'data-chrome="{kind}" on {odd}' if marked else f'{odd} has no data-chrome="{kind}", and its place'
             failures.append({"kind": "chrome", "screen": odd, "detail":
-                             f'data-chrome="{kind}" on {odd} renders differently from {names} (SSIM '
-                             f'{min(score for _, score in others):.3f} < {CHROME_GATE}), where the real screens show '
-                             f"it the same: draw it as {others[0][0]} does"})
+                             f"{part} renders differently from {names} (SSIM {min(score for _, score in others):.3f} "
+                             f"< {CHROME_GATE}), where the real screens show it the same: draw it as {like} does"
+                             + ("" if marked else f', marked data-chrome="{kind}"')})
     return failures
 
 
-def in_words(part: str, whole: str) -> bool:
-    """part occurs in whole as whole words (any case, any spacing): a number never matches inside a longer one."""
-    words = part.split()
-    if not words:
-        return False
-    start = r"(?<!\w)(?<!\d[.,])" if words[0][0].isalnum() else ""
-    end = r"(?!\w)(?![.,]\d)" if words[-1][-1].isalnum() else ""
-    return re.search(start + r"\s+".join(map(re.escape, words)) + end, whole, re.IGNORECASE) is not None
+NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
 
 
 def shows(value: str, text: str) -> bool:
-    """Whether a tag's text shows a value: one holds the other in whole words. '0 Following' shows '0' and '120'
-    shows '120 coins', but '10' and '1.0' don't show '0'."""
-    return in_words(value, text) or in_words(text, value)
+    """Whether a tag's text shows a value. A value with numbers is shown when each of its numbers is a whole number in
+    the tag, whatever words sit around it: '0 Following' and '💎 0' show '0', and '120' shows '120 coins', but '10',
+    '1.0' and 'coins' don't. A value with no number must appear in whole words, in any case and spacing."""
+    numbers = NUMBER.findall(value)
+    if numbers:
+        return all(n in NUMBER.findall(text) for n in numbers)
+    words = value.split()
+    pattern = r"(?<!\w)" + r"\s+".join(map(re.escape, words)) + r"(?!\w)"
+    return bool(words) and re.search(pattern, text, re.IGNORECASE) is not None
 
 
 def value_failures(values: dict[str, list[tuple[str, str]]], model: ProductModel) -> list[dict]:

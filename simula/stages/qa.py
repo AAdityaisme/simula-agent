@@ -221,7 +221,7 @@ def cross_screen(model: ProductModel, round_dir, shared: dict) -> list[dict]:
     """The cross-screen check on one version: shared chrome renders the same on every screen that draws it, and a
     shared value reads the same wherever it appears. Each failure names the screen to fix; failures go to the critic
     and the fixer like any finding, and never into the score."""
-    chrome = {sid: parts for sid, (parts, _) in shared.items() if parts}
+    chrome = {sid: parts for sid, (parts, _) in shared.items()}
 
     def images(kind: str) -> dict:
         return {sid: Image.open(round_dir / kind / f"{sid}.png") for sid in chrome}
