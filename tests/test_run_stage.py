@@ -4,14 +4,18 @@ file git doesn't track, and every way a stage can exit still leaves failure.json
 import importlib
 import os
 import shlex
+import shutil
 import subprocess
 import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor
 
 import anthropic
 import httpx2
 import pytest
 
 from simula import cli, llm, runfolder, runlog
+from simula.config import STAGES
 from simula.contracts import StageOutcome
 from simula.runlog import read_manifest, read_trace
 from tests.conftest import FIXTURES
@@ -56,6 +60,15 @@ def test_a_stage_refuses_an_upstream_that_failed_after_it_finished(runs, mock_st
         cli.main(["mock", "janitorai", "--run", run_dir.name, "--allow-fixtures"])
     assert len(mock_stage[1]) == 1
 
+
+
+def test_a_damaged_upstream_marker_blocks_the_stage_below_with_a_trace_line(runs, mock_stage):
+    run_dir = seeded_run(runs)
+    (run_dir / "model" / "done.json").write_text("{not json")
+    with pytest.raises(SystemExit, match="mock can't run: model is not done; run `simula model` first"):
+        cli.main(["mock", "janitorai", "--run", run_dir.name, "--allow-fixtures"])
+    assert any(line.step == "marker" and line.stage == "model" for line in read_trace(run_dir / "trace.jsonl"))
+    assert len(mock_stage[1]) == 1
 
 def test_a_stage_runs_once_its_upstream_is_done(runs, mock_stage):
     run_dir = seeded_run(runs)
@@ -275,9 +288,15 @@ def test_the_manifest_never_lists_a_stage_whose_marker_failed_to_write(runs, moc
     def unhashable(*args, **kwargs):
         raise OSError("an output can't be read")
     monkeypatch.setattr(runfolder, "write_done", unhashable)
+    committed = (run_dir / "mock" / "done.json").read_bytes()
     with pytest.raises(OSError):
         cli.main(["mock", "janitorai", "--run", run_dir.name, "--allow-fixtures", *replay])
-    assert not (run_dir / "mock" / "done.json").exists() and "mock" not in read_manifest(run_dir).stages_done
+    assert "mock" not in read_manifest(run_dir).stages_done and not runlog.complete(run_dir, "mock")
+    assert "an output can't be read" in (run_dir / "mock" / "failure.json").read_text()
+    if replay:  # the committed record goes back, beside the newer failure
+        assert (run_dir / "mock" / "done.json").read_bytes() == committed
+    else:
+        assert not (run_dir / "mock" / "done.json").exists()
     monkeypatch.setattr(runfolder, "write_done", writes)
     assert rerun(run_dir) and "mock" in read_manifest(run_dir).stages_done
 
@@ -380,6 +399,20 @@ def test_a_forced_replay_of_a_capped_stage_stops_where_the_live_run_did(runs, mo
     assert all(llm.split_key(line.note)[0] for line in stops)
 
 
+
+def test_a_stage_its_cap_stops_leaves_the_manifest_total_equal_to_what_it_spent(runs, monkeypatch, quiet, tmp_path):
+    answers(monkeypatch)
+
+    def spends_then_stops(ctx):  # nothing catches the cap: the stage stops there, exit 4
+        for n in range(1, 4):
+            model_call(ctx, f"round{n}", tmp_path / "cache")
+    mock_that(monkeypatch, spends_then_stops)
+    assert cli.main(["mock", "janitorai", "--allow-fixtures", "--fixture", f"model={GOLDEN}", "--usd-cap", "0.7"]) \
+        == cli.EXIT_CAP
+    run_dir = latest(runs)
+    spent = round(sum(line.usd for line in read_trace(run_dir / "trace.jsonl")), 4)
+    assert spent > 0 and read_manifest(run_dir).usd_total == spent
+
 @pytest.mark.parametrize("failure", [
     lambda: llm.LLMFailure("timeout", "stream idle 60 s"),
     lambda: anthropic.InternalServerError("overloaded", body=None, response=httpx2.Response(
@@ -406,26 +439,49 @@ def test_a_call_that_failed_live_fails_the_same_way_under_replay(runs, monkeypat
     assert (run_dir / "mock" / "page.txt").read_text() == live
 
 
-def test_a_stage_that_cannot_replay_keeps_its_committed_marker(runs, monkeypatch, quiet):
+def empties_its_folder(folder):  # as flows' clean() does: the folder stays, everything in it goes
+    for child in folder.iterdir():
+        shutil.rmtree(child) if child.is_dir() else child.unlink()
+
+
+@pytest.mark.parametrize("clears", [None, empties_its_folder, shutil.rmtree],
+                         ids=["fails_at_once", "empties_its_folder", "removes_its_folder"])
+def test_a_stage_that_cannot_replay_keeps_its_committed_marker(runs, monkeypatch, quiet, clears):
     def drives_the_device(ctx):
         if ctx.replay:  # as explore does: --replay reuses a finished explore/ folder
+            if clears:  # as QA does on a replay miss: rmtree(run_dir / "qa"), then ReplayMiss before it rebuilds
+                clears(ctx.run_dir / "mock")
             raise llm.ReplayMiss("explore drives the device; --replay reuses a finished explore/ folder")
     mock_that(monkeypatch, drives_the_device)
     run_dir = seeded_run(runs)
     committed = (run_dir / "mock" / "done.json").read_bytes()
+    finished = (run_dir / "mock" / "done.json").stat().st_mtime_ns
     assert cli.main(["mock", "janitorai", "--run", run_dir.name, "--allow-fixtures", "--replay"]) == cli.EXIT_CAP
     assert (run_dir / "mock" / "done.json").read_bytes() == committed, "the committed record survives"
+    assert (run_dir / "mock" / "done.json").stat().st_mtime_ns == finished, "with its own time, older than the failure"
     assert "ReplayMiss" in (run_dir / "mock" / "failure.json").read_text()
+    last = read_trace(run_dir / "trace.jsonl")[-1]
+    assert (last.stage, last.step, last.outcome) == ("mock", "run", "error") and "ReplayMiss" in last.note
     assert cli.upstream_problem(run_dir, "qa").startswith("mock failed after it last finished")
     assert not runlog.complete(run_dir, "mock"), "beside a newer failure it counts as not done, as for the stages below"
+    assert "mock" not in read_manifest(run_dir).stages_done, "the manifest agrees at once, not only at the next command"
     with pytest.raises(llm.ReplayMiss):
         rerun(run_dir, "--replay")
 
 
-def test_simula_runs_check_reruns_a_stage_whose_marker_is_damaged(runs, mock_stage):
+def damage(marker, how):
+    if how == "unreadable":
+        marker.chmod(0o000)
+    else:
+        marker.write_bytes({"not_json": b"{not json", "not_text": b"\xff\xfe\x00 done"}[how])
+
+
+@pytest.mark.parametrize("replay", [[], ["--replay"]], ids=["live", "replay"])
+@pytest.mark.parametrize("how", ["not_json", "not_text", "unreadable"])
+def test_simula_runs_check_reruns_a_stage_whose_marker_is_damaged(runs, mock_stage, how, replay):
     run_dir = seeded_run(runs)
-    (run_dir / "mock" / "done.json").write_text("{not json")
-    assert rerun(run_dir) and len(mock_stage[1]) == 2
+    damage(run_dir / "mock" / "done.json", how)
+    assert rerun(run_dir, *replay) and len(mock_stage[1]) == 2
     assert runfolder.read_done(run_dir / "mock").outcome.status == "complete"
 
 
@@ -445,7 +501,8 @@ def reopened(command: str):
     return cli.open_run(cli.parser().parse_args(shlex.split(command.replace("<higher>", "50"))[1:]))
 
 
-@pytest.mark.parametrize("flag", [["--probe"], ["--usd-cap", "12.3456789"]], ids=["probe", "usd_cap"])
+@pytest.mark.parametrize("flag", [["--profile", "dev"], ["--budget", "deep"], ["--allow-account-create"],
+                                  ["--usd-cap", "12.3456789"]], ids=["profile", "budget", "account_create", "usd_cap"])
 def test_a_partial_stages_resume_parses_back_to_the_options_it_ran_under(runs, monkeypatch, quiet, flag):
     reports = [StageOutcome(status="partial", reasons=["2 of 24 taps failed"])]
     mock_that(monkeypatch, lambda ctx: reports.pop(0) if reports else None)
@@ -454,8 +511,8 @@ def test_a_partial_stages_resume_parses_back_to_the_options_it_ran_under(runs, m
     run_dir = latest(runs)
     ran = cli.open_run(cli.parser().parse_args([*command, "--run", run_dir.name]))
     again = reopened(runfolder.read_done(run_dir / "mock").outcome.resume)
-    assert again.run_dir == run_dir and cli.stage_params("mock", again) == cli.stage_params("mock", ran)
-    assert (again.probe, again.usd_cap) == (ran.probe, ran.usd_cap)
+    assert again.run_dir == run_dir and again.usd_cap == ran.usd_cap
+    assert {s: cli.stage_params(s, again) for s in STAGES} == {s: cli.stage_params(s, ran) for s in STAGES}
 
 
 @pytest.mark.parametrize("stop, cap", [(llm.CapReached("mock: next call could cost $5.00"), 50.0),
@@ -465,7 +522,45 @@ def test_a_stopped_stages_command_carries_its_options_and_one_cap(runs, monkeypa
     def stops(ctx):
         raise stop
     mock_that(monkeypatch, stops)
-    cli.main(["mock", "janitorai", "--allow-fixtures", "--probe", "--usd-cap", "12.5", "--fixture", f"model={GOLDEN}"])
+    cli.main(["mock", "janitorai", "--allow-fixtures", "--budget", "deep", "--usd-cap", "12.5", "--fixture",
+              f"model={GOLDEN}"])
     command = (latest(runs) / "needs-human.md").read_text().split("**Continue with:** `")[-1].split("`")[0]
     again = reopened(command)
-    assert command.count("--usd-cap") == 1 and (again.probe, again.usd_cap) == (True, cap)
+    assert command.count("--usd-cap") == 1 and (again.budget, again.usd_cap) == ("deep", cap)
+
+
+# ---------- calls running together reach the cap in no fixed order ----------
+
+def two_callers_turned_away(cache, first):
+    """Two threads share one Budget, as QA's critics do, and the cap turns both away; `first` reaches it first."""
+    def run(ctx):
+        budget = llm.Budget.for_stage("mock", ctx.run_dir / "trace.jsonl", ctx.usd_cap)
+        stopped = threading.Event()
+
+        def call(step, max_tokens):
+            if step != first:
+                stopped.wait(5)
+            try:
+                llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="mock", step=step, model=HAIKU, effort=None,
+                         system="", messages=[{"role": "user", "content": [{"type": "text", "text": step}]}],
+                         max_tokens=max_tokens, budget=budget, replay=ctx.replay, cache_dir=cache, attempts=1)
+            except llm.CapReached:
+                stopped.set()
+        with ThreadPoolExecutor(2) as pool:
+            list(pool.map(call, ["a", "b"], [64_000, 32_000]))
+    return run
+
+
+def test_parallel_cap_stops_replay_to_the_same_reasons_in_either_order(runs, monkeypatch, quiet, tmp_path):
+    no_model(monkeypatch)
+    mock_that(monkeypatch, two_callers_turned_away(tmp_path / "cache", first="a"))
+    cli.main(["mock", "janitorai", "--allow-fixtures", "--fixture", f"model={GOLDEN}", "--usd-cap", "0.1"])
+    run_dir = latest(runs)
+    live = runfolder.read_done(run_dir / "mock").outcome
+    assert live.status == "partial" and len(live.reasons) == 2
+    mock_that(monkeypatch, two_callers_turned_away(tmp_path / "cache", first="b"))
+    assert cli.main(["mock", "janitorai", "--run", run_dir.name, "--allow-fixtures", "--replay"]) == 0
+    stops = [line.step for line in read_trace(run_dir / "trace.jsonl") if line.outcome == "cap"]
+    assert stops == ["a", "b", "b", "a"], "the replay reached the cap in the other order"
+    assert runfolder.read_done(run_dir / "mock").outcome.reasons == live.reasons
+

@@ -155,7 +155,7 @@ def ask_lens(ctx: Ctx, model: ProductModel, lens: Lens, system: str, budget: llm
     try:
         output, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="propose", step=step,
                              model=role["model"], effort=role.get("effort"), system=system, messages=messages,
-                             max_tokens=min(role["max_tokens"], config.models()[role["model"]]["max_out"]), budget=budget,
+                             max_tokens=config.max_tokens(role), budget=budget,
                              schema=LensOutput, no_cache=ctx.no_cache, replay=ctx.replay)
     except llm.LLMFailure as e:
         run_trace(ctx.run_dir, stage="propose", step=step, decider="code", outcome=e.outcome,
@@ -333,10 +333,15 @@ def check(c: Candidate, model: ProductModel) -> str | None:
 
 # ---------- reach and rank ----------
 
+def root_id(model: ProductModel) -> str:
+    """The root: the lowest-numbered `screen` state (docs/CONTRACTS.md)."""
+    return min(s.id for s in model.states if s.kind == "screen")
+
+
 def depths(model: ProductModel) -> dict[str, int]:
-    """Taps from the root (the lowest-numbered `screen` state, docs/CONTRACTS.md). A tab switch costs nothing;
-    a modal sits at its parent's depth when no recorded edge reaches it."""
-    depth = {min(s.id for s in model.states if s.kind == "screen"): 0}
+    """Taps from the root. A tab switch costs nothing; a modal sits at its parent's depth when no recorded edge
+    reaches it."""
+    depth = {root_id(model): 0}
     changed = True
     while changed:
         changed = False
@@ -390,7 +395,7 @@ def name_benefits(ctx: Ctx, live: list[Candidate], budget: llm.Budget, step: str
         output, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="propose", step=step,
                              model=role["model"], effort=role.get("effort"), system="",
                              messages=[{"role": "user", "content": [{"type": "text", "text": prompt}]}],
-                             max_tokens=role["max_tokens"], budget=budget, schema=BenefitNames,
+                             max_tokens=config.max_tokens(role), budget=budget, schema=BenefitNames,
                              no_cache=ctx.no_cache, replay=ctx.replay)
     except llm.LLMFailure as e:
         run_trace(ctx.run_dir, stage="propose", step=step, decider="code", outcome=e.outcome,

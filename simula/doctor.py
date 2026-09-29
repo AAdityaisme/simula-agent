@@ -70,12 +70,14 @@ def check_local() -> None:
 
 def check_browser() -> None:
     from playwright.sync_api import sync_playwright
+
+    from simula import render
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch()
             page = browser.new_page(viewport={"width": 411, "height": 914}, device_scale_factor=2.625)
             page.set_content("<body style='margin:0;background:#123'></body>")
-            png = page.screenshot()
+            png = render.screenshot(page)
             browser.close()
         from io import BytesIO
         from PIL import Image
@@ -195,7 +197,7 @@ def role_probes() -> dict[tuple, list[str]]:
         for model in models:
             efforts = {role.get("effort"), role.get("effort_last_round")} - {None} or {None}
             for effort in efforts:
-                key = (model, effort, min(role["max_tokens"], config.models()[model]["max_out"]))
+                key = (model, effort, config.max_tokens(role, model))
                 probes.setdefault(key, []).append(name if model == role["model"] else f"{name} fallback")
     probes.setdefault(("claude-haiku-4-5-20251001", None, PROBE_MAX_TOKENS), []).append("dev profile, jev adapter")
     return probes

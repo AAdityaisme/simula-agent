@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c05",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is opt-in (user taps the card and chooses to play); the reward (3 Advanced reasoning mode answers) is stated in the offer copy before the ad starts; declining closes the card with no penalty; and there is a clear failure path (if the game is unavailable, the card is not shown; if play doesn't verify, the user sees 'That game didn't count, try again' and can retry)."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 Advanced reasoning mode answers, a feature of the paid subscription—not cash, a gift card, voucher, or transferable tokens."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a detected app event (first open after 3+ days with no session), not based on chat content or user-typed messages."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal does not remove, lock, or cap any free resource. Advanced reasoning mode is already a paid-only feature (l02); the card offers a time-limited sample of it, which does not reduce what free users have access to today."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card is placed on s01 Chats (home), app chrome above the prompt card, not inside a chat transcript or conversation thread, and s01 is marked content safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing_anchor: Advanced reasoning mode is a paid feature (l02 on the paywall, s02.e03). The reward reveals its value by letting the user try it for a day with a 3-answer limit, which is both a sample and a cap tied to a model cost."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The proposal cites s02.e03 ('Advanced reasoning mode'), which exists on the paywall, and s01.e02 (Luzia+ upsell badge), which is observed on home. The claim that Advanced reasoning mode is paid is supported by its appearance as a paywall bullet (l02). The trigger (3+ day gap) and placement (s01 Chats home, a safe chrome surface) are both app-detectable and within scope."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is capped at 3 answers, expiring at midnight local time, and shown only once per 3+ day gap. This is a limited sample of the subscription's benefit (l02), not an unlimited giveaway."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears on the home screen, a persistent surface the user opens on their own. It does not interrupt a task in progress; it greets a returning user as they land."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a sponsored playable (play-to-earn native unit). The reward is granted on the verified play (REWARD_VERIFIED event), and the trigger is an app event the app can detect (first open after 3+ days without a session)."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names a specific feature of Luzia ('Advanced reasoning mode', l02), a specific screen (s01 Chats home), a specific trigger (3+ day gap, a lapse pattern in this chat app), and a specific cap (3 answers, one day, one per 3-day gap). It reads as tailored to this app's paywall and user retention."
+ },
+ "other_concern": "The proposal states the reward is 'inference' for the duration (3 answers until midnight), but Advanced reasoning mode itself is not marked inferred in the product model—only its limits and free-tier relationship are open questions. The proposal assumes the app can track and enforce per-user answer counts in Advanced reasoning mode, which is reasonable but not explicitly confirmed. The rationale mentions dropping to 1 answer in lower-earning markets, which is a valid note but outside the scope of this evaluation.",
+ "fixable": true
+}
