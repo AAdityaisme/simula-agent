@@ -163,24 +163,51 @@ NOT_BROWSER: dict[tuple[str, str], str] = {
 }
 
 
+def browser_captures(relative: str, source: str) -> tuple[list[int], int]:
+    """Lines of the `.screenshot` references in one file (page, frame, tab, locator; called in place, bound to a name,
+    or handed to a pool) that aren't render.screenshot, the helper's own, or a receiver in NOT_BROWSER, and how many
+    are the helper's own. References come from the syntax tree, so spacing, line breaks, comments, and strings can't
+    hide or fake one."""
+    tree = ast.parse(source)
+    helper = next((node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)
+                   and node.name == "screenshot"), None) if relative == "simula/render.py" else None
+    inside = {id(node) for node in ast.walk(helper)} if helper else set()
+    direct, helper_refs = [], 0
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Attribute) and node.attr == "screenshot"):
+            continue
+        receiver = ast.unparse(node.value)
+        if receiver == "render" or (relative, receiver) in NOT_BROWSER:
+            continue
+        if id(node) in inside:
+            helper_refs += 1
+        else:
+            direct.append(node.lineno)
+    return direct, helper_refs
+
+
 def test_every_browser_capture_goes_through_render_screenshot():
-    """Every `.screenshot` under simula/ (page, frame, tab, locator; called in place, bound to a name, or handed to a
-    pool) is render.screenshot, one of the helper's own two, or a receiver in NOT_BROWSER. References come from the
-    syntax tree, so spacing, line breaks, comments, and strings can't hide or fake one."""
     direct, helper_refs = [], 0
     for path in sorted((ROOT / "simula").rglob("*.py")):
-        tree = ast.parse(path.read_text())
-        helper = next((node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)
-                       and node.name == "screenshot"), None) if path.name == "render.py" else None
-        inside = {id(node) for node in ast.walk(helper)} if helper else set()
-        for node in ast.walk(tree):
-            if not (isinstance(node, ast.Attribute) and node.attr == "screenshot"):
-                continue
-            receiver = ast.unparse(node.value)
-            if receiver == "render" or (str(path.relative_to(ROOT)), receiver) in NOT_BROWSER:
-                continue
-            if id(node) in inside:
-                helper_refs += 1
-            else:
-                direct.append(f"{path.relative_to(ROOT)}:{node.lineno}")
+        relative = str(path.relative_to(ROOT))
+        lines, refs = browser_captures(relative, path.read_text())
+        direct += [f"{relative}:{n}" for n in lines]
+        helper_refs += refs
     assert direct == [] and helper_refs == 2, (direct, helper_refs)
+
+
+@pytest.mark.parametrize("source, caught", [
+    ('page.locator("a").screenshot(\n    path="x.png")', [1]),
+    ("capture = page.screenshot\ncapture(path='x.png')", [1]),
+    ("pool.submit(page.screenshot, path='x.png')", [1]),
+    ("page.screenshot (path='x.png')  # render.screenshot( is right", [1]),
+    ("render.screenshot(page, path='x.png')", []),
+    ("screenshot(page, path='x.png')", []),
+])
+def test_the_capture_guard_catches_every_way_a_direct_capture_can_be_written(source, caught):
+    assert browser_captures("simula/stages/flows/walk.py", source)[0] == caught
+
+
+def test_the_capture_guard_skips_a_named_receiver_only_in_its_own_file():
+    assert browser_captures("simula/stages/model.py", "Image.open(sf.screenshot)")[0] == []
+    assert browser_captures("simula/stages/flows/walk.py", "Image.open(sf.screenshot)")[0] == [1]
