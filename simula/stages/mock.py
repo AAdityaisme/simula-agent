@@ -34,6 +34,7 @@ PALETTE_SIZE = 4
 FONT_NAME = re.compile(r"[A-Za-z0-9 ]+")
 FONT_CSS = "https://fonts.googleapis.com/css2?family={family}:wght@400;500;600;700&display=swap"
 FONT_FILE = re.compile(r"url\((https?://[^)\s]+)\)")
+URL_TARGET = re.compile(r"url\(\s*['\"]?([^'\")\s]+)")
 # Google's font repository files each family under its license: SIL OFL, Apache 2.0, or the Ubuntu Font Licence.
 FONT_LICENSES = [f"https://raw.githubusercontent.com/google/fonts/main/{kind}/{{slug}}/{name}"
                  for kind, name in (("ofl", "OFL.txt"), ("apache", "LICENSE.txt"), ("ufl", "UFL.txt"))]
@@ -616,14 +617,17 @@ def vendor_fonts(ctx: Ctx, mock_dir, families: list[str], chars: set[str]) -> st
             css = used_faces(fetch_recorded(ctx, FONT_CSS.format(family=quote_plus(family))).decode(), chars)
             license = font_license(ctx, family)
             files = {url: fetch_recorded(ctx, url) for url in dict.fromkeys(FONT_FILE.findall(css))}
+            names = {url: hashlib.sha256(data).hexdigest()[:16] + ".woff2" for url, data in files.items()}
+            for url, name in names.items():
+                css = css.replace(f"url({url})", f"url({name})")
+            if outside := [u for u in URL_TARGET.findall(css) if u not in names.values()]:
+                raise ValueError(f"its CSS still loads {outside[0]}")
         except (*FETCH_ERRORS, ValueError) as e:
             skipped[family] = str(e)[:100]
             continue
         font_dir.mkdir(parents=True, exist_ok=True)
         for url, data in files.items():
-            name = hashlib.sha256(data).hexdigest()[:16] + ".woff2"
-            (font_dir / name).write_bytes(data)
-            css = css.replace(f"url({url})", f"url({name})")
+            (font_dir / names[url]).write_bytes(data)
         faces.append(css)
         licenses.append(license)
     if skipped:
