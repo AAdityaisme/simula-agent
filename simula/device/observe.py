@@ -47,7 +47,11 @@ SCRIM_SHARE = 0.84
 DENY_ALWAYS = re.compile(r"\b(?:log ?out|sign ?out|sign ?in|sign ?up|log ?in|create account|continue with|delete|"
                          r"remove(?! ads\b)|cancel|(?:un)?subscribed?|buy|pay(?:ments?)?|purchases?|restore|confirm|"
                          r"start\b.{0,24}\btrial|passwords?|place order|check ?out|donat\w*)\b", re.IGNORECASE)
-DENY_COMMAND = re.compile(rf"^\W*({DENY_ALWAYS.pattern})", re.IGNORECASE | re.MULTILINE)
+# a command starts its clause, maybe after one adverb: "Yes, permanently delete my account", "Already have one? Log in"
+# ponytail: a command written mid-clause ("Tap here to confirm your purchase") reads like a headline and passes, and a
+# headline opening with an -ly word ("Early payments: …") is denied; the safe way round, it only loses a card
+DENY_COMMAND = re.compile(rf"(?:^|[,;:?!.\u2013\u2014])\W*(?:\w+ly\s+)?({DENY_ALWAYS.pattern})",
+                          re.IGNORECASE | re.MULTILINE)
 DENY = re.compile(r"\b(?:report|(?:un)?block|clear|e-?mails?|security|personas?|(?:un)?follow(?:ing)?|"
                   r"(?:un)?favou?rit\w*|(?:un)?liked?|hearts?|hide|terms|privacy|rate us|review|camera|photo|gallery|"
                   r"allow|permissions?|install|open in|submit|proceed|tip|rate|give \d stars?|save changes|publish|"

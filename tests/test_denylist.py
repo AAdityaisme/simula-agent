@@ -145,6 +145,14 @@ def test_a_long_label_is_denied_when_it_starts_with_the_action():
     assert denied(control("Payment will be charged to your Google Play account")) == "payment"
 
 
+@pytest.mark.parametrize("label, word", [("Yes, permanently delete my account", "delete"),
+                                         ("Permanently delete my account and data", "delete"),
+                                         ("I understand, cancel my subscription", "cancel"),
+                                         ("Already have an account? Log in", "log in")])
+def test_a_command_after_an_interjection_is_still_a_command(label, word):
+    assert denied(control(label, "ViewGroup")) == word
+
+
 def test_remove_ads_opens_an_upsell_and_is_a_confirm_on_one():
     from simula.device.observe import ENTRY
     assert all(ENTRY.search(label) for label in ["Remove ads", "Go ad-free", "No ads for a month"])
