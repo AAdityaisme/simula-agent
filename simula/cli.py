@@ -94,8 +94,8 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
         return True
     module = importlib.import_module(f"simula.stages.{stage}")
     stage_dir.mkdir(exist_ok=True)
-    # A live rerun's old marker no longer holds. --replay keeps it while the stage runs, so a stage that can't be
-    # replayed keeps the run's committed record (beside a newer failure.json, which counts as not done).
+    # A live rerun's old marker no longer holds. --replay holds the committed one instead, and every exit that doesn't
+    # write a new marker puts it back (failed), so a replay never costs a run its committed record.
     marker, committed = stage_dir / "done.json", None
     if ctx.replay:
         try:
@@ -106,17 +106,36 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
         marker.unlink(missing_ok=True)
 
     def failed(reason: str) -> None:
-        """Records why the stage stopped. A stage that clears its own folder (flows, QA) also removed the committed
-        marker, so a failed replay puts it back as it was, its time included, before the newer failure.json."""
-        if committed and not marker.exists():
+        """Records why the stage stopped, in a folder the stage may have removed (QA's rmtree). Under --replay the
+        committed marker goes back as it was, its time included, before the newer failure.json, so it stays on disk
+        and counts as not done, in the manifest too, whose usd_total then counts what the stage spent."""
+        stage_dir.mkdir(parents=True, exist_ok=True)
+        if committed:
             runfolder.write_json_atomic(marker, committed[0])
             os.utime(marker, ns=(committed[1].st_atime_ns, committed[1].st_mtime_ns))
         runfolder.write_failure(stage_dir, reason)
+        runlog.sync_manifest(ctx.run_dir)  # the restored marker counts as not done, and the stage's spend counts
     runlog.sync_manifest(ctx.run_dir)
     trace_path = ctx.run_dir / "trace.jsonl"
     traced_before = len(runlog.read_trace(trace_path))
     try:
         result = module.run(ctx)
+        marker.unlink(missing_ok=True)  # the stage ran, so an old marker no longer describes its output
+        runlog.sync_manifest(ctx.run_dir)
+        traced = [line for line in runlog.read_trace(trace_path)[traced_before:] if line.stage == stage]
+        capped = [split_key(line.note)[1] for line in traced if line.outcome == "cap"]
+        outcome = finished_outcome(stage, ctx, result, capped)
+        partial = outcome.status == "partial"
+        if partial:
+            runlog.needs_human(ctx.run_dir, stage, "partial output", "; ".join(outcome.reasons),
+                               [f"{stage}/done.json"], outcome.resume)
+        elif not any(line.step == "needs_human" and line.outcome == "blocked" for line in traced):
+            # Only a clean finish resolves: a stage that asked for a person during this run still needs one.
+            runlog.resolve_needs_human(ctx.run_dir, stage)
+        # done.json is the commit point, written after needs-human.md: if anything before it fails, the stage has no
+        # new marker, so the next run redoes it. The manifest is read from the markers, so it never lists one without.
+        runfolder.write_done(stage_dir, ctx.run_dir, inputs, prompts, params, [stage_dir], provenance, code=code,
+                             outcome=outcome)
     except NotImplementedError as e:
         failed(f"not built yet ({e})")
         runlog.run_trace(ctx.run_dir, stage=stage, step="run", decider="code", outcome="not_built",
@@ -135,27 +154,12 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
                            f"simula run {ctx.app['name']} --from {stage} {run_options(ctx)}")
         raise
     except BaseException as e:
-        # Every other exit, SystemExit and Ctrl-C included, still leaves a failure record; then it propagates.
+        # Every other exit, SystemExit, Ctrl-C and a failed record included, still leaves a failure record; then it
+        # propagates.
         reason = f"{type(e).__name__}: {e}"
         failed(reason)
         runlog.run_trace(ctx.run_dir, stage=stage, step="run", decider="code", outcome="error", note=reason[:300])
         raise
-    marker.unlink(missing_ok=True)  # the stage ran, so an old marker no longer describes its output
-    runlog.sync_manifest(ctx.run_dir)
-    traced = [line for line in runlog.read_trace(trace_path)[traced_before:] if line.stage == stage]
-    capped = [split_key(line.note)[1] for line in traced if line.outcome == "cap"]
-    outcome = finished_outcome(stage, ctx, result, capped)
-    partial = outcome.status == "partial"
-    if partial:
-        runlog.needs_human(ctx.run_dir, stage, "partial output", "; ".join(outcome.reasons), [f"{stage}/done.json"],
-                           outcome.resume)
-    elif not any(line.step == "needs_human" and line.outcome == "blocked" for line in traced):
-        # Only a clean finish resolves: a stage that asked for a person during this run still needs one.
-        runlog.resolve_needs_human(ctx.run_dir, stage)
-    # done.json is the commit point, written after needs-human.md: if that fails, the stage has no marker, so the next
-    # run redoes it. The manifest is read from the markers, so it never lists a stage without one.
-    runfolder.write_done(stage_dir, ctx.run_dir, inputs, prompts, params, [stage_dir], provenance, code=code,
-                         outcome=outcome)
     runlog.sync_manifest(ctx.run_dir)
     runlog.run_trace(ctx.run_dir, stage=stage, step="done", decider="code",
                      note=provenance.source + (f"; partial: {'; '.join(outcome.reasons)}"[:300] if partial else ""))

@@ -511,9 +511,10 @@ def affordable(worst: list[float], cap: float) -> int:
 
 def worst_usd(ctx: Ctx, content: list[dict]) -> float:
     """The most one batch's call can cost: its retry prompt (the longer one) answered up to max_tokens."""
+    role = config.roles(ctx.profile)["mock_builder"]
     _, retry = builder_requests(ctx, content)
-    return llm.worst_case_usd(retry["model"], llm.estimate_tokens_in(retry["system"], retry["messages"]),
-                              retry["max_tokens"])
+    return llm.worst_case_usd(role["model"], llm.estimate_tokens_in(retry["system"], retry["messages"]),
+                              config.max_tokens(role))
 
 
 def builder_requests(ctx: Ctx, content: list[dict]) -> tuple[dict, dict]:
@@ -524,7 +525,7 @@ def builder_requests(ctx: Ctx, content: list[dict]) -> tuple[dict, dict]:
 
     def request(content: list[dict], effort: str | None) -> dict:
         return {"model": role["model"], "effort": effort, "system": system_prompt(),
-                "messages": [{"role": "user", "content": content}], "max_tokens": role["max_tokens"]}
+                "messages": [{"role": "user", "content": content}], "max_tokens": config.max_tokens(role)}
     return (request(content, effort),
             request(content + [{"type": "text", "text": SHORTER}], RETRY_EFFORT.get(effort, effort)))
 
