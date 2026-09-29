@@ -317,6 +317,29 @@ def test_each_apps_own_bar_passes_as_its_screens_draw_it_and_fails_on_the_one_sc
         assert copies(failures)[odd] in screens
 
 
+def floor(image: Image.Image, value: int) -> Image.Image:
+    """Every channel raised to at least value: black drawn a little off."""
+    return Image.fromarray(np.maximum(np.asarray(image), value).astype(np.uint8))
+
+
+def test_a_dialog_is_never_held_to_the_chrome_its_parent_shows_through_its_backdrop(tmp_path):
+    """Luzia's pet intro (s04) is a modal over the chats home (s01): its render shows s01's tab bar through its
+    backdrop, drawn by s01's own section. Every barred screen draws the bar's black a little off, the same on each,
+    and the backdrop lifts it less on the modal. No barred screen is told to draw its bar like the modal's, and the
+    modal isn't told to draw a bar of its own."""
+    model = golden("luzia")
+    real = real_screens("luzia")
+    screens, box = REAL_BARS["luzia"]
+    mocks = {**real, **{sid: floor(real[sid], 10) for sid in screens}, "s04": floor(real["s04"], 4)}
+    for kind, images in (("real", real), ("mock", mocks)):
+        (tmp_path / kind).mkdir()
+        for sid, image in images.items():
+            image.save(tmp_path / kind / f"{sid}.png")
+    dom = {sid: qa_metrics.ScreenDom(boxes={}, images=[], chrome={"tabbar": box} if sid in screens else {}, values=[])
+           for sid in real}
+    assert [f for f in qa.cross_screen_failures(model, tmp_path, dom) if f["kind"] == "chrome"] == []
+
+
 # ---------- data-value ----------
 
 @pytest.mark.parametrize(("value", "text", "shown"), [
