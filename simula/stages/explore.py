@@ -1060,7 +1060,7 @@ class Explorer:
         pngs = [png_half(content(Image.open(self.out / "states" / f"{target.sid}.png"), self.device)),
                 png_half(content(obs.image, self.device))]
         try:
-            answer = self.ask("arrival", f"{step}.{target.sid}", text, pngs, Arrival, 800)
+            answer = self.ask("arrival", f"{step}.{target.sid}", text, pngs, Arrival)
         except llm.LLMFailure as e:
             self.note(f"{step}.{target.sid}", f"arrival call failed: {e}", outcome="error")
             return Landing(False, None, "failed", structure)
@@ -1358,7 +1358,7 @@ class Explorer:
                 f"{item.label[:60]!r}.\nControls on this page:\n{controls}")
         try:
             pick = self.ask("walk", f"walk.{here.sid}", text, self.boxed_png(here, cands, ids, before.image),
-                            WalkPick, 400)
+                            WalkPick)
         except llm.LLMFailure as e:
             self.note(f"walk.{here.sid}", f"walk call failed: {e}", outcome="error")
             return None
@@ -1586,7 +1586,7 @@ class Explorer:
                 f"action, and the screen still changes between screenshots {SETTLE_GAP_S:.0f} s apart.")
         try:
             answer = self.ask("settle", "settle", text, [png_half(content(before, self.device)),
-                                                         png_half(content(now, self.device))], Progress, 400)
+                                                         png_half(content(now, self.device))], Progress)
         except llm.LLMFailure as e:
             self.note("settle", f"progress call failed: {e}", outcome="error")
             return "progressing"
@@ -1713,15 +1713,15 @@ class Explorer:
     def option_label(self, c: ob.Candidate) -> str:
         return label_of(c, self.device)
 
-    def ask(self, prompt: str, step: str, text: str, pngs: bytes | list[bytes], schema, max_tokens: int):
+    def ask(self, prompt: str, step: str, text: str, pngs: bytes | list[bytes], schema):
         role = config.roles(self.ctx.profile)["explore_vision"]
         images = [{"type": "image", "png": png} for png in ([pngs] if isinstance(pngs, bytes) else pngs)]
         try:
             parsed, _ = llm.call(trace_path=self.trace_path, stage="explore", step=step, model=role["model"],
                                  effort=role.get("effort"), system=(PROMPTS / f"{prompt}.md").read_text(),
                                  messages=[{"role": "user", "content": [*images, {"type": "text", "text": text}]}],
-                                 max_tokens=max_tokens, budget=self.budget, schema=schema, no_cache=self.ctx.no_cache,
-                                 replay=self.ctx.replay, cache_dir=self.cache_dir)
+                                 max_tokens=config.max_tokens(role), budget=self.budget, schema=schema,
+                                 no_cache=self.ctx.no_cache, replay=self.ctx.replay, cache_dir=self.cache_dir)
         except llm.LLMFailure:
             self.counts["model call failures"] += 1
             raise
@@ -1746,7 +1746,7 @@ class Explorer:
         text = (f"Name these boxes: {', '.join(map(str, unnamed)) or 'none'}.\n"
                 f"The image is {int(self.device.w_px * ICON_SCALE)} px wide.")
         try:
-            result = self.ask("icons", f"icons.{s.sid}", text, png, IconPass, 2000)
+            result = self.ask("icons", f"icons.{s.sid}", text, png, IconPass)
         except llm.LLMFailure as e:
             self.note(f"icons.{s.sid}", f"icon pass failed: {e}", outcome="error")
             return
@@ -1779,7 +1779,7 @@ class Explorer:
         text = f"Goal: {goal}\nAllowed taps:\n{allowed}\nTyping allowed: no\nRecent moves: {moves}"
         try:
             png = self.boxed_png(s, opts, ids)
-            answer = self.ask("hard_screen", f"hard.{s.sid}", text, png, HardScreenAction, 1024)
+            answer = self.ask("hard_screen", f"hard.{s.sid}", text, png, HardScreenAction)
         except llm.LLMFailure as e:
             self.note(f"hard.{s.sid}", f"hard-screen call failed: {e}", outcome="error")
             return None

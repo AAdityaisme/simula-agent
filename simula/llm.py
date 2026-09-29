@@ -378,21 +378,27 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
     named, capped = trace_keys(trace_path) if replay else ({}, {})
 
     def recorded(key: str, tries: list[tuple[str, Reply]]) -> tuple[str, Reply] | None:
-        """--replay follows the try this run's trace names last (else the first one), unless the run's last record of
-        the call is its $ cap turning it away. A normal run takes the latest try the model answered: a known failure
-        is never paid for again, and a lost call is transient, so it is tried again."""
+        """--replay follows the try this run's trace names last, unless the run's last record of the call is its $ cap
+        turning it away; a try the run never named is another run's, so it is never taken. A normal run takes the
+        latest try the model answered: a known failure is never paid for again, and a lost call is transient, so it
+        is tried again."""
         if replay:
             used = [t for t in tries if t[0][:12] in named]
             last = max(used, key=lambda t: named[t[0][:12]]) if used else None
             stop = capped.get(key[:12])
             if stop and (last is None or stop[0] > named[last[0][:12]]):
                 return None
-            return last or (tries[0] if tries else None)
+            return last
         answered = [t for t in tries if t[1].failure not in TRANSPORT]
         return answered[-1] if answered else None
 
+    def last_record(key: str) -> int:
+        """The index of this run's last trace line about one attempt, a try it named or its cap stop; -1 if none."""
+        tries, _, damaged = cache_tries(key, cache_dir)
+        return max([named.get(k[:12], -1) for k in [t[0] for t in tries] + damaged] + [capped.get(key[:12], (-1,))[0]])
+
     chosen, fresh = {}, {}
-    for key in keys:  # up to the first recorded answer; the attempts after it are never read
+    for n, key in enumerate(keys):  # up to the first recorded answer; the attempts after it are never read
         tries, fresh[key], damaged = cache_tries(key, cache_dir)
         for file_key in damaged:
             trace(trace_path, stage=stage, step=step, decider="code", model=model, effort=effort, outcome="error",
@@ -403,7 +409,9 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
         chosen[key] = None if no_cache else recorded(key, tries)
         if chosen[key] and not chosen[key][1].failure:
             break
-        if replay and chosen[key] is None:  # the run never got past this attempt, so its replay doesn't either
+        # Under --replay, an attempt with nothing to follow is where the run stopped, unless the run went on to a later
+        # attempt after it (past an entry it couldn't read), so the replay stops there too.
+        if replay and chosen[key] is None and not any(last_record(k) > last_record(key) for k in keys[n + 1:]):
             break
     for key in keys:
         if chosen.get(key) is None:
@@ -428,7 +436,7 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
             trace(trace_path, stage=stage, step=step, decider="code", outcome="cap",
                   note=f"key {pending[0][:12]} {stop[1]}")
             raise CapReached(stop[1])
-        raise ReplayMiss(f"--replay: no cached response for {stage}/{step} (key {pending[0][:12]})")
+        raise ReplayMiss(f"--replay: no cached response this run recorded for {stage}/{step} (key {pending[0][:12]})")
     for key in pending:
         worst = worst_case_usd(model, estimate_tokens_in(system, messages), max_tokens)
         budget.reserve(worst, step=step, key=key)

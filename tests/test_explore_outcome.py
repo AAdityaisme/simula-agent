@@ -269,7 +269,7 @@ def test_a_failed_model_call_is_counted_for_the_exhibit(tmp_path, monkeypatch):
         raise llm.LLMFailure("timeout", "no answer in 60 s")
     monkeypatch.setattr(llm, "call", failing)
     with pytest.raises(llm.LLMFailure):
-        ex.ask("settle", "settle", "text", b"png", Progress, 400)
+        ex.ask("settle", "settle", "text", b"png", Progress)
     assert ex.counts["model call failures"] == 1
     assert "model calls that failed (each traced where it happened): 1" in stage.counters(ex)
 
