@@ -192,8 +192,10 @@ def measure_screen(ctx: Ctx, model: ProductModel, state: State, round_dir, boxes
     copies = [qa_metrics.overlap(origins[src], drawn) for src, drawn in images if src in origins]
     masked = ([r for r in copies if r]
               + [qa_metrics.device_to_dp(r, model.device) for r in state.dynamic_regions])
-    pixels = qa_metrics.compare(real, Image.open(render_path), masked)
-    save_png(render.content_dp(Image.open(render_path)), render_path)
+    rendered = Image.open(render_path)
+    pixels = qa_metrics.compare(real, rendered, masked)
+    differing = qa_metrics.pixel_diff(real, rendered, pixels["keep"])
+    save_png(render.content_dp(rendered), render_path)
     save_png(render.content_dp(real), round_dir / "real" / f"{state.id}.png")
     save_png(qa_metrics.heatmap(real, pixels["map"], pixels["keep"]), round_dir / "heatmap" / f"{state.id}.png")
 
@@ -208,7 +210,7 @@ def measure_screen(ctx: Ctx, model: ProductModel, state: State, round_dir, boxes
     nav = passed / len(own_taps) if own_taps else None
     # The contract's bounds and nav fields aren't optional: a dropped term stores 1.0 (vacuously, all of none pass)
     # and the score leaves it out.
-    metrics = ScreenMetrics(state_id=state.id, ssim_masked=pixels["ssim"], pixelmatch_ratio=None,
+    metrics = ScreenMetrics(state_id=state.id, ssim_masked=pixels["ssim"], pixelmatch_ratio=differing,
                             masked_coverage=pixels["coverage"], bounds_ok_share=1.0 if bounds is None else bounds,
                             nav_pass_rate=1.0 if nav is None else nav, score=screen_score(bounds, nav, pixels["ssim"]))
     return {"metrics": metrics, "name": state.name, "tagged": len(tagged), "taps": len(own_taps),
@@ -575,15 +577,17 @@ def exhibit(ctx: Ctx, model: ProductModel, best: Version, rounds: list[dict], re
               f"{r['cross_screen_failures']} | {r['edits_applied']} / {r['edits_rejected']} | "
               f"{'yes' if r['kept'] else 'discarded'} |" for r in rounds]
     lines += ["", f"Approved version (round {best.round}), per screen. A term with nothing to measure shows –.", "",
-              "| Screen | Name | Score | Masked SSIM (coverage) | data-el within 4 dp | Taps passing | Heatmap |",
-              "|---|---|---|---|---|---|---|"]
+              "| Screen | Name | Score | Masked SSIM (coverage) | pixelmatch (pixels differing) | data-el within 4 dp | "
+              "Taps passing | Heatmap |",
+              "|---|---|---|---|---|---|---|---|"]
     for s in best.screens:
         m = s["metrics"]
         ssim = "–" if m.ssim_masked is None else f"{m.ssim_masked:.3f}"
+        differing = "–" if m.pixelmatch_ratio is None else f"{m.pixelmatch_ratio:.2%}"
         bounds = f"{s['tagged'] - len(s['misses'])} / {s['tagged']}" if s["tagged"] else "–"
         taps = f"{s['taps_passed']} / {s['taps']}" if s["taps"] else "–"
-        lines.append(f"| {m.state_id} | {s['name']} | {m.score:.2f} | {ssim} ({m.masked_coverage:.0%}) | {bounds} | "
-                     f"{taps} | `qa/round{best.round}/heatmap/{m.state_id}.png` |")
+        lines.append(f"| {m.state_id} | {s['name']} | {m.score:.2f} | {ssim} ({m.masked_coverage:.0%}) | {differing} | "
+                     f"{bounds} | {taps} | `qa/round{best.round}/heatmap/{m.state_id}.png` |")
     lines += ["", "| Flow | Name | Walk |", "|---|---|---|"]
     lines += [f"| {f['flow']} | {f['name']} | {f['status'].replace('_', ' ')}{': ' + f['problem'] if f['problem'] else ''}"
               f"{' (navigated, no element to tap: ' + ', '.join(f['navigated']) + ')' if f['navigated'] else ''} |"

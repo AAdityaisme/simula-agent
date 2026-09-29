@@ -12,7 +12,7 @@ from dataclasses import replace
 import pytest
 from PIL import Image
 
-from simula import config, llm, render
+from simula import config, llm, qa_metrics, render
 from simula.contracts import (ContractError, ContractReport, Critique, Edit, Edits, Fix, ProductModel, QAMetrics,
                               ScreenMetrics)
 from simula.runlog import read_trace
@@ -191,13 +191,17 @@ def test_the_whole_stage_runs_on_every_golden(tmp_path, monkeypatch, app):
         assert sorted(p.stem for p in (qa_dir / "round0" / kind).glob("*.png")) == sorted(screens)
     metrics = QAMetrics.model_validate_json((qa_dir / "round0" / "metrics.json").read_text())
     assert metrics.round == 0 and len(metrics.screens) == len(screens)
+    assert all((s.pixelmatch_ratio is None) == (s.masked_coverage < qa_metrics.MIN_COVERAGE) for s in metrics.screens)
+    assert any(s.pixelmatch_ratio for s in metrics.screens)
     report = json.loads((qa_dir / "qa_report.json").read_text())
     assert report["schema_version"] == 1 and report["status"] == "approved"
     assert [(r["round"], r["kept"]) for r in report["rounds"]] == [(0, True), (1, False)]
     assert report["approved_round"] == 0 and approved_html(run_dir) == delivered
     assert sorted(p.name for p in (qa_dir / "approved" / "assets").iterdir()) == \
         sorted(p.name for p in (run_dir / "mock" / "assets").iterdir())
-    assert "| 1 | " in (run_dir / "exhibits" / "04-qa.md").read_text() and "discarded" in report["stop_reason"]
+    exhibit = (run_dir / "exhibits" / "04-qa.md").read_text()
+    assert "| 1 | " in exhibit and "discarded" in report["stop_reason"]
+    assert re.search(r"\| \d+\.\d\d% \|", exhibit)
     assert ContractReport.model_validate_json((run_dir / "mock" / "contract_report.json").read_text()).passed
 
 

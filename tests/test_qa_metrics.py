@@ -43,6 +43,11 @@ def ssim(real: Image.Image, mock_image: Image.Image, masked: list[Rect] = ()) ->
     return qa_metrics.compare(real, mock_image, list(masked))["ssim"]
 
 
+def differing(real: Image.Image, mock_image: Image.Image, masked: list[Rect] = ()) -> float | None:
+    """pixelmatch's share of differing pixels, over the pixels the same mask leaves as SSIM's."""
+    return qa_metrics.pixel_diff(real, mock_image, qa_metrics.unmasked(list(masked), (838, 411)))
+
+
 def test_an_identical_pair_scores_1(real):
     assert ssim(real, real.copy()) == pytest.approx(1.0)
 
@@ -96,6 +101,29 @@ def test_identity_render_passes_the_gate(name):
     rendered = qa_metrics.identity_render(real)
     assert rendered.size == (1079, 2399)
     assert ssim(real, rendered) >= qa_metrics.IDENTITY_GATE
+
+
+def test_an_identical_pair_has_no_differing_pixels(real):
+    assert differing(real, real.copy()) == 0.0
+
+
+def test_shifts_raise_the_differing_pixels_and_the_rise_grows_with_the_shift(real):
+    shares = [differing(real, shifted(real, px)) for px in (1, 2, 5, 10)]
+    assert 0.0 < shares[0] < shares[1] < shares[2] < shares[3]
+
+
+@pytest.mark.parametrize("name", IDENTITY_SCREENS)
+def test_identity_render_differs_in_under_a_quarter_of_the_pixels_a_10_px_shift_does(name):
+    real = Image.open(FIXTURES / "trees" / f"{name}.png")
+    assert differing(real, qa_metrics.identity_render(real)) < 0.25 * differing(real, shifted(real, 10))
+
+
+def test_differing_pixels_under_the_mask_never_count(real):
+    box = Rect(x=150, y=300, w=80, h=40)
+    wrong = painted(real, box)
+    assert differing(real, wrong) > 0.0
+    assert differing(real, wrong, [box]) == 0.0
+    assert differing(real, wrong, [Rect(x=0, y=0, w=411, h=755)]) is None
 
 
 @pytest.mark.parametrize("app", APPS)

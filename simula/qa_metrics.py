@@ -1,5 +1,5 @@
-"""QA's measurements: the pixel compare in content dp (masked SSIM and its heatmap), the identity render, and the
-DOM bounds of every data-el."""
+"""QA's measurements: the pixel compare in content dp (masked SSIM and its heatmap, and pixelmatch beside it), the
+identity render, and the DOM bounds of every data-el."""
 
 import itertools
 import math
@@ -10,6 +10,7 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image
+from pixelmatch.contrib.PIL import pixelmatch
 from skimage.metrics import structural_similarity
 
 from simula.contracts import Device, ProductModel, Rect
@@ -20,6 +21,7 @@ HALO = WINDOW // 2
 MIN_COVERAGE = 0.3
 BOUNDS_TOLERANCE_DP = 4.0
 IDENTITY_GATE = 0.985
+PIXELMATCH_THRESHOLD = 0.1
 
 # On the section shown now: each visible data-el's box in the section's coordinates (content dp), and every copied
 # image it draws (an <img> or a CSS background from assets/) with the box it is drawn in.
@@ -101,6 +103,18 @@ def compare(real: Image.Image, mock: Image.Image, masked: list[Rect]) -> dict:
     scored[:HALO], scored[-HALO:], scored[:, :HALO], scored[:, -HALO:] = False, False, False, False
     ssim = float(ssim_map[scored].mean()) if coverage >= MIN_COVERAGE and scored.any() else None
     return {"ssim": ssim, "coverage": coverage, "map": ssim_map, "keep": keep}
+
+
+def pixel_diff(real: Image.Image, mock: Image.Image, keep: np.ndarray) -> float | None:
+    """The second pixel metric, pixelmatch (threshold 0.1, anti-aliased pixels not counted) in content dp: the share
+    of the unmasked pixels (keep, from compare) that differ. None when too little of the screen is left to score, as
+    for SSIM. Reported beside SSIM and never scored: a second view that reads as a plain share of changed pixels."""
+    if keep.mean() < MIN_COVERAGE:
+        return None
+    a = content_dp(real)
+    diff = Image.new("RGBA", a.size)
+    pixelmatch(a, content_dp(mock), diff, threshold=PIXELMATCH_THRESHOLD, includeAA=False, diff_mask=True)
+    return float((np.asarray(diff) == (255, 0, 0, 255)).all(axis=-1)[keep].mean())
 
 
 def heatmap(real: Image.Image, ssim_map: np.ndarray, keep: np.ndarray) -> Image.Image:

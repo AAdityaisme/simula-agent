@@ -1220,7 +1220,7 @@ requires-dist = [
     { name = "numpy" },
     { name = "openai" },
     { name = "pillow" },
-    { name = "pixelmatch" },
+    { name = "pixelmatch", specifier = "==0.4.0" },
     { name = "playwright", specifier = "==1.63.0" },
     { name = "pydantic", specifier = ">=2.12" },
     { name = "python-dotenv" },
