@@ -120,7 +120,8 @@ def test_a_failed_one_attempt_call_replays_to_the_callers_own_retry(tmp_path, mo
 
 def test_a_rerun_skips_recorded_failed_attempts_and_pays_only_for_the_next(tmp_path, monkeypatch):
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['nope'], []))
-    with pytest.raises(IndexError):  # attempt 1 dies before answering, so only attempt 0 is recorded
+    # attempt 1 dies before answering (an untyped error, settled as a typed one), so only attempt 0 is recorded
+    with pytest.raises(llm.LLMFailure, match="error: pop from empty list"):
         call(tmp_path)
     rerun_calls = []
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "second"}'], rerun_calls))
