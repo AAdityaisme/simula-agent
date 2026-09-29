@@ -263,6 +263,21 @@ def test_the_walk_scrolls_past_the_old_cap_until_the_model_sees_the_start_contro
     assert walk and all(line.decider == "model" for line in walk)
 
 
+def test_a_page_that_scrolls_pictures_under_the_same_text_is_still_moving(tmp_path, monkeypatch):
+    def same_text(clock):
+        phone = long_page(clock, 5)
+        for n in range(12):
+            page = phone.screens[f"page{n}"]
+            para = {**page.elements[1], "text": "A long description"}
+            image = page.image.copy()
+            ImageDraw.Draw(image).rectangle((100, 300 + 120 * n, 980, 900 + 120 * n), fill=(250, 220, 60))
+            phone.screens[f"page{n}"] = Screen([page.elements[0], para, *page.elements[2:]], image, PACKAGE)
+        return phone
+    ex, phone = run_explorer(tmp_path, monkeypatch, same_text)
+    assert ex.core.kind == "chat" and phone.sent
+    assert ("tap", "page5", "Chat with Avarus") in phone.log
+
+
 def test_a_start_control_the_screen_no_longer_shows_is_never_tapped(tmp_path, monkeypatch):
     ex, phone = new_explorer(tmp_path, monkeypatch, lambda clock: long_page(clock, 0))
     observe, ask, asked = ex.observe, ex.ask, []

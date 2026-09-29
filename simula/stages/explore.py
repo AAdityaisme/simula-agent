@@ -1283,10 +1283,12 @@ class Explorer:
                 continue
             if scrolls >= WALK_SCROLLS or still >= 2:
                 break
-            scrolls, shown = scrolls + 1, ob.texts(self.obs.elements, self.device)
+            scrolls, shown, looked = scrolls + 1, ob.texts(self.obs.elements, self.device), self.obs.image
             self.act(Move("swipe", direction="up", why="core loop: the item's main action may be further down"),
                      purpose="nav")
-            still = still + 1 if self.obs and ob.texts(self.obs.elements, self.device) == shown else 0
+            moved = self.obs is None or ob.texts(self.obs.elements, self.device) != shown \
+                or not ob.still(looked, self.obs.image, self.device)
+            still = 0 if moved else still + 1
         self.note("core", f"no input control inside {item.label[:40]!r}")
         return None
 
