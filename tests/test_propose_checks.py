@@ -415,7 +415,7 @@ def test_an_observed_term_can_be_used_and_the_unobserved_one_is_listed_for_the_p
     [out], *_ = finish([candidate(m, offer_copy="Play once for a day of Pro.")], m, "annotate")
     assert out.dropped_reason is None and out.flags == []
     text = propose.model_text(m)
-    assert '- "Zap Credits"' in text and '- "Pro"' not in text and "code flags an idea that does for the judge" in text
+    assert '- "Zap Credits"' in text and '- "Pro"' not in text and "code flags an idea that does for a person reviewing the output" in text
     assert "never observed" not in propose.model_text(model.model_copy(update={"terms": []}))
 
 
@@ -458,7 +458,7 @@ def test_the_report_and_trace_count_flags_apart_from_drops(model, tmp_path, monk
     exhibit = next((tmp_path / "exhibits").glob("05-*.md")).read_text()
     assert (f"{len(live)} live candidates ({len(live)} flagged for an unobserved term), "
             f"{len(out) - len(live)} dropped") in exhibit
-    assert "- Flag for the judge: uses \"Pro\", whose meaning was never observed" in exhibit
+    assert "- Flag: uses \"Pro\", whose meaning was never observed" in exhibit
     trace = [json.loads(line) for line in (tmp_path / "trace.jsonl").read_text().splitlines()]
     flags = [t for t in trace if t["step"].startswith("flag:")]
     assert len(flags) == len(live) and all(t["outcome"] == "ok" for t in flags)

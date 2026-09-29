@@ -101,7 +101,8 @@ def model_text(model: ProductModel) -> str:
     lines += ["", "### Open questions (not observed)"] + [f"- {q}" for q in model.open_questions]
     if unobserved := unobserved_terms(model):
         lines += ["", "### App terms whose meaning was never observed (don't use them in a title, offer_copy, or "
-                      "after_reward; code flags an idea that does for the judge)"] + [f'- "{t}"' for t in unobserved]
+                      "after_reward; code flags an idea that does for a person reviewing the output)"]
+        lines += [f'- "{t}"' for t in unobserved]
     lines += ["", "### Screens in scope"]
     for s in model.states:
         if s.in_mock_scope:
@@ -464,7 +465,7 @@ def exhibit(lenses: list[Lens], candidates: list[Candidate], repairs: dict[str, 
                   f"- When the reward ends: {c.after_reward}",
                   f"- Cost: {c.economics.assumption_line}",
                   f"- Reach scenario: {c.reach_score:g} (trigger depth x daily cap; not a measured audience)"]
-        lines += [f"- Flag for the judge: {flag}" for flag in c.flags]
+        lines += [f"- Flag: {flag}" for flag in c.flags]
     dropped = [c for c in candidates if c.dropped_reason]
     if dropped:
         lines += ["", "## Dropped by code", ""] + [f"- {c.id} · {c.title}: {c.dropped_reason}" for c in dropped]
