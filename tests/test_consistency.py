@@ -150,8 +150,7 @@ def test_a_bar_the_app_itself_resizes_passes_when_the_mock_resizes_it_the_same()
         return bar
     real = {"a": with_tab_bar(screen, lit=0), "b": shorter()}
     parts = {"a": {"tabbar": Rect(x=0, y=780, w=411, h=58)}, "b": {"tabbar": Rect(x=0, y=786, w=411, h=52)}}
-    upper = qa_metrics.box_ssim(np.asarray(real["a"]), np.asarray(real["b"]), parts["a"]["tabbar"])
-    assert qa_metrics.SAME_PART <= upper < qa_metrics.CHROME_GATE
+    assert qa_metrics.SAME_PART <= alike_share(real["a"], real["b"], parts["a"]["tabbar"]) < 1
     assert qa_metrics.chrome_failures(parts, real, real) == []
     recolored = {**real, "b": shorter(fill="#3a2030")}
     assert [f["screen"] for f in qa_metrics.chrome_failures(parts, recolored, real)] == ["b"]
@@ -166,6 +165,11 @@ def test_the_screen_to_copy_is_the_one_most_others_match_not_another_odd_one():
              "d": real, "e": real, "f": real}
     failures = qa_metrics.chrome_failures({sid: {"tabbar": box} for sid in mocks}, mocks, dict.fromkeys(mocks, real))
     assert {f["screen"]: f["detail"].split("draw it as ")[1].split(" ")[0] for f in failures} == {"b": "d", "c": "d"}
+
+
+def alike_share(a: Image.Image, b: Image.Image, box: Rect) -> float:
+    """The share of a box two real screens draw alike, per pixel."""
+    return float((qa_metrics.box_map(np.asarray(a), np.asarray(b), box) >= qa_metrics.CHROME_GATE).mean())
 
 
 def with_tab_bar(screen: Image.Image, lit: int, fill: str = "#202226") -> Image.Image:
@@ -184,12 +188,13 @@ def test_a_highlighted_tab_may_move_as_it_does_in_the_app_but_the_bar_may_not_ch
     real = {"a": with_tab_bar(screen, lit=0), "b": with_tab_bar(screen, lit=1)}
     box = Rect(x=0, y=780, w=411, h=58)
     parts = {"a": {"tabbar": box}, "b": {"tabbar": box}}
-    in_app = qa_metrics.box_ssim(np.asarray(real["a"]), np.asarray(real["b"]), box)
-    assert qa_metrics.SAME_PART <= in_app < qa_metrics.CHROME_GATE
+    share = alike_share(real["a"], real["b"], box)
+    assert qa_metrics.SAME_PART <= share < 1
     assert qa_metrics.chrome_failures(parts, real, real) == []
     recolored = {"a": real["a"], "b": with_tab_bar(screen, lit=1, fill="#3a2030")}
     failures = qa_metrics.chrome_failures(parts, recolored, real)
-    assert [f["screen"] for f in failures] == ["b"] and f"real screens score {in_app:.3f}" in failures[0]["detail"]
+    assert [f["screen"] for f in failures] == ["b"]
+    assert f"over the {share:.0%} of the box the real screens draw alike" in failures[0]["detail"]
 
 
 def test_a_bar_drawn_lower_on_one_screen_fails_though_it_looks_the_same():
@@ -203,6 +208,41 @@ def test_a_bar_drawn_lower_on_one_screen_fails_though_it_looks_the_same():
              "b": {"tabbar": Rect(x=0, y=720, w=411, h=56)}}
     assert [f["screen"] for f in qa_metrics.chrome_failures(parts, {"a": one, "b": other}, {"a": real, "b": real})] \
         == ["b"]
+
+
+# Where each test app's own screenshots draw its bottom bar, read off the goldens, and the box it fills. The other
+# in-scope screens carry no mark: a sheet, a menu or a paywall over the bar, or a screen without one.
+REAL_BARS = {"janitorai": (["s01", "s03", "s05", "s06", "s07", "s08"], Rect(x=0, y=775, w=411, h=63)),
+             "luzia": (["s01", "s05", "s06"], Rect(x=0, y=770, w=411, h=68)),
+             "aol": (["s02", "s05"], Rect(x=0, y=780, w=411, h=58))}
+
+
+def real_screens(app: str) -> dict[str, Image.Image]:
+    return {s.id: render.content_dp(Image.open(FIXTURES / "golden" / app / s.canonical_png))
+            for s in mock.pick_scope(golden(app))}
+
+
+def tinted(image: Image.Image, box: Rect) -> Image.Image:
+    """The box blended 30% toward a rose: the same bar drawn in another color."""
+    pixels = np.asarray(image).astype(float)
+    cut = (slice(int(box.y), int(box.y + box.h)), slice(int(box.x), int(box.x + box.w)))
+    pixels[cut] = 0.7 * pixels[cut] + 0.3 * np.array([176, 48, 96])
+    return Image.fromarray(pixels.round().astype(np.uint8))
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_each_apps_own_bar_passes_as_its_screens_draw_it_and_fails_on_the_one_screen_drawn_in_another_color(app):
+    """On the unedited real screens, whatever each app changes between screens (Luzia lights a large circle behind
+    the current tab) is left out, so a mock that draws every screen as the app does passes, and a bar drawn in another
+    color on any one screen fails there."""
+    real = real_screens(app)
+    screens, box = REAL_BARS[app]
+    chrome = {sid: {"tabbar": box} if sid in screens else {} for sid in real}
+    assert qa_metrics.chrome_failures(chrome, real, real) == []
+    for odd in (screens[0], screens[-1]):
+        failures = qa_metrics.chrome_failures(chrome, {**real, odd: tinted(real[odd], box)}, real)
+        assert [f["screen"] for f in failures] == [odd]
+        assert all(s in failures[0]["detail"] for s in screens if s != odd)
 
 
 # ---------- data-value ----------
