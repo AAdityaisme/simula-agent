@@ -30,23 +30,23 @@ The bible calls some fields by other names: its `adapted_from` is `bible_mechani
 - `for_users`: who is offered the reward: `free` (users who don't pay), `paying` (subscribers), or `everyone`.
 - `grants_id`: the value-ledger id (like `l03`) of the paid benefit the reward is a piece of, or more of, or `null` when the reward is something new the app doesn't sell; code treats two ideas with the same `grants_id` and `for_users` as one idea.
 - `cost_inputs`: fill what the reward kind needs, zeros elsewhere. `inference`: `inference_count` (replies granted), `tokens_out` per reply, and your estimate of `tokens_in` per reply (code prices the context at 2k and 8k input tokens either way). `image`: `inference_count` (images). `voice` and `feature_time`: `minutes`. `currency` and `content_unlock`: `currency_amount` = the USD price the app charges for exactly what this reward grants (0 if no price is observed; the cost line then says the cost isn't counted). A cosmetic, streak_protection, or queue_priority reward carries no replies or tokens. Don't hide an inference reward under a cheaper kind; code checks.
-- `frequency_cap`: a daily count with a reset, like `3 per day, resets at midnight local time`. Any other limit (per character, per item, per screen) goes here too, in words.
+- `frequency_cap`: a count with its period and reset, like `3 per day, resets at midnight local time` or `1 per week, resets 7 days after it was taken`. Any other limit (per character, per item, per screen) goes here too, in words.
 - `daily_cap`: the per-user number from `frequency_cap`, as a whole number: how many times one user can take this offer in a day. Only the per-user limit, never a limit per character, item, or screen: for `1 per user per day; each character at most 10 times a day`, it is 1. An offer one user can take less than once a day (one-time, weekly, monthly, every few days) is 0. Code ranks on it.
 - `decline_path`, `ad_fail_path`: what happens on "no", and on no fill or failed verification. The app must stay exactly as usable as before, and a failed ad never uses up an attempt.
-- `subscriber_treatment`: what paying users see.
+- `subscriber_treatment`: what paying users see. When the product model shows no paid plan, it is `Every user sees the same offer.`
 - `advertiser_category`: a plausible, brand-safe advertiser category for this audience.
 - `character_use`: how (or whether) the app's own characters, mascots, or content appear in the ad moment. "None" is fine.
 - `flow_steps`: 3 to 6 steps. The first is `trigger_state_id` as it is today. Every existing screen you name must be in scope. New screens use `new:<short-slug>` as the state id. The steps go: where it starts → the offer → the ad plays → the reward lands.
 - `after_reward`: one plain sentence on what the user sees when the reward runs out, and why that moves them toward paying, returning, or playing again ("When the 3 days end, the extra slot locks again with a note that the paid plan keeps it for good."). Code drops an idea without it.
-- `rationale`: why this works for this app, in two or three sentences.
+- `rationale`: what the app gets, in two or three sentences: why users take the offer, from what this app's screens show, and what that brings the app. The slides print it under that heading.
 
 ## Language
 
-`title`, `offer_copy`, every `flow_steps` caption, and `rationale` go on slides for the app's product team. Write them in plain product language: short sentences, no element ids, no M-ids, no ad-tech or cost terms (eCPM, fill, ad slots, ad units, serving cost, SDK events). Say what the user sees and gets. Name plans, tiers, and features only as the app shows them in the product model, and explain every app term in plain words a first-time user understands ("5 extra replies from the stronger model", not "5 turbo pulls"). Don't invent a feature name the user would have to learn (a "Bonus Pack"); say what they get ("2 more today, until midnight").
+The slides print `title`, `offer_copy`, `after_reward`, `adds`, `placement`, `trigger_event`, `frequency_cap`, `rationale`, `subscriber_treatment`, `decline_path`, `ad_fail_path`, `character_use`, `reward.unit`, `reward.duration`, and every `flow_steps` caption, for the app's product team. Write them in plain product language: short sentences, no element ids, no M-ids, no ad-tech or cost terms (eCPM, fill, ad slots, ad units, serving cost, SDK events). Say what the user sees and gets. Name plans, tiers, and features only as the app shows them in the product model, and explain every app term in plain words a first-time user understands ("5 extra replies from the stronger model", not "5 turbo pulls"). Don't invent a feature name the user would have to learn (a "Bonus Pack"); say what they get ("2 more today, until midnight").
 
 The `title` says what the user gets, in the app's own words, in 10 words or fewer. How it works goes in `adds` and `what_is_different_here`, not the title.
 
-When an idea rests on something the product model doesn't show, say it wasn't seen, not that the app lacks it: "no paywall was seen in the explored screens", never "the app has no paywall".
+When an idea rests on something the product model doesn't show, say so only in `what_is_different_here`, and say it wasn't seen, not that the app lacks it: "no paywall was seen in the explored screens", never "the app has no paywall". The fields the slides print never say what the app lacks or what wasn't seen; they say what the user sees and gets ("every user sees the same offer").
 
 ## Rules
 
