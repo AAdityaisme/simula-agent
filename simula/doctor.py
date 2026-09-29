@@ -11,7 +11,7 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from simula import config, decide, llm, runlog
-from simula.cli import mobile_mcp_version, package_version
+from simula.cli import mobile_mcp_version, package_version, untracked_inputs
 from simula.config import ROOT
 
 LOCK = Path("/tmp/simula-emu.lock")
@@ -60,6 +60,12 @@ def check_local() -> None:
           f"{version} (want {EXPECTED['mobile-mcp']}){'' if installed else ', run npm ci'}")
     for name in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "TYPESAFE_API_KEY"):
         check(f"env {name}", bool(os.environ.get(name)), "set" if os.environ.get(name) else "missing from .env")
+    untracked = untracked_inputs()
+    if untracked is None:
+        check("every file a loader reads is tracked by git", True, "not a git checkout, skipped")
+    else:
+        check("every file a loader reads is tracked by git", not untracked,
+              f"move out (a '<x> 2' copy is usually iCloud's): {', '.join(untracked)}" if untracked else "yes")
 
 
 def check_browser() -> None:
