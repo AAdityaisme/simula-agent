@@ -53,6 +53,9 @@ DENY = re.compile(r"\b(?:report|(?:un)?block|clear|e-?mails?|security|personas?|
                   r"allow|permissions?|install|open in|submit|proceed|tip|rate|give \d stars?|save changes|publish|"
                   r"post)\b", re.IGNORECASE)
 CONTROL_WORDS = 4
+# a content filter's own phrase: on the filter's row its verb is no deny hit, while a "Block user" or "Report" there is
+FILTER_PHRASE = re.compile(r"\b(?:hide|block|allow)\s+(?:all\s+)?(?:nsfw|sfw|explicit|mature|adult|sensitive)\b",
+                           re.IGNORECASE)
 ID_WORDS = re.compile(r"(?<=[a-z])(?=[A-Z])|_")  # an identifier's words ("buttonFavorite", "btn_like") for \b
 TOGGLE = re.compile(r"Switch|CheckBox|ToggleButton", re.IGNORECASE)
 DENY_ON_UPSELL = re.compile(r"continue|try|start|get|claim|unlock|join|redeem|activate|\bremove\b", re.IGNORECASE)
@@ -369,16 +372,15 @@ def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bo
     """The deny-list word that blocks this tap, or None. On an upsell screen its call-to-action words are
     denied too. A control that shows the account's own name or email is never tapped: a tap can copy it where no
     redaction reaches, like the keyboard's clipboard chip. Sending and typing belong to the core-loop pass only. A
-    switch or checkbox could undo the content filter, so only the filter's own row may flip one (toggle_ok). That row
-    is held to the account, data and money words alone: a filter's own words ("Hide NSFW", "Block explicit content")
-    are the ambiguous ones."""
+    switch or checkbox could undo the content filter, so only the filter's own row may flip one (toggle_ok). On that
+    row a filter phrase ("Hide NSFW", "Block explicit content") is no deny hit; every other deny word still is."""
     text = "\n".join(dict.fromkeys(t for t in (c.label, c.tree_label) if t))
     if REDACTED in text:
         return "account text"
     text = ID_WORDS.sub(" ", text)
     shaped = len(c.label.split()) <= CONTROL_WORDS or "Button" in c.kind
-    hit = (DENY_ALWAYS if shaped else DENY_COMMAND).search(text) \
-        or (DENY.search(text) if shaped and not toggle_ok else None) \
+    rest = FILTER_PHRASE.sub(" ", text) if toggle_ok else text
+    hit = (DENY_ALWAYS if shaped else DENY_COMMAND).search(text) or (DENY.search(rest) if shaped else None) \
         or (DENY_ON_UPSELL.search(text) if upsell else None) or (DENY_IN_CORE if core else DENY_IN_TOUR).search(text)
     if hit:
         return hit.group(hit.lastindex or 0).lower()  # a command's word, without the bullet before it

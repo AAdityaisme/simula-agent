@@ -83,8 +83,11 @@ def test_the_filter_questions_own_examples_can_be_applied(label, kind):
     assert denied(control(label, kind), toggle_ok=True) is None
 
 
-def test_a_filter_row_is_still_held_to_the_account_and_money_words():
+def test_a_filter_row_is_still_held_to_every_word_but_its_own_phrase():
     assert denied(control("Hide NSFW", "Button")) == "hide"
+    assert denied(control("Report", "Button"), toggle_ok=True) == "report"
+    assert denied(control("Block user", "Switch"), toggle_ok=True) == "block"
+    assert denied(control("Hide this post", "Switch"), toggle_ok=True) == "hide"
     assert denied(control("Delete history", "Switch"), toggle_ok=True) == "delete"
     assert denied(control("Unlock mature content", "Button"), upsell=True, toggle_ok=True) == "unlock"
 
