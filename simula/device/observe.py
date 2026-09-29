@@ -53,7 +53,6 @@ DENY_ON_UPSELL = re.compile(r"continue|try|start|get|claim|unlock|join|redeem|ac
 DENY_IN_TOUR = re.compile(r"send|swipe|regenerate", re.IGNORECASE)
 DENY_IN_CORE = re.compile(r"\b(?:gifts?|coins?|gems?|tips?|donat\w*|credits?)\b", re.IGNORECASE)
 DISMISS = re.compile(r"^(close\b.*|not now|later|maybe later|no,? thanks|skip|dismiss|got it|x|×|✕)$", re.IGNORECASE)
-ANR = re.compile(r"isn.t responding|not responding", re.IGNORECASE)
 BLOCKING = re.compile(r"emulator|rooted|captcha|verify (that )?you.?re (a )?human|age verification|"
                       r"date of birth|not supported on this device", re.IGNORECASE)
 CURRENCY = r"[$€£¥₹]|\b(?:USD|EUR|GBP|INR|JPY|CAD|AUD)\b"
@@ -379,6 +378,12 @@ def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bo
     if c.kind == "EditText" and not core:
         return "text input"
     return None
+
+
+def anr(elements: list[dict]) -> bool:
+    """Android's own "isn't responding" dialog, in any language: its buttons carry android:id/aerr_* ids. A reply or
+    headline that says "not responding" is not one."""
+    return any((e.get("identifier") or "").startswith("android:id/aerr_") for e in elements)
 
 
 def dismiss_control(cands: list[Candidate]) -> Candidate | None:

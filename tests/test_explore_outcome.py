@@ -6,6 +6,7 @@ from contextlib import nullcontext
 import pytest
 
 from simula import cli, runlog
+from simula.device import observe as ob
 from simula.stages import explore as stage
 from tests.fake_device import FakePhone, blank
 from tests.fake_device import explorer as new_explorer
@@ -208,3 +209,41 @@ def test_a_dump_that_times_out_while_the_launch_screen_settles_still_explores(tm
     ex, _ = new_explorer(tmp_path, monkeypatch, settles_slowly)
     stage.explore_app(ex)
     assert ex.root is not None and len(ex.states) >= 8
+
+
+def anr_dialog() -> list[dict]:
+    def element(ref, kind, text, ident, y):
+        return {"ref": ref, "type": f"android.widget.{kind}", "text": text, "identifier": f"android:id/{ident}",
+                "coordinates": {"x": 120, "y": y, "width": 840, "height": 140}}
+    return [element("@a1", "TextView", "Example isn't responding", "alertTitle", 1000),
+            element("@a2", "Button", "Close app", "aerr_close", 1160),
+            element("@a3", "Button", "Wait", "aerr_wait", 1320)]
+
+
+def test_only_the_system_dialog_is_an_anr():
+    reply = {"ref": "@r", "type": "android.widget.TextView", "text": "Sorry, the server isn't responding right now.",
+             "coordinates": {"x": 42, "y": 900, "width": 900, "height": 120}}
+    assert ob.anr(anr_dialog()) and not ob.anr([reply])
+
+
+def test_an_anr_gets_one_wait_tap_by_its_id_and_the_tour_goes_on(tmp_path, monkeypatch):
+    def hangs_once(clock):
+        phone = janitor_like(clock)
+        elements, tap, armed = phone.elements, phone.tap, [True]
+
+        def with_dialog():
+            reply, listed = elements()
+            return (reply, listed + anr_dialog()) if armed[0] else (reply, listed)
+
+        def tapping(x, y):
+            if armed[0] and 1320 <= y < 1460:
+                armed[0] = False
+                return
+            tap(x, y)
+        phone.elements, phone.tap = with_dialog, tapping
+        return phone
+    ex, phone = new_explorer(tmp_path, monkeypatch, hangs_once)
+    stage.explore_app(ex)
+    notes = [line.note for line in runlog.read_trace(ex.run_dir / "trace.jsonl") if line.step == "anr"]
+    assert notes == ["app not responding: tapped Wait once"]
+    assert not any("not responding" in why for why in ex.relaunch_reasons) and len(ex.states) >= 8

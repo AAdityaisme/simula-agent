@@ -278,7 +278,7 @@ class Explorer:
     def observe(self) -> Obs:
         self.obs = None
         settled = ob.settle(self.phone.elements, self.phone.small_hash, self.device, self.clock, self.sleep)
-        if any(ob.ANR.search(ob.words(e)) for e in settled.elements):
+        if ob.anr(settled.elements):
             return self.answer_anr(settled.elements)
         self.anr_waited = False
         shot = self.phone.screenshot(self.scratch / "now.png", (self.device.w_px, self.device.h_px))
@@ -296,7 +296,7 @@ class Explorer:
         return self.obs
 
     def answer_anr(self, elements: list[dict]) -> Obs:
-        wait = next((c for c in ob.controls(elements, self.device) if c.label.strip().lower() == "wait"), None)
+        wait = next((c for c in ob.controls(elements, self.device) if c.ident == "aerr_wait"), None)
         if wait and not self.anr_waited:
             self.anr_waited = True
             self.note("anr", "app not responding: tapped Wait once")
