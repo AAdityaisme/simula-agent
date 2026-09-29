@@ -19,7 +19,7 @@ from simula.config import ROOT
 from simula.contracts import (SCHEMA_VERSION, ContractError, ContractReport, Critique, Edge, Edit, Edits, Fix,
                               ProductModel, QAMetrics, Rect, ScreenMetrics, State)
 from simula.runlog import read_trace, run_trace, write_exhibit
-from simula.stages import FRESH_CALLS, Ctx, mock, resume_command
+from simula.stages import FRESH_CALLS, Ctx, in_plain_words, mock, resume_command
 
 MAX_ROUNDS = 3
 MIN_GAIN = 0.3
@@ -677,41 +677,51 @@ def qa_report(ctx: Ctx, best: Version, loop: Loop, undrawn: dict[str, str]) -> d
 
 
 def outcome(ctx: Ctx, best: Version, loop: Loop, undrawn: dict[str, str]) -> dict:
-    """complete, or partial with why and the command that gets further. The reasons come in the order a person would
-    fix them: screens the mock left undrawn (with why) and the core flows through them, a review a failed or capped
-    model call cut short, screens whose latest critic call failed, checks the approved version still fails. The
-    resume is built from what caused them (`resume_command`): QA again with its own failures' flags, asking afresh
-    (and saying so) when the loop's own recorded answers are all that fell short; while screens are undrawn, the mock
-    with its failures' flags first, and then that QA on the new page.
+    """complete, or partial with why and the command that gets further. `reasons` say why in plain words for the app's
+    product team, in the order a person would fix them: screens the mock left undrawn and the core flows through
+    them, a review a failed or capped model call cut short, screens whose latest critic call failed, checks the
+    approved version still fails. `resume` is built from what caused them (`resume_command`): QA again with its own
+    failures' flags, asking afresh when the loop's own recorded answers are all that fell short; while screens are
+    undrawn, the mock with its failures' flags first, and then that QA on the new page. `resume_note` goes beside it:
+    what stopped each part in the stages' own words, and when the resume asks afresh, that the same input may be
+    answered the same way.
     A partial mock still goes on to the slides; QA never blocks them."""
     through_undrawn = [f["flow"] for f in best.flows if f["status"] == "undrawn"]
-    failures = "; ".join(dict.fromkeys(f"round {n} {str(e)[:120]}" for n, e in loop.missed.values()))
+    undrawn_causes = {sid: undrawn_cause(detail) for sid, detail in undrawn.items()}
+    missed = {sid: failure for sid, (_, failure) in loop.missed.items()}
     reasons = [text for present, text in (
-        (undrawn, f"the mock left screens undrawn: {undrawn_text(undrawn)}"),
+        (undrawn, "the mock left screens undrawn: "
+                  + together({sid: in_plain_words(c) for sid, c in undrawn_causes.items()})),
         (through_undrawn, f"core flows through an undrawn screen: {', '.join(through_undrawn)}"),
-        (loop.cause, f"the review stopped early: {loop.stop}"),
-        (loop.missed, f"the critic's latest call on these screens failed: {', '.join(loop.missed)} ({failures})"),
+        (loop.cause, f"the review stopped early: {loop.cause and in_plain_words(loop.cause)}"),
+        (missed, "the critic's latest review of these screens failed: "
+                 + together({sid: in_plain_words(e) for sid, e in missed.items()})),
         (best.failed_taps(), f"taps that still fail: {', '.join(t['edge'] for t in best.failed_taps())}"),
         (best.failed_flows(), f"core flows that still fail: {', '.join(f['flow'] for f in best.failed_flows())}"),
         (best.contract_errors, f"contract errors on the approved version: {len(best.contract_errors)}"),
     ) if present]
     if not reasons:
-        return {"outcome": "complete", "reasons": [], "resume": None}
-    causes = [c for c in (loop.cause, *(e for _, e in loop.missed.values())) if c is not None]
-    resume = resume_command(ctx, "qa", *causes, fresh=not causes and not undrawn)
+        return {"outcome": "complete", "reasons": [], "resume": None, "resume_note": None}
+    qa_causes = [c for c in (loop.cause, *missed.values()) if c is not None]
+    resume = resume_command(ctx, "qa", *qa_causes, fresh=not qa_causes and not undrawn)
     if undrawn:
-        resume = f"{resume_command(ctx, 'mock', *map(undrawn_cause, undrawn.values()))} && {resume}"
-    if " --no-cache" in resume:
-        reasons.append(FRESH_CALLS)
-    return {"outcome": "partial", "reasons": reasons, "resume": resume}
+        resume = f"{resume_command(ctx, 'mock', *undrawn_causes.values())} && {resume}"
+    said = [text for present, text in (
+        (undrawn, "mock: " + together({sid: d.removeprefix(UNDRAWN_PREFIX) for sid, d in undrawn.items()})),
+        (loop.cause, f"review: {loop.stop}"),
+        (missed, "critic: " + together({sid: f"round {n} {str(e)[:120]}" for sid, (n, e) in loop.missed.items()})),
+    ) if present]
+    note = [f"What stopped it: {'; '.join(said)}." if said else "", FRESH_CALLS if " --no-cache" in resume else ""]
+    return {"outcome": "partial", "reasons": reasons, "resume": resume,
+            "resume_note": " ".join(part for part in note if part) or None}
 
 
-def undrawn_text(undrawn: dict[str, str]) -> str:
-    """Each undrawn screen with why, screens left undrawn the same way together."""
-    by_reason = {}
-    for sid, detail in undrawn.items():
-        by_reason.setdefault(detail.removeprefix(UNDRAWN_PREFIX), []).append(sid)
-    return "; ".join(f"{', '.join(ids)} ({why})" for why, ids in by_reason.items())
+def together(why: dict[str, str]) -> str:
+    """Screens that share a why, listed together: `s01, s02 (why); s03 (other why)`."""
+    by_why = {}
+    for sid, text in why.items():
+        by_why.setdefault(text, []).append(sid)
+    return "; ".join(f"{', '.join(ids)} ({text})" for text, ids in by_why.items())
 
 
 def structure(best: Version) -> dict:
@@ -749,7 +759,8 @@ def fidelity_lines(report: dict, start: float) -> list[str]:
 
 def exhibit(ctx: Ctx, model: ProductModel, best: Version, loop: Loop, report: dict) -> str:
     status = ("**approved** (outcome complete)" if report["outcome"] == "complete"
-              else f"**qa_incomplete** (outcome partial): {'; '.join(report['reasons'])}. Resume: `{report['resume']}`")
+              else f"**qa_incomplete** (outcome partial): {'; '.join(report['reasons'])}. Resume: `{report['resume']}`"
+              + (f" ({report['resume_note']})" if report["resume_note"] else ""))
     lines = [f"# QA: {model.app}", "",
              f"Status: {status}. Round {best.round} is approved and copied to `qa/approved/`. Stop: "
              f"{report['stop_reason']}. Model spend this stage: ${stage_usd(ctx):.4f}.", "",

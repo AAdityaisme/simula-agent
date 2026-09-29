@@ -72,15 +72,16 @@ def test_a_finished_review_with_every_check_passing_is_complete(scripted):
                                                                                           None)
 
 
-@pytest.mark.parametrize("failure, flag, note", [
-    (llm.LLMFailure("refusal", "no"), f"{QA_AGAIN} --no-cache", [FRESH_CALLS]),
-    (llm.CapReached("qa: cap; raise with --usd-cap 3.5"), "--usd-cap 3.50", []),
-    (llm.LLMFailure("timeout", "slow"), "", []),
+@pytest.mark.parametrize("failure, why, flag, fresh", [
+    (llm.LLMFailure("refusal", "no"), "the model declined", f"{QA_AGAIN} --no-cache", True),
+    (llm.CapReached("qa: cap; raise with --usd-cap 3.5"), "over the $ budget", "--usd-cap 3.50", False),
+    (llm.LLMFailure("timeout", "slow"), "the model call timed out", "", False),
 ], ids=["answered", "our-cap", "lost-call"])
 def test_a_review_a_model_call_cut_short_is_partial_yet_still_approves_its_best_version(scripted, monkeypatch,
-                                                                                       failure, flag, note):
+                                                                                       failure, why, flag, fresh):
     """Red team 9a98e87 F1: the resume follows the cause. A stored answer would replay, so it asks afresh and says so;
-    our own cap names a higher one; a lost call isn't replayed, so the plain stage calls again."""
+    our own cap names a higher one; a lost call isn't replayed, so the plain stage calls again. Red team 0ecf32a LOW 3:
+    the reason says why in plain words, and the stage's own words go in the resume note."""
     run_dir, _, play = scripted
 
     def fail(*args, **kwargs):
@@ -88,8 +89,10 @@ def test_a_review_a_model_call_cut_short_is_partial_yet_still_approves_its_best_
     monkeypatch.setattr(qa, "fix", fail)
     report = play([5.0])
     assert (report["status"], report["outcome"], report["approved_round"]) == ("qa_incomplete", "partial", 0)
-    assert report["reasons"] == [f"the review stopped early: round 1 stopped before any edit: {failure}", *note]
+    assert report["reasons"] == [f"the review stopped early: {why}"]
     assert report["resume"] == f"simula qa luzia --run {run_dir.name} {OPTIONS} {flag}".rstrip()
+    said = f"What stopped it: review: round 1 stopped before any edit: {failure}."
+    assert report["resume_note"] == (f"{said} {FRESH_CALLS}" if fresh else said)
     assert approved_html(run_dir) == "<html><body>v0</body></html>"
     exhibit = (run_dir / "exhibits" / "04-qa.md").read_text()
     assert "**qa_incomplete** (outcome partial): the review stopped early" in exhibit
@@ -99,21 +102,25 @@ def test_contract_errors_left_on_the_approved_version_make_it_partial(scripted):
     _, _, play = scripted
     report = play([5.0, 6.0], errors=[1, 2])
     assert report["approved_round"] == 0
-    assert report["reasons"] == ["contract errors on the approved version: 1", FRESH_CALLS]
+    assert report["reasons"] == ["contract errors on the approved version: 1"]
+    assert report["resume_note"] == FRESH_CALLS
 
 
 def test_failing_taps_and_flows_are_named_and_resume_from_qa(tmp_path):
     best = version()
     report = qa.qa_report(ctx_for(tmp_path / "run", "anyapp"), best, qa.Loop(rounds=[], stop="s"), {})
     # The loop's own recorded answers are what fell short, and a plain rerun would replay them.
-    assert report["reasons"] == ["taps that still fail: s01.e2>s04", "core flows that still fail: f2", FRESH_CALLS]
+    assert report["reasons"] == ["taps that still fail: s01.e2>s04", "core flows that still fail: f2"]
+    assert report["resume_note"] == FRESH_CALLS
     assert report["resume"] == f"simula qa anyapp --run run {OPTIONS} {QA_AGAIN} --no-cache"
     best.contract_errors.append(ContractError(kind="wallpaper", detail="d", screen="s01"))
     undrawn = {"s09": "screen not drawn: refusal: no", "s10": "screen not drawn: refusal: no",
                "s11": "screen not drawn: timeout: slow"}
     report = qa.qa_report(ctx_for(tmp_path / "run", "anyapp"), best, qa.Loop(rounds=[], stop="s"), undrawn)
-    assert report["reasons"][0] == "the mock left screens undrawn: s09, s10 (refusal: no); s11 (timeout: slow)"
-    assert report["reasons"][-2:] == ["contract errors on the approved version: 1", FRESH_CALLS]
+    assert report["reasons"][0] == ("the mock left screens undrawn: s09, s10 (the model declined); "
+                                    "s11 (the model call timed out)")
+    assert report["reasons"][-1] == "contract errors on the approved version: 1"
+    assert report["resume_note"] == f"What stopped it: mock: s09, s10 (refusal: no); s11 (timeout: slow). {FRESH_CALLS}"
     assert report["resume"] == (f"simula mock anyapp --run run {OPTIONS} {MOCK_AGAIN} --no-cache "
                                 f"&& simula qa anyapp --run run {OPTIONS}")
 

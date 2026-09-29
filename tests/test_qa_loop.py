@@ -248,8 +248,11 @@ def test_a_replay_whose_renders_differ_makes_no_model_call_and_ends_where_the_re
     assert any("group skipped" in line.note for line in read_trace(run_dir / "trace.jsonl"))
     second_group = ", ".join(s.id for s in mock.pick_scope(golden(app))[2:4])
     assert recorded["outcome"] == "partial" and recorded["reasons"][:2] == [
-        "the review stopped early: round 2 stopped before any edit: refusal: refused",
-        f"the critic's latest call on these screens failed: {second_group} (round 2 refusal: refused)"]
+        "the review stopped early: the model declined",
+        f"the critic's latest review of these screens failed: {second_group} (the model declined)"]
+    assert recorded["resume_note"].startswith(
+        "What stopped it: review: round 2 stopped before any edit: refusal: refused; "
+        f"critic: {second_group} (round 2 refusal: refused).")
 
     screenshot = render.screenshot_screens
 
@@ -394,7 +397,8 @@ def test_our_own_cap_in_qa_approves_the_best_round_and_its_printed_resume_gets_f
     report = json.loads((mocked_run / "qa" / "qa_report.json").read_text())
     assert (report["status"], report["outcome"], report["approved_round"]) == ("qa_incomplete", "partial", 0)
     assert "round 1 stopped before any edit: qa: next call could cost" in report["stop_reason"]
-    assert report["reasons"] == [f"the review stopped early: {report['stop_reason']}"]
+    assert report["reasons"] == ["the review stopped early: over the $ budget"]
+    assert report["resume_note"] == f"What stopped it: review: {report['stop_reason']}."
     figure = llm.CapReached(report["stop_reason"]).usd_needed
     assert figure > config.stage_cap("qa")
     assert report["resume"] == f"simula qa janitorai --run {mocked_run.name} {OPTIONS} --usd-cap {figure:.2f}"
@@ -681,7 +685,7 @@ def test_undrawn_screens_are_reported_and_never_scored_criticized_or_fixed(twelv
     assert [s["state_id"] for s in report["screens"]] == drawn
     assert calls and all(set(c["seen"]).isdisjoint(undrawn) for c in calls)
     assert (report["status"], report["outcome"]) == ("qa_incomplete", "partial") and not report["contract_errors"]
-    assert report["reasons"][0] == f"the mock left screens undrawn: {', '.join(undrawn)} (refusal: no)"
+    assert report["reasons"][0] == f"the mock left screens undrawn: {', '.join(undrawn)} (the model declined)"
     assert report["resume"] == (f"simula mock {app} --run {run_dir.name} {OPTIONS} "
                                 f"--usd-cap {config.stage_cap('mock'):.2f} --no-cache "
                                 f"&& simula qa {app} --run {run_dir.name} {OPTIONS}")

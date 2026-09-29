@@ -24,6 +24,9 @@ EXTRA_INPUTS = {
 
 # Failures llm never replays on a normal run (lost calls), so a plain rerun calls again.
 TRANSIENT = ("timeout", "error")
+# Why a model call fell short, for the app's product team; the stages' own words go in a resume note.
+PLAIN_FAILURE = {"refusal": "the model declined", "max_tokens": "the model's answer was cut off",
+                 "timeout": "the model call timed out", "error": "the model call failed"}
 FRESH_CALLS = ("--no-cache asks every model call of the stage again, not only the one that fell short, and the same "
                "input may be answered the same way.")
 
@@ -62,6 +65,14 @@ def run_options(ctx: Ctx) -> str:
 
 def rerun_command(stage: str, ctx: Ctx) -> str:
     return f"simula {stage} {ctx.app['name']} {run_options(ctx)}"
+
+
+def in_plain_words(cause: BaseException) -> str:
+    """Why a stage's model call fell short, for the app's product team: over our $ budget, a named failure, or an
+    answer that couldn't be used (a schema or parse failure)."""
+    if isinstance(cause, CapReached):
+        return "over the $ budget"
+    return PLAIN_FAILURE.get(getattr(cause, "outcome", None), "the model's answer couldn't be used")
 
 
 def resume_command(ctx: Ctx, stage: str, *causes: BaseException, fresh: bool = False) -> str:
