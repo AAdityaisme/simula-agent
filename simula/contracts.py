@@ -660,6 +660,7 @@ class DoneMarker(Strict):
     input_hashes: list[FileHash]
     prompt_hashes: list[FileHash]
     params_hash: str
+    code_hashes: list[FileHash] = []  # its module and the simula modules it imports; [] predates hashing code
     output_hashes: list[FileHash]
     provenance: Provenance
     finished_at: str

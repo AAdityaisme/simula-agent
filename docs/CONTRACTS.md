@@ -77,7 +77,7 @@ runs/<app>/latest -> <run_id>
 | `judge/decisions.json` | `DecisionsFile` |
 | `<stage>/done.json` | `DoneMarker` |
 | `manifest.json` | `Manifest` |
-- `done.json` holds the hashes of every input, prompt, params, and output file. `simula run` skips a stage only when all four still match. Rerunning an upstream stage changes its outputs, so everything below it reruns. It is written to a temp file and renamed, so a crash never leaves a half marker.
+- `done.json` holds the hashes of every input, prompt, params, code, and output file. The code is the stage's module and every `simula` module it imports, transitively, read from the source (`runfolder.code_files`): a fix to propose's ranking reruns propose and the stages that import it (judge, flows), an `llm.py` fix reruns every stage that calls a model, and a README edit reruns nothing. `simula run` skips a stage only when all five still match; a marker written before the code was hashed never matches. Rerunning an upstream stage changes its outputs, so everything below it reruns. It is written to a temp file and renamed, so a crash never leaves a half marker.
 - `failure.json` replaces `done.json` when a stage fails.
 - Stage 3 (mock) reads `model/` only: the model folder carries its own canonical screenshots (`model/states/`), so another agent could mock the app without the explore folder.
 

@@ -8,7 +8,7 @@ import sys
 
 import pytest
 
-from simula import cli
+from simula import cli, runfolder
 from simula.runlog import read_trace
 from tests.conftest import FIXTURES
 
@@ -116,3 +116,22 @@ def test_without_a_git_checkout_the_check_is_skipped_with_a_trace_note(runs, tmp
     assert cli.main(["mock", "janitorai", "--allow-fixtures", "--fixture", f"model={GOLDEN}"]) == 0
     [note] = [line for line in read_trace(latest(runs) / "trace.jsonl") if line.step == "preflight"]
     assert (note.stage, note.outcome) == ("run", "ok") and note.note.startswith("not a git checkout: skipped")
+
+
+# ---------- what a finished stage ran ----------
+
+def rerun(run_dir, *flags):
+    """`simula run`'s check of the mock: True when it ran again, False when it skipped on matching hashes."""
+    ctx = cli.open_run(cli.parser().parse_args(["run", "janitorai", "--run", run_dir.name, "--allow-fixtures", *flags]))
+    assert cli.run_stage("mock", ctx, force=False)
+    return read_trace(run_dir / "trace.jsonl")[-1].step != "skip"
+
+
+def test_the_chain_reruns_a_stage_whose_code_changed(runs, mock_stage, monkeypatch, tmp_path):
+    code = tmp_path / "mock.py"
+    code.write_text("BATCH = 4\n")
+    monkeypatch.setattr(runfolder, "code_files", lambda stage: [code])
+    run_dir = seeded_run(runs)
+    assert not rerun(run_dir)
+    code.write_text("BATCH = 5\n")
+    assert rerun(run_dir) and len(mock_stage[1]) == 2

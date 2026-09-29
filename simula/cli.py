@@ -123,7 +123,8 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     provenance = runfolder.upstream_provenance(ctx.run_dir, UPSTREAM[stage])
     runfolder.require_real(provenance, ctx.allow_fixtures)
     inputs, prompts, params = stage_inputs(stage, ctx), prompt_files(stage), stage_params(stage, ctx)
-    if not force and runfolder.is_done(stage_dir, ctx.run_dir, inputs, prompts, params):
+    code = runfolder.code_files(stage)
+    if not force and runfolder.is_done(stage_dir, ctx.run_dir, inputs, prompts, params, code=code):
         runlog.run_trace(ctx.run_dir, stage=stage, step="skip", decider="code", note="hashes match")
         return True
     module = importlib.import_module(f"simula.stages.{stage}")
@@ -147,7 +148,7 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
         runfolder.write_failure(stage_dir, reason)
         runlog.run_trace(ctx.run_dir, stage=stage, step="run", decider="code", outcome="error", note=reason[:300])
         raise
-    runfolder.write_done(stage_dir, ctx.run_dir, inputs, prompts, params, [stage_dir], provenance)
+    runfolder.write_done(stage_dir, ctx.run_dir, inputs, prompts, params, [stage_dir], provenance, code=code)
     runlog.run_trace(ctx.run_dir, stage=stage, step="done", decider="code", note=provenance.source)
     usd_total = sum(line.usd for line in runlog.read_trace(ctx.run_dir / "trace.jsonl"))
     done = runlog.read_manifest(ctx.run_dir).stages_done
