@@ -262,8 +262,10 @@ def test_a_provider_usage_limit_stops_the_call_releases_its_hold_and_is_never_ca
     budget = llm.Budget("model", 10.0)
     with pytest.raises(llm.ProviderUnavailable, match="usage limit"):
         ask_through_call(tmp_path, budget)
-    assert (budget.held, budget.spent) == (0, 0) and read_trace(tmp_path / "trace.jsonl")[-1].outcome == "blocked"
+    line = read_trace(tmp_path / "trace.jsonl")[-1]
+    assert (budget.held, budget.spent) == (0, 0) and line.outcome == "blocked"
     assert not (tmp_path / "cache").exists() or not list((tmp_path / "cache").iterdir())
+    assert not line.note.startswith("key ")  # --replay follows only keys a trace names; an outage has none
 
 
 def test_a_cap_stop_prints_a_resume_command_with_the_runs_own_options(runs, tmp_path):

@@ -95,10 +95,16 @@ def test_files_exist_with_the_content_crop_size(model):
             assert Image.open(root / e.asset_png).size == (int(e.rect_px.w), int(e.rect_px.h))
 
 
-def test_mock_scope_is_bounded_and_safe(model):
-    in_scope = [s for s in model.states if s.in_mock_scope]
-    assert 1 <= len(in_scope) <= 8
-    assert all(s.content_rating != "unsafe" and s.kind != "blocked" for s in in_scope)
+def test_mock_scope_is_stage_2s_rule_in_its_priority_order(model):
+    by_id, edges = {s.id: s for s in model.states}, {e.id: e for e in model.edges}
+    on_flow = {sid for f in model.flows for i in f.edge_ids for sid in (edges[i].from_state, edges[i].to_state)}
+    cited = {i.split(".")[0] for m in model.mechanics for i in m.evidence_ids}
+    drawable = {sid for sid in on_flow | cited if by_id[sid].kind not in ("blocked", "external")
+                and (by_id[sid].content_rating != "unsafe" or sid in on_flow)}
+    assert model.mock_order[0] == next(s.id for s in model.states if s.kind == "screen")
+    assert set(model.mock_order) == {s.id for s in model.states if s.in_mock_scope}
+    assert drawable <= set(model.mock_order)
+    assert all(by_id[sid].kind not in ("blocked", "external") for sid in model.mock_order)
 
 
 def test_code_owned_transition_matches_the_states(model):

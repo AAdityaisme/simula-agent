@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c04",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is opt-in (user taps to trigger it), the copy states the reward (outfit for 7 days) before the ad, declining closes the card without harm, and a failure path is specified (kind note if verification fails, daily attempt not consumed)."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic outfit for the virtual pet, a non-tradeable, non-withdrawable cosmetic item with no cash-like properties."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a tap on the Toki banner or 'Meet me' button on the home screen and modal, both app events, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal explicitly states 'removes nothing free' and adds a new cosmetic benefit; no existing free resource is capped or locked."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer lives on s04, a modal over home (app chrome), not inside a chat transcript or conversation thread, and home is marked safe."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "The proposal is a product_change that adds a new resource (Toki outfits). The product model lists the virtual pet (m02) but marks its care loop and currency needs as unknown (open question). The outfit reward does not rest on any observed core flow or charged feature; it is tied only to an unobserved mechanic."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The proposal cites s01.e26 and s04.e04 for Toki's existence and the 'care for me to grow' framing, both present in the model. The claim that 'no paid benefit covers the pet' is supported by the paywall bullet points (l01–l06) which do not mention Toki."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "Subscribers see the same card and the outfit is a cosmetic, zero-cost item that does not give away any Luzia+ feature (2× images, advanced reasoning, voice chat, character slots, etc.)."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears on a modal the user chooses to open (by tapping Toki or 'Meet me') and is placed on a persistent surface within that modal, not interrupting a task mid-flow."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn native game, the reward is granted on the verified play (the `REWARD_VERIFIED` event), and the trigger is an app event (tap on home banner or modal button)."
+ },
+ "c7_specific": {
+  "passed": false,
+  "reason": "The idea is specific to Toki and Luzia's pet mechanic (s01.e26, s04.e04), but the proposal rests on the pet's unobserved care loop and currency needs (open questions in the model), making it impossible to verify that a 7-day cosmetic outfit is the right type of reward for this app's pet system."
+ },
+ "other_concern": "The proposal assumes Toki has a care loop and that cosmetic outfits are a meaningful reward within that loop, but the model marks both the care mechanics and currency as unknown. The outfit's appeal and retention value cannot be assessed without understanding what Toki actually needs from the user.",
+ "fixable": false
+}

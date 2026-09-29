@@ -37,8 +37,8 @@ uv run simula note "what I fixed by hand" [--usd 0.40]
 ## Tests
 
 ```sh
-uv run pytest -m "not live"      # offline, what CI runs
-uv run pytest -m live            # real API calls, a few cents
+uv run pytest                    # offline, what CI runs; pyproject.toml adds -m "not live"
+uv run pytest -m live            # real API calls, a few cents (needs .env keys; the emulator for explore)
 ```
 
 Golden product models for JanitorAI, Luzia, and AOL live in `tests/fixtures/golden/`. They are test data only; rebuild them with `uv run python tests/fixtures/golden/build_golden.py`.

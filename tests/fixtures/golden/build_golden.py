@@ -3,7 +3,9 @@
 One generic script. Code computes every number from the fixture trees and screenshots (ids, rects, crops,
 colors). The hand-written meaning (names, purposes, labels for unlabeled icons, mechanics, ledger, edges)
 lives in golden/<app>/meaning.json and is hand-checked by Aadi. A state backed only by a screenshot has
-no elements, because the fixture capture got no tree for it.
+no elements, because the fixture capture got no tree for it. The mock scope is not hand-written: stage 2's
+own rule (model.mock_scope) picks it from the flows and mechanics, so the goldens follow any change to it.
+Terms and experience ledger items stay empty; no golden test needs them yet.
 
     uv run python tests/fixtures/golden/build_golden.py
 """
@@ -16,7 +18,8 @@ import numpy as np
 from PIL import Image
 
 from simula.contracts import (Coverage, CrossScreenValue, Device, Edge, Element, Flow, LedgerItem, Mechanic,
-                              ProductModel, Provenance, Rect, State)
+                              ModelMeaning, ProductModel, Provenance, Rect, State)
+from simula.stages.model import mock_scope
 
 HERE = Path(__file__).parent
 FIXTURES = HERE.parent
@@ -65,8 +68,8 @@ def is_image_like(e: dict) -> bool:
     return (e["type"].endswith("ImageView") or no_words) and min(c["width"], c["height"]) >= 48 and small_enough
 
 
-def build_elements(app: str, spec: dict, image: Image.Image, out: Path) -> list[Element]:
-    sid, scope = spec["id"], spec["in_mock_scope"]
+def build_elements(app: str, spec: dict, image: Image.Image, out: Path, scope: bool) -> list[Element]:
+    sid = spec["id"]
     pixels = np.asarray(image)
     labels = spec.get("labels", {})
     elements = []
@@ -88,7 +91,7 @@ def build_elements(app: str, spec: dict, image: Image.Image, out: Path) -> list[
     return elements
 
 
-def build_state(app: str, spec: dict, out: Path) -> State:
+def build_state(app: str, spec: dict, out: Path, scope: set[str]) -> State:
     name = spec.get("tree") or spec["screen"]
     source = FIXTURES / ("trees" if "tree" in spec else "screens") / app / f"{name}.png"
     image = Image.open(source).convert("RGB")
@@ -98,8 +101,8 @@ def build_state(app: str, spec: dict, out: Path) -> State:
         id=spec["id"], kind=spec["kind"], parent_id=spec.get("parent"), name=spec["name"], purpose=spec["purpose"],
         fingerprint=f"fixture:{'tree' if 'tree' in spec else 'screen'}:{name}",
         canonical_png=f"states/{spec['id']}.png",
-        elements=build_elements(app, spec, image, out) if "tree" in spec else [],
-        in_mock_scope=spec["in_mock_scope"], content_rating=spec.get("rating", "safe"),
+        elements=build_elements(app, spec, image, out, spec["id"] in scope) if "tree" in spec else [],
+        in_mock_scope=spec["id"] in scope, content_rating=spec.get("rating", "safe"),
         dynamic_regions=[Rect(**r) for r in spec.get("dynamic_regions", [])],
         blocked_reason=spec.get("blocked_reason"))
 
@@ -131,7 +134,8 @@ def build(app: str) -> ProductModel:
     for sub in ("states", "assets"):
         shutil.rmtree(out / sub, ignore_errors=True)
         (out / sub).mkdir()
-    states = {spec["id"]: build_state(app, spec, out) for spec in meaning["states"]}
+    # Element ids don't depend on scope, so a first pass with no scope gives the ids the flows and mechanics cite.
+    states = {spec["id"]: build_state(app, spec, out, set()) for spec in meaning["states"]}
     edges = [Edge(id=f"{find(states, e['from'])}>{e['to']}", from_state=e["from"][0], to_state=e["to"],
                   element_id=find(states, e["from"]), action="tap",
                   transition=transition(states, find(states, e["from"]), e["to"]), change_summary=e["summary"])
@@ -149,10 +153,14 @@ def build(app: str) -> ProductModel:
     values = [CrossScreenValue(id=v["id"], label=v["label"], value_text=v["value"],
                                evidence_ids=[find(states, r) for r in v["evidence"]])
               for v in meaning.get("cross_screen_values", [])]
+    order = mock_scope(list(states.values()), edges, ModelMeaning(
+        app_category=meaning["app_category"], states=[], elements=[], flows=flows, mechanics=mechanics,
+        cross_screen_values=[], value_ledger=[], terms=[], open_questions=[]))
+    states = {spec["id"]: build_state(app, spec, out, set(order)) for spec in meaning["states"]}
     model = ProductModel(
         app=app, app_version=meaning["app_version"], app_category=meaning["app_category"], run_id="golden",
         device=DEVICE, states=list(states.values()), edges=edges, flows=flows, mechanics=mechanics, cross_screen_values=values,
-        value_ledger=ledger, open_questions=meaning["open_questions"],
+        value_ledger=ledger, open_questions=meaning["open_questions"], mock_order=order,
         coverage=Coverage(states_found=len(states), actions_taken=0, stop_reason="fixture: assembled from captures",
                           checklist_answered=meaning["checklist_answered"], checklist_open=meaning["checklist_open"]),
         provenance=Provenance(source="fixture", fixture_path=f"tests/fixtures/golden/{app}"))

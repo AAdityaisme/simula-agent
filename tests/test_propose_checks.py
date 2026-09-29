@@ -1,5 +1,6 @@
 import hashlib
 import json
+import re
 import time
 
 import pytest
@@ -509,9 +510,54 @@ def with_terms(model):
     return model.model_copy(update={"terms": terms})
 
 
+SYSTEM = (propose.PROMPTS / "system.md").read_text()
+
+
+def test_the_proposer_is_asked_for_a_cap_with_its_own_period_since_less_than_daily_is_typed_0():
+    """daily_cap types an offer taken less than once a day as 0, and the slides print frequency_cap as the idea's
+    "How often", so the frequency_cap line can't ask for a daily count: a weekly offer would open with "1 per day"."""
+    line = next(line for line in SYSTEM.splitlines() if line.startswith("- `frequency_cap`:"))
+    assert "daily" not in line and "per week, resets" in line
+
+
 PRINTED = ["title", "offer_copy", "after_reward", "adds", "placement", "trigger_event", "frequency_cap", "rationale",
            "subscriber_treatment", "decline_path", "ad_fail_path", "character_use", "reward.unit", "reward.duration",
            "caption"]
+
+
+def language() -> str:
+    """The proposer prompt's rules for the words the slides print."""
+    return SYSTEM.split("## Language")[1].split("\n## ")[0]
+
+
+@pytest.mark.parametrize("field", PRINTED)
+def test_the_proposer_is_told_to_write_every_field_the_slides_print_for_the_product_team(field):
+    rule = next(line for line in language().splitlines() if "plain product language" in line)
+    assert ("every `flow_steps` caption" if field == "caption" else f"`{field}`") in rule
+
+
+def test_the_proposer_says_what_was_not_seen_only_in_a_field_the_slides_never_print(model):
+    """An idea resting on an absence is true to say "wasn't seen", but "in the explored screens" is the pipeline
+    talking; on the slides it read "No paid plan was seen in the explored screens" on every AOL idea."""
+    rule = next(line for line in language().splitlines() if "wasn't seen" in line)
+    assert re.findall(r"`(\w+)`", rule) == ["what_is_different_here"]
+    c = candidate(model, what_is_different_here="No paid plan was seen in the explored screens.")
+    assert not any("explored screens" in words for words in propose.printed(c))
+
+
+def test_the_proposer_has_an_answer_for_paying_users_when_the_model_shows_no_paid_plan():
+    """subscriber_treatment asks what paying users see. With no paid plan to describe, the proposer wrote "No paid
+    plan was seen" into it, a field the slides print, on 4 of 8 AOL ideas (the bc8724d real run)."""
+    line = next(line for line in SYSTEM.splitlines() if line.startswith("- `subscriber_treatment`:"))
+    assert "no paid plan, it is `Every user sees the same offer.`" in line
+
+
+def test_the_proposer_writes_the_rationale_as_what_the_app_gets_from_what_its_screens_show():
+    """Asked "why this works for this app", the proposer rested an app with no anchor on what it lacks ("a news
+    reader with no paid plan or limit") on 2 of 5 live AOL ideas (the b3a1002 real run). The slides print the
+    rationale under "What the app gets", and it keeps the app's own reasons, from what its screens show."""
+    line = next(line for line in SYSTEM.splitlines() if line.startswith("- `rationale`:"))
+    assert line.startswith("- `rationale`: what the app gets") and "from what this app's screens show" in line
 
 
 def with_words(model, field: str, words: str):
@@ -691,9 +737,9 @@ def test_an_unsafe_screen_shows_its_id_name_and_rating_but_no_text(model):
 # sha256 of model_text on each golden, pinned before experience items got their own heading. The goldens carry no
 # experience items, so the proposer's prompt must not change; a golden or model_text change repins these.
 GOLDEN_MODEL_TEXT = {
-    "janitorai": "3a11214543c279d8a8ffcf93256eb645bf1dcf98ad3914526d898d23e5d3b483",
-    "luzia": "5e92b0c985386bd8357bf857cd18af17658c49abeb6269889767a200f8d4ce5f",
-    "aol": "3aa04504b3a74be0e9256630f737586cf8812a9ba25480cd07ab0f86e29f6e2b",
+    "janitorai": "c44ad48e9351abe5b69767a34e84c57575f0266a36a8295c831184f7f522e7ea",
+    "luzia": "f7b1ed44b4520276e588fe44aedb8707e790c4728dcc71c22c4af69b649a1b44",
+    "aol": "c02ea5e553b72f264b5f6036aabded856eb1af1c6c5d322dd3880389433f60be",
 }
 
 

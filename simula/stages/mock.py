@@ -23,7 +23,8 @@ from PIL import Image
 
 from simula import config, llm, render
 from simula.config import ROOT
-from simula.contracts import ContractError, ContractReport, Device, Edge, Element, ProductModel, Rect, State
+from simula.contracts import (ContractError, ContractReport, Device, Edge, Element, ProductModel, Rect, StageOutcome,
+                              State)
 from simula.runlog import read_trace, run_trace, write_exhibit
 from simula.stages import Ctx
 
@@ -45,6 +46,7 @@ CODE_POINTS = re.compile(r"U\+([0-9a-fA-F]+)(?:-([0-9a-fA-F]+))?")
 FETCH_TIMEOUT_S = 20
 FONT_RECORDS = "font-records"
 PLAN_RECORD = "plan.json"
+CAP_REASON = "$ cap reached: "
 # Every way urllib fails a download: a socket, TLS or HTTP status error (OSError), or a cut-off or malformed
 # response (HTTPException, which isn't an OSError).
 FETCH_ERRORS = (OSError, http.client.HTTPException)
@@ -165,13 +167,16 @@ RUNTIME_JS = """<script id="simula-runtime-js">
 """
 
 
-def run(ctx: Ctx) -> None:
+def run(ctx: Ctx) -> StageOutcome:
     model_dir, mock_dir = ctx.run_dir / "model", ctx.run_dir / "mock"
     model = ProductModel.model_validate_json((model_dir / "product_model.json").read_text())
-    # A rerun starts from nothing: QA's replay key hashes mock/assets and later stages hash all of mock/, so a file
-    # the new page no longer uses would count. The records under mock/ are what --replay rebuilds from; they stay.
-    for built in ("assets", "renders"):
-        shutil.rmtree(mock_dir / built, ignore_errors=True)
+    if not ctx.replay:
+        # A live rerun starts from nothing: QA's replay key hashes mock/assets and later stages hash all of mock/, so a
+        # file the new page no longer uses would count. A replay keeps them: the live run cleared them when it started,
+        # so they are its own output, which a replay rewrites byte for byte, and a replay that misses leaves them
+        # whole for the done.json it keeps. The records under mock/ are what --replay rebuilds from; they always stay.
+        for built in ("assets", "renders"):
+            shutil.rmtree(mock_dir / built, ignore_errors=True)
     scope = pick_scope(model)
     screens = [s.id for s in scope]
     groups = batches(scope)
@@ -199,6 +204,10 @@ def run(ctx: Ctx) -> None:
     run_trace(ctx.run_dir, stage="mock", step="contract", decider="code", outcome="ok" if report.passed else "error",
               note=f"{len(screens)} screens rendered, {len(undrawn)} not drawn, {len(errors)} contract errors")
     write_exhibit(ctx.run_dir, 3, "mock", exhibit(ctx, model, scope, groups, undrawn, html, report, plan))
+    # A batch the $ cap left out makes the stage partial through its cap trace line (run_stage); the rest say why here.
+    lost = [f"not drawn: {' '.join(s.id for s in batch)}: {undrawn[batch[0].id]}" for batch in groups
+            if batch[0].id in undrawn and not undrawn[batch[0].id].startswith(CAP_REASON)]
+    return StageOutcome(status="partial", reasons=lost) if lost else StageOutcome()
 
 
 def pick_scope(model: ProductModel) -> list[State]:
@@ -462,6 +471,8 @@ def planned_usd(ctx: Ctx, content: list[dict]) -> float:
 def affordable(worst: list[float], cap: float) -> int:
     """How many batches, in priority order, fit the cap at their worst case with one worst case spare for a
     max_tokens retry. Stops at the first that doesn't fit: never skips a batch to fit a cheaper later one."""
+    # ponytail: a priority prefix, so a cached ($0) batch behind the first batch that doesn't fit is left out too, and
+    # a rerun under a tight cap stops the stage. Keep $0 batches past the prefix (keep as a list) if that gets common.
     spare = max(worst, default=0.0)
     return sum(1 for total in accumulate(worst) if total + spare <= cap)
 
@@ -477,7 +488,7 @@ def builder_request(ctx: Ctx, content: list[dict], effort: str | None) -> dict:
     """One batch's call to the mock builder, as llm.call and llm.answered_from_cache take it."""
     role = config.roles(ctx.profile)["mock_builder"]
     return {"model": role["model"], "effort": effort, "system": system_prompt(),
-            "messages": [{"role": "user", "content": content}], "max_tokens": role.get("max_tokens", 64000)}
+            "messages": [{"role": "user", "content": content}], "max_tokens": role["max_tokens"]}
 
 
 def draw_batches(ctx: Ctx, groups: list[list[State]], contents: list[list[dict]], budget: llm.Budget,
@@ -559,7 +570,7 @@ def scoped_to(selector: str, ids: set[str]) -> bool:
 
 
 def failure_reason(e: BaseException) -> str:
-    return (f"$ cap reached: {e}" if isinstance(e, llm.CapReached) else str(e))[:200]
+    return (f"{CAP_REASON}{e}" if isinstance(e, llm.CapReached) else str(e))[:200]
 
 
 def failure_outcome(e: BaseException) -> str:

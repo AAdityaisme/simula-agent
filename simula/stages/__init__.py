@@ -1,9 +1,9 @@
 """The seven stages. Each reads its upstream stage folders and writes only its own folder."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
-from simula.llm import Budget, CapReached, ProviderUnavailable
+from simula.llm import TRANSPORT, Budget, CapReached, ProviderUnavailable
 
 UPSTREAM = {
     "explore": [],
@@ -12,18 +12,18 @@ UPSTREAM = {
     "qa": ["mock", "model"],
     "propose": ["model", "mock"],
     "judge": ["propose", "model"],
-    "flows": ["qa", "judge", "propose"],
+    "flows": ["qa", "judge", "propose", "mock", "model"],
 }
 
 # Files outside the run folder that a stage reads, hashed like any input so an edit reruns the stage.
 EXTRA_INPUTS = {
     "mock": ["docs/CONTRACTS.md"],
+    "qa": ["docs/CONTRACTS.md"],
     "propose": ["bible"],
     "judge": ["bible"],
+    "flows": ["templates", "docs/CONTRACTS.md"],
 }
 
-# Failures llm never replays on a normal run (lost calls), so a plain rerun calls again.
-TRANSIENT = ("timeout", "error")
 # Why a model call fell short, for the app's product team; the stages' own words go in a resume note.
 PLAIN_FAILURE = {"refusal": "the model declined", "max_tokens": "the model's answer was cut off",
                  "timeout": "the model call timed out", "error": "the model call failed"}
@@ -53,14 +53,16 @@ class Ctx:
     budget: str = "transfer"
     allow_account_create: bool = False
     no_send: bool = True
-    probe: bool = False
 
 
 def run_options(ctx: Ctx) -> str:
-    """The run and the options it was opened with, so a printed resume command reruns it the same way."""
+    """The run and the options it was opened with, so a printed resume command reruns it the same way: every option
+    a stage hashes, the opt-ins, and an overridden $ cap. --no-cache and --replay are modes of one command, not of the
+    run. A line that raises the cap passes a ctx with usd_cap=None and adds its own --usd-cap."""
     return " ".join([f"--run {ctx.run_dir.name}", f"--profile {ctx.profile}", f"--budget {ctx.budget}",
                      *(["--allow-fixtures"] if ctx.allow_fixtures else []),
-                     *(["--allow-account-create"] if ctx.allow_account_create else [])])
+                     *(["--allow-account-create"] if ctx.allow_account_create else []),
+                     *([f"--usd-cap {ctx.usd_cap}"] if ctx.usd_cap is not None else [])])
 
 
 def rerun_command(stage: str, ctx: Ctx) -> str:
@@ -81,19 +83,18 @@ def resume_command(ctx: Ctx, stage: str, *causes: BaseException, fresh: bool = F
     - our own $ cap: the stage with --usd-cap raised to the figure the cap names;
     - an answer the cache keeps (a refusal, max_tokens, an answer that failed its schema or couldn't be parsed), or
       `fresh` (the stage's own recorded answers are what fell short): a normal rerun replays it, so --no-cache;
-    - a lost call (`TRANSIENT`) isn't replayed, so the plain stage.
+    - a lost call (`llm.TRANSPORT`) is tried again on a rerun, so the plain stage.
     Several causes add their flags up. --no-cache asks every call again against a budget that already counts what
     the stage spent, so it comes with --usd-cap at what is spent plus a whole cap again, the same figure a cap stop
-    that names none gets: every printed command runs as printed."""
+    that names none gets: every printed command runs as printed. A raised cap replaces the run's own --usd-cap."""
     if any(isinstance(c, ProviderUnavailable) for c in causes):
-        return (f"simula run {ctx.app['name']} --from {stage} {run_options(ctx)}"
-                + (f" --usd-cap {ctx.usd_cap:g}" if ctx.usd_cap is not None else ""))
-    fresh = fresh or any(not isinstance(c, CapReached) and getattr(c, "outcome", None) not in TRANSIENT for c in causes)
+        return f"simula run {ctx.app['name']} --from {stage} {run_options(ctx)}"
+    fresh = fresh or any(not isinstance(c, CapReached) and getattr(c, "outcome", None) not in TRANSPORT for c in causes)
     figures = [c.usd_needed for c in causes if isinstance(c, CapReached)]
     if fresh or None in figures:
         again = Budget.for_stage(stage, ctx.run_dir / "trace.jsonl", ctx.usd_cap).rerun_cap(0)
         figures = [f or again for f in figures] + ([again] if fresh else [])
-    command = rerun_command(stage, ctx)
     if figures:
-        command += f" --usd-cap {max(figures):.2f}"
-    return command + (" --no-cache" if fresh else "")
+        return rerun_command(stage, replace(ctx, usd_cap=None)) + f" --usd-cap {max(figures):.2f}" + (
+            " --no-cache" if fresh else "")
+    return rerun_command(stage, ctx)
