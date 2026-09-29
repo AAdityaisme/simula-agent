@@ -260,6 +260,26 @@ def test_a_failed_judge_call_queues_the_candidate_for_a_person(tmp_path, monkeyp
     assert (run_dir / "needs-human.md").exists()
 
 
+FLAG = 'uses "Zap", whose meaning was never observed'
+
+
+def test_code_flags_show_for_a_person_but_never_reach_a_judge(tmp_path, monkeypatch):
+    app = "luzia"
+    run_dir = seed(tmp_path, app, [c.model_copy(update={"flags": [FLAG]}) for c in live(app, {})])
+    call, calls = fake_llm({})
+    monkeypatch.setattr(llm, "call", call)
+    judge.run(ctx_for(app, run_dir))
+    assert f"- Flag: {FLAG}" in (run_dir / "exhibits" / "06-judge.md").read_text()
+    assert calls and not any(FLAG in kw["messages"][0]["content"][0]["text"] for kw in calls)
+
+    def broken(**kw):
+        raise llm.LLMFailure("schema_fail", "twice")
+    monkeypatch.setattr(llm, "call", broken)
+    monkeypatch.setattr(runlog, "notify", lambda *a: False)
+    judge.run(ctx_for(app, run_dir))
+    assert f"- Flag: {FLAG}" in (run_dir / "judge" / "human-queue.md").read_text()
+
+
 def test_a_rerun_leaves_nothing_from_an_earlier_attempt(tmp_path, monkeypatch):
     app = "luzia"
     run_dir = seed(tmp_path, app, live(app, {}))

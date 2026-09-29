@@ -446,7 +446,7 @@ def write_queue(ctx: Ctx, work: Path, decisions: list[Decision], candidates: dic
              "The run continued without them. Nothing reruns on its own.", ""]
     for d in waiting:
         c = candidates[d.candidate_id]
-        lines += [f"## {c.id} · {c.title}", ""]
+        lines += [f"## {c.id} · {c.title}", "", *[f"- Flag: {f}" for f in c.flags], *([""] if c.flags else [])]
         if d.rerun_stage == "judge":
             lines += ["**Why:** a judge call failed twice.", "",
                       f"**Continue with:** `simula judge {app} --run {run_id}`", ""]
@@ -504,6 +504,7 @@ def exhibit(decisions: list[Decision], candidates: dict[str, Candidate], verdict
             lines.append(f"- Condition: {text}")
         if c.economics:
             lines.append(f"- Cost mark ({c.economics.verdict}): {c.economics.assumption_line}")
+        lines += [f"- Flag: {f}" for f in c.flags]
         for judge, v in verdicts.get(c.id, {}).items():
             lines += [f"- {judge}: " + ("fixable" if v.fixable else "not fixable")
                       + (f"; other concern: {v.other_concern}" if v.other_concern else "")]
