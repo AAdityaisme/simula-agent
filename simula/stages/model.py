@@ -27,6 +27,7 @@ ANSWER_RESERVE_TOKENS = 8000
 TOKENS_PER_NAME = 30
 QUESTION_CAP = 5
 NOT_OBSERVED = "meaning not observed"
+EVERYDAY = " (everyday word, never flagged)"
 WORD = re.compile(r"[^\W\d_]{2,}")
 LOOP_UNITS = ("s", "chars")
 MEASURE = re.compile(r"^(?P<what>.*?)\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>[^\d\s]*)$")
@@ -449,7 +450,8 @@ def resolve_terms(meaning: ModelMeaning, states: list[State], model_labels: set[
     ("1.8k tokens") or a line that uses the term can't define it. Other cited elements (the bullets under a plan's
     name) count when they sit on such an element's screen, whatever a mechanic cites as evidence. A label a model
     wrote (`model_labels`) is never app text, so it neither shows the term nor explains it. Otherwise the term is
-    marked 'meaning not observed', and an idea that uses it is flagged. Known limits: a call to action
+    marked 'meaning not observed', and an idea that uses it is flagged unless the model labeled it `everyday`; the
+    label is kept as written and never makes a term observed. Known limits: a call to action
     ("Unlock <term>") or a role word in an app's own label ("<term> tab") reads as an explanation, and a price on a
     plan card ("Weekly", "$1.99") doesn't; which cited text explains the term stays the model's call."""
     elements = {e.id: e for s in states for e in s.elements}
@@ -473,7 +475,7 @@ def resolve_terms(meaning: ModelMeaning, states: list[State], model_labels: set[
                      and WORD.search(rest(e, cut))}
         defined_by = [e.id for e in cited if screen[e.id] in explained and re.search(r"\w", rest(e, cut))]
         terms.append(Term(term=t.term, meaning=t.meaning if defined_by else NOT_OBSERVED, defined_by=defined_by,
-                          used_in=t.used_in, observed=bool(defined_by)))
+                          used_in=t.used_in, everyday=t.everyday, observed=bool(defined_by)))
     return terms
 
 
@@ -595,7 +597,8 @@ def render_md(model: ProductModel) -> str:
     lines += ["", "## Value ledger", ""]
     lines += [f"- {i.kind}: \"{i.verbatim}\" · {', '.join(i.evidence_ids)}" for i in model.value_ledger] or ["- none"]
     lines += ["", "## App terms", ""]
-    lines += [f"- **{t.term}**: {t.meaning}" + (f" · defined by {', '.join(t.defined_by)}" if t.observed else "")
+    lines += [f"- **{t.term}**{EVERYDAY if t.everyday else ''}: {t.meaning}"
+              + (f" · defined by {', '.join(t.defined_by)}" if t.observed else "")
               + f" · used in {', '.join(t.used_in)}" for t in model.terms] or ["- none"]
     lines += ["", "## Values shared across screens", ""]
     lines += [f"- {v.label}: {v.value_text} · {', '.join(v.evidence_ids)}" for v in model.cross_screen_values] or ["- none"]
@@ -614,7 +617,7 @@ def exhibit(model: ProductModel, rounds: list[list[str]], notes: list[str]) -> s
              "- measured experience: " + (" · ".join(i.verbatim for i in model.value_ledger if i.kind == "experience")
                                            or "the core action was not repeated"),
              f"- app terms: {len(model.terms)}, meaning not observed for: "
-             + (", ".join(t.term for t in model.terms if not t.observed) or "none"),
+             + (", ".join(t.term + (EVERYDAY if t.everyday else "") for t in model.terms if not t.observed) or "none"),
              f"- open questions for the explorer: {len(model.questions)}",
              f"- mock scope (code, priority order): {', '.join(model.mock_order) or 'none'}",
              "- ratings: " + ", ".join(f"{s.id} {s.content_rating}" for s in model.states)]

@@ -345,6 +345,12 @@ EXPLAINS = {
 }
 
 
+# Terms whose plain-English word is what they mean in the app, as a person reads them. These runs predate the label,
+# so their fixtures carry it by hand. AOL's Inbox is its mail inbox (AOL Help, "Overview of the updated AOL app
+# experience for Android").
+EVERYDAY = {"janitorai": set(), "luzia": {"Weekly", "Monthly", "Annual"}, "aol": {"Inbox"}}
+
+
 def real_terms(app: str) -> tuple[list[State], ModelMeaning, set[str]]:
     fixture = json.loads((FIXTURES / "terms" / f"{app}.json").read_text())
     return ([State.model_validate(s) for s in fixture["states"]], ModelMeaning.model_validate(fixture["meaning"]),
@@ -362,6 +368,27 @@ def test_a_real_term_is_observed_as_a_person_reads_its_screens(name):
             assert term.meaning == drafted.meaning and set(EXPLAINS[term.term]) <= set(term.defined_by), term.term
         else:
             assert (term.meaning, term.defined_by) == (stage.NOT_OBSERVED, [])
+
+
+@pytest.mark.parametrize("name", APPS)
+def test_the_everyday_label_is_kept_as_written_and_never_changes_what_was_observed(name):
+    states, meaning, model_labels = real_terms(name)
+    assert {t.term for t in stage.resolve_terms(meaning, states, model_labels) if t.everyday} == EVERYDAY[name]
+    flipped = meaning.model_copy(update={"terms": [t.model_copy(update={"everyday": not t.everyday})
+                                                   for t in meaning.terms]})
+    terms = stage.resolve_terms(flipped, states, model_labels)
+    assert {t.term for t in terms if not t.everyday} == EVERYDAY[name]
+    assert {t.term: t.observed for t in terms} == OBSERVED[name]
+
+
+def test_product_model_md_and_the_exhibit_show_which_unobserved_terms_are_everyday_words():
+    states, meaning, model_labels = real_terms("luzia")
+    model = golden("luzia").model_copy(update={"terms": stage.resolve_terms(meaning, states, model_labels)})
+    md = stage.render_md(model)
+    assert "- **Weekly** (everyday word, never flagged): meaning not observed" in md
+    assert "- **Luzia+**: " in md and "**Luzia+** (everyday" not in md
+    assert ("app terms: 5, meaning not observed for: Weekly (everyday word, never flagged), Monthly (everyday word, "
+            "never flagged), Annual (everyday word, never flagged)") in stage.exhibit(model, [], [])
 
 
 # Guesses built from PR 2's real screens (red team D): the model's own meaning and used_in, with these citations.

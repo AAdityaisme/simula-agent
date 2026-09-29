@@ -2280,7 +2280,8 @@
      "s01.e02",
      "s03.e05",
      "mech_paywall_luzia_plus"
-    ]
+    ],
+    "everyday": false
    },
    {
     "term": "Toki",
@@ -2297,7 +2298,8 @@
      "s04.e03",
      "s04.e04",
      "mech_pet_engagement"
-    ]
+    ],
+    "everyday": false
    },
    {
     "term": "Weekly",
@@ -2308,7 +2310,8 @@
     ],
     "used_in": [
      "mech_paywall_luzia_plus"
-    ]
+    ],
+    "everyday": true
    },
    {
     "term": "Monthly",
@@ -2320,7 +2323,8 @@
     ],
     "used_in": [
      "mech_paywall_luzia_plus"
-    ]
+    ],
+    "everyday": true
    },
    {
     "term": "Annual",
@@ -2331,7 +2335,8 @@
     ],
     "used_in": [
      "mech_paywall_luzia_plus"
-    ]
+    ],
+    "everyday": true
    }
   ],
   "open_questions": []

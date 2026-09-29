@@ -2533,7 +2533,8 @@
     "defined_by": [],
     "used_in": [
      "m3"
-    ]
+    ],
+    "everyday": false
    },
    {
     "term": "Janitor+",
@@ -2543,7 +2544,8 @@
     ],
     "used_in": [
      "m1"
-    ]
+    ],
+    "everyday": false
    },
    {
     "term": "tokens",
@@ -2551,7 +2553,8 @@
     "defined_by": [],
     "used_in": [
      "m2"
-    ]
+    ],
+    "everyday": false
    }
   ],
   "open_questions": []

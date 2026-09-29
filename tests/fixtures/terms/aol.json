@@ -3514,7 +3514,8 @@
     ],
     "used_in": [
      "mech_ad"
-    ]
+    ],
+    "everyday": false
    },
    {
     "term": "Inbox",
@@ -3524,7 +3525,8 @@
     ],
     "used_in": [
      "mech_sign_in"
-    ]
+    ],
+    "everyday": true
    }
   ],
   "open_questions": []
