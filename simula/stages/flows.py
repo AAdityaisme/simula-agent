@@ -31,7 +31,6 @@ TEMPLATE = ROOT / "templates" / "slides.html"
 FONTS = ROOT / "templates" / "fonts"  # Inter, static Latin instances, SIL OFL 1.1 (OFL.txt beside them)
 FONT_WEIGHTS = (400, 700, 800, 900)  # the weights templates/slides.html uses; static, so a PDF embeds TrueType
 MAX_IDEAS = 4
-MAX_TOKENS = 16000
 SURVIVED = ("accept", "conditional")
 CLICK_MS = 2000
 PLAY_MS = 5000
@@ -297,7 +296,7 @@ def ask_editor(ctx: Ctx, c: Candidate, model: ProductModel, page: str, budget: l
     try:
         edits, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="flows", step=f"edit:{c.id}",
                             model=role["model"], effort=role.get("effort"), system=system_prompt(), messages=messages,
-                            max_tokens=min(MAX_TOKENS, config.models()[role["model"]]["max_out"]), budget=budget,
+                            max_tokens=min(role["max_tokens"], config.models()[role["model"]]["max_out"]), budget=budget,
                             schema=Edits, no_cache=ctx.no_cache, replay=ctx.replay)
     except llm.LLMFailure as e:
         run_trace(ctx.run_dir, stage="flows", step=f"edit:{c.id}", decider="code", outcome=e.outcome,

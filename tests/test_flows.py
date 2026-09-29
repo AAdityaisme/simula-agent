@@ -803,3 +803,17 @@ def test_code_dropped_ideas_show_their_reason_on_the_score_page(built):
     scores = scores_text(built)
     assert "c04 A dropped idea rejected 11/11 dropped by code: duplicate of c01: same benefit" in scores
     assert "before the review" not in scores
+
+
+def test_the_editor_asks_for_its_roles_max_tokens_from_the_profile(tmp_path, monkeypatch):
+    app = APPS[0]
+    run_dir = seed_run(tmp_path, app)
+    ctx = ctx_for(run_dir, app)
+    roles = flows.config.roles(ctx.profile)
+    monkeypatch.setattr(flows.config, "roles", lambda profile: {
+        **roles, "flows_editor": {**roles["flows_editor"], "max_tokens": 1234}})
+    asked = []
+    monkeypatch.setattr(llm, "call", lambda **kwargs: (asked.append(kwargs["max_tokens"]), (Edits(edits=[]), None))[1])
+    page = flows.strip_runtime((run_dir / "mock" / "index.html").read_text())
+    flows.ask_editor(ctx, golden_idea(run_dir), golden(app), page, llm.Budget("flows", 1.0))
+    assert asked == [1234], "one number: the profile's, the same one doctor --keys probes"
