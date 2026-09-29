@@ -399,6 +399,20 @@ def test_a_forced_replay_of_a_capped_stage_stops_where_the_live_run_did(runs, mo
     assert all(llm.split_key(line.note)[0] for line in stops)
 
 
+
+def test_a_stage_its_cap_stops_leaves_the_manifest_total_equal_to_what_it_spent(runs, monkeypatch, quiet, tmp_path):
+    answers(monkeypatch)
+
+    def spends_then_stops(ctx):  # nothing catches the cap: the stage stops there, exit 4
+        for n in range(1, 4):
+            model_call(ctx, f"round{n}", tmp_path / "cache")
+    mock_that(monkeypatch, spends_then_stops)
+    assert cli.main(["mock", "janitorai", "--allow-fixtures", "--fixture", f"model={GOLDEN}", "--usd-cap", "0.7"]) \
+        == cli.EXIT_CAP
+    run_dir = latest(runs)
+    spent = round(sum(line.usd for line in read_trace(run_dir / "trace.jsonl")), 4)
+    assert spent > 0 and read_manifest(run_dir).usd_total == spent
+
 @pytest.mark.parametrize("failure", [
     lambda: llm.LLMFailure("timeout", "stream idle 60 s"),
     lambda: anthropic.InternalServerError("overloaded", body=None, response=httpx2.Response(
@@ -450,6 +464,7 @@ def test_a_stage_that_cannot_replay_keeps_its_committed_marker(runs, monkeypatch
     assert (last.stage, last.step, last.outcome) == ("mock", "run", "error") and "ReplayMiss" in last.note
     assert cli.upstream_problem(run_dir, "qa").startswith("mock failed after it last finished")
     assert not runlog.complete(run_dir, "mock"), "beside a newer failure it counts as not done, as for the stages below"
+    assert "mock" not in read_manifest(run_dir).stages_done, "the manifest agrees at once, not only at the next command"
     with pytest.raises(llm.ReplayMiss):
         rerun(run_dir, "--replay")
 

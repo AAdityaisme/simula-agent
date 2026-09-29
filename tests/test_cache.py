@@ -536,3 +536,12 @@ def test_a_replay_follows_its_run_past_an_attempt_0_entry_it_could_not_read(tmp_
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
     assert call(tmp_path, trace_path=tmp_path / "run-b.jsonl")[0].word == "run-a", "a normal run reads past it"
     assert call(tmp_path, trace_path=tmp_path / "run-b.jsonl", replay=True)[0].word == "run-a", "and so does its replay"
+
+
+def test_a_replay_never_takes_a_try_its_own_run_did_not_record(tmp_path, monkeypatch):
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "run-a"}'], []))
+    call(tmp_path, trace_path=tmp_path / "run-a.jsonl")
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
+    with pytest.raises(llm.ReplayMiss, match="no cached response this run recorded"):
+        call(tmp_path, trace_path=tmp_path / "run-b.jsonl", replay=True)
+    assert call(tmp_path, trace_path=tmp_path / "run-a.jsonl", replay=True)[0].word == "run-a"

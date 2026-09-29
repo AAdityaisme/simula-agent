@@ -110,12 +110,13 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     def failed(reason: str) -> None:
         """Records why the stage stopped, in a folder the stage may have removed (QA's rmtree). Under --replay the
         committed marker goes back as it was, its time included, before the newer failure.json, so it stays on disk
-        and counts as not done."""
+        and counts as not done, in the manifest too, whose usd_total then counts what the stage spent."""
         stage_dir.mkdir(parents=True, exist_ok=True)
         if committed:
             runfolder.write_json_atomic(marker, committed[0])
             os.utime(marker, ns=(committed[1].st_atime_ns, committed[1].st_mtime_ns))
         runfolder.write_failure(stage_dir, reason)
+        runlog.sync_manifest(ctx.run_dir)  # the restored marker counts as not done, and the stage's spend counts
     runlog.sync_manifest(ctx.run_dir)
     trace_path = ctx.run_dir / "trace.jsonl"
     traced_before = len(runlog.read_trace(trace_path))

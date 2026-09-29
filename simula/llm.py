@@ -378,16 +378,17 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
     named, capped = trace_keys(trace_path) if replay else ({}, {})
 
     def recorded(key: str, tries: list[tuple[str, Reply]]) -> tuple[str, Reply] | None:
-        """--replay follows the try this run's trace names last (else the first one), unless the run's last record of
-        the call is its $ cap turning it away. A normal run takes the latest try the model answered: a known failure
-        is never paid for again, and a lost call is transient, so it is tried again."""
+        """--replay follows the try this run's trace names last, unless the run's last record of the call is its $ cap
+        turning it away; a try the run never named is another run's, so it is never taken. A normal run takes the
+        latest try the model answered: a known failure is never paid for again, and a lost call is transient, so it
+        is tried again."""
         if replay:
             used = [t for t in tries if t[0][:12] in named]
             last = max(used, key=lambda t: named[t[0][:12]]) if used else None
             stop = capped.get(key[:12])
             if stop and (last is None or stop[0] > named[last[0][:12]]):
                 return None
-            return last or (tries[0] if tries else None)
+            return last
         answered = [t for t in tries if t[1].failure not in TRANSPORT]
         return answered[-1] if answered else None
 
@@ -435,7 +436,7 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
             trace(trace_path, stage=stage, step=step, decider="code", outcome="cap",
                   note=f"key {pending[0][:12]} {stop[1]}")
             raise CapReached(stop[1])
-        raise ReplayMiss(f"--replay: no cached response for {stage}/{step} (key {pending[0][:12]})")
+        raise ReplayMiss(f"--replay: no cached response this run recorded for {stage}/{step} (key {pending[0][:12]})")
     for key in pending:
         worst = worst_case_usd(model, estimate_tokens_in(system, messages), max_tokens)
         budget.reserve(worst, step=step, key=key)
