@@ -44,7 +44,8 @@ def test_the_same_proposal_reads_the_same_whoever_wrote_it(app):
     model = golden(app)
     first, other = lenses(model)[0], lenses(model)[-1]
     a = idea(model, "c01", lens=first.id, rank=5)
-    b = idea(model, "c09", lens=other.id, rank=0.25, econ="FAIL", dropped_reason="duplicate of c01")
+    b = idea(model, "c09", lens=other.id, rank=0.25, econ="FAIL", dropped_reason="duplicate of c01",
+             daily_cap=a.daily_cap + 7)
     assert judge.judge_messages(a, model) == judge.judge_messages(b, model)
 
 

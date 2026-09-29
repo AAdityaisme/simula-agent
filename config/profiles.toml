@@ -25,30 +25,35 @@ propose = 6.0
 judge = 8.0
 flows = 8.0
 
+# max_tokens: what the role's call asks for (the widest one, for a role with several calls); the stage code and
+# `doctor --keys` both read it, so doctor probes each model the way the code calls it. A role with no max_tokens
+# (pairwise) has no call yet and isn't probed.
 [real.roles]
 jev = { model = "jev-latest" }
-explore_vision = { model = "claude-sonnet-5-5", effort = "low" }
-model_meaning = { model = "claude-opus-5-5", effort = "high" }
+explore_vision = { model = "claude-sonnet-5-5", effort = "low", max_tokens = 2000 }
+model_meaning = { model = "claude-opus-5-5", effort = "high", max_tokens = 64000 }
 mock_builder = { model = "claude-opus-5-5", effort = "xhigh", max_tokens = 128000 }
-qa_critic = { model = "claude-sonnet-5-5", effort = "medium" }
-qa_fixer = { model = "claude-opus-5-5", effort = "high", effort_last_round = "xhigh" }
-proposer = { model = "claude-opus-5-5", effort = "high" }
-propose_dedupe = { model = "claude-sonnet-5-5", effort = "low" }
-judge_1 = { model = "claude-sonnet-5-5", effort = "high" }
-judge_2 = { model = "gpt-6-sol", effort = "high", declared_fallback = "gpt-6-luna" }
+qa_critic = { model = "claude-sonnet-5-5", effort = "medium", max_tokens = 16000 }
+qa_fixer = { model = "claude-opus-5-5", effort = "high", effort_last_round = "xhigh", max_tokens = 64000 }
+proposer = { model = "claude-opus-5-5", effort = "high", max_tokens = 16000 }
+propose_dedupe = { model = "claude-sonnet-5-5", effort = "low", max_tokens = 4000 }
+# The judges ask one over stream_above (16000, checked with >), so their calls stream: a stall fails after 60 s idle
+# with no SDK retries, and a reply lost mid-stream is still charged.
+judge_1 = { model = "claude-sonnet-5-5", effort = "high", max_tokens = 16001 }
+judge_2 = { model = "gpt-6-sol", effort = "high", declared_fallback = "gpt-6-luna", max_tokens = 16001 }
 pairwise = { model = "claude-sonnet-5-5", effort = "low" }
-flows_editor = { model = "claude-opus-5-5", effort = "high" }
+flows_editor = { model = "claude-opus-5-5", effort = "high", max_tokens = 16000 }
 
 [dev.roles]
 jev = { model = "claude-haiku-4-5-20251001", backend = "adapter" }
-explore_vision = { model = "claude-haiku-4-5-20251001" }
-model_meaning = { model = "claude-haiku-4-5-20251001" }
+explore_vision = { model = "claude-haiku-4-5-20251001", max_tokens = 2000 }
+model_meaning = { model = "claude-haiku-4-5-20251001", max_tokens = 64000 }
 mock_builder = { model = "claude-sonnet-5-5", effort = "low", max_tokens = 32000 }
-qa_critic = { model = "claude-haiku-4-5-20251001" }
-qa_fixer = { model = "claude-sonnet-5-5", effort = "low" }
-proposer = { model = "claude-haiku-4-5-20251001" }
-propose_dedupe = { model = "claude-haiku-4-5-20251001" }
-judge_1 = { model = "claude-haiku-4-5-20251001" }
-judge_2 = { model = "gpt-6-luna", effort = "low" }
+qa_critic = { model = "claude-haiku-4-5-20251001", max_tokens = 16000 }
+qa_fixer = { model = "claude-sonnet-5-5", effort = "low", max_tokens = 64000 }
+proposer = { model = "claude-haiku-4-5-20251001", max_tokens = 16000 }
+propose_dedupe = { model = "claude-haiku-4-5-20251001", max_tokens = 4000 }
+judge_1 = { model = "claude-haiku-4-5-20251001", max_tokens = 16001 }
+judge_2 = { model = "gpt-6-luna", effort = "low", max_tokens = 16001 }
 pairwise = { model = "claude-haiku-4-5-20251001" }
-flows_editor = { model = "claude-sonnet-5-5", effort = "low" }
+flows_editor = { model = "claude-sonnet-5-5", effort = "low", max_tokens = 16000 }

@@ -23,9 +23,6 @@ FROZEN = ROOT / "config" / "frozen_prompts.toml"
 CHECKS = GATES + JUDGMENT
 # An idea resting on something never observed fails one of these; the CONDITIONAL fallback never rescues it.
 PREMISE = ("c1_revealed_value", "c2_evidence")
-# One over config/models.toml's stream_above (16000, checked with >): judge calls stream, so a stall fails after
-# 60 s idle with no SDK retries, and a reply lost mid-stream is still charged.
-MAX_TOKENS = 16001
 SURVIVORS = ("accept", "conditional")
 ECON_CONDITION = {"CONDITIONAL": "The cost to serve isn't known", "FAIL": "It may cost more to serve than a view earns"}
 
@@ -52,7 +49,7 @@ def prompt_hashes() -> dict[str, str]:
 def judge_settings() -> dict[str, str]:
     roles, models = config.roles("real"), config.models()
     return {f"judge role {r} (real profile)": f"{roles[r]['model']}, effort {roles[r].get('effort')}, max_tokens "
-                                              f"{min(MAX_TOKENS, models[roles[r]['model']]['max_out'])}, fallback "
+                                              f"{min(roles[r]['max_tokens'], models[roles[r]['model']]['max_out'])}, fallback "
                                               f"{roles[r].get('declared_fallback')}"
             for r in sorted(roles) if r.startswith("judge_")}
 
@@ -86,9 +83,10 @@ def read_prompt(name: str) -> str:
 # ---------- what a judge sees ----------
 
 def blind_fields(c: Candidate) -> dict:
-    """The proposal as a judge sees it: no id, lens, economics, rank, or code's drop reason or flags."""
-    return c.model_dump(exclude={"id", "lens", "bible_mechanic", "cost_inputs", "economics", "reach_score",
-                                 "rank_score", "dropped_reason", "flags"})
+    """The proposal as a judge sees it: no id, lens, economics, rank or the typed cap it comes from, or code's drop
+    reason or flags."""
+    return c.model_dump(exclude={"id", "lens", "bible_mechanic", "cost_inputs", "economics", "daily_cap",
+                                 "reach_score", "rank_score", "dropped_reason", "flags"})
 
 
 def opaque_id(c: Candidate) -> str:
@@ -144,7 +142,7 @@ def ask_judge(role: dict, c: Candidate, model: ProductModel, *, trace_path: Path
     verdict, _ = llm.call(trace_path=trace_path, stage=stage, step=step, model=role["model"],
                           effort=role.get("effort"), system=read_prompt("rubric.md"),
                           messages=judge_messages(c, model),
-                          max_tokens=min(MAX_TOKENS, config.models()[role["model"]]["max_out"]), budget=budget,
+                          max_tokens=min(role["max_tokens"], config.models()[role["model"]]["max_out"]), budget=budget,
                           schema=Verdict, no_cache=no_cache, replay=replay, fallback=role.get("declared_fallback"))
     return verdict.model_copy(update={"candidate_id": c.id})
 
@@ -281,7 +279,7 @@ def revise(ctx: Ctx, c: Candidate, verdicts: list[Verdict], model: ProductModel,
     try:
         output, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="judge", step=step, model=role["model"],
                              effort=role.get("effort"), system=propose.system_prompt(), messages=messages,
-                             max_tokens=min(propose.MAX_TOKENS, config.models()[role["model"]]["max_out"]),
+                             max_tokens=min(role["max_tokens"], config.models()[role["model"]]["max_out"]),
                              budget=budget, schema=LensOutput, no_cache=ctx.no_cache, replay=ctx.replay)
     except llm.LLMFailure as e:
         run_trace(ctx.run_dir, stage="judge", step=step, decider="code", outcome=e.outcome,

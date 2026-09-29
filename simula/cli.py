@@ -4,16 +4,17 @@ import argparse
 import importlib
 import importlib.metadata
 import json
+import subprocess
 import sys
 from pathlib import Path
 
 from simula import config, runfolder, runlog
 from simula.config import ROOT, STAGES
-from simula.contracts import Manifest, Provenance
-from simula.llm import CapReached, ReplayMiss
+from simula.contracts import Manifest, Provenance, StageOutcome
+from simula.llm import CapReached, ProviderUnavailable, ReplayMiss
 from simula.stages import EXTRA_INPUTS, ROLES, UPSTREAM, Ctx
 
-EXIT_NOT_BUILT, EXIT_CAP = 3, 4
+EXIT_NOT_BUILT, EXIT_CAP, EXIT_PROVIDER = 3, 4, 5
 # These parse their own options in simula.validate; `simula <command> -h` lists them.
 VALIDATE_COMMANDS = {"validate-judge": "judge validation report", "label": "blind human labels"}
 
@@ -35,6 +36,42 @@ def mobile_mcp_version() -> str | None:
 
 def prompt_files(stage: str) -> list[Path]:
     return sorted((ROOT / "prompts" / stage).glob("*.md"))
+
+
+def loader_files() -> list[Path]:
+    """Every file a loader picks up by glob or folder listing rather than by exact name: the prompts, the app
+    configs, and the folders stages read outside their run (EXTRA_INPUTS)."""
+    extra = [ROOT / path for paths in EXTRA_INPUTS.values() for path in paths]
+    return sorted({*(ROOT / "prompts").rglob("*.md"), *(ROOT / "config" / "apps").glob("*.toml"),
+                   *runfolder.expand(extra)})
+
+
+def untracked_inputs() -> list[str] | None:
+    """The loader files in the checkout that git doesn't track, ignored ones included, or None when ROOT isn't its
+    own git checkout."""
+    def git(*args: str) -> str:
+        return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    try:
+        if Path(git("rev-parse", "--show-toplevel").strip()).resolve() != ROOT.resolve():
+            return None
+        files = [str(p.relative_to(ROOT)) for p in loader_files() if p.is_relative_to(ROOT)]
+        listed = git("--literal-pathspecs", "ls-files", "--others", "-z", "--", *files)
+        return sorted(p for p in listed.split("\0") if p)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+
+
+def preflight() -> str | None:
+    """Refuses to start while a loader could pick up a file git doesn't track, since it would change a prompt or a
+    stage input with no error. Returns a note for the run's trace when there is no git checkout to check."""
+    untracked = untracked_inputs()
+    if untracked is None:
+        return "not a git checkout: skipped the check that every file a loader reads is tracked"
+    if untracked:
+        raise SystemExit("refusing to start: a loader would read these files, which git doesn't track:\n"
+                         + "".join(f"  {p}\n" for p in untracked)
+                         + "Move each one out (or commit it); a copy named '<x> 2' is usually an iCloud conflict copy.")
+    return None
 
 
 def stage_params(stage: str, ctx: Ctx) -> dict:
@@ -88,13 +125,16 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     provenance = runfolder.upstream_provenance(ctx.run_dir, UPSTREAM[stage])
     runfolder.require_real(provenance, ctx.allow_fixtures)
     inputs, prompts, params = stage_inputs(stage, ctx), prompt_files(stage), stage_params(stage, ctx)
-    if not force and runfolder.is_done(stage_dir, ctx.run_dir, inputs, prompts, params):
+    code = runfolder.code_files(stage)
+    if not force and runfolder.is_done(stage_dir, ctx.run_dir, inputs, prompts, params, code=code):
         runlog.run_trace(ctx.run_dir, stage=stage, step="skip", decider="code", note="hashes match")
         return True
     module = importlib.import_module(f"simula.stages.{stage}")
     stage_dir.mkdir(exist_ok=True)
+    trace_path = ctx.run_dir / "trace.jsonl"
+    traced_before = len(runlog.read_trace(trace_path))
     try:
-        module.run(ctx)
+        result = module.run(ctx)
     except NotImplementedError as e:
         runfolder.write_failure(stage_dir, f"not built yet ({e})")
         runlog.run_trace(ctx.run_dir, stage=stage, step="run", decider="code", outcome="not_built",
@@ -104,7 +144,13 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     except CapReached as e:
         runfolder.write_failure(stage_dir, str(e))
         runlog.needs_human(ctx.run_dir, stage, "$ cap reached", str(e), [f"{stage}/failure.json"],
-                           f"simula {stage} {ctx.app['name']} --run {ctx.run_dir.name} --usd-cap <higher>")
+                           f"{rerun_command(stage, ctx)} --usd-cap <higher>")
+        raise
+    except ProviderUnavailable as e:
+        runfolder.write_failure(stage_dir, str(e))
+        runlog.needs_human(ctx.run_dir, stage, "the model provider is refusing calls", str(e),
+                           [f"{stage}/failure.json"],
+                           f"simula run {ctx.app['name']} --run {ctx.run_dir.name} --from {stage}")
         raise
     except BaseException as e:
         # Every other exit, SystemExit and Ctrl-C included, still leaves a failure record; then it propagates.
@@ -112,17 +158,45 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
         runfolder.write_failure(stage_dir, reason)
         runlog.run_trace(ctx.run_dir, stage=stage, step="run", decider="code", outcome="error", note=reason[:300])
         raise
-    runfolder.write_done(stage_dir, ctx.run_dir, inputs, prompts, params, [stage_dir], provenance)
-    runlog.run_trace(ctx.run_dir, stage=stage, step="done", decider="code", note=provenance.source)
-    usd_total = sum(line.usd for line in runlog.read_trace(ctx.run_dir / "trace.jsonl"))
-    done = runlog.read_manifest(ctx.run_dir).stages_done
-    runlog.update_manifest(ctx.run_dir, stages_done=sorted(set(done) | {stage}, key=STAGES.index),
-                           usd_total=round(usd_total, 4))
-    print(f"{stage}: done")
+    capped = [line.note for line in runlog.read_trace(trace_path)[traced_before:]
+              if line.stage == stage and line.outcome == "cap"]
+    outcome = finished_outcome(stage, ctx, result, capped)
+    runfolder.write_done(stage_dir, ctx.run_dir, inputs, prompts, params, [stage_dir], provenance, code=code,
+                         outcome=outcome)
+    partial = outcome.status == "partial"
+    if partial:
+        runlog.needs_human(ctx.run_dir, stage, "partial output", "; ".join(outcome.reasons), [f"{stage}/done.json"],
+                           outcome.resume)
+    else:
+        runlog.resolve_needs_human(ctx.run_dir, stage)
+    runlog.run_trace(ctx.run_dir, stage=stage, step="done", decider="code",
+                     note=provenance.source + (f"; partial: {'; '.join(outcome.reasons)}"[:300] if partial else ""))
+    usd_total = sum(line.usd for line in runlog.read_trace(trace_path))
+    done = set(runlog.read_manifest(ctx.run_dir).stages_done)
+    done = done - {stage} if partial else done | {stage}
+    runlog.update_manifest(ctx.run_dir, stages_done=sorted(done, key=STAGES.index), usd_total=round(usd_total, 4))
+    print(f"{stage}: done" + (" (partial: see needs-human.md)" if partial else ""))
     return True
 
 
+def finished_outcome(stage: str, ctx: Ctx, result, capped: list[str]) -> StageOutcome:
+    """What a stage that returned delivered: what it reported (a stage may return a StageOutcome), made partial when
+    its $ cap turned work away (`capped`, the trace notes saying so), since a higher cap could change the output."""
+    outcome = result if isinstance(result, StageOutcome) else StageOutcome()
+    if capped:
+        return StageOutcome(status="partial", reasons=[*outcome.reasons, *dict.fromkeys(capped)],
+                            resume=f"{rerun_command(stage, ctx)} --usd-cap <higher>")
+    if outcome.status == "partial" and not outcome.resume:
+        return outcome.model_copy(update={"resume": rerun_command(stage, ctx)})
+    return outcome
+
+
+def rerun_command(stage: str, ctx: Ctx) -> str:
+    return f"simula {stage} {ctx.app['name']} --run {ctx.run_dir.name}"
+
+
 def open_run(args) -> Ctx:
+    skipped = preflight()
     app = config.app_config(args.app)
     fixtures = dict(f.split("=", 1) for f in getattr(args, "fixture", None) or [])
     creating = getattr(args, "new", False) or (args.run is None and not (runfolder.RUNS / args.app / "latest").exists())
@@ -140,6 +214,8 @@ def open_run(args) -> Ctx:
         print(f"new run {run_dir}")
     else:
         run_dir = runfolder.resolve_run(args.app, args.run)
+    if skipped:
+        runlog.run_trace(run_dir, stage="run", step="preflight", decider="code", note=skipped)
     for stage, path in fixtures.items():
         runfolder.seed_from_fixture(run_dir, stage, Path(path), args.allow_fixtures)
         runlog.run_trace(run_dir, stage=stage, step="seed", decider="human", note=f"fixture {path}")
@@ -248,6 +324,9 @@ def main(argv: list[str] | None = None) -> int:
     except (CapReached, ReplayMiss) as e:
         print(e, file=sys.stderr)
         return EXIT_CAP
+    except ProviderUnavailable as e:
+        print(e, file=sys.stderr)
+        return EXIT_PROVIDER
 
 
 if __name__ == "__main__":

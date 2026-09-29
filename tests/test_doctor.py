@@ -1,4 +1,4 @@
-"""Doctor's paid probes log their own spend to build/trace.jsonl."""
+"""Doctor's paid probes log their own spend to build/trace.jsonl, and its local checks catch untracked loader files."""
 
 import pytest
 
@@ -40,3 +40,11 @@ def test_a_jev_probe_logs_its_spend(build_trace, monkeypatch):
     assert doctor.jev_probe("typesafe", 16)["ok"]
     [line] = read_trace(build_trace)
     assert (line.decider, line.model, line.confidence, line.usd) == ("jev", "jev-1.13.0", 0.97, 0.00002)
+
+
+def test_doctor_fails_on_an_untracked_file_a_loader_reads(monkeypatch):
+    monkeypatch.setattr(doctor, "untracked_inputs", lambda: ["prompts/mock/builder 2.md"])
+    doctor.results.clear()
+    doctor.check_local()
+    [(_, ok, detail)] = [r for r in doctor.results if r[0] == "every file a loader reads is tracked by git"]
+    assert not ok and detail.endswith("prompts/mock/builder 2.md")
