@@ -15,6 +15,12 @@ SCALE = 2.625
 FONT_HOSTS = ("fonts.googleapis.com", "fonts.gstatic.com")
 TRANSITIONS = ("push", "modal", "tab", "back", "replace", "unknown")
 WALLPAPER_SHARE = 0.4
+DECODE_WAIT_MS = 10_000
+
+# Lazy images in hidden screens never load on their own, so each one is switched to eager first.
+DECODE_IMAGES = """() => Promise.race([
+  Promise.all([...document.images].map(i => { i.loading = 'eager'; return i.decode().catch(() => null); })),
+  new Promise(done => setTimeout(done, %d))])""" % DECODE_WAIT_MS
 
 PAGE_FACTS = """() => {
   const screenOf = el => el.closest('[data-screen]')?.dataset.screen ?? null;
@@ -82,6 +88,8 @@ def open_mock(mock_dir: Path):
         page.on("requestfailed", failed)
         page.goto((mock_dir / "index.html").as_uri())
         page.wait_for_load_state("networkidle")
+        # Screenshots of a half-decoded image differ byte for byte, and QA's cache keys hash them.
+        page.evaluate(DECODE_IMAGES)
         try:
             yield page, log
         finally:
@@ -157,7 +165,7 @@ def _edge_errors(facts: dict, model: ProductModel, screens: list[str]) -> list[C
     present = {s["id"] for s in facts["screens"]}
     placed = {e["id"] for e in facts["edges"]}
     errors = [_error("missing_edge", f"no data-edge=\"{e.id}\"", e.from_state) for e in model.edges
-              if e.from_state in screens and e.to_state in screens and e.id not in placed]
+              if e.element_id and e.from_state in screens and e.to_state in screens and e.id not in placed]
     for e in facts["edges"]:
         eid, transition, screen = e["id"], e["transition"], e["screen"]
         target = eid.split(">")[-1]

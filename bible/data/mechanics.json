@@ -505,13 +505,14 @@
    "offer": "watch a short ad via the 'Watch Ad' button next to 'Get Bits' in the Bits menu",
    "reward": "5-100 Bits per ad, depending on availability and country",
    "reward_duration": "n/a (currency, not time-limited)",
-   "freq_cap": "unstated \u2014 availability described as varying by country/inventory, not a stated per-day cap",
+   "freq_cap": "a daily limit on ads, number unstated (Twitch blog, 2016); a 2026 guide ties availability to country and inventory",
    "decline_path": "buy Bits directly, or complete a longer (5-10 min) TwitchRPG research survey for 100-500 Bits when slots are open",
    "payer_treatment": "unstated \u2014 no source distinguishes Turbo/subscriber treatment of this specific flow",
    "results": "unstated",
    "kind": "existing_anchor",
-   "status": "unverified",
+   "status": "historical",
    "claim_ids": [
+    "A2-23",
     "A2-18"
    ],
    "raw_id": "A2-m03",

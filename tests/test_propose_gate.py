@@ -1,6 +1,8 @@
-"""PR 5's merge gate on each app's latest run. Produce the runs first:
+"""PR 5's merge gate on each app's latest run. Produce the runs first, on the real profile the gate is defined on:
     uv run simula run APP --new --allow-fixtures --fixture model=tests/fixtures/golden/APP --from propose \
         --profile real
+Propose needs only the product model (mock's contract report, when mock has run, only narrows the screens), so the
+run needs no mock. The command goes on to the later stages; the gate reads only propose's outputs.
 """
 
 import pytest

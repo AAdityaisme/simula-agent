@@ -5,9 +5,10 @@ import time
 import pytest
 
 from simula import llm
-from simula.contracts import CandidateDraft, CandidatesFile, LedgerItem, LensOutput, Mechanic, Term
+from simula.contracts import (Candidate, CandidateDraft, CandidatesFile, ContractError, ContractReport, LedgerItem,
+                              LensOutput, Mechanic, Term)
 from simula.stages import Ctx, propose
-from simula.stages.propose import anchor_ids, check, daily_cap, depths, finish, in_chat
+from simula.stages.propose import anchor_ids, check, depths, finish, in_chat, live_count
 from tests.conftest import APPS
 from tests.propose_fixtures import anchored, candidate, golden, root
 
@@ -116,7 +117,7 @@ def test_the_same_benefit_name_on_different_screens_is_a_duplicate(model):
     badge = {"kind": "cosmetic", "unit": "badge", "amount": 1, "duration": "7 days"}
     drafts = [candidate(model, reward=badge),
               candidate(model, reward={**badge, "unit": "profile flair"}, trigger_state_id=other_screen(model),
-                        frequency_cap="5 per day")]
+                        daily_cap=5)]
     named = {"c01": "Gold  Badges", "c02": "gold-badge"}
     by_id = {c.id: c for c in finish(drafts, model, "annotate", lambda live: (named, {}))[0]}
     assert by_id["c02"].dropped_reason is None
@@ -127,7 +128,7 @@ def test_the_same_paid_benefit_for_the_same_users_is_a_duplicate_whatever_the_na
     meter = LedgerItem(id="x1", kind="meter", verbatim="3 chats left", evidence_ids=[])
     metered = model.model_copy(update={"value_ledger": model.value_ledger + [meter]})
     drafts = [candidate(metered, title="Two more chats", grants_id="x1"),
-              candidate(metered, title="Keep talking a little longer", grants_id="x1", frequency_cap="3 per day")]
+              candidate(metered, title="Keep talking a little longer", grants_id="x1", daily_cap=3)]
     by_id = {c.id: c for c in finish(drafts, metered, "annotate")[0]}
     assert by_id["c02"].dropped_reason is None
     assert by_id["c01"].dropped_reason == "duplicate of c02: same benefit (x1 for free users)"
@@ -158,8 +159,8 @@ def test_different_names_or_no_names_keep_both(model):
 
 
 def test_an_idea_is_only_a_duplicate_of_one_that_was_kept(model):
-    drafts = [candidate(model, for_users="free", frequency_cap="3 per day"),
-              candidate(model, for_users="everyone", frequency_cap="2 per day"), candidate(model, for_users="paying")]
+    drafts = [candidate(model, for_users="free", daily_cap=3),
+              candidate(model, for_users="everyone", daily_cap=2), candidate(model, for_users="paying")]
     out = finish(drafts, model, "annotate", lambda live: ({c.id: "no ads" for c in live}, {}))[0]
     assert {c.id: c.dropped_reason for c in out} == {"c01": None, "c02": "duplicate of c01: same benefit (no ads)",
                                                       "c03": None}
@@ -221,7 +222,6 @@ def test_no_paywall_means_no_grants_rule_fires(model):
 
 def test_non_breaking_spaces_are_plain_spaces():
     assert in_chat("Inside\xa0the chat\xa0transcript")
-    assert daily_cap("3\xa0per\xa0day") == 3
 
 
 def test_reach_follows_the_trigger_depth(model):
@@ -234,15 +234,60 @@ def test_reach_follows_the_trigger_depth(model):
         if e.from_state == root_id:
             assert depth[e.to_state] <= 1
     assert all(s.id in depth for s in model.states)
-    live = finish([candidate(model, frequency_cap="3 per day")], model, "annotate")[0][0]
+    live = finish([candidate(model, daily_cap=3)], model, "annotate")[0][0]
     assert live.reach_score == 3.0
 
 
-@pytest.mark.parametrize("text, cap", [("3 per day, resets at midnight", 3), ("once a day", 1),
-                                       ("every 24 hours", 1), ("resets at 00:00 UTC; 3 per day", 3),
-                                       ("after 3+ days away, once a day", 1), ("2 times a day", 2), ("3/day", 3)])
-def test_daily_cap_reads_a_per_day_count_only(text, cap):
-    assert daily_cap(text) == cap
+@pytest.mark.parametrize("frequency_cap, daily_cap", [
+    ("1 per user per day, resets at midnight local time; each character can be boosted by fans at most 10 times per "
+     "day", 1),
+    ("1 per character per user per day, 3 per user per day, resets at midnight local time. Each character can be "
+     "lifted by at most 20 fan plays per day.", 3),
+    ("2 per user per day; at most 50 plays per character per day, 5 per screen per day", 2)],
+    ids=["per-character-limit-in-prose", "per-character-and-per-user", "mixed-per-user-and-per-resource"])
+def test_reach_reads_the_typed_per_user_cap_never_the_prose(model, frequency_cap, daily_cap):
+    """Astra #2: a regex over the prose read a per-character "10 times per day" as the per-user cap (0.5 x 10)."""
+    one_tap_in = next(sid for sid, d in depths(model).items() if d == 1)
+    c = candidate(model, trigger_state_id=one_tap_in, frequency_cap=frequency_cap, daily_cap=daily_cap)
+    assert propose.rank(c, model, "annotate").rank_score == 0.5 * daily_cap
+
+
+def test_the_exhibit_shows_the_typed_cap_beside_the_offers_own_cap(model):
+    """Code can't tell a per-user limit from a per-character one in prose, so a person sees both side by side."""
+    offer_cap = "1 per user per day; each character at most 10 times per day"
+    live = finish([candidate(model, frequency_cap=offer_cap, daily_cap=10)], model, "annotate")[0]
+    text = propose.exhibit([], live, {}, model, "not needed")
+    assert f"per-user daily cap, 10; not a measured audience). The offer's cap: {offer_cap}" in text
+
+
+def test_a_cap_of_0_stays_live_and_ranks_last(model):
+    """Red team PR4 @eddcdef #1: an offer taken less than once a day is typed 0 and ranks after a daily one, even a
+    daily one a tap deeper. Only a negative cap is dropped; an older stored file without a cap reads as 0."""
+    one_tap_in = next(sid for sid, d in depths(model).items() if d == 1)
+    once = candidate(model, frequency_cap="1 per user, one-time offer", daily_cap=0)
+    daily = candidate(model, trigger_state_id=one_tap_in, daily_cap=1)
+    live = [c for c in finish([once, daily], model, "annotate")[0] if not c.dropped_reason]
+    assert [(c.frequency_cap, c.rank_score) for c in live] == [(daily.frequency_cap, 0.5), (once.frequency_cap, 0.0)]
+    assert check(candidate(model, daily_cap=-1), model) == "gives a negative per-user daily cap"
+    older = Candidate.model_validate(candidate(model).model_dump(exclude={"daily_cap", "after_reward"}))
+    assert (older.daily_cap, older.after_reward) == (0, "")
+
+
+def test_a_weekly_twin_drafted_first_loses_to_its_daily_twin(model):
+    """Typed 1, a weekly offer tied its daily twin, and the lens that drafted first kept its idea."""
+    weekly = candidate(model, frequency_cap="1 per week per user", daily_cap=0)
+    daily = candidate(model, frequency_cap="1 per day, resets at midnight", daily_cap=1)
+    out = finish([weekly, daily], model, "annotate", name=lambda live: ({c.id: "a badge" for c in live}, {}))[0]
+    [kept] = [c for c in out if not c.dropped_reason]
+    [twin] = [c for c in out if c.dropped_reason]
+    assert (kept.frequency_cap, twin.frequency_cap) == (daily.frequency_cap, weekly.frequency_cap)
+    assert twin.dropped_reason.startswith(f"duplicate of {kept.id}: same benefit")
+
+
+def test_the_exhibit_says_a_cap_of_0_is_less_than_once_a_day(model):
+    live = finish([candidate(model, frequency_cap="1 per week per user", daily_cap=0)], model, "annotate")[0]
+    text = propose.exhibit([], live, {}, model, "not needed")
+    assert "per-user daily cap, 0, less than once a day; not a measured audience)" in text
 
 
 def test_mechanic_ledger_and_element_ids_resolve_to_what_they_point_at(model):
@@ -257,6 +302,27 @@ def test_mechanic_ledger_and_element_ids_resolve_to_what_they_point_at(model):
     assert out.anchor_evidence_ids == mechanic.evidence_ids
     assert repairs == {"c01": f"{mechanic.id} -> {','.join(mechanic.evidence_ids)}; {element} -> {element.split('.')[0]}"}
     assert out.trigger_state_id == out.flow_steps[0].state_id == element.split(".")[0]
+
+
+def test_a_mechanic_resolves_to_its_element_evidence_only_and_names_what_it_left_out(model):
+    """Red team PR4 #1: a paywall citing a transition made the idea drop as "ids that don't exist"."""
+    if not anchor_ids(model):
+        pytest.skip("no anchor to cite")
+    element = sorted(anchor_ids(model))[0]
+    edge, screen = model.edges[0].id, root(model)
+    paywall = Mechanic(id="m9", kind="paywall", status="observed", summary="A paywall.",
+                       evidence_ids=[element, edge, screen], observed_numbers=[])
+    m = model.model_copy(update={"mechanics": model.mechanics + [paywall]})
+    [out], repairs, _ = finish([anchored(m, anchor_evidence_ids=["m9"])], m, "annotate")
+    assert out.dropped_reason is None and out.anchor_evidence_ids == [element]
+    assert repairs == {"c01": f"m9 -> {element} ({edge}, {screen} left out: not an element)"}
+
+
+def test_a_real_screen_or_transition_cited_as_evidence_is_named_as_the_wrong_kind_of_id(model):
+    edge, screen = model.edges[0].id, root(model)
+    reason = check(candidate(model, anchor_evidence_ids=[edge, screen, "s99.e01"]), model)
+    assert reason == (f"cites evidence ids that don't exist: s99.e01; "
+                      f"cites {edge}, {screen}, a screen or transition, not an element id")
 
 
 def test_a_trigger_outside_the_mock_scope_is_dropped(model):
@@ -287,10 +353,11 @@ def test_a_sheet_over_a_chat_screen_not_rated_unsafe_opened_by_a_limit_passes(mo
     assert check(c, chat) is None
 
 
-def run_with(model, tmp_path, monkeypatch, fail_lenses, delay=None, benefit=None, part_of=None, draft=None):
+def run_with(model, tmp_path, monkeypatch, fail_lenses, delay=None, benefit=None, part_of=None, draft=None,
+             counts=None):
     """Runs the stage on fake calls: every lens and the top-up return one valid draft (`draft` overrides its
     fields), and the naming call gives every idea `benefit` (a different name each when None) and links it to
-    `part_of`. Returns each call's step and prompt text."""
+    `part_of`. `counts` gives a step's number of drafts (1 when absent). Returns each call's step and prompt text."""
     (tmp_path / "model").mkdir()
     (tmp_path / "propose").mkdir()
     (tmp_path / "model" / "product_model.json").write_text(model.model_dump_json())
@@ -306,13 +373,54 @@ def run_with(model, tmp_path, monkeypatch, fail_lenses, delay=None, benefit=None
         if schema is propose.BenefitNames:
             return schema(ideas=[{"id": f"c{n:02d}", "benefit": benefit or f"benefit {n}", "part_of": part_of}
                                  for n in range(1, 20)]), None
-        return LensOutput(candidates=[draft]), None
+        return LensOutput(candidates=[draft] * (counts or {}).get(step, 1)), None
 
     monkeypatch.setattr(llm, "call", fake_call)
     ctx = Ctx(app={"name": model.app}, run_dir=tmp_path, profile="dev", no_cache=False, replay=False,
               usd_cap=None, allow_fixtures=True)
     propose.run(ctx)
     return calls
+
+
+def test_a_lens_that_returns_more_than_two_ideas_keeps_two_and_says_so(model, tmp_path, monkeypatch):
+    run_with(model, tmp_path, monkeypatch, set(), counts={"lens:free_at_limit": 3})
+    trace = [json.loads(line) for line in (tmp_path / "trace.jsonl").read_text().splitlines()]
+    notes = [t["note"] for t in trace if t["step"] == "lens:free_at_limit"]
+    assert notes == ["returned 3 ideas, kept the first 2; left out: A daily bonus"]
+    out = CandidatesFile.model_validate_json((tmp_path / "propose" / "candidates.json").read_text()).candidates
+    assert sum(c.lens == "free_at_limit" for c in out) == 2
+
+
+@pytest.mark.parametrize("fail, counts, said", [({"topup"}, None, "its call failed"),
+                                                (set(), {"topup": 0}, "it answered with no ideas")])
+def test_the_exhibit_tells_a_failed_top_up_from_one_that_answered_with_nothing(model, tmp_path, monkeypatch, fail,
+                                                                               counts, said):
+    run_with(model, tmp_path, monkeypatch, fail, benefit="gold badge", counts=counts)
+    exhibit = (tmp_path / "exhibits" / "05-propose.md").read_text()
+    assert f"- Top-up call: fired (1 distinct after dedupe, under {propose.MIN_DISTINCT}; {said})." in exhibit
+
+
+def test_a_screen_the_mock_left_undrawn_counts_as_outside_the_mock(model, tmp_path, monkeypatch):
+    """Its section is a placeholder ("screen not drawn: $ cap reached: over budget ... raise with --usd-cap"), so it
+    must never reach an idea or a slide: the proposer isn't offered it, and an idea on it is dropped as off-mock."""
+    home = root(model)
+    (tmp_path / "mock").mkdir()
+    undrawn = ContractError(kind="undrawn_screen", screen=home,
+                            detail="screen not drawn: $ cap reached: over budget: batches 1-1 don't fit the $2.00 "
+                                   "mock cap at worst case; raise with --usd-cap")
+    (tmp_path / "mock" / "contract_report.json").write_text(
+        ContractReport(passed=False, screens=[home], errors=[undrawn]).model_dump_json())
+    calls = run_with(model, tmp_path, monkeypatch, set())
+
+    out = CandidatesFile.model_validate_json((tmp_path / "propose" / "candidates.json").read_text()).candidates
+    assert out and all(c.dropped_reason == f"{propose.OUTSIDE_MOCK}, which the slides can't draw: {home}" for c in out)
+    lens_prompt = next(text for step, text in calls if step.startswith("lens:"))
+    in_scope, others = lens_prompt.split("### Other screens (seen, not in scope)")
+    assert f"#### {home} " not in in_scope and f"\n- {home} " in others
+
+
+def test_with_no_mock_report_the_model_is_used_as_written(model, tmp_path):
+    assert propose.as_drawn(model, tmp_path) == model
 
 
 def test_every_lens_failing_fails_the_stage(model, tmp_path, monkeypatch):
@@ -401,22 +509,113 @@ def with_terms(model):
     return model.model_copy(update={"terms": terms})
 
 
-@pytest.mark.parametrize("field", ["title", "offer_copy", "after_reward"])
+PRINTED = ["title", "offer_copy", "after_reward", "adds", "placement", "trigger_event", "frequency_cap", "rationale",
+           "subscriber_treatment", "decline_path", "ad_fail_path", "character_use", "reward.unit", "reward.duration",
+           "caption"]
+
+
+def with_words(model, field: str, words: str):
+    """candidate() with `words` in one field the slides print."""
+    base = candidate(model)
+    if field.startswith("reward."):
+        return candidate(model, reward={**base.reward.model_dump(), field.split(".")[1]: words})
+    if field == "caption":
+        steps = [s.model_dump() for s in base.flow_steps]
+        return candidate(model, flow_steps=steps[:-1] + [{**steps[-1], "caption": words}])
+    return candidate(model, **{field: words})
+
+
+@pytest.mark.parametrize("field", PRINTED)
 def test_an_idea_using_a_term_whose_meaning_was_never_observed_is_flagged_and_stays_live(model, field):
     m = with_terms(model)
-    c = candidate(m, **{field: "Play once for 3 zap\xa0credits."})
+    c = with_words(m, field, "Play once for 3 zap\xa0credits.")
     assert check(c, m) is None
     [out], *_ = finish([c], m, "annotate")
     assert out.dropped_reason is None and out.flags == ['uses "Zap Credits", whose meaning was never observed']
+
+
+def janitor_terms(model, free_is_everyday: bool):
+    """Two unobserved terms from the real JanitorAI run: the plan name "Free" ("Everything in Free, plus:") and the
+    tab "Hidden Gems"."""
+    terms = [Term(term="Free", meaning="meaning not observed", defined_by=[], used_in=[], observed=False,
+                  everyday=free_is_everyday),
+             Term(term="Hidden Gems", meaning="meaning not observed", defined_by=[], used_in=[], observed=False)]
+    return model.model_copy(update={"terms": terms})
+
+
+def c10_rev(model, last_caption: str = "Badge shows"):
+    """The real run's c10-rev, a deck idea: "free" only as the everyday adjective, in fields the slides print."""
+    steps = [s.model_dump() for s in candidate(model).flow_steps]
+    steps[0]["caption"] = "A free user reads the $12.99 a month offer and taps close."
+    steps[-1]["caption"] = last_caption
+    return candidate(model, trigger_event="A free user taps close on the paywall without subscribing.",
+                     rationale="It lets free users try a paid perk on their own profile for a day.", flow_steps=steps)
+
+
+def test_a_free_user_is_not_flagged_when_free_is_an_everyday_word(model):
+    m = janitor_terms(model, free_is_everyday=True)
+    [out], *_ = finish([c10_rev(m)], m, "annotate")
+    assert out.dropped_reason is None and out.flags == []
+    assert '- "Free"' not in propose.unobserved_text(m) and '- "Hidden Gems"' in propose.unobserved_text(m)
+
+
+def test_without_the_label_free_flags_as_before(model):
+    m = janitor_terms(model, free_is_everyday=False)
+    [out], *_ = finish([c10_rev(m)], m, "annotate")
+    assert out.flags == ['uses "Free", whose meaning was never observed']
+
+
+def test_an_unobserved_app_name_in_a_caption_is_flagged_beside_an_everyday_word(model):
+    m = janitor_terms(model, free_is_everyday=True)
+    [out], *_ = finish([c10_rev(m, last_caption="Hidden Gems shows the character first for a day.")], m, "annotate")
+    assert out.dropped_reason is None and out.flags == ['uses "Hidden Gems", whose meaning was never observed']
+
+
+def flagged_and_clean(m, flagged_ranks_higher=True):
+    """c01 uses the unobserved term (placed to rank higher, or identical but for its words), c02 is clean."""
+    higher = {"trigger_state_id": other_screen(m), "daily_cap": 5} if flagged_ranks_higher else {}
+    return [candidate(m, title="Play for 3 Zap Credits", **higher), candidate(m, title="Play for 3 extra replies")]
+
+
+def test_of_two_twins_the_unflagged_one_is_kept_even_when_the_flagged_one_ranks_higher(model):
+    """Red team A #4: the jargon version survived and its clean twin was dropped as "duplicate of c01"."""
+    m = with_terms(model)
+    drafts = flagged_and_clean(m)
+    scores = {c.id: c.rank_score for c in finish(drafts, m, "annotate")[0]}
+    assert scores["c01"] > scores["c02"]
+    same = lambda live: ({c.id: "extra replies" for c in live}, {})
+    by_id = {c.id: c for c in finish(drafts, m, "annotate", same)[0]}
+    assert by_id["c02"].dropped_reason is None and by_id["c02"].flags == []
+    assert by_id["c01"].dropped_reason == "duplicate of c02: same benefit (extra replies)"
+
+
+@pytest.mark.parametrize("flagged_ranks_higher", [True, False], ids=["flagged-higher", "equal-score"])
+def test_the_cap_keeps_an_unflagged_idea_before_a_flagged_one(model, monkeypatch, flagged_ranks_higher):
+    monkeypatch.setattr(propose, "MAX_CANDIDATES", 1)
+    m = with_terms(model)
+    distinct_names = lambda live: ({"c01": "zap credits", "c02": "extra replies"}, {})
+    out = finish(flagged_and_clean(m, flagged_ranks_higher), m, "annotate", distinct_names)[0]
+    assert [(c.id, c.dropped_reason) for c in out] == [("c02", None), ("c01", "over the 1-candidate cap")]
+    assert live_count(out) == 1
 
 
 def test_an_observed_term_can_be_used_and_the_unobserved_one_is_listed_for_the_proposer(model):
     m = with_terms(model)
     [out], *_ = finish([candidate(m, offer_copy="Play once for a day of Pro.")], m, "annotate")
     assert out.dropped_reason is None and out.flags == []
+    text = propose.lens_prompt(m, propose.build_lenses(m)[0])
+    assert '- "Zap Credits"' in text and '- "Pro"' not in text and "Don't use them anywhere in the idea" in text
+    assert "code flags an idea that does for a person reviewing the output" in text
+    assert "never observed" not in propose.lens_prompt(model, propose.build_lenses(model)[0])
+
+
+def test_the_product_model_text_the_judge_also_reads_never_carries_the_proposers_term_rule(model):
+    """Red team PR4 #2, Decision 13: the judge builds its message from model_text, so neither the rule nor the
+    term list may be in it."""
+    m = with_terms(model)
     text = propose.model_text(m)
-    assert '- "Zap Credits"' in text and '- "Pro"' not in text and "code flags an idea that does for a person reviewing the output" in text
-    assert "never observed" not in propose.model_text(model.model_copy(update={"terms": []}))
+    assert "never observed" not in text and "code flags" not in text and '"Zap Credits"' not in text
+    assert text == propose.model_text(model)
 
 
 def unobserved(model, *words):
@@ -475,7 +674,7 @@ def test_citing_a_measured_experience_is_context_not_a_missing_id(model):
     m = with_experience(model)
     [out], repairs, _ = finish([candidate(m, anchor_evidence_ids=["exp1"])], m, "annotate")
     assert out.dropped_reason is None and out.anchor_evidence_ids == []
-    assert repairs == {"c01": "exp1 -> nothing (a measured experience, not an element)"}
+    assert repairs == {"c01": f"exp1 -> nothing ({m.edges[0].id} left out: not an element)"}
     [anchor], *_ = finish([candidate(m, kind="existing_anchor", adds=None, anchor_evidence_ids=["exp1"])], m, "annotate")
     assert anchor.dropped_reason == "existing_anchor cites no paywall, limit, currency, or entitlement element"
 
