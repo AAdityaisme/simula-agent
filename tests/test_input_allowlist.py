@@ -41,5 +41,7 @@ def test_prompts_read_only_the_bible_and_propose_prompts(app, monkeypatch):
 def test_nothing_the_proposer_may_read_names_an_app_the_system_runs_on():
     """Web facts about those apps live in agent-takehome/notes/test-apps-web.md, never on the allow-list."""
     files = [p for root in propose.ALLOWED_INPUTS for p in root.rglob("*") if p.suffix in {".md", ".json", ".py"}]
-    hits = [(p.name, app) for p in files for app in APPS_RUN_ON if re.search(rf"\b{app}\b", p.read_text().lower())]
+    names = [re.compile(rf"\b{app}") for app in APPS_RUN_ON]  # no trailing \b: "JanitorAI" must match "janitor"
+    assert all(any(n.search(text) for n in names) for text in ("janitorai's free tier", "janitor ai", "aol.com"))
+    hits = [(p.name, n.pattern) for p in files for n in names if n.search(p.read_text().lower())]
     assert files and hits == []
