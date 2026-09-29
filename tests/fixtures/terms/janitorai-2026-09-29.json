@@ -1,5 +1,5 @@
 {
- "source": "ve's approved model-stage rerun runs/janitorai/20260928-093155-a2a161c-everyday (copy of JanitorAI run 20260928-093155-a2a161c, 2026-09-29): model/product_model.json states ['s01', 's06', 's13'] (every screen a term's defined_by cites, every screen with a recorded tap on app text into one, and s03 and s15, a chat row and the sheet its tap opened, kept whole) and edges, and the model's final answer (cache 780940396018) after check_meaning, with states, elements, flows and open questions left out; model_labels: the elements whose label that run's explore icon or vision pass wrote (explore/states/<sid>.json)",
+ "source": "ve's approved model-stage rerun runs/janitorai/20260928-093155-a2a161c-everyday (copy of JanitorAI run 20260928-093155-a2a161c, 2026-09-29): model/product_model.json states ['s01', 's03', 's06', 's13', 's15'] (every screen a term's defined_by cites, every screen with a recorded tap on app text into one, and s03 and s15, a chat row and the sheet its tap opened, kept whole) and edges, and the model's final answer (cache 780940396018) after check_meaning, with states, elements, flows and open questions left out; model_labels: the elements whose label that run's explore icon or vision pass wrote (explore/states/<sid>.json)",
  "model_labels": [
   "s01.e02",
   "s01.e26",
