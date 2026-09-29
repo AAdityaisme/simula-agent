@@ -403,6 +403,20 @@ def test_a_partial_qa_says_so_in_its_done_marker_and_on_the_decks_cover(mocked_r
         f"The qa step finished only part of its work: {'; '.join(report.reasons)}."]
 
 
+@pytest.mark.parametrize("replay_cap", [[], ["--usd-cap", "0.0001"]], ids=["own-cap", "same-cap"])
+def test_a_replay_of_a_qa_run_our_cap_stopped_ends_where_the_live_run_did(mocked_run, replay_cap):
+    """Red team 9a98e87 F2 (probe A): a QA run that its $ cap stopped caught the stop and shipped its best round, but
+    nothing was cached for the call the cap turned away, so --replay missed there and failed the stage. The cap's
+    trace line is the record now (0b), and the replay stops the same way whatever its own cap."""
+    base = ["qa", mocked_run.parent.name, "--run", mocked_run.name, "--allow-fixtures", "--profile", "dev"]
+    assert cli.main([*base, "--usd-cap", "0.0001"]) == 0
+    recorded = (mocked_run / "qa" / "qa_report.json").read_text()
+    assert "round 1 stopped before any edit: qa: next call could cost" in json.loads(recorded)["stop_reason"]
+    assert cli.main([*base, "--replay", *replay_cap]) == 0
+    assert (mocked_run / "qa" / "qa_report.json").read_text() == recorded
+    assert not (mocked_run / "qa" / "failure.json").exists()
+
+
 def test_our_own_cap_in_qa_approves_the_best_round_and_its_printed_resume_gets_further(mocked_run, monkeypatch):
     """Red team 9a98e87 F1: the resume carries the run's options (Greptile on 47a0152) and a --usd-cap past what
     stopped it (a whole cap again, the configured one since this run's was lower, and the call turned away). Run as
