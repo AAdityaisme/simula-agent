@@ -380,8 +380,9 @@ def same_benefit(a: Candidate, b: Candidate, names: dict[str, str]) -> str | Non
 
 
 def dedupe(ranked: list[Candidate], names: dict[str, str]) -> list[Candidate]:
-    """Takes live candidates best first. One that gives the same benefit as a better-ranked kept one is dropped
-    as its duplicate, whatever its trigger."""
+    """Takes live candidates in finish's order (unflagged before flagged, then best first). One that gives the same
+    benefit as an earlier kept one is dropped as its duplicate, whatever its trigger, so of two twins a flagged one
+    never evicts a clean one."""
     out = []
     for c in ranked:
         kept = (k for k in out if not k.dropped_reason)
@@ -400,8 +401,10 @@ def with_bucket(c: Candidate) -> Candidate:
 def finish(drafts: list[Candidate], model: ProductModel, mode: str, name=lambda live: ({}, {})
            ) -> tuple[list[Candidate], dict[str, str], dict[str, str]]:
     """Numbers the drafts, repairs near-miss ids, checks, prices, ranks, and dedupes them (`name` names the live
-    ones' benefits and links them to paywall bullets). Returns the candidates (live first, best first; dropped ones kept with their reason), the id
-    repairs by candidate id, and the benefit names."""
+    ones' benefits and links them to paywall bullets). Returns the candidates (live first: unflagged before flagged,
+    each best first; dropped ones kept with their reason), the id repairs by candidate id, and the benefit names.
+    A flagged idea stays live, but wherever two ideas compete (a duplicate pair, the cap, an equal score) the
+    unflagged one wins."""
     checked, repairs = [], {}
     for n, draft in enumerate(drafts, 1):
         c, repaired = resolve_ids(draft.model_copy(update={"id": f"c{n:02d}"}), model)
@@ -411,7 +414,7 @@ def finish(drafts: list[Candidate], model: ProductModel, mode: str, name=lambda 
         flags = [] if reason else jargon_flags(c, model)
         checked.append(c.model_copy(update={"dropped_reason": reason, "flags": flags}))
     ranked = [rank(c, model, mode) for c in economics.apply(checked, model.app_category, mode)]
-    passing = sorted((c for c in ranked if not c.dropped_reason), key=lambda c: -c.rank_score)
+    passing = sorted((c for c in ranked if not c.dropped_reason), key=lambda c: (bool(c.flags), -c.rank_score))
     names, links = name(passing)
     passing = [c.model_copy(update={"dropped_reason": linked_problem(c, links.get(c.id), model)}) for c in passing]
     deduped = dedupe([c for c in passing if not c.dropped_reason], names)
