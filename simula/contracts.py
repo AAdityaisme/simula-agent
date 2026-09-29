@@ -128,6 +128,10 @@ class TermMeaning(Strict):
     meaning: str = Field(description="One plain-language line.")
     defined_by: list[str] = Field(description="Element ids whose text defines or explains the term.")
     used_in: list[str] = Field(description="Mechanic or ledger ids that use the term.")
+    everyday: bool = Field(default=False, description="True when the word's plain-English meaning is what it means "
+                           "in this app (a plan called Basic or Yearly, a Search tab); false for a coined name, an "
+                           "in-app unit or currency, or a common word the app uses in its own sense. An everyday "
+                           "term is never flagged.")
 
 
 class Term(TermMeaning):
@@ -328,6 +332,8 @@ class CandidateDraft(Strict):
                                   "of, or more of; null when the reward is a new resource.")
     cost_inputs: CostInputs
     frequency_cap: str
+    daily_cap: int = Field(default=0, description="How many times one user can take this offer in a day: the "
+                           "per-user limit only, never a limit per character, item, or screen.")
     decline_path: str
     ad_fail_path: str
     subscriber_treatment: str
