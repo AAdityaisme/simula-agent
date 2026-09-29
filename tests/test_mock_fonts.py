@@ -2,6 +2,7 @@
 and a fetch that fails leaves a mock with system fonts and one trace line. No test touches the network."""
 
 import base64
+import http.client
 import json
 import re
 import urllib.error
@@ -121,6 +122,25 @@ def test_one_family_that_fails_is_left_out_and_the_others_are_kept(tmp_path, mon
     assert "'Roboto'" in css and "Lobster" not in css
     [line] = read_trace(run_dir / "trace.jsonl")
     assert "Lobster: HTTP Error 400" in line.note
+
+
+def test_a_download_cut_off_mid_read_skips_the_family_and_never_fails_the_stage(tmp_path, monkeypatch):
+    """IncompleteRead is an http.client.HTTPException, not an OSError."""
+    run_dir = seed_model(tmp_path / "run", APPS[0])
+    with_fonts(run_dir, APPS[0], ["Roboto"])
+    google = fake_google([])
+
+    def fetch(url: str) -> bytes:
+        if url.endswith(".woff2"):
+            raise http.client.IncompleteRead(b"wOF2", 36_000)
+        return google(url)
+    monkeypatch.setattr(mock, "fetch", fetch)
+    monkeypatch.setattr(llm, "call", fake_builder([]))
+    mock.run(ctx_for(run_dir, APPS[0]))
+
+    assert "<link" not in (run_dir / "mock" / "index.html").read_text()
+    [line] = [t for t in read_trace(run_dir / "trace.jsonl") if t.step == "fonts"]
+    assert line.outcome == "error" and line.note.startswith("webfonts skipped, system fonts used: Roboto: IncompleteRead")
 
 
 def test_css_that_isnt_split_by_subset_keeps_every_face():

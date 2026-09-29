@@ -3,6 +3,7 @@ the batches into one page, adds navigation, renders every screen, and checks the
 
 import base64
 import hashlib
+import http.client
 import io
 import json
 import math
@@ -36,6 +37,9 @@ FONT_FILE = re.compile(r"url\((https?://[^)\s]+)\)")
 FONT_FACE = re.compile(r"/\*\s*([\w-]+)\s*\*/\s*(@font-face\s*\{[^}]*\})")
 FETCH_TIMEOUT_S = 20
 FONT_RECORDS = llm.CACHE / "fonts"
+# Every way urllib fails a download: a socket, TLS or HTTP status error (OSError), or a cut-off or malformed
+# response (HTTPException, which isn't an OSError).
+FETCH_ERRORS = (OSError, http.client.HTTPException)
 # Google Fonts serves woff2 only to a browser it knows; without a user agent it serves TTF.
 CHROME_UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) "
              "Chrome/140.0.0.0 Safari/537.36")
@@ -598,7 +602,7 @@ def vendor_fonts(ctx: Ctx, mock_dir, families: list[str]) -> str:
         try:
             css = latin_faces(fetch_recorded(ctx, FONT_CSS.format(family=quote_plus(family))).decode())
             files = {url: fetch_recorded(ctx, url) for url in dict.fromkeys(FONT_FILE.findall(css))}
-        except (OSError, ValueError) as e:
+        except (*FETCH_ERRORS, ValueError) as e:
             skipped[family] = str(e)[:100]
             continue
         font_dir.mkdir(parents=True, exist_ok=True)
@@ -638,7 +642,7 @@ def fetch_recorded(ctx: Ctx, url: str) -> bytes:
     FONT_RECORDS.mkdir(parents=True, exist_ok=True)
     try:
         data = fetch_twice(url)
-    except OSError as e:
+    except FETCH_ERRORS as e:
         path.write_text(json.dumps({"url": url, "error": str(e)}))
         raise
     path.write_text(json.dumps({"url": url, "data": base64.b64encode(data).decode()}))
@@ -648,7 +652,7 @@ def fetch_recorded(ctx: Ctx, url: str) -> bytes:
 def fetch_twice(url: str) -> bytes:
     try:
         return fetch(url)
-    except OSError:
+    except FETCH_ERRORS:
         return fetch(url)
 
 
