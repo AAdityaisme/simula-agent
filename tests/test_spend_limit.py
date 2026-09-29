@@ -187,6 +187,8 @@ UNWRAPPED = {
     "unvalidated response": anthropic.APIResponseValidationError(
         response=httpx2.Response(200, request=httpx2.Request("POST", "https://api.anthropic.com/v1/messages")),
         body=None),
+    "SDK event out of order": RuntimeError('Unexpected event order, got content_block_delta before "message_start"'),
+    "SDK event past the content": IndexError("list index out of range"),
 }
 
 
@@ -197,6 +199,28 @@ def test_any_error_mid_stream_is_charged_traced_and_releases_its_hold(monkeypatc
     failure, budget, line = aborted_call(monkeypatch, BrokenStream(snapshot, error), tmp_path)
     assert failure.outcome == "error" and budget.held == 0 and budget.spent > 0
     assert (line.decider, line.outcome, line.tokens_in) == ("model", "error", 5000) and line.usd > 0
+
+
+def test_an_error_the_sdk_leaves_untyped_mid_stream_is_retried(monkeypatch, tmp_path):
+    """Red team PR4 @9b77d9e LOW 1: the SDK's event accumulator raises a plain RuntimeError on an event it can't
+    place. That is provider data, not a bug in our code, so the attempts loop tries again."""
+    snapshot = SimpleNamespace(usage=SimpleNamespace(input_tokens=5000, output_tokens=1),
+                               content=[SimpleNamespace(type="text", text="x" * 3000)])
+    opened = []
+
+    def stream(**kwargs):
+        opened.append(kwargs["model"])
+        error = RuntimeError('Unexpected event order, got content_block_delta before "message_start"')
+        return BrokenStream(snapshot, error)
+    monkeypatch.setattr(anthropic, "Anthropic",
+                        lambda **kwargs: SimpleNamespace(messages=SimpleNamespace(stream=stream)))
+    budget = llm.Budget("mock", 100.0)
+    with pytest.raises(llm.LLMFailure, match="RuntimeError reading the stream: Unexpected event order"):
+        llm.call(trace_path=tmp_path / "trace.jsonl", stage="mock", step="t", model="claude-opus-5-5", effort="xhigh",
+                 system="", messages=[{"role": "user", "content": [{"type": "text", "text": "build the mock"}]}],
+                 max_tokens=64000, budget=budget, cache_dir=tmp_path / "cache", attempts=2, total_timeout=60)
+    assert len(opened) == 2 and budget.held == 0
+    assert [l.outcome for l in read_trace(tmp_path / "trace.jsonl")] == ["error", "error"]
 
 
 def ask_through_call(tmp_path, budget, max_tokens: int = 100):

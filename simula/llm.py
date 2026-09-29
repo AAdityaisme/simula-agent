@@ -178,7 +178,9 @@ def _spent(stream, tokens_in_estimate: int, max_tokens: int) -> tuple[int, int]:
 
 def _drain(stream, total_timeout: float | None, tokens_in_estimate: int, max_tokens: int):
     """Reads the stream to its final message. On an abort (our total timeout or an SDK error mid-stream) the
-    tokens already spent ride on the raised error."""
+    tokens already spent ride on the raised error. Everything raised here comes from reading the provider's
+    stream, so an error the SDK leaves untyped (its event accumulator raises a plain RuntimeError, TypeError or
+    IndexError on an event it can't place) becomes LLMFailure("error") and is retried like any provider error."""
     deadline = time.monotonic() + total_timeout if total_timeout else None
     try:
         for _ in stream:
@@ -187,7 +189,10 @@ def _drain(stream, total_timeout: float | None, tokens_in_estimate: int, max_tok
         return stream.get_final_message()
     except Exception as e:
         e.tokens_in, e.tokens_out = _spent(stream, tokens_in_estimate, max_tokens)
-        raise
+        if isinstance(e, LLMFailure) or provider_error(e):
+            raise
+        raise LLMFailure("error", f"{type(e).__name__} reading the stream: {e}", tokens_in=e.tokens_in,
+                         tokens_out=e.tokens_out) from e
 
 
 def call_anthropic(model: str, system: str, messages: list[dict], effort: str | None,
