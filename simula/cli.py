@@ -96,9 +96,13 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     stage_dir.mkdir(exist_ok=True)
     # A live rerun's old marker no longer holds. --replay keeps it while the stage runs, so a stage that can't be
     # replayed keeps the run's committed record (beside a newer failure.json, which counts as not done).
-    marker = stage_dir / "done.json"
-    committed = (marker.read_text(), marker.stat()) if ctx.replay and marker.exists() else None
-    if not ctx.replay:
+    marker, committed = stage_dir / "done.json", None
+    if ctx.replay:
+        try:
+            committed = (marker.read_text(), marker.stat())
+        except (OSError, ValueError):  # none, or one that can't be read: nothing to keep, and the stage writes anew
+            pass
+    else:
         marker.unlink(missing_ok=True)
 
     def failed(reason: str) -> None:

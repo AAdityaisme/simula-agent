@@ -441,10 +441,19 @@ def test_a_stage_that_cannot_replay_keeps_its_committed_marker(runs, monkeypatch
         rerun(run_dir, "--replay")
 
 
-def test_simula_runs_check_reruns_a_stage_whose_marker_is_damaged(runs, mock_stage):
+def damage(marker, how):
+    if how == "unreadable":
+        marker.chmod(0o000)
+    else:
+        marker.write_bytes({"not_json": b"{not json", "not_text": b"\xff\xfe\x00 done"}[how])
+
+
+@pytest.mark.parametrize("replay", [[], ["--replay"]], ids=["live", "replay"])
+@pytest.mark.parametrize("how", ["not_json", "not_text", "unreadable"])
+def test_simula_runs_check_reruns_a_stage_whose_marker_is_damaged(runs, mock_stage, how, replay):
     run_dir = seeded_run(runs)
-    (run_dir / "mock" / "done.json").write_text("{not json")
-    assert rerun(run_dir) and len(mock_stage[1]) == 2
+    damage(run_dir / "mock" / "done.json", how)
+    assert rerun(run_dir, *replay) and len(mock_stage[1]) == 2
     assert runfolder.read_done(run_dir / "mock").outcome.status == "complete"
 
 
