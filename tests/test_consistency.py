@@ -236,6 +236,21 @@ def test_a_highlighted_tab_may_move_as_it_does_in_the_app_but_the_bar_may_not_ch
     assert f"over the {share:.0%} of the box the real screens draw alike" in failures[0]["detail"]
 
 
+def test_what_the_app_itself_changes_never_decides_which_screen_is_told_to_change():
+    """a draws its highlighted tab in the wrong color, which only the per-screen SSIM sees; b draws one plain icon in
+    the wrong gray, where the app draws both screens alike. b is the one to fix."""
+    screen = Image.new("RGB", (411, 838), "#101014")
+    real = {"a": with_tab_bar(screen, lit=0), "b": with_tab_bar(screen, lit=1)}
+    wrong_highlight = with_tab_bar(screen, lit=0)
+    ImageDraw.Draw(wrong_highlight).rectangle((28, 786, 74, 832), fill="#ff0000")
+    wrong_icon = with_tab_bar(screen, lit=1)
+    ImageDraw.Draw(wrong_icon).rectangle((328, 786, 374, 832), fill="#3a3a3a")
+    box = Rect(x=0, y=780, w=411, h=58)
+    failures = qa_metrics.chrome_failures({"a": {"tabbar": box}, "b": {"tabbar": box}},
+                                          {"a": wrong_highlight, "b": wrong_icon}, real)
+    assert copies(failures) == {"b": "a"}
+
+
 def test_two_different_bars_on_a_plain_band_are_not_held_to_one_look():
     """AOL's home screen and its article screen each draw their own bar on a white band. The home bar drawn 6 dp off
     is a placement miss the bounds check reports, not a reason to draw it like the article toolbar."""

@@ -182,14 +182,6 @@ def box_slices(box: Rect, shape: tuple, inset: float = 0) -> tuple[slice, slice]
     return (slice(y0, y1), slice(x0, x1)) if min(x1 - x0, y1 - y0) >= WINDOW else None
 
 
-def box_ssim(a: np.ndarray, b: np.ndarray, box: Rect) -> float | None:
-    """SSIM of the same box cut from two content-dp images, BLEED_DP inside its edges; None when that is smaller than
-    the SSIM window."""
-    cut = box_slices(box, a.shape, BLEED_DP)
-    return None if cut is None else float(structural_similarity(a[cut], b[cut], data_range=255, channel_axis=-1,
-                                                                win_size=WINDOW))
-
-
 def box_map(a: np.ndarray, b: np.ndarray, box: Rect) -> np.ndarray | None:
     """The per-pixel SSIM map (mean over channels) of the same box cut from two content-dp images, BLEED_DP inside
     its edges; None when that is smaller than the SSIM window."""
@@ -226,56 +218,58 @@ def chrome_failures(chrome: dict[str, dict[str, Rect]], mocks: dict[str, Image.I
     return [failure for kind in kinds for failure in part_failures(kind, chrome, mock, real)]
 
 
-def part_scores(kind: str, chrome: dict, mock: dict, real: dict) -> dict[tuple[str, str], tuple[float, float, Rect]]:
-    """For each pair of screens whose real screens show the part (they draw at least SAME_PART of a box alike): the
-    mock pair's SSIM over the pixels the real pair draws alike, the share of the box they cover, and the box. Either
-    screen's box is tried and the one where the mock pair scores lowest is kept, so a bar drawn somewhere else on one
-    screen is caught at the other screen's box, and so is a bar left off a screen that carries no tag of the part."""
+class PairScore(NamedTuple):
+    """Two screens' part, over the pixels their real screens draw alike."""
+    mock: float  # the mock pair's SSIM there, at the box where it is lowest
+    share: float  # the share of that box those pixels cover
+    fidelity: dict[str, float]  # each screen's SSIM against its own real screen, over every box compared
+
+
+def part_scores(kind: str, chrome: dict, mock: dict, real: dict) -> dict[tuple[str, str], PairScore]:
+    """A score for each pair of screens whose real screens show the part (they draw at least SAME_PART of a box
+    alike), over those pixels. Either screen's box is tried, so a bar drawn somewhere else on one screen is caught at
+    the other screen's box, and so is a bar left off a screen that carries no tag of it."""
     scores = {}
     for a, b in itertools.combinations(chrome, 2):
-        at_boxes = []
+        compared = []
         for box in (chrome[sid][kind] for sid in (a, b) if kind in chrome[sid]):
             same = alike(real[a], real[b], box)
             if same is not None and same.mean() >= SAME_PART:
-                at_boxes.append((float(box_map(mock[a], mock[b], box)[same].mean()), float(same.mean()), box))
-        if at_boxes:
-            scores[a, b] = min(at_boxes, key=lambda scored: scored[0])
+                compared.append((box, same))
+        if compared:
+            mock_ssim, share = min((float(box_map(mock[a], mock[b], box)[same].mean()), float(same.mean()))
+                                   for box, same in compared)
+            fidelity = {sid: float(np.concatenate([box_map(mock[sid], real[sid], box)[same]
+                                                   for box, same in compared]).mean()) for sid in (a, b)}
+            scores[a, b] = PairScore(mock_ssim, share, fidelity)
     return scores
 
 
 def part_failures(kind: str, chrome: dict, mock: dict, real: dict) -> list[dict]:
     """One failure per screen whose part differs from another screen's where their real screens draw it alike. Of a
-    failing pair, the one to fix is the screen whose part matches its own real screen less (the later in the mock's
-    order on a tie), so a screen drawn as the app draws it is never told to change, however many others are wrong."""
-    def fidelity(sid: str, box: Rect) -> float:
-        """How closely a screen's part matches its own real screen: at its own box, or where the other screen of the
-        pair draws the part when it marks none."""
-        score = box_ssim(mock[sid], real[sid], chrome[sid].get(kind, box))
-        return -1.0 if score is None else score
-
-    differs, partners = {}, {}
-    for (a, b), (mock_ssim, share, box) in part_scores(kind, chrome, mock, real).items():
-        partners.setdefault(a, []).append((b, box))
-        partners.setdefault(b, []).append((a, box))
-        if mock_ssim < CHROME_GATE:
-            odd, other = (a, b) if fidelity(a, box) < fidelity(b, box) else (b, a)
-            differs.setdefault(odd, []).append((other, mock_ssim, share))
-
-    def model(sid: str) -> str:
-        """The screen to copy: of those showing the same part in the app, a marked one, drawn closest to its own
-        real screen."""
-        return max(partners[sid], key=lambda partner: (kind in chrome[partner[0]], fidelity(*partner)))[0]
-    return [part_failure(kind, odd, others, model(odd), kind in chrome[odd]) for odd, others in differs.items()]
+    failing pair, the one to fix is the screen further from its own real screen over the pixels compared (the later
+    in the mock's order on a tie), so a screen drawn as the app draws it is never told to change however many others
+    are wrong, and what the app itself changes, a highlighted tab, never decides it."""
+    differs = {}
+    for (a, b), pair in part_scores(kind, chrome, mock, real).items():
+        if pair.mock < CHROME_GATE:
+            odd, other = (a, b) if pair.fidelity[a] < pair.fidelity[b] else (b, a)
+            differs.setdefault(odd, []).append((other, pair))
+    return [part_failure(kind, odd, others, chrome, set(differs)) for odd, others in differs.items()]
 
 
-def part_failure(kind: str, odd: str, others: list[tuple[str, float, float]], like: str, marked: bool) -> dict:
-    """The fix for one screen: the screens it differs from, the worst pair's numbers, and the screen to copy."""
-    _, mock_ssim, share = min(others, key=lambda o: o[1])
+def part_failure(kind: str, odd: str, others: list[tuple[str, PairScore]], chrome: dict, flagged: set[str]) -> dict:
+    """The fix for one screen: the screens it differs from, the worst pair's numbers, and the screen to copy. That is
+    one of those it differs from, preferring one with no failure of its own, then one that marks the part, then the
+    one drawn closest to its own real screen."""
+    worst = min((pair for _, pair in others), key=lambda pair: pair.mock)
+    like, _ = max(others, key=lambda o: (o[0] not in flagged, kind in chrome[o[0]], o[1].fidelity[o[0]]))
+    marked = kind in chrome[odd]
     part = f'data-chrome="{kind}" on {odd}' if marked else f'{odd} has no data-chrome="{kind}", and its place'
     return {"kind": "chrome", "screen": odd, "detail":
-            f"{part} renders differently from {', '.join(other for other, _, _ in others)} (SSIM {mock_ssim:.3f} "
-            f"over the {share:.0%} of the box the real screens draw alike, {CHROME_GATE} needed): draw it as {like} "
-            "does, keeping only what the real screens show differently (a highlighted tab, a title)"
+            f"{part} renders differently from {', '.join(other for other, _ in others)} (SSIM {worst.mock:.3f} "
+            f"over the {worst.share:.0%} of the box the real screens draw alike, {CHROME_GATE} needed): draw it as "
+            f"{like} does, keeping only what the real screens show differently (a highlighted tab, a title)"
             + ("" if marked else f', marked data-chrome="{kind}"')}
 
 
