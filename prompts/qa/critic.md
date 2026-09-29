@@ -12,7 +12,7 @@ Then the numbers code measured:
 - `data_el_misses`: each tagged element whose box is more than 4 px off, or `"missing"` when no visible tag carries its `data-el`. `want` is the model's rect in the screen's own coordinates (x, y from the section's top-left), `got` is where the mock draws it.
 - `failed_taps` and `failed_flows`: taps that don't land. The tap must hit the tag (nothing on top of it, not hidden, not zero-size) on its own screen.
 - `contract_errors`: rule breaks in the page (an edge or element id that doesn't exist in the model, an image stretched past 40% of a screen, a console error, a missing file).
-- `cross_screen_failures`: parts that should look the same on every screen and don't. A `data-chrome` header or tab bar drawn differently here than on the screens named, where the real screens show it the same; a `data-value` tag that doesn't read the model's value; a screen that shows the value with no `data-value` tag. They don't change the score, but anyone tapping through the mock sees them.
+- `cross_screen_failures`: parts that should look the same on every screen and don't. A `data-chrome` header or tab bar that differs between this screen and the screens named more than the real screens differ there (the real app may move a highlighted tab or change a title; nothing else); a `data-value` tag that doesn't read the model's value; a screen that shows the value with no `data-value` tag. They don't change the score, but anyone tapping through the mock sees them.
 - The earlier rounds: what was asked, whether the score went up or down, and which edits could not be applied.
 
 ## What to write

@@ -96,7 +96,8 @@ def test_a_screen_that_leaves_the_tab_bar_off_fails_though_it_carries_no_mark(tm
     failures = chrome(qa.measure(ctx_for(run_dir, app), model, scope, 0, html))
     assert [f["screen"] for f in failures] == [last]
     assert f'{last} has no data-chrome="tabbar"' in failures[0]["detail"]
-    assert failures[0]["detail"].endswith(f'draw it as {scope[0].id} does, marked data-chrome="tabbar"')
+    assert f"draw it as {scope[0].id} does" in failures[0]["detail"]
+    assert failures[0]["detail"].endswith('marked data-chrome="tabbar"')
 
 
 @pytest.mark.parametrize("app", APPS)
@@ -126,6 +127,41 @@ def test_the_screen_that_matches_fewer_others_is_the_one_to_fix_even_when_it_com
     parts = {sid: {"tabbar": box} for sid in ("a", "b", "c")}
     failures = qa_metrics.chrome_failures(parts, {"a": odd, "b": real, "c": real}, dict.fromkeys(parts, real))
     assert [f["screen"] for f in failures] == ["a"] and "from b, c" in failures[0]["detail"]
+
+
+def test_the_screen_to_copy_is_the_one_most_others_match_not_another_odd_one():
+    """b and c are each drawn their own way; d, e and f agree. b and c are told to copy d, never each other."""
+    screen = Image.new("RGB", (411, 838), "#101014")
+    real = with_tab_bar(screen, lit=0)
+    box = Rect(x=0, y=780, w=411, h=58)
+    mocks = {"b": with_tab_bar(screen, lit=0, fill="#3a2030"), "c": with_tab_bar(screen, lit=0, fill="#203a30"),
+             "d": real, "e": real, "f": real}
+    failures = qa_metrics.chrome_failures({sid: {"tabbar": box} for sid in mocks}, mocks, dict.fromkeys(mocks, real))
+    assert {f["screen"]: f["detail"].split("draw it as ")[1].split(" ")[0] for f in failures} == {"b": "d", "c": "d"}
+
+
+def with_tab_bar(screen: Image.Image, lit: int, fill: str = "#202226") -> Image.Image:
+    """A content-dp screen with a dark tab bar of four icons at the bottom, icon lit highlighted."""
+    out = screen.copy()
+    draw = ImageDraw.Draw(out)
+    draw.rectangle((0, 780, 410, 837), fill=fill)
+    for i in range(4):
+        draw.rectangle((28 + i * 100, 786, 74 + i * 100, 832), fill="#a070ff" if i == lit else "#8a8a8a")
+    return out
+
+
+def test_a_highlighted_tab_may_move_as_it_does_in_the_app_but_the_bar_may_not_change():
+    """The bar fills the whole box, so the screen under it doesn't matter."""
+    screen = Image.new("RGB", (411, 838), "#101014")
+    real = {"a": with_tab_bar(screen, lit=0), "b": with_tab_bar(screen, lit=1)}
+    box = Rect(x=0, y=780, w=411, h=58)
+    parts = {"a": {"tabbar": box}, "b": {"tabbar": box}}
+    in_app = qa_metrics.box_ssim(np.asarray(real["a"]), np.asarray(real["b"]), box)
+    assert qa_metrics.SAME_PART <= in_app < qa_metrics.CHROME_GATE
+    assert qa_metrics.chrome_failures(parts, real, real) == []
+    recolored = {"a": real["a"], "b": with_tab_bar(screen, lit=1, fill="#3a2030")}
+    failures = qa_metrics.chrome_failures(parts, recolored, real)
+    assert [f["screen"] for f in failures] == ["b"] and f"real screens score {in_app:.3f}" in failures[0]["detail"]
 
 
 def test_a_bar_drawn_lower_on_one_screen_fails_though_it_looks_the_same():

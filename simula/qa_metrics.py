@@ -165,6 +165,9 @@ def within(got: Rect | None, want: Rect, tolerance: float = BOUNDS_TOLERANCE_DP)
 # ---------- cross-screen check: shared chrome and values ----------
 
 CHROME_GATE = 0.98
+# Real screens that score at least this over a chrome box show the same part there. Measured on JanitorAI's real
+# screens: a highlighted tab costs the pair about 0.02, while a different title or unrelated content costs 0.07 and more.
+SAME_PART = 0.95
 
 
 def shared_dom(page, screen: str) -> tuple[dict[str, Rect], list[tuple[str, str]]]:
@@ -191,14 +194,15 @@ def box_ssim(a: np.ndarray, b: np.ndarray, box: Rect) -> float | None:
 
 def chrome_failures(chrome: dict[str, dict[str, Rect]], mocks: dict[str, Image.Image],
                     reals: dict[str, Image.Image]) -> list[dict]:
-    """Each data-chrome part (a header, a tab bar) must render the same on every screen that draws it: SSIM ≥
-    CHROME_GATE over both screens' boxes, so a bar drawn in another place fails too. A pair of screens the real app
-    draws differently there (a highlighted tab, a screen title) isn't held to it: the real screens must match at one
-    of the pair's boxes. A screen with no tag of the part is compared too, at the other screen's box, so a bar left
-    off one screen, or drawn there without its mark and differently, fails wherever the real screens match. The
-    screen that matches fewer others is the one to fix; on a tie, the later in the mock's order. chrome maps every
-    drawn screen, in the mock's order, to its parts' boxes (none when it marks none); mocks and reals are content-dp
-    images."""
+    """Each data-chrome part (a header, a tab bar) must differ between two screens no more than the real app's does:
+    a pair fails when its mock SSIM over both boxes is more than 1 - CHROME_GATE below the real screens' SSIM there.
+    Chrome the app draws identically must score at least CHROME_GATE, and a highlighted tab may differ only as much as
+    it does in the app. A bar drawn in another place fails too. Only pairs whose real screens show the same part (SSIM
+    at least SAME_PART at one of the pair's boxes) are compared. A screen with no tag of the part is compared at the
+    other screen's box, so a bar left off one screen fails. The screen that matches fewer others is the one to fix;
+    on a tie, the later in the mock's order. The screen to copy is the marked one that matches the most others.
+    chrome maps every drawn screen, in the mock's order, to its parts' boxes (none when it marks none); mocks and reals
+    are content-dp images."""
     mock = {sid: np.asarray(image.convert("RGB")) for sid, image in mocks.items()}
     real = {sid: np.asarray(image.convert("RGB")) for sid, image in reals.items()}
     failures = []
@@ -206,23 +210,26 @@ def chrome_failures(chrome: dict[str, dict[str, Rect]], mocks: dict[str, Image.I
         scores = {}
         for a, b in itertools.combinations(chrome, 2):
             boxes = [chrome[sid][kind] for sid in (a, b) if kind in chrome[sid]]
-            same_in_app = [s for s in (box_ssim(real[a], real[b], box) for box in boxes) if s is not None]
-            if same_in_app and max(same_in_app) >= CHROME_GATE:
-                scores[a, b] = box_ssim(mock[a], mock[b], union(*boxes))
-        matches = Counter(sid for pair, score in scores.items() if score >= CHROME_GATE for sid in pair)
+            in_app = max((s for s in (box_ssim(real[a], real[b], box) for box in boxes) if s is not None), default=0.0)
+            if in_app >= SAME_PART:
+                scores[a, b] = box_ssim(mock[a], mock[b], union(*boxes)), in_app
+        matches = Counter(sid for pair, (m, r) in scores.items() if m >= r - (1 - CHROME_GATE) for sid in pair)
         differs = {}
-        for (a, b), score in scores.items():
-            if score < CHROME_GATE:
+        for (a, b), (m, r) in scores.items():
+            if m < r - (1 - CHROME_GATE):
                 odd, other = (a, b) if matches[a] < matches[b] else (b, a)
-                differs.setdefault(odd, []).append((other, score))
+                differs.setdefault(odd, []).append((other, m, r))
         for odd, others in differs.items():
-            names = ", ".join(other for other, _ in others)
-            like = next((other for other, _ in others if kind in chrome[other]), others[0][0])
+            names = ", ".join(other for other, _, _ in others)
+            _, m, r = min(others, key=lambda o: o[1] - o[2])
+            marked_others = [other for other, _, _ in others if kind in chrome[other]]
+            like = max(marked_others or [others[0][0]], key=lambda other: matches[other])
             marked = kind in chrome[odd]
             part = f'data-chrome="{kind}" on {odd}' if marked else f'{odd} has no data-chrome="{kind}", and its place'
             failures.append({"kind": "chrome", "screen": odd, "detail":
-                             f"{part} renders differently from {names} (SSIM {min(score for _, score in others):.3f} "
-                             f"< {CHROME_GATE}), where the real screens show it the same: draw it as {like} does"
+                             f"{part} renders differently from {names} (SSIM {m:.3f}, where the real screens score "
+                             f"{r:.3f}): draw it as {like} does, keeping only what the real screens show differently "
+                             "(a highlighted tab, a title)"
                              + ("" if marked else f', marked data-chrome="{kind}"')})
     return failures
 
