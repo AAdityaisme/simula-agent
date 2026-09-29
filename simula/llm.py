@@ -8,6 +8,7 @@ import base64
 import hashlib
 import json
 import re
+import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -67,9 +68,13 @@ class Reply:
 
 @dataclass
 class Budget:
+    """A stage's $ cap. Each call holds its worst case from reserve() until charge() settles it, so calls
+    running at the same time can't pass the cap together."""
     stage: str
     cap: float
     spent: float = 0.0
+    held: float = 0.0
+    lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
 
     @classmethod
     def for_stage(cls, stage: str, trace_path: Path, cap: float | None = None) -> "Budget":
@@ -77,12 +82,19 @@ class Budget:
         return cls(stage, config.stage_cap(stage) if cap is None else cap, spent)
 
     def reserve(self, worst_usd: float) -> None:
-        if self.spent + worst_usd > self.cap:
-            raise CapReached(f"{self.stage}: next call could cost ${worst_usd:.2f}, "
-                             f"${self.spent:.2f} of ${self.cap:.2f} already spent; raise with --usd-cap")
+        with self.lock:
+            if self.spent + self.held + worst_usd > self.cap:
+                raise CapReached(f"{self.stage}: next call could cost ${worst_usd:.2f}, ${self.spent:.2f} of "
+                                 f"${self.cap:.2f} already spent, ${self.held:.2f} held by calls in flight; "
+                                 "raise with --usd-cap")
+            self.held += worst_usd
 
-    def charge(self, usd: float) -> None:
-        self.spent += usd
+    def charge(self, usd: float, reserved: float) -> None:
+        """Settles one call: adds what it cost and gives back exactly what its reserve() held. `reserved` has no
+        default, so a caller that forgets to give its hold back fails at once instead of shrinking the cap."""
+        with self.lock:
+            self.spent += usd
+            self.held -= reserved
 
 
 # ---------- cache ----------
@@ -151,22 +163,24 @@ def _anthropic_content(parts: list[dict]) -> list[dict]:
             for p in parts]
 
 
-def _spent(stream, tokens_in_estimate: int) -> tuple[int, int]:
-    """What an aborted stream already cost: the snapshot's usage, with output at least what was streamed (the
-    API sends the final output count only at the end). With no snapshot, message_start never arrived, so
-    nothing was generated: only the estimated input is charged."""
+def _spent(stream, tokens_in_estimate: int, max_tokens: int) -> tuple[int, int]:
+    """What an aborted stream is charged. With no snapshot, message_start never arrived, so nothing was generated:
+    only the estimated input. Otherwise its worst case, the input the stream reported plus max_tokens of output, or
+    what streamed if that was more: the API bills thinking a stream may not carry, and sends the final output count
+    only at the end, so what streamed is a floor, not the bill."""
     try:
         snapshot = stream.current_message_snapshot
     except (AssertionError, AttributeError):
         return tokens_in_estimate, 0
-    # ponytail: thinking the API doesn't stream back isn't counted; charge the worst case if that ever matters
     streamed = sum(len(getattr(b, "text", None) or getattr(b, "thinking", None) or "") for b in snapshot.content) // 3
-    return snapshot.usage.input_tokens, max(snapshot.usage.output_tokens, streamed)
+    return snapshot.usage.input_tokens, max(snapshot.usage.output_tokens, streamed, max_tokens)
 
 
-def _drain(stream, total_timeout: float | None, tokens_in_estimate: int):
+def _drain(stream, total_timeout: float | None, tokens_in_estimate: int, max_tokens: int):
     """Reads the stream to its final message. On an abort (our total timeout or an SDK error mid-stream) the
-    tokens already spent ride on the raised error."""
+    tokens already spent ride on the raised error. Everything raised here comes from reading the provider's
+    stream, so an error the SDK leaves untyped (its event accumulator raises a plain RuntimeError, TypeError or
+    IndexError on an event it can't place) becomes LLMFailure("error") and is retried like any provider error."""
     deadline = time.monotonic() + total_timeout if total_timeout else None
     try:
         for _ in stream:
@@ -174,13 +188,17 @@ def _drain(stream, total_timeout: float | None, tokens_in_estimate: int):
                 raise LLMFailure("timeout", f"passed the {total_timeout:.0f}s total timeout")
         return stream.get_final_message()
     except Exception as e:
-        e.tokens_in, e.tokens_out = _spent(stream, tokens_in_estimate)
-        raise
+        e.tokens_in, e.tokens_out = _spent(stream, tokens_in_estimate, max_tokens)
+        if isinstance(e, LLMFailure) or provider_error(e):
+            raise
+        raise LLMFailure("error", f"{type(e).__name__} reading the stream: {e}", tokens_in=e.tokens_in,
+                         tokens_out=e.tokens_out) from e
 
 
 def call_anthropic(model: str, system: str, messages: list[dict], effort: str | None,
                    schema: type[BaseModel] | None, max_tokens: int, total_timeout: float | None = None) -> Reply:
     import anthropic
+    import httpx2  # transitive via anthropic, whose client it is
     caps = config.models()[model]
     streaming = max_tokens > caps["stream_above"]
     # On a stream the read timeout is the gap between chunks, so a stalled stream fails after 60 s.
@@ -201,7 +219,7 @@ def call_anthropic(model: str, system: str, messages: list[dict], effort: str | 
     try:
         if streaming:
             with client.messages.stream(**kwargs) as stream:
-                message = _drain(stream, total_timeout, estimate_tokens_in(system, messages))
+                message = _drain(stream, total_timeout, estimate_tokens_in(system, messages), max_tokens)
                 headers = stream.response.headers
         else:
             raw = client.messages.with_raw_response.create(**kwargs)
@@ -219,6 +237,8 @@ def call_anthropic(model: str, system: str, messages: list[dict], effort: str | 
         raise _failure("error", e) from e
     except (anthropic.APIStatusError, anthropic.APIConnectionError) as e:
         raise _failure("error", e) from e
+    except httpx2.TransportError as e:  # the SDK doesn't wrap one raised while a stream is read
+        raise _failure("timeout" if isinstance(e, httpx2.TimeoutException) else "error", e) from e
     text = "".join(block.text for block in message.content if block.type == "text")
     usage = message.usage
     cached = getattr(usage, "cache_read_input_tokens", 0) or 0
@@ -325,20 +345,30 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
     if replay:
         raise ReplayMiss(f"--replay: no cached response for {stage}/{step} (key {pending[0][:12]})")
     for key in pending:
-        budget.reserve(worst_case_usd(model, estimate_tokens_in(system, messages), max_tokens))
+        worst = worst_case_usd(model, estimate_tokens_in(system, messages), max_tokens)
+        budget.reserve(worst)
         started = time.monotonic()
         try:
             reply = PROVIDERS[provider](model, system, messages, effort, schema, max_tokens, total_timeout)
-        except LLMFailure as e:
-            last = e
-            cost = usd(model, e.tokens_in, e.tokens_out)
-            budget.charge(cost)
+        except BaseException as e:
+            # Whatever ends a call early is settled here, so no hold outlives it, and charged what it streamed. Only
+            # a typed failure or an error from the provider boundary is retried; a stop that must propagate (the
+            # provider refusing the account, an interrupt) and a bug in our own code are traced, then re-raised.
+            retry = isinstance(e, LLMFailure) or (isinstance(e, Exception) and provider_error(e))
+            failure = e if isinstance(e, LLMFailure) else _failure(
+                "blocked" if isinstance(e, ProviderUnavailable) else "error", e)
+            cost = usd(model, failure.tokens_in, failure.tokens_out)
+            budget.charge(cost, worst)
+            note = str(e) if retry or not isinstance(e, Exception) else f"{type(e).__name__}, not a provider error: {e}"
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
-                  tokens_in=e.tokens_in, tokens_out=e.tokens_out, usd=round(cost, 6), outcome=e.outcome,
-                  note=str(e)[:200])
+                  tokens_in=failure.tokens_in, tokens_out=failure.tokens_out, usd=round(cost, 6),
+                  outcome=failure.outcome, note=note[:200])
+            if not retry:
+                raise
+            last = failure
             continue
         cost = usd(model, reply.tokens_in, reply.tokens_out, reply.tokens_cached)
-        budget.charge(cost)
+        budget.charge(cost, worst)
         outcome, result = _check(reply, schema)
         trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
               tokens_in=reply.tokens_in, tokens_out=reply.tokens_out, tokens_cached=reply.tokens_cached,
@@ -353,6 +383,16 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
         cache_write(key, reply, cache_dir)
         last = LLMFailure(outcome, reply.stop_reason, raw=reply.text)
     raise last
+
+
+def provider_error(e: Exception) -> bool:
+    """An error from the provider boundary that another attempt may cure: an SDK error, an HTTP transport or
+    decoding error, or data the SDK couldn't read (a ValueError, as in _check). Anything else is a bug in our code,
+    which no retry fixes."""
+    import anthropic
+    import httpx2
+    import openai
+    return isinstance(e, (anthropic.APIError, openai.APIError, httpx2.HTTPError, ValueError))
 
 
 def _check(reply: Reply, schema: type[BaseModel] | None):

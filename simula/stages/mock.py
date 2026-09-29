@@ -462,9 +462,8 @@ def draw_batches(ctx: Ctx, groups: list[list[State]], contents: list[list[dict]]
             return e
 
     # ponytail: the plan fits every first call plus one max_tokens retry at worst case, so the $ check never turns a
-    # planned call away. A second retry in one run is outside the plan: PR 5's lock makes it a placeholder (and that
-    # run's replay misses on it); until the lock lands here, two retries in flight together can pass the cap.
-    # Keep more spare if retries get common.
+    # planned call away. A second retry in one run is outside the plan: the budget's lock turns it away, so that
+    # batch becomes a placeholder and the run's replay misses on it. Keep more spare if retries get common.
     with ThreadPoolExecutor(PARALLEL_BATCHES) as pool:
         results = list(pool.map(draw, range(1, len(groups) + 1), contents))
     failures = [r for r in results if isinstance(r, BaseException)]
