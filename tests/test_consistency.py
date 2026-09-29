@@ -5,6 +5,7 @@ test apps."""
 
 import json
 import re
+from dataclasses import replace
 
 import numpy as np
 import pytest
@@ -369,3 +370,17 @@ def test_a_replay_takes_the_recorded_cross_screen_failures():
     metrics = QAMetrics(round=0, screens=[], cross_screen_failures=["d"], score=5.0)
     version = qa.Version(0, "<html></html>", metrics, [], [], [], [], [failure])
     assert qa.version_from(json.loads(qa.version_record(version)), 0, version.html) == version
+
+
+def test_a_measurement_recorded_before_the_cross_screen_check_is_a_replay_miss_not_a_crash(tmp_path, records):
+    """A record from before the check has no cross_screen field; it was keyed without the record's version."""
+    app = APPS[0]
+    model = golden(app)
+    run_dir, scope, html = run_with(tmp_path, app, model, lambda h: h)
+    ctx = replace(ctx_for(run_dir, app), replay=True)
+    metrics = QAMetrics(round=0, screens=[], cross_screen_failures=[], score=5.0)
+    old = json.loads(qa.version_record(qa.Version(0, html, metrics, [], [], [], [])))
+    del old["cross_screen"]
+    qa.write_record(qa.record_path("measure", 0, html, qa.inputs_digest(ctx)), json.dumps(old))
+    with pytest.raises(llm.ReplayMiss, match="no measurement record for round 0"):
+        qa.measure_or_replay(ctx, model, scope, 0, html)

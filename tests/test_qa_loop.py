@@ -311,7 +311,7 @@ def test_a_mock_replayed_offline_keeps_qas_replay_key(tmp_path, monkeypatch):
     ctx = ctx_for(run_dir, APPS[0])
 
     def measure_key():
-        return qa.record_path("measure", 0, (run_dir / "mock" / "index.html").read_text(), qa.inputs_digest(ctx))
+        return qa.measure_record_path(ctx, 0, (run_dir / "mock" / "index.html").read_text())
     live = measure_key()
     assert list((run_dir / "mock" / "assets" / "fonts").glob("*.woff2"))
 

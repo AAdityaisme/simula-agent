@@ -35,6 +35,9 @@ CRITIC_SCREENS = 4
 PARALLEL_CRITICS = 4
 FIXER_MAX_TOKENS = 64000
 RECORDS = llm.CACHE / "qa"
+# Part of a measurement record's key. Bumped when a record gains a field or its numbers change meaning, so a record
+# written before is a replay miss, never a crash or a stale number.
+MEASURE_RECORD = 2
 RUNTIME = re.compile(r'<style id="simula-runtime">.*?</style>\n?|<script id="simula-runtime-js">.*?</script>\n?', re.S)
 
 
@@ -162,7 +165,7 @@ def measure_or_replay(ctx: Ctx, model: ProductModel, scope: list[State], n: int,
     page and its inputs, and --replay takes the recorded numbers: the loop then decides, and asks the models, exactly
     as the recorded run did. A replay with no record stops rather than measure live. It still renders, for the round
     folder's images."""
-    path = record_path("measure", n, html, inputs_digest(ctx))
+    path = measure_record_path(ctx, n, html)
     if not ctx.replay:
         version = measure(ctx, model, scope, n, html)
         write_record(path, version_record(version))
@@ -607,6 +610,10 @@ def digest(data) -> str:
 
 def record_path(*key):
     return RECORDS / f"{digest(key)}.json"
+
+
+def measure_record_path(ctx: Ctx, n: int, html: str):
+    return record_path("measure", MEASURE_RECORD, n, html, inputs_digest(ctx))
 
 
 def write_record(path, text: str) -> None:
