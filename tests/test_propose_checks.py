@@ -510,7 +510,8 @@ def with_terms(model):
 
 
 PRINTED = ["title", "offer_copy", "after_reward", "adds", "placement", "trigger_event", "frequency_cap", "rationale",
-           "subscriber_treatment", "decline_path", "ad_fail_path", "reward.unit", "reward.duration", "caption"]
+           "subscriber_treatment", "decline_path", "ad_fail_path", "character_use", "reward.unit", "reward.duration",
+           "caption"]
 
 
 def with_words(model, field: str, words: str):

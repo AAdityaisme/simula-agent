@@ -188,8 +188,8 @@ def uses_term(term: str, words: str) -> bool:
 def printed(c: Candidate) -> list[str]:
     """Every field of the idea the slides print word for word."""
     return [c.title, c.offer_copy, c.after_reward, c.adds or "", c.placement, c.trigger_event, c.frequency_cap,
-            c.rationale, c.subscriber_treatment, c.decline_path, c.ad_fail_path, c.reward.unit, c.reward.duration,
-            *(s.caption for s in c.flow_steps)]
+            c.rationale, c.subscriber_treatment, c.decline_path, c.ad_fail_path, c.character_use, c.reward.unit,
+            c.reward.duration, *(s.caption for s in c.flow_steps)]
 
 
 def jargon_flags(c: Candidate, model: ProductModel) -> list[str]:
