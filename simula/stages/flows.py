@@ -801,8 +801,8 @@ def condition(decision: Decision, run_dir: Path, none_accepted: bool) -> tuple[s
     if failed:
         return "Not every check passed:", f"It didn't pass {names} ({failed[0][1]})."
     if decision.checks_passed < decision.checks_total:
-        return ("Not every check passed:", f"It passed {decision.checks_passed} of {decision.checks_total} checks; "
-                                           f"the score pages at the end show which.")
+        return ("Not every check passed:", (f"It passed {decision.checks_passed} of {decision.checks_total} checks; "
+                                            "the score pages at the end show which."))
     return None
 
 

@@ -310,8 +310,8 @@ def test_the_judges_fallback_pick_reads_as_the_closest_idea_not_a_recommendation
     missed = judged(tmp_path, "c01", "c5_moment")
     assert flows.condition(missed, tmp_path, none_accepted=True) == (
         "The closest idea, not a recommendation:",
-        "No idea passed every check. This one passes every safety check but not the right moment "
-        "(c5_moment reason for c01).")
+        ("No idea passed every check. This one passes every safety check but not the right moment "
+         "(c5_moment reason for c01)."))
     assert flows.condition(missed, tmp_path, none_accepted=False) == (
         "Not every check passed:", "It didn't pass the right moment (c5_moment reason for c01).")
     assert flows.condition(judged(tmp_path, "c02", "g_policy"), tmp_path, none_accepted=True)[0] == \
@@ -498,17 +498,19 @@ def test_the_reward_effect_names_labels_and_ignores_render_noise(tmp_path, extra
         assert flows.reward_effect(page, tmp_path / "on.png") == expected
 
 
+def shot(wired: bool = True, shown: bool | None = None, labels: list[str] | None = None) -> dict:
+    return {"wired": wired, "reward_shown": shown, "reward_labels": labels}
+
+
 @pytest.mark.parametrize("after_ad, expected", [
-    ([dict(wired=False, reward_shown=None, reward_labels=None)], "not reached"),
-    ([dict(wired=True, reward_shown=None, reward_labels=None)], "new screen, not measured"),
-    ([dict(wired=True, reward_shown=None, reward_labels=None), dict(wired=True, reward_shown=False, reward_labels=None)],
-     f"{flows.REWARD_NOT_SHOWN}: step 5"),
-    ([dict(wired=True, reward_shown=True, reward_labels=["Badge on"])], "only a label: step 4"),
-    ([dict(wired=True, reward_shown=True, reward_labels=["Badge on"]), dict(wired=True, reward_shown=True,
-                                                                           reward_labels=None)], "yes"),
+    ([shot(wired=False)], "not reached"),
+    ([shot()], "new screen, not measured"),
+    ([shot(), shot(shown=False)], f"{flows.REWARD_NOT_SHOWN}: step 5"),
+    ([shot(shown=True, labels=["Badge on"])], "only a label: step 4"),
+    ([shot(shown=True, labels=["Badge on"]), shot(shown=True)], "yes"),
 ])
 def test_the_exhibit_says_yes_only_when_the_reward_check_ran_and_found_more_than_a_label(after_ad, expected):
-    before = [dict(wired=True, reward_shown=None, reward_labels=None)] * 3
+    before = [shot()] * 3
     assert flows.reward_text({"shots": before + after_ad, "ad_at": 2}) == expected
 
 
