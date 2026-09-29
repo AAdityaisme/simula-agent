@@ -17,7 +17,7 @@ from simula.stages import mock, qa
 from tests.conftest import APPS, FIXTURES
 from tests.mock_fake import golden, seed_model, skeleton_html
 from tests.test_mock_isolation import ctx_for
-from tests.test_qa_loop import fake_critic, measured_twelve, records, told, twelve  # noqa: F401 (fixtures)
+from tests.test_qa_loop import OPTIONS, fake_critic, measured_twelve, records, told, twelve  # noqa: F401 (fixtures)
 
 BAR_DP = 56
 BAR = "#20252b"
@@ -390,7 +390,7 @@ def test_a_cross_screen_failure_leaves_the_approved_version_qa_incomplete_and_is
     report = json.loads((run_dir / "qa" / "qa_report.json").read_text())
     assert (report["status"], report["outcome"], report["keep_score"]) == ("qa_incomplete", "partial", 5.0)
     assert "cross-screen failures on the approved version: 1" in report["reasons"]
-    assert report["resume"] == f"simula run {app} --run {run_dir.name} --from qa"
+    assert report["resume"] == f"simula run {app} --from qa --run {run_dir.name} {OPTIONS}"
     assert report["cross_screen_failures"] == [failure] and report["rounds"][0]["cross_screen_failures"] == 1
     exhibit = (run_dir / "exhibits" / "04-qa.md").read_text()
     assert "cross-screen failures on the approved version: 1" in exhibit and failure["detail"] in exhibit
