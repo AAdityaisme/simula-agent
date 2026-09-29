@@ -2038,12 +2038,15 @@ def explore_app(ex: Explorer) -> StageOutcome:
 
 def outcome(ex: Explorer) -> StageOutcome:
     """Partial when the explore stopped short of what it set out to do: the relaunch cap ended the tour or a phase
-    after it, or the core loop finished fewer passes than planned and the app didn't stop it (--no-send turns the
-    loop off on purpose). Complete otherwise."""
+    after it, the paywall pass or the replay check stopped early, or the core loop finished fewer passes than planned
+    and the app didn't stop it (--no-send turns the loop off on purpose). Complete otherwise."""
     reasons = []
     if ex.stop_reason == "relaunch cap" or any("relaunch cap" in r for r in ex.core_results):
         reasons.append(f"it used all {ex.relaunches} relaunches allowed ({MAX_RELAUNCHES} in the tour, "
                        f"{CORE_RELAUNCHES} after it), so it stopped before seeing everything it planned to")
+    for phase, name in (("paywall_pass", "the paywall pass"), ("verify_replay", "the replay check")):
+        reasons += [f"{name} stopped early ({r.split(': ', 1)[1]})" for r in ex.core_results
+                    if r.startswith(f"{phase} stopped: ") and "relaunch cap" not in r]
     if ex.may_send and not ex.core_hit and ex.core_completed < ex.core_reps:
         last = ex.core_results[-1] if ex.core_results else f"the tour ended: {ex.stop_reason}"
         reasons.append(f"the core loop completed {ex.core_completed} of {ex.core_reps} passes (last: {last})")

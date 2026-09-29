@@ -4,7 +4,7 @@ finished explore as it is: only --new or --from explore explores again."""
 import pytest
 
 from simula import cli, runfolder
-from simula.contracts import Coverage, Device, ExploreFile, Provenance
+from simula.contracts import Coverage, Device, ExploreFile, Provenance, StageOutcome
 from simula.runlog import read_manifest, read_trace
 from simula.stages import model
 
@@ -28,7 +28,7 @@ def test_the_manifest_records_no_send(runs):
     assert read_manifest(latest(runs)).no_send is True
 
 
-def finished_explore(run_dir):
+def finished_explore(run_dir, outcome=None):
     explore = run_dir / "explore"
     explore.mkdir(exist_ok=True)
     coverage = Coverage(states_found=0, actions_taken=0, stop_reason="made by an earlier explore",
@@ -37,7 +37,7 @@ def finished_explore(run_dir):
         app_package="com.janitor.ai", app_version=None, budget="transfer", relaunches=0, content_filter=None,
         blocked_state_ids=[], coverage=coverage, device=Device()).model_dump_json())
     runfolder.write_done(explore, run_dir, [], [], {"made": "by an earlier explore"}, [explore],
-                         Provenance(source="explorer_run", explorer_run_id=run_dir.name))
+                         Provenance(source="explorer_run", explorer_run_id=run_dir.name), outcome=outcome)
 
 
 def not_built(ctx):
@@ -54,6 +54,16 @@ def test_run_reuses_a_finished_explore_even_when_its_params_changed(runs, monkey
     assert (run_dir / "explore" / "explore.json").read_text() == before
     skip = [line for line in read_trace(run_dir / "trace.jsonl") if line.stage == "explore" and line.step == "skip"]
     assert skip and "--from explore" in skip[-1].note
+
+
+def test_run_explores_again_when_the_last_explore_was_partial(runs):
+    cli.main(["run", "janitorai", "--new"])
+    run_dir = latest(runs)
+    finished_explore(run_dir, StageOutcome(status="partial", reasons=["the core loop completed 0 of 3 passes"]))
+    cli.main(["run", "janitorai"])
+    trace = read_trace(run_dir / "trace.jsonl")
+    assert not (run_dir / "explore" / "explore.json").exists() and trace[-1].outcome == "not_built"
+    assert not any(line.stage == "explore" and line.step == "skip" for line in trace)
 
 
 def test_from_explore_explores_again(runs):

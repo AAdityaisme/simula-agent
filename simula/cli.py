@@ -86,9 +86,9 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
         raise SystemExit(f"{stage} can't run: {problem}")
     provenance = runfolder.upstream_provenance(ctx.run_dir, UPSTREAM[stage])
     runfolder.require_real(provenance, ctx.allow_fixtures)
-    if stage == "explore" and not force and runlog.read_marker(ctx.run_dir, stage):
+    if stage == "explore" and not force and runlog.complete(ctx.run_dir, stage):
         runlog.run_trace(ctx.run_dir, stage=stage, step="skip", decider="code",
-                         note="a finished explore is reused as it is; --new or --from explore explores again")
+                         note="a complete explore is reused as it is; --new or --from explore explores again")
         return True
     inputs, prompts, params = stage_inputs(stage, ctx), prompt_files(stage), stage_params(stage, ctx)
     code = runfolder.code_files(stage)

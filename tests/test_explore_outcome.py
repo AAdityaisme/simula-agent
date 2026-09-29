@@ -333,3 +333,11 @@ def test_an_explore_whose_core_loop_was_cut_short_is_partial(tmp_path, monkeypat
     assert outcome.reasons == [f"the core loop completed 0 of {ex.core_reps} passes "
                                f"(last: {ex.core_results[-1]})"]
     assert "partial output" in (ex.run_dir / "needs-human.md").read_text()
+
+
+def test_an_explore_whose_paywall_pass_stopped_early_is_partial(tmp_path, monkeypatch):
+    def paywall_pass():
+        raise stage.Stop("the upsell screen could not be reached")
+    ex, phone, outcome = explored(tmp_path, monkeypatch, janitor_like, paywall_pass=paywall_pass)
+    assert ex.core_completed == ex.core_reps and outcome.status == "partial"
+    assert outcome.reasons == ["the paywall pass stopped early (Stop: the upsell screen could not be reached)"]
