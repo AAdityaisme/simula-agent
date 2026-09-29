@@ -76,6 +76,7 @@ PLAIN_CHECKS = {
 
 FLOW_CSS = """body:not(.simula-rewarded) [data-reward]{display:none!important}
 body.simula-rewarded [data-unrewarded]{display:none!important}
+body.simula-hide-replaced [data-unrewarded]{visibility:hidden!important}
 [data-screen]{isolation:isolate}
 .sa-dim{position:absolute;inset:0;background:rgba(8,10,14,.72)}
 .sa-card{position:absolute;left:28px;right:28px;top:140px;border-radius:20px;background:var(--bg-1,#fff);color:var(--fg-1,#16181d);padding:18px;font:15px/1.35 var(--font-1,system-ui,-apple-system,Roboto,sans-serif);box-shadow:0 12px 40px rgba(0,0,0,.4)}
@@ -148,12 +149,8 @@ FLOW_JS = """(() => {
 REWARDED_JS = "on => document.body.classList.toggle('simula-rewarded', on)"
 REWARD_LABELS_JS = """() => [...document.querySelectorAll('[data-reward]')].filter(e => e.checkVisibility())
   .map(e => { const b = e.getBoundingClientRect(); return {text: (e.innerText ?? e.textContent).trim(), box: [b.x, b.y, b.width, b.height]}; })"""
-REPLACED_JS = """() => [...document.querySelectorAll('[data-unrewarded]')].some(e => {
-  const box = e.getBoundingClientRect();
-  const left = Math.max(box.left, 0), right = Math.min(box.right, innerWidth);
-  const top = Math.max(box.top, 0), bottom = Math.min(box.bottom, innerHeight);
-  return e.checkVisibility() && right > left && bottom > top &&
-    e.contains(document.elementFromPoint((left + right) / 2, (top + bottom) / 2)); })"""
+HAS_REPLACED_JS = "() => document.querySelector('[data-unrewarded]') !== null"
+HIDE_REPLACED_JS = "on => document.body.classList.toggle('simula-hide-replaced', on)"
 NOTE_ON_TOP_JS = """() => { const note = document.querySelector('.sa-note');
   if (!note || !note.checkVisibility()) return false;
   const b = note.getBoundingClientRect();
@@ -494,25 +491,41 @@ def play(page, ad: str, target: str) -> tuple[bool, dict | None, str]:
     return state(page) == target, box, f"the verified play led to {state(page)}, not {target}"
 
 
+def changes(before: bytes, after: bytes) -> Image.Image:
+    """The pixels that differ between two captures by more than render noise, white on black."""
+    with Image.open(io.BytesIO(before)) as a, Image.open(io.BytesIO(after)) as b:
+        diff = ImageChops.difference(a.convert("RGB"), b.convert("RGB")).convert("L")
+    return diff.point(lambda level: 255 if level > RENDER_NOISE else 0)
+
+
+def replaced_shows(page, without: bytes) -> bool:
+    """Whether something the reward replaces (data-unrewarded) is painted in the capture taken with the reward off:
+    the same capture with only those elements hidden differs. Pixels settle what a hit test can't (an element that
+    ignores the pointer, a transparent overlay, one offscreen or covered)."""
+    if not page.evaluate(HAS_REPLACED_JS):
+        return False
+    page.evaluate(HIDE_REPLACED_JS, True)
+    hidden = render.screenshot(page, animations="disabled")
+    page.evaluate(HIDE_REPLACED_JS, False)
+    return changes(without, hidden).getbbox() is not None
+
+
 def reward_effect(page, granted: Path) -> tuple[bool, list[str] | None]:
     """What granting the reward visibly changes on the screen just captured with it granted: whether anything
     changes, and when everything that changes sits inside reward elements that appeared (a label, a badge), their
-    words (None when more than that changes). Something the reward replaces (data-unrewarded) painted in the
-    captured view with the reward off (on screen, and on top at the middle of what shows) is more than a label, even
-    when its rewarded form is drawn in the same place."""
+    words (None when more than that changes). Something the reward replaces that shows with the reward off is more
+    than a label, even when its rewarded form is drawn in the same place."""
     labels = page.evaluate(REWARD_LABELS_JS)
     page.evaluate(REWARDED_JS, False)
-    replaced = page.evaluate(REPLACED_JS)
     without = render.screenshot(page, animations="disabled")
+    replaced = replaced_shows(page, without)
     page.evaluate(REWARDED_JS, True)
-    with Image.open(granted) as on, Image.open(io.BytesIO(without)) as off:
-        diff = ImageChops.difference(on.convert("RGB"), off.convert("RGB")).convert("L")
-        diff = diff.point(lambda level: 255 if level > RENDER_NOISE else 0)
-        scale = on.width / VIEW_W
+    diff = changes(granted.read_bytes(), without)
     if diff.getbbox() is None:
         return False, None
     if replaced:
         return True, None
+    scale = diff.width / VIEW_W
     draw = ImageDraw.Draw(diff)
     for x, y, w, h in (label["box"] for label in labels):
         draw.rectangle([(x - LABEL_PAD) * scale, (y - LABEL_PAD) * scale, (x + w + LABEL_PAD) * scale,
