@@ -39,7 +39,7 @@ def test_no_offered_asset_breaks_the_wallpaper_rule(app):
     for state in mock.pick_scope(model):
         brief = mock.state_brief(state, model.device, {})
         offered = {e["id"] for e in brief["elements"] if "asset" in e}
-        assert offered == {e.id for e in state.elements if mock.usable_asset(e, model.device)}
+        assert offered == {e.id for e in state.elements if mock.usable_asset(e, state.elements, model.device)}
 
 
 BRIEF = [{"type": "text", "text": "the batch brief"}]

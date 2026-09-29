@@ -32,7 +32,7 @@ def skeleton_html(model: ProductModel, screens: list[str] | None = None) -> str:
                 attrs += f' data-edge="{edge.id}" data-transition="{edge.transition}"'
             if e.id in tappable:
                 style += ";z-index:1"
-            if usable_asset(e, model.device):
+            if usable_asset(e, state.elements, model.device):
                 boxes.append(f'<img src="assets/{e.id}.png" style="{style}"{attrs}>')
             else:
                 boxes.append(f'<div style="{style};color:{e.fg_hex or "#000"}"{attrs}>{escape(e.text or e.label)}</div>')

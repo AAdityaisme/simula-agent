@@ -174,6 +174,18 @@ def test_an_image_with_a_text_overlay_is_still_art():
     assert stage.is_image_like(image, siblings, DEVICE) and not stage.is_image_like(box, siblings, DEVICE)
 
 
+def test_a_picture_past_the_no_wallpaper_share_of_the_content_area_is_left_to_the_mock():
+    content = DEVICE.w_px * (DEVICE.content_bottom_px - DEVICE.content_top_px)
+
+    def picture(share):
+        rect = Rect(x=0, y=DEVICE.content_top_px, w=DEVICE.w_px, h=share * content / DEVICE.w_px)
+        return stage.make_element("s01.e01", rect, "ImageView", "", "", "@s01.e01",
+                                  np.zeros((2400, 1080, 3), np.uint8), DEVICE)
+    big, small = picture(0.42), picture(0.38)
+    assert big.rect_px.w * big.rect_px.h < 0.4 * DEVICE.w_px * DEVICE.h_px
+    assert not stage.is_image_like(big, [big], DEVICE) and stage.is_image_like(small, [small], DEVICE)
+
+
 def test_every_tapped_element_is_drawn_and_no_tapped_element_is_a_list_item(app, tmp_path):
     _, states, images, edges, _ = app
     (tmp_path / "assets").mkdir()
