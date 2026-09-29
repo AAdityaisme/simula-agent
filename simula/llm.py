@@ -78,18 +78,23 @@ class Budget:
     spent: float = 0.0
     held: float = 0.0
     lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
+    trace_path: Path | None = None
 
     @classmethod
     def for_stage(cls, stage: str, trace_path: Path, cap: float | None = None) -> "Budget":
         spent = sum(line.usd for line in read_trace(trace_path) if line.stage == stage)
-        return cls(stage, config.stage_cap(stage) if cap is None else cap, spent)
+        return cls(stage, config.stage_cap(stage) if cap is None else cap, spent, trace_path=trace_path)
 
     def reserve(self, worst_usd: float) -> None:
         with self.lock:
             if self.spent + self.held + worst_usd > self.cap:
-                raise CapReached(f"{self.stage}: next call could cost ${worst_usd:.2f}, ${self.spent:.2f} of "
-                                 f"${self.cap:.2f} already spent, ${self.held:.2f} held by calls in flight; "
-                                 "raise with --usd-cap")
+                refused = CapReached(f"{self.stage}: next call could cost ${worst_usd:.2f}, ${self.spent:.2f} of "
+                                     f"${self.cap:.2f} already spent, ${self.held:.2f} held by calls in flight; "
+                                     "raise with --usd-cap")
+                if self.trace_path:  # the run's record that the cap cut this stage short, even if the stage goes on
+                    trace(self.trace_path, stage=self.stage, step="budget", decider="code", outcome="cap",
+                          note=str(refused))
+                raise refused
             self.held += worst_usd
 
     def charge(self, usd: float, reserved: float = 0.0) -> None:
@@ -119,16 +124,22 @@ def cache_read(key: str, cache_dir: Path = CACHE) -> Reply | None:
     return Reply(**json.loads(path.read_text())) if path.exists() else None
 
 
-def cache_tries(key: str, cache_dir: Path = CACHE) -> tuple[list[tuple[str, Reply]], str]:
-    """Every recorded try of one attempt, oldest first, as (file key, reply), and the file key a new try goes to.
-    Entries are write-once: a new try of an attempt whose record was a lost call gets the next key."""
-    tries = []
+def cache_tries(key: str, cache_dir: Path = CACHE) -> tuple[list[tuple[str, Reply]], str, list[str]]:
+    """Every readable recorded try of one attempt, oldest first, as (file key, reply); the file key a new try goes to;
+    and the file keys of entries that can't be read. Entries are write-once: a new try of an attempt whose record was
+    a lost call gets the next key, and an unreadable entry is skipped, never overwritten."""
+    tries, damaged, n = [], [], 0
     while True:
-        file_key = key if not tries else hashlib.sha256(f"{key}:{len(tries)}".encode()).hexdigest()
-        reply = cache_read(file_key, cache_dir)
-        if reply is None:
-            return tries, file_key
-        tries.append((file_key, reply))
+        file_key = key if n == 0 else hashlib.sha256(f"{key}:{n}".encode()).hexdigest()
+        try:
+            reply = cache_read(file_key, cache_dir)
+        except (ValueError, TypeError):  # not JSON, or not a Reply's fields
+            damaged.append(file_key)
+        else:
+            if reply is None:
+                return tries, file_key, damaged
+            tries.append((file_key, reply))
+        n += 1
 
 
 def trace_keys(trace_path: Path) -> dict[str, int]:
@@ -353,7 +364,10 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
 
     chosen, fresh = {}, {}
     for key in keys:  # up to the first recorded answer; the attempts after it are never read
-        tries, fresh[key] = cache_tries(key, cache_dir)
+        tries, fresh[key], damaged = cache_tries(key, cache_dir)
+        for file_key in damaged:
+            trace(trace_path, stage=stage, step=step, decider="code", model=model, effort=effort, outcome="error",
+                  note=f"cache entry {file_key[:12]} can't be read, so it is skipped and a new try goes after it")
         chosen[key] = None if no_cache else recorded(tries)
         if chosen[key] and not chosen[key][1].failure:
             break

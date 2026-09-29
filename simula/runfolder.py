@@ -1,5 +1,6 @@
 """Run ids, the latest link, done.json markers, and fixture provenance."""
 
+import ast
 import hashlib
 import json
 import os
@@ -10,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 from simula.config import ROOT
-from simula.contracts import DoneMarker, FileHash, Provenance
+from simula.contracts import DoneMarker, FileHash, Provenance, StageOutcome
 
 RUNS = ROOT / "runs"
 
@@ -91,6 +92,36 @@ def params_hash(params: dict) -> str:
     return hashlib.sha256(json.dumps(params, sort_keys=True).encode()).hexdigest()
 
 
+def code_files(stage: str, root: Path = ROOT) -> list[Path]:
+    """The code a stage runs: its module and every simula module it imports, transitively, with the packages each
+    import runs on the way in. Read from the source, not sys.modules, so a chained `simula run` and a lone
+    `simula <stage>` hash the same files."""
+    # ponytail: absolute imports only (the package has none relative); a relative import would escape the hash.
+    todo, seen = _module_files(root, f"simula.stages.{stage}"), set()
+    while todo:
+        path = todo.pop()
+        if path in seen or not path.is_file():
+            continue
+        seen.add(path)
+        for node in ast.walk(ast.parse(path.read_text())):
+            if isinstance(node, ast.Import):
+                names = [a.name for a in node.names]
+            elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                names = [node.module, *(f"{node.module}.{a.name}" for a in node.names)]
+            else:
+                continue
+            todo += [f for name in names if name.split(".")[0] == "simula" for f in _module_files(root, name)]
+    return sorted(seen)
+
+
+def _module_files(root: Path, dotted: str) -> list[Path]:
+    """The files importing `dotted` runs: each package's __init__.py on the way in, then the module. A name that is
+    no module (a class imported from one) maps to a path that doesn't exist, which code_files skips."""
+    parts = dotted.split(".")
+    modules = [root.joinpath(*parts[:i]) for i in range(1, len(parts) + 1)]
+    return [m / "__init__.py" if m.is_dir() else m.with_suffix(".py") for m in modules]
+
+
 def _rel(path: Path, base: Path) -> str:
     for root in (base, ROOT):
         if path.resolve().is_relative_to(root.resolve()):
@@ -112,15 +143,18 @@ def write_json_atomic(path: Path, data: str) -> None:
 
 
 def write_done(stage_dir: Path, run_dir: Path, inputs: list[Path], prompts: list[Path], params: dict,
-               outputs: list[Path], provenance: Provenance) -> DoneMarker:
+               outputs: list[Path], provenance: Provenance, *, code: list[Path] | None = None,
+               outcome: StageOutcome | None = None) -> DoneMarker:
     (stage_dir / "failure.json").unlink(missing_ok=True)
     marker = DoneMarker(
         stage=stage_dir.name,
         input_hashes=hashes(inputs, run_dir),
         prompt_hashes=hashes(prompts, run_dir),
         params_hash=params_hash(params),
+        code_hashes=hashes(code or [], run_dir),
         output_hashes=hashes(outputs, run_dir),
         provenance=provenance,
+        outcome=outcome or StageOutcome(),
         finished_at=datetime.now().isoformat(timespec="seconds"),
     )
     write_json_atomic(stage_dir / "done.json", marker.model_dump_json(indent=1))
@@ -132,16 +166,20 @@ def read_done(stage_dir: Path) -> DoneMarker | None:
     return DoneMarker.model_validate_json(path.read_text()) if path.exists() else None
 
 
-def is_done(stage_dir: Path, run_dir: Path, inputs: list[Path], prompts: list[Path], params: dict) -> bool:
+def is_done(stage_dir: Path, run_dir: Path, inputs: list[Path], prompts: list[Path], params: dict, *,
+            code: list[Path] | None = None) -> bool:
+    """A stage is done while it delivered all of its work and its inputs, prompts, params, code and outputs are what
+    they were. A partial stage reruns, its finished calls from the cache, until it completes."""
     marker = read_done(stage_dir)
-    if marker is None:
+    if marker is None or marker.outcome.status != "complete":
         return False
     same_outputs = all((run_dir / h.path).exists() and sha256(run_dir / h.path) == h.sha256
                        for h in marker.output_hashes)
     return (same_outputs
             and marker.input_hashes == hashes(inputs, run_dir)
             and marker.prompt_hashes == hashes(prompts, run_dir)
-            and marker.params_hash == params_hash(params))
+            and marker.params_hash == params_hash(params)
+            and marker.code_hashes == hashes(code or [], run_dir))
 
 
 def write_failure(stage_dir: Path, reason: str) -> None:

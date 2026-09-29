@@ -29,7 +29,8 @@ TOKENS_PER_NAME = 30
 QUESTION_CAP = 5
 NOT_OBSERVED = "meaning not observed"
 EVERYDAY = " (everyday word, never flagged)"
-WORD = re.compile(r"[^\W\d_]{2,}")
+# Two or more letters in a row, each with the marks written on it: "मैसेज" is three letters, not three runs of one.
+WORD = re.compile(f"(?:[^\\W\\d_][{text.MARK}]*){{2,}}")
 SCREEN_CHANGE = re.compile(r"→|(?:^|;\s*)[+-]['\"]")
 MEASURE = re.compile(r"^(?P<what>.*?)\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>[^\d\s]*)$")
 NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
@@ -516,11 +517,12 @@ def keyword_floor(state: State, keywords: list[str]) -> ContentRating:
     return "unsafe" if pattern and re.search(pattern, words, re.IGNORECASE) else state.content_rating
 
 
-def resolve_terms(meaning: ModelMeaning, states: list[State], model_labels: set[str]) -> list[Term]:
+def resolve_terms(meaning: ModelMeaning, states: list[State], edges: list[Edge], model_labels: set[str]) -> list[Term]:
     """A term keeps its meaning only when a cited element carries it (as a whole word) and, with the term cut out,
-    still says something in words of two or more letters. So a bare name or a count ("1.8k tokens") can't define it.
-    Only the element's on-screen text decides; whether the model also quoted it in the ledger doesn't matter. Other
-    cited elements (the bullets under a plan's name) count when they sit on such an element's screen, whatever a
+    still says something in words of two or more letters: an anchor. So a bare name or a count ("1.8k tokens") can't
+    define it. Only the element's on-screen text decides; whether the model also quoted it in the ledger doesn't
+    matter. Other cited elements (the bullets under a plan's name) count when they sit on an anchor's screen, or on
+    the screen a recorded tap on an anchor opened ("Upgrade to <term>" opening the plan's benefit list), whatever a
     mechanic cites as evidence. A label a model wrote (`model_labels`) is never app text, so it neither shows the
     term nor explains it. Otherwise the term is marked 'meaning not observed', and an idea that uses it is flagged
     unless the model labeled it `everyday`; the label is kept as written and never makes a term observed. Known
@@ -529,6 +531,7 @@ def resolve_terms(meaning: ModelMeaning, states: list[State], model_labels: set[
     ("Weekly", "$1.99") doesn't; which cited text explains the term stays the model's call."""
     elements = {e.id: e for s in states for e in s.elements}
     screen = {e.id: s.id for s in states for e in s.elements}
+    taps = [g for g in edges if g.action == "tap" and g.element_id in elements]
 
     def app_text(e: Element) -> list[str]:
         return [e.text] if e.id in model_labels else [e.text, e.label]
@@ -536,12 +539,15 @@ def resolve_terms(meaning: ModelMeaning, states: list[State], model_labels: set[
     def rest(e: Element, name: re.Pattern[str]) -> str:
         return " ".join(name.sub(" ", f) for f in app_text(e))
 
+    def anchors(e: Element, name: re.Pattern[str]) -> bool:
+        return any(name.search(f) for f in app_text(e)) and WORD.search(rest(e, name)) is not None
+
     terms = []
     for t in meaning.terms:
         name = text.phrase(t.term)
         cited = [elements[i] for i in t.defined_by if i in elements]
-        explained = {screen[e.id] for e in cited if any(name.search(f) for f in app_text(e))
-                     and WORD.search(rest(e, name))}
+        explained = ({screen[e.id] for e in cited if anchors(e, name)}
+                     | {g.to_state for g in taps if anchors(elements[g.element_id], name)})
         defined_by = [e.id for e in cited if screen[e.id] in explained and re.search(r"\w", rest(e, name))]
         terms.append(Term(term=t.term, meaning=t.meaning if defined_by else NOT_OBSERVED, defined_by=defined_by,
                           used_in=t.used_in, everyday=t.everyday, observed=bool(defined_by)))
@@ -623,8 +629,8 @@ def mock_scope(states: list[State], edges: list[Edge], meaning: ModelMeaning) ->
 
     flow_states = [sid for f in meaning.flows for i in f.edge_ids if i in edge_by_id
                    for sid in (edge_by_id[i].from_state, edge_by_id[i].to_state)]
-    # A flow modal keeps its parent even when that parent is unsafe: whether its content shows is the renderer's
-    # and the blur's job, not scope's.
+    # A flow modal keeps its parent even when that parent is unsafe, since a gap would break the flow: the mock draws
+    # exactly this scope (nothing blurs it), and propose never triggers an offer on an unsafe screen.
     on_flow = {layer for sid in flow_states for layer in layers(sid)}
     eligible = {s.id for s in states if s.kind not in ("blocked", "external")
                 and (s.content_rating != "unsafe" or s.id in on_flow)}
@@ -869,7 +875,7 @@ def run(ctx: Ctx) -> None:
         value_ledger=meaning.value_ledger + bullets + experience,
         open_questions=[q.question for q in meaning.open_questions],
         coverage=explore.coverage, provenance=runfolder.upstream_provenance(ctx.run_dir, ["explore"]),
-        terms=resolve_terms(meaning, states, model_labels),
+        terms=resolve_terms(meaning, states, edges, model_labels),
         questions=[OpenQuestion(id=f"q{n}", **q.model_dump()) for n, q in enumerate(meaning.open_questions, start=1)],
         mock_order=mock_order)
     (out / "product_model.json").write_text(model.model_dump_json(indent=1))

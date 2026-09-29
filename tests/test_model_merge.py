@@ -5,16 +5,20 @@ The recorded answer for each app is its golden model's meaning, so every asserti
 import json
 
 import pytest
+from anthropic.lib._parse._transform import transform_schema
+from openai.lib._pydantic import to_strict_json_schema
+from pydantic import ValidationError
 
 from simula import llm
 from simula.config import app_config
 from simula.contracts import (Device, Edge, Element, ElementMeaning, Flow, LedgerItem, Mechanic, ModelMeaning,
-                              ProductModel, QuestionDraft, Rect, State, StateMeaning, TermMeaning)
+                              ProductModel, QuestionDraft, Rect, State, StateMeaning, Term, TermMeaning)
 from simula.runlog import read_trace
 from simula.stages import Ctx
 from simula.stages import model as stage
 from tests.conftest import APPS, FIXTURES
 from tests.explore_fixture import add_core_loop, build
+from tests.test_schema_gate import objects
 
 DEVICE = Device()
 KEYWORDS = ["nsfw", "18+", "explicit"]
@@ -319,12 +323,14 @@ def test_a_term_keeps_its_meaning_only_when_a_cited_element_carries_it_and_says_
     answer.mechanics.append(Mechanic(id="m-term", kind="other", evidence_ids=[carrier.id], summary=f"Uses {word}.",
                                      observed_numbers=[], status="observed"))
     answer.terms += [TermMeaning(term=word.upper(), meaning="a plain meaning", defined_by=[carrier.id, "s01.e999"],
-                                 used_in=["m-term"]),
-                     TermMeaning(term=word, meaning="a guess", defined_by=[beside.id], used_in=["m-term"]),
-                     TermMeaning(term="Zorblax", meaning="x", defined_by=[carrier.id], used_in=["m-term"])]
+                                 used_in=["m-term"], everyday=False),
+                     TermMeaning(term=word, meaning="a guess", defined_by=[beside.id], used_in=["m-term"],
+                                 everyday=False),
+                     TermMeaning(term="Zorblax", meaning="x", defined_by=[carrier.id], used_in=["m-term"],
+                                 everyday=False)]
     kept, rejected = stage.check_meaning(answer, states, edges)
     assert rejected == ["term 'Zorblax': used_in ['m-term'] names no kept mechanic or ledger line that uses it"]
-    observed, unobserved = stage.resolve_terms(kept, states, set())
+    observed, unobserved = stage.resolve_terms(kept, states, edges, set())
     assert (observed.observed, observed.meaning, observed.defined_by) == (True, "a plain meaning", [carrier.id])
     assert (unobserved.observed, unobserved.meaning, unobserved.defined_by) == (False, stage.NOT_OBSERVED, []), \
         "text beside the term on its screen, with no cited element that carries it, is a guess"
@@ -334,7 +340,7 @@ def test_a_line_uses_a_term_only_as_a_whole_word(app):
     _, states, edges, answer = app
     answer.mechanics.append(Mechanic(id="m-term", kind="other", evidence_ids=[states[0].id],
                                      summary="Protect your streak.", observed_numbers=[], status="observed"))
-    answer.terms.append(TermMeaning(term="Pro", meaning="a guess", defined_by=[], used_in=["m-term"]))
+    answer.terms.append(TermMeaning(term="Pro", meaning="a guess", defined_by=[], used_in=["m-term"], everyday=False))
     _, rejected = stage.check_meaning(answer, states, edges)
     assert rejected == ["term 'Pro': used_in ['m-term'] names no kept mechanic or ledger line that uses it"]
 
@@ -345,9 +351,10 @@ def test_an_element_the_ledger_also_quotes_defines_its_term_by_its_own_words(app
     word = stage.WORD.findall(bullet.text)[-1]
     answer.value_ledger.append(LedgerItem(id="l-term", kind="paywall_bullet", verbatim=bullet.text,
                                           evidence_ids=[bullet.id]))
-    answer.terms.append(TermMeaning(term=word, meaning="a plain meaning", defined_by=[bullet.id], used_in=["l-term"]))
+    answer.terms.append(TermMeaning(term=word, meaning="a plain meaning", defined_by=[bullet.id], used_in=["l-term"],
+                                    everyday=False))
     kept, rejected = stage.check_meaning(answer, states, edges)
-    (term,) = stage.resolve_terms(kept, states, set())
+    (term,) = stage.resolve_terms(kept, states, edges, set())
     assert rejected == [] and (term.observed, term.meaning, term.defined_by) == (True, "a plain meaning", [bullet.id])
 
 
@@ -388,16 +395,16 @@ EXPLAINS = {
 EVERYDAY = {"janitorai": set(), "luzia": {"Weekly", "Monthly", "Annual"}, "aol": {"Inbox"}}
 
 
-def real_terms(app: str) -> tuple[list[State], ModelMeaning, set[str]]:
+def real_terms(app: str) -> tuple[list[State], ModelMeaning, list[Edge], set[str]]:
     fixture = json.loads((FIXTURES / "terms" / f"{app}.json").read_text())
     return ([State.model_validate(s) for s in fixture["states"]], ModelMeaning.model_validate(fixture["meaning"]),
-            set(fixture["model_labels"]))
+            [Edge.model_validate(g) for g in fixture["edges"]], set(fixture["model_labels"]))
 
 
 @pytest.mark.parametrize("name", APPS)
 def test_a_real_term_is_observed_as_a_person_reads_its_screens(name):
-    states, meaning, model_labels = real_terms(name)
-    terms = stage.resolve_terms(meaning, states, model_labels)
+    states, meaning, edges, model_labels = real_terms(name)
+    terms = stage.resolve_terms(meaning, states, edges, model_labels)
     assert {t.term: t.observed for t in terms} == OBSERVED[name]
     for drafted, term in zip(meaning.terms, terms):
         assert set(term.defined_by) <= set(drafted.defined_by), "only the model's own citations can count"
@@ -409,31 +416,49 @@ def test_a_real_term_is_observed_as_a_person_reads_its_screens(name):
 
 @pytest.mark.parametrize("name", APPS)
 def test_the_everyday_label_is_kept_as_written_and_never_changes_what_was_observed(name):
-    states, meaning, model_labels = real_terms(name)
-    assert {t.term for t in stage.resolve_terms(meaning, states, model_labels) if t.everyday} == EVERYDAY[name]
+    states, meaning, edges, model_labels = real_terms(name)
+    assert {t.term for t in stage.resolve_terms(meaning, states, edges, model_labels) if t.everyday} == EVERYDAY[name]
     flipped = meaning.model_copy(update={"terms": [t.model_copy(update={"everyday": not t.everyday})
                                                    for t in meaning.terms]})
-    terms = stage.resolve_terms(flipped, states, model_labels)
+    terms = stage.resolve_terms(flipped, states, edges, model_labels)
     assert {t.term for t in terms if not t.everyday} == EVERYDAY[name]
     assert {t.term: t.observed for t in terms} == OBSERVED[name]
 
 
+@pytest.mark.parametrize("to_schema", [transform_schema, to_strict_json_schema], ids=["anthropic", "openai"])
+def test_the_meaning_model_must_label_every_term(to_schema):
+    """A default made `everyday` optional in the Anthropic schema, so constrained decoding could skip it and the term
+    would silently count as an app name."""
+    optional = [(o.get("title"), k) for o in objects(to_schema(ModelMeaning)) for k in o.get("properties", {})
+                if k not in o.get("required", [])]
+    assert optional == []
+
+
+def test_a_product_model_stored_before_the_label_existed_still_parses():
+    stored = {"term": "Free", "meaning": stage.NOT_OBSERVED, "defined_by": [], "used_in": ["m2"], "observed": False}
+    assert Term.model_validate(stored).everyday is False
+    with pytest.raises(ValidationError):
+        TermMeaning.model_validate({k: v for k, v in stored.items() if k != "observed"})
+
+
 # The approved JanitorAI model-stage rerun (tests/fixtures/terms/janitorai-2026-09-29.json), as a person reads its
-# screens. Every term a screen explains sits on an element the model also quoted in the ledger.
+# screens. Every term a screen explains sits on an element the model also quoted in the ledger. The model cited
+# nothing for the six other terms, so any rule leaves them unobserved.
 RERUN_OBSERVED = {
-    "Janitor Plus": False,  # s13 lists its benefits but never names it; the name is only in "Upgrade to Janitor Plus"
-    "Free": False,  # only in "Everything in Free, plus:"
+    "Janitor Plus": True,  # s13 never names it, but explore recorded "Upgrade to Janitor Plus" (s06.e44) opening s13
+    "Free": False,
     "context": True,
     "Priority routing": True,
-    "swipes": False,  # only used in a sentence: "Generous monthly swipes with our frontier models"
-    "frontier models": False,  # the same sentence
-    "tokens": False,  # counts on cards ("2k tokens") and a bare "Tokens"
+    "swipes": False,
+    "frontier models": False,
+    "tokens": False,
     "Hidden Gems": True,
     "Golden checkmark": True,
-    "Proxy": False,  # bare: "Proxy", "Proxy allowed"
-    "chats": False,  # a count: "7 chats"
+    "Proxy": False,
+    "chats": False,
 }
 RERUN_EXPLAINS = {
+    "Janitor Plus": "s13.e10",  # the paywall's bullets, e.g. "Priority routing for faster replies"
     "context": "s13.e02",  # "Keep more of the story in context, get faster replies, and unlock smarter swipes."
     "Priority routing": "s13.e10",  # "Priority routing for faster replies"
     "Hidden Gems": "s01.e15",  # "Hidden Gems show characters from smaller creators with engaging conversations, ..."
@@ -442,18 +467,62 @@ RERUN_EXPLAINS = {
 
 
 def test_a_term_its_screen_explains_is_observed_although_the_ledger_quotes_that_element():
-    states, meaning, model_labels = real_terms("janitorai-2026-09-29")
+    states, meaning, edges, model_labels = real_terms("janitorai-2026-09-29")
     quoted = {i for item in meaning.value_ledger for i in item.evidence_ids}
-    terms = stage.resolve_terms(meaning, states, model_labels)
+    terms = stage.resolve_terms(meaning, states, edges, model_labels)
     assert {t.term: t.observed for t in terms} == RERUN_OBSERVED
     for t in terms:
         if t.observed:
             assert RERUN_EXPLAINS[t.term] in set(t.defined_by) & quoted, t.term
 
 
+PAYWALL_BULLETS = ["s13.e02", "s13.e09", "s13.e10", "s13.e11"]  # what the model cited for Janitor Plus
+
+
+def janitor_plus(edges: list[Edge], states: list[State], meaning: ModelMeaning, model_labels: set[str]) -> Term:
+    (term,) = [t for t in stage.resolve_terms(meaning, states, edges, model_labels) if t.term == "Janitor Plus"]
+    return term
+
+
+def test_a_recorded_tap_on_an_anchor_carries_its_term_to_the_screen_it_opened():
+    states, meaning, edges, model_labels = real_terms("janitorai-2026-09-29")
+    assert "s06.e44>s13" in {g.id for g in edges}
+    term = janitor_plus(edges, states, meaning, model_labels)
+    assert (term.observed, term.defined_by) == (True, PAYWALL_BULLETS)
+    assert not janitor_plus([], states, meaning, model_labels).observed, "with no recorded tap, s13 never names it"
+
+
+def bare_name(states: list[State]) -> list[State]:
+    return [s.model_copy(update={"elements": [e.model_copy(update={"label": "Janitor Plus"}) if e.id == "s06.e44" else e
+                                              for e in s.elements]}) for s in states]
+
+
+@pytest.mark.parametrize("change", ["a bare name", "a label the model wrote", "not a tap"])
+def test_only_a_tap_on_app_text_that_says_more_than_the_term_carries_it_to_the_next_screen(change):
+    states, meaning, edges, model_labels = real_terms("janitorai-2026-09-29")
+    if change == "a bare name":
+        states = bare_name(states)
+    elif change == "a label the model wrote":
+        model_labels = model_labels | {"s06.e44"}
+    else:
+        edges = [g.model_copy(update={"action": "swipe"}) if g.id == "s06.e44>s13" else g for g in edges]
+    term = janitor_plus(edges, states, meaning, model_labels)
+    assert (term.observed, term.defined_by) == (False, [])
+
+
+def test_a_sentence_that_only_uses_a_term_counts_if_the_model_cites_it():
+    """The documented known limit, pinned so that closing or widening it shows up here: s13.e11 uses "swipes"
+    without saying what one is."""
+    states, meaning, edges, model_labels = real_terms("janitorai-2026-09-29")
+    drafted = next(t for t in meaning.terms if t.term == "swipes")
+    meaning.terms[:] = [drafted.model_copy(update={"defined_by": ["s13.e11"]})]
+    (term,) = stage.resolve_terms(meaning, states, edges, model_labels)
+    assert (term.observed, term.defined_by) == (True, ["s13.e11"])
+
+
 def test_product_model_md_and_the_exhibit_show_which_unobserved_terms_are_everyday_words():
-    states, meaning, model_labels = real_terms("luzia")
-    model = golden("luzia").model_copy(update={"terms": stage.resolve_terms(meaning, states, model_labels)})
+    states, meaning, edges, model_labels = real_terms("luzia")
+    model = golden("luzia").model_copy(update={"terms": stage.resolve_terms(meaning, states, edges, model_labels)})
     md = stage.render_md(model)
     assert "- **Weekly** (everyday word, never flagged): meaning not observed" in md
     assert "- **Luzia+**: " in md and "**Luzia+** (everyday" not in md
@@ -477,10 +546,10 @@ GUESSES = [
 
 @pytest.mark.parametrize("name, term, cited, why", GUESSES, ids=[f"{g[1]}<-{'+'.join(g[2])}" for g in GUESSES])
 def test_a_guess_cited_next_to_a_term_stays_unobserved(name, term, cited, why):
-    states, meaning, model_labels = real_terms(name)
+    states, meaning, edges, model_labels = real_terms(name)
     drafted = next(t for t in meaning.terms if t.term == term)
     meaning.terms[:] = [drafted.model_copy(update={"defined_by": cited})]
-    (resolved,) = stage.resolve_terms(meaning, states, model_labels)
+    (resolved,) = stage.resolve_terms(meaning, states, edges, model_labels)
     assert (resolved.observed, resolved.defined_by) == (False, []), why
 
 
@@ -496,32 +565,48 @@ COUNTS = [
 
 @pytest.mark.parametrize("cited, quotes, why", COUNTS, ids=[c[2] for c in COUNTS])
 def test_a_count_of_a_term_never_defines_it(cited, quotes, why):
-    states, meaning, model_labels = real_terms("janitorai")
+    states, meaning, edges, model_labels = real_terms("janitorai")
     meters = {i.id: i for i in meaning.value_ledger if i.id in ("vl5", "vl6")}
     meaning.value_ledger[:] = ([i for i in meaning.value_ledger if i.id not in meters]
                                + [meters[i].model_copy(update={"verbatim": q}) for i, q in quotes.items()])
     drafted = next(t for t in meaning.terms if t.term == "tokens")
     meaning.terms[:] = [drafted.model_copy(update={"defined_by": [cited]})]
-    (resolved,) = stage.resolve_terms(meaning, states, model_labels)
+    (resolved,) = stage.resolve_terms(meaning, states, edges, model_labels)
     assert (resolved.observed, resolved.defined_by) == (False, []), why
 
 
 @pytest.mark.parametrize("term, words", [("トークン", "トークンを使うと、キャラクターが長い会話を覚えます"),
                                          ("토큰", "토큰을 쓰면 캐릭터가 긴 대화를 기억합니다")], ids=["japanese", "korean"])
 def test_a_term_in_a_script_without_spaces_can_be_observed(term, words):
-    states, meaning, model_labels = real_terms("janitorai")
+    states, meaning, edges, model_labels = real_terms("janitorai")
     states = [s.model_copy(update={"elements": [e.model_copy(update={"text": words}) if e.id == "s02.e04" else e
                                                 for e in s.elements]}) for s in states]
-    meaning.terms[:] = [TermMeaning(term=term, meaning="a unit characters spend", defined_by=["s02.e04"], used_in=[])]
-    (resolved,) = stage.resolve_terms(meaning, states, model_labels)
+    meaning.terms[:] = [TermMeaning(term=term, meaning="a unit characters spend", defined_by=["s02.e04"], used_in=[],
+                                    everyday=False)]
+    (resolved,) = stage.resolve_terms(meaning, states, edges, model_labels)
+    assert (resolved.observed, resolved.defined_by) == (True, ["s02.e04"])
+
+
+@pytest.mark.parametrize("term, words", [("टोकन", "टोकन से मैसेज भेजें"), ("টোকেন", "টোকেন দিয়ে মেসেজ পাঠান")],
+                         ids=["hindi", "bengali"])
+def test_a_term_in_a_script_with_vowel_signs_can_be_observed(term, words):
+    """Each sentence says "send messages with tokens". Its vowel signs are combining marks, which regex \\w leaves out,
+    so without counting them every word falls apart into one-letter runs."""
+    states, meaning, edges, model_labels = real_terms("janitorai")
+    states = [s.model_copy(update={"elements": [e.model_copy(update={"text": words}) if e.id == "s02.e04" else e
+                                                for e in s.elements]}) for s in states]
+    meaning.terms[:] = [TermMeaning(term=term, meaning="a unit characters spend", defined_by=["s02.e04"], used_in=[],
+                                    everyday=False)]
+    (resolved,) = stage.resolve_terms(meaning, states, edges, model_labels)
     assert (resolved.observed, resolved.defined_by) == (True, ["s02.e04"])
 
 
 def test_a_term_shows_only_as_a_whole_word():
     """s01.e48 "Limitless" would explain "Limit" if part of a word counted: "less" is left once "Limit" is cut."""
-    states, meaning, model_labels = real_terms("janitorai")
-    meaning.terms[:] = [TermMeaning(term="Limit", meaning="a guess", defined_by=["s01.e48"], used_in=[])]
-    (resolved,) = stage.resolve_terms(meaning, states, model_labels)
+    states, meaning, edges, model_labels = real_terms("janitorai")
+    meaning.terms[:] = [TermMeaning(term="Limit", meaning="a guess", defined_by=["s01.e48"], used_in=[],
+                                    everyday=False)]
+    (resolved,) = stage.resolve_terms(meaning, states, edges, model_labels)
     assert (resolved.observed, resolved.defined_by) == (False, [])
 
 

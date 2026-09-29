@@ -23,7 +23,7 @@ def candidate(model: ProductModel, **changes) -> Candidate:
         placement="A card under the header", offer_copy="Play a short game to get a badge for 7 days.",
         reward={"kind": "cosmetic", "unit": "badge", "amount": 1, "duration": "7 days"}, for_users="free",
         grants_id=None, cost_inputs={"inference_count": 0, "tokens_in": 0, "tokens_out": 0, "minutes": 0, "currency_amount": 0},
-        frequency_cap="1 per day, resets at midnight", decline_path="Card closes; nothing changes.",
+        frequency_cap="1 per day, resets at midnight", daily_cap=1, decline_path="Card closes; nothing changes.",
         ad_fail_path="Card hides; no attempt used.", subscriber_treatment="Same offer, opt-in.",
         advertiser_category="Mobile games", character_use="None",
         flow_steps=[{"state_id": root_id, "caption": "Home as today"}, {"state_id": "new:offer", "caption": "The offer"},

@@ -1,5 +1,5 @@
 {
- "source": "PR 2 run runs/janitorai/20260928-024200-17d5562-fixture: model/product_model.json states ['s01', 's02'], and the model's final answer (cache 6da545d86233) after check_meaning; model_labels: the elements whose label that run's explore icon or vision pass wrote (explore/states/<sid>.json)",
+ "source": "PR 2 run runs/janitorai/20260928-024200-17d5562-fixture: model/product_model.json states ['s01', 's02'] and edges, and the model's final answer (cache 6da545d86233) after check_meaning; model_labels: the elements whose label that run's explore icon or vision pass wrote (explore/states/<sid>.json)",
  "model_labels": [
   "s01.e02",
   "s01.e66",
@@ -2559,5 +2559,304 @@
    }
   ],
   "open_questions": []
- }
+ },
+ "edges": [
+  {
+   "id": "s01.e67>s05",
+   "from_state": "s01",
+   "to_state": "s05",
+   "element_id": "s01.e67",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Search tab"
+  },
+  {
+   "id": "s01.e68>s06",
+   "from_state": "s01",
+   "to_state": "s06",
+   "element_id": "s01.e68",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: My Chats tab"
+  },
+  {
+   "id": "s01.e69>s07",
+   "from_state": "s01",
+   "to_state": "s07",
+   "element_id": "s01.e69",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Notifications tab"
+  },
+  {
+   "id": "s01.e70>s08",
+   "from_state": "s01",
+   "to_state": "s08",
+   "element_id": "s01.e70",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Profile tab"
+  },
+  {
+   "id": "s03.e83>s05",
+   "from_state": "s03",
+   "to_state": "s05",
+   "element_id": "s03.e83",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Search tab"
+  },
+  {
+   "id": "s03.e84>s06",
+   "from_state": "s03",
+   "to_state": "s06",
+   "element_id": "s03.e84",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: My Chats tab"
+  },
+  {
+   "id": "s03.e85>s07",
+   "from_state": "s03",
+   "to_state": "s07",
+   "element_id": "s03.e85",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Notifications tab"
+  },
+  {
+   "id": "s03.e86>s08",
+   "from_state": "s03",
+   "to_state": "s08",
+   "element_id": "s03.e86",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Profile tab"
+  },
+  {
+   "id": "s04.e18>s05",
+   "from_state": "s04",
+   "to_state": "s05",
+   "element_id": "s04.e18",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Search tab"
+  },
+  {
+   "id": "s04.e19>s06",
+   "from_state": "s04",
+   "to_state": "s06",
+   "element_id": "s04.e19",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: My Chats tab"
+  },
+  {
+   "id": "s04.e20>s07",
+   "from_state": "s04",
+   "to_state": "s07",
+   "element_id": "s04.e20",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Notifications tab"
+  },
+  {
+   "id": "s04.e21>s08",
+   "from_state": "s04",
+   "to_state": "s08",
+   "element_id": "s04.e21",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Profile tab"
+  },
+  {
+   "id": "s05.e88>s01",
+   "from_state": "s05",
+   "to_state": "s01",
+   "element_id": "s05.e88",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Home tab"
+  },
+  {
+   "id": "s05.e90>s06",
+   "from_state": "s05",
+   "to_state": "s06",
+   "element_id": "s05.e90",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: My Chats tab"
+  },
+  {
+   "id": "s05.e91>s07",
+   "from_state": "s05",
+   "to_state": "s07",
+   "element_id": "s05.e91",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Notifications tab"
+  },
+  {
+   "id": "s05.e92>s08",
+   "from_state": "s05",
+   "to_state": "s08",
+   "element_id": "s05.e92",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Profile tab"
+  },
+  {
+   "id": "s06.e09>s01",
+   "from_state": "s06",
+   "to_state": "s01",
+   "element_id": "s06.e09",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Home tab"
+  },
+  {
+   "id": "s06.e10>s05",
+   "from_state": "s06",
+   "to_state": "s05",
+   "element_id": "s06.e10",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Search tab"
+  },
+  {
+   "id": "s06.e12>s07",
+   "from_state": "s06",
+   "to_state": "s07",
+   "element_id": "s06.e12",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Notifications tab"
+  },
+  {
+   "id": "s06.e13>s08",
+   "from_state": "s06",
+   "to_state": "s08",
+   "element_id": "s06.e13",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Profile tab"
+  },
+  {
+   "id": "s07.e05>s01",
+   "from_state": "s07",
+   "to_state": "s01",
+   "element_id": "s07.e05",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Home tab"
+  },
+  {
+   "id": "s07.e06>s05",
+   "from_state": "s07",
+   "to_state": "s05",
+   "element_id": "s07.e06",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Search tab"
+  },
+  {
+   "id": "s07.e07>s06",
+   "from_state": "s07",
+   "to_state": "s06",
+   "element_id": "s07.e07",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: My Chats tab"
+  },
+  {
+   "id": "s07.e09>s08",
+   "from_state": "s07",
+   "to_state": "s08",
+   "element_id": "s07.e09",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Profile tab"
+  },
+  {
+   "id": "s08.e21>s01",
+   "from_state": "s08",
+   "to_state": "s01",
+   "element_id": "s08.e21",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Home tab"
+  },
+  {
+   "id": "s08.e22>s05",
+   "from_state": "s08",
+   "to_state": "s05",
+   "element_id": "s08.e22",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Search tab"
+  },
+  {
+   "id": "s08.e23>s06",
+   "from_state": "s08",
+   "to_state": "s06",
+   "element_id": "s08.e23",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: My Chats tab"
+  },
+  {
+   "id": "s08.e24>s07",
+   "from_state": "s08",
+   "to_state": "s07",
+   "element_id": "s08.e24",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Notifications tab"
+  },
+  {
+   "id": "s02.e11>s01",
+   "from_state": "s02",
+   "to_state": "s01",
+   "element_id": "s02.e11",
+   "action": "tap",
+   "transition": "back",
+   "change_summary": "announcement dismissed; home feed underneath"
+  },
+  {
+   "id": "s01.e11>s03",
+   "from_state": "s01",
+   "to_state": "s03",
+   "element_id": "s01.e11",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": "feed switches to Trending (s03 was captured after Limited Only was also tapped)"
+  },
+  {
+   "id": "s01.e07>s04",
+   "from_state": "s01",
+   "to_state": "s04",
+   "element_id": "s01.e07",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": "feed switches to Following; empty for a new account"
+  },
+  {
+   "id": "s08.e01>s09",
+   "from_state": "s08",
+   "to_state": "s09",
+   "element_id": "s08.e01",
+   "action": "tap",
+   "transition": "modal",
+   "change_summary": "profile menu slides in over the profile"
+  },
+  {
+   "id": "s01.type>s01",
+   "from_state": "s01",
+   "to_state": "s01",
+   "element_id": null,
+   "action": "type",
+   "transition": "unknown",
+   "change_summary": "reply started 1.9 s, finished 7.5 s, 400 chars"
+  }
+ ]
 }

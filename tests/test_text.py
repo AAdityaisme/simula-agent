@@ -1,3 +1,5 @@
+import unicodedata
+
 from simula import text
 
 
@@ -40,3 +42,12 @@ def test_a_phrase_is_a_whole_word_where_words_are_spaced_and_a_substring_where_t
 def test_placeholder_characters_are_stripped_and_nothing_else():
     assert text.strip_placeholders("￼Hidden Gems show�") == "Hidden Gems show"
     assert text.strip_placeholders("🧑‍🎨 OC ‏$\xa01.99\n") == "🧑‍🎨 OC ‏$\xa01.99\n"
+
+
+def test_a_mark_written_on_a_letter_is_part_of_its_word():
+    """A vowel sign (Devanagari, Bengali) or an accent typed as its own character is a combining mark, which regex \\w
+    leaves out; the whole-word edge still counts it as part of the word."""
+    assert text.phrase("टोकन").search("टोकन से मैसेज भेजें") and text.phrase("টোকেন").search("টোকেন দিয়ে মেসেজ পাঠান")
+    assert not text.phrase("कन").search("टोकन खरीदें") and not text.phrase("मा").search("सीमा")
+    assert not text.phrase("Poke").search(unicodedata.normalize("NFD", "Pokémon cards"))
+    assert text.phrase("ได้").search("ก็ได้"), "a mark in a script written without spaces still matches as a substring"
