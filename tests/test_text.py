@@ -14,6 +14,15 @@ def test_every_other_character_must_match():
     assert text.find("   ", "anything") is None
 
 
+def test_a_number_matches_only_whole():
+    for screen in ("$199", "1990", "$0.99", "1,099", "99.5%"):
+        assert text.find("99", screen, spaced=False) is None, screen
+    assert text.find("99", "$99", spaced=False) == "99"
+    assert text.find("99", "99 credits", spaced=False) == "99"
+    assert text.find("99", "only 99.", spaced=False) == "99"
+    assert text.find("$1.99", "US$1.99/week", spaced=False) == "$1.99"
+
+
 def test_same_ignores_only_whitespace():
     assert text.same("Try\xa0Plus ", "Try Plus")
     assert not text.same("Try Plus", "TryPlus")

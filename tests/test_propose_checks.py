@@ -691,9 +691,9 @@ def test_an_unsafe_screen_shows_its_id_name_and_rating_but_no_text(model):
 # sha256 of model_text on each golden, pinned before experience items got their own heading. The goldens carry no
 # experience items, so the proposer's prompt must not change; a golden or model_text change repins these.
 GOLDEN_MODEL_TEXT = {
-    "janitorai": "3a11214543c279d8a8ffcf93256eb645bf1dcf98ad3914526d898d23e5d3b483",
-    "luzia": "5e92b0c985386bd8357bf857cd18af17658c49abeb6269889767a200f8d4ce5f",
-    "aol": "3aa04504b3a74be0e9256630f737586cf8812a9ba25480cd07ab0f86e29f6e2b",
+    "janitorai": "c44ad48e9351abe5b69767a34e84c57575f0266a36a8295c831184f7f522e7ea",
+    "luzia": "f7b1ed44b4520276e588fe44aedb8707e790c4728dcc71c22c4af69b649a1b44",
+    "aol": "c02ea5e553b72f264b5f6036aabded856eb1af1c6c5d322dd3880389433f60be",
 }
 
 

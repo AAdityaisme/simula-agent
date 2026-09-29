@@ -477,7 +477,7 @@ def builder_request(ctx: Ctx, content: list[dict], effort: str | None) -> dict:
     """One batch's call to the mock builder, as llm.call and llm.answered_from_cache take it."""
     role = config.roles(ctx.profile)["mock_builder"]
     return {"model": role["model"], "effort": effort, "system": system_prompt(),
-            "messages": [{"role": "user", "content": content}], "max_tokens": role.get("max_tokens", 64000)}
+            "messages": [{"role": "user", "content": content}], "max_tokens": role["max_tokens"]}
 
 
 def draw_batches(ctx: Ctx, groups: list[list[State]], contents: list[list[dict]], budget: llm.Budget,
