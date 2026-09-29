@@ -189,6 +189,23 @@ def test_a_screen_in_another_script_gets_that_scripts_font_files(tmp_path, monke
     assert (run_dir / "mock" / "assets" / "fonts" / "fonts.css").read_text().count("@font-face") == 3
 
 
+def test_a_rerun_leaves_only_the_font_files_it_fetched(tmp_path, monkeypatch):
+    """QA's replay key hashes all of mock/assets, so a file the page no longer uses would still change it."""
+    run_dir = seed_model(tmp_path / "run", APPS[0])
+    ctx, fonts = ctx_for(run_dir, APPS[0]), run_dir / "mock" / "assets" / "fonts"
+    monkeypatch.setattr(mock, "fetch", fake_google([]))
+    mock.vendor_fonts(ctx, run_dir / "mock", ["Roboto"], set("Hi"))
+    google = fake_google([])
+    monkeypatch.setattr(mock, "fetch", lambda url: google(url) + (b" v2" if url.endswith(".woff2") else b""))
+    mock.vendor_fonts(ctx, run_dir / "mock", ["Roboto"], set("Hi"))
+    css = (fonts / "fonts.css").read_text()
+    assert sorted(p.name for p in fonts.iterdir()) == sorted(["fonts.css", *re.findall(r"url\(([^)]+)\)", css)])
+    assert all(p.read_bytes().endswith(b" v2") for p in fonts.glob("*.woff2"))
+
+    monkeypatch.setattr(mock, "fetch", offline([]))
+    assert mock.vendor_fonts(ctx, run_dir / "mock", ["Roboto"], set("Hi")) == "" and not fonts.exists()
+
+
 def test_css_that_isnt_split_by_subset_keeps_every_face():
     css = "@font-face { font-family: 'X'; src: url(https://fonts.gstatic.com/x.woff2); }"
     assert mock.used_faces(css, set("Hi")) == css

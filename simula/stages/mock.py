@@ -604,6 +604,8 @@ def vendor_fonts(ctx: Ctx, mock_dir, families: list[str], chars: set[str]) -> st
     font stack; this never fails the stage. Every fetch goes through its record, so --replay rebuilds the same fonts
     offline."""
     font_dir = mock_dir / "assets" / "fonts"
+    # A rerun starts empty: QA's replay key hashes all of mock/assets, so a file the page no longer uses would count.
+    shutil.rmtree(font_dir, ignore_errors=True)
     faces, skipped = [], {}
     for family in families:
         try:
