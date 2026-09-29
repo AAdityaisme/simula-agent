@@ -250,6 +250,9 @@ def test_a_device_lost_in_the_core_loop_keeps_the_tour_and_fails_the_explore(tmp
     assert explore_file.coverage.states_found >= 8
     assert all((ex.out / "states" / f"{s.sid}.json").exists() for s in ex.states)
     assert any("McpReplyError" in r for r in ex.core_results)
+    exhibit = (ex.run_dir / "exhibits" / "01-explore.md").read_text()
+    assert "0 completed." in exhibit and "Not stopped by the app, but only 0 of" in exhibit
+    assert "which doesn't show the app has none" in exhibit and "met no limit" not in exhibit
     failed = [line for line in lines(ex) if line.outcome == "error"]
     assert any("observing after the move failed" in line.change_summary for line in failed)
     assert "device failed after the tour" in (ex.run_dir / "needs-human.md").read_text()
@@ -285,6 +288,8 @@ def test_a_growing_chat_gets_all_eight_passes_with_no_false_stop(tmp_path, monke
     assert min(y for _, _, y, _, _ in phone.bubbles(2028)) < ob.TOP_CHROME_BOTTOM_PX
     sends = [line for line in lines(ex) if line.loop_pass and "reply started" in line.change_summary]
     assert [line.loop_pass for line in sends] == list(range(1, 9))
+    exhibit = (ex.run_dir / "exhibits" / "01-explore.md").read_text()
+    assert "8 of 8 passes attempted, 8 completed." in exhibit and "All 8 passes ran and met no limit." in exhibit
 
 
 def test_a_limit_dialog_stops_the_loop_on_the_pass_it_appears(tmp_path, monkeypatch):
@@ -297,6 +302,8 @@ def test_a_limit_dialog_stops_the_loop_on_the_pass_it_appears(tmp_path, monkeypa
     stops = [(line.loop_pass, line.loop_stop) for line in lines(ex) if line.loop_stop]
     assert phone.sent == 3 and stops == [(3, "dialog opened")] and ex.core_hit.endswith("on pass 3")
     assert "limit" in ex.checklist()[1]
+    exhibit = (ex.run_dir / "exhibits" / "01-explore.md").read_text()
+    assert "3 of 8 passes attempted, 3 completed." in exhibit and "Stopped by the app: dialog opened" in exhibit
 
 
 def test_the_walk_asks_the_model_for_the_start_control_and_never_taps_one_twice(tmp_path, monkeypatch):

@@ -255,6 +255,7 @@ class Explorer:
         self.core: CoreAction | None = None
         self.core_results: list[str] = []
         self.core_hit = ""
+        self.core_completed = 0  # passes that did the core action and saw its result (a reply, a load, a limit)
         self.paywall: str | None = None
         self.relaunch_reasons: list[str] = []
         self.last_summary = ""
@@ -1326,6 +1327,7 @@ class Explorer:
                     raise
                 return
             self.core_results.append(f"pass {n}: {result or 'no measurement'}")
+            self.core_completed += bool(result or hit)
             if hit:
                 self.core_hit = f"{hit} on pass {n}"
                 if self.current.upsell:
@@ -1755,11 +1757,12 @@ def exhibit(ex: Explorer, app_version: str | None) -> str:
                   f"Element-list call time over {len(seconds)} calls: median {seconds[len(seconds) // 2]:.2f} s, "
                   f"p90 {seconds[int(len(seconds) * 0.9)]:.2f} s, max {seconds[-1]:.2f} s; "
                   f"{fast}/{len(seconds)} under the 2 s settle threshold.", ""]
-    passes = sum(r.startswith("pass ") for r in ex.core_results)
+    attempted = sum(r.startswith("pass ") for r in ex.core_results)
     lines += ["## Core loop (the free experience)", "",
-              f"Core action: {ex.core.name if ex.core else 'none'}; {passes} of {ex.core_reps} passes.", ""]
+              f"Core action: {ex.core.name if ex.core else 'none'}; {attempted} of {ex.core_reps} passes attempted, "
+              f"{ex.core_completed} completed.", ""]
     lines += [f"- {r}" for r in ex.core_results]
-    lines += [f"- Stopped by: {ex.core_hit}" if ex.core_hit else "- Nothing stopped the loop.", ""]
+    lines += [f"- {loop_end(ex, attempted)}", ""]
     meant, total = ex.replay
     matched = ex.replay_fingerprint[0]
     lines += ["## Replay check", "", f"{meant}/{total} replayed moves reached the recorded screen"
@@ -1774,6 +1777,19 @@ def exhibit(ex: Explorer, app_version: str | None) -> str:
         untried = len(ex.options(s)) if s.kind in ("screen", "modal", "sheet") else ""
         lines.append(f"| {s.sid} | {s.kind} | {s.parent or ''} | {s.depth} | {untried} | {ended(ex, s)} | {words} |")
     return "\n".join(lines) + "\n"
+
+
+def loop_end(ex: Explorer, attempted: int) -> str:
+    """Why the core loop ended. Only the app's own stop says anything about a limit: a loop cut short by the device or
+    the explorer saw no limit only on the passes it finished."""
+    if ex.core_hit:
+        return f"Stopped by the app: {ex.core_hit}."
+    if ex.core_completed == ex.core_reps:
+        return f"All {ex.core_reps} passes ran and met no limit."
+    if attempted:
+        return (f"Not stopped by the app, but only {ex.core_completed} of {ex.core_reps} passes completed (last: "
+                f"{ex.core_results[-1]}): no limit showed on those, which doesn't show the app has none.")
+    return "No pass ran, so nothing is known about a limit."
 
 
 def counters(ex: Explorer) -> list[str]:
