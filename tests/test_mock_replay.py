@@ -1,17 +1,21 @@
 """A live mock that lost batches: its --replay rebuilds the same page, a replay that misses leaves the committed record
 whole, and the stage reports the lost batches as a partial outcome in done.json."""
 
+import re
+import shutil
+
 import anthropic
 import httpx2
 import pytest
 
 from simula import cli, config, llm, runfolder, runlog
-from simula.runlog import read_trace
-from simula.stages import mock
+from simula.contracts import ContractReport, ProductModel
+from simula.stages import flows, mock
 from tests.conftest import FIXTURES
-from tests.mock_fake import golden, seed_model, skeleton_html
-from tests.test_mock_batches import provider_drawing, with_cache_in
-from tests.test_mock_isolation import batch_screens, ctx_for, without_edges
+from tests.mock_fake import golden, seed_model
+from tests.test_mock_batches import drawn, provider_drawing, screens_of, with_cache_in
+from tests.test_mock_fonts import fake_google
+from tests.test_mock_isolation import ctx_for
 
 APP = "janitorai"
 GOLDEN = FIXTURES / "golden" / APP
@@ -25,17 +29,6 @@ def two_batches(monkeypatch):
 @pytest.fixture(autouse=True)
 def no_desktop_notice(monkeypatch):
     monkeypatch.setattr(runlog, "notify", lambda title, message: True)
-
-
-def screens_of(messages) -> list[str]:
-    content = [p for p in messages[0]["content"] if p.get("text") != mock.SHORTER]
-    return batch_screens({"messages": [{"role": "user", "content": content}]})
-
-
-def drawn(model, model_id, messages, tokens_out=1000, stop="end_turn") -> llm.Reply:
-    page = without_edges(skeleton_html(model, screens_of(messages)))
-    return llm.Reply(text=f"```html\n{page}\n```", model=model_id, tokens_in=5000, tokens_out=tokens_out,
-                     stop_reason=stop)
 
 
 def losing_first_batch(model, kind: str):
@@ -115,30 +108,124 @@ def test_a_replay_that_misses_leaves_the_committed_record_whole(runs, tmp_path, 
     assert missing == []
 
 
-def test_a_batch_lost_to_a_timeout_makes_the_mock_partial_with_why_and_how_to_resume(runs, tmp_path, monkeypatch):
+PLAIN = re.compile(r"\bs\d{2}\b|\$|stream idle|refusal|max_tokens")  # ids, cost, and the provider's words
+
+
+def losing_the_first_batch_to(model, loss: str, calls: list):
+    """A provider that draws every batch but the first: that one's call times out once, is refused, is cut off at
+    max_tokens on the retry too, or answers with no page. Any other `loss` draws it too."""
+    first = mock.batches(mock.pick_scope(model))[0][0].id
+    timed_out = []
+
+    def provider(model_id, system, messages, effort, schema, max_tokens, total_timeout=None):
+        calls.append(model_id)
+        if first not in screens_of(messages):
+            return drawn(model, model_id, messages)
+        if loss == "timeout_once" and not timed_out:
+            timed_out.append(first)
+            raise llm.LLMFailure("timeout", "stream idle 60 s")
+        if loss == "refusal":
+            return drawn(model, model_id, messages, stop="refusal")
+        if loss == "max_tokens_twice":
+            return drawn(model, model_id, messages, tokens_out=128000, stop="max_tokens")
+        if loss == "no_page":
+            return llm.Reply(text="I can't draw these screens.", model=model_id, tokens_in=5000, tokens_out=10)
+        return drawn(model, model_id, messages)
+    return provider
+
+
+def test_a_batch_lost_to_a_timeout_makes_the_mock_partial_and_its_printed_resume_draws_it(runs, tmp_path,
+                                                                                          monkeypatch):
     with_cache_in(tmp_path, monkeypatch)
     model = golden(APP)
-    monkeypatch.setitem(llm.PROVIDERS, "anthropic", losing_first_batch(model, "timeout"))
+    calls = []
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", losing_the_first_batch_to(model, "timeout_once", calls))
     assert cli.main(["mock", APP, "--allow-fixtures", "--fixture", f"model={GOLDEN}"]) == 0
     run_dir = (runs / APP / "latest").resolve()
     first = mock.batches(mock.pick_scope(model))[0]
     outcome = runfolder.read_done(run_dir / "mock").outcome
     assert outcome.status == "partial"
-    assert outcome.reasons == [f"not drawn: {' '.join(s.id for s in first)}: timeout: stream idle 60 s"]
-    assert outcome.resume.startswith(f"simula mock {APP} --run {run_dir.name} ")
+    assert outcome.reasons == [mock.not_drawn(first, "the model call timed out")]
+    assert not any(PLAIN.search(line) for line in flows.unfinished_stages(run_dir))
+
+    command = outcome.resume.split()
+    assert command[:3] == ["simula", "mock", APP]
+    assert cli.main(command[1:]) == 0
+    assert runfolder.read_done(run_dir / "mock").outcome.status == "complete"
+    assert "screen not drawn" not in (run_dir / "mock" / "index.html").read_text()
 
 
-def test_batches_the_cap_left_out_are_named_once_and_resume_with_a_higher_cap(runs, tmp_path, monkeypatch):
-    """The cap's own trace lines make the stage partial (run_stage), so the mock doesn't name those batches again."""
+@pytest.mark.parametrize("loss", ["refusal", "max_tokens_twice", "no_page"])
+def test_a_batch_lost_to_a_known_failure_is_a_contract_error_qa_repairs_not_a_partial_mock(runs, tmp_path,
+                                                                                         monkeypatch, loss):
+    """A rerun replays a known failure for free, so a resume couldn't draw it: the mock is complete, and its screens
+    are undrawn_screen contract errors, which QA round 1 repairs like any other."""
     with_cache_in(tmp_path, monkeypatch)
+    model = golden(APP)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", losing_the_first_batch_to(model, loss, []))
+    assert cli.main(["mock", APP, "--allow-fixtures", "--fixture", f"model={GOLDEN}"]) == 0
+    run_dir = (runs / APP / "latest").resolve()
+    assert runfolder.read_done(run_dir / "mock").outcome.status == "complete"
+    report = ContractReport.model_validate_json((run_dir / "mock" / "contract_report.json").read_text())
+    first = mock.batches(mock.pick_scope(model))[0]
+    assert [e.screen for e in report.errors if e.kind == "undrawn_screen"] == [s.id for s in first]
+    assert not (run_dir / "needs-human.md").exists()
+
+
+def test_batches_the_cap_left_out_are_one_plain_reason_and_resume_with_a_higher_cap(runs, tmp_path, monkeypatch):
+    """The cap's own trace line makes the stage partial (run_stage), and the deck cover prints it, so it names the
+    screens and says why in the product team's words."""
+    with_cache_in(tmp_path, monkeypatch)
+    model = golden(APP)
     monkeypatch.setattr(mock, "worst_usd", lambda ctx, content: 1.0)
     monkeypatch.setattr(llm, "worst_case_usd", lambda model_id, tokens_in, tokens_out: 1.0)
-    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider_drawing(golden(APP), []))
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider_drawing(model, []))
     assert cli.main(["mock", APP, "--allow-fixtures", "--fixture", f"model={GOLDEN}", "--usd-cap", "2"]) == 0
     run_dir = (runs / APP / "latest").resolve()
+    left_out = [s for batch in mock.batches(mock.pick_scope(model))[1:] for s in batch]
     outcome = runfolder.read_done(run_dir / "mock").outcome
-    left_out = [t.note for t in read_trace(run_dir / "trace.jsonl") if t.note.startswith("not drawn:")]
-    assert outcome.status == "partial" and left_out
-    assert len(outcome.reasons) == len(set(outcome.reasons))
-    assert all(sum(note in reason for reason in outcome.reasons) == 1 for note in left_out)
+    assert (outcome.status, outcome.reasons) == ("partial", [mock.not_drawn(left_out, mock.OVER_BUDGET)])
     assert float(outcome.resume.split(" --usd-cap ")[1]) > config.stage_cap("mock"), "spent plus a whole cap again"
+    assert not any(PLAIN.search(line) for line in flows.unfinished_stages(run_dir))
+
+
+def test_a_replay_that_misses_a_font_record_keeps_the_font_files_its_record_names(runs, tmp_path, monkeypatch):
+    fixture = tmp_path / "model-with-fonts"
+    shutil.copytree(GOLDEN, fixture)
+    model = ProductModel.model_validate_json((fixture / "product_model.json").read_text())
+    states = [s.model_copy(update={"elements": [e.model_copy(update={"font_guess": "Roboto"}) if e.in_mock else e
+                                                for e in s.elements]}) for s in model.states]
+    (fixture / "product_model.json").write_text(model.model_copy(update={"states": states}).model_dump_json())
+    (fixture / "done.json").unlink(missing_ok=True)
+    with_cache_in(tmp_path, monkeypatch)
+    monkeypatch.setattr(mock, "fetch", fake_google([], apache={"roboto"}))
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider_drawing(golden(APP), []))
+    assert cli.main(["mock", APP, "--allow-fixtures", "--fixture", f"model={fixture}"]) == 0
+    run_dir = (runs / APP / "latest").resolve()
+    mock_dir = run_dir / "mock"
+    committed = (mock_dir / "done.json").read_bytes()
+    assert any(p.suffix == ".woff2" for p in (mock_dir / "assets" / "fonts").iterdir())
+    record = next(p for p in (mock_dir / mock.FONT_RECORDS).glob("*.json") if ".woff2" in p.read_text()[:300])
+    record.rename(tmp_path / "record-moved-aside.json")
+
+    assert cli.main(["mock", APP, "--run", run_dir.name, "--allow-fixtures", "--replay"]) == cli.EXIT_CAP
+    assert (mock_dir / "done.json").read_bytes() == committed
+    moved = f"mock/{mock.FONT_RECORDS}/{record.name}"
+    assert [h.path for h in runfolder.read_done(mock_dir).output_hashes
+            if h.path != moved and not (run_dir / h.path).exists()] == []
+
+
+@pytest.mark.parametrize("first_batch", ["drawn", "refused"])
+def test_a_rerun_that_draws_the_same_page_rewrites_every_mock_file_byte_for_byte(runs, tmp_path, monkeypatch,
+                                                                                first_batch):
+    """The stages below hash all of mock/, so a rerun whose calls all come from the cache must change nothing there,
+    mock/plan.json included, or they would rerun for nothing."""
+    with_cache_in(tmp_path, monkeypatch)
+    model = golden(APP)
+    loss = "refusal" if first_batch == "refused" else "none"
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", losing_the_first_batch_to(model, loss, []))
+    assert cli.main(["mock", APP, "--allow-fixtures", "--fixture", f"model={GOLDEN}"]) == 0
+    run_dir = (runs / APP / "latest").resolve()
+    before = runfolder.read_done(run_dir / "mock").output_hashes
+    assert cli.main(["mock", APP, "--run", run_dir.name, "--allow-fixtures"]) == 0
+    assert runfolder.read_done(run_dir / "mock").output_hashes == before

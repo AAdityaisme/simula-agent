@@ -189,14 +189,15 @@ def cache_write(key: str, reply: Reply, cache_dir: Path = CACHE) -> None:
 
 
 def answered_from_cache(*, model: str, effort: str | None, system: str, messages: list[dict], max_tokens: int,
-                        schema: type[BaseModel] | None = None, cache_dir: Path = CACHE) -> bool:
-    """Whether a live call with these arguments takes its first attempt's answer from the cache, so it costs nothing
-    and reserves nothing. A planner asks this so it doesn't price a free call at its worst case. It reads the cache by
-    the call's own rule: every readable try of the attempt, the latest one the model answered."""
+                        schema: type[BaseModel] | None = None, cache_dir: Path = CACHE) -> Reply | None:
+    """What a live call with these arguments settles on from the cache, costing nothing and reserving nothing: its
+    first attempt's recorded answer, which may be a known failure the call raises again, or None when it would call
+    the model. A planner asks this so it doesn't price a free call at its worst case. It reads the cache by the call's
+    own rule: every readable try of the attempt, the latest one the model answered."""
     provider = config.models()[model]["provider"]
     key = cache_key(provider, model, system, messages, request_params(provider, effort, max_tokens, schema), 0)
     chosen = latest_answer(cache_tries(key, cache_dir)[0])
-    return chosen is not None and not chosen[1].failure
+    return chosen[1] if chosen else None
 
 
 def latest_answer(tries: list[tuple[str, Reply]]) -> tuple[str, Reply] | None:
@@ -415,20 +416,25 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
     named, capped = trace_keys(trace_path) if replay else ({}, {})
 
     def recorded(key: str, tries: list[tuple[str, Reply]]) -> tuple[str, Reply] | None:
-        """--replay follows the try this run's trace names last (else the first one), unless the run's last record of
-        the call is its $ cap turning it away. A normal run takes latest_answer, the rule a planner asks through
-        answered_from_cache too."""
+        """--replay follows the try this run's trace names last, unless the run's last record of the call is its $ cap
+        turning it away; a try the run never named is another run's, so it is never taken. A normal run takes
+        latest_answer, the rule a planner asks through answered_from_cache too."""
         if replay:
             used = [t for t in tries if t[0][:12] in named]
             last = max(used, key=lambda t: named[t[0][:12]]) if used else None
             stop = capped.get(key[:12])
             if stop and (last is None or stop[0] > named[last[0][:12]]):
                 return None
-            return last or (tries[0] if tries else None)
+            return last
         return latest_answer(tries)
 
+    def last_record(key: str) -> int:
+        """The index of this run's last trace line about one attempt, a try it named or its cap stop; -1 if none."""
+        tries, _, damaged = cache_tries(key, cache_dir)
+        return max([named.get(k[:12], -1) for k in [t[0] for t in tries] + damaged] + [capped.get(key[:12], (-1,))[0]])
+
     chosen, fresh = {}, {}
-    for key in keys:  # up to the first recorded answer; the attempts after it are never read
+    for n, key in enumerate(keys):  # up to the first recorded answer; the attempts after it are never read
         tries, fresh[key], damaged = cache_tries(key, cache_dir)
         for file_key in damaged:
             trace(trace_path, stage=stage, step=step, decider="code", model=model, effort=effort, outcome="error",
@@ -439,7 +445,9 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
         chosen[key] = None if no_cache else recorded(key, tries)
         if chosen[key] and not chosen[key][1].failure:
             break
-        if replay and chosen[key] is None:  # the run never got past this attempt, so its replay doesn't either
+        # Under --replay, an attempt with nothing to follow is where the run stopped, unless the run went on to a later
+        # attempt after it (past an entry it couldn't read), so the replay stops there too.
+        if replay and chosen[key] is None and not any(last_record(k) > last_record(key) for k in keys[n + 1:]):
             break
     for key in keys:
         if chosen.get(key) is None:
@@ -464,7 +472,7 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
             trace(trace_path, stage=stage, step=step, decider="code", outcome="cap",
                   note=f"key {pending[0][:12]} {stop[1]}")
             raise CapReached(stop[1])
-        raise ReplayMiss(f"--replay: no cached response for {stage}/{step} (key {pending[0][:12]})")
+        raise ReplayMiss(f"--replay: no cached response this run recorded for {stage}/{step} (key {pending[0][:12]})")
     for key in pending:
         worst = worst_case_usd(model, estimate_tokens_in(system, messages), max_tokens)
         budget.reserve(worst, step=step, key=key)

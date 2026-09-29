@@ -333,6 +333,40 @@ def test_a_survivor_past_the_cap_is_named_in_the_trace_and_counted_on_the_cover(
     assert {idea for idea, _, _ in slides(run_dir)} == {"c01"}
 
 
+def test_an_unbuilt_fallback_pick_is_named_as_the_closest_idea_not_as_one_that_passed(tmp_path):
+    one_step = candidate(golden("luzia")).flow_steps[:1]
+    run_dir = seed_run(tmp_path, "luzia", {"c01": {"flow_steps": one_step}})
+    decisions = [decision("c01", "conditional", 1.0, passed=10), decision("c03", "reject", 2.0, passed=9)]
+    (run_dir / "judge" / "decisions.json").write_text(DecisionsFile(decisions=decisions).model_dump_json())
+    (run_dir / "judge" / "verdicts" / "c01_judge_1_r1.json").write_text(verdict("c01", "c5_moment").model_dump_json())
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(llm, "call", fake_editor(run_dir))
+        flows.run(ctx_for(run_dir, "luzia"))
+    deck = (run_dir / "flows" / "slides.html").read_text()
+    cover = text_of(deck.split('<section class="slide cover">')[1].split("</section>")[0])
+    assert "No idea passed every check; the closest couldn't be drawn, and the score pages at the end say why." in cover
+    assert "passed the review" not in cover, cover
+
+
+def test_a_drawn_and_an_unbuilt_fallback_pick_read_as_one_coherent_line_on_the_cover(tmp_path):
+    one_step = candidate(golden("luzia")).flow_steps[:1]
+    run_dir = seed_run(tmp_path, "luzia", {"c01": {"flow_steps": one_step}})
+    decisions = [decision("c01", "conditional", 2.0, passed=10), decision("c02", "conditional", 1.0, passed=10),
+                 decision("c03", "reject", 3.0, passed=9)]
+    (run_dir / "judge" / "decisions.json").write_text(DecisionsFile(decisions=decisions).model_dump_json())
+    for cid in ("c01", "c02"):
+        path = run_dir / "judge" / "verdicts" / f"{cid}_judge_1_r1.json"
+        path.write_text(verdict(cid, "c5_moment").model_dump_json())
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(llm, "call", fake_editor(run_dir))
+        flows.run(ctx_for(run_dir, "luzia"))
+    deck = (run_dir / "flows" / "slides.html").read_text()
+    cover = text_of(deck.split('<section class="slide cover">')[1].split("</section>")[0])
+    assert ("No idea passed every check, so the closest are marked as not a recommendation; 1 of them couldn't be "
+            "drawn, and the score pages at the end say why.") in cover, cover
+    assert "the closest is drawn" not in cover and "the closest couldn't be drawn" not in cover
+
+
 def test_a_fallback_pick_is_named_on_the_cover_and_its_why_slide_never_says_recommended(tmp_path):
     run_dir = seed_run(tmp_path, "luzia", {"c01": {}})
     decisions = [decision("c01", "conditional", 1.0, passed=10), decision("c03", "reject", 2.0, passed=9)]
@@ -514,10 +548,22 @@ REWARD_PAGE = """<style>body{margin:0;background:#fff}p{position:absolute;margin
     ("body.simula-rewarded .card{top:300px!important}", "Badge on", "", (True, None)),
     ("body.simula-rewarded .card{color:rgb(3,3,3)}", "", "", (False, None)),
     ("", "Level 2 open", "Level 2 locked", (True, None)),
+    ("[data-unrewarded]{top:200px!important}", "Level 2 open", "Level 2 locked", (True, None)),
+    ("[data-unrewarded]{top:2000px!important}", "Badge on", "Old badge", (True, ["Badge on"])),
+    (".card{z-index:1;background:#fff;width:200px;height:60px;top:590px!important}", "Badge on", "Old badge",
+     (True, ["Badge on"])),
+    ("[data-unrewarded]{top:200px!important;pointer-events:none}", "Level 2 open", "Level 2 locked", (True, None)),
+    ("[data-unrewarded]{top:200px!important} body::after{content:'';position:fixed;inset:0;z-index:5}", "Level 2 open",
+     "Level 2 locked", (True, None)),
+    ("[data-unrewarded]{top:200px!important}", "Level 2 open", '<span style="visibility:visible">Level 2 locked</span>',
+     (True, None)),
 ])
 def test_the_reward_effect_names_labels_and_ignores_render_noise(tmp_path, extra, label, before, expected):
     """Only a label appears; a label appears and a card moves; nothing but a 3-level shade (render noise) changes;
-    the unlocked form appears and the locked one the page marked data-unrewarded goes."""
+    the unlocked form appears and the locked one the page marked data-unrewarded goes, elsewhere or in its place;
+    a data-unrewarded element below the captured view, or covered, changes nothing the capture shows; one in place
+    that ignores the pointer, sits under a transparent overlay, or paints only through a child that sets its own
+    visibility, still does."""
     with sync_playwright() as p:
         page = p.chromium.launch().new_page(viewport=render.VIEWPORT)
         page.set_content(REWARD_PAGE.replace("{flow_css}", flows.FLOW_CSS).replace("{extra}", extra)

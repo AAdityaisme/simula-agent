@@ -184,6 +184,18 @@ def provider_drawing(model, calls: list, tokens_out: int = 1000):
     return provider
 
 
+def screens_of(messages) -> list[str]:
+    """The screens a batch's request asks for, on its first call or its retry."""
+    content = [p for p in messages[0]["content"] if p.get("text") != mock.SHORTER]
+    return batch_screens({"messages": [{"role": "user", "content": content}]})
+
+
+def drawn(model, model_id, messages, tokens_out=1000, stop="end_turn") -> llm.Reply:
+    page = without_edges(skeleton_html(model, screens_of(messages)))
+    return llm.Reply(text=f"```html\n{page}\n```", model=model_id, tokens_in=5000, tokens_out=tokens_out,
+                     stop_reason=stop)
+
+
 def with_cache_in(tmp_path, monkeypatch):
     real = llm.call
     monkeypatch.setattr(llm, "call", lambda **kwargs: real(**kwargs, cache_dir=tmp_path / "cache"))
@@ -242,9 +254,10 @@ def test_batches_past_the_usd_cap_are_skipped_in_priority_order_before_any_call(
     assert all(e.detail.startswith("screen not drawn: $ cap reached: over budget") for e in undrawn)
     trace = read_trace(run_dir / "trace.jsonl")
     [plan] = [t for t in trace if t.step == "plan"]
-    assert (plan.outcome, plan.note) == ("cap", f"1 of {len(skipped) + 1} batches fit the $2.00 cap with $0.00 "
-                                                "already spent, at worst case: $1.00 + $1.00 spare for one retry")
-    assert {t.step for t in trace if t.outcome == "cap"} == {"plan"} | {f"batch{n}" for n in range(2, len(skipped) + 2)}
+    assert plan.note == (f"1 of {len(skipped) + 1} batches fit the $2.00 cap with $0.00 already spent, at worst case: "
+                         "$1.00 + $1.00 spare for one retry")
+    [over] = [t for t in trace if t.outcome == "cap"]
+    assert (over.step, over.note) == ("over_budget", mock.not_drawn([s for b in skipped for s in b], mock.OVER_BUDGET))
     exhibit = (run_dir / "exhibits" / "03-mock.md").read_text()
     assert f"Batch plan: {plan.note}." in exhibit
     assert f"| 1 | {' '.join(s.id for s in first)} | drawn | $1.00 |" in exhibit
@@ -257,9 +270,7 @@ def test_a_capped_run_replays_to_the_same_page_whatever_cap_the_replay_is_given(
     planning again, so it leaves the same batches out, with no --usd-cap or with any other."""
     calls = []
     run_dir = capped_run(tmp_path, monkeypatch, app, calls)
-    n = len(mock.batches(mock.pick_scope(golden(app))))
-    assert json.loads((run_dir / "mock" / "plan.json").read_text()) == {"keep": 1, "cap": 2.0, "spent": 0.0,
-                                                                        "usd": [1.0] * n}
+    assert json.loads((run_dir / "mock" / "plan.json").read_text()) == {"keep": 1}
     first = (run_dir / "mock" / "index.html").read_text()
 
     for usd_cap in (None, 2.0, 40.0):
@@ -291,6 +302,10 @@ def priced(tmp_path, monkeypatch, app, calls: list) -> tuple:
     return run_dir, len(mock.batches(mock.pick_scope(model)))
 
 
+def last_plan(run_dir) -> str:
+    return [t for t in read_trace(run_dir / "trace.jsonl") if t.step == "plan"][-1].note
+
+
 def rerun(tmp_path, monkeypatch, app, new_keys: bool = True) -> tuple:
     """A live mock whose cap fits every batch plus one spare, so it draws them all and leaves $0.50 per batch spent,
     then a second live one in the same run folder: with every cache key new (as after a builder prompt change), or
@@ -317,11 +332,10 @@ def test_a_rerun_plans_against_what_is_left_so_no_planned_batch_is_turned_away(t
     trace = [t for t in read_trace(run_dir / "trace.jsonl") if t.stage == "mock"]
     plan = [t for t in trace if t.step == "plan"][-1]
     assert plan.note.startswith(f"{keep} of {n} batches fit the ${n + 1:.2f} cap with ${spent:.2f} already spent")
-    undrawn = [t for t in trace[trace.index(plan):] if t.note.startswith("not drawn:")]
-    assert [t.step for t in undrawn] == [f"batch{i}" for i in range(keep + 1, n + 1)]
-    assert all("over budget" in t.note for t in undrawn)
-    assert json.loads((run_dir / "mock" / "plan.json").read_text()) == {"keep": keep, "cap": n + 1.0, "spent": spent,
-                                                                        "usd": [1.0] * n}
+    left_out = [s for batch in mock.batches(mock.pick_scope(golden(app)))[keep:] for s in batch]
+    capped = [(t.step, t.note) for t in trace[trace.index(plan):] if t.outcome == "cap"]
+    assert capped == [("over_budget", mock.not_drawn(left_out, mock.OVER_BUDGET))]  # no planned batch turned away
+    assert json.loads((run_dir / "mock" / "plan.json").read_text()) == {"keep": keep}
 
 
 def test_a_rerun_whose_answers_are_cached_draws_every_batch_again_for_free(tmp_path, monkeypatch, app, two_batches):
@@ -351,7 +365,7 @@ def test_raising_the_cap_after_an_over_budget_run_draws_the_rest(tmp_path, monke
     ctx.usd_cap = 0.5 + (n - 1) + 1.0
     mock.run(ctx)
     assert len(calls) == n
-    assert json.loads((run_dir / "mock" / "plan.json").read_text())["usd"] == [0.0] + [1.0] * (n - 1)
+    assert last_plan(run_dir).endswith("; 1 already cached, at $0")
     assert "screen not drawn" not in (run_dir / "mock" / "index.html").read_text()
 
 
@@ -380,7 +394,7 @@ def test_a_batch_that_timed_out_once_is_free_once_a_rerun_answered_it(tmp_path, 
     lowered.usd_cap = 0.25
     mock.run(lowered)
     assert len(calls) == made
-    assert json.loads((run_dir / "mock" / "plan.json").read_text())["usd"] == [0.0] * n
+    assert last_plan(run_dir).endswith(f"; {n} already cached, at $0")
     assert "screen not drawn" not in (run_dir / "mock" / "index.html").read_text()
 
 
@@ -399,8 +413,53 @@ def test_an_unreadable_cache_entry_is_skipped_by_the_planner_as_the_call_skips_i
     ctx.usd_cap = 100.0
     mock.run(ctx)
     assert len(calls) == n + 1
-    assert json.loads((run_dir / "mock" / "plan.json").read_text())["usd"] == [1.0] + [0.0] * (n - 1)
+    assert last_plan(run_dir).endswith(f"at worst case: $1.00 + $1.00 spare for one retry; {n - 1} already cached, at $0")
     assert any("can't be read" in t.note for t in read_trace(run_dir / "trace.jsonl"))
+
+
+@pytest.mark.parametrize("first_answer", ["max_tokens_then_the_retry_answers", "refusal"])
+def test_a_batch_whose_every_call_settles_from_the_cache_is_free_even_when_one_failed(tmp_path, monkeypatch, app,
+                                                                                    two_batches, first_answer):
+    """A cached known failure costs nothing: the call raises it again with no reserve. After a first answer cut off at
+    max_tokens the retry's record decides; a refusal is a placeholder at no cost. So a rerun with every call cached
+    draws the same page, even under a cap below the spend."""
+    calls = []
+    run_dir, n = priced(tmp_path, monkeypatch, app, calls)
+    model = golden(app)
+    first = mock.batches(mock.pick_scope(model))[0][0].id
+
+    def provider(model_id, system, messages, effort, schema, max_tokens, total_timeout=None):
+        calls.append(model_id)
+        retry = any(p.get("text") == mock.SHORTER for p in messages[0]["content"])
+        if first in screens_of(messages) and not retry:
+            stop = "refusal" if first_answer == "refusal" else "max_tokens"
+            return drawn(model, model_id, messages, tokens_out=128000, stop=stop)
+        return drawn(model, model_id, messages)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider)
+    ctx = ctx_for(run_dir, app)
+    ctx.usd_cap = n + 2.0
+    mock.run(ctx)
+    made, page = len(calls), (run_dir / "mock" / "index.html").read_text()
+    lowered = ctx_for(run_dir, app)
+    lowered.usd_cap = 0.25
+    mock.run(lowered)
+    assert len(calls) == made and (run_dir / "mock" / "index.html").read_text() == page
+    assert last_plan(run_dir).endswith(f"; {n} already cached, at $0")
+
+
+def test_a_replay_plans_from_its_record_and_never_asks_the_cache(tmp_path, monkeypatch, app, two_batches):
+    """The cache holds every run's tries, so a plan made from it could differ from the live one; a replay reads the
+    batches it keeps from mock/plan.json alone."""
+    run_dir = capped_run(tmp_path, monkeypatch, app, [])
+    page = (run_dir / "mock" / "index.html").read_text()
+
+    def asked(**kwargs):
+        raise AssertionError("a replay asked the cache what to plan")
+    monkeypatch.setattr(llm, "answered_from_cache", asked)
+    replay = ctx_for(run_dir, app)
+    replay.replay = True
+    mock.run(replay)
+    assert (run_dir / "mock" / "index.html").read_text() == page
 
 
 def test_a_replay_after_a_rerun_draws_the_reruns_page(tmp_path, monkeypatch, app, two_batches):

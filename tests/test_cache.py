@@ -71,21 +71,22 @@ def test_second_call_is_a_cache_hit(tmp_path, monkeypatch):
 
 
 def test_answered_from_cache_matches_what_a_call_left_in_the_cache(tmp_path, monkeypatch):
-    """A planner's question, answered with the call's own key: yes once a call's first attempt is answered, no for
-    other arguments, and no when that attempt's cached answer is a failure."""
+    """A planner's question, answered with the call's own key: what the call settles on once its first attempt is
+    answered, nothing for other arguments, and the failure when that attempt's cached answer is one, since the call
+    raises it again at no cost."""
     asked = dict(model=MODEL, effort=None, system="", messages=message(), max_tokens=100, schema=Answer,
                  cache_dir=tmp_path / "cache")
-    assert not answered_from_cache(**asked)
+    assert answered_from_cache(**asked) is None
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "ok"}'], []))
     call(tmp_path)
-    assert answered_from_cache(**asked)
-    assert not answered_from_cache(**{**asked, "effort": "high"})
-    assert not answered_from_cache(**{**asked, "schema": None})
+    assert answered_from_cache(**asked).text == '{"word": "ok"}'
+    assert answered_from_cache(**{**asked, "effort": "high"}) is None
+    assert answered_from_cache(**{**asked, "schema": None}) is None
 
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"nope": 1}'], []))
     with pytest.raises(llm.LLMFailure):
         call(tmp_path, messages=message("other"), attempts=1)
-    assert not answered_from_cache(**{**asked, "messages": message("other")})
+    assert answered_from_cache(**{**asked, "messages": message("other")}).failure == "schema_fail"
 
 
 def test_answered_from_cache_reads_every_try_the_way_a_normal_run_does(tmp_path, monkeypatch):
@@ -103,13 +104,13 @@ def test_answered_from_cache_reads_every_try_the_way_a_normal_run_does(tmp_path,
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider)
     with pytest.raises(llm.LLMFailure):
         call(tmp_path, attempts=1)
-    assert not answered_from_cache(**asked)
+    assert answered_from_cache(**asked) is None
     call(tmp_path, attempts=1)
-    assert answered_from_cache(**asked)
+    assert answered_from_cache(**asked).text == '{"word": "ok"}'
 
     first = llm.cache_key("anthropic", MODEL, "", message(), llm.request_params("anthropic", None, 100, Answer), 0)
     (tmp_path / "cache" / f"{first}.json").write_text('{"text": "cut sh')
-    assert answered_from_cache(**asked)
+    assert answered_from_cache(**asked).text == '{"word": "ok"}'
 
 
 def test_invalid_response_is_cached_only_as_a_failed_attempt_and_retried(tmp_path, monkeypatch):
@@ -568,3 +569,23 @@ def test_a_later_cap_stop_in_the_same_run_beats_an_earlier_attempt_1_answer(tmp_
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
     with pytest.raises(llm.CapReached):
         call(tmp_path, replay=True)
+
+
+def test_a_replay_follows_its_run_past_an_attempt_0_entry_it_could_not_read(tmp_path, monkeypatch):
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", lost_then_answered("run-a"))
+    call(tmp_path, trace_path=tmp_path / "run-a.jsonl")
+    [lost] = [line for line in read_trace(tmp_path / "run-a.jsonl") if line.outcome == "timeout"]
+    [entry] = (tmp_path / "cache").glob(f"{llm.split_key(lost.note)[0]}*.json")
+    entry.write_text("{")  # attempt 0's only entry is damaged, the case the cache skip rule handles
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
+    assert call(tmp_path, trace_path=tmp_path / "run-b.jsonl")[0].word == "run-a", "a normal run reads past it"
+    assert call(tmp_path, trace_path=tmp_path / "run-b.jsonl", replay=True)[0].word == "run-a", "and so does its replay"
+
+
+def test_a_replay_never_takes_a_try_its_own_run_did_not_record(tmp_path, monkeypatch):
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "run-a"}'], []))
+    call(tmp_path, trace_path=tmp_path / "run-a.jsonl")
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
+    with pytest.raises(llm.ReplayMiss, match="no cached response this run recorded"):
+        call(tmp_path, trace_path=tmp_path / "run-b.jsonl", replay=True)
+    assert call(tmp_path, trace_path=tmp_path / "run-a.jsonl", replay=True)[0].word == "run-a"
