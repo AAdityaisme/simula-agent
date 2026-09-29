@@ -523,7 +523,7 @@ def test_the_reward_effect_names_labels_and_ignores_render_noise(tmp_path, extra
         page.set_content(REWARD_PAGE.replace("{flow_css}", flows.FLOW_CSS).replace("{extra}", extra)
                          .replace("{label}", label).replace("{before}", before))
         page.evaluate(flows.REWARDED_JS, True)
-        page.screenshot(path=tmp_path / "on.png", animations="disabled")
+        render.screenshot(page, path=tmp_path / "on.png", animations="disabled")
         assert flows.reward_effect(page, tmp_path / "on.png") == expected
 
 

@@ -494,7 +494,7 @@ def reward_effect(page, granted: Path) -> tuple[bool, list[str] | None]:
     words (None when more than that changes)."""
     labels = page.evaluate(REWARD_LABELS_JS)
     page.evaluate(REWARDED_JS, False)
-    without = page.screenshot(animations="disabled")
+    without = render.screenshot(page, animations="disabled")
     page.evaluate(REWARDED_JS, True)
     with Image.open(granted) as on, Image.open(io.BytesIO(without)) as off:
         diff = ImageChops.difference(on.convert("RGB"), off.convert("RGB")).convert("L")
@@ -531,7 +531,7 @@ def walk(flow_dir: Path, c: Candidate, ad: str | None, ad_at: int) -> tuple[list
                 shots[-1]["tap"] = tap
             if wired:
                 last = f"step-{i}.png"
-                page.screenshot(path=screens / last, animations="disabled")
+                render.screenshot(page, path=screens / last, animations="disabled")
             shown, labels = (reward_effect(page, screens / last) if wired and i > ad_at
                              and not step.state_id.startswith("new:") else (None, None))
             shots.append({"state_id": step.state_id, "caption": step.caption, "png": last, "wired": wired,
@@ -615,7 +615,7 @@ def screenshot_before(flow_dir: Path, sid: str) -> str | None:
     with render.open_mock(flow_dir) as (page, _):
         if not show(page, sid):
             return None
-        page.screenshot(path=flow_dir / "screens" / "before.png", animations="disabled")
+        render.screenshot(page, path=flow_dir / "screens" / "before.png", animations="disabled")
     return "before.png"
 
 

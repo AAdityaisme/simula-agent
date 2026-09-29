@@ -6,6 +6,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 from PIL import Image
+from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import sync_playwright
 
 from simula.contracts import ContractError, ContractReport, Device, ProductModel
@@ -16,6 +17,7 @@ FONT_HOSTS = ("fonts.googleapis.com", "fonts.gstatic.com")
 TRANSITIONS = ("push", "modal", "tab", "back", "replace", "unknown")
 WALLPAPER_SHARE = 0.4
 DECODE_WAIT_MS = 10_000
+CAPTURE_REFUSED = "Unable to capture screenshot"
 
 # Lazy images in hidden screens never load on their own, so each one is switched to eager first.
 DECODE_IMAGES = """() => Promise.race([
@@ -96,13 +98,28 @@ def open_mock(mock_dir: Path):
             browser.close()
 
 
+def screenshot(page, **options) -> bytes:
+    """page.screenshot for every capture the pipeline takes, tried once more when Chromium refuses it outright.
+    Chromium sends that refusal when its compositor's copy of the page comes back empty (ScreenshotCaptured in
+    content/browser/devtools/protocol/page_handler.cc), a transient reported on shared CI runners with no page-side
+    cause (microsoft/playwright#38103, heygen-com/hyperframes#3892). Any other error, or a second refusal, is raised."""
+    # ponytail: one immediate retry on the same page. If refusals repeat, relaunch the browser and retry in a fresh
+    # context, as FreeOpenSourcePOS/FloCafe#842 does.
+    try:
+        return page.screenshot(**options)
+    except PlaywrightError as error:
+        if CAPTURE_REFUSED not in str(error):
+            raise
+        return page.screenshot(**options)
+
+
 def screenshot_screens(page, screens: list[str], out_dir: Path) -> list[Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
     paths = []
     for sid in screens:
         page.evaluate("id => window.simula.go(id)", sid)
         path = out_dir / f"{sid}.png"
-        page.screenshot(path=path)
+        screenshot(page, path=path)
         paths.append(path)
     page.evaluate("() => window.simula.reset()")
     return paths
