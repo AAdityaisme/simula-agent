@@ -482,6 +482,8 @@ class StateFile(Strict):
     settle_seconds: float
     dynamic_regions: list[Rect] = Field(description="Device px.")
     captured_at: str
+    box: Rect | None = Field(None, description="Device px. A modal's or sheet's own box over its parent; None for "
+                                               "every other kind.")
     icon_labels: list[IconLabel] = []
     vision_elements: list[VisionElement] = []
     blocked_reason: str | None = None

@@ -65,7 +65,7 @@ def test_a_hop_to_a_changed_screen_arrives_by_what_it_shows_without_a_new_state(
     phone.screens["chats"] = Screen([*old.elements[::-1], chip], image, old.package)
     phone.screen, phone.history = "limited", []
     ex.scratch.mkdir()
-    ex.current = ex.record(ex.observe(), None, None, [])
+    ex.current = ex.record(ex.observe(), None, None, None)
     states, hops = len(ex.states), ex.counts["hops arrived by the model"]
     assert ex.goto(chats) and ex.current is chats and len(ex.states) == states
     assert not ob.same_state(ex.obs.fp, chats.fp) and ex.counts["hops arrived by the model"] == hops + 1

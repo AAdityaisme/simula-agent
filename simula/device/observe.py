@@ -30,6 +30,11 @@ LOOK_BITS = 16
 # recorded runs and the other two apps' fixture captures): the highest value that keeps every true pair the model
 # called same (the lowest is 0.345). It is also the best value on each app alone.
 STRUCTURE_SAME = 0.34
+# A same-window overlay's controls span less than this share of the content area, unless a scrim dims what's above
+# them. Measured on the deep app's 13 recorded runs: every tall sheet (0.927-0.948 of the area) dims the strip above it to
+# about a fifth of its luma (11-12 vs 55-63); a refreshed feed doesn't dim anything.
+OVERLAY_SHARE = 0.9
+SCRIM_SHARE = 0.5
 
 # Entry words (upgrade, plans, premium, plus, try, remove ads) may open an upsell; confirm words never run. Every
 # stem is a whole word, so "Preview", "Photos" and "Bitcoin" pass; DENY applies to control-shaped labels only,
@@ -393,20 +398,32 @@ def dialog_box(cands: list[Candidate], device: Device) -> Rect | None:
 
 
 def box_kind(box: Rect, device: Device) -> str:
-    return "sheet" if box.y + box.h >= device.content_bottom_px - 48 else "modal"
+    """A sheet reaches the bottom; its last control sits up to 48 dp above the edge, over the sheet's padding."""
+    return "sheet" if box.y + box.h >= device.content_bottom_px - 48 * device.scale else "modal"
+
+
+def scrim(then: Image.Image, now: Image.Image, box: Rect, device: Device) -> bool:
+    """The content above the box went dark: the dimmed parent over which a tall sheet opens."""
+    top, bottom = device.content_top_px, int(box.y)
+    if bottom - top < MIN_CONTROL_PX:
+        return False
+
+    def luma(image: Image.Image) -> float:
+        return float(np.asarray(image.convert("L"), dtype=float)[top:bottom].mean())
+    return luma(now) < SCRIM_SHARE * luma(then)
 
 
 def overlay_box(before: list[Candidate], after: list[Candidate], device: Device,
-                chrome: frozenset[str] = frozenset()) -> Rect | None:
-    """An overlay in the same window: the new controls form one box smaller than the content area, and the old
-    controls under that box are still listed (a feed that changed would have replaced them). Chrome that
-    content scrolls under, like the tab bar, is no evidence either way."""
+                chrome: frozenset[str] = frozenset(), dimmed=lambda box: False) -> Rect | None:
+    """An overlay in the same window: the new controls form one box smaller than the content area, or any box
+    over a scrim (dimmed(box)), and the old controls under that box are still listed (a feed that changed would
+    have replaced them). Chrome that content scrolls under, like the tab bar, is no evidence either way."""
     old = {c.key for c in before}
     new = [c for c in after if c.key not in old]
     if len(new) < 2:
         return None
     box = bbox([c.rect for c in new])
-    if area(box) >= 0.9 * content_area(device):
+    if area(box) >= OVERLAY_SHARE * content_area(device) and not dimmed(box):
         return None
     now = {c.key for c in after}
     under = [c for c in before if overlaps(c.rect, box) and c.key not in chrome]

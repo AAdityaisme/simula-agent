@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
 from simula.contracts import Device
 from simula.device import observe as ob
@@ -68,6 +69,19 @@ def test_an_overlay_keeps_the_controls_under_it_and_a_new_feed_does_not():
     before, after = cands("janitorai", "janitorai-a"), cands("janitorai", "janitorai-limited")
     tabs = frozenset(t.key for t in ob.tab_bar(before, DEVICE))
     assert ob.overlay_box(before, after, DEVICE, tabs) is None
+
+
+def test_a_tall_sheet_over_a_scrim_is_an_overlay_and_a_refreshed_feed_is_not():
+    fix = Path(__file__).parent / "fixtures" / "invariants"
+    parent, sheet = (ob.controls(parse_elements(json.loads((fix / f"{n}.elements.json").read_text())), DEVICE)
+                     for n in ("sheet-parent", "sheet-over"))
+    then, now = (Image.open(fix / f"{n}-top.png") for n in ("sheet-parent", "sheet-over"))
+    assert ob.overlay_box(parent, sheet, DEVICE) is None
+    box = ob.overlay_box(parent, sheet, DEVICE, dimmed=lambda b: ob.scrim(then, now, b, DEVICE))
+    assert box and ob.area(box) >= ob.OVERLAY_SHARE * ob.content_area(DEVICE) and ob.box_kind(box, DEVICE) == "sheet"
+    home, again = cands("aol", "aol-home-repeat"), cands("aol", "aol-a")
+    shots = [Image.open(TREES / "aol" / f"{n}.png") for n in ("aol-home-repeat", "aol-a")]
+    assert ob.overlay_box(home, again, DEVICE, dimmed=lambda b: ob.scrim(*shots, b, DEVICE)) is None
 
 
 def test_a_control_is_refound_by_its_words_after_the_bar_recenters():

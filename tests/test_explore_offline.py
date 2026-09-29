@@ -4,15 +4,17 @@ the core-loop pass, and outputs in the frozen explore/ format."""
 
 import functools
 import json
+from pathlib import Path
 
 import pytest
+from PIL import Image
 
 from simula import decide, llm, runlog
 from simula.contracts import ActionLine, ExploreFile, StateFile
 from simula.device import observe as ob
 from simula.device.mcp import parse_elements
 from simula.stages import explore as stage
-from tests.fake_device import PACKAGE, Clock, FakePhone, blank, capture, fake_jev, new_run
+from tests.fake_device import PACKAGE, Clock, FakePhone, Screen, blank, capture, fake_jev, new_run
 from tests.fake_device import explore as run_explorer
 from tests.fake_device import explorer as new_explorer
 
@@ -380,6 +382,25 @@ def test_a_sheet_over_the_tab_bar_is_closed_with_back_not_a_relaunch(tmp_path, m
     assert not any(why.startswith("tap toward") for why in ex.relaunch_reasons)
     trace = runlog.read_trace(ex.run_dir / "trace.jsonl")
     assert any("control covered on the live screen" in line.note for line in trace)
+
+
+def test_a_tall_sheet_is_recorded_over_its_parent_with_its_box(tmp_path, monkeypatch):
+    def screen(name: str) -> Screen:
+        fix = Path(__file__).parent / "fixtures" / "invariants"
+        image = Image.new("RGB", (1080, 2400), (30, 30, 30))
+        image.paste(Image.open(fix / f"{name}-top.png").convert("RGB"), (0, 0))
+        return Screen(parse_elements(json.loads((fix / f"{name}.elements.json").read_text())), image, PACKAGE)
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    phone.screens.update(parent=screen("sheet-parent"), sheet=screen("sheet-over"))
+    phone.screen = "parent"
+    parent = ex.current = ex.record(ex.observe(), None, None, None)
+    before = ex.obs
+    phone.screen = "sheet"
+    sheet = ex.record(ex.observe(), parent, stage.Move("tap", before.cands[0]), before)
+    assert (sheet.kind, sheet.parent) == ("sheet", parent.sid) and sheet.box
+    ex.write(None)
+    saved = {s.sid: StateFile.model_validate_json((ex.out / "states" / f"{s.sid}.json").read_text()) for s in ex.states}
+    assert saved[sheet.sid].box == sheet.box and saved[parent.sid].box is None
 
 
 def test_a_stop_that_is_not_a_limit_leaves_the_limit_open(run):

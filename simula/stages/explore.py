@@ -307,7 +307,7 @@ class Explorer:
         """After a failed capture: a fresh look at the screen (a relaunch if the device still can't give one), so
         no move is ever aimed from an old screen."""
         try:
-            self.current = self.record(self.observe(), None, None, [])
+            self.current = self.record(self.observe(), None, None, None)
         except (McpReplyError, McpTimeout) as e:
             self.relaunch(why=f"no fresh look after a failed capture: {type(e).__name__}")
 
@@ -326,7 +326,7 @@ class Explorer:
 
     # ---------- recording ----------
 
-    def record(self, obs: Obs, came_from: Seen | None, move: Move | None, before: list[ob.Candidate]) -> Seen:
+    def record(self, obs: Obs, came_from: Seen | None, move: Move | None, before: Obs | None) -> Seen:
         for known in self.states:
             if ob.same_state(known.fp, obs.fp):
                 if known is not came_from:
@@ -358,11 +358,12 @@ class Explorer:
             self.log_denied(seen)
         return seen
 
-    def kind_of(self, obs: Obs, before: list[ob.Candidate]) -> tuple[str, Rect | None]:
+    def kind_of(self, obs: Obs, before: Obs | None) -> tuple[str, Rect | None]:
         if obs.fg != self.package:
             return "external", None
         box = ob.dialog_box(obs.cands, self.device) or (
-            ob.overlay_box(before, obs.cands, self.device, frozenset(self.tab_keys())) if before else None)
+            ob.overlay_box(before.cands, obs.cands, self.device, frozenset(self.tab_keys()),
+                           lambda box: ob.scrim(before.image, obs.image, box, self.device)) if before else None)
         return (ob.box_kind(box, self.device), box) if box else ("screen", None)
 
     def revisit(self, s: Seen, obs: Obs) -> None:
@@ -457,7 +458,7 @@ class Explorer:
         self.escape_billing()
         # a chat pass stays on the chat while its composer shows: the growing conversation is not a new state
         chatting = purpose == "core" and self.core.kind == "chat" and self.live_box() and not self.covering(before)
-        to = s if chatting else self.land(obs, s, move, before.cands, expect)
+        to = s if chatting else self.land(obs, s, move, before, expect)
         if to is s and not summary:
             summary = ob.change_summary(before.elements, obs.elements, self.device)
         canonical = ob.find(s.cands, move.cand) if move.cand else None
@@ -475,11 +476,11 @@ class Explorer:
         self.current = to
         if to.fg in BILLING:
             back = Move("back", why="the store's billing screen")
-            self.current = self.record(self.observe(), to, back, [])
+            self.current = self.record(self.observe(), to, back, None)
             self.log(to, self.current, back, None, "back", "", "ok")
         return self.current
 
-    def land(self, obs: Obs, s: Seen, move: Move, before: list[ob.Candidate], expect: Seen | None) -> Seen:
+    def land(self, obs: Obs, s: Seen, move: Move, before: Obs, expect: Seen | None) -> Seen:
         """Where a move landed. For a hop, the expected state when the fingerprint matches or invariant 1 judges the
         screen the same place (the new capture is then not a new state); otherwise the recorded state it matches or a
         new one, with the model's one action toward the expected state kept for goto."""
@@ -593,7 +594,7 @@ class Explorer:
         self.wait_for_app(None if first else self.launch_root)
         self.current = None
         self.normalize()
-        home = self.record(self.obs, None, None, [])
+        home = self.record(self.obs, None, None, None)
         self.current = home
         if first:
             self.root = self.launch_root = home
@@ -625,7 +626,7 @@ class Explorer:
         self.phone.terminate()
         self.phone.launch()
         self.wait_for_app(dialog)
-        self.current = self.record(self.obs, None, None, [])
+        self.current = self.record(self.obs, None, None, None)
         return self.current is dialog
 
     def wait_for_app(self, expect: Seen | None = None) -> Obs:
@@ -676,7 +677,7 @@ class Explorer:
             box = ob.dialog_box(self.obs.cands, self.device) if self.obs.fg == self.package else None
             if box is None:
                 return
-            dialog = self.record(self.obs, None, None, [])
+            dialog = self.record(self.obs, None, None, None)
             dialog.done, dialog.depth, dialog.launch = True, 0, True
             self.current = dialog
             close = ob.dismiss_control(dialog.cands)
@@ -1306,7 +1307,7 @@ class Explorer:
             self.current = self.core.state
             return True
         if self.current is self.core.state:
-            self.current = self.record(self.obs, None, None, [])
+            self.current = self.record(self.obs, None, None, None)
         return self.take_landing(self.core.state) or self.goto(self.core.state)
 
     def core_once(self, n: int) -> tuple[str, str]:
@@ -1653,7 +1654,7 @@ class Explorer:
             state_file = StateFile(
                 state_id=s.sid, kind=s.kind, parent_id=s.parent, fingerprint=str(s.fp), foreground_package=s.fg,
                 screenshot=f"states/{s.sid}.png", elements_reply=f"states/{s.sid}.elements.json", settled=s.settled,
-                settle_seconds=s.settle_s, dynamic_regions=s.dynamic, captured_at=s.captured_at,
+                settle_seconds=s.settle_s, dynamic_regions=s.dynamic, captured_at=s.captured_at, box=s.box,
                 icon_labels=s.icon_labels, vision_elements=s.vision, blocked_reason=s.blocked_reason)
             (self.out / "states" / f"{s.sid}.json").write_text(state_file.model_dump_json(indent=1))
         answered, still_open = self.checklist()
