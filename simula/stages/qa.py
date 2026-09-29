@@ -25,6 +25,8 @@ MAX_ROUNDS = 3
 MIN_GAIN = 0.3
 WEIGHTS = {"bounds": 0.5, "nav": 0.3, "ssim": 0.2}
 CLICK_TIMEOUT_MS = 1500
+TYPED = "hello"
+GESTURE_MAP = "() => JSON.parse(document.getElementById('simula-actions')?.textContent || '{}')"
 CRITIC_MAX_TOKENS = 16000
 CRITIC_SCREENS = 4
 PARALLEL_CRITICS = 4
@@ -246,10 +248,14 @@ def screen_score(bounds: float | None, nav: float | None, ssim: float | None) ->
 
 # ---------- navigation ----------
 
+def edge_tags(page, edge: Edge):
+    return page.locator(f'[data-screen="{edge.from_state}"] [data-edge="{edge.id}"]')
+
+
 def tap(page, edge: Edge) -> str | None:
     """Taps an edge's tag on its own screen through Playwright's hit-testing, so a covered, hidden, or zero-size
     target fails. Returns what went wrong, or None."""
-    tags = page.locator(f'[data-screen="{edge.from_state}"] [data-edge="{edge.id}"]')
+    tags = edge_tags(page, edge)
     if tags.count() == 0:
         return "no data-edge tag on its screen"
     transition = tags.first.get_attribute("data-transition")
@@ -270,9 +276,61 @@ def tap(page, edge: Edge) -> str | None:
     return None
 
 
+def gesture(page, edge: Edge, gestures: dict) -> str | None:
+    """Takes an edge that starts on no element through real input, as the page's gesture map (`GESTURE_MAP`) says
+    its runtime performs it: a drag up its screen, Escape, or typing into the screen's text field and Enter.
+    Returns what went wrong, or None."""
+    mapped = gestures.get(edge.from_state, {}).get(edge.action)
+    if not mapped or mapped[0] != edge.to_state:
+        return f"the page has no {edge.action} from {edge.from_state} to {edge.to_state}"
+    if edge.action == "swipe":
+        drag_up(page, edge.from_state)
+    elif edge.action == "back":
+        page.keyboard.press("Escape")
+    else:
+        problem = type_into(page, edge.from_state, mapped[2])
+        if problem:
+            return problem
+    landed = page.evaluate("() => window.simula.state()")
+    return None if landed == edge.to_state else f"landed on {landed!r}"
+
+
+def drag_up(page, screen: str) -> None:
+    box = page.locator(f'[data-screen="{screen}"]').bounding_box()
+    x, y = box["x"] + box["width"] / 2, box["y"] + box["height"] * 0.7
+    page.mouse.move(x, y)
+    page.mouse.down()
+    page.mouse.move(x, y - box["height"] * 0.4, steps=8)
+    page.mouse.up()
+
+
+def type_into(page, screen: str, field: str | None) -> str | None:
+    if field is None:
+        return "its screen has no text field to type into"
+    box = page.locator(f'[data-screen="{screen}"] [data-el="{field}"]')
+    if box.count() == 0:
+        return f"no tag carries its text field {field}"
+    try:
+        box.first.click(timeout=CLICK_TIMEOUT_MS)
+    except PlaywrightError as e:
+        return f"the text field never took the tap ({str(e).splitlines()[0]})"[:300]
+    page.keyboard.type(TYPED)
+    page.keyboard.press("Enter")
+    return None
+
+
+def take(page, edge: Edge, gestures: dict) -> tuple[str | None, bool]:
+    """One hop the way a person takes it: a tap on the tag the page carries for it (a back edge's too, on a drawn
+    back control), else the gesture of an edge that starts on no element. Returns what went wrong, or None, and
+    whether the hop was a gesture."""
+    if edge.element_id or edge_tags(page, edge).count():
+        return tap(page, edge), False
+    return gesture(page, edge, gestures), True
+
+
 def check_taps(page, model: ProductModel, scope: list[State]) -> list[dict]:
     """Every in-scope edge of the model that starts on an element, whether or not the page carries it. An edge with
-    no element (BACK, a swipe) has nothing on screen to tap."""
+    no element is taken by its gesture in the flow walks."""
     checks = []
     for edge in (e for e in mock.scope_edges(model, scope) if e.element_id):
         page.evaluate("id => window.simula.go(id)", edge.from_state)
@@ -281,36 +339,39 @@ def check_taps(page, model: ProductModel, scope: list[State]) -> list[dict]:
 
 
 def walk_flows(page, model: ProductModel, scope: list[State], undrawn: set[str] = frozenset()) -> list[dict]:
-    """Walks each core flow from its first screen by tapping, never jumping over a hop that has an element to tap. A
-    hop with none (BACK, a swipe) is taken by navigation, the way the system would, and listed as navigated. A flow
-    that leaves the mock's scope can't be walked, nor one through a screen stage 3 didn't draw; each is reported as
-    such. A failed walk names the screen of the hop that broke."""
+    """Walks each core flow the way a person would: simula.go only puts the page on the flow's first screen (setup,
+    never evidence), and every hop is then taken by real input (`take`). A flow that leaves the mock's scope can't be
+    walked, nor one through a screen stage 3 didn't draw; each is reported as such. A failed walk names the screen
+    of the hop that broke; `gestures` lists the hops taken by a gesture rather than a tap."""
     edges = {e.id: e for e in mock.scope_edges(model, scope)}
+    gestures = page.evaluate(GESTURE_MAP)
     walks = []
     for flow in model.flows:
         walk = {"flow": flow.id, "name": flow.name, "status": "out_of_scope", "problem": None, "screen": None,
-                "navigated": [i for i in flow.edge_ids if i in edges and not edges[i].element_id]}
+                "gestures": []}
         hops = [edges[i] for i in flow.edge_ids if i in edges]
         if flow.edge_ids and len(hops) == len(flow.edge_ids):
             if any({e.from_state, e.to_state} & undrawn for e in hops):
                 walk["status"] = "undrawn"
             else:
-                walk["screen"], walk["problem"] = walk_one(page, hops) or (None, None)
+                walk["screen"], walk["problem"], walk["gestures"] = walk_one(page, hops, gestures)
                 walk["status"] = "failed" if walk["problem"] else "passed"
         walks.append(walk)
     return walks
 
 
-def walk_one(page, edges: list[Edge]) -> tuple[str, str] | None:
+def walk_one(page, edges: list[Edge], gestures: dict) -> tuple[str | None, str | None, list[str]]:
+    """Takes one flow's hops in order; returns the screen and problem of the hop that broke (or None, None) and the
+    hops taken by gesture."""
     page.evaluate("id => window.simula.go(id)", edges[0].from_state)
+    gestured = []
     for edge in edges:
-        if not edge.element_id:
-            page.evaluate("id => window.simula.go(id)", edge.to_state)
-            continue
-        problem = tap(page, edge)
+        problem, by_gesture = take(page, edge, gestures)
+        if by_gesture:
+            gestured.append(edge.id)
         if problem:
-            return edge.from_state, f"{edge.id}: {problem}"
-    return None
+            return edge.from_state, f"{edge.id}: {problem}", gestured
+    return None, None, gestured
 
 
 # ---------- critic and fixer ----------
@@ -444,8 +505,9 @@ def prompt(name: str) -> str:
 # ---------- edits ----------
 
 def without_runtime(html: str) -> str:
-    """The page as the fixer sees it: code owns the navigation runtime, so the fixer can neither read nor edit it."""
-    return RUNTIME.sub("", html)
+    """The page as the fixer sees it: code owns the navigation runtime and the gesture map, so the fixer can neither
+    read nor edit them. rebuild writes both back."""
+    return mock.ACTIONS_BLOCK.sub("", RUNTIME.sub("", html))
 
 
 def rebuild(html: str, model: ProductModel, screens: list[str]) -> str:
@@ -564,7 +626,7 @@ def exhibit(ctx: Ctx, model: ProductModel, best: Version, rounds: list[dict], re
                      f"{taps} | `qa/round{best.round}/heatmap/{m.state_id}.png` |")
     lines += ["", "| Flow | Name | Walk |", "|---|---|---|"]
     lines += [f"| {f['flow']} | {f['name']} | {f['status'].replace('_', ' ')}{': ' + f['problem'] if f['problem'] else ''}"
-              f"{' (navigated, no element to tap: ' + ', '.join(f['navigated']) + ')' if f['navigated'] else ''} |"
+              f"{' (by gesture: ' + ', '.join(f['gestures']) + ')' if f['gestures'] else ''} |"
               for f in best.flows]
     if report["undrawn_screens"]:
         lines += ["", "Screens stage 3 didn't draw (placeholders: not scored, not sent to the critic or the fixer):",
