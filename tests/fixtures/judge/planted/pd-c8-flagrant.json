@@ -70,13 +70,13 @@
   "after_reward": "When the 24 hours end, the sponsored cards return with a small note that one more break is available today, so readers who liked the cleaner feed come back to play again the next time they settle in to read.",
   "rationale": "This app has nothing locked, so the only thing a free reader would want more of is an uninterrupted read. The sponsored cards here are cheap native placements with uneven fill, so one chosen game can plausibly earn more than the few cards it hides in a day. The offer appears only after the reader has already read three stories, never in the middle of an article, and saying no changes nothing. It pays for itself only if the hidden cards are low-value native cards, not full-screen ads, and it fits best with a North American audience.",
   "economics": {
-   "cost_2k": 0.0582,
-   "cost_8k": 0.0582,
-   "breakeven_ecpm_2k": 58.2,
-   "breakeven_ecpm_8k": 58.2,
+   "cost_2k": 2.7936,
+   "cost_8k": 2.7936,
+   "breakeven_ecpm_2k": 2793.6,
+   "breakeven_ecpm_8k": 2793.6,
    "benchmark_ecpm": 10.16,
-   "verdict": "CONDITIONAL",
-   "assumption_line": "Costs ~$0.0582 per reward to serve; pays for itself above $58.20 eCPM. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 30 ad-free minutes at 0.2 ads a minute, each worth $9.70 eCPM (the NA Android interstitial rate); if the ads it hides are banners ($0.55 eCPM), it pays for itself above $3.30; one view per reward; a publisher-net eCPM (share 1)."
+   "verdict": "FAIL",
+   "assumption_line": "Costs ~$2.7936 per reward to serve; pays for itself above $2793.60 eCPM. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 1440 ad-free minutes at 0.2 ads a minute, each worth $9.70 eCPM (the NA Android interstitial rate); if the ads it hides are banners ($0.55 eCPM), it pays for itself above $158.40; one view per reward; a publisher-net eCPM (share 1)."
   },
   "reach_score": 2.0,
   "rank_score": 2.0,

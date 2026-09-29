@@ -69,13 +69,13 @@
   "after_reward": "When the 3 images are used or the day ends, a small note on Chats says Luzia+ keeps higher-quality images on every day and shows the 3-day free trial button.",
   "rationale": "A lapsing user needs a reason to open Luzia today. A day's sample of a paid feature they haven't tried is a fresh reason, and it doubles as a preview of Luzia+. Each image takes real generation time, so the cost line decides where it pays for itself.",
   "economics": {
-   "cost_2k": 0.0063,
-   "cost_8k": 0.0108,
-   "breakeven_ecpm_2k": 6.3,
-   "breakeven_ecpm_8k": 10.8,
+   "cost_2k": 0.102,
+   "cost_8k": 0.102,
+   "breakeven_ecpm_2k": 102.0,
+   "breakeven_ecpm_8k": 102.0,
    "benchmark_ecpm": 10.16,
-   "verdict": "CONDITIONAL",
-   "assumption_line": "Costs ~$0.0063 per reward to serve; pays for itself above $6.30 eCPM at 2k context ($10.80 at 8k). A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 3 replies of 800 tokens out, at $0.25 / $2.00 per million tokens in / out (central prices); the verdict uses the 8k figure; one view per reward; a publisher-net eCPM (share 1)."
+   "verdict": "FAIL",
+   "assumption_line": "Costs ~$0.1020 per reward to serve; pays for itself above $102.00 eCPM. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 3 images at $0.034 each (central price); one view per reward; a publisher-net eCPM (share 1)."
   },
   "reach_score": 1.0,
   "rank_score": 1.0,

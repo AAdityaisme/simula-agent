@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from simula import validate
+from simula import economics, validate
 from simula.contracts import GATES
 from simula.stages import judge
 from simula.validate import C8, LLM_CHECKS, Case
@@ -331,6 +331,17 @@ def test_the_committed_fixtures_load():
     cases = validate.load_cases()
     assert {c.source for c in cases} >= {"run", "planted"}
     assert all(not c.candidate.title.startswith("Product change: Product change") for c in cases)
+
+
+def test_a_committed_fixture_stores_the_cost_line_the_economics_code_gives():
+    """Validation never reads a stored cost line, so only this keeps a fixture from showing a reader figures for an
+    offer it no longer makes."""
+    own = {d["id"] for d in (json.loads(p.read_text()) for p in validate.CASES.glob("*/*.json")) if "candidate" in d}
+    stored = [c for c in validate.load_cases() if c.id in own and c.candidate.economics]
+    assert len(stored) >= 10
+    for c in stored:
+        assert not economics.input_problem(c.candidate), c.id
+        assert c.candidate.economics == economics.annotate(c.candidate, c.model.app_category), c.id
 
 
 # ---------- blind labels ----------
