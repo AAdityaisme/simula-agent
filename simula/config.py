@@ -39,6 +39,12 @@ def roles(profile: str) -> dict:
     return profiles()[profile]["roles"]
 
 
+def max_tokens(role: dict, model: str | None = None) -> int:
+    """The output budget a call asks for: the role's max_tokens, capped at the model's max_out. The model is the
+    role's own unless given, as doctor gives a declared fallback, so every call and its doctor probe agree."""
+    return min(role["max_tokens"], models()[model or role["model"]]["max_out"])
+
+
 def budget(name: str) -> dict:
     return profiles()["budgets"][name]
 

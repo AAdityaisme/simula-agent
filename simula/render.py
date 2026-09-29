@@ -1,5 +1,6 @@
 """Renders the mock in Playwright and checks it against the mock contract (docs/CONTRACTS.md §2, §7)."""
 
+import logging
 import re
 from contextlib import contextmanager
 from pathlib import Path
@@ -19,6 +20,8 @@ WALLPAPER_SHARE = 0.4
 ORIGIN_DP = 4
 DECODE_WAIT_MS = 10_000
 CAPTURE_REFUSED = "Unable to capture screenshot"
+
+log = logging.getLogger(__name__)
 
 # Lazy images in hidden screens never load on their own, so each one is switched to eager first.
 DECODE_IMAGES = """() => Promise.race([
@@ -108,13 +111,14 @@ def screenshot(page, **options) -> bytes:
     Chromium sends that refusal when its compositor's copy of the page comes back empty (ScreenshotCaptured in
     content/browser/devtools/protocol/page_handler.cc), a transient reported on shared CI runners with no page-side
     cause (microsoft/playwright#38103, heygen-com/hyperframes#3892). Any other error, or a second refusal, is raised."""
-    # ponytail: one immediate retry on the same page. If refusals repeat, relaunch the browser and retry in a fresh
-    # context, as FreeOpenSourcePOS/FloCafe#842 does.
+    # ponytail: one immediate retry on the same page, logged. If the warning shows refusals repeating, relaunch the
+    # browser and retry in a fresh context, as FreeOpenSourcePOS/FloCafe#842 does.
     try:
         return page.screenshot(**options)
     except PlaywrightError as error:
         if CAPTURE_REFUSED not in str(error):
             raise
+        log.warning("Chromium refused a screenshot (%s); trying once more", CAPTURE_REFUSED)
         return page.screenshot(**options)
 
 
