@@ -99,16 +99,18 @@ def choose(trace_path: Path, stage: str, step: str, state: str, instructions: st
         return result
     if replay:
         raise ReplayMiss(f"--replay: no cached Jev answer for {stage}/{step} (key {key[:12]})")
-    worst = llm.worst_case_usd(priced_as(backend), llm.estimate_tokens_in(state + instructions + "".join(labels), []),
-                               WORST_TOKENS_OUT)
+    tokens_in = llm.estimate_tokens_in(state + instructions + "".join(labels), [])
+    worst = llm.worst_case_usd(priced_as(backend), tokens_in, WORST_TOKENS_OUT)
+    failed = usd(priced_as(backend), tokens_in, 0)  # like a stream that never started: its input, estimated
     for attempt in (1, 2):
         budget.reserve(worst)
         try:
             result = ask_choice(state, instructions, labels, backend)
         except Exception as e:  # noqa: BLE001 - any backend failure gets one retry, then Sonnet
-            budget.charge(0.0, worst)
-            trace(trace_path, stage=stage, step=step, decider="jev", model=priced_as(backend),
-                  outcome="retry" if attempt == 1 else "error", note=f"{type(e).__name__}: {str(e)[:160]}")
+            budget.charge(failed, worst)
+            trace(trace_path, stage=stage, step=step, decider="jev", model=priced_as(backend), tokens_in=tokens_in,
+                  usd=round(failed, 6), outcome="retry" if attempt == 1 else "error",
+                  note=f"{type(e).__name__}: {str(e)[:160]}")
             continue
         budget.charge(result.usd, worst)
         if result.option_id not in option_ids(labels):

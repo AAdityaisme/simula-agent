@@ -106,7 +106,9 @@ def test_a_jev_question_gives_its_hold_back_when_it_answers_and_when_it_fails(tm
     monkeypatch.setattr(decide, "ask_choice", failing)
     with pytest.raises(decide.JevFailed):
         choose(tmp_path, labels=("Open", "Close"), budget=budget)
-    assert len(held) == 3 and budget.held == 0 and budget.spent == pytest.approx(0.00002)
+    failed = [line.usd for line in read_trace(tmp_path / "trace.jsonl") if line.outcome in ("retry", "error")]
+    assert len(held) == 3 and budget.held == 0 and len(failed) == 2 and all(usd > 0 for usd in failed)
+    assert budget.spent == pytest.approx(0.00002 + sum(failed), abs=1e-6)
 
 
 def test_more_than_ten_options_go_through_a_final_round(tmp_path, jev):
