@@ -58,12 +58,11 @@ def test_propose_bookkeeping_never_reaches_a_judge(app):
 
 
 @pytest.mark.parametrize("app", APPS)
-def test_code_flags_are_shown_once_under_their_heading_and_change_nothing_else(app):
+def test_code_flags_never_reach_a_judge(app):
     model = golden(app)
     plain = idea(model)
     flagged = plain.model_copy(update={"flags": ["MARKER-FLAG"]})
-    assert prompt(flagged, model) == prompt(plain, model) + (
-        "\nCode flags (rule on them under the existing checks):\n- MARKER-FLAG")
+    assert prompt(flagged, model) == prompt(plain, model) and "MARKER-FLAG" not in prompt(flagged, model)
 
 
 @pytest.mark.parametrize("app", APPS)

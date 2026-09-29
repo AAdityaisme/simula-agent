@@ -121,8 +121,6 @@ def candidate_text(c: Candidate, model: ProductModel) -> str:
              f"advertiser category: {c.advertiser_category}", f"characters in the ad moment: {c.character_use}",
              "flow:", *[f"{n}. {screen(s.state_id)}: {s.caption}" for n, s in enumerate(c.flow_steps, 1)],
              f"when the reward runs out: {c.after_reward}", f"rationale: {c.rationale}"]
-    if c.flags:
-        lines += ["Code flags (rule on them under the existing checks):", *[f"- {f}" for f in c.flags]]
     return "\n".join(lines)
 
 

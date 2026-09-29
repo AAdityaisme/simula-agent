@@ -458,7 +458,7 @@ def exhibit(lenses: list[Lens], candidates: list[Candidate], repairs: dict[str, 
                   f"- When the reward ends: {c.after_reward}",
                   f"- Cost: {c.economics.assumption_line}",
                   f"- Reach scenario: {c.reach_score:g} (trigger depth x daily cap; not a measured audience)"]
-        lines += [f"- Flag for the judge: {flag}" for flag in c.flags]
+        lines += [f"- Flag: {flag}" for flag in c.flags]
     dropped = [c for c in candidates if c.dropped_reason]
     if dropped:
         lines += ["", "## Dropped by code", ""] + [f"- {c.id} · {c.title}: {c.dropped_reason}" for c in dropped]

@@ -442,7 +442,7 @@ def test_the_report_and_trace_count_flags_apart_from_drops(model, tmp_path, monk
     exhibit = next((tmp_path / "exhibits").glob("05-*.md")).read_text()
     assert (f"{len(live)} live candidates ({len(live)} flagged for an unobserved term), "
             f"{len(out) - len(live)} dropped") in exhibit
-    assert "- Flag for the judge: uses \"Pro\", whose meaning was never observed" in exhibit
+    assert "- Flag: uses \"Pro\", whose meaning was never observed" in exhibit
     trace = [json.loads(line) for line in (tmp_path / "trace.jsonl").read_text().splitlines()]
     flags = [t for t in trace if t["step"].startswith("flag:")]
     assert len(flags) == len(live) and all(t["outcome"] == "ok" for t in flags)

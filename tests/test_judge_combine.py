@@ -278,7 +278,7 @@ def test_a_revision_that_made_the_idea_worse_leaves_its_original_as_the_fallback
     assert not (run_dir / "judge" / "no-opportunity.md").exists()
 
 
-def test_a_revision_using_an_unobserved_term_reaches_the_judge_flagged(tmp_path, monkeypatch):
+def test_a_revision_using_an_unobserved_term_is_flagged_like_a_proposal(tmp_path, monkeypatch):
     app = "luzia"
     model = golden(app).model_copy(update={"terms": [Term(term="Zap", meaning="meaning not observed", defined_by=[],
                                                           used_in=[], observed=False)]})
