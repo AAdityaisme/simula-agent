@@ -17,8 +17,9 @@ from simula.stages.flows.editor import apply_edits, ask_editor, strip_runtime
 from simula.stages.flows.page import ad_palette_css, blur_css, decline_edges, flow_page, with_flow_css
 from simula.stages.flows.pdf import write_pdf
 from simula.stages.flows.walk import screenshot_before, walk, walk_decline, walk_failed_ad
-from simula.stages.flows.wording import MAX_IDEAS, NOT_WIRED, REWARD_NOT_SHOWN, caption
+from simula.stages.flows.wording import NOT_WIRED, REWARD_NOT_SHOWN, caption
 
+MAX_IDEAS = 4
 SURVIVED = ("accept", "conditional")
 
 
@@ -204,7 +205,8 @@ def run(ctx: Ctx) -> None:
     for d, why in not_built:
         run_trace(run_dir, stage="flows", step=f"build:{d.candidate_id}", decider="code", outcome="error",
                   note=f"not built: {why}"[:300])
-    (out / "slides.html").write_text(deck(ctx, model, flows, not_built, decisions, candidates, len(cut)))
+    (out / "slides.html").write_text(deck(ctx, model, flows, not_built, decisions, candidates, cap=MAX_IDEAS,
+                                            cut=len(cut)))
     layout = write_pdf(out / "slides.html")
     for problem in layout:
         run_trace(run_dir, stage="flows", step="layout", decider="code", outcome="error", note=problem[:300])

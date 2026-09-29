@@ -5,7 +5,6 @@ import re
 from simula.contracts import Candidate, ProductModel
 from simula.stages.propose import BUCKETS, depths, root_id
 
-MAX_IDEAS = 4
 IDS = re.compile(r"\s*\(?\b(?:s\d{2}(?:\.e\d+)?|c\d{2}|M\d{1,3}|new:[\w-]+)\b\)?")
 FAIL_NOTE = "That didn't go through. Nothing was used, and the app is as it was."
 NOT_WIRED = "not wired"

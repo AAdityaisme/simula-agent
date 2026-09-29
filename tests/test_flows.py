@@ -326,9 +326,16 @@ def test_the_judges_fallback_pick_reads_as_the_closest_idea_not_a_recommendation
     assert flows.deck.condition(decision("c05", "accept", 1.0), tmp_path, True) is None
 
 
+def test_the_cover_takes_its_counts_by_name_so_two_can_never_swap():
+    with pytest.raises(TypeError):
+        flows.deck.cover_html("App", [], 4, 1, 0, 0, 2)
+    cover = text_of(flows.deck.cover_html("App", [], cap=4, cut=2, unbuilt_fallbacks=1))
+    assert "2 more idea(s) passed the review; the deck draws only the top 4 by rank" in cover
+    assert "the closest couldn't be drawn" in cover and "passed the review but couldn't be drawn" not in cover
+
+
 def test_a_survivor_past_the_cap_is_named_in_the_trace_and_counted_on_the_cover(tmp_path, monkeypatch):
     monkeypatch.setattr(flows.stage, "MAX_IDEAS", 1)
-    monkeypatch.setattr(flows.deck, "MAX_IDEAS", 1)
     run_dir = run_flows(tmp_path, "luzia")
     note = next(line.note for line in read_trace(run_dir / "trace.jsonl") if line.step == "select")
     assert note == "accepted + conditional: c01; past the cap of 1, not drawn: c02"

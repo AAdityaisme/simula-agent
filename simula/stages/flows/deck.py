@@ -11,8 +11,8 @@ from simula.config import ROOT, STAGES
 from simula.contracts import GATES, JUDGMENT, Candidate, Decision, ProductModel, Verdict
 from simula.stages import Ctx
 from simula.stages.flows.page import VIEW_H, VIEW_W
-from simula.stages.flows.wording import (MAX_IDEAS, NOT_WIRED, PLAIN_CHECKS, REWARD_NOT_SHOWN, REWARD_RULE, VERDICTS,
-                                         app_title, caption, plain, reach_text, reward_line)
+from simula.stages.flows.wording import (NOT_WIRED, PLAIN_CHECKS, REWARD_NOT_SHOWN, REWARD_RULE, VERDICTS, app_title,
+                                         caption, plain, reach_text, reward_line)
 from simula.stages.propose import BUCKETS
 
 TEMPLATE = ROOT / "templates" / "slides.html"
@@ -208,11 +208,11 @@ def idea_slides(flow: dict, model: ProductModel, run_dir: Path, none_accepted: b
     return [slide_html(flow, "flow", body), slide_html(flow, "why", why)]
 
 
-def cover_html(app: str, flows: list[dict], unbuilt: int = 0, status: list[str] = (), fallbacks: int = 0,
-               cut: int = 0, unbuilt_fallbacks: int = 0) -> str:
+def cover_html(app: str, flows: list[dict], *, cap: int, unbuilt: int = 0, fallbacks: int = 0,
+               unbuilt_fallbacks: int = 0, cut: int = 0, status: list[str] = ()) -> str:
     """The overview: every idea in the deck, how to read it, the reward rule every idea follows, whether an idea is
-    only the judge's fallback pick (drawn, or not drawn), how many survivors the cap left out, and status lines for
-    anything an earlier stage couldn't finish. `unbuilt` counts only ideas that passed the review."""
+    only the judge's fallback pick (drawn, or not drawn), how many survivors past the cap of `cap` were left out, and
+    status lines for anything an earlier stage couldn't finish. `unbuilt` counts only ideas that passed the review."""
     items = "".join(f'<li><span class="chip {"existing" if f["candidate"].kind == "existing_anchor" else "change"}">'
                     f'{escape(BUCKETS.get(f["candidate"].kind, ""))}</span>{escape(plain(caption(f["candidate"])))}</li>'
                     for f in flows)
@@ -229,7 +229,7 @@ def cover_html(app: str, flows: list[dict], unbuilt: int = 0, status: list[str] 
         notes.append("No idea passed every check; the closest couldn't be drawn, and the score pages at the end "
                      "say why.")
     if cut:
-        notes.append(f"{cut} more idea(s) passed the review; the deck draws only the top {MAX_IDEAS} by rank, and the "
+        notes.append(f"{cut} more idea(s) passed the review; the deck draws only the top {cap} by rank, and the "
                      "score pages at the end score the rest.")
     if unbuilt:
         notes.append(f"{unbuilt} {'more ' if flows else ''}idea(s) passed the review but couldn't be drawn; the score "
@@ -312,13 +312,13 @@ def unfinished_stages(run_dir: Path) -> list[str]:
 
 
 def deck(ctx: Ctx, model: ProductModel, flows: list[dict], not_built: list[tuple[Decision, str]],
-         decisions: list[Decision], candidates: dict[str, Candidate], cut: int = 0) -> str:
+         decisions: list[Decision], candidates: dict[str, Candidate], *, cap: int, cut: int = 0) -> str:
     app = app_title(model, ctx.app["name"])
     none_accepted = not any(d.final == "accept" for d in decisions)
     fallbacks = sum(is_fallback(f["decision"], ctx.run_dir, none_accepted) for f in flows)
     unbuilt_fallbacks = sum(is_fallback(d, ctx.run_dir, none_accepted) for d, _ in not_built)
-    slides = [cover_html(app, flows, len(not_built) - unbuilt_fallbacks, unfinished_stages(ctx.run_dir), fallbacks, cut,
-                         unbuilt_fallbacks)]
+    slides = [cover_html(app, flows, cap=cap, unbuilt=len(not_built) - unbuilt_fallbacks, fallbacks=fallbacks,
+                         unbuilt_fallbacks=unbuilt_fallbacks, cut=cut, status=unfinished_stages(ctx.run_dir))]
     for flow in flows:
         slides += idea_slides(flow, model, ctx.run_dir, none_accepted)
     slides += score_slides(decisions, candidates, not_built, ctx.run_dir)
