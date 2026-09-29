@@ -226,6 +226,39 @@ def test_a_stage_that_failed_and_then_completes_resolves_what_it_asked_for(runs,
     assert "$ cap reached" in asked and asked.rstrip().splitlines()[-1].startswith("**Done:** mock finished complete")
 
 
+def test_a_stage_that_asks_for_a_person_as_it_finishes_keeps_the_request_open(runs, monkeypatch, quiet):
+    asks = [True, False]
+
+    def gaps_then_clean(ctx):
+        if asks.pop(0):  # as the model does when its product model still has gaps after the retry
+            runlog.needs_human(ctx.run_dir, "mock", "the page has gaps", "2 screens undrawn", ["mock/"], "look")
+    mock_that(monkeypatch, gaps_then_clean)
+    run_dir = seeded_run(runs)
+    assert runfolder.read_done(run_dir / "mock").outcome.status == "complete"
+    assert "resolved" not in (run_dir / "needs-human.md").read_text(), "the request it just made still stands"
+    assert cli.main(["mock", "janitorai", "--run", run_dir.name, "--allow-fixtures"]) == 0
+    assert (run_dir / "needs-human.md").read_text().rstrip().endswith("need nothing more.")
+
+
+def test_a_record_that_fails_after_the_stage_ran_leaves_no_marker_so_the_next_run_repairs_it(runs, monkeypatch,
+                                                                                           quiet):
+    mock_that(monkeypatch, refused_by_the_budget)
+    cli.main(["mock", "janitorai", "--allow-fixtures", "--fixture", f"model={GOLDEN}", "--usd-cap", "1"])
+    run_dir = latest(runs)
+
+    def unwritable(run_dir, stage):
+        raise PermissionError("needs-human.md is read-only")
+    writable = runlog.resolve_needs_human
+    monkeypatch.setattr(runlog, "resolve_needs_human", unwritable)
+    with pytest.raises(PermissionError):
+        rerun(run_dir, "--usd-cap", "10")
+    assert not (run_dir / "mock" / "done.json").exists() and "mock" not in read_manifest(run_dir).stages_done
+    monkeypatch.setattr(runlog, "resolve_needs_human", writable)
+    assert rerun(run_dir, "--usd-cap", "10")
+    assert runfolder.read_done(run_dir / "mock").outcome.status == "complete"
+    assert "mock" in read_manifest(run_dir).stages_done
+
+
 def test_the_chain_reruns_a_stage_whose_code_changed(runs, mock_stage, monkeypatch, tmp_path):
     code = tmp_path / "mock.py"
     code.write_text("BATCH = 4\n")

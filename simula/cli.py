@@ -129,6 +129,7 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
         return True
     module = importlib.import_module(f"simula.stages.{stage}")
     stage_dir.mkdir(exist_ok=True)
+    (stage_dir / "done.json").unlink(missing_ok=True)  # the stage is being redone: its old marker no longer holds
     trace_path = ctx.run_dir / "trace.jsonl"
     traced_before = len(runlog.read_trace(trace_path))
     try:
@@ -156,23 +157,25 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
         runfolder.write_failure(stage_dir, reason)
         runlog.run_trace(ctx.run_dir, stage=stage, step="run", decider="code", outcome="error", note=reason[:300])
         raise
-    capped = [line.note for line in runlog.read_trace(trace_path)[traced_before:]
-              if line.stage == stage and line.outcome == "cap"]
-    outcome = finished_outcome(stage, ctx, result, capped)
-    runfolder.write_done(stage_dir, ctx.run_dir, inputs, prompts, params, [stage_dir], provenance, code=code,
-                         outcome=outcome)
+    traced = [line for line in runlog.read_trace(trace_path)[traced_before:] if line.stage == stage]
+    outcome = finished_outcome(stage, ctx, result, [line.note for line in traced if line.outcome == "cap"])
     partial = outcome.status == "partial"
     if partial:
         runlog.needs_human(ctx.run_dir, stage, "partial output", "; ".join(outcome.reasons), [f"{stage}/done.json"],
                            outcome.resume)
-    else:
+    elif not any(line.step == "needs_human" and line.outcome == "blocked" for line in traced):
+        # Only a clean finish resolves: a stage that asked for a person during this run still needs one.
         runlog.resolve_needs_human(ctx.run_dir, stage)
-    runlog.run_trace(ctx.run_dir, stage=stage, step="done", decider="code",
-                     note=provenance.source + (f"; partial: {'; '.join(outcome.reasons)}"[:300] if partial else ""))
     usd_total = sum(line.usd for line in runlog.read_trace(trace_path))
     done = set(runlog.read_manifest(ctx.run_dir).stages_done)
     done = done - {stage} if partial else done | {stage}
     runlog.update_manifest(ctx.run_dir, stages_done=sorted(done, key=STAGES.index), usd_total=round(usd_total, 4))
+    # done.json is the commit point, written after every other record: if one of them fails, the stage has no marker,
+    # so the next run redoes it and writes them again.
+    runfolder.write_done(stage_dir, ctx.run_dir, inputs, prompts, params, [stage_dir], provenance, code=code,
+                         outcome=outcome)
+    runlog.run_trace(ctx.run_dir, stage=stage, step="done", decider="code",
+                     note=provenance.source + (f"; partial: {'; '.join(outcome.reasons)}"[:300] if partial else ""))
     print(f"{stage}: done" + (" (partial: see needs-human.md)" if partial else ""))
     return True
 
