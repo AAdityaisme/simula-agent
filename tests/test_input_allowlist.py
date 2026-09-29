@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 import pytest
@@ -6,6 +7,9 @@ from simula.config import ROOT
 from simula.stages import propose
 from tests.conftest import APPS
 from tests.propose_fixtures import golden
+
+# Apps the system is run on. Candy Crush is left out: it is a judge-validation app, and the bible cites it as a precedent.
+APPS_RUN_ON = ["janitor", "luzia", "aol", "ooc", "perplexity"]
 
 
 @pytest.mark.parametrize("path", [
@@ -32,3 +36,10 @@ def test_prompts_read_only_the_bible_and_propose_prompts(app, monkeypatch):
     assert reads and all(any(p.resolve().is_relative_to(a) for a in allowed) for p in reads)
     assert "Rewarded-ad bible" in system and all(model.app_category in p for p in prompts)
     assert all(item.verbatim in prompts[0] for item in model.value_ledger)
+
+
+def test_nothing_the_proposer_may_read_names_an_app_the_system_runs_on():
+    """Web facts about those apps live in agent-takehome/notes/test-apps-web.md, never on the allow-list."""
+    files = [p for root in propose.ALLOWED_INPUTS for p in root.rglob("*") if p.suffix in {".md", ".json", ".py"}]
+    hits = [(p.name, app) for p in files for app in APPS_RUN_ON if re.search(rf"\b{app}\b", p.read_text().lower())]
+    assert files and hits == []
