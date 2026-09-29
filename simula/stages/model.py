@@ -629,11 +629,11 @@ def mock_scope(states: list[State], edges: list[Edge], meaning: ModelMeaning) ->
 
 
 def edge_overlay(e: Element, device: Device) -> bool:
-    """A wordless container in a bottom corner of the screen, touching a side edge and running past the content
-    area, like an edge-gesture area: not art, since its pixels are only what sits under it. A wordless box inside
-    the content area, such as a full-width banner, is still art."""
+    """A wordless container in a bottom corner of the screen, touching one side edge and running past the content
+    area, like an edge-gesture area: not art, since its pixels are only what sits under it. A full-width wordless
+    box touches both sides, and one inside the content area touches no corner: both are still art."""
     r = e.rect_px
-    in_corner = (r.x <= 0 or r.x + r.w >= device.w_px) and r.y + r.h > device.content_bottom_px
+    in_corner = (r.x <= 0) != (r.x + r.w >= device.w_px) and r.y + r.h > device.content_bottom_px
     return e.type not in ROLE_BY_CLASS and not (e.text or e.label) and in_corner
 
 
