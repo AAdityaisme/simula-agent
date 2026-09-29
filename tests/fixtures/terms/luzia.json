@@ -1,5 +1,5 @@
 {
- "source": "PR 2 run runs/luzia/20260928-024353-17d5562-fixture: model/product_model.json states ['s01', 's02', 's04'], and the model's final answer (cache 3c866a53b838) after check_meaning; model_labels: the elements whose label that run's explore icon or vision pass wrote (explore/states/<sid>.json)",
+ "source": "PR 2 run runs/luzia/20260928-024353-17d5562-fixture: model/product_model.json states ['s01', 's02', 's04'] and edges, and the model's final answer (cache 3c866a53b838) after check_meaning; model_labels: the elements whose label that run's explore icon or vision pass wrote (explore/states/<sid>.json)",
  "model_labels": [
   "s01.e02",
   "s01.e05"
@@ -2340,5 +2340,79 @@
    }
   ],
   "open_questions": []
- }
+ },
+ "edges": [
+  {
+   "id": "s01.e03>s02",
+   "from_state": "s01",
+   "to_state": "s02",
+   "element_id": "s01.e03",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": "upsell badge opens the paywall"
+  },
+  {
+   "id": "s03.e05>s02",
+   "from_state": "s03",
+   "to_state": "s02",
+   "element_id": "s03.e05",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": "settings upgrade row opens the paywall"
+  },
+  {
+   "id": "s01.e05>s03",
+   "from_state": "s01",
+   "to_state": "s03",
+   "element_id": "s01.e05",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": "settings button opens settings"
+  },
+  {
+   "id": "s01.e40>s05",
+   "from_state": "s01",
+   "to_state": "s05",
+   "element_id": "s01.e40",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Services"
+  },
+  {
+   "id": "s01.e43>s06",
+   "from_state": "s01",
+   "to_state": "s06",
+   "element_id": "s01.e43",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": "bottom bar: Create"
+  },
+  {
+   "id": "s01.e33>s07",
+   "from_state": "s01",
+   "to_state": "s07",
+   "element_id": "s01.e33",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": "opens the recent chat"
+  },
+  {
+   "id": "s01.e26>s04",
+   "from_state": "s01",
+   "to_state": "s04",
+   "element_id": "s01.e26",
+   "action": "tap",
+   "transition": "modal",
+   "change_summary": "pet banner opens the pet intro"
+  },
+  {
+   "id": "s01.type>s01",
+   "from_state": "s01",
+   "to_state": "s01",
+   "element_id": null,
+   "action": "type",
+   "transition": "unknown",
+   "change_summary": "reply started 1.9 s, finished 7.5 s, 400 chars"
+  }
+ ]
 }

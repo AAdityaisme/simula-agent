@@ -1,5 +1,5 @@
 {
- "source": "ve's approved model-stage rerun runs/janitorai/20260928-093155-a2a161c-everyday (copy of JanitorAI run 20260928-093155-a2a161c, 2026-09-29): model/product_model.json states ['s01', 's13'] (every screen a term's defined_by cites, kept whole), and the model's final answer (cache 780940396018) after check_meaning, with states, elements, flows and open questions left out; model_labels: the elements whose label that run's explore icon or vision pass wrote (explore/states/<sid>.json)",
+ "source": "ve's approved model-stage rerun runs/janitorai/20260928-093155-a2a161c-everyday (copy of JanitorAI run 20260928-093155-a2a161c, 2026-09-29): model/product_model.json states ['s01', 's06', 's13'] (every screen a term's defined_by cites, and every screen with a recorded tap on app text into one, kept whole) and edges, and the model's final answer (cache 780940396018) after check_meaning, with states, elements, flows and open questions left out; model_labels: the elements whose label that run's explore icon or vision pass wrote (explore/states/<sid>.json)",
  "model_labels": [
   "s01.e02",
   "s01.e26",
@@ -8,7 +8,12 @@
   "s01.e71",
   "s01.e72",
   "s01.e73",
-  "s01.e74"
+  "s01.e74",
+  "s06.e01",
+  "s06.e09",
+  "s06.e21",
+  "s06.e22",
+  "s06.e24"
  ],
  "states": [
   {
@@ -2162,6 +2167,1548 @@
    "blocked_reason": null
   },
   {
+   "id": "s06",
+   "kind": "screen",
+   "parent_id": null,
+   "name": "Side menu drawer",
+   "purpose": "Account drawer with profile summary, Following, Blocks, Media Library, Settings, Billing and an Upgrade to Janitor Plus banner. The banner opens the subscription paywall.",
+   "fingerprint": "com.janitor.ai|580c5c3c1d101e98c904d9301ec01e88|dd1c1e801e00ce008e201ce19ac49880|97743f6df44d",
+   "canonical_png": "states/s06.png",
+   "elements": [
+    {
+     "id": "s06.e01",
+     "mcp_ref": "@e29",
+     "type": "Button",
+     "text": "",
+     "label": "menu",
+     "source": "mcp",
+     "rect_px": {
+      "x": 148.0,
+      "y": 167.0,
+      "w": 84.0,
+      "h": 84.0
+     },
+     "rect_dp": {
+      "x": 56.38,
+      "y": 11.81,
+      "w": 32.0,
+      "h": 32.0
+     },
+     "role": "menu icon button",
+     "asset_png": null,
+     "fg_hex": "#7f7f7f",
+     "bg_hex": "#18191b",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e02",
+     "mcp_ref": "@e30",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "Hidden Gems",
+     "source": "mcp",
+     "rect_px": {
+      "x": 6.0,
+      "y": 434.0,
+      "w": 224.0,
+      "h": 75.0
+     },
+     "rect_dp": {
+      "x": 2.29,
+      "y": 113.52,
+      "w": 85.33,
+      "h": 28.57
+     },
+     "role": "feed filter chip",
+     "asset_png": null,
+     "fg_hex": "#7f7f7f",
+     "bg_hex": "#3d3351",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e03",
+     "mcp_ref": "@e31",
+     "type": "TextView",
+     "text": "Hidden Gems",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 82.0,
+      "y": 451.0,
+      "w": 148.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 31.24,
+      "y": 120.0,
+      "w": 56.38,
+      "h": 15.62
+     },
+     "role": "chip label",
+     "asset_png": null,
+     "fg_hex": "#7f7f7f",
+     "bg_hex": "#3f3551",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s06.r1"
+    },
+    {
+     "id": "s06.e04",
+     "mcp_ref": "@e32",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "Explore All",
+     "source": "mcp",
+     "rect_px": {
+      "x": 230.0,
+      "y": 434.0,
+      "w": 100.0,
+      "h": 75.0
+     },
+     "rect_dp": {
+      "x": 87.62,
+      "y": 113.52,
+      "w": 38.1,
+      "h": 28.57
+     },
+     "role": "feed filter chip",
+     "asset_png": null,
+     "fg_hex": "#959597",
+     "bg_hex": "#2a2b2e",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e05",
+     "mcp_ref": "@e33",
+     "type": "TextView",
+     "text": "Explore All",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 230.0,
+      "y": 451.0,
+      "w": 176.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 87.62,
+      "y": 120.0,
+      "w": 67.05,
+      "h": 15.62
+     },
+     "role": "chip label",
+     "asset_png": null,
+     "fg_hex": "#959597",
+     "bg_hex": "#2a2b2e",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e06",
+     "mcp_ref": "@e34",
+     "type": "TextView",
+     "text": "￼Hidden Gems show characters from smaller creators with engaging conversations, created in the last 30 days.",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 551.0,
+      "w": 233.0,
+      "h": 211.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 158.1,
+      "w": 88.76,
+      "h": 80.38
+     },
+     "role": "info text",
+     "asset_png": null,
+     "fg_hex": "#7f7f7f",
+     "bg_hex": "#18191b",
+     "font_px": 211.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e07",
+     "mcp_ref": "@e35",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "1 / 102",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 821.0,
+      "w": 115.0,
+      "h": 43.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 260.95,
+      "w": 43.81,
+      "h": 16.38
+     },
+     "role": "page indicator",
+     "asset_png": null,
+     "fg_hex": "#7f7f7f",
+     "bg_hex": "#18191b",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e08",
+     "mcp_ref": "@e36",
+     "type": "TextView",
+     "text": "1 / 102",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 821.0,
+      "w": 115.0,
+      "h": 43.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 260.95,
+      "w": 43.81,
+      "h": 16.38
+     },
+     "role": "page indicator text",
+     "asset_png": null,
+     "fg_hex": "#7f7f7f",
+     "bg_hex": "#18191b",
+     "font_px": 43.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e09",
+     "mcp_ref": "@e37",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "expand list",
+     "source": "mcp",
+     "rect_px": {
+      "x": 138.0,
+      "y": 795.0,
+      "w": 95.0,
+      "h": 95.0
+     },
+     "rect_dp": {
+      "x": 52.57,
+      "y": 251.05,
+      "w": 36.19,
+      "h": 36.19
+     },
+     "role": "icon button",
+     "asset_png": null,
+     "fg_hex": "#707070",
+     "bg_hex": "#151517",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e10",
+     "mcp_ref": "@e38",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "Vac the Kinectic",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 932.0,
+      "w": 211.0,
+      "h": 536.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 303.24,
+      "w": 80.38,
+      "h": 204.19
+     },
+     "role": "character card",
+     "asset_png": null,
+     "fg_hex": "#1f1c27",
+     "bg_hex": "#545a63",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e11",
+     "mcp_ref": "@e39",
+     "type": "TextView",
+     "text": "Vac the Kinectic",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 932.0,
+      "w": 40.0,
+      "h": 42.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 303.24,
+      "w": 15.24,
+      "h": 16.0
+     },
+     "role": "card title",
+     "asset_png": null,
+     "fg_hex": "#574478",
+     "bg_hex": "#1f112a",
+     "font_px": 42.0,
+     "font_guess": "Jura",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e12",
+     "mcp_ref": "@e40",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "Vac is a Nightmare Kinetic whose function is simply Vacuum. Built like a sleek ivory-and-teal living appliance, he sports multiple intakes—including the towering vertical vacuum over his face, a flexible hose-tail, and a hand-mounted precision nozzle—and h",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 1544.0,
+      "w": 211.0,
+      "h": 360.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 536.38,
+      "w": 80.38,
+      "h": 137.14
+     },
+     "role": "description block",
+     "asset_png": null,
+     "fg_hex": "#78757d",
+     "bg_hex": "#0d0618",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e13",
+     "mcp_ref": "@e41",
+     "type": "TextView",
+     "text": "Vac is a Nightmare Kinetic whose function is simply Vacuum. Built like a sleek ivory-and-teal living appliance, he sports multiple intakes—including the towering vertical vacuum over his face, a flexible hose-tail, and a hand-mounted precision nozzle—and h",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 1544.0,
+      "w": 211.0,
+      "h": 360.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 536.38,
+      "w": 80.38,
+      "h": 137.14
+     },
+     "role": "body text",
+     "asset_png": null,
+     "fg_hex": "#78757d",
+     "bg_hex": "#0d0618",
+     "font_px": 360.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e14",
+     "mcp_ref": "@e42",
+     "type": "TextView",
+     "text": "2k tokens",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 2286.0,
+      "w": 211.0,
+      "h": 27.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 819.05,
+      "w": 80.38,
+      "h": 10.29
+     },
+     "role": "token count",
+     "asset_png": null,
+     "fg_hex": null,
+     "bg_hex": "#000000",
+     "font_px": 27.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e15",
+     "mcp_ref": "@e45",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "🧑‍🎨 OC",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 2019.0,
+      "w": 52.0,
+      "h": 57.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 717.33,
+      "w": 19.81,
+      "h": 21.71
+     },
+     "role": "tag chip",
+     "asset_png": null,
+     "fg_hex": "#332f3a",
+     "bg_hex": "#110b1c",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e16",
+     "mcp_ref": "@e46",
+     "type": "TextView",
+     "text": "🧑‍🎨 OC",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 2032.0,
+      "w": 25.0,
+      "h": 30.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 722.29,
+      "w": 9.52,
+      "h": 11.43
+     },
+     "role": "tag label",
+     "asset_png": null,
+     "fg_hex": "#7e7d7e",
+     "bg_hex": "#110b1c",
+     "font_px": 30.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e17",
+     "mcp_ref": "@e47",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "⛓️ Dominant",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 2088.0,
+      "w": 173.0,
+      "h": 58.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 743.62,
+      "w": 65.9,
+      "h": 22.1
+     },
+     "role": "tag chip",
+     "asset_png": null,
+     "fg_hex": "#535860",
+     "bg_hex": "#14101f",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e18",
+     "mcp_ref": "@e48",
+     "type": "TextView",
+     "text": "⛓️ Dominant",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 2101.0,
+      "w": 146.0,
+      "h": 30.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 748.57,
+      "w": 55.62,
+      "h": 11.43
+     },
+     "role": "tag label",
+     "asset_png": null,
+     "fg_hex": "#727173",
+     "bg_hex": "#14101f",
+     "font_px": 30.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e19",
+     "mcp_ref": "@e49",
+     "type": "TextView",
+     "text": "68",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 176.0,
+      "y": 1030.0,
+      "w": 46.0,
+      "h": 38.0
+     },
+     "rect_dp": {
+      "x": 67.05,
+      "y": 340.57,
+      "w": 17.52,
+      "h": 14.48
+     },
+     "role": "chat count badge",
+     "asset_png": null,
+     "fg_hex": "#7f7f7f",
+     "bg_hex": "#413669",
+     "font_px": 38.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e20",
+     "mcp_ref": "@e50",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 2170.0,
+      "w": 10.0,
+      "h": 167.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 774.86,
+      "w": 3.81,
+      "h": 63.62
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": null,
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e21",
+     "mcp_ref": "@e51",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "profile icon",
+     "source": "mcp",
+     "rect_px": {
+      "x": 35.0,
+      "y": 2170.0,
+      "w": 167.0,
+      "h": 167.0
+     },
+     "rect_dp": {
+      "x": 13.33,
+      "y": 774.86,
+      "w": 63.62,
+      "h": 63.62
+     },
+     "role": "tab",
+     "asset_png": null,
+     "fg_hex": "#2d2e31",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e22",
+     "mcp_ref": "@e52",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "username",
+     "source": "mcp",
+     "rect_px": {
+      "x": 531.0,
+      "y": 196.0,
+      "w": 312.0,
+      "h": 61.0
+     },
+     "rect_dp": {
+      "x": 202.29,
+      "y": 22.86,
+      "w": 118.86,
+      "h": 23.24
+     },
+     "role": "username group",
+     "asset_png": null,
+     "fg_hex": null,
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e23",
+     "mcp_ref": "@e53",
+     "type": "TextView",
+     "text": "@[redacted]",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 531.0,
+      "y": 196.0,
+      "w": 312.0,
+      "h": 61.0
+     },
+     "rect_dp": {
+      "x": 202.29,
+      "y": 22.86,
+      "w": 118.86,
+      "h": 23.24
+     },
+     "role": "username",
+     "asset_png": null,
+     "fg_hex": null,
+     "bg_hex": "#000000",
+     "font_px": 61.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e24",
+     "mcp_ref": "@e54",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "following count",
+     "source": "mcp",
+     "rect_px": {
+      "x": 531.0,
+      "y": 279.0,
+      "w": 172.0,
+      "h": 95.0
+     },
+     "rect_dp": {
+      "x": 202.29,
+      "y": 54.48,
+      "w": 65.52,
+      "h": 36.19
+     },
+     "role": "stat group",
+     "asset_png": null,
+     "fg_hex": "#959597",
+     "bg_hex": "#2a2b2e",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e25",
+     "mcp_ref": "@e55",
+     "type": "TextView",
+     "text": "0",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 531.0,
+      "y": 279.0,
+      "w": 172.0,
+      "h": 54.0
+     },
+     "rect_dp": {
+      "x": 202.29,
+      "y": 54.48,
+      "w": 65.52,
+      "h": 20.57
+     },
+     "role": "follow count",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#2a2b2e",
+     "font_px": 54.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e26",
+     "mcp_ref": "@e56",
+     "type": "TextView",
+     "text": "Following",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 531.0,
+      "y": 336.0,
+      "w": 138.0,
+      "h": 38.0
+     },
+     "rect_dp": {
+      "x": 202.29,
+      "y": 76.19,
+      "w": 52.57,
+      "h": 14.48
+     },
+     "role": "stat label",
+     "asset_png": null,
+     "fg_hex": "#959597",
+     "bg_hex": "#2a2b2e",
+     "font_px": 38.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s06.r1"
+    },
+    {
+     "id": "s06.e27",
+     "mcp_ref": "@e57",
+     "type": "TextView",
+     "text": "0",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 777.0,
+      "y": 279.0,
+      "w": 138.0,
+      "h": 54.0
+     },
+     "rect_dp": {
+      "x": 296.0,
+      "y": 54.48,
+      "w": 52.57,
+      "h": 20.57
+     },
+     "role": "follow count",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#2a2b2e",
+     "font_px": 54.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e28",
+     "mcp_ref": "@e58",
+     "type": "TextView",
+     "text": "Followers",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 777.0,
+      "y": 336.0,
+      "w": 138.0,
+      "h": 38.0
+     },
+     "rect_dp": {
+      "x": 296.0,
+      "y": 76.19,
+      "w": 52.57,
+      "h": 14.48
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#959597",
+     "bg_hex": "#2a2b2e",
+     "font_px": 38.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s06.r1"
+    },
+    {
+     "id": "s06.e29",
+     "mcp_ref": "@e59",
+     "type": "TextView",
+     "text": "Member Since Sep 26, 2026",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 318.0,
+      "y": 407.0,
+      "w": 398.0,
+      "h": 38.0
+     },
+     "rect_dp": {
+      "x": 121.14,
+      "y": 103.24,
+      "w": 151.62,
+      "h": 14.48
+     },
+     "role": "member since text",
+     "asset_png": null,
+     "fg_hex": "#6a6b6d",
+     "bg_hex": "#2a2b2e",
+     "font_px": 38.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e30",
+     "mcp_ref": "@e60",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 318.0,
+      "y": 462.0,
+      "w": 298.0,
+      "h": 38.0
+     },
+     "rect_dp": {
+      "x": 121.14,
+      "y": 124.19,
+      "w": 113.52,
+      "h": 14.48
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#959597",
+     "bg_hex": "#2a2b2e",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e31",
+     "mcp_ref": "@e61",
+     "type": "TextView",
+     "text": "View public profile",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 318.0,
+      "y": 462.0,
+      "w": 264.0,
+      "h": 38.0
+     },
+     "rect_dp": {
+      "x": 121.14,
+      "y": 124.19,
+      "w": 100.57,
+      "h": 14.48
+     },
+     "role": "link text",
+     "asset_png": null,
+     "fg_hex": "#959597",
+     "bg_hex": "#2a2b2e",
+     "font_px": 38.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e32",
+     "mcp_ref": "@e62",
+     "type": "Button",
+     "text": "",
+     "label": "Main navigation",
+     "source": "mcp",
+     "rect_px": {
+      "x": 306.0,
+      "y": 572.0,
+      "w": 743.0,
+      "h": 142.0
+     },
+     "rect_dp": {
+      "x": 116.57,
+      "y": 166.1,
+      "w": 283.05,
+      "h": 54.1
+     },
+     "role": "drawer menu item",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#2a2b2e",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s06.r2"
+    },
+    {
+     "id": "s06.e33",
+     "mcp_ref": "@e63",
+     "type": "TextView",
+     "text": "Main navigation",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 424.0,
+      "y": 611.0,
+      "w": 531.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 161.52,
+      "y": 180.95,
+      "w": 202.29,
+      "h": 24.0
+     },
+     "role": "menu item label",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#2a2b2e",
+     "font_px": 63.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s06.r3"
+    },
+    {
+     "id": "s06.e34",
+     "mcp_ref": "@e64",
+     "type": "Button",
+     "text": "",
+     "label": "Following",
+     "source": "mcp",
+     "rect_px": {
+      "x": 306.0,
+      "y": 726.0,
+      "w": 743.0,
+      "h": 142.0
+     },
+     "rect_dp": {
+      "x": 116.57,
+      "y": 224.76,
+      "w": 283.05,
+      "h": 54.1
+     },
+     "role": "drawer menu item",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#2a2b2e",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s06.r2"
+    },
+    {
+     "id": "s06.e35",
+     "mcp_ref": "@e65",
+     "type": "TextView",
+     "text": "Following",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 432.0,
+      "y": 765.0,
+      "w": 523.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 164.57,
+      "y": 239.62,
+      "w": 199.24,
+      "h": 24.0
+     },
+     "role": "menu item label",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#2a2b2e",
+     "font_px": 63.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s06.r3"
+    },
+    {
+     "id": "s06.e36",
+     "mcp_ref": "@e66",
+     "type": "Button",
+     "text": "",
+     "label": "Blocks",
+     "source": "mcp",
+     "rect_px": {
+      "x": 306.0,
+      "y": 880.0,
+      "w": 743.0,
+      "h": 141.0
+     },
+     "rect_dp": {
+      "x": 116.57,
+      "y": 283.43,
+      "w": 283.05,
+      "h": 53.71
+     },
+     "role": "button",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#2a2b2e",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s06.r2"
+    },
+    {
+     "id": "s06.e37",
+     "mcp_ref": "@e67",
+     "type": "TextView",
+     "text": "Blocks",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 432.0,
+      "y": 919.0,
+      "w": 523.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 164.57,
+      "y": 298.29,
+      "w": 199.24,
+      "h": 24.0
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#2a2b2e",
+     "font_px": 63.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s06.r3"
+    },
+    {
+     "id": "s06.e38",
+     "mcp_ref": "@e68",
+     "type": "Button",
+     "text": "",
+     "label": "Media Library",
+     "source": "mcp",
+     "rect_px": {
+      "x": 306.0,
+      "y": 1033.0,
+      "w": 743.0,
+      "h": 142.0
+     },
+     "rect_dp": {
+      "x": 116.57,
+      "y": 341.71,
+      "w": 283.05,
+      "h": 54.1
+     },
+     "role": "button",
+     "asset_png": null,
+     "fg_hex": "#fefefe",
+     "bg_hex": "#2a2b2e",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s06.r2"
+    },
+    {
+     "id": "s06.e39",
+     "mcp_ref": "@e69",
+     "type": "TextView",
+     "text": "Media Library",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 432.0,
+      "y": 1072.0,
+      "w": 523.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 164.57,
+      "y": 356.57,
+      "w": 199.24,
+      "h": 24.0
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#2a2b2e",
+     "font_px": 63.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s06.r3"
+    },
+    {
+     "id": "s06.e40",
+     "mcp_ref": "@e70",
+     "type": "Button",
+     "text": "",
+     "label": "Settings",
+     "source": "mcp",
+     "rect_px": {
+      "x": 306.0,
+      "y": 1187.0,
+      "w": 743.0,
+      "h": 142.0
+     },
+     "rect_dp": {
+      "x": 116.57,
+      "y": 400.38,
+      "w": 283.05,
+      "h": 54.1
+     },
+     "role": "button",
+     "asset_png": null,
+     "fg_hex": "#fbfbfb",
+     "bg_hex": "#2a2b2e",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s06.r2"
+    },
+    {
+     "id": "s06.e41",
+     "mcp_ref": "@e71",
+     "type": "TextView",
+     "text": "Settings",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 432.0,
+      "y": 1226.0,
+      "w": 523.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 164.57,
+      "y": 415.24,
+      "w": 199.24,
+      "h": 24.0
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#2a2b2e",
+     "font_px": 63.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s06.r3"
+    },
+    {
+     "id": "s06.e42",
+     "mcp_ref": "@e72",
+     "type": "Button",
+     "text": "",
+     "label": "Billing",
+     "source": "mcp",
+     "rect_px": {
+      "x": 306.0,
+      "y": 1341.0,
+      "w": 743.0,
+      "h": 142.0
+     },
+     "rect_dp": {
+      "x": 116.57,
+      "y": 459.05,
+      "w": 283.05,
+      "h": 54.1
+     },
+     "role": "button",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#2a2b2e",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s06.r2"
+    },
+    {
+     "id": "s06.e43",
+     "mcp_ref": "@e73",
+     "type": "TextView",
+     "text": "Billing",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 432.0,
+      "y": 1380.0,
+      "w": 523.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 164.57,
+      "y": 473.9,
+      "w": 199.24,
+      "h": 24.0
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#2a2b2e",
+     "font_px": 63.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s06.r3"
+    },
+    {
+     "id": "s06.e44",
+     "mcp_ref": "@e74",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "Upgrade to Janitor Plus",
+     "source": "mcp",
+     "rect_px": {
+      "x": 335.0,
+      "y": 1514.0,
+      "w": 743.0,
+      "h": 149.0
+     },
+     "rect_dp": {
+      "x": 127.62,
+      "y": 524.95,
+      "w": 283.05,
+      "h": 56.76
+     },
+     "role": "upsell banner",
+     "asset_png": null,
+     "fg_hex": "#f8f6ff",
+     "bg_hex": "#0e1b49",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e45",
+     "mcp_ref": "@e75",
+     "type": "TextView",
+     "text": "Upgrade to",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 373.0,
+      "y": 1560.0,
+      "w": 212.0,
+      "h": 58.0
+     },
+     "rect_dp": {
+      "x": 142.1,
+      "y": 542.48,
+      "w": 80.76,
+      "h": 22.1
+     },
+     "role": "banner text",
+     "asset_png": null,
+     "fg_hex": "#f8f6ff",
+     "bg_hex": "#101d5b",
+     "font_px": 58.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e46",
+     "mcp_ref": "@e76",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 572.0,
+      "y": 1755.0,
+      "w": 212.0,
+      "h": 87.0
+     },
+     "rect_dp": {
+      "x": 217.9,
+      "y": 616.76,
+      "w": 80.76,
+      "h": 33.14
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#959597",
+     "bg_hex": "#2a2b2e",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": false,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e47",
+     "mcp_ref": "@e77",
+     "type": "TextView",
+     "text": "Get Help",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 607.0,
+      "y": 1777.0,
+      "w": 142.0,
+      "h": 43.0
+     },
+     "rect_dp": {
+      "x": 231.24,
+      "y": 625.14,
+      "w": 54.1,
+      "h": 16.38
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#959597",
+     "bg_hex": "#2a2b2e",
+     "font_px": 43.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s06.r1"
+    },
+    {
+     "id": "s06.e48",
+     "mcp_ref": "@e78",
+     "type": "Button",
+     "text": "",
+     "label": "Logout",
+     "source": "mcp",
+     "rect_px": {
+      "x": 306.0,
+      "y": 1875.0,
+      "w": 743.0,
+      "h": 142.0
+     },
+     "rect_dp": {
+      "x": 116.57,
+      "y": 662.48,
+      "w": 283.05,
+      "h": 54.1
+     },
+     "role": "button",
+     "asset_png": null,
+     "fg_hex": "#6a6b6d",
+     "bg_hex": "#2a2b2e",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s06.r2"
+    },
+    {
+     "id": "s06.e49",
+     "mcp_ref": "@e79",
+     "type": "TextView",
+     "text": "Logout",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 429.0,
+      "y": 1914.0,
+      "w": 526.0,
+      "h": 63.0
+     },
+     "rect_dp": {
+      "x": 163.43,
+      "y": 677.33,
+      "w": 200.38,
+      "h": 24.0
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#6a6b6d",
+     "bg_hex": "#2a2b2e",
+     "font_px": 63.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s06.r3"
+    },
+    {
+     "id": "s06.e50",
+     "mcp_ref": "@e80",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "v2.5.0.136.v35",
+     "source": "mcp",
+     "rect_px": {
+      "x": 306.0,
+      "y": 2020.0,
+      "w": 743.0,
+      "h": 34.0
+     },
+     "rect_dp": {
+      "x": 116.57,
+      "y": 717.71,
+      "w": 283.05,
+      "h": 12.95
+     },
+     "role": "version row",
+     "asset_png": null,
+     "fg_hex": "#b6b6b7",
+     "bg_hex": "#2a2b2e",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e51",
+     "mcp_ref": "@e81",
+     "type": "TextView",
+     "text": "v2.5.0.136.v35",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 583.0,
+      "y": 2020.0,
+      "w": 188.0,
+      "h": 34.0
+     },
+     "rect_dp": {
+      "x": 222.1,
+      "y": 717.71,
+      "w": 71.62,
+      "h": 12.95
+     },
+     "role": "version text",
+     "asset_png": null,
+     "fg_hex": "#b6b6b7",
+     "bg_hex": "#2a2b2e",
+     "font_px": 34.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e52",
+     "mcp_ref": "@e82",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 2205.0,
+      "w": 58.0,
+      "h": 195.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 788.19,
+      "w": 22.1,
+      "h": 74.29
+     },
+     "role": "edge gesture area",
+     "asset_png": "assets/s06.e52.png",
+     "fg_hex": null,
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s06.e53",
+     "mcp_ref": "@e83",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 1022.0,
+      "y": 2205.0,
+      "w": 58.0,
+      "h": 195.0
+     },
+     "rect_dp": {
+      "x": 389.33,
+      "y": 788.19,
+      "w": 22.1,
+      "h": 74.29
+     },
+     "role": "edge gesture area",
+     "asset_png": "assets/s06.e53.png",
+     "fg_hex": null,
+     "bg_hex": "#2a2b2e",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    }
+   ],
+   "in_mock_scope": true,
+   "content_rating": "safe",
+   "dynamic_regions": [
+    {
+     "x": 0.0,
+     "y": 416.0,
+     "w": 240.0,
+     "h": 160.0
+    },
+    {
+     "x": 0.0,
+     "y": 576.0,
+     "w": 240.0,
+     "h": 200.0
+    },
+    {
+     "x": 0.0,
+     "y": 816.0,
+     "w": 80.0,
+     "h": 40.0
+    },
+    {
+     "x": 160.0,
+     "y": 816.0,
+     "w": 40.0,
+     "h": 40.0
+    },
+    {
+     "x": 0.0,
+     "y": 896.0,
+     "w": 240.0,
+     "h": 960.0
+    },
+    {
+     "x": 0.0,
+     "y": 1896.0,
+     "w": 160.0,
+     "h": 120.0
+    },
+    {
+     "x": 0.0,
+     "y": 2016.0,
+     "w": 200.0,
+     "h": 160.0
+    }
+   ],
+   "blocked_reason": null
+  },
+  {
    "id": "s13",
    "kind": "screen",
    "parent_id": null,
@@ -3165,5 +4712,349 @@
    }
   ],
   "open_questions": []
- }
+ },
+ "edges": [
+  {
+   "id": "s01.e71>s02",
+   "from_state": "s01",
+   "to_state": "s02",
+   "element_id": "s01.e71",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": ""
+  },
+  {
+   "id": "s02.e90>s03",
+   "from_state": "s02",
+   "to_state": "s03",
+   "element_id": "s02.e90",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": ""
+  },
+  {
+   "id": "s03.e16>s04",
+   "from_state": "s03",
+   "to_state": "s04",
+   "element_id": "s03.e16",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": ""
+  },
+  {
+   "id": "s04.e09>s05",
+   "from_state": "s04",
+   "to_state": "s05",
+   "element_id": "s04.e09",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": ""
+  },
+  {
+   "id": "s05.e21>s01",
+   "from_state": "s05",
+   "to_state": "s01",
+   "element_id": "s05.e21",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": ""
+  },
+  {
+   "id": "s01.e44>s02",
+   "from_state": "s01",
+   "to_state": "s02",
+   "element_id": "s01.e44",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": ""
+  },
+  {
+   "id": "s02.e88>s01",
+   "from_state": "s02",
+   "to_state": "s01",
+   "element_id": "s02.e88",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": ""
+  },
+  {
+   "id": "s01.e64>s04",
+   "from_state": "s01",
+   "to_state": "s04",
+   "element_id": "s01.e64",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": ""
+  },
+  {
+   "id": "s04.e05>s01",
+   "from_state": "s04",
+   "to_state": "s01",
+   "element_id": "s04.e05",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": ""
+  },
+  {
+   "id": "s01.e02>s06",
+   "from_state": "s01",
+   "to_state": "s06",
+   "element_id": "s01.e02",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": ""
+  },
+  {
+   "id": "s06.e21>s01",
+   "from_state": "s06",
+   "to_state": "s01",
+   "element_id": "s06.e21",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": ""
+  },
+  {
+   "id": "s01.e52>s07",
+   "from_state": "s01",
+   "to_state": "s07",
+   "element_id": "s01.e52",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": ""
+  },
+  {
+   "id": "s07.back>s01",
+   "from_state": "s07",
+   "to_state": "s01",
+   "element_id": null,
+   "action": "back",
+   "transition": "back",
+   "change_summary": ""
+  },
+  {
+   "id": "s01.swipe>s08",
+   "from_state": "s01",
+   "to_state": "s08",
+   "element_id": null,
+   "action": "swipe",
+   "transition": "push",
+   "change_summary": ""
+  },
+  {
+   "id": "s08.swipe>s09",
+   "from_state": "s08",
+   "to_state": "s09",
+   "element_id": null,
+   "action": "swipe",
+   "transition": "push",
+   "change_summary": ""
+  },
+  {
+   "id": "s08.e02>s10",
+   "from_state": "s08",
+   "to_state": "s10",
+   "element_id": "s08.e02",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": ""
+  },
+  {
+   "id": "s10.back>s08",
+   "from_state": "s10",
+   "to_state": "s08",
+   "element_id": null,
+   "action": "back",
+   "transition": "back",
+   "change_summary": ""
+  },
+  {
+   "id": "s09.e71>s02",
+   "from_state": "s09",
+   "to_state": "s02",
+   "element_id": "s09.e71",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": ""
+  },
+  {
+   "id": "s02.e04>s11",
+   "from_state": "s02",
+   "to_state": "s11",
+   "element_id": "s02.e04",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": ""
+  },
+  {
+   "id": "s11.back>s02",
+   "from_state": "s11",
+   "to_state": "s02",
+   "element_id": null,
+   "action": "back",
+   "transition": "back",
+   "change_summary": ""
+  },
+  {
+   "id": "s02.swipe>s12",
+   "from_state": "s02",
+   "to_state": "s12",
+   "element_id": null,
+   "action": "swipe",
+   "transition": "push",
+   "change_summary": ""
+  },
+  {
+   "id": "s12.swipe>s02",
+   "from_state": "s12",
+   "to_state": "s02",
+   "element_id": null,
+   "action": "swipe",
+   "transition": "push",
+   "change_summary": ""
+  },
+  {
+   "id": "s03.e03>s06",
+   "from_state": "s03",
+   "to_state": "s06",
+   "element_id": "s03.e03",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": ""
+  },
+  {
+   "id": "s06.e44>s13",
+   "from_state": "s06",
+   "to_state": "s13",
+   "element_id": "s06.e44",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": ""
+  },
+  {
+   "id": "s13.swipe>s14",
+   "from_state": "s13",
+   "to_state": "s14",
+   "element_id": null,
+   "action": "swipe",
+   "transition": "push",
+   "change_summary": ""
+  },
+  {
+   "id": "s01.e72>s03",
+   "from_state": "s01",
+   "to_state": "s03",
+   "element_id": "s01.e72",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": ""
+  },
+  {
+   "id": "s03.e05>s15",
+   "from_state": "s03",
+   "to_state": "s15",
+   "element_id": "s03.e05",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": ""
+  },
+  {
+   "id": "s15.e60>s16",
+   "from_state": "s15",
+   "to_state": "s16",
+   "element_id": "s15.e60",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": ""
+  },
+  {
+   "id": "s03.e09>s17",
+   "from_state": "s03",
+   "to_state": "s17",
+   "element_id": "s03.e09",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": ""
+  },
+  {
+   "id": "s17.e35>s18",
+   "from_state": "s17",
+   "to_state": "s18",
+   "element_id": "s17.e35",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": ""
+  },
+  {
+   "id": "s18.back>s19",
+   "from_state": "s18",
+   "to_state": "s19",
+   "element_id": null,
+   "action": "back",
+   "transition": "back",
+   "change_summary": ""
+  },
+  {
+   "id": "s19.e13>s01",
+   "from_state": "s19",
+   "to_state": "s01",
+   "element_id": "s19.e13",
+   "action": "tap",
+   "transition": "tab",
+   "change_summary": ""
+  },
+  {
+   "id": "s01.e30>s20",
+   "from_state": "s01",
+   "to_state": "s20",
+   "element_id": "s01.e30",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": ""
+  },
+  {
+   "id": "s20.swipe>s21",
+   "from_state": "s20",
+   "to_state": "s21",
+   "element_id": null,
+   "action": "swipe",
+   "transition": "push",
+   "change_summary": ""
+  },
+  {
+   "id": "s21.e41>s22",
+   "from_state": "s21",
+   "to_state": "s22",
+   "element_id": "s21.e41",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": ""
+  },
+  {
+   "id": "s22.type>s22",
+   "from_state": "s22",
+   "to_state": "s22",
+   "element_id": null,
+   "action": "type",
+   "transition": "push",
+   "change_summary": "+'Hi! What can you help me with?'"
+  },
+  {
+   "id": "s22.e13>s23",
+   "from_state": "s22",
+   "to_state": "s23",
+   "element_id": "s22.e13",
+   "action": "tap",
+   "transition": "push",
+   "change_summary": "reply started 2.2 s, finished 50.0 s, 2170 chars"
+  },
+  {
+   "id": "s23.back>s24",
+   "from_state": "s23",
+   "to_state": "s24",
+   "element_id": null,
+   "action": "back",
+   "transition": "back",
+   "change_summary": ""
+  }
+ ]
 }
