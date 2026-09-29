@@ -196,6 +196,25 @@ def test_a_screen_in_another_script_gets_that_scripts_font_files(tmp_path, monke
     assert (run_dir / "mock" / "assets" / "fonts" / "fonts.css").read_text().count("@font-face") == 3
 
 
+def test_text_the_builder_copies_from_a_screenshot_alone_gets_its_scripts_font(tmp_path, monkeypatch):
+    """Greptile on fd7e87f: the builder copies text a screenshot shows that no element carries, so the faces follow
+    the drawn page, not only the elements' text."""
+    run_dir = seed_model(tmp_path / "run", APPS[0])
+    with_fonts(run_dir, APPS[0], ["Roboto"])
+    draw = fake_builder([])
+
+    def builder(**kwargs):
+        text, reply = draw(**kwargs)
+        return text.replace("</section>", "<p>Привет</p></section>", 1), reply
+    calls = []
+    monkeypatch.setattr(mock, "fetch", fake_google(calls))
+    monkeypatch.setattr(llm, "call", builder)
+    mock.run(ctx_for(run_dir, APPS[0]))
+
+    assert "cyrillic-400.woff2" in [url.rsplit("/", 1)[1] for url in calls]
+    assert "Привет" in (run_dir / "mock" / "index.html").read_text()
+
+
 def test_a_rerun_leaves_only_the_font_files_it_fetched(tmp_path, monkeypatch):
     """QA's replay key hashes all of mock/assets, so a file the page no longer uses would still change it."""
     run_dir = seed_model(tmp_path / "run", APPS[0])
