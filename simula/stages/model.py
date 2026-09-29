@@ -31,6 +31,8 @@ EVERYDAY = " (everyday word, never flagged)"
 WORD = re.compile(r"[^\W\d_]{2,}")
 LOOP_UNITS = ("s", "chars")
 MEASURE = re.compile(r"^(?P<what>.*?)\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>[^\d\s]*)$")
+NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
+CLOCK = re.compile(r"\b\d{1,2}:\d{2}\b|\bago\b", re.IGNORECASE)
 MONEY_KINDS = ("paywall", "limit", "currency")
 SCOPE_KINDS = (*MONEY_KINDS, "ad")
 EDGE_ACTIONS = ("tap", "swipe", "back", "type")
@@ -173,12 +175,54 @@ def read_actions(explore_dir: Path) -> list[ActionLine]:
     return [ActionLine.model_validate_json(raw) for raw in path.read_text().splitlines()] if path.exists() else []
 
 
+def bracketing_moves(lines: list[ActionLine]) -> set[int]:
+    """The steps of moves whose two captures sit right around them: the move first captured its to-state, and the
+    screen before it still matched the from-state's capture (the move just before captured it, and nothing changed
+    in place since). Only there is a difference between the two captures what this move changed. A state is
+    captured once, at its first arrival, so a revisit's screen may differ from its capture."""
+    if not lines:
+        return set()
+    current, captured, found = lines[0].from_state, {lines[0].from_state}, set()
+    for a in lines:
+        if a.outcome != "ok" or a.to_state is None:
+            current = current if a.outcome == "denied" else None
+            continue
+        if a.to_state == a.from_state:
+            current = None if a.change_summary else current
+            continue
+        first = a.to_state not in captured
+        if first and current == a.from_state:
+            found.add(a.step)
+        captured.add(a.to_state)
+        current = a.to_state if first else None
+    return found
+
+
+def value_changes(before: State, after: State) -> str:
+    """Values that changed in one spot between two captures ("7 chats → 8 chats"): the same role at the same left
+    edge, top, and height (the width follows the digits), one text there on each side, the same words, and a
+    different number. A clock time is skipped: it changes by itself."""
+    def spots(s: State) -> dict[tuple, str]:
+        found: dict[tuple, list[str]] = {}
+        for e in s.elements:
+            if e.text:
+                found.setdefault((e.role, e.rect_px.x, e.rect_px.y, e.rect_px.h), []).append(e.text)
+        return {k: texts[0] for k, texts in found.items() if len(texts) == 1}
+    old, new = spots(before), spots(after)
+    return "; ".join(f"{old[k]} → {new[k]}" for k in old if k in new and old[k] != new[k]
+                     and NUMBER.sub("#", old[k]) == NUMBER.sub("#", new[k]) and not CLOCK.search(old[k]))
+
+
 def load_edges(explore_dir: Path, states: list[State]) -> tuple[list[Edge], list[str]]:
     """One edge per distinct recorded move that reached a state (or changed something in place). The
-    transition is the one explore recorded. Returns the edges and a note for every line not taken as given."""
+    transition is the one explore recorded. What changed is the explorer's summary, or else, for a move its two
+    captures sit right around, the values that changed between them. Returns the edges and a note for every
+    line not taken as given."""
     by_id = {s.id: s for s in states}
     edges, notes = {}, []
-    for a in read_actions(explore_dir):
+    lines = read_actions(explore_dir)
+    bracketed = bracketing_moves(lines)
+    for a in lines:
         if a.outcome != "ok" or a.to_state is None or a.action not in EDGE_ACTIONS:
             continue
         if a.from_state == a.to_state and not a.change_summary:
@@ -191,9 +235,11 @@ def load_edges(explore_dir: Path, states: list[State]) -> tuple[list[Edge], list
             where = f"the tap at {a.tap_px.x},{a.tap_px.y}" if a.tap_px else "the tap"
             notes.append(f"step {a.step}: {a.mcp_ref} does not hold {where}; "
                          f"bound to {element.id if element else 'no element'}")
+        changed = a.change_summary or (value_changes(by_id[a.from_state], by_id[a.to_state])
+                                       if a.step in bracketed else "")
         edges.setdefault(edge_id, Edge(
             id=edge_id, from_state=a.from_state, to_state=a.to_state, element_id=element.id if element else None,
-            action=a.action, transition=a.transition, change_summary=a.change_summary))
+            action=a.action, transition=a.transition, change_summary=changed))
     return list(edges.values()), notes
 
 

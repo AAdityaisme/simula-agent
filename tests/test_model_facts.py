@@ -91,6 +91,58 @@ def test_only_moves_that_reach_a_state_or_change_something_are_edges(name, tmp_p
     assert notes == ["step 904: unknown state in s01>s99"]
 
 
+def move(step, frm, to, outcome="ok", summary="", action="tap") -> ActionLine:
+    return ActionLine(step=step, from_state=frm, to_state=to, action=action, mcp_ref=None, tap_px=None,
+                      transition="push", change_summary=summary, outcome=outcome)
+
+
+def test_only_a_move_its_two_captures_sit_right_around_is_diffed():
+    lines = [move(1, "s01", None, "denied"), move(2, "s01", "s02"), move(3, "s02", "s03"),
+             move(4, "s03", "s01"), move(5, "s01", "s04"),
+             move(6, "s04", "s04", summary="3 left → 2 left"), move(7, "s04", "s05"),
+             move(8, "s05", None, "denied"), move(9, "s05", "s06"),
+             move(10, "s06", None, "timeout"), move(11, "s06", "s07"),
+             move(12, "s07", "s07", action="swipe"), move(13, "s07", "s08")]
+    assert stage.bracketing_moves(lines) == {2, 3, 9, 13}, \
+        "a revisit, a change in place, or a timeout leaves the screen unlike its capture"
+    assert stage.bracketing_moves([]) == set()
+
+
+def text_state(sid, *texts) -> State:
+    """A state whose elements are (text, x, y, w, h) TextViews."""
+    elements = [stage.make_element(f"{sid}.e{n:02d}", Rect(x=x, y=y, w=w, h=h), "TextView", t, "", None,
+                                   np.zeros((1, 1, 3), np.uint8), DEVICE)
+                for n, (t, x, y, w, h) in enumerate(texts, start=1)]
+    return State(id=sid, kind="screen", parent_id=None, name="", purpose="", fingerprint="", canonical_png="",
+                 elements=elements, in_mock_scope=False, content_rating="safe", dynamic_regions=[], blocked_reason=None)
+
+
+def test_a_value_that_changed_in_one_spot_is_what_changed():
+    before = text_state("s01", ("7 chats", 279, 521, 115, 41), ("My Chats", 155, 174, 799, 71),
+                        ("08:52", 900, 450, 90, 40), ("8", 41, 838, 21, 42), ("1", 41, 838, 21, 42),
+                        ("9 coins", 40, 300, 100, 40), ("Only here 5", 40, 1500, 200, 40))
+    after = text_state("s02", ("8 chats", 279, 521, 115, 41), ("Search", 155, 174, 799, 71),
+                       ("09:37", 900, 450, 90, 40), ("8", 41, 838, 21, 42), ("0", 41, 838, 21, 42),
+                       ("10 coins", 40, 300, 118, 40), ("Elsewhere 6", 40, 1600, 200, 40))
+    assert stage.value_changes(before, after) == "7 chats → 8 chats; 9 coins → 10 coins", \
+        "a new title, a clock, a spot holding two texts, and a text that moved are not changes"
+    assert stage.value_changes(before, before) == ""
+
+
+@pytest.mark.parametrize("name", APPS)
+def test_an_edge_says_what_changed_only_when_its_captures_sit_right_around_it(name, tmp_path):
+    explore = build(name, tmp_path / "explore")
+    states, _, _ = stage.load_states(explore, DEVICE)
+    a, b = text_state(states[0].id, ("7 chats", 279, 521, 115, 41)), text_state(states[1].id, ("8 chats", 279, 521, 115, 41))
+    lines = [move(1, a.id, b.id), move(2, b.id, a.id), move(3, a.id, b.id, action="swipe"),
+             move(4, b.id, a.id, summary="reply started 2 s", action="back")]
+    (explore / "actions.jsonl").write_text("".join(line.model_dump_json() + "\n" for line in lines))
+    edges, _ = stage.load_edges(explore, [a, b, *states[2:]])
+    assert [(e.id, e.change_summary) for e in edges] == [
+        (f"{a.id}.tap>{b.id}", "7 chats → 8 chats"), (f"{b.id}.tap>{a.id}", ""), (f"{a.id}.swipe>{b.id}", ""),
+        (f"{b.id}.back>{a.id}", "reply started 2 s")]
+
+
 @pytest.mark.parametrize("name", APPS)
 def test_a_tap_binds_to_the_element_that_holds_it(name, tmp_path):
     explore = build(name, tmp_path / "explore")
