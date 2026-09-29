@@ -8,7 +8,7 @@ from simula import llm
 from simula.contracts import (CandidateDraft, CandidatesFile, ContractError, ContractReport, LedgerItem, LensOutput,
                               Mechanic, Term)
 from simula.stages import Ctx, propose
-from simula.stages.propose import anchor_ids, check, daily_cap, depths, finish, in_chat, live_count
+from simula.stages.propose import anchor_ids, check, depths, finish, in_chat, live_count
 from tests.conftest import APPS
 from tests.propose_fixtures import anchored, candidate, golden, root
 
@@ -117,7 +117,7 @@ def test_the_same_benefit_name_on_different_screens_is_a_duplicate(model):
     badge = {"kind": "cosmetic", "unit": "badge", "amount": 1, "duration": "7 days"}
     drafts = [candidate(model, reward=badge),
               candidate(model, reward={**badge, "unit": "profile flair"}, trigger_state_id=other_screen(model),
-                        frequency_cap="5 per day")]
+                        daily_cap=5)]
     named = {"c01": "Gold  Badges", "c02": "gold-badge"}
     by_id = {c.id: c for c in finish(drafts, model, "annotate", lambda live: (named, {}))[0]}
     assert by_id["c02"].dropped_reason is None
@@ -128,7 +128,7 @@ def test_the_same_paid_benefit_for_the_same_users_is_a_duplicate_whatever_the_na
     meter = LedgerItem(id="x1", kind="meter", verbatim="3 chats left", evidence_ids=[])
     metered = model.model_copy(update={"value_ledger": model.value_ledger + [meter]})
     drafts = [candidate(metered, title="Two more chats", grants_id="x1"),
-              candidate(metered, title="Keep talking a little longer", grants_id="x1", frequency_cap="3 per day")]
+              candidate(metered, title="Keep talking a little longer", grants_id="x1", daily_cap=3)]
     by_id = {c.id: c for c in finish(drafts, metered, "annotate")[0]}
     assert by_id["c02"].dropped_reason is None
     assert by_id["c01"].dropped_reason == "duplicate of c02: same benefit (x1 for free users)"
@@ -159,8 +159,8 @@ def test_different_names_or_no_names_keep_both(model):
 
 
 def test_an_idea_is_only_a_duplicate_of_one_that_was_kept(model):
-    drafts = [candidate(model, for_users="free", frequency_cap="3 per day"),
-              candidate(model, for_users="everyone", frequency_cap="2 per day"), candidate(model, for_users="paying")]
+    drafts = [candidate(model, for_users="free", daily_cap=3),
+              candidate(model, for_users="everyone", daily_cap=2), candidate(model, for_users="paying")]
     out = finish(drafts, model, "annotate", lambda live: ({c.id: "no ads" for c in live}, {}))[0]
     assert {c.id: c.dropped_reason for c in out} == {"c01": None, "c02": "duplicate of c01: same benefit (no ads)",
                                                       "c03": None}
@@ -222,7 +222,6 @@ def test_no_paywall_means_no_grants_rule_fires(model):
 
 def test_non_breaking_spaces_are_plain_spaces():
     assert in_chat("Inside\xa0the chat\xa0transcript")
-    assert daily_cap("3\xa0per\xa0day") == 3
 
 
 def test_reach_follows_the_trigger_depth(model):
@@ -235,15 +234,29 @@ def test_reach_follows_the_trigger_depth(model):
         if e.from_state == root_id:
             assert depth[e.to_state] <= 1
     assert all(s.id in depth for s in model.states)
-    live = finish([candidate(model, frequency_cap="3 per day")], model, "annotate")[0][0]
+    live = finish([candidate(model, daily_cap=3)], model, "annotate")[0][0]
     assert live.reach_score == 3.0
 
 
-@pytest.mark.parametrize("text, cap", [("3 per day, resets at midnight", 3), ("once a day", 1),
-                                       ("every 24 hours", 1), ("resets at 00:00 UTC; 3 per day", 3),
-                                       ("after 3+ days away, once a day", 1), ("2 times a day", 2), ("3/day", 3)])
-def test_daily_cap_reads_a_per_day_count_only(text, cap):
-    assert daily_cap(text) == cap
+@pytest.mark.parametrize("frequency_cap, daily_cap", [
+    ("1 per user per day, resets at midnight local time; each character can be boosted by fans at most 10 times per "
+     "day", 1),
+    ("1 per character per user per day, 3 per user per day, resets at midnight local time. Each character can be "
+     "lifted by at most 20 fan plays per day.", 3),
+    ("2 per user per day; at most 50 plays per character per day, 5 per screen per day", 2)],
+    ids=["per-character-limit-in-prose", "per-character-and-per-user", "mixed-per-user-and-per-resource"])
+def test_reach_reads_the_typed_per_user_cap_never_the_prose(model, frequency_cap, daily_cap):
+    """Astra #2: a regex over the prose read a per-character "10 times per day" as the per-user cap (0.5 x 10)."""
+    one_tap_in = next(sid for sid, d in depths(model).items() if d == 1)
+    c = candidate(model, trigger_state_id=one_tap_in, frequency_cap=frequency_cap, daily_cap=daily_cap)
+    assert propose.rank(c, model, "annotate").rank_score == 0.5 * daily_cap
+
+
+def test_no_daily_cap_is_dropped_and_an_older_file_without_one_still_parses(model):
+    assert check(candidate(model, daily_cap=0), model) == "doesn't give a per-user daily cap"
+    older = candidate(model).model_dump(exclude={"daily_cap"})
+    assert CandidateDraft.model_validate({k: v for k, v in older.items() if k in CandidateDraft.model_fields}
+                                         ).daily_cap == 0
 
 
 def test_mechanic_ledger_and_element_ids_resolve_to_what_they_point_at(model):
@@ -488,7 +501,7 @@ def test_an_unobserved_app_name_in_a_caption_is_flagged_beside_an_everyday_word(
 
 def flagged_and_clean(m, flagged_ranks_higher=True):
     """c01 uses the unobserved term (placed to rank higher, or identical but for its words), c02 is clean."""
-    higher = {"trigger_state_id": other_screen(m), "frequency_cap": "5 per day"} if flagged_ranks_higher else {}
+    higher = {"trigger_state_id": other_screen(m), "daily_cap": 5} if flagged_ranks_higher else {}
     return [candidate(m, title="Play for 3 Zap Credits", **higher), candidate(m, title="Play for 3 extra replies")]
 
 

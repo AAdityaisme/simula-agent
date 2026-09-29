@@ -10,7 +10,7 @@ from pathlib import Path
 
 from simula import config, runfolder, runlog
 from simula.config import ROOT, STAGES
-from simula.contracts import Manifest, Provenance
+from simula.contracts import Manifest, Provenance, StageOutcome
 from simula.llm import CapReached, ProviderUnavailable, ReplayMiss
 from simula.stages import EXTRA_INPUTS, ROLES, UPSTREAM, Ctx
 
@@ -123,13 +123,18 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     provenance = runfolder.upstream_provenance(ctx.run_dir, UPSTREAM[stage])
     runfolder.require_real(provenance, ctx.allow_fixtures)
     inputs, prompts, params = stage_inputs(stage, ctx), prompt_files(stage), stage_params(stage, ctx)
-    if not force and runfolder.is_done(stage_dir, ctx.run_dir, inputs, prompts, params):
+    code = runfolder.code_files(stage)
+    if not force and runfolder.is_done(stage_dir, ctx.run_dir, inputs, prompts, params, code=code):
         runlog.run_trace(ctx.run_dir, stage=stage, step="skip", decider="code", note="hashes match")
         return True
     module = importlib.import_module(f"simula.stages.{stage}")
     stage_dir.mkdir(exist_ok=True)
+    (stage_dir / "done.json").unlink(missing_ok=True)  # the stage is being redone: its old marker no longer holds
+    runlog.sync_manifest(ctx.run_dir)
+    trace_path = ctx.run_dir / "trace.jsonl"
+    traced_before = len(runlog.read_trace(trace_path))
     try:
-        module.run(ctx)
+        result = module.run(ctx)
     except NotImplementedError as e:
         runfolder.write_failure(stage_dir, f"not built yet ({e})")
         runlog.run_trace(ctx.run_dir, stage=stage, step="run", decider="code", outcome="not_built",
@@ -139,7 +144,7 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     except CapReached as e:
         runfolder.write_failure(stage_dir, str(e))
         runlog.needs_human(ctx.run_dir, stage, "$ cap reached", str(e), [f"{stage}/failure.json"],
-                           f"simula {stage} {ctx.app['name']} --run {ctx.run_dir.name} --usd-cap <higher>")
+                           f"{rerun_command(stage, ctx)} --usd-cap <higher>")
         raise
     except ProviderUnavailable as e:
         runfolder.write_failure(stage_dir, str(e))
@@ -153,14 +158,40 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
         runfolder.write_failure(stage_dir, reason)
         runlog.run_trace(ctx.run_dir, stage=stage, step="run", decider="code", outcome="error", note=reason[:300])
         raise
-    runfolder.write_done(stage_dir, ctx.run_dir, inputs, prompts, params, [stage_dir], provenance)
-    runlog.run_trace(ctx.run_dir, stage=stage, step="done", decider="code", note=provenance.source)
-    usd_total = sum(line.usd for line in runlog.read_trace(ctx.run_dir / "trace.jsonl"))
-    done = runlog.read_manifest(ctx.run_dir).stages_done
-    runlog.update_manifest(ctx.run_dir, stages_done=sorted(set(done) | {stage}, key=STAGES.index),
-                           usd_total=round(usd_total, 4))
-    print(f"{stage}: done")
+    traced = [line for line in runlog.read_trace(trace_path)[traced_before:] if line.stage == stage]
+    outcome = finished_outcome(stage, ctx, result, [line.note for line in traced if line.outcome == "cap"])
+    partial = outcome.status == "partial"
+    if partial:
+        runlog.needs_human(ctx.run_dir, stage, "partial output", "; ".join(outcome.reasons), [f"{stage}/done.json"],
+                           outcome.resume)
+    elif not any(line.step == "needs_human" and line.outcome == "blocked" for line in traced):
+        # Only a clean finish resolves: a stage that asked for a person during this run still needs one.
+        runlog.resolve_needs_human(ctx.run_dir, stage)
+    # done.json is the commit point, written after needs-human.md: if that fails, the stage has no marker, so the next
+    # run redoes it. The manifest is read from the markers, so it never lists a stage without one.
+    runfolder.write_done(stage_dir, ctx.run_dir, inputs, prompts, params, [stage_dir], provenance, code=code,
+                         outcome=outcome)
+    runlog.sync_manifest(ctx.run_dir)
+    runlog.run_trace(ctx.run_dir, stage=stage, step="done", decider="code",
+                     note=provenance.source + (f"; partial: {'; '.join(outcome.reasons)}"[:300] if partial else ""))
+    print(f"{stage}: done" + (" (partial: see needs-human.md)" if partial else ""))
     return True
+
+
+def finished_outcome(stage: str, ctx: Ctx, result, capped: list[str]) -> StageOutcome:
+    """What a stage that returned delivered: what it reported (a stage may return a StageOutcome), made partial when
+    its $ cap turned work away (`capped`, the trace notes saying so), since a higher cap could change the output."""
+    outcome = result if isinstance(result, StageOutcome) else StageOutcome()
+    if capped:
+        return StageOutcome(status="partial", reasons=[*outcome.reasons, *dict.fromkeys(capped)],
+                            resume=f"{rerun_command(stage, ctx)} --usd-cap <higher>")
+    if outcome.status == "partial" and not outcome.resume:
+        return outcome.model_copy(update={"resume": rerun_command(stage, ctx)})
+    return outcome
+
+
+def rerun_command(stage: str, ctx: Ctx) -> str:
+    return f"simula {stage} {ctx.app['name']} --run {ctx.run_dir.name}"
 
 
 def open_run(args) -> Ctx:
@@ -187,6 +218,7 @@ def open_run(args) -> Ctx:
     for stage, path in fixtures.items():
         runfolder.seed_from_fixture(run_dir, stage, Path(path), args.allow_fixtures)
         runlog.run_trace(run_dir, stage=stage, step="seed", decider="human", note=f"fixture {path}")
+    runlog.sync_manifest(run_dir)  # heals a manifest an earlier command failed to update
     return Ctx(app=app, run_dir=run_dir, profile=args.profile, no_cache=args.no_cache, replay=args.replay,
                usd_cap=args.usd_cap, allow_fixtures=args.allow_fixtures, budget=args.budget,
                allow_account_create=args.allow_account_create, probe=getattr(args, "probe", False))

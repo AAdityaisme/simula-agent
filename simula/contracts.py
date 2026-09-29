@@ -333,6 +333,8 @@ class CandidateDraft(Strict):
                                   "of, or more of; null when the reward is a new resource.")
     cost_inputs: CostInputs
     frequency_cap: str
+    daily_cap: int = Field(default=0, description="How many times one user can take this offer in a day: the "
+                           "per-user limit only, never a limit per character, item, or screen.")
     decline_path: str
     ad_fail_path: str
     subscriber_treatment: str
@@ -659,14 +661,23 @@ class FileHash(Strict):
     sha256: str
 
 
+class StageOutcome(Strict):
+    """What a finished stage delivered: all of its work, or part of it, with why and the command that continues it."""
+    status: Literal["complete", "partial"] = "complete"
+    reasons: list[str] = []
+    resume: str | None = None
+
+
 class DoneMarker(Strict):
     schema_version: int = SCHEMA_VERSION
     stage: str
     input_hashes: list[FileHash]
     prompt_hashes: list[FileHash]
     params_hash: str
+    code_hashes: list[FileHash] = []  # its module and the simula modules it imports; [] predates hashing code
     output_hashes: list[FileHash]
     provenance: Provenance
+    outcome: StageOutcome = StageOutcome()
     finished_at: str
 
 

@@ -78,18 +78,23 @@ class Budget:
     spent: float = 0.0
     held: float = 0.0
     lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
+    trace_path: Path | None = None
 
     @classmethod
     def for_stage(cls, stage: str, trace_path: Path, cap: float | None = None) -> "Budget":
         spent = sum(line.usd for line in read_trace(trace_path) if line.stage == stage)
-        return cls(stage, config.stage_cap(stage) if cap is None else cap, spent)
+        return cls(stage, config.stage_cap(stage) if cap is None else cap, spent, trace_path=trace_path)
 
     def reserve(self, worst_usd: float) -> None:
         with self.lock:
             if self.spent + self.held + worst_usd > self.cap:
-                raise CapReached(f"{self.stage}: next call could cost ${worst_usd:.2f}, ${self.spent:.2f} of "
-                                 f"${self.cap:.2f} already spent, ${self.held:.2f} held by calls in flight; "
-                                 "raise with --usd-cap")
+                refused = CapReached(f"{self.stage}: next call could cost ${worst_usd:.2f}, ${self.spent:.2f} of "
+                                     f"${self.cap:.2f} already spent, ${self.held:.2f} held by calls in flight; "
+                                     "raise with --usd-cap")
+                if self.trace_path:  # the run's record that the cap cut this stage short, even if the stage goes on
+                    trace(self.trace_path, stage=self.stage, step="budget", decider="code", outcome="cap",
+                          note=str(refused))
+                raise refused
             self.held += worst_usd
 
     def charge(self, usd: float, reserved: float = 0.0) -> None:

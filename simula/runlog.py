@@ -6,9 +6,9 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
-from simula.config import ROOT
+from simula.config import ROOT, STAGES
 from simula.contracts import Manifest, TraceLine
-from simula.runfolder import write_json_atomic
+from simula.runfolder import read_done, write_json_atomic
 
 BUILD_TRACE = ROOT / "build" / "trace.jsonl"
 
@@ -49,6 +49,14 @@ def update_manifest(run_dir: Path, **changes) -> Manifest:
     return manifest
 
 
+def sync_manifest(run_dir: Path) -> Manifest:
+    """The manifest's stages_done and usd_total, read again from the done markers and the trace, so the manifest never
+    lists a stage its marker doesn't show as complete."""
+    done = [s for s in STAGES if (marker := read_done(run_dir / s)) and marker.outcome.status == "complete"]
+    usd_total = sum(line.usd for line in read_trace(run_dir / "trace.jsonl"))
+    return update_manifest(run_dir, stages_done=done, usd_total=round(usd_total, 4))
+
+
 def record_fallback(run_dir: Path, note: str) -> None:
     """Writes a used model fallback into the manifest, when this call belongs to a run."""
     if (run_dir / "manifest.json").exists():
@@ -73,6 +81,20 @@ def needs_human(run_dir: Path, stage: str, what: str, why: str, evidence: list[s
     run_trace(run_dir, stage=stage, step="needs_human", decider="code", outcome="blocked",
               note=what if sent else f"{what} (notification failed; see needs-human.md)")
     return path
+
+
+def resolve_needs_human(run_dir: Path, stage: str) -> None:
+    """Once a stage completes, marks its open requests in needs-human.md done, whatever asked for them (its cap, the
+    provider, a failed check), so the file never asks a person to continue work that has finished."""
+    path = run_dir / "needs-human.md"
+    headers = [line for line in path.read_text().splitlines() if line.startswith("## ")] if path.exists() else []
+    asked = [h for h in headers if h.endswith((f" · {stage}", f" · {stage} · resolved"))]
+    if not asked or asked[-1].endswith(" · resolved"):
+        return
+    with open(path, "a") as f:
+        f.write("\n".join([f"## {now()} · {stage} · resolved", "",
+                           f"**Done:** {stage} finished complete, so the requests above for it need nothing more.", "", ""]))
+    run_trace(run_dir, stage=stage, step="needs_human", decider="code", note="resolved: the stage finished complete")
 
 
 def fixture_banner(run_dir: Path) -> str:
