@@ -113,6 +113,9 @@ RUNTIME_JS = """<script id="simula-runtime-js">
   const gesture = kind => { const a = (actionsOf()[current] || {})[kind]; return !!a && show(a[0], a[1]); };
   let start = null, dragged = false;
   document.addEventListener('pointerdown', e => { start = [e.clientX, e.clientY]; dragged = false; });
+  document.addEventListener('pointercancel', () => { start = null; });
+  // A drag that starts on a picture must stay a swipe: the browser's own image drag would cancel the pointer.
+  document.addEventListener('dragstart', e => e.preventDefault());
   document.addEventListener('pointerup', e => {
     if (!start) return;
     const [x, y] = start, dx = e.clientX - x, dy = e.clientY - y;

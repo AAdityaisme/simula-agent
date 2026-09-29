@@ -2,8 +2,10 @@
 gesture (a swipe, the system back, typing into the screen's text field). Runs on every golden."""
 
 import json
+import re
 
 import pytest
+from PIL import Image
 
 from simula.contracts import Edge
 from simula.render import open_mock
@@ -111,6 +113,23 @@ def test_a_drag_performs_the_swipe_and_never_the_tap_it_started_on(tmp_path, app
         page.evaluate("id => window.simula.go(id)", a)
         page.locator(f'[data-screen="{a}"] [data-edge="{tap.id}"]').first.click()
         assert state(page) == tap.to_state
+
+
+def test_a_drag_that_starts_on_a_picture_is_a_swipe_not_the_browsers_image_drag(tmp_path, app):
+    model, tap, a, c, d, field = gestured(app)
+    mock_dir = write_mock(tmp_path, model)
+    Image.new("RGB", (40, 40), "#336699").save(mock_dir / "assets" / "picture.png")
+    picture = ('<img src="assets/picture.png" '
+               'style="position:absolute;left:100px;top:300px;width:200px;height:200px;z-index:9">')
+    html = (mock_dir / "index.html").read_text()
+    opening = re.search(rf'<section[^>]*data-screen="{a}"[^>]*>', html).end()
+    (mock_dir / "index.html").write_text(html[:opening] + picture + html[opening:])
+    with open_mock(mock_dir) as (page, _):
+        page.evaluate("id => window.simula.go(id)", a)
+        box = page.locator('img[src="assets/picture.png"]').bounding_box()
+        x, y = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
+        drag(page, x, y, x, y - 250)
+        assert state(page) == c
 
 
 def test_escape_and_a_drag_in_from_the_left_edge_perform_the_back(tmp_path, app):
