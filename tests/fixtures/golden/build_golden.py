@@ -94,7 +94,8 @@ def build_elements(app: str, spec: dict, image: Image.Image, out: Path, scope: b
             if not flat(crop):
                 asset = f"assets/{eid}.png"
                 crop.save(out / asset)
-        elements.append(element.model_copy(update={"asset_png": asset, "in_mock": scope and bool(text or label or art)}))
+        in_mock = scope and bool(text or label or art)
+        elements.append(element.model_copy(update={"asset_png": asset, "in_mock": in_mock}))
     return elements
 
 
@@ -161,11 +162,12 @@ def build(app: str) -> ProductModel:
                                evidence_ids=[find(states, r) for r in v["evidence"]])
               for v in meaning.get("cross_screen_values", [])]
     order = mock_scope(list(states.values()), edges, ModelMeaning(
-        app_name=meaning["app_name"], app_category=meaning["app_category"], states=[], elements=[], flows=flows, mechanics=mechanics,
+        app_name="", app_category=meaning["app_category"], states=[], elements=[], flows=flows, mechanics=mechanics,
         cross_screen_values=[], value_ledger=[], terms=[], open_questions=[]))
     states = {spec["id"]: build_state(app, spec, out, set(order)) for spec in meaning["states"]}
     model = ProductModel(
-        app=app, app_name=meaning["app_name"], app_version=meaning["app_version"], app_category=meaning["app_category"], run_id="golden",
+        app=app, app_name=meaning["app_name"], app_version=meaning["app_version"],
+        app_category=meaning["app_category"], run_id="golden",
         device=DEVICE, states=list(states.values()), edges=edges, flows=flows, mechanics=mechanics, cross_screen_values=values,
         value_ledger=ledger, open_questions=meaning["open_questions"], mock_order=order,
         coverage=Coverage(states_found=len(states), actions_taken=0, stop_reason="fixture: assembled from captures",

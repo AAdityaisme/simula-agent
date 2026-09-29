@@ -695,9 +695,9 @@ def asset_note(states: list[State], device: Device, copies: list[str]) -> str:
     corner boxes and a modal's copies of its parent not drawn."""
     art = [e for s in states if s.in_mock_scope for e in s.elements if is_image_like(e, s.elements, device)]
     corner = {e.id for e in art if edge_overlay(e, device)}
-    flat = [e.id for e in art if not e.asset_png and e.id not in corner]
-    return (f"crops saved: {sum(bool(e.asset_png) for e in art)}; flat boxes drawn from their colors: {len(flat)}"
-            + (f" ({', '.join(flat)})" if flat else "") + f"; wordless corner boxes not drawn: {len(corner)}; "
+    fills = [e.id for e in art if not e.asset_png and e.id not in corner]
+    return (f"crops saved: {sum(bool(e.asset_png) for e in art)}; flat boxes drawn from their colors: {len(fills)}"
+            + (f" ({', '.join(fills)})" if fills else "") + f"; wordless corner boxes not drawn: {len(corner)}; "
             f"a parent's elements a modal or sheet repeats, not drawn again: {len(copies)}")
 
 
