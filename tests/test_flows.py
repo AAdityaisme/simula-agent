@@ -475,21 +475,24 @@ def test_a_failed_ad_must_bring_the_user_back_with_nothing_granted_and_say_so(tm
 
 
 REWARD_PAGE = """<style>body{margin:0;background:#fff}p{position:absolute;margin:0;font:16px sans-serif}
-body:not(.simula-rewarded) [data-reward]{display:none}{extra}</style>
+{flow_css}{extra}</style>
 <p style="left:20px;top:20px">Home</p><p data-reward style="left:20px;top:200px">{label}</p>
-<p class="card" style="left:20px;top:400px">A card</p>"""
+<p class="card" style="left:20px;top:400px">A card</p><p data-unrewarded style="left:20px;top:600px">{before}</p>"""
 
 
-@pytest.mark.parametrize("extra, label, expected", [
-    ("", "Badge on", (True, ["Badge on"])),
-    ("body.simula-rewarded .card{top:300px!important}", "Badge on", (True, None)),
-    ("body.simula-rewarded .card{color:rgb(3,3,3)}", "", (False, None)),
+@pytest.mark.parametrize("extra, label, before, expected", [
+    ("", "Badge on", "", (True, ["Badge on"])),
+    ("body.simula-rewarded .card{top:300px!important}", "Badge on", "", (True, None)),
+    ("body.simula-rewarded .card{color:rgb(3,3,3)}", "", "", (False, None)),
+    ("", "Level 2 open", "Level 2 locked", (True, None)),
 ])
-def test_the_reward_effect_names_labels_and_ignores_render_noise(tmp_path, extra, label, expected):
-    """Only a label appears; a label appears and a card moves; nothing but a 3-level shade (render noise) changes."""
+def test_the_reward_effect_names_labels_and_ignores_render_noise(tmp_path, extra, label, before, expected):
+    """Only a label appears; a label appears and a card moves; nothing but a 3-level shade (render noise) changes;
+    the unlocked form appears and the locked one the page marked data-unrewarded goes."""
     with sync_playwright() as p:
         page = p.chromium.launch().new_page(viewport=render.VIEWPORT)
-        page.set_content(REWARD_PAGE.replace("{extra}", extra).replace("{label}", label))
+        page.set_content(REWARD_PAGE.replace("{flow_css}", flows.FLOW_CSS).replace("{extra}", extra)
+                         .replace("{label}", label).replace("{before}", before))
         page.evaluate(flows.REWARDED_JS, True)
         page.screenshot(path=tmp_path / "on.png", animations="disabled")
         assert flows.reward_effect(page, tmp_path / "on.png") == expected

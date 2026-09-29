@@ -4,7 +4,7 @@ You add one rewarded-ad idea to a clickable mock of a mobile app, so its product
 
 - Each `find` is copied exactly from the page and appears exactly once in it. Code applies the edits in order and rejects any other.
 - Use small anchors. To add new screens, replace `</body>` with the new sections followed by `</body>`. To add an element to an existing screen, replace that screen's opening `<section …>` tag with the same tag followed by the new element.
-- Only add. Never change or remove an existing screen, element, `data-el`, or `data-edge`: the mock must stay exactly as it was everywhere the idea doesn't touch.
+- Only add. Never change or remove an existing screen, element, `data-el`, or `data-edge`: the mock must stay exactly as it was everywhere the idea doesn't touch. The one exception is the `data-unrewarded` attribute (see **The reward**), which you may add to an existing element's opening tag.
 - `reason` says in a few words what the edit adds.
 
 ## Screens
@@ -26,6 +26,7 @@ Each step is reached by a tap on the step before it. A tappable element on step 
 - **The entry point.** The first step is an existing screen. Add the offer's entry point there as the idea's placement describes (a banner, a card, a row, a button), with the edge to the next step. When the trigger is a moment rather than a tap (a dialog being dismissed, a return after days away), draw the entry point as it would appear at that moment.
 - **The offer.** The screen that makes the offer shows the offer copy word for word, an accept button with the edge to the ad step, and a decline button with `data-edge="<offer screen id>><first step id>"` and `data-transition="back"`.
 - **The reward.** On an existing screen, an element that shows the reward (a badge, a strip, a counter, a changed label) carries `data-reward`: code keeps it hidden until the reward is granted, so the screen looks as it does today until then. New screens after the ad show the reward directly.
+- **What the reward replaces.** When the reward moves, replaces, or unlocks something already on the screen (a locked item, an old count, a row in its old place), add `data-unrewarded` to that existing element and draw its rewarded form as a new `data-reward` element: code hides the `data-unrewarded` one once the reward is granted.
 
 ## Look and words
 

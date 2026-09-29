@@ -72,6 +72,7 @@ PLAIN_CHECKS = {
 }
 
 FLOW_CSS = """body:not(.simula-rewarded) [data-reward]{display:none!important}
+body.simula-rewarded [data-unrewarded]{display:none!important}
 [data-screen]{isolation:isolate}
 .sa-dim{position:absolute;inset:0;background:rgba(8,10,14,.72)}
 .sa-card{position:absolute;left:28px;right:28px;top:140px;border-radius:20px;background:var(--bg-1,#fff);color:var(--fg-1,#16181d);padding:18px;font:15px/1.35 var(--font-1,system-ui,-apple-system,Roboto,sans-serif);box-shadow:0 12px 40px rgba(0,0,0,.4)}
@@ -569,8 +570,9 @@ def visible(page, selector: str) -> list:
 
 def walk_decline(flow_dir: Path, c: Candidate, ad: str | None, ad_at: int) -> tuple[bool | None, str]:
     """The second, short walk: reach the offer, check it shows the offer copy, tap its control that goes back (the
-    one back to the first step before any other, such as the app's own close), and check the app is as it was. Returns whether the copy was shown (None when the offer couldn't be reached) and why
-    saying no failed ("" when it worked)."""
+    one back to the first step before any other, such as the app's own close), and check the app is as it was.
+    Returns whether the copy was shown (None when the offer couldn't be reached) and why saying no failed ("" when it
+    worked)."""
     steps = [s.state_id for s in c.flow_steps]
     with render.open_mock(flow_dir) as (page, _):
         page.clock.install()
