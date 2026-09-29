@@ -131,9 +131,9 @@ class TermMeaning(Strict):
 
 
 class Term(TermMeaning):
-    observed: bool = Field(description="Code: false when no cited element on a screen that shows the term says "
-                                       "more than the term and the ledger lines quoting it; the meaning then reads "
-                                       "'meaning not observed' and nothing may build on it.")
+    observed: bool = Field(description="Code: false unless a cited element carries the term and still says "
+                                       "something in words once the term and the ledger lines quoting it are cut; "
+                                       "the meaning then reads 'meaning not observed' and nothing may build on it.")
 
 
 class QuestionDraft(Strict):

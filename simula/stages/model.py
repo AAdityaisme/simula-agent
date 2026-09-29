@@ -28,6 +28,7 @@ ANSWER_RESERVE_TOKENS = 8000
 TOKENS_PER_NAME = 30
 QUESTION_CAP = 5
 NOT_OBSERVED = "meaning not observed"
+WORD = re.compile(r"[^\W\d_]{2,}")
 LOOP_UNITS = ("s", "chars")
 MEASURE = re.compile(r"^(?P<what>.*?)\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>[^\d\s]*)$")
 MONEY_KINDS = ("paywall", "limit", "currency")
@@ -440,27 +441,30 @@ def keyword_floor(state: State, keywords: list[str]) -> ContentRating:
 
 
 def resolve_terms(meaning: ModelMeaning, states: list[State]) -> list[Term]:
-    """A cited element explains a term when it sits on a screen that shows the term (as a whole word) and its text
-    or label says more than the term and more than any ledger line quoting the term. So the name alone can't
-    define itself, and neither can a ledger line that uses it ("500 coins"); the bullets under a plan's name or the
-    price on its card can, whatever a mechanic cites as evidence. A term no cited element explains is marked
-    'meaning not observed' and nothing downstream may build on it. Known limit: code can't tell an explanation
-    from other words next to the term (a button reading "Unlock <term>"); what explains it stays the model's call."""
+    """A term keeps its meaning only when a cited element carries it (as a whole word) and, with the term and every
+    ledger line quoting it cut out, still says something in words of two or more letters. So a bare name, a count
+    ("1.8k tokens") or a line that uses the term can't define it. Other cited elements (the bullets under a plan's
+    name) count when they sit on such an element's screen, whatever a mechanic cites as evidence. Otherwise the term
+    is marked 'meaning not observed' and nothing downstream may build on it. Known limits: a call to action
+    ("Unlock <term>") reads as an explanation, and a price on a plan card ("Weekly", "$1.99") doesn't; which cited
+    text explains the term stays the model's call."""
     elements = {e.id: e for s in states for e in s.elements}
     screen = {e.id: s.id for s in states for e in s.elements}
 
-    def says_more(field: str, cut: list[re.Pattern[str]]) -> bool:
+    def rest(e: Element, cut: list[re.Pattern[str]]) -> str:
+        fields = [e.text, e.label]
         for pattern in cut:
-            field = pattern.sub(" ", field)
-        return re.search(r"\w", field) is not None
+            fields = [pattern.sub(" ", f) for f in fields]
+        return " ".join(fields)
 
     terms = []
     for t in meaning.terms:
         name = text.phrase(t.term)
-        shown = {screen[e.id] for e in elements.values() if name.search(e.text) or name.search(e.label)}
         cut = [text.phrase(i.verbatim) for i in meaning.value_ledger if name.search(i.verbatim)] + [name]
-        defined_by = [i for i in t.defined_by if i in elements and screen[i] in shown
-                      and any(says_more(f, cut) for f in (elements[i].text, elements[i].label))]
+        cited = [elements[i] for i in t.defined_by if i in elements]
+        explained = {screen[e.id] for e in cited if (name.search(e.text) or name.search(e.label))
+                     and WORD.search(rest(e, cut))}
+        defined_by = [e.id for e in cited if screen[e.id] in explained and re.search(r"\w", rest(e, cut))]
         terms.append(Term(term=t.term, meaning=t.meaning if defined_by else NOT_OBSERVED, defined_by=defined_by,
                           used_in=t.used_in, observed=bool(defined_by)))
     return terms

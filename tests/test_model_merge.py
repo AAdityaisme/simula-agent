@@ -260,23 +260,24 @@ def test_evidence_may_cite_an_edge(app):
     assert rejected == []
 
 
-def test_a_term_keeps_its_meaning_only_when_a_cited_element_on_a_screen_that_shows_it_explains_it(app):
+def test_a_term_keeps_its_meaning_only_when_a_cited_element_carries_it_and_says_more_in_words(app):
     _, states, edges, answer = app
-    carrier = next(e for s in states for e in s.elements if len(e.text.split()) >= 2)
-    word = carrier.text.split()[-1]
-    elsewhere = next(e for s in states if not any(word.lower() in (x.text + x.label).lower() for x in s.elements)
-                     for e in s.elements if e.text)
+    carrier = next(e for s in states for e in s.elements if len(stage.WORD.findall(e.text)) >= 2)
+    word = stage.WORD.findall(carrier.text)[-1]
+    beside = next(e for s in states if carrier in s.elements for e in s.elements
+                  if e.text and word.lower() not in (e.text + e.label).lower())
     answer.mechanics.append(Mechanic(id="m-term", kind="other", evidence_ids=[carrier.id], summary=f"Uses {word}.",
                                      observed_numbers=[], status="observed"))
     answer.terms += [TermMeaning(term=word.upper(), meaning="a plain meaning", defined_by=[carrier.id, "s01.e999"],
                                  used_in=["m-term"]),
-                     TermMeaning(term=word, meaning="a guess", defined_by=[elsewhere.id], used_in=["m-term"]),
+                     TermMeaning(term=word, meaning="a guess", defined_by=[beside.id], used_in=["m-term"]),
                      TermMeaning(term="Zorblax", meaning="x", defined_by=[carrier.id], used_in=["m-term"])]
     kept, rejected = stage.check_meaning(answer, states, edges)
     assert rejected == ["term 'Zorblax': used_in ['m-term'] names no kept mechanic or ledger line that uses it"]
     observed, unobserved = stage.resolve_terms(kept, states)
     assert (observed.observed, observed.meaning, observed.defined_by) == (True, "a plain meaning", [carrier.id])
-    assert (unobserved.observed, unobserved.meaning, unobserved.defined_by) == (False, stage.NOT_OBSERVED, [])
+    assert (unobserved.observed, unobserved.meaning, unobserved.defined_by) == (False, stage.NOT_OBSERVED, []), \
+        "text beside the term on its screen, with no cited element that carries it, is a guess"
 
 
 def test_the_line_that_uses_a_term_cannot_define_it(app):
@@ -302,9 +303,9 @@ SHOWN = {
     "luzia": {
         "Luzia+": [f"s02.e0{n}" for n in range(1, 8)],  # s02 paywall: "Unlock Luzia+" and the six benefits under it
         "Toki": ["s01.e26", "s01.e27", "s04.e03", "s04.e04"],  # s01 "Meet Toki, your virtual pet!"; s04 pet modal
-        "Weekly": ["s02.e10"],  # s02 plan card: "Weekly" (s02.e09) at "$ 1.99"
-        "Monthly": ["s02.e13", "s02.e14"],  # "Monthly" (s02.e12) at "$ 4.99", "Most popular"
-        "Annual": ["s02.e17"],  # "Annual" (s02.e16) at "$ 39.99"
+        "Weekly": [],  # s02 plan card: the name (s02.e09) and a price (s02.e10); a price doesn't say what it means
+        "Monthly": [],  # the same: "Monthly" (s02.e12), "$ 4.99", "Most popular"
+        "Annual": [],  # the same: "Annual" (s02.e16), "$ 39.99"
     },
     "aol": {
         # The sponsored cards' labels: "... in Taboola advertising section · Sponsored" (the word isn't painted)
@@ -329,6 +330,27 @@ def test_a_real_term_is_observed_exactly_when_a_screen_shows_what_it_means(name)
                                                  (False, stage.NOT_OBSERVED))
 
 
+# Guesses built from PR 2's real screens (red team D): the model's own meaning and used_in, with these citations.
+GUESSES = [
+    ("janitorai", "Limitless", ["s01.e48", "s01.e49"], "the bare tag and the count beside it on its card"),
+    ("janitorai", "Limitless", ["s01.e15"], "a blurb on the same screen that never names it"),
+    ("janitorai", "tokens", ["s01.e48"], "a different bare tag"),
+    ("janitorai", "tokens", ["s01.e34"], "a chat count"),
+    ("aol", "Inbox", ["s01.e72", "s01.e73"], "the bare tab name and the tab beside it"),
+    ("aol", "Inbox", ["s01.e36"], "a headline on the same screen"),
+    ("luzia", "Toki", ["s01.e03"], "another banner on the same screen"),
+]
+
+
+@pytest.mark.parametrize("name, term, cited, why", GUESSES, ids=[f"{g[1]}<-{'+'.join(g[2])}" for g in GUESSES])
+def test_a_guess_cited_next_to_a_term_stays_unobserved(name, term, cited, why):
+    states, meaning = real_terms(name)
+    drafted = next(t for t in meaning.terms if t.term == term)
+    meaning.terms[:] = [drafted.model_copy(update={"defined_by": cited})]
+    (resolved,) = stage.resolve_terms(meaning, states)
+    assert (resolved.observed, resolved.defined_by) == (False, []), why
+
+
 def test_a_real_count_of_a_term_does_not_define_it():
     """s01.e49 "1.8k tokens" is quoted by a meter line that uses the term, though the term's used_in doesn't list it."""
     states, meaning = real_terms("janitorai")
@@ -337,11 +359,10 @@ def test_a_real_count_of_a_term_does_not_define_it():
     assert (resolved.observed, resolved.defined_by) == (False, [])
 
 
-def test_a_screen_shows_a_term_only_as_a_whole_word():
-    """With no meter line quoting it, "1.8k tokens" would explain "token" if part of a word counted."""
+def test_a_term_shows_only_as_a_whole_word():
+    """s01.e48 "Limitless" would explain "Limit" if part of a word counted: "less" is left once "Limit" is cut."""
     states, meaning = real_terms("janitorai")
-    meaning.value_ledger[:] = []
-    meaning.terms[:] = [TermMeaning(term="token", meaning="a guess", defined_by=["s01.e49"], used_in=[])]
+    meaning.terms[:] = [TermMeaning(term="Limit", meaning="a guess", defined_by=["s01.e48"], used_in=[])]
     (resolved,) = stage.resolve_terms(meaning, states)
     assert (resolved.observed, resolved.defined_by) == (False, [])
 
