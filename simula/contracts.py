@@ -10,6 +10,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 SCHEMA_VERSION = 1
+OutcomeStatus = Literal["complete", "partial"]  # a stage's done.json and QA's report share it
 
 
 class Strict(BaseModel):
@@ -346,16 +347,17 @@ class CandidateDraft(Strict):
                                   "of, or more of; null when the reward is a new resource.")
     cost_inputs: CostInputs
     frequency_cap: str
-    daily_cap: int = Field(default=0, description="How many times one user can take this offer in a day: the "
-                           "per-user limit only, never a limit per character, item, or screen.")
+    daily_cap: int = Field(description="How many times one user can take this offer in a day: the per-user limit "
+                           "only, never a limit per character, item, or screen. An offer one user can take less "
+                           "than once a day (one-time, weekly, monthly, every few days) is 0.")
     decline_path: str
     ad_fail_path: str
     subscriber_treatment: str
     advertiser_category: str
     character_use: str
     flow_steps: list[FlowStep]
-    after_reward: str = Field(default="", description="What the user sees when the reward runs out, and why "
-                              "that moves them toward paying, returning, or watching again.")
+    after_reward: str = Field(description="What the user sees when the reward runs out, and why that moves them "
+                              "toward paying, returning, or watching again.")
     rationale: str
 
 
@@ -384,12 +386,16 @@ class Economics(Strict):
 
 
 class Candidate(CandidateDraft):
+    # The proposer must answer both (CandidateDraft); a stored file from before either field existed still parses:
+    # a missing daily_cap reads as 0 (less than once a day), and propose drops an idea with no after_reward.
+    daily_cap: int = 0
+    after_reward: str = ""
     economics: Economics | None = None
     reach_score: float | None = None
     rank_score: float | None = None
     dropped_reason: str | None = None
-    flags: list[str] = Field(default=[], description="Concerns code raises that don't drop the idea; the judge "
-                             "sees them.")
+    flags: list[str] = Field(default=[], description="Concerns code raises that don't drop the idea, for the person "
+                             "reading the run; the judge never sees them.")
 
 
 # ---------- judge (stage 6) ----------
@@ -547,7 +553,7 @@ class EditsFile(Strict):
 
 class QARound(Strict):
     round: int
-    score: float
+    keep_score: float
     kept: bool
     contract_errors: int
     failed_taps: int
@@ -596,15 +602,49 @@ class FlowWalk(Strict):
     status: Literal["passed", "failed", "out_of_scope", "undrawn"]
     problem: str | None
     screen: str | None = None
-    navigated: list[str] = []
+    gestures: list[str]  # the hops taken by a gesture rather than a tap
+
+
+class Structure(Strict):
+    """Tagged elements drawn within 4 dp of where the real screen has them."""
+    tagged: int
+    within_4dp: int
+
+
+class Interaction(Strict):
+    taps: int
+    taps_passing: int
+    flows: int
+    flows_walked: int
+
+
+class ScreenSSIM(Strict):
+    screen: str
+    ssim: float
+
+
+class Visual(Strict):
+    """Masked SSIM: the mean, and each scored screen from the lowest up."""
+    masked_ssim_mean: float | None
+    screens_by_ssim: list[ScreenSSIM]
 
 
 class QAReport(Strict):
-    """qa/qa_report.json"""
+    """qa/qa_report.json. outcome, reasons and resume are the StageOutcome vocabulary; status is QA's label for the
+    same thing. keep_score picks the round QA keeps, and structure, interaction and visual report fidelity apart from
+    it. open_findings is None when no round critiqued the approved version."""
     schema_version: int = SCHEMA_VERSION
     status: Literal["approved", "qa_incomplete"]
+    outcome: OutcomeStatus
+    reasons: list[str]
+    resume: str | None
     approved_round: int
-    score: float
+    keep_score: float
+    keep_score_formula: str
+    structure: Structure
+    interaction: Interaction
+    visual: Visual
+    open_findings: list[Fix] | None
     stop_reason: str
     rounds: list[QARound]
     keep_rule_disagreement: KeepRuleDisagreement | None = None
@@ -676,7 +716,7 @@ class FileHash(Strict):
 
 class StageOutcome(Strict):
     """What a finished stage delivered: all of its work, or part of it, with why and the command that continues it."""
-    status: Literal["complete", "partial"] = "complete"
+    status: OutcomeStatus = "complete"
     reasons: list[str] = []
     resume: str | None = None
 

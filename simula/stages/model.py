@@ -18,7 +18,7 @@ from simula.contracts import (ActionLine, ContentRating, Device, Edge, Element, 
                               ModelMeaning, OpenQuestion, Point, ProductModel, Rect, State, StateFile, Term,
                               VisionElement)
 from simula.runlog import needs_human, run_trace, write_exhibit
-from simula.stages import Ctx
+from simula.stages import Ctx, rerun_command
 
 PREFIX = "Found these elements on screen: "
 PROMPT = config.ROOT / "prompts" / "model" / "meaning.md"
@@ -826,7 +826,7 @@ def understand(ctx: Ctx, dump: str, shots: list[tuple[str, bytes]], states: list
         if e.raw:
             (ctx.run_dir / "model" / "raw_reply.txt").write_text(e.raw)
         needs_human(ctx.run_dir, "model", "the meaning call failed twice", str(e),
-                    ["trace.jsonl", "model/raw_reply.txt"], f"simula model {ctx.app['name']} --run {ctx.run_dir.name}")
+                    ["trace.jsonl", "model/raw_reply.txt"], rerun_command("model", ctx))
         raise
     meaning, rejected = check_meaning(first, states, edges)
     rounds = [rejected]
@@ -846,8 +846,7 @@ def understand(ctx: Ctx, dump: str, shots: list[tuple[str, bytes]], states: list
         if gaps:
             needs_human(ctx.run_dir, "model", "the product model has gaps", "; ".join(gaps) + ". The retry failed "
                         f"({e.outcome}); the run continues on the checked first answer.",
-                        ["exhibits/02-model.md", "model/raw_reply.txt"],
-                        f"simula model {ctx.app['name']} --run {ctx.run_dir.name}")
+                        ["exhibits/02-model.md", "model/raw_reply.txt"], rerun_command("model", ctx))
         return meaning, rounds
     meaning, rejected = check_meaning(second, states, edges)
     rounds.append(rejected)

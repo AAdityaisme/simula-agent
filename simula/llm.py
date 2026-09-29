@@ -85,19 +85,23 @@ class Budget:
         spent = sum(line.usd for line in read_trace(trace_path) if line.stage == stage)
         return cls(stage, config.stage_cap(stage) if cap is None else cap, spent, trace_path=trace_path)
 
-    def reserve(self, worst_usd: float) -> None:
+    def reserve(self, worst_usd: float, *, step: str = "budget", key: str | None = None) -> None:
+        """Holds a call's worst case, or refuses it with CapReached. A model call passes its step and cache key, so the
+        run's record of the refusal names the call and --replay stops where the live run did."""
         with self.lock:
             if self.spent + self.held + worst_usd > self.cap:
                 refused = CapReached(f"{self.stage}: next call could cost ${worst_usd:.2f}, ${self.spent:.2f} of "
                                      f"${self.cap:.2f} already spent, ${self.held:.2f} held by calls in flight; "
                                      "raise with --usd-cap")
                 if self.trace_path:  # the run's record that the cap cut this stage short, even if the stage goes on
-                    trace(self.trace_path, stage=self.stage, step="budget", decider="code", outcome="cap",
-                          note=str(refused))
+                    trace(self.trace_path, stage=self.stage, step=step, decider="code", outcome="cap",
+                          note=(f"key {key[:12]} " if key else "") + str(refused))
                 raise refused
             self.held += worst_usd
 
-    def charge(self, usd: float, reserved: float = 0.0) -> None:
+    def charge(self, usd: float, reserved: float) -> None:
+        """Settles one call: adds what it cost and gives back exactly what its reserve() held. `reserved` has no
+        default, so a caller that forgets to give its hold back fails at once instead of shrinking the cap."""
         with self.lock:
             self.spent += usd
             self.held -= reserved
@@ -142,9 +146,25 @@ def cache_tries(key: str, cache_dir: Path = CACHE) -> tuple[list[tuple[str, Repl
         n += 1
 
 
-def trace_keys(trace_path: Path) -> dict[str, int]:
-    """Each cache file a model trace line names (its first 12 hex), with the index of the last line naming it."""
-    return {line.note.split()[1]: n for n, line in enumerate(read_trace(trace_path)) if line.note.startswith("key ")}
+def split_key(note: str) -> tuple[str | None, str]:
+    """A trace note's cache key (its first 12 hex) and the rest of the note; (None, note) when it names no key."""
+    if not note.startswith("key "):
+        return None, note
+    _, key, *rest = note.split(" ", 2)
+    return key, rest[0] if rest else ""
+
+
+def trace_keys(trace_path: Path) -> tuple[dict[str, int], dict[str, tuple[int, str]]]:
+    """What a run's trace recorded by key: each cache file a model line names, with the index of the last line naming
+    it; and each call its $ cap turned away, with the index and the stop's message."""
+    named, capped = {}, {}
+    for n, line in enumerate(read_trace(trace_path)):
+        key, rest = split_key(line.note)
+        if key and line.outcome == "cap":
+            capped[key] = (n, rest)
+        elif key:
+            named[key] = n
+    return named, capped
 
 
 def cache_write(key: str, reply: Reply, cache_dir: Path = CACHE) -> None:
@@ -207,7 +227,9 @@ def _spent(stream, tokens_in_estimate: int, max_tokens: int) -> tuple[int, int]:
 
 def _drain(stream, total_timeout: float | None, tokens_in_estimate: int, max_tokens: int):
     """Reads the stream to its final message. On an abort (our total timeout or an SDK error mid-stream) the
-    tokens already spent ride on the raised error."""
+    tokens already spent ride on the raised error. Everything raised here comes from reading the provider's
+    stream, so an error the SDK leaves untyped (its event accumulator raises a plain RuntimeError, TypeError or
+    IndexError on an event it can't place) becomes LLMFailure("error") and is retried like any provider error."""
     deadline = time.monotonic() + total_timeout if total_timeout else None
     try:
         for _ in stream:
@@ -216,7 +238,10 @@ def _drain(stream, total_timeout: float | None, tokens_in_estimate: int, max_tok
         return stream.get_final_message()
     except Exception as e:
         e.tokens_in, e.tokens_out = _spent(stream, tokens_in_estimate, max_tokens)
-        raise
+        if isinstance(e, LLMFailure) or provider_error(e):
+            raise
+        raise LLMFailure("error", f"{type(e).__name__} reading the stream: {e}", tokens_in=e.tokens_in,
+                         tokens_out=e.tokens_out) from e
 
 
 def call_anthropic(model: str, system: str, messages: list[dict], effort: str | None,
@@ -350,15 +375,19 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
               "schema": json_schema_for(provider, schema) if schema else None}
     keys = [cache_key(provider, model, system, messages, params, attempt) for attempt in range(attempts)]
     last, pending = LLMFailure("error", "no attempt made"), []
-    named = trace_keys(trace_path) if replay else {}
+    named, capped = trace_keys(trace_path) if replay else ({}, {})
 
-    def recorded(tries: list[tuple[str, Reply]]) -> tuple[str, Reply] | None:
-        """--replay follows the try this run's trace names last (else the first one). A normal run takes the latest
-        try the model answered: a known failure is never paid for again, and a lost call is transient, so it is
-        tried again."""
+    def recorded(key: str, tries: list[tuple[str, Reply]]) -> tuple[str, Reply] | None:
+        """--replay follows the try this run's trace names last (else the first one), unless the run's last record of
+        the call is its $ cap turning it away. A normal run takes the latest try the model answered: a known failure
+        is never paid for again, and a lost call is transient, so it is tried again."""
         if replay:
             used = [t for t in tries if t[0][:12] in named]
-            return max(used, key=lambda t: named[t[0][:12]]) if used else (tries[0] if tries else None)
+            last = max(used, key=lambda t: named[t[0][:12]]) if used else None
+            stop = capped.get(key[:12])
+            if stop and (last is None or stop[0] > named[last[0][:12]]):
+                return None
+            return last or (tries[0] if tries else None)
         answered = [t for t in tries if t[1].failure not in TRANSPORT]
         return answered[-1] if answered else None
 
@@ -371,7 +400,7 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
             if file_key[:12] in named:  # the answer this run recorded is gone: never replay another run's in its place
                 raise ReplayMiss(f"--replay: the cached response {stage}/{step} recorded (key {file_key[:12]}) "
                                  "can't be read")
-        chosen[key] = None if no_cache else recorded(tries)
+        chosen[key] = None if no_cache else recorded(key, tries)
         if chosen[key] and not chosen[key][1].failure:
             break
     for key in keys:
@@ -393,29 +422,33 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
     if not pending:
         raise last
     if replay:
+        if stop := capped.get(pending[0][:12]):  # the live run's cap turned this call away: stop the same way
+            trace(trace_path, stage=stage, step=step, decider="code", outcome="cap",
+                  note=f"key {pending[0][:12]} {stop[1]}")
+            raise CapReached(stop[1])
         raise ReplayMiss(f"--replay: no cached response for {stage}/{step} (key {pending[0][:12]})")
     for key in pending:
         worst = worst_case_usd(model, estimate_tokens_in(system, messages), max_tokens)
-        budget.reserve(worst)
+        budget.reserve(worst, step=step, key=key)
         started = time.monotonic()
         try:
             reply = PROVIDERS[provider](model, system, messages, effort, schema, max_tokens, total_timeout)
         except BaseException as e:
-            # Whatever ends a call early is settled here, so no hold outlives it: a typed failure, or any other error
-            # raised mid-call (a malformed stream event, a response the SDK can't validate), each charged what it
-            # streamed and retried alike; a stop that must propagate (the provider refusing the account, an
-            # interrupt) is settled and traced, then re-raised.
+            # Whatever ends a call early is settled here, so no hold outlives it, and charged what it streamed. Only
+            # a typed failure or an error from the provider boundary is retried; a stop that must propagate (the
+            # provider refusing the account, an interrupt) and a bug in our own code are traced, then re-raised.
+            retry = isinstance(e, LLMFailure) or (isinstance(e, Exception) and provider_error(e))
             failure = e if isinstance(e, LLMFailure) else _failure(
                 "blocked" if isinstance(e, ProviderUnavailable) else "error", e)
             cost = usd(model, failure.tokens_in, failure.tokens_out)
             budget.charge(cost, worst)
-            # A stop that propagates is no model answer, not even a lost call: it is never cached, even for --replay,
-            # so its trace line names no key.
-            stops = not isinstance(e, Exception)
+            note = str(e) if retry or not isinstance(e, Exception) else f"{type(e).__name__}, not a provider error: {e}"
+            # Only a retried failure is cached, so only its trace line names a key: a stop or a bug in our own code is
+            # no model answer, and --replay must never look for it.
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
                   tokens_in=failure.tokens_in, tokens_out=failure.tokens_out, usd=round(cost, 6),
-                  outcome=failure.outcome, note=("" if stops else f"key {fresh[key][:12]} ") + str(e)[:200])
-            if stops:
+                  outcome=failure.outcome, note=(f"key {fresh[key][:12]} " if retry else "") + note[:200])
+            if not retry:
                 raise
             cache_write(fresh[key], Reply(text=failure.raw, model=model, tokens_in=failure.tokens_in,
                                           tokens_out=failure.tokens_out, stop_reason=failure.detail,
@@ -438,6 +471,16 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
         cache_write(fresh[key], reply, cache_dir)
         last = LLMFailure(outcome, reply.stop_reason, raw=reply.text)
     raise last
+
+
+def provider_error(e: Exception) -> bool:
+    """An error from the provider boundary that another attempt may cure: an SDK error, an HTTP transport or
+    decoding error, or data the SDK couldn't read (a ValueError, as in _check). Anything else is a bug in our code,
+    which no retry fixes."""
+    import anthropic
+    import httpx2
+    import openai
+    return isinstance(e, (anthropic.APIError, openai.APIError, httpx2.HTTPError, ValueError))
 
 
 def _check(reply: Reply, schema: type[BaseModel] | None):

@@ -9,7 +9,7 @@ from anthropic.lib._parse._transform import transform_schema
 from openai.lib._pydantic import to_strict_json_schema
 from pydantic import BaseModel, ValidationError
 
-from simula.contracts import GATES, JUDGMENT, MODEL_FACING, ModelMeaning, Verdict
+from simula.contracts import GATES, JUDGMENT, MODEL_FACING, LensOutput, ModelMeaning, Verdict
 
 
 def objects(schema: dict):
@@ -119,3 +119,12 @@ def test_the_meaning_schema_stays_within_the_measured_grammar_limit():
     schema = transform_schema(ModelMeaning)
     properties = len(schema["properties"]) + sum(len(d.get("properties", {})) for d in schema["$defs"].values())
     assert properties <= MEANING_PROPERTY_LIMIT
+
+
+@pytest.mark.parametrize("to_schema", [transform_schema, to_strict_json_schema], ids=["anthropic", "openai"])
+def test_the_proposer_must_answer_every_field_of_an_idea(to_schema):
+    """Red team PR4 #7: defaults made daily_cap and after_reward optional in the Anthropic schema, so constrained
+    decoding could skip them and code then dropped the idea."""
+    optional = [(o.get("title"), k) for o in objects(to_schema(LensOutput)) for k in o.get("properties", {})
+                if k not in o.get("required", [])]
+    assert optional == []

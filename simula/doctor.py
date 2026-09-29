@@ -11,7 +11,7 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from simula import config, decide, llm, runlog
-from simula.cli import mobile_mcp_version, package_version, untracked_inputs
+from simula.checkout import mobile_mcp_version, package_version, untracked_inputs
 from simula.config import ROOT
 
 LOCK = Path("/tmp/simula-emu.lock")
