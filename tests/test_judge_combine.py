@@ -21,9 +21,10 @@ def two(fail_a=(), fail_b=(), fixable=False):
 @pytest.mark.parametrize("gate", GATES)
 def test_any_judge_failing_a_gate_rejects(app, gate):
     c = idea(golden(app))
-    for verdicts in ([verdict([gate])], two((), [gate]), two([gate], [gate])):
-        d = judge.decide(c, verdicts, len(verdicts), "annotate")
-        assert (d.final, d.gate_fails, d.failure_type) == ("reject", [gate], "proposal")
+    for verdicts, judges in (([verdict([gate])], ONE), (two((), [gate]), TWO), (two([gate], [gate]), TWO),
+                             ([verdict([gate])], TWO)):
+        d = judge.decide(c, verdicts, judges, "annotate")
+        assert (d.final, d.gate_fails, d.failure_type, d.rerun_stage) == ("reject", [gate], "proposal", None)
 
 
 @pytest.mark.parametrize("app", APPS)

@@ -163,8 +163,8 @@ def is_idea(c: Candidate) -> bool:
 
 def decide(c: Candidate, verdicts: list[Verdict], judges: int, mode: str, paths: list[str] = (),
            revision_of: str | None = None) -> Decision:
-    """Combines the verdicts of the judges that ran. Gates AND over the judges; a judgment check every judge fails
-    rejects; a split goes to a person. In annotate mode the cost line is only a mark (economics_verdict) and never
+    """Combines the verdicts of the judges that ran. Gates AND over the judges, so one judge's gate fail rejects
+    even when another judge's call failed; a judgment check every judge fails rejects; a split goes to a person. In annotate mode the cost line is only a mark (economics_verdict) and never
     changes the verdict; in gate mode a FAIL rejects and an accept whose cost line isn't a PASS becomes conditional."""
     fails = {k: sum(failed(v, k) for v in verdicts) for k in CHECKS}
     unanimous = [k for k in JUDGMENT if verdicts and fails[k] == len(verdicts)]
@@ -175,10 +175,10 @@ def decide(c: Candidate, verdicts: list[Verdict], judges: int, mode: str, paths:
                  economics_verdict=econ, revision_of=revision_of, failure_type=None, rerun_stage=None)
     if c.dropped_reason or not is_idea(c):
         return d.model_copy(update={"failure_type": "proposal"})
-    if len(verdicts) < judges:
-        return d.model_copy(update={"final": "needs_human", "rerun_stage": "judge"})
     if d.gate_fails:
         return d.model_copy(update={"failure_type": "proposal"})
+    if len(verdicts) < judges:
+        return d.model_copy(update={"final": "needs_human", "rerun_stage": "judge"})
     if "c2_evidence" in unanimous:
         return d.model_copy(update={"failure_type": "product_model", "rerun_stage": "explore"})
     if unanimous:
