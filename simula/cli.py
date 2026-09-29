@@ -11,7 +11,7 @@ from simula import config, runfolder, runlog
 from simula.config import ROOT, STAGES
 from simula.contracts import Manifest, Provenance
 from simula.llm import CapReached, ProviderUnavailable, ReplayMiss
-from simula.stages import EXTRA_INPUTS, ROLES, UPSTREAM, Ctx
+from simula.stages import EXTRA_INPUTS, ROLES, UPSTREAM, Ctx, rerun_command, run_options
 
 EXIT_NOT_BUILT, EXIT_CAP, EXIT_PROVIDER = 3, 4, 5
 
@@ -65,13 +65,6 @@ def new_manifest(run_dir: Path, app: dict, args, provenance: Provenance) -> Mani
     )
 
 
-def run_options(ctx: Ctx) -> str:
-    """The run and the options it was opened with, so a printed resume command reruns it the same way."""
-    return " ".join([f"--run {ctx.run_dir.name}", f"--profile {ctx.profile}", f"--budget {ctx.budget}",
-                     *(["--allow-fixtures"] if ctx.allow_fixtures else []),
-                     *(["--allow-account-create"] if ctx.allow_account_create else [])])
-
-
 def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     """Runs one stage unless its done.json still matches. Returns False when the stage isn't built yet."""
     stage_dir = ctx.run_dir / stage
@@ -94,7 +87,7 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     except CapReached as e:
         runfolder.write_failure(stage_dir, str(e))
         runlog.needs_human(ctx.run_dir, stage, "$ cap reached", str(e), [f"{stage}/failure.json"],
-                           f"simula {stage} {ctx.app['name']} {run_options(ctx)} --usd-cap <higher>")
+                           f"{rerun_command(stage, ctx)} --usd-cap <higher>")
         raise
     except ProviderUnavailable as e:
         runfolder.write_failure(stage_dir, str(e))

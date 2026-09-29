@@ -45,3 +45,14 @@ class Ctx:
     no_send: bool = True
     probe: bool = False
 
+
+def run_options(ctx: Ctx) -> str:
+    """The run and the options it was opened with, so a printed resume command reruns it the same way."""
+    return " ".join([f"--run {ctx.run_dir.name}", f"--profile {ctx.profile}", f"--budget {ctx.budget}",
+                     *(["--allow-fixtures"] if ctx.allow_fixtures else []),
+                     *(["--allow-account-create"] if ctx.allow_account_create else [])])
+
+
+def rerun_command(stage: str, ctx: Ctx) -> str:
+    return f"simula {stage} {ctx.app['name']} {run_options(ctx)}"
+

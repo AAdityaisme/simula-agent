@@ -15,12 +15,11 @@ from PIL import Image
 from playwright.sync_api import Error as PlaywrightError
 
 from simula import config, llm, qa_metrics, render, runfolder
-from simula.cli import run_options
 from simula.config import ROOT
 from simula.contracts import (SCHEMA_VERSION, ContractError, ContractReport, Critique, Edge, Edit, Edits, Fix,
                               ProductModel, QAMetrics, Rect, ScreenMetrics, State)
 from simula.runlog import read_trace, run_trace, write_exhibit
-from simula.stages import Ctx, mock
+from simula.stages import Ctx, mock, run_options
 
 MAX_ROUNDS = 3
 MIN_GAIN = 0.3
