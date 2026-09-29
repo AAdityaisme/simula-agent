@@ -14,6 +14,8 @@ from simula.llm import CapReached, ReplayMiss
 from simula.stages import EXTRA_INPUTS, ROLES, UPSTREAM, Ctx
 
 EXIT_NOT_BUILT, EXIT_CAP = 3, 4
+# These parse their own options in simula.validate; `simula <command> -h` lists them.
+VALIDATE_COMMANDS = {"validate-judge": "judge validation report", "label": "blind human labels"}
 
 
 def package_version(name: str) -> str | None:
@@ -217,11 +219,11 @@ def parser() -> argparse.ArgumentParser:
     r.add_argument("--from", dest="from_stage", choices=STAGES, help="rerun from this stage onward")
     r.set_defaults(func=cmd_run)
 
-    for name, pr, text in [("validate-judge", 6, "judge validation report"), ("label", 6, "blind human labels"),
-                           ("compare-rankers", 1, "Jev vs Haiku vs Sonnet on labeled screens")]:
-        c = sub.add_parser(name, help=text)
-        c.add_argument("app", nargs="?")
-        c.set_defaults(func=cmd_later(pr))
+    for name, text in VALIDATE_COMMANDS.items():
+        sub.add_parser(name, help=f"{text}; `simula {name} -h` lists its options")
+    c = sub.add_parser("compare-rankers", help="Jev vs Haiku vs Sonnet on labeled screens")
+    c.add_argument("app", nargs="?")
+    c.set_defaults(func=cmd_later(1))
 
     n = sub.add_parser("note", help="log a hand fix or build spend")
     n.add_argument("text")
@@ -233,6 +235,10 @@ def parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     config.load_env()
+    argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] and argv[0] in VALIDATE_COMMANDS:
+        from simula import validate
+        return validate.main(argv)
     args = parser().parse_args(argv)
     try:
         return args.func(args)

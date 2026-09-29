@@ -108,6 +108,18 @@ def test_a_regression_case_is_reported_on_its_own_and_counts_for_nothing_else():
     assert "| rg-a | ✗ passes all 11 |" in text and "| rg-b | ✓ fails c1_revealed_value |" in text
 
 
+def test_simula_validate_judge_and_label_run_the_validation_commands(monkeypatch):
+    from simula import cli
+    seen = {}
+    monkeypatch.setattr(validate, "validate_judge",
+                        lambda profile, judges, no_cache, out: seen.update(judge=(profile, judges, no_cache)) or True)
+    assert cli.main(["validate-judge", "--profile", "dev", "--judges", "judge_1", "--no-cache"]) == 0
+    assert seen["judge"] == ("dev", ["judge_1"], True)
+    monkeypatch.setattr(validate, "load_verdicts", lambda out: {})
+    monkeypatch.setattr(validate, "label_cases", lambda cases, verdicts, labels_dir, limit: seen.update(limit=limit) or 0)
+    assert cli.main(["label", "--limit", "3"]) == 0 and seen["limit"] == 3
+
+
 def test_the_regression_fixtures_load_with_the_product_model_their_judge_saw():
     [c07] = [c for c in validate.load_cases() if c.source == "regression"]
     assert c07.id == "rg-janitorai-c07-fan-boost"
