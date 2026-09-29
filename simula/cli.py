@@ -165,6 +165,8 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     if partial:
         runlog.needs_human(ctx.run_dir, stage, "partial output", "; ".join(outcome.reasons), [f"{stage}/done.json"],
                            outcome.resume)
+    else:
+        runlog.resolve_needs_human(ctx.run_dir, stage)
     runlog.run_trace(ctx.run_dir, stage=stage, step="done", decider="code",
                      note=provenance.source + (f"; partial: {'; '.join(outcome.reasons)}"[:300] if partial else ""))
     usd_total = sum(line.usd for line in runlog.read_trace(trace_path))

@@ -186,6 +186,9 @@ def test_a_capped_stage_reruns_until_a_higher_cap_lets_it_finish(runs, monkeypat
     assert marker.outcome.status == "complete", "only this run's refusals count"
     assert "mock" in read_manifest(run_dir).stages_done
     assert not rerun(run_dir, "--usd-cap", "10")
+    assert cli.main(["mock", "janitorai", "--run", run_dir.name, "--allow-fixtures", "--usd-cap", "10"]) == 0
+    headers = [h for h in (run_dir / "needs-human.md").read_text().splitlines() if h.startswith("## ")]
+    assert [h.endswith("· mock · resolved") for h in headers] == [False, False, True], "resolved once, then left alone"
 
 
 def test_a_cap_that_never_bound_leaves_the_stage_done_under_any_cap(runs, monkeypatch):
@@ -194,6 +197,7 @@ def test_a_cap_that_never_bound_leaves_the_stage_done_under_any_cap(runs, monkey
     marker = runfolder.read_done(run_dir / "mock")
     assert marker.outcome.status == "complete"
     assert not rerun(run_dir, "--usd-cap", "20") and not rerun(run_dir)
+    assert not (run_dir / "needs-human.md").exists()
 
 
 def test_a_stage_that_reports_partial_work_is_labeled_and_reruns_until_it_completes(runs, monkeypatch, quiet):
@@ -206,6 +210,20 @@ def test_a_stage_that_reports_partial_work_is_labeled_and_reruns_until_it_comple
     assert "2 of 24 taps failed" in (run_dir / "needs-human.md").read_text()
     assert rerun(run_dir) and runfolder.read_done(run_dir / "mock").outcome.status == "complete"
     assert not rerun(run_dir)
+
+
+def test_a_stage_that_failed_and_then_completes_resolves_what_it_asked_for(runs, monkeypatch, quiet):
+    outcomes = [llm.CapReached("mock: next call could cost $5.00, raise with --usd-cap"), None]
+
+    def fail_once(ctx):
+        if outcome := outcomes.pop(0):
+            raise outcome
+    mock_that(monkeypatch, fail_once)
+    assert cli.main(["mock", "janitorai", "--allow-fixtures", "--fixture", f"model={GOLDEN}"]) == cli.EXIT_CAP
+    run_dir = latest(runs)
+    assert rerun(run_dir)
+    asked = (run_dir / "needs-human.md").read_text()
+    assert "$ cap reached" in asked and asked.rstrip().splitlines()[-1].startswith("**Done:** mock finished complete")
 
 
 def test_the_chain_reruns_a_stage_whose_code_changed(runs, mock_stage, monkeypatch, tmp_path):
