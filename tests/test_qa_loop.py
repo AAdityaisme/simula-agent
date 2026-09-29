@@ -335,28 +335,29 @@ def test_a_mock_replayed_offline_keeps_qas_replay_key(tmp_path, monkeypatch):
 
 # ---------- a provider outage is not our cap ----------
 
-@pytest.fixture
-def mocked_run(runs, monkeypatch, tmp_path):
-    """A fixture run whose mock the CLI built (offline builder), ready for `simula qa`. QA's model calls then go
-    through the real llm.call, against a temporary cache."""
-    real = llm.call
+@pytest.fixture(params=APPS)
+def mocked_run(request, runs, monkeypatch, tmp_path):
+    """A fixture run whose mock the CLI built (offline builder), ready for `simula qa`, one per app (the run's
+    parent folder names it). QA's model calls then go through the real llm.call, against a temporary cache."""
+    app, real = request.param, llm.call
     monkeypatch.setattr(llm, "call", fake_builder([]))
-    golden_model = str(FIXTURES / "golden" / "janitorai")
-    assert cli.main(["mock", "janitorai", "--allow-fixtures", "--fixture", f"model={golden_model}", "--profile", "dev"]) == 0
+    golden_model = str(FIXTURES / "golden" / app)
+    assert cli.main(["mock", app, "--allow-fixtures", "--fixture", f"model={golden_model}", "--profile", "dev"]) == 0
     monkeypatch.setattr(llm, "call", lambda **kwargs: real(**kwargs, cache_dir=tmp_path / "cache"))
-    return (runs / "janitorai" / "latest").resolve()
+    return (runs / app / "latest").resolve()
 
 
 def test_a_provider_usage_limit_mid_qa_fails_the_stage_instead_of_approving(mocked_run, monkeypatch):
     """The 2026-09-29 run: QA took the account's usage-limit 400 for its own cap, approved round 0, wrote done.json
     and exited 0, so a later run would have skipped QA."""
     fake_anthropic(monkeypatch, error_400(anthropic, "https://api.anthropic.com/v1/messages", USAGE_LIMIT))
-    code = cli.main(["qa", "janitorai", "--run", mocked_run.name, "--allow-fixtures", "--profile", "dev"])
+    app = mocked_run.parent.name
+    code = cli.main(["qa", app, "--run", mocked_run.name, "--allow-fixtures", "--profile", "dev"])
     assert code == cli.EXIT_PROVIDER != 0
     assert not (mocked_run / "qa" / "done.json").exists() and not (mocked_run / "qa" / "approved").exists()
     assert "usage limit" in (mocked_run / "qa" / "failure.json").read_text()
     human = (mocked_run / "needs-human.md").read_text()
-    assert f"simula run janitorai --from qa --run {mocked_run.name} {OPTIONS}" in human
+    assert f"simula run {app} --from qa --run {mocked_run.name} {OPTIONS}" in human
     assert not list((mocked_run.parent.parent.parent / "cache").glob("*.json"))
 
 
@@ -389,9 +390,9 @@ def test_our_own_cap_in_qa_approves_the_best_round_and_its_printed_resume_gets_f
     """Red team 9a98e87 F1: the resume carries the run's options (Greptile on 47a0152) and a --usd-cap past what
     stopped it (a whole cap again, the configured one since this run's was lower, and the call turned away). Run as
     printed, QA gets past round 1; the old command replayed the same stop."""
-    calls = []
+    app, calls = mocked_run.parent.name, []
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", answering_provider(calls))
-    code = cli.main(["qa", "janitorai", "--run", mocked_run.name, "--allow-fixtures", "--profile", "dev",
+    code = cli.main(["qa", app, "--run", mocked_run.name, "--allow-fixtures", "--profile", "dev",
                      "--usd-cap", "0.0001"])
     assert code == 0 and (mocked_run / "qa" / "done.json").exists() and not calls
     report = json.loads((mocked_run / "qa" / "qa_report.json").read_text())
@@ -401,7 +402,7 @@ def test_our_own_cap_in_qa_approves_the_best_round_and_its_printed_resume_gets_f
     assert report["resume_note"] == f"What stopped it: review: {report['stop_reason']}."
     figure = llm.CapReached(report["stop_reason"]).usd_needed
     assert figure > config.stage_cap("qa")
-    assert report["resume"] == f"simula qa janitorai --run {mocked_run.name} {OPTIONS} --usd-cap {figure:.2f}"
+    assert report["resume"] == f"simula qa {app} --run {mocked_run.name} {OPTIONS} --usd-cap {figure:.2f}"
 
     assert cli.main(report["resume"].split()[1:]) == 0
     again = json.loads((mocked_run / "qa" / "qa_report.json").read_text())
@@ -604,17 +605,16 @@ def test_a_failed_group_is_skipped_and_only_all_failing_stops_the_round(twelve, 
     assert {sid: (n, str(e)) for sid, (n, e) in missed.items()} == dict.fromkeys(ids, (3, "refusal: no"))
 
 
-def test_the_critic_and_the_fixer_are_given_the_pictures_code_made_for_their_screens(tmp_path, monkeypatch):
+@pytest.mark.parametrize("app", APPS)
+def test_the_critic_and_the_fixer_are_given_the_pictures_code_made_for_their_screens(app, tmp_path, monkeypatch):
     """Red team 9a98e87 F3 (probe D): an art crop the page doesn't draw was invisible to the loop, so no round could
     put the real picture back. The critic and the fixer now get every picture code made for their screens, each src
     with the rect it goes at."""
-    app = "janitorai"
     run_dir = seed_model(tmp_path / "run", app)
     model = golden(app)
     scope = mock.pick_scope(model)
     mock.copy_assets(run_dir / "model", run_dir / "mock", scope, model.device)
-    state = scope[0]
-    element = next(e for e in state.elements if not e.asset_png)
+    state, element = next((s, e) for s in scope for e in s.elements if not e.asset_png)
     src, origin = mock.art_src(element.id), Rect(x=0, y=100, w=411, h=400)
     (run_dir / "mock" / src).write_bytes((FIXTURES / "golden" / app / state.canonical_png).read_bytes())
     (run_dir / "mock" / "art.json").write_text(json.dumps({"schema_version": 1, "art": {src: origin.model_dump()}}))
@@ -635,8 +635,10 @@ def test_the_critic_and_the_fixer_are_given_the_pictures_code_made_for_their_scr
     usable = [e for e in state.elements if mock.usable_asset(e, state.elements, model.device)]
     want = [*({"src": f"assets/{e.id}.png", "rect": qa.rect(e.rect_dp)} for e in usable),
             {"src": src, "rect": qa.rect(origin)}]
-    critic_text = next(p["text"] for p in seen[0]["messages"][0]["content"] if p.get("text", "").startswith("The numbers"))
-    told_critic = json.loads(critic_text.split("The pictures code made for these screens:\n")[1].split("\n\n")[0])
+    told_critic = {}  # the critic's groups run in parallel, so gather what every group was told
+    for kwargs in (k for k in seen if k["schema"] is Critique):
+        text = next(p["text"] for p in kwargs["messages"][0]["content"] if p.get("text", "").startswith("The numbers"))
+        told_critic |= json.loads(text.split("The pictures code made for these screens:\n")[1].split("\n\n")[0])
     fixer_text = seen[-1]["messages"][0]["content"][-1]["text"]
     told_fixer = json.loads(fixer_text.split("What to fix:\n")[1].split("\n\n")[0])["pictures"]
     assert seen[-1]["schema"] is Edits and told_critic[state.id] == want and told_fixer == {state.id: want}
