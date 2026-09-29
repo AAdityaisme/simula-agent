@@ -4,8 +4,9 @@ import json
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
-from simula.device.mcp import McpReplyError, parse_elements, parse_foreground, parse_screen_size
+from simula.device.mcp import McpReplyError, check_png, parse_elements, parse_foreground, parse_screen_size
 
 TREES = Path(__file__).parent / "fixtures" / "trees"
 
@@ -46,3 +47,14 @@ def test_error_replies_and_sizes():
     with pytest.raises(McpReplyError):
         parse_foreground(reply("Foreground app: X (com.x)", error=True))
     assert parse_screen_size(reply("Screen size is 1080x2400 pixels")) == (1080, 2400)
+
+
+def test_a_capture_turned_sideways_is_a_capture_and_any_other_size_is_not(tmp_path):
+    for size, ok in (((1080, 2400), True), ((2400, 1080), True), ((1080, 1200), False)):
+        path = tmp_path / f"{size[0]}x{size[1]}.png"
+        Image.new("RGB", size).save(path)
+        if ok:
+            check_png(path, (1080, 2400))
+        else:
+            with pytest.raises(McpReplyError):
+                check_png(path, (1080, 2400))

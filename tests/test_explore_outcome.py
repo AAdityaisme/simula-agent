@@ -272,3 +272,24 @@ def test_a_failed_model_call_is_counted_for_the_exhibit(tmp_path, monkeypatch):
         ex.ask("settle", "settle", "text", b"png", Progress, 400)
     assert ex.counts["model call failures"] == 1
     assert "model calls that failed (each traced where it happened): 1" in stage.counters(ex)
+
+
+def test_a_screen_turned_sideways_is_recorded_as_rotated_and_left_with_back(tmp_path, monkeypatch):
+    from PIL import Image
+
+    from simula.contracts import StateFile
+    from tests.fake_device import PACKAGE, Screen
+
+    def sideways(clock):
+        phone = janitor_like(clock)
+        exit_button = {"ref": "@exit", "type": "android.widget.Button", "text": "Exit game",
+                       "coordinates": {"x": 60, "y": 40, "width": 300, "height": 120}}
+        phone.screens["game"] = Screen([exit_button], Image.new("RGB", (2400, 1080), (10, 90, 40)), PACKAGE)
+        phone.taps[("limited", "JJK - GOJO’S RELATIVE")] = "game"
+        return phone
+    ex, phone, out = through_cli(tmp_path, monkeypatch, sideways, fails=False)
+    rotated = [StateFile.model_validate_json((out / "states" / f"{s.sid}.json").read_text())
+               for s in ex.states if s.kind == "rotated"]
+    assert rotated and not ex.stop_reason.startswith(stage.DEVICE_STOPS)
+    assert ("back", "game") in phone.log and not any(e[:2] == ("tap", "game") for e in phone.log)
+    assert (out / "done.json").exists()

@@ -99,6 +99,7 @@ class ExploreFailed(Exception):
 DEVICE_ERRORS = (McpReplyError, McpTimeout, NeedRelaunch)
 DEVICE_LOST = (McpReplyError, McpTimeout)
 DEVICE_STOPS = ("device error", "second hang")
+AWAY = ("external", "rotated")  # recorded, never explored, left with BACK: another app, or the screen turned sideways
 
 
 @dataclass
@@ -364,6 +365,8 @@ class Explorer:
     def kind_of(self, obs: Obs, before: Obs | None) -> tuple[str, Rect | None]:
         if obs.fg != self.package:
             return "external", None
+        if obs.image.width > obs.image.height:
+            return "rotated", None
         box = ob.dialog_box(obs.cands, self.device) or (
             ob.overlay_box(before.cands, obs.cands, self.device, frozenset(self.tab_keys()),
                            lambda box: ob.scrim(before.image, obs.image, box, self.device)) if before else None)
@@ -727,7 +730,7 @@ class Explorer:
         shows the bottom tabs is a top screen already, and BACK there would leave the app."""
         for _ in range(4):
             here = self.current
-            if here is self.launch_root or here.kind == "external" or self.shows_tabs(here):
+            if here is self.launch_root or here.kind in AWAY or self.shows_tabs(here):
                 return
             self.act(Move("back", why="relaunch landed off the launch screen"), purpose="setup")
 
@@ -948,7 +951,7 @@ class Explorer:
             if x is dst:
                 break
             for move, y in self.links(x):
-                if y.sid not in came and y.kind not in ("external", "blocked") and hop_key(x, move) not in failed:
+                if y.sid not in came and y.kind not in (*AWAY, "blocked") and hop_key(x, move) not in failed:
                     came[y.sid] = (x, move)
                     queue.append(y)
         if dst.sid not in came:
@@ -1045,20 +1048,22 @@ class Explorer:
             return Move(answer.action, direction=answer.direction or "up", decider="model", why=why)
         return None
 
-    def leave_external(self) -> None:
+    def leave(self) -> None:
+        """BACK out of another app or a screen turned sideways; a relaunch if BACK doesn't come back."""
         if self.obs is None:
             self.resync()
-            if self.current.kind != "external":
+            if self.current.kind not in AWAY:
                 return
-        self.act(Move("back", why="return from another app"), purpose="nav")
-        if self.current.kind == "external":
-            self.relaunch(why=f"BACK did not return from {self.obs.fg}")
+        away = self.current.kind
+        self.act(Move("back", why=f"return from the {away} screen"), purpose="nav")
+        if self.current.kind in AWAY:
+            self.relaunch(why=f"BACK did not return from the {away} screen ({self.obs.fg})")
 
     def read_upsell(self) -> None:
         """Scrolls an upsell to its end so every benefit and price is captured verbatim; never taps inside it."""
         for _ in range(UPSELL_SWIPES):
             s = self.current
-            if not s.upsell or s.swipes >= 1 or s.kind == "external":
+            if not s.upsell or s.swipes >= 1 or s.kind in AWAY:
                 return
             self.act(Move("swipe", direction="up", why="read the whole upsell"), purpose="tour")
             if self.current is s:
@@ -1082,8 +1087,8 @@ class Explorer:
             try:
                 if self.obs is None:
                     self.resync()
-                if self.current.kind == "external":
-                    self.leave_external()
+                if self.current.kind in AWAY:
+                    self.leave()
                     continue
                 target = self.next_target()
                 if target is None:
@@ -1127,7 +1132,7 @@ class Explorer:
             if s.launch:
                 self.relaunch(why="the launch screen again, with the content filter, after the launch dialog")
         priced = self.priced_paywall()
-        best = priced or max((s for s in self.states if s.upsell and not s.launch and s.kind != "external"),
+        best = priced or max((s for s in self.states if s.upsell and not s.launch and s.kind not in AWAY),
                              key=lambda s: sum(bool(ob.PAYWALL.search(t)) for t in ob.texts(s.elements, self.device)),
                              default=None)
         self.paywall = best.sid if best else None
@@ -1143,8 +1148,8 @@ class Explorer:
 
     def follow_entry(self, entry: ob.Candidate) -> None:
         self.act(Move("tap", entry, why="open the upsell on purpose"), purpose="nav")
-        if self.current.kind == "external":
-            self.leave_external()
+        if self.current.kind in AWAY:
+            self.leave()
         elif self.current.upsell and not self.current.launch:
             self.read_upsell()
             self.act(Move("back", why="out of the upsell"), purpose="nav")
@@ -1391,8 +1396,8 @@ class Explorer:
         self.act(Move("tap", control, why=f"core loop: {core.kind}"), purpose="core", loop=n,
                  watch=lambda: self.watch(before, verb))
         if not self.stop_kind:
-            if self.current.kind == "external":
-                self.leave_external()
+            if self.current.kind in AWAY:
+                self.leave()
             elif self.current is not core.state:
                 self.act(Move("back", why="core loop: back"), purpose="core", loop=n)
         return self.last_summary, self.stop_text()
@@ -1513,6 +1518,8 @@ class Explorer:
             if self.obs.fg in BILLING:
                 return "billing", self.obs.fg
             return ("left the app", self.obs.fg) if self.core.kind == "chat" else ("", "")
+        if here.kind == "rotated":
+            return "screen rotated", here.sid
         if self.core.kind == "chat":
             return self.chat_stop(here, before, move)
         if here is not s and here.kind in ("modal", "sheet"):

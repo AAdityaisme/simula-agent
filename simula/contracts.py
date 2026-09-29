@@ -36,7 +36,7 @@ class Device(Strict):
 
 # ---------- product model (stage 2) ----------
 
-StateKind = Literal["screen", "modal", "sheet", "external", "blocked"]
+StateKind = Literal["screen", "modal", "sheet", "external", "blocked", "rotated"]
 ContentRating = Literal["safe", "mixed", "unsafe", "unknown"]
 ElementSource = Literal["mcp", "vision"]
 EdgeAction = Literal["tap", "swipe", "back", "type"]

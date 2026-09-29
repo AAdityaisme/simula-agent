@@ -76,7 +76,7 @@ def check_png(path: Path, size: tuple[int, int] | None = None) -> None:
     """mobile-mcp answers a refused save with text, not an error, so the file itself is the proof."""
     if not path.exists() or path.read_bytes()[:8] != PNG_MAGIC:
         raise McpReplyError(f"screenshot not written to {path}")
-    if size and Image.open(path).size != size:
+    if size and Image.open(path).size not in (size, size[::-1]):  # the screen may have turned sideways
         raise McpReplyError(f"screenshot is {Image.open(path).size}, expected {size}")
 
 
