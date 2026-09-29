@@ -15,7 +15,7 @@ from skimage.morphology import dilation
 
 from simula import pixelmatch
 from simula.contracts import Device, ProductModel, Rect
-from simula.render import content_dp, open_mock
+from simula.render import content_dp, open_mock, screenshot
 
 WINDOW = 7
 HALO = WINDOW // 2
@@ -136,7 +136,7 @@ def identity_render(real: Image.Image, device: Device = Device()) -> Image.Image
             f'<!doctype html><html><body style="margin:0;background:#000">'
             f'<img src="real.png" style="position:absolute;display:block;{box}"></body></html>')
         with open_mock(Path(tmp)) as (page, _):
-            page.screenshot(path=Path(tmp) / "render.png")
+            screenshot(page, path=Path(tmp) / "render.png")
         return Image.open(Path(tmp) / "render.png").copy()
 
 

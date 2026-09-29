@@ -36,4 +36,5 @@ packages = ["simula"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-m 'not live'"
 markers = ["live: needs API keys or the emulator; skipped in CI"]

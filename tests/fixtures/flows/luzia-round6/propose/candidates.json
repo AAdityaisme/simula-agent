@@ -1,0 +1,435 @@
+{
+ "schema_version": 1,
+ "candidates": [
+  {
+   "id": "c02",
+   "lens": "free_at_limit",
+   "kind": "existing_anchor",
+   "title": "Existing opportunity: Two short games for one higher-quality image, offered on the home screen",
+   "anchor_evidence_ids": [
+    "s02.e04",
+    "s01.e02"
+   ],
+   "bible_mechanic": "M28",
+   "what_is_different_here": "The Luzia+ paywall lists 'Higher-quality image generations' (s02.e04) as a paid feature, and the home screen already carries the Luzia+ badge (s01.e02, 'Try Luzia' s01.e03). This offer appears on Chats (s01) as a card in the banner area next to the Custom Bestie and Toki banners, only for free users who have already closed the paywall once. It gives one image at the higher quality. Images cost more to make, so two plays are asked for, and the copy says so.",
+   "adds": null,
+   "removes_nothing_free": true,
+   "trigger_event": "A free user who has closed the Luzia+ paywall at least once opens the app for a new session and lands on Chats (checked once per day).",
+   "trigger_state_id": "s01",
+   "placement": "A dismissible card in the home banner row, alongside the Custom Bestie and Toki banners, above recent chats.",
+   "offer_copy": "Want a sharper picture? Play 2 short sponsored games and your next image from Luzia comes in higher quality. Good for 1 image, today only.",
+   "reward": {
+    "kind": "image",
+    "unit": "higher-quality image generations",
+    "amount": 1.0,
+    "duration": "until midnight local time"
+   },
+   "for_users": "free",
+   "grants_id": "l03",
+   "cost_inputs": {
+    "inference_count": 1,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 image per day (2 verified plays), resets at midnight local time",
+   "decline_path": "Closing the card hides it until tomorrow. Chats, images, and everything else work exactly as before.",
+   "ad_fail_path": "If no game is available, the card is hidden. If a game fails or is not verified, the card says 'That didn't go through' and keeps any play already completed. Nothing is used up until both plays are verified.",
+   "subscriber_treatment": "Luzia+ subscribers never see the card. They already get higher-quality images.",
+   "advertiser_category": "Casual mobile games, photo and creative apps, and consumer electronics",
+   "character_use": "None in the game. The card uses the home screen's existing banner style.",
+   "flow_steps": [
+    {
+     "state_id": "s01",
+     "caption": "Chats as it looks today, with the Luzia+ badge and the Custom Bestie and Toki banners."
+    },
+    {
+     "state_id": "s01",
+     "caption": "A card in the banner row offers 1 higher-quality image today for 2 short sponsored games."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays the first game, then the card shows '1 of 2 done' and offers the second."
+    },
+    {
+     "state_id": "new:image-ready-card",
+     "caption": "After both games, the card confirms 'Your next image today will be higher quality. Just ask Luzia for a picture in any chat.'"
+    }
+   ],
+   "after_reward": "Once the image is made, or at midnight, the card notes that Luzia+ gives higher-quality images every time, with a link to the free trial. The user can come back tomorrow for another one.",
+   "rationale": "Images are something users can see and compare, so one sharper result shows the paid difference better than any list of plan features. A single image costs more than one play earns, so the offer asks for two plays and says so upfront. That covers the cost in North America under typical image prices, but not in low-paying regions. It shows only to people who have already closed the offer, so it never gets in the way of a first purchase decision.",
+   "economics": {
+    "cost_2k": 0.034,
+    "cost_8k": 0.034,
+    "breakeven_ecpm_2k": 34.0,
+    "breakeven_ecpm_8k": 34.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "FAIL",
+    "assumption_line": "Costs ~$0.0340 per reward to serve; pays for itself above $34.00 eCPM. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 1 images at $0.034 each (central price); one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 1.0,
+   "rank_score": 1.0,
+   "dropped_reason": null
+  },
+  {
+   "id": "c03",
+   "lens": "subscriber",
+   "kind": "existing_anchor",
+   "title": "Existing opportunity: A 6th AI character for subscribers who have used all 5",
+   "anchor_evidence_ids": [
+    "s02.e06",
+    "s01.e22"
+   ],
+   "bible_mechanic": "M18",
+   "what_is_different_here": "The Luzia+ paywall line 'Create up to 5 AI characters' (s02.e06) gives payers a hard number. A subscriber with 5 characters who taps the Custom Bestie banner on home (s01.e22, 'Make an AI expert tailored to you') has nowhere to put a new one. A rewarded play opens one extra slot for 7 days. As with WEBTOON's 3-day unlock, the ad path is temporary, and the slot costs no extra model replies beyond the chatting the plan already covers.",
+   "adds": null,
+   "removes_nothing_free": true,
+   "trigger_event": "A Luzia+ subscriber who already has 5 AI characters taps the Custom Bestie banner on home (the app knows the character count)",
+   "trigger_state_id": "s01",
+   "placement": "Bottom sheet over home, opened from the Custom Bestie banner, in place of the 'you've reached your limit' state",
+   "offer_copy": "You've made all 5 of your AI characters. Play a short sponsored game to open a 6th character slot for 7 days.",
+   "reward": {
+    "kind": "content_unlock",
+    "unit": "AI characters",
+    "amount": 1.0,
+    "duration": "7 days"
+   },
+   "for_users": "paying",
+   "grants_id": "l05",
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per day, resets at midnight local time; at most 1 extra slot open at a time",
+   "decline_path": "The sheet closes and home is exactly as before. The subscriber keeps their 5 characters and can edit or replace one as today.",
+   "ad_fail_path": "If no game is available, the sheet shows only the usual limit message with no play button. If the play can't be confirmed, a kind note says the slot wasn't added, and the daily attempt isn't used up.",
+   "subscriber_treatment": "This offer is only for Luzia+ subscribers who have used all 5 character slots. It is opt-in and never shown mid-chat.",
+   "advertiser_category": "Casual mobile games and productivity apps",
+   "character_use": "The sheet shows the subscriber's 5 existing character avatars with an empty 6th circle that fills when the reward lands.",
+   "flow_steps": [
+    {
+     "state_id": "s01",
+     "caption": "A subscriber with 5 AI characters taps the Custom Bestie banner on home."
+    },
+    {
+     "state_id": "new:extra-slot-offer",
+     "caption": "A sheet says all 5 slots are used and offers a 6th slot for 7 days for one short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The subscriber plays a short sponsored game and can close it at any time."
+    },
+    {
+     "state_id": "new:slot-unlocked",
+     "caption": "Once the play is confirmed, a 6th empty slot appears with a 7-day timer and they start building their new character."
+    }
+   ],
+   "after_reward": "When the 7 days end, the 6th character is saved but paused with a note that one more short game reopens it for another week, so the subscriber comes back to play again instead of deleting a character.",
+   "rationale": "Luzia+ caps characters at 5, and the most engaged subscribers are the ones who hit that cap, with no bigger plan to move to. A temporary 6th slot gives them more of what they already value without weakening the plan, because the slot is short-lived and one at a time. The slot adds no extra AI cost beyond the chatting subscribers already do, so the sponsored game pays for it easily.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "CONDITIONAL",
+    "assumption_line": "Serving cost not counted: no price observed. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 1 unlocked item(s); one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 1.0,
+   "rank_score": 1.0,
+   "dropped_reason": null
+  },
+  {
+   "id": "c05",
+   "lens": "drifting",
+   "kind": "existing_anchor",
+   "title": "Existing opportunity: Welcome-back card: try Advanced reasoning mode for 3 answers",
+   "anchor_evidence_ids": [
+    "s02.e03",
+    "s01.e02"
+   ],
+   "bible_mechanic": "M02",
+   "what_is_different_here": "The Luzia+ paywall (s02) lists 'Advanced reasoning mode' (s02.e03) as a paid feature. A returning free user sees a one-day, 3-answer sample of it on the Chats home (s01), under the existing Luzia+ badge (s01.e02). The full feature stays behind the Weekly / Monthly / Annual plans and the 3-day trial (s02.e19).",
+   "adds": null,
+   "removes_nothing_free": true,
+   "trigger_event": "First app open after 3 or more days with no session, by a user without Luzia+.",
+   "trigger_state_id": "s01",
+   "placement": "A dismissible card under the Chats header, above the 'How can I help you today?' prompt card.",
+   "offer_copy": "Welcome back! Play a short game to get 3 answers in Advanced reasoning mode today, Luzia+'s deeper-thinking mode.",
+   "reward": {
+    "kind": "inference",
+    "unit": "Advanced reasoning mode answers",
+    "amount": 3.0,
+    "duration": "until midnight local time"
+   },
+   "for_users": "free",
+   "grants_id": "l02",
+   "cost_inputs": {
+    "inference_count": 3,
+    "tokens_in": 3000,
+    "tokens_out": 800,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per day, resets at midnight local time; shown only on the first open after a 3+ day gap",
+   "decline_path": "Tapping 'Not now' closes the card. Home works exactly as before, and the card does not return until the user's next gap of 3+ days.",
+   "ad_fail_path": "If no game is available, the card is not shown. If the play isn't confirmed, a note says 'That game didn't count, try again'. The card stays and the day's offer is not used up.",
+   "subscriber_treatment": "Never shown. Luzia+ members already have Advanced reasoning mode.",
+   "advertiser_category": "Casual mobile games, streaming services, language and learning apps",
+   "character_use": "Luzia's own avatar appears on the card, inviting the user back.",
+   "flow_steps": [
+    {
+     "state_id": "s01",
+     "caption": "A user who hasn't opened Luzia in 3+ days lands on Chats as usual."
+    },
+    {
+     "state_id": "s01",
+     "caption": "A welcome-back card offers 3 answers in Advanced reasoning mode for a short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays a short sponsored game and can close it at any time."
+    },
+    {
+     "state_id": "s01",
+     "caption": "The card changes to '3 Advanced reasoning answers ready today. Start a chat.'"
+    }
+   ],
+   "after_reward": "When the 3 answers are used or the day ends, a small note on Chats says Luzia+ keeps Advanced reasoning mode on every day and shows the 3-day free trial button. The user has just felt what they would be paying for.",
+   "rationale": "A lapsing user needs a reason to ask Luzia something today. A day's sample of a paid feature they haven't tried is a fresh reason, and it doubles as a preview of Luzia+. Each answer uses real model time, so it pays for itself in higher-earning markets like North America. In lower-earning markets it should drop to 1 answer or need a second game.",
+   "economics": {
+    "cost_2k": 0.0063,
+    "cost_8k": 0.0108,
+    "breakeven_ecpm_2k": 6.3,
+    "breakeven_ecpm_8k": 10.8,
+    "benchmark_ecpm": 10.16,
+    "verdict": "CONDITIONAL",
+    "assumption_line": "Costs ~$0.0063 per reward to serve; pays for itself above $6.30 eCPM at 2k context ($10.80 at 8k). A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 3 replies of 800 tokens out, at $0.25 / $2.00 per million tokens in / out (central prices); the verdict uses the 8k figure; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 1.0,
+   "rank_score": 1.0,
+   "dropped_reason": null
+  },
+  {
+   "id": "c06",
+   "lens": "drifting",
+   "kind": "product_change",
+   "title": "Product change: Come back again, unlock a new color theme for a week",
+   "anchor_evidence_ids": [
+    "s03.e18"
+   ],
+   "bible_mechanic": "M11",
+   "what_is_different_here": "Settings (s03) already has a Theme option (s03.e18, today showing Dark Mode). Adding a few extra themes that a game unlocks for 7 days gives a user who returns a second time a visible, zero-cost reward that changes how the whole app looks. Nothing from the paid plan is given away.",
+   "adds": "A few extra color themes in the existing Theme setting, which a short game unlocks for 7 days.",
+   "removes_nothing_free": true,
+   "trigger_event": "The user opens the app on a second separate day within 7 days after a gap of 3+ days (a repeat return).",
+   "trigger_state_id": "s01",
+   "placement": "A small card at the top of the 'Keep chatting' recent-chats section on Chats.",
+   "offer_copy": "You're back again! Play a short game to unlock a new color theme for Luzia for 7 days.",
+   "reward": {
+    "kind": "cosmetic",
+    "unit": "color theme",
+    "amount": 1.0,
+    "duration": "7 days"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per day, resets at midnight local time; each game unlocks one theme",
+   "decline_path": "Tapping 'No thanks' hides the card. The current theme and everything else stay exactly as they were.",
+   "ad_fail_path": "If no game is available, the card is not shown. If the play isn't confirmed, a note says it didn't count. The card stays and the day's offer is not used up.",
+   "subscriber_treatment": "Luzia+ members see the same optional card, because themes are not part of any plan. It is never forced.",
+   "advertiser_category": "Casual mobile games, music and streaming apps",
+   "character_use": "None; the card previews the theme's colors.",
+   "flow_steps": [
+    {
+     "state_id": "s01",
+     "caption": "A user returning for the second time this week opens Chats."
+    },
+    {
+     "state_id": "s01",
+     "caption": "A card above recent chats offers a new color theme for 7 days for a short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays a short sponsored game."
+    },
+    {
+     "state_id": "s01",
+     "caption": "The new theme turns on right away."
+    },
+    {
+     "state_id": "s03",
+     "caption": "The theme also appears under Theme in Settings, marked 'unlocked for 7 days'."
+    }
+   ],
+   "after_reward": "When the 7 days end, the app returns to the user's previous theme with a note that coming back and playing again unlocks it for another week, a light reason to return.",
+   "rationale": "Users who are drifting respond to small, visible rewards for coming back, and a new look for the whole app costs nothing to give. It adds something new without touching what's free today or what Luzia+ sells. The 7-day window gives a gentle reason to open the app again the next week.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 1.0,
+   "rank_score": 1.0,
+   "dropped_reason": null
+  },
+  {
+   "id": "c04",
+   "lens": "subscriber",
+   "kind": "product_change",
+   "title": "Product change: A 7-day outfit for Toki, the virtual pet",
+   "anchor_evidence_ids": [
+    "s01.e26",
+    "s04.e04"
+   ],
+   "bible_mechanic": "none",
+   "what_is_different_here": "Luzia already has Toki, a virtual pet shown on the home banner (s01.e26) and in its intro modal (s04.e04, 'Care for me to see me grow!'). No paid benefit covers the pet, so subscribers lack anything for it. A cosmetic outfit for Toki is a new, zero-cost reward that does not touch any Luzia+ feature and does not rely on the pet's unobserved care loop.",
+   "adds": "A small set of outfits for Toki that the user can put on for 7 days by playing a short sponsored game.",
+   "removes_nothing_free": true,
+   "trigger_event": "User taps 'Meet me' on the Toki intro modal, or taps the Toki banner on home, at most once per day",
+   "trigger_state_id": "s04",
+   "placement": "A card at the bottom of the Toki intro modal, below the Meet me and Later buttons",
+   "offer_copy": "Dress up Toki! Play a short sponsored game to give Toki a new outfit for 7 days.",
+   "reward": {
+    "kind": "cosmetic",
+    "unit": "Toki outfit",
+    "amount": 1.0,
+    "duration": "7 days"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per day, resets at midnight local time",
+   "decline_path": "The card closes and the Toki modal and home work exactly as today. Meet me and Later behave as before.",
+   "ad_fail_path": "If no game is available, the card isn't shown. If the play can't be confirmed, a kind note says Toki didn't get the outfit this time, and the daily attempt isn't used up.",
+   "subscriber_treatment": "Subscribers see the same opt-in card. Nothing they pay for is behind it, so it never offers back a Luzia+ feature.",
+   "advertiser_category": "Family-friendly casual games and lifestyle brands",
+   "character_use": "Toki appears on the card trying on the outfit and does a happy animation when the reward lands.",
+   "flow_steps": [
+    {
+     "state_id": "s04",
+     "caption": "The Toki intro modal opens over home, as today."
+    },
+    {
+     "state_id": "new:toki-outfit-offer",
+     "caption": "A card offers a new outfit for Toki for 7 days in exchange for one short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays a short sponsored game and can close it at any time."
+    },
+    {
+     "state_id": "new:toki-dressed",
+     "caption": "Once the play is confirmed, Toki wears the new outfit on the home banner for 7 days."
+    }
+   ],
+   "after_reward": "When the 7 days end, Toki goes back to the default look with a note that a new outfit is one game away, which brings the user back to visit Toki and play again.",
+   "rationale": "Subscribers already have Luzia's paid features, so an outfit for their pet adds something they don't have without cheapening the plan. It costs nothing to serve, so the sponsored game is almost pure revenue. It also gives users a light reason to come back to Toki regularly.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 0.5,
+   "rank_score": 0.5,
+   "dropped_reason": null
+  },
+  {
+   "id": "c01",
+   "lens": "free_at_limit",
+   "kind": "existing_anchor",
+   "title": "Existing opportunity: Said no to Luzia+? Play a short game for 3 answers in Advanced reasoning mode today",
+   "anchor_evidence_ids": [
+    "s02.e03",
+    "s02.e01",
+    "s02.e19"
+   ],
+   "bible_mechanic": "M02",
+   "what_is_different_here": "The Luzia+ paywall (s02) lists 'Advanced reasoning mode' (s02.e03) as a paid feature. It opens from the home badge (s01.e02/s01.e03) and the Upgrade row in Settings (s03.e05). No free-tier limit was observed, so the one moment of need we can see is the user closing this paywall without starting the 3-day trial (s02.e19). The offer turns that no into a small, same-day taste of one listed feature. It skips images and voice, the costly features, and never touches the plans themselves.",
+   "adds": null,
+   "removes_nothing_free": true,
+   "trigger_event": "A free user closes the Luzia+ paywall without buying a plan or starting the free trial.",
+   "trigger_state_id": "s02",
+   "placement": "A bottom sheet that slides up over the paywall as it closes, with 'Play' and 'No thanks' buttons.",
+   "offer_copy": "Not ready for Luzia+? Play a short sponsored game and get 3 answers in Advanced reasoning mode, Luzia's deeper-thinking mode for tricky questions. Use them any time today.",
+   "reward": {
+    "kind": "inference",
+    "unit": "Advanced reasoning mode answers",
+    "amount": 3.0,
+    "duration": "until midnight local time"
+   },
+   "for_users": "free",
+   "grants_id": "l02",
+   "cost_inputs": {
+    "inference_count": 3,
+    "tokens_in": 3000,
+    "tokens_out": 1000,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per day, resets at midnight local time",
+   "decline_path": "'No thanks' or swiping the sheet away closes it and returns the user to where they opened the paywall. Chats keep working exactly as before.",
+   "ad_fail_path": "If no game is available, the sheet is not shown. If the game fails or is not verified, a short note says 'That didn't go through, nothing was used' and the day's offer stays available.",
+   "subscriber_treatment": "Luzia+ subscribers never see this sheet. They already have Advanced reasoning mode.",
+   "advertiser_category": "Casual mobile games, streaming services, and online learning apps",
+   "character_use": "None in the game. The sheet uses Luzia's name and the paywall's own wording for the feature.",
+   "flow_steps": [
+    {
+     "state_id": "s02",
+     "caption": "The user opened the Luzia+ offer from the home badge and taps close without choosing a plan."
+    },
+    {
+     "state_id": "new:reasoning-offer-sheet",
+     "caption": "A sheet offers 3 answers in Advanced reasoning mode today in exchange for one short sponsored game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays a short sponsored game and can quit at any time."
+    },
+    {
+     "state_id": "s01",
+     "caption": "Back on Chats, a banner confirms '3 Advanced reasoning answers ready today' and points to the next chat."
+    }
+   ],
+   "after_reward": "After the third answer, or at midnight, a small note says Advanced reasoning mode is back to Luzia+ only, with a link to the plans and the free trial. The user can play again tomorrow for another taste.",
+   "rationale": "Users who close the paywall have just said no to paying, and a small, same-day taste of one listed feature lets them feel what they turned down. Each grant costs about a cent in fresh model use, so it pays for itself in North America, above roughly $8 per thousand plays, but not in low-paying regions without cheaper serving. It stays far smaller than the plan, which also includes images, voice, characters, and tools.",
+   "economics": {
+    "cost_2k": 0.0075,
+    "cost_8k": 0.012,
+    "breakeven_ecpm_2k": 7.5,
+    "breakeven_ecpm_8k": 12.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "CONDITIONAL",
+    "assumption_line": "Costs ~$0.0075 per reward to serve; pays for itself above $7.50 eCPM at 2k context ($12.00 at 8k). A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 3 replies of 1000 tokens out, at $0.25 / $2.00 per million tokens in / out (central prices); the verdict uses the 8k figure; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 0.5,
+   "rank_score": 0.5,
+   "dropped_reason": "duplicate of c05: same benefit (advanced reasoning answers)"
+  }
+ ]
+}

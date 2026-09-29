@@ -15,12 +15,11 @@ from PIL import Image
 from playwright.sync_api import Error as PlaywrightError
 
 from simula import config, llm, qa_metrics, render, runfolder
-from simula.cli import run_options
 from simula.config import ROOT
 from simula.contracts import (SCHEMA_VERSION, ContractError, ContractReport, Critique, Edge, Edit, Edits, Fix,
-                              ProductModel, QAMetrics, Rect, ScreenMetrics, State)
+                              ProductModel, QAMetrics, Rect, ScreenMetrics, StageOutcome, State)
 from simula.runlog import read_trace, run_trace, write_exhibit
-from simula.stages import Ctx, mock
+from simula.stages import FRESH_CALLS, Ctx, in_plain_words, mock, resume_command
 
 MAX_ROUNDS = 3
 MIN_GAIN = 0.3
@@ -31,11 +30,13 @@ LOWEST_SHOWN = 3
 CLICK_TIMEOUT_MS = 1500
 TYPED = "hello"
 GESTURE_MAP = "() => JSON.parse(document.getElementById('simula-actions')?.textContent || '{}')"
-CRITIC_MAX_TOKENS = 16000
 CRITIC_SCREENS = 4
 PARALLEL_CRITICS = 4
-FIXER_MAX_TOKENS = 64000
 RECORDS = llm.CACHE / "qa"
+# How mock.run and mock.failure_reason word a placeholder's reason, read back by undrawn_cause.
+UNDRAWN_PREFIX = "screen not drawn: "
+CAP_PREFIX = "$ cap reached: "
+FAILED_CALL = re.compile(r"([a-z_]+): (.*)", re.S)
 # Part of a measurement record's key. Bumped when a record gains a field or its numbers change meaning, so a record
 # written before is a replay miss, never a crash or a stale number.
 MEASURE_RECORD = 2
@@ -67,19 +68,19 @@ class Version:
 
 @dataclass
 class Loop:
-    """How the fix loop went: a summary per round, why it stopped (and whether a failed or capped model call cut it
-    short), the screens whose latest critic call failed (with the round and why), the first round a score-only keep
-    rule would have decided the other way, and the critic's findings on the approved version (None when no round
-    critiqued it)."""
+    """How the fix loop went: a summary per round, why it stopped (and `cause`, the failed or capped model call that
+    cut it short, if one did), the screens whose latest critic call failed (with the round and the failure), the first
+    round a score-only keep rule would have decided the other way, and the critic's findings on the approved version
+    (None when no round critiqued it)."""
     rounds: list[dict]
     stop: str
-    stopped_early: bool = False
-    missed: dict[str, str] = field(default_factory=dict)
+    cause: BaseException | None = None
+    missed: dict[str, tuple[int, llm.LLMFailure]] = field(default_factory=dict)
     disagreement: dict | None = None
     open_findings: list[Fix] | None = None
 
 
-def run(ctx: Ctx) -> None:
+def run(ctx: Ctx) -> StageOutcome:
     model = ProductModel.model_validate_json((ctx.run_dir / "model" / "product_model.json").read_text())
     scope = mock_screens(ctx, model)
     shutil.rmtree(ctx.run_dir / "qa", ignore_errors=True)
@@ -91,6 +92,7 @@ def run(ctx: Ctx) -> None:
     report = qa_report(ctx, best, loop, undrawn_screens(ctx))
     write_json(ctx.run_dir / "qa" / "qa_report.json", report)
     write_exhibit(ctx.run_dir, 4, "qa", exhibit(ctx, model, best, loop, report))
+    return StageOutcome(status=report["outcome"], reasons=report["reasons"], resume=report["resume"])
 
 
 def improve(ctx: Ctx, model: ProductModel, scope: list[State], best: Version) -> tuple[Version, Loop]:
@@ -105,7 +107,7 @@ def improve(ctx: Ctx, model: ProductModel, scope: list[State], best: Version) ->
             critiqued[best.round] = critique
             edits = fix(ctx, budget, model, best, critique, n)
         except (llm.LLMFailure, llm.CapReached) as e:
-            loop.stop, loop.stopped_early = f"round {n} stopped before any edit: {e}", True
+            loop.stop, loop.cause = f"round {n} stopped before any edit: {e}", e
             run_trace(ctx.run_dir, stage="qa", step=f"round{n}", decider="code", outcome="error",
                       note=loop.stop[:300])
             break
@@ -173,7 +175,7 @@ def measure_or_replay(ctx: Ctx, model: ProductModel, scope: list[State], n: int,
         return version
     if not path.exists():
         raise llm.ReplayMiss(f"--replay: qa has no measurement record for round {n}")
-    measure(ctx, model, scope, n, html)
+    measure(ctx, model, scope, n, html, trace=False)
     version = version_from(json.loads(path.read_text()), n, html)
     write_json(ctx.run_dir / "qa" / f"round{n}" / "metrics.json", json.loads(version.metrics.model_dump_json()))
     run_trace(ctx.run_dir, stage="qa", step=f"round{n}", decider="code",
@@ -181,9 +183,10 @@ def measure_or_replay(ctx: Ctx, model: ProductModel, scope: list[State], n: int,
     return version
 
 
-def measure(ctx: Ctx, model: ProductModel, scope: list[State], n: int, html: str) -> Version:
+def measure(ctx: Ctx, model: ProductModel, scope: list[State], n: int, html: str, *, trace: bool = True) -> Version:
     """Renders one version in its own round folder and measures everything the score and the critic need, on the
-    screens stage 3 drew: a placeholder for an undrawn screen is reported, never scored or fixed."""
+    screens stage 3 drew: a placeholder for an undrawn screen is reported, never scored or fixed. A replay renders
+    only for the round folder's images and traces the recorded numbers itself (`trace=False`)."""
     round_dir = ctx.run_dir / "qa" / f"round{n}"
     round_dir.mkdir(parents=True, exist_ok=True)
     (round_dir / "index.html").write_text(html)
@@ -209,10 +212,11 @@ def measure(ctx: Ctx, model: ProductModel, scope: list[State], n: int, html: str
                         cross_screen_failures=[f["detail"] for f in cross],
                         score=sum(d["metrics"].score for d in details) / len(details))
     write_json(round_dir / "metrics.json", json.loads(metrics.model_dump_json()))
-    run_trace(ctx.run_dir, stage="qa", step=f"round{n}", decider="code",
-              note=f"score {metrics.score:.2f}, {len(errors)} contract errors, "
-                   f"{sum(1 for t in taps if t['problem'])} of {len(taps)} taps failing, "
-                   f"{len(cross)} cross-screen failures")
+    if trace:
+        run_trace(ctx.run_dir, stage="qa", step=f"round{n}", decider="code",
+                  note=f"score {metrics.score:.2f}, {len(errors)} contract errors, "
+                       f"{sum(1 for t in taps if t['problem'])} of {len(taps)} taps failing, "
+                       f"{len(cross)} cross-screen failures")
     return Version(n, html, metrics, details, taps, flows, errors, cross)
 
 
@@ -275,6 +279,30 @@ def mock_screens(ctx: Ctx, model: ProductModel) -> list[State]:
     report = ContractReport.model_validate_json((ctx.run_dir / "mock" / "contract_report.json").read_text())
     states = {s.id: s for s in model.states}
     return [states[sid] for sid in report.screens]
+
+
+def pictures(ctx: Ctx, screens: set) -> dict[str, list[dict]]:
+    """For each of these screens, every picture code made that its page may draw, each src with the content-dp rect
+    it goes at: the element assets the builder may use (mock.usable_asset) and the art crops (mock/art.json). With
+    them a critic can ask for a real picture the page left out, and a fixer can put it back."""
+    model = ProductModel.model_validate_json((ctx.run_dir / "model" / "product_model.json").read_text())
+    drawn = {}
+    for state in (s for s in model.states if s.id in screens):
+        assets = {f"assets/{e.id}.png": e.rect_dp for e in state.elements
+                  if mock.usable_asset(e, state.elements, model.device)}
+        drawn[state.id] = [{"src": src, "rect": rect(r)} for src, r in (assets | art_origins(ctx, state)).items()]
+    return drawn
+
+
+def undrawn_cause(detail: str) -> BaseException:
+    """What left a screen undrawn, read back from the reason mock.run gave its placeholder (`UNDRAWN_PREFIX`, then
+    mock.failure_reason's words: `CAP_PREFIX` and the cap's message, `<outcome>: <detail>` for a failed call, or an
+    unusable answer's own words), so the resume can say what draws it."""
+    reason = detail.removeprefix(UNDRAWN_PREFIX)
+    if reason.startswith(CAP_PREFIX):
+        return llm.CapReached(reason.removeprefix(CAP_PREFIX))
+    failed = FAILED_CALL.fullmatch(reason)
+    return llm.LLMFailure(*failed.groups()) if failed else ValueError(reason)
 
 
 def undrawn_screens(ctx: Ctx) -> dict[str, str]:
@@ -362,8 +390,10 @@ def type_into(page, screen: str, field: str | None) -> str | None:
     except PlaywrightError as e:
         return f"the text field never took the tap ({str(e).splitlines()[0]})"[:300]
     page.keyboard.type(TYPED)
-    # A type edge often stays on its screen, so landing there proves nothing: the field must show what was typed.
-    if TYPED not in box.first.inner_text():
+    # A type edge often stays on its screen, so landing there proves nothing: the field must show what was typed. A
+    # form control shows it in its value, never in its text.
+    control = box.first.evaluate("e => e.matches('input, textarea')")
+    if TYPED not in (box.first.input_value() if control else box.first.inner_text()):
         return "the text field didn't take the typing"
     page.keyboard.press("Enter")
     return None
@@ -427,7 +457,7 @@ def walk_one(page, edges: list[Edge], gestures: dict) -> tuple[str | None, str |
 # ---------- critic and fixer ----------
 
 def criticize(ctx: Ctx, budget: llm.Budget, version: Version, history: list[dict], n: int,
-              missed: dict[str, str] | None = None) -> Critique:
+              missed: dict[str, tuple[int, llm.LLMFailure]] | None = None) -> Critique:
     """One critic call per group of at most CRITIC_SCREENS screens, in the order QA measured them (the mock's order),
     at most PARALLEL_CRITICS at once; their fixes merge by data-el. A group whose call fails is skipped, unless every
     group fails. `missed` keeps each screen whose latest critic call failed: a failed group's screens go in with the
@@ -441,8 +471,6 @@ def criticize(ctx: Ctx, budget: llm.Budget, version: Version, history: list[dict
         except llm.LLMFailure as e:
             return e
 
-    # ponytail: llm.Budget doesn't hold a call's worst case while it is in flight, so parallel groups can pass the
-    # cap by what they spend together (same as the mock's batches); PR 5's Budget hold fixes it.
     with ThreadPoolExecutor(PARALLEL_CRITICS) as pool:
         results = list(pool.map(one, range(1, len(groups) + 1), groups))
     critiques = [r for r in results if isinstance(r, Critique)]
@@ -453,7 +481,7 @@ def criticize(ctx: Ctx, budget: llm.Budget, version: Version, history: list[dict
             for sid in ids:
                 missed.pop(sid, None)
             continue
-        missed.update(dict.fromkeys(ids, f"round {n} {str(r)[:120]}"))
+        missed.update(dict.fromkeys(ids, (n, r)))
         if critiques:
             run_trace(ctx.run_dir, stage="qa", step=f"critic r{n} g{k}", decider="code", outcome="error",
                       note=f"group skipped, the other groups' fixes are used: {r}"[:300])
@@ -475,9 +503,11 @@ def criticize_group(ctx: Ctx, budget: llm.Budget, version: Version, history: lis
                         {"type": "image", "png": (round_dir / kind / f"{sid}.png").read_bytes()}]
     ids = {s["metrics"].state_id for s in group} | ({None} if k == 1 else set())
     content.append({"type": "text", "text": "The numbers:\n" + json.dumps(numbers(version, ids), separators=(",", ":"))
+                    + "\n\nThe pictures code made for these screens:\n"
+                    + json.dumps(pictures(ctx, ids), separators=(",", ":"))
                     + "\n\nEarlier rounds:\n" + json.dumps(history, separators=(",", ":"))})
     return ask(ctx, budget, version, step=f"critic r{n} g{k}", model=role["model"], effort=role.get("effort"),
-               system=prompt("critic"), content=content, max_tokens=role.get("max_tokens", CRITIC_MAX_TOKENS),
+               system=prompt("critic"), content=content, max_tokens=role["max_tokens"],
                schema=Critique)
 
 
@@ -501,13 +531,14 @@ def fix(ctx: Ctx, budget: llm.Budget, model: ProductModel, version: Version, cri
         sid = s["metrics"].state_id
         content += [{"type": "text", "text": f"{sid} ({s['name']}), the real screen; 1 image px = 1 CSS px of its section:"},
                     {"type": "image", "png": (round_dir / "real" / f"{sid}.png").read_bytes()}]
-    task = {"fixes": [f.model_dump() for f in critique.fixes], **numbers(version, named | {None})}
+    task = {"fixes": [f.model_dump() for f in critique.fixes], **numbers(version, named | {None}),
+            "pictures": pictures(ctx, named)}
     content.append({"type": "text", "text": "What to fix:\n" + json.dumps(task, separators=(",", ":"))
                     + "\n\nThe page, without the navigation runtime (code adds it back after your edits):\n```html\n"
                     + without_runtime(version.html) + "\n```"})
     return ask(ctx, budget, version, step=f"fixer r{n}", model=role["model"], effort=effort,
                system=prompt("fixer") + "\n\n" + mock.contract_text(), content=content,
-               max_tokens=role.get("max_tokens", FIXER_MAX_TOKENS), schema=Edits)
+               max_tokens=role["max_tokens"], schema=Edits)
 
 
 def named_screens(model: ProductModel, critique: Critique) -> set[str]:
@@ -671,25 +702,52 @@ def qa_report(ctx: Ctx, best: Version, loop: Loop, undrawn: dict[str, str]) -> d
 
 
 def outcome(ctx: Ctx, best: Version, loop: Loop, undrawn: dict[str, str]) -> dict:
-    """complete, or partial with why and where to start again: screens the mock left undrawn (and the core flows
-    through them), a review a failed or capped model call cut short, screens whose latest critic call failed, or
-    checks the approved version still fails.
+    """complete, or partial with why and the command that gets further. `reasons` say why in plain words for the app's
+    product team, in the order a person would fix them: screens the mock left undrawn and the core flows through
+    them, a review a failed or capped model call cut short, screens whose latest critic call failed, checks the
+    approved version still fails. `resume` is built from what caused them (`resume_command`): QA again with its own
+    failures' flags, asking afresh when the loop's own recorded answers are all that fell short; while screens are
+    undrawn, the mock with its failures' flags first, and then that QA on the new page. `resume_note` goes beside it:
+    what stopped each part in the stages' own words, and when the resume asks afresh, that the same input may be
+    answered the same way.
     A partial mock still goes on to the slides; QA never blocks them."""
     through_undrawn = [f["flow"] for f in best.flows if f["status"] == "undrawn"]
+    undrawn_causes = {sid: undrawn_cause(detail) for sid, detail in undrawn.items()}
+    missed = {sid: failure for sid, (_, failure) in loop.missed.items()}
     reasons = [text for present, text in (
-        (undrawn, f"the mock left screens undrawn: {', '.join(undrawn)}"),
+        (undrawn, "the mock left screens undrawn: "
+                  + together({sid: in_plain_words(c) for sid, c in undrawn_causes.items()})),
         (through_undrawn, f"core flows through an undrawn screen: {', '.join(through_undrawn)}"),
-        (loop.stopped_early, f"the review stopped early: {loop.stop}"),
-        (loop.missed, f"the critic's latest call on these screens failed: {', '.join(loop.missed)} "
-                      f"({'; '.join(dict.fromkeys(loop.missed.values()))})"),
+        (loop.cause, f"the review stopped early: {loop.cause and in_plain_words(loop.cause)}"),
+        (missed, "the critic's latest review of these screens failed: "
+                 + together({sid: in_plain_words(e) for sid, e in missed.items()})),
         (best.failed_taps(), f"taps that still fail: {', '.join(t['edge'] for t in best.failed_taps())}"),
         (best.failed_flows(), f"core flows that still fail: {', '.join(f['flow'] for f in best.failed_flows())}"),
         (best.contract_errors, f"contract errors on the approved version: {len(best.contract_errors)}"),
         (best.cross_screen, f"cross-screen failures on the approved version: {len(best.cross_screen)}"),
     ) if present]
-    start = "mock" if undrawn else "qa"
-    return {"outcome": "partial" if reasons else "complete", "reasons": reasons,
-            "resume": f"simula run {ctx.app['name']} --from {start} {run_options(ctx)}" if reasons else None}
+    if not reasons:
+        return {"outcome": "complete", "reasons": [], "resume": None, "resume_note": None}
+    qa_causes = [c for c in (loop.cause, *missed.values()) if c is not None]
+    resume = resume_command(ctx, "qa", *qa_causes, fresh=not qa_causes and not undrawn)
+    if undrawn:
+        resume = f"{resume_command(ctx, 'mock', *undrawn_causes.values())} && {resume}"
+    said = [text for present, text in (
+        (undrawn, "mock: " + together({sid: d.removeprefix(UNDRAWN_PREFIX) for sid, d in undrawn.items()})),
+        (loop.cause, f"review: {loop.stop}"),
+        (missed, "critic: " + together({sid: f"round {n} {str(e)[:120]}" for sid, (n, e) in loop.missed.items()})),
+    ) if present]
+    note = [f"What stopped it: {'; '.join(said)}." if said else "", FRESH_CALLS if " --no-cache" in resume else ""]
+    return {"outcome": "partial", "reasons": reasons, "resume": resume,
+            "resume_note": " ".join(part for part in note if part) or None}
+
+
+def together(why: dict[str, str]) -> str:
+    """Screens that share a why, listed together: `s01, s02 (why); s03 (other why)`."""
+    by_why = {}
+    for sid, text in why.items():
+        by_why.setdefault(text, []).append(sid)
+    return "; ".join(f"{', '.join(ids)} ({text})" for text, ids in by_why.items())
 
 
 def structure(best: Version) -> dict:
@@ -733,7 +791,8 @@ def fidelity_lines(report: dict, start: float) -> list[str]:
 
 def exhibit(ctx: Ctx, model: ProductModel, best: Version, loop: Loop, report: dict) -> str:
     status = ("**approved** (outcome complete)" if report["outcome"] == "complete"
-              else f"**qa_incomplete** (outcome partial): {'; '.join(report['reasons'])}. Resume: `{report['resume']}`")
+              else f"**qa_incomplete** (outcome partial): {'; '.join(report['reasons'])}. Resume: `{report['resume']}`"
+              + (f" ({report['resume_note']})" if report["resume_note"] else ""))
     lines = [f"# QA: {model.app}", "",
              f"Status: {status}. Round {best.round} is approved and copied to `qa/approved/`. Stop: "
              f"{report['stop_reason']}. Model spend this stage: ${stage_usd(ctx):.4f}.", "",

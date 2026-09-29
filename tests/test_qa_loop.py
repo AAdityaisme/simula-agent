@@ -5,19 +5,22 @@ model."""
 
 import json
 import re
+import shutil
 import threading
 import time
 from dataclasses import replace
+from pathlib import Path
 
 import anthropic
 import pytest
 from PIL import Image
 
-from simula import cli, config, llm, qa_metrics, render
+from simula import cli, config, llm, qa_metrics, render, runfolder
 from simula.contracts import (ContractError, ContractReport, Critique, Edit, Edits, Fix, ProductModel, QAMetrics,
-                              ScreenMetrics)
+                              QAReport, Rect, ScreenMetrics, StageOutcome)
+from simula.llm import Reply
 from simula.runlog import read_trace
-from simula.stages import mock, qa
+from simula.stages import FRESH_CALLS, flows, mock, qa
 from tests.conftest import APPS, FIXTURES
 from tests.mock_fake import golden, seed_model, skeleton_html
 from tests.test_mock_isolation import ctx_for, fake_builder
@@ -55,15 +58,17 @@ def scripted(tmp_path, monkeypatch):
     calls = []
 
     def play(scores, profile="dev", edits=lambda n: [Edit(find=f"v{n - 1}", replace=f"v{n}", reason="r")],
-             errors=None):
+             errors=None, call=None, usd_cap=None):
         def measure(ctx, model, scope, n, html):
             metrics = QAMetrics(round=n, screens=[], cross_screen_failures=[], score=scores[n])
             broken = [ContractError(kind="invented_edge", detail="d", screen=None)] * (errors[n] if errors else 0)
             return qa.Version(n, html, metrics, [], [], [], broken)
         monkeypatch.setattr(qa, "measure", measure)
         monkeypatch.setattr(qa, "rebuild", lambda html, model, screens: html)
-        monkeypatch.setattr(llm, "call", fake_llm(calls, edits))
-        qa.run(ctx_for(run_dir, "luzia", profile=profile))
+        monkeypatch.setattr(llm, "call", call or fake_llm(calls, edits))
+        ctx = ctx_for(run_dir, "luzia", profile=profile)
+        ctx.usd_cap = usd_cap
+        qa.run(ctx)
         return json.loads((run_dir / "qa" / "qa_report.json").read_text())
     return run_dir, calls, play
 
@@ -247,8 +252,11 @@ def test_a_replay_whose_renders_differ_makes_no_model_call_and_ends_where_the_re
     assert any("group skipped" in line.note for line in read_trace(run_dir / "trace.jsonl"))
     second_group = ", ".join(s.id for s in mock.pick_scope(golden(app))[2:4])
     assert recorded["outcome"] == "partial" and recorded["reasons"][:2] == [
-        "the review stopped early: round 2 stopped before any edit: refusal: refused",
-        f"the critic's latest call on these screens failed: {second_group} (round 2 refusal: refused)"]
+        "the review stopped early: the model declined",
+        f"the critic's latest review of these screens failed: {second_group} (the model declined)"]
+    assert recorded["resume_note"].startswith(
+        "What stopped it: review: round 2 stopped before any edit: refusal: refused; "
+        f"critic: {second_group} (round 2 refusal: refused).")
 
     screenshot = render.screenshot_screens
 
@@ -266,8 +274,14 @@ def test_a_replay_whose_renders_differ_makes_no_model_call_and_ends_where_the_re
         raise llm.ReplayMiss(f"--replay: no cached response for qa/{kwargs['step']}")
     monkeypatch.setattr(render, "screenshot_screens", one_pixel_off)
     monkeypatch.setattr(llm, "call", no_cache_entry)
+    mark = len(read_trace(run_dir / "trace.jsonl"))
     qa.run(replace(ctx_for(run_dir, app), replay=True))
     assert json.loads((run_dir / "qa" / "qa_report.json").read_text()) == recorded
+    # Red team 9a98e87 F6: a replayed round traces once, with the recorded numbers the loop decided on, never also
+    # the local render's.
+    measured = [line.note for line in read_trace(run_dir / "trace.jsonl")[mark:]
+                if re.fullmatch(r"round\d+", line.step) and "score" in line.note]
+    assert measured and all(note.startswith("replay: the recorded measurements") for note in measured)
     assert "Replayed: the scores are the recorded run's" in (run_dir / "exhibits" / "04-qa.md").read_text()
 
     replayed = [line for line in read_trace(run_dir / "trace.jsonl") if "recorded for this page" in line.note]
@@ -325,45 +339,183 @@ def test_a_mock_replayed_offline_keeps_qas_replay_key(tmp_path, monkeypatch):
 
 # ---------- a provider outage is not our cap ----------
 
-@pytest.fixture
-def mocked_run(runs, monkeypatch, tmp_path):
-    """A fixture run whose mock the CLI built (offline builder), ready for `simula qa`. QA's model calls then go
-    through the real llm.call, against a temporary cache."""
-    real = llm.call
+@pytest.fixture(params=APPS)
+def mocked_run(request, runs, monkeypatch, tmp_path):
+    """A fixture run whose mock the CLI built (offline builder), ready for `simula qa`, one per app (the run's
+    parent folder names it). QA's model calls then go through the real llm.call, against a temporary cache."""
+    app, real = request.param, llm.call
     monkeypatch.setattr(llm, "call", fake_builder([]))
-    golden_model = str(FIXTURES / "golden" / "janitorai")
-    assert cli.main(["mock", "janitorai", "--allow-fixtures", "--fixture", f"model={golden_model}", "--profile", "dev"]) == 0
+    golden_model = str(FIXTURES / "golden" / app)
+    assert cli.main(["mock", app, "--allow-fixtures", "--fixture", f"model={golden_model}", "--profile", "dev"]) == 0
     monkeypatch.setattr(llm, "call", lambda **kwargs: real(**kwargs, cache_dir=tmp_path / "cache"))
-    return (runs / "janitorai" / "latest").resolve()
+    return (runs / app / "latest").resolve()
 
 
 def test_a_provider_usage_limit_mid_qa_fails_the_stage_instead_of_approving(mocked_run, monkeypatch):
     """The 2026-09-29 run: QA took the account's usage-limit 400 for its own cap, approved round 0, wrote done.json
     and exited 0, so a later run would have skipped QA."""
     fake_anthropic(monkeypatch, error_400(anthropic, "https://api.anthropic.com/v1/messages", USAGE_LIMIT))
-    code = cli.main(["qa", "janitorai", "--run", mocked_run.name, "--allow-fixtures", "--profile", "dev"])
+    app = mocked_run.parent.name
+    code = cli.main(["qa", app, "--run", mocked_run.name, "--allow-fixtures", "--profile", "dev"])
     assert code == cli.EXIT_PROVIDER != 0
     assert not (mocked_run / "qa" / "done.json").exists() and not (mocked_run / "qa" / "approved").exists()
     assert "usage limit" in (mocked_run / "qa" / "failure.json").read_text()
     human = (mocked_run / "needs-human.md").read_text()
-    assert f"simula run janitorai --from qa --run {mocked_run.name} {OPTIONS}" in human
+    assert f"simula run {app} --from qa --run {mocked_run.name} {OPTIONS}" in human
     assert not list((mocked_run.parent.parent.parent / "cache").glob("*.json"))
 
 
-def test_our_own_cap_in_qa_still_approves_the_best_round(mocked_run, monkeypatch):
-    code = cli.main(["qa", "janitorai", "--run", mocked_run.name, "--allow-fixtures", "--profile", "dev",
+def answering_provider(calls: list, model: ProductModel | None = None, refuse: str | None = None,
+                       fixer_out: int = 100, builder_out: int = 1000):
+    """Stands in for the provider behind the real llm.call (cache, budget, trace). The builder draws each batch of
+    `model` as its skeleton, spending `builder_out` tokens, but refuses the batch holding screen `refuse` the first
+    time it is asked; the critic names s01, and the fixer answers with no edits, spending `fixer_out` tokens."""
+    refused = []
+
+    def call(model_id, system, messages, effort, schema, max_tokens, total_timeout=None):
+        text = messages[0]["content"][-1]["text"]
+        if schema is None:
+            screens = [s["id"] for s in json.loads(text.split("\n\n", 1)[1])["screens"]]
+            calls.append(("builder", tuple(screens)))
+            if refuse in screens and not refused:
+                refused.append(screens)
+                return Reply(text="", model=model_id, tokens_in=1000, tokens_out=10, stop_reason="refusal")
+            return Reply(text=f"```html\n{skeleton_html(model, screens)}\n```", model=model_id, tokens_in=1000,
+                         tokens_out=builder_out)
+        calls.append((schema.__name__,))
+        if schema is Critique:
+            answer = Critique(fixes=[Fix(element_id="s01", problem="p", fix="f")], summary="s")
+            return Reply(text=answer.model_dump_json(), model=model_id, tokens_in=100, tokens_out=100)
+        return Reply(text=Edits(edits=[]).model_dump_json(), model=model_id, tokens_in=100, tokens_out=fixer_out)
+    return call
+
+
+def test_a_partial_qa_says_so_in_its_done_marker_and_on_the_decks_cover(mocked_run, monkeypatch):
+    """#8's red team 2 (LOW 2): qa.run returned None, so the runner marked a partial QA complete and the deck's cover,
+    which reads done.json, said nothing. qa.run now returns the report's outcome, reasons and resume."""
+    def refusing(model_id, system, messages, effort, schema, max_tokens, total_timeout=None):
+        return Reply(text="", model=model_id, tokens_in=100, tokens_out=10, stop_reason="refusal")
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", refusing)
+    app = mocked_run.parent.name
+    assert cli.main(["qa", app, "--run", mocked_run.name, "--allow-fixtures", "--profile", "dev"]) == 0
+    report = QAReport.model_validate_json((mocked_run / "qa" / "qa_report.json").read_text())
+    assert report.reasons[0] == "the review stopped early: the model declined"
+    assert runfolder.read_done(mocked_run / "qa").outcome == StageOutcome(status="partial", reasons=report.reasons,
+                                                                          resume=report.resume)
+    assert report.resume in (mocked_run / "needs-human.md").read_text()
+    assert flows.unfinished_stages(mocked_run) == [
+        f"The qa step finished only part of its work: {'; '.join(report.reasons)}."]
+
+
+@pytest.mark.parametrize("replay_cap", [[], ["--usd-cap", "0.0001"]], ids=["own-cap", "same-cap"])
+def test_a_replay_of_a_qa_run_our_cap_stopped_ends_where_the_live_run_did(mocked_run, replay_cap):
+    """Red team 9a98e87 F2 (probe A): a QA run that its $ cap stopped caught the stop and shipped its best round, but
+    nothing was cached for the call the cap turned away, so --replay missed there and failed the stage. The cap's
+    trace line is the record now (0b), and the replay stops the same way whatever its own cap."""
+    base = ["qa", mocked_run.parent.name, "--run", mocked_run.name, "--allow-fixtures", "--profile", "dev"]
+    assert cli.main([*base, "--usd-cap", "0.0001"]) == 0
+    recorded = (mocked_run / "qa" / "qa_report.json").read_text()
+    assert "round 1 stopped before any edit: qa: next call could cost" in json.loads(recorded)["stop_reason"]
+    assert cli.main([*base, "--replay", *replay_cap]) == 0
+    assert (mocked_run / "qa" / "qa_report.json").read_text() == recorded
+    assert not (mocked_run / "qa" / "failure.json").exists()
+
+
+def test_our_own_cap_in_qa_approves_the_best_round_and_its_printed_resume_gets_further(mocked_run, monkeypatch):
+    """Red team 9a98e87 F1: the resume carries the run's options (Greptile on 47a0152) and a --usd-cap past what
+    stopped it (a whole cap again, the configured one since this run's was lower, and the call turned away). Run as
+    printed, QA gets past round 1; the old command replayed the same stop."""
+    app, calls = mocked_run.parent.name, []
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", answering_provider(calls))
+    code = cli.main(["qa", app, "--run", mocked_run.name, "--allow-fixtures", "--profile", "dev",
                      "--usd-cap", "0.0001"])
-    assert code == 0 and (mocked_run / "qa" / "done.json").exists()
+    assert code == 0 and (mocked_run / "qa" / "done.json").exists() and not calls
     report = json.loads((mocked_run / "qa" / "qa_report.json").read_text())
     assert (report["status"], report["outcome"], report["approved_round"]) == ("qa_incomplete", "partial", 0)
     assert "round 1 stopped before any edit: qa: next call could cost" in report["stop_reason"]
-    assert report["reasons"] == [f"the review stopped early: {report['stop_reason']}"]
-    assert report["resume"] == f"simula run janitorai --from qa --run {mocked_run.name} {OPTIONS}"
-    # Greptile on 47a0152: a resume command without the run's options refuses a fixture run. Run it as printed; the
-    # provider refuses every call here, so getting back to QA ends in exit 5 and no model is reached.
-    fake_anthropic(monkeypatch, error_400(anthropic, "https://api.anthropic.com/v1/messages", USAGE_LIMIT))
-    assert cli.main(report["resume"].split()[1:]) == cli.EXIT_PROVIDER
-    assert "usage limit" in (mocked_run / "qa" / "failure.json").read_text()
+    assert report["reasons"] == ["the review stopped early: over the $ budget"]
+    assert report["resume_note"] == f"What stopped it: review: {report['stop_reason']}."
+    figure = llm.CapReached(report["stop_reason"]).usd_needed
+    assert figure > config.stage_cap("qa")
+    assert report["resume"] == f"simula qa {app} --run {mocked_run.name} {OPTIONS} --usd-cap {figure:.2f}"
+
+    assert cli.main(report["resume"].split()[1:]) == 0
+    again = json.loads((mocked_run / "qa" / "qa_report.json").read_text())
+    assert again["approved_round"] > 0 and "stopped before any edit" not in again["stop_reason"]
+    assert ("Critique",) in calls and ("Edits",) in calls
+
+
+def cloned_scope(tmp_path, app: str, screens: int) -> tuple[Path, ProductModel]:
+    """The app's golden model with its in-scope states cloned (new state and element ids, same screenshots and assets)
+    until `screens` are in scope, written as a model fixture folder."""
+    model = golden(app)
+    scope = mock.pick_scope(model)
+    clones = []
+    for k in range(screens - len(scope)):
+        state, sid = scope[k % len(scope)], f"x{k + 1:02}"
+        elements = [e.model_copy(update={"id": sid + e.id[len(state.id):]}) for e in state.elements]
+        clones.append(state.model_copy(update={"id": sid, "parent_id": None, "elements": elements}))
+    model = model.model_copy(update={"states": [*model.states, *clones]})
+    folder = tmp_path / "model"
+    shutil.copytree(FIXTURES / "golden" / app, folder)
+    (folder / "product_model.json").write_text(model.model_dump_json())
+    return folder, model
+
+
+def undrawn_now(run_dir) -> list[str]:
+    errors = ContractReport.model_validate_json((run_dir / "mock" / "contract_report.json").read_text()).errors
+    return sorted(e.screen for e in errors if e.kind == "undrawn_screen")
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_a_refused_mock_batch_resumes_to_every_screen_on_a_large_scope_at_real_prices(runs, monkeypatch, tmp_path,
+                                                                                      app):
+    """Red team 0ecf32a F1 (probe H): 24 screens in 6+ batches, real-profile prices, one batch refused once. The
+    printed resume asks the mock afresh (a stored refusal would replay) with --usd-cap at what is spent plus a whole
+    cap again, since --no-cache re-buys every batch against a budget that counts the first run. Run as printed, it
+    draws every screen: the ones the first run drew and the refused ones. Without the cap it planned fewer."""
+    folder, model = cloned_scope(tmp_path, app, 24)
+    groups = mock.batches(mock.pick_scope(model))
+    refused = sorted(s.id for s in groups[1])
+    calls = []
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic",
+                        answering_provider(calls, model, refuse=groups[1][0].id, builder_out=80000))
+    real = llm.call
+    monkeypatch.setattr(llm, "call", lambda **kwargs: real(**kwargs, cache_dir=tmp_path / "cache"))
+    options = ["--allow-fixtures", "--profile", "real"]
+    assert len(groups) >= 6
+    assert cli.main(["mock", app, *options, "--fixture", f"model={folder}"]) == 0
+    run = (runs / app / "latest").resolve()
+    assert undrawn_now(run) == refused
+    assert cli.main(["qa", app, "--run", run.name, *options]) == 0
+    report = json.loads((run / "qa" / "qa_report.json").read_text())
+    mock_half, qa_half = report["resume"].split(" && ")
+    assert "--no-cache" in mock_half and "--usd-cap" in mock_half and "<higher>" not in report["resume"]
+
+    assert [cli.main(command.split()[1:]) for command in (mock_half, qa_half)] == [0, 0]
+    assert undrawn_now(run) == []
+    assert not json.loads((run / "qa" / "qa_report.json").read_text())["undrawn_screens"]
+
+
+@pytest.mark.parametrize("drift", [0.0, 0.01], ids=["same-renders", "renders-drift"])
+def test_the_resume_after_our_cap_gets_past_the_round_it_stopped_in(scripted, tmp_path, monkeypatch, drift):
+    """Red team 9a98e87 probe C: QA's cap stops it at round 3's fixer and it approves round 2. Resumed with the
+    printed --usd-cap, it gets past round 3, even when a render changed so nothing comes back from the cache (the old
+    resume then approved round 0 and dropped rounds 1 and 2)."""
+    run_dir, _, play = scripted
+    real_profiles, real_call = config.profiles, llm.call
+    monkeypatch.setattr(config, "profiles", lambda: (p := real_profiles()) | {"caps_usd": p["caps_usd"] | {"qa": 1.3}})
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", answering_provider([], fixer_out=40000))
+
+    def through_llm(**kwargs):
+        return real_call(**kwargs, cache_dir=tmp_path / "cache")
+    first = play([5.0, 6.0, 7.0, 8.0], call=through_llm)
+    assert first["approved_round"] == 2 and "round 3 stopped before any edit" in first["stop_reason"]
+    resume = first["resume"].split()
+    assert resume[:2] == ["simula", "qa"] and "--usd-cap" in resume and "--no-cache" not in resume
+
+    again = play([5.0 + drift, 6.0, 7.0, 8.0], call=through_llm, usd_cap=float(resume[resume.index("--usd-cap") + 1]))
+    assert again["approved_round"] == 3 and again["outcome"] == "complete"
 
 
 # ---------- a synthetic 12-screen model: the critic in groups, undrawn screens ----------
@@ -478,14 +630,53 @@ def test_a_failed_group_is_skipped_and_only_all_failing_stops_the_round(twelve, 
     critique = qa.criticize(ctx_for(run_dir, app), llm.Budget("qa", 12.0), version, [], 1, missed=missed)
     assert [f.element_id for f in critique.fixes] == [*ids[0:4], "shared", *ids[8:12]]
     assert "group skipped" in read_trace(run_dir / "trace.jsonl")[-1].note
-    assert missed == dict.fromkeys(ids[4:8], "round 1 refusal: no")
+    assert {sid: (n, str(e)) for sid, (n, e) in missed.items()} == dict.fromkeys(ids[4:8], (1, "refusal: no"))
     monkeypatch.setattr(llm, "call", fake_critic([]))
     qa.criticize(ctx_for(run_dir, app), llm.Budget("qa", 12.0), version, [], 2, missed=missed)
     assert missed == {}
     monkeypatch.setattr(llm, "call", fake_critic([], fail_on={ids[0], ids[4], ids[8]}))
     with pytest.raises(llm.LLMFailure):
         qa.criticize(ctx_for(run_dir, app), llm.Budget("qa", 12.0), version, [], 3, missed=missed)
-    assert missed == dict.fromkeys(ids, "round 3 refusal: no")
+    assert {sid: (n, str(e)) for sid, (n, e) in missed.items()} == dict.fromkeys(ids, (3, "refusal: no"))
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_the_critic_and_the_fixer_are_given_the_pictures_code_made_for_their_screens(app, tmp_path, monkeypatch):
+    """Red team 9a98e87 F3 (probe D): an art crop the page doesn't draw was invisible to the loop, so no round could
+    put the real picture back. The critic and the fixer now get every picture code made for their screens, each src
+    with the rect it goes at."""
+    run_dir = seed_model(tmp_path / "run", app)
+    model = golden(app)
+    scope = mock.pick_scope(model)
+    mock.copy_assets(run_dir / "model", run_dir / "mock", scope, model.device)
+    state, element = next((s, e) for s in scope for e in s.elements if not e.asset_png)
+    src, origin = mock.art_src(element.id), Rect(x=0, y=100, w=411, h=400)
+    (run_dir / "mock" / src).write_bytes((FIXTURES / "golden" / app / state.canonical_png).read_bytes())
+    (run_dir / "mock" / "art.json").write_text(json.dumps({"schema_version": 1, "art": {src: origin.model_dump()}}))
+    ctx = ctx_for(run_dir, app)
+    version = qa.measure(ctx, model, scope, 0, qa.rebuild(skeleton_html(model), model, [s.id for s in scope]))
+    seen = []
+
+    def call(**kwargs):
+        seen.append(kwargs)
+        if kwargs["schema"] is Critique:
+            return Critique(fixes=[Fix(element_id=element.id, problem="a flat box", fix="the real picture")],
+                            summary="s"), None
+        return Edits(edits=[]), None
+    monkeypatch.setattr(llm, "call", call)
+    critique = qa.criticize(ctx, llm.Budget("qa", 12.0), version, [], 1)
+    qa.fix(ctx, llm.Budget("qa", 12.0), model, version, critique, 1)
+
+    usable = [e for e in state.elements if mock.usable_asset(e, state.elements, model.device)]
+    want = [*({"src": f"assets/{e.id}.png", "rect": qa.rect(e.rect_dp)} for e in usable),
+            {"src": src, "rect": qa.rect(origin)}]
+    told_critic = {}  # the critic's groups run in parallel, so gather what every group was told
+    for kwargs in (k for k in seen if k["schema"] is Critique):
+        text = next(p["text"] for p in kwargs["messages"][0]["content"] if p.get("text", "").startswith("The numbers"))
+        told_critic |= json.loads(text.split("The pictures code made for these screens:\n")[1].split("\n\n")[0])
+    fixer_text = seen[-1]["messages"][0]["content"][-1]["text"]
+    told_fixer = json.loads(fixer_text.split("What to fix:\n")[1].split("\n\n")[0])["pictures"]
+    assert seen[-1]["schema"] is Edits and told_critic[state.id] == want and told_fixer == {state.id: want}
 
 
 @pytest.mark.parametrize("twelve", APPS, indirect=True)
@@ -517,21 +708,26 @@ def test_undrawn_screens_are_reported_and_never_scored_criticized_or_fixed(twelv
         html = re.sub(rf'(<section data-screen="{sid}"[^>]*>).*?(</section>)', r"\1<p>screen not drawn</p>\2", html,
                       flags=re.S)
     page.write_text(html)
-    errors = [ContractError(kind="undrawn_screen", detail="screen not drawn: refusal", screen=sid) for sid in undrawn]
+    errors = [ContractError(kind="undrawn_screen", detail="screen not drawn: refusal: no", screen=sid)
+              for sid in undrawn]
     (run_dir / "mock" / "contract_report.json").write_text(
         ContractReport(passed=False, screens=ids, errors=errors).model_dump_json())
     calls = []
     monkeypatch.setattr(llm, "call", fake_critic(calls))
-    qa.run(ctx_for(run_dir, app))
+    returned = qa.run(ctx_for(run_dir, app))
 
     report = json.loads((run_dir / "qa" / "qa_report.json").read_text())
+    # a mock left complete with undrawn_screen errors (a refused batch, #7 F2 option a) is QA's partial to report
+    assert returned == StageOutcome(status="partial", reasons=report["reasons"], resume=report["resume"])
     drawn = [sid for sid in ids if sid not in undrawn]
-    assert report["undrawn_screens"] == [{"screen": sid, "reason": "screen not drawn: refusal"} for sid in undrawn]
+    assert report["undrawn_screens"] == [{"screen": sid, "reason": "screen not drawn: refusal: no"} for sid in undrawn]
     assert [s["state_id"] for s in report["screens"]] == drawn
     assert calls and all(set(c["seen"]).isdisjoint(undrawn) for c in calls)
     assert (report["status"], report["outcome"]) == ("qa_incomplete", "partial") and not report["contract_errors"]
-    assert report["reasons"][0] == f"the mock left screens undrawn: {', '.join(undrawn)}"
-    assert report["resume"] == f"simula run {app} --from mock --run {run_dir.name} {OPTIONS}"
+    assert report["reasons"][0] == f"the mock left screens undrawn: {', '.join(undrawn)} (the model declined)"
+    assert report["resume"] == (f"simula mock {app} --run {run_dir.name} {OPTIONS} "
+                                f"--usd-cap {config.stage_cap('mock'):.2f} --no-cache "
+                                f"&& simula qa {app} --run {run_dir.name} {OPTIONS}")
     edges = {e.id: e for e in mock.scope_edges(model, mock.pick_scope(model))}
     for flow in (f for f in model.flows if f.edge_ids and all(i in edges for i in f.edge_ids)):
         crosses = any({edges[i].from_state, edges[i].to_state} & set(undrawn) for i in flow.edge_ids)

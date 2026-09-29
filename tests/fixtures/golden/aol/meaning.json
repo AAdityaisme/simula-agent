@@ -7,7 +7,6 @@
    "tree": "aol-home",
    "kind": "screen",
    "name": "Home · Top Stories",
-   "in_mock_scope": true,
    "purpose": "Root. News feed with category pills, weather bar, story cards, a native ad slot below the first story, bottom bar Inbox / Home.",
    "labels": {},
    "roles": {
@@ -27,7 +26,6 @@
    "id": "s02",
    "kind": "screen",
    "name": "Article",
-   "in_mock_scope": true,
    "purpose": "In-app article reader: byline, hero image, body text, share and comment bar.",
    "tree": "aol-article"
   },
@@ -36,7 +34,6 @@
    "screen": "11-nav-inbox-login",
    "kind": "blocked",
    "name": "Inbox sign-in",
-   "in_mock_scope": false,
    "blocked_reason": "login wall",
    "purpose": "Mail tab asks for a sign-in. Screenshot only."
   },
@@ -44,7 +41,6 @@
    "id": "s04",
    "kind": "screen",
    "name": "Entertainment",
-   "in_mock_scope": true,
    "purpose": "Entertainment category feed.",
    "tree": "aol-tab-entertainment"
   },
@@ -53,7 +49,6 @@
    "screen": "08-sports-article-with-ad",
    "kind": "screen",
    "name": "Article with in-article ad",
-   "in_mock_scope": true,
    "purpose": "An article with a native ad inside the body. Screenshot only."
   },
   {
@@ -61,7 +56,6 @@
    "tree": "aol-home-scrolled",
    "kind": "screen",
    "name": "Home · Top Stories, scrolled",
-   "in_mock_scope": true,
    "purpose": "The home feed scrolled down: the toolbar collapses to the pill bar and the native ad card sits between stories."
   }
  ],

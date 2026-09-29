@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c03",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is opt-in (tapping the Custom Bestie banner), the copy states the reward ('6th character slot for 7 days') before the ad plays, declining closes the sheet with home unchanged, and the failure path shows a limit message with no play button."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a temporary content unlock (1 AI character slot for 7 days), not cash, a gift card, voucher, or transferable points."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: tapping the Custom Bestie banner when the subscriber already has 5 characters, detected via character count, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The offer removes nothing free. The subscriber keeps their 5 character slots; the 6th is a temporary bonus unlocked by ad play, and the app already charges for the base 5 via the subscription."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "Placement is a bottom sheet over home (app chrome), not inside a chat transcript or thread. Home screen s01 is marked safe, and the sheet does not render next to unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing_anchor offer on l05 ('Create up to 5 AI characters'). The app charges for and limits the base resource (5 slots via Luzia+ paywall). The reward—one temporary bonus slot—is a time-limited sample that does not remove the subscription's main benefit."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "All claims rest on observed elements: l05 and s02.e06 show the 5-character limit, s01.e22 shows the Custom Bestie banner, and the model confirms m03 is a user-built custom AI expert. The 7-day temporary unlock and 1-per-day cap are reasonable mechanics not contradicted by the model."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a time-limited sample (7 days), not a giveaway of the subscription's main benefit. When it expires, the character is saved but paused, and the subscriber must play again to unlock another week, preserving the value of the paid plan."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears at a moment of need: the subscriber tapped the Custom Bestie banner precisely because they have 5 characters and cannot create a new one. This is a natural interruption point, not mid-chat or task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a native play-to-earn (tap the banner → play a sponsored game → receive reward when play is verified). The reward is granted on the verified play event, and the trigger (tapping a banner when character count equals 5) is detectable by the app."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names a specific limit and feature of this app: the 5-character cap on l05, the Custom Bestie banner on s01.e22, and how a 7-day temporary unlock solves the problem for heavy users without eroding the subscription tier."
+ },
+ "other_concern": "The proposal assumes the character count is detectable server-side or client-side and that the app can enforce a 7-day timer per slot; these were not observed in the model. The proposal also states 'the slot costs no extra model replies beyond the chatting the plan already covers,' but this assumes the 6th character incurs no incremental cost per reply, which was not confirmed.",
+ "fixable": true
+}

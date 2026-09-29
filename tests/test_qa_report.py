@@ -3,12 +3,15 @@ keep score, and what the critic still saw on the approved version."""
 
 import pytest
 
-from simula import llm
+from simula import config, llm
 from simula.contracts import ContractError, QAMetrics, ScreenMetrics
-from simula.stages import qa
+from simula.stages import FRESH_CALLS, mock, qa
 from tests.test_mock_isolation import ctx_for
 # records keeps QA's replay records in tmp; scripted plays the loop on scripted scores.
 from tests.test_qa_loop import OPTIONS, approved_html, records, scripted  # noqa: F401
+
+# What these runs spent (nothing) plus a whole cap again: the figure --no-cache and a cap that names none get.
+QA_AGAIN, MOCK_AGAIN = (f"--usd-cap {config.stage_cap(stage):.2f}" for stage in ("qa", "mock"))
 
 
 def screen(sid: str, ssim: float | None, tagged: int, misses: int, differing: float | None = None) -> dict:
@@ -72,9 +75,16 @@ def test_a_finished_review_with_every_check_passing_is_complete(scripted):
                                                                                           None)
 
 
-@pytest.mark.parametrize("failure", [llm.LLMFailure("refusal", "no"), llm.CapReached("qa: cap")])
+@pytest.mark.parametrize("failure, why, flag, fresh", [
+    (llm.LLMFailure("refusal", "no"), "the model declined", f"{QA_AGAIN} --no-cache", True),
+    (llm.CapReached("qa: cap; raise with --usd-cap 3.5"), "over the $ budget", "--usd-cap 3.50", False),
+    (llm.LLMFailure("timeout", "slow"), "the model call timed out", "", False),
+], ids=["answered", "our-cap", "lost-call"])
 def test_a_review_a_model_call_cut_short_is_partial_yet_still_approves_its_best_version(scripted, monkeypatch,
-                                                                                       failure):
+                                                                                       failure, why, flag, fresh):
+    """Red team 9a98e87 F1: the resume follows the cause. A stored answer would replay, so it asks afresh and says so;
+    our own cap names a higher one; a lost call isn't replayed, so the plain stage calls again. Red team 0ecf32a LOW 3:
+    the reason says why in plain words, and the stage's own words go in the resume note."""
     run_dir, _, play = scripted
 
     def fail(*args, **kwargs):
@@ -82,8 +92,10 @@ def test_a_review_a_model_call_cut_short_is_partial_yet_still_approves_its_best_
     monkeypatch.setattr(qa, "fix", fail)
     report = play([5.0])
     assert (report["status"], report["outcome"], report["approved_round"]) == ("qa_incomplete", "partial", 0)
-    assert report["reasons"] == [f"the review stopped early: round 1 stopped before any edit: {failure}"]
-    assert report["resume"] == f"simula run luzia --from qa --run {run_dir.name} {OPTIONS}"
+    assert report["reasons"] == [f"the review stopped early: {why}"]
+    assert report["resume"] == f"simula qa luzia --run {run_dir.name} {OPTIONS} {flag}".rstrip()
+    said = f"What stopped it: review: round 1 stopped before any edit: {failure}."
+    assert report["resume_note"] == (f"{said} {FRESH_CALLS}" if fresh else said)
     assert approved_html(run_dir) == "<html><body>v0</body></html>"
     exhibit = (run_dir / "exhibits" / "04-qa.md").read_text()
     assert "**qa_incomplete** (outcome partial): the review stopped early" in exhibit
@@ -94,16 +106,62 @@ def test_contract_errors_left_on_the_approved_version_make_it_partial(scripted):
     report = play([5.0, 6.0], errors=[1, 2])
     assert report["approved_round"] == 0
     assert report["reasons"] == ["contract errors on the approved version: 1"]
+    assert report["resume_note"] == FRESH_CALLS
 
 
 def test_failing_taps_and_flows_are_named_and_resume_from_qa(tmp_path):
     best = version()
     report = qa.qa_report(ctx_for(tmp_path / "run", "anyapp"), best, qa.Loop(rounds=[], stop="s"), {})
+    # The loop's own recorded answers are what fell short, and a plain rerun would replay them.
     assert report["reasons"] == ["taps that still fail: s01.e2>s04", "core flows that still fail: f2"]
-    assert report["resume"] == f"simula run anyapp --from qa --run run {OPTIONS}"
+    assert report["resume_note"] == FRESH_CALLS
+    assert report["resume"] == f"simula qa anyapp --run run {OPTIONS} {QA_AGAIN} --no-cache"
     best.contract_errors.append(ContractError(kind="wallpaper", detail="d", screen="s01"))
-    undrawn = {"s09": "screen not drawn: refusal"}
+    undrawn = {"s09": "screen not drawn: refusal: no", "s10": "screen not drawn: refusal: no",
+               "s11": "screen not drawn: timeout: slow"}
     report = qa.qa_report(ctx_for(tmp_path / "run", "anyapp"), best, qa.Loop(rounds=[], stop="s"), undrawn)
-    assert report["reasons"][0] == "the mock left screens undrawn: s09"
+    assert report["reasons"][0] == ("the mock left screens undrawn: s09, s10 (the model declined); "
+                                    "s11 (the model call timed out)")
     assert report["reasons"][-1] == "contract errors on the approved version: 1"
-    assert report["resume"] == f"simula run anyapp --from mock --run run {OPTIONS}"
+    assert report["resume_note"] == f"What stopped it: mock: s09, s10 (refusal: no); s11 (timeout: slow). {FRESH_CALLS}"
+    assert report["resume"] == (f"simula mock anyapp --run run {OPTIONS} {MOCK_AGAIN} --no-cache "
+                                f"&& simula qa anyapp --run run {OPTIONS}")
+
+
+@pytest.mark.parametrize("reason, resume", [
+    ("timeout: slow", ""),
+    ("refusal: no", f" {MOCK_AGAIN} --no-cache"),
+    ("max_tokens: cut off", f" {MOCK_AGAIN} --no-cache"),
+    ("the mock builder returned no ```html block", f" {MOCK_AGAIN} --no-cache"),
+    ("$ cap reached: over budget: batches 3-6 don't fit the $8.00 mock cap at worst case; raise with --usd-cap 18.97",
+     " --usd-cap 18.97"),
+    ("$ cap reached: over budget: batches 3-6 don't fit the $8.00 mock cap at worst case; raise with --usd-cap",
+     f" {MOCK_AGAIN}"),
+], ids=["lost-call", "refusal", "max-tokens", "unusable-answer", "cap-with-figure", "cap-without-figure"])
+def test_undrawn_screens_resume_the_mock_by_what_left_them_undrawn(tmp_path, reason, resume):
+    """The reasons are the ones mock.failure_reason writes: a stored answer needs a fresh call, a lost call a plain
+    rerun, and the mock's cap the figure it names (or, naming none, what is spent plus a whole cap again: no printed
+    command holds a placeholder). --no-cache always comes with that cap. QA then reruns on the new page, without the
+    mock's flags."""
+    report = qa.qa_report(ctx_for(tmp_path / "run", "anyapp"), version(), qa.Loop(rounds=[], stop="s"),
+                          {"s09": f"screen not drawn: {reason}"})
+    assert report["resume"] == f"simula mock anyapp --run run {OPTIONS}{resume} && simula qa anyapp --run run {OPTIONS}"
+
+
+def test_undrawn_screens_and_our_own_qa_cap_each_resume_with_their_own_flags(tmp_path):
+    """Greptile on a79d341: with screens undrawn, the QA after the mock kept none of QA's own flags, so a QA that had
+    stopped on its cap stopped there again. Each command carries its own stage's flags."""
+    capped = llm.CapReached("qa: cap; raise with --usd-cap 5.5")
+    loop = qa.Loop(rounds=[], stop="round 2 stopped before any edit", cause=capped)
+    report = qa.qa_report(ctx_for(tmp_path / "run", "anyapp"), version(), loop,
+                          {"s09": "screen not drawn: refusal: no"})
+    assert report["resume"] == (f"simula mock anyapp --run run {OPTIONS} {MOCK_AGAIN} --no-cache "
+                                f"&& simula qa anyapp --run run {OPTIONS} --usd-cap 5.50")
+
+
+@pytest.mark.parametrize("failure", [llm.CapReached("over budget; raise with --usd-cap 18.97"),
+                                     llm.LLMFailure("refusal", "no"), llm.LLMFailure("timeout", "slow"),
+                                     ValueError("the mock builder returned no ```html block")])
+def test_undrawn_cause_reads_back_what_mock_failure_reason_wrote(failure):
+    cause = qa.undrawn_cause(f"screen not drawn: {mock.failure_reason(failure)}")
+    assert type(cause) is type(failure) and str(cause) == str(failure)

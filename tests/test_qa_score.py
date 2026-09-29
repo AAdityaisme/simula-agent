@@ -336,3 +336,23 @@ def test_a_typing_hop_that_stays_on_its_screen_passes_only_when_the_field_shows_
     frozen = walk(tmp_path / "frozen", app, model, [stay.id],
                   lambda html: html.replace("f.contentEditable = 'plaintext-only';", ""))
     assert (frozen["status"], frozen["problem"]) == ("failed", f"{stay.id}: the text field didn't take the typing")
+
+
+@pytest.mark.parametrize("app", APPS)
+@pytest.mark.parametrize("tag", ["input", "textarea"])
+def test_typing_into_a_field_drawn_as_a_form_control_is_read_from_its_value(tmp_path, app, tag):
+    """Red team 9a98e87 F4 (probe E): a form control's innerText never shows what was typed, so a field drawn as
+    <input> or <textarea> failed though a person can type into it and send. A read-only one still fails."""
+    model, tap, a, c, d, field = gestured(app)
+    r = next(e for s in model.states for e in s.elements if e.id == field).rect_dp
+    style = f"position:absolute;left:{r.x}px;top:{r.y}px;width:{r.w}px;height:{r.h}px;z-index:5"
+
+    def as_control(extra: str):
+        control = f'<{tag} data-el="{field}" placeholder="Say something" style="{style}"{extra}>'
+        control += "</textarea>" if tag == "textarea" else ""
+        return lambda html: re.sub(rf'<div[^>]*data-el="{re.escape(field)}"[^>]*>.*?</div>', control, html, count=1,
+                                   flags=re.S)
+    hop = [f"{a}.type>{d}"]
+    assert walk(tmp_path / "typed", app, model, hop, as_control(""))["status"] == "passed"
+    readonly = walk(tmp_path / "readonly", app, model, hop, as_control(" readonly"))
+    assert (readonly["status"], readonly["problem"]) == ("failed", f"{hop[0]}: the text field didn't take the typing")
