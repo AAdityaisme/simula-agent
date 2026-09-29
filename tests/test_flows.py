@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 from playwright.sync_api import TimeoutError as PlaywrightTimeout
+from playwright.sync_api import sync_playwright
 
 from simula import llm, render
 from simula.contracts import (GATES, JUDGMENT, CandidatesFile, Check, Decision, DecisionsFile, Economics, Edit, Edits,
@@ -234,6 +235,24 @@ def test_a_cost_line_that_isnt_pass_is_a_mark_on_every_slide_and_never_the_verdi
             if marked and final == "accept":
                 assert f"Cost check ({c.economics.verdict}): {flows.cost_question(c)}." in texts[-1]
                 assert "Recommended with one condition" not in texts[-1]
+
+
+def test_the_why_slides_box_clears_the_footer_on_real_output(tmp_path):
+    """Round 6's rationales are long; the condition or cost box used to run into the footer."""
+    decisions = DecisionsFile.model_validate_json((ROUND6 / "judge" / "decisions.json").read_text()).decisions
+    ideas, model = flows.load_candidates(ROUND6), golden("luzia")
+    why = [flows.idea_slides(drawn(ideas[d.candidate_id], d.model_copy(update={"final": final})), model, ROUND6)[-1]
+           for d in flows.select(decisions, None) for final in ("accept", "conditional")]
+    (tmp_path / "why.html").write_text(flows.Template(flows.TEMPLATE.read_text()).substitute(title="why",
+                                                                                           slides="".join(why)))
+    with sync_playwright() as p:
+        page = p.chromium.launch().new_page(viewport={"width": flows.SLIDE_W, "height": flows.SLIDE_H})
+        page.goto((tmp_path / "why.html").as_uri())
+        gaps = page.evaluate("() => [...document.querySelectorAll('section.slide')].map(s => "
+                             "s.querySelector('footer').getBoundingClientRect().top - "
+                             "s.querySelector('.why').getBoundingClientRect().bottom)")
+    assert sum('class="condition"' in s for s in why) == 7
+    assert min(gaps) >= 0, gaps
 
 
 @pytest.mark.parametrize("app", APPS)
