@@ -102,14 +102,26 @@ def test_a_screen_that_leaves_the_tab_bar_off_fails_though_it_carries_no_mark(tm
 
 
 @pytest.mark.parametrize("app", APPS)
-def test_a_tab_bar_drawn_over_the_content_on_one_screen_fails_on_that_screen(tmp_path, app):
-    """Its own box holds different content on every real screen, but the real screens match at the others' box."""
-    model = golden(app)
-    last = mock.pick_scope(model)[-1].id
-    top_bar = bars(model)[last].replace(f"top:{838.2 - BAR_DP}px", "top:300px")
-    run_dir, scope, html = run_with(tmp_path, app, model, lambda h: at_top(h, {**bars(model), last: top_bar}))
-    share_band(run_dir, model)
-    assert [f["screen"] for f in chrome(qa.measure(ctx_for(run_dir, app), model, scope, 0, html))] == [last]
+def test_a_tab_bar_drawn_over_the_content_on_one_screen_fails_on_that_screen(app):
+    """The app draws one bar at the bottom of every screen; the last mock screen draws it over its content instead, and
+    shows what its own screenshot shows at the bottom. Every other mock screen is its real screen, so only the
+    misplaced bar decides, though the bar's own box holds different content on every real screen."""
+    screens = real_screens(app)
+    real = {sid: banded(image) for sid, image in screens.items()}
+    last = list(real)[-1]
+    bottom = Rect(x=0, y=838 - BAR_DP, w=411, h=BAR_DP)
+    over = Rect(x=0, y=300, w=411, h=BAR_DP)
+    moved = screens[last].copy()
+    ImageDraw.Draw(moved).rectangle((0, over.y, 410, over.y + BAR_DP - 1), fill=BAR)
+    chrome = {sid: {"tabbar": over if sid == last else bottom} for sid in real}
+    assert [f["screen"] for f in qa_metrics.chrome_failures(chrome, {**real, last: moved}, real)] == [last]
+
+
+def banded(image: Image.Image) -> Image.Image:
+    """A content-dp real screen with the shared bottom band share_band paints."""
+    out = image.copy()
+    ImageDraw.Draw(out).rectangle((0, 838 - BAND_DP, 410, 837), fill=BAR)
+    return out
 
 
 @pytest.mark.parametrize("app", APPS)
@@ -195,8 +207,8 @@ def test_the_screen_to_copy_is_the_one_drawn_closest_to_its_real_screen_never_an
 
 
 def alike_share(a: Image.Image, b: Image.Image, box: Rect) -> float:
-    """The share of a box two real screens draw alike, per pixel."""
-    return float((qa_metrics.box_map(np.asarray(a), np.asarray(b), box) >= qa_metrics.CHROME_GATE).mean())
+    """The share of a box two real screens draw alike."""
+    return float(qa_metrics.alike(np.asarray(a), np.asarray(b), box).mean())
 
 
 def with_tab_bar(screen: Image.Image, lit: int, fill: str = "#202226") -> Image.Image:
@@ -222,6 +234,18 @@ def test_a_highlighted_tab_may_move_as_it_does_in_the_app_but_the_bar_may_not_ch
     failures = qa_metrics.chrome_failures(parts, recolored, real)
     assert [f["screen"] for f in failures] == ["b"]
     assert f"over the {share:.0%} of the box the real screens draw alike" in failures[0]["detail"]
+
+
+def test_two_different_bars_on_a_plain_band_are_not_held_to_one_look():
+    """AOL's home screen and its article screen each draw their own bar on a white band. The home bar drawn 6 dp off
+    is a placement miss the bounds check reports, not a reason to draw it like the article toolbar."""
+    real = real_screens("aol")
+    box = Rect(x=0, y=780, w=411, h=58)
+    shifted = np.asarray(real["s01"]).copy()
+    shifted[780:] = np.roll(shifted[780:], 6, axis=1)
+    chrome = {sid: {"tabbar": box} for sid in ("s01", "s02", "s05")}
+    assert qa_metrics.SAME_PART > alike_share(real["s01"], real["s02"], box)
+    assert qa_metrics.chrome_failures(chrome, {**real, "s01": Image.fromarray(shifted)}, real) == []
 
 
 def test_a_bar_drawn_lower_on_one_screen_fails_there_though_it_looks_the_same():

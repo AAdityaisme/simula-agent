@@ -11,6 +11,7 @@ from typing import NamedTuple
 import numpy as np
 from PIL import Image
 from skimage.metrics import structural_similarity
+from skimage.morphology import dilation
 
 from simula import pixelmatch
 from simula.contracts import Device, ProductModel, Rect
@@ -161,11 +162,11 @@ def within(got: Rect | None, want: Rect, tolerance: float = BOUNDS_TOLERANCE_DP)
 # ---------- cross-screen check: shared chrome and values ----------
 
 CHROME_GATE = 0.98
-# Two screens show the same part at a box when their real screens draw most of it alike (per-pixel SSIM at least
-# CHROME_GATE); the rest is what the app itself changes, a highlighted tab or a title, however large. Measured on the
-# three test apps' own screens: a tab bar or header two screens share leaves 0.74-1.0 of its box alike, a box over
-# unrelated content 0.45 or less. Two different bars on a plain background can leave more (0.70-0.81 on AOL); they
-# are compared only over that background, which the mock must draw alike too.
+# Two screens show the same part at a box when their real screens draw most of it alike (see alike); the rest is
+# what the app itself changes, a highlighted tab or a title, however large. Measured on the three test apps' own
+# screens: a tab bar two screens share leaves 0.69-1.0 of its box, a header with another title 0.63-0.87 (0.57 on the
+# real JanitorAI run), a box over unrelated content 0.34 or less. Two different bars on a plain background land in
+# between (0.45-0.68); above the mark they are compared only over that background.
 SAME_PART = 0.5
 # content_dp's Lanczos filter reaches 3 dp across an edge, so a box's outer rows mix in whatever is drawn beside it.
 # A chrome box is compared this far inside its edges.
@@ -199,6 +200,17 @@ def box_map(a: np.ndarray, b: np.ndarray, box: Rect) -> np.ndarray | None:
     return full.mean(axis=-1)
 
 
+def alike(a: np.ndarray, b: np.ndarray, box: Rect) -> np.ndarray | None:
+    """Where two content-dp images draw a box alike (per-pixel SSIM at least CHROME_GATE), leaving out every pixel
+    within BOUNDS_TOLERANCE_DP of one they draw differently: QA's placement tolerance, so a title or an icon the mock
+    draws a few dp off never reads as the part changing. None when the box is smaller than the SSIM window."""
+    ssim_map = box_map(a, b, box)
+    if ssim_map is None:
+        return None
+    reach = 2 * math.ceil(BOUNDS_TOLERANCE_DP) + 1
+    return ~dilation(ssim_map < CHROME_GATE, np.ones((reach, reach), bool))
+
+
 def chrome_failures(chrome: dict[str, dict[str, Rect]], mocks: dict[str, Image.Image],
                     reals: dict[str, Image.Image]) -> list[dict]:
     """Each data-chrome part (a header, a tab bar) must render the same on two screens wherever their real screens
@@ -223,11 +235,8 @@ def part_scores(kind: str, chrome: dict, mock: dict, real: dict) -> dict[tuple[s
     for a, b in itertools.combinations(chrome, 2):
         at_boxes = []
         for box in (chrome[sid][kind] for sid in (a, b) if kind in chrome[sid]):
-            in_app = box_map(real[a], real[b], box)
-            if in_app is None:
-                continue
-            same = in_app >= CHROME_GATE
-            if same.mean() >= SAME_PART:
+            same = alike(real[a], real[b], box)
+            if same is not None and same.mean() >= SAME_PART:
                 at_boxes.append((float(box_map(mock[a], mock[b], box)[same].mean()), float(same.mean()), box))
         if at_boxes:
             scores[a, b] = min(at_boxes, key=lambda scored: scored[0])
