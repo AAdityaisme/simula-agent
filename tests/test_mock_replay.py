@@ -11,7 +11,7 @@ import pytest
 from simula import cli, config, llm, runfolder, runlog
 from simula.contracts import ContractReport, ProductModel
 from simula.stages import mock
-from simula.stages.flows import deck
+from simula.stages.flows.deck import unfinished_stages
 from tests.conftest import FIXTURES
 from tests.mock_fake import golden, seed_model
 from tests.test_mock_batches import drawn, provider_drawing, screens_of, with_cache_in
@@ -147,7 +147,7 @@ def test_a_batch_lost_to_a_timeout_makes_the_mock_partial_and_its_printed_resume
     outcome = runfolder.read_done(run_dir / "mock").outcome
     assert outcome.status == "partial"
     assert outcome.reasons == [mock.not_drawn(first, "the model call timed out")]
-    assert not any(PLAIN.search(line) for line in deck.unfinished_stages(run_dir))
+    assert not any(PLAIN.search(line) for line in unfinished_stages(run_dir))
 
     command = outcome.resume.split()
     assert command[:3] == ["simula", "mock", APP]
@@ -187,7 +187,7 @@ def test_batches_the_cap_left_out_are_one_plain_reason_and_resume_with_a_higher_
     outcome = runfolder.read_done(run_dir / "mock").outcome
     assert (outcome.status, outcome.reasons) == ("partial", [mock.not_drawn(left_out, mock.OVER_BUDGET)])
     assert float(outcome.resume.split(" --usd-cap ")[1]) > config.stage_cap("mock"), "spent plus a whole cap again"
-    assert not any(PLAIN.search(line) for line in deck.unfinished_stages(run_dir))
+    assert not any(PLAIN.search(line) for line in unfinished_stages(run_dir))
 
 
 def test_a_replay_that_misses_a_font_record_keeps_the_font_files_its_record_names(runs, tmp_path, monkeypatch):
