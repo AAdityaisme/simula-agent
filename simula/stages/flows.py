@@ -2,7 +2,6 @@
 call per idea adds the idea's new screens; code draws the simulated ad, taps through every step in Playwright, and
 lays out slides for the app's product team, then prints them to PDF."""
 
-import colorsys
 import io
 import json
 import math
@@ -41,7 +40,7 @@ IDS = re.compile(r"\s*\(?\b(?:s\d{2}(?:\.e\d+)?|c\d{2}|M\d{1,3}|new:[\w-]+)\b\)?
 FAIL_NOTE = "That didn't go through. Nothing was used, and the app is as it was."
 NOT_WIRED = "not wired"
 REWARD_NOT_SHOWN = "reward not shown"
-ACCENT_MIN_SATURATION = 0.4  # below it a palette color reads as gray (a dark theme's #303337 is 0.07)
+ACCENT_MIN_CHROMA = 0.25  # 67 real palettes: accents 0.40-0.85, every other color 0.16 or less, grays 0.06 or less
 LABEL_PAD = 16  # a reward label's shadow and anti-aliasing reach this far past its box, in CSS px
 RENDER_NOISE = 8  # Chromium redraws a blurred glow up to 4 levels off after any style change (measured on a real mock)
 CODES = re.compile(r"\b(?:g|c\d)_[a-z_]+\b")
@@ -355,13 +354,14 @@ def text_on(color: str) -> str:
 
 
 def ad_palette_css(page: str) -> str:
-    """The ad card's accent: the most saturated color in the mock's :root palette (the app's most used fills and
-    text colors), with black or white text on it; "" when the palette is all grays or absent. The card takes the app's
+    """The ad card's accent: the most colorful color in the mock's :root palette (the app's most used fills and
+    text colors), with black or white text on it; "" when the palette is all grays or absent. Colorful is chroma, the
+    RGB spread, which stays low near white and black where HLS saturation runs to 1. The card takes the app's
     background, text color, and font from the same :root either way."""
     block = re.search(r":root\{([^}]*)\}", page)
     colors = re.findall(r"--(?:bg|fg)-\d+:\s*(#[0-9a-fA-F]{6})\b", block.group(1)) if block else []
-    vivid = [(colorsys.rgb_to_hls(*rgb(color))[2], color) for color in colors]
-    vivid = [(saturation, color) for saturation, color in vivid if saturation >= ACCENT_MIN_SATURATION]
+    vivid = [(max(rgb(color)) - min(rgb(color)), color) for color in colors]
+    vivid = [(chroma, color) for chroma, color in vivid if chroma >= ACCENT_MIN_CHROMA]
     if not vivid:
         return ""
     accent = max(vivid)[1]

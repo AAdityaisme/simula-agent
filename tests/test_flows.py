@@ -504,12 +504,14 @@ def test_labels_are_quoted_as_what_appears():
     assert flows.labels_text([]) == "A label appears."
 
 
-def test_the_ad_card_takes_the_apps_palette_and_its_most_saturated_color_as_the_accent():
+def test_the_ad_card_takes_the_apps_palette_and_its_most_colorful_color_as_the_accent():
     root = ":root{--bg-1:#303337;--bg-2:#000000;--fg-1:#ffffff;--fg-2:#af89f0;--fg-3:#5a5c63;--font-1:Roboto,sans-serif}"
     assert flows.ad_palette_css(root) == ".sa-card{--sa-accent:#af89f0;--sa-on-accent:#000}\n"
     assert flows.ad_palette_css(":root{--bg-1:#ffffff;--bg-3:#4264fc}") == ".sa-card{--sa-accent:#4264fc;--sa-on-accent:#fff}\n"
     assert flows.ad_palette_css(":root{--bg-1:#303337;--fg-1:#ffffff}") == ""
     assert flows.ad_palette_css("<p>a mock without a palette</p>") == ""
+    assert "--sa-accent:#e11d48;" in flows.ad_palette_css(":root{--bg-1:#fffdf7;--bg-2:#e11d48}")
+    assert "--sa-accent:#20808d;" in flows.ad_palette_css(":root{--bg-1:#000814;--fg-1:#20808d}")
     c = candidate(golden("luzia"))
     page = (f"<style>{root}{flows.FLOW_CSS}{flows.ad_palette_css(root)}</style>"
             f'<section data-screen="ad">{flows.ad_card(c)}</section>')
