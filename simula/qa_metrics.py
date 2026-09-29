@@ -164,8 +164,9 @@ def within(got: Rect | None, want: Rect, tolerance: float = BOUNDS_TOLERANCE_DP)
 CHROME_GATE = 0.98
 # Two screens show the same part at a box when their real screens draw most of it alike (per-pixel SSIM at least
 # CHROME_GATE); the rest is what the app itself changes, a highlighted tab or a title, however large. Measured on the
-# three test apps' own screens: a tab bar or header they share leaves 0.78-1.0 of its box alike, a box over unrelated
-# content or under a dimmed sheet 0.45 or less.
+# three test apps' own screens: a tab bar or header two screens share leaves 0.74-1.0 of its box alike, a box over
+# unrelated content 0.45 or less. Two different bars on a plain background can leave more (0.70-0.81 on AOL); they
+# are compared only over that background, which the mock must draw alike too.
 SAME_PART = 0.5
 # content_dp's Lanczos filter reaches 3 dp across an edge, so a box's outer rows mix in whatever is drawn beside it.
 # A chrome box is compared this far inside its edges.
