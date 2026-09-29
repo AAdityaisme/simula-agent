@@ -10,9 +10,9 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image
-from pixelmatch.contrib.PIL import pixelmatch
 from skimage.metrics import structural_similarity
 
+from simula import pixelmatch
 from simula.contracts import Device, ProductModel, Rect
 from simula.render import content_dp, open_mock
 
@@ -111,10 +111,8 @@ def pixel_diff(real: Image.Image, mock: Image.Image, keep: np.ndarray) -> float 
     for SSIM. Reported beside SSIM and never scored: a second view that reads as a plain share of changed pixels."""
     if keep.mean() < MIN_COVERAGE:
         return None
-    a = content_dp(real)
-    diff = Image.new("RGBA", a.size)
-    pixelmatch(a, content_dp(mock), diff, threshold=PIXELMATCH_THRESHOLD, includeAA=False, diff_mask=True)
-    return float((np.asarray(diff) == (255, 0, 0, 255)).all(axis=-1)[keep].mean())
+    differs = pixelmatch.differing(np.asarray(content_dp(real)), np.asarray(content_dp(mock)), PIXELMATCH_THRESHOLD)
+    return float(differs[keep].mean())
 
 
 def heatmap(real: Image.Image, ssim_map: np.ndarray, keep: np.ndarray) -> Image.Image:
