@@ -45,7 +45,6 @@ class Ctx:
     budget: str = "transfer"
     allow_account_create: bool = False
     no_send: bool = True
-    probe: bool = False
 
 
 def run_options(ctx: Ctx) -> str:
@@ -55,7 +54,6 @@ def run_options(ctx: Ctx) -> str:
     return " ".join([f"--run {ctx.run_dir.name}", f"--profile {ctx.profile}", f"--budget {ctx.budget}",
                      *(["--allow-fixtures"] if ctx.allow_fixtures else []),
                      *(["--allow-account-create"] if ctx.allow_account_create else []),
-                     *(["--probe"] if ctx.probe else []),
                      *([f"--usd-cap {ctx.usd_cap}"] if ctx.usd_cap is not None else [])])
 
 

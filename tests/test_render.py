@@ -1,15 +1,19 @@
 """Rendering geometry and the code-owned navigation runtime, on every golden."""
 
+import ast
+import logging
 import re
 
 import pytest
 from PIL import Image
+from playwright.sync_api import Error as PlaywrightError
 
 from simula import render
 from simula.contracts import Edge
 from simula.render import content_dp, open_mock, render_and_validate
+from simula.render import CAPTURE_REFUSED, screenshot
 from simula.stages.mock import copy_assets, pick_scope, scope_edges, with_runtime
-from tests.conftest import APPS, FIXTURES
+from tests.conftest import APPS, FIXTURES, ROOT
 from tests.mock_fake import golden, skeleton_html
 
 
@@ -121,3 +125,54 @@ def test_every_image_is_loaded_before_the_first_screenshot_even_a_lazy_one_on_a_
         loaded = page.evaluate("() => [...document.images].every(i => i.complete && i.naturalWidth > 0)")
     assert loaded
     assert render_and_validate(mock_dir, model, screens).passed
+
+
+class RefusingPage:
+    """A page whose first `refusals` captures Chromium refuses with `error`."""
+    def __init__(self, refusals: int, error: str = CAPTURE_REFUSED):
+        self.calls, self.refusals, self.error = 0, refusals, error
+
+    def screenshot(self, **options) -> bytes:
+        self.calls += 1
+        if self.calls <= self.refusals:
+            raise PlaywrightError(f"Page.screenshot: Protocol error (Page.captureScreenshot): {self.error}")
+        return b"png"
+
+
+def test_a_refused_capture_is_tried_once_more_logged_and_nothing_else_is(caplog):
+    caplog.set_level(logging.WARNING, logger="simula.render")
+    once = RefusingPage(1)
+    assert screenshot(once, animations="disabled") == b"png" and once.calls == 2
+    warned = f"Chromium refused a screenshot ({CAPTURE_REFUSED}); trying once more"
+    assert [r.getMessage() for r in caplog.records] == [warned]
+    twice = RefusingPage(2)
+    with pytest.raises(PlaywrightError, match=CAPTURE_REFUSED):
+        screenshot(twice)
+    assert twice.calls == 2 and len(caplog.records) == 2
+    closed = RefusingPage(1, error="Target page, context or browser has been closed")
+    with pytest.raises(PlaywrightError, match="has been closed"):
+        screenshot(closed)
+    assert closed.calls == 1 and len(caplog.records) == 2
+
+
+def test_every_browser_capture_goes_through_render_screenshot():
+    """Every `.screenshot(...)` call under simula/ (page, frame, tab, locator) is render.screenshot or one of the
+    helper's own two. Calls come from the syntax tree, so spacing, line breaks, comments, and strings can't hide or
+    fake one."""
+    direct, helper_calls = [], 0
+    for path in sorted((ROOT / "simula").rglob("*.py")):
+        tree = ast.parse(path.read_text())
+        helper = next((node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)
+                       and node.name == "screenshot"), None) if path.name == "render.py" else None
+        inside = {id(node) for node in ast.walk(helper)} if helper else set()
+        for node in ast.walk(tree):
+            if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                    and node.func.attr == "screenshot"):
+                continue
+            if isinstance(node.func.value, ast.Name) and node.func.value.id == "render":
+                continue
+            if id(node) in inside:
+                helper_calls += 1
+            else:
+                direct.append(f"{path.relative_to(ROOT)}:{node.lineno}")
+    assert direct == [] and helper_calls == 2, (direct, helper_calls)

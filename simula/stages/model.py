@@ -394,11 +394,6 @@ def png_bytes(image: Image.Image) -> bytes:
     return buf.getvalue()
 
 
-def max_tokens(profile: str) -> int:
-    role = config.roles(profile)["model_meaning"]
-    return min(role["max_tokens"], config.models()[role["model"]]["max_out"])
-
-
 def ask_meaning(ctx: Ctx, dump: str, shots: list[tuple[str, bytes]],
                 retry_note: tuple[str, str] | None) -> tuple[ModelMeaning, list[tuple[str, bytes]]]:
     """Returns the answer and the screenshots it was given (a refused one is left out)."""
@@ -417,7 +412,7 @@ def ask_meaning(ctx: Ctx, dump: str, shots: list[tuple[str, bytes]],
                          {"role": "user", "content": [{"type": "text", "text": problems}]}]
         parsed, _ = llm.call(trace_path=trace_path, stage="model", step="retry" if retry_note else "meaning",
                              model=role["model"], effort=role.get("effort"), system=PROMPT.read_text(),
-                             messages=messages, max_tokens=max_tokens(ctx.profile), budget=budget,
+                             messages=messages, max_tokens=config.max_tokens(role), budget=budget,
                              schema=ModelMeaning, no_cache=ctx.no_cache, replay=ctx.replay)
         return parsed
 
@@ -885,7 +880,8 @@ def run(ctx: Ctx) -> None:
                    + (f"; {len(notes)} explore lines not taken as given" if notes else ""))
 
     # Known limit: past the naming budget, later states' elements go unnamed; split the call if a run ever gets there
-    name_limit = (max_tokens(ctx.profile) - ANSWER_RESERVE_TOKENS) // TOKENS_PER_NAME
+    answer_tokens = config.max_tokens(config.roles(ctx.profile)["model_meaning"])
+    name_limit = (answer_tokens - ANSWER_RESERVE_TOKENS) // TOKENS_PER_NAME
     dump = describe(states, edges, ctx.app, device, name_limit, experience)
     shots = [(s.id, png_bytes(content_png(images[s.id], device)))
              for s in states if s.kind != "external"][:MAX_IMAGES]

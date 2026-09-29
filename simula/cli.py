@@ -2,6 +2,7 @@
 
 import argparse
 import importlib
+import os
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -36,7 +37,7 @@ def stage_params(stage: str, ctx: Ctx) -> dict:
     roles = config.roles(ctx.profile)
     return {"app": ctx.app, "profile": ctx.profile, "roles": {r: roles[r] for r in ROLES[stage]},
             "economics_mode": config.profiles()["economics_mode"] if stage in ("propose", "judge", "flows") else None,
-            "no_send": ctx.no_send, "probe": ctx.probe,
+            "no_send": ctx.no_send,
             "budget": config.budget(ctx.budget) if stage == "explore" else None,
             "allow_account_create": ctx.allow_account_create if stage == "explore" else None}
 
@@ -63,13 +64,16 @@ def new_manifest(run_dir: Path, app: dict, args, provenance: Provenance) -> Mani
 
 
 def upstream_problem(run_dir: Path, stage: str) -> str | None:
-    """Why a stage can't run yet: an upstream stage that never finished, or failed after it last did."""
+    """Why a stage can't run yet: an upstream stage whose marker doesn't hold (runlog.read_marker, the one rule), said
+    as it never finished, or failed after it last did."""
     for up in UPSTREAM[stage]:
-        done, failure = run_dir / up / "done.json", run_dir / up / "failure.json"
-        if not done.exists():
-            return f"{up} is not done" + (f" (see {up}/failure.json)" if failure.exists() else f"; run `simula {up}` first")
-        if failure.exists() and failure.stat().st_mtime > done.stat().st_mtime:
+        if runlog.read_marker(run_dir, up) is not None:
+            continue
+        if not (run_dir / up / "failure.json").exists():
+            return f"{up} is not done; run `simula {up}` first"
+        if (run_dir / up / "done.json").exists():
             return f"{up} failed after it last finished (see {up}/failure.json)"
+        return f"{up} is not done (see {up}/failure.json)"
     return None
 
 
@@ -90,54 +94,72 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
         return True
     module = importlib.import_module(f"simula.stages.{stage}")
     stage_dir.mkdir(exist_ok=True)
-    # A live rerun's old marker no longer holds. --replay keeps it while the stage runs, so a stage that can't be
-    # replayed keeps the run's committed record (beside a newer failure.json, which counts as not done).
-    if not ctx.replay:
-        (stage_dir / "done.json").unlink(missing_ok=True)
+    # A live rerun's old marker no longer holds. --replay holds the committed one instead, and every exit that doesn't
+    # write a new marker puts it back (failed), so a replay never costs a run its committed record.
+    marker, committed = stage_dir / "done.json", None
+    if ctx.replay:
+        try:
+            committed = (marker.read_text(), marker.stat())
+        except (OSError, ValueError):  # none, or one that can't be read: nothing to keep, and the stage writes anew
+            pass
+    else:
+        marker.unlink(missing_ok=True)
+
+    def failed(reason: str) -> None:
+        """Records why the stage stopped, in a folder the stage may have removed (QA's rmtree). Under --replay the
+        committed marker goes back as it was, its time included, before the newer failure.json, so it stays on disk
+        and counts as not done, in the manifest too, whose usd_total then counts what the stage spent."""
+        stage_dir.mkdir(parents=True, exist_ok=True)
+        if committed:
+            runfolder.write_json_atomic(marker, committed[0])
+            os.utime(marker, ns=(committed[1].st_atime_ns, committed[1].st_mtime_ns))
+        runfolder.write_failure(stage_dir, reason)
+        runlog.sync_manifest(ctx.run_dir)  # the restored marker counts as not done, and the stage's spend counts
     runlog.sync_manifest(ctx.run_dir)
     trace_path = ctx.run_dir / "trace.jsonl"
     traced_before = len(runlog.read_trace(trace_path))
     try:
         result = module.run(ctx)
+        marker.unlink(missing_ok=True)  # the stage ran, so an old marker no longer describes its output
+        runlog.sync_manifest(ctx.run_dir)
+        traced = [line for line in runlog.read_trace(trace_path)[traced_before:] if line.stage == stage]
+        capped = [split_key(line.note)[1] for line in traced if line.outcome == "cap"]
+        outcome = finished_outcome(stage, ctx, result, capped)
+        partial = outcome.status == "partial"
+        if partial:
+            runlog.needs_human(ctx.run_dir, stage, "partial output", "; ".join(outcome.reasons),
+                               [f"{stage}/done.json"], outcome.resume)
+        elif not any(line.step == "needs_human" and line.outcome == "blocked" for line in traced):
+            # Only a clean finish resolves: a stage that asked for a person during this run still needs one.
+            runlog.resolve_needs_human(ctx.run_dir, stage)
+        # done.json is the commit point, written after needs-human.md: if anything before it fails, the stage has no
+        # new marker, so the next run redoes it. The manifest is read from the markers, so it never lists one without.
+        runfolder.write_done(stage_dir, ctx.run_dir, inputs, prompts, params, [stage_dir], provenance, code=code,
+                             outcome=outcome)
     except NotImplementedError as e:
-        runfolder.write_failure(stage_dir, f"not built yet ({e})")
+        failed(f"not built yet ({e})")
         runlog.run_trace(ctx.run_dir, stage=stage, step="run", decider="code", outcome="not_built",
                          note=f"stub: {e}")
         print(f"stopped at {stage}: not built yet ({e})")
         return False
     except CapReached as e:
-        runfolder.write_failure(stage_dir, str(e))
+        failed(str(e))
         runlog.needs_human(ctx.run_dir, stage, "$ cap reached", str(e), [f"{stage}/failure.json"],
                            raise_cap(stage, ctx))
         raise
     except ProviderUnavailable as e:
-        runfolder.write_failure(stage_dir, str(e))
+        failed(str(e))
         runlog.needs_human(ctx.run_dir, stage, "the model provider is refusing calls", str(e),
                            [f"{stage}/failure.json"],
                            f"simula run {ctx.app['name']} --from {stage} {run_options(ctx)}")
         raise
     except BaseException as e:
-        # Every other exit, SystemExit and Ctrl-C included, still leaves a failure record; then it propagates.
+        # Every other exit, SystemExit, Ctrl-C and a failed record included, still leaves a failure record; then it
+        # propagates.
         reason = f"{type(e).__name__}: {e}"
-        runfolder.write_failure(stage_dir, reason)
+        failed(reason)
         runlog.run_trace(ctx.run_dir, stage=stage, step="run", decider="code", outcome="error", note=reason[:300])
         raise
-    (stage_dir / "done.json").unlink(missing_ok=True)  # the stage ran, so an old marker no longer describes its output
-    runlog.sync_manifest(ctx.run_dir)
-    traced = [line for line in runlog.read_trace(trace_path)[traced_before:] if line.stage == stage]
-    capped = [split_key(line.note)[1] for line in traced if line.outcome == "cap"]
-    outcome = finished_outcome(stage, ctx, result, capped)
-    partial = outcome.status == "partial"
-    if partial:
-        runlog.needs_human(ctx.run_dir, stage, "partial output", "; ".join(outcome.reasons), [f"{stage}/done.json"],
-                           outcome.resume)
-    elif not any(line.step == "needs_human" and line.outcome == "blocked" for line in traced):
-        # Only a clean finish resolves: a stage that asked for a person during this run still needs one.
-        runlog.resolve_needs_human(ctx.run_dir, stage)
-    # done.json is the commit point, written after needs-human.md: if that fails, the stage has no marker, so the next
-    # run redoes it. The manifest is read from the markers, so it never lists a stage without one.
-    runfolder.write_done(stage_dir, ctx.run_dir, inputs, prompts, params, [stage_dir], provenance, code=code,
-                         outcome=outcome)
     runlog.sync_manifest(ctx.run_dir)
     runlog.run_trace(ctx.run_dir, stage=stage, step="done", decider="code",
                      note=provenance.source + (f"; partial: {'; '.join(outcome.reasons)}"[:300] if partial else ""))
@@ -150,7 +172,8 @@ def finished_outcome(stage: str, ctx: Ctx, result, capped: list[str]) -> StageOu
     its $ cap turned work away (`capped`, the trace notes saying so), since a higher cap could change the output."""
     outcome = result if isinstance(result, StageOutcome) else StageOutcome()
     if capped:
-        return StageOutcome(status="partial", reasons=[*outcome.reasons, *dict.fromkeys(capped)],
+        # Sorted: calls running together reach the cap in no fixed order, and a replay must write the same reasons.
+        return StageOutcome(status="partial", reasons=[*outcome.reasons, *sorted(dict.fromkeys(capped))],
                             resume=raise_cap(stage, ctx))
     if outcome.status == "partial" and not outcome.resume:
         return outcome.model_copy(update={"resume": rerun_command(stage, ctx)})
@@ -189,7 +212,7 @@ def open_run(args) -> Ctx:
     runlog.sync_manifest(run_dir)  # heals a manifest an earlier command failed to update
     return Ctx(app=app, run_dir=run_dir, profile=args.profile, no_cache=args.no_cache, replay=args.replay,
                usd_cap=args.usd_cap, allow_fixtures=args.allow_fixtures, budget=args.budget,
-               allow_account_create=args.allow_account_create, probe=args.probe)
+               allow_account_create=args.allow_account_create)
 
 
 def cmd_stage(args) -> int:
@@ -237,7 +260,6 @@ def add_run_flags(p: argparse.ArgumentParser) -> None:
     p.add_argument("--allow-account-create", action="store_true",
                    help="let the explorer create a guest account if the app asks for one")
     p.add_argument("--allow-fixtures", action="store_true", help="accept fixture inputs (test data only)")
-    p.add_argument("--probe", action="store_true", help="allow the bounded chat probe (<= 8 messages)")
     p.add_argument("--fixture", action="append", metavar="STAGE=PATH",
                    help="the only way a fixture enters a run: seeds a stage folder in the run this call "
                         "creates (needs --new or no existing run, and --allow-fixtures)")

@@ -6,8 +6,6 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
-from pydantic import ValidationError
-
 from simula.config import ROOT, STAGES
 from simula.contracts import DoneMarker, Manifest, TraceLine
 from simula.runfolder import read_done, write_json_atomic
@@ -66,7 +64,7 @@ def read_marker(run_dir: Path, stage: str) -> DoneMarker | None:
     done, failure = run_dir / stage / "done.json", run_dir / stage / "failure.json"
     try:
         marker = read_done(run_dir / stage)
-    except (ValidationError, OSError) as e:
+    except (ValueError, OSError) as e:  # a ValidationError, or a file that isn't text at all
         run_trace(run_dir, stage=stage, step="marker", decider="code", outcome="error",
                   note=f"done.json can't be read, so the stage counts as not done: {e}"[:300])
         return None
