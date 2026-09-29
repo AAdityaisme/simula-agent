@@ -128,6 +128,10 @@ class TermMeaning(Strict):
     meaning: str = Field(description="One plain-language line.")
     defined_by: list[str] = Field(description="Element ids whose text defines or explains the term.")
     used_in: list[str] = Field(description="Mechanic or ledger ids that use the term.")
+    everyday: bool = Field(default=False, description="True when the word's plain-English meaning is what it means "
+                           "in this app (a plan called Basic or Yearly, a Search tab); false for a coined name, an "
+                           "in-app unit or currency, or a common word the app uses in its own sense. An everyday "
+                           "term is never flagged.")
 
 
 class Term(TermMeaning):
@@ -351,19 +355,37 @@ class CandidateDraft(Strict):
     placement: str
     offer_copy: str
     reward: Reward
+    for_users: Literal["free", "paying", "everyone"] = Field(description="Who is offered the reward.")
+    grants_id: str | None = Field(description="The value_ledger id of the paid benefit the reward is a piece "
+                                  "of, or more of; null when the reward is a new resource.")
     cost_inputs: CostInputs
     frequency_cap: str
+    daily_cap: int = Field(description="How many times one user can take this offer in a day: the per-user limit "
+                           "only, never a limit per character, item, or screen. An offer one user can take less "
+                           "than once a day (one-time, weekly, monthly, every few days) is 0.")
     decline_path: str
     ad_fail_path: str
     subscriber_treatment: str
     advertiser_category: str
     character_use: str
     flow_steps: list[FlowStep]
+    after_reward: str = Field(description="What the user sees when the reward runs out, and why that moves them "
+                              "toward paying, returning, or watching again.")
     rationale: str
 
 
 class LensOutput(Strict):
     candidates: list[CandidateDraft]
+
+
+class BenefitName(Strict):
+    id: str
+    benefit: str
+    part_of: str | None
+
+
+class BenefitNames(Strict):
+    ideas: list[BenefitName]
 
 
 class Economics(Strict):
@@ -377,10 +399,16 @@ class Economics(Strict):
 
 
 class Candidate(CandidateDraft):
+    # The proposer must answer both (CandidateDraft); a stored file from before either field existed still parses:
+    # a missing daily_cap reads as 0 (less than once a day), and propose drops an idea with no after_reward.
+    daily_cap: int = 0
+    after_reward: str = ""
     economics: Economics | None = None
     reach_score: float | None = None
     rank_score: float | None = None
     dropped_reason: str | None = None
+    flags: list[str] = Field(default=[], description="Concerns code raises that don't drop the idea, for the person "
+                             "reading the run; the judge never sees them.")
 
 
 # ---------- judge (stage 6) ----------
@@ -610,4 +638,4 @@ class Manifest(Strict):
 
 
 MODEL_FACING = [ModelMeaning, IconPass, HardScreenAction, Arrival, WalkPick, Progress, Critique, Edits, LensOutput,
-                Verdict, PairwisePick]
+                BenefitNames, Verdict, PairwisePick]

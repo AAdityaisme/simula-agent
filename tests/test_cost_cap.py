@@ -1,7 +1,10 @@
+import threading
+import time
+
 import pytest
 
 from simula import llm
-from tests.test_cache import MODEL, call, fake_provider
+from tests.test_cache import MODEL, call, fake_provider, message
 
 
 def test_reserve_allows_up_to_the_cap_exactly():
@@ -36,3 +39,63 @@ def test_budget_resumes_from_the_trace(tmp_path, monkeypatch):
     call(tmp_path)
     resumed = llm.Budget.for_stage("model", tmp_path / "trace.jsonl", cap=1.0)
     assert resumed.spent == pytest.approx(llm.usd(MODEL, 100, 10), abs=1e-6)
+
+
+def test_calls_in_flight_hold_their_worst_case_until_charged():
+    budget = llm.Budget("propose", cap=1.0)
+    gate = threading.Barrier(5)
+    reserved = []
+
+    def reserve():
+        gate.wait()
+        try:
+            budget.reserve(0.3)
+            reserved.append(1)
+        except llm.CapReached:
+            pass
+
+    threads = [threading.Thread(target=reserve) for _ in range(5)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert len(reserved) == 3 and budget.held == pytest.approx(0.9)
+    budget.charge(0.1, 0.3)
+    assert budget.spent == pytest.approx(0.1) and budget.held == pytest.approx(0.6)
+
+
+def test_a_charge_must_give_back_the_hold_it_settles():
+    """Red team PR4 #4: with reserved defaulting to 0, a caller that forgot it kept its hold forever, and the stage
+    stopped at a false cap with most of it unspent."""
+    budget = llm.Budget("explore", cap=1.0)
+    budget.reserve(0.4)
+    with pytest.raises(TypeError):
+        budget.charge(0.01)
+    budget.charge(0.01, 0.4)
+    assert budget.held == 0 and budget.spent == pytest.approx(0.01)
+
+
+def test_overlapping_calls_stop_at_the_cap_and_release_what_they_held(tmp_path, monkeypatch):
+    def slow(model, system, messages, effort, schema, max_tokens, total_timeout=None):
+        time.sleep(0.2)
+        return llm.Reply(text='{"word": "a"}', model=model, tokens_in=100, tokens_out=10)
+
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", slow)
+    worst = llm.worst_case_usd(MODEL, llm.estimate_tokens_in("", message()), 8000)
+    budget = llm.Budget("model", cap=worst * 2.5)
+    outcomes = []
+
+    def one(n):
+        try:
+            call(tmp_path, budget=budget, max_tokens=8000, step=f"t{n}", no_cache=True)
+            outcomes.append("ok")
+        except llm.CapReached:
+            outcomes.append("cap")
+
+    threads = [threading.Thread(target=one, args=(n,)) for n in range(3)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert sorted(outcomes) == ["cap", "ok", "ok"]
+    assert budget.held == pytest.approx(0) and budget.spent == pytest.approx(2 * llm.usd(MODEL, 100, 10))

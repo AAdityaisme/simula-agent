@@ -23,6 +23,8 @@ def message(text="hi", png=None):
 def fake_provider(texts, calls):
     def provider(model, system, messages, effort, schema, max_tokens, total_timeout=None):
         calls.append(model)
+        if not texts:
+            raise llm.LLMFailure("error", "no reply left")
         return llm.Reply(text=texts.pop(0), model=model, tokens_in=100, tokens_out=10)
     return provider
 
@@ -120,7 +122,8 @@ def test_a_failed_one_attempt_call_replays_to_the_callers_own_retry(tmp_path, mo
 
 def test_a_rerun_skips_recorded_failed_attempts_and_pays_only_for_the_next(tmp_path, monkeypatch):
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['nope'], []))
-    with pytest.raises(IndexError):  # attempt 1 dies before answering, so only attempt 0 is recorded
+    # attempt 1 dies before answering (a typed error), so only attempt 0 is recorded
+    with pytest.raises(llm.LLMFailure, match="error: no reply left"):
         call(tmp_path)
     rerun_calls = []
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "second"}'], rerun_calls))
@@ -248,3 +251,26 @@ def test_total_timeout_cancels_a_stream_that_keeps_going(monkeypatch):
         llm.call_anthropic(MODEL, "", message(), None, None, max_tokens=20_000, total_timeout=60)
     assert failure.value.outcome == "timeout"
     assert stream.closed and not stream.finished
+
+
+def test_a_failed_attempt_is_recorded_and_releases_its_hold_so_a_rerun_pays_only_for_the_next(tmp_path, monkeypatch):
+    first_calls = []
+
+    def first_run(model, system, messages, effort, schema, max_tokens, total_timeout=None):
+        first_calls.append(model)
+        if len(first_calls) == 1:
+            return llm.Reply(text="nope", model=model, tokens_in=100, tokens_out=10)
+        raise llm.LLMFailure("timeout", "stream stalled", tokens_in=100, tokens_out=5)
+
+    budget = llm.Budget("model", 1.0)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", first_run)
+    with pytest.raises(llm.LLMFailure):
+        call(tmp_path, budget=budget)
+    assert budget.held == pytest.approx(0)
+    assert budget.spent == pytest.approx(llm.usd(MODEL, 100, 10) + llm.usd(MODEL, 100, 5))
+    rerun_calls = []
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "second"}'], rerun_calls))
+    result, _ = call(tmp_path, budget=budget)
+    recorded = sorted(json.loads(p.read_text()).get("failure", "") for p in (tmp_path / "cache").glob("*.json"))
+    assert result.word == "second" and len(rerun_calls) == 1 and recorded == ["", "schema_fail"]
+    assert budget.held == pytest.approx(0)
