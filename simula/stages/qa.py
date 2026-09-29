@@ -19,7 +19,7 @@ from simula.config import ROOT
 from simula.contracts import (SCHEMA_VERSION, ContractError, ContractReport, Critique, Edge, Edit, Edits, Fix,
                               ProductModel, QAMetrics, Rect, ScreenMetrics, State)
 from simula.runlog import read_trace, run_trace, write_exhibit
-from simula.stages import FRESH_CALLS, Ctx, mock, rerun_command, resume_command
+from simula.stages import FRESH_CALLS, Ctx, mock, resume_command
 
 MAX_ROUNDS = 3
 MIN_GAIN = 0.3
@@ -680,9 +680,9 @@ def outcome(ctx: Ctx, best: Version, loop: Loop, undrawn: dict[str, str]) -> dic
     """complete, or partial with why and the command that gets further. The reasons come in the order a person would
     fix them: screens the mock left undrawn (with why) and the core flows through them, a review a failed or capped
     model call cut short, screens whose latest critic call failed, checks the approved version still fails. The
-    resume is built from what caused them (`resume_command`): while screens are undrawn, the mock again and then QA on
-    the new page (the mock's flags stay on the mock); else QA again, asking afresh (and saying so) when the loop's own
-    recorded answers are all that fell short.
+    resume is built from what caused them (`resume_command`): QA again with its own failures' flags, asking afresh
+    (and saying so) when the loop's own recorded answers are all that fell short; while screens are undrawn, the mock
+    with its failures' flags first, and then that QA on the new page.
     A partial mock still goes on to the slides; QA never blocks them."""
     through_undrawn = [f["flow"] for f in best.flows if f["status"] == "undrawn"]
     failures = "; ".join(dict.fromkeys(f"round {n} {str(e)[:120]}" for n, e in loop.missed.values()))
@@ -697,11 +697,10 @@ def outcome(ctx: Ctx, best: Version, loop: Loop, undrawn: dict[str, str]) -> dic
     ) if present]
     if not reasons:
         return {"outcome": "complete", "reasons": [], "resume": None}
+    causes = [c for c in (loop.cause, *(e for _, e in loop.missed.values())) if c is not None]
+    resume = resume_command(ctx, "qa", *causes, fresh=not causes and not undrawn)
     if undrawn:
-        resume = f"{resume_command(ctx, 'mock', *map(undrawn_cause, undrawn.values()))} && {rerun_command('qa', ctx)}"
-    else:
-        causes = [c for c in (loop.cause, *(e for _, e in loop.missed.values())) if c is not None]
-        resume = resume_command(ctx, "qa", *causes, fresh=not causes)
+        resume = f"{resume_command(ctx, 'mock', *map(undrawn_cause, undrawn.values()))} && {resume}"
     if " --no-cache" in resume:
         reasons.append(FRESH_CALLS)
     return {"outcome": "partial", "reasons": reasons, "resume": resume}

@@ -133,6 +133,17 @@ def test_undrawn_screens_resume_the_mock_by_what_left_them_undrawn(tmp_path, rea
     assert report["resume"] == f"simula mock anyapp --run run {OPTIONS}{resume} && simula qa anyapp --run run {OPTIONS}"
 
 
+def test_undrawn_screens_and_our_own_qa_cap_each_resume_with_their_own_flags(tmp_path):
+    """Greptile on a79d341: with screens undrawn, the QA after the mock kept none of QA's own flags, so a QA that had
+    stopped on its cap stopped there again. Each command carries its own stage's flags."""
+    capped = llm.CapReached("qa: cap; raise with --usd-cap 5.5")
+    loop = qa.Loop(rounds=[], stop="round 2 stopped before any edit", cause=capped)
+    report = qa.qa_report(ctx_for(tmp_path / "run", "anyapp"), version(), loop,
+                          {"s09": "screen not drawn: refusal: no"})
+    assert report["resume"] == (f"simula mock anyapp --run run {OPTIONS} --no-cache "
+                                f"&& simula qa anyapp --run run {OPTIONS} --usd-cap 5.50")
+
+
 @pytest.mark.parametrize("failure", [llm.CapReached("over budget; raise with --usd-cap 18.97"),
                                      llm.LLMFailure("refusal", "no"), llm.LLMFailure("timeout", "slow"),
                                      ValueError("the mock builder returned no ```html block")])
