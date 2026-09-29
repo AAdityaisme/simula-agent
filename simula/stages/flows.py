@@ -187,12 +187,17 @@ def load_approvals(flows_dir: Path) -> list[str] | None:
     return json.loads(path.read_text())["approved"] if path.exists() else None
 
 
-def select(decisions: list[Decision], approvals: list[str] | None) -> list[Decision]:
-    """Accepted and CONDITIONAL ideas, best rank first, at most 4. flows/approvals.json can only narrow the list."""
+def survivors(decisions: list[Decision], approvals: list[str] | None) -> list[Decision]:
+    """Accepted and CONDITIONAL ideas, best rank first. flows/approvals.json can only narrow the list."""
     picked = sorted((d for d in decisions if d.final in SURVIVED), key=lambda d: -(d.rank_score or 0))
     if approvals is not None:
         picked = [d for d in picked if d.candidate_id in approvals]
-    return picked[:MAX_IDEAS]
+    return picked
+
+
+def select(decisions: list[Decision], approvals: list[str] | None) -> list[Decision]:
+    """The survivors the deck draws: the best MAX_IDEAS."""
+    return survivors(decisions, approvals)[:MAX_IDEAS]
 
 
 def mock_source(run_dir: Path) -> Path:
@@ -838,9 +843,11 @@ def idea_slides(flow: dict, model: ProductModel, run_dir: Path, none_accepted: b
     return [slide_html(flow, "flow", body), slide_html(flow, "why", why)]
 
 
-def cover_html(app: str, flows: list[dict], unbuilt: int = 0, status: list[str] = (), fallbacks: int = 0) -> str:
+def cover_html(app: str, flows: list[dict], unbuilt: int = 0, status: list[str] = (), fallbacks: int = 0,
+               cut: int = 0) -> str:
     """The overview: every idea in the deck, how to read it, the reward rule every idea follows, whether an idea is
-    only the judge's fallback pick, and status lines for anything an earlier stage couldn't finish."""
+    only the judge's fallback pick, how many survivors the cap left out, and status lines for anything an earlier
+    stage couldn't finish."""
     items = "".join(f'<li><span class="chip {"existing" if f["candidate"].kind == "existing_anchor" else "change"}">'
                     f'{escape(BUCKETS.get(f["candidate"].kind, ""))}</span>{escape(plain(caption(f["candidate"])))}</li>'
                     for f in flows)
@@ -850,6 +857,9 @@ def cover_html(app: str, flows: list[dict], unbuilt: int = 0, status: list[str] 
                   "the end score every idea the review saw.", REWARD_RULE]
     if fallbacks:
         notes.append("No idea passed every check, so the closest is drawn and marked as not a recommendation.")
+    if cut:
+        notes.append(f"{cut} more idea(s) passed the review; the deck draws only the top {MAX_IDEAS} by rank, and the "
+                     "score pages at the end score the rest.")
     if unbuilt:
         notes.append(f"{unbuilt} {'more ' if flows else ''}idea(s) passed the review but couldn't be drawn; the score "
                      "pages at the end say why.")
@@ -931,11 +941,11 @@ def unfinished_stages(run_dir: Path) -> list[str]:
 
 
 def deck(ctx: Ctx, model: ProductModel, flows: list[dict], not_built: list[tuple[Decision, str]],
-         decisions: list[Decision], candidates: dict[str, Candidate]) -> str:
+         decisions: list[Decision], candidates: dict[str, Candidate], cut: int = 0) -> str:
     app = app_title(model, ctx.app["name"])
     none_accepted = not any(d.final == "accept" for d in decisions)
     fallbacks = sum(is_fallback(f["decision"], ctx.run_dir, none_accepted) for f in flows)
-    slides = [cover_html(app, flows, len(not_built), unfinished_stages(ctx.run_dir), fallbacks)]
+    slides = [cover_html(app, flows, len(not_built), unfinished_stages(ctx.run_dir), fallbacks, cut)]
     for flow in flows:
         slides += idea_slides(flow, model, ctx.run_dir, none_accepted)
     slides += score_slides(decisions, candidates, not_built, ctx.run_dir)
@@ -1039,9 +1049,11 @@ def run(ctx: Ctx) -> None:
     approvals = load_approvals(out)
     clean(out)
     chosen = select(decisions, approvals)
+    cut = survivors(decisions, approvals)[MAX_IDEAS:]
     chosen_from = "narrowed by flows/approvals.json" if approvals is not None else "accepted + conditional"
+    past_cap = f"; past the cap of {MAX_IDEAS}, not drawn: {' '.join(d.candidate_id for d in cut)}" if cut else ""
     run_trace(run_dir, stage="flows", step="select", decider="code",
-              note=f"{chosen_from}: {' '.join(d.candidate_id for d in chosen) or 'none'}")
+              note=f"{chosen_from}: {' '.join(d.candidate_id for d in chosen) or 'none'}{past_cap}")
     source = mock_source(run_dir)
     page = strip_runtime((source / "index.html").read_text())
     budget = llm.Budget.for_stage("flows", run_dir / "trace.jsonl", ctx.usd_cap)
@@ -1059,7 +1071,7 @@ def run(ctx: Ctx) -> None:
     for d, why in not_built:
         run_trace(run_dir, stage="flows", step=f"build:{d.candidate_id}", decider="code", outcome="error",
                   note=f"not built: {why}"[:300])
-    (out / "slides.html").write_text(deck(ctx, model, flows, not_built, decisions, candidates))
+    (out / "slides.html").write_text(deck(ctx, model, flows, not_built, decisions, candidates, len(cut)))
     layout = write_pdf(out / "slides.html")
     for problem in layout:
         run_trace(run_dir, stage="flows", step="layout", decider="code", outcome="error", note=problem[:300])

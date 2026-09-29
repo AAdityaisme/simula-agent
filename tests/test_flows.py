@@ -322,6 +322,17 @@ def test_the_judges_fallback_pick_reads_as_the_closest_idea_not_a_recommendation
     assert flows.condition(decision("c05", "accept", 1.0), tmp_path, True) is None
 
 
+def test_a_survivor_past_the_cap_is_named_in_the_trace_and_counted_on_the_cover(tmp_path, monkeypatch):
+    monkeypatch.setattr(flows, "MAX_IDEAS", 1)
+    run_dir = run_flows(tmp_path, "luzia")
+    note = next(line.note for line in read_trace(run_dir / "trace.jsonl") if line.step == "select")
+    assert note == "accepted + conditional: c01; past the cap of 1, not drawn: c02"
+    cover = text_of((run_dir / "flows" / "slides.html").read_text().split('<section class="slide main"')[0])
+    assert ("1 more idea(s) passed the review; the deck draws only the top 1 by rank, and the score pages at the end "
+            "score the rest.") in cover
+    assert {idea for idea, _, _ in slides(run_dir)} == {"c01"}
+
+
 def test_a_fallback_pick_is_named_on_the_cover_and_its_why_slide_never_says_recommended(tmp_path):
     run_dir = seed_run(tmp_path, "luzia", {"c01": {}})
     decisions = [decision("c01", "conditional", 1.0, passed=10), decision("c03", "reject", 2.0, passed=9)]
