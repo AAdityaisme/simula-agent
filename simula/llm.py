@@ -338,13 +338,20 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
         started = time.monotonic()
         try:
             reply = PROVIDERS[provider](model, system, messages, effort, schema, max_tokens, total_timeout)
-        except LLMFailure as e:
-            last = e
-            cost = usd(model, e.tokens_in, e.tokens_out)
+        except BaseException as e:
+            # Whatever ends a call early is settled here, so no hold outlives it: a typed failure, or any other error
+            # raised mid-call (a malformed stream event, a response the SDK can't validate), each charged what it
+            # streamed and retried alike; a stop that must propagate (a provider's own spend limit, an interrupt) is
+            # settled and traced, then re-raised.
+            failure = e if isinstance(e, LLMFailure) else _failure("cap" if isinstance(e, CapReached) else "error", e)
+            cost = usd(model, failure.tokens_in, failure.tokens_out)
             budget.charge(cost, worst)
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
-                  tokens_in=e.tokens_in, tokens_out=e.tokens_out, usd=round(cost, 6), outcome=e.outcome,
-                  note=str(e)[:200])
+                  tokens_in=failure.tokens_in, tokens_out=failure.tokens_out, usd=round(cost, 6),
+                  outcome=failure.outcome, note=str(e)[:200])
+            if not isinstance(e, Exception):
+                raise
+            last = failure
             continue
         cost = usd(model, reply.tokens_in, reply.tokens_out, reply.tokens_cached)
         budget.charge(cost, worst)

@@ -2,6 +2,7 @@
 even when it arrives as a 400. Any other API error is a typed LLMFailure. An aborted stream is charged for what
 it already spent."""
 
+import json
 from types import SimpleNamespace
 
 import anthropic
@@ -161,6 +162,57 @@ def test_a_stream_that_stalls_mid_answer_is_a_charged_timeout(monkeypatch, tmp_p
     assert failure.outcome == "timeout" and "timed out" in str(failure)
     assert budget.held == 0 and budget.spent == pytest.approx(llm.usd("claude-opus-5-5", 5000, 1000))
     assert (line.outcome, line.tokens_in, line.tokens_out) == ("timeout", 5000, 1000)
+
+
+class BrokenStream(AbortedStream):
+    """Streams one event, then fails with an error the SDK raises unwrapped."""
+    def __init__(self, snapshot, error):
+        super().__init__(snapshot)
+        self.error = error
+
+    def __iter__(self):
+        yield "event"
+        raise self.error
+
+
+UNWRAPPED = {
+    "malformed event": json.JSONDecodeError("Expecting value", "data: {", 6),
+    "bad chunk encoding": httpx2.DecodingError("bad gzip"),
+    "unvalidated response": anthropic.APIResponseValidationError(
+        response=httpx2.Response(200, request=httpx2.Request("POST", "https://api.anthropic.com/v1/messages")),
+        body=None),
+}
+
+
+@pytest.mark.parametrize("error", UNWRAPPED.values(), ids=UNWRAPPED.keys())
+def test_any_error_mid_stream_is_charged_traced_and_releases_its_hold(monkeypatch, tmp_path, error):
+    snapshot = SimpleNamespace(usage=SimpleNamespace(input_tokens=5000, output_tokens=1),
+                               content=[SimpleNamespace(type="text", text="x" * 3000)])
+    failure, budget, line = aborted_call(monkeypatch, BrokenStream(snapshot, error), tmp_path)
+    assert failure.outcome == "error" and budget.held == 0 and budget.spent > 0
+    assert (line.decider, line.outcome, line.tokens_in) == ("model", "error", 5000) and line.usd > 0
+
+
+def ask_through_call(tmp_path, budget, max_tokens: int = 100):
+    return llm.call(trace_path=tmp_path / "trace.jsonl", stage="model", step="t", model="claude-haiku-4-5-20251001",
+                    effort=None, system="", messages=[{"role": "user", "content": [{"type": "text", "text": "hi"}]}],
+                    max_tokens=max_tokens, budget=budget, cache_dir=tmp_path / "cache", attempts=1)
+
+
+def test_an_untyped_error_on_a_plain_call_is_a_typed_failure_that_releases_its_hold(monkeypatch, tmp_path):
+    fake_anthropic(monkeypatch, ValueError("the SDK could not read the response"))
+    budget = llm.Budget("model", 10.0)
+    with pytest.raises(llm.LLMFailure, match="error: the SDK could not read the response"):
+        ask_through_call(tmp_path, budget)
+    assert (budget.held, budget.spent) == (0, 0) and read_trace(tmp_path / "trace.jsonl")[-1].outcome == "error"
+
+
+def test_a_provider_spend_limit_still_stops_the_call_and_releases_its_hold(monkeypatch, tmp_path):
+    fake_anthropic(monkeypatch, error_400(anthropic, "https://api.anthropic.com/v1/messages", USAGE_LIMIT))
+    budget = llm.Budget("model", 10.0)
+    with pytest.raises(llm.CapReached, match="usage limit"):
+        ask_through_call(tmp_path, budget)
+    assert (budget.held, budget.spent) == (0, 0) and read_trace(tmp_path / "trace.jsonl")[-1].outcome == "cap"
 
 
 def test_a_usage_limit_stops_the_run_with_needs_human_and_exit_4(runs, tmp_path, monkeypatch):
