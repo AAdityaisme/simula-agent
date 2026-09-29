@@ -136,7 +136,7 @@ class TermMeaning(Strict):
 
 class Term(TermMeaning):
     observed: bool = Field(description="Code: false unless a cited element carries the term and still says "
-                                       "something in words once the term and the ledger lines quoting it are cut; "
+                                       "something in words once the term is cut, judged on its on-screen text alone; "
                                        "the meaning then reads 'meaning not observed' and an idea that uses it is flagged.")
 
 

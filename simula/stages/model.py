@@ -507,35 +507,32 @@ def keyword_floor(state: State, keywords: list[str]) -> ContentRating:
 
 
 def resolve_terms(meaning: ModelMeaning, states: list[State], model_labels: set[str]) -> list[Term]:
-    """A term keeps its meaning only when a cited element carries it (as a whole word) and, with the term and every
-    ledger line quoting it cut out, still says something in words of two or more letters. So a bare name, a count
-    ("1.8k tokens") or a line that uses the term can't define it. Other cited elements (the bullets under a plan's
-    name) count when they sit on such an element's screen, whatever a mechanic cites as evidence. A label a model
-    wrote (`model_labels`) is never app text, so it neither shows the term nor explains it. Otherwise the term is
-    marked 'meaning not observed', and an idea that uses it is flagged unless the model labeled it `everyday`; the
-    label is kept as written and never makes a term observed. Known limits: a call to action
-    ("Unlock <term>") or a role word in an app's own label ("<term> tab") reads as an explanation, and a price on a
-    plan card ("Weekly", "$1.99") doesn't; which cited text explains the term stays the model's call."""
+    """A term keeps its meaning only when a cited element carries it (as a whole word) and, with the term cut out,
+    still says something in words of two or more letters. So a bare name or a count ("1.8k tokens") can't define it.
+    Only the element's on-screen text decides; whether the model also quoted it in the ledger doesn't matter. Other
+    cited elements (the bullets under a plan's name) count when they sit on such an element's screen, whatever a
+    mechanic cites as evidence. A label a model wrote (`model_labels`) is never app text, so it neither shows the
+    term nor explains it. Otherwise the term is marked 'meaning not observed', and an idea that uses it is flagged
+    unless the model labeled it `everyday`; the label is kept as written and never makes a term observed. Known
+    limits: a call to action ("Unlock <term>"), a role word in an app's own label ("<term> tab") or a sentence that
+    only uses the term ("monthly <term> with our models") reads as an explanation, and a price on a plan card
+    ("Weekly", "$1.99") doesn't; which cited text explains the term stays the model's call."""
     elements = {e.id: e for s in states for e in s.elements}
     screen = {e.id: s.id for s in states for e in s.elements}
 
     def app_text(e: Element) -> list[str]:
         return [e.text] if e.id in model_labels else [e.text, e.label]
 
-    def rest(e: Element, cut: list[re.Pattern[str]]) -> str:
-        fields = app_text(e)
-        for pattern in cut:
-            fields = [pattern.sub(" ", f) for f in fields]
-        return " ".join(fields)
+    def rest(e: Element, name: re.Pattern[str]) -> str:
+        return " ".join(name.sub(" ", f) for f in app_text(e))
 
     terms = []
     for t in meaning.terms:
         name = text.phrase(t.term)
-        cut = [text.phrase(i.verbatim) for i in meaning.value_ledger if name.search(i.verbatim)] + [name]
         cited = [elements[i] for i in t.defined_by if i in elements]
         explained = {screen[e.id] for e in cited if any(name.search(f) for f in app_text(e))
-                     and WORD.search(rest(e, cut))}
-        defined_by = [e.id for e in cited if screen[e.id] in explained and re.search(r"\w", rest(e, cut))]
+                     and WORD.search(rest(e, name))}
+        defined_by = [e.id for e in cited if screen[e.id] in explained and re.search(r"\w", rest(e, name))]
         terms.append(Term(term=t.term, meaning=t.meaning if defined_by else NOT_OBSERVED, defined_by=defined_by,
                           used_in=t.used_in, everyday=t.everyday, observed=bool(defined_by)))
     return terms
