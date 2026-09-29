@@ -274,8 +274,9 @@ def shows_ui(e: Element) -> bool:
 
 
 def holds_ui(e: Element, elements: list[Element]) -> bool:
-    """Whether another element's words or image lie inside e's rect, so a crop of e would bake that interface in."""
-    return any(o.id != e.id and shows_ui(o) and contains(e.rect_dp, o.rect_dp) for o in elements)
+    """Whether another element's words or image sit on e's rect, even partly (its parents aside), so a crop of e
+    would bake that interface in. These are exactly the elements art search keeps its crops clear of."""
+    return any(drawn_over(o, e) and area(overlap(o.rect_dp, e.rect_dp)) > 0 for o in elements)
 
 
 def crop_origins(model: ProductModel, mock_dir) -> dict[str, tuple[str, Rect]]:

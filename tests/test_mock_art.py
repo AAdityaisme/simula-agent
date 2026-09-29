@@ -91,7 +91,7 @@ def test_a_wordless_container_the_mock_would_not_draw_still_gets_its_art(app):
     assert art_in(app, [undrawn], screenshot(card)) == {"s01.e01": card}
 
 
-def test_a_big_asset_is_usable_only_when_no_other_words_or_image_sit_inside_it(app):
+def test_a_big_asset_is_usable_only_when_no_other_words_or_image_sit_on_it(app):
     device = golden(app).device
     hero = element("s01.e01", 0, 0, 411, 600, asset="assets/s01.e01.png")
     caption = element("s01.e02", 20, 500, 200, 30, text="caption")
@@ -100,6 +100,10 @@ def test_a_big_asset_is_usable_only_when_no_other_words_or_image_sit_inside_it(a
     assert mock.usable_asset(hero, [hero], device)
     assert not mock.usable_asset(hero, [hero, caption], device)
     assert not mock.usable_asset(hero, [hero, icon], device)
+    edge_caption = element("s01.e06", 300, 580, 200, 40, text="half on the picture")
+    assert not mock.usable_asset(hero, [hero, edge_caption], device)
+    card = element("s01.e07", 0, 0, 411, 800).model_copy(update={"label": "character card"})
+    assert mock.usable_asset(hero, [card, hero], device)
     thumb = element("s01.e04", 0, 0, 200, 200, asset="assets/s01.e04.png")
     assert mock.usable_asset(thumb, [thumb, element("s01.e05", 10, 10, 50, 20, text="x")], device)
     assert not mock.usable_asset(hero.model_copy(update={"in_mock": False}), [hero], device)
