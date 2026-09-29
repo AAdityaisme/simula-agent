@@ -124,6 +124,16 @@ def cache_write(key: str, reply: Reply, cache_dir: Path = CACHE) -> None:
     (cache_dir / f"{key}.json").write_text(json.dumps(data, indent=1))
 
 
+def answered_from_cache(*, model: str, effort: str | None, system: str, messages: list[dict], max_tokens: int,
+                        schema: type[BaseModel] | None = None, cache_dir: Path = CACHE) -> bool:
+    """Whether a live call with these arguments takes its first attempt's answer from the cache, so it costs nothing
+    and reserves nothing. A planner asks this so it doesn't price a free call at its worst case."""
+    provider = config.models()[model]["provider"]
+    key = cache_key(provider, model, system, messages, request_params(provider, effort, max_tokens, schema), 0)
+    reply = cache_read(key, cache_dir)
+    return reply is not None and not reply.failure
+
+
 # ---------- money ----------
 
 def estimate_tokens_in(system: str, messages: list[dict]) -> int:
@@ -143,6 +153,11 @@ def worst_case_usd(model: str, tokens_in: int, max_tokens: int) -> float:
 
 
 # ---------- providers ----------
+
+def request_params(provider: str, effort: str | None, max_tokens: int, schema: type[BaseModel] | None) -> dict:
+    """The call parameters that go into its cache key, besides the model, system text and messages."""
+    return {"effort": effort, "max_tokens": max_tokens, "schema": json_schema_for(provider, schema) if schema else None}
+
 
 def json_schema_for(provider: str, schema: type[BaseModel]) -> dict:
     if provider == "anthropic":
@@ -322,8 +337,7 @@ def call(*, trace_path: Path, stage: str, step: str, model: str, effort: str | N
 def _call_model(*, trace_path, stage, step, model, effort, system, messages, max_tokens, budget, schema,
                 no_cache, replay, cache_dir, attempts, total_timeout):
     provider = config.models()[model]["provider"]
-    params = {"effort": effort, "max_tokens": max_tokens,
-              "schema": json_schema_for(provider, schema) if schema else None}
+    params = request_params(provider, effort, max_tokens, schema)
     keys = [cache_key(provider, model, system, messages, params, attempt) for attempt in range(attempts)]
     last, pending = LLMFailure("error", "no attempt made"), []
     for key in keys:

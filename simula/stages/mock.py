@@ -182,11 +182,10 @@ def run(ctx: Ctx) -> None:
 
     style = shared_style(scope)
     contents = [batch_content(ctx, model, batch, screens, art, style) for batch in groups]
-    worst = [worst_usd(ctx, content) for content in contents]
-    plan = batch_plan(ctx, worst)
+    plan = batch_plan(ctx, contents)
     budget = llm.Budget.for_stage("mock", ctx.run_dir / "trace.jsonl", plan.cap)
     run_trace(ctx.run_dir, stage="mock", step="plan", decider="code",
-              outcome="ok" if plan.keep == len(groups) else "cap", note=plan.line(worst))
+              outcome="ok" if plan.keep == len(groups) else "cap", note=plan.line())
     parts, undrawn, batch_errors = draw_batches(ctx, groups, contents, budget, plan)
     fonts = vendor_fonts(ctx, mock_dir, fonts_of(scope), page_chars(parts))
     html = with_runtime(wire_edges(stitch(style, fonts, parts), model, screens), home_id(scope))
@@ -199,8 +198,7 @@ def run(ctx: Ctx) -> None:
     (mock_dir / "contract_report.json").write_text(report.model_dump_json(indent=1))
     run_trace(ctx.run_dir, stage="mock", step="contract", decider="code", outcome="ok" if report.passed else "error",
               note=f"{len(screens)} screens rendered, {len(undrawn)} not drawn, {len(errors)} contract errors")
-    write_exhibit(ctx.run_dir, 3, "mock", exhibit(ctx, model, scope, groups, undrawn, html, report, worst,
-                                                  plan.line(worst)))
+    write_exhibit(ctx.run_dir, 3, "mock", exhibit(ctx, model, scope, groups, undrawn, html, report, plan))
 
 
 def pick_scope(model: ProductModel) -> list[State]:
@@ -419,22 +417,25 @@ def contains(a: Rect, b: Rect) -> bool:
 
 @dataclass(frozen=True)
 class Plan:
-    """How many batches, in priority order, the stage asks for: those that fit what was left of `cap` after the
-    `spent` already in the run when the stage started."""
+    """How many batches, in priority order, the stage asks for: those whose planned costs (`usd`, one per batch)
+    fit what was left of `cap` after the `spent` already in the run when the stage started."""
     keep: int
     cap: float
     spent: float
+    usd: list[float]
 
-    def line(self, worst: list[float]) -> str:
-        return (f"{self.keep} of {len(worst)} batches fit the ${self.cap:.2f} cap with ${self.spent:.2f} already "
-                f"spent, at worst case: ${sum(worst[:self.keep]):.2f} + ${max(worst):.2f} spare for one retry")
+    def line(self) -> str:
+        cached = self.usd.count(0.0)
+        return (f"{self.keep} of {len(self.usd)} batches fit the ${self.cap:.2f} cap with ${self.spent:.2f} already "
+                f"spent, at worst case: ${sum(self.usd[:self.keep]):.2f} + ${max(self.usd):.2f} spare for one retry"
+                + (f"; {cached} already cached, at $0" if cached else ""))
 
 
-def batch_plan(ctx: Ctx, worst: list[float]) -> Plan:
-    """A live run plans against what is left of its cap (after any --usd-cap) at the stage's start, since the $
-    check counts the mock spend already in the run, and records the plan in mock/plan.json. --replay reads that
-    record instead of planning again: its trace also holds the live run's spend, so a new plan could keep fewer
-    batches than the live run drew. With no record it stops, like a model call's replay miss."""
+def batch_plan(ctx: Ctx, contents: list[list[dict]]) -> Plan:
+    """A live run plans with the $ check's own arithmetic: it counts the mock spend already in the run against the
+    cap (after any --usd-cap), and a batch whose answer is already cached costs nothing. It records the plan in
+    mock/plan.json. --replay reads that record instead of planning again: its trace and cache also hold what the live
+    run spent and drew, so a new plan could differ. With no record it stops, like a model call's replay miss."""
     path = ctx.run_dir / "mock" / PLAN_RECORD
     if ctx.replay:
         if not path.exists():
@@ -442,10 +443,20 @@ def batch_plan(ctx: Ctx, worst: list[float]) -> Plan:
         return Plan(**json.loads(path.read_text()))
     cap = config.stage_cap("mock") if ctx.usd_cap is None else ctx.usd_cap
     spent = stage_usd(ctx)
-    plan = Plan(keep=affordable(worst, cap - spent), cap=cap, spent=spent)
+    usd = [planned_usd(ctx, content) for content in contents]
+    plan = Plan(keep=affordable(usd, max(cap - spent, 0.0)), cap=cap, spent=spent, usd=usd)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(asdict(plan)))
     return plan
+
+
+def planned_usd(ctx: Ctx, content: list[dict]) -> float:
+    """What one batch's call can cost this run: nothing when the cache holds its answer (a live call takes it from
+    there and reserves nothing), else its worst case."""
+    effort = config.roles(ctx.profile)["mock_builder"].get("effort")
+    if not ctx.no_cache and llm.answered_from_cache(**builder_request(ctx, content, effort)):
+        return 0.0
+    return worst_usd(ctx, content)
 
 
 def affordable(worst: list[float], cap: float) -> int:
@@ -457,10 +468,16 @@ def affordable(worst: list[float], cap: float) -> int:
 
 def worst_usd(ctx: Ctx, content: list[dict]) -> float:
     """The most one batch's call can cost: its retry prompt (the longer one) answered up to max_tokens."""
+    request = builder_request(ctx, content + [{"type": "text", "text": SHORTER}], None)
+    return llm.worst_case_usd(request["model"], llm.estimate_tokens_in(request["system"], request["messages"]),
+                              request["max_tokens"])
+
+
+def builder_request(ctx: Ctx, content: list[dict], effort: str | None) -> dict:
+    """One batch's call to the mock builder, as llm.call and llm.answered_from_cache take it."""
     role = config.roles(ctx.profile)["mock_builder"]
-    messages = [{"role": "user", "content": content + [{"type": "text", "text": SHORTER}]}]
-    return llm.worst_case_usd(role["model"], llm.estimate_tokens_in(system_prompt(), messages),
-                              role.get("max_tokens", 64000))
+    return {"model": role["model"], "effort": effort, "system": system_prompt(),
+            "messages": [{"role": "user", "content": content}], "max_tokens": role.get("max_tokens", 64000)}
 
 
 def draw_batches(ctx: Ctx, groups: list[list[State]], contents: list[list[dict]], budget: llm.Budget,
@@ -560,17 +577,13 @@ def parent_attr(state: State) -> str:
 
 def generate(ctx: Ctx, content: list[dict], budget: llm.Budget, step: str) -> str:
     """One batch's call. An answer cut off at max_tokens is retried once, at lower effort, asking for shorter CSS."""
-    role = config.roles(ctx.profile)["mock_builder"]
-    system = system_prompt()
-
     def ask(effort, content):
-        text, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="mock", step=step, model=role["model"],
-                           effort=effort, system=system, messages=[{"role": "user", "content": content}],
-                           max_tokens=role.get("max_tokens", 64000), budget=budget, no_cache=ctx.no_cache,
+        text, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="mock", step=step,
+                           **builder_request(ctx, content, effort), budget=budget, no_cache=ctx.no_cache,
                            replay=ctx.replay, attempts=1, total_timeout=WALL_SECONDS)
         return extract_html(text)
 
-    effort = role.get("effort")
+    effort = config.roles(ctx.profile)["mock_builder"].get("effort")
     try:
         return ask(effort, content)
     except llm.LLMFailure as e:
@@ -927,7 +940,7 @@ def _insert_before(html: str, tag: str, snippet: str) -> str:
 # ---------- exhibit ----------
 
 def exhibit(ctx: Ctx, model: ProductModel, scope: list[State], groups: list[list[State]], undrawn: dict[str, str],
-            html: str, report: ContractReport, worst: list[float], plan: str) -> str:
+            html: str, report: ContractReport, plan: Plan) -> str:
     attrs = [t["attrs"] for t in StartTags(html).tags]
     placed = Counter(a["data-el"].split(".")[0] for a in attrs if a.get("data-el"))
     wired = {a["data-edge"] for a in attrs if a.get("data-edge")}
@@ -935,9 +948,9 @@ def exhibit(ctx: Ctx, model: ProductModel, scope: list[State], groups: list[list
     lines = [f"# Mock: {model.app}", "",
              f"Contract: **{'PASS' if report.passed else 'FAIL'}** ({len(report.errors)} errors). "
              f"Model spend this stage: ${stage_usd(ctx):.4f}.", "",
-             f"Batch plan: {plan}.", "",
+             f"Batch plan: {plan.line()}.", "",
              "| Batch | Screens | Result | Worst case |", "|---|---|---|---|"]
-    for n, (batch, cost) in enumerate(zip(groups, worst), 1):
+    for n, (batch, cost) in enumerate(zip(groups, plan.usd), 1):
         reason = undrawn.get(batch[0].id)
         result = f"not drawn: {reason.replace('|', '/')}" if reason else "drawn"
         lines.append(f"| {n} | {' '.join(s.id for s in batch)} | {result} | ${cost:.2f} |")

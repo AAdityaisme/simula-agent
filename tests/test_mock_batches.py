@@ -7,6 +7,7 @@ import pytest
 
 from simula import llm
 from simula.contracts import ContractReport, State
+from simula.llm import answered_from_cache
 from simula.runlog import read_trace
 from simula.stages import mock
 from tests.conftest import APPS
@@ -186,6 +187,8 @@ def provider_drawing(model, calls: list, tokens_out: int = 1000):
 def with_cache_in(tmp_path, monkeypatch):
     real = llm.call
     monkeypatch.setattr(llm, "call", lambda **kwargs: real(**kwargs, cache_dir=tmp_path / "cache"))
+    monkeypatch.setattr(llm, "answered_from_cache",
+                        lambda **kwargs: answered_from_cache(**kwargs, cache_dir=tmp_path / "cache"))
 
 
 def test_each_batch_replays_from_the_cache(tmp_path, monkeypatch, app):
@@ -254,7 +257,9 @@ def test_a_capped_run_replays_to_the_same_page_whatever_cap_the_replay_is_given(
     planning again, so it leaves the same batches out, with no --usd-cap or with any other."""
     calls = []
     run_dir = capped_run(tmp_path, monkeypatch, app, calls)
-    assert json.loads((run_dir / "mock" / "plan.json").read_text()) == {"keep": 1, "cap": 2.0, "spent": 0.0}
+    n = len(mock.batches(mock.pick_scope(golden(app))))
+    assert json.loads((run_dir / "mock" / "plan.json").read_text()) == {"keep": 1, "cap": 2.0, "spent": 0.0,
+                                                                        "usd": [1.0] * n}
     first = (run_dir / "mock" / "index.html").read_text()
 
     for usd_cap in (None, 2.0, 40.0):
@@ -274,24 +279,30 @@ def test_a_replay_with_no_recorded_plan_stops(tmp_path, monkeypatch, app, two_ba
         mock.run(replay)
 
 
-def rerun(tmp_path, monkeypatch, app) -> tuple:
-    """A live mock, then a second live one in the same run folder with every cache key new (as after a builder prompt
-    change). Each call holds $1 while in flight and costs $0.50; the cap fits every batch plus one spare, so the first
-    run draws them all and leaves $0.50 per batch spent for the rerun to plan around."""
+def priced(tmp_path, monkeypatch, app, calls: list) -> tuple:
+    """A run folder where each batch's call holds $1 while in flight and costs $0.50 once answered."""
     run_dir = seed_model(tmp_path / "run", app)
     with_cache_in(tmp_path, monkeypatch)
     model = golden(app)
     monkeypatch.setattr(mock, "worst_usd", lambda ctx, content: 1.0)
     monkeypatch.setattr(llm, "worst_case_usd", lambda model_id, tokens_in, tokens_out: 1.0)
     monkeypatch.setattr(llm, "usd", lambda model_id, tokens_in, tokens_out, tokens_cached=0: 0.5)
-    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider_drawing(model, []))
-    n = len(mock.batches(mock.pick_scope(model)))
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider_drawing(model, calls))
+    return run_dir, len(mock.batches(mock.pick_scope(model)))
+
+
+def rerun(tmp_path, monkeypatch, app, new_keys: bool = True) -> tuple:
+    """A live mock whose cap fits every batch plus one spare, so it draws them all and leaves $0.50 per batch spent,
+    then a second live one in the same run folder: with every cache key new (as after a builder prompt change), or
+    with every answer already cached."""
+    calls = []
+    run_dir, n = priced(tmp_path, monkeypatch, app, calls)
     ctx = ctx_for(run_dir, app)
     ctx.usd_cap = n + 1.0
     mock.run(ctx)
-    ctx.no_cache = True
+    ctx.no_cache = new_keys
     mock.run(ctx)
-    return run_dir, n
+    return run_dir, n, calls
 
 
 def test_a_rerun_plans_against_what_is_left_so_no_planned_batch_is_turned_away(tmp_path, monkeypatch, app,
@@ -299,7 +310,7 @@ def test_a_rerun_plans_against_what_is_left_so_no_planned_batch_is_turned_away(t
     """The $ check counts the mock spend already in the run. Planned against the whole cap, the rerun's plan said
     every batch fit and the budget's lock then turned planned batches away; against what is left, the plan line is
     what gets drawn and only the batches it left out are placeholders."""
-    run_dir, n = rerun(tmp_path, monkeypatch, app)
+    run_dir, n, _ = rerun(tmp_path, monkeypatch, app)
     spent = 0.5 * n
     keep = mock.affordable([1.0] * n, n + 1.0 - spent)
     assert 0 < keep < n
@@ -309,12 +320,44 @@ def test_a_rerun_plans_against_what_is_left_so_no_planned_batch_is_turned_away(t
     undrawn = [t for t in trace[trace.index(plan):] if t.note.startswith("not drawn:")]
     assert [t.step for t in undrawn] == [f"batch{i}" for i in range(keep + 1, n + 1)]
     assert all("over budget" in t.note for t in undrawn)
-    assert json.loads((run_dir / "mock" / "plan.json").read_text()) == {"keep": keep, "cap": n + 1.0, "spent": spent}
+    assert json.loads((run_dir / "mock" / "plan.json").read_text()) == {"keep": keep, "cap": n + 1.0, "spent": spent,
+                                                                        "usd": [1.0] * n}
+
+
+def test_a_rerun_whose_answers_are_cached_draws_every_batch_again_for_free(tmp_path, monkeypatch, app, two_batches):
+    """The first run's spend counts against the cap, but a cached answer costs nothing and reserves nothing, so the
+    plan prices it at $0 and a rerun with nothing changed draws the same page."""
+    run_dir, n, calls = rerun(tmp_path, monkeypatch, app, new_keys=False)
+    assert len(calls) == n
+    plan = [t for t in read_trace(run_dir / "trace.jsonl") if t.step == "plan"][-1]
+    assert plan.note == (f"{n} of {n} batches fit the ${n + 1:.2f} cap with ${0.5 * n:.2f} already spent, at worst "
+                         f"case: $0.00 + $0.00 spare for one retry; {n} already cached, at $0")
+    assert "screen not drawn" not in (run_dir / "mock" / "index.html").read_text()
+    lowered = ctx_for(run_dir, app)
+    lowered.usd_cap = 0.25  # below what is already spent: cached answers still cost nothing
+    mock.run(lowered)
+    assert len(calls) == n and "screen not drawn" not in (run_dir / "mock" / "index.html").read_text()
+
+
+def test_raising_the_cap_after_an_over_budget_run_draws_the_rest(tmp_path, monkeypatch, app, two_batches):
+    """needs-human's way out of an over-budget mock: rerun with a higher --usd-cap. Batch 1 is cached and free, so the
+    new cap only has to fit the batches not drawn yet, plus one spare, on top of what was spent."""
+    calls = []
+    run_dir, n = priced(tmp_path, monkeypatch, app, calls)
+    ctx = ctx_for(run_dir, app)
+    ctx.usd_cap = 2.0
+    mock.run(ctx)
+    assert len(calls) == 1
+    ctx.usd_cap = 0.5 + (n - 1) + 1.0
+    mock.run(ctx)
+    assert len(calls) == n
+    assert json.loads((run_dir / "mock" / "plan.json").read_text())["usd"] == [0.0] + [1.0] * (n - 1)
+    assert "screen not drawn" not in (run_dir / "mock" / "index.html").read_text()
 
 
 def test_a_replay_after_a_rerun_draws_the_reruns_page(tmp_path, monkeypatch, app, two_batches):
     """The replay's trace holds both live runs' spend, so planning again would keep fewer batches than the rerun drew."""
-    run_dir, _ = rerun(tmp_path, monkeypatch, app)
+    run_dir, _, _ = rerun(tmp_path, monkeypatch, app)
     page = (run_dir / "mock" / "index.html").read_text()
     replay = ctx_for(run_dir, app)
     replay.replay = True

@@ -4,6 +4,7 @@ import pytest
 from pydantic import BaseModel
 
 from simula import llm
+from simula.llm import answered_from_cache
 from simula.runlog import read_trace
 
 MODEL = "claude-haiku-4-5-20251001"
@@ -64,6 +65,24 @@ def test_second_call_is_a_cache_hit(tmp_path, monkeypatch):
     assert first == second == Answer(word="ready")
     assert len(calls) == 1
     assert [line.cache_hit for line in read_trace(tmp_path / "trace.jsonl")] == [False, True]
+
+
+def test_answered_from_cache_matches_what_a_call_left_in_the_cache(tmp_path, monkeypatch):
+    """A planner's question, answered with the call's own key: yes once a call's first attempt is answered, no for
+    other arguments, and no when that attempt's cached answer is a failure."""
+    asked = dict(model=MODEL, effort=None, system="", messages=message(), max_tokens=100, schema=Answer,
+                 cache_dir=tmp_path / "cache")
+    assert not answered_from_cache(**asked)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "ok"}'], []))
+    call(tmp_path)
+    assert answered_from_cache(**asked)
+    assert not answered_from_cache(**{**asked, "effort": "high"})
+    assert not answered_from_cache(**{**asked, "schema": None})
+
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"nope": 1}'], []))
+    with pytest.raises(llm.LLMFailure):
+        call(tmp_path, messages=message("other"), attempts=1)
+    assert not answered_from_cache(**{**asked, "messages": message("other")})
 
 
 def test_invalid_response_is_cached_only_as_a_failed_attempt_and_retried(tmp_path, monkeypatch):
