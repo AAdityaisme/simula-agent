@@ -302,15 +302,18 @@ def recheck(ctx: Ctx, revisions: list[Candidate], candidates: list[Candidate], d
             model: ProductModel, budget: llm.Budget) -> list[Candidate]:
     """Propose's last two checks on the revisions: the benefit-naming call's paywall-bullet link, and dedupe. A
     revision that gives the same benefit as an idea still standing (not dropped, not rejected, not its own
-    original) or as a better-ranked revision is dropped as its duplicate."""
-    fresh = sorted((r for r in revisions if is_idea(r) and not r.dropped_reason), key=lambda r: -(r.rank_score or 0))
+    original) or as an earlier revision is dropped as its duplicate. Revisions go unflagged first, then best first,
+    and a flagged idea never evicts a clean one; a flagged idea still counts as live against other flagged ones."""
+    fresh = sorted((r for r in revisions if is_idea(r) and not r.dropped_reason),
+                   key=lambda r: (bool(r.flags), -(r.rank_score or 0)))
     if not fresh:
         return revisions
     standing = [c for c in candidates if is_idea(c) and not c.dropped_reason and decisions[c.id].final != "reject"]
     names, links = propose.name_benefits(ctx, standing + fresh, budget, "judge:revisions", model)
     reasons, kept = {}, list(standing)
     for r in fresh:
-        twin, benefit = next(((k, b) for k in kept if (b := propose.same_benefit(k, r, names))), (None, None))
+        rivals = [k for k in kept if r.flags or not k.flags]
+        twin, benefit = next(((k, b) for k in rivals if (b := propose.same_benefit(k, r, names))), (None, None))
         reasons[r.id] = (propose.linked_problem(r, links.get(r.id), model)
                          or (f"duplicate of {twin.id}: same benefit ({benefit})" if twin else None))
         if not reasons[r.id]:

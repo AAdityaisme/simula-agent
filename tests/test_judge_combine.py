@@ -371,6 +371,23 @@ def test_a_revision_giving_the_same_benefit_as_a_standing_idea_is_dropped_as_its
     assert [c["step"] for c in calls if c["step"] == "judge:revisions"] == ["judge:revisions"]
 
 
+def test_recheck_never_lets_a_flagged_idea_evict_its_clean_twin(tmp_path, monkeypatch):
+    m = golden("janitorai")
+    monkeypatch.setattr(propose, "name_benefits", lambda ctx, live, *a: ({c.id: "a badge" for c in live}, {}))
+
+    def recheck(revisions, standing=()):
+        decisions = {c.id: judge.decide(c, [verdict()], ONE, "annotate") for c in standing}
+        out = judge.recheck(ctx_for("janitorai", tmp_path), revisions, list(standing), decisions, m,
+                            llm.Budget("judge", 1.0))
+        return [(r.id, r.dropped_reason) for r in out]
+
+    standing = idea(m, "c01", flags=[FLAG])
+    assert recheck([idea(m, "c02-rev"), idea(m, "c03-rev", flags=[FLAG])], [standing]) == [
+        ("c02-rev", None), ("c03-rev", "duplicate of c01: same benefit (a badge)")]
+    assert recheck([idea(m, "c04-rev", rank=5, flags=[FLAG]), idea(m, "c05-rev", rank=1)]) == [
+        ("c04-rev", "duplicate of c05-rev: same benefit (a badge)"), ("c05-rev", None)]
+
+
 def test_a_revision_the_naming_call_links_to_an_uncounted_paid_benefit_is_dropped(tmp_path, monkeypatch):
     app = "janitorai"
     model = golden(app)
