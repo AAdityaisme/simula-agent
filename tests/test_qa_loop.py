@@ -15,12 +15,12 @@ import anthropic
 import pytest
 from PIL import Image
 
-from simula import cli, config, llm, render
+from simula import cli, config, llm, render, runfolder
 from simula.contracts import (ContractError, ContractReport, Critique, Edit, Edits, Fix, ProductModel, QAMetrics,
-                              Rect, ScreenMetrics)
+                              QAReport, Rect, ScreenMetrics, StageOutcome)
 from simula.llm import Reply
 from simula.runlog import read_trace
-from simula.stages import FRESH_CALLS, mock, qa
+from simula.stages import FRESH_CALLS, flows, mock, qa
 from tests.conftest import APPS, FIXTURES
 from tests.mock_fake import golden, seed_model, skeleton_html
 from tests.test_mock_isolation import ctx_for, fake_builder
@@ -384,6 +384,23 @@ def answering_provider(calls: list, model: ProductModel | None = None, refuse: s
             return Reply(text=answer.model_dump_json(), model=model_id, tokens_in=100, tokens_out=100)
         return Reply(text=Edits(edits=[]).model_dump_json(), model=model_id, tokens_in=100, tokens_out=fixer_out)
     return call
+
+
+def test_a_partial_qa_says_so_in_its_done_marker_and_on_the_decks_cover(mocked_run, monkeypatch):
+    """#8's red team 2 (LOW 2): qa.run returned None, so the runner marked a partial QA complete and the deck's cover,
+    which reads done.json, said nothing. qa.run now returns the report's outcome, reasons and resume."""
+    def refusing(model_id, system, messages, effort, schema, max_tokens, total_timeout=None):
+        return Reply(text="", model=model_id, tokens_in=100, tokens_out=10, stop_reason="refusal")
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", refusing)
+    app = mocked_run.parent.name
+    assert cli.main(["qa", app, "--run", mocked_run.name, "--allow-fixtures", "--profile", "dev"]) == 0
+    report = QAReport.model_validate_json((mocked_run / "qa" / "qa_report.json").read_text())
+    assert report.reasons[0] == "the review stopped early: the model declined"
+    assert runfolder.read_done(mocked_run / "qa").outcome == StageOutcome(status="partial", reasons=report.reasons,
+                                                                          resume=report.resume)
+    assert report.resume in (mocked_run / "needs-human.md").read_text()
+    assert flows.unfinished_stages(mocked_run) == [
+        f"The qa step finished only part of its work: {'; '.join(report.reasons)}."]
 
 
 def test_our_own_cap_in_qa_approves_the_best_round_and_its_printed_resume_gets_further(mocked_run, monkeypatch):

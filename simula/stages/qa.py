@@ -17,7 +17,7 @@ from playwright.sync_api import Error as PlaywrightError
 from simula import config, llm, qa_metrics, render, runfolder
 from simula.config import ROOT
 from simula.contracts import (SCHEMA_VERSION, ContractError, ContractReport, Critique, Edge, Edit, Edits, Fix,
-                              ProductModel, QAMetrics, Rect, ScreenMetrics, State)
+                              ProductModel, QAMetrics, Rect, ScreenMetrics, StageOutcome, State)
 from simula.runlog import read_trace, run_trace, write_exhibit
 from simula.stages import FRESH_CALLS, Ctx, in_plain_words, mock, resume_command
 
@@ -76,7 +76,7 @@ class Loop:
     open_findings: list[Fix] | None = None
 
 
-def run(ctx: Ctx) -> None:
+def run(ctx: Ctx) -> StageOutcome:
     model = ProductModel.model_validate_json((ctx.run_dir / "model" / "product_model.json").read_text())
     scope = mock_screens(ctx, model)
     shutil.rmtree(ctx.run_dir / "qa", ignore_errors=True)
@@ -88,6 +88,7 @@ def run(ctx: Ctx) -> None:
     report = qa_report(ctx, best, loop, undrawn_screens(ctx))
     write_json(ctx.run_dir / "qa" / "qa_report.json", report)
     write_exhibit(ctx.run_dir, 4, "qa", exhibit(ctx, model, best, loop, report))
+    return StageOutcome(status=report["outcome"], reasons=report["reasons"], resume=report["resume"])
 
 
 def improve(ctx: Ctx, model: ProductModel, scope: list[State], best: Version) -> tuple[Version, Loop]:
