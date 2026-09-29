@@ -333,7 +333,8 @@ def test_core_loop_passes_become_experience_facts(name, shape, tmp_path):
                                  f"{verb} started median 2.7 s (min 1.9, max 3.5, n=5); "
                                  "finished median 10.5 s (min 7.5, max 13.5, n=5); "
                                  "chars median 600 (min 400, max 800, n=5)")
-    assert outcome.verbatim == f"After 5 passes of the core action nothing limited it: no limit, paywall, or ad appeared ({steps})"
+    assert outcome.verbatim == ("After 5 passes of the core action nothing limited it: no limit, paywall, or ad appeared, "
+                                f"on an account whose plan (free or paid) was not recorded ({steps})")
 
 
 @pytest.mark.parametrize("name", APPS)
@@ -382,8 +383,16 @@ def test_a_pass_is_counted_once_and_measured_only_from_its_timing_line(tmp_path)
 def test_measurements_in_different_units_are_never_mixed(tmp_path):
     measured, _ = with_loop(tmp_path, loop_line(900, 1, "reply 2 s"), loop_line(901, 2, "reply 4 s"),
                             loop_line(902, 3, "reply 300 chars, reply started 900 ms"))
-    assert "reply median 3 s (min 2, max 4, n=2); reply median 300 chars (min 300, max 300, n=1)" in measured.verbatim
+    assert "reply median 3 s (min 2, max 4, n=2); reply 300 chars (1 measurement)" in measured.verbatim
     assert "ms" not in measured.verbatim.split("): ", 1)[1], "only s and chars are core-loop units"
+
+
+def test_one_pass_is_said_as_one_measurement_and_an_unlimited_loop_says_the_plan_is_unknown(tmp_path):
+    measured, outcome = with_loop(tmp_path, loop_line(900, 1, "reply started 2.2 s, finished 50 s, 2170 chars"))
+    assert measured.verbatim == ("Core action over 1 pass (explore steps 900-900): reply started 2.2 s (1 measurement); "
+                                 "finished 50 s (1 measurement); chars 2170 (1 measurement)")
+    assert outcome.verbatim.startswith("After 1 pass of the core action nothing limited it")
+    assert "plan (free or paid) was not recorded" in outcome.verbatim
 
 
 def test_a_stop_on_a_denied_pass_is_kept(tmp_path):

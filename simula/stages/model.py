@@ -270,11 +270,24 @@ def pass_measurements(lines: list[ActionLine]) -> list[tuple[str, float, str]]:
     return []
 
 
+def pass_count(n: int) -> str:
+    return f"{n} pass" if n == 1 else f"{n} passes"
+
+
+def measured(what: str, unit: str, values: list[float]) -> str:
+    """One measurement is said as one, not as a median, min, and max that are all the same number."""
+    shown = "" if unit == what else " " + unit
+    if len(values) == 1:
+        return f"{what} {values[0]:g}{shown} (1 measurement)"
+    return (f"{what} median {statistics.median(values):g}{shown} "
+            f"(min {min(values):g}, max {max(values):g}, n={len(values)})")
+
+
 def loop_facts(explore_dir: Path, states: list[State], edges: list[Edge]) -> list[LedgerItem]:
-    """The measured free experience, from the explorer's core-loop passes: one item with each measurement's
-    median, min, max and n, and one saying what stopped the loop, or that nothing did. Passes are counted by
-    distinct loop_pass, not by line. A stop counts from any line, even a denied one; measurements only from
-    lines that ran."""
+    """The measured experience, from the explorer's core-loop passes: one item with each measurement's median, min,
+    max and n (or the one value, when there is one), and one saying what stopped the loop, or that nothing did on an
+    account whose plan explore doesn't record. Passes are counted by distinct loop_pass, not by line. A stop counts
+    from any line, even a denied one; measurements only from lines that ran."""
     loop = [a for a in read_actions(explore_dir) if a.loop_pass is not None]
     if not loop:
         return []
@@ -293,13 +306,13 @@ def loop_facts(explore_dir: Path, states: list[State], edges: list[Edge]) -> lis
             values.setdefault((what, unit), []).append(value)
     items = []
     if values:
-        parts = [f"{what} median {statistics.median(v):g}{'' if unit == what else ' ' + unit} "
-                 f"(min {min(v):g}, max {max(v):g}, n={len(v)})" for (what, unit), v in values.items()]
+        parts = [measured(what, unit, v) for (what, unit), v in values.items()]
         items.append(LedgerItem(id="exp1", kind="experience", evidence_ids=evidence,
-                                verbatim=f"Core action over {len(by_pass)} passes ({steps}): " + "; ".join(parts)))
+                                verbatim=f"Core action over {pass_count(len(by_pass))} ({steps}): " + "; ".join(parts)))
     stop = next((a for a in loop if a.loop_stop), None)
     outcome = (f"{stop.loop_stop} appeared on pass {stop.loop_pass} of the core action" if stop else
-               f"After {len(by_pass)} passes of the core action nothing limited it: no limit, paywall, or ad appeared")
+               f"After {pass_count(len(by_pass))} of the core action nothing limited it: no limit, paywall, or ad "
+               "appeared, on an account whose plan (free or paid) was not recorded")
     items.append(LedgerItem(id=f"exp{len(items) + 1}", kind="experience", evidence_ids=evidence,
                             verbatim=f"{outcome} ({steps})"))
     return items
