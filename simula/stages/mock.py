@@ -42,7 +42,7 @@ FONT_FACE = re.compile(r"(?:/\*\s*([^*]*?)\s*\*/\s*)?(@font-face\s*\{[^}]*\})")
 UNICODE_RANGE = re.compile(r"unicode-range:([^;}]*)")
 CODE_POINTS = re.compile(r"U\+([0-9a-fA-F]+)(?:-([0-9a-fA-F]+))?")
 FETCH_TIMEOUT_S = 20
-FONT_RECORDS = llm.CACHE / "fonts"
+FONT_RECORDS = "font-records"
 # Every way urllib fails a download: a socket, TLS or HTTP status error (OSError), or a cut-off or malformed
 # response (HTTPException, which isn't an OSError).
 FETCH_ERRORS = (OSError, http.client.HTTPException)
@@ -756,10 +756,12 @@ def covers(ranges: list[tuple[int, int]], point: int) -> bool:
 
 
 def fetch_recorded(ctx: Ctx, url: str) -> bytes:
-    """A live build fetches and records what it got, the bytes or the error, in the model-call cache keyed by URL.
-    --replay reads only that record: no network, and the same fonts (or the same system fallback) as the live build.
-    With no record it stops, like a model call's replay miss."""
-    path = FONT_RECORDS / f"{hashlib.sha256(url.encode()).hexdigest()}.json"
+    """A live build fetches and records what it got, the bytes or the error, in its own run's mock/font-records/,
+    keyed by URL. --replay reads only that record: no network, and the same fonts (or the same system fallback) as
+    the live build. The record belongs to the run, because the same URL can answer another run differently later (a
+    failed fetch, a new font version). With no record it stops, like a model call's replay miss."""
+    records = ctx.run_dir / "mock" / FONT_RECORDS
+    path = records / f"{hashlib.sha256(url.encode()).hexdigest()}.json"
     if ctx.replay:
         if not path.exists():
             raise llm.ReplayMiss(f"--replay: no recorded fetch of {url} (key {path.stem[:12]})")
@@ -767,7 +769,7 @@ def fetch_recorded(ctx: Ctx, url: str) -> bytes:
         if "error" in record:
             raise OSError(record["error"])
         return base64.b64decode(record["data"])
-    FONT_RECORDS.mkdir(parents=True, exist_ok=True)
+    records.mkdir(parents=True, exist_ok=True)
     try:
         data = fetch_twice(url)
     except FETCH_ERRORS as e:

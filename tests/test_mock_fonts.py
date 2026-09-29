@@ -317,7 +317,7 @@ def replay(run_dir, app) -> None:
 
 def test_a_live_build_records_every_font_fetch_and_its_result(tmp_path, monkeypatch):
     run_dir, fetched, _ = live_build_with_fonts(tmp_path, monkeypatch, APPS[0])
-    records = [json.loads(p.read_text()) for p in mock.FONT_RECORDS.glob("*.json")]
+    records = [json.loads(p.read_text()) for p in (run_dir / "mock" / mock.FONT_RECORDS).glob("*.json")]
     assert sorted(r["url"] for r in records) == sorted(set(fetched)) and len(records) == 6
     [refused] = [r for r in records if "Lobster" in r["url"]]
     assert refused == {"url": refused["url"], "error": "HTTP Error 400: Bad Request"}
@@ -342,9 +342,25 @@ def test_a_replay_rebuilds_the_same_mock_with_no_network(tmp_path, monkeypatch, 
     assert notes == [live_note, live_note] and "Lobster: HTTP Error 400: Bad Request" in live_note
 
 
+def test_a_later_build_of_another_run_leaves_this_runs_replay_alone(tmp_path, monkeypatch):
+    """Greptile on fd7e87f: records keyed by URL alone were shared by every run, so a later live build whose fetches
+    failed changed what an earlier, successful build replayed. Each run keeps its own records."""
+    run_dir, _, _ = live_build_with_fonts(tmp_path, monkeypatch, APPS[0])
+    live = mock_files(run_dir)
+    later = seed_model(tmp_path / "later", APPS[0])
+    with_fonts(later, APPS[0], ["Roboto", "Lobster"])
+    monkeypatch.setattr(mock, "fetch", offline([]))
+    mock.run(ctx_for(later, APPS[0]))
+    assert not (later / "mock" / "assets" / "fonts").exists()
+
+    monkeypatch.setattr(mock, "fetch", no_network)
+    replay(run_dir, APPS[0])
+    assert mock_files(run_dir) == live
+
+
 def test_a_replay_with_a_font_record_missing_is_a_replay_miss(tmp_path, monkeypatch):
     run_dir, _, _ = live_build_with_fonts(tmp_path, monkeypatch, APPS[0])
-    [(url, record)] = [(r["url"], p) for p in mock.FONT_RECORDS.glob("*.json")
+    [(url, record)] = [(r["url"], p) for p in (run_dir / "mock" / mock.FONT_RECORDS).glob("*.json")
                        if (r := json.loads(p.read_text()))["url"].endswith("latin-700.woff2")]
     record.unlink()
 
