@@ -60,6 +60,11 @@ ART_MIN_SIDE = 48
 ART_MIN_COLORS = 120
 ALREADY_CROPPED = 0.9
 RETRY_EFFORT = {"max": "high", "xhigh": "high"}
+GESTURES = ("swipe", "back", "type")
+# ponytail: Android's editable widget classes, the only platform explored so far. Add iOS field types with an iOS run.
+TEXT_FIELDS = ("EditText", "AutoCompleteTextView", "MultiAutoCompleteTextView")
+ACTIONS_BLOCK = re.compile(r'<script id="simula-actions" type="application/json">.*?</script>\n?', re.S)
+ACTIONS_JS = '<script id="simula-actions" type="application/json">%s</script>\n'
 SHORTER = "A first attempt ran out of output tokens. Write shorter CSS: shared classes, no repeated rules, no comments."
 
 RUNTIME_CSS = """<style id="simula-runtime">
@@ -75,6 +80,8 @@ body{position:relative}
 @keyframes simula-slide-back{from{transform:translateX(-30%)}}
 @keyframes simula-fade{from{opacity:0}}
 @media (prefers-reduced-motion:reduce){.simula-push,.simula-back,.simula-modal{animation:none}}
+[data-simula-field]{cursor:text;-webkit-user-select:text;user-select:text}
+[data-simula-field]:focus{outline:none}
 </style>
 """
 
@@ -98,7 +105,49 @@ RUNTIME_JS = """<script id="simula-runtime-js">
     document.body.dataset.transition = kind;
     return true;
   }
+  // Edges that start on no element come from code's #simula-actions map: {screen: {action: [to, transition, field]}}.
+  // A drag of 48 px or more is a swipe, or the system back when it starts at the left edge and runs right; Escape is
+  // the system back too; Enter in the screen's text field sends what was typed.
+  let actions = null;
+  const actionsOf = () => actions = actions || JSON.parse(document.getElementById('simula-actions')?.textContent || '{}');
+  const gesture = kind => { const a = (actionsOf()[current] || {})[kind]; return !!a && show(a[0], a[1]); };
+  let start = null, dragged = false;
+  document.addEventListener('pointerdown', e => { start = [e.clientX, e.clientY]; dragged = false; });
+  document.addEventListener('pointerup', e => {
+    if (!start) return;
+    const [x, y] = start, dx = e.clientX - x, dy = e.clientY - y;
+    start = null;
+    if (Math.hypot(dx, dy) < 48) return;
+    dragged = true;
+    if (!(x <= 24 && dx > Math.abs(dy) && gesture('back'))) gesture('swipe');
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') gesture('back');
+    const field = e.target.closest && e.target.closest('[data-simula-field]');
+    if (e.key === 'Enter' && field && field.closest('[data-screen]').dataset.screen === current) {
+      e.preventDefault();
+      gesture('type');
+    }
+  });
+  const fields = () => {
+    for (const [sid, a] of Object.entries(actionsOf())) {
+      const id = a.type && a.type[2];
+      const f = id && document.querySelector(`[data-screen="${CSS.escape(sid)}"] [data-el="${CSS.escape(id)}"]`);
+      if (!f) continue;
+      f.contentEditable = 'plaintext-only';
+      f.tabIndex = 0;
+      f.dataset.simulaField = '';
+      // The drawn placeholder gives way on the first focus, as a real field's hint does.
+      f.addEventListener('focus', () => {
+        if ('simulaTyped' in f.dataset) return;
+        f.dataset.simulaTyped = '';
+        f.textContent = '';
+      });
+    }
+  };
+  document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', fields) : fields();
   document.addEventListener('click', e => {
+    if (dragged) { dragged = false; return; }
     const el = e.target.closest('[data-edge]');
     if (!el) return;
     e.preventDefault();
@@ -766,8 +815,9 @@ class StartTags(HTMLParser):
 
 
 def wire_edges(html: str, model: ProductModel, screens: list[str]) -> str:
-    """Code owns every edge. It writes each known data-edge tag's data-transition, and puts an in-scope edge
-    the builder left out on the tag that already carries its element's data-el."""
+    """Code owns every edge. It writes each known data-edge tag's data-transition, puts an in-scope edge the
+    builder left out on the tag that already carries its element's data-el, and writes the map of edges that start
+    on no element (`gestures`) for the runtime, replacing any map already in the page."""
     edges = {e.id: e for e in model.edges}
     tags = StartTags(html).tags
     placed = {t["attrs"].get("data-edge") for t in tags}
@@ -787,7 +837,26 @@ def wire_edges(html: str, model: ProductModel, screens: list[str]) -> str:
         if edge and t["attrs"].get("data-transition") != edge.transition:
             t["attrs"] = _with_transition(t["attrs"], edge.transition)
             changed[t["start"]] = t
-    return _rewrite(html, sorted(changed.values(), key=lambda t: t["start"]))
+    html = ACTIONS_BLOCK.sub("", _rewrite(html, sorted(changed.values(), key=lambda t: t["start"])))
+    actions = gestures(model, screens)
+    return _insert_before(html, "</body>", ACTIONS_JS % json.dumps(actions, sort_keys=True)) if actions else html
+
+
+def gestures(model: ProductModel, screens: list[str]) -> dict[str, dict[str, list]]:
+    """The in-scope swipe, back and type edges that start on no element, per screen and action: {screen: {action:
+    [to_state, transition, text field]}}. The runtime performs each from its gesture. A type edge names the screen's
+    first tagged text field, where the typing goes (None when it has none). A second edge with the same action on
+    one screen is left out: the explorer doesn't record which way it swiped."""
+    states = {s.id: s for s in model.states}
+    out = {}
+    for e in model.edges:
+        if e.element_id or e.action not in GESTURES or e.from_state not in screens or e.to_state not in screens:
+            continue
+        state = states[e.from_state]
+        field = next((x.id for x in state.elements if x.type in TEXT_FIELDS and x.id in tagged_ids(state)), None)
+        out.setdefault(e.from_state, {}).setdefault(e.action, [e.to_state, e.transition,
+                                                             field if e.action == "type" else None])
+    return out
 
 
 def _with_transition(attrs: dict, transition: str) -> dict:
