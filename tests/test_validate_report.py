@@ -103,11 +103,14 @@ def test_a_check_with_0_of_2_caught_is_broken():
 def test_a_regression_case_is_reported_on_its_own_and_counts_for_nothing_else():
     cases = build_cases()
     m = golden("janitorai")
-    passed_one, failed_one = (Case(cid, "regression", idea(m, cid), m, m.app, "", True) for cid in ("rg-a", "rg-b"))
-    verdicts = judged(cases) | {("rg-a", "judge_1"): verdict(), ("rg-b", "judge_1"): verdict(["c1_revealed_value"])}
-    text, passed = run_report(cases + [passed_one, failed_one], verdicts)
+    regressions = [Case(cid, "regression", idea(m, cid), m, m.app, "", True, target)
+                   for cid, target in (("rg-a", None), ("rg-b", None), ("rg-c", "c2_evidence"))]
+    verdicts = judged(cases) | {("rg-a", "judge_1"): verdict(), ("rg-b", "judge_1"): verdict(["c1_revealed_value"]),
+                                ("rg-c", "judge_1"): verdict(["c1_revealed_value"])}
+    text, passed = run_report(cases + regressions, verdicts)
     assert passed and "| Planted defects (22) | 22 | 0 |" in text and "| Known-good (3) | 3 | 0 |" in text
-    assert "| rg-a | ✗ passes all 11 |" in text and "| rg-b | ✓ fails c1_revealed_value |" in text
+    assert "| rg-a | any | ✗ passes all 11 |" in text and "| rg-b | any | ✓ fails c1_revealed_value |" in text
+    assert "| rg-c | c2_evidence | ✗ fails c1_revealed_value |" in text
 
 
 def test_simula_validate_judge_and_label_run_the_validation_commands(monkeypatch):
@@ -123,8 +126,9 @@ def test_simula_validate_judge_and_label_run_the_validation_commands(monkeypatch
 
 
 def test_the_regression_fixtures_load_with_the_product_model_their_judge_saw():
-    [c07] = [c for c in validate.load_cases() if c.source == "regression"]
-    assert c07.id == "rg-janitorai-c07-fan-boost"
+    c07, c09 = [c for c in validate.load_cases() if c.source == "regression"]
+    assert (c07.id, c07.target, c09.id, c09.target) == ("rg-janitorai-c07-fan-boost", None,
+                                                         "rg-janitorai-c09-empty-evidence", "c2_evidence")
     assert c07.model.app == "janitorai" and judge.candidate_text(c07.candidate, c07.model) != judge.candidate_text(
         c07.candidate, golden("janitorai"))
 

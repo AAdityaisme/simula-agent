@@ -76,13 +76,15 @@ class Planted(Strict):
 
 
 class Regression(Strict):
-    """tests/fixtures/judge/regression/<id>.json: a real idea the judges must not pass, with the product model the
-    judge saw (only the fields it reads). Held out of the gate; the report shows its verdict."""
+    """tests/fixtures/judge/regression/<id>.json: a real idea the judges must fail, on `target` when it names a check
+    and on any check otherwise, with the product model its judge saw (a sketch of only the fields the judge reads).
+    Held out of the gate; the report shows its verdict."""
     id: str
+    target: Literal[GATES + JUDGMENT] | None = None
     from_run: str
     app: str
     note: str
-    model: dict
+    model: str
     candidate: dict
 
 
@@ -165,7 +167,7 @@ def load_cases(root: Path = CASES) -> list[Case]:
     cases = [Case(g.id, g.source, as_candidate(g.candidate, g.id), models[g.model], g.app, g.app_type,
                   g.in_test_set) for g in goods.values()]
     regressions = [Regression.model_validate_json(p.read_text()) for p in sorted((root / "regression").glob("*.json"))]
-    cases += [Case(r.id, "regression", as_candidate(r.candidate, r.id), fill_model(r.model), r.app, "", True)
+    cases += [Case(r.id, "regression", as_candidate(r.candidate, r.id), load_model(r.model), r.app, "", True, r.target)
               for r in regressions]
     for path, p in planted:
         if (p.target == C8) != (p.expect_economics is not None):
@@ -341,15 +343,16 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
 
     regressions = [c for c in cases if c.source == "regression"]
     if regressions:
-        lines += ["", "## Regression cases (held out of the gate; the judges must not pass them)", "",
-                  "| Case | " + " | ".join(columns) + " |", "|---|" + "---|" * len(columns)]
+        lines += ["", "## Regression cases (held out of the gate; each must fail its target, or any check without one)",
+                  "", "| Case | Target | " + " | ".join(columns) + " |", "|---|---|" + "---|" * len(columns)]
         for c in regressions:
             cells = []
             for who in columns:
                 ran = [got(c, j) for j in judges] if who == "combined" else [got(c, who)]
                 fails = judge.failed_by_any([v for v in ran if v])
-                cells.append("✗ passes all 11" if is_passed(c, who) else f"✓ fails {', '.join(fails) or 'a call'}")
-            lines.append(f"| {c.id} | " + " | ".join(cells) + " |")
+                held = c.target in fails if c.target else not is_passed(c, who)
+                cells.append(("✓ " if held else "✗ ") + (f"fails {', '.join(fails)}" if fails else "passes all 11"))
+            lines.append(f"| {c.id} | {c.target or 'any'} | " + " | ".join(cells) + " |")
 
     if c8:
         lines += ["", "## C8 economics (code, not the judges)", "", "| Case | Tier | Expected | Code says | Caught |",

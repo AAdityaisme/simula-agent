@@ -1,0 +1,77 @@
+{
+ "id": "rg-janitorai-c09-empty-evidence",
+ "target": "c2_evidence",
+ "from_run": "integration fd6f293: runs/janitorai/20260928-093155-a2a161c/propose/candidates.json c09",
+ "app": "janitorai",
+ "note": "The same fan boost as c07, citing no evidence ids. On the real run judge_1 failed its c2 for the empty evidence list and the unobserved re-ranking, while c07 passed c2 with the same empty list: the held-out c2 case next to c07 (Fable review 10.2). Code dropped it as c07's duplicate; the judge never sees that.",
+ "model": "judge/regression/models/janitorai-20260928-093155.json",
+ "candidate": {
+  "id": "c09",
+  "lens": "ledger_v12",
+  "kind": "product_change",
+  "title": "Product change: Play a short game to lift a smaller creator's character in the Home list for a day",
+  "anchor_evidence_ids": [],
+  "bible_mechanic": "M26",
+  "what_is_different_here": "The Home feed (s01) already runs a list that promotes newer characters from smaller creators (s01.e13, s01.e15) across 102 pages (s01.e27), and each character page shows its creator by name (s07.e12/e13 @IoakimTumo) with a like button (s07.e16) and a comments button (s07.e03). A fan's play moves a small creator's character higher in a list that already exists, so the reward costs no model replies.",
+  "adds": "A support card on character pages where a fan plays a short sponsored game to lift that character higher in the Home list of new characters from smaller creators for 24 hours, plus a supporters row on the page that shows the fan's name.",
+  "removes_nothing_free": true,
+  "trigger_event": "The user taps the like button on a character page whose character is currently eligible for the smaller-creators list on Home.",
+  "trigger_state_id": "s07",
+  "placement": "A card under the creator byline and like count on the character page.",
+  "offer_copy": "Help @IoakimTumo get found: play a short game and Vac the Kinectic moves up in the Home list of new characters from smaller creators for 24 hours. Your name shows as a supporter on this page for 7 days.",
+  "reward": {
+   "kind": "cosmetic",
+   "unit": "supporter mention and 24-hour list boost",
+   "amount": 1.0,
+   "duration": "24 hours boost, supporter name shown 7 days"
+  },
+  "for_users": "everyone",
+  "grants_id": null,
+  "cost_inputs": {
+   "inference_count": 0,
+   "tokens_in": 0,
+   "tokens_out": 0,
+   "minutes": 0.0,
+   "currency_amount": 0.0
+  },
+  "frequency_cap": "1 per character per user per day, 3 per user per day, resets at midnight local time. Each character can be lifted by at most 20 fan plays per day.",
+  "decline_path": "The user closes the card and the like still counts. The character page and feed stay exactly as they were. The card doesn't come back for that character today.",
+  "ad_fail_path": "If no game is available, the card is hidden. If the play can't be verified, a short note says nothing changed and the user can try again. That try doesn't count toward the daily limit.",
+  "subscriber_treatment": "Paying users see the same opt-in card, since the plan doesn't include boosting other people's characters. It never appears unless they tap like.",
+  "advertiser_category": "Casual mobile games and anime or fantasy entertainment",
+  "character_use": "The support card shows the character's name and the creator's handle. The character itself doesn't appear inside the sponsored game.",
+  "flow_steps": [
+   {
+    "state_id": "s07",
+    "caption": "The fan opens Vac the Kinectic by @IoakimTumo and taps like."
+   },
+   {
+    "state_id": "new:support-card",
+    "caption": "A card under the byline offers a 24-hour lift in the Home list and a supporter mention."
+   },
+   {
+    "state_id": "new:sponsored-game",
+    "caption": "The fan plays a short sponsored game."
+   },
+   {
+    "state_id": "new:supporter-row",
+    "caption": "Back on the character page, the fan's name appears in the supporters row. A note says the character is lifted for 24 hours."
+   }
+  ],
+  "after_reward": "When the 24 hours end, the character goes back to its usual spot and the page invites the fan to lift it again tomorrow, which brings them back to creators they care about.",
+  "rationale": "Smaller creators want to be found, and fans who like a character have no way to help beyond a like. One short game turns that like into real visibility for the creator and a visible credit for the fan. Nothing here costs a model reply.",
+  "economics": {
+   "cost_2k": 0.0,
+   "cost_8k": 0.0,
+   "breakeven_ecpm_2k": 0.0,
+   "breakeven_ecpm_8k": 0.0,
+   "benchmark_ecpm": 10.16,
+   "verdict": "PASS",
+   "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1)."
+  },
+  "reach_score": 0.5,
+  "rank_score": 0.5,
+  "dropped_reason": "duplicate of c07: same benefit (character list boost)",
+  "flags": []
+ }
+}
