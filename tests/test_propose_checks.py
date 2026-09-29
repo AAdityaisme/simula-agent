@@ -5,8 +5,8 @@ import time
 import pytest
 
 from simula import llm
-from simula.contracts import (CandidateDraft, CandidatesFile, ContractError, ContractReport, LedgerItem, LensOutput,
-                              Mechanic, Term)
+from simula.contracts import (Candidate, CandidateDraft, CandidatesFile, ContractError, ContractReport, LedgerItem,
+                              LensOutput, Mechanic, Term)
 from simula.stages import Ctx, propose
 from simula.stages.propose import anchor_ids, check, depths, finish, in_chat, live_count
 from tests.conftest import APPS
@@ -260,11 +260,10 @@ def test_the_exhibit_shows_the_typed_cap_beside_the_offers_own_cap(model):
     assert f"per-user daily cap, 10; not a measured audience). The offer's cap: {offer_cap}" in text
 
 
-def test_no_daily_cap_is_dropped_and_an_older_file_without_one_still_parses(model):
+def test_no_daily_cap_is_dropped_and_an_older_stored_file_without_one_still_parses(model):
     assert check(candidate(model, daily_cap=0), model) == "doesn't give a per-user daily cap"
-    older = candidate(model).model_dump(exclude={"daily_cap"})
-    assert CandidateDraft.model_validate({k: v for k, v in older.items() if k in CandidateDraft.model_fields}
-                                         ).daily_cap == 0
+    older = Candidate.model_validate(candidate(model).model_dump(exclude={"daily_cap", "after_reward"}))
+    assert (older.daily_cap, older.after_reward) == (0, "")
 
 
 def test_mechanic_ledger_and_element_ids_resolve_to_what_they_point_at(model):

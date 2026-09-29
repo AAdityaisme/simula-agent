@@ -332,16 +332,16 @@ class CandidateDraft(Strict):
                                   "of, or more of; null when the reward is a new resource.")
     cost_inputs: CostInputs
     frequency_cap: str
-    daily_cap: int = Field(default=0, description="How many times one user can take this offer in a day: the "
-                           "per-user limit only, never a limit per character, item, or screen.")
+    daily_cap: int = Field(description="How many times one user can take this offer in a day: the per-user limit "
+                           "only, never a limit per character, item, or screen.")
     decline_path: str
     ad_fail_path: str
     subscriber_treatment: str
     advertiser_category: str
     character_use: str
     flow_steps: list[FlowStep]
-    after_reward: str = Field(default="", description="What the user sees when the reward runs out, and why "
-                              "that moves them toward paying, returning, or watching again.")
+    after_reward: str = Field(description="What the user sees when the reward runs out, and why that moves them "
+                              "toward paying, returning, or watching again.")
     rationale: str
 
 
@@ -370,6 +370,10 @@ class Economics(Strict):
 
 
 class Candidate(CandidateDraft):
+    # The proposer must answer both (CandidateDraft); a stored file from before either field existed still parses,
+    # and propose drops an idea that leaves one empty.
+    daily_cap: int = 0
+    after_reward: str = ""
     economics: Economics | None = None
     reach_score: float | None = None
     rank_score: float | None = None
