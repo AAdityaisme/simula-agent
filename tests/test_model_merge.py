@@ -648,3 +648,26 @@ def test_core_loop_passes_become_measured_experience_in_the_model(name, tmp_path
     assert all(set(i.evidence_ids) <= edges for i in experience)
     assert "MEASURED BY CODE" in calls[0]["messages"][0]["content"][0]["text"]
     assert experience[0].verbatim in calls[0]["messages"][0]["content"][0]["text"]
+
+
+def test_a_sheets_copy_of_its_parents_elements_under_its_box_is_not_drawn_again():
+    """A synthetic sheet box: the explorer doesn't record the box yet (pr1 adds it)."""
+    def element(sid, n, text, y, h=100):
+        return Element(id=f"{sid}.e{n:02d}", mcp_ref=None, type="TextView", text=text, label="", source="mcp",
+                       rect_px=Rect(x=40, y=y, w=1000, h=h), rect_dp=Rect(x=0, y=0, w=0, h=0), role="text",
+                       asset_png=None, fg_hex=None, bg_hex=None, font_px=None, font_guess="unknown", in_mock=True,
+                       repeat_group=None)
+
+    def state(sid, kind, parent, elements):
+        return State(id=sid, kind=kind, parent_id=parent, name="", purpose="", fingerprint="", canonical_png="",
+                     elements=elements, in_mock_scope=True, content_rating="safe", dynamic_regions=[],
+                     blocked_reason=None)
+    page = [("Header", 200), ("Card under", 1500), ("Card across the top edge", 1150), ("Tapped under", 1800)]
+    parent = state("s02", "screen", None, [element("s02", n, t, y) for n, (t, y) in enumerate(page, start=1)])
+    sheet = state("s03", "sheet", "s02", [element("s03", n, t, y) for n, (t, y) in enumerate(page, start=1)]
+                  + [element("s03", 5, "Filters", 1250), element("s03", 6, "Header", 1400)])
+    box = Rect(x=0, y=1200, w=1080, h=1137)
+    covered = stage.hide_covered(sheet, parent, box, tapped={"s03.e04"})
+    assert [(e.text, e.in_mock) for e in covered.elements] == [
+        ("Header", True), ("Card under", False), ("Card across the top edge", False), ("Tapped under", True),
+        ("Filters", True), ("Header", True)], "the sheet's own text, even words the parent also shows, stays drawn"

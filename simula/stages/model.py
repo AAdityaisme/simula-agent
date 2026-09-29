@@ -654,6 +654,23 @@ def finish_elements(state: State, scope: set[str], tapped: set[str], image: Imag
     return state.model_copy(update={"elements": elements, "in_mock_scope": in_scope})
 
 
+def overlaps(a: Rect, b: Rect) -> bool:
+    return a.x < b.x + b.w and b.x < a.x + a.w and a.y < b.y + b.h and b.y < a.y + a.h
+
+
+def hide_covered(state: State, parent: State, box: Rect, tapped: set[str]) -> State:
+    """A sheet or modal's capture still lists the parent's elements under its box, and the mock draws the parent as
+    its own layer under it, so those elements are not drawn again in the sheet (in_mock false). An element is the
+    parent's when the parent has one of the same class, words, and box; one that starts an edge stays drawn.
+    `box` is the sheet's box in device px, as the explorer records it."""
+    def key(e: Element) -> tuple:
+        return e.type, e.text, e.label, e.rect_px.x, e.rect_px.y, e.rect_px.w, e.rect_px.h
+    theirs = {key(e) for e in parent.elements}
+    elements = [e.model_copy(update={"in_mock": False})
+                if key(e) in theirs and overlaps(e.rect_px, box) and e.id not in tapped else e for e in state.elements]
+    return state.model_copy(update={"elements": elements})
+
+
 # ---------- markdown ----------
 
 def mermaid_label(text: str) -> str:
