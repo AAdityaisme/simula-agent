@@ -143,6 +143,20 @@ def test_escape_and_a_drag_in_from_the_left_edge_perform_the_back(tmp_path, app)
         assert state(page) == a
 
 
+def test_a_drag_in_from_the_left_edge_is_the_back_even_where_the_screen_also_has_a_swipe(tmp_path, app):
+    model, tap, a, c, d, field = gestured(app)
+    back = Edge(id=f"{a}.back>{d}", from_state=a, to_state=d, element_id=None, action="back", transition="back",
+                change_summary="")
+    model = model.model_copy(update={"edges": model.edges + [back]})
+    with open_mock(write_mock(tmp_path, model)) as (page, _):
+        page.evaluate("id => window.simula.go(id)", a)
+        drag(page, 4, 450, 250, 460)
+        assert state(page) == d
+        page.evaluate("id => window.simula.go(id)", a)
+        drag(page, 200, 600, 200, 300)
+        assert state(page) == c
+
+
 def test_typing_and_enter_in_the_text_field_performs_the_type_edge(tmp_path, app):
     model, tap, a, c, d, field = gestured(app)
     with open_mock(write_mock(tmp_path, model)) as (page, _):
