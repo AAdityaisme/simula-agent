@@ -474,6 +474,18 @@ def test_only_a_tap_on_app_text_that_says_more_than_the_term_carries_it_to_the_n
     assert (term.observed, term.defined_by) == (False, [])
 
 
+def test_a_tap_that_changed_its_own_screen_opened_nothing():
+    """Red team PR13 @408cd35 #4: an in-place tap on the uncited anchor would make its own screen's cited neighbors
+    count, as if it had opened that screen."""
+    states, meaning, edges, model_labels = real_terms("janitorai-2026-09-29")
+    drafted = next(t for t in meaning.terms if t.term == "Janitor Plus")
+    meaning.terms[:] = [drafted.model_copy(update={"defined_by": ["s06.e42"]})]  # "Billing", beside the anchor
+    in_place = Edge(id="s06.e44>s06", from_state="s06", to_state="s06", element_id="s06.e44", action="tap",
+                    transition="unknown", change_summary="+'Plan selected'")
+    (term,) = stage.resolve_terms(meaning, states, [*edges, in_place], model_labels)
+    assert (term.observed, term.defined_by) == (False, [])
+
+
 @pytest.mark.parametrize("cited", [["s15.e04"], ["s03.e08"]], ids=["on-the-screen-a-tap-opened", "on-its-own-screen"])
 def test_a_count_never_defines_its_term_wherever_it_sits(cited):
     """Red team PR13 @408cd35 #1: explore tapped the row "Kang Jun-Seo (Idol x Idol), 08:52, 7 chats" (s03.e05, an

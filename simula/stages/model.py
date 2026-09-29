@@ -460,7 +460,7 @@ def resolve_terms(meaning: ModelMeaning, states: list[State], edges: list[Edge],
     on a plan card ("Weekly", "$1.99") doesn't explain; which cited text explains the term stays the model's call."""
     elements = {e.id: e for s in states for e in s.elements}
     screen = {e.id: s.id for s in states for e in s.elements}
-    taps = [g for g in edges if g.action == "tap" and g.element_id in elements]
+    taps = [g for g in edges if g.action == "tap" and g.element_id in elements and g.to_state != g.from_state]
 
     def app_text(e: Element) -> list[str]:
         return [e.text] if e.id in model_labels else [e.text, e.label]
