@@ -52,6 +52,46 @@ def losing_first_batch(model, kind: str):
     return provider
 
 
+def running_out_of_tokens_first(model):
+    """A provider whose first answer to every batch runs out of tokens, and whose retry answers."""
+    def provider(model_id, system, messages, effort, schema, max_tokens, total_timeout=None):
+        retry = any(p.get("text") == mock.SHORTER for p in messages[0]["content"])
+        return drawn(model, model_id, messages, tokens_out=1000 if retry else 128000,
+                     stop="end_turn" if retry else "max_tokens")
+    return provider
+
+
+@pytest.mark.parametrize("kind", ["timeout", "provider_5xx", "retry_turned_away"])
+def test_a_live_run_that_lost_a_batch_replays_to_the_same_page(tmp_path, monkeypatch, kind):
+    """The three ways a batch is lost live: its call times out, the provider fails it, or the $ check turns its
+    retry away. None leaves an answer in the cache, yet the replay takes the same path to the same placeholders."""
+    run_dir = seed_model(tmp_path / "run", APP)
+    with_cache_in(tmp_path, monkeypatch)
+    model = golden(APP)
+    ctx = ctx_for(run_dir, APP)
+    if kind == "retry_turned_away":
+        # A first answer costs $1 and a retry $0.50. The plan keeps every batch with one $1 spare, so, one batch at a
+        # time, the last batch's retry finds no room left and is turned away.
+        monkeypatch.setattr(mock, "worst_usd", lambda ctx, content: 1.0)
+        monkeypatch.setattr(llm, "worst_case_usd", lambda model_id, tokens_in, tokens_out: 1.0)
+        monkeypatch.setattr(llm, "usd", lambda model_id, tokens_in, tokens_out, tokens_cached=0:
+                            1.0 if tokens_out >= 100000 else 0.5)
+        monkeypatch.setattr(mock, "PARALLEL_BATCHES", 1)
+        ctx.usd_cap = len(mock.batches(mock.pick_scope(model))) + 1.0
+        provider = running_out_of_tokens_first(model)
+    else:
+        provider = losing_first_batch(model, kind)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider)
+    mock.run(ctx)
+    live = (run_dir / "mock" / "index.html").read_text()
+    assert "screen not drawn" in live
+
+    replay = ctx_for(run_dir, APP)
+    replay.replay = True
+    mock.run(replay)
+    assert (run_dir / "mock" / "index.html").read_text() == live
+
+
 @pytest.mark.parametrize("gap", ["no_plan_record", "cache_moved_aside"])
 def test_a_replay_that_misses_leaves_the_committed_record_whole(runs, tmp_path, monkeypatch, gap):
     """A replay that can't rebuild the mock keeps the run's done.json, so every file that marker records must still
