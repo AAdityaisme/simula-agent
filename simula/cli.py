@@ -36,7 +36,7 @@ def stage_params(stage: str, ctx: Ctx) -> dict:
     roles = config.roles(ctx.profile)
     return {"app": ctx.app, "profile": ctx.profile, "roles": {r: roles[r] for r in ROLES[stage]},
             "economics_mode": config.profiles()["economics_mode"] if stage in ("propose", "judge", "flows") else None,
-            "no_send": ctx.no_send, "probe": ctx.probe,
+            "no_send": ctx.no_send,
             "budget": config.budget(ctx.budget) if stage == "explore" else None,
             "allow_account_create": ctx.allow_account_create if stage == "explore" else None}
 
@@ -63,13 +63,16 @@ def new_manifest(run_dir: Path, app: dict, args, provenance: Provenance) -> Mani
 
 
 def upstream_problem(run_dir: Path, stage: str) -> str | None:
-    """Why a stage can't run yet: an upstream stage that never finished, or failed after it last did."""
+    """Why a stage can't run yet: an upstream stage whose marker doesn't hold (runlog.read_marker, the one rule), said
+    as it never finished, or failed after it last did."""
     for up in UPSTREAM[stage]:
-        done, failure = run_dir / up / "done.json", run_dir / up / "failure.json"
-        if not done.exists():
-            return f"{up} is not done" + (f" (see {up}/failure.json)" if failure.exists() else f"; run `simula {up}` first")
-        if failure.exists() and failure.stat().st_mtime > done.stat().st_mtime:
+        if runlog.read_marker(run_dir, up) is not None:
+            continue
+        if not (run_dir / up / "failure.json").exists():
+            return f"{up} is not done; run `simula {up}` first"
+        if (run_dir / up / "done.json").exists():
             return f"{up} failed after it last finished (see {up}/failure.json)"
+        return f"{up} is not done (see {up}/failure.json)"
     return None
 
 
@@ -150,7 +153,8 @@ def finished_outcome(stage: str, ctx: Ctx, result, capped: list[str]) -> StageOu
     its $ cap turned work away (`capped`, the trace notes saying so), since a higher cap could change the output."""
     outcome = result if isinstance(result, StageOutcome) else StageOutcome()
     if capped:
-        return StageOutcome(status="partial", reasons=[*outcome.reasons, *dict.fromkeys(capped)],
+        # Sorted: calls running together reach the cap in no fixed order, and a replay must write the same reasons.
+        return StageOutcome(status="partial", reasons=[*outcome.reasons, *sorted(dict.fromkeys(capped))],
                             resume=raise_cap(stage, ctx))
     if outcome.status == "partial" and not outcome.resume:
         return outcome.model_copy(update={"resume": rerun_command(stage, ctx)})
@@ -189,7 +193,7 @@ def open_run(args) -> Ctx:
     runlog.sync_manifest(run_dir)  # heals a manifest an earlier command failed to update
     return Ctx(app=app, run_dir=run_dir, profile=args.profile, no_cache=args.no_cache, replay=args.replay,
                usd_cap=args.usd_cap, allow_fixtures=args.allow_fixtures, budget=args.budget,
-               allow_account_create=args.allow_account_create, probe=args.probe)
+               allow_account_create=args.allow_account_create)
 
 
 def cmd_stage(args) -> int:
@@ -237,7 +241,6 @@ def add_run_flags(p: argparse.ArgumentParser) -> None:
     p.add_argument("--allow-account-create", action="store_true",
                    help="let the explorer create a guest account if the app asks for one")
     p.add_argument("--allow-fixtures", action="store_true", help="accept fixture inputs (test data only)")
-    p.add_argument("--probe", action="store_true", help="allow the bounded chat probe (<= 8 messages)")
     p.add_argument("--fixture", action="append", metavar="STAGE=PATH",
                    help="the only way a fixture enters a run: seeds a stage folder in the run this call "
                         "creates (needs --new or no existing run, and --allow-fixtures)")
