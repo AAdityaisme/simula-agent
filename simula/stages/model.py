@@ -548,13 +548,20 @@ def resolve_terms(meaning: ModelMeaning, states: list[State], model_labels: set[
 def folded_bullets(ledger: list[LedgerItem], states: list[State]) -> list[LedgerItem]:
     """Every paywall bullet gets a ledger item. The model sees two items of a repeated list and one folded line for
     the rest, so the third benefit of a paywall list goes missing. Code quotes it whole: an item of the same repeated
-    list, at the same left edge, as a kept paywall bullet, with text and no ledger item yet. Ids are pb1, pb2, ...,
-    skipping any the model used."""
+    list, at the same left edge, as a kept paywall bullet, with text and no ledger item yet, whose words no ledger item
+    already quotes (a paywall captured twice lists each bullet twice). Ids are pb1, pb2, ..., skipping any the model
+    used."""
     elements = {e.id: e for s in states for e in s.elements}
     cited = {i for item in ledger for i in item.evidence_ids}
     lists = {(elements[i].repeat_group, elements[i].rect_px.x) for item in ledger if item.kind == "paywall_bullet"
              for i in item.evidence_ids if i in elements and elements[i].repeat_group}
-    found = [e for e in elements.values() if (e.repeat_group, e.rect_px.x) in lists and e.text and e.id not in cited]
+    quoted = {tuple(item.verbatim.split()) for item in ledger}
+    found = []
+    for e in elements.values():
+        words = tuple(e.text.split())
+        if (e.repeat_group, e.rect_px.x) in lists and words and e.id not in cited and words not in quoted:
+            quoted.add(words)
+            found.append(e)
     taken = {item.id for item in ledger}
     ids = (f"pb{n}" for n in count(1) if f"pb{n}" not in taken)
     return [LedgerItem(id=next(ids), kind="paywall_bullet", verbatim=e.text, evidence_ids=[e.id]) for e in found]

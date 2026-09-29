@@ -276,6 +276,23 @@ def test_a_bullet_folded_out_of_a_kept_paywall_list_gets_its_own_ledger_item():
         "only a paywall bullet's list is completed"
 
 
+def test_a_paywall_captured_twice_has_each_bullet_quoted_once():
+    def capture(sid):
+        def text(n, words, y):
+            return Element(id=f"{sid}.e{n:02d}", mcp_ref=None, type="TextView", text=words, label="", source="mcp",
+                           rect_px=Rect(x=213, y=y, w=745, h=52), rect_dp=Rect(x=0, y=0, w=0, h=0), role="text",
+                           asset_png=None, fg_hex=None, bg_hex=None, font_px=None, font_guess="unknown",
+                           in_mock=False, repeat_group=f"{sid}.r1")
+        return State(id=sid, kind="screen", parent_id=None, name="", purpose="", fingerprint="", canonical_png="",
+                     elements=[text(1, "More memory", 1447), text(2, "Faster replies", 1511),
+                               text(3, "A badge by your name", 1692)],
+                     in_mock_scope=False, content_rating="safe", dynamic_regions=[], blocked_reason=None)
+    ledger = [LedgerItem(id="v1", kind="paywall_bullet", verbatim="More memory", evidence_ids=["s01.e01"]),
+              LedgerItem(id="v2", kind="paywall_bullet", verbatim="Faster  replies", evidence_ids=["s02.e02"])]
+    assert stage.folded_bullets(ledger, [capture("s01"), capture("s02")]) == [
+        LedgerItem(id="pb1", kind="paywall_bullet", verbatim="A badge by your name", evidence_ids=["s01.e03"])]
+
+
 def test_the_model_may_not_write_measured_experience(app):
     _, states, edges, answer = app
     element = next(e for s in states for e in s.elements if e.text)
