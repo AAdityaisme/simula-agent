@@ -1,6 +1,6 @@
 """Rendering geometry and the code-owned navigation runtime, on every golden."""
 
-import inspect
+import ast
 import logging
 import re
 
@@ -156,11 +156,23 @@ def test_a_refused_capture_is_tried_once_more_logged_and_nothing_else_is(caplog)
 
 
 def test_every_browser_capture_goes_through_render_screenshot():
-    """Any `.screenshot(` call under simula/ (page, frame, tab, locator; spaced or not) is render.screenshot or the
-    helper itself."""
-    lines, start = inspect.getsourcelines(screenshot)
-    helper = {f"simula/render.py:{n}" for n in range(start, start + len(lines))}
-    direct = [f"{path.relative_to(ROOT)}:{n}" for path in sorted((ROOT / "simula").rglob("*.py"))
-              for n, line in enumerate(path.read_text().splitlines(), 1)
-              if len(re.findall(r"\.screenshot\s*\(", line)) > len(re.findall(r"\brender\.screenshot\s*\(", line))]
-    assert [d for d in direct if d not in helper] == [] and len(direct) == 2, direct
+    """Every `.screenshot(...)` call under simula/ (page, frame, tab, locator) is render.screenshot or one of the
+    helper's own two. Calls come from the syntax tree, so spacing, line breaks, comments, and strings can't hide or
+    fake one."""
+    direct, helper_calls = [], 0
+    for path in sorted((ROOT / "simula").rglob("*.py")):
+        tree = ast.parse(path.read_text())
+        helper = next((node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)
+                       and node.name == "screenshot"), None) if path.name == "render.py" else None
+        inside = {id(node) for node in ast.walk(helper)} if helper else set()
+        for node in ast.walk(tree):
+            if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                    and node.func.attr == "screenshot"):
+                continue
+            if isinstance(node.func.value, ast.Name) and node.func.value.id == "render":
+                continue
+            if id(node) in inside:
+                helper_calls += 1
+            else:
+                direct.append(f"{path.relative_to(ROOT)}:{node.lineno}")
+    assert direct == [] and helper_calls == 2, (direct, helper_calls)
