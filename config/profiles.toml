@@ -18,7 +18,7 @@ adult_keywords = ["nsfw", "18+", "explicit", "adult", "erotic", "lewd", "sexual"
 [caps_usd]
 explore = 3.0
 model = 4.0
-mock = 15.0
+mock = 25.0   # ~$2.72 worst case per batch (input + 128K output on Opus): 8 batches + one retry
 qa = 12.0
 propose = 6.0
 judge = 8.0

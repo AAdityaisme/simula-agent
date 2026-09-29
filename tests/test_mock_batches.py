@@ -1,5 +1,7 @@
 """Stage 3 draws its scope in parallel batches: batching, stitching, failure isolation, cache replay, the $ cap."""
 
+import threading
+
 import pytest
 
 from simula import llm
@@ -204,25 +206,93 @@ def test_each_batch_replays_from_the_cache(tmp_path, monkeypatch, app):
     assert sorted(t.step for t in hits) == [f"batch{n}" for n in range(1, batches + 1)]
 
 
-def test_batches_past_the_usd_cap_are_skipped_in_priority_order(tmp_path, monkeypatch, app):
-    """One batch at a time, so the first batch's spend is charged before the next one reserves."""
+def test_affordable_is_the_priority_prefix_that_fits_with_one_retry_spare():
+    assert mock.affordable([2.72] * 10, 25.0) == 8
+    assert mock.affordable([2.0, 3.0, 1.0], 8.0) == 2  # the spare is the largest batch, not the next one
+    assert mock.affordable([3.0, 1.0], 5.5) == 0  # never skips batch 1 to fit batch 2
+    assert (mock.affordable([2.5, 2.5], 7.5), mock.affordable([2.5, 2.5], 7.4)) == (2, 1)
+
+
+def capped_run(tmp_path, monkeypatch, app, calls: list):
+    """Every batch's worst case is $1 and the cap $2, so the plan keeps batch 1 plus a $1 retry spare, and no more."""
     run_dir = seed_model(tmp_path / "run", app)
     with_cache_in(tmp_path, monkeypatch)
-    monkeypatch.setattr(mock, "PARALLEL_BATCHES", 1)
-    calls = []
-    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider_drawing(golden(app), calls, tokens_out=90_000))
+    monkeypatch.setattr(mock, "worst_usd", lambda ctx, content: 1.0)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider_drawing(golden(app), calls))
     ctx = ctx_for(run_dir, app)
-    ctx.usd_cap = 1.0
+    ctx.usd_cap = 2.0
     mock.run(ctx)
+    return run_dir
+
+
+def test_batches_past_the_usd_cap_are_skipped_in_priority_order_before_any_call(tmp_path, monkeypatch, app,
+                                                                                 two_batches):
+    calls = []
+    run_dir = capped_run(tmp_path, monkeypatch, app, calls)
 
     first, *skipped = mock.batches(mock.pick_scope(golden(app)))
     assert len(calls) == 1
     report = ContractReport.model_validate_json((run_dir / "mock" / "contract_report.json").read_text())
     undrawn = [e for e in report.errors if e.kind == "undrawn_screen"]
     assert [e.screen for e in undrawn] == [s.id for batch in skipped for s in batch]
-    assert all(e.detail.startswith("screen not drawn: $ cap reached") for e in undrawn)
-    assert {t.step for t in read_trace(run_dir / "trace.jsonl") if t.outcome == "cap"} == \
-        {f"batch{n}" for n in range(2, len(skipped) + 2)}
+    assert all(e.detail.startswith("screen not drawn: $ cap reached: over budget") for e in undrawn)
+    trace = read_trace(run_dir / "trace.jsonl")
+    [plan] = [t for t in trace if t.step == "plan"]
+    assert (plan.outcome, plan.note) == ("cap", f"1 of {len(skipped) + 1} batches fit the $2.00 cap at worst case: "
+                                                "$1.00 + $1.00 spare for one retry")
+    assert {t.step for t in trace if t.outcome == "cap"} == {"plan"} | {f"batch{n}" for n in range(2, len(skipped) + 2)}
+    exhibit = (run_dir / "exhibits" / "03-mock.md").read_text()
+    assert f"Batch plan: {plan.note}." in exhibit
+    assert f"| 1 | {' '.join(s.id for s in first)} | drawn | $1.00 |" in exhibit
+    assert f"| 2 | {' '.join(s.id for s in skipped[0])} | not drawn: $ cap reached: over budget" in exhibit
+
+
+def test_a_capped_run_replays_to_the_same_page(tmp_path, monkeypatch, app, two_batches):
+    """A batch the plan left out has no cache entry. The replay plans against the same cap, not what is left of it,
+    so it leaves the same batches out instead of asking the cache for them."""
+    calls = []
+    run_dir = capped_run(tmp_path, monkeypatch, app, calls)
+    first = (run_dir / "mock" / "index.html").read_text()
+
+    replay = ctx_for(run_dir, app)
+    replay.usd_cap, replay.replay = 2.0, True
+    mock.run(replay)
+    assert len(calls) == 1
+    assert (run_dir / "mock" / "index.html").read_text() == first
+
+
+def test_when_the_plan_fits_the_lock_never_turns_a_batch_away(tmp_path, monkeypatch, app):
+    """One screen per batch, PARALLEL_BATCHES in flight together, and every answer costs its call's full worst case:
+    a cap of exactly every batch's worst case plus one spare still draws them all."""
+    monkeypatch.setattr(mock, "BATCH_SCREENS", 1)
+    run_dir = seed_model(tmp_path / "run", app)
+    with_cache_in(tmp_path, monkeypatch)
+    model, ctx = golden(app), ctx_for(run_dir, app)
+    scope = mock.pick_scope(model)
+    # The art goes in the brief, so build it as run() does: without it the cap comes out too tight.
+    mock.copy_assets(run_dir / "model", run_dir / "mock", scope, model.device)
+    art = mock.crop_art(run_dir / "model", run_dir / "mock", scope, model.device)
+    worst = [mock.worst_usd(ctx, mock.batch_content(ctx, model, batch, [s.id for s in scope], art,
+                                                    mock.shared_style(scope))) for batch in mock.batches(scope)]
+    # sum() rounds differently from the plan's running total (it compensates), so allow a nanodollar either way.
+    ctx.usd_cap = sum(worst) + max(worst) + 1e-9
+    together = threading.Barrier(mock.PARALLEL_BATCHES, timeout=1)
+
+    def provider(model_id, system, messages, effort, schema, max_tokens, total_timeout=None):
+        try:
+            together.wait()
+        except threading.BrokenBarrierError:
+            pass  # the last batches, fewer than PARALLEL_BATCHES, go alone
+        page = without_edges(skeleton_html(model, batch_screens({"messages": messages})))
+        return llm.Reply(text=f"```html\n{page}\n```", model=model_id,
+                         tokens_in=llm.estimate_tokens_in(system, messages), tokens_out=max_tokens)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider)
+    mock.run(ctx)
+
+    trace = [t for t in read_trace(run_dir / "trace.jsonl") if t.stage == "mock"]
+    assert len(worst) > mock.PARALLEL_BATCHES
+    assert [t.step for t in trace if t.outcome == "cap"] == []
+    assert sum(t.usd for t in trace) <= ctx.usd_cap
 
 
 def test_a_cap_too_small_for_any_batch_stops_the_stage(tmp_path, monkeypatch, app):
