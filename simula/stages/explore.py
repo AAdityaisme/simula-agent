@@ -869,9 +869,10 @@ class Explorer:
         return None
 
     def model_done(self, s: Seen, rule: str) -> None:
-        """The model may end a screen only once the code has nothing left there: no untried option, or its tap cap
-        spent. Before that its done or back is one move, and the ranked options go on."""
-        if not self.options(s) or s.taps >= TAPS_PER_STATE:
+        """The model may end a screen only with the code's own evidence that it is spent: no untried option, its tap
+        cap used, or the run of taps that changed nothing which made the code ask. Otherwise its done or back is one
+        move, and the ranked options go on."""
+        if not self.options(s) or s.taps >= TAPS_PER_STATE or s.noop_run >= NOOPS_BEFORE_SONNET:
             s.done = rule
         else:
             self.counts["model done refused while options were left"] += 1

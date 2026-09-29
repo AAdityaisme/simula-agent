@@ -650,9 +650,12 @@ def test_the_model_ends_a_screen_only_when_the_code_has_nothing_left(tmp_path, m
     assert ex.options(s)
     ex.model_done(s, "the model said done")
     assert not s.done and ex.counts["model done refused while options were left"] == 1
-    s.taps = stage.TAPS_PER_STATE
+    s.noop_run = stage.NOOPS_BEFORE_SONNET
     ex.model_done(s, "the model said done")
     assert s.done == "the model said done"
+    s.done, s.noop_run, s.taps = "", 0, stage.TAPS_PER_STATE
+    ex.model_done(s, "the model went back")
+    assert s.done == "the model went back"
 
 
 def test_the_exhibit_says_why_each_screen_ended_and_what_it_left_untried(run):
