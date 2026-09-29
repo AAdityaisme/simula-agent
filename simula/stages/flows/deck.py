@@ -1,7 +1,6 @@
 """The slides: the cover, each idea's flow and why slides, and the score pages, filled into the template."""
 
 import base64
-import json
 import math
 from html import escape
 from pathlib import Path
@@ -9,6 +8,7 @@ from string import Template
 
 from simula.config import ROOT, STAGES
 from simula.contracts import GATES, JUDGMENT, Candidate, Decision, ProductModel, Verdict
+from simula.runlog import read_marker
 from simula.stages import Ctx
 from simula.stages.flows.page import VIEW_H, VIEW_W
 from simula.stages.flows.wording import (NOT_WIRED, PLAIN_CHECKS, REWARD_NOT_SHOWN, REWARD_RULE, VERDICTS, app_title,
@@ -300,14 +300,12 @@ def score_slides(decisions: list[Decision], candidates: dict[str, Candidate], no
 
 
 def unfinished_stages(run_dir: Path) -> list[str]:
-    """A cover line for each earlier stage whose done.json says it finished only part of its work, with its reasons.
-    The outcome is read as JSON because this branch's DoneMarker predates it (pr0b-shared adds StageOutcome)."""
+    """A cover line for each earlier stage whose marker says it finished only part of its work, with its reasons."""
     lines = []
     for stage in STAGES[:STAGES.index("flows")]:
-        path = run_dir / stage / "done.json"
-        outcome = json.loads(path.read_text()).get("outcome") if path.exists() else None
-        if outcome and outcome.get("status") == "partial":
-            lines.append(f"The {stage} step finished only part of its work: {'; '.join(outcome.get('reasons', []))}.")
+        marker = read_marker(run_dir, stage)
+        if marker and marker.outcome.status == "partial":
+            lines.append(f"The {stage} step finished only part of its work: {'; '.join(marker.outcome.reasons)}.")
     return lines
 
 

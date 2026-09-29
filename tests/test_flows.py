@@ -1,7 +1,6 @@
 """Stage 7 offline, on every golden: selection, the tap-through, the reward rule, and the deck's parts."""
 
 import html
-import json
 import re
 import shutil
 from contextlib import contextmanager
@@ -12,9 +11,9 @@ from PIL import Image
 from playwright.sync_api import TimeoutError as PlaywrightTimeout
 from playwright.sync_api import sync_playwright
 
-from simula import llm, render
+from simula import llm, render, runfolder
 from simula.contracts import (GATES, JUDGMENT, CandidatesFile, Check, Decision, DecisionsFile, Economics, Edit, Edits,
-                              FlowStep, Verdict)
+                              FlowStep, Provenance, StageOutcome, Verdict)
 from simula.runlog import read_trace
 from simula.stages import flows
 from simula.stages.mock import copy_assets, pick_scope, with_runtime
@@ -27,6 +26,7 @@ from tests.test_mock_isolation import ctx_for
 COST_LINE = "Costs nothing extra to serve, so any completed view pays for it above $0.00 eCPM."
 ROUND6 = FIXTURES / "flows" / "luzia-round6"
 FLAG = 'uses "Zap", whose meaning was never observed'
+FIXTURE = Provenance(source="fixture", fixture_path="tests/fixtures")
 
 
 def decision(cid: str, final: str, rank: float, passed: int = 11) -> Decision:
@@ -224,10 +224,11 @@ def test_the_cover_names_the_app_as_the_model_reads_it_else_the_config_key_title
 
 def test_the_cover_carries_a_line_for_each_earlier_stage_that_finished_only_part_of_its_work(tmp_path):
     run_dir = seed_run(tmp_path, "luzia")
-    (run_dir / "qa").mkdir()
-    (run_dir / "qa" / "done.json").write_text(json.dumps({"stage": "qa", "outcome": {
-        "status": "partial", "reasons": ["round 1 stopped on the $ cap"], "resume": "simula run luzia --from qa"}}))
-    (run_dir / "judge" / "done.json").write_text(json.dumps({"stage": "judge", "outcome": {"status": "complete"}}))
+    for stage, outcome in (("qa", StageOutcome(status="partial", reasons=["round 1 stopped on the $ cap"],
+                                                resume="simula run luzia --from qa")),
+                           ("judge", StageOutcome())):
+        (run_dir / stage).mkdir(exist_ok=True)
+        runfolder.write_done(run_dir / stage, run_dir, [], [], {}, [run_dir / stage], FIXTURE, outcome=outcome)
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(llm, "call", fake_editor(run_dir))
         flows.stage.run(ctx_for(run_dir, "luzia"))
