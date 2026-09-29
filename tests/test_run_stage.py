@@ -282,6 +282,16 @@ def test_the_next_command_heals_a_manifest_that_drifted_from_the_markers(runs, m
     assert (manifest.stages_done, manifest.usd_total) == (["model", "mock"], 0.0)
 
 
+def test_a_damaged_marker_counts_as_not_done_and_its_stage_can_still_rewrite_it(runs, mock_stage):
+    run_dir = seeded_run(runs)
+    (run_dir / "mock" / "done.json").write_text("{not json")
+    assert cli.main(["mock", "janitorai", "--run", run_dir.name, "--allow-fixtures"]) == 0
+    assert runfolder.read_done(run_dir / "mock").outcome.status == "complete"
+    assert "mock" in read_manifest(run_dir).stages_done
+    [flagged] = [line for line in read_trace(run_dir / "trace.jsonl") if line.step == "marker"]
+    assert (flagged.stage, flagged.outcome) == ("mock", "error") and "can't be read" in flagged.note
+
+
 def test_the_chain_reruns_a_stage_whose_code_changed(runs, mock_stage, monkeypatch, tmp_path):
     code = tmp_path / "mock.py"
     code.write_text("BATCH = 4\n")

@@ -415,3 +415,18 @@ def test_bisecting_drops_only_refused_screenshots_and_refuses_when_none_is_left(
     assert llm.without_refused_images(["ok", "bad", "fine"], attempt) == (2, ["bad"])
     with pytest.raises(llm.LLMFailure, match="refusal"):
         llm.without_refused_images(["bad", "bad"], attempt)
+
+
+@pytest.mark.parametrize("no_cache", [False, True], ids=["normal", "no_cache"])
+def test_an_unreadable_entry_is_skipped_and_traced_and_the_next_try_goes_after_it(tmp_path, monkeypatch, no_cache):
+    calls = []
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "a"}', '{"word": "b"}'], calls))
+    call(tmp_path)
+    [entry] = (tmp_path / "cache").glob("*.json")
+    entry.write_text('{"text": "{\\"word\\": ')
+    result, _ = call(tmp_path, no_cache=no_cache)
+    assert result.word == "b" and len(calls) == 2
+    assert entry.read_text() == '{"text": "{\\"word\\": ', "the damaged entry is left as it was"
+    assert call(tmp_path)[0].word == "b" and len(calls) == 2, "the next run reads the try written after it"
+    [skipped] = [line for line in read_trace(tmp_path / "trace.jsonl") if line.outcome == "error"][:1]
+    assert "can't be read" in skipped.note and entry.stem[:12] in skipped.note

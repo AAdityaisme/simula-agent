@@ -6,6 +6,8 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from simula.config import ROOT, STAGES
 from simula.contracts import Manifest, TraceLine
 from simula.runfolder import read_done, write_json_atomic
@@ -52,9 +54,21 @@ def update_manifest(run_dir: Path, **changes) -> Manifest:
 def sync_manifest(run_dir: Path) -> Manifest:
     """The manifest's stages_done and usd_total, read again from the done markers and the trace, so the manifest never
     lists a stage its marker doesn't show as complete."""
-    done = [s for s in STAGES if (marker := read_done(run_dir / s)) and marker.outcome.status == "complete"]
+    done = [s for s in STAGES if complete(run_dir, s)]
     usd_total = sum(line.usd for line in read_trace(run_dir / "trace.jsonl"))
     return update_manifest(run_dir, stages_done=done, usd_total=round(usd_total, 4))
+
+
+def complete(run_dir: Path, stage: str) -> bool:
+    """Whether the stage's marker shows it complete. A marker that can't be read counts as not done, with a trace line
+    naming it, so it never blocks the run that would rewrite it."""
+    try:
+        marker = read_done(run_dir / stage)
+    except (ValidationError, OSError) as e:
+        run_trace(run_dir, stage=stage, step="marker", decider="code", outcome="error",
+                  note=f"done.json can't be read, so the stage counts as not done: {e}"[:300])
+        return False
+    return marker is not None and marker.outcome.status == "complete"
 
 
 def record_fallback(run_dir: Path, note: str) -> None:
