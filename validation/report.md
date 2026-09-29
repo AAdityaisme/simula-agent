@@ -1,5 +1,9 @@
 # How the live judge rubric was chosen (read this first)
 
+**The pre-registered bar was not met by either rubric (known-good 1/4 each); VF′ was adopted because it dominates V0 on every measured line (D9); three of its clauses were written after seeing the failures; judge_2 fails c2 on 3 of 4 known-goods under both rubrics; 0 human labels.**
+
+The three clauses written after seeing the failures are the absence clause (C2), the plain-meaning clause (C2), and the C1 clarification of where the player uses the reward. The rest of VF′ came from earlier rounds, which were shaped by earlier failures too (below).
+
 The live rubric (`prompts/judge/rubric.md`) is **VF′**, adopted 2026-09-29 by decision D9, made for Aadi. It is the
 earlier rubric V0 with these changes:
 - **Product facts.** An open question never supports a claim. A mechanic marked `inferred` supports one when the model
@@ -72,7 +76,7 @@ The adoption rule is VF′'s dominance over V0 above. V0 fails the same judge_2 
 
 # Judge validation
 
-Generated 2026-09-29T13:50. Judges: judge_1, judge_2. Prompts frozen in `config/frozen_prompts.toml`.
+Generated 2026-09-29T14:04. Judges: judge_1, judge_2. Prompts frozen in `config/frozen_prompts.toml`.
 
 Fixtures: 22 planted LLM cases (11 subtle), 2 C8 cases, 4 known-good (bases and real-run ideas); planted app types: AI assistant chat, companion chat, news, puzzle game; planted apps outside the test set: Candy Crush Saga.
 
