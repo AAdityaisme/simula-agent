@@ -735,20 +735,22 @@ def test_the_stage_writes_a_valid_model(name, tmp_path, monkeypatch):
     assert 1 <= len(images) <= stage.MAX_IMAGES
 
 
-def test_a_term_observed_through_a_tap_names_that_tap_in_the_trace_and_the_model(tmp_path, monkeypatch):
+@pytest.mark.parametrize("cited", [["s02.e03"], ["s03.e05", "s02.e03"]], ids=["bullet", "anchor-and-bullet"])
+def test_a_term_observed_through_a_tap_names_that_tap_in_the_trace_and_the_model(cited, tmp_path, monkeypatch):
     """Luzia's golden: "Upgrade to Luzia+" (s03.e05) opens the paywall s02, whose bullet "Advanced reasoning mode"
-    (s02.e03) the model cites; nothing cited on s02 names the plan."""
+    (s02.e03) the model cites; nothing cited on s02 names the plan. When the model also cites that anchor, it sits on
+    s03, a screen the tap didn't open (red team PR13 @f9bf25f #2), so the note doesn't say which screen each is on."""
     answer = recorded_answer(golden("luzia"))
-    answer.terms.append(TermMeaning(term="Luzia+", meaning="The paid plan.", defined_by=["s02.e03"], used_in=["m01"],
+    answer.terms.append(TermMeaning(term="Luzia+", meaning="The paid plan.", defined_by=cited, used_in=["m01"],
                                     everyday=False))
     fake_calls(monkeypatch, [answer, answer])
     ctx = make_ctx("luzia", tmp_path)
     stage.run(ctx)
     model = ProductModel.model_validate_json((ctx.run_dir / "model" / "product_model.json").read_text())
     (term,) = model.terms
-    assert (term.observed, term.defined_by, term.anchor_taps) == (True, ["s02.e03"], ["s03.e05>s02"])
+    assert (term.observed, term.defined_by, term.anchor_taps) == (True, cited, ["s03.e05>s02"])
     [line] = [t for t in read_trace(ctx.run_dir / "trace.jsonl") if t.step == "term_tap"]
-    assert line.note == "Luzia+ observed through tap s03.e05>s02, which opened the screen of s02.e03"
+    assert line.note == f"Luzia+ observed through tap s03.e05>s02; defined by {', '.join(cited)}"
     assert "· through tap s03.e05>s02" in (ctx.run_dir / "model" / "product_model.md").read_text()
 
 
