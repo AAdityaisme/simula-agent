@@ -26,3 +26,12 @@ def test_a_number_matches_only_whole():
 def test_same_ignores_only_whitespace():
     assert text.same("Try\xa0Plus ", "Try Plus")
     assert not text.same("Try Plus", "TryPlus")
+
+
+def test_a_phrase_is_a_whole_word_where_words_are_spaced_and_a_substring_where_they_are_not():
+    assert text.phrase("Luzia+").search("Unlock Luzia+.") and text.phrase("zap credits").search("3 zap\xa0 Credits")
+    assert not text.phrase("Pro").search("Protect") and not text.phrase("Pro").search("Go Pro2")
+    assert text.phrase("Pro").search("Proを購入"), "a particle written onto a Latin word doesn't hide it"
+    assert text.phrase("トークン").search("トークンを購入") and text.phrase("代币").search("购买代币")
+    assert text.phrase("토큰").search("토큰을 구매")
+    assert text.phrase(" ").search("anything") is None

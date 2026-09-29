@@ -386,6 +386,17 @@ def test_a_count_of_a_term_never_defines_it(cited, quotes, why):
     assert (resolved.observed, resolved.defined_by) == (False, []), why
 
 
+@pytest.mark.parametrize("term, words", [("トークン", "トークンを使うと、キャラクターが長い会話を覚えます"),
+                                         ("토큰", "토큰을 쓰면 캐릭터가 긴 대화를 기억합니다")], ids=["japanese", "korean"])
+def test_a_term_in_a_script_without_spaces_can_be_observed(term, words):
+    states, meaning, model_labels = real_terms("janitorai")
+    states = [s.model_copy(update={"elements": [e.model_copy(update={"text": words}) if e.id == "s02.e04" else e
+                                                for e in s.elements]}) for s in states]
+    meaning.terms[:] = [TermMeaning(term=term, meaning="a unit characters spend", defined_by=["s02.e04"], used_in=[])]
+    (resolved,) = stage.resolve_terms(meaning, states, model_labels)
+    assert (resolved.observed, resolved.defined_by) == (True, ["s02.e04"])
+
+
 def test_a_term_shows_only_as_a_whole_word():
     """s01.e48 "Limitless" would explain "Limit" if part of a word counted: "less" is left once "Limit" is cut."""
     states, meaning, model_labels = real_terms("janitorai")
