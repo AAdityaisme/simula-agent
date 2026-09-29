@@ -618,8 +618,11 @@ def test_saying_no_must_return_to_the_start_with_nothing_granted_and_the_offer_m
     assert f"not wired: saying no led to new:gift, not back to {first}" in exhibit
     assert "| c02 · A second look | conditional | 2 / 1 | 4 / 4 | 1 | ok |" in exhibit
     assert flow_phones(run_dir, "c01")[2]["flags"] == ["copy not on the screen", f"saying no: {flows.NOT_WIRED}"]
-    flow = {(idea, part): text for idea, part, text in slides(run_dir)}[("c01", "flow")]
-    assert "Saying no doesn't bring them back yet." in " ".join(flow.split())
+    texts = {(idea, part): " ".join(text.split()) for idea, part, text in slides(run_dir)}
+    assert "Saying no doesn't bring them back yet." in texts[("c01", "flow")]
+    assert "Nothing free is taken away, and saying no doesn't bring them back yet." in texts[("c01", "why")]
+    assert "saying no changes nothing" not in texts[("c01", "why")].lower()
+    assert "Nothing free is taken away, and saying no changes nothing." in texts[("c02", "why")]
     assert any(line.step == "decline:c01" and line.outcome == "error" for line in read_trace(run_dir / "trace.jsonl"))
 
 

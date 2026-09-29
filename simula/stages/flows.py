@@ -800,12 +800,17 @@ def condition(decision: Decision, c: Candidate, run_dir: Path) -> str:
     return "It passed every check; the review's notes say more."
 
 
+def saying_no(flow: dict) -> str:
+    """What saying no does, as the decline walk found it, for every slide that says so."""
+    return "saying no doesn't bring them back yet" if flow["decline"] else "saying no changes nothing"
+
+
 def why_html(flow: dict, model: ProductModel, run_dir: Path) -> str:
     c, decision = flow["candidate"], flow["decision"]
     gets = reward_line(c)  # the offer's terms: the flow slide already shows what the screen does after the play
     blocks = [("What the user gets", gets[:1].upper() + gets[1:] + "."),
               ("What the app gets", c.rationale),
-              ("What it never costs them", f"Nothing free is taken away, and saying no changes nothing. "
+              ("What it never costs them", f"Nothing free is taken away, and {saying_no(flow)}. "
                                            f"{c.subscriber_treatment}")]
     html = "".join(f'<div class="why-block"><b>{escape(label)}</b><p>{escape(plain(text))}</p></div>'
                    for label, text in blocks)
@@ -825,10 +830,9 @@ def idea_slides(flow: dict, model: ProductModel, run_dir: Path) -> list[str]:
     label, new = (("The new part", c.adds) if c.kind == "product_change" and c.adds
                   else ("Where the offer appears", c.placement))
     gets = f"<b>They get:</b> {escape(plain(reward_line(c)))} · <b>How often:</b> {escape(plain(c.frequency_cap))}"
-    declined = "Saying no changes nothing." if not flow["decline"] else "Saying no doesn't bring them back yet."
     body = (f'<div class="flow"><h2>{escape(plain(caption(c)))}</h2><div class="new">'
             f"<p><b>{label}:</b> {escape(plain(new))}</p>"
-            f"<p><b>The offer says:</b> “{escape(plain(c.offer_copy))}” {declined}</p></div>"
+            f"<p><b>The offer says:</b> “{escape(plain(c.offer_copy))}” {saying_no(flow).capitalize()}.</p></div>"
             f"{row_html(row_phones(flow), c.id)}<footer>{gets}</footer></div>")
     runs_out = f"<footer><b>When the reward runs out:</b> {escape(plain(c.after_reward))}</footer>" \
         if c.after_reward else ""
