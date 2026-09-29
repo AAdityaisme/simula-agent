@@ -26,7 +26,7 @@ def golden(app: str) -> ProductModel:
 
 def recorded_answer(g: ProductModel) -> ModelMeaning:
     return ModelMeaning(
-        app_category=g.app_category,
+        app_name="", app_category=g.app_category,
         states=[StateMeaning(state_id=s.id, name=s.name, purpose=s.purpose, content_rating=s.content_rating)
                 for s in g.states],
         elements=[ElementMeaning(element_id=e.id, role=e.role, font_guess="Inter")
@@ -81,7 +81,7 @@ def test_a_ledger_line_may_not_span_text_and_label_but_whitespace_is_normalized(
     state = State(id="s01", kind="screen", parent_id=None, name="", purpose="", fingerprint="", canonical_png="",
                   elements=[element], in_mock_scope=False, content_rating="safe", dynamic_regions=[],
                   blocked_reason=None)
-    answer = ModelMeaning(app_category="other", states=[StateMeaning(state_id="s01", name="x", purpose="x",
+    answer = ModelMeaning(app_name="", app_category="other", states=[StateMeaning(state_id="s01", name="x", purpose="x",
                                                                      content_rating="safe")],
                           elements=[], flows=[], mechanics=[], cross_screen_values=[], open_questions=[], terms=[],
                           value_ledger=[LedgerItem(id="span", kind="price", verbatim="$ 1.99 Premium", evidence_ids=["s01.e01"]),
@@ -218,7 +218,7 @@ def test_a_modal_in_scope_brings_its_parent_first():
         return State(id=sid, kind=kind, parent_id=parent, name="", purpose="", fingerprint="", canonical_png="",
                      elements=[], in_mock_scope=False, content_rating="safe", dynamic_regions=[], blocked_reason=None)
     states = [state("s01"), state("s02"), state("s03", "modal", "s02")]
-    meaning = ModelMeaning(app_category="other", states=[], elements=[], flows=[], cross_screen_values=[],
+    meaning = ModelMeaning(app_name="", app_category="other", states=[], elements=[], flows=[], cross_screen_values=[],
                            value_ledger=[], open_questions=[], terms=[],
                            mechanics=[Mechanic(id="m1", kind="ad", evidence_ids=["s03"], summary="x",
                                                observed_numbers=[], status="observed")])
@@ -237,8 +237,8 @@ def test_a_flow_dialog_keeps_its_parent_even_when_the_parent_is_unsafe_and_off_t
     states = [state("s01"), state("s02", rating="unsafe"), state("s03", "modal", "s02")]
     edges = [Edge(id="s03.e01>s01", from_state="s03", to_state="s01", element_id=None, action="tap",
                   transition="back", change_summary="")]
-    meaning = ModelMeaning(app_category="other", states=[], elements=[], cross_screen_values=[], value_ledger=[],
-                           open_questions=[], terms=[], mechanics=[],
+    meaning = ModelMeaning(app_name="", app_category="other", states=[], elements=[], cross_screen_values=[],
+                           value_ledger=[], open_questions=[], terms=[], mechanics=[],
                            flows=[Flow(id="f01", name="x", purpose="x", edge_ids=["s03.e01>s01"], evidence_ids=[])])
     assert stage.mock_scope(states, edges, meaning) == ["s01", "s02", "s03"]
 
@@ -248,7 +248,7 @@ def test_a_sheet_over_a_modal_brings_the_whole_stack_parent_first():
         return State(id=sid, kind=kind, parent_id=parent, name="", purpose="", fingerprint="", canonical_png="",
                      elements=[], in_mock_scope=False, content_rating="safe", dynamic_regions=[], blocked_reason=None)
     states = [state("s01"), state("s02"), state("s03", "modal", "s02"), state("s04", "sheet", "s03")]
-    meaning = ModelMeaning(app_category="other", states=[], elements=[], flows=[], cross_screen_values=[],
+    meaning = ModelMeaning(app_name="", app_category="other", states=[], elements=[], flows=[], cross_screen_values=[],
                            value_ledger=[], open_questions=[], terms=[],
                            mechanics=[Mechanic(id="m1", kind="paywall", evidence_ids=["s04"], summary="x",
                                                observed_numbers=[], status="observed")])
@@ -502,8 +502,8 @@ def test_scope_is_root_then_money_screens_then_other_mechanics_then_the_core_flo
     edges = ([edge("s01", t, "tab") for t in tabs] + [edge(a, b) for a, b in hops] + [edge("s01", paywall, "modal")]
              + [edge("s01", f) for f in filler])
     meaning = ModelMeaning(
-        app_category="chat", states=[], elements=[], cross_screen_values=[], value_ledger=[], open_questions=[],
-        terms=[], flows=[Flow(id="f1", name="core", purpose="x", edge_ids=[f"{a}.tap>{b}" for a, b in hops],
+        app_name="", app_category="chat", states=[], elements=[], cross_screen_values=[], value_ledger=[],
+        open_questions=[], terms=[], flows=[Flow(id="f1", name="core", purpose="x", edge_ids=[f"{a}.tap>{b}" for a, b in hops],
                               evidence_ids=[])],
         mechanics=[Mechanic(id="m1", kind="paywall", evidence_ids=[paywall], summary="x", observed_numbers=[],
                             status="observed"),
@@ -550,13 +550,14 @@ def merge_notes(ctx):
 
 @pytest.mark.parametrize("name", APPS)
 def test_the_stage_writes_a_valid_model(name, tmp_path, monkeypatch):
-    clean = recorded_answer(golden(name))
+    clean = recorded_answer(golden(name)).model_copy(update={"app_name": "Shown Name"})
     calls = fake_calls(monkeypatch, [clean, clean])
     ctx = make_ctx(name, tmp_path)
     stage.run(ctx)
     out = ctx.run_dir / "model"
     model = ProductModel.model_validate_json((out / "product_model.json").read_text())
     assert calls[0]["schema"] is ModelMeaning and calls[0]["max_tokens"] == 64000
+    assert (model.app, model.app_name) == (name, "Shown Name")
     assert model.device == golden(name).device
     assert all((out / s.canonical_png).exists() for s in model.states)
     assert all((out / e.asset_png).exists() for s in model.states for e in s.elements if e.asset_png)
@@ -567,7 +568,7 @@ def test_the_stage_writes_a_valid_model(name, tmp_path, monkeypatch):
     assert all(e.in_mock for s in model.states for e in s.elements if e.id in tapped and s.id in scope)
     assert model.flows
     md = (out / "product_model.md").read_text()
-    assert md.count("```mermaid") == 1 + len(model.flows)
+    assert md.startswith("# Product model: Shown Name ") and md.count("```mermaid") == 1 + len(model.flows)
     assert model.open_questions == [q.question for q in model.questions] and not any(q.answered for q in model.questions)
     assert (ctx.run_dir / "exhibits" / "02-model.md").exists()
     images = [p for m in calls[0]["messages"] for p in m["content"] if p["type"] == "image"]

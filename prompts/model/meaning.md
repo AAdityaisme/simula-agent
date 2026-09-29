@@ -4,6 +4,7 @@ You get: every state with its drawable elements (id, class, text, label, box in 
 
 Write:
 
+- **app_name**: the app's name as its own screens show it (a logo, a title, a welcome line), with its capitalization and spacing, for the cover of a deck its product team reads. The app's name, not a plan's or a feature's. Empty when no screen shows it; don't build it from the package id.
 - **app_category**: one of chat, content, learning, game, utility, other. Judge from what the core screens do, not from the package name.
 - **states**: one entry per state id. `name` is a short screen title a user would say ("Home feed", "Subscription paywall"). `purpose` is one or two plain sentences: what the user does here and what leads out of it. `content_rating`: `safe` when nothing on screen is sexual or graphic; `mixed` when a feed or list shows some suggestive art or titles among safe ones; `unsafe` when the screen itself is sexual or graphic; `unknown` when the screenshot doesn't let you tell.
 - **elements**: one entry per listed element (the input lists only elements a mock could draw; items of a long repeated list are folded into one line, so name the two listed items and skip the folded ones). `role` is a short noun ("tab", "icon button", "upsell badge", "character card", "price", "body text"). `font_guess` is the closest Google Font family for text elements (e.g. "Inter", "Roboto", "Poppins"), or "unknown" for non-text.

@@ -169,6 +169,8 @@ class Provenance(Strict):
 class ProductModel(Strict):
     schema_version: int = SCHEMA_VERSION
     app: str
+    app_name: str = Field(default="", description="The app's name as its own screens show it, for people to read "
+                          "(a deck's cover); empty when no screen shows it. `app` is the config key.")
     app_version: str
     app_category: AppCategory
     run_id: str
@@ -206,6 +208,8 @@ class ElementMeaning(Strict):
 
 
 class ModelMeaning(Strict):
+    app_name: str = Field(description="The app's name as its own screens show it, with its capitalization and "
+                          "spacing; empty when no screen shows it.")
     app_category: AppCategory
     states: list[StateMeaning]
     elements: list[ElementMeaning]

@@ -669,7 +669,7 @@ def render_md(model: ProductModel) -> str:
         what = mermaid_label((el.text or el.label or el.role) if el else e.action)
         return f"  {e.from_state} -->|{e.transition}: {what}| {e.to_state}"
 
-    lines = [f"# Product model: {model.app} {model.app_version}", "",
+    lines = [f"# Product model: {model.app_name or model.app} {model.app_version}", "",
              f"Category **{model.app_category}** · {len(model.states)} states · {len(model.edges)} edges · "
              f"{len(model.flows)} core flows · run `{model.run_id}` · source `{model.provenance.source}`", "",
              "## Navigation graph", "", "```mermaid", "flowchart TD"]
@@ -810,7 +810,8 @@ def run(ctx: Ctx) -> None:
               note=f"paywall bullets quoted from folded lists: {quoted}")
 
     model = ProductModel(
-        app=ctx.app["name"], app_version=explore.app_version or "unknown", app_category=meaning.app_category,
+        app=ctx.app["name"], app_name=meaning.app_name, app_version=explore.app_version or "unknown",
+        app_category=meaning.app_category,
         run_id=ctx.run_dir.name, device=device, states=states, edges=edges, flows=meaning.flows,
         mechanics=meaning.mechanics, cross_screen_values=meaning.cross_screen_values,
         value_ledger=meaning.value_ledger + bullets + experience,

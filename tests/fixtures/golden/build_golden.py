@@ -156,7 +156,7 @@ def build(app: str) -> ProductModel:
                                evidence_ids=[find(states, r) for r in v["evidence"]])
               for v in meaning.get("cross_screen_values", [])]
     order = mock_scope(list(states.values()), edges, ModelMeaning(
-        app_category=meaning["app_category"], states=[], elements=[], flows=flows, mechanics=mechanics,
+        app_name="", app_category=meaning["app_category"], states=[], elements=[], flows=flows, mechanics=mechanics,
         cross_screen_values=[], value_ledger=[], terms=[], open_questions=[]))
     states = {spec["id"]: build_state(app, spec, out, set(order)) for spec in meaning["states"]}
     model = ProductModel(
