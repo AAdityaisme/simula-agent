@@ -216,8 +216,9 @@ def clean(flows_dir: Path) -> None:
 # ---------- plain words ----------
 
 def app_title(model: ProductModel, key: str) -> str:
-    """The app's name for the product team: the model's app_name, read from the screens (pr2 adds the field), else
-    the config key title-cased, never the raw lowercase key."""
+    """The app's name for the product team: ProductModel.app_name, as the app's own screens show it, else the config
+    key title-cased, never the raw lowercase key."""
+    # getattr until #15 (fix-model-hygiene) adds app_name, default "", to this branch's contract; then model.app_name
     return getattr(model, "app_name", None) or key.title()
 
 
