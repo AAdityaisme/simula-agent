@@ -9,7 +9,7 @@ import json
 import re
 import shutil
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from PIL import Image
 from playwright.sync_api import Error as PlaywrightError
@@ -63,11 +63,12 @@ class Version:
 @dataclass
 class Loop:
     """How the fix loop went: a summary per round, why it stopped (and whether a failed or capped model call cut it
-    short), the first round a score-only keep rule would have decided the other way, and the critic's findings on
-    the approved version (None when no round critiqued it)."""
+    short), the critic groups it skipped, the first round a score-only keep rule would have decided the other way,
+    and the critic's findings on the approved version (None when no round critiqued it)."""
     rounds: list[dict]
     stop: str
     stopped_early: bool = False
+    skipped: list[str] = field(default_factory=list)
     disagreement: dict | None = None
     open_findings: list[Fix] | None = None
 
@@ -94,7 +95,7 @@ def improve(ctx: Ctx, model: ProductModel, scope: list[State], best: Version) ->
     loop, history, critiqued = Loop(rounds=[summary(best, kept=True)], stop=f"all {MAX_ROUNDS} rounds ran"), [], {}
     for n in range(1, MAX_ROUNDS + 1):
         try:
-            critique = criticize(ctx, budget, best, history, n)
+            critique = criticize(ctx, budget, best, history, n, skipped=loop.skipped)
             critiqued[best.round] = critique
             edits = fix(ctx, budget, model, best, critique, n)
         except (llm.LLMFailure, llm.CapReached) as e:
@@ -404,10 +405,11 @@ def walk_one(page, edges: list[Edge], gestures: dict) -> tuple[str | None, str |
 
 # ---------- critic and fixer ----------
 
-def criticize(ctx: Ctx, budget: llm.Budget, version: Version, history: list[dict], n: int) -> Critique:
+def criticize(ctx: Ctx, budget: llm.Budget, version: Version, history: list[dict], n: int,
+              skipped: list[str] | None = None) -> Critique:
     """One critic call per group of at most CRITIC_SCREENS screens, in the order QA measured them (the mock's order),
     at most PARALLEL_CRITICS at once; their fixes merge by data-el. A group whose call fails is skipped, unless every
-    group fails."""
+    group fails, and a line naming its screens goes on `skipped`."""
     screens = version.screens
     groups = [screens[i:i + CRITIC_SCREENS] for i in range(0, len(screens), CRITIC_SCREENS)] or [[]]
 
@@ -428,6 +430,9 @@ def criticize(ctx: Ctx, budget: llm.Budget, version: Version, history: list[dict
         if not isinstance(r, Critique):
             run_trace(ctx.run_dir, stage="qa", step=f"critic r{n} g{k}", decider="code", outcome="error",
                       note=f"group skipped, the other groups' fixes are used: {r}"[:300])
+            if skipped is not None:
+                ids = ", ".join(s["metrics"].state_id for s in groups[k - 1])
+                skipped.append(f"round {n} {ids} ({str(r)[:120]})")
     return merge_critiques(critiques)
 
 
@@ -634,13 +639,15 @@ def qa_report(ctx: Ctx, best: Version, loop: Loop, undrawn: dict[str, str]) -> d
 
 def outcome(ctx: Ctx, best: Version, loop: Loop, undrawn: dict[str, str]) -> dict:
     """complete, or partial with why and where to start again: screens the mock left undrawn (and the core flows
-    through them), a review a failed or capped model call cut short, or checks the approved version still fails.
+    through them), a review a failed or capped model call cut short, screens a critic call failed on, or checks the
+    approved version still fails.
     A partial mock still goes on to the slides; QA never blocks them."""
     through_undrawn = [f["flow"] for f in best.flows if f["status"] == "undrawn"]
     reasons = [text for present, text in (
         (undrawn, f"the mock left screens undrawn: {', '.join(undrawn)}"),
         (through_undrawn, f"core flows through an undrawn screen: {', '.join(through_undrawn)}"),
         (loop.stopped_early, f"the review stopped early: {loop.stop}"),
+        (loop.skipped, f"a failed critic call left screens unreviewed: {'; '.join(loop.skipped)}"),
         (best.failed_taps(), f"taps that still fail: {', '.join(t['edge'] for t in best.failed_taps())}"),
         (best.failed_flows(), f"core flows that still fail: {', '.join(f['flow'] for f in best.failed_flows())}"),
         (best.contract_errors, f"contract errors on the approved version: {len(best.contract_errors)}"),

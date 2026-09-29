@@ -238,6 +238,10 @@ def test_a_replay_whose_renders_differ_makes_no_model_call_and_ends_where_the_re
     recorded = json.loads((run_dir / "qa" / "qa_report.json").read_text())
     assert recorded["stop_reason"] == "round 2 stopped before any edit: refusal: refused"
     assert any("group skipped" in line.note for line in read_trace(run_dir / "trace.jsonl"))
+    second_group = ", ".join(s.id for s in mock.pick_scope(golden(app))[2:4])
+    assert recorded["outcome"] == "partial" and recorded["reasons"][:2] == [
+        "the review stopped early: round 2 stopped before any edit: refusal: refused",
+        f"a failed critic call left screens unreviewed: round 1 {second_group} (refusal: refused)"]
 
     screenshot = render.screenshot_screens
 
@@ -457,9 +461,11 @@ def test_a_failed_group_is_skipped_and_only_all_failing_stops_the_round(twelve, 
     app, run_dir, model, ids = twelve
     version = measured_twelve(run_dir, model)
     monkeypatch.setattr(llm, "call", fake_critic([], fail_on={ids[4]}))
-    critique = criticize(run_dir, app, version)
+    skipped = []
+    critique = qa.criticize(ctx_for(run_dir, app), llm.Budget("qa", 12.0), version, [], 1, skipped=skipped)
     assert [f.element_id for f in critique.fixes] == [*ids[0:4], "shared", *ids[8:12]]
     assert "group skipped" in read_trace(run_dir / "trace.jsonl")[-1].note
+    assert skipped == [f"round 1 {', '.join(ids[4:8])} (refusal: no)"]
     monkeypatch.setattr(llm, "call", fake_critic([], fail_on={ids[0], ids[4], ids[8]}))
     with pytest.raises(llm.LLMFailure):
         criticize(run_dir, app, version)
