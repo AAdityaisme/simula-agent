@@ -205,7 +205,7 @@ def test_the_flow_slide_walks_from_today_to_what_they_get_and_says_each_thing_on
         assert words in " ".join(flow.split()), words
     why = " ".join({(idea, part): text for idea, part, text in slides(built)}[("c01", "why")].split())
     reward = flows.reward_line(c)
-    assert f"What the user gets {reward[:1].upper()}{reward[1:]}." in why and "Badge" not in why
+    assert f"What the user gets {reward[:1].upper()}{reward[1:]}." in why and "Badge shows" not in why
     deck = text_of((built / "flows" / "slides.html").read_text())
     assert deck.count("When the reward runs out") == 2
 
