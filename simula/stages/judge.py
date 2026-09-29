@@ -157,7 +157,8 @@ def is_idea(c: Candidate) -> bool:
 def decide(c: Candidate, verdicts: list[Verdict], judges: int, mode: str, paths: list[str] = (),
            revision_of: str | None = None) -> Decision:
     """Combines the verdicts of the judges that ran. Gates AND over the judges; a judgment check every judge fails
-    rejects; a split goes to a person; an accept whose cost line isn't a PASS becomes conditional."""
+    rejects; a split goes to a person. In annotate mode the cost line is only a mark (economics_verdict) and never
+    changes the verdict; in gate mode a FAIL rejects and an accept whose cost line isn't a PASS becomes conditional."""
     fails = {k: sum(failed(v, k) for v in verdicts) for k in CHECKS}
     unanimous = [k for k in JUDGMENT if verdicts and fails[k] == len(verdicts)]
     econ = c.economics.verdict if c.economics else None
@@ -179,7 +180,7 @@ def decide(c: Candidate, verdicts: list[Verdict], judges: int, mode: str, paths:
         return d.model_copy(update={"final": "needs_human"})
     if mode == "gate" and econ == "FAIL":
         return d.model_copy(update={"failure_type": "proposal"})
-    return d.model_copy(update={"final": "accept" if econ == "PASS" else "conditional"})
+    return d.model_copy(update={"final": "accept" if mode == "annotate" or econ == "PASS" else "conditional"})
 
 
 def proposal_fault(original: Decision, revision_verdicts: list[Verdict]) -> Decision:
@@ -224,15 +225,16 @@ def fallback_pick(decisions: list[Decision], candidates: dict[str, Candidate],
 
 def ordered(decisions: list[Decision]) -> list[Decision]:
     """Survivors first by rank_score (code), then those waiting on a person, then rejects by score. On an equal
-    score an accept goes before a CONDITIONAL, so the verdict (and in annotate mode, the cost line) breaks ties;
-    flows' top-4 cut keeps this order."""
+    score an accept goes before a CONDITIONAL, so the judges' verdict breaks ties; in annotate mode cost never does,
+    since it never makes an idea CONDITIONAL. flows' top-4 cut keeps this order."""
     tier = {"accept": 0, "conditional": 0, "needs_human": 1, "reject": 2}
     return sorted(decisions, key=lambda d: (tier[d.final], -(d.rank_score or 0), d.final != "accept",
                                             -d.checks_passed))
 
 
-def condition(d: Decision, c: Candidate, verdicts: list[Verdict]) -> str | None:
-    """The one sentence a CONDITIONAL candidate carries on its slides."""
+def condition(d: Decision, c: Candidate, verdicts: list[Verdict], mode: str) -> str | None:
+    """The one sentence a CONDITIONAL candidate carries on its slides. Cost is part of it only in gate mode; in
+    annotate mode it is a separate mark."""
     if d.final != "conditional":
         return None
     parts = []
@@ -241,7 +243,7 @@ def condition(d: Decision, c: Candidate, verdicts: list[Verdict]) -> str | None:
         reason = next(getattr(v, fails[0]).reason for v in verdicts if failed(v, fails[0]))
         parts.append(f"No idea passed every check; this one passes every safety gate but not {', '.join(fails)} "
                      f"({reason})")
-    if d.economics_verdict in ECON_CONDITION and c.economics:
+    if mode == "gate" and d.economics_verdict in ECON_CONDITION and c.economics:
         parts.append(f"{ECON_CONDITION[d.economics_verdict]}: {c.economics.assumption_line.split('. ')[0]}")
     return " ".join(p.rstrip(".") + "." for p in parts)
 
@@ -480,7 +482,7 @@ def exhibit(decisions: list[Decision], candidates: dict[str, Candidate], verdict
              f"Economics mode: `{mode}`. {len(decisions)} candidates: {count['accept']} accepted, "
              f"{count['conditional']} conditional, {count['needs_human']} waiting on a person, "
              f"{count['reject']} rejected; {sum(bool(d.revision_of) for d in decisions)} revised once.", "",
-             "| Candidate | Final | Checks | Rank | Cost line |", "|---|---|---|---|---|"]
+             "| Candidate | Final | Checks | Rank | Cost mark |", "|---|---|---|---|---|"]
     lines += [f"| {d.candidate_id} · {candidates[d.candidate_id].title} | {d.final} | {d.checks_passed}/{d.checks_total}"
               f" | {'' if d.rank_score is None else f'{d.rank_score:g}'} | {d.economics_verdict or ''} |"
               for d in decisions]
@@ -489,10 +491,10 @@ def exhibit(decisions: list[Decision], candidates: dict[str, Candidate], verdict
         lines += ["", f"## {c.id} · {c.title}", "",
                   f"- **{d.final}**, {d.checks_passed}/{d.checks_total} checks passed by every judge"
                   + (f", revision of {d.revision_of}" if d.revision_of else "") + why(d, c)]
-        if text := condition(d, c, [*verdicts.get(c.id, {}).values()]):
+        if text := condition(d, c, [*verdicts.get(c.id, {}).values()], mode):
             lines.append(f"- Condition: {text}")
         if c.economics:
-            lines.append(f"- Cost: {c.economics.assumption_line}")
+            lines.append(f"- Cost mark ({c.economics.verdict}): {c.economics.assumption_line}")
         for judge, v in verdicts.get(c.id, {}).items():
             lines += [f"- {judge}: " + ("fixable" if v.fixable else "not fixable")
                       + (f"; other concern: {v.other_concern}" if v.other_concern else "")]

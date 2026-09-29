@@ -80,15 +80,31 @@ def test_no_opportunity_is_rejected_with_zero_checks():
 
 
 @pytest.mark.parametrize("mode, econ, final", [
-    ("annotate", "PASS", "accept"), ("annotate", "CONDITIONAL", "conditional"), ("annotate", "FAIL", "conditional"),
+    ("annotate", "PASS", "accept"), ("annotate", "CONDITIONAL", "accept"), ("annotate", "FAIL", "accept"),
     ("gate", "PASS", "accept"), ("gate", "CONDITIONAL", "conditional"), ("gate", "FAIL", "reject")])
-def test_the_cost_line_shows_up_in_the_recommendation(mode, econ, final):
+def test_the_cost_line_changes_the_verdict_only_in_gate_mode(mode, econ, final):
     for app in APPS:
         c = idea(golden(app), econ=econ)
-        d = judge.decide(c, [verdict()], ONE, mode)
+        d = judge.decide(c, [verdict(), verdict()], TWO, mode)
         assert (d.final, d.economics_verdict) == (final, econ)
         if final == "conditional":
-            assert "cost" in judge.condition(d, c, [verdict()]).lower()
+            assert "cost" in judge.condition(d, c, [verdict()], mode).lower()
+
+
+def test_an_idea_both_judges_accept_with_a_cost_fail_stays_accepted_and_carries_the_mark():
+    c = idea(golden("luzia"), econ="FAIL")
+    both = {"judge_1": verdict(), "judge_2": verdict()}
+    d = judge.decide(c, [*both.values()], TWO, "annotate")
+    assert (d.final, d.economics_verdict) == ("accept", "FAIL")
+    text = judge.exhibit([d], {c.id: c}, {c.id: both}, [*both], "dev", "annotate")
+    assert f"- Cost mark (FAIL): {c.economics.assumption_line}" in text and "Condition:" not in text
+
+
+def test_the_tie_order_ignores_cost():
+    m = golden("luzia")
+    rows = [judge.decide(idea(m, cid, econ=econ), [verdict(), verdict()], TWO, "annotate")
+            for cid, econ in [("c02", "FAIL"), ("c03", "CONDITIONAL"), ("c06", "PASS")]]
+    assert [d.candidate_id for d in judge.ordered(rows)] == ["c02", "c03", "c06"]
 
 
 # ---------- CONDITIONAL fallback ----------
@@ -134,7 +150,7 @@ def test_the_fallback_condition_names_what_failed():
     m = golden("janitorai")
     c = idea(m)
     d = judge.decide(c, [verdict(["c5_moment"])], ONE, "annotate").model_copy(update={"final": "conditional"})
-    assert "c5_moment" in judge.condition(d, c, [verdict(["c5_moment"])])
+    assert "c5_moment" in judge.condition(d, c, [verdict(["c5_moment"])], "annotate")
 
 
 def test_survivors_come_first_by_rank_then_people_then_rejects():
@@ -148,7 +164,8 @@ def test_survivors_come_first_by_rank_then_people_then_rejects():
 
 def test_an_accept_wins_a_tie_but_never_passes_a_higher_score():
     # Real Luzia, round 6 (runs/luzia/20260928-042747-6d79ef8-fixture/judge/decisions.json): four survivors tied
-    # at 1.0, and the one clean accept, c06, came fourth.
+    # at 1.0, and the one clean accept, c06, came fourth. Those CONDITIONALs came from the cost line, which annotate
+    # mode no longer does; the tie rule is the same for a judge's CONDITIONAL.
     rows = [Decision(candidate_id=cid, final=final, checks_passed=checks, checks_total=11, rank_score=rank,
                      gate_fails=[], judgment_splits=[], verdict_paths=[], economics_verdict=econ, revision_of=None,
                      failure_type="proposal" if final == "reject" else None, rerun_stage=None)
