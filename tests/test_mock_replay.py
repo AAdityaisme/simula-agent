@@ -13,7 +13,7 @@ from simula.runlog import read_trace
 from simula.stages import mock
 from tests.conftest import FIXTURES
 from tests.mock_fake import golden, seed_model, skeleton_html
-from tests.test_mock_batches import provider_drawing, with_cache_in
+from tests.test_mock_batches import drawn, provider_drawing, screens_of, with_cache_in
 from tests.test_mock_fonts import fake_google
 from tests.test_mock_isolation import batch_screens, ctx_for, without_edges
 
@@ -29,17 +29,6 @@ def two_batches(monkeypatch):
 @pytest.fixture(autouse=True)
 def no_desktop_notice(monkeypatch):
     monkeypatch.setattr(runlog, "notify", lambda title, message: True)
-
-
-def screens_of(messages) -> list[str]:
-    content = [p for p in messages[0]["content"] if p.get("text") != mock.SHORTER]
-    return batch_screens({"messages": [{"role": "user", "content": content}]})
-
-
-def drawn(model, model_id, messages, tokens_out=1000, stop="end_turn") -> llm.Reply:
-    page = without_edges(skeleton_html(model, screens_of(messages)))
-    return llm.Reply(text=f"```html\n{page}\n```", model=model_id, tokens_in=5000, tokens_out=tokens_out,
-                     stop_reason=stop)
 
 
 def losing_first_batch(model, kind: str):

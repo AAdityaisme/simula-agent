@@ -460,11 +460,18 @@ def batch_plan(ctx: Ctx, contents: list[list[dict]]) -> Plan:
 
 
 def planned_usd(ctx: Ctx, content: list[dict]) -> float:
-    """What one batch's call can cost this run: nothing when the cache holds its answer (a live call takes it from
-    there and reserves nothing), else its worst case."""
-    effort = config.roles(ctx.profile)["mock_builder"].get("effort")
-    if not ctx.no_cache and llm.answered_from_cache(**builder_request(ctx, content, effort)):
-        return 0.0
+    """What one batch can cost this run: nothing when every call generate would make settles from the cache (an
+    answer, or a known failure the call raises again, free; after a cut-off first answer, the retry's record decides),
+    else its worst case."""
+    if not ctx.no_cache:
+        for request in builder_requests(ctx, content):
+            settled = llm.answered_from_cache(**request)
+            if settled is None:
+                break
+            if settled.failure != "max_tokens":
+                return 0.0
+        else:
+            return 0.0
     return worst_usd(ctx, content)
 
 
@@ -479,16 +486,22 @@ def affordable(worst: list[float], cap: float) -> int:
 
 def worst_usd(ctx: Ctx, content: list[dict]) -> float:
     """The most one batch's call can cost: its retry prompt (the longer one) answered up to max_tokens."""
-    request = builder_request(ctx, content + [{"type": "text", "text": SHORTER}], None)
-    return llm.worst_case_usd(request["model"], llm.estimate_tokens_in(request["system"], request["messages"]),
-                              request["max_tokens"])
+    _, retry = builder_requests(ctx, content)
+    return llm.worst_case_usd(retry["model"], llm.estimate_tokens_in(retry["system"], retry["messages"]),
+                              retry["max_tokens"])
 
 
-def builder_request(ctx: Ctx, content: list[dict], effort: str | None) -> dict:
-    """One batch's call to the mock builder, as llm.call and llm.answered_from_cache take it."""
+def builder_requests(ctx: Ctx, content: list[dict]) -> tuple[dict, dict]:
+    """generate's two calls for one batch, as llm.call and llm.answered_from_cache take them: the first at the role's
+    effort, and the retry after an answer cut off at max_tokens, at lower effort and asking for shorter CSS."""
     role = config.roles(ctx.profile)["mock_builder"]
-    return {"model": role["model"], "effort": effort, "system": system_prompt(),
-            "messages": [{"role": "user", "content": content}], "max_tokens": role["max_tokens"]}
+    effort = role.get("effort")
+
+    def request(content: list[dict], effort: str | None) -> dict:
+        return {"model": role["model"], "effort": effort, "system": system_prompt(),
+                "messages": [{"role": "user", "content": content}], "max_tokens": role["max_tokens"]}
+    return (request(content, effort),
+            request(content + [{"type": "text", "text": SHORTER}], RETRY_EFFORT.get(effort, effort)))
 
 
 def draw_batches(ctx: Ctx, groups: list[list[State]], contents: list[list[dict]], budget: llm.Budget,
@@ -588,22 +601,20 @@ def parent_attr(state: State) -> str:
 
 def generate(ctx: Ctx, content: list[dict], budget: llm.Budget, step: str) -> str:
     """One batch's call. An answer cut off at max_tokens is retried once, at lower effort, asking for shorter CSS."""
-    def ask(effort, content):
-        text, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="mock", step=step,
-                           **builder_request(ctx, content, effort), budget=budget, no_cache=ctx.no_cache,
-                           replay=ctx.replay, attempts=1, total_timeout=WALL_SECONDS)
+    def ask(request: dict) -> str:
+        text, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="mock", step=step, **request, budget=budget,
+                           no_cache=ctx.no_cache, replay=ctx.replay, attempts=1, total_timeout=WALL_SECONDS)
         return extract_html(text)
 
-    effort = config.roles(ctx.profile)["mock_builder"].get("effort")
+    first, retry = builder_requests(ctx, content)
     try:
-        return ask(effort, content)
+        return ask(first)
     except llm.LLMFailure as e:
         if e.outcome != "max_tokens":
             raise
-    retry_effort = RETRY_EFFORT.get(effort, effort)
     run_trace(ctx.run_dir, stage="mock", step=step, decider="code", outcome="retry",
-              note=f"max_tokens: retrying at effort={retry_effort} with shorter CSS")
-    return ask(retry_effort, content + [{"type": "text", "text": SHORTER}])
+              note=f"max_tokens: retrying at effort={retry['effort']} with shorter CSS")
+    return ask(retry)
 
 
 def batch_content(ctx: Ctx, model: ProductModel, batch: list[State], screens: list[str], art: dict[str, Rect],

@@ -174,14 +174,15 @@ def cache_write(key: str, reply: Reply, cache_dir: Path = CACHE) -> None:
 
 
 def answered_from_cache(*, model: str, effort: str | None, system: str, messages: list[dict], max_tokens: int,
-                        schema: type[BaseModel] | None = None, cache_dir: Path = CACHE) -> bool:
-    """Whether a live call with these arguments takes its first attempt's answer from the cache, so it costs nothing
-    and reserves nothing. A planner asks this so it doesn't price a free call at its worst case. It reads the cache by
-    the call's own rule: every readable try of the attempt, the latest one the model answered."""
+                        schema: type[BaseModel] | None = None, cache_dir: Path = CACHE) -> Reply | None:
+    """What a live call with these arguments settles on from the cache, costing nothing and reserving nothing: its
+    first attempt's recorded answer, which may be a known failure the call raises again, or None when it would call
+    the model. A planner asks this so it doesn't price a free call at its worst case. It reads the cache by the call's
+    own rule: every readable try of the attempt, the latest one the model answered."""
     provider = config.models()[model]["provider"]
     key = cache_key(provider, model, system, messages, request_params(provider, effort, max_tokens, schema), 0)
     chosen = latest_answer(cache_tries(key, cache_dir)[0])
-    return chosen is not None and not chosen[1].failure
+    return chosen[1] if chosen else None
 
 
 def latest_answer(tries: list[tuple[str, Reply]]) -> tuple[str, Reply] | None:

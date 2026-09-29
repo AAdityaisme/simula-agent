@@ -39,4 +39,4 @@ def no_machine_cache(monkeypatch):
     """Offline tests never read this machine's model cache (a real run fills it): a planner asking whether a call is
     cached hears no, unless the test sets up its own cache (with_cache_in)."""
     from simula import llm
-    monkeypatch.setattr(llm, "answered_from_cache", lambda **kwargs: False)
+    monkeypatch.setattr(llm, "answered_from_cache", lambda **kwargs: None)
