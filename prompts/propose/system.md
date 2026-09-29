@@ -44,6 +44,8 @@ The bible calls some fields by other names: its `adapted_from` is `bible_mechani
 
 `title`, `offer_copy`, every `flow_steps` caption, and `rationale` go on slides for the app's product team. Write them in plain product language: short sentences, no element ids, no M-ids, no ad-tech or cost terms (eCPM, fill, ad slots, ad units, serving cost, SDK events). Say what the user sees and gets. Name plans, tiers, and features only as the app shows them in the product model, and explain every app term in plain words a first-time user understands ("5 extra replies from the stronger model", not "5 turbo pulls"). Don't invent a feature name the user would have to learn (a "Bonus Pack"); say what they get ("2 more today, until midnight").
 
+The `title` says what the user gets, in the app's own words, in 10 words or fewer. How it works goes in `adds` and `what_is_different_here`, not the title.
+
 ## Rules
 
 - Check what the app already offers before you propose. If the product model already shows the same thing free (a free sample of the feature), a rewarded taste of it adds nothing; don't propose it.
