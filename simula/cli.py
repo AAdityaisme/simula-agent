@@ -130,6 +130,7 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     module = importlib.import_module(f"simula.stages.{stage}")
     stage_dir.mkdir(exist_ok=True)
     (stage_dir / "done.json").unlink(missing_ok=True)  # the stage is being redone: its old marker no longer holds
+    runlog.sync_manifest(ctx.run_dir)
     trace_path = ctx.run_dir / "trace.jsonl"
     traced_before = len(runlog.read_trace(trace_path))
     try:
@@ -166,14 +167,11 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     elif not any(line.step == "needs_human" and line.outcome == "blocked" for line in traced):
         # Only a clean finish resolves: a stage that asked for a person during this run still needs one.
         runlog.resolve_needs_human(ctx.run_dir, stage)
-    usd_total = sum(line.usd for line in runlog.read_trace(trace_path))
-    done = set(runlog.read_manifest(ctx.run_dir).stages_done)
-    done = done - {stage} if partial else done | {stage}
-    runlog.update_manifest(ctx.run_dir, stages_done=sorted(done, key=STAGES.index), usd_total=round(usd_total, 4))
-    # done.json is the commit point, written after every other record: if one of them fails, the stage has no marker,
-    # so the next run redoes it and writes them again.
+    # done.json is the commit point, written after needs-human.md: if that fails, the stage has no marker, so the next
+    # run redoes it. The manifest is read from the markers, so it never lists a stage without one.
     runfolder.write_done(stage_dir, ctx.run_dir, inputs, prompts, params, [stage_dir], provenance, code=code,
                          outcome=outcome)
+    runlog.sync_manifest(ctx.run_dir)
     runlog.run_trace(ctx.run_dir, stage=stage, step="done", decider="code",
                      note=provenance.source + (f"; partial: {'; '.join(outcome.reasons)}"[:300] if partial else ""))
     print(f"{stage}: done" + (" (partial: see needs-human.md)" if partial else ""))
@@ -220,6 +218,7 @@ def open_run(args) -> Ctx:
     for stage, path in fixtures.items():
         runfolder.seed_from_fixture(run_dir, stage, Path(path), args.allow_fixtures)
         runlog.run_trace(run_dir, stage=stage, step="seed", decider="human", note=f"fixture {path}")
+    runlog.sync_manifest(run_dir)  # heals a manifest an earlier command failed to update
     return Ctx(app=app, run_dir=run_dir, profile=args.profile, no_cache=args.no_cache, replay=args.replay,
                usd_cap=args.usd_cap, allow_fixtures=args.allow_fixtures, budget=args.budget,
                allow_account_create=args.allow_account_create, probe=getattr(args, "probe", False))

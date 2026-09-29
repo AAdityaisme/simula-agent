@@ -6,9 +6,9 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
-from simula.config import ROOT
+from simula.config import ROOT, STAGES
 from simula.contracts import Manifest, TraceLine
-from simula.runfolder import write_json_atomic
+from simula.runfolder import read_done, write_json_atomic
 
 BUILD_TRACE = ROOT / "build" / "trace.jsonl"
 
@@ -47,6 +47,14 @@ def update_manifest(run_dir: Path, **changes) -> Manifest:
     manifest = read_manifest(run_dir).model_copy(update=changes)
     write_manifest(run_dir, manifest)
     return manifest
+
+
+def sync_manifest(run_dir: Path) -> Manifest:
+    """The manifest's stages_done and usd_total, read again from the done markers and the trace, so the manifest never
+    lists a stage its marker doesn't show as complete."""
+    done = [s for s in STAGES if (marker := read_done(run_dir / s)) and marker.outcome.status == "complete"]
+    usd_total = sum(line.usd for line in read_trace(run_dir / "trace.jsonl"))
+    return update_manifest(run_dir, stages_done=done, usd_total=round(usd_total, 4))
 
 
 def record_fallback(run_dir: Path, note: str) -> None:

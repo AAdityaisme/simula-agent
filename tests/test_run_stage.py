@@ -259,6 +259,29 @@ def test_a_record_that_fails_after_the_stage_ran_leaves_no_marker_so_the_next_ru
     assert "mock" in read_manifest(run_dir).stages_done
 
 
+def test_the_manifest_never_lists_a_stage_whose_marker_failed_to_write(runs, mock_stage, monkeypatch):
+    run_dir = seeded_run(runs)
+    assert "mock" in read_manifest(run_dir).stages_done
+    writes = runfolder.write_done
+
+    def unhashable(*args, **kwargs):
+        raise OSError("an output can't be read")
+    monkeypatch.setattr(runfolder, "write_done", unhashable)
+    with pytest.raises(OSError):
+        cli.main(["mock", "janitorai", "--run", run_dir.name, "--allow-fixtures"])
+    assert not (run_dir / "mock" / "done.json").exists() and "mock" not in read_manifest(run_dir).stages_done
+    monkeypatch.setattr(runfolder, "write_done", writes)
+    assert rerun(run_dir) and "mock" in read_manifest(run_dir).stages_done
+
+
+def test_the_next_command_heals_a_manifest_that_drifted_from_the_markers(runs, mock_stage):
+    run_dir = seeded_run(runs)
+    runlog.update_manifest(run_dir, stages_done=["explore", "qa"], usd_total=99.0)
+    cli.open_run(cli.parser().parse_args(["mock", "janitorai", "--run", run_dir.name, "--allow-fixtures"]))
+    manifest = read_manifest(run_dir)
+    assert (manifest.stages_done, manifest.usd_total) == (["model", "mock"], 0.0)
+
+
 def test_the_chain_reruns_a_stage_whose_code_changed(runs, mock_stage, monkeypatch, tmp_path):
     code = tmp_path / "mock.py"
     code.write_text("BATCH = 4\n")
