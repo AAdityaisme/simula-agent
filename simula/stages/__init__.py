@@ -49,10 +49,14 @@ class Ctx:
 
 
 def run_options(ctx: Ctx) -> str:
-    """The run and the options it was opened with, so a printed resume command reruns it the same way."""
+    """The run and the options it was opened with, so a printed resume command reruns it the same way: every option
+    a stage hashes, the opt-ins, and an overridden $ cap. --no-cache and --replay are modes of one command, not of the
+    run. A line that raises the cap passes a ctx with usd_cap=None and adds its own --usd-cap."""
     return " ".join([f"--run {ctx.run_dir.name}", f"--profile {ctx.profile}", f"--budget {ctx.budget}",
                      *(["--allow-fixtures"] if ctx.allow_fixtures else []),
-                     *(["--allow-account-create"] if ctx.allow_account_create else [])])
+                     *(["--allow-account-create"] if ctx.allow_account_create else []),
+                     *(["--probe"] if ctx.probe else []),
+                     *([f"--usd-cap {ctx.usd_cap}"] if ctx.usd_cap is not None else [])])
 
 
 def rerun_command(stage: str, ctx: Ctx) -> str:

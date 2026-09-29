@@ -3,6 +3,7 @@ file git doesn't track, and every way a stage can exit still leaves failure.json
 
 import importlib
 import os
+import shlex
 import subprocess
 import sys
 
@@ -435,3 +436,36 @@ def test_os_metadata_in_a_loader_folder_is_neither_hashed_nor_blocking(runs, che
     (checkout / "bible" / ".obsidian" / "app.json").write_text("{}")
     assert runfolder.expand([checkout / "bible"]) == [checkout / "bible" / "BIBLE.md"]
     assert cli.main(["mock", "janitorai", "--allow-fixtures", "--fixture", f"model={GOLDEN}"]) == 0
+
+
+# ---------- a printed resume command reopens the run with the options it ran under ----------
+
+def reopened(command: str):
+    """The run a printed command opens, read by the CLI's own parser; a cap line's `<higher>` stands for 50."""
+    return cli.open_run(cli.parser().parse_args(shlex.split(command.replace("<higher>", "50"))[1:]))
+
+
+@pytest.mark.parametrize("flag", [["--probe"], ["--usd-cap", "12.3456789"]], ids=["probe", "usd_cap"])
+def test_a_partial_stages_resume_parses_back_to_the_options_it_ran_under(runs, monkeypatch, quiet, flag):
+    reports = [StageOutcome(status="partial", reasons=["2 of 24 taps failed"])]
+    mock_that(monkeypatch, lambda ctx: reports.pop(0) if reports else None)
+    command = ["mock", "janitorai", "--allow-fixtures", *flag]
+    cli.main([*command, "--fixture", f"model={GOLDEN}"])
+    run_dir = latest(runs)
+    ran = cli.open_run(cli.parser().parse_args([*command, "--run", run_dir.name]))
+    again = reopened(runfolder.read_done(run_dir / "mock").outcome.resume)
+    assert again.run_dir == run_dir and cli.stage_params("mock", again) == cli.stage_params("mock", ran)
+    assert (again.probe, again.usd_cap) == (ran.probe, ran.usd_cap)
+
+
+@pytest.mark.parametrize("stop, cap", [(llm.CapReached("mock: next call could cost $5.00"), 50.0),
+                                       (llm.ProviderUnavailable("429: usage limit reached"), 12.5)],
+                         ids=["cap_raised", "outage_keeps_the_cap"])
+def test_a_stopped_stages_command_carries_its_options_and_one_cap(runs, monkeypatch, quiet, stop, cap):
+    def stops(ctx):
+        raise stop
+    mock_that(monkeypatch, stops)
+    cli.main(["mock", "janitorai", "--allow-fixtures", "--probe", "--usd-cap", "12.5", "--fixture", f"model={GOLDEN}"])
+    command = (latest(runs) / "needs-human.md").read_text().split("**Continue with:** `")[-1].split("`")[0]
+    again = reopened(command)
+    assert command.count("--usd-cap") == 1 and (again.probe, again.usd_cap) == (True, cap)

@@ -3,6 +3,7 @@
 import argparse
 import importlib
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 from simula import checkout, config, runfolder, runlog
@@ -107,14 +108,13 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     except CapReached as e:
         runfolder.write_failure(stage_dir, str(e))
         runlog.needs_human(ctx.run_dir, stage, "$ cap reached", str(e), [f"{stage}/failure.json"],
-                           f"{rerun_command(stage, ctx)} --usd-cap <higher>")
+                           raise_cap(stage, ctx))
         raise
     except ProviderUnavailable as e:
         runfolder.write_failure(stage_dir, str(e))
         runlog.needs_human(ctx.run_dir, stage, "the model provider is refusing calls", str(e),
                            [f"{stage}/failure.json"],
-                           f"simula run {ctx.app['name']} --from {stage} {run_options(ctx)}"
-                           + (f" --usd-cap {ctx.usd_cap:g}" if ctx.usd_cap is not None else ""))
+                           f"simula run {ctx.app['name']} --from {stage} {run_options(ctx)}")
         raise
     except BaseException as e:
         # Every other exit, SystemExit and Ctrl-C included, still leaves a failure record; then it propagates.
@@ -151,10 +151,15 @@ def finished_outcome(stage: str, ctx: Ctx, result, capped: list[str]) -> StageOu
     outcome = result if isinstance(result, StageOutcome) else StageOutcome()
     if capped:
         return StageOutcome(status="partial", reasons=[*outcome.reasons, *dict.fromkeys(capped)],
-                            resume=f"{rerun_command(stage, ctx)} --usd-cap <higher>")
+                            resume=raise_cap(stage, ctx))
     if outcome.status == "partial" and not outcome.resume:
         return outcome.model_copy(update={"resume": rerun_command(stage, ctx)})
     return outcome
+
+
+def raise_cap(stage: str, ctx: Ctx) -> str:
+    """The command that reruns a stage its $ cap stopped, with a higher cap in place of the one it ran under."""
+    return f"{rerun_command(stage, replace(ctx, usd_cap=None))} --usd-cap <higher>"
 
 
 def open_run(args) -> Ctx:
@@ -184,7 +189,7 @@ def open_run(args) -> Ctx:
     runlog.sync_manifest(run_dir)  # heals a manifest an earlier command failed to update
     return Ctx(app=app, run_dir=run_dir, profile=args.profile, no_cache=args.no_cache, replay=args.replay,
                usd_cap=args.usd_cap, allow_fixtures=args.allow_fixtures, budget=args.budget,
-               allow_account_create=args.allow_account_create, probe=getattr(args, "probe", False))
+               allow_account_create=args.allow_account_create, probe=args.probe)
 
 
 def cmd_stage(args) -> int:
@@ -232,6 +237,7 @@ def add_run_flags(p: argparse.ArgumentParser) -> None:
     p.add_argument("--allow-account-create", action="store_true",
                    help="let the explorer create a guest account if the app asks for one")
     p.add_argument("--allow-fixtures", action="store_true", help="accept fixture inputs (test data only)")
+    p.add_argument("--probe", action="store_true", help="allow the bounded chat probe (<= 8 messages)")
     p.add_argument("--fixture", action="append", metavar="STAGE=PATH",
                    help="the only way a fixture enters a run: seeds a stage folder in the run this call "
                         "creates (needs --new or no existing run, and --allow-fixtures)")
@@ -248,8 +254,6 @@ def parser() -> argparse.ArgumentParser:
     for stage in STAGES:
         s = sub.add_parser(stage, help=f"run the {stage} stage")
         add_run_flags(s)
-        if stage == "explore":
-            s.add_argument("--probe", action="store_true", help="allow the bounded chat probe (<= 8 messages)")
         s.set_defaults(func=cmd_stage)
 
     r = sub.add_parser("run", help="chain all seven stages; skips a stage whose hashes still match")
