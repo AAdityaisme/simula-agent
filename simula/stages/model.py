@@ -647,6 +647,11 @@ def edge_overlay(e: Element, device: Device) -> bool:
     return e.type not in ROLE_BY_CLASS and not (e.text or e.label) and in_corner
 
 
+def flat(crop: Image.Image) -> bool:
+    """Two colors or fewer: a fill the mock draws from the element's colors, not a picture worth an asset."""
+    return crop.getcolors(2) is not None
+
+
 def finish_elements(state: State, scope: set[str], tapped: set[str], image: Image.Image, out: Path,
                     device: Device) -> State:
     """Crops image assets and marks what the mock draws: every in-scope element with words or art, and every
@@ -659,7 +664,7 @@ def finish_elements(state: State, scope: set[str], tapped: set[str], image: Imag
         if art:
             r = e.rect_px
             crop = image.crop((int(r.x), int(r.y), int(r.x + r.w), int(r.y + r.h)))
-            if crop.getcolors(2) is None:
+            if not flat(crop):
                 asset = f"assets/{e.id}.png"
                 crop.save(out / asset)
         in_mock = in_scope and (e.id in tapped or bool(e.text or e.label or art))
