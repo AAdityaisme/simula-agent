@@ -234,14 +234,17 @@ def reward_line(c: Candidate) -> str:
 
 def reach_text(c: Candidate, model: ProductModel) -> str:
     """Where the offer sits and the moment it appears. Depth says where, never how many people reach it: a tab is
-    depth 0 like the root, and the trigger narrows who sees it (the audience isn't measured)."""
-    depth = depths(model).get(c.trigger_state_id, 2)
-    if depth == 0:
-        where = "sits on the first screen people see" if c.trigger_state_id == root_id(model) else "sits on a main tab"
+    depth 0 like the root, and the trigger narrows who sees it (the audience isn't measured). A modal or sheet is
+    placed by the screen it covers."""
+    trigger = next((s for s in model.states if s.id == c.trigger_state_id), None)
+    popup = trigger is not None and trigger.kind != "screen" and trigger.parent_id is not None
+    place = trigger.parent_id if popup else c.trigger_state_id
+    if place == root_id(model):
+        where = "the first screen people see"
     else:
-        where = "sits one tap from a main screen" if depth == 1 else "sits a few taps in"
-    return (f"Reach scenario, not a measurement: the offer {where}, and appears only when this happens: "
-            f"{c.trigger_event.rstrip('.')}.")
+        where = ("a main tab", "a screen one tap in", "a screen a few taps in")[min(depths(model).get(place, 2), 2)]
+    return (f"Reach scenario, not a measurement: the offer sits {'in a pop-up over' if popup else 'on'} {where}, "
+            f"and appears only when this happens: {c.trigger_event.rstrip('.')}.")
 
 
 # ---------- the editor call ----------

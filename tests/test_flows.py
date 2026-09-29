@@ -270,15 +270,33 @@ def test_why_slides_on_real_output_never_claim_a_failed_check_that_passed():
 def test_the_reach_line_says_where_the_offer_sits_and_when_it_appears_but_never_how_many_see_it(app):
     model = golden(app)
     depth = depths(model)
-    tab = next(s for s, d in depth.items() if d == 0 and s != root_id(model))
-    places = {root_id(model): "sits on the first screen people see", tab: "sits on a main tab",
-              next(s for s, d in depth.items() if d == 1): "sits one tap from a main screen"}
+    screens = [s.id for s in model.states if s.kind == "screen"]
+    places = {root_id(model): "sits on the first screen people see",
+              next(s for s in screens if depth[s] == 1): "sits on a screen one tap in"}
+    if tab := next((s for s in screens if depth[s] == 0 and s != root_id(model)), None):
+        places[tab] = "sits on a main tab"
     for sid, where in places.items():
         text = flows.reach_text(candidate(model, trigger_state_id=sid, trigger_event="After 3 days away."), model)
         assert text == (f"Reach scenario, not a measurement: the offer {where}, and appears only when this happens: "
                         "After 3 days away.")
     deep = candidate(model, trigger_state_id="s99", trigger_event="The user saves a story")
-    assert "sits a few taps in" in flows.reach_text(deep, model) and "every visit" not in flows.reach_text(deep, model)
+    assert "sits on a screen a few taps in" in flows.reach_text(deep, model)
+    assert "every visit" not in flows.reach_text(deep, model)
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_a_pop_up_is_placed_by_the_screen_it_covers_not_called_a_main_tab(app):
+    model = golden(app)
+    popups = [s for s in model.states if s.kind in ("modal", "sheet") and s.parent_id]
+    if not popups:
+        pytest.skip(f"{app}'s golden has no modal or sheet")
+    for s in popups:
+        covered = flows.reach_text(candidate(model, trigger_state_id=s.parent_id), model).split("sits on ")[1]
+        text = flows.reach_text(candidate(model, trigger_state_id=s.id), model)
+        assert text.split("the offer ")[1] == f"sits in a pop-up over {covered}", (s.id, text)
+    if app == "janitorai":
+        assert "sits in a pop-up over the first screen people see" in flows.reach_text(
+            candidate(model, trigger_state_id="s02"), model)
 
 
 def judged(tmp_path, cid: str, fail: str | None) -> Decision:
