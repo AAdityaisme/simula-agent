@@ -495,23 +495,33 @@ def mock_scope(states: list[State], edges: list[Edge], meaning: ModelMeaning) ->
     currency, or ad, then every state showing any other mechanic (a modal or sheet brings every layer under
     it first), then every state on the core flows in flow order. No cap, and nothing else: a tab or depth-1
     screen is in only when it is on a flow or holds a mechanic. Never blocked or outside the app. An unsafe screen stays
-    out (it doesn't belong in a pitch) unless it is on a core flow, where a gap would break the flow. The
+    out (it doesn't belong in a pitch) unless it is on a core flow or under a flow's dialog, where a gap would break
+    the flow. The
     product model keeps every state. Every mechanic's screen stays in, because propose drops an idea whose
     trigger screen isn't mocked."""
     by_id = {s.id: s for s in states}
     edge_by_id = {e.id: e for e in edges}
     root = next((s.id for s in states if s.kind == "screen"), None)
+
+    def layers(sid: str) -> list[str]:
+        """The state and every layer under it, down to the screen: a dialog over a dialog needs them all."""
+        chain = [sid]
+        while chain[0] in by_id and by_id[chain[0]].parent_id not in (None, *chain):
+            chain.insert(0, by_id[chain[0]].parent_id)
+        return chain
+
     flow_states = [sid for f in meaning.flows for i in f.edge_ids if i in edge_by_id
                    for sid in (edge_by_id[i].from_state, edge_by_id[i].to_state)]
+    # A flow modal keeps its parent even when that parent is unsafe: whether its content shows is the renderer's
+    # and the blur's job, not scope's.
+    on_flow = {layer for sid in flow_states for layer in layers(sid)}
     eligible = {s.id for s in states if s.kind not in ("blocked", "external")
-                and (s.content_rating != "unsafe" or s.id in flow_states)}
+                and (s.content_rating != "unsafe" or s.id in on_flow)}
     first = sorted(meaning.mechanics, key=lambda m: m.kind not in SCOPE_KINDS)
     mechanic_states = [i.split(".")[0] for m in first for i in m.evidence_ids]
     ordered = []
     for sid in [root, *mechanic_states, *flow_states]:
-        chain = [sid]  # a dialog over a dialog needs every layer under it, down to the screen
-        while chain[0] in by_id and by_id[chain[0]].parent_id not in (None, *chain):
-            chain.insert(0, by_id[chain[0]].parent_id)
+        chain = layers(sid)
         if all(c in eligible for c in chain[:-1]):
             ordered += chain
     return list(dict.fromkeys(s for s in ordered if s in eligible))
