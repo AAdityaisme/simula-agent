@@ -595,8 +595,7 @@ class Explorer:
         self.human("the device failed after the tour", self.stop_reason)
 
     def human(self, what: str, why: str) -> None:
-        needs_human(self.ctx.run_dir, "explore", what, why, ["trace.jsonl", "explore/actions.jsonl"],
-                    f"simula explore {self.ctx.app['name']} --run {self.ctx.run_dir.name}")
+        needs_human(self.ctx.run_dir, "explore", what, why, ["trace.jsonl", "explore/actions.jsonl"], rerun(self.ctx))
 
     # ---------- launching ----------
 
@@ -626,11 +625,11 @@ class Explorer:
         self.segments.append([])
 
     def count_relaunch(self, why: str) -> None:
-        self.relaunch_reasons.append(why)
         cap = MAX_RELAUNCHES + (0 if self.touring else CORE_RELAUNCHES)
         if self.relaunches >= cap:
-            self.human(f"the explorer needed relaunch {cap + 1}", f"{cap} relaunches used")
+            self.human(f"the explorer needed relaunch {cap + 1}", f"{cap} relaunches used; the next was for: {why}")
             raise Stop("relaunch cap")
+        self.relaunch_reasons.append(why)
         self.relaunches += 1
         if self.current:
             self.log(self.current, self.root, Move("relaunch", why=why), None, "unknown", "", "ok")
@@ -1603,11 +1602,15 @@ class Explorer:
     def ask(self, prompt: str, step: str, text: str, pngs: bytes | list[bytes], schema, max_tokens: int):
         role = config.roles(self.ctx.profile)["explore_vision"]
         images = [{"type": "image", "png": png} for png in ([pngs] if isinstance(pngs, bytes) else pngs)]
-        parsed, _ = llm.call(trace_path=self.trace_path, stage="explore", step=step, model=role["model"],
-                             effort=role.get("effort"), system=(PROMPTS / f"{prompt}.md").read_text(),
-                             messages=[{"role": "user", "content": [*images, {"type": "text", "text": text}]}],
-                             max_tokens=max_tokens, budget=self.budget, schema=schema, no_cache=self.ctx.no_cache,
-                             replay=self.ctx.replay, cache_dir=self.cache_dir)
+        try:
+            parsed, _ = llm.call(trace_path=self.trace_path, stage="explore", step=step, model=role["model"],
+                                 effort=role.get("effort"), system=(PROMPTS / f"{prompt}.md").read_text(),
+                                 messages=[{"role": "user", "content": [*images, {"type": "text", "text": text}]}],
+                                 max_tokens=max_tokens, budget=self.budget, schema=schema, no_cache=self.ctx.no_cache,
+                                 replay=self.ctx.replay, cache_dir=self.cache_dir)
+        except llm.LLMFailure:
+            self.counts["model call failures"] += 1
+            raise
         return parsed
 
     def boxed_png(self, s: Seen, cands: list[ob.Candidate], names: list[str], image: Image.Image | None = None) -> bytes:
@@ -1810,7 +1813,8 @@ def counters(ex: Explorer) -> list[str]:
             f"{c['model finished while send still busy']}",
             f"walk picks the screen no longer showed: {c['walk picks the screen no longer shows']}",
             f"model done or back refused while the screen had untried options: "
-            f"{c['model done refused while options were left']}"]
+            f"{c['model done refused while options were left']}",
+            f"model calls that failed (each traced where it happened): {c['model call failures']}"]
 
 
 def ended(ex: Explorer, s: Seen) -> str:
@@ -1840,13 +1844,18 @@ def redact_list() -> list[str]:
     return [s.strip() for s in os.environ.get("SIMULA_REDACT", "").split(",") if s.strip()]
 
 
+def rerun(ctx: Ctx) -> str:
+    """What to run after a needs-human: explore has no resume, so the same command explores again from the start."""
+    return f"simula explore {ctx.app['name']} --run {ctx.run_dir.name}  # re-runs explore; it starts over"
+
+
 def run(ctx: Ctx) -> None:
     if ctx.replay:
         raise llm.ReplayMiss("explore drives the device; --replay reuses a finished explore/ folder")
     if not redact_list():
         needs_human(ctx.run_dir, "explore", "SIMULA_REDACT is empty",
                     "the explorer saves screenshots and element lists, and nothing would hide the account handle",
-                    [".env", ".env.example"], f"simula explore {ctx.app['name']} --run {ctx.run_dir.name}")
+                    [".env", ".env.example"], rerun(ctx))
         raise ExploreFailed("SIMULA_REDACT is empty: list the emulator account's handle and names in .env, "
                             "comma-separated, then explore again")
     out = ctx.run_dir / "explore"

@@ -247,3 +247,28 @@ def test_an_anr_gets_one_wait_tap_by_its_id_and_the_tour_goes_on(tmp_path, monke
     notes = [line.note for line in runlog.read_trace(ex.run_dir / "trace.jsonl") if line.step == "anr"]
     assert notes == ["app not responding: tapped Wait once"]
     assert not any("not responding" in why for why in ex.relaunch_reasons) and len(ex.states) >= 8
+
+
+def test_the_exhibit_lists_one_reason_per_relaunch_and_the_refused_one_goes_to_needs_human(tmp_path, monkeypatch):
+    ex, _ = new_explorer(tmp_path, monkeypatch, janitor_like)
+    for n in range(stage.MAX_RELAUNCHES):
+        ex.count_relaunch(f"reason {n}")
+    with pytest.raises(stage.Stop, match="relaunch cap"):
+        ex.count_relaunch("the refused one")
+    assert ex.relaunches == len(ex.relaunch_reasons) == stage.MAX_RELAUNCHES
+    human = (ex.run_dir / "needs-human.md").read_text()
+    assert "the next was for: the refused one" in human and "# re-runs explore; it starts over" in human
+
+
+def test_a_failed_model_call_is_counted_for_the_exhibit(tmp_path, monkeypatch):
+    from simula import llm
+    from simula.contracts import Progress
+    ex, _ = new_explorer(tmp_path, monkeypatch, janitor_like)
+
+    def failing(**kwargs):
+        raise llm.LLMFailure("timeout", "no answer in 60 s")
+    monkeypatch.setattr(llm, "call", failing)
+    with pytest.raises(llm.LLMFailure):
+        ex.ask("settle", "settle", "text", b"png", Progress, 400)
+    assert ex.counts["model call failures"] == 1
+    assert "model calls that failed (each traced where it happened): 1" in stage.counters(ex)
