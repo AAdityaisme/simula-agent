@@ -337,6 +337,8 @@ def test_when_the_plan_fits_the_lock_never_turns_a_batch_away(tmp_path, monkeypa
                                                     mock.shared_style(scope))) for batch in mock.batches(scope)]
     # sum() rounds differently from the plan's running total (it compensates), so allow a nanodollar either way.
     ctx.usd_cap = sum(worst) + max(worst) + 1e-9
+    # Fewer slots than batches, whatever the golden's scope size, so some batches wait for a slot.
+    monkeypatch.setattr(mock, "PARALLEL_BATCHES", min(mock.PARALLEL_BATCHES, len(worst) - 1))
     together = threading.Barrier(mock.PARALLEL_BATCHES, timeout=1)
 
     def provider(model_id, system, messages, effort, schema, max_tokens, total_timeout=None):
@@ -351,7 +353,7 @@ def test_when_the_plan_fits_the_lock_never_turns_a_batch_away(tmp_path, monkeypa
     mock.run(ctx)
 
     trace = [t for t in read_trace(run_dir / "trace.jsonl") if t.stage == "mock"]
-    assert len(worst) > mock.PARALLEL_BATCHES
+    assert 1 <= mock.PARALLEL_BATCHES < len(worst)
     assert [t.step for t in trace if t.outcome == "cap"] == []
     assert sum(t.usd for t in trace) <= ctx.usd_cap
 
