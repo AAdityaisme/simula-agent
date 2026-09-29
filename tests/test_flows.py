@@ -184,7 +184,8 @@ def test_each_idea_gets_a_flow_slide_and_a_why_slide_and_every_idea_is_scored_on
     assert deck.count('<section class="slide scores">') == 1
     assert "FIXTURE TEST DATA" in deck
     assert (built / "flows" / "slides.pdf").read_bytes().startswith(b"%PDF")
-    assert "## Not wired" not in (built / "exhibits" / "07-flows.md").read_text()
+    exhibit = (built / "exhibits" / "07-flows.md").read_text()
+    assert "## Not wired" not in exhibit and "## Layout" not in exhibit
 
 
 def test_the_flow_slide_walks_from_today_to_what_they_get_and_says_each_thing_once(built):
@@ -285,22 +286,49 @@ def test_a_cost_line_that_isnt_pass_is_a_mark_on_every_slide_and_never_the_verdi
                 assert "Recommended with one condition" not in texts[-1]
 
 
-def test_the_why_slides_box_clears_the_footer_on_real_output(tmp_path):
-    """Round 6's rationales are long; the condition or cost box used to run into the footer."""
-    decisions = DecisionsFile.model_validate_json((ROUND6 / "judge" / "decisions.json").read_text()).decisions
-    ideas, model = flows.load_candidates(ROUND6), golden("luzia")
-    why = [flows.idea_slides(drawn(ideas[d.candidate_id], d.model_copy(update={"final": final})), model, ROUND6)[-1]
-           for d in flows.select(decisions, None) for final in ("accept", "conditional")]
-    (tmp_path / "why.html").write_text(flows.Template(flows.TEMPLATE.read_text()).substitute(title="why",
-                                                                                           slides="".join(why)))
+def rendered_overflows(slides_html: str) -> list[str]:
+    deck = flows.Template(flows.TEMPLATE.read_text()).substitute(title="t", slides=slides_html)
     with sync_playwright() as p:
         page = p.chromium.launch().new_page(viewport={"width": flows.SLIDE_W, "height": flows.SLIDE_H})
-        page.goto((tmp_path / "why.html").as_uri())
-        gaps = page.evaluate("() => [...document.querySelectorAll('section.slide')].map(s => "
-                             "s.querySelector('footer').getBoundingClientRect().top - "
-                             "s.querySelector('.why').getBoundingClientRect().bottom)")
-    assert sum('class="condition"' in s for s in why) == 7
-    assert min(gaps) >= 0, gaps
+        page.set_content(deck)
+        return flows.overflows(page)
+
+
+def test_the_overflow_check_names_each_slide_whose_text_runs_off_it_or_into_its_footer():
+    long = "word " * 400
+    found = rendered_overflows(
+        '<section class="slide main" data-part="flow" data-idea="c01"><div style="position:absolute;left:1200px;'
+        'width:200px">wide</div></section>'
+        '<section class="slide main" data-part="why" data-idea="c02"><p style="position:absolute;top:640px;margin:0">'
+        "two lines<br>of text</p><footer>the footer</footer></section>"
+        f'<section class="slide cover"><div style="height:40px;overflow:hidden">{long}</div></section>'
+        f'<section class="slide main" data-part="why" data-idea="c03"><header><span class="idea">{long}</span>'
+        "</header><p>fits</p><footer>the footer</footer></section>")
+    assert len(found) == 3, found
+    assert found[0].startswith('slide 1 (c01 flow): div "wide" runs 120px past the slide')
+    assert found[1].startswith('slide 2 (c02 why): p "two linesof text" runs') and found[1].endswith("into the footer")
+    assert found[2].startswith('slide 3: div "word') and found[2].endswith("is cut off")
+
+
+def test_every_slide_fits_on_real_output():
+    """Round 6's long rationales, offer copy, and triggers, as accepted and as CONDITIONAL ideas."""
+    decisions = DecisionsFile.model_validate_json((ROUND6 / "judge" / "decisions.json").read_text()).decisions
+    ideas, model = flows.load_candidates(ROUND6), golden("luzia")
+    deck = [slide for d in flows.select(decisions, None) for final in ("accept", "conditional")
+            for slide in flows.idea_slides(drawn(ideas[d.candidate_id], d.model_copy(update={"final": final})), model,
+                                           ROUND6)]
+    deck += flows.score_slides(decisions, ideas, [], ROUND6)
+    assert sum('class="condition"' in s for s in deck) == 7
+    assert rendered_overflows("".join(deck)) == []
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_a_slide_that_overflows_is_reported_in_the_exhibit_and_the_trace(tmp_path, app):
+    run_dir = run_flows(tmp_path, app, changes={"c01": {"trigger_event": "The user waits. " * 120}})
+    exhibit = (run_dir / "exhibits" / "07-flows.md").read_text()
+    assert "## Layout" in exhibit and '- slide 2 (c01 flow): .cap "When it appears' in exhibit
+    assert any(line.step == "layout" and line.outcome == "error" and line.note.startswith("slide 2 (c01 flow)")
+               for line in read_trace(run_dir / "trace.jsonl"))
 
 
 @pytest.mark.parametrize("app", APPS)

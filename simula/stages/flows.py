@@ -137,6 +137,30 @@ FLOW_JS = """(() => {
   }).observe(ad, {attributes: true, attributeFilter: ['class']});
 })();"""
 
+OVERFLOW_JS = """() => [...document.querySelectorAll('.slide')].flatMap((slide, i) => {
+  const box = slide.getBoundingClientRect(), footer = slide.querySelector('footer');
+  const floor = footer ? footer.getBoundingClientRect().top : box.bottom;
+  const name = `slide ${i + 1}` + (slide.dataset.idea ? ` (${slide.dataset.idea} ${slide.dataset.part})` : '');
+  const bad = [], lines = [];
+  for (const el of slide.querySelectorAll('*')) {
+    if (el === footer || footer?.contains(el) || el.contains(footer) || el.closest('.phone, svg') ||
+        bad.some(b => b.contains(el)) || !el.checkVisibility()) continue;
+    const b = el.getBoundingClientRect(), style = getComputedStyle(el);
+    if (!b.width || !b.height) continue;
+    const past = Math.max(b.right - box.right, b.bottom - box.bottom, box.left - b.left, box.top - b.top);
+    const into = b.bottom - floor;
+    const cut = style.overflow !== 'visible' && style.textOverflow !== 'ellipsis' &&
+                (el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1);
+    if (past <= 1 && into <= 1 && !cut) continue;
+    bad.push(el);
+    const what = (el.className ? '.' + String(el.className).split(' ')[0] : el.tagName.toLowerCase()) +
+                 ` "${el.textContent.trim().slice(0, 40)}"`;
+    lines.push(`${name}: ${what} ` + (past > 1 ? `runs ${Math.round(past)}px past the slide's edge`
+               : into > 1 ? `runs ${Math.round(into)}px into the footer` : 'is cut off'));
+  }
+  return lines;
+})"""
+
 
 # ---------- inputs and selection ----------
 
@@ -767,16 +791,23 @@ def deck(ctx: Ctx, model: ProductModel, flows: list[dict], not_built: list[tuple
                                                      slides=watermark + "\n".join(slides))
 
 
-def write_pdf(slides: Path) -> Path:
-    pdf = slides.with_suffix(".pdf")
+def overflows(page) -> list[str]:
+    """Where the rendered deck's text or boxes run past a slide's edge, into its footer, or get cut off: one line
+    per outermost element, naming its slide. Screenshots and deliberate ellipses don't count."""
+    return page.evaluate(OVERFLOW_JS)
+
+
+def write_pdf(slides: Path) -> list[str]:
+    """Prints the deck to PDF beside it and returns where its layout overflows."""
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page(viewport={"width": SLIDE_W, "height": SLIDE_H})
         page.goto(slides.as_uri())
         page.wait_for_load_state("networkidle")
-        page.pdf(path=pdf, width=f"{SLIDE_W}px", height=f"{SLIDE_H}px", print_background=True)
+        problems = overflows(page)
+        page.pdf(path=slides.with_suffix(".pdf"), width=f"{SLIDE_W}px", height=f"{SLIDE_H}px", print_background=True)
         browser.close()
-    return pdf
+    return problems
 
 
 # ---------- stage ----------
@@ -788,7 +819,7 @@ def decline_text(flow: dict) -> str:
 
 
 def exhibit(flows: list[dict], not_built: list[tuple[Decision, str]], chosen_from: str, source: Path,
-            run_dir: Path, usd: float) -> str:
+            run_dir: Path, usd: float, layout: list[str]) -> str:
     lines = ["# 07 · flows", "", f"{len(flows)} idea(s) drawn ({chosen_from}), from `{source.relative_to(run_dir)}/`. "
              f"Model spend this stage: ${usd:.4f}.", "",
              "| Idea | Verdict | Edits applied / rejected | Steps wired | Grants in the walk | Saying no | Flow mock |",
@@ -803,6 +834,8 @@ def exhibit(flows: list[dict], not_built: list[tuple[Decision, str]], chosen_fro
         lines += [f"- {cid} step {n} (`{s['state_id']}`): {s['why']}" for cid, n, s in broken]
     if not_built:
         lines += ["", "## Not built", ""] + [f"- {d.candidate_id}: {why}" for d, why in not_built]
+    if layout:
+        lines += ["", "## Layout", ""] + [f"- {problem}" for problem in layout]
     lines += ["", "Deck: `flows/slides.html`, `flows/slides.pdf`."]
     return "\n".join(lines) + "\n"
 
@@ -848,6 +881,8 @@ def run(ctx: Ctx) -> None:
         run_trace(run_dir, stage="flows", step=f"build:{d.candidate_id}", decider="code", outcome="error",
                   note=f"not built: {why}"[:300])
     (out / "slides.html").write_text(deck(ctx, model, flows, not_built, decisions, candidates))
-    write_pdf(out / "slides.html")
+    layout = write_pdf(out / "slides.html")
+    for problem in layout:
+        run_trace(run_dir, stage="flows", step="layout", decider="code", outcome="error", note=problem[:300])
     usd = sum(line.usd for line in read_trace(run_dir / "trace.jsonl") if line.stage == "flows")
-    write_exhibit(run_dir, 7, "flows", exhibit(flows, not_built, chosen_from, source, run_dir, usd))
+    write_exhibit(run_dir, 7, "flows", exhibit(flows, not_built, chosen_from, source, run_dir, usd, layout))
