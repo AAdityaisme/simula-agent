@@ -260,7 +260,7 @@ class Explorer:
         self.core_completed = 0  # passes that did the core action and saw its result (a reply, a load, a limit)
         self.paywall: str | None = None
         self.relaunch_reasons: list[str] = []
-        self.last_summary = ""
+        self.last_summary, self.last_seen = "", False  # the last watch's timing line; whether its result showed
         self.stop_kind = self.stop_evidence = ""
         self.tour_actions = 0
         self.replay = (0, 0)
@@ -1352,14 +1352,14 @@ class Explorer:
                 if n > 1 and not self.at_core(n):
                     self.core_results.append(f"pass {n}: could not get back to {self.core.state.sid}")
                     return
-                result, hit = self.core_once(n)
+                result, seen, hit = self.core_once(n)
             except DEVICE_ERRORS as e:
                 self.core_results.append(f"pass {n}: {type(e).__name__}: {e}"[:200])
                 if isinstance(e, DEVICE_LOST):
                     raise
                 return
             self.core_results.append(f"pass {n}: {result or 'no measurement'}")
-            self.core_completed += bool(result or hit)
+            self.core_completed += bool(seen or hit)
             if hit:
                 self.core_hit = f"{hit} on pass {n}"
                 if self.current.upsell:
@@ -1379,10 +1379,11 @@ class Explorer:
             self.current = self.record(self.obs, None, None, None)
         return self.take_landing(self.core.state) or self.goto(self.core.state)
 
-    def core_once(self, n: int) -> tuple[str, str]:
-        """One pass of the core action. Returns its measurement and what stopped the loop, if anything."""
+    def core_once(self, n: int) -> tuple[str, bool, str]:
+        """One pass of the core action. Returns its measurement, whether its result showed, and what stopped the
+        loop, if anything."""
         core, before = self.core, ob.texts(self.obs.elements, self.device)
-        self.last_summary = ""
+        self.last_summary, self.last_seen = "", False
         if core.kind == "chat":
             message = CORE_MESSAGES[(n - 1) % len(CORE_MESSAGES)]
             box, idle = self.live_box() or core.controls[0], self.live_composer()
@@ -1394,7 +1395,7 @@ class Explorer:
                 _, send = self.live_composer()
                 self.act(Move("tap", send, why="core loop: send"), purpose="core", loop=n,
                          watch=lambda: self.watch(before | {message}, "reply", idle))
-            return self.last_summary, self.stop_text()
+            return self.last_summary, self.last_seen, self.stop_text()
         control = core.controls[(n - 1) % len(core.controls)]
         verb = "load" if core.kind == "feed" else "result"
         self.act(Move("tap", control, why=f"core loop: {core.kind}"), purpose="core", loop=n,
@@ -1404,7 +1405,7 @@ class Explorer:
                 self.leave()
             elif self.current is not core.state:
                 self.act(Move("back", why="core loop: back"), purpose="core", loop=n)
-        return self.last_summary, self.stop_text()
+        return self.last_summary, self.last_seen, self.stop_text()
 
     def stop_text(self) -> str:
         return f"{self.stop_kind} ({self.stop_evidence})" if self.stop_kind else ""
@@ -1491,7 +1492,7 @@ class Explorer:
         seconds = self.clock() - start
         self.settles.append((round(seconds, 1), how))
         self.note("settle", f"{verb}: {how} after {seconds:.0f} s, {asks} model checks")
-        self.last_summary = ob.timing_line(verb, samples, seconds)
+        self.last_summary, self.last_seen = ob.timing_line(verb, samples, seconds), begun
         return self.last_summary
 
     def idle_again(self, idle: tuple[Image.Image, ob.Candidate] | None, elements: list[dict],

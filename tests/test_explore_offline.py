@@ -292,6 +292,22 @@ def test_a_growing_chat_gets_all_eight_passes_with_no_false_stop(tmp_path, monke
     assert "8 of 8 passes attempted, 8 completed." in exhibit and "All 8 passes ran and met no limit." in exhibit
 
 
+def test_sends_that_bring_no_reply_are_attempted_passes_and_the_exhibit_claims_no_clean_run(tmp_path, monkeypatch):
+    def silent(clock):
+        phone = janitor_like(clock)
+
+        def send():
+            phone.draft, phone.sent = "", phone.sent + 1
+        phone.send = send
+        return phone
+    ex, phone = explore(tmp_path, monkeypatch, phone_factory=silent)
+    assert ex.core.kind == "chat" and phone.sent == ex.core_reps and not ex.core_hit
+    exhibit = (ex.run_dir / "exhibits" / "01-explore.md").read_text()
+    assert f"{ex.core_reps} of {ex.core_reps} passes attempted, 0 completed." in exhibit
+    assert "no reply within" in exhibit and "met no limit" not in exhibit
+    assert "which doesn't show the app has none" in exhibit
+
+
 def test_a_limit_dialog_stops_the_loop_on_the_pass_it_appears(tmp_path, monkeypatch):
     def limited(clock):
         phone = chatty(clock)
