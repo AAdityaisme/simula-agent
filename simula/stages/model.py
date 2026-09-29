@@ -243,8 +243,11 @@ def load_edges(explore_dir: Path, states: list[State]) -> tuple[list[Edge], list
             where = f"the tap at {a.tap_px.x},{a.tap_px.y}" if a.tap_px else "the tap"
             notes.append(f"step {a.step}: {a.mcp_ref} does not hold {where}; "
                          f"bound to {element.id if element else 'no element'}")
-        changed = a.change_summary or (value_changes(by_id[a.from_state], by_id[a.to_state])
-                                       if a.step in bracketed else "")
+        diffed = "" if a.change_summary or a.step not in bracketed else value_changes(by_id[a.from_state],
+                                                                                        by_id[a.to_state])
+        if diffed:
+            notes.append(f"step {a.step}: what changed is code's diff of the move's two captures: {diffed}")
+        changed = a.change_summary or diffed
         edges.setdefault(edge_id, Edge(
             id=edge_id, from_state=a.from_state, to_state=a.to_state, element_id=element.id if element else None,
             action=a.action, transition=a.transition, change_summary=changed))
@@ -664,21 +667,33 @@ def finish_elements(state: State, scope: set[str], tapped: set[str], image: Imag
     return state.model_copy(update={"elements": elements, "in_mock_scope": in_scope})
 
 
-def overlaps(a: Rect, b: Rect) -> bool:
-    return a.x < b.x + b.w and b.x < a.x + a.w and a.y < b.y + b.h and b.y < a.y + a.h
-
-
-def hide_covered(state: State, parent: State, box: Rect, tapped: set[str]) -> State:
-    """A sheet or modal's capture still lists the parent's elements under its box, and the mock draws the parent as
-    its own layer under it, so those elements are not drawn again in the sheet (in_mock false). An element is the
-    parent's when the parent has one of the same class, words, and box; one that starts an edge stays drawn.
-    `box` is the sheet's box in device px, as the explorer records it."""
+def hide_parent_copies(states: list[State], tapped: set[str]) -> tuple[list[State], list[str]]:
+    """A modal or sheet's capture still lists its parent's elements, under its box and above it behind the backdrop.
+    The mock draws the parent as its own layer and the modal's layer as the backdrop and the modal only, so those
+    copies are not drawn again (in_mock false). An element is the parent's when the parent has one of the same class,
+    words, and box; one that starts an edge stays drawn. Returns the states and the ids no longer drawn."""
     def key(e: Element) -> tuple:
         return e.type, e.text, e.label, e.rect_px.x, e.rect_px.y, e.rect_px.w, e.rect_px.h
-    theirs = {key(e) for e in parent.elements}
-    elements = [e.model_copy(update={"in_mock": False})
-                if key(e) in theirs and overlaps(e.rect_px, box) and e.id not in tapped else e for e in state.elements]
-    return state.model_copy(update={"elements": elements})
+    by_id = {s.id: s for s in states}
+    copies: set[str] = set()
+    for s in states:
+        if s.kind in ("modal", "sheet") and s.parent_id in by_id:
+            theirs = {key(p) for p in by_id[s.parent_id].elements}
+            copies |= {e.id for e in s.elements if e.in_mock and key(e) in theirs and e.id not in tapped}
+    hidden = [s.model_copy(update={"elements": [e.model_copy(update={"in_mock": False}) if e.id in copies else e
+                                                for e in s.elements]}) for s in states]
+    return hidden, sorted(copies)
+
+
+def asset_note(states: list[State], device: Device, copies: list[str]) -> str:
+    """What code decided about drawing the states in scope: crops saved, flat boxes drawn from their colors, wordless
+    corner boxes and a modal's copies of its parent not drawn."""
+    art = [e for s in states if s.in_mock_scope for e in s.elements if is_image_like(e, s.elements, device)]
+    corner = {e.id for e in art if edge_overlay(e, device)}
+    flat = [e.id for e in art if not e.asset_png and e.id not in corner]
+    return (f"crops saved: {sum(bool(e.asset_png) for e in art)}; flat boxes drawn from their colors: {len(flat)}"
+            + (f" ({', '.join(flat)})" if flat else "") + f"; wordless corner boxes not drawn: {len(corner)}; "
+            f"a parent's elements a modal or sheet repeats, not drawn again: {len(copies)}")
 
 
 # ---------- markdown ----------
@@ -725,8 +740,9 @@ def render_md(model: ProductModel) -> str:
     return "\n".join(lines) + "\n"
 
 
-def exhibit(model: ProductModel, rounds: list[list[str]], notes: list[str]) -> str:
+def exhibit(model: ProductModel, rounds: list[list[str]], notes: list[str], assets: str) -> str:
     lines = ["# 02 · model", "",
+             f"- app name (the meaning call, read off the screens): {model.app_name or 'no screen shows it'}",
              f"- {len(model.states)} states, {sum(len(s.elements) for s in model.states)} elements, "
              f"{len(model.edges)} edges (all from explore, code-owned)",
              f"- app category: {model.app_category}; {len(model.flows)} core flows; {len(model.mechanics)} mechanics; "
@@ -737,6 +753,7 @@ def exhibit(model: ProductModel, rounds: list[list[str]], notes: list[str]) -> s
              + (", ".join(t.term + (EVERYDAY if t.everyday else "") for t in model.terms if not t.observed) or "none"),
              f"- open questions for the explorer: {len(model.questions)}",
              f"- mock scope (code, priority order): {', '.join(model.mock_order) or 'none'}",
+             f"- drawing (code): {assets}",
              "- ratings: " + ", ".join(f"{s.id} {s.content_rating}" for s in model.states)]
     for n, rejected in enumerate(rounds, start=1):
         title = "first answer" if n == 1 else "retry"
@@ -830,7 +847,10 @@ def run(ctx: Ctx) -> None:
     mock_order = mock_scope(states, edges, meaning)
     scope = set(mock_order)
     states = [finish_elements(s, scope, tapped, images[s.id], out, device) for s in states]
+    states, copies = hide_parent_copies(states, tapped)
+    assets = asset_note(states, device, copies)
     run_trace(ctx.run_dir, stage="model", step="scope", decider="code", note=", ".join(mock_order))
+    run_trace(ctx.run_dir, stage="model", step="assets", decider="code", note=assets)
     bullets = folded_bullets(meaning.value_ledger, states)
     quoted = ", ".join(i.evidence_ids[0] for i in bullets) or "none"
     run_trace(ctx.run_dir, stage="model", step="bullets", decider="code",
@@ -849,4 +869,4 @@ def run(ctx: Ctx) -> None:
         mock_order=mock_order)
     (out / "product_model.json").write_text(model.model_dump_json(indent=1))
     (out / "product_model.md").write_text(render_md(model))
-    write_exhibit(ctx.run_dir, 2, "model", exhibit(model, rounds, notes))
+    write_exhibit(ctx.run_dir, 2, "model", exhibit(model, rounds, notes, assets))

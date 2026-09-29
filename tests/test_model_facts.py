@@ -163,10 +163,11 @@ def test_an_edge_says_what_changed_only_when_its_captures_sit_right_around_it(na
     lines = [move(1, a.id, b.id), move(2, b.id, a.id), move(3, a.id, b.id, action="swipe"),
              move(4, b.id, a.id, summary="reply started 2 s", action="back")]
     (explore / "actions.jsonl").write_text("".join(line.model_dump_json() + "\n" for line in lines))
-    edges, _ = stage.load_edges(explore, [a, b, *states[2:]])
+    edges, notes = stage.load_edges(explore, [a, b, *states[2:]])
     assert [(e.id, e.change_summary) for e in edges] == [
         (f"{a.id}.tap>{b.id}", "7 chats → 8 chats"), (f"{b.id}.tap>{a.id}", ""), (f"{a.id}.swipe>{b.id}", ""),
         (f"{b.id}.back>{a.id}", "reply started 2 s")]
+    assert notes == ["step 1: what changed is code's diff of the move's two captures: 7 chats → 8 chats"]
 
 
 @pytest.mark.parametrize("name", APPS)
