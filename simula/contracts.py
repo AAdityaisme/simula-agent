@@ -129,15 +129,24 @@ class TermMeaning(Strict):
     meaning: str = Field(description="One plain-language line.")
     defined_by: list[str] = Field(description="Element ids whose text defines or explains the term.")
     used_in: list[str] = Field(description="Mechanic or ledger ids that use the term.")
-    everyday: bool = Field(default=False, description="True when the word's plain-English meaning is what it means "
+    everyday: bool = Field(description="True when the word's plain-English meaning is what it means "
                            "in this app (a plan called Basic or Yearly, a Search tab); false for a coined name, an "
                            "in-app unit or currency, or a common word the app uses in its own sense. An everyday "
                            "term is never flagged.")
 
 
 class Term(TermMeaning):
-    observed: bool = Field(description="Code: false when no cited element's text carries the term; the meaning "
-                                       "then reads 'meaning not observed' and an idea that uses it is flagged.")
+    # The model must answer it (TermMeaning); a product model stored before the field existed still parses.
+    everyday: bool = False
+    observed: bool = Field(description="Code: true when a cited element counts on a screen that an anchor (app text "
+                                       "that carries the term and says more in words) explains: a cited anchor on it, "
+                                       "or a recorded tap on an anchor, cited or not, that opened it. A cited element "
+                                       "that carries the term counts only if it is an anchor itself. Otherwise the "
+                                       "meaning reads 'meaning not observed' and an idea that uses the term is flagged "
+                                       "unless the term is everyday.")
+    anchor_taps: list[str] = Field(default=[], description="Code: ids of the recorded taps on an anchor whose opened "
+                                   "screen a defined_by element sits on, where no cited anchor is; empty when the "
+                                   "term is observed without one.")
 
 
 class QuestionDraft(Strict):

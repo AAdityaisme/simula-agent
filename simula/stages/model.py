@@ -27,6 +27,9 @@ ANSWER_RESERVE_TOKENS = 8000
 TOKENS_PER_NAME = 30
 QUESTION_CAP = 5
 NOT_OBSERVED = "meaning not observed"
+EVERYDAY = " (everyday word, never flagged)"
+# Two or more letters in a row, each with the marks written on it: "मैसेज" is three letters, not three runs of one.
+WORD = re.compile(f"(?:[^\\W\\d_][{text.MARK}]*){{2,}}")
 LOOP_UNITS = ("s", "chars")
 MEASURE = re.compile(r"^(?P<what>.*?)\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>[^\d\s]*)$")
 MONEY_KINDS = ("paywall", "limit", "currency")
@@ -133,20 +136,24 @@ def group_repeats(state: State, tapped: set[str]) -> State:
     return state.model_copy(update={"elements": elements})
 
 
-def load_states(explore_dir: Path, device: Device) -> tuple[list[State], dict[str, Image.Image]]:
-    states, images = [], {}
+def load_states(explore_dir: Path, device: Device) -> tuple[list[State], dict[str, Image.Image], set[str]]:
+    """The states, their screenshots, and the ids of elements whose label a model wrote (an icon-pass name or a
+    vision-pass element), which are never app text."""
+    states, images, model_labels = [], {}, set()
     for path in sorted(p for p in (explore_dir / "states").glob("*.json") if "." not in p.stem):
         sf = StateFile.model_validate_json(path.read_text())
         image = Image.open(explore_dir / sf.screenshot).convert("RGB")
         tree = read_tree(explore_dir / sf.elements_reply) if sf.elements_reply else []
         images[sf.state_id] = image
+        elements = build_elements(sf.state_id, tree, sf.icon_labels, sf.vision_elements, np.asarray(image), device)
+        named = {i.mcp_ref for i in sf.icon_labels}
+        model_labels |= {e.id for e in elements if e.source == "vision" or e.mcp_ref in named}
         states.append(State(
             id=sf.state_id, kind=sf.kind, parent_id=sf.parent_id, name=sf.state_id, purpose="",
-            fingerprint=sf.fingerprint, canonical_png=f"states/{sf.state_id}.png",
-            elements=build_elements(sf.state_id, tree, sf.icon_labels, sf.vision_elements, np.asarray(image), device),
+            fingerprint=sf.fingerprint, canonical_png=f"states/{sf.state_id}.png", elements=elements,
             in_mock_scope=False, content_rating="unknown", dynamic_regions=sf.dynamic_regions,
             blocked_reason=sf.blocked_reason))
-    return states, images
+    return states, images, model_labels
 
 
 def tapped_element(state: State, line: ActionLine) -> Element | None:
@@ -416,7 +423,7 @@ def check_meaning(meaning: ModelMeaning, states: list[State], edges: list[Edge])
     uses = {m.id: m.summary for m in cleaned.mechanics} | {i.id: i.verbatim for i in cleaned.value_ledger}
 
     def term_problem(t):
-        if not any(i in uses and text.find(t.term, uses[i], ignore_case=True) for i in t.used_in):
+        if not any(i in uses and text.phrase(t.term).search(uses[i]) for i in t.used_in):
             return f"used_in {t.used_in} names no kept mechanic or ledger line that uses it"
         return None
     cleaned = cleaned.model_copy(update={"terms": keep(meaning.terms, term_problem, "term", lambda t: repr(t.term))})
@@ -434,23 +441,53 @@ def keyword_floor(state: State, keywords: list[str]) -> ContentRating:
     return "unsafe" if pattern and re.search(pattern, words, re.IGNORECASE) else state.content_rating
 
 
-def resolve_terms(meaning: ModelMeaning, states: list[State]) -> list[Term]:
-    """A term keeps its meaning only when a cited element's own text carries it, and that element is not the
-    evidence of a line that uses the term (a bullet can't define itself); otherwise it is marked 'meaning not
-    observed', and an idea that uses it is flagged."""
+def resolve_terms(meaning: ModelMeaning, states: list[State], edges: list[Edge], model_labels: set[str]) -> list[Term]:
+    """Which terms a screen explains. An anchor is app text that carries the term (as a whole word) and, with the term
+    cut out, still says something in words of two or more letters, so a bare name or a count ("1.8k tokens") is never
+    one. A screen is explained when a cited element on it is an anchor, or when a recorded tap on an anchor (cited or
+    not) opened it: "Upgrade to <term>" opening the plan's benefit list; a tap that changed its own screen opens
+    nothing. On an explained screen, a cited element that carries the term counts only if it is an anchor itself, and
+    one that doesn't (the bullets under a plan's name) counts when it has any word character. `defined_by` keeps what
+    counts, so it holds only the model's own citations and may name none of the anchors; `anchor_taps` names the taps
+    it relied on. Only on-screen text decides: whether the model also quoted an element in the ledger doesn't matter,
+    and a label a model wrote (`model_labels`) is never app text. A term with nothing that counts is marked 'meaning
+    not observed', and an idea that uses it is flagged unless the model labeled it `everyday`; the label is kept as
+    written and never makes a term observed. Known limits: a call to action ("Unlock <term>"), a role word in an app's
+    own label ("<term> tab") or a sentence that only uses the term ("monthly <term> with our models") reads as an
+    explanation, a tap on an element that names the term only in passing (a list row "<name>, 2 <term>") carries it
+    to whatever screen that tap opened, and a price on a plan card ("Weekly", "$1.99") doesn't explain; which cited
+    text explains the term stays the model's call."""
     elements = {e.id: e for s in states for e in s.elements}
-    evidence = {m.id: m.evidence_ids for m in meaning.mechanics} | {i.id: i.evidence_ids for i in meaning.value_ledger}
+    screen = {e.id: s.id for s in states for e in s.elements}
+    taps = [g for g in edges if g.action == "tap" and g.element_id in elements and g.to_state != g.from_state]
 
-    def carries(eid: str, term: str) -> bool:
-        e = elements.get(eid)
-        return bool(e) and any(text.find(term, f, ignore_case=True) for f in (e.text, e.label))
+    def app_text(e: Element) -> list[str]:
+        return [e.text] if e.id in model_labels else [e.text, e.label]
+
+    def rest(e: Element, name: re.Pattern[str]) -> str:
+        return " ".join(name.sub(" ", f) for f in app_text(e))
+
+    def carries(e: Element, name: re.Pattern[str]) -> bool:
+        return any(name.search(f) for f in app_text(e))
+
+    def anchors(e: Element, name: re.Pattern[str]) -> bool:
+        return carries(e, name) and WORD.search(rest(e, name)) is not None
+
+    def counts(e: Element, name: re.Pattern[str]) -> bool:
+        return anchors(e, name) if carries(e, name) else re.search(r"\w", rest(e, name)) is not None
 
     terms = []
     for t in meaning.terms:
-        using = {e for i in t.used_in for e in evidence.get(i, [])}
-        defined_by = [i for i in t.defined_by if i not in using and carries(i, t.term)]
+        name = text.phrase(t.term)
+        cited = [elements[i] for i in t.defined_by if i in elements]
+        anchored = {screen[e.id] for e in cited if anchors(e, name)}
+        opened = [g for g in taps if anchors(elements[g.element_id], name)]
+        explained = anchored | {g.to_state for g in opened}
+        defined_by = [e.id for e in cited if screen[e.id] in explained and counts(e, name)]
+        through = {screen[i] for i in defined_by} - anchored
         terms.append(Term(term=t.term, meaning=t.meaning if defined_by else NOT_OBSERVED, defined_by=defined_by,
-                          used_in=t.used_in, observed=bool(defined_by)))
+                          used_in=t.used_in, everyday=t.everyday, observed=bool(defined_by),
+                          anchor_taps=[g.id for g in opened if g.to_state in through]))
     return terms
 
 
@@ -572,7 +609,9 @@ def render_md(model: ProductModel) -> str:
     lines += ["", "## Value ledger", ""]
     lines += [f"- {i.kind}: \"{i.verbatim}\" · {', '.join(i.evidence_ids)}" for i in model.value_ledger] or ["- none"]
     lines += ["", "## App terms", ""]
-    lines += [f"- **{t.term}**: {t.meaning}" + (f" · defined by {', '.join(t.defined_by)}" if t.observed else "")
+    lines += [f"- **{t.term}**{EVERYDAY if t.everyday else ''}: {t.meaning}"
+              + (f" · defined by {', '.join(t.defined_by)}" if t.observed else "")
+              + (f" · through tap {', '.join(t.anchor_taps)}" if t.anchor_taps else "")
               + f" · used in {', '.join(t.used_in)}" for t in model.terms] or ["- none"]
     lines += ["", "## Values shared across screens", ""]
     lines += [f"- {v.label}: {v.value_text} · {', '.join(v.evidence_ids)}" for v in model.cross_screen_values] or ["- none"]
@@ -591,7 +630,7 @@ def exhibit(model: ProductModel, rounds: list[list[str]], notes: list[str]) -> s
              "- measured experience: " + (" · ".join(i.verbatim for i in model.value_ledger if i.kind == "experience")
                                            or "the core action was not repeated"),
              f"- app terms: {len(model.terms)}, meaning not observed for: "
-             + (", ".join(t.term for t in model.terms if not t.observed) or "none"),
+             + (", ".join(t.term + (EVERYDAY if t.everyday else "") for t in model.terms if not t.observed) or "none"),
              f"- open questions for the explorer: {len(model.questions)}",
              f"- mock scope (code, priority order): {', '.join(model.mock_order) or 'none'}",
              "- ratings: " + ", ".join(f"{s.id} {s.content_rating}" for s in model.states)]
@@ -663,7 +702,7 @@ def run(ctx: Ctx) -> None:
         shutil.rmtree(out / sub, ignore_errors=True)
         (out / sub).mkdir(parents=True)
 
-    states, images = load_states(explore_dir, device)
+    states, images, model_labels = load_states(explore_dir, device)
     edges, notes = load_edges(explore_dir, states)
     tapped = {e.element_id for e in edges if e.element_id}
     states = [group_repeats(s, tapped) for s in states]
@@ -695,8 +734,13 @@ def run(ctx: Ctx) -> None:
         mechanics=meaning.mechanics, cross_screen_values=meaning.cross_screen_values,
         value_ledger=meaning.value_ledger + experience, open_questions=[q.question for q in meaning.open_questions],
         coverage=explore.coverage, provenance=runfolder.upstream_provenance(ctx.run_dir, ["explore"]),
-        terms=resolve_terms(meaning, states),
+        terms=resolve_terms(meaning, states, edges, model_labels),
         questions=[OpenQuestion(**q.model_dump()) for q in meaning.open_questions], mock_order=mock_order)
+    for t in model.terms:
+        if t.anchor_taps:
+            run_trace(ctx.run_dir, stage="model", step="term_tap", decider="code",
+                      note=f"{t.term} observed through tap {', '.join(t.anchor_taps)}; "
+                           f"defined by {', '.join(t.defined_by)}")
     (out / "product_model.json").write_text(model.model_dump_json(indent=1))
     (out / "product_model.md").write_text(render_md(model))
     write_exhibit(ctx.run_dir, 2, "model", exhibit(model, rounds, notes))

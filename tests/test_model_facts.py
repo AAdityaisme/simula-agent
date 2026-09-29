@@ -16,7 +16,7 @@ ELEMENT_LINE = re.compile(r"^s\d+\.e\d+ ")
 
 
 def facts(explore):
-    states, images = stage.load_states(explore, DEVICE)
+    states, images, _ = stage.load_states(explore, DEVICE)
     edges, notes = stage.load_edges(explore, states)
     tapped = {e.element_id for e in edges if e.element_id}
     return [stage.group_repeats(s, tapped) for s in states], images, edges, notes
@@ -83,7 +83,7 @@ def test_only_moves_that_reach_a_state_or_change_something_are_edges(name, tmp_p
                  {"from_state": "s01", "to_state": None, "action": "tap", "outcome": "denied"},
                  {"from_state": "s01", "to_state": "s01", "action": "relaunch", "change_summary": "relaunched"},
                  {"from_state": "s01", "to_state": "s99", "action": "back"})
-    states, _ = stage.load_states(explore, DEVICE)
+    states, _, _ = stage.load_states(explore, DEVICE)
     edges, notes = stage.load_edges(explore, states)
     loops = [e for e in edges if e.from_state == e.to_state]
     assert [(e.id, e.action, e.change_summary) for e in loops] == [("s01.swipe>s01", "swipe", "counter 3 → 2")]
@@ -94,7 +94,7 @@ def test_only_moves_that_reach_a_state_or_change_something_are_edges(name, tmp_p
 @pytest.mark.parametrize("name", APPS)
 def test_a_tap_binds_to_the_element_that_holds_it(name, tmp_path):
     explore = build(name, tmp_path / "explore")
-    states, _ = stage.load_states(explore, DEVICE)
+    states, _, _ = stage.load_states(explore, DEVICE)
     root = next(s for s in states if s.elements)
     target, decoy = root.elements[-1], next(e for e in root.elements if e.rect_px.y + e.rect_px.h < root.elements[-1].rect_px.y)
     tap = Point(x=int(target.rect_px.x + target.rect_px.w / 2), y=int(target.rect_px.y + target.rect_px.h / 2))
@@ -119,12 +119,14 @@ def test_icon_names_and_vision_elements_become_elements(tmp_path):
     box = Rect(x=900, y=300, w=126, h=126)
     sf.vision_elements.append(VisionElement(name="Share button", rect_px=box))
     path.write_text(sf.model_dump_json())
-    states, _ = stage.load_states(explore, DEVICE)
+    states, _, model_labels = stage.load_states(explore, DEVICE)
     listed, vision = states[0].elements[:-1], states[0].elements[-1]
     assert (vision.source, vision.mcp_ref, vision.label, vision.rect_px) == ("vision", None, "Share button", box)
     assert vision.id == f"s01.e{len(listed) + 1:02d}" and all(e.source == "mcp" for e in listed)
     named = {i.mcp_ref: i.name for i in sf.icon_labels}
     assert named and all(e.label == named[e.mcp_ref] for e in listed if e.mcp_ref in named)
+    on_s01 = {i for i in model_labels if i.startswith("s01.")}
+    assert on_s01 == {vision.id} | {e.id for e in listed if e.mcp_ref in named}, "labels a model wrote are marked"
 
 
 def test_a_missing_tree_file_fails_loudly(tmp_path):
@@ -252,7 +254,7 @@ def test_core_loop_passes_become_experience_facts(name, shape, tmp_path):
     explore = build(name, tmp_path / "explore")
     lines = add_core_loop(explore, passes=5, shape=shape)
     assert len(lines) == 5 * (3 if shape == "chat" else 2)
-    states, _ = stage.load_states(explore, DEVICE)
+    states, _, _ = stage.load_states(explore, DEVICE)
     edges, _ = stage.load_edges(explore, states)
     measured, outcome = stage.loop_facts(explore, states, edges)
     steps = f"explore steps {lines[0].step}-{lines[-1].step}"
@@ -270,7 +272,7 @@ def test_core_loop_passes_become_experience_facts(name, shape, tmp_path):
 def test_a_loop_that_hit_a_limit_says_on_which_pass(name, tmp_path):
     explore = build(name, tmp_path / "explore")
     add_core_loop(explore, stop_at=2)
-    states, _ = stage.load_states(explore, DEVICE)
+    states, _, _ = stage.load_states(explore, DEVICE)
     edges, _ = stage.load_edges(explore, states)
     outcome = stage.loop_facts(explore, states, edges)[-1]
     assert outcome.verbatim.startswith("limit banner appeared on pass 2 of the core action")
@@ -279,7 +281,7 @@ def test_a_loop_that_hit_a_limit_says_on_which_pass(name, tmp_path):
 
 def test_no_core_loop_means_no_experience_facts(tmp_path):
     explore = build(APPS[0], tmp_path / "explore")
-    states, _ = stage.load_states(explore, DEVICE)
+    states, _, _ = stage.load_states(explore, DEVICE)
     edges, _ = stage.load_edges(explore, states)
     assert stage.loop_facts(explore, states, edges) == []
 
@@ -294,7 +296,7 @@ def with_loop(tmp_path, *lines: ActionLine):
     explore = build(APPS[0], tmp_path / "explore")
     with open(explore / "actions.jsonl", "a") as f:
         f.writelines(line.model_dump_json() + "\n" for line in lines)
-    states, _ = stage.load_states(explore, DEVICE)
+    states, _, _ = stage.load_states(explore, DEVICE)
     edges, _ = stage.load_edges(explore, states)
     return stage.loop_facts(explore, states, edges)
 
