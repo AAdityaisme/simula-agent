@@ -230,7 +230,9 @@ class FakePhone:
 # ---------- a run with fake Jev and a fake Sonnet ----------
 
 def fake_jev(state, instructions, labels, backend, core_pick="send messages"):
-    if "content or safety filter" in instructions:
+    if "state of this switch" in instructions:  # the restrictive state: on for hide or block, off for show or allow
+        pick = 1 if re.search(r"\b(show|allow)\b", labels[0], re.IGNORECASE) else 0
+    elif "content or safety filter" in instructions:
         pick = next((i for i, label in enumerate(labels) if RESTRICTIVE.search(label)), len(labels) - 1)
     elif "comes to this app" in instructions:
         pick = next((i for i, label in enumerate(labels) if core_pick in label), 0)

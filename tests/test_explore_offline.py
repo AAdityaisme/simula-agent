@@ -4,16 +4,18 @@ the core-loop pass, and outputs in the frozen explore/ format."""
 
 import functools
 import json
+import re
 from pathlib import Path
 
 import pytest
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from simula import decide, llm, runlog
 from simula.contracts import ActionLine, ExploreFile, StateFile
 from simula.device import observe as ob
 from simula.device.mcp import parse_elements
 from simula.stages import explore as stage
+from tests import fake_device
 from tests.fake_device import PACKAGE, Clock, FakePhone, Screen, blank, capture, fake_jev, new_run
 from tests.fake_device import explore as run_explorer
 from tests.fake_device import explorer as new_explorer
@@ -709,3 +711,48 @@ def test_the_core_question_stays_within_one_choice_of_options(tmp_path, monkeypa
     monkeypatch.setattr(decide, "choose", spying)
     stage.explore_app(ex)
     assert asked and all(len(labels) <= decide.CHUNK for labels in asked) and stage.NO_CORE in asked[0]
+
+
+def switch_filter(label: str, shipped_on: bool):
+    """The janitor-like app with its filter chip swapped for a settings-style switch row that a tap flips; a launch
+    shows it as the app ships it."""
+    def factory(clock):
+        phone = janitor_like(clock)
+        base = phone.screens["root"]
+
+        def variant(on):
+            row = {"ref": "@sw", "type": "android.widget.Switch", "text": label, "label": "",
+                   "coordinates": {"x": 42, "y": 1300, "width": 996, "height": 126}, **({"checked": True} if on else {})}
+            image = base.image.copy()
+            ImageDraw.Draw(image).ellipse((900, 1320, 986, 1406), fill=(40, 160, 80) if on else (120, 120, 120))
+            return Screen([e for e in base.elements if "Limited Only" not in (e.get("text"), e.get("label"))] + [row],
+                          image, base.package)
+        phone.screens["root"], phone.screens["root_flipped"] = variant(shipped_on), variant(not shipped_on)
+        phone.taps[("root", label)], phone.taps[("root_flipped", label)] = "root_flipped", "root"
+        return phone
+    return factory
+
+
+@pytest.mark.parametrize("label, shipped_on, restrictive", [("Hide NSFW", True, True),
+                                                             ("Show NSFW content", False, False),
+                                                             ("Hide NSFW", False, True)])
+def test_a_switch_filter_is_kept_in_its_restrictive_state_never_flipped_blind(tmp_path, monkeypatch, label,
+                                                                              shipped_on, restrictive):
+    monkeypatch.setattr(fake_device, "RESTRICTIVE", re.compile(r"\bnsfw\b", re.IGNORECASE))
+    ex, phone = new_explorer(tmp_path, monkeypatch, switch_filter(label, shipped_on))
+    phone.screen = "root"
+    ex.current = ex.record(ex.observe(), None, None, None)
+
+    def on() -> bool:
+        return bool(next(e for e in phone.current_elements() if e.get("text") == label).get("checked"))
+    ex.filter_taps = ex.find_filter()
+    assert [t.label for t in ex.filter_taps] == [label] and ex.filter_on is restrictive and on() is restrictive
+    for relaunched in (False, True, False):
+        if relaunched:
+            phone.screen = "root"
+        ex.observe()
+        ex.apply_filter(first=False)
+        assert on() is restrictive
+    assert [ok for _, ok, _ in ex.filter_checks] == [True, True, True]
+    assert sum(entry == ("tap", "root", label) or entry == ("tap", "root_flipped", label) for entry in phone.log) \
+        == (0 if shipped_on is restrictive else 2)

@@ -68,6 +68,8 @@ FILTER_QUESTION = ("A content or safety filter decides how much adult or unsafe 
                    "filter? If the filter's options are visible, pick the most restrictive one. Pick the last option "
                    "if no control here is a content or safety filter.")
 FILTER_MENU_QUESTION = "Which option is the most restrictive content setting (shows the least adult or unsafe content)?"
+FILTER_STATE_QUESTION = ("Which state of this switch is the most restrictive content setting (shows the least adult "
+                         "or unsafe content)?")
 CORE_QUESTION = "What is the one thing a user comes to this app to do?"
 NO_FILTER = "none of these is a content or safety filter"
 NO_CORE = "none of these is what users come to the app to do"
@@ -191,7 +193,14 @@ def hop_key(s: Seen, move: Move) -> tuple:
 
 
 def label_of(c: ob.Candidate, device: Device) -> str:
-    return f"{c.label[:60] or 'unlabeled ' + c.kind} ({where(c, device)})"
+    state = "" if c.checked is None else "on, " if c.checked else "off, "
+    return f"{c.label[:60] or 'unlabeled ' + c.kind} ({state}{where(c, device)})"
+
+
+def filter_label(taps: list[ob.Candidate], on: bool | None) -> str:
+    """The filter as applied: its controls in order, and a switch's kept state."""
+    state = "" if on is None else " (on)" if on else " (off)"
+    return " > ".join(t.label for t in taps) + state if taps else ""
 
 
 def texts_by_y(elements: list[dict], device: Device) -> list[tuple[int, str]]:
@@ -247,6 +256,7 @@ class Explorer:
         self.tabs: list[ob.Candidate] = []
         self.tab_to: dict[str, str] = {}
         self.filter_taps: list[ob.Candidate] = []
+        self.filter_on: bool | None = None  # the state a switch filter is kept in; None when the filter is a tap
         self.filter_checks: list[tuple[int, bool, str]] = []
         self.segments: list[list[tuple[Move, str, str]]] = []
         self.touring = True
@@ -744,7 +754,7 @@ class Explorer:
                 self.root, self.current.depth, self.current.back_to = self.current, 0, None
         else:
             for n, tap in enumerate(self.filter_taps):
-                if n == len(self.filter_taps) - 1 and self.stands_out(tap):
+                if self.filter_set(n):
                     break
                 self.act(Move("tap", tap, decider="code", why="re-apply the content filter"), purpose="filter")
         if self.filter_taps:
@@ -760,17 +770,50 @@ class Explorer:
         if pick is None:
             self.note("filter", "no content or safety filter on the root", decider="jev")
             return []
-        taps = [pick]
-        if not self.stands_out(pick):
+        taps, at = [pick], home
+        if pick.checked is None and not self.stands_out(pick):
             opened = self.act(Move("tap", pick, decider="jev", why="content filter"), purpose="filter")
             if opened is not home and opened.kind in ("modal", "sheet"):
                 option = self.pick(opened, [c for c in opened.cands if not ob.denied(c, toggle_ok=True)],
                                    FILTER_MENU_QUESTION, "filter.menu")
                 if option:
-                    self.act(Move("tap", option, decider="jev", why="content filter option"), purpose="filter")
+                    if option.checked is None:
+                        self.act(Move("tap", option, decider="jev", why="content filter option"), purpose="filter")
                     taps.append(option)
-        self.note("filter", "content filter: " + " > ".join(repr(t.label) for t in taps), decider="jev")
+                    at = opened
+        if taps[-1].checked is not None:
+            self.filter_on = self.reach(at, taps[-1])
+        self.note("filter", f"content filter: {filter_label(taps, self.filter_on)}", decider="jev")
         return taps
+
+    def reach(self, s: Seen, switch: ob.Candidate) -> bool:
+        """A switch is a state to reach, not a tap (a tap flips it, whatever the app shipped): Jev names the
+        restrictive state, and the switch is tapped only when it shows the other one. With no answer it stays as
+        the app ships it."""
+        name = switch.label[:60]
+        try:
+            result = decide.choose(self.trace_path, "explore", "filter.state", self.describe(s), FILTER_STATE_QUESTION,
+                                   [f"{name} on", f"{name} off"], **self.jev_options())
+        except decide.JevFailed:
+            self.note("filter.state", f"no answer on {name!r}'s restrictive state; left as the app ships it")
+            return switch.checked
+        want = decide.index_of(result.option_id) == 0
+        if want != switch.checked:
+            self.act(Move("tap", switch, decider="jev", why=f"content filter: turn {name!r} {'on' if want else 'off'}"),
+                     purpose="filter")
+        return want
+
+    def filter_set(self, n: int) -> bool:
+        """The filter's n-th control needs no tap now: it is the last one and already shows what the filter wants
+        (a switch in its restrictive state, a chip that stands out as selected), or it is a switch the screen doesn't
+        show, whose state can't be read, so a tap would be blind."""
+        if n != len(self.filter_taps) - 1:
+            return False
+        tap = self.filter_taps[-1]
+        if self.filter_on is None:
+            return self.stands_out(tap)
+        live = ob.find(self.obs.cands, tap)
+        return live is None or live.checked == self.filter_on
 
     def pick(self, s: Seen, opts: list[ob.Candidate], question: str, step: str,
              none_label: str | None = None) -> ob.Candidate | None:
@@ -802,8 +845,9 @@ class Explorer:
 
     def check_filter(self) -> None:
         last = self.filter_taps[-1]
-        visible = ob.find(self.obs.cands, last) is not None
-        ok = self.stands_out(last) if visible else last.tree_label in ob.texts(self.obs.elements, self.device)
+        live = ob.find(self.obs.cands, last)
+        ok = (live.checked == self.filter_on if self.filter_on is not None else self.stands_out(last)) if live \
+            else last.tree_label in ob.texts(self.obs.elements, self.device)
         n = len(self.filter_checks) + 1
         evidence = self.out / "filter" / f"check-{n:02d}.png"
         evidence.parent.mkdir(exist_ok=True)
@@ -1621,7 +1665,7 @@ class Explorer:
             self.observe()
         for n, tap in enumerate(self.filter_taps):
             live = ob.find(self.obs.cands, tap)
-            if live and not (n == len(self.filter_taps) - 1 and self.stands_out(tap)) and self.safe_tap(live, "replay"):
+            if live and not self.filter_set(n) and self.safe_tap(live, "replay"):
                 self.observe()
 
     # ---------- Jev and Sonnet ----------
@@ -1747,7 +1791,7 @@ class Explorer:
         answered, still_open = self.checklist()
         explore = ExploreFile(
             app_package=self.package, app_version=app_version, budget=self.ctx.budget, relaunches=self.relaunches,
-            content_filter=" > ".join(t.label for t in self.filter_taps) or None,
+            content_filter=filter_label(self.filter_taps, self.filter_on) or None,
             blocked_state_ids=[s.sid for s in self.states if s.kind == "blocked"],
             coverage=Coverage(states_found=len(self.states), actions_taken=self.actions, stop_reason=self.stop_reason,
                               checklist_answered=answered, checklist_open=still_open),
@@ -1789,7 +1833,7 @@ def exhibit(ex: Explorer, app_version: str | None) -> str:
              f"- Relaunches: {ex.relaunches} (tour cap {MAX_RELAUNCHES}, then {CORE_RELAUNCHES} for the passes after)",
              *[f"  - {n}: {why}" for n, why in enumerate(ex.relaunch_reasons, start=1)],
              f"- Paywall or plans screen captured: {paywall_line(ex)}",
-             f"- Content filter: {' > '.join(repr(t.label) for t in ex.filter_taps) or 'none found'}"]
+             f"- Content filter: {filter_label(ex.filter_taps, ex.filter_on) or 'none found'}"]
     lines += [f"  - check {n}: {'verified' if ok else 'NOT verified'} by screenshot (`{path}`)"
               for n, ok, path in ex.filter_checks]
     lines += [f"- Redaction: {len(ex.secrets)} strings listed in SIMULA_REDACT; {ex.redacted} element texts "

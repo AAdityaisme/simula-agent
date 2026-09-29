@@ -289,6 +289,7 @@ class Candidate:
     tree_label: str
     ident: str = ""
     enabled: bool = True
+    checked: bool | None = None  # a switch's or a chip's on/off; None for a control with no such state
 
     @property
     def key(self) -> str:
@@ -325,8 +326,11 @@ def controls(elements: list[dict], device: Device) -> list[Candidate]:
             continue
         tree_label = own or (next(iter(held)) if len(held) == 1 else "")
         ident = short_id(e.get("identifier"))
+        # mobile-mcp writes "checked" only when it is true, so a switch without it is off
+        checked = True if e.get("checked") else False if TOGGLE.search(e["type"]) else None
         found.append(Candidate(label=tree_label or ident, kind=e["type"].split(".")[-1], rect=r, ref=e["ref"],
-                               tree_label=tree_label, ident=ident, enabled=e.get("enabled") is not False))
+                               tree_label=tree_label, ident=ident, enabled=e.get("enabled") is not False,
+                               checked=checked))
     kept = [c for c in found if not any(o is not c and area(o.rect) > area(c.rect) and inside(c.rect, o.rect)
                                         for o in found)]
     return [c for n, c in enumerate(kept) if all(o.rect != c.rect for o in kept[:n])]
