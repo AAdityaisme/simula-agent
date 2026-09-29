@@ -152,7 +152,7 @@ class Seen:
     order: list | None = None
     confidence: float = 1.0
     asked_sonnet: bool = False
-    done: bool = False
+    done: str = ""  # the rule that ended the screen's exploration; empty while it has work
     dynamic: list = field(default_factory=list)
     icon_labels: list = field(default_factory=list)
     vision: list = field(default_factory=list)
@@ -692,7 +692,7 @@ class Explorer:
             if box is None:
                 return
             dialog = self.record(self.obs, None, None, None)
-            dialog.done, dialog.depth, dialog.launch = True, 0, True
+            dialog.done, dialog.depth, dialog.launch = "a launch dialog, dismissed", 0, True
             self.current = dialog
             close = ob.dismiss_control(dialog.cands)
             self.act(Move("tap", close, why="dismiss a launch dialog") if close else
@@ -725,7 +725,7 @@ class Explorer:
         if first:
             self.filter_taps = self.find_filter()
             if self.filter_taps and self.current is not self.root:
-                self.root.done = True
+                self.root.done = "the unfiltered launch screen"
                 self.root, self.current.depth, self.current.back_to = self.current, 0, None
         else:
             for n, tap in enumerate(self.filter_taps):
@@ -856,6 +856,14 @@ class Explorer:
         if s.kind == "screen" and s.swipes < SWIPES_PER_STATE:
             return Move("swipe", direction="up", why="scroll for more")
         return None
+
+    def model_done(self, s: Seen, rule: str) -> None:
+        """The model may end a screen only once the code has nothing left there: no untried option, or its tap cap
+        spent. Before that its done or back is one move, and the ranked options go on."""
+        if not self.options(s) or s.taps >= TAPS_PER_STATE:
+            s.done = rule
+        else:
+            self.counts["model done refused while options were left"] += 1
 
     def ranked_move(self, s: Seen, opts: list[ob.Candidate]) -> Move | None:
         if s.order is None:
@@ -1068,16 +1076,19 @@ class Explorer:
                 if target is None:
                     raise Stop("nothing left to try")
                 if not self.goto(target):
-                    target.done = True
+                    target.done = "no way back to it"
                     continue
                 move = self.next_move(target)
-                if move is None or move.action == "done":
-                    target.done = True
+                if move is None:
+                    target.done = "every option tried or its cap spent"
+                    continue
+                if move.action == "done":
+                    self.model_done(target, "the model said done")
                     continue
                 seen = len(self.states)
                 self.act(move)
                 if move.decider == "model" and move.action == "back":
-                    target.done = True
+                    self.model_done(target, "the model went back")
                 if len(self.states) > seen and self.current.upsell:
                     self.read_upsell()
             except NeedRelaunch as e:
@@ -1756,10 +1767,12 @@ def exhibit(ex: Explorer, app_version: str | None) -> str:
                  f"else the model and the structure agree). Fingerprint alone: {matched}/{total} "
                  f"({100 * matched / total:.0f}%)." if total else "."), "",
               "## Invariants", "", *[f"- {line}" for line in counters(ex)], "",
-              "## States", "", "| id | kind | over | depth | first words |", "|---|---|---|---|---|"]
+              "## States", "", "| id | kind | over | depth | untried | ended by | first words |",
+              "|---|---|---|---|---|---|---|"]
     for s in ex.states:
         words = next((c.tree_label for c in s.cands if c.tree_label), "")[:50].replace("|", "/")
-        lines.append(f"| {s.sid} | {s.kind} | {s.parent or ''} | {s.depth} | {words} |")
+        untried = len(ex.options(s)) if s.kind in ("screen", "modal", "sheet") else ""
+        lines.append(f"| {s.sid} | {s.kind} | {s.parent or ''} | {s.depth} | {untried} | {ended(ex, s)} | {words} |")
     return "\n".join(lines) + "\n"
 
 
@@ -1779,7 +1792,16 @@ def counters(ex: Explorer) -> list[str]:
             f"seconds {', '.join(str(sec) for sec, _ in waits) or '-'}",
             f"model finished verdicts refused while send still looked busy: "
             f"{c['model finished while send still busy']}",
-            f"walk picks the screen no longer showed: {c['walk picks the screen no longer shows']}"]
+            f"walk picks the screen no longer showed: {c['walk picks the screen no longer shows']}",
+            f"model done or back refused while the screen had untried options: "
+            f"{c['model done refused while options were left']}"]
+
+
+def ended(ex: Explorer, s: Seen) -> str:
+    """The rule that ended a screen's exploration."""
+    if s.done or s.kind not in ("screen", "modal", "sheet"):
+        return s.done
+    return "had work left when the tour stopped" if ex.has_work(s) else "every option tried or its cap spent"
 
 
 def paywall_line(ex: Explorer) -> str:

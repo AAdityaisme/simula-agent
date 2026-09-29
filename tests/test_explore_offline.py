@@ -634,3 +634,24 @@ def test_the_walk_stops_scrolling_a_page_that_no_longer_moves(tmp_path, monkeypa
         return phone
     ex, phone = explore(tmp_path, monkeypatch, phone_factory=short_page)
     assert sum(entry == ("swipe", "short", "up") for entry in phone.log) == 2
+
+
+def test_the_model_ends_a_screen_only_when_the_code_has_nothing_left(tmp_path, monkeypatch):
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    phone.screen = "limited"
+    s = ex.current = ex.record(ex.observe(), None, None, None)
+    assert ex.options(s)
+    ex.model_done(s, "the model said done")
+    assert not s.done and ex.counts["model done refused while options were left"] == 1
+    s.taps = stage.TAPS_PER_STATE
+    ex.model_done(s, "the model said done")
+    assert s.done == "the model said done"
+
+
+def test_the_exhibit_says_why_each_screen_ended_and_what_it_left_untried(run):
+    ex, _ = run
+    exhibit = (ex.run_dir / "exhibits" / "01-explore.md").read_text()
+    rows = [line.split(" | ") for line in exhibit.splitlines() if line.startswith("| s")]
+    assert "| id | kind | over | depth | untried | ended by | first words |" in exhibit
+    screens = [row for row in rows if row[1] in ("screen", "modal", "sheet")]
+    assert screens and all(row[4].isdigit() and row[5] for row in screens)
