@@ -153,6 +153,24 @@ def test_a_tab_to_another_list_with_the_same_layout_changed_no_value(tmp_path):
     assert [(e.id, e.change_summary) for e in edges] == [("s01.tap>s02", "")]
 
 
+def test_a_list_that_re_sorted_changed_no_value():
+    """A chat list re-sorted by recency, as in a real JanitorAI My Chats pair: the row that moved up brings its own
+    count and time into the spot, and nothing went from 12 chats to 4."""
+    head = ("My Chats", 155, 174, 799, 71), ("Sort by recent", 40, 260, 400, 40), ("Mon", 900, 894, 90, 40)
+    last = ("The Former Husband", 40, 888, 500, 50), ("2 chats", 279, 967, 115, 41)
+
+    def row(name, chats, replied, y):
+        return (name, 40, y, 500, 50), (chats, 279, y + 79, 115, 41), (replied, 700, y + 79, 200, 41)
+    before = text_state("s01", *head, ("9 coins", 40, 330, 100, 40), *last,
+                        *row("NANAMI KENTO", "4 chats", "Replied 5 min", 443),
+                        *row("Kang Jun-Seo", "12 chats", "Replied 9 min", 665))
+    after = text_state("s02", *head, ("10 coins", 40, 330, 118, 40), *last,
+                       *row("Kang Jun-Seo", "13 chats", "Replied 1 min", 443),
+                       *row("NANAMI KENTO", "4 chats", "Replied 6 min", 665))
+    assert stage.value_changes(before, after) == "9 coins → 10 coins", \
+        "a list row's count and relative time say nothing about the row that sat there before; a lone count does"
+
+
 @pytest.mark.parametrize("name", APPS)
 def test_an_edge_says_what_changed_only_when_its_captures_sit_right_around_it(name, tmp_path):
     explore = build(name, tmp_path / "explore")

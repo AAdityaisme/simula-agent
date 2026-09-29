@@ -205,20 +205,30 @@ def value_changes(before: State, after: State) -> str:
     """Values that changed in one spot between two captures of the same screen ("7 chats → 8 chats"): the same role
     at the same left edge, top, and height (the width follows the digits), one text there on each side, the same
     words, and a different number. The captures are one screen when most texts without a number are the same text in
-    the same spot; two lists that share a layout are not, since their cards' stats sit in the same spots. A bare
-    number ("171", "1 / 295") has no word saying what it counts, and a clock time changes by itself: neither is one."""
+    the same spot; two lists that share a layout are not, since their cards' stats sit in the same spots. The words
+    occur once on each capture: a list's rows share theirs and can re-sort, so a spot there can't say whose value it
+    holds. A bare number ("171", "1 / 295") has no word saying what it counts, and a clock time changes by itself:
+    neither is one."""
+    # ponytail: a list row's own count (one card's "7 chats → 8 chats") is never reported, and a lone relative time
+    # without "ago" ("Synced 5 min") still is; match rows by their names, or add time units to CLOCK, if one reaches
+    # a real edge (none of 201 real bracketed moves has either)
     def spots(s: State) -> dict[tuple, str]:
         found: dict[tuple, list[str]] = {}
         for e in s.elements:
             if e.text:
                 found.setdefault((e.role, e.rect_px.x, e.rect_px.y, e.rect_px.h), []).append(e.text)
         return {k: texts[0] for k, texts in found.items() if len(texts) == 1}
+
+    def lone(s: State) -> set[str]:
+        counts = Counter(NUMBER.sub("#", e.text) for e in s.elements if e.text)
+        return {t for t, n in counts.items() if n == 1}
     old, new = spots(before), spots(after)
     old_words, new_words = ([k for k, t in s.items() if not NUMBER.search(t)] for s in (old, new))
     if 2 * sum(old[k] == new.get(k) for k in old_words) <= max(len(old_words), len(new_words)):
         return ""
+    once = lone(before) & lone(after)
     return "; ".join(f"{old[k]} → {new[k]}" for k in old if k in new and old[k] != new[k]
-                     and NUMBER.sub("#", old[k]) == NUMBER.sub("#", new[k])
+                     and NUMBER.sub("#", old[k]) == NUMBER.sub("#", new[k]) and NUMBER.sub("#", old[k]) in once
                      and WORD.search(NUMBER.sub("", old[k])) and not CLOCK.search(old[k]))
 
 
