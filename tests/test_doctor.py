@@ -17,11 +17,11 @@ def test_a_model_ping_logs_one_spend_line(build_trace, monkeypatch):
     def provider(model, system, messages, effort, schema, max_tokens):
         return llm.Reply(text='{"ok": true, "word": "ready"}', model=model, tokens_in=260, tokens_out=17)
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider)
-    assert doctor.ping("sonnet probe", "claude-sonnet-5", "high")["ok"]
+    assert doctor.ping("sonnet probe", "claude-sonnet-5-5", "high")["ok"]
     [line] = read_trace(build_trace)
-    assert (line.stage, line.step, line.decider, line.model, line.effort) == ("build", "doctor", "model", "claude-sonnet-5", "high")
+    assert (line.stage, line.step, line.decider, line.model, line.effort) == ("build", "doctor", "model", "claude-sonnet-5-5", "high")
     assert (line.tokens_in, line.tokens_out) == (260, 17)
-    assert line.usd == pytest.approx(llm.usd("claude-sonnet-5", 260, 17), abs=1e-6)
+    assert line.usd == pytest.approx(llm.usd("claude-sonnet-5-5", 260, 17), abs=1e-6)
 
 
 def test_a_failed_ping_logs_a_zero_cost_error(build_trace, monkeypatch):
