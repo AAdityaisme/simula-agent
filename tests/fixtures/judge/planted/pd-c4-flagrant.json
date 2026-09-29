@@ -7,8 +7,33 @@
  "expanded_by": "claude-opus-5-5",
  "base": "kg-run-janitorai-c02",
  "change": {
+  "title": "Existing opportunity: Faster replies for good from the profile menu",
+  "what_is_different_here": "Janitor+ sells priority routing for faster replies (s02.e06). The profile menu (s09) keeps a permanent Upgrade to Janitor Plus entry (s09.e31). A free user who opens it and comes back without subscribing has shown interest but said no. Letting them skip the normal queue for good costs no extra replies, only earlier placement in line.",
+  "offer_copy": "Play a short sponsored game to get priority routing for faster replies for as long as you keep the app.",
   "reward": {
    "duration": "for as long as the user keeps the app"
-  }
+  },
+  "frequency_cap": "Once per user; the card goes away after it is used",
+  "ad_fail_path": "If no game is available, the card is hidden. If the play isn't verified, the card says faster replies couldn't be turned on, and the user can try again.",
+  "flow_steps": [
+   {
+    "state_id": "s09",
+    "caption": "The user comes back to the profile menu after looking at Janitor+ without subscribing."
+   },
+   {
+    "state_id": "new:priority-card",
+    "caption": "A card under Upgrade offers faster replies for good for one short sponsored game."
+   },
+   {
+    "state_id": "new:sponsored-game",
+    "caption": "The user plays the short sponsored game and can quit at any time."
+   },
+   {
+    "state_id": "s06",
+    "caption": "The card confirms faster replies are on for good, and the user jumps back into their chats."
+   }
+  ],
+  "after_reward": "Faster replies never run out: they stay on for as long as the user keeps the app, and the menu card no longer appears.",
+  "rationale": "Faster replies are something free users can feel right away, and this lets them keep them after they looked at the plan but didn't buy. It adds no extra replies, so it is cheap to give. The plan still offers longer memory and more swipes."
  }
 }

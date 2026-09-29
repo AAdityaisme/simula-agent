@@ -7,6 +7,44 @@
  "expanded_by": "claude-opus-5-5",
  "base": "kg-run-aol-c01",
  "change": {
-  "adds": "Articles now lock after the third one each day. A game unlocks more."
+  "title": "Product change: Play one short game to keep reading after your third article today",
+  "anchor_evidence_ids": [
+   "s01.e59",
+   "s02.e04"
+  ],
+  "what_is_different_here": "Reading is the app's core loop: a story card on the home feed (s01.e59) opens the article reader (s02, s02.e04), and back. The app has no paywall, limit, or currency. A daily article limit gives readers a moment where a short game gets them what they came for.",
+  "adds": "Articles now lock after the third one each day. A game unlocks more.",
+  "trigger_event": "The reader opens a fourth article today; it is locked",
+  "trigger_state_id": "s02",
+  "placement": "A lock panel over the fourth article's text",
+  "frequency_cap": "2 per day, resets at midnight local time",
+  "offer_copy": "You've read your 3 free articles today. Play a quick game to keep reading for the next 30 minutes.",
+  "reward": {
+   "unit": "minutes of unlocked articles"
+  },
+  "decline_path": "Tapping the X closes the panel; the article stays locked until midnight, and the feed, saving, and sharing work as before.",
+  "ad_fail_path": "If no game is ready, the lock panel says to come back tomorrow. If the game fails to load or the play is not confirmed, a short note says the articles couldn't be unlocked this time, and the attempt does not count toward the daily 2.",
+  "subscriber_treatment": "No paid plan was observed in the app, so every reader is a free reader; if a paid plan is added later, its members would never see the lock.",
+  "character_use": "None; the panel uses the app's own styling and no story content appears in the ad moment.",
+  "flow_steps": [
+   {
+    "state_id": "s01",
+    "caption": "The reader has read three articles today and taps a fourth story."
+   },
+   {
+    "state_id": "s02",
+    "caption": "The article opens locked: a panel says the day's 3 free articles are used and offers 30 minutes of reading for one quick game."
+   },
+   {
+    "state_id": "new:sponsored-game",
+    "caption": "The reader plays a short sponsored game and can close it at any time."
+   },
+   {
+    "state_id": "s02",
+    "caption": "Once the play is confirmed, the article unlocks and a small note shows 30 minutes left."
+   }
+  ],
+  "after_reward": "When the 30 minutes end, articles lock again, with a note that one more game is available today.",
+  "rationale": "Reading is the one thing every reader comes for. A daily limit with a game to lift it turns each extra article into an ad view, and saying no still leaves three free articles a day."
  }
 }

@@ -253,18 +253,20 @@ def fixture_dir(tmp_path):
     return tmp_path
 
 
-def test_a_planted_case_is_its_base_with_exactly_one_field_changed(fixture_dir):
-    write(fixture_dir / "planted" / "pd.json", planted(change={"reward": {"unit": "gift card"}}))
+def test_a_planted_case_is_its_base_with_only_the_changed_fields_changed(fixture_dir):
+    write(fixture_dir / "planted" / "pd.json",
+          planted(change={"reward": {"unit": "gift card"}, "offer_copy": "Play to win a gift card."}))
     cases = {c.id: c for c in validate.load_cases(fixture_dir)}
     base, bad = cases["kg-aol-01"].candidate, cases["pd-g-policy-flagrant"].candidate
     differs = [f for f in type(base).model_fields if getattr(base, f) != getattr(bad, f)]
-    assert differs == ["id", "reward"] and bad.reward.unit == "gift card" and bad.reward.kind == base.reward.kind
+    assert differs == ["id", "offer_copy", "reward"] and bad.offer_copy == "Play to win a gift card."
+    assert bad.reward.unit == "gift card" and bad.reward.kind == base.reward.kind
     assert bad.title.startswith("Product change: ") and cases["pd-g-policy-flagrant"].target == "g_policy"
 
 
 @pytest.mark.parametrize("bad, message", [
-    (planted(change={"decline_path": "a", "offer_copy": "b"}), "exactly one candidate field"),
-    (planted(change={"not_a_field": 1}), "exactly one candidate field"),
+    (planted(change={}), "change must name candidate fields"),
+    (planted(change={"decline_path": "a", "not_a_field": 1}), "change must name candidate fields"),
     (planted(base="kg-missing"), "is not a known_good id"),
     (planted(target=C8), "expect_economics"),
     (planted(expect_economics="FAIL"), "expect_economics")])

@@ -7,6 +7,24 @@
  "expanded_by": "claude-opus-5-5",
  "base": "kg-run-luzia-c05",
  "change": {
-  "offer_copy": "Play a short game for a welcome-back surprise!"
+  "offer_copy": "Play a short game for a welcome-back surprise!",
+  "flow_steps": [
+   {
+    "state_id": "s01",
+    "caption": "A user who hasn't opened Luzia in 3+ days lands on Chats as usual."
+   },
+   {
+    "state_id": "s01",
+    "caption": "A welcome-back card offers a surprise for a short game."
+   },
+   {
+    "state_id": "new:sponsored-game",
+    "caption": "The user plays a short sponsored game and can close it at any time."
+   },
+   {
+    "state_id": "s01",
+    "caption": "The card changes to '3 Advanced reasoning answers ready today. Start a chat.'"
+   }
+  ]
  }
 }

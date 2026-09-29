@@ -7,6 +7,34 @@
  "expanded_by": "claude-opus-5-5",
  "base": "kg-run-janitorai-c02",
  "change": {
-  "placement": "Inside the character's reply: toward the end of their message, the character says \"Want faster replies? Play this ad.\""
+  "title": "Existing opportunity: Faster replies for an hour, offered by the character in the chat",
+  "what_is_different_here": "Janitor+ sells priority routing for faster replies (s02.e06). The profile menu (s09) keeps a permanent Upgrade to Janitor Plus entry (s09.e31). A free user who opens it and comes back without subscribing has shown interest but said no. The character they chat with can make the offer at the end of its next reply. Letting them skip the normal queue for an hour costs no extra replies, only earlier placement in line.",
+  "trigger_event": "A free user who came back from the Upgrade to Janitor Plus entry without subscribing opens their chat from My Chats and gets the character's next reply",
+  "trigger_state_id": "s06",
+  "placement": "Inside the character's reply: toward the end of their message, the character says the offer copy.",
+  "offer_copy": "Want faster replies? Play this ad and get priority routing for the next 60 minutes.",
+  "subscriber_treatment": "Subscribers already have priority routing and never get the offer line.",
+  "decline_path": "The user can ignore the line and keep chatting. The menu, Upgrade, and Billing work exactly as today, and replies keep their normal speed.",
+  "ad_fail_path": "If no game is available, the character's reply has no offer line. If the play isn't verified, a note in the chat says faster replies couldn't be turned on and the try isn't counted against today's limit.",
+  "character_use": "The character the user is chatting with makes the offer at the end of its reply.",
+  "flow_steps": [
+   {
+    "state_id": "s09",
+    "caption": "The user comes back to the profile menu after looking at Janitor+ without subscribing."
+   },
+   {
+    "state_id": "s06",
+    "caption": "They open their chat from My Chats. Toward the end of the character's next reply, the character says \"Want faster replies? Play this ad and get priority routing for the next 60 minutes.\""
+   },
+   {
+    "state_id": "new:sponsored-game",
+    "caption": "The user plays the short sponsored game and can quit at any time."
+   },
+   {
+    "state_id": "s06",
+    "caption": "Back in the chat, faster replies are on for 60 minutes."
+   }
+  ],
+  "after_reward": "When the hour ends, replies return to normal speed, and the character can offer one more play that day."
  }
 }

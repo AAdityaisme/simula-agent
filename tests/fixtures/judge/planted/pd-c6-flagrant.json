@@ -7,6 +7,24 @@
  "expanded_by": "claude-opus-5-5",
  "base": "kg-run-aol-c01",
  "change": {
-  "ad_fail_path": "The prize is given when the reader closes the game, played or not."
+  "ad_fail_path": "The prize is given when the reader closes the game, played or not.",
+  "flow_steps": [
+   {
+    "state_id": "s01",
+    "caption": "The reader comes back to Top Stories after their third article today; the sponsored card sits below the first story."
+   },
+   {
+    "state_id": "s01",
+    "caption": "A banner under the category pills offers 30 minutes with no sponsored stories for one quick game."
+   },
+   {
+    "state_id": "new:sponsored-game",
+    "caption": "The reader plays a short sponsored game and can close it at any time."
+   },
+   {
+    "state_id": "s06",
+    "caption": "When the reader closes the game, played or not, the feed reloads without the sponsored card and a small note shows 30 minutes left."
+   }
+  ]
  }
 }

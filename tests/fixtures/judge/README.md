@@ -4,7 +4,7 @@ Test data for `uv run python -m simula.validate validate-judge` (ARCHITECTURE §
 
 - `known_good/<id>.json`: a good idea for one app, unmutated. `source` is `base` (a base the planted defects change) or `run` (a real candidate from a propose run that Aadi approved as good; `from_run` says which).
 - `known_good/models/<app>.json`: a product-model sketch for an app outside the test set.
-- `planted/<id>.json`: a base with exactly one field changed, aimed at one check; or a real candidate from a run that fails one check.
+- `planted/<id>.json`: a base with the fields its defect touches changed, aimed at one check; or a real candidate from a run that fails one check.
 - `labels/<id>.json`: blind human labels written by `python -m simula.validate label`.
 - `regression/<id>.json`: a real idea from a run that the judges must fail, on `target` when it names a check. `model` points to `regression/models/<run>.json`, the product model its judge saw, kept to the fields the judge reads. Held out of the gate; validate-judge's report shows its verdict.
 - `flagged/<id>.json`: a pick that doesn't clearly break its target as written, held out of the gate until Aadi decides; `git mv` it into `planted/` to count it.
@@ -68,6 +68,6 @@ A real candidate that fails one check (Aadi approved it from a run) replaces `ba
  "in_test_set": true, "model": "golden/aol/product_model.json", "candidate": {"...": "the full Candidate"}}
 ```
 
-`target` is one of `g_policy g_no_cash g_no_chat_content g_no_free_removal g_brand_safety c1_revealed_value c2_evidence c4_protects_subscription c5_moment c6_fits_simula c7_specific c8_economics`. `change` names exactly one candidate field (a `reward` or `cost_inputs` change may give only the keys it changes). A `c8_economics` case also sets `"expect_economics": "PASS" | "CONDITIONAL" | "FAIL" | "dropped"`: what `economics.py` must say about it (`dropped` = its cost inputs can't price the reward kind).
+`target` is one of `g_policy g_no_cash g_no_chat_content g_no_free_removal g_brand_safety c1_revealed_value c2_evidence c4_protects_subscription c5_moment c6_fits_simula c7_specific c8_economics`. `change` names the candidate fields that carry the defect: the one the defect sits in, plus every other field a judge reads that would otherwise still tell the base's story, so the idea never contradicts itself (a `reward` or `cost_inputs` change may give only the keys it changes). A `c8_economics` case also sets `"expect_economics": "PASS" | "CONDITIONAL" | "FAIL" | "dropped"`: what `economics.py` must say about it (`dropped` = its cost inputs can't price the reward kind).
 
 The gate needs 1 flagrant + 1 subtle per LLM-judged check (22), plus 2 for C8, across at least 3 app types including an app outside the test set. The worksheet's "Copy all" lines (`<check> / <tier> / app: <app> : <one-liner>`) map to `target`, `tier`, the base's app, and `one_liner`.

@@ -7,6 +7,29 @@
  "expanded_by": "claude-opus-5-5",
  "base": "kg-run-aol-c01",
  "change": {
-  "offer_copy": "Enjoying the news? Play a quick game and read with no sponsored stories in your feed or articles for the next 30 minutes. If you watch an ad after the game, you also get a voucher."
+  "adds": "An opt-in banner on the home feed that lets a reader play one short sponsored game to hide the sponsored story cards in the feed and in articles for 30 minutes, plus a voucher for watching one more ad after the game.",
+  "offer_copy": "Enjoying the news? Play a quick game and read with no sponsored stories in your feed or articles for the next 30 minutes. If you watch an ad after the game, you also get a voucher.",
+  "flow_steps": [
+   {
+    "state_id": "s01",
+    "caption": "The reader comes back to Top Stories after their third article today; the sponsored card sits below the first story."
+   },
+   {
+    "state_id": "s01",
+    "caption": "A banner under the category pills offers 30 minutes with no sponsored stories for one quick game, and a voucher for one more ad after it."
+   },
+   {
+    "state_id": "new:sponsored-game",
+    "caption": "The reader plays a short sponsored game and can close it at any time."
+   },
+   {
+    "state_id": "new:voucher-ad",
+    "caption": "After the game, the reader can watch one more ad to get a voucher."
+   },
+   {
+    "state_id": "s06",
+    "caption": "Once the play is confirmed, the feed reloads without the sponsored card and a small note shows 30 minutes left."
+   }
+  ]
  }
 }

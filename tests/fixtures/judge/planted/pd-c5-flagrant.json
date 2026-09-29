@@ -7,6 +7,34 @@
  "expanded_by": "claude-opus-5-5",
  "base": "kg-run-aol-c01",
  "change": {
-  "trigger_event": "The reader is halfway through an article; the offer pops up over the article"
+  "what_is_different_here": "The app has no paywall, limit, or currency. The only friction a free reader meets is the sponsored recommendation cards: one in the home feed below the first story (s01.e44, s06.e33) and one inside articles (s02.e13). These are low-value native cards whose fill is patchy (the feed slot was sometimes empty), so hiding them for a short window displaces little revenue. A reader halfway through an article is already absorbed in it, so that is when the app makes the offer.",
+  "adds": "An opt-in pop-up in the article reader that lets a reader play one short sponsored game to hide the sponsored story cards in the feed and in articles for 30 minutes.",
+  "trigger_event": "The reader is halfway through an article; the offer pops up over the article",
+  "trigger_state_id": "s02",
+  "placement": "A pop-up over the article text, halfway down the article",
+  "character_use": "None; the pop-up uses the app's own styling and no story content appears in the ad moment.",
+  "frequency_cap": "2 per day, resets at midnight local time; the pop-up is not shown while a window is active",
+  "decline_path": "Tapping the X or No thanks closes the pop-up for the rest of the day; the feed, articles, saving, and sharing work exactly as before and sponsored cards show as usual.",
+  "ad_fail_path": "If no game is ready the pop-up never appears. If the game fails to load or the play is not confirmed, a short note says the break couldn't be unlocked this time, nothing changes in the article, and the attempt does not count toward the daily 2.",
+  "subscriber_treatment": "No paid plan was observed in the app, so every reader is a free reader; if an ad-free plan is added later, its members would never see this pop-up.",
+  "flow_steps": [
+   {
+    "state_id": "s02",
+    "caption": "The reader is halfway through an article; the in-article sponsored card sits further down."
+   },
+   {
+    "state_id": "s02",
+    "caption": "A pop-up over the article offers 30 minutes with no sponsored stories for one quick game."
+   },
+   {
+    "state_id": "new:sponsored-game",
+    "caption": "The reader plays a short sponsored game and can close it at any time."
+   },
+   {
+    "state_id": "s02",
+    "caption": "Once the play is confirmed, the reader is back in the article, the sponsored card is gone, and a small note shows 30 minutes left."
+   }
+  ],
+  "rationale": "This app has nothing locked, so the only thing a free reader would want more of is an uninterrupted read. The sponsored cards here are cheap native placements with uneven fill, so one chosen game can plausibly earn more than the few cards it hides in half an hour. The offer appears while the reader is deep in an article, when the cards are most in the way, and saying no changes nothing. It pays for itself only if the hidden cards are low-value native cards, not full-screen ads, and it fits best with a North American audience."
  }
 }

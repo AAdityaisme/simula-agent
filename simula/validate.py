@@ -56,7 +56,7 @@ class KnownGood(Strict):
 
 
 class Planted(Strict):
-    """tests/fixtures/judge/planted/<id>.json: a known-good base with exactly one field changed, or a real
+    """tests/fixtures/judge/planted/<id>.json: a known-good base with the fields its defect touches changed, or a real
     candidate from a run that fails one check (`from_run`, `candidate`, and the app fields instead)."""
     id: str
     target: Literal[GATES + JUDGMENT + (C8,)]
@@ -142,9 +142,8 @@ def as_candidate(draft: dict, case_id: str) -> Candidate:
 
 
 def mutate(base: dict, change: dict) -> dict:
-    field, value = next(iter(change.items()))
-    old = base[field]
-    return {**base, field: {**old, **value} if isinstance(old, dict) and isinstance(value, dict) else value}
+    return {**base, **{field: {**base[field], **value} if isinstance(base[field], dict) and isinstance(value, dict)
+                       else value for field, value in change.items()}}
 
 
 def check_test_set(name: str, in_test_set: bool, ref: str) -> None:
@@ -182,8 +181,8 @@ def load_cases(root: Path = CASES) -> list[Case]:
             continue
         if p.base not in goods:
             raise ValueError(f"{path.name}: base {p.base!r} is not a known_good id")
-        if not p.change or len(p.change) != 1 or next(iter(p.change)) not in CandidateDraft.model_fields:
-            raise ValueError(f"{path.name}: change must name exactly one candidate field, got {list(p.change)}")
+        if not p.change or not set(p.change) <= CandidateDraft.model_fields.keys():
+            raise ValueError(f"{path.name}: change must name candidate fields, got {list(p.change or {})}")
         g = goods[p.base]
         candidate = as_candidate(mutate(g.candidate, p.change), p.id)
         cases.append(Case(p.id, "planted", candidate, models[g.model], g.app, g.app_type, g.in_test_set,

@@ -7,6 +7,6 @@
  "expanded_by": "claude-opus-5-5",
  "base": "kg-run-aol-c01",
  "change": {
-  "what_is_different_here": "The app has no paywall, limit, or currency. The only friction a free reader meets is the sponsored recommendation cards: one in the home feed below the first story (s01.e44, s06.e33) and one inside articles (s02.e13). These are low-value native cards whose fill is patchy (the feed slot was sometimes empty), so hiding them for a short window displaces little revenue. Reading is a clear loop (home feed s01 to article s02 and back), so the app can count finished reads and make the offer when the reader returns to the feed. AOL also shows a full-screen video ad after every third article."
+  "what_is_different_here": "The app has no paywall, limit, or currency. A free reader meets two kinds of ads: sponsored recommendation cards, one in the home feed below the first story (s01.e44, s06.e33) and one inside articles (s02.e13), and a full-screen video ad AOL shows after every third article. The cards are low-value native cards whose fill is patchy (the feed slot was sometimes empty), so hiding them for a short window displaces little revenue. Reading is a clear loop (home feed s01 to article s02 and back), so the app can count finished reads and make the offer when the reader returns to the feed."
  }
 }

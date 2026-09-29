@@ -30,7 +30,7 @@
    "amount": 30.0,
    "duration": "30 minutes from when the game ends"
   },
-  "for_users": "free",
+  "for_users": "everyone",
   "grants_id": null,
   "cost_inputs": {
    "inference_count": 0,
