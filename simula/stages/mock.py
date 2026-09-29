@@ -11,7 +11,7 @@ import re
 import shutil
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
-from html import escape
+from html import escape, unescape
 from html.parser import HTMLParser
 from itertools import accumulate
 import urllib.request
@@ -42,7 +42,7 @@ FONT_FACE = re.compile(r"(?:/\*\s*([^*]*?)\s*\*/\s*)?(@font-face\s*\{[^}]*\})")
 UNICODE_RANGE = re.compile(r"unicode-range:([^;}]*)")
 CODE_POINTS = re.compile(r"U\+([0-9a-fA-F]+)(?:-([0-9a-fA-F]+))?")
 FETCH_TIMEOUT_S = 20
-FONT_RECORDS = llm.CACHE / "fonts"
+FONT_RECORDS = "font-records"
 # Every way urllib fails a download: a socket, TLS or HTTP status error (OSError), or a cut-off or malformed
 # response (HTTPException, which isn't an OSError).
 FETCH_ERRORS = (OSError, http.client.HTTPException)
@@ -175,7 +175,6 @@ def run(ctx: Ctx) -> None:
     art = crop_art(model_dir, mock_dir, scope, model.device)
 
     style = shared_style(scope)
-    fonts = vendor_fonts(ctx, mock_dir, fonts_of(scope), chars_of(scope))
     contents = [batch_content(ctx, model, batch, screens, art, style) for batch in groups]
     budget = llm.Budget.for_stage("mock", ctx.run_dir / "trace.jsonl", plan_cap(ctx))
     worst = [worst_usd(ctx, content) for content in contents]
@@ -185,6 +184,7 @@ def run(ctx: Ctx) -> None:
     run_trace(ctx.run_dir, stage="mock", step="plan", decider="code", outcome="ok" if keep == len(groups) else "cap",
               note=plan)
     parts, undrawn, batch_errors = draw_batches(ctx, groups, contents, budget, keep)
+    fonts = vendor_fonts(ctx, mock_dir, fonts_of(scope), page_chars(parts))
     html = with_runtime(wire_edges(stitch(style, fonts, parts), model, screens), home_id(scope))
     (mock_dir / "index.html").write_text(html)
 
@@ -675,9 +675,11 @@ def most_used(values) -> list[str]:
     return [v for v, _ in Counter(v for v in values if v).most_common(PALETTE_SIZE)]
 
 
-def chars_of(scope: list[State]) -> set[str]:
-    """Every character the mock draws: the text and labels of the in-scope elements."""
-    return {c for s in scope for e in s.elements if e.in_mock for c in (e.text or "") + (e.label or "")}
+def page_chars(parts: list[tuple[str, str]]) -> set[str]:
+    """Every character the drawn batches hold, entities decoded: the elements' text and what the builder copied from
+    the screenshots alone. Tags and CSS syntax are ASCII, which the Latin faces cover, so only written text can ask
+    for another face."""
+    return set(unescape("".join(css + markup for css, markup in parts)))
 
 
 def vendor_fonts(ctx: Ctx, mock_dir, families: list[str], chars: set[str]) -> str:
@@ -756,10 +758,12 @@ def covers(ranges: list[tuple[int, int]], point: int) -> bool:
 
 
 def fetch_recorded(ctx: Ctx, url: str) -> bytes:
-    """A live build fetches and records what it got, the bytes or the error, in the model-call cache keyed by URL.
-    --replay reads only that record: no network, and the same fonts (or the same system fallback) as the live build.
-    With no record it stops, like a model call's replay miss."""
-    path = FONT_RECORDS / f"{hashlib.sha256(url.encode()).hexdigest()}.json"
+    """A live build fetches and records what it got, the bytes or the error, in its own run's mock/font-records/,
+    keyed by URL. --replay reads only that record: no network, and the same fonts (or the same system fallback) as
+    the live build. The record belongs to the run, because the same URL can answer another run differently later (a
+    failed fetch, a new font version). With no record it stops, like a model call's replay miss."""
+    records = ctx.run_dir / "mock" / FONT_RECORDS
+    path = records / f"{hashlib.sha256(url.encode()).hexdigest()}.json"
     if ctx.replay:
         if not path.exists():
             raise llm.ReplayMiss(f"--replay: no recorded fetch of {url} (key {path.stem[:12]})")
@@ -767,7 +771,7 @@ def fetch_recorded(ctx: Ctx, url: str) -> bytes:
         if "error" in record:
             raise OSError(record["error"])
         return base64.b64decode(record["data"])
-    FONT_RECORDS.mkdir(parents=True, exist_ok=True)
+    records.mkdir(parents=True, exist_ok=True)
     try:
         data = fetch_twice(url)
     except FETCH_ERRORS as e:
