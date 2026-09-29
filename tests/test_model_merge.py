@@ -383,19 +383,20 @@ def test_the_everyday_label_is_kept_as_written_and_never_changes_what_was_observ
 
 
 # The approved JanitorAI model-stage rerun (tests/fixtures/terms/janitorai-2026-09-29.json), as a person reads its
-# screens. Every term a screen explains sits on an element the model also quoted in the ledger.
+# screens. Every term a screen explains sits on an element the model also quoted in the ledger. The model cited
+# nothing for the six other terms, so any rule leaves them unobserved.
 RERUN_OBSERVED = {
     "Janitor Plus": True,  # s13 never names it, but explore recorded "Upgrade to Janitor Plus" (s06.e44) opening s13
-    "Free": False,  # only in "Everything in Free, plus:"
+    "Free": False,
     "context": True,
     "Priority routing": True,
-    "swipes": False,  # only used in a sentence: "Generous monthly swipes with our frontier models"
-    "frontier models": False,  # the same sentence
-    "tokens": False,  # counts on cards ("2k tokens") and a bare "Tokens"
+    "swipes": False,
+    "frontier models": False,
+    "tokens": False,
     "Hidden Gems": True,
     "Golden checkmark": True,
-    "Proxy": False,  # bare: "Proxy", "Proxy allowed"
-    "chats": False,  # a count: "7 chats"
+    "Proxy": False,
+    "chats": False,
 }
 RERUN_EXPLAINS = {
     "Janitor Plus": "s13.e10",  # the paywall's bullets, e.g. "Priority routing for faster replies"
@@ -448,6 +449,16 @@ def test_only_a_tap_on_app_text_that_says_more_than_the_term_carries_it_to_the_n
         edges = [g.model_copy(update={"action": "swipe"}) if g.id == "s06.e44>s13" else g for g in edges]
     term = janitor_plus(edges, states, meaning, model_labels)
     assert (term.observed, term.defined_by) == (False, [])
+
+
+def test_a_sentence_that_only_uses_a_term_counts_if_the_model_cites_it():
+    """The documented known limit, pinned so that closing or widening it shows up here: s13.e11 uses "swipes"
+    without saying what one is."""
+    states, meaning, edges, model_labels = real_terms("janitorai-2026-09-29")
+    drafted = next(t for t in meaning.terms if t.term == "swipes")
+    meaning.terms[:] = [drafted.model_copy(update={"defined_by": ["s13.e11"]})]
+    (term,) = stage.resolve_terms(meaning, states, edges, model_labels)
+    assert (term.observed, term.defined_by) == (True, ["s13.e11"])
 
 
 def test_product_model_md_and_the_exhibit_show_which_unobserved_terms_are_everyday_words():
