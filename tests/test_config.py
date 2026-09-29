@@ -38,14 +38,20 @@ def test_budgets_are_run_flags():
     assert config.budget("transfer") == {"actions": 40, "wall_minutes": 12}
 
 
-def test_doctor_probes_every_role_at_its_real_settings():
+def test_doctor_probes_every_role_at_the_max_tokens_its_code_asks_for():
     from simula.doctor import role_probes
+    from simula.stages import model
+    roles, models = config.roles("real"), config.models()
     probes = role_probes()
-    assert ("claude-opus-5-5", "xhigh", 128000) in probes
-    assert ("gpt-6-sol", "high", 4096) in probes
-    assert ("gpt-6-luna", "high", 4096) in probes
-    probed_roles = {role.removesuffix(" fallback") for roles in probes.values() for role in roles}
-    assert set(config.roles("real")) - {"jev"} <= probed_roles
+    called = {name for name, role in roles.items() if name != "jev" and "max_tokens" in role}
+    assert called == set(roles) - {"jev", "pairwise"}, "every role but one that no code calls yet has a budget"
+    for name in called:
+        role = roles[name]
+        for m in filter(None, (role["model"], role.get("declared_fallback"))):
+            assert (m, role.get("effort"), min(role["max_tokens"], models[m]["max_out"])) in probes, name
+    assert model.max_tokens("real") == min(roles["model_meaning"]["max_tokens"],
+                                           models[roles["model_meaning"]["model"]]["max_out"])
+    assert any(n > models[m]["stream_above"] for m, _, n in probes), "a streamed call is probed streamed"
 
 
 def test_every_role_belongs_to_a_stage_so_changing_it_reruns_that_stage():

@@ -184,17 +184,18 @@ PROBE_MAX_TOKENS = 4096
 
 
 def role_probes() -> dict[tuple, list[str]]:
-    """Each distinct (model, effort, max_tokens) the real profile uses, with the roles that use it.
-    A declared fallback is probed at its role's effort."""
+    """Each distinct (model, effort, max_tokens) the real profile's calls use, with the roles that use it. max_tokens
+    is the role's own, capped at the model's output limit as the stage code caps it, so a probe streams exactly when
+    the call does. A declared fallback is probed at its role's effort; a role with no max_tokens has no call yet."""
     probes: dict[tuple, list[str]] = {}
     for name, role in config.roles("real").items():
-        if role["model"] == "jev-latest":
+        if role["model"] == "jev-latest" or "max_tokens" not in role:
             continue
         models = [role["model"]] + ([role["declared_fallback"]] if "declared_fallback" in role else [])
         for model in models:
             efforts = {role.get("effort"), role.get("effort_last_round")} - {None} or {None}
             for effort in efforts:
-                key = (model, effort, role.get("max_tokens", PROBE_MAX_TOKENS))
+                key = (model, effort, min(role["max_tokens"], config.models()[model]["max_out"]))
                 probes.setdefault(key, []).append(name if model == role["model"] else f"{name} fallback")
     probes.setdefault(("claude-haiku-4-5-20251001", None, PROBE_MAX_TOKENS), []).append("dev profile, jev adapter")
     return probes
@@ -203,7 +204,8 @@ def role_probes() -> dict[tuple, list[str]]:
 def check_keys() -> None:
     found = {}
     for (model, effort, max_tokens), roles in sorted(role_probes().items(), key=lambda kv: kv[0][0]):
-        label = f"{model} {effort or 'no effort'} {max_tokens // 1000}k"
+        streamed = " streamed" if max_tokens > config.models()[model]["stream_above"] else ""
+        label = f"{model} {effort or 'no effort'} {max_tokens // 1000}k{streamed}"
         found[f"{model}-{effort or 'none'}-{max_tokens}"] = ping(f"{label} ({', '.join(roles)})"[:60], model, effort,
                                                                    max_tokens=max_tokens)
     found["jev-typesafe"] = jev_probe("typesafe", 16)
