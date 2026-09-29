@@ -22,7 +22,7 @@ from PIL import Image
 from simula import config, llm, render
 from simula.config import ROOT
 from simula.contracts import ContractError, ContractReport, Device, Edge, Element, ProductModel, Rect, State
-from simula.runlog import read_trace, run_trace, write_exhibit
+from simula.runlog import read_manifest, read_trace, run_trace, update_manifest, write_exhibit
 from simula.stages import Ctx
 
 # ponytail: a fixed batch size. If a batch still runs out of output tokens, size batches from measured tokens per screen.
@@ -115,7 +115,7 @@ def run(ctx: Ctx) -> None:
     style = shared_style(scope)
     fonts = vendor_fonts(ctx, mock_dir, fonts_of(scope))
     contents = [batch_content(ctx, model, batch, screens, art, style) for batch in groups]
-    budget = llm.Budget.for_stage("mock", ctx.run_dir / "trace.jsonl", ctx.usd_cap)
+    budget = llm.Budget.for_stage("mock", ctx.run_dir / "trace.jsonl", plan_cap(ctx))
     worst = [worst_usd(ctx, content) for content in contents]
     keep = affordable(worst, budget.cap)
     plan = (f"{keep} of {len(groups)} batches fit the ${budget.cap:.2f} cap at worst case: "
@@ -322,6 +322,23 @@ def contains(a: Rect, b: Rect) -> bool:
 
 
 # ---------- the model calls, one per batch ----------
+
+def plan_cap(ctx: Ctx) -> float:
+    """The cap the batch plan is made against. A live run records it (after any --usd-cap) in the manifest's
+    caps_usd, and --replay plans against that record, so it draws the batches the live run drew; a different
+    --usd-cap at replay is refused. A run folder with no manifest (a test's) uses the given cap."""
+    cap = config.stage_cap("mock") if ctx.usd_cap is None else ctx.usd_cap
+    if not (ctx.run_dir / "manifest.json").exists():
+        return cap
+    caps = read_manifest(ctx.run_dir).caps_usd
+    if not ctx.replay:
+        update_manifest(ctx.run_dir, caps_usd=caps | {"mock": cap})
+        return cap
+    if ctx.usd_cap is not None and ctx.usd_cap != caps["mock"]:
+        raise llm.ReplayMiss(f"--replay: the mock ran live with a ${caps['mock']:.2f} cap and replays with it; "
+                             f"--usd-cap {ctx.usd_cap:g} would plan other batches, so drop --usd-cap")
+    return caps["mock"]
+
 
 def affordable(worst: list[float], cap: float) -> int:
     """How many batches, in priority order, fit the cap at their worst case with one worst case spare for a

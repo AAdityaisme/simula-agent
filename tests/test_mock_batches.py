@@ -1,12 +1,13 @@
 """Stage 3 draws its scope in parallel batches: batching, stitching, failure isolation, cache replay, the $ cap."""
 
 import threading
+from types import SimpleNamespace
 
 import pytest
 
-from simula import llm
-from simula.contracts import ContractReport, State
-from simula.runlog import read_trace
+from simula import cli, config, llm
+from simula.contracts import ContractReport, Provenance, State
+from simula.runlog import read_manifest, read_trace, write_manifest
 from simula.stages import mock
 from tests.conftest import APPS
 from tests.mock_fake import golden, seed_model, skeleton_html
@@ -258,6 +259,47 @@ def test_a_capped_run_replays_to_the_same_page(tmp_path, monkeypatch, app, two_b
     replay.usd_cap, replay.replay = 2.0, True
     mock.run(replay)
     assert len(calls) == 1
+    assert (run_dir / "mock" / "index.html").read_text() == first
+
+
+def live_run_with_manifest(tmp_path, monkeypatch, app, usd_cap):
+    """A live mock in a run folder with a manifest, as the CLI makes it: $1 per batch, batches of 2."""
+    run_dir = seed_model(tmp_path / "run", app)
+    write_manifest(run_dir, cli.new_manifest(run_dir, {"name": app, "package": "x"},
+                                             SimpleNamespace(profile="dev", budget="deep", allow_account_create=False),
+                                             Provenance(source="fixture", fixture_path="golden")))
+    with_cache_in(tmp_path, monkeypatch)
+    monkeypatch.setattr(mock, "worst_usd", lambda ctx, content: 1.0)
+    calls = []
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider_drawing(golden(app), calls))
+    ctx = ctx_for(run_dir, app)
+    ctx.usd_cap = usd_cap
+    mock.run(ctx)
+    return run_dir, calls
+
+
+def test_a_replay_plans_against_the_cap_the_live_run_recorded_not_todays(tmp_path, monkeypatch, app, two_batches):
+    """Live with --usd-cap 2 draws batch 1 only; a replay with no flag used to plan at the configured cap and miss."""
+    run_dir, calls = live_run_with_manifest(tmp_path, monkeypatch, app, usd_cap=2.0)
+    assert read_manifest(run_dir).caps_usd["mock"] == 2.0 and len(calls) == 1
+    first = (run_dir / "mock" / "index.html").read_text()
+
+    replay = ctx_for(run_dir, app)
+    replay.replay = True
+    mock.run(replay)
+    assert len(calls) == 1 and (run_dir / "mock" / "index.html").read_text() == first
+
+
+def test_a_replay_with_a_different_usd_cap_is_refused(tmp_path, monkeypatch, app, two_batches):
+    """Live at the configured cap draws every batch; a replay with --usd-cap 2 used to draw a different page silently."""
+    run_dir, calls = live_run_with_manifest(tmp_path, monkeypatch, app, usd_cap=None)
+    assert read_manifest(run_dir).caps_usd["mock"] == config.stage_cap("mock")
+    first = (run_dir / "mock" / "index.html").read_text()
+
+    replay = ctx_for(run_dir, app)
+    replay.replay, replay.usd_cap = True, 2.0
+    with pytest.raises(llm.ReplayMiss, match=r"ran live with a \$25\.00 cap .* --usd-cap 2 would plan other batches"):
+        mock.run(replay)
     assert (run_dir / "mock" / "index.html").read_text() == first
 
 
