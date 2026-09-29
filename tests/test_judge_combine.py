@@ -212,7 +212,8 @@ def test_a_fixable_reject_is_revised_once_and_judged_fresh(tmp_path, monkeypatch
     original, revised = cands[0].id, f"{cands[0].id}-rev"
     assert decisions[original].final == "reject"
     assert (decisions[revised].final, decisions[revised].revision_of) == ("accept", original)
-    assert [p.split("/")[-1] for p in decisions[revised].verdict_paths] == [f"{revised}_judge_1_r2.json"]
+    assert [p.split("/")[-1] for p in decisions[revised].verdict_paths] == [f"{revised}_judge_1_r2.json",
+                                                                             f"{revised}_judge_2_r2.json"]
     revisions = CandidatesFile.model_validate_json((run_dir / "judge" / "revisions.json").read_text()).candidates
     assert [r.id for r in revisions] == [revised] and revisions[0].economics and revisions[0].title.startswith("Product change: ")
     assert sum(c["schema"] is LensOutput for c in calls) == 1
@@ -290,8 +291,8 @@ def test_a_rerun_leaves_nothing_from_an_earlier_attempt(tmp_path, monkeypatch):
     call, _ = fake_llm({})
     monkeypatch.setattr(llm, "call", call)
     judge.run(ctx_for(app, run_dir))
-    assert sorted(p.name for p in stale.rglob("*")) == ["c01_judge_1_r1.json", "decisions.json", "revisions.json",
-                                                        "verdicts"]
+    assert sorted(p.name for p in stale.rglob("*")) == ["c01_judge_1_r1.json", "c01_judge_2_r1.json", "decisions.json",
+                                                        "revisions.json", "verdicts"]
 
 
 def test_an_evidence_fail_the_revision_fixed_was_the_proposals_not_the_models(tmp_path, monkeypatch):

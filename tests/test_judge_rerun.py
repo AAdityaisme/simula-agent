@@ -34,7 +34,8 @@ def provider(tmp_path, monkeypatch):
     def fake(model, system, messages, effort, schema, max_tokens, total_timeout):
         script.calls += 1
         return script.answer(schema)
-    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake)
+    for provider_name in ("anthropic", "openai"):
+        monkeypatch.setitem(llm.PROVIDERS, provider_name, fake)
     monkeypatch.setattr(runlog, "notify", lambda *a: False)
     return script
 

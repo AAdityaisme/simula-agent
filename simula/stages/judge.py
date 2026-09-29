@@ -28,7 +28,6 @@ PREMISE = ("c1_revealed_value", "c2_evidence")
 MAX_TOKENS = 16001
 SURVIVORS = ("accept", "conditional")
 ECON_CONDITION = {"CONDITIONAL": "The cost to serve isn't known", "FAIL": "It may cost more to serve than a view earns"}
-DEFAULT_JUDGES = ["judge_1"]
 
 
 class PromptsChanged(RuntimeError):
@@ -388,7 +387,7 @@ def run(ctx: Ctx) -> None:
 
 def judge_run(ctx: Ctx, work: Path, model: ProductModel, candidates: list[Candidate]) -> None:
     mode = config.profiles()["economics_mode"]
-    judges = config.profiles().get("judges", DEFAULT_JUDGES)
+    judges = config.profiles()["judges"]
     budget = llm.Budget.for_stage("judge", ctx.run_dir / "trace.jsonl", ctx.usd_cap)
 
     verdicts, paths = judge_all(ctx, work, candidates, model, judges, budget, 1)
