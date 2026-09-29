@@ -131,15 +131,20 @@ def aborted_call(monkeypatch, stream, tmp_path):
     return failure.value, budget, read_trace(tmp_path / "trace.jsonl")[-1]
 
 
-def test_an_aborted_stream_is_charged_its_snapshot_with_output_at_least_what_streamed(monkeypatch, tmp_path):
+@pytest.mark.parametrize("streamed_chars, charged_out", [(33_000, 64_000), (240_000, 80_000)],
+                         ids=["less-than-max-tokens-streamed", "more-streamed"])
+def test_an_aborted_stream_is_charged_its_worst_case_or_what_streamed_if_more(monkeypatch, tmp_path,
+                                                                             streamed_chars, charged_out):
+    """The API bills thinking a stream may not carry, so 11K streamed tokens can't bound the bill: the worst case
+    does (the reported input plus max_tokens), unless what streamed was more."""
     snapshot = SimpleNamespace(usage=SimpleNamespace(input_tokens=5000, output_tokens=1),
                                content=[SimpleNamespace(type="thinking", thinking="t" * 3000),
-                                        SimpleNamespace(type="text", text="x" * 30_000)])
+                                        SimpleNamespace(type="text", text="x" * (streamed_chars - 3000))])
     failure, budget, line = aborted_call(monkeypatch, AbortedStream(snapshot), tmp_path)
-    assert failure.outcome == "timeout" and (failure.tokens_in, failure.tokens_out) == (5000, 11_000)
-    expected = llm.usd("claude-opus-5-5", 5000, 11_000)
+    assert failure.outcome == "timeout" and (failure.tokens_in, failure.tokens_out) == (5000, charged_out)
+    expected = llm.usd("claude-opus-5-5", 5000, charged_out)
     assert budget.spent == pytest.approx(expected) and line.usd == pytest.approx(expected, abs=1e-6)
-    assert (line.tokens_in, line.tokens_out, line.outcome) == (5000, 11_000, "timeout")
+    assert (line.tokens_in, line.tokens_out, line.outcome) == (5000, charged_out, "timeout")
 
 
 def test_a_stream_that_never_started_is_charged_only_its_input(monkeypatch, tmp_path):
@@ -160,8 +165,8 @@ def test_a_stream_that_stalls_mid_answer_is_a_charged_timeout(monkeypatch, tmp_p
                                content=[SimpleNamespace(type="text", text="x" * 3000)])
     failure, budget, line = aborted_call(monkeypatch, StalledStream(snapshot), tmp_path)
     assert failure.outcome == "timeout" and "timed out" in str(failure)
-    assert budget.held == 0 and budget.spent == pytest.approx(llm.usd("claude-opus-5-5", 5000, 1000))
-    assert (line.outcome, line.tokens_in, line.tokens_out) == ("timeout", 5000, 1000)
+    assert budget.held == 0 and budget.spent == pytest.approx(llm.usd("claude-opus-5-5", 5000, 64_000))
+    assert (line.outcome, line.tokens_in, line.tokens_out) == ("timeout", 5000, 64_000)
 
 
 class BrokenStream(AbortedStream):
