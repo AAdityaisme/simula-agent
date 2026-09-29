@@ -15,6 +15,7 @@ from PIL import Image
 from playwright.sync_api import Error as PlaywrightError
 
 from simula import config, llm, qa_metrics, render, runfolder
+from simula.cli import run_options
 from simula.config import ROOT
 from simula.contracts import (SCHEMA_VERSION, ContractError, ContractReport, Critique, Edge, Edit, Edits, Fix,
                               ProductModel, QAMetrics, Rect, ScreenMetrics, State)
@@ -661,7 +662,7 @@ def outcome(ctx: Ctx, best: Version, loop: Loop, undrawn: dict[str, str]) -> dic
     ) if present]
     start = "mock" if undrawn else "qa"
     return {"outcome": "partial" if reasons else "complete", "reasons": reasons,
-            "resume": f"simula run {ctx.app['name']} --run {ctx.run_dir.name} --from {start}" if reasons else None}
+            "resume": f"simula run {ctx.app['name']} --from {start} {run_options(ctx)}" if reasons else None}
 
 
 def structure(best: Version) -> dict:

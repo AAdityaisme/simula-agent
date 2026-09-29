@@ -8,7 +8,7 @@ from simula.contracts import ContractError, QAMetrics, ScreenMetrics
 from simula.stages import qa
 from tests.test_mock_isolation import ctx_for
 # records keeps QA's replay records in tmp; scripted plays the loop on scripted scores.
-from tests.test_qa_loop import approved_html, records, scripted  # noqa: F401
+from tests.test_qa_loop import OPTIONS, approved_html, records, scripted  # noqa: F401
 
 
 def screen(sid: str, ssim: float | None, tagged: int, misses: int) -> dict:
@@ -80,7 +80,7 @@ def test_a_review_a_model_call_cut_short_is_partial_yet_still_approves_its_best_
     report = play([5.0])
     assert (report["status"], report["outcome"], report["approved_round"]) == ("qa_incomplete", "partial", 0)
     assert report["reasons"] == [f"the review stopped early: round 1 stopped before any edit: {failure}"]
-    assert report["resume"] == f"simula run luzia --run {run_dir.name} --from qa"
+    assert report["resume"] == f"simula run luzia --from qa --run {run_dir.name} {OPTIONS}"
     assert approved_html(run_dir) == "<html><body>v0</body></html>"
     exhibit = (run_dir / "exhibits" / "04-qa.md").read_text()
     assert "**qa_incomplete** (outcome partial): the review stopped early" in exhibit
@@ -97,10 +97,10 @@ def test_failing_taps_and_flows_are_named_and_resume_from_qa(tmp_path):
     best = version()
     report = qa.qa_report(ctx_for(tmp_path / "run", "anyapp"), best, qa.Loop(rounds=[], stop="s"), {})
     assert report["reasons"] == ["taps that still fail: s01.e2>s04", "core flows that still fail: f2"]
-    assert report["resume"] == "simula run anyapp --run run --from qa"
+    assert report["resume"] == f"simula run anyapp --from qa --run run {OPTIONS}"
     best.contract_errors.append(ContractError(kind="wallpaper", detail="d", screen="s01"))
     undrawn = {"s09": "screen not drawn: refusal"}
     report = qa.qa_report(ctx_for(tmp_path / "run", "anyapp"), best, qa.Loop(rounds=[], stop="s"), undrawn)
     assert report["reasons"][0] == "the mock left screens undrawn: s09"
     assert report["reasons"][-1] == "contract errors on the approved version: 1"
-    assert report["resume"] == "simula run anyapp --run run --from mock"
+    assert report["resume"] == f"simula run anyapp --from mock --run run {OPTIONS}"
