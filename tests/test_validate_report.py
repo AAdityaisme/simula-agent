@@ -78,6 +78,8 @@ def test_a_judge_that_catches_every_defect_and_passes_known_good_passes_the_gate
     text, passed = run_report(cases, judged(cases))
     assert passed and "## Gate: PASS" in text
     assert "| judge_1 | 22/22 (100%) | 0.851 | 11/11 (100%) | 0.741 |" in text
+    assert text.index("## Headline: recall") < text.index("## Planted defects caught") < text.index(
+        "## Per check: a smoke test") and "can't tell a 50% catch rate from 100%" in text
     assert "| Planted defects (22) | 22 | 0 |" in text and "| Known-good (3) | 3 | 0 |" in text
 
 

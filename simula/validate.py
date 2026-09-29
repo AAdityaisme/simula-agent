@@ -284,7 +284,15 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
                   + "."]
     lines += [f"- Declared model fallback used: {f}" for f in fallbacks]
 
-    lines += ["", "## Headline: planted defects caught vs known-good passed", "",
+    lines += ["", "## Headline: recall over every LLM-judged planted defect (C8 excluded)", "",
+              "The pooled rate and its Wilson 95% lower bound are the claim this report supports.", "",
+              "| Judge | All planted | Wilson 95% lower | Subtle only | Wilson 95% lower |", "|---|---|---|---|---|"]
+    for who in columns:
+        k, ks = sum(is_caught(c, who) for c in planted), sum(is_caught(c, who) for c in subtle)
+        lines.append(f"| {who} | {rate(k, len(planted))} | {wilson_lower(k, len(planted)):.3f} | "
+                     f"{rate(ks, len(subtle))} | {wilson_lower(ks, len(subtle)):.3f} |")
+
+    lines += ["", "## Planted defects caught vs known-good passed", "",
               "A judge that fails everything catches every defect and passes no known-good idea; read both rows.", ""]
     for who in columns:
         hit = sum(is_caught(c, who) for c in planted)
@@ -293,7 +301,9 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
                   f"| Planted defects ({len(planted)}) | {hit} | {len(planted) - hit} |",
                   f"| Known-good ({len(goods)}) | {ok} | {len(goods) - ok} |", ""]
 
-    lines += ["## Per check (a check with 0 of 2 caught is broken)", "",
+    lines += ["## Per check: a smoke test (a check with 0 of 2 caught is broken)", "",
+              "Two cases per check tell a blind check (0 of 2) from one that works. They can't tell a 50% catch rate "
+              "from 100%: a check that catches half its defects still scores 2 of 2 a quarter of the time.", "",
               "| Check | " + " | ".join(columns) + " |", "|---|" + "---|" * len(columns)]
     broken = {who: [] for who in columns}
     for k, group in per_check.items():
@@ -307,12 +317,6 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
                          f"({tiers or 'no cases'})")
         lines.append(f"| {k} | " + " | ".join(cells) + " |")
 
-    lines += ["", "## Recall over the LLM cases (C8 excluded)", "",
-              "| Judge | All planted | Wilson 95% lower | Subtle only | Wilson 95% lower |", "|---|---|---|---|---|"]
-    for who in columns:
-        k, ks = sum(is_caught(c, who) for c in planted), sum(is_caught(c, who) for c in subtle)
-        lines.append(f"| {who} | {rate(k, len(planted))} | {wilson_lower(k, len(planted)):.3f} | "
-                     f"{rate(ks, len(subtle))} | {wilson_lower(ks, len(subtle)):.3f} |")
 
     lines += ["", "## Known-good pass rate (every one of the 11 checks passed)", "",
               "| Judge | Known-good (gate) |", "|---|---|"]
