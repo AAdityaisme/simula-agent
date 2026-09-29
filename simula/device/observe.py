@@ -119,8 +119,8 @@ def device_from(elements: list[dict], w_px: int, h_px: int, density: int) -> Dev
 # ---------- redaction ----------
 
 def redact(reply: dict, image: Image.Image, secrets: list[str]) -> tuple[dict, list[dict], int]:
-    """Replaces every listed string (any case) and every email address in the element list with [redacted] and
-    paints a solid box over those elements in the image, before anything reads or saves them. Also returns how
+    """Replaces every listed string (any case) and every email address in any of an element's strings with [redacted]
+    and paints a solid box over those elements in the image, before anything reads or saves them. Also returns how
     many elements were redacted."""
     listed = [re.escape(s.strip()) for s in secrets if s.strip()]
     pattern = re.compile("|".join([EMAIL.pattern, *listed]), re.IGNORECASE)
@@ -129,9 +129,9 @@ def redact(reply: dict, image: Image.Image, secrets: list[str]) -> tuple[dict, l
     hits = 0
     for e in elements:
         hit = False
-        for key in ("text", "label", "identifier"):
-            if e.get(key) and pattern.search(e[key]):
-                e[key], hit = pattern.sub(REDACTED, e[key]), True
+        for key, value in list(e.items()):
+            if key not in ("ref", "type") and isinstance(value, str) and pattern.search(value):
+                e[key], hit = pattern.sub(REDACTED, value), True
         if hit:
             hits += 1
             r = rect(e)
@@ -309,9 +309,12 @@ def find(cands: list[Candidate], want: Candidate) -> Candidate | None:
 
 def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bool = False) -> str | None:
     """The deny-list word that blocks this tap, or None. On an upsell screen its call-to-action words are
-    denied too. Sending and typing belong to the core-loop pass only. A switch or checkbox could undo the
-    content filter, so only the filter's own row may flip one (toggle_ok)."""
+    denied too. A control that shows the account's own name or email is never tapped: a tap can copy it where no
+    redaction reaches, like the keyboard's clipboard chip. Sending and typing belong to the core-loop pass only. A
+    switch or checkbox could undo the content filter, so only the filter's own row may flip one (toggle_ok)."""
     text = "\n".join(dict.fromkeys(t for t in (c.label, c.tree_label) if t))
+    if REDACTED in text:
+        return "account text"
     hit = DENY.search(text) or (DENY_ON_UPSELL.search(text) if upsell else None) \
         or (DENY_IN_CORE if core else DENY_IN_TOUR).search(text)
     if hit:

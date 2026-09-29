@@ -232,6 +232,8 @@ class Explorer:
         shot = self.phone.screenshot(self.scratch / "now.png", (self.device.w_px, self.device.h_px))
         image = Image.open(shot).convert("RGB")
         reply, elements, hits = ob.redact(settled.reply, image, self.secrets)
+        if hits or not settled.ok:
+            ob.redact(self.phone.elements()[0], image, self.secrets)  # the screen may have moved since the list
         self.redacted += hits
         image.save(shot)
         fg = self.phone.foreground()
