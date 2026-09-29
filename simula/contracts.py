@@ -333,7 +333,8 @@ class CandidateDraft(Strict):
     cost_inputs: CostInputs
     frequency_cap: str
     daily_cap: int = Field(description="How many times one user can take this offer in a day: the per-user limit "
-                           "only, never a limit per character, item, or screen. A one-time or weekly offer is 1.")
+                           "only, never a limit per character, item, or screen. An offer one user can take less "
+                           "than once a day (one-time, weekly, monthly, every few days) is 0.")
     decline_path: str
     ad_fail_path: str
     subscriber_treatment: str
@@ -370,8 +371,8 @@ class Economics(Strict):
 
 
 class Candidate(CandidateDraft):
-    # The proposer must answer both (CandidateDraft); a stored file from before either field existed still parses,
-    # and propose drops an idea that leaves one empty.
+    # The proposer must answer both (CandidateDraft); a stored file from before either field existed still parses:
+    # a missing daily_cap reads as 0 (less than once a day), and propose drops an idea with no after_reward.
     daily_cap: int = 0
     after_reward: str = ""
     economics: Economics | None = None

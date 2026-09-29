@@ -260,10 +260,34 @@ def test_the_exhibit_shows_the_typed_cap_beside_the_offers_own_cap(model):
     assert f"per-user daily cap, 10; not a measured audience). The offer's cap: {offer_cap}" in text
 
 
-def test_no_daily_cap_is_dropped_and_an_older_stored_file_without_one_still_parses(model):
-    assert check(candidate(model, daily_cap=0), model) == "doesn't give a per-user daily cap"
+def test_a_cap_of_0_stays_live_and_ranks_last(model):
+    """Red team PR4 @eddcdef #1: an offer taken less than once a day is typed 0 and ranks after a daily one, even a
+    daily one a tap deeper. Only a negative cap is dropped; an older stored file without a cap reads as 0."""
+    one_tap_in = next(sid for sid, d in depths(model).items() if d == 1)
+    once = candidate(model, frequency_cap="1 per user, one-time offer", daily_cap=0)
+    daily = candidate(model, trigger_state_id=one_tap_in, daily_cap=1)
+    live = [c for c in finish([once, daily], model, "annotate")[0] if not c.dropped_reason]
+    assert [(c.frequency_cap, c.rank_score) for c in live] == [(daily.frequency_cap, 0.5), (once.frequency_cap, 0.0)]
+    assert check(candidate(model, daily_cap=-1), model) == "gives a negative per-user daily cap"
     older = Candidate.model_validate(candidate(model).model_dump(exclude={"daily_cap", "after_reward"}))
     assert (older.daily_cap, older.after_reward) == (0, "")
+
+
+def test_a_weekly_twin_drafted_first_loses_to_its_daily_twin(model):
+    """Typed 1, a weekly offer tied its daily twin, and the lens that drafted first kept its idea."""
+    weekly = candidate(model, frequency_cap="1 per week per user", daily_cap=0)
+    daily = candidate(model, frequency_cap="1 per day, resets at midnight", daily_cap=1)
+    out = finish([weekly, daily], model, "annotate", name=lambda live: ({c.id: "a badge" for c in live}, {}))[0]
+    [kept] = [c for c in out if not c.dropped_reason]
+    [twin] = [c for c in out if c.dropped_reason]
+    assert (kept.frequency_cap, twin.frequency_cap) == (daily.frequency_cap, weekly.frequency_cap)
+    assert twin.dropped_reason.startswith(f"duplicate of {kept.id}: same benefit")
+
+
+def test_the_exhibit_says_a_cap_of_0_is_less_than_once_a_day(model):
+    live = finish([candidate(model, frequency_cap="1 per week per user", daily_cap=0)], model, "annotate")[0]
+    text = propose.exhibit([], live, {}, model, "not needed")
+    assert "per-user daily cap, 0, less than once a day; not a measured audience)" in text
 
 
 def test_mechanic_ledger_and_element_ids_resolve_to_what_they_point_at(model):

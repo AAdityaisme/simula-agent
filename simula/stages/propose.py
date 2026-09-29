@@ -326,8 +326,8 @@ def check(c: Candidate, model: ProductModel) -> str | None:
         return problem
     if not c.after_reward.strip():
         return "doesn't say what the user sees when the reward runs out"
-    if c.daily_cap < 1:
-        return "doesn't give a per-user daily cap"
+    if c.daily_cap < 0:
+        return "gives a negative per-user daily cap"
     if problem := grants_problem(c, model):
         return problem
     if in_chat(c.placement):
@@ -358,7 +358,8 @@ def depths(model: ProductModel) -> dict[str, int]:
 
 def rank(c: Candidate, model: ProductModel, mode: str) -> Candidate:
     """reach = eligible users (by the trigger's depth) x daily views (the typed per-user `daily_cap`, never the
-    `frequency_cap` prose): a scenario, not a measured audience."""
+    `frequency_cap` prose): a scenario, not a measured audience. An offer taken less than once a day is typed 0, so
+    it ranks after every daily one and loses a duplicate pair to its daily twin."""
     if c.dropped_reason or c.kind == "no_opportunity":
         return c
     weight = {0: 1.0, 1: 0.5}.get(depths(model)[c.trigger_state_id], 0.25)
@@ -511,7 +512,8 @@ def exhibit(lenses: list[Lens], candidates: list[Candidate], repairs: dict[str, 
                   f"- When the reward ends: {c.after_reward}",
                   f"- Cost: {c.economics.assumption_line}",
                   f"- Reach scenario: {c.reach_score:g} (trigger depth x the proposer's per-user daily cap, "
-                  f"{c.daily_cap}; not a measured audience). The offer's cap: {c.frequency_cap}"]
+                  f"{c.daily_cap}{', less than once a day' if c.daily_cap == 0 else ''}; not a measured audience). "
+                  f"The offer's cap: {c.frequency_cap}"]
         lines += [f"- Flag: {flag}" for flag in c.flags]
     dropped = [c for c in candidates if c.dropped_reason]
     if dropped:
