@@ -142,6 +142,18 @@ def test_the_chat_waits_for_the_reply_and_for_send_to_come_back(tmp_path, monkey
     assert not any(entry[:1] == ("tap",) and entry[2] == "Cancel" for entry in phone.log)
 
 
+def test_a_model_finished_mid_reply_waits_for_send_to_come_back(tmp_path, monkeypatch):
+    def slow(clock):
+        phone = chatty(clock)
+        phone.generating = 90.0
+        return phone
+    monkeypatch.setattr(stage.Explorer, "progress", lambda self, *a: "finished")
+    ex, phone = run_explorer(tmp_path, monkeypatch, slow, budget="deep")
+    assert phone.sent and ex.counts["model finished while send still busy"] > 0
+    assert ex.settles and all(seconds >= 90 for seconds, _ in ex.settles)
+    assert not any(entry[:1] == ("tap",) and entry[2] == "Cancel" for entry in phone.log)
+
+
 def test_decorative_motion_ends_the_wait_by_the_model_not_the_cap(tmp_path, monkeypatch):
     ex, phone = new_explorer(tmp_path, monkeypatch, chatty, budget="deep")
     ex.device = DEVICE

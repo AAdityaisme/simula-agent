@@ -1416,7 +1416,8 @@ class Explorer:
         looks again as it did before the message (idle: that screenshot and control; a stop control in its place
         means the reply is still coming). While the screen keeps changing, the model is asked every SETTLE_ASK_S
         whether the work is still progressing, finished (only decorative motion is left), or stalled, up to the
-        SETTLE_CAP_S outer cap. The new text's timing is read from the element list on the way."""
+        SETTLE_CAP_S outer cap; its finished counts only once the send control is idle again. The new text's timing is
+        read from the element list on the way."""
         start, samples, last, asks, how = self.clock(), [], None, 0, "cap"
         while True:
             reply, elements = self.phone.elements()
@@ -1430,6 +1431,9 @@ class Explorer:
             if last is not None and at >= min(SETTLE_CAP_S, (asks + 1) * SETTLE_ASK_S):
                 asks += 1
                 how = self.progress(last, frame, at)
+                if how == "finished" and not self.idle_again(idle, elements, frame):
+                    self.counts["model finished while send still busy"] += 1
+                    how = "progressing"
                 if how != "progressing" or at >= SETTLE_CAP_S:
                     break
             last = frame
@@ -1773,6 +1777,8 @@ def counters(ex: Explorer) -> list[str]:
             f"side-effect actions the model saw: {c['side effects']}",
             f"settle waits: {len(waits)} ({', '.join(f'{n} {h}' for h, n in sorted(how.items())) or 'none'}), "
             f"seconds {', '.join(str(sec) for sec, _ in waits) or '-'}",
+            f"model finished verdicts refused while send still looked busy: "
+            f"{c['model finished while send still busy']}",
             f"walk picks the screen no longer showed: {c['walk picks the screen no longer shows']}"]
 
 
