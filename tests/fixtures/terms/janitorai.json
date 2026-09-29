@@ -1,5 +1,13 @@
 {
- "source": "PR 2 run runs/janitorai/20260928-024200-17d5562-fixture: model/product_model.json states ['s01', 's02'], and the model's final answer (cache 6da545d86233) after check_meaning",
+ "source": "PR 2 run runs/janitorai/20260928-024200-17d5562-fixture: model/product_model.json states ['s01', 's02'], and the model's final answer (cache 6da545d86233) after check_meaning; model_labels: the elements whose label that run's explore icon or vision pass wrote (explore/states/<sid>.json)",
+ "model_labels": [
+  "s01.e02",
+  "s01.e66",
+  "s01.e67",
+  "s01.e68",
+  "s01.e69",
+  "s01.e70"
+ ],
  "states": [
   {
    "id": "s01",

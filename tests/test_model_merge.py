@@ -40,7 +40,7 @@ def recorded_answer(g: ProductModel) -> ModelMeaning:
 @pytest.fixture(params=APPS)
 def app(request, tmp_path):
     explore = build(request.param, tmp_path / "explore")
-    states, _ = stage.load_states(explore, DEVICE)
+    states, _, _ = stage.load_states(explore, DEVICE)
     edges, _ = stage.load_edges(explore, states)
     return request.param, states, edges, recorded_answer(golden(request.param))
 
@@ -274,7 +274,7 @@ def test_a_term_keeps_its_meaning_only_when_a_cited_element_carries_it_and_says_
                      TermMeaning(term="Zorblax", meaning="x", defined_by=[carrier.id], used_in=["m-term"])]
     kept, rejected = stage.check_meaning(answer, states, edges)
     assert rejected == ["term 'Zorblax': used_in ['m-term'] names no kept mechanic or ledger line that uses it"]
-    observed, unobserved = stage.resolve_terms(kept, states)
+    observed, unobserved = stage.resolve_terms(kept, states, set())
     assert (observed.observed, observed.meaning, observed.defined_by) == (True, "a plain meaning", [carrier.id])
     assert (unobserved.observed, unobserved.meaning, unobserved.defined_by) == (False, stage.NOT_OBSERVED, []), \
         "text beside the term on its screen, with no cited element that carries it, is a guess"
@@ -287,7 +287,7 @@ def test_the_line_that_uses_a_term_cannot_define_it(app):
     answer.value_ledger.append(LedgerItem(id="l-term", kind="meter", verbatim=bullet.text, evidence_ids=[bullet.id]))
     answer.terms.append(TermMeaning(term=word, meaning="a guess", defined_by=[bullet.id], used_in=["l-term"]))
     kept, rejected = stage.check_meaning(answer, states, edges)
-    (term,) = stage.resolve_terms(kept, states)
+    (term,) = stage.resolve_terms(kept, states, set())
     assert rejected == [] and (term.observed, term.meaning, term.defined_by) == (False, stage.NOT_OBSERVED, [])
 
 
@@ -315,15 +315,16 @@ SHOWN = {
 }
 
 
-def real_terms(app: str) -> tuple[list[State], ModelMeaning]:
+def real_terms(app: str) -> tuple[list[State], ModelMeaning, set[str]]:
     fixture = json.loads((FIXTURES / "terms" / f"{app}.json").read_text())
-    return [State.model_validate(s) for s in fixture["states"]], ModelMeaning.model_validate(fixture["meaning"])
+    return ([State.model_validate(s) for s in fixture["states"]], ModelMeaning.model_validate(fixture["meaning"]),
+            set(fixture["model_labels"]))
 
 
 @pytest.mark.parametrize("name", APPS)
 def test_a_real_term_is_observed_exactly_when_a_screen_shows_what_it_means(name):
-    states, meaning = real_terms(name)
-    terms = stage.resolve_terms(meaning, states)
+    states, meaning, model_labels = real_terms(name)
+    terms = stage.resolve_terms(meaning, states, model_labels)
     assert {t.term: t.defined_by for t in terms} == SHOWN[name]
     for drafted, term in zip(meaning.terms, terms):
         assert (term.observed, term.meaning) == ((True, drafted.meaning) if term.defined_by else
@@ -339,31 +340,33 @@ GUESSES = [
     ("aol", "Inbox", ["s01.e72", "s01.e73"], "the bare tab name and the tab beside it"),
     ("aol", "Inbox", ["s01.e36"], "a headline on the same screen"),
     ("luzia", "Toki", ["s01.e03"], "another banner on the same screen"),
+    ("luzia", "Luzia+", ["s01.e02"], "an icon the explore pass named 'Luzia+ upsell badge'; s01 never shows Luzia+"),
+    ("luzia", "Luzia+", ["s01.e02", "s01.e26"], "that icon and a banner beside it"),
 ]
 
 
 @pytest.mark.parametrize("name, term, cited, why", GUESSES, ids=[f"{g[1]}<-{'+'.join(g[2])}" for g in GUESSES])
 def test_a_guess_cited_next_to_a_term_stays_unobserved(name, term, cited, why):
-    states, meaning = real_terms(name)
+    states, meaning, model_labels = real_terms(name)
     drafted = next(t for t in meaning.terms if t.term == term)
     meaning.terms[:] = [drafted.model_copy(update={"defined_by": cited})]
-    (resolved,) = stage.resolve_terms(meaning, states)
+    (resolved,) = stage.resolve_terms(meaning, states, model_labels)
     assert (resolved.observed, resolved.defined_by) == (False, []), why
 
 
 def test_a_real_count_of_a_term_does_not_define_it():
     """s01.e49 "1.8k tokens" is quoted by a meter line that uses the term, though the term's used_in doesn't list it."""
-    states, meaning = real_terms("janitorai")
+    states, meaning, model_labels = real_terms("janitorai")
     meaning.terms[:] = [TermMeaning(term="tokens", meaning="a guess", defined_by=["s01.e49"], used_in=["m2"])]
-    (resolved,) = stage.resolve_terms(meaning, states)
+    (resolved,) = stage.resolve_terms(meaning, states, model_labels)
     assert (resolved.observed, resolved.defined_by) == (False, [])
 
 
 def test_a_term_shows_only_as_a_whole_word():
     """s01.e48 "Limitless" would explain "Limit" if part of a word counted: "less" is left once "Limit" is cut."""
-    states, meaning = real_terms("janitorai")
+    states, meaning, model_labels = real_terms("janitorai")
     meaning.terms[:] = [TermMeaning(term="Limit", meaning="a guess", defined_by=["s01.e48"], used_in=[])]
-    (resolved,) = stage.resolve_terms(meaning, states)
+    (resolved,) = stage.resolve_terms(meaning, states, model_labels)
     assert (resolved.observed, resolved.defined_by) == (False, [])
 
 

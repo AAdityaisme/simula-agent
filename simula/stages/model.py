@@ -134,20 +134,24 @@ def group_repeats(state: State, tapped: set[str]) -> State:
     return state.model_copy(update={"elements": elements})
 
 
-def load_states(explore_dir: Path, device: Device) -> tuple[list[State], dict[str, Image.Image]]:
-    states, images = [], {}
+def load_states(explore_dir: Path, device: Device) -> tuple[list[State], dict[str, Image.Image], set[str]]:
+    """The states, their screenshots, and the ids of elements whose label a model wrote (an icon-pass name or a
+    vision-pass element), which are never app text."""
+    states, images, model_labels = [], {}, set()
     for path in sorted(p for p in (explore_dir / "states").glob("*.json") if "." not in p.stem):
         sf = StateFile.model_validate_json(path.read_text())
         image = Image.open(explore_dir / sf.screenshot).convert("RGB")
         tree = read_tree(explore_dir / sf.elements_reply) if sf.elements_reply else []
         images[sf.state_id] = image
+        elements = build_elements(sf.state_id, tree, sf.icon_labels, sf.vision_elements, np.asarray(image), device)
+        named = {i.mcp_ref for i in sf.icon_labels}
+        model_labels |= {e.id for e in elements if e.source == "vision" or e.mcp_ref in named}
         states.append(State(
             id=sf.state_id, kind=sf.kind, parent_id=sf.parent_id, name=sf.state_id, purpose="",
-            fingerprint=sf.fingerprint, canonical_png=f"states/{sf.state_id}.png",
-            elements=build_elements(sf.state_id, tree, sf.icon_labels, sf.vision_elements, np.asarray(image), device),
+            fingerprint=sf.fingerprint, canonical_png=f"states/{sf.state_id}.png", elements=elements,
             in_mock_scope=False, content_rating="unknown", dynamic_regions=sf.dynamic_regions,
             blocked_reason=sf.blocked_reason))
-    return states, images
+    return states, images, model_labels
 
 
 def tapped_element(state: State, line: ActionLine) -> Element | None:
@@ -440,19 +444,23 @@ def keyword_floor(state: State, keywords: list[str]) -> ContentRating:
     return "unsafe" if pattern and re.search(pattern, words, re.IGNORECASE) else state.content_rating
 
 
-def resolve_terms(meaning: ModelMeaning, states: list[State]) -> list[Term]:
+def resolve_terms(meaning: ModelMeaning, states: list[State], model_labels: set[str]) -> list[Term]:
     """A term keeps its meaning only when a cited element carries it (as a whole word) and, with the term and every
     ledger line quoting it cut out, still says something in words of two or more letters. So a bare name, a count
     ("1.8k tokens") or a line that uses the term can't define it. Other cited elements (the bullets under a plan's
-    name) count when they sit on such an element's screen, whatever a mechanic cites as evidence. Otherwise the term
-    is marked 'meaning not observed' and nothing downstream may build on it. Known limits: a call to action
+    name) count when they sit on such an element's screen, whatever a mechanic cites as evidence. A label a model
+    wrote (`model_labels`) is never app text, so it neither shows the term nor explains it. Otherwise the term is
+    marked 'meaning not observed' and nothing downstream may build on it. Known limits: a call to action
     ("Unlock <term>") reads as an explanation, and a price on a plan card ("Weekly", "$1.99") doesn't; which cited
     text explains the term stays the model's call."""
     elements = {e.id: e for s in states for e in s.elements}
     screen = {e.id: s.id for s in states for e in s.elements}
 
+    def app_text(e: Element) -> list[str]:
+        return [e.text] if e.id in model_labels else [e.text, e.label]
+
     def rest(e: Element, cut: list[re.Pattern[str]]) -> str:
-        fields = [e.text, e.label]
+        fields = app_text(e)
         for pattern in cut:
             fields = [pattern.sub(" ", f) for f in fields]
         return " ".join(fields)
@@ -462,7 +470,7 @@ def resolve_terms(meaning: ModelMeaning, states: list[State]) -> list[Term]:
         name = text.phrase(t.term)
         cut = [text.phrase(i.verbatim) for i in meaning.value_ledger if name.search(i.verbatim)] + [name]
         cited = [elements[i] for i in t.defined_by if i in elements]
-        explained = {screen[e.id] for e in cited if (name.search(e.text) or name.search(e.label))
+        explained = {screen[e.id] for e in cited if any(name.search(f) for f in app_text(e))
                      and WORD.search(rest(e, cut))}
         defined_by = [e.id for e in cited if screen[e.id] in explained and re.search(r"\w", rest(e, cut))]
         terms.append(Term(term=t.term, meaning=t.meaning if defined_by else NOT_OBSERVED, defined_by=defined_by,
@@ -670,7 +678,7 @@ def run(ctx: Ctx) -> None:
         shutil.rmtree(out / sub, ignore_errors=True)
         (out / sub).mkdir(parents=True)
 
-    states, images = load_states(explore_dir, device)
+    states, images, model_labels = load_states(explore_dir, device)
     edges, notes = load_edges(explore_dir, states)
     tapped = {e.element_id for e in edges if e.element_id}
     states = [group_repeats(s, tapped) for s in states]
@@ -701,7 +709,7 @@ def run(ctx: Ctx) -> None:
         mechanics=meaning.mechanics, cross_screen_values=meaning.cross_screen_values,
         value_ledger=meaning.value_ledger + experience, open_questions=[q.question for q in meaning.open_questions],
         coverage=explore.coverage, provenance=runfolder.upstream_provenance(ctx.run_dir, ["explore"]),
-        terms=resolve_terms(meaning, states),
+        terms=resolve_terms(meaning, states, model_labels),
         questions=[OpenQuestion(**q.model_dump()) for q in meaning.open_questions], mock_order=mock_order)
     (out / "product_model.json").write_text(model.model_dump_json(indent=1))
     (out / "product_model.md").write_text(render_md(model))

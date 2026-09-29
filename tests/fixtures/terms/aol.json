@@ -1,5 +1,6 @@
 {
- "source": "PR 2 run runs/aol/20260928-024523-17d5562-fixture: model/product_model.json states ['s01', 's02'], and the model's final answer (cache eb6a4dda9434) after check_meaning",
+ "source": "PR 2 run runs/aol/20260928-024523-17d5562-fixture: model/product_model.json states ['s01', 's02'], and the model's final answer (cache eb6a4dda9434) after check_meaning; model_labels: the elements whose label that run's explore icon or vision pass wrote (explore/states/<sid>.json)",
+ "model_labels": [],
  "states": [
   {
    "id": "s01",
