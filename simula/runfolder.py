@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 from simula.config import ROOT
-from simula.contracts import DoneMarker, FileHash, Provenance
+from simula.contracts import DoneMarker, FileHash, Provenance, StageOutcome
 
 RUNS = ROOT / "runs"
 
@@ -143,7 +143,8 @@ def write_json_atomic(path: Path, data: str) -> None:
 
 
 def write_done(stage_dir: Path, run_dir: Path, inputs: list[Path], prompts: list[Path], params: dict,
-               outputs: list[Path], provenance: Provenance, *, code: list[Path] | None = None) -> DoneMarker:
+               outputs: list[Path], provenance: Provenance, *, code: list[Path] | None = None,
+               outcome: StageOutcome | None = None) -> DoneMarker:
     (stage_dir / "failure.json").unlink(missing_ok=True)
     marker = DoneMarker(
         stage=stage_dir.name,
@@ -153,6 +154,7 @@ def write_done(stage_dir: Path, run_dir: Path, inputs: list[Path], prompts: list
         code_hashes=hashes(code or [], run_dir),
         output_hashes=hashes(outputs, run_dir),
         provenance=provenance,
+        outcome=outcome or StageOutcome(),
         finished_at=datetime.now().isoformat(timespec="seconds"),
     )
     write_json_atomic(stage_dir / "done.json", marker.model_dump_json(indent=1))
@@ -166,9 +168,10 @@ def read_done(stage_dir: Path) -> DoneMarker | None:
 
 def is_done(stage_dir: Path, run_dir: Path, inputs: list[Path], prompts: list[Path], params: dict, *,
             code: list[Path] | None = None) -> bool:
-    """A stage is done while its inputs, prompts, params, code and outputs are what they were."""
+    """A stage is done while it delivered all of its work and its inputs, prompts, params, code and outputs are what
+    they were. A partial stage reruns, its finished calls from the cache, until it completes."""
     marker = read_done(stage_dir)
-    if marker is None:
+    if marker is None or marker.outcome.status != "complete":
         return False
     same_outputs = all((run_dir / h.path).exists() and sha256(run_dir / h.path) == h.sha256
                        for h in marker.output_hashes)
