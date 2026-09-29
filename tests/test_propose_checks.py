@@ -513,7 +513,7 @@ def test_a_free_user_is_not_flagged_when_free_is_an_everyday_word(model):
     m = janitor_terms(model, free_is_everyday=True)
     [out], *_ = finish([c10_rev(m)], m, "annotate")
     assert out.dropped_reason is None and out.flags == []
-    assert '- "Free"' not in propose.model_text(m) and '- "Hidden Gems"' in propose.model_text(m)
+    assert '- "Free"' not in propose.unobserved_text(m) and '- "Hidden Gems"' in propose.unobserved_text(m)
 
 
 def test_without_the_label_free_flags_as_before(model):
@@ -560,10 +560,19 @@ def test_an_observed_term_can_be_used_and_the_unobserved_one_is_listed_for_the_p
     m = with_terms(model)
     [out], *_ = finish([candidate(m, offer_copy="Play once for a day of Pro.")], m, "annotate")
     assert out.dropped_reason is None and out.flags == []
-    text = propose.model_text(m)
-    assert '- "Zap Credits"' in text and '- "Pro"' not in text and "don't use them anywhere in the idea" in text
+    text = propose.lens_prompt(m, propose.build_lenses(m)[0])
+    assert '- "Zap Credits"' in text and '- "Pro"' not in text and "Don't use them anywhere in the idea" in text
     assert "code flags an idea that does for a person reviewing the output" in text
-    assert "never observed" not in propose.model_text(model.model_copy(update={"terms": []}))
+    assert "never observed" not in propose.lens_prompt(model, propose.build_lenses(model)[0])
+
+
+def test_the_product_model_text_the_judge_also_reads_never_carries_the_proposers_term_rule(model):
+    """Red team PR4 #2, Decision 13: the judge builds its message from model_text, so neither the rule nor the
+    term list may be in it."""
+    m = with_terms(model)
+    text = propose.model_text(m)
+    assert "never observed" not in text and "code flags" not in text and '"Zap Credits"' not in text
+    assert text == propose.model_text(model)
 
 
 def unobserved(model, *words):

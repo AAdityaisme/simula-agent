@@ -6,3 +6,5 @@ Propose rewarded-ad opportunities for this app through this lens only.
 ## Product model
 
 $product_model
+
+$unobserved

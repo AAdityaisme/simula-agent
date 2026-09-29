@@ -80,6 +80,8 @@ def build_lenses(model: ProductModel) -> list[Lens]:
 # ---------- prompts ----------
 
 def model_text(model: ProductModel) -> str:
+    """The product model's facts, as the proposer and the judge both read them. Rules for the proposer go in its
+    own prompt (`lens_prompt`), never here."""
     edges = {e.id: e for e in model.edges}
     lines = [f"App category: {model.app_category}", "", "### Mechanics"]
     lines += [f"- {m.id} [{m.kind}, {m.status}] {m.summary} Evidence: {', '.join(m.evidence_ids) or 'none'}."
@@ -100,10 +102,6 @@ def model_text(model: ProductModel) -> str:
         path = [edges[i].from_state for i in f.edge_ids[:1]] + [edges[i].to_state for i in f.edge_ids]
         lines.append(f"- {f.id} {f.name}: {f.purpose} ({' -> '.join(path)})")
     lines += ["", "### Open questions (not observed)"] + [f"- {q}" for q in model.open_questions]
-    if unobserved := unobserved_terms(model):
-        lines += ["", "### App terms whose meaning was never observed (don't use them anywhere in the idea; code "
-                      "flags an idea that does for a person reviewing the output)"]
-        lines += [f'- "{t}"' for t in unobserved]
     lines += ["", "### Screens in scope"]
     for s in model.states:
         if s.in_mock_scope:
@@ -132,9 +130,21 @@ def system_prompt() -> str:
                         "# Cost table (bible/data/economics.json)\n\n" + read_input(BIBLE / "data" / "economics.json")])
 
 
+def unobserved_text(model: ProductModel) -> str:
+    """The proposer's rule on app terms no screen explained, with the terms; "" when there are none. The judge
+    never sees it (Decision 13)."""
+    terms = unobserved_terms(model)
+    if not terms:
+        return ""
+    return "\n".join(["## App terms whose meaning was never observed", "",
+                      "Don't use them anywhere in the idea; code flags an idea that does for a person reviewing the "
+                      "output.", "", *(f'- "{t}"' for t in terms)])
+
+
 def lens_prompt(model: ProductModel, lens: Lens) -> str:
     return Template(read_input(PROMPTS / "lens.md")).substitute(
-        lens_id=lens.id, lens_name=lens.name, lens_focus=lens.focus, product_model=model_text(model))
+        lens_id=lens.id, lens_name=lens.name, lens_focus=lens.focus, product_model=model_text(model),
+        unobserved=unobserved_text(model)).rstrip("\n") + "\n"
 
 
 def ask_lens(ctx: Ctx, model: ProductModel, lens: Lens, system: str, budget: llm.Budget,
