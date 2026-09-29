@@ -10,6 +10,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 SCHEMA_VERSION = 1
+OutcomeStatus = Literal["complete", "partial"]  # a stage's done.json and QA's report share it
 
 
 class Strict(BaseModel):
@@ -136,7 +137,7 @@ class TermMeaning(Strict):
 
 class Term(TermMeaning):
     observed: bool = Field(description="Code: false when no cited element's text carries the term; the meaning "
-                                       "then reads 'meaning not observed' and nothing may build on it.")
+                                       "then reads 'meaning not observed' and an idea that uses it is flagged.")
 
 
 class QuestionDraft(Strict):
@@ -298,8 +299,8 @@ class ScreenMetrics(Strict):
     ssim_masked: float | None
     pixelmatch_ratio: float | None
     masked_coverage: float
-    bounds_ok_share: float
-    nav_pass_rate: float
+    bounds_ok_share: float | None
+    nav_pass_rate: float | None
     score: float
 
 
@@ -544,6 +545,132 @@ class ContractReport(Strict):
     errors: list[ContractError]
 
 
+class ArtFile(Strict):
+    """mock/art.json: each art crop and the content-dp rect it was cut from, so QA can mask it."""
+    schema_version: int = SCHEMA_VERSION
+    art: dict[str, Rect] = {}
+
+
+class CritiqueFile(Critique):
+    """qa/round<N>/critique.json"""
+    schema_version: int = SCHEMA_VERSION
+
+
+class AppliedEdit(Edit):
+    applied: bool
+    why: str = Field(description="Why code rejected the edit; empty when it was applied.")
+
+
+class EditsFile(Strict):
+    """qa/round<N>/edits.json: the fixer's edits, each with whether code applied it."""
+    schema_version: int = SCHEMA_VERSION
+    edits: list[AppliedEdit]
+
+
+class QARound(Strict):
+    round: int
+    keep_score: float
+    kept: bool
+    contract_errors: int
+    failed_taps: int
+    failed_flows: int
+    edits_applied: int
+    edits_rejected: int
+
+
+class KeepRuleDisagreement(Strict):
+    """A round a score-only keep rule would have decided the other way; each pair is [kept version, new version]."""
+    round: int
+    score_only_approves: int
+    contract_errors: list[int]
+    score: list[float]
+
+
+class UndrawnScreen(Strict):
+    screen: str
+    reason: str
+
+
+class ElementMiss(Strict):
+    """A tagged element the page doesn't draw where the real screen has it."""
+    id: str
+    text: str
+    want: Rect
+    got: Rect | Literal["missing"]
+
+
+class QAScreen(ScreenMetrics):
+    name: str
+    tagged: int
+    taps: int
+    data_el_misses: list[ElementMiss]
+
+
+class TapCheck(Strict):
+    screen: str
+    edge: str
+    problem: str | None
+
+
+class FlowWalk(Strict):
+    flow: str
+    name: str
+    status: Literal["passed", "failed", "out_of_scope", "undrawn"]
+    problem: str | None
+    screen: str | None = None
+    gestures: list[str]  # the hops taken by a gesture rather than a tap
+
+
+class Structure(Strict):
+    """Tagged elements drawn within 4 dp of where the real screen has them."""
+    tagged: int
+    within_4dp: int
+
+
+class Interaction(Strict):
+    taps: int
+    taps_passing: int
+    flows: int
+    flows_walked: int
+
+
+class ScreenSSIM(Strict):
+    screen: str
+    ssim: float
+
+
+class Visual(Strict):
+    """Masked SSIM: the mean, and each scored screen from the lowest up."""
+    masked_ssim_mean: float | None
+    screens_by_ssim: list[ScreenSSIM]
+
+
+class QAReport(Strict):
+    """qa/qa_report.json. outcome, reasons and resume are the StageOutcome vocabulary; status is QA's label for the
+    same thing. keep_score picks the round QA keeps, and structure, interaction and visual report fidelity apart from
+    it. open_findings is None when no round critiqued the approved version."""
+    schema_version: int = SCHEMA_VERSION
+    status: Literal["approved", "qa_incomplete"]
+    outcome: OutcomeStatus
+    reasons: list[str]
+    resume: str | None
+    approved_round: int
+    keep_score: float
+    keep_score_formula: str
+    structure: Structure
+    interaction: Interaction
+    visual: Visual
+    open_findings: list[Fix] | None
+    stop_reason: str
+    rounds: list[QARound]
+    keep_rule_disagreement: KeepRuleDisagreement | None = None
+    undrawn_screens: list[UndrawnScreen] = []
+    screens: list[QAScreen]
+    failed_taps: list[TapCheck]
+    flows: list[FlowWalk]
+    contract_errors: list[ContractError]
+
+
 class Lens(Strict):
     id: str
     name: str
@@ -570,7 +697,8 @@ class DecisionsFile(Strict):
     decisions: list[Decision]
 
 
-FILE_WRAPPERS = [StateFile, ExploreFile, ContractReport, LensesFile, CandidatesFile, DecisionsFile]
+FILE_WRAPPERS = [StateFile, ExploreFile, ContractReport, ArtFile, CritiqueFile, EditsFile, QAReport, LensesFile,
+                 CandidatesFile, DecisionsFile]
 
 
 # ---------- run bookkeeping (code-only, so dicts are fine here) ----------
@@ -602,14 +730,23 @@ class FileHash(Strict):
     sha256: str
 
 
+class StageOutcome(Strict):
+    """What a finished stage delivered: all of its work, or part of it, with why and the command that continues it."""
+    status: OutcomeStatus = "complete"
+    reasons: list[str] = []
+    resume: str | None = None
+
+
 class DoneMarker(Strict):
     schema_version: int = SCHEMA_VERSION
     stage: str
     input_hashes: list[FileHash]
     prompt_hashes: list[FileHash]
     params_hash: str
+    code_hashes: list[FileHash] = []  # its module and the simula modules it imports; [] predates hashing code
     output_hashes: list[FileHash]
     provenance: Provenance
+    outcome: StageOutcome = StageOutcome()
     finished_at: str
 
 

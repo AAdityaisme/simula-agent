@@ -10,14 +10,16 @@ UPSTREAM = {
     "qa": ["mock", "model"],
     "propose": ["model", "mock"],
     "judge": ["propose", "model"],
-    "flows": ["qa", "judge", "propose"],
+    "flows": ["qa", "judge", "propose", "mock", "model"],
 }
 
 # Files outside the run folder that a stage reads, hashed like any input so an edit reruns the stage.
 EXTRA_INPUTS = {
     "mock": ["docs/CONTRACTS.md"],
+    "qa": ["docs/CONTRACTS.md"],
     "propose": ["bible"],
     "judge": ["bible"],
+    "flows": ["templates", "docs/CONTRACTS.md"],
 }
 
 ROLES = {
@@ -45,3 +47,18 @@ class Ctx:
     no_send: bool = False
     device: str | None = None
 
+
+def run_options(ctx: Ctx) -> str:
+    """The run and the options it was opened with, so a printed resume command reruns it the same way: every option
+    a stage hashes, the opt-ins, the device, and an overridden $ cap. --no-cache and --replay are modes of one
+    command, not of the run. A line that raises the cap passes a ctx with usd_cap=None and adds its own --usd-cap."""
+    return " ".join([f"--run {ctx.run_dir.name}", f"--profile {ctx.profile}", f"--budget {ctx.budget}",
+                     *(["--allow-fixtures"] if ctx.allow_fixtures else []),
+                     *(["--allow-account-create"] if ctx.allow_account_create else []),
+                     *(["--no-send"] if ctx.no_send else []),
+                     *([f"--device {ctx.device}"] if ctx.device else []),
+                     *([f"--usd-cap {ctx.usd_cap}"] if ctx.usd_cap is not None else [])])
+
+
+def rerun_command(stage: str, ctx: Ctx) -> str:
+    return f"simula {stage} {ctx.app['name']} {run_options(ctx)}"

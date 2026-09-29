@@ -1,21 +1,17 @@
 """Preflight. Touches the emulator read-only, under the shared lock. --keys makes one tiny call per model."""
 
-import fcntl
 import os
-import shutil
 import subprocess
 import sys
 import time
-from contextlib import contextmanager
-from pathlib import Path
 
 from pydantic import BaseModel
 
 from simula import config, decide, llm, runlog
-from simula.cli import mobile_mcp_version, package_version
+from simula.checkout import mobile_mcp_version, package_version, untracked_inputs
 from simula.config import ROOT
+from simula.device.devices import adb, emulator_lock, online
 
-LOCK_DIR = Path("/tmp")
 EXPECTED = {"mobile-mcp": "1.0.5", "mcp": "2.2.0"}
 results: list[tuple[str, bool, str]] = []
 
@@ -24,85 +20,6 @@ def check(name: str, ok: bool, detail: str = "") -> bool:
     results.append((name, ok, detail))
     print(f"{'ok ' if ok else 'FAIL'}  {name:<60} {detail}")
     return ok
-
-
-def adb() -> str | None:
-    home = os.environ.get("ANDROID_HOME") or str(Path.home() / "Library/Android/sdk")
-    path = Path(home) / "platform-tools" / "adb"
-    return str(path) if path.exists() else shutil.which("adb")
-
-
-def online(tool: str) -> list[str]:
-    out = subprocess.run([tool, "devices"], capture_output=True, text=True, timeout=20).stdout
-    return [line.split()[0] for line in out.splitlines()[1:] if line.endswith("\tdevice")]
-
-
-def resolve_serial(flag: str | None) -> str:
-    """--device, else ANDROID_SERIAL, else the only device adb lists."""
-    if flag or os.environ.get("ANDROID_SERIAL"):
-        return flag or os.environ["ANDROID_SERIAL"]
-    tool = adb()
-    devices = online(tool) if tool else []
-    if len(devices) != 1:
-        raise SystemExit(f"{len(devices)} devices online ({', '.join(devices) or 'none'}): "
-                         "start one, or pick one with --device SERIAL")
-    return devices[0]
-
-
-@contextmanager
-def emulator_lock(serial: str, wait_s: int = 120):
-    """One lock per device (a mkdir, so it is atomic), so two explores can run on two emulators. The holder writes
-    its pid inside; a lock whose holder died (SIGKILL, a closed terminal) is broken instead of waited on."""
-    lock = LOCK_DIR / f"simula-emu-{serial}.lock"
-    deadline = time.monotonic() + wait_s
-    while True:
-        try:
-            lock.mkdir()
-            (lock / "pid").write_text(str(os.getpid()))
-            break
-        except FileExistsError:
-            if holder_dead(lock):
-                reclaim(lock)
-                continue
-            if time.monotonic() > deadline:
-                raise TimeoutError(f"{lock} held by another process for {wait_s}s")
-            time.sleep(5)
-    try:
-        yield
-    finally:
-        shutil.rmtree(lock, ignore_errors=True)
-
-
-def holder_dead(lock: Path) -> bool:
-    """The pid inside is gone. A lock with no pid file is dead once it is a minute old (the holder writes it
-    right after the mkdir; older checkouts' locks have none)."""
-    try:
-        pid = int((lock / "pid").read_text())
-    except (FileNotFoundError, ValueError):
-        try:
-            return time.time() - lock.stat().st_mtime > 60
-        except FileNotFoundError:
-            return False
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return True
-    except PermissionError:
-        return False
-    return False
-
-
-def reclaim(lock: Path) -> None:
-    """Removes a dead holder's lock. The check and the removal happen under a short flock, so of two waiters that
-    both saw the dead holder, the second finds the first one's fresh lock alive and leaves it. The guard is opened
-    read-only and never through a symlink, so a planted link in /tmp can't make it truncate anything."""
-    guard = os.open(lock.with_name(f"{lock.name}.guard"), os.O_RDONLY | os.O_CREAT | os.O_NOFOLLOW, 0o600)
-    try:
-        fcntl.flock(guard, fcntl.LOCK_EX)
-        if holder_dead(lock):
-            shutil.rmtree(lock, ignore_errors=True)
-    finally:
-        os.close(guard)
 
 
 def check_local() -> None:
@@ -117,16 +34,24 @@ def check_local() -> None:
           f"{version} (want {EXPECTED['mobile-mcp']}){'' if installed else ', run npm ci'}")
     for name in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "TYPESAFE_API_KEY"):
         check(f"env {name}", bool(os.environ.get(name)), "set" if os.environ.get(name) else "missing from .env")
+    untracked = untracked_inputs()
+    if untracked is None:
+        check("every file a loader reads is tracked by git", True, "not a git checkout, skipped")
+    else:
+        check("every file a loader reads is tracked by git", not untracked,
+              f"move out (a '<x> 2' copy is usually iCloud's): {', '.join(untracked)}" if untracked else "yes")
 
 
 def check_browser() -> None:
     from playwright.sync_api import sync_playwright
+
+    from simula import render
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch()
             page = browser.new_page(viewport={"width": 411, "height": 914}, device_scale_factor=2.625)
             page.set_content("<body style='margin:0;background:#123'></body>")
-            png = page.screenshot()
+            png = render.screenshot(page)
             browser.close()
         from io import BytesIO
         from PIL import Image
@@ -234,17 +159,18 @@ PROBE_MAX_TOKENS = 4096
 
 
 def role_probes() -> dict[tuple, list[str]]:
-    """Each distinct (model, effort, max_tokens) the real profile uses, with the roles that use it.
-    A declared fallback is probed at its role's effort."""
+    """Each distinct (model, effort, max_tokens) the real profile's calls use, with the roles that use it. max_tokens
+    is the role's own, capped at the model's output limit as the stage code caps it, so a probe streams exactly when
+    the call does. A declared fallback is probed at its role's effort; a role with no max_tokens has no call yet."""
     probes: dict[tuple, list[str]] = {}
     for name, role in config.roles("real").items():
-        if role["model"] == "jev-latest":
+        if role["model"] == "jev-latest" or "max_tokens" not in role:
             continue
         models = [role["model"]] + ([role["declared_fallback"]] if "declared_fallback" in role else [])
         for model in models:
             efforts = {role.get("effort"), role.get("effort_last_round")} - {None} or {None}
             for effort in efforts:
-                key = (model, effort, role.get("max_tokens", PROBE_MAX_TOKENS))
+                key = (model, effort, min(role["max_tokens"], config.models()[model]["max_out"]))
                 probes.setdefault(key, []).append(name if model == role["model"] else f"{name} fallback")
     probes.setdefault(("claude-haiku-4-5-20251001", None, PROBE_MAX_TOKENS), []).append("dev profile, jev adapter")
     return probes
@@ -253,7 +179,8 @@ def role_probes() -> dict[tuple, list[str]]:
 def check_keys() -> None:
     found = {}
     for (model, effort, max_tokens), roles in sorted(role_probes().items(), key=lambda kv: kv[0][0]):
-        label = f"{model} {effort or 'no effort'} {max_tokens // 1000}k"
+        streamed = " streamed" if max_tokens > config.models()[model]["stream_above"] else ""
+        label = f"{model} {effort or 'no effort'} {max_tokens // 1000}k{streamed}"
         found[f"{model}-{effort or 'none'}-{max_tokens}"] = ping(f"{label} ({', '.join(roles)})"[:60], model, effort,
                                                                    max_tokens=max_tokens)
     found["jev-typesafe"] = jev_probe("typesafe", 16)

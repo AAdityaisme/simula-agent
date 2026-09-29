@@ -266,7 +266,7 @@ def generate(ctx: Ctx, model: ProductModel, scope: list[State], art: dict[str, R
     def ask(effort, content):
         text, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="mock", step="generate", model=role["model"],
                            effort=effort, system=system, messages=[{"role": "user", "content": content}],
-                           max_tokens=role.get("max_tokens", 64000), budget=budget, no_cache=ctx.no_cache,
+                           max_tokens=role["max_tokens"], budget=budget, no_cache=ctx.no_cache,
                            replay=ctx.replay, attempts=1, total_timeout=WALL_SECONDS)
         return extract_html(text)
 

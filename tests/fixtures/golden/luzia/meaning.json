@@ -7,7 +7,6 @@
    "tree": "luzia-b",
    "kind": "screen",
    "name": "Chats (home)",
-   "in_mock_scope": true,
    "purpose": "Root. Assistant prompt card, new-chat personas, Custom Bestie and virtual-pet banners, recent chats, bottom tabs Chat / Services / Create.",
    "labels": {
     "@e30": "Luzia+ upsell badge",
@@ -24,7 +23,6 @@
    "id": "s02",
    "kind": "screen",
    "name": "Subscription paywall",
-   "in_mock_scope": true,
    "purpose": "Full Luzia+ paywall: six-item feature list, Weekly / Monthly (Most popular) / Annual plans, a 3-day free-trial button, Terms & Conditions.",
    "tree": "luzia-paywall"
   },
@@ -32,7 +30,6 @@
    "id": "s03",
    "kind": "screen",
    "name": "Settings",
-   "in_mock_scope": true,
    "purpose": "Upgrade to Luzia+ row (opens the paywall), memories, preferences (language, theme, offline model, pet and haptics toggles), support, account.",
    "tree": "luzia-settings",
    "labels": {
@@ -47,7 +44,6 @@
    "kind": "modal",
    "parent": "s01",
    "name": "Virtual pet intro",
-   "in_mock_scope": true,
    "purpose": "Onboarding modal for the virtual pet over home: Meet me / Later, and a note that the pet can be turned off in Settings. Opened from the home pet banner (it also appeared unprompted once).",
    "tree": "luzia-pet-intro"
   },
@@ -55,7 +51,6 @@
    "id": "s05",
    "kind": "screen",
    "name": "Services",
-   "in_mock_scope": true,
    "purpose": "Routines and tasks; empty state with a Start something button.",
    "tree": "luzia-tab-services"
   },
@@ -63,7 +58,6 @@
    "id": "s06",
    "kind": "screen",
    "name": "Create",
-   "in_mock_scope": true,
    "purpose": "Mini-app marketplace (My Apps / Explore) with a Create app button.",
    "tree": "luzia-tab-create"
   },
@@ -71,8 +65,7 @@
    "id": "s07",
    "kind": "screen",
    "name": "Chat thread",
-   "in_mock_scope": false,
-   "purpose": "An existing chat with the Teacher persona, message bar and a notifications prompt. Chat content stays out of the mock.",
+   "purpose": "An existing chat with the Teacher persona, message bar and a notifications prompt.",
    "tree": "luzia-chat-thread"
   }
  ],

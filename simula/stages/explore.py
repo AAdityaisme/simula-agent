@@ -25,9 +25,9 @@ from simula.contracts import (ActionLine, Arrival, Coverage, Device, ExploreFile
                               Point, Progress, Rect, StateFile, VisionElement, WalkPick)
 from simula.device import observe as ob
 from simula.device.mcp import McpReplyError, McpTimeout, Phone, Server
-from simula.doctor import adb, emulator_lock, online, resolve_serial
+from simula.device.devices import adb, emulator_lock, online, resolve_serial
 from simula.runlog import needs_human, now, run_trace, update_manifest, write_exhibit
-from simula.stages import Ctx
+from simula.stages import Ctx, rerun_command
 
 PROMPTS = config.ROOT / "prompts" / "explore"
 BILLING = {"com.android.vending"}
@@ -1889,7 +1889,7 @@ def redact_list() -> list[str]:
 
 def rerun(ctx: Ctx) -> str:
     """What to run after a needs-human: explore has no resume, so the same command explores again from the start."""
-    return f"simula explore {ctx.app['name']} --run {ctx.run_dir.name}  # re-runs explore; it starts over"
+    return f"{rerun_command('explore', ctx)}  # re-runs explore; it starts over"
 
 
 def run(ctx: Ctx) -> None:

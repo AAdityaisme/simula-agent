@@ -11,7 +11,7 @@ from simula.config import app_config
 from simula.contracts import (Device, Edge, Element, ElementMeaning, Flow, LedgerItem, Mechanic, ModelMeaning,
                               ProductModel, QuestionDraft, Rect, State, StateMeaning, TermMeaning)
 from simula.runlog import read_trace
-from simula.stages import Ctx
+from simula.stages import Ctx, rerun_command
 from simula.stages import model as stage
 from tests.conftest import APPS, FIXTURES
 from tests.explore_fixture import add_core_loop, build
@@ -110,6 +110,23 @@ def test_a_number_its_evidence_does_not_show_is_dropped_but_the_mechanic_stays(a
     kept, rejected = stage.check_meaning(answer, states, edges)
     assert rejected == ["mechanic m-num: number '$9.99' is not shown in its evidence elements"]
     assert next(m for m in kept.mechanics if m.id == "m-num").observed_numbers == [element.text, element.text]
+
+
+def test_a_number_is_observed_only_where_the_screen_shows_it_whole(app):
+    _, states, edges, answer = app
+    state = next(s for s in states if s.elements)
+
+    def kept_numbers(screen_text):
+        element = state.elements[0].model_copy(update={"text": screen_text, "label": ""})
+        shown = [s.model_copy(update={"elements": [element, *s.elements[1:]]}) if s is state else s for s in states]
+        mechanic = Mechanic(id="m-99", kind="other", evidence_ids=[element.id], summary="x",
+                            observed_numbers=["99"], status="observed")
+        kept, _ = stage.check_meaning(answer.model_copy(update={"mechanics": [*answer.mechanics, mechanic]}),
+                                      shown, edges)
+        return next(m for m in kept.mechanics if m.id == "m-99").observed_numbers
+
+    assert kept_numbers("$199") == []
+    assert kept_numbers("$99") == ["99"] and kept_numbers("99 credits") == ["99"]
 
 
 def test_flows_with_missing_or_disconnected_edges_are_rejected(app):
@@ -212,6 +229,34 @@ def test_a_modal_in_scope_brings_its_parent_first():
     assert stage.mock_scope(blocked_parent, [], meaning) == ["s01"]
     rotated = [states[0], states[1], states[2].model_copy(update={"kind": "rotated", "parent_id": None})]
     assert stage.mock_scope(rotated, [], meaning) == ["s01"]
+
+
+def test_a_flow_dialog_keeps_its_parent_even_when_the_parent_is_unsafe_and_off_the_flow():
+    """Whether the unsafe parent's content shows under the dialog is the renderer's and the blur's job."""
+    def state(sid, kind="screen", parent=None, rating="safe"):
+        return State(id=sid, kind=kind, parent_id=parent, name="", purpose="", fingerprint="", canonical_png="",
+                     elements=[], in_mock_scope=False, content_rating=rating, dynamic_regions=[], blocked_reason=None)
+    states = [state("s01"), state("s02", rating="unsafe"), state("s03", "modal", "s02")]
+    edges = [Edge(id="s03.e01>s01", from_state="s03", to_state="s01", element_id=None, action="tap",
+                  transition="back", change_summary="")]
+    meaning = ModelMeaning(app_category="other", states=[], elements=[], cross_screen_values=[], value_ledger=[],
+                           open_questions=[], terms=[], mechanics=[],
+                           flows=[Flow(id="f01", name="x", purpose="x", edge_ids=["s03.e01>s01"], evidence_ids=[])])
+    assert stage.mock_scope(states, edges, meaning) == ["s01", "s02", "s03"]
+
+
+def test_a_sheet_over_a_modal_brings_the_whole_stack_parent_first():
+    def state(sid, kind="screen", parent=None):
+        return State(id=sid, kind=kind, parent_id=parent, name="", purpose="", fingerprint="", canonical_png="",
+                     elements=[], in_mock_scope=False, content_rating="safe", dynamic_regions=[], blocked_reason=None)
+    states = [state("s01"), state("s02"), state("s03", "modal", "s02"), state("s04", "sheet", "s03")]
+    meaning = ModelMeaning(app_category="other", states=[], elements=[], flows=[], cross_screen_values=[],
+                           value_ledger=[], open_questions=[], terms=[],
+                           mechanics=[Mechanic(id="m1", kind="paywall", evidence_ids=["s04"], summary="x",
+                                               observed_numbers=[], status="observed")])
+    assert stage.mock_scope(states, [], meaning) == ["s01", "s02", "s03", "s04"]
+    unsafe_screen = [states[0], states[1].model_copy(update={"content_rating": "unsafe"}), *states[2:]]
+    assert stage.mock_scope(unsafe_screen, [], meaning) == ["s01"]
 
 
 def test_the_model_may_not_write_measured_experience(app):
@@ -407,6 +452,7 @@ def test_a_failed_retry_on_a_model_with_gaps_asks_for_a_human_and_continues(tmp_
     assert (ctx.run_dir / "model" / "raw_reply.txt").read_text() == '{"flows": ['
     asked = (ctx.run_dir / "needs-human.md").read_text()
     assert "the product model has gaps" in asked and "no core flow survived" in asked
+    assert "**Continue with:** `simula model luzia --run run --profile dev --budget transfer --allow-fixtures`" in asked
 
 
 def test_a_failed_call_asks_for_a_human_and_keeps_the_raw_answer(tmp_path, monkeypatch):
@@ -414,7 +460,8 @@ def test_a_failed_call_asks_for_a_human_and_keeps_the_raw_answer(tmp_path, monke
     ctx = make_ctx(APPS[2], tmp_path)
     with pytest.raises(llm.LLMFailure):
         stage.run(ctx)
-    assert "meaning call failed" in (ctx.run_dir / "needs-human.md").read_text()
+    asked = (ctx.run_dir / "needs-human.md").read_text()
+    assert "meaning call failed" in asked and f"`{rerun_command('model', ctx)}`" in asked and "--profile dev" in asked
     assert (ctx.run_dir / "model" / "raw_reply.txt").read_text() == '{"app_category": "chat", '
     assert json.loads((ctx.run_dir / "trace.jsonl").read_text().splitlines()[-1])["outcome"] == "blocked"
 
