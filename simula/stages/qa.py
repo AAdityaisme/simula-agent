@@ -451,8 +451,6 @@ def criticize(ctx: Ctx, budget: llm.Budget, version: Version, history: list[dict
         except llm.LLMFailure as e:
             return e
 
-    # ponytail: llm.Budget doesn't hold a call's worst case while it is in flight, so parallel groups can pass the
-    # cap by what they spend together (same as the mock's batches); PR 5's Budget hold fixes it.
     with ThreadPoolExecutor(PARALLEL_CRITICS) as pool:
         results = list(pool.map(one, range(1, len(groups) + 1), groups))
     critiques = [r for r in results if isinstance(r, Critique)]
