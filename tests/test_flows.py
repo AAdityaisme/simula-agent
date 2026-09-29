@@ -215,6 +215,13 @@ def test_the_cover_names_the_app_as_the_model_reads_it_else_the_config_key_title
     assert flows.app_title(named, app) == "Janitor AI" and flows.app_title(golden(app), app) == app.title()
 
 
+def test_the_cover_carries_a_line_for_each_earlier_stage_that_finished_only_part_of_its_work(built):
+    flow = drawn(golden_idea(built), decision("c01", "accept", 1.0))
+    cover = text_of(flows.cover_html("Luzia", [flow], status=["Mock QA was partial: round 1 stopped on the cap."]))
+    assert cover.endswith("Mock QA was partial: round 1 stopped on the cap.")
+    assert "partial" not in text_of(flows.cover_html("Luzia", [flow]))
+
+
 def test_main_slides_carry_no_ids_or_cost_math(built):
     texts = [text for _, _, text in slides(built)]
     assert texts
