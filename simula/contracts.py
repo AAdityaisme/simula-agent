@@ -132,7 +132,7 @@ class TermMeaning(Strict):
 
 class Term(TermMeaning):
     observed: bool = Field(description="Code: false when no cited element's text carries the term; the meaning "
-                                       "then reads 'meaning not observed' and nothing may build on it.")
+                                       "then reads 'meaning not observed' and an idea that uses it is flagged.")
 
 
 class QuestionDraft(Strict):

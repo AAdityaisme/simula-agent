@@ -442,7 +442,7 @@ def keyword_floor(state: State, keywords: list[str]) -> ContentRating:
 def resolve_terms(meaning: ModelMeaning, states: list[State]) -> list[Term]:
     """A term keeps its meaning only when a cited element's own text carries it, and that element is not the
     evidence of a line that uses the term (a bullet can't define itself); otherwise it is marked 'meaning not
-    observed' and nothing downstream may build on it."""
+    observed', and an idea that uses it is flagged."""
     elements = {e.id: e for s in states for e in s.elements}
     evidence = {m.id: m.evidence_ids for m in meaning.mechanics} | {i.id: i.evidence_ids for i in meaning.value_ledger}
 
