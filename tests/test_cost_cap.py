@@ -64,6 +64,17 @@ def test_calls_in_flight_hold_their_worst_case_until_charged():
     assert budget.spent == pytest.approx(0.1) and budget.held == pytest.approx(0.6)
 
 
+def test_a_charge_must_give_back_the_hold_it_settles():
+    """Red team PR4 #4: with reserved defaulting to 0, a caller that forgot it kept its hold forever, and the stage
+    stopped at a false cap with most of it unspent."""
+    budget = llm.Budget("explore", cap=1.0)
+    budget.reserve(0.4)
+    with pytest.raises(TypeError):
+        budget.charge(0.01)
+    budget.charge(0.01, 0.4)
+    assert budget.held == 0 and budget.spent == pytest.approx(0.01)
+
+
 def test_overlapping_calls_stop_at_the_cap_and_release_what_they_held(tmp_path, monkeypatch):
     def slow(model, system, messages, effort, schema, max_tokens, total_timeout=None):
         time.sleep(0.2)

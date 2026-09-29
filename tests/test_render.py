@@ -1,12 +1,16 @@
 """Rendering geometry and the code-owned navigation runtime, on every golden."""
 
+import re
+
 import pytest
 from PIL import Image
+from playwright.sync_api import Error as PlaywrightError
 
 from simula import render
+from simula.contracts import Edge
 from simula.render import content_dp, open_mock, render_and_validate
 from simula.stages.mock import copy_assets, pick_scope, scope_edges, with_runtime
-from tests.conftest import APPS, FIXTURES
+from tests.conftest import APPS, FIXTURES, ROOT
 from tests.mock_fake import golden, skeleton_html
 
 
@@ -95,3 +99,59 @@ def test_fonts_that_fail_to_load_are_not_a_contract_error(tmp_path, model, monke
     (mock_dir / "index.html").write_text(html.replace("</head>", link + "</head>", 1))
     report = render_and_validate(mock_dir, model, screens)
     assert report.passed, report.errors
+
+
+def test_an_edge_with_no_element_is_not_a_missing_edge(tmp_path, model):
+    home, other = [s.id for s in pick_scope(model)[:2]]
+    back = Edge(id=f"{other}.back>{home}", from_state=other, to_state=home, element_id=None, action="back",
+                transition="back", change_summary="system back")
+    model = model.model_copy(update={"edges": model.edges + [back]})
+    mock_dir, screens = write_mock(tmp_path, model)
+    report = render_and_validate(mock_dir, model, screens)
+    assert report.passed, report.errors
+
+
+def test_every_image_is_loaded_before_the_first_screenshot_even_a_lazy_one_on_a_hidden_screen(tmp_path, model):
+    mock_dir, screens = write_mock(tmp_path, model)
+    Image.new("RGB", (64, 64), "red").save(mock_dir / "assets" / "lazy.png")
+    lazy = '<img loading="lazy" src="assets/lazy.png" style="width:40px;height:40px">'
+    page_html = (mock_dir / "index.html").read_text()
+    page_html = re.sub(rf'<section data-screen="{screens[1]}"[^>]*>', lambda m: m.group(0) + lazy, page_html, count=1)
+    (mock_dir / "index.html").write_text(page_html)
+    with open_mock(mock_dir) as (page, _):
+        loaded = page.evaluate("() => [...document.images].every(i => i.complete && i.naturalWidth > 0)")
+    assert loaded
+    assert render_and_validate(mock_dir, model, screens).passed
+
+
+class RefusingPage:
+    """A page whose first `refusals` captures Chromium refuses with `error`."""
+    def __init__(self, refusals: int, error: str = render.CAPTURE_REFUSED):
+        self.calls, self.refusals, self.error = 0, refusals, error
+
+    def screenshot(self, **options) -> bytes:
+        self.calls += 1
+        if self.calls <= self.refusals:
+            raise PlaywrightError(f"Page.screenshot: Protocol error (Page.captureScreenshot): {self.error}")
+        return b"png"
+
+
+def test_a_refused_capture_is_tried_once_more_and_nothing_else_is():
+    once = RefusingPage(1)
+    assert render.screenshot(once, animations="disabled") == b"png" and once.calls == 2
+    twice = RefusingPage(2)
+    with pytest.raises(PlaywrightError, match=render.CAPTURE_REFUSED):
+        render.screenshot(twice)
+    assert twice.calls == 2
+    closed = RefusingPage(1, error="Target page, context or browser has been closed")
+    with pytest.raises(PlaywrightError, match="has been closed"):
+        render.screenshot(closed)
+    assert closed.calls == 1
+
+
+def test_every_browser_capture_goes_through_render_screenshot():
+    direct = [f"{path.relative_to(ROOT)}:{n}" for path in sorted((ROOT / "simula").rglob("*.py"))
+              for n, line in enumerate(path.read_text().splitlines(), 1) if "page.screenshot(" in line]
+    assert direct == ["simula/render.py:" + str(n) for n, line in
+                      enumerate((ROOT / "simula" / "render.py").read_text().splitlines(), 1)
+                      if "return page.screenshot(**options)" in line], direct

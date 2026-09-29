@@ -6,6 +6,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 from PIL import Image
+from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import sync_playwright
 
 from simula.contracts import ContractError, ContractReport, Device, ProductModel
@@ -15,6 +16,13 @@ SCALE = 2.625
 FONT_HOSTS = ("fonts.googleapis.com", "fonts.gstatic.com")
 TRANSITIONS = ("push", "modal", "tab", "back", "replace", "unknown")
 WALLPAPER_SHARE = 0.4
+DECODE_WAIT_MS = 10_000
+CAPTURE_REFUSED = "Unable to capture screenshot"
+
+# Lazy images in hidden screens never load on their own, so each one is switched to eager first.
+DECODE_IMAGES = """() => Promise.race([
+  Promise.all([...document.images].map(i => { i.loading = 'eager'; return i.decode().catch(() => null); })),
+  new Promise(done => setTimeout(done, %d))])""" % DECODE_WAIT_MS
 
 PAGE_FACTS = """() => {
   const screenOf = el => el.closest('[data-screen]')?.dataset.screen ?? null;
@@ -82,10 +90,27 @@ def open_mock(mock_dir: Path):
         page.on("requestfailed", failed)
         page.goto((mock_dir / "index.html").as_uri())
         page.wait_for_load_state("networkidle")
+        # Screenshots of a half-decoded image differ byte for byte, and QA's cache keys hash them.
+        page.evaluate(DECODE_IMAGES)
         try:
             yield page, log
         finally:
             browser.close()
+
+
+def screenshot(page, **options) -> bytes:
+    """page.screenshot for every capture the pipeline takes, tried once more when Chromium refuses it outright.
+    Chromium sends that refusal when its compositor's copy of the page comes back empty (ScreenshotCaptured in
+    content/browser/devtools/protocol/page_handler.cc), a transient reported on shared CI runners with no page-side
+    cause (microsoft/playwright#38103, heygen-com/hyperframes#3892). Any other error, or a second refusal, is raised."""
+    # ponytail: one immediate retry on the same page. If refusals repeat, relaunch the browser and retry in a fresh
+    # context, as FreeOpenSourcePOS/FloCafe#842 does.
+    try:
+        return page.screenshot(**options)
+    except PlaywrightError as error:
+        if CAPTURE_REFUSED not in str(error):
+            raise
+        return page.screenshot(**options)
 
 
 def screenshot_screens(page, screens: list[str], out_dir: Path) -> list[Path]:
@@ -94,7 +119,7 @@ def screenshot_screens(page, screens: list[str], out_dir: Path) -> list[Path]:
     for sid in screens:
         page.evaluate("id => window.simula.go(id)", sid)
         path = out_dir / f"{sid}.png"
-        page.screenshot(path=path)
+        screenshot(page, path=path)
         paths.append(path)
     page.evaluate("() => window.simula.reset()")
     return paths
@@ -157,7 +182,7 @@ def _edge_errors(facts: dict, model: ProductModel, screens: list[str]) -> list[C
     present = {s["id"] for s in facts["screens"]}
     placed = {e["id"] for e in facts["edges"]}
     errors = [_error("missing_edge", f"no data-edge=\"{e.id}\"", e.from_state) for e in model.edges
-              if e.from_state in screens and e.to_state in screens and e.id not in placed]
+              if e.element_id and e.from_state in screens and e.to_state in screens and e.id not in placed]
     for e in facts["edges"]:
         eid, transition, screen = e["id"], e["transition"], e["screen"]
         target = eid.split(">")[-1]

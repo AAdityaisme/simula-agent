@@ -5,7 +5,7 @@ import re
 
 import pytest
 
-from simula import config, llm
+from simula import config, llm, validate
 from simula.stages import judge, propose
 from tests.conftest import APPS
 from tests.judge_helpers import idea, verdict
@@ -56,6 +56,14 @@ def test_propose_bookkeeping_never_reaches_a_judge(app):
     text = prompt(c, model)
     assert "MARKER-DROP" not in text and "M11" not in text
     assert c.economics.assumption_line not in text and "eCPM" not in text.split("## Proposal")[1]
+
+
+def test_the_unobserved_term_rule_reaches_the_reviser_and_never_a_judge():
+    c07 = next(c for c in validate.load_cases() if c.id == "rg-janitorai-c07-fan-boost")
+    rule = propose.unobserved_text(c07.model)
+    assert '- "Hidden Gems"' in rule
+    assert rule in judge.revision_prompt(c07.candidate, [verdict(["c2_evidence"])], c07.model)
+    assert "App terms whose meaning was never observed" not in prompt(c07.candidate, c07.model)
 
 
 @pytest.mark.parametrize("app", APPS)

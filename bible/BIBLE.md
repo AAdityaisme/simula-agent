@@ -151,7 +151,7 @@ Only when no anchor exists. Adding a constraint the user feels is the riskiest c
 | Paid feature, one session, after a search | Pandora Sponsored Listening: video ad for one on-demand session after searching a song (2017) [C12, OLD] | The trigger is an explicit request the free tier can't fulfill |
 | New earnable currency with quests | Character.AI Charms: earned by daily login, notifications on, persona, posting; spent on ad bypass, slow-mode skip, extra images [R01, P] | Watch the loop: if a currency earned by ads can buy ad skips, one ad buys the right to skip others |
 | Daily bonus slot | Hay Day "Night at the Movies", 4 ads a day, random reward [B24, OLD]; 8 Ball Pool 1 a day [B25, OLD]; Choices diamonds 3 a day [B26, OLD] | Capped, and the bonus is additive, not a cut from the old free amount |
-| Two-sided / creator reward | Twitch: viewers watch a short ad to earn Bits, then spend them cheering a streamer [A2-18, S]; Webnovel: ads earn Spirit Stones spent on votes that rank a novel [A2-17, S]. Both unverified on a primary page. The fan's ad turns into support or visibility for a creator, so there's no inference cost. Contrast: Kick's ads pay creators only; viewers get nothing [A2-19, P] | The boost is scarce (a ranked slot, a leaderboard) and labeled; the fan gets something too (a badge, a credit on the creator's page) |
+| Two-sided / creator reward | Twitch: US viewers could pick "Watch Ad" under "Get Bits", watch a 30-second ad, and receive 5-100 Bits, a currency they then chose to spend cheering a streamer, with a daily limit on ads (Twitch's own blog, 2016-10-06) [A2-23, P, OLD]; a 2026 guide says it still runs in some countries [A2-18, S]. Webnovel: ads earn Spirit Stones spent on votes that rank a novel [A2-17, S]. In both, the viewer earns a currency and chooses to spend it on a creator; the Twitch one reorders no list, and Webnovel's votes feed a vote leaderboard. There's no inference cost. Contrast: Kick's ads pay creators only; viewers get nothing [A2-19, P] | **Gate: only when the app has no anchor (5.1).** The viewer earns something for their own use first; support lands in a labeled slot or leaderboard that exists to show it, never by reordering a list the app ranks or curates on other grounds |
 
 ## 6. Mechanics catalog
 
@@ -182,7 +182,7 @@ Full rows (trigger, offer, reward, duration, cap, decline, payers, results, clai
 | M24 | Pandora Video Plus (music) | Skips, replays → extra per video | unpublished | n/a | existing | OLD [C13] |
 | M25 | Google Offerwall (publishers) | Metered content → choose ad / survey / micropay / signup | publisher-set | subscribers bypass | product change | live [C14][C15][C16] |
 | M26 | Webnovel (web fiction) | Votes that rank a novel → "Get Free Spirit Stones" by watching ads | unstated | unstated | existing | unverified [A2-17] |
-| M27 | Twitch (live streaming) | Bits to cheer a streamer → 5-100 Bits per ad, by country | inventory-limited | unstated | existing | unverified [A2-18] |
+| M27 | Twitch (live streaming) | Bits to cheer a streamer → 5-100 Bits per ad, by country | daily limit, unstated number | unstated | existing | OLD [A2-23][A2-18] |
 | M28 | Remini (AI photo) | Paid enhancement → small ad-gated daily allowance (historically ~5 a day) | daily | subscribers skip | existing | unverified [A2-13] |
 | M29 | FaceApp (AI photo) | Pro filter → temporary unlock per ad | unstated | Pro has all | existing | unverified [A2-14] |
 
@@ -234,4 +234,4 @@ Each rule is phrased so a judge can check it against one idea.
 - No measured tokens-per-turn for companion apps; the central 4,000 in / 300 out is an assumption.
 - Spotify Sponsored Session and Pandora Sponsored Listening may no longer exist (sources 2014 and 2017).
 - Rewarded-ads-grow-IAP claims are correlational vendor data.
-- The two creator-support examples (M26, M27) are secondary-sourced only.
+- Of the two creator-support examples, M26 (Webnovel) is secondary-sourced only; M27 (Twitch) is primary-sourced for 2016 (US), and only a 2026 guide says it still runs.

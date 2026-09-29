@@ -17,7 +17,7 @@ from simula.contracts import (ActionLine, ContentRating, Device, Edge, Element, 
                               ModelMeaning, OpenQuestion, Point, ProductModel, Rect, State, StateFile, Term,
                               VisionElement)
 from simula.runlog import needs_human, run_trace, write_exhibit
-from simula.stages import Ctx
+from simula.stages import Ctx, rerun_command
 
 PREFIX = "Found these elements on screen: "
 PROMPT = config.ROOT / "prompts" / "model" / "meaning.md"
@@ -511,8 +511,8 @@ def mock_scope(states: list[State], edges: list[Edge], meaning: ModelMeaning) ->
 
     flow_states = [sid for f in meaning.flows for i in f.edge_ids if i in edge_by_id
                    for sid in (edge_by_id[i].from_state, edge_by_id[i].to_state)]
-    # A flow modal keeps its parent even when that parent is unsafe: whether its content shows is the renderer's
-    # and the blur's job, not scope's.
+    # A flow modal keeps its parent even when that parent is unsafe, since a gap would break the flow: the mock draws
+    # exactly this scope (nothing blurs it), and propose never triggers an offer on an unsafe screen.
     on_flow = {layer for sid in flow_states for layer in layers(sid)}
     eligible = {s.id for s in states if s.kind not in ("blocked", "external")
                 and (s.content_rating != "unsafe" or s.id in on_flow)}
@@ -620,7 +620,7 @@ def understand(ctx: Ctx, dump: str, shots: list[tuple[str, bytes]], states: list
         if e.raw:
             (ctx.run_dir / "model" / "raw_reply.txt").write_text(e.raw)
         needs_human(ctx.run_dir, "model", "the meaning call failed twice", str(e),
-                    ["trace.jsonl", "model/raw_reply.txt"], f"simula model {ctx.app['name']} --run {ctx.run_dir.name}")
+                    ["trace.jsonl", "model/raw_reply.txt"], rerun_command("model", ctx))
         raise
     meaning, rejected = check_meaning(first, states, edges)
     rounds = [rejected]
@@ -640,8 +640,7 @@ def understand(ctx: Ctx, dump: str, shots: list[tuple[str, bytes]], states: list
         if gaps:
             needs_human(ctx.run_dir, "model", "the product model has gaps", "; ".join(gaps) + ". The retry failed "
                         f"({e.outcome}); the run continues on the checked first answer.",
-                        ["exhibits/02-model.md", "model/raw_reply.txt"],
-                        f"simula model {ctx.app['name']} --run {ctx.run_dir.name}")
+                        ["exhibits/02-model.md", "model/raw_reply.txt"], rerun_command("model", ctx))
         return meaning, rounds
     meaning, rejected = check_meaning(second, states, edges)
     rounds.append(rejected)

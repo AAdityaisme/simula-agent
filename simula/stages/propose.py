@@ -19,6 +19,7 @@ BIBLE = ROOT / "bible"
 PROMPTS = ROOT / "prompts" / "propose"
 ALLOWED_INPUTS = (BIBLE, PROMPTS)
 MAX_CANDIDATES = 10
+MAX_PER_LENS = 2  # the system prompt asks each lens for 1 or 2 ideas
 MIN_DISTINCT = 4
 MAX_LEDGER_LENSES = 2
 ANCHOR_MECHANICS = {"paywall", "limit", "currency", "entitlement"}
@@ -70,13 +71,16 @@ def build_lenses(model: ProductModel) -> list[Lens]:
         Lens(id=f"ledger_{item.id}", name=f"Someone else in the app: {item.verbatim}", kind="ledger",
              ledger_ids=[item.id],
              focus=f'Someone in this app besides the viewer, seen as "{item.verbatim}". Look for ideas where '
-                   "the viewer's rewarded play also helps or involves them, and the viewer gets something too.")
+                   "the viewer's rewarded play also helps or involves them, and the viewer gets something they would "
+                   "want for their own use of the app; helping the other person comes on top of that, not instead.")
         for item in actors]
 
 
 # ---------- prompts ----------
 
 def model_text(model: ProductModel) -> str:
+    """The product model's facts, as the proposer and the judge both read them. Rules for the proposer go in its
+    own prompt (`lens_prompt`), never here."""
     edges = {e.id: e for e in model.edges}
     lines = [f"App category: {model.app_category}", "", "### Mechanics"]
     lines += [f"- {m.id} [{m.kind}, {m.status}] {m.summary} Evidence: {', '.join(m.evidence_ids) or 'none'}."
@@ -97,10 +101,6 @@ def model_text(model: ProductModel) -> str:
         path = [edges[i].from_state for i in f.edge_ids[:1]] + [edges[i].to_state for i in f.edge_ids]
         lines.append(f"- {f.id} {f.name}: {f.purpose} ({' -> '.join(path)})")
     lines += ["", "### Open questions (not observed)"] + [f"- {q}" for q in model.open_questions]
-    if unobserved := unobserved_terms(model):
-        lines += ["", "### App terms whose meaning was never observed (don't use them anywhere in the idea; code "
-                      "flags an idea that does for a person reviewing the output)"]
-        lines += [f'- "{t}"' for t in unobserved]
     lines += ["", "### Screens in scope"]
     for s in model.states:
         if s.in_mock_scope:
@@ -129,9 +129,21 @@ def system_prompt() -> str:
                         "# Cost table (bible/data/economics.json)\n\n" + read_input(BIBLE / "data" / "economics.json")])
 
 
+def unobserved_text(model: ProductModel) -> str:
+    """The proposer's rule on app terms no screen explained, with the terms; "" when there are none. The judge
+    never sees it (Decision 13)."""
+    terms = unobserved_terms(model)
+    if not terms:
+        return ""
+    return "\n".join(["## App terms whose meaning was never observed", "",
+                      "Don't use them anywhere in the idea; code flags an idea that does for a person reviewing the "
+                      "output.", "", *(f'- "{t}"' for t in terms)])
+
+
 def lens_prompt(model: ProductModel, lens: Lens) -> str:
     return Template(read_input(PROMPTS / "lens.md")).substitute(
-        lens_id=lens.id, lens_name=lens.name, lens_focus=lens.focus, product_model=model_text(model))
+        lens_id=lens.id, lens_name=lens.name, lens_focus=lens.focus, product_model=model_text(model),
+        unobserved=unobserved_text(model)).rstrip("\n") + "\n"
 
 
 def ask_lens(ctx: Ctx, model: ProductModel, lens: Lens, system: str, budget: llm.Budget,
@@ -149,7 +161,11 @@ def ask_lens(ctx: Ctx, model: ProductModel, lens: Lens, system: str, budget: llm
         run_trace(ctx.run_dir, stage="propose", step=step, decider="code", outcome=e.outcome,
                   note="lens skipped after its retry failed")
         return None
-    return [Candidate(**{**draft.model_dump(), "lens": lens.id}) for draft in output.candidates[:2]]
+    if len(output.candidates) > MAX_PER_LENS:
+        left_out = "; ".join(d.title for d in output.candidates[MAX_PER_LENS:])
+        note = f"returned {len(output.candidates)} ideas, kept the first {MAX_PER_LENS}; left out: {left_out}"
+        run_trace(ctx.run_dir, stage="propose", step=step, decider="code", note=note[:300])
+    return [Candidate(**{**draft.model_dump(), "lens": lens.id}) for draft in output.candidates[:MAX_PER_LENS]]
 
 
 # ---------- code checks ----------
@@ -170,7 +186,8 @@ def uses_term(term: str, words: str) -> bool:
 def printed(c: Candidate) -> list[str]:
     """Every field of the idea the slides print word for word."""
     return [c.title, c.offer_copy, c.after_reward, c.adds or "", c.placement, c.trigger_event, c.frequency_cap,
-            c.rationale, c.subscriber_treatment, c.reward.unit, c.reward.duration, *(s.caption for s in c.flow_steps)]
+            c.rationale, c.subscriber_treatment, c.decline_path, c.ad_fail_path, c.character_use, c.reward.unit,
+            c.reward.duration, *(s.caption for s in c.flow_steps)]
 
 
 def jargon_flags(c: Candidate, model: ProductModel) -> list[str]:
@@ -191,14 +208,22 @@ def mechanic_ids() -> set[str]:
 
 def resolve_ids(c: Candidate, model: ProductModel) -> tuple[Candidate, str]:
     """Models cite a mechanic or ledger id where an element id belongs, or an element where a state belongs.
-    Both point at something real, so code maps them to the ids it checks. An `experience` item is a measured
-    fact whose evidence is edges, not elements, so it maps to nothing: context, not an anchor. Returns the
-    candidate and a note listing every repair ("" when none)."""
-    groups = ({m.id: m.evidence_ids for m in model.mechanics}
-              | {i.id: [] if i.kind == "experience" else i.evidence_ids for i in model.value_ledger})
-    repairs = [f"{i} -> {','.join(groups[i]) or 'nothing (a measured experience, not an element)'}"
-               for i in c.anchor_evidence_ids if i in groups]
-    anchors = list(dict.fromkeys(e for i in c.anchor_evidence_ids for e in groups.get(i, [i])))
+    Both point at something real, so code maps them to the ids it checks: a mechanic or ledger id becomes its
+    element evidence only, since a screen or transition can't anchor an idea (an `experience` item, whose evidence
+    is edges, becomes nothing: context, not an anchor). Returns the candidate and a note listing every repair and
+    every id it left out ("" when none)."""
+    elements = {e.id for s in model.states for e in s.elements}
+    groups = {m.id: m.evidence_ids for m in model.mechanics} | {i.id: i.evidence_ids for i in model.value_ledger}
+    anchors, repairs = [], []
+    for cited in c.anchor_evidence_ids:
+        if cited not in groups:
+            anchors.append(cited)
+            continue
+        kept = [e for e in groups[cited] if e in elements]
+        left = [e for e in groups[cited] if e not in elements]
+        anchors += kept
+        repairs.append(f"{cited} -> {','.join(kept) or 'nothing'}"
+                       + (f" ({', '.join(left)} left out: not an element)" if left else ""))
 
     def screen(state_id: str) -> str:
         if state_id.startswith("new:") or "." not in state_id:
@@ -208,7 +233,8 @@ def resolve_ids(c: Candidate, model: ProductModel) -> tuple[Candidate, str]:
 
     trigger = screen(c.trigger_state_id)
     steps = [s.model_copy(update={"state_id": screen(s.state_id)}) for s in c.flow_steps]
-    fixed = c.model_copy(update={"anchor_evidence_ids": anchors, "trigger_state_id": trigger, "flow_steps": steps})
+    fixed = c.model_copy(update={"anchor_evidence_ids": list(dict.fromkeys(anchors)), "trigger_state_id": trigger,
+                                 "flow_steps": steps})
     return fixed, "; ".join(dict.fromkeys(repairs))
 
 
@@ -253,6 +279,20 @@ def linked_problem(c: Candidate, bullet_id: str | None, model: ProductModel) -> 
     return f"{problem} (linked by the benefit-naming call)" if problem else None
 
 
+def evidence_problem(ids: list[str], model: ProductModel) -> str:
+    """Why cited ids can't be evidence: a real screen or transition is not an element id; anything else doesn't
+    exist."""
+    real = {s.id for s in model.states} | {e.id for e in model.edges}
+    missing = [i for i in ids if i not in real]
+    not_elements = [i for i in ids if i in real]
+    problems = []
+    if missing:
+        problems.append(f"cites evidence ids that don't exist: {', '.join(missing)}")
+    if not_elements:
+        problems.append(f"cites {', '.join(not_elements)}, a screen or transition, not an element id")
+    return "; ".join(problems)
+
+
 def check(c: Candidate, model: ProductModel) -> str | None:
     """Returns why a candidate is dropped, or None when it passes every code check."""
     states = {s.id: s for s in model.states}
@@ -261,7 +301,7 @@ def check(c: Candidate, model: ProductModel) -> str | None:
     existing_steps = [s.state_id for s in c.flow_steps if not s.state_id.startswith("new:")]
     bad_steps = [i for i in existing_steps if i not in states]
     if unknown:
-        return f"cites evidence ids that don't exist: {', '.join(unknown)}"
+        return evidence_problem(unknown, model)
     if c.trigger_state_id not in states:
         return f"trigger state {c.trigger_state_id!r} doesn't exist"
     if bad_steps or not c.flow_steps:
@@ -284,8 +324,8 @@ def check(c: Candidate, model: ProductModel) -> str | None:
         return problem
     if not c.after_reward.strip():
         return "doesn't say what the user sees when the reward runs out"
-    if c.daily_cap < 1:
-        return "doesn't give a per-user daily cap"
+    if c.daily_cap < 0:
+        return "gives a negative per-user daily cap"
     if problem := grants_problem(c, model):
         return problem
     if in_chat(c.placement):
@@ -295,10 +335,15 @@ def check(c: Candidate, model: ProductModel) -> str | None:
 
 # ---------- reach and rank ----------
 
+def root_id(model: ProductModel) -> str:
+    """The root: the lowest-numbered `screen` state (docs/CONTRACTS.md)."""
+    return min(s.id for s in model.states if s.kind == "screen")
+
+
 def depths(model: ProductModel) -> dict[str, int]:
-    """Taps from the root (the lowest-numbered `screen` state, docs/CONTRACTS.md). A tab switch costs nothing;
-    a modal sits at its parent's depth when no recorded edge reaches it."""
-    depth = {min(s.id for s in model.states if s.kind == "screen"): 0}
+    """Taps from the root. A tab switch costs nothing; a modal sits at its parent's depth when no recorded edge
+    reaches it."""
+    depth = {root_id(model): 0}
     changed = True
     while changed:
         changed = False
@@ -316,7 +361,8 @@ def depths(model: ProductModel) -> dict[str, int]:
 
 def rank(c: Candidate, model: ProductModel, mode: str) -> Candidate:
     """reach = eligible users (by the trigger's depth) x daily views (the typed per-user `daily_cap`, never the
-    `frequency_cap` prose): a scenario, not a measured audience."""
+    `frequency_cap` prose): a scenario, not a measured audience. An offer taken less than once a day is typed 0, so
+    it ranks after every daily one and loses a duplicate pair to its daily twin."""
     if c.dropped_reason or c.kind == "no_opportunity":
         return c
     weight = {0: 1.0, 1: 0.5}.get(depths(model)[c.trigger_state_id], 0.25)
@@ -468,7 +514,9 @@ def exhibit(lenses: list[Lens], candidates: list[Candidate], repairs: dict[str, 
                   f"- Reward: {c.reward.amount:g} {c.reward.unit} ({c.reward.kind}, {c.reward.duration})",
                   f"- When the reward ends: {c.after_reward}",
                   f"- Cost: {c.economics.assumption_line}",
-                  f"- Reach scenario: {c.reach_score:g} (trigger depth x daily cap; not a measured audience)"]
+                  f"- Reach scenario: {c.reach_score:g} (trigger depth x the proposer's per-user daily cap, "
+                  f"{c.daily_cap}{', less than once a day' if c.daily_cap == 0 else ''}; not a measured audience). "
+                  f"The offer's cap: {c.frequency_cap}"]
         lines += [f"- Flag: {flag}" for flag in c.flags]
     dropped = [c for c in candidates if c.dropped_reason]
     if dropped:
@@ -515,8 +563,9 @@ def run(ctx: Ctx) -> None:
         if extra:
             candidates, repairs, names = finish(drafts + extra, model, mode,
                                                 lambda live: name_benefits(ctx, live, budget, "dedupe:topup", model))
-        topup = (f"fired ({distinct} distinct after dedupe, under {MIN_DISTINCT}; "
-                 + (f"{live_count(candidates)} after the top-up)" if extra else "its call failed)"))
+        result = ("its call failed" if extra is None else "it answered with no ideas" if not extra
+                  else f"{live_count(candidates)} after the top-up")
+        topup = f"fired ({distinct} distinct after dedupe, under {MIN_DISTINCT}; {result})"
     run_trace(ctx.run_dir, stage="propose", step="topup", decider="code", note=topup)
     for cid, note in repairs.items():
         run_trace(ctx.run_dir, stage="propose", step=f"resolve:{cid}", decider="code", note=note[:300])

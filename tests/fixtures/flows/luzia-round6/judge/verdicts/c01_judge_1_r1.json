@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is opt-in (user must tap 'Play'); the copy states the reward (3 answers in Advanced reasoning mode, today) before the ad; declining closes the sheet and returns the user to the paywall with chats working unchanged; and there is a failure path ('That didn't go through, nothing was used')."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 uses of Advanced reasoning mode, a feature the app already charges for in the subscription, not cash or cash-like."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a user action on the paywall screen (closing without buying or starting the trial), not chat content; the targeting is free users, not based on messages or sentiment."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free today. Advanced reasoning mode is a paid-only feature (s02.e03 appears only on the Luzia+ paywall), and the model confirms 'No free-tier limit was observed,' so there is no free-tier cap being touched."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a bottom sheet over the paywall (s02, marked safe), not inside a chat transcript or next to unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing_anchor. Advanced reasoning mode is listed as a paid feature in the Luzia+ paywall (s02.e03, cited), so the reward is a slice of something the app charges for."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The proposal cites s02.e03 ('Advanced reasoning mode'), s02.e01 ('Unlock Luzia+'), and s02.e19 ('Start 3-day free Trial'), all of which exist and match what the proposal claims. The claim that the paywall opens from the home badge and Settings is supported by s01.e02/s01.e03 and s03.e05. The statement 'No free-tier limit was observed' is from the model's open questions."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 3 answers, expiring at midnight, and is tied to a single day; this is a time-and-quantity-limited sample of the subscription's Advanced reasoning mode feature, not a giveaway."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer triggers at a moment of need: the user just closed the Luzia+ paywall without buying, indicating hesitation; the sheet appears as the paywall closes, interrupting only the dismissal of an upsell, not a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn (play the game, earn the reward); the reward is granted on the verified play (Simula's REWARD_VERIFIED event); and the trigger is an app event (user closes the paywall) the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea is specific to this app: it names the Luzia+ paywall (s02), the Advanced reasoning mode feature (s02.e03), the home badge (s01.e02), the 3-answer reward tied to a feature users see priced at $1.99–$39.99, and the moment of closing the paywall without converting."
+ },
+ "other_concern": "The proposal assumes Advanced reasoning mode can be tracked and capped per user per day (3 uses until midnight). The product model does not detail how this feature is metered on the backend or whether the app logs individual uses; the implementation feasibility is unknown. Additionally, the proposal uses the phrase 'inference' to describe the reward, noting it is inferred, which is consistent with the fact that no free-tier limit was observed; however, the cost estimate ('costs about a cent in fresh model use') is the proposer's own analysis and not verifiable from the model.",
+ "fixable": true
+}

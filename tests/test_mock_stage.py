@@ -7,7 +7,7 @@ from simula.runlog import read_trace
 from simula.stages import mock
 from tests.conftest import APPS
 from tests.mock_fake import golden, seed_model, skeleton_html
-from tests.test_mock_isolation import ctx_for
+from tests.test_mock_isolation import ctx_for, fake_builder
 
 
 @pytest.fixture(params=APPS)
@@ -39,7 +39,7 @@ def test_only_the_first_two_items_of_a_repeated_list_are_tagged(app):
 def test_no_offered_asset_breaks_the_wallpaper_rule(app):
     model = golden(app)
     for state in mock.pick_scope(model):
-        brief = mock.state_brief(state, model.device)
+        brief = mock.state_brief(state, model.device, {})
         offered = {e["id"] for e in brief["elements"] if "asset" in e}
         assert offered == {e.id for e in state.elements if mock.usable_asset(e, model.device)}
 
@@ -55,7 +55,7 @@ def test_max_tokens_retries_once_at_high_with_shorter_css(tmp_path, monkeypatch)
         return "```html\n<html><body></body></html>\n```", None
     monkeypatch.setattr(llm, "call", call)
     model = golden("janitorai")
-    html = mock.generate(ctx_for(run_dir, "janitorai", profile="real"), model, mock.pick_scope(model))
+    html = mock.generate(ctx_for(run_dir, "janitorai", profile="real"), model, mock.pick_scope(model), {})
     assert html.startswith("<html>")
     assert efforts[0][0] == "xhigh" and efforts[1] == ("high", mock.SHORTER)
     assert read_trace(run_dir / "trace.jsonl")[-1].outcome == "retry"
@@ -69,7 +69,7 @@ def test_other_failures_are_not_retried(tmp_path, monkeypatch):
     monkeypatch.setattr(llm, "call", call)
     model = golden("luzia")
     with pytest.raises(llm.LLMFailure):
-        mock.generate(ctx_for(run_dir, "luzia"), model, mock.pick_scope(model))
+        mock.generate(ctx_for(run_dir, "luzia"), model, mock.pick_scope(model), {})
 
 
 def test_html_comes_out_of_a_fence_or_a_bare_document():
@@ -156,6 +156,19 @@ def test_each_attempt_is_one_call_under_its_own_wall_and_a_timeout_is_not_retrie
     monkeypatch.setattr(llm, "call", call)
     model = golden("aol")
     with pytest.raises(llm.LLMFailure) as e:
-        mock.generate(ctx_for(run_dir, "aol", profile="real"), model, mock.pick_scope(model))
+        mock.generate(ctx_for(run_dir, "aol", profile="real"), model, mock.pick_scope(model), {})
     assert e.value.outcome == "timeout"
     assert calls == [("xhigh", 1, mock.WALL_SECONDS), ("high", 1, mock.WALL_SECONDS)]
+
+
+def test_the_mock_opens_on_the_first_screen_that_is_not_a_dialog(tmp_path, monkeypatch, app):
+    run_dir = seed_model(tmp_path / "run", app)
+    model = golden(app)
+    home = mock.pick_scope(model)[0]
+    dialog = home.model_copy(update={"id": "s00", "kind": "modal", "parent_id": home.id, "elements": []})
+    model = model.model_copy(update={"states": [dialog] + model.states, "mock_order": ["s00", *model.mock_order]})
+    (run_dir / "model" / "product_model.json").write_text(model.model_dump_json())
+    monkeypatch.setattr(llm, "call", fake_builder([]))
+    mock.run(ctx_for(run_dir, app))
+    assert mock.pick_scope(model)[0].id == "s00" and mock.home_id(mock.pick_scope(model)) == home.id
+    assert f'const ROOT = "{home.id}"' in (run_dir / "mock" / "index.html").read_text()

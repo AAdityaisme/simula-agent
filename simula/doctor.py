@@ -11,7 +11,7 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from simula import config, decide, llm, runlog
-from simula.cli import mobile_mcp_version, package_version, untracked_inputs
+from simula.checkout import mobile_mcp_version, package_version, untracked_inputs
 from simula.config import ROOT
 
 LOCK = Path("/tmp/simula-emu.lock")
@@ -70,12 +70,14 @@ def check_local() -> None:
 
 def check_browser() -> None:
     from playwright.sync_api import sync_playwright
+
+    from simula import render
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch()
             page = browser.new_page(viewport={"width": 411, "height": 914}, device_scale_factor=2.625)
             page.set_content("<body style='margin:0;background:#123'></body>")
-            png = page.screenshot()
+            png = render.screenshot(page)
             browser.close()
         from io import BytesIO
         from PIL import Image

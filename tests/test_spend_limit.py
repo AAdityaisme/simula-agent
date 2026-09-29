@@ -3,6 +3,7 @@ outage, not our cap: ProviderUnavailable fails the stage with no done.json, need
 error is a typed LLMFailure. An aborted stream is charged its worst case."""
 
 import json
+import re
 from types import SimpleNamespace
 
 import anthropic
@@ -186,6 +187,8 @@ UNWRAPPED = {
     "unvalidated response": anthropic.APIResponseValidationError(
         response=httpx2.Response(200, request=httpx2.Request("POST", "https://api.anthropic.com/v1/messages")),
         body=None),
+    "SDK event out of order": RuntimeError('Unexpected event order, got content_block_delta before "message_start"'),
+    "SDK event past the content": IndexError("list index out of range"),
 }
 
 
@@ -196,6 +199,28 @@ def test_any_error_mid_stream_is_charged_traced_and_releases_its_hold(monkeypatc
     failure, budget, line = aborted_call(monkeypatch, BrokenStream(snapshot, error), tmp_path)
     assert failure.outcome == "error" and budget.held == 0 and budget.spent > 0
     assert (line.decider, line.outcome, line.tokens_in) == ("model", "error", 5000) and line.usd > 0
+
+
+def test_an_error_the_sdk_leaves_untyped_mid_stream_is_retried(monkeypatch, tmp_path):
+    """Red team PR4 @9b77d9e LOW 1: the SDK's event accumulator raises a plain RuntimeError on an event it can't
+    place. That is provider data, not a bug in our code, so the attempts loop tries again."""
+    snapshot = SimpleNamespace(usage=SimpleNamespace(input_tokens=5000, output_tokens=1),
+                               content=[SimpleNamespace(type="text", text="x" * 3000)])
+    opened = []
+
+    def stream(**kwargs):
+        opened.append(kwargs["model"])
+        error = RuntimeError('Unexpected event order, got content_block_delta before "message_start"')
+        return BrokenStream(snapshot, error)
+    monkeypatch.setattr(anthropic, "Anthropic",
+                        lambda **kwargs: SimpleNamespace(messages=SimpleNamespace(stream=stream)))
+    budget = llm.Budget("mock", 100.0)
+    with pytest.raises(llm.LLMFailure, match="RuntimeError reading the stream: Unexpected event order"):
+        llm.call(trace_path=tmp_path / "trace.jsonl", stage="mock", step="t", model="claude-opus-5-5", effort="xhigh",
+                 system="", messages=[{"role": "user", "content": [{"type": "text", "text": "build the mock"}]}],
+                 max_tokens=64000, budget=budget, cache_dir=tmp_path / "cache", attempts=2, total_timeout=60)
+    assert len(opened) == 2 and budget.held == 0
+    assert [l.outcome for l in read_trace(tmp_path / "trace.jsonl")] == ["error", "error"]
 
 
 def ask_through_call(tmp_path, budget, max_tokens: int = 100):
@@ -212,6 +237,26 @@ def test_an_untyped_error_on_a_plain_call_is_a_typed_failure_that_releases_its_h
     assert (budget.held, budget.spent) == (0, 0) and read_trace(tmp_path / "trace.jsonl")[-1].outcome == "error"
 
 
+def test_a_bug_in_our_own_code_is_raised_as_itself_after_settling_and_is_never_retried(monkeypatch, tmp_path):
+    """Greptile on 5604df5: a TypeError in an adapter was retried as LLMFailure("error"), hiding its traceback."""
+    calls = []
+
+    def broken(model, system, messages, effort, schema, max_tokens, total_timeout=None):
+        calls.append(model)
+        raise TypeError("unexpected keyword argument 'effrt'")
+
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", broken)
+    budget = llm.Budget("model", 10.0)
+    with pytest.raises(TypeError, match="effrt"):
+        llm.call(trace_path=tmp_path / "trace.jsonl", stage="model", step="t", model="claude-haiku-4-5-20251001",
+                 effort=None, system="", messages=[{"role": "user", "content": [{"type": "text", "text": "hi"}]}],
+                 max_tokens=100, budget=budget, cache_dir=tmp_path / "cache", attempts=2,
+                 fallback="claude-haiku-4-5-20251001")
+    line = read_trace(tmp_path / "trace.jsonl")[-1]
+    assert calls == ["claude-haiku-4-5-20251001"] and (budget.held, budget.spent) == (0, 0)
+    assert line.outcome == "error" and line.note.startswith("TypeError, not a provider error")
+
+
 def test_a_provider_usage_limit_stops_the_call_releases_its_hold_and_is_never_cached(monkeypatch, tmp_path):
     fake_anthropic(monkeypatch, error_400(anthropic, "https://api.anthropic.com/v1/messages", USAGE_LIMIT))
     budget = llm.Budget("model", 10.0)
@@ -221,6 +266,17 @@ def test_a_provider_usage_limit_stops_the_call_releases_its_hold_and_is_never_ca
     assert (budget.held, budget.spent) == (0, 0) and line.outcome == "blocked"
     assert not (tmp_path / "cache").exists() or not list((tmp_path / "cache").iterdir())
     assert not line.note.startswith("key ")  # --replay follows only keys a trace names; an outage has none
+
+
+def test_a_cap_stop_prints_a_resume_command_with_the_runs_own_options(runs, tmp_path):
+    explore = build("luzia", tmp_path / "explore")
+    code = cli.main(["run", "luzia", "--new", "--allow-fixtures", "--fixture", f"explore={explore}", "--from", "model",
+                     "--profile", "dev", "--usd-cap", "0.000001"])
+    run_dir = (runs / "luzia" / "latest").resolve()
+    human = (run_dir / "needs-human.md").read_text()
+    assert code == cli.EXIT_CAP and "$ cap reached" in human
+    assert (f"simula model luzia --run {run_dir.name} --profile dev --budget transfer --allow-fixtures "
+            "--usd-cap <higher>") in human
 
 
 def test_a_usage_limit_fails_the_stage_with_needs_human_and_exit_5_so_a_rerun_resumes_there(runs, tmp_path,
@@ -233,7 +289,11 @@ def test_a_usage_limit_fails_the_stage_with_needs_human_and_exit_5_so_a_rerun_re
     assert code == cli.EXIT_PROVIDER == 5
     human = (run_dir / "needs-human.md").read_text()
     assert "the model provider is refusing calls" in human and "$ cap reached" not in human
-    assert f"simula run luzia --run {run_dir.name} --from model" in human
+    resume = re.search(r"simula run luzia[^`\n]*", human).group(0)
+    assert resume == (f"simula run luzia --from model --run {run_dir.name} --profile dev --budget transfer "
+                      "--allow-fixtures")
+    # Greptile on 363456b: the printed command dropped --allow-fixtures and the profile; run it as printed.
+    assert cli.main(resume.split()[1:]) == cli.EXIT_PROVIDER
     assert "usage limit" in (run_dir / "model" / "failure.json").read_text()
     assert not (run_dir / "model" / "done.json").exists()
     assert read_trace(run_dir / "trace.jsonl")[-1].outcome == "blocked"

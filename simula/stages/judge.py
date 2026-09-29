@@ -267,7 +267,7 @@ def revision_prompt(c: Candidate, verdicts: list[Verdict], model: ProductModel) 
     draft["title"] = strip_bucket(c.title)
     return Template(read_prompt("revise.md")).substitute(
         failures="\n".join(dict.fromkeys(failures)), candidate=json.dumps(draft, indent=1),
-        product_model=propose.model_text(model))
+        product_model=propose.model_text(model), unobserved=propose.unobserved_text(model)).rstrip("\n") + "\n"
 
 
 def revise(ctx: Ctx, c: Candidate, verdicts: list[Verdict], model: ProductModel, mode: str,

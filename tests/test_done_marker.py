@@ -3,7 +3,7 @@ import json
 import pytest
 
 from simula import runfolder
-from simula.config import ROOT
+from simula.config import ROOT, STAGES
 from simula.contracts import Provenance
 
 REAL = Provenance(source="explorer_run", explorer_run_id="r1")
@@ -27,8 +27,8 @@ def mark(run, params=None, stage="model", inputs=None):
 
 
 def done(run, params=None, stage="model", inputs=None):
-    return runfolder.is_done(run / stage, run, inputs or [run / "config.toml"], [run / "prompt.md"],
-                             params or {"effort": "high"})
+    return runfolder.is_done(runfolder.read_done(run / stage), run, inputs or [run / "config.toml"],
+                             [run / "prompt.md"], params or {"effort": "high"})
 
 
 def test_no_marker_means_not_done(run):
@@ -81,11 +81,10 @@ def test_half_written_marker_does_not_count(run):
     assert not done(run)
 
 
-def test_failure_replaces_done(run):
+def test_a_failure_record_leaves_the_marker_to_the_runner(run):
     mark(run)
     runfolder.write_failure(run / "model", "boom")
-    assert not (run / "model" / "done.json").exists()
-    assert (run / "model" / "failure.json").exists()
+    assert (run / "model" / "done.json").exists() and (run / "model" / "failure.json").exists()
 
 
 def test_same_second_runs_get_a_numbered_suffix(runs, monkeypatch):
@@ -113,9 +112,10 @@ def test_editing_a_file_outside_the_run_folder_reruns_the_stage(runs, tmp_path, 
     assert knowledge in inputs
     (ctx.run_dir / "propose").mkdir()
     runfolder.write_done(ctx.run_dir / "propose", ctx.run_dir, inputs, [], {}, [ctx.run_dir / "propose"], REAL)
-    assert runfolder.is_done(ctx.run_dir / "propose", ctx.run_dir, cli.stage_inputs("propose", ctx), [], {})
+    marker = runfolder.read_done(ctx.run_dir / "propose")
+    assert runfolder.is_done(marker, ctx.run_dir, cli.stage_inputs("propose", ctx), [], {})
     knowledge.write_text("v2")
-    assert not runfolder.is_done(ctx.run_dir / "propose", ctx.run_dir, cli.stage_inputs("propose", ctx), [], {})
+    assert not runfolder.is_done(marker, ctx.run_dir, cli.stage_inputs("propose", ctx), [], {})
 
 
 def test_real_stage_inputs_include_the_bible_and_the_contract():
@@ -199,10 +199,10 @@ def test_a_code_change_reruns_a_finished_stage(run):
     code.write_text("RANK = 1\n")
     runfolder.write_done(run / "model", run, [run / "config.toml"], [run / "prompt.md"], {"effort": "high"},
                          [run / "model"], REAL, code=[code])
-    assert runfolder.is_done(run / "model", run, [run / "config.toml"], [run / "prompt.md"], {"effort": "high"},
-                             code=[code])
+    marker = runfolder.read_done(run / "model")
+    assert runfolder.is_done(marker, run, [run / "config.toml"], [run / "prompt.md"], {"effort": "high"}, code=[code])
     code.write_text("RANK = 2\n")
-    assert not runfolder.is_done(run / "model", run, [run / "config.toml"], [run / "prompt.md"], {"effort": "high"},
+    assert not runfolder.is_done(marker, run, [run / "config.toml"], [run / "prompt.md"], {"effort": "high"},
                                  code=[code])
 
 
@@ -211,5 +211,13 @@ def test_a_marker_from_before_the_code_check_reruns(run):
     marker = json.loads((run / "model" / "done.json").read_text())
     del marker["code_hashes"], marker["outcome"]
     (run / "model" / "done.json").write_text(json.dumps(marker))
-    assert not runfolder.is_done(run / "model", run, [run / "config.toml"], [run / "prompt.md"], {"effort": "high"},
-                                 code=[run / "prompt.md"])
+    assert not runfolder.is_done(runfolder.read_done(run / "model"), run, [run / "config.toml"], [run / "prompt.md"],
+                                 {"effort": "high"}, code=[run / "prompt.md"])
+
+
+@pytest.mark.parametrize("stage", STAGES)
+def test_no_stage_hashes_the_cli_or_the_checkout_tools(stage):
+    """The CLI, doctor and checkout modules are bookkeeping: a stage that imports one would go stale on every edit
+    to it, and a stale explore can't be replayed."""
+    files = {str(p.relative_to(ROOT)) for p in runfolder.code_files(stage)}
+    assert not files & {"simula/cli.py", "simula/doctor.py", "simula/checkout.py"}
