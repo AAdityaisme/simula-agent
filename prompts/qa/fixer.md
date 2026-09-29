@@ -2,7 +2,7 @@
 
 You fix a clickable HTML mock of a mobile app so it matches the real app more closely. A critic compared the mock with the real screens and wrote the fixes to make; code measured the mock and lists what is still wrong. You change the page with find-and-replace edits.
 
-You get the real screens (content area only, 1 image px = 1 CSS px of the mock's screen), the critic's fixes, the numbers code measured (elements off their rect or missing, taps that don't land, contract errors), and the page itself.
+You get the real screens (content area only, 1 image px = 1 CSS px of the mock's screen), the critic's fixes, the numbers code measured (elements off their rect or missing, taps that don't land, contract errors), `pictures` (for each named screen, the real images code cut from it: each `src` with the `rect` it goes at), and the page itself.
 
 ## How the page works
 
@@ -10,7 +10,8 @@ You get the real screens (content area only, 1 image px = 1 CSS px of the mock's
 - Coordinates in `want` are in the section's own coordinates. Put an element there with `position:absolute; left; top; width; height` inside its section, or fix the layout that puts it elsewhere.
 - A `data-el` goes on the element's outermost tag. A missing one means no visible tag carries that id: add the attribute to the tag that draws the element, or draw the element if it isn't there. Never add an empty element just to carry a `data-el`: the id goes on the tag that draws it.
 - A tap that doesn't land is usually covered by another element (give the tap target a higher `z-index`, or `pointer-events:none` on what covers it), hidden, or zero-size. Keep every `data-edge` and `data-transition` as it is.
-- Contract errors are rule breaks: remove an invented `data-edge` or `data-el` id (one the model doesn't have), size an image back to its element's rect so it covers no more than 40% of a screen, fix what throws a console error, and only use `src` values that already appear in the page.
+- Contract errors are rule breaks: remove an invented `data-edge` or `data-el` id (one the model doesn't have), size an image back to its element's rect so it covers no more than 40% of a screen, and fix what throws a console error.
+- Images: use a `src` that already appears in the page or one listed in `pictures` for its screen, and no other. Draw a listed picture as `<img src="…">` absolutely positioned at its `rect`, under the element's text and badges; at its own `rect` it may be any size.
 
 ## What to write
 

@@ -261,6 +261,19 @@ def mock_screens(ctx: Ctx, model: ProductModel) -> list[State]:
     return [states[sid] for sid in report.screens]
 
 
+def pictures(ctx: Ctx, screens: set) -> dict[str, list[dict]]:
+    """For each of these screens, every picture code made that its page may draw, each src with the content-dp rect
+    it goes at: the element assets the builder may use (mock.usable_asset) and the art crops (mock/art.json). With
+    them a critic can ask for a real picture the page left out, and a fixer can put it back."""
+    model = ProductModel.model_validate_json((ctx.run_dir / "model" / "product_model.json").read_text())
+    drawn = {}
+    for state in (s for s in model.states if s.id in screens):
+        assets = {f"assets/{e.id}.png": e.rect_dp for e in state.elements
+                  if mock.usable_asset(e, state.elements, model.device)}
+        drawn[state.id] = [{"src": src, "rect": rect(r)} for src, r in (assets | art_origins(ctx, state)).items()]
+    return drawn
+
+
 def undrawn_cause(detail: str) -> BaseException:
     """What left a screen undrawn, read back from the reason mock.run gave its placeholder (`UNDRAWN_PREFIX`, then
     mock.failure_reason's words: `CAP_PREFIX` and the cap's message, `<outcome>: <detail>` for a failed call, or an
@@ -470,6 +483,8 @@ def criticize_group(ctx: Ctx, budget: llm.Budget, version: Version, history: lis
                         {"type": "image", "png": (round_dir / kind / f"{sid}.png").read_bytes()}]
     ids = {s["metrics"].state_id for s in group} | ({None} if k == 1 else set())
     content.append({"type": "text", "text": "The numbers:\n" + json.dumps(numbers(version, ids), separators=(",", ":"))
+                    + "\n\nThe pictures code made for these screens:\n"
+                    + json.dumps(pictures(ctx, ids), separators=(",", ":"))
                     + "\n\nEarlier rounds:\n" + json.dumps(history, separators=(",", ":"))})
     return ask(ctx, budget, version, step=f"critic r{n} g{k}", model=role["model"], effort=role.get("effort"),
                system=prompt("critic"), content=content, max_tokens=role.get("max_tokens", CRITIC_MAX_TOKENS),
@@ -496,7 +511,8 @@ def fix(ctx: Ctx, budget: llm.Budget, model: ProductModel, version: Version, cri
         sid = s["metrics"].state_id
         content += [{"type": "text", "text": f"{sid} ({s['name']}), the real screen; 1 image px = 1 CSS px of its section:"},
                     {"type": "image", "png": (round_dir / "real" / f"{sid}.png").read_bytes()}]
-    task = {"fixes": [f.model_dump() for f in critique.fixes], **numbers(version, named | {None})}
+    task = {"fixes": [f.model_dump() for f in critique.fixes], **numbers(version, named | {None}),
+            "pictures": pictures(ctx, named)}
     content.append({"type": "text", "text": "What to fix:\n" + json.dumps(task, separators=(",", ":"))
                     + "\n\nThe page, without the navigation runtime (code adds it back after your edits):\n```html\n"
                     + without_runtime(version.html) + "\n```"})

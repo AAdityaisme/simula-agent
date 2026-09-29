@@ -15,7 +15,7 @@ from PIL import Image
 
 from simula import cli, config, llm, render
 from simula.contracts import (ContractError, ContractReport, Critique, Edit, Edits, Fix, ProductModel, QAMetrics,
-                              ScreenMetrics)
+                              Rect, ScreenMetrics)
 from simula.llm import Reply
 from simula.runlog import read_trace
 from simula.stages import FRESH_CALLS, mock, qa
@@ -561,6 +561,44 @@ def test_a_failed_group_is_skipped_and_only_all_failing_stops_the_round(twelve, 
     with pytest.raises(llm.LLMFailure):
         qa.criticize(ctx_for(run_dir, app), llm.Budget("qa", 12.0), version, [], 3, missed=missed)
     assert {sid: (n, str(e)) for sid, (n, e) in missed.items()} == dict.fromkeys(ids, (3, "refusal: no"))
+
+
+def test_the_critic_and_the_fixer_are_given_the_pictures_code_made_for_their_screens(tmp_path, monkeypatch):
+    """Red team 9a98e87 F3 (probe D): an art crop the page doesn't draw was invisible to the loop, so no round could
+    put the real picture back. The critic and the fixer now get every picture code made for their screens, each src
+    with the rect it goes at."""
+    app = "janitorai"
+    run_dir = seed_model(tmp_path / "run", app)
+    model = golden(app)
+    scope = mock.pick_scope(model)
+    mock.copy_assets(run_dir / "model", run_dir / "mock", scope, model.device)
+    state = scope[0]
+    element = next(e for e in state.elements if not e.asset_png)
+    src, origin = mock.art_src(element.id), Rect(x=0, y=100, w=411, h=400)
+    (run_dir / "mock" / src).write_bytes((FIXTURES / "golden" / app / state.canonical_png).read_bytes())
+    (run_dir / "mock" / "art.json").write_text(json.dumps({"schema_version": 1, "art": {src: origin.model_dump()}}))
+    ctx = ctx_for(run_dir, app)
+    version = qa.measure(ctx, model, scope, 0, qa.rebuild(skeleton_html(model), model, [s.id for s in scope]))
+    seen = []
+
+    def call(**kwargs):
+        seen.append(kwargs)
+        if kwargs["schema"] is Critique:
+            return Critique(fixes=[Fix(element_id=element.id, problem="a flat box", fix="the real picture")],
+                            summary="s"), None
+        return Edits(edits=[]), None
+    monkeypatch.setattr(llm, "call", call)
+    critique = qa.criticize(ctx, llm.Budget("qa", 12.0), version, [], 1)
+    qa.fix(ctx, llm.Budget("qa", 12.0), model, version, critique, 1)
+
+    usable = [e for e in state.elements if mock.usable_asset(e, state.elements, model.device)]
+    want = [*({"src": f"assets/{e.id}.png", "rect": qa.rect(e.rect_dp)} for e in usable),
+            {"src": src, "rect": qa.rect(origin)}]
+    critic_text = next(p["text"] for p in seen[0]["messages"][0]["content"] if p.get("text", "").startswith("The numbers"))
+    told_critic = json.loads(critic_text.split("The pictures code made for these screens:\n")[1].split("\n\n")[0])
+    fixer_text = seen[-1]["messages"][0]["content"][-1]["text"]
+    told_fixer = json.loads(fixer_text.split("What to fix:\n")[1].split("\n\n")[0])["pictures"]
+    assert seen[-1]["schema"] is Edits and told_critic[state.id] == want and told_fixer == {state.id: want}
 
 
 @pytest.mark.parametrize("twelve", APPS, indirect=True)
