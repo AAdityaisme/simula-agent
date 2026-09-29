@@ -710,9 +710,11 @@ def test_undrawn_screens_are_reported_and_never_scored_criticized_or_fixed(twelv
         ContractReport(passed=False, screens=ids, errors=errors).model_dump_json())
     calls = []
     monkeypatch.setattr(llm, "call", fake_critic(calls))
-    qa.run(ctx_for(run_dir, app))
+    returned = qa.run(ctx_for(run_dir, app))
 
     report = json.loads((run_dir / "qa" / "qa_report.json").read_text())
+    # a mock left complete with undrawn_screen errors (a refused batch, #7 F2 option a) is QA's partial to report
+    assert returned == StageOutcome(status="partial", reasons=report["reasons"], resume=report["resume"])
     drawn = [sid for sid in ids if sid not in undrawn]
     assert report["undrawn_screens"] == [{"screen": sid, "reason": "screen not drawn: refusal: no"} for sid in undrawn]
     assert [s["state_id"] for s in report["screens"]] == drawn
