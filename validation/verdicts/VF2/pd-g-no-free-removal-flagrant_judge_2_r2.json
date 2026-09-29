@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-free-removal-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before an optional game; the decline and ad-failure fields provide paths that do not further worsen the already-locked state."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of article access, not cash or a cash-like asset."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses an article-open count, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The adds field locks articles after the third daily read, capping free reading observed in core flow f01; the permitted new-cap exception applies only to model replies or queue priority."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a lock panel over s02 Article, which is rated content safe and is not a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product_change gives the player time-limited article access for their own use in the observed read-a-story flow f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work-here field states that the app has no paywall, limit, or currency, although the open question only says none was seen on the home feed; the subscribers field also infers that every reader is free from not observing a paid plan."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits access to 30 minutes, rather than granting lasting access to a paid benefit or taking an advantage from other users."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger event presents the offer when a fourth article is locked, a moment of need rather than an unrelated interruption."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow grants the unlock once the sponsored-game play is confirmed, and opening a fourth article is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the home-feed story card, s02 article reader, and article-reading flow f01."
+ },
+ "other_concern": "",
+ "fixable": false
+}

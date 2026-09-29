@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c5-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before the reader chooses to play. The decline and ad-failure paths leave reading unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored stories, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is progress through an article, not the content of anything a user wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes no free reading, saving, or sharing feature; its reward temporarily hides sponsored cards."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a pop-up over s02 Article, which is rated content safe, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product change adds a temporary ad-free reading window tied to f01, the observed read-a-story core flow."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The rationale claims the sponsored cards are low-value and hiding them displaces little revenue, neither of which the model establishes. The subscribers field also infers that every reader is free merely because no paid plan was observed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward lasts 30 minutes and is capped at two offers per day, so it is not an unlimited giveaway of a subscription benefit."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The trigger and placement make a pop-up appear halfway through an article, interrupting reading without a limit hit, a tapped locked item, or a finished action."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a chosen sponsored game and grants the reward only once the play is confirmed. Progress through the article is an app-detectable event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s02 article reader and the sponsored cards observed in articles and the home feed."
+ },
+ "other_concern": "",
+ "fixable": true
+}

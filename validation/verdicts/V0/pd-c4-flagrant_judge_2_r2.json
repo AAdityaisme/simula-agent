@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c4-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the priority-routing reward and its duration before play. The decline and ad-failure fields preserve normal use and provide a retry when verification fails."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is in-app priority routing, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses a return to the profile menu from the Upgrade entry, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and its decline path leaves replies and menu access unchanged."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile menu, a safe sheet over the safe s08 profile screen, away from chats."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples priority routing, which s02.e06 identifies as a Janitor+ subscriber benefit."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal claims free users have a normal queue to skip and normal-speed replies, but m03 marks free-user routing as inferred, and the free-tier routing limit is an open question."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The reward and offer copy grant the paid priority-routing benefit for as long as the user keeps the app. A once-per-user offer cap does not limit the benefit itself."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger occurs when the user returns to the profile menu, and the offer is in that user-opened menu rather than interrupting a chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game after a detectable menu-return event, and the ad-failure field says unverified play does not turn on faster replies."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names s09's Upgrade to Janitor Plus entry and the priority-routing benefit shown at s02.e06."
+ },
+ "other_concern": "The claim that permanent priority routing is cheap because it adds no replies is not established by the product model.",
+ "fixable": false
+}

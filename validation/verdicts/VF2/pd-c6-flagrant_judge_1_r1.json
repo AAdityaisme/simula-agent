@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c6-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner is opt-in, its offer copy states the reward (30 minutes without sponsored stories), declining changes nothing, and the 'if the ad fails' field gives a path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of a sponsored-card-free feed, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an article-open counter reaching 3 and returning to s01, which are app events with no chat content involved."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea adds an optional ad-free window and removes or caps nothing free; sponsored cards show as usual for anyone who declines."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a dismissible banner card on s01, a screen rated safe, so it counts as app chrome and it sits next to safe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the new resource is an ad-free read that the player uses in the observed core flow f01 (read a story), and none of it goes to other people."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "'The app has no paywall, limit, or currency' and 'This app has nothing locked' state absences as facts about the whole app. The model's open question only says none was seen on the home feed, and the Inbox was blocked."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The 30-minute window expires and no paid benefit is given away; the model records no subscription."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The banner appears on the home feed after the user finishes reading an article, a finished action on a persistent surface, and never mid-article."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "'If the ad fails' says the prize is given when the reader closes the game, played or not, so the reward is granted on a close and not on the verified play (REWARD_VERIFIED)."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names this app's home feed sponsored card below the first story (s01.e44), the in-article Taboola card (s02.e13), and the read-and-return loop between s01 and s02."
+ },
+ "other_concern": "The rationale's revenue claims (cards are low-value, one game earns more than the hidden cards) are predictions. Fill of the feed slot varies by network, so the ad-free window may sometimes hide nothing. The in-article card being hidden depends on the Taboola integration allowing it.",
+ "fixable": true
+}

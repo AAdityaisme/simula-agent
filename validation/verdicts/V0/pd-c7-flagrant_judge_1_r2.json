@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c7-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user chooses to play via a card on s01. The offer copy states the reward and amount (premium for a day), declining changes nothing, and the 'if the ad fails' field gives a no-cost path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 24 hours of in-app premium (feature_time), which cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is opening the app on s01, an app event that needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "It adds a temporary premium grant and removes or caps nothing free ('removes nothing free: yes')."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a card on s01 Chats home, which is rated safe. It is app chrome and not in the message list or over a chat."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward is Luzia+ premium, which the app charges for (m01: Weekly $1.99, Monthly $4.99, Annual $39.99), so the existing_anchor requirement is met."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The only app claims are that free users and subscribers exist and that premium exists, and the paywall (m01) supports both. No limit, price or feature is claimed beyond what was observed, though no evidence is cited."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a 24-hour time-limited sample capped at 1 per day, which counts as a limited sample under the check."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the home screen (s01), a persistent surface the user can act on or ignore, and it does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit triggered by an app-open event. The failure path says a game that 'doesn't count' grants nothing, so the reward is tied to the verified play."
+ },
+ "c7_specific": {
+  "passed": false,
+  "reason": "'What makes it work here' ('People like premium features') would read the same in any app. It names no Luzia+ feature, paywall element or limit, so the check fails."
+ },
+ "other_concern": "Because it is capped at 1 per day, a daily player could have premium continuously for free, which could cannibalize Luzia+ subscriptions. Also, the offer copy says only 'premium' without naming the Luzia+ features being unlocked.",
+ "fixable": true
+}

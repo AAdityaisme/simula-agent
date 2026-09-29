@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c5-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before the user chooses to play. The decline and ad-failure fields leave the article unchanged if the user declines or the play is not confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored stories, not cash or a transferable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses article-reading progress, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields describe an optional, temporary hiding of sponsored cards; they do not lock or cap a free reading feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a pop-up over s02 Article, which is rated content safe and is not a chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The new ad-free window benefits the player while reading stories, which is the observed core flow f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work-here field says the app has no paywall, limit, or currency, but the open question establishes only that none was seen on the home feed. The subscribers field's claim that every reader is free, and the rationale's description of the cards as cheap, are also unsupported present-state claims."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits the ad-free window to 30 minutes; it does not grant lasting access to a paid benefit."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The trigger event opens a pop-up halfway through an article, interrupting reading without a limit hit, locked-item tap, finished action, or user-opened persistent surface."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow grants the reward once play is confirmed, and the ad-failure field says an unconfirmed play changes nothing. Article-reading progress is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the s02 article reader and the sponsored cards observed in the feed and article."
+ },
+ "other_concern": "The rationale's prediction that one game will outweigh the hidden ad revenue is unverified; m01 establishes variable fill, not the value of those impressions.",
+ "fixable": true
+}

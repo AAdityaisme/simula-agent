@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-cash-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is a button the player chooses to tap, and the offer copy states the reward ($1 to PayPal). Declining changes nothing, and the button is hidden if no game is ready."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The reward is 1 US dollar paid to the player's PayPal, which is cash and fails the no-cash condition."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is tapping Play with 0 lives, which opens s02. That is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds a button and removes or caps nothing free. The life timer and gold-bar button stay as they are."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a button inside the s02 modal, which opens over s01. Both screens are rated safe and there is no chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "The reward is cash paid to PayPal, not the limited resource (lives) that the app limits and charges for. The existing_anchor kind requires the reward to give that resource, so this fails."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about 5 lives, the 30-minute timer, and gold bars bought with real money are supported by m01, m02, s02.e02 and s02.e03. The proposal states that there is no subscription, and m02 records that."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "Cash does not give away a paid benefit without limit. It takes nothing from other users, and the cap is 3 a day."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears at the moment of need, right after the out-of-lives limit is hit in s02."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The reward is granted only after the verified play. The trigger is an app event the app can detect, namely tapping Play with 0 lives, and the failure path pays nothing if the game doesn't count."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s02 out-of-lives modal, the gold-bar button, the 5-life limit, and the 30-minute timer, so it is tied to this app."
+ },
+ "other_concern": "A PayPal payout of $1 per play, up to 3 a day, would likely cost more than it earns. Copy also implies lives are the incentive when the reward is cash.",
+ "fixable": false
+}

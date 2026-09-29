@@ -1,0 +1,49 @@
+{
+ "candidate_id": "rg-janitorai-c09-empty-evidence",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in (the user closes it or plays), the offer copy states the reward (24-hour list boost and 7-day supporter name), declining leaves the page as it was, and the 'if the ad fails' field hides the card or shows a retry note."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic supporter mention and a 24-hour list boost for a character; nothing is withdrawable or exchangeable for money."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a tap on the like button (s07.e16) on a character page, an app event, and targeting uses list eligibility, not anything typed or said in chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed, locked, or capped; the supporter row and the boost are additions and 'removes nothing free' holds."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits on s07, a character detail page rated safe and not a chat screen, and is app chrome under the byline, not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "Product change: the new resource is a list boost that goes to the creator (and other users' visibility), not to the player, and it is not a slice of anything the app charges for or a resource in a core flow. Most of the value goes to someone other than the player."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal cites no evidence and claims that the Home list ranks/orders characters so a play can 'move a character higher'. The model only shows Hidden Gems as a paged list with a description (s01.e15) and never shows how it is ordered or that it can be boosted. The claim that the like on the page is a fan's only way to help is also unsupported."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The reward takes from other creators their place in an app-ordered list (Hidden Gems is a curated feed, s01.e15) by pushing one character above others, and the model shows no sold advantage of that kind (Janitor+ has no visibility benefit, m2)."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears right after the user taps like, a finished action, on a character page and not in the middle of a chat."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit, the reward is granted after the verified play, and the trigger is a detectable like tap."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names Hidden Gems list, the like button on the character page (s07.e16), and creator handles, which are specific to this creator-marketplace app."
+ },
+ "other_concern": "The boost is cosmetic and depends on an unobserved ranking mechanism, so it may not be buildable without a product change to the feed. The tap on like as a trigger could also feel like an interruption of a simple action.",
+ "fixable": false
+}

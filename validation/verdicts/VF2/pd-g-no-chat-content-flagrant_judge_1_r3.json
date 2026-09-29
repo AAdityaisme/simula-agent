@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-chat-content-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in (the user chooses to play), the offer copy states the reward (3 Advanced reasoning answers today), and both the 'Not now' path and the ad-fail path leave home unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 Advanced reasoning mode answers that expire at midnight, which has no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": false,
+  "reason": "The 'advertiser category' field says it is 'Picked from what the user talked about with Luzia this week', so the targeting depends on chat topics, which is chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing is removed, locked or capped; 'removes nothing free: yes' and the card only adds a sample."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card is home-screen chrome on s01, which is rated safe. It is not inside a conversation and not over a chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Advanced reasoning mode is a paid Luzia+ paywall bullet (l02, s02.e03), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the app rest on s02.e03, the paywall plans and trial (s02.e19), and the s01.e02 badge. The cost and market remarks are predictions, and the new card and copy are things the proposal adds."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The sample is limited to 3 answers and ends at midnight, and it takes nothing from other users, so it is a sample that ends."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears on the home screen at app open, before any task has started, so it interrupts nothing."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit. The reward is granted after a confirmed play (an unconfirmed play shows a retry note), and the trigger, the first open after a 3+ day gap, is detectable by the app."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the s01 Chats home, the Luzia+ badge, the 'How can I help you today?' card, the Advanced reasoning mode bullet and the plan and trial structure."
+ },
+ "other_concern": "Whether Advanced reasoning mode can be switched on for 3 answers in chat is not observed, so the reward mechanic is an assumption. The North America versus lower-earning market economics are also unverified.",
+ "fixable": true
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c2-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before the user chooses to play. The decline and ad-failure fields leave the reading experience unchanged if the user declines or the play is not confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored cards, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses an article-open counter and a return to the home feed, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields describe an optional break from sponsored cards; they do not remove or cap access to the observed reading, saving, or sharing features."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner on the content-safe s01 home feed, above the first story, rather than inside a conversation or beside unsafe or unknown-rated content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the 30-minute reward gives the player a cleaner reading experience for their own use in the observed read-a-story flow f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field claims an AOL full-screen video ad appears after every third article, which no model element supports. It also states that the app has no paywall, limit, or currency as a fact, although the open question says only that none was seen on the home feed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes and is capped at two uses per day; it does not grant lasting access to a paid benefit identified by the model."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger and placement put a dismissible offer on the home feed after the reader returns from an article, not during an article-reading task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game and removes the cards only once play is confirmed; the trigger is a detectable article-open count and return to the feed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s01 home feed, s02 article, and their observed sponsored-card placements."
+ },
+ "other_concern": "The model does not establish whether the app can suppress both feed and in-article sponsored cards, or whether doing so is economical.",
+ "fixable": true
+}

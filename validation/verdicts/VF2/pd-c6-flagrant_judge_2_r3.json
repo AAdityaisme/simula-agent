@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c6-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before play, the banner is opt-in, and declining leaves reading unchanged. The 'if the ad fails' field supplies a fallback, although its reward rule fails c6."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored stories, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses an article-open counter and a return to the home feed, not the content of anything a user writes."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields leave existing reading, saving, and sharing available; the reward temporarily hides sponsored cards."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner on the content-safe s01 home feed, outside any conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product change gives the player a temporary, ad-free window for their own use in the observed read-a-story and browse-a-category core flows."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here,' subscribers, and rationale fields assert app-wide facts such as no paywall or limits, every reader being free, and nothing being locked. The open question establishes only that no paywall, limit, or currency was seen on the home feed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes, and the product model shows no subscription benefit that it gives away without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger and placement put a dismissible offer on the feed after the reader returns from an article, not in the middle of reading one."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The 'if the ad fails' field and flow grant the reward when the game closes, played or not. That grants it on a close rather than only on Simula's verified play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the sponsored cards in the home feed and articles, supported by s01.e44 and s02.e13, and uses the return to Top Stories."
+ },
+ "other_concern": "Variable fill does not establish that one rewarded play would offset 30 minutes of hidden ad inventory.",
+ "fixable": true
+}

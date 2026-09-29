@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-free-removal-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before the optional game. The decline and ad-failure fields provide paths that do not worsen the already-locked state or consume an attempt."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of article access within the app, not cash or a cash-like asset."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses the count of articles opened, not anything a user typed or said."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The adds field locks articles after the third one, removing free reading that the model does not show as limited. Article reading is not model replies or queue priority."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a lock panel over the s02 Article screen, which is rated content safe, not a conversation or unsafe screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the proposed timed article access is tied to reading a story, the observed core flow f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The cited story elements support the home-feed-to-article flow, but the claim that the app has no paywall, limit, or currency goes beyond the open question's observation about the home feed. The subscribers field likewise infers that every reader is free from the absence of an observed paid plan."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 30 minutes, so it does not grant any subscription benefit without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger event opens the panel when the proposed fourth-article lock is hit, a moment of need rather than an interruption mid-task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game triggered by an article-opening event and unlocks reading only once the play is confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the s01 story card, the s02 article reader, and the proposed fourth-article lock."
+ },
+ "other_concern": "",
+ "fixable": false
+}

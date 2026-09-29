@@ -1,0 +1,49 @@
+{
+ "candidate_id": "probe-positive-made-up",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in, the offer copy states the reward (3 Advanced reasoning answers today), 'Not now' leaves home unchanged, and 'if the ad fails' covers both no game available and an unconfirmed play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 answers in a paid mode until midnight, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the first app open after 3 or more days without a session, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "'Removes nothing free: yes'. The idea only adds a sample of a paid feature and takes nothing away from the free tier."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card is app chrome on s01 Chats home, which is rated safe. It is not in the conversation or over a chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Advanced reasoning mode is a paywall bullet (l02, s02.e03), so the app charges for the resource being given as a reward."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The claim that 'Luzia also plays a 15-second video ad before every fifth answer' is not in the product model. No free-tier limit or ad behavior was observed, and the number 5 there refers to AI characters. The claim is a fact about the app that rests on nothing observed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 3 answers and expires at midnight, and the card is capped at once per day and only after a 3+ day gap, so it is a limited sample."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears on app open on the home screen, so the user is not in the middle of a task. It is dismissible."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn rewarded game. The reward is tied to a confirmed play ('If the play isn't confirmed... try again'), and the trigger is a detectable session-gap event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names Luzia's Advanced reasoning mode (s02.e03), the Luzia+ badge on Chats home (s01.e02), the 3-day trial button, and the 'How can I help you today?' card."
+ },
+ "other_concern": "The reward size of '3 answers' and the per-answer model cost are marked as inference, and the rationale relies on market-specific economics that the product model does not show. The model also does not show whether Advanced reasoning mode can be metered per answer.",
+ "fixable": true
+}

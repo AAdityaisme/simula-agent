@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-run-janitorai-c02",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states that playing earns 60 minutes of priority routing. The card is optional, declining leaves normal use unchanged, and the ad-failure path withholds an unverified reward."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is in-app priority routing for 60 minutes, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a navigation event involving the Upgrade entry, not anything the user writes or says in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free; its two-per-day cap applies to the proposed reward, not an existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card is placed in the s09 profile-menu drawer, which is rated safe and is away from chats."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing_anchor idea, s02.e06 shows that Janitor+ includes priority routing, the resource sampled by the reward."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal claims free users have a normal queue whose placement can be skipped, but the product model marks free-tier routing as inferred and says its limit was not observed. It also assumes a return to the profile menu after opening Upgrade, a navigation behavior not shown in the observed flows."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward samples the Janitor+ priority-routing benefit for 60 minutes, with a two-per-day cap, rather than granting it without limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears in the profile menu after the user returns from Upgrade, rather than interrupting an active task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The proposal uses an optional sponsored game and says an unverified play does not turn on faster replies. Its navigation trigger is an app-detectable event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the s09 Upgrade to Janitor Plus entry and the s02.e06 priority-routing benefit."
+ },
+ "other_concern": "The flow says a card in s06 My Chats confirms the reward, although the placement puts the card in the s09 profile menu. The expiry copy also cannot always promise one more play under a two-per-day cap.",
+ "fixable": true
+}

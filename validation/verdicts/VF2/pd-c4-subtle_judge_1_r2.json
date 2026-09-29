@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c4-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in by tapping a card, and the offer copy states the reward (3 chats in Advanced reasoning mode) before the game. Declining ('Not now') leaves home unchanged, and the ad-fail and unverified-play paths are both covered."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 chats in Advanced reasoning mode, an in-app feature with no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event, the first open after 3 or more days with no session, and does not use any chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds a card and removes or caps nothing free ('removes nothing free: yes'). The free chat modes are untouched."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card is app chrome on s01 Chats (home), which is rated safe, under the header. It is not in the conversation or over a chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Advanced reasoning mode is a paywall bullet (l02, s02.e03), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about today's app are supported. The paywall lists Advanced reasoning mode as a paid feature (s02.e03), the badge (s01.e02) and the 'How can I help you today?' prompt (s01.e08) are on home, and the plans and trial are on s02. The 'normal mode' wording is a minor inference, and the revenue rationale is a prediction, not a claim."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The reward says each chat stays in Advanced reasoning mode 'for good', which is lasting access to a feature the app charges for (l02). Only a sample that ends passes, and this one never expires even though the chat count is limited."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the home screen at app open, before the user has started a task, and it is dismissible."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "This is a play-to-earn unit, and the reward is granted only after a confirmed play ('If the play isn't confirmed... try again'). The trigger, a 3+ day session gap, is an event the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names Luzia's Advanced reasoning mode paywall bullet, the Luzia+ badge on the Chats home, and the plans and trial, so it would not read the same in another app."
+ },
+ "other_concern": "The rationale's cost claim (that each answer pays for itself in higher-earning markets) is unsupported, and the 1-chat fallback for lower-earning markets is not specified. The proposal also does not say what happens to a chat after it is created in the advanced mode.",
+ "fixable": true
+}

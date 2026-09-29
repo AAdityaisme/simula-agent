@@ -329,6 +329,32 @@ def test_real_run_ideas_count_toward_the_known_good_bar():
     assert "| Known-good (4) | 3 | 1 |" in text and "| judge_1 | 3/4 (75%) |" in text and passed
 
 
+def test_a_change_to_a_field_its_base_lacks_is_refused_by_name(fixture_dir):
+    good = json.loads((fixture_dir / "known_good" / "kg-aol-01.json").read_text())
+    del good["candidate"]["daily_cap"]
+    write(fixture_dir / "known_good" / "kg-aol-01.json", good)
+    write(fixture_dir / "planted" / "pd.json", planted(change={"daily_cap": 50}))
+    with pytest.raises(ValueError, match=r"pd.json: change names \['daily_cap'\], which base 'kg-aol-01' doesn't have"):
+        validate.load_cases(fixture_dir)
+
+
+def test_the_committed_fixtures_meet_the_gates_completeness_and_spread_rules():
+    cases = validate.load_cases()
+    verdicts = {(c.id, who): verdict([c.target] if c.source == "planted" and c.target in LLM_CHECKS else [])
+                for c in cases for who in validate.JUDGES}
+    text, _ = validate.report(cases, verdicts, verdicts, {}, validate.JUDGES)
+    assert "- ✓ fixtures complete" in text and "- ✓ planted defects span" in text
+
+
+def test_the_committed_report_rebuilds_from_the_committed_runs(tmp_path):
+    rebuilt = tmp_path / "report.md"
+    validate.summarize(validate.VERDICTS / "VF2", validate.REPORT.parent / "preface.md", rebuilt)
+    def body(path):
+        return [line for line in path.read_text().splitlines() if not line.startswith("Generated ")]
+    assert body(rebuilt) == body(validate.REPORT)
+    assert validate.OUT / "report.md" != validate.REPORT
+
+
 def test_the_committed_fixtures_load():
     cases = validate.load_cases()
     assert {c.source for c in cases} >= {"run", "planted"}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-run-aol-c01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before the user chooses to play. The decline and ad-failure fields leave reading unchanged and provide a failure path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored story cards in the app, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses an article-open counter and a return to the home feed, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields leave free reading, saving, and sharing available; the optional reward temporarily hides sponsored cards."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner on the content-safe s01 home feed, above the first story, rather than inside a conversation or beside unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the timed break is a new benefit the player uses while browsing and reading, the core flows f02 and f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work field says the app has no paywall, limit, or currency, while the open question says only that none was seen on the home feed. The subscribers field also concludes that every reader is free, and the rationale calls the existing cards cheap; neither claim is established by the model."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits the break to 30 minutes, so it grants no lasting access to a paid benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger and placement put the banner on the home feed after the reader returns from an article, not during the article."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow grants the break once play is confirmed, and the ad-failure field grants nothing when play is not confirmed. The article-open counter and return to the feed are detectable app events."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the home-feed sponsored card at s01.e44 and the in-article card at s02.e13 as the placements the reward would hide."
+ },
+ "other_concern": "Variable feed-ad fill in m01 does not establish that a rewarded game would earn more than the feed and article ads hidden during the break.",
+ "fixable": true
+}

@@ -1,6 +1,14 @@
 # How the live judge rubric was chosen (read this first)
 
-**The pre-registered bar was not met by either rubric (known-good 1/4 each); VF′ was adopted because it dominates V0 on every measured line (D9); three of its clauses were written after seeing the failures; judge_2 fails c2 on 3 of 4 known-goods under both rubrics; 0 human labels.**
+**The pre-registered bar was not met by either rubric (known-good 1/4 each). VF′ dominates V0 on every item of the bar (combined verdicts). Per judge, judge_2's C7 falls from 1/2 to 0/2. VF′ was adopted on that dominance (D9); three of its clauses were written after seeing the failures; judge_2 fails c2 on 3 of 4 known-goods under both rubrics; 0 human labels.**
+
+**PR 6's merge gate (D10).** PR 6's harness gate (each judge ≥ 70% known-good; no check at 0/2) is **not met by judge_2 under either rubric**. The PR merges with that disclosed, because tonight's end-to-end run needs the judge stage and the only fix, reworking judge_2's prompt, would be tuning on the validation set. Splits now become labelled CONDITIONAL ideas (D10), so judge_2's strictness shows as a flag instead of emptying the deck.
+
+What D10 changes, measured on the saved VF′ runs of the 4 known-good ideas (the stage calls each judge once, so each run is one stage outcome):
+- **Before D10**, a judge_2-only fail went to a person and out of the deck: 1, 2 and 0 of the 4 reached flows in runs 1–3.
+- **With D10**, 3 of 4 reach flows in every run. A split idea is CONDITIONAL, ranked below every accept, and carries both judges' reasons.
+- AOL c01, which both judges fail on c2, stays out.
+- A gate any judge fails still rejects, and a person is asked only when a judge's call failed.
 
 The three clauses written after seeing the failures are the absence clause (C2), the plain-meaning clause (C2), and the C1 clarification of where the player uses the reward. The rest of VF′ came from earlier rounds, which were shaped by earlier failures too (below).
 
@@ -65,10 +73,13 @@ Whether judge_2's reading of small restatements is too strict is open.
   majority, so a flip there means the 3 runs disagreed.
 - Across every (case, check) pair, the 3 runs disagreed on 1 of 330 for judge_1 and 10 of 330 for judge_2 (8 of them
   on c2).
-- Raw verdicts are in `scratch/judge-settings/vf2/` (local), and the method is in the agent-takehome notes
-  `notes/judge-settings-2026-09-29.md`.
+- Every saved verdict is committed: `validation/verdicts/VF2/` for VF′ and `validation/verdicts/V0/` for V0, as
+  `<case>_<judge>_r<n>.json`.
+- `uv run python -m simula.validate summarize` rebuilds this file from `validation/verdicts/VF2/` and this preface
+  (`validation/preface.md`) with no calls.
+- `simula validate-judge` writes a fresh single-run report to `validation/latest/`, never over this file.
 
-**The harness gate below is not the adoption rule.** It judges VF′ alone, against fixed thresholds.
+**The harness gate below is not the adoption rule.** It judges VF′ alone, against fixed thresholds. Run on V0's saved runs, the same gate trades lines rather than improving: V0 fails judge_1's known-good line (50%), which VF′ passes (75%), and VF′ fails judge_2's broken-check line (C7 0/2), which V0 passes (1/2).
 - judge_1 passes every item.
 - The gate fails on judge_2 alone: C7 is broken (0/2), and known-good is 25%, under 70%.
 
@@ -76,7 +87,7 @@ The adoption rule is VF′'s dominance over V0 above. V0 fails the same judge_2 
 
 # Judge validation
 
-Generated 2026-09-29T14:04. Judges: judge_1, judge_2. Prompts frozen in `config/frozen_prompts.toml`.
+Generated 2026-09-29T14:50. Judges: judge_1, judge_2. Prompts frozen in `config/frozen_prompts.toml`.
 
 Fixtures: 22 planted LLM cases (11 subtle), 2 C8 cases, 4 known-good (bases and real-run ideas); planted app types: AI assistant chat, companion chat, news, puzzle game; planted apps outside the test set: Candy Crush Saga.
 

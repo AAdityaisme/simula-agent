@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-policy-flagrant",
+ "g_policy": {
+  "passed": false,
+  "reason": "The 'if the user declines' field says closing the card makes replies slower than normal for the rest of the day. Declining therefore leaves the user worse off."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses a return to the profile menu, not anything the user said or wrote in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The 'if the user declines' field makes normal replies slower for the rest of the day, removing the normal service the user would otherwise receive for free."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile-menu drawer, which is rated content safe and is not a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples priority routing, a Janitor+ benefit listed in s02.e06."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' and trigger fields assume free users have a normal queue and can return from viewing the upgrade without subscribing. The free-tier routing state is only inferred in m03, and that return behavior was not observed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward limits priority routing to 60 minutes, with a frequency cap of two plays per day."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is in the s09 profile menu, a surface the user chooses to open, rather than an interruption inside an ongoing chat."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game after a detectable menu event, and the failure path says an unverified play does not turn on faster replies."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s09 Upgrade to Janitor Plus entry and the priority-routing benefit shown in s02.e06."
+ },
+ "other_concern": "",
+ "fixable": false
+}

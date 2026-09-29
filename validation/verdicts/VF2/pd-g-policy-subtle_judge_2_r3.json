@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-policy-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy says only “welcome-back surprise”; it does not state the reward or its amount before the ad."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is three in-app Advanced reasoning mode answers, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses time since the user's last session, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and declining leaves the home screen working as before."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the safe s01 Chats home screen, not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, s02.e03 lists Advanced reasoning mode as a Luzia+ paywall benefit."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about today's app are supported by the Advanced reasoning mode paywall listing (s02.e03), its plans and trial (s02), and the Chats home badge (s01.e02)."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to three answers and expires at midnight local time, rather than granting lasting access to the paid feature."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places the card on s01 Chats home at app open, before the user is in the middle of a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game, and the failure path withholds the reward when the play is not confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s01 Chats home placement and samples Advanced reasoning mode from the Luzia+ paywall."
+ },
+ "other_concern": "",
+ "fixable": true
+}

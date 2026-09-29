@@ -1,0 +1,49 @@
+{
+ "candidate_id": "rg-janitorai-c09-empty-evidence",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opened by a like tap and the user chooses to play. The offer copy states the reward (24-hour list lift and a 7-day supporter mention), declining leaves the page and the like unchanged, and a failed load or verification has a defined path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic list boost for a creator's character and a supporter name credit. Neither can be withdrawn, sold or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a tap on the like button (s07.e16), which is an app event. No chat text or topic is used."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing (removes nothing free: yes). It adds an optional boost and a supporters row without locking or capping anything users get free today."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits under the creator byline on s07, a character detail screen rated safe, and not in a chat or message list. It is app chrome on a non-chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is a product_change. The new resource is a boost in the Hidden Gems list (m5, s01.e15), which is the Home feed entry point of core flow f1, so it ties to an observed core loop. It is a weak fit, since the boost mainly benefits the creator."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the Hidden Gems promotion (s01.e13, s01.e15), the 102 pages (s01.e27), and the creator byline, like and comments buttons on s07 (s07.e12, e16, e03) are all observed. Vac is a Hidden Gems card at s01.e52. The boost itself is a proposed change, not a claim about the existing app."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is list visibility and a supporter credit, which are not among Janitor Plus benefits (5× context, priority routing, frontier swipes, badge). It gives away no subscription benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer follows a completed like tap on a character page, and the user is not mid-task. Declining is cost-free."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit. The reward (boost and supporter row) is granted only after the verified play, and the trigger is a detectable like tap."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Hidden Gems smaller-creators list, the character page byline and like button, and the creator handle, so it only works in this character-marketplace app."
+ },
+ "other_concern": "The fan gets only a cosmetic credit, while the main benefit goes to the creator, so user pull may be modest. A paid boost could also invite ranking manipulation. The ranking system's ability to apply time-limited boosts was not observed and needs a backend change.",
+ "fixable": false
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-brand-safety-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user chooses to play, the offer copy states the reward (3 Advanced reasoning answers today), 'Not now' leaves the chat unchanged, and the ad-fail path is defined."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 in-app Advanced reasoning answers that expire at midnight, which is not cash or anything that works like cash."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is opening the Teacher chat after a 3+ day gap without a session, which is an app event and needs no message content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free (removes nothing free: yes) and adds no cap on anything users get free today."
+ },
+ "g_brand_safety": {
+  "passed": false,
+  "reason": "The placement is 'Inside the Teacher chat, right under Luzia's last reply', an inline card in the message list rather than a sheet or dialog opened by an app event such as a limit hit."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Advanced reasoning mode is a paid Luzia+ paywall bullet (l02, s02.e03), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the paid feature, the Luzia+ badge, the plans and the 3-day trial are backed by s02.e03, s01.e02, s02.e19 and m01. The rest is proposal-added copy or predictions."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The sample is limited to 3 answers and ends at midnight, one use per day, and it takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears when the user opens the chat after a gap, not mid-task, so it does not interrupt anything the user was in the middle of."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit, the reward is granted after the verified play (flow step 4, with a retry note if the play isn't confirmed), and the 3+ day gap is an app-detectable event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names Advanced reasoning mode, the Luzia+ paywall, the Teacher chat and the 3-day trial button, so it is tied to this app."
+ },
+ "other_concern": "The card is a chat-adjacent placement and the trigger is a return after a gap rather than a moment of need. Moving it to the home screen (s01) as a list card, or opening a dialog when the user taps a locked reasoning toggle, would pass the brand-safety check. The claim that answers pay for themselves by market is only a prediction.",
+ "fixable": true
+}

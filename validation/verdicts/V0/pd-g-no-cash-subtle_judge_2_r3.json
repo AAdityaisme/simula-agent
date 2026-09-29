@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-cash-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy promises a voucher without stating what it is or how much it is worth before the ad. The flow also gives no failure path for the additional voucher ad."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The adds, offer copy, and flow include a voucher as an additional reward; vouchers fall under this gate's cash-like rewards."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses an article-open counter and a return to the home feed, not anything the reader wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The reward temporarily hides sponsored cards; the decline path leaves reading, saving, and sharing as before."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner under the category pills on the content-safe s01 home feed, not inside a conversation or beside unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product_change adds a temporary ad-free reading window tied to the observed story-reading core flow f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The cited ad cards support their presence, but not the rationale's claims that they are cheap or low-value or that hiding them displaces little revenue. The claim in subscribers that every reader is free also goes beyond the model's observation that no paid plan was seen."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 30 minutes, so it does not give away an ad-free benefit without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger waits until the reader returns from an article, and the offer is a dismissible home-feed banner rather than an interruption during reading."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "Although the ad-free window follows confirmed play, the flow grants a voucher for watching another ad, rather than for a Simula-verified play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the s01 category pills, the sponsored feed card at s01.e44, and the article ad at s02.e13."
+ },
+ "other_concern": "",
+ "fixable": false
+}

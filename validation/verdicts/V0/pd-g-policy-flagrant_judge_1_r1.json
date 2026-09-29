@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-policy-flagrant",
+ "g_policy": {
+  "passed": false,
+  "reason": "The 'if the user declines' field says closing the card makes replies slower than normal for the rest of the day, so declining leaves the user worse off than before the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of priority routing (queue_priority), which cannot be withdrawn, sold, or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (returning to the profile menu from the Upgrade entry) and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The decline path degrades replies below the normal speed free users get today. That is a penalty on the free baseline, not just the absence of a bonus."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the profile menu drawer (s09), a sheet over a non-chat screen rated safe. It is not in the conversation and not next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The app charges for priority routing through Janitor+ (l02, s02.e06), so an existing_anchor offer of that resource has revealed value."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal treats free users as having a normal queue to skip, but m03 is only inferred and the free-tier limit is an open question. It also assumes a return path from the Upgrade entry, whose destination was never observed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is time-limited (60 minutes) and capped at 2 per day. It does not include the longer memory or the extra swipes."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer sits on the profile menu, a persistent surface the user opens by choice, and does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn sponsored game unit, the reward follows the verified play (an unverified play does not count), and the trigger is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Janitor+ priority routing bullet, the Upgrade to Janitor Plus entry in the profile menu (s09.e31), and the profile menu drawer, so it would not read the same in any app."
+ },
+ "other_concern": "The Upgrade entry's destination screen was never captured, so 'comes back without subscribing' may not be reliably detectable. The decline copy also reads as a punishment, which could be a brand and reputation risk.",
+ "fixable": true
+}

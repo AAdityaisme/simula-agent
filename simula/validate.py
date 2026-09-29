@@ -18,14 +18,16 @@ from typing import Literal
 
 from simula import config, economics, llm
 from simula.config import ROOT
-from simula.contracts import GATES, JUDGMENT, Candidate, CandidateDraft, ProductModel, Strict, Verdict
+from simula.contracts import GATES, JUDGMENT, Candidate, CandidateDraft, Check, ProductModel, Strict, Verdict
 from simula.runfolder import write_json_atomic
 from simula.runlog import read_trace
 from simula.stages import judge, propose
 
 FIXTURES = ROOT / "tests" / "fixtures"
 CASES = FIXTURES / "judge"
-OUT = ROOT / "validation"
+REPORT = ROOT / "validation" / "report.md"
+VERDICTS = ROOT / "validation" / "verdicts"
+OUT = ROOT / "validation" / "latest"
 PIN = CASES / "pin.json"
 # pin.json fills every optional part of the judge's message; pin-empty.json takes each empty branch.
 PINS = [PIN, CASES / "pin-empty.json"]
@@ -184,6 +186,8 @@ def load_cases(root: Path = CASES) -> list[Case]:
         if not p.change or not set(p.change) <= CandidateDraft.model_fields.keys():
             raise ValueError(f"{path.name}: change must name candidate fields, got {list(p.change or {})}")
         g = goods[p.base]
+        if missing := [f for f in p.change if f not in g.candidate]:
+            raise ValueError(f"{path.name}: change names {missing}, which base {p.base!r} doesn't have")
         candidate = as_candidate(mutate(g.candidate, p.change), p.id)
         cases.append(Case(p.id, "planted", candidate, models[g.model], g.app, g.app_type, g.in_test_set,
                           p.target, p.tier, p.expect_economics))
@@ -439,6 +443,48 @@ def validate_judge(profile: str, judges: list[str], no_cache: bool, out: Path = 
     return passed
 
 
+# ---------- the committed report, rebuilt from saved runs ----------
+
+def load_runs(runs: Path) -> dict[tuple[str, str], list[Verdict]]:
+    """Saved verdicts, `<case>_<judge>_r<n>.json`, grouped by (case id, judge) in run order."""
+    found: dict[tuple[str, str], list[tuple[int, Verdict]]] = {}
+    for p in runs.glob("*_r*.json"):
+        stem, n = p.stem.rsplit("_r", 1)
+        who = next(j for j in JUDGES if stem.endswith(f"_{j}"))
+        verdict = Verdict.model_validate_json(p.read_text())
+        found.setdefault((stem.removesuffix(f"_{who}"), who), []).append((int(n), verdict))
+    return {key: [v for _, v in sorted(pairs, key=lambda x: x[0])] for key, pairs in found.items()}
+
+
+def majority(runs: list[Verdict]) -> Verdict:
+    """Each check by majority of the runs (a tie fails), carrying the reason of a run that agrees."""
+    def agreed(k: str) -> Check:
+        fail = 2 * sum(judge.failed(v, k) for v in runs) >= len(runs)
+        return next(getattr(v, k) for v in runs if judge.failed(v, k) == fail)
+    return runs[0].model_copy(update={k: agreed(k) for k in LLM_CHECKS})
+
+
+def disagreeing(runs: list[Verdict], agreed: Verdict) -> Verdict:
+    """The harness compares a verdict with one --no-cache rerun. From saved runs, the stand-in rerun is the first run
+    whose gate verdicts differ from the majority's (else the first run), so a flip means the runs disagreed."""
+    def gates(v: Verdict) -> set[str]:
+        return {g for g in GATES if judge.failed(v, g)}
+    return next((v for v in runs if gates(v) != gates(agreed)), runs[0])
+
+
+def summarize(runs_dir: Path, preface: Path, out: Path = REPORT) -> bool:
+    """validation/report.md from saved runs of every fixture: the preface, then report() on each judge's majority
+    verdicts. Makes no calls, so the committed report can be rebuilt without re-judging."""
+    cases = load_cases()
+    runs = load_runs(runs_dir)
+    agreed = {key: majority(vs) for key, vs in runs.items()}
+    gate_cases = {c.id for c in cases if c.source == "planted" and c.target in GATES}
+    reruns = {key: disagreeing(runs[key], v) for key, v in agreed.items() if key[0] in gate_cases}
+    text, passed = report(cases, agreed, reruns, read_labels(), JUDGES)
+    out.write_text(preface.read_text() + "\n" + text)
+    return passed
+
+
 # ---------- blind human labels ----------
 
 def load_verdicts(out: Path = OUT) -> dict[tuple[str, str], Verdict]:
@@ -497,7 +543,8 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="python -m simula.validate", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="command", required=True)
-    v = sub.add_parser("validate-judge", help="judge every fixture, write validation/report.md, exit 1 on a gate fail")
+    v = sub.add_parser("validate-judge", help="judge every fixture, write validation/latest/report.md (never the "
+                       "committed validation/report.md), exit 1 on a gate fail")
     v.add_argument("--profile", choices=["real", "dev"], default="real")
     v.add_argument("--judges", default=",".join(JUDGES), help="comma-separated judge roles")
     v.add_argument("--no-cache", action="store_true")
@@ -505,10 +552,17 @@ def main(argv: list[str] | None = None) -> int:
     lab = sub.add_parser("label", help="blind human labels, disagreements first")
     lab.add_argument("--limit", type=int, default=LABEL_TARGET)
     lab.add_argument("--out", type=Path, default=OUT, help="where validate-judge wrote its verdicts")
+    s = sub.add_parser("summarize", help="rebuild validation/report.md from saved runs; makes no calls")
+    s.add_argument("--runs", type=Path, default=VERDICTS / "VF2", help="the live rubric's saved runs")
+    s.add_argument("--preface", type=Path, default=REPORT.parent / "preface.md")
     sub.add_parser("freeze", help="pin the judge prompt hashes in config/frozen_prompts.toml")
     args = p.parse_args(argv)
     if args.command == "validate-judge":
         return 0 if validate_judge(args.profile, args.judges.split(","), args.no_cache, args.out) else 1
+    if args.command == "summarize":
+        passed = summarize(args.runs, args.preface)
+        print(f"{REPORT}: harness gate {'PASS' if passed else 'FAIL'} (rebuilt from {args.runs}, no calls)")
+        return 0
     if args.command == "label":
         n = label_cases(load_cases(), load_verdicts(args.out), CASES / "labels", limit=args.limit)
         print(f"{n} labeled; labels in {CASES / 'labels'}")

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-run-luzia-c05",
+ "g_policy": {
+  "passed": true,
+  "reason": "The dismissible home card states the three-answer reward before the user chooses to play; the decline and failed-ad paths leave the offer unused."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is three in-app Advanced reasoning mode answers, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses time since the last session and subscription status, not anything the user said or wrote."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free and offers a sample of the paywalled feature listed at s02.e03."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card is placed on the Chats home screen, s01, which is rated content safe; it is not placed in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, the rewarded resource is Advanced reasoning mode, which the Luzia+ paywall lists at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The cited s02.e03 supports the paid-feature anchor, and s01.e02 supports the home upsell badge; the welcome-back card is described as the proposed placement, not an observed feature."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to three answers and expires at midnight local time, rather than giving away unlimited Advanced reasoning mode."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears on the Chats home screen at app open, before the user begins a chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a chosen sponsored game triggered by app open, and the failed-ad path says an unconfirmed play does not count."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Chats home placement beneath the Luzia+ badge and samples the Advanced reasoning mode listed on Luzia's paywall."
+ },
+ "other_concern": "The rationale's claim that ad earnings cover model costs in particular markets is not established by the product model.",
+ "fixable": false
+}

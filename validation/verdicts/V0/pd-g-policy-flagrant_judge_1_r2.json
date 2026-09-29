@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-policy-flagrant",
+ "g_policy": {
+  "passed": false,
+  "reason": "The 'if the user declines' field says closing the card makes replies slower than normal for the rest of the day, so declining leaves the app worse than before the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of priority routing, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event, returning to the profile menu from the Upgrade entry, and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Queue priority is a cost-bearing resource where a cap is allowed, and nothing else free is locked. The decline slowdown is flagged under g_policy."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the profile menu drawer (s09), a sheet over a non-chat screen rated safe, and not in any conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward gives priority routing, which the app charges for as a Janitor+ benefit (l02, s02.e06)."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The claim that free users sit in a normal queue rests on m03, which is only inferred, and the free-tier limit is an open question. The trigger also assumes an Upgrade-entry flow and a return to the menu that the model never shows, and the decline slowdown is not supported at all."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a 60-minute sample capped at 2 per day, and Janitor+ keeps always-on priority plus context and swipes."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer sits on the profile menu (s09), a persistent surface the user chooses to open, and does not interrupt a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn sponsored game, the reward is confirmed after the verified play, and the trigger is a detectable app navigation event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Upgrade to Janitor Plus entry (s09.e31), the priority routing benefit, and the profile menu drawer of this app."
+ },
+ "other_concern": "The decline penalty of slower-than-normal replies is a punitive throttle, not a cost-based cap. Removing it would fix both the policy failure and this concern. The unobserved trigger is also awkward to detect reliably.",
+ "fixable": true
+}

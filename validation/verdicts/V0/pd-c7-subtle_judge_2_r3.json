@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c7-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute ad-free reward before play. The user chooses whether to play, declining changes nothing, and the failure path grants nothing if play is unconfirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without ads, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses time in the app and game readiness, not anything the user wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says declining leaves the app unchanged and does not remove or cap a free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner on s01 Home · Top Stories, which the model rates content safe; it is not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the ad-free window is tied to the observed core flows of browsing the feed and reading stories."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The claim in “what makes it work here” that hiding ads for a short window displaces little revenue is not supported by the model. The model observes ad placements, but not their revenue impact."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 30 minutes, and the model does not identify a subscription benefit it would give away without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a dismissible banner on the home screen, not an offer that stops the user mid-task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game, and the failure path says nothing changes unless the play is confirmed; the time-in-app trigger is detectable."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names s01 Home · Top Stories and addresses ads observed in the app’s feed and article experience."
+ },
+ "other_concern": "The model does not establish whether suppressing all in-app ads for 30 minutes is technically or commercially feasible.",
+ "fixable": true
+}

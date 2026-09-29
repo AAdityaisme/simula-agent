@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c4-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in (the user chooses to play), the offer copy states '3 chats in Advanced reasoning mode' before the ad, 'Not now' leaves home unchanged, and if_the_ad_fails covers both no game available and an unconfirmed play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 chats in a paid AI mode, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the first app open after 3+ days with no session and no Luzia+, which is an app event and does not read any chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds an optional bonus and removes or caps nothing free. 'removes nothing free' is yes, and no free-tier limit was observed to be changed."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a dismissible card on s01 Chats (home), which is rated safe and is app chrome. It is not inside a conversation and not next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing_anchor, and the app charges for Advanced reasoning mode: it is a Luzia+ paywall bullet (l02, s02.e03) behind the Weekly, Monthly and Annual plans."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The cited elements support the claims: s02.e03 lists Advanced reasoning mode as a paid feature, s01.e02 is the Luzia+ badge on home, and s01.e08 is the prompt card. The per-chat delivery of the mode is a design choice marked as inference rather than a claim about observed behavior."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is quantity-limited to 3 chats, gated by a 3+ day gap and a 1-per-day cap. It is one of six paywall features, so it works as a sample and the full feature stays behind the plans."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears at app open on the home screen, so it interrupts no task. It is dismissible and sits on a persistent surface."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit with the reward granted after a confirmed play. An unconfirmed play shows 'That game didn't count', and the trigger (a session gap without Luzia+) is detectable by the app."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names Advanced reasoning mode (s02.e03), the Luzia+ badge, the Chats home prompt card and the 3-day trial button, so it is tied to this app."
+ },
+ "other_concern": "'Stays in that mode for good' could allow unbounded messages in each of the 3 chats, and repeated gaps could refill the offer. Per-chat granularity of the reasoning mode was not observed, so engineering feasibility is unverified. The rationale's claim that it pays for itself in North America is speculative.",
+ "fixable": false
+}

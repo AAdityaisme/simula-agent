@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-run-aol-c01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before the optional game. The decline and ad-failure fields leave reading unchanged if the user declines or the play is not confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored cards, not cash or a transferable or externally redeemable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses an article-open counter and a return to the home feed, not anything the reader wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposed window hides sponsored cards; it does not remove or cap free reading, saving, or sharing."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner in the category-pill area of s01, a content-safe home feed, rather than inside a conversation or beside unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product change offers a cleaner reading window tied to the observed home-feed-to-article core flow, f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The cited ad cards support the existence of sponsored placements, not the proposal's claims that they are low-value or cheap. The open questions say no paywall was seen on the home feed, which does not support the claims that the app has no paywall and every reader is free."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 30 minutes, with a two-per-day cap, rather than granting unlimited access to a subscription benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places the banner after the reader returns from an article, not during the read, and the reader can dismiss it."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a chosen sponsored game triggered by a detectable return to s01, and grants the reward only once the play is confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the home-feed category pills, the sponsored card below the first story, and sponsored cards in articles."
+ },
+ "other_concern": "The expiration note promises 'one more break' even when a reader may already have used both breaks allowed that day.",
+ "fixable": true
+}

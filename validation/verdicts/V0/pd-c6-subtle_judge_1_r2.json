@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c6-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is opt-in (a Play card), the offer copy states the reward (priority routing, 60 minutes), and declining leaves the menu unchanged. The 'if the ad fails' field gives a path: the boost turns off if the game isn't finished."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (returning to the profile menu from the Upgrade entry). It uses no typed or spoken content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea adds a temporary boost and removes or caps nothing free. Free replies stay at normal speed if the user declines."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the s09 profile menu drawer over s08, both rated safe and neither a chat screen. It is app chrome, not in the conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Priority routing is a paid Janitor+ benefit (l02, s02.e06), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The claim that free users wait in a normal queue rests on m03, which is only inferred, and the free-tier queue limit is listed as an open question. The trigger also assumes the user 'looks at Janitor+' via s09.e31, but what that entry opens was never observed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 60 minutes and 2 plays per day. Janitor+ keeps permanent priority plus 5x context and swipes."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card is on the profile menu, a persistent surface the user chooses to open, and it interrupts no task."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The 'if the ad fails' field says faster replies turn on when the user taps Play. That grants the reward on a tap, before the server confirms the play with REWARD_VERIFIED."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Janitor+ priority-routing benefit, the Upgrade to Janitor Plus entry in the profile menu (s09.e31), and the Billing neighbor."
+ },
+ "other_concern": "The idea assumes the app has a detectable free-tier queue that can be boosted temporarily. The model never showed this, so it needs confirming. The step that sends the user to s06 My Chats after the reward is fine but adds nothing.",
+ "fixable": true
+}

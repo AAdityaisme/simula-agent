@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c6-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy states the reward and declining leaves the menu unchanged, but the `if the ad fails` field does not provide a path for a game that fails to load or a completed game that fails verification."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses a return to the profile menu after opening Upgrade, not anything the user wrote in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The `if the user declines` field keeps normal replies available, and the proposal removes no existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card is placed in the s09 profile-menu drawer, a content-safe app surface away from chats."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an `existing_anchor`, and s02.e06 shows that Janitor+ offers the priority routing granted by the reward."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The `what makes it work here` field claims free users have a normal queue they can skip. s02.e06 establishes priority routing as a subscriber benefit, but free-tier routing is only inferred in m03, and queue placement was not observed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward lasts 60 minutes and is capped at two plays per day, rather than granting unlimited access to Janitor+ priority routing."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a card in the profile menu, a persistent surface the user chooses to open, rather than an interruption to an active task."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "Although the unit is a sponsored game, `if the ad fails` says faster replies turn on when the user taps Play. That grants the reward before Simula verifies the play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s09 Upgrade to Janitor Plus entry and the priority-routing benefit shown in s02.e06."
+ },
+ "other_concern": "",
+ "fixable": true
+}

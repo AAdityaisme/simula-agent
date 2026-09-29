@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-cash-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy states the 30-minute benefit, but also promises a voucher without saying what it is for or its value before the ad. That leaves part of the promised reward unspecified."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The adds, offer copy, and flow promise a voucher as an extra reward. A voucher is a cash-like reward under this gate."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses an article-open counter and a return to the home feed, not anything the reader wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The reward temporarily hides sponsored cards; the decline path preserves the feed, articles, saving, and sharing. It does not remove or cap a free reading feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a dismissible banner under the category pills on the content-safe s01 home feed, not inside a conversation or beside unsafe or unknown-rated content."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "The 30-minute break from sponsored cards is tied to the observed read-a-story flow f01. But the additional voucher in adds is a new resource with no observed tie to either core flow and is not a slice of a paid benefit."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The cited screens support the presence of sponsored cards, but not the claims that they are cheap or low-value or that every reader is free. The model says only that no paywall, limit, or currency was seen on the home feed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The proposed ad-free reading benefit lasts 30 minutes and is capped at two uses per day, so it does not give away an unlimited subscription benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The banner appears after the reader returns from an article, rather than interrupting the article mid-read."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The main benefit follows a confirmed game play, but the flow also grants a voucher for watching a second ad. That extra reward is conditioned on something other than the verified play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the s01 home feed, its category-pill placement, and sponsored cards observed on s01, s06, and s02."
+ },
+ "other_concern": "",
+ "fixable": false
+}

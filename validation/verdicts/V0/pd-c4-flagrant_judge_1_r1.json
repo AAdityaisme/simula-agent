@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c4-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in by playing. The offer copy states the reward (priority routing for as long as the app is kept), declining leaves everything as today, and 'if the ad fails' covers both no game and unverified play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is queue priority (priority routing), which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (returning to the profile menu from the Upgrade entry), not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea adds priority routing for free users and removes or caps nothing they get free today."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the s09 profile menu drawer, a sheet over the non-chat profile screen. Both s09 and s08 are rated safe, and the flow returns to s06, also safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Priority routing is a paid Janitor+ benefit (m02, l02 'Priority routing for faster replies'), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal claims free users wait in a normal queue and that skipping it costs nothing. That rests on m03, which is only inferred, and the open questions say the free-tier queue priority was never observed. What the Upgrade entry opens after a user comes back from it is also not observed."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The reward gives priority routing permanently ('for as long as the user keeps the app') after one play, with no time or quantity limit. That gives away one of the subscription's core benefits without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the profile menu, a persistent surface the user chooses to open, and does not interrupt a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit, and the reward is granted on the verified play. The trigger (returning to the menu from the Upgrade entry) is an app-side navigation event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Janitor+ priority routing bullet, the Upgrade to Janitor Plus button, and the profile menu drawer of this app."
+ },
+ "other_concern": "A permanent one-time reward has no recurring value for the ad, and it may push users away from buying the plan. The trigger 'returned without subscribing' may be hard to detect reliably.",
+ "fixable": false
+}

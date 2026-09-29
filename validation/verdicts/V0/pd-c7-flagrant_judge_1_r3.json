@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c7-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in by choosing to play from a card. The copy 'Play a game to get premium for a day' states the reward, closing the card changes nothing, and 'if the ad fails' gives a no-loss path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 24 hours of premium feature access, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is opening the app, which is an app event. No chat content is used."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "'Removes nothing free: yes'. The idea only adds an optional reward."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on s01 Chats (home), which is rated safe. It is app chrome and not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing_anchor idea, and premium is what the app charges for (m01 paywall with Weekly $1.99, Monthly $4.99 and Annual $39.99 plans)."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims the proposal makes (a premium tier and the home screen) are supported by m01 and s01, even though no evidence ids are cited."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The reward is all of premium for 24 hours, capped at 1 per day. Playing daily gives continuous full premium without a limit, which gives away the subscription's main benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the home screen at app open, so it does not interrupt a task. It is a persistent surface the user can ignore or tap."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn sponsored game, the trigger is the detectable app-open event, and the failure path says the try counts only when the game counts. The reward is tied to the verified play."
+ },
+ "c7_specific": {
+  "passed": false,
+  "reason": "'What makes it work here' ('People like premium features') and the copy would read the same in any app. They name no Luzia limit, feature or paywall item, such as 'Advanced reasoning mode' or '2× images & longer chats'."
+ },
+ "other_concern": "No evidence ids are cited, and the reward is not tied to a specific observed limit. A scoped reward (for example a quantity-limited sample of one premium feature) would fit better than full premium.",
+ "fixable": true
+}

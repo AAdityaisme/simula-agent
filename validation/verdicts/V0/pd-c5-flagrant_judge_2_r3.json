@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c5-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before the user chooses to play. The decline and ad-failure paths leave reading unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored stories, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is progress through an article on s02; it does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and reward fields hide sponsored cards temporarily; they do not remove or cap a free reader feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a pop-up over s02 Article, which the product model rates content safe, not a chat or unsafe screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product_change adds a temporary ad-free reading window tied to the observed Read a story core flow, f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The claim that the app has no paywall, limit, or currency treats an open question as an observed fact. The claims that the cards are low-value and cheap, and that every reader is free, are also unsupported by the product model."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward lasts 30 minutes and is capped at two offers per day, so it does not give away an unlimited subscription benefit."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The trigger event opens the pop-up halfway through an article, interrupting reading without a limit hit, completed action, or user-opened persistent surface."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game and grants the reward only once play is confirmed; progress through s02 Article is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the s02 article reader and the sponsored recommendation cards observed at s01.e44, s06.e33, and s02.e13."
+ },
+ "other_concern": "",
+ "fixable": true
+}

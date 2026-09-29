@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-free-removal-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 60-minute priority-routing reward before the optional game. The decline and ad-failure fields preserve normal use and provide paths for unavailable or unverified plays."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or transferable value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses navigation back to the profile menu and subscription status, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The adds field imposes a new daily limit on how many characters free users can text. That caps existing character access, not a permitted per-use resource such as model replies or queue priority."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile menu, a safe app-chrome surface away from the conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The priority-routing reward samples a paid benefit advertised by s02.e06."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "s09.e31 establishes an Upgrade entry, but not a return from its subscription flow; s02.e06 promises priority routing, but does not establish a normal queue to skip. The proposal presents those unobserved behaviors and mechanics as facts."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward limits the priority-routing sample to 60 minutes, with a frequency cap of two plays per day."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is in the profile menu, a persistent surface the user chooses to open, rather than an interruption mid-task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game and a detectable navigation trigger; the ad-failure field says unverified play does not turn on faster replies."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s09 Upgrade entry and Janitor+'s priority-routing benefit at s02.e06."
+ },
+ "other_concern": "Flow step 4 places a confirmation by the menu card on s06 My Chats, although the card's stated placement is s09; the confirmation surface needs clarification.",
+ "fixable": true
+}

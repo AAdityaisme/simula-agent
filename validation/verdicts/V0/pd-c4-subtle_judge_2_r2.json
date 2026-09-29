@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c4-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-chat reward before the optional game. The decline and ad-failure paths leave the user without a penalty."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is access to Advanced reasoning mode in three chats, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses session inactivity and subscription status, not anything written or said in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and declining leaves the Chats home unchanged."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a card on the safe s01 Chats home screen, not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples Advanced reasoning mode, which s02.e03 lists on the Luzia+ paywall."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The reward and 'adds: nothing new' fields assume Advanced reasoning mode can be assigned permanently to individual chats. s02.e03 establishes only that the mode is a paywall feature; that per-chat behavior was not observed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward limits the sample to three chats, while the proposal leaves access for other chats with Luzia+."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a dismissible card on the Chats home screen, rather than an interruption during a chat."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a chosen sponsored game, and the ad-failure path withholds the reward when play is not confirmed. The session-gap trigger is an app-detectable event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s01 Chats home placement and the Advanced reasoning mode listed on the Luzia+ paywall."
+ },
+ "other_concern": "Keeping three chats in the mode indefinitely could permit substantial ongoing model use; the proposal's claim that it pays for itself is unverified.",
+ "fixable": false
+}

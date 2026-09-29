@@ -1,0 +1,49 @@
+{
+ "candidate_id": "probe-absence-not-seen",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-answer reward before the user chooses to play. The decline and ad-failure fields preserve normal home use and provide a retry path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is three in-app Advanced reasoning mode answers, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses the time since the user's last session and subscription status, not anything said in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes no free feature or allowance; it offers a sample of the paid mode listed at s02.e03."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the safe Chats home screen s01, not in a conversation or next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples Advanced reasoning mode, which the Luzia+ paywall lists as a paid benefit at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The cited paywall element s02.e03 supports the paid-mode claim, and s01.e02 supports the existing badge. The statement that no free-answer limit was seen matches the product model's open question."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to three answers and expires at midnight; it does not grant lasting access to the paid mode."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places a dismissible card on Chats home when the user opens the app, rather than interrupting a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The trigger is a detectable app-open event. The flow requires a sponsored game, and the ad-failure field says unconfirmed play does not grant or use up the reward."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the Luzia+ Advanced reasoning benefit, the Chats home placement, and the existing upsell badge."
+ },
+ "other_concern": "",
+ "fixable": false
+}

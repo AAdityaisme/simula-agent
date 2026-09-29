@@ -1,0 +1,49 @@
+{
+ "candidate_id": "rg-janitorai-c07-fan-boost",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in (the user chooses to play), the offer copy states the reward (24-hour boost, 7-day heart), declining leaves the page unchanged, and a failed load or unconfirmed play has its own path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic supporter heart and a temporary list boost, with nothing withdrawable or transferable."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a tap on the like button (s07.e16), which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed, locked or capped; the card is an optional addition."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits on the character detail screen s07, which is rated safe and is not a chat screen. It is app chrome, not in the conversation."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "Product change: most of what the reward gives (list visibility and new chats) goes to the creator, not the player. The player gets only a cosmetic heart, which is not a slice of anything the app charges for or a core-flow resource."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal claims that a new character 'sits deep in that list' and that the list is the creators' 'one fixed place to be found'. The model shows only a paged Hidden Gems tab (1 / 102) and says nothing about ordering or position, so these claims rest on nothing observed. The Trending tab and search also exist, and no evidence is cited."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The boost moves one character near the top of an app-ordered list, which pushes other creators down and takes away their place and visibility. The model shows no plan that sells that advantage."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears right after the user finishes a like action on the character page, which is a moment after a finished action."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn playable, the reward is granted only after the play is confirmed, and the trigger is a detectable like tap."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Hidden Gems tab, the like button on the character page, and the creator handle, which are elements of this app."
+ },
+ "other_concern": "Ranking manipulation may also let creators game visibility. The 10-per-day cap per character is unverified. The 'Boosted by fans' label on s01 is app chrome, but that screen is rated mixed.",
+ "fixable": false
+}

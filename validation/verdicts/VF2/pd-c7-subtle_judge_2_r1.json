@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c7-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute ad-free reward before play. The banner is optional, declining changes nothing, and the failure path grants nothing if play is not confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without in-app ads, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses time in the app and game readiness, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds a temporary ad-free option and does not remove or cap a free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The banner is placed on s01 Home · Top Stories, which is rated content safe, rather than in a conversation or next to unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product-change reward gives the player an ad-free window for their own use while browsing the feed or reading stories, the observed core flows f02 and f01."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claim that the app shows ads is supported by the observed home-feed ad placement m01. The claim that hiding them displaces little revenue is a prediction, not a claim about an observed mechanic."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes; the proposal does not grant lasting access or take a limited advantage from other users."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The trigger event makes a banner appear after the user has been in the app for a while, potentially interrupting browsing on s01. It is not tied to a moment of need or a finished action, and the timed banner is not a persistent offer surface the user chooses to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game, and the failure path says nothing changes unless the play is confirmed. Time in the app and game readiness are detectable trigger conditions."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names s01 Home · Top Stories and depends on the app's observed ads, including the home-feed placement in m01."
+ },
+ "other_concern": "The claim that the ad-free window displaces little revenue is untested; m01 notes that fill varies.",
+ "fixable": true
+}

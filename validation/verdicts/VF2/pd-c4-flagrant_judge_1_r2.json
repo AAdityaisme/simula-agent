@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c4-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in by tapping the card, and the offer copy names the reward (priority routing for faster replies). Declining leaves the menu unchanged, and the card is hidden if no game loads, with a retry if the play isn't verified."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is queue priority inside the app, which has no cash value and can't be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event, returning to the profile menu from the Upgrade entry, and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed, locked or capped ('removes nothing free: yes'). The reward only adds priority for free users."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the s09 profile menu drawer, a sheet over s08. Both are rated safe, and it is not placed in or near a chat."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The app charges for priority routing (l02 'Priority routing for faster replies', s02.e06), and m03 infers free users get normal priority. The reward gives that charged resource."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the app rest on l02, s02.e06 and s09.e31, plus m03 for the free tier's normal priority. The rest is the proposal's own new card and copy."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The reward is priority routing 'for as long as the user keeps the app' and never expires. That grants lasting access to a benefit Janitor+ charges for (s02.e06), one of its main selling points."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer sits on the profile menu, a persistent surface the user chooses to open. It does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "A sponsored game is played, and the reward is granted after verified play. The trigger is an app event, returning to the menu from the Upgrade entry."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names Janitor+'s priority routing, the profile menu's Upgrade to Janitor Plus button (s09.e31) and the Billing entry, so it is specific to this app."
+ },
+ "other_concern": "The model doesn't show what the Upgrade entry opens, so 'returns from the Upgrade entry' may be hard to detect. A permanent grant would also cut into Janitor+ conversions, the same problem as the c4 failure.",
+ "fixable": true
+}

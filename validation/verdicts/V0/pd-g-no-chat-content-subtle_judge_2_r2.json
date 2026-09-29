@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-chat-content-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states priority routing for 60 minutes before an optional game. The decline and ad-failure fields preserve normal use and address unavailable or unverified plays."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": false,
+  "reason": "The trigger event targets users whose chats are mostly long roleplay stories, which requires assessing chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and the decline path keeps replies at their normal speed."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile menu, a safe sheet away from chats and character content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward samples priority routing, an observed Janitor+ benefit in s02.e06."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "s09.e31 shows the Upgrade entry, but the model does not show a user opening it and returning to the menu without subscribing; the proposed trigger relies on that unobserved navigation. The chat-story targeting also has no support in the model."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward limits priority routing to 60 minutes, rather than giving away the subscription benefit without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card is in the profile menu, a surface the user chooses to open, rather than interrupting a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The proposal uses a sponsored game, makes the menu return an app-detectable trigger, and says unverified play does not turn on faster replies."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s09 Upgrade to Janitor Plus entry and the priority-routing benefit shown in s02.e06."
+ },
+ "other_concern": "",
+ "fixable": true
+}

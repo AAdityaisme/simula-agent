@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c6-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before an opt-in game, the decline path leaves reading unchanged, and the 'if the ad fails' field provides a path, albeit one that conflicts with verified-play requirements."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored stories, not cash or a transferable or externally redeemable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses article opens and a return to the home feed, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The 'adds' and decline fields leave existing reading, saving, and sharing available; hiding sponsored cards does not lock or cap a free user benefit."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner in app chrome on s01 Home · Top Stories, which is rated content safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the 30-minute ad-free reading window is tied to the observed read-a-story core flow f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here,' 'subscribers,' and rationale fields turn an open question about what was seen on the home feed into claims that the app has no paywall or paid plan and every reader is free. Calling the sponsored cards low-value or cheap and asserting that hiding them displaces little revenue is also unsupported by m01's observations about placement and variable fill."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward lasts 30 minutes and is capped at two uses per day, so it is not an unlimited giveaway of a subscription benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger waits until the reader returns to the home feed after an article, and the dismissible banner is on a feed surface rather than interrupting an article."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The 'if the ad fails' field and flow grant the reward when the game is closed, played or not. Granting on close rather than after REWARD_VERIFIED meets this check's fail condition."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the s01 home feed, its sponsored card below the first story, and the s02 in-article sponsored placement."
+ },
+ "other_concern": "",
+ "fixable": true
+}

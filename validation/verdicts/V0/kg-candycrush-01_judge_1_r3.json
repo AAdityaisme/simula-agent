@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-candycrush-01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The player opts in by tapping the new button; the offer copy 'Play a short game to get 1 life now' states what and how much; declining changes nothing; and a failed ad hides the button or gives no life without using the try."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 1 life, an in-game resource that cannot be withdrawn, sold, or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is tapping Play at 0 lives, which is an app event, and no chat content is involved."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed or capped; the life timer and the pop-up work as today, and the 3-a-day cap applies only to the new reward."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The button sits in the s02 modal, a dialog over the level map, which is a non-chat screen rated safe, and s02 itself is rated safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The app limits lives (m01: 5 max, 30-minute regen) and charges gold bars for extra lives (m02, s02.e03), so the reward is a limited and charged resource."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the 5-life cap, the 30-minute regen, and the gold-bar button in s02 are supported by m01, l01 and s02.e02/e03; the proposal does not depend on the unobserved gold-bar price."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "There is no subscription, and the reward is a single life, capped at 3 a day, so it is a quantity-limited sample and does not replace the gold-bar sale."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears in the out-of-lives pop-up right after the player hits the limit, which is a moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "This is a play-to-earn unit; the life is granted only when the game counts as played, and the trigger (tapping Play at 0 lives) is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names this app's out-of-lives pop-up (s02), the heart meter, the 30-minute life timer, and the gold-bar button."
+ },
+ "other_concern": "The copy 'Play a short game to get 1 life now' does not state that the game is sponsored, though this is minor.",
+ "fixable": false
+}

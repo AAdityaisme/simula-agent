@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c5-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-answer reward before the user chooses to play. The decline and ad-failure paths let the user continue without losing access or using up the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is three in-app Advanced reasoning mode answers, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses time since the last open and a New chat tap, not message content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free and adds a limited sample of the paywall-listed Advanced reasoning mode."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card over s01 Chats home, which is rated safe, rather than an offer inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, s02.e03 lists Advanced reasoning mode on the Luzia+ paywall."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The cited s02.e03 supports the paid-feature claim, and s01.e02 supports the Luzia+ badge placement. The per-answer sample is proposed rather than claimed as an existing limit."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to three answers until midnight, with the frequency cap restricting repeat offers."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The trigger and placement open a card immediately after the user taps New chat, interrupting that task before they choose whom to talk to. No limit was hit or locked item tapped, and the user did not choose to open the offer."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game and a detectable New chat tap. The ad-failure path withholds the reward when play is not confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names Luzia+'s Advanced reasoning mode, the Chats home badge, and the New chat interaction."
+ },
+ "other_concern": "",
+ "fixable": true
+}

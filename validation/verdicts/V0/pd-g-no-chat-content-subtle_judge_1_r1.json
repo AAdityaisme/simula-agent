@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-chat-content-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in by tapping the card. The offer copy states the reward (priority routing, 60 minutes) before the game. Declining leaves the menu unchanged, and the 'if the ad fails' field covers both no game available and an unverified play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority (queue_priority), which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": false,
+  "reason": "The trigger event says the card only goes to users 'whose chats are mostly long roleplay stories'. That targeting depends on the topic or content of the user's chats rather than an app event."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free ('removes nothing free: yes'), and replies keep their normal speed. The only new gate is temporary queue priority, which costs the app money."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the s09 profile menu drawer, a sheet over the non-chat s08 screen, and s09 is rated safe. It is not in a conversation and not over a chat."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Priority routing is a paid Janitor+ benefit, shown in the observed paywall bullet l02 (s02.e06) and entitlement m02. The app therefore charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The claim that free users wait in a normal queue rests on m03, which is only inferred. The trigger 'returns to the profile menu from the Upgrade entry' assumes an upgrade flow the model never captured. The 'mostly long roleplay stories' targeting is not in the model either."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a 60-minute sample capped at 2 per day. Subscribers keep the always-on priority routing, plus 5x context and more swipes."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card lives in the profile menu drawer, a persistent surface the user chooses to open, and does not interrupt a chat or other task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit. The failure path implies the reward is granted only on a verified play. The trigger is a menu screen the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names Janitor+ priority routing, the s09 Upgrade to Janitor Plus entry and the profile menu drawer, which are specific to this app."
+ },
+ "other_concern": "Flow step 4 sends the user to My Chats after the reward, which is a minor detour from the card. The chat-content targeting clause adds nothing the app-event trigger doesn't already provide.",
+ "fixable": true
+}

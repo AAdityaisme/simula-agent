@@ -157,6 +157,10 @@ def failed_by_any(verdicts: list[Verdict]) -> list[str]:
     return [k for k in CHECKS if any(failed(v, k) for v in verdicts)]
 
 
+def failed_by_all(verdicts: list[Verdict]) -> list[str]:
+    return [k for k in CHECKS if verdicts and all(failed(v, k) for v in verdicts)]
+
+
 def is_idea(c: Candidate) -> bool:
     return c.kind != "no_opportunity"
 
@@ -164,8 +168,10 @@ def is_idea(c: Candidate) -> bool:
 def decide(c: Candidate, verdicts: list[Verdict], judges: int, mode: str, paths: list[str] = (),
            revision_of: str | None = None) -> Decision:
     """Combines the verdicts of the judges that ran. Gates AND over the judges, so one judge's gate fail rejects
-    even when another judge's call failed; a judgment check every judge fails rejects; a split goes to a person. In annotate mode the cost line is only a mark (economics_verdict) and never
-    changes the verdict; in gate mode a FAIL rejects and an accept whose cost line isn't a PASS becomes conditional."""
+    even when another judge's call failed. A judgment check every judge fails rejects. A judgment check only some
+    judges fail (a split) makes the idea CONDITIONAL, ranked below every accept (D10); a person is asked only when a
+    judge's call failed. In annotate mode the cost line is only a mark (economics_verdict) and never changes the
+    verdict; in gate mode a FAIL rejects and an accept whose cost line isn't a PASS becomes conditional."""
     fails = {k: sum(failed(v, k) for v in verdicts) for k in CHECKS}
     unanimous = [k for k in JUDGMENT if verdicts and fails[k] == len(verdicts)]
     econ = c.economics.verdict if c.economics else None
@@ -183,11 +189,10 @@ def decide(c: Candidate, verdicts: list[Verdict], judges: int, mode: str, paths:
         return d.model_copy(update={"failure_type": "product_model", "rerun_stage": "explore"})
     if unanimous:
         return d.model_copy(update={"failure_type": "proposal"})
-    if d.judgment_splits:
-        return d.model_copy(update={"final": "needs_human"})
     if mode == "gate" and econ == "FAIL":
         return d.model_copy(update={"failure_type": "proposal"})
-    return d.model_copy(update={"final": "accept" if mode == "annotate" or econ == "PASS" else "conditional"})
+    accepted = not d.judgment_splits and (mode == "annotate" or econ == "PASS")
+    return d.model_copy(update={"final": "accept" if accepted else "conditional"})
 
 
 def proposal_fault(original: Decision, revision_verdicts: list[Verdict]) -> Decision:
@@ -204,9 +209,10 @@ def revisable(c: Candidate, d: Decision, verdicts: list[Verdict]) -> bool:
 
 
 def could_fall_back(c: Candidate, d: Decision, verdicts: list[Verdict]) -> bool:
-    """An idea code kept that every judge passed on every gate and both premise checks."""
+    """An idea code kept that every judge passed on every gate, and whose premise checks no two judges both failed:
+    a premise only one judge doubts is a split, which doesn't exclude it (D10)."""
     return (is_idea(c) and not c.dropped_reason and bool(verdicts) and not d.gate_fails
-            and not set(PREMISE) & set(failed_by_any(verdicts)))
+            and not set(PREMISE) & set(failed_by_all(verdicts)))
 
 
 def superseded(revised: list[Candidate], decisions: dict[str, Decision],
@@ -220,8 +226,8 @@ def superseded(revised: list[Candidate], decisions: dict[str, Decision],
 
 def fallback_pick(decisions: list[Decision], candidates: dict[str, Candidate],
                   verdicts: dict[str, dict[str, Verdict]], superseded: set[str]) -> str | None:
-    """When nothing survives, the best reject that passes every gate and both premise checks: fewest checks
-    failed, then rank. None when there is no such candidate."""
+    """When nothing survives, the best reject the fallback could carry (could_fall_back): fewest checks failed, then
+    rank. None when there is no such candidate."""
     if any(d.final in SURVIVORS for d in decisions):
         return None
     eligible = [d for d in decisions if d.final == "reject" and d.candidate_id not in superseded
@@ -231,25 +237,30 @@ def fallback_pick(decisions: list[Decision], candidates: dict[str, Candidate],
 
 
 def ordered(decisions: list[Decision]) -> list[Decision]:
-    """Survivors first by rank_score (code), then those waiting on a person, then rejects by score. On an equal
-    score an accept goes before a CONDITIONAL, so the judges' verdict breaks ties; in annotate mode cost never does,
-    since it never makes an idea CONDITIONAL. flows' top-4 cut keeps this order."""
-    tier = {"accept": 0, "conditional": 0, "needs_human": 1, "reject": 2}
-    return sorted(decisions, key=lambda d: (tier[d.final], -(d.rank_score or 0), d.final != "accept",
-                                            -d.checks_passed))
+    """Accepts first by rank_score (code), then CONDITIONAL ideas (a judge split, or the fallback) by rank_score,
+    then those waiting on a person, then rejects. A CONDITIONAL never ranks above an accept (D10); in annotate mode
+    cost never makes an idea CONDITIONAL, so it never moves one."""
+    tier = {"accept": 0, "conditional": 1, "needs_human": 2, "reject": 3}
+    return sorted(decisions, key=lambda d: (tier[d.final], -(d.rank_score or 0), -d.checks_passed))
 
 
 def condition(d: Decision, c: Candidate, verdicts: list[Verdict], mode: str) -> str | None:
-    """The one sentence a CONDITIONAL candidate carries on its slides. Cost is part of it only in gate mode; in
-    annotate mode it is a separate mark."""
+    """The one sentence a CONDITIONAL candidate carries: for the fallback pick, the checks every judge failed; for a
+    judge split, the split checks with a failing and a passing judge's reason (D10). Cost is part of it only in gate
+    mode; in annotate mode it is a separate mark."""
     if d.final != "conditional":
         return None
     parts = []
-    fails = [k for k in JUDGMENT if k in failed_by_any(verdicts)]
-    if fails:
-        reason = next(getattr(v, fails[0]).reason for v in verdicts if failed(v, fails[0]))
-        parts.append(f"No idea passed every check; this one passes every safety gate but not {', '.join(fails)} "
+    missed = [k for k in JUDGMENT if k in failed_by_all(verdicts)]
+    if missed:
+        reason = next(getattr(v, missed[0]).reason for v in verdicts if failed(v, missed[0]))
+        parts.append(f"No idea passed every check; this one passes every safety gate but not {', '.join(missed)} "
                      f"({reason})")
+    elif d.judgment_splits:
+        k = d.judgment_splits[0]
+        fails, passes = (next(getattr(v, k).reason for v in verdicts if failed(v, k) == f) for f in (True, False))
+        parts.append(f"The judges split on {', '.join(d.judgment_splits)}: one fails {k} ({fails.rstrip('.')}) and "
+                     f"one passes it ({passes.rstrip('.')})")
     if mode == "gate" and d.economics_verdict in ECON_CONDITION and c.economics:
         parts.append(f"{ECON_CONDITION[d.economics_verdict]}: {c.economics.assumption_line.split('. ')[0]}")
     return " ".join(p.rstrip(".") + "." for p in parts)
@@ -285,6 +296,10 @@ def revise(ctx: Ctx, c: Candidate, verdicts: list[Verdict], model: ProductModel,
         run_trace(ctx.run_dir, stage="judge", step=step, decider="code", outcome=e.outcome,
                   note="revision failed twice; the reject stands")
         return None
+    if len(output.candidates) != 1:
+        run_trace(ctx.run_dir, stage="judge", step=step, decider="code",
+                  note=f"the reviser returned {len(output.candidates)} ideas for 1 asked; "
+                       + ("the first is judged" if output.candidates else "the reject stands"))
     if not output.candidates:
         return None
     new = Candidate(**{**output.candidates[0].model_dump(), "id": f"{c.id}-rev", "lens": c.lens})
@@ -410,7 +425,8 @@ def judge_run(ctx: Ctx, work: Path, model: ProductModel, candidates: list[Candid
     if pick:
         decisions[pick] = decisions[pick].model_copy(update={"final": "conditional", "failure_type": None})
         run_trace(ctx.run_dir, stage="judge", step="fallback", decider="code",
-                  note=f"nothing accepted; {pick} passes every gate and both premise checks -> CONDITIONAL")
+                  note=f"nothing survived; {pick} passes every gate and no premise check every judge failed "
+                       "-> CONDITIONAL")
     final = ordered(list(decisions.values()))
     for d in final:
         run_trace(ctx.run_dir, stage="judge", step=f"decide:{d.candidate_id}", decider="code",
@@ -419,7 +435,7 @@ def judge_run(ctx: Ctx, work: Path, model: ProductModel, candidates: list[Candid
 
     write_json_atomic(work / "revisions.json", CandidatesFile(candidates=revised).model_dump_json(indent=1))
     write_json_atomic(work / "decisions.json", DecisionsFile(decisions=final).model_dump_json(indent=1))
-    write_queue(ctx, work, final, everyone, verdicts)
+    write_queue(ctx, work, final, everyone)
     if not any(d.final in SURVIVORS for d in final):
         (work / "no-opportunity.md").write_text(no_opportunity(final, everyone, verdicts))
     swap_in(work, ctx.run_dir / "judge")
@@ -437,8 +453,8 @@ def why(d: Decision, c: Candidate) -> str:
 
 # ---------- human-readable outputs ----------
 
-def write_queue(ctx: Ctx, work: Path, decisions: list[Decision], candidates: dict[str, Candidate],
-                verdicts: dict[str, dict[str, Verdict]]) -> None:
+def write_queue(ctx: Ctx, work: Path, decisions: list[Decision], candidates: dict[str, Candidate]) -> None:
+    """Ideas a judge's call failed on twice. A split is no longer queued: it goes on as CONDITIONAL (D10)."""
     waiting = [d for d in decisions if d.final == "needs_human"]
     if not waiting:
         return
@@ -447,28 +463,19 @@ def write_queue(ctx: Ctx, work: Path, decisions: list[Decision], candidates: dic
              "The run continued without them. Nothing reruns on its own.", ""]
     for d in waiting:
         c = candidates[d.candidate_id]
-        lines += [f"## {c.id} · {c.title}", "", *[f"- Flag: {f}" for f in c.flags], *([""] if c.flags else [])]
-        if d.rerun_stage == "judge":
-            lines += ["**Why:** a judge call failed twice.", "",
-                      f"**Continue with:** `simula judge {app} --run {run_id}`", ""]
-            continue
-        lines += [f"**Why:** the judges split on {', '.join(d.judgment_splits)}.", ""]
-        lines += [f"- {judge} {'fails' if failed(v, k) else 'passes'} {k}: {getattr(v, k).reason}"
-                  for judge, v in verdicts[c.id].items() for k in d.judgment_splits]
-        lines += ["", "**Evidence:** " + ", ".join(f"`{p}`" for p in d.verdict_paths), "",
-                  "**Continue with:** nothing to run; flows leaves it out. A person reads the reasons and decides "
-                  "whether the idea is worth a hand revision.", ""]
+        lines += [f"## {c.id} · {c.title}", "", *[f"- Flag: {f}" for f in c.flags], *([""] if c.flags else []),
+                  "**Why:** a judge call failed twice.", "", f"**Continue with:** `simula judge {app} --run {run_id}`",
+                  ""]
     (work / "human-queue.md").write_text("\n".join(lines))
-    needs_human(ctx.run_dir, "judge", f"{len(waiting)} candidate(s) need a person",
-                "the judges split or a judge call failed", ["judge/human-queue.md"],
-                f"read judge/human-queue.md, then `simula flows {app} --run {run_id}`")
+    needs_human(ctx.run_dir, "judge", f"{len(waiting)} candidate(s) need a person", "a judge call failed twice",
+                ["judge/human-queue.md"], f"simula judge {app} --run {run_id}")
 
 
 def no_opportunity(decisions: list[Decision], candidates: dict[str, Candidate],
                    verdicts: dict[str, dict[str, Verdict]]) -> str:
     gate = [d for d in decisions if d.gate_fails]
     premise = [d for d in decisions if not d.gate_fails
-               and set(PREMISE) & set(failed_by_any([*verdicts.get(d.candidate_id, {}).values()]))]
+               and set(PREMISE) & set(failed_by_all([*verdicts.get(d.candidate_id, {}).values()]))]
     waiting = [d for d in decisions if d.final == "needs_human"]
     lines = ["# No opportunity", "", "No candidate reached Goal 4, and none was manufactured.", "",
              f"- {len(decisions)} candidates judged or dropped.",

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c7-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user chooses to play from a card that names the reward (1 day of premium). Declining changes nothing, and a game that fails to load or verify leaves the app as it was."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 24 hours of premium feature access, which cannot be withdrawn, sold or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the app opening, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free (removes nothing free: yes) and adds no cap on anything users get today."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a card on s01 Chats (home), which is rated safe. It is app chrome, not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward gives Luzia+ features, which the app charges for on the paywall (m01, three plans at $1.99, $4.99 and $39.99)."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The only claims about the app as it is today are that a premium tier and free users exist, and m01 supports both. The rest is prediction or what the proposal itself adds. The empty citation list is worth noting but is not a listed fail condition."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a 24-hour sample that ends when the day ends, capped at one per day. Premium turns off afterwards, so it grants no lasting access."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the home screen at app open, before the user starts a task. The home screen is a persistent surface the user can choose to engage with."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn game, and the reward follows the game counting as played, per the failure path. The trigger, opening the app, is detectable."
+ },
+ "c7_specific": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says only that people like premium features. It names no Luzia+ element, such as a specific paywall benefit, limit or plan, so it would read the same in any app with a subscription."
+ },
+ "other_concern": "Granting the whole Luzia+ bundle for a day, including voice chat and advanced reasoning, may cost the app more than a narrower reward would, and the proposal does not cite the paywall benefits it grants. The cost is not a listed fail condition.",
+ "fixable": true
+}

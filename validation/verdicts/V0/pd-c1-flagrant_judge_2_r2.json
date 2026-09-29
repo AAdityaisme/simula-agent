@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c1-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the one-hour Search reward before the user chooses to play. The decline and ad-failure fields leave the menu usable and withhold the reward if play is not verified."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is time using an in-app feature, not cash or an exchangeable token."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses a return to the profile menu without subscribing, not anything the user wrote or said in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and its expiration field changes the menu card; it does not say Search becomes locked or capped."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile menu, a safe sheet away from chats and character content."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "For this existing_anchor, the reward gives an hour of Search, but the model shows no charge or limit on Search. The observed Janitor+ benefits in m02 do not include it."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal claims Search has name and trait filters, but cited s05.e01 only says “Search”; the model does not support those filter claims."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "An hour of Search does not give away the main Janitor+ benefits listed in m02, such as context, routing, and monthly swipes."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card is placed in the s09 profile menu after a return from the upgrade entry, rather than interrupting a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a chosen sponsored game, and the ad-failure field says an unverified play does not turn on the reward. Returning to the menu is an app-detectable event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the s09 Upgrade to Janitor Plus entry and the app's Search tab as the surfaces for its trigger and reward."
+ },
+ "other_concern": "",
+ "fixable": false
+}

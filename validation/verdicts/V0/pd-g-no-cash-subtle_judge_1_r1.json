@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-cash-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy says 'you also get a voucher' but never says what the voucher is or how much it is worth, so the reward isn't fully stated before the ad."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The 'adds' field includes a 'voucher' for watching one more ad. A voucher is on the cash-like list and its redemption is undefined, so it may work like cash."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an article-open counter reaching 3 on s01, which is an app event, and there is no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea only hides sponsored cards temporarily and adds no cap or lock. Reading, saving, and sharing are unchanged."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner card in the s01 feed, which is rated safe. It is app chrome, not inside a conversation, and not next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is a product_change. Ad-free reading is tied to the observed core loop f01 (home feed to article), and the cited cards s01.e44 and s02.e13 are the friction it removes."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The feed card (s01.e44, s06.e33) and the in-article card (s02.e13) are observed, as is the patchy fill (m01). The 'no paywall' claim leans on an open question, but the idea doesn't depend on it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No subscription was observed, and the reward is a 30-minute time-limited sample, capped at 2 per day."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears when the reader returns to the feed after a finished article, not during reading, and it can be dismissed."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The voucher is granted for watching 'one more ad' on a separate new:voucher-ad screen. That is a reward tied to a started or watched ad, not to the Simula-verified play, and it isn't a play-to-earn or native unit."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Taboola sponsored cards in the home feed and in articles, the third-article counter, and the s01 banner slot."
+ },
+ "other_concern": "The revenue tradeoff (hiding cards vs. game payout) is speculative. The second-ad voucher flow adds complexity and is undefined. The ad-free window could conflict with a direct-sold or Taboola contract.",
+ "fixable": false
+}

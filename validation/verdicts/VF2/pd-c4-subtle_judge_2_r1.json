@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c4-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The home card states the three-chat reward before the user chooses to play. The decline and ad-failure paths leave the app usable and allow an unverified play to be retried."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is three chats in Advanced reasoning mode, not cash or a transferable or externally exchangeable credit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses an app-open event, time since the last session, and subscription status; it does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and its reward adds access to the paid feature listed at s02.e03."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a card on the safe Chats home screen (s01), not inside a conversation or next to unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples Advanced reasoning mode, which the Luzia+ paywall lists at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The proposal's claims about today's badge, paid feature, plans, and trial are supported by s01.e02 and the s02 paywall elements. The welcome-back card and three-chat reward are proposed changes, not claims that they already exist."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The reward field says each of the three chats stays in the paid Advanced reasoning mode ‘for good.’ That grants lasting access to something the app charges for, even though the number of chats is limited."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer is a dismissible card on the Chats home screen (s01) after an app-open event, rather than an interruption mid-task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a chosen sponsored game and a detectable app-open trigger; the ad-failure path says an unconfirmed play does not count."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses Luzia's Chats home, its Luzia+ badge (s01.e02), and the Advanced reasoning mode benefit (s02.e03)."
+ },
+ "other_concern": "The rationale's claim that the reward pays for itself in higher-earning markets is an unsubstantiated forecast.",
+ "fixable": false
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c1-subtle-aol-c07",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the second-city reward and its seven-day duration before the optional game. The decline and ad-failure paths leave the existing feed unchanged and grant no unverified reward."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is temporary use of a second city in the weather bar, not cash or a transferable currency."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event counts taps on the Home weather bar, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields describe an optional extra and do not remove, lock, or cap an observed free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in Home-feed chrome under the weather bar on s01, a content-safe screen."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "This product change offers weather-city access, but the observed core flows f01 and f02 are reading stories and browsing categories, not using city weather. It is neither a slice of an observed paid benefit nor a resource for the player's use in an observed core flow."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work-here field says the weather bar shows one place and uses data the app already fetches. s01.e29 supports a weather entry point, but neither the displayed place nor the data-fetching claim is observed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after seven days, and the proposal does not take an advantage from other readers or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a dismissible card on the Home feed after a weather-bar tap, rather than an interruption that blocks an ongoing task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable weather-bar tap, and the ad-failure path says no city is added unless the play is confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Home weather bar at s01.e29 and places the offer above the first story, separate from the observed feed ad slot."
+ },
+ "other_concern": "",
+ "fixable": false
+}

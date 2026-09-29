@@ -3,9 +3,9 @@ fallback; no-opportunity; checks_passed/total; and the whole stage with a fake m
 
 import pytest
 
-from simula import llm, runlog
+from simula import llm, runlog, validate
 from simula.contracts import GATES, JUDGMENT, CandidatesFile, Decision, DecisionsFile, LensOutput, Term
-from simula.stages import judge, propose
+from simula.stages import flows, judge, propose
 from tests.conftest import APPS
 from tests.judge_helpers import ctx_for, fake_llm, idea, live, seed, verdict
 from tests.propose_fixtures import golden
@@ -48,9 +48,27 @@ def test_unsupported_evidence_rejects_as_a_model_problem_and_names_a_human_gated
     assert (d.final, d.failure_type, d.rerun_stage) == ("reject", "product_model", "explore")
 
 
-def test_a_split_on_a_judgment_check_goes_to_a_person():
-    d = judge.decide(idea(golden("aol")), two(["c5_moment"], []), TWO, "annotate")
-    assert (d.final, d.judgment_splits, d.checks_passed) == ("needs_human", ["c5_moment"], 10)
+def test_a_split_on_a_judgment_check_is_conditional_and_carries_both_reasons():
+    c = idea(golden("aol"))
+    verdicts = two(["c5_moment"], [])
+    d = judge.decide(c, verdicts, TWO, "annotate")
+    assert (d.final, d.judgment_splits, d.checks_passed, d.rerun_stage) == ("conditional", ["c5_moment"], 10, None)
+    text = judge.condition(d, c, verdicts, "annotate")
+    assert "split on c5_moment" in text and "c5_moment fails here" in text and "c5_moment passes here" in text
+
+
+def test_only_a_lost_call_waits_on_a_person():
+    c = idea(golden("aol"))
+    assert judge.decide(c, [verdict(["c5_moment"])], TWO, "annotate").final == "needs_human"
+    assert judge.decide(c, two(["c5_moment"], ["c2_evidence"]), TWO, "annotate").final == "conditional"
+
+
+def test_a_premise_only_one_judge_doubts_leaves_the_idea_to_the_fallback():
+    c = idea(golden("janitorai"))
+    one_doubts = two(["c5_moment", "c2_evidence"], ["c5_moment"])
+    both_doubt = two(["c5_moment", "c2_evidence"], ["c5_moment", "c2_evidence"])
+    assert judge.could_fall_back(c, judge.decide(c, one_doubts, TWO, "annotate"), one_doubts)
+    assert not judge.could_fall_back(c, judge.decide(c, both_doubt, TWO, "annotate"), both_doubt)
 
 
 def test_a_unanimous_fail_outranks_a_split():
@@ -163,10 +181,10 @@ def test_survivors_come_first_by_rank_then_people_then_rejects():
     assert [d.candidate_id for d in judge.ordered(rows)] == ["c03", "c02", "c04", "c01"]
 
 
-def test_an_accept_wins_a_tie_but_never_passes_a_higher_score():
+def test_an_accept_always_ranks_above_a_conditional():
     # Real Luzia, round 6 (runs/luzia/20260928-042747-6d79ef8-fixture/judge/decisions.json): four survivors tied
     # at 1.0, and the one clean accept, c06, came fourth. Those CONDITIONALs came from the cost line, which annotate
-    # mode no longer does; the tie rule is the same for a judge's CONDITIONAL.
+    # mode no longer does; a split CONDITIONAL (D10) ranks the same way, below every accept even at a higher score.
     rows = [Decision(candidate_id=cid, final=final, checks_passed=checks, checks_total=11, rank_score=rank,
                      gate_fails=[], judgment_splits=[], verdict_paths=[], economics_verdict=econ, revision_of=None,
                      failure_type="proposal" if final == "reject" else None, rerun_stage=None)
@@ -178,7 +196,48 @@ def test_an_accept_wins_a_tie_but_never_passes_a_higher_score():
                                                    ("c04", "reject", 0.5, 9, "PASS")]]
     assert [d.candidate_id for d in judge.ordered(rows)] == ["c06", "c02", "c03", "c05", "c01", "c04"]
     higher = [d.model_copy(update={"rank_score": 2.0}) if d.candidate_id == "c05" else d for d in rows]
-    assert [d.candidate_id for d in judge.ordered(higher)] == ["c05", "c06", "c02", "c03", "c01", "c04"]
+    assert [d.candidate_id for d in judge.ordered(higher)] == ["c06", "c05", "c02", "c03", "c01", "c04"]
+
+
+KNOWN_GOOD = ["kg-candycrush-01", "kg-run-aol-c01", "kg-run-janitorai-c02", "kg-run-luzia-c05"]
+
+
+@pytest.mark.parametrize("n", [1, 2, 3])
+def test_every_known_good_idea_judge_1_accepts_reaches_the_deck_with_both_judges(n):
+    """The red team's routing check on the saved VF' runs (validation/verdicts/VF2): before D10, run 3 sent none of the 4
+    known-good ideas to flows, because a judge_2-only c2 fail went to a person. An idea every judge fails stays out."""
+    cases = {c.id: c for c in validate.load_cases()}
+    runs = validate.load_runs(validate.VERDICTS / "VF2")
+    decisions, accepted_alone, failed_by_both = [], [], []
+    for cid in KNOWN_GOOD:
+        pair = [runs[(cid, "judge_1")][n - 1], runs[(cid, "judge_2")][n - 1]]
+        d = judge.decide(cases[cid].candidate, pair, TWO, "annotate")
+        if judge.decide(cases[cid].candidate, pair[:1], ONE, "annotate").final == "accept":
+            accepted_alone.append(cid)
+            assert d.final == ("conditional" if d.judgment_splits else "accept")
+        if set(judge.failed_by_all(pair)) & set(JUDGMENT):
+            failed_by_both.append(cid)
+            assert d.final == "reject"
+        decisions.append(d)
+    deck = [d.candidate_id for d in flows.select(judge.ordered(decisions), None)]
+    assert accepted_alone and set(accepted_alone) <= set(deck) and not set(failed_by_both) & set(deck)
+    finals = [d.final for d in judge.ordered(decisions) if d.final in judge.SURVIVORS]
+    assert finals == sorted(finals, key=lambda f: f != "accept")
+
+
+def test_a_split_idea_is_labelled_on_its_slide_with_the_doubt_in_plain_words(tmp_path):
+    m = golden("janitorai")
+    split, clean = idea(m, "c01"), idea(m, "c02")
+    paths = {}
+    for c, verdicts in ((split, two([], ["c2_evidence"])), (clean, two())):
+        paths[c.id] = [f"judge/verdicts/{c.id}_judge_{i}_r1.json" for i in (1, 2)]
+        for path, v in zip(paths[c.id], verdicts):
+            (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
+            (tmp_path / path).write_text(v.model_dump_json())
+    d = judge.decide(split, two([], ["c2_evidence"]), TWO, "annotate", paths[split.id])
+    assert d.final == "conditional"
+    heading, sentence = flows.condition(d, tmp_path, none_accepted=False)
+    assert flows.PLAIN_CHECKS["c2_evidence"] in sentence and "c2_evidence fails here" in sentence
 
 
 # ---------- the whole stage, with a fake model ----------
@@ -218,6 +277,18 @@ def test_a_fixable_reject_is_revised_once_and_judged_fresh(tmp_path, monkeypatch
     revisions = CandidatesFile.model_validate_json((run_dir / "judge" / "revisions.json").read_text()).candidates
     assert [r.id for r in revisions] == [revised] and revisions[0].economics and revisions[0].title.startswith("Product change: ")
     assert sum(c["schema"] is LensOutput for c in calls) == 1
+
+
+def test_a_revision_that_returns_no_idea_says_so_and_the_reject_stands(tmp_path, monkeypatch):
+    app = "janitorai"
+    cands = live(app, {"rationale": "WEAK"})
+    run_dir = seed(tmp_path, app, cands)
+    call, _ = fake_llm({"WEAK": ["c7_specific"]}, revision=None)
+    monkeypatch.setattr(llm, "call", call)
+    judge.run(ctx_for(app, run_dir))
+    notes = [line.note for line in runlog.read_trace(run_dir / "trace.jsonl") if line.step == f"revise:{cands[0].id}"]
+    assert notes == ["the reviser returned 0 ideas for 1 asked; the reject stands"]
+    assert not CandidatesFile.model_validate_json((run_dir / "judge" / "revisions.json").read_text()).candidates
 
 
 def test_nothing_accepted_falls_back_to_one_conditional(tmp_path, monkeypatch):

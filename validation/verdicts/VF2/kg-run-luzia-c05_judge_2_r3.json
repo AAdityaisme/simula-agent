@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-run-luzia-c05",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-answer reward before play. The decline and ad-failure fields preserve the user's existing access and provide paths for unavailable or unconfirmed games."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is three in-app Advanced reasoning mode answers, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses session inactivity and subscription status, not anything the user wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal's reward is a sample of the paid feature listed at s02.e03; it does not remove or cap a free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the safe s01 Chats home screen, above its prompt card, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, s02.e03 lists Advanced reasoning mode as a Luzia+ paywall benefit."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The rationale says eligible users haven't tried the paid feature. Neither s02.e03 nor the trial entry point at s02.e19 establishes those users' past usage; this is an unsupported claim about current user behavior."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to three answers and expires at midnight, so it does not grant lasting access to the benefit listed at s02.e03."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a dismissible card on s01 Chats home at app open, not an interruption to an ongoing task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game, and the ad-failure field says an unconfirmed play earns no reward. The trigger is a detectable app-open event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea connects s01's Luzia+ badge and Chats home to Advanced reasoning mode on the s02 paywall."
+ },
+ "other_concern": "The rationale's prediction that ad revenue will cover model costs in North America needs validation.",
+ "fixable": true
+}

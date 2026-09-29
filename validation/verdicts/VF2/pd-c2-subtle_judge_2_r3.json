@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c2-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-answer reward before play, and the flow lets users choose the game. The decline and ad-failure fields provide paths without consuming the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field grants Advanced reasoning mode answers, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses time since the last session and subscription status, not message content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal's decline path leaves home working as before and specifies no change to free chat access. The chat-loss statement in the offer copy is an unsupported claim, not an implemented removal."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on s01 Chats home, which is rated content safe, rather than an offer inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, s02.e03 lists Advanced reasoning mode as a Luzia+ benefit, and the reward samples that benefit."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The offer copy claims past chats will be lost in 30 days without an upgrade. Neither s01's recent chats nor any other product-model element supports that expiry or upgrade requirement."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to three answers and expires at midnight; it does not grant lasting access to the s02.e03 paid benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a dismissible card on s01 home at first open after a gap, not an interruption in the middle of a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow offers a sponsored game, and the ad-failure field withholds the reward when play is not confirmed. First open after a session gap is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea ties a sample of s02.e03 Advanced reasoning mode to a card beneath the s01 Chats header and its Luzia+ badge."
+ },
+ "other_concern": "The unsupported chat-loss warning is also fear-based copy that could undermine user trust.",
+ "fixable": true
+}

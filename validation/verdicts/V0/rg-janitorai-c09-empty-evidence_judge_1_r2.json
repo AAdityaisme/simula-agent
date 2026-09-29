@@ -1,0 +1,49 @@
+{
+ "candidate_id": "rg-janitorai-c09-empty-evidence",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is opt-in (a card the fan can close), the offer copy states the reward (24-hour boost plus 7-day supporter name), declining leaves the page and like unchanged, and a no-game and unverified-play path is given."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic list boost and a supporter mention, neither of which can be withdrawn, sold, transferred or exchanged outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a tap on the like button (s07.e16), an app event, and no chat content is needed for targeting."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free; no limit is introduced and the feed and character page stay as they were if the user declines."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits on the character detail screen s07, which is rated safe and is not a chat screen, and it is app chrome rather than anything inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For a product_change, the new resource (list visibility for smaller creators) attaches to the Home feed Hidden Gems list, which is the entry step of core flow f1 (pick a character card from the home feed), and to the observed creator marketplace (m5)."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "Every claim about the app matches the product model: the Hidden Gems list of newer smaller-creator characters (s01.e13, s01.e15), 102 pages (s01.e27), creator byline, like and comments on s07 (s07.e12, s07.e16, s07.e03), and Vac appearing in Hidden Gems (s01.e52)."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is creator visibility and a supporter credit, unrelated to the Janitor Plus benefits (5× context, priority routing, frontier swipes, badge)."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears right after the fan taps like, which is a finished action, and it is a dismissible card on the character page rather than an interruption of a chat."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit where the boost and supporter mention are granted only after the verified play, and the trigger is a detectable like tap."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Hidden Gems smaller-creator list, the creator byline, the like button and the character page, so it would not read the same in any app."
+ },
+ "other_concern": "The boost changes Home ranking for all users, which needs a backend ranking change that was not observed. It could be gamed, and it gives the fan little personal value beyond a name credit. The placement (card under the byline) and the trigger (after tapping like) are slightly inconsistent.",
+ "fixable": false
+}

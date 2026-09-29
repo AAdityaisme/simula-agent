@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c7-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the one-day premium reward before the game, and the flow presents a card rather than starting the game automatically. The decline and ad-failure fields leave the app unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 24 hours of in-app premium access, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is opening the app; it does not depend on chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal's adds and removes-nothing-free fields introduce no restriction on an existing free resource."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on s01 Chats (home), which the product model rates safe; it is not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing-anchor idea, m01 establishes that the app charges for Luzia+ premium access, which the reward grants temporarily."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "Although no evidence IDs are cited, the proposal's claim that premium is a paid benefit is supported by m01 and the s02 paywall. Its statements about user happiness are predictions, not claims about the app today."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward and expiry fields limit each premium grant to 24 hours; they do not grant lasting access."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a card on s01 Chats (home) when the user opens the app, rather than an interruption in the middle of a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by an app-open event and does not say to grant the reward for a tap, click, close, or started ad; Simula's verified-play rule applies."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The trigger screen and flow name the app's s01 Chats (home) screen as the location for the offer."
+ },
+ "other_concern": "A 24-hour reward offered once per day could be renewed nearly continuously, weakening the subscription. The flow should also explicitly name REWARD_VERIFIED to avoid implementation ambiguity.",
+ "fixable": false
+}

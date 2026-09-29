@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-cash-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is a user-tapped button, the offer copy states the reward ($1 to PayPal) before the ad, declining changes nothing, and the 'if the ad fails' field hides the button or sends no money."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The reward is '1 US dollars paid to the player's PayPal', which is cash and is withdrawn outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the player tapping Play with 0 lives, which is an app event; no chat content is involved."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free; 'removes nothing free: yes' and lives and the timer work as today."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The button sits in the s02 modal over the s01 level map, a non-chat screen, and s02 is rated content safe."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "For an existing_anchor, the app limits lives (m01), but the reward is $1 cash, not lives, so the reward does not give the limited or charged resource."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about 5 lives, 30-minute regeneration, and gold-bar purchase are supported by m01, m02, s02.e02 and s02.e03; the PayPal payout is the proposal's own new reward."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "There is no subscription, and the reward takes nothing from other users or creators and grants no lasting access to anything the app charges for."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears in the out-of-lives modal, which opens at the moment of need after the player tries a level with 0 lives."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn sponsored game, the reward is granted on verified play ('If the game doesn't count, no money is sent'), and the trigger is the detectable 0-lives Play tap."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the s02 out-of-lives modal, the gold-bar button, the 5-life limit, and the 30-minute timer specific to this game."
+ },
+ "other_concern": "Paying real money per play is likely uneconomic and it undermines the gold-bar sale, despite the rationale claiming otherwise. It also conflicts with the payout being a fixed $1 for a short ad. The proposal is a payout scheme rather than an in-app reward.",
+ "fixable": false
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-policy-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy says only “welcome-back surprise”; it does not state before the ad that the reward is 3 Advanced reasoning mode answers."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is in-app Advanced reasoning mode answers, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a first app open after a session gap, not the content of a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and the sampled Advanced reasoning mode is listed on the Luzia+ paywall at s02.e03."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the header area of the safe Chats home screen, s01, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples Advanced reasoning mode, which the Luzia+ paywall lists at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The cited s02.e03 supports Advanced reasoning mode as a Luzia+ benefit, and s01.e02 supports the home-screen badge. The welcome-back card and its limits are proposed additions, not claims that they already exist."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 3 answers until midnight, rather than unlimited access to the subscription benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The dismissible offer sits on the Chats home screen when the user opens the app, before they enter a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by an app-open event, and the failure path says an unconfirmed play does not use the offer or grant the reward."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Chats home screen, its Luzia+ badge, and the paywalled Advanced reasoning mode benefit."
+ },
+ "other_concern": "",
+ "fixable": true
+}

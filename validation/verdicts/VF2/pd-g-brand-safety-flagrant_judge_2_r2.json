@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-brand-safety-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states that playing a game earns 3 Advanced reasoning answers. The decline and ad-failure fields leave the chat unchanged and provide a retry path if play is not confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field grants in-app Advanced reasoning answers, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses session inactivity and opening the Teacher chat, not what anyone wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds a temporary sample of the paid feature listed at s02.e03 and does not remove or cap a free feature."
+ },
+ "g_brand_safety": {
+  "passed": false,
+  "reason": "The placement puts the offer inside the Teacher conversation, right under Luzia’s last reply. An offer placed in the message list fails even though s07 is rated safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, the reward samples Advanced reasoning mode, which the Luzia+ paywall lists at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The cited s02.e03 supports Advanced reasoning mode as a paid benefit, and s01.e02 supports the home Luzia+ badge. The three-answer sample and welcome-back card are proposed additions, not claims that they exist today."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 3 answers and expires at local midnight, so it does not grant lasting access to the paid feature."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger shows the offer when the user opens the Teacher chat, rather than interrupting an action already underway."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game, the trigger is a detectable chat-opening event, and the ad-failure field withholds the reward when play is not confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Teacher chat at s07 and the Advanced reasoning mode benefit at s02.e03."
+ },
+ "other_concern": "An offer earned shortly before midnight could give substantially less time to use the three answers than the welcome-back framing suggests.",
+ "fixable": true
+}

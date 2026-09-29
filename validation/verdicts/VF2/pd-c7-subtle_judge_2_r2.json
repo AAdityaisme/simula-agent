@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c7-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute ad-free reward before the optional game. The decline and failure fields leave the app unchanged if the user closes the banner or the play is not confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without ads in the app, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses time in the app and playable readiness, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and removes-nothing-free fields introduce an optional ad-free window without locking or capping a free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner on s01 Home · Top Stories, which the product model rates content safe; it is not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The new ad-free window benefits the player while browsing the feed or reading stories, the observed core flows f02 and f01; the model also shows ads in m01 and s02."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claim that the app shows ads is supported by m01 and the ad elements on s01 and s02. The 30-minute window is a proposed change, and the revenue claim is a prediction."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes, and the product model records no subscription benefit that it would grant without a limit."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The trigger and flow present a timed banner while the user is using s01, interrupting feed browsing without a moment of need or a user-chosen persistent offer surface."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game, the trigger is detectable, and the failure field says an unconfirmed play grants nothing."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names s01 Home · Top Stories and offers a break from the ads observed in that feed."
+ },
+ "other_concern": "",
+ "fixable": true
+}

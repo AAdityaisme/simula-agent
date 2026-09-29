@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-brand-safety-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states 60 minutes of priority routing before the user chooses to play. The decline and ad-failure paths leave normal chatting available."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is in-app priority routing for 60 minutes, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses navigation, subscription status, and a reply event; it does not require reading what anyone said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and its decline path keeps replies at their existing speed."
+ },
+ "g_brand_safety": {
+  "passed": false,
+  "reason": "The placement puts the offer inside a character's reply. An offer sent as part of a conversation message fails this gate."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples priority routing, which s02.e06 lists as a Janitor+ benefit."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal claims free users can skip a normal queue, but the model marks free-tier routing as inferred and explicitly says it was not observed. s09.e31 establishes an Upgrade entry, not what a user sees after opening it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward lasts 60 minutes, so it does not give away Janitor+'s priority-routing benefit without a limit."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The placement interrupts an ongoing chat inside the character's next reply, rather than appearing after a finished action, at a moment of need, or on a persistent surface the user chooses to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game and app-detectable events; the failure path says unverified play does not turn on faster replies."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the My Chats flow, the profile-menu Upgrade entry, and Janitor+'s priority-routing benefit."
+ },
+ "other_concern": "",
+ "fixable": true
+}

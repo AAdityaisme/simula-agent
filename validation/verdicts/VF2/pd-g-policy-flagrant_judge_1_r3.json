@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-policy-flagrant",
+ "g_policy": {
+  "passed": false,
+  "reason": "The 'if the user declines' field says closing the card makes replies slower than normal for the rest of the day, so declining leaves the app worse than before the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (returning to the profile menu from the Upgrade entry). It uses no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The decline text implies a slowdown, but queue priority is a resource that costs the app money, so a new cap on it is allowed. Nothing else free is removed."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the profile menu drawer (s09), a sheet over the non-chat Profile screen. Both s09 and s08 are rated safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The app charges for priority routing (m02, l02 'Priority routing for faster replies'), and the reward gives a slice of that same resource."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the app rest on s09.e31 (permanent Upgrade entry), l02 (paid priority routing) and m03 (free users on normal priority, inferred from s02.e07). The card, copy, reward and cost claims are the proposal's own additions or predictions."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes, is capped at 2 per day, and does not give away the other subscription benefits (memory, swipes, badge)."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears on the profile menu, a persistent surface the user chooses to open, and does not interrupt a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn rewarded game, the reward is granted only after the verified play, and the trigger (returning to the menu from the Upgrade entry) is an app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Janitor+ priority routing benefit, the Upgrade to Janitor Plus entry in the profile menu (s09.e31), and the app's My Chats screen."
+ },
+ "other_concern": "Faster replies as a reward depend on a free-tier queue limit that was never directly observed (open question), and the destination of the Upgrade entry is not shown, so the 'returns without subscribing' trigger may be hard to detect. The offer only reaches users who already opened the upsell.",
+ "fixable": true
+}

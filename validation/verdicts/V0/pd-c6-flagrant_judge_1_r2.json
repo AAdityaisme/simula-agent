@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c6-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner is opt-in (dismissible, user taps to play) and the offer copy states the reward and its size (30 minutes without sponsored stories). Declining changes nothing, and the 'if the ad fails' field gives a failure path, though a flawed one that is scored under c6."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a 30-minute window without sponsored cards, a feature_time reward that cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an article-open counter reaching 3 on return to s01, which is an app event and needs no chat or typed content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed, locked, or capped. Sponsored cards keep showing as usual unless the user opts in, and the 'removes nothing free: yes' field is consistent with that."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The banner is a list-style card on s01, which is rated safe, and the app has no chat screen. It is app chrome, so it is not inside a conversation or next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is a product_change. The new resource, an ad-free read window, is tied to the observed core loop f01 (read a story from the feed), so it meets the 'tied to a core loop' route even though nothing is charged or limited."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The cited elements s01.e44, s06.e33 and s02.e13 do show Taboola sponsored cards in the feed and in articles, and the patchy fill is in the model (m01). The 'no paywall or limit' claim rests on an open question that covers only the home feed, which I note but do not count as a failure."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No paid plan was observed, and the reward is a time-limited 30-minute window capped at 2 per day, so it gives away no subscription benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears when the reader returns to the feed after finishing a third article. That is a finished action and not mid-article, and the banner is dismissible."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The 'if the ad fails' field says 'The prize is given when the reader closes the game, played or not', and the flow grants the reward on close. Simula requires the reward to be granted only on the verified play (REWARD_VERIFIED), not on a close."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names this app's Taboola sponsored card below the first story on s01, the in-article card on s02, and the read-to-feed loop, so it would not read the same in any app."
+ },
+ "other_concern": "Revenue displacement is asserted rather than shown, since the model has no data on ad value. The claim that the only friction is sponsored cards also ignores the unobserved Inbox sign-in. Both are speculative but not fail conditions.",
+ "fixable": true
+}

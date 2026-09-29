@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-policy-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy 'Play a short game for a welcome-back surprise!' does not state what the reward is or how much (3 Advanced reasoning answers) before the ad, which fails the requirement to state the reward up front."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 Advanced reasoning answers valid until midnight, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the first app open after 3 or more days without a session, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds a sample and says 'removes nothing free: yes'. Nothing free today is removed, locked or capped."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card is a dismissible list card on Chats home (s01, content rated safe) and is not inside the conversation or on a chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Advanced reasoning mode is a paid Luzia+ benefit (m01, l02, s02.e03), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the paid feature, the plans, the trial and the Luzia+ badge are backed by s02.e03, s02.e19 and s01.e02. The cost and market remarks are predictions, and the reward is marked as an inference."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The sample is 3 answers that expire at midnight local time, so it is a sample that ends. It does not take anything from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears on the home screen at app open, before any task has started, so it interrupts nothing."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit. The reward card appears only after a confirmed play, and an unconfirmed play shows 'That game didn't count'. The trigger is a detectable session gap."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names Advanced reasoning mode (s02.e03), the Luzia+ badge, the Chats home prompt card and the 3-day trial, so it is specific to this app."
+ },
+ "other_concern": "The 3-day gap trigger may reach few users. The 'can close at any time' game step needs a verified-play gate before the reward is granted. Reward size in lower-earning markets is only a suggestion.",
+ "fixable": true
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "rg-janitorai-c07-fan-boost",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the list boost and supporter heart with their durations before play. The flow requires the fan to choose the game, and the decline and ad-failure fields leave the page unchanged without granting a reward."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a supporter heart and temporary list boost, neither of which is cash or exchangeable value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a tap on the like button shown at s07.e16; it does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and removes-nothing-free fields do not lock or cap an existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer card is placed on the safe s07 character-detail screen, below its like and stats row, rather than in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "The reward field gives the fan a supporter heart, but the central list boost gives most of its value to the character’s creator through added visibility, rather than to the player for their own use."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The rationale claims small creators have only 'one fixed place to be found,' which is unsupported: s02 shows a searchable character catalog. The what-makes-it-work-here field also asserts that a new character sits deep in the list, which s01.e27’s page count does not establish."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "Moving one character near the top of the ordered Hidden Gems list takes visibility and list position from other creators; m1 and m2 do not show that the app already sells that advantage."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger event presents the card after the user taps like on s07, at the completion of an action rather than mid-task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game after a detectable like-button tap and grants the reward only once the play is confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the Hidden Gems tab at s01.e13, its smaller-creator description at s01.e15, and the character-page like button at s07.e16."
+ },
+ "other_concern": "The rationale’s claim that the boost costs nothing to run overlooks potential ranking and abuse-control work.",
+ "fixable": false
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-chat-content-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The home card's offer copy states the 3-answer reward before the user chooses to play. The decline and ad-failure fields preserve normal use and provide a retry path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field gives answers in Advanced reasoning mode, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": false,
+  "reason": "The advertiser category is picked from what the user talked about with Luzia this week. That targeting needs chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal's reward is a sample of the paid feature listed at s02.e03; it does not remove or cap an observed free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a dismissible card on s01 Chats (home), which is rated content safe, rather than an offer inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, s02.e03 lists Advanced reasoning mode on the Luzia+ paywall, and the reward gives a limited number of answers using it."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The proposal's claims about the existing paid feature, plans, trial, and home badge are supported by s02.e03, the s02 plan and trial elements, and s01.e02. The welcome-back card and answer allowance are proposed additions, not claims that they exist today."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits the paid-feature sample to three answers and expires it at midnight, rather than granting lasting access."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger and placement put a dismissible card on Chats home when the user opens the app, not in the middle of a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game, and the ad-failure field makes the reward conditional on confirmed play. The first open after a three-day gap is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea ties its home-card placement to s01 and its reward to Advanced reasoning mode on the Luzia+ paywall at s02.e03."
+ },
+ "other_concern": "The rationale's claim that the sample pays for itself in higher-earning markets is a prediction, not an observed product fact.",
+ "fixable": false
+}

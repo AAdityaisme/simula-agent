@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c1-subtle-aol-c07",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is an opt-in card whose copy states the reward (a second city for 7 days). Declining hides the card with no loss, and 'if the ad fails' covers both no fill and an unconfirmed play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a second city in the weather bar for 7 days, which has no monetary value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (weather bar taps counted across days) and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The second city is a new addition. Nothing free today is removed or capped, and the bar reverts to one city, which is the current state."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in app chrome on s01, which is rated safe. It is not in a conversation and not next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "For a product_change, the new resource (a second weather city) is not a slice of anything the app charges for, since no paywall or limit was observed. It is also not tied to the observed core flows (f01 read a story, f02 browse a category)."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal cites no evidence. The model only shows a 'Tap here for weather' element (s01.e29), so the claims that the bar shows one place, that the app already fetches the data, and that readers check it several days a week are not observed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No subscription was observed, and the reward is a 7-day sample with a daily cap."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card is a slim persistent element at the top of the Home feed and does not interrupt a task in progress. The user can ignore it or dismiss it."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn sponsored game, and the city is granted only once the play is confirmed. The trigger is a detectable app event (weather bar taps)."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the home weather bar (s01.e29), the feed ad slot and the Home screen, so it is tied to this app."
+ },
+ "other_concern": "The weather bar is a peripheral feature of a news app. The 'third day in the same week' trigger also needs cross-day tracking that was not observed. The pick-city step asks the user to type a city name, which is a minor UX cost.",
+ "fixable": false
+}
