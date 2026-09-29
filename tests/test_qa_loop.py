@@ -20,6 +20,7 @@ from simula.stages import mock, qa
 from tests.conftest import APPS
 from tests.mock_fake import golden, seed_model, skeleton_html
 from tests.test_mock_isolation import ctx_for, fake_builder
+from tests.test_mock_fonts import live_build_with_fonts, no_network, replay
 
 
 @pytest.fixture(autouse=True)
@@ -291,6 +292,22 @@ def test_qa_walks_exactly_the_screens_the_mock_drew_even_an_unsafe_one_on_a_core
     report = json.loads((run_dir / "qa" / "qa_report.json").read_text())
     assert unsafe in [s["state_id"] for s in report["screens"]]
     assert next(w for w in report["flows"] if w["flow"] == flow.id)["status"] == "passed"
+
+
+def test_a_mock_replayed_offline_keeps_qas_replay_key(tmp_path, monkeypatch):
+    """QA's records are keyed by the page and a hash of mock/assets, fonts included. A --replay of the mock builds its
+    fonts from the record with no network, so QA's measure key doesn't move and QA's replay finds its record."""
+    run_dir, _, _ = live_build_with_fonts(tmp_path, monkeypatch, APPS[0])
+    ctx = ctx_for(run_dir, APPS[0])
+
+    def measure_key():
+        return qa.record_path("measure", 0, (run_dir / "mock" / "index.html").read_text(), qa.inputs_digest(ctx))
+    live = measure_key()
+    assert list((run_dir / "mock" / "assets" / "fonts").glob("*.woff2"))
+
+    monkeypatch.setattr(mock, "fetch", no_network)
+    replay(run_dir, APPS[0])
+    assert measure_key() == live
 
 
 # ---------- a synthetic 12-screen model: the critic in groups, undrawn screens ----------
