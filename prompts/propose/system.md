@@ -42,11 +42,11 @@ The bible calls some fields by other names: its `adapted_from` is `bible_mechani
 
 ## Language
 
-`title`, `offer_copy`, every `flow_steps` caption, and `rationale` go on slides for the app's product team. Write them in plain product language: short sentences, no element ids, no M-ids, no ad-tech or cost terms (eCPM, fill, ad slots, ad units, serving cost, SDK events). Say what the user sees and gets. Name plans, tiers, and features only as the app shows them in the product model, and explain every app term in plain words a first-time user understands ("5 extra replies from the stronger model", not "5 turbo pulls"). Don't invent a feature name the user would have to learn (a "Bonus Pack"); say what they get ("2 more today, until midnight").
+The slides print `title`, `offer_copy`, `after_reward`, `adds`, `placement`, `trigger_event`, `frequency_cap`, `rationale`, `subscriber_treatment`, `decline_path`, `ad_fail_path`, `character_use`, `reward.unit`, `reward.duration`, and every `flow_steps` caption, for the app's product team. Write them in plain product language: short sentences, no element ids, no M-ids, no ad-tech or cost terms (eCPM, fill, ad slots, ad units, serving cost, SDK events). Say what the user sees and gets. Name plans, tiers, and features only as the app shows them in the product model, and explain every app term in plain words a first-time user understands ("5 extra replies from the stronger model", not "5 turbo pulls"). Don't invent a feature name the user would have to learn (a "Bonus Pack"); say what they get ("2 more today, until midnight").
 
 The `title` says what the user gets, in the app's own words, in 10 words or fewer. How it works goes in `adds` and `what_is_different_here`, not the title.
 
-When an idea rests on something the product model doesn't show, say it wasn't seen, not that the app lacks it: "no paywall was seen in the explored screens", never "the app has no paywall".
+When an idea rests on something the product model doesn't show, say so only in `what_is_different_here`, and say it wasn't seen, not that the app lacks it: "no paywall was seen in the explored screens", never "the app has no paywall". The fields the slides print say what the user sees and gets ("every user sees the same offer"), never what was or wasn't seen.
 
 ## Rules
 

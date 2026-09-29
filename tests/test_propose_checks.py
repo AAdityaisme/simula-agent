@@ -1,5 +1,6 @@
 import hashlib
 import json
+import re
 import time
 
 import pytest
@@ -522,6 +523,26 @@ def test_the_proposer_is_asked_for_a_cap_with_its_own_period_since_less_than_dai
 PRINTED = ["title", "offer_copy", "after_reward", "adds", "placement", "trigger_event", "frequency_cap", "rationale",
            "subscriber_treatment", "decline_path", "ad_fail_path", "character_use", "reward.unit", "reward.duration",
            "caption"]
+
+
+def language() -> str:
+    """The proposer prompt's rules for the words the slides print."""
+    return SYSTEM.split("## Language")[1].split("\n## ")[0]
+
+
+@pytest.mark.parametrize("field", PRINTED)
+def test_the_proposer_is_told_to_write_every_field_the_slides_print_for_the_product_team(field):
+    rule = next(line for line in language().splitlines() if "plain product language" in line)
+    assert ("every `flow_steps` caption" if field == "caption" else f"`{field}`") in rule
+
+
+def test_the_proposer_says_what_was_not_seen_only_in_a_field_the_slides_never_print(model):
+    """An idea resting on an absence is true to say "wasn't seen", but "in the explored screens" is the pipeline
+    talking; on the slides it read "No paid plan was seen in the explored screens" on every AOL idea."""
+    rule = next(line for line in language().splitlines() if "wasn't seen" in line)
+    assert re.findall(r"`(\w+)`", rule) == ["what_is_different_here"]
+    c = candidate(model, what_is_different_here="No paid plan was seen in the explored screens.")
+    assert not any("explored screens" in words for words in propose.printed(c))
 
 
 def with_words(model, field: str, words: str):
