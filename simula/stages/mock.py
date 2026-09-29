@@ -23,7 +23,8 @@ from PIL import Image
 
 from simula import config, llm, render
 from simula.config import ROOT
-from simula.contracts import ContractError, ContractReport, Device, Edge, Element, ProductModel, Rect, State
+from simula.contracts import (ContractError, ContractReport, Device, Edge, Element, ProductModel, Rect, StageOutcome,
+                              State)
 from simula.runlog import read_trace, run_trace, write_exhibit
 from simula.stages import Ctx
 
@@ -45,6 +46,7 @@ CODE_POINTS = re.compile(r"U\+([0-9a-fA-F]+)(?:-([0-9a-fA-F]+))?")
 FETCH_TIMEOUT_S = 20
 FONT_RECORDS = "font-records"
 PLAN_RECORD = "plan.json"
+CAP_REASON = "$ cap reached: "
 # Every way urllib fails a download: a socket, TLS or HTTP status error (OSError), or a cut-off or malformed
 # response (HTTPException, which isn't an OSError).
 FETCH_ERRORS = (OSError, http.client.HTTPException)
@@ -165,7 +167,7 @@ RUNTIME_JS = """<script id="simula-runtime-js">
 """
 
 
-def run(ctx: Ctx) -> None:
+def run(ctx: Ctx) -> StageOutcome:
     model_dir, mock_dir = ctx.run_dir / "model", ctx.run_dir / "mock"
     model = ProductModel.model_validate_json((model_dir / "product_model.json").read_text())
     if not ctx.replay:
@@ -202,6 +204,10 @@ def run(ctx: Ctx) -> None:
     run_trace(ctx.run_dir, stage="mock", step="contract", decider="code", outcome="ok" if report.passed else "error",
               note=f"{len(screens)} screens rendered, {len(undrawn)} not drawn, {len(errors)} contract errors")
     write_exhibit(ctx.run_dir, 3, "mock", exhibit(ctx, model, scope, groups, undrawn, html, report, plan))
+    # A batch the $ cap left out makes the stage partial through its cap trace line (run_stage); the rest say why here.
+    lost = [f"not drawn: {' '.join(s.id for s in batch)}: {undrawn[batch[0].id]}" for batch in groups
+            if batch[0].id in undrawn and not undrawn[batch[0].id].startswith(CAP_REASON)]
+    return StageOutcome(status="partial", reasons=lost) if lost else StageOutcome()
 
 
 def pick_scope(model: ProductModel) -> list[State]:
@@ -562,7 +568,7 @@ def scoped_to(selector: str, ids: set[str]) -> bool:
 
 
 def failure_reason(e: BaseException) -> str:
-    return (f"$ cap reached: {e}" if isinstance(e, llm.CapReached) else str(e))[:200]
+    return (f"{CAP_REASON}{e}" if isinstance(e, llm.CapReached) else str(e))[:200]
 
 
 def failure_outcome(e: BaseException) -> str:

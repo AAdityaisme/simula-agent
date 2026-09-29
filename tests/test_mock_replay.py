@@ -27,6 +27,31 @@ def no_desktop_notice(monkeypatch):
     monkeypatch.setattr(runlog, "notify", lambda title, message: True)
 
 
+def screens_of(messages) -> list[str]:
+    content = [p for p in messages[0]["content"] if p.get("text") != mock.SHORTER]
+    return batch_screens({"messages": [{"role": "user", "content": content}]})
+
+
+def drawn(model, model_id, messages, tokens_out=1000, stop="end_turn") -> llm.Reply:
+    page = without_edges(skeleton_html(model, screens_of(messages)))
+    return llm.Reply(text=f"```html\n{page}\n```", model=model_id, tokens_in=5000, tokens_out=tokens_out,
+                     stop_reason=stop)
+
+
+def losing_first_batch(model, kind: str):
+    """A provider that draws every batch but loses the first one's call: a timeout, or a 5xx."""
+    first = mock.batches(mock.pick_scope(model))[0][0].id
+
+    def provider(model_id, system, messages, effort, schema, max_tokens, total_timeout=None):
+        if first in screens_of(messages):
+            if kind == "timeout":
+                raise llm.LLMFailure("timeout", "stream idle 60 s")
+            request = httpx2.Request("POST", "https://api.anthropic.com/v1/messages")
+            raise anthropic.InternalServerError("overloaded", response=httpx2.Response(529, request=request), body=None)
+        return drawn(model, model_id, messages)
+    return provider
+
+
 @pytest.mark.parametrize("gap", ["no_plan_record", "cache_moved_aside"])
 def test_a_replay_that_misses_leaves_the_committed_record_whole(runs, tmp_path, monkeypatch, gap):
     """A replay that can't rebuild the mock keeps the run's done.json, so every file that marker records must still
@@ -49,3 +74,31 @@ def test_a_replay_that_misses_leaves_the_committed_record_whole(runs, tmp_path, 
                if h.path not in moved and not (run_dir / h.path).exists()]
     assert missing == []
 
+
+def test_a_batch_lost_to_a_timeout_makes_the_mock_partial_with_why_and_how_to_resume(runs, tmp_path, monkeypatch):
+    with_cache_in(tmp_path, monkeypatch)
+    model = golden(APP)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", losing_first_batch(model, "timeout"))
+    assert cli.main(["mock", APP, "--allow-fixtures", "--fixture", f"model={GOLDEN}"]) == 0
+    run_dir = (runs / APP / "latest").resolve()
+    first = mock.batches(mock.pick_scope(model))[0]
+    outcome = runfolder.read_done(run_dir / "mock").outcome
+    assert outcome.status == "partial"
+    assert outcome.reasons == [f"not drawn: {' '.join(s.id for s in first)}: timeout: stream idle 60 s"]
+    assert outcome.resume.startswith(f"simula mock {APP} --run {run_dir.name} ")
+
+
+def test_batches_the_cap_left_out_are_named_once_and_resume_with_a_higher_cap(runs, tmp_path, monkeypatch):
+    """The cap's own trace lines make the stage partial (run_stage), so the mock doesn't name those batches again."""
+    with_cache_in(tmp_path, monkeypatch)
+    monkeypatch.setattr(mock, "worst_usd", lambda ctx, content: 1.0)
+    monkeypatch.setattr(llm, "worst_case_usd", lambda model_id, tokens_in, tokens_out: 1.0)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider_drawing(golden(APP), []))
+    assert cli.main(["mock", APP, "--allow-fixtures", "--fixture", f"model={GOLDEN}", "--usd-cap", "2"]) == 0
+    run_dir = (runs / APP / "latest").resolve()
+    outcome = runfolder.read_done(run_dir / "mock").outcome
+    left_out = [t.note for t in read_trace(run_dir / "trace.jsonl") if t.note.startswith("not drawn:")]
+    assert outcome.status == "partial" and left_out
+    assert len(outcome.reasons) == len(set(outcome.reasons))
+    assert all(sum(note in reason for reason in outcome.reasons) == 1 for note in left_out)
+    assert outcome.resume.endswith("--usd-cap <higher>")
