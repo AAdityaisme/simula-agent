@@ -455,8 +455,9 @@ def resolve_terms(meaning: ModelMeaning, states: list[State], edges: list[Edge],
     term nor explains it. Otherwise the term is marked 'meaning not observed', and an idea that uses it is flagged
     unless the model labeled it `everyday`; the label is kept as written and never makes a term observed. Known
     limits: a call to action ("Unlock <term>"), a role word in an app's own label ("<term> tab") or a sentence that
-    only uses the term ("monthly <term> with our models") reads as an explanation, and a price on a plan card
-    ("Weekly", "$1.99") doesn't; which cited text explains the term stays the model's call."""
+    only uses the term ("monthly <term> with our models") reads as an explanation, a tap on an element that names
+    the term only in passing (a list row "..., 7 <term>") carries it to whatever screen that tap opened, and a price
+    on a plan card ("Weekly", "$1.99") doesn't explain; which cited text explains the term stays the model's call."""
     elements = {e.id: e for s in states for e in s.elements}
     screen = {e.id: s.id for s in states for e in s.elements}
     taps = [g for g in edges if g.action == "tap" and g.element_id in elements]

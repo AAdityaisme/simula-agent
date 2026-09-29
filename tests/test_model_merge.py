@@ -474,6 +474,20 @@ def test_only_a_tap_on_app_text_that_says_more_than_the_term_carries_it_to_the_n
     assert (term.observed, term.defined_by) == (False, [])
 
 
+def test_a_tap_from_any_element_that_names_the_term_carries_it_to_the_screen_it_opened():
+    """The documented known limit, pinned: code can't tell whether the opened screen is about the term, so a tap on
+    an element that names it in passing still carries it. On the five saved real runs every such tap opens a screen
+    about its term: a plan's paywall, a pet's page, a character's chat list."""
+    states, meaning, edges, model_labels = real_terms("janitorai-2026-09-29")
+    drafted = next(t for t in meaning.terms if t.term == "Hidden Gems")
+    meaning.terms[:] = [drafted.model_copy(update={"defined_by": ["s13.e10"]})]
+    unrelated = Edge(id="s01.e15>s13", from_state="s01", to_state="s13", element_id="s01.e15", action="tap",
+                     transition="push", change_summary="")
+    assert not stage.resolve_terms(meaning, states, edges, model_labels)[0].observed
+    (term,) = stage.resolve_terms(meaning, states, [*edges, unrelated], model_labels)
+    assert (term.observed, term.defined_by) == (True, ["s13.e10"])
+
+
 def test_a_sentence_that_only_uses_a_term_counts_if_the_model_cites_it():
     """The documented known limit, pinned so that closing or widening it shows up here: s13.e11 uses "swipes"
     without saying what one is."""
