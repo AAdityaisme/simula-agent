@@ -33,10 +33,11 @@ REPORT = {  # the shape PR 4's qa stage writes (test_qa_loop's partial-QA test v
     "keep_score_formula": "10 × (0.5 bounds + 0.3 nav + 0.2 ssim); it is not a fidelity percentage.",
     "structure": {"tagged": 2, "within_4dp": 1},
     "interaction": {"taps": 1, "taps_passing": 0, "flows": 1, "flows_walked": 0},
-    "visual": {"masked_ssim_mean": 0.71, "screens_by_ssim": [{"screen": "s01", "ssim": 0.71}]},
+    "visual": {"masked_ssim_mean": 0.71, "pixelmatch_mean": 0.042,
+               "screens_by_ssim": [{"screen": "s01", "ssim": 0.71, "pixelmatch": 0.042}]},
     "open_findings": [{"element_id": "s01.e02", "problem": "p", "fix": "f"}], "stop_reason": "round 2 lost",
     "rounds": [{"round": 0, "keep_score": 7.4, "kept": True, "contract_errors": 1, "failed_taps": 1, "failed_flows": 0,
-                "edits_applied": 0, "edits_rejected": 0}],
+                "cross_screen_failures": 1, "edits_applied": 0, "edits_rejected": 0}],
     "keep_rule_disagreement": {"round": 2, "score_only_approves": 2, "contract_errors": [0, 1], "score": [8.12, 8.3]},
     "undrawn_screens": [{"screen": "s04", "reason": "its batch failed"}],
     "screens": [{"state_id": "s01", "ssim_masked": 0.71, "pixelmatch_ratio": None, "masked_coverage": 0.93,
@@ -47,6 +48,8 @@ REPORT = {  # the shape PR 4's qa stage writes (test_qa_loop's partial-QA test v
     "flows": [{"flow": "f01", "name": "Upgrade", "status": "failed", "problem": "tap missed", "screen": "s01",
                "gestures": ["s02.back>s01"]}],
     "contract_errors": [{"kind": "undrawn_screen", "detail": "batch 2 failed", "screen": "s04"}],
+    "cross_screen_failures": [{"kind": "chrome", "screen": "s01", "detail": 'data-chrome="tabbar" on s01 renders '
+                               "differently from s02 (SSIM 0.912 …): draw it as s02 does"}],
 }
 
 
@@ -62,7 +65,8 @@ def test_the_qa_and_art_wrappers_read_what_the_qa_and_mock_stages_write():
 
 def test_a_complete_report_with_nothing_open_and_nothing_scored_reads():
     complete = {**REPORT, "status": "approved", "outcome": "complete", "reasons": [], "resume": None, "resume_note": None,
-                "open_findings": None, "visual": {"masked_ssim_mean": None, "screens_by_ssim": []}}
+                "open_findings": None, "cross_screen_failures": [],
+                "visual": {"masked_ssim_mean": None, "pixelmatch_mean": None, "screens_by_ssim": []}}
     assert QAReport.model_validate(complete).model_dump(mode="json") == complete
 
 
@@ -87,8 +91,9 @@ FLOW = REPORT["flows"][0]
     {**REPORT, "flows": [without(FLOW, "gestures")]},
     {**without(REPORT, "keep_score"), "score": 8.12},
     {**REPORT, "flows": [{**without(FLOW, "gestures"), "navigated": ["s02.back>s01"]}]},
+    without(REPORT, "cross_screen_failures"),
 ], ids=["no outcome", "no resume_note", "no open_findings", "a flow with no gestures", "score before keep_score",
-        "navigated before gestures"])
+        "navigated before gestures", "no cross_screen_failures"])
 def test_a_report_missing_what_qa_always_writes_is_refused_not_read_with_a_default(report):
     with pytest.raises(ValidationError):
         QAReport.model_validate(report)

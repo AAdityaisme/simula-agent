@@ -544,6 +544,7 @@ class QARound(Strict):
     contract_errors: int
     failed_taps: int
     failed_flows: int
+    cross_screen_failures: int
     edits_applied: int
     edits_rejected: int
 
@@ -607,12 +608,23 @@ class Interaction(Strict):
 class ScreenSSIM(Strict):
     screen: str
     ssim: float
+    pixelmatch: float | None  # the share of its unmasked pixels pixelmatch finds different
 
 
 class Visual(Strict):
-    """Masked SSIM: the mean, and each scored screen from the lowest up."""
+    """Masked SSIM: the mean, and each scored screen from the lowest up, with pixelmatch's share of differing
+    pixels beside it."""
     masked_ssim_mean: float | None
+    pixelmatch_mean: float | None
     screens_by_ssim: list[ScreenSSIM]
+
+
+class CrossScreenFailure(Strict):
+    """A part that should look the same on every screen and doesn't: shared chrome that renders differently, or a
+    shared value that doesn't read the model's value. screen is the one to fix."""
+    kind: Literal["chrome", "value"]
+    screen: str
+    detail: str
 
 
 class QAReport(Strict):
@@ -641,6 +653,7 @@ class QAReport(Strict):
     failed_taps: list[TapCheck]
     flows: list[FlowWalk]
     contract_errors: list[ContractError]
+    cross_screen_failures: list[CrossScreenFailure]
 
 
 class Lens(Strict):
