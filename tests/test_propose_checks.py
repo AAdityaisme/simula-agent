@@ -1,4 +1,5 @@
 import hashlib
+import json
 import time
 
 import pytest
@@ -385,27 +386,67 @@ def with_terms(model):
 
 
 @pytest.mark.parametrize("field", ["title", "offer_copy", "after_reward"])
-def test_an_idea_using_a_term_whose_meaning_was_never_observed_is_dropped(model, field):
+def test_an_idea_using_a_term_whose_meaning_was_never_observed_is_flagged_and_stays_live(model, field):
     m = with_terms(model)
     c = candidate(m, **{field: "Play once for 3 zap\xa0credits."})
-    assert check(c, m) == 'uses "Zap Credits", whose meaning was never observed'
+    assert check(c, m) is None
+    [out], *_ = finish([c], m, "annotate")
+    assert out.dropped_reason is None and out.flags == ['uses "Zap Credits", whose meaning was never observed']
 
 
 def test_an_observed_term_can_be_used_and_the_unobserved_one_is_listed_for_the_proposer(model):
     m = with_terms(model)
-    assert check(candidate(m, offer_copy="Play once for a day of Pro."), m) is None
+    [out], *_ = finish([candidate(m, offer_copy="Play once for a day of Pro.")], m, "annotate")
+    assert out.dropped_reason is None and out.flags == []
     text = propose.model_text(m)
-    assert '- "Zap Credits"' in text and '- "Pro"' not in text
+    assert '- "Zap Credits"' in text and '- "Pro"' not in text and "code flags an idea that does for the judge" in text
     assert "never observed" not in propose.model_text(model.model_copy(update={"terms": []}))
 
 
-def test_a_short_unobserved_term_matches_only_as_a_whole_word(model):
-    pro = Term(term="Pro", meaning="meaning not observed", defined_by=[], used_in=[], observed=False)
-    m = model.model_copy(update={"terms": [pro]})
-    assert check(candidate(m, title="Try Pro today"), m) == 'uses "Pro", whose meaning was never observed'
-    assert check(candidate(m, title="Protect your streak"), m) is None
+def unobserved(model, *words):
+    terms = [Term(term=w, meaning="meaning not observed", defined_by=[], used_in=[], observed=False) for w in words]
+    return model.model_copy(update={"terms": terms})
+
+
+def test_a_short_unobserved_term_flags_only_as_a_whole_word(model):
+    m = unobserved(model, "Pro")
+    [out], *_ = finish([candidate(m, title="Try Pro today")], m, "annotate")
+    assert out.dropped_reason is None and out.flags == ['uses "Pro", whose meaning was never observed']
+    [out], *_ = finish([candidate(m, title="Protect your streak")], m, "annotate")
+    assert out.dropped_reason is None and out.flags == []
     assert propose.uses_term("Janitor+", "Said no to janitor+? Play once.")
     assert propose.uses_term("Zap Credits", "3 zap\xa0\xa0credits") and not propose.uses_term("Zap", "Zappy")
+
+
+def test_short_terms_inside_ordinary_words_raise_no_flag(model):
+    m = unobserved(model, "AI", "Pro", "Go")
+    words = dict(title="Play again for a golden profile frame", offer_copy="Available daily. Good for 7 days.",
+                 after_reward="The frame goes away, and your profile looks as before.")
+    [out], *_ = finish([candidate(m, **words)], m, "annotate")
+    assert out.dropped_reason is None and out.flags == []
+
+
+def test_two_unobserved_terms_give_two_flags_in_term_order(model):
+    m = unobserved(model, "Zap Credits", "Pro")
+    [out], *_ = finish([candidate(m, title="Try Pro today", offer_copy="Play once for 3 Zap Credits.")], m, "annotate")
+    assert out.dropped_reason is None
+    assert out.flags == ['uses "Zap Credits", whose meaning was never observed',
+                         'uses "Pro", whose meaning was never observed']
+
+
+def test_the_report_and_trace_count_flags_apart_from_drops(model, tmp_path, monkeypatch):
+    run_with(unobserved(model, "Pro"), tmp_path, monkeypatch, set(), draft={"title": "Try Pro today"})
+    out = CandidatesFile.model_validate_json((tmp_path / "propose" / "candidates.json").read_text()).candidates
+    live = [c for c in out if not c.dropped_reason]
+    assert live and all(c.flags == ['uses "Pro", whose meaning was never observed'] for c in live)
+    exhibit = next((tmp_path / "exhibits").glob("05-*.md")).read_text()
+    assert (f"{len(live)} live candidates ({len(live)} flagged for an unobserved term), "
+            f"{len(out) - len(live)} dropped") in exhibit
+    assert "- Flag for the judge: uses \"Pro\", whose meaning was never observed" in exhibit
+    trace = [json.loads(line) for line in (tmp_path / "trace.jsonl").read_text().splitlines()]
+    flags = [t for t in trace if t["step"].startswith("flag:")]
+    assert len(flags) == len(live) and all(t["outcome"] == "ok" for t in flags)
+    assert not any("never observed" in (t.get("note") or "") for t in trace if t["outcome"] == "denied")
 
 
 def with_experience(model):
