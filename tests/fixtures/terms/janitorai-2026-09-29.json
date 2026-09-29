@@ -1,5 +1,5 @@
 {
- "source": "ve's approved model-stage rerun runs/janitorai/20260928-093155-a2a161c-everyday (copy of JanitorAI run 20260928-093155-a2a161c, 2026-09-29): model/product_model.json states ['s01', 's06', 's13'] (every screen a term's defined_by cites, and every screen with a recorded tap on app text into one, kept whole) and edges, and the model's final answer (cache 780940396018) after check_meaning, with states, elements, flows and open questions left out; model_labels: the elements whose label that run's explore icon or vision pass wrote (explore/states/<sid>.json)",
+ "source": "ve's approved model-stage rerun runs/janitorai/20260928-093155-a2a161c-everyday (copy of JanitorAI run 20260928-093155-a2a161c, 2026-09-29): model/product_model.json states ['s01', 's06', 's13'] (every screen a term's defined_by cites, every screen with a recorded tap on app text into one, and s03 and s15, a chat row and the sheet its tap opened, kept whole) and edges, and the model's final answer (cache 780940396018) after check_meaning, with states, elements, flows and open questions left out; model_labels: the elements whose label that run's explore icon or vision pass wrote (explore/states/<sid>.json)",
  "model_labels": [
   "s01.e02",
   "s01.e26",
@@ -9,11 +9,27 @@
   "s01.e72",
   "s01.e73",
   "s01.e74",
+  "s03.e01",
+  "s03.e03",
+  "s03.e04",
+  "s03.e13",
+  "s03.e14",
+  "s03.e15",
+  "s03.e16",
+  "s03.e17",
   "s06.e01",
   "s06.e09",
   "s06.e21",
   "s06.e22",
-  "s06.e24"
+  "s06.e24",
+  "s15.e46",
+  "s15.e48",
+  "s15.e49",
+  "s15.e58",
+  "s15.e59",
+  "s15.e60",
+  "s15.e61",
+  "s15.e62"
  ],
  "states": [
   {
@@ -2161,6 +2177,566 @@
      "x": 400.0,
      "y": 1016.0,
      "w": 120.0,
+     "h": 80.0
+    }
+   ],
+   "blocked_reason": null
+  },
+  {
+   "id": "s03",
+   "kind": "screen",
+   "parent_id": null,
+   "name": "My Chats",
+   "purpose": "List of characters the user has chatted with, each showing its number of chat threads. Tap a row to see that character's threads.",
+   "fingerprint": "com.janitor.ai|b002e0828e00ca60249619029909b406|e0029086b0224200000000000080cb24|cf92bdf0b5f1",
+   "canonical_png": "states/s03.png",
+   "elements": [
+    {
+     "id": "s03.e01",
+     "mcp_ref": "@e29",
+     "type": "Button",
+     "text": "",
+     "label": "filter options",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 167.0,
+      "w": 84.0,
+      "h": 84.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 11.81,
+      "w": 32.0,
+      "h": 32.0
+     },
+     "role": "filter icon button",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#303337",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e02",
+     "mcp_ref": "@e30",
+     "type": "View",
+     "text": "My Chats",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 155.0,
+      "y": 174.0,
+      "w": 799.0,
+      "h": 71.0
+     },
+     "rect_dp": {
+      "x": 59.05,
+      "y": 14.48,
+      "w": 304.38,
+      "h": 27.05
+     },
+     "role": "screen title",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#303337",
+     "font_px": null,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e03",
+     "mcp_ref": "@e31",
+     "type": "Button",
+     "text": "",
+     "label": "menu",
+     "source": "mcp",
+     "rect_px": {
+      "x": 954.0,
+      "y": 167.0,
+      "w": 84.0,
+      "h": 84.0
+     },
+     "rect_dp": {
+      "x": 363.43,
+      "y": 11.81,
+      "w": 32.0,
+      "h": 32.0
+     },
+     "role": "menu icon button",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#303337",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e04",
+     "mcp_ref": "@e32",
+     "type": "EditText",
+     "text": "",
+     "label": "search bar",
+     "source": "mcp",
+     "rect_px": {
+      "x": 23.0,
+      "y": 294.0,
+      "w": 1034.0,
+      "h": 112.0
+     },
+     "rect_dp": {
+      "x": 8.76,
+      "y": 60.19,
+      "w": 393.9,
+      "h": 42.67
+     },
+     "role": "search field",
+     "asset_png": null,
+     "fg_hex": "#a2a4a5",
+     "bg_hex": "#45484b",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e05",
+     "mcp_ref": "@e33",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "Kang Jun-Seo (Idol x Idol), 08:52, 7 chats",
+     "source": "mcp",
+     "rect_px": {
+      "x": 17.0,
+      "y": 408.0,
+      "w": 1046.0,
+      "h": 223.0
+     },
+     "rect_dp": {
+      "x": 6.48,
+      "y": 103.62,
+      "w": 398.48,
+      "h": 84.95
+     },
+     "role": "chat list row",
+     "asset_png": null,
+     "fg_hex": "#b7a8bf",
+     "bg_hex": "#303337",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e06",
+     "mcp_ref": "@e34",
+     "type": "TextView",
+     "text": "Kang Jun-Seo (Idol x Idol)",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 205.0,
+      "y": 442.0,
+      "w": 732.0,
+      "h": 47.0
+     },
+     "rect_dp": {
+      "x": 78.1,
+      "y": 116.57,
+      "w": 278.86,
+      "h": 17.9
+     },
+     "role": "character name",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#303337",
+     "font_px": 47.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e07",
+     "mcp_ref": "@e35",
+     "type": "TextView",
+     "text": "08:52",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 946.0,
+      "y": 448.0,
+      "w": 88.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 360.38,
+      "y": 118.86,
+      "w": 33.52,
+      "h": 15.62
+     },
+     "role": "timestamp",
+     "asset_png": null,
+     "fg_hex": "#c1c2c3",
+     "bg_hex": "#303337",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e08",
+     "mcp_ref": "@e36",
+     "type": "TextView",
+     "text": "7 chats",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 279.0,
+      "y": 521.0,
+      "w": 115.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 106.29,
+      "y": 146.67,
+      "w": 43.81,
+      "h": 15.62
+     },
+     "role": "thread count badge",
+     "asset_png": null,
+     "fg_hex": "#d2bef4",
+     "bg_hex": "#49445c",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e09",
+     "mcp_ref": "@e37",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "NANAMI KENTO, 08:35, 2 chats",
+     "source": "mcp",
+     "rect_px": {
+      "x": 17.0,
+      "y": 631.0,
+      "w": 1046.0,
+      "h": 223.0
+     },
+     "rect_dp": {
+      "x": 6.48,
+      "y": 188.57,
+      "w": 398.48,
+      "h": 84.95
+     },
+     "role": "chat list row",
+     "asset_png": null,
+     "fg_hex": "#9f9b92",
+     "bg_hex": "#303337",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e10",
+     "mcp_ref": "@e38",
+     "type": "TextView",
+     "text": "NANAMI KENTO",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 205.0,
+      "y": 665.0,
+      "w": 732.0,
+      "h": 47.0
+     },
+     "rect_dp": {
+      "x": 78.1,
+      "y": 201.52,
+      "w": 278.86,
+      "h": 17.9
+     },
+     "role": "character name",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#303337",
+     "font_px": 47.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e11",
+     "mcp_ref": "@e39",
+     "type": "TextView",
+     "text": "08:35",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 946.0,
+      "y": 671.0,
+      "w": 88.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 360.38,
+      "y": 203.81,
+      "w": 33.52,
+      "h": 15.62
+     },
+     "role": "timestamp",
+     "asset_png": null,
+     "fg_hex": "#c1c2c3",
+     "bg_hex": "#303337",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e12",
+     "mcp_ref": "@e40",
+     "type": "TextView",
+     "text": "2 chats",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 279.0,
+      "y": 744.0,
+      "w": 115.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 106.29,
+      "y": 231.62,
+      "w": 43.81,
+      "h": 15.62
+     },
+     "role": "thread count badge",
+     "asset_png": null,
+     "fg_hex": "#d2bef4",
+     "bg_hex": "#49445c",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e13",
+     "mcp_ref": "@e41",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "home tab",
+     "source": "mcp",
+     "rect_px": {
+      "x": 72.0,
+      "y": 2170.0,
+      "w": 167.0,
+      "h": 167.0
+     },
+     "rect_dp": {
+      "x": 27.43,
+      "y": 774.86,
+      "w": 63.62,
+      "h": 63.62
+     },
+     "role": "tab",
+     "asset_png": null,
+     "fg_hex": "#5a5c63",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s03.r1"
+    },
+    {
+     "id": "s03.e14",
+     "mcp_ref": "@e42",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "search tab",
+     "source": "mcp",
+     "rect_px": {
+      "x": 264.0,
+      "y": 2170.0,
+      "w": 167.0,
+      "h": 167.0
+     },
+     "rect_dp": {
+      "x": 100.57,
+      "y": 774.86,
+      "w": 63.62,
+      "h": 63.62
+     },
+     "role": "tab",
+     "asset_png": null,
+     "fg_hex": "#5a5c63",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s03.r1"
+    },
+    {
+     "id": "s03.e15",
+     "mcp_ref": "@e43",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "app logo tab",
+     "source": "mcp",
+     "rect_px": {
+      "x": 457.0,
+      "y": 2170.0,
+      "w": 167.0,
+      "h": 167.0
+     },
+     "rect_dp": {
+      "x": 174.1,
+      "y": 774.86,
+      "w": 63.62,
+      "h": 63.62
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#af89f0",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s03.r1"
+    },
+    {
+     "id": "s03.e16",
+     "mcp_ref": "@e44",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "notifications tab",
+     "source": "mcp",
+     "rect_px": {
+      "x": 649.0,
+      "y": 2170.0,
+      "w": 167.0,
+      "h": 167.0
+     },
+     "rect_dp": {
+      "x": 247.24,
+      "y": 774.86,
+      "w": 63.62,
+      "h": 63.62
+     },
+     "role": "tab",
+     "asset_png": null,
+     "fg_hex": "#5a5c63",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e17",
+     "mcp_ref": "@e45",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "profile tab",
+     "source": "mcp",
+     "rect_px": {
+      "x": 841.0,
+      "y": 2170.0,
+      "w": 167.0,
+      "h": 167.0
+     },
+     "rect_dp": {
+      "x": 320.38,
+      "y": 774.86,
+      "w": 63.62,
+      "h": 63.62
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#5a5c63",
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s03.r1"
+    },
+    {
+     "id": "s03.e18",
+     "mcp_ref": "@e46",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 2205.0,
+      "w": 58.0,
+      "h": 195.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 788.19,
+      "w": 22.1,
+      "h": 74.29
+     },
+     "role": "edge gesture area",
+     "asset_png": "assets/s03.e18.png",
+     "fg_hex": null,
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s03.e19",
+     "mcp_ref": "@e47",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 1022.0,
+      "y": 2205.0,
+      "w": 58.0,
+      "h": 195.0
+     },
+     "rect_dp": {
+      "x": 389.33,
+      "y": 788.19,
+      "w": 22.1,
+      "h": 74.29
+     },
+     "role": "edge gesture area",
+     "asset_png": "assets/s03.e19.png",
+     "fg_hex": null,
+     "bg_hex": "#000000",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    }
+   ],
+   "in_mock_scope": true,
+   "content_rating": "safe",
+   "dynamic_regions": [
+    {
+     "x": 960.0,
+     "y": 456.0,
+     "w": 80.0,
+     "h": 40.0
+    },
+    {
+     "x": 280.0,
+     "y": 496.0,
+     "w": 40.0,
      "h": 80.0
     }
    ],
@@ -4356,6 +4932,1813 @@
      "asset_png": "assets/s13.e23.png",
      "fg_hex": null,
      "bg_hex": "#061331",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    }
+   ],
+   "in_mock_scope": true,
+   "content_rating": "safe",
+   "dynamic_regions": [],
+   "blocked_reason": null
+  },
+  {
+   "id": "s15",
+   "kind": "screen",
+   "parent_id": null,
+   "name": "Character chat threads sheet (Kang Jun-Seo)",
+   "purpose": "Bottom sheet listing the user's chat threads with one character, sortable by Oldest or Latest. Start new chat opens a conversation.",
+   "fingerprint": "com.janitor.ai|a082a322671010929873b18eb18c6496|1112118e028a0a8a0a8a0a8a8a0a8e48|94fb38e51862",
+   "canonical_png": "states/s15.png",
+   "elements": [
+    {
+     "id": "s15.e01",
+     "mcp_ref": "@e31",
+     "type": "SeekBar",
+     "text": "",
+     "label": "Bottom sheet handle",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 240.0,
+      "w": 1080.0,
+      "h": 64.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 39.62,
+      "w": 411.43,
+      "h": 24.38
+     },
+     "role": "bottom sheet handle",
+     "asset_png": null,
+     "fg_hex": "#6f7173",
+     "bg_hex": "#303337",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s15.e02",
+     "mcp_ref": "@e33",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "Kang Jun-Seo (Idol x Idol), 7 chats",
+     "source": "mcp",
+     "rect_px": {
+      "x": 17.0,
+      "y": 304.0,
+      "w": 1046.0,
+      "h": 195.0
+     },
+     "rect_dp": {
+      "x": 6.48,
+      "y": 64.0,
+      "w": 398.48,
+      "h": 74.29
+     },
+     "role": "sheet header",
+     "asset_png": null,
+     "fg_hex": "#b7a7bf",
+     "bg_hex": "#303337",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s15.r1"
+    },
+    {
+     "id": "s15.e03",
+     "mcp_ref": "@e34",
+     "type": "TextView",
+     "text": "Kang Jun-Seo (Idol x Idol)",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 205.0,
+      "y": 324.0,
+      "w": 749.0,
+      "h": 47.0
+     },
+     "rect_dp": {
+      "x": 78.1,
+      "y": 71.62,
+      "w": 285.33,
+      "h": 17.9
+     },
+     "role": "character name",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#303337",
+     "font_px": 47.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s15.e04",
+     "mcp_ref": "@e35",
+     "type": "TextView",
+     "text": "7 chats",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 279.0,
+      "y": 403.0,
+      "w": 115.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 106.29,
+      "y": 101.71,
+      "w": 43.81,
+      "h": 15.62
+     },
+     "role": "thread count badge",
+     "asset_png": null,
+     "fg_hex": "#d2bef4",
+     "bg_hex": "#49445c",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r2"
+    },
+    {
+     "id": "s15.e05",
+     "mcp_ref": "@e36",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "Oldest",
+     "source": "mcp",
+     "rect_px": {
+      "x": 22.0,
+      "y": 513.0,
+      "w": 518.0,
+      "h": 84.0
+     },
+     "rect_dp": {
+      "x": 8.38,
+      "y": 143.62,
+      "w": 197.33,
+      "h": 32.0
+     },
+     "role": "sort toggle",
+     "asset_png": null,
+     "fg_hex": "#a0a1a4",
+     "bg_hex": "#414348",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s15.e06",
+     "mcp_ref": "@e37",
+     "type": "TextView",
+     "text": "Oldest",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 255.0,
+      "y": 534.0,
+      "w": 102.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 97.14,
+      "y": 151.62,
+      "w": 38.86,
+      "h": 15.62
+     },
+     "role": "toggle label",
+     "asset_png": null,
+     "fg_hex": "#a0a1a4",
+     "bg_hex": "#414348",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r2"
+    },
+    {
+     "id": "s15.e07",
+     "mcp_ref": "@e38",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "Latest",
+     "source": "mcp",
+     "rect_px": {
+      "x": 540.0,
+      "y": 513.0,
+      "w": 518.0,
+      "h": 84.0
+     },
+     "rect_dp": {
+      "x": 205.71,
+      "y": 143.62,
+      "w": 197.33,
+      "h": 32.0
+     },
+     "role": "sort toggle",
+     "asset_png": null,
+     "fg_hex": "#2d2337",
+     "bg_hex": "#af89f0",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s15.e08",
+     "mcp_ref": "@e39",
+     "type": "TextView",
+     "text": "Latest",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 775.0,
+      "y": 534.0,
+      "w": 99.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 295.24,
+      "y": 151.62,
+      "w": 37.71,
+      "h": 15.62
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#000000",
+     "bg_hex": "#af89f0",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r2"
+    },
+    {
+     "id": "s15.e09",
+     "mcp_ref": "@e40",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "Kang Jun-Seo (Idol x Idol), 08:52, The livestream starts out deceptively casual. You’re sitting comfortably in your room, holding a half-empty iced americano to your lips while lazily scrolling through the scrolling wall of text. For the first ten minutes, it's standard idol…, 1",
+     "source": "mcp",
+     "rect_px": {
+      "x": 17.0,
+      "y": 639.0,
+      "w": 1046.0,
+      "h": 195.0
+     },
+     "rect_dp": {
+      "x": 6.48,
+      "y": 191.62,
+      "w": 398.48,
+      "h": 74.29
+     },
+     "role": "chat thread row",
+     "asset_png": null,
+     "fg_hex": "#b9b1be",
+     "bg_hex": "#303337",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s15.r1"
+    },
+    {
+     "id": "s15.e10",
+     "mcp_ref": "@e41",
+     "type": "TextView",
+     "text": "Kang Jun-Seo (Idol x Idol)",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 205.0,
+      "y": 660.0,
+      "w": 732.0,
+      "h": 47.0
+     },
+     "rect_dp": {
+      "x": 78.1,
+      "y": 199.62,
+      "w": 278.86,
+      "h": 17.9
+     },
+     "role": "character name",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#303337",
+     "font_px": 47.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r3"
+    },
+    {
+     "id": "s15.e11",
+     "mcp_ref": "@e42",
+     "type": "TextView",
+     "text": "08:52",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 946.0,
+      "y": 666.0,
+      "w": 88.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 360.38,
+      "y": 201.9,
+      "w": 33.52,
+      "h": 15.62
+     },
+     "role": "timestamp",
+     "asset_png": null,
+     "fg_hex": "#c1c2c3",
+     "bg_hex": "#303337",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r4"
+    },
+    {
+     "id": "s15.e12",
+     "mcp_ref": "@e43",
+     "type": "TextView",
+     "text": "The livestream starts out deceptively casual. You’re sitting comfortably in your room, holding a half-empty iced americano to your lips while lazily scrolling through the scrolling wall of text. For the first ten minutes, it's standard idol…",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 205.0,
+      "y": 721.0,
+      "w": 755.0,
+      "h": 110.0
+     },
+     "rect_dp": {
+      "x": 78.1,
+      "y": 222.86,
+      "w": 287.62,
+      "h": 41.9
+     },
+     "role": "message preview",
+     "asset_png": null,
+     "fg_hex": "#bfc0c1",
+     "bg_hex": "#303337",
+     "font_px": 110.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r5"
+    },
+    {
+     "id": "s15.e13",
+     "mcp_ref": "@e44",
+     "type": "TextView",
+     "text": "1",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 1014.0,
+      "y": 725.0,
+      "w": 20.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 386.29,
+      "y": 224.38,
+      "w": 7.62,
+      "h": 15.62
+     },
+     "role": "message count",
+     "asset_png": null,
+     "fg_hex": "#c0c1c2",
+     "bg_hex": "#303337",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s15.e14",
+     "mcp_ref": "@e45",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "Kang Jun-Seo (Idol x Idol), 08:34, The livestream starts out deceptively casual. You’re sitting comfortably in your room, holding a half-empty iced americano to your lips while lazily scrolling through the scrolling wall of text. For the first ten minutes, it's standard idol…, 1",
+     "source": "mcp",
+     "rect_px": {
+      "x": 17.0,
+      "y": 834.0,
+      "w": 1046.0,
+      "h": 195.0
+     },
+     "rect_dp": {
+      "x": 6.48,
+      "y": 265.9,
+      "w": 398.48,
+      "h": 74.29
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#b9b1be",
+     "bg_hex": "#303337",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s15.r1"
+    },
+    {
+     "id": "s15.e15",
+     "mcp_ref": "@e46",
+     "type": "TextView",
+     "text": "Kang Jun-Seo (Idol x Idol)",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 205.0,
+      "y": 855.0,
+      "w": 732.0,
+      "h": 47.0
+     },
+     "rect_dp": {
+      "x": 78.1,
+      "y": 273.9,
+      "w": 278.86,
+      "h": 17.9
+     },
+     "role": "character name",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#303337",
+     "font_px": 47.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r3"
+    },
+    {
+     "id": "s15.e16",
+     "mcp_ref": "@e47",
+     "type": "TextView",
+     "text": "08:34",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 946.0,
+      "y": 861.0,
+      "w": 88.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 360.38,
+      "y": 276.19,
+      "w": 33.52,
+      "h": 15.62
+     },
+     "role": "timestamp",
+     "asset_png": null,
+     "fg_hex": "#c1c2c3",
+     "bg_hex": "#303337",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r4"
+    },
+    {
+     "id": "s15.e17",
+     "mcp_ref": "@e48",
+     "type": "TextView",
+     "text": "The livestream starts out deceptively casual. You’re sitting comfortably in your room, holding a half-empty iced americano to your lips while lazily scrolling through the scrolling wall of text. For the first ten minutes, it's standard idol…",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 205.0,
+      "y": 916.0,
+      "w": 755.0,
+      "h": 111.0
+     },
+     "rect_dp": {
+      "x": 78.1,
+      "y": 297.14,
+      "w": 287.62,
+      "h": 42.29
+     },
+     "role": "message preview",
+     "asset_png": null,
+     "fg_hex": "#bfc0c1",
+     "bg_hex": "#303337",
+     "font_px": 111.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r5"
+    },
+    {
+     "id": "s15.e18",
+     "mcp_ref": "@e49",
+     "type": "TextView",
+     "text": "1",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 1014.0,
+      "y": 920.0,
+      "w": 20.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 386.29,
+      "y": 298.67,
+      "w": 7.62,
+      "h": 15.62
+     },
+     "role": "message count",
+     "asset_png": null,
+     "fg_hex": "#c0c1c2",
+     "bg_hex": "#303337",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s15.e19",
+     "mcp_ref": "@e50",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "Kang Jun-Seo (Idol x Idol), 07:52, The livestream starts out deceptively casual. You’re sitting comfortably in your room, holding a half-empty iced americano to your lips while lazily scrolling through the scrolling wall of text. For the first ten minutes, it's standard idol…, 1",
+     "source": "mcp",
+     "rect_px": {
+      "x": 17.0,
+      "y": 1029.0,
+      "w": 1046.0,
+      "h": 195.0
+     },
+     "rect_dp": {
+      "x": 6.48,
+      "y": 340.19,
+      "w": 398.48,
+      "h": 74.29
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#b9b1be",
+     "bg_hex": "#303337",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s15.r1"
+    },
+    {
+     "id": "s15.e20",
+     "mcp_ref": "@e51",
+     "type": "TextView",
+     "text": "Kang Jun-Seo (Idol x Idol)",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 205.0,
+      "y": 1050.0,
+      "w": 732.0,
+      "h": 47.0
+     },
+     "rect_dp": {
+      "x": 78.1,
+      "y": 348.19,
+      "w": 278.86,
+      "h": 17.9
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#303337",
+     "font_px": 47.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r3"
+    },
+    {
+     "id": "s15.e21",
+     "mcp_ref": "@e52",
+     "type": "TextView",
+     "text": "07:52",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 946.0,
+      "y": 1056.0,
+      "w": 88.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 360.38,
+      "y": 350.48,
+      "w": 33.52,
+      "h": 15.62
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#c0c1c2",
+     "bg_hex": "#303337",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r4"
+    },
+    {
+     "id": "s15.e22",
+     "mcp_ref": "@e53",
+     "type": "TextView",
+     "text": "The livestream starts out deceptively casual. You’re sitting comfortably in your room, holding a half-empty iced americano to your lips while lazily scrolling through the scrolling wall of text. For the first ten minutes, it's standard idol…",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 205.0,
+      "y": 1111.0,
+      "w": 755.0,
+      "h": 111.0
+     },
+     "rect_dp": {
+      "x": 78.1,
+      "y": 371.43,
+      "w": 287.62,
+      "h": 42.29
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#bfc0c1",
+     "bg_hex": "#303337",
+     "font_px": 111.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r5"
+    },
+    {
+     "id": "s15.e23",
+     "mcp_ref": "@e54",
+     "type": "TextView",
+     "text": "1",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 1014.0,
+      "y": 1115.0,
+      "w": 20.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 386.29,
+      "y": 372.95,
+      "w": 7.62,
+      "h": 15.62
+     },
+     "role": "message count",
+     "asset_png": null,
+     "fg_hex": "#c0c1c2",
+     "bg_hex": "#303337",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s15.e24",
+     "mcp_ref": "@e55",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "Kang Jun-Seo (Idol x Idol), 07:26, The livestream starts out deceptively casual. You’re sitting comfortably in your room, holding a half-empty iced americano to your lips while lazily scrolling through the scrolling wall of text. For the first ten minutes, it's standard idol…, 1",
+     "source": "mcp",
+     "rect_px": {
+      "x": 17.0,
+      "y": 1224.0,
+      "w": 1046.0,
+      "h": 195.0
+     },
+     "rect_dp": {
+      "x": 6.48,
+      "y": 414.48,
+      "w": 398.48,
+      "h": 74.29
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#b9b1be",
+     "bg_hex": "#303337",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s15.r1"
+    },
+    {
+     "id": "s15.e25",
+     "mcp_ref": "@e56",
+     "type": "TextView",
+     "text": "Kang Jun-Seo (Idol x Idol)",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 205.0,
+      "y": 1245.0,
+      "w": 732.0,
+      "h": 47.0
+     },
+     "rect_dp": {
+      "x": 78.1,
+      "y": 422.48,
+      "w": 278.86,
+      "h": 17.9
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#303337",
+     "font_px": 47.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r3"
+    },
+    {
+     "id": "s15.e26",
+     "mcp_ref": "@e57",
+     "type": "TextView",
+     "text": "07:26",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 946.0,
+      "y": 1251.0,
+      "w": 88.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 360.38,
+      "y": 424.76,
+      "w": 33.52,
+      "h": 15.62
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#c0c1c2",
+     "bg_hex": "#303337",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r4"
+    },
+    {
+     "id": "s15.e27",
+     "mcp_ref": "@e58",
+     "type": "TextView",
+     "text": "The livestream starts out deceptively casual. You’re sitting comfortably in your room, holding a half-empty iced americano to your lips while lazily scrolling through the scrolling wall of text. For the first ten minutes, it's standard idol…",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 205.0,
+      "y": 1306.0,
+      "w": 755.0,
+      "h": 111.0
+     },
+     "rect_dp": {
+      "x": 78.1,
+      "y": 445.71,
+      "w": 287.62,
+      "h": 42.29
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#bfc0c1",
+     "bg_hex": "#303337",
+     "font_px": 111.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r5"
+    },
+    {
+     "id": "s15.e28",
+     "mcp_ref": "@e59",
+     "type": "TextView",
+     "text": "1",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 1014.0,
+      "y": 1310.0,
+      "w": 20.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 386.29,
+      "y": 447.24,
+      "w": 7.62,
+      "h": 15.62
+     },
+     "role": "message count",
+     "asset_png": null,
+     "fg_hex": "#c0c1c2",
+     "bg_hex": "#303337",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s15.e29",
+     "mcp_ref": "@e60",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "Kang Jun-Seo (Idol x Idol), 05:21, The livestream starts out deceptively casual. You’re sitting comfortably in your room, holding a half-empty iced americano to your lips while lazily scrolling through the scrolling wall of text. For the first ten minutes, it's standard idol…, 1",
+     "source": "mcp",
+     "rect_px": {
+      "x": 17.0,
+      "y": 1419.0,
+      "w": 1046.0,
+      "h": 195.0
+     },
+     "rect_dp": {
+      "x": 6.48,
+      "y": 488.76,
+      "w": 398.48,
+      "h": 74.29
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#b9b1be",
+     "bg_hex": "#303337",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s15.r1"
+    },
+    {
+     "id": "s15.e30",
+     "mcp_ref": "@e61",
+     "type": "TextView",
+     "text": "Kang Jun-Seo (Idol x Idol)",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 205.0,
+      "y": 1440.0,
+      "w": 732.0,
+      "h": 47.0
+     },
+     "rect_dp": {
+      "x": 78.1,
+      "y": 496.76,
+      "w": 278.86,
+      "h": 17.9
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#303337",
+     "font_px": 47.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r3"
+    },
+    {
+     "id": "s15.e31",
+     "mcp_ref": "@e62",
+     "type": "TextView",
+     "text": "05:21",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 946.0,
+      "y": 1446.0,
+      "w": 88.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 360.38,
+      "y": 499.05,
+      "w": 33.52,
+      "h": 15.62
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#c1c2c3",
+     "bg_hex": "#303337",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r4"
+    },
+    {
+     "id": "s15.e32",
+     "mcp_ref": "@e63",
+     "type": "TextView",
+     "text": "The livestream starts out deceptively casual. You’re sitting comfortably in your room, holding a half-empty iced americano to your lips while lazily scrolling through the scrolling wall of text. For the first ten minutes, it's standard idol…",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 205.0,
+      "y": 1501.0,
+      "w": 755.0,
+      "h": 111.0
+     },
+     "rect_dp": {
+      "x": 78.1,
+      "y": 520.0,
+      "w": 287.62,
+      "h": 42.29
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#bfc0c1",
+     "bg_hex": "#303337",
+     "font_px": 111.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r5"
+    },
+    {
+     "id": "s15.e33",
+     "mcp_ref": "@e64",
+     "type": "TextView",
+     "text": "1",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 1014.0,
+      "y": 1505.0,
+      "w": 20.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 386.29,
+      "y": 521.52,
+      "w": 7.62,
+      "h": 15.62
+     },
+     "role": "message count",
+     "asset_png": null,
+     "fg_hex": "#c0c1c2",
+     "bg_hex": "#303337",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s15.e34",
+     "mcp_ref": "@e65",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "Kang Jun-Seo (Idol x Idol), 03:11, The livestream starts out deceptively casual. You’re sitting comfortably in your room, holding a half-empty iced americano to your lips while lazily scrolling through the scrolling wall of text. For the first ten minutes, it's standard idol…, 1",
+     "source": "mcp",
+     "rect_px": {
+      "x": 17.0,
+      "y": 1614.0,
+      "w": 1046.0,
+      "h": 195.0
+     },
+     "rect_dp": {
+      "x": 6.48,
+      "y": 563.05,
+      "w": 398.48,
+      "h": 74.29
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#b9b1be",
+     "bg_hex": "#303337",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s15.r1"
+    },
+    {
+     "id": "s15.e35",
+     "mcp_ref": "@e66",
+     "type": "TextView",
+     "text": "Kang Jun-Seo (Idol x Idol)",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 205.0,
+      "y": 1635.0,
+      "w": 732.0,
+      "h": 47.0
+     },
+     "rect_dp": {
+      "x": 78.1,
+      "y": 571.05,
+      "w": 278.86,
+      "h": 17.9
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#303337",
+     "font_px": 47.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r3"
+    },
+    {
+     "id": "s15.e36",
+     "mcp_ref": "@e67",
+     "type": "TextView",
+     "text": "03:11",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 946.0,
+      "y": 1641.0,
+      "w": 88.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 360.38,
+      "y": 573.33,
+      "w": 33.52,
+      "h": 15.62
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#c0c1c2",
+     "bg_hex": "#303337",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r4"
+    },
+    {
+     "id": "s15.e37",
+     "mcp_ref": "@e68",
+     "type": "TextView",
+     "text": "The livestream starts out deceptively casual. You’re sitting comfortably in your room, holding a half-empty iced americano to your lips while lazily scrolling through the scrolling wall of text. For the first ten minutes, it's standard idol…",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 205.0,
+      "y": 1696.0,
+      "w": 755.0,
+      "h": 110.0
+     },
+     "rect_dp": {
+      "x": 78.1,
+      "y": 594.29,
+      "w": 287.62,
+      "h": 41.9
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#bfc0c1",
+     "bg_hex": "#303337",
+     "font_px": 110.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r5"
+    },
+    {
+     "id": "s15.e38",
+     "mcp_ref": "@e69",
+     "type": "TextView",
+     "text": "1",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 1014.0,
+      "y": 1700.0,
+      "w": 20.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 386.29,
+      "y": 595.81,
+      "w": 7.62,
+      "h": 15.62
+     },
+     "role": "message count",
+     "asset_png": null,
+     "fg_hex": "#c0c1c2",
+     "bg_hex": "#303337",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s15.e39",
+     "mcp_ref": "@e70",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "Kang Jun-Seo (Idol x Idol), 26/09, The livestream starts out deceptively casual. You’re sitting comfortably in your room, holding a half-empty iced americano to your lips while lazily scrolling through the scrolling wall of text. For the first ten minutes, it's standard idol…, 1",
+     "source": "mcp",
+     "rect_px": {
+      "x": 17.0,
+      "y": 1808.0,
+      "w": 1046.0,
+      "h": 195.0
+     },
+     "rect_dp": {
+      "x": 6.48,
+      "y": 636.95,
+      "w": 398.48,
+      "h": 74.29
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#b9b1be",
+     "bg_hex": "#303337",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s15.r1"
+    },
+    {
+     "id": "s15.e40",
+     "mcp_ref": "@e71",
+     "type": "TextView",
+     "text": "Kang Jun-Seo (Idol x Idol)",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 205.0,
+      "y": 1829.0,
+      "w": 726.0,
+      "h": 47.0
+     },
+     "rect_dp": {
+      "x": 78.1,
+      "y": 644.95,
+      "w": 276.57,
+      "h": 17.9
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#303337",
+     "font_px": 47.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r3"
+    },
+    {
+     "id": "s15.e41",
+     "mcp_ref": "@e72",
+     "type": "TextView",
+     "text": "26/09",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 940.0,
+      "y": 1835.0,
+      "w": 94.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 358.1,
+      "y": 647.24,
+      "w": 35.81,
+      "h": 15.62
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#c0c1c2",
+     "bg_hex": "#303337",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r4"
+    },
+    {
+     "id": "s15.e42",
+     "mcp_ref": "@e73",
+     "type": "TextView",
+     "text": "The livestream starts out deceptively casual. You’re sitting comfortably in your room, holding a half-empty iced americano to your lips while lazily scrolling through the scrolling wall of text. For the first ten minutes, it's standard idol…",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 205.0,
+      "y": 1890.0,
+      "w": 755.0,
+      "h": 110.0
+     },
+     "rect_dp": {
+      "x": 78.1,
+      "y": 668.19,
+      "w": 287.62,
+      "h": 41.9
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#bfc0c1",
+     "bg_hex": "#303337",
+     "font_px": 110.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r5"
+    },
+    {
+     "id": "s15.e43",
+     "mcp_ref": "@e74",
+     "type": "TextView",
+     "text": "1",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 1014.0,
+      "y": 1894.0,
+      "w": 20.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 386.29,
+      "y": 669.71,
+      "w": 7.62,
+      "h": 15.62
+     },
+     "role": "message count",
+     "asset_png": null,
+     "fg_hex": "#c0c1c2",
+     "bg_hex": "#303337",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s15.e44",
+     "mcp_ref": "@e75",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "Start new chat",
+     "source": "mcp",
+     "rect_px": {
+      "x": 43.0,
+      "y": 2169.0,
+      "w": 994.0,
+      "h": 112.0
+     },
+     "rect_dp": {
+      "x": 16.38,
+      "y": 774.48,
+      "w": 378.67,
+      "h": 42.67
+     },
+     "role": "start chat button",
+     "asset_png": null,
+     "fg_hex": "#635681",
+     "bg_hex": "#303337",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s15.e45",
+     "mcp_ref": "@e76",
+     "type": "TextView",
+     "text": "Start new chat",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 445.0,
+      "y": 2201.0,
+      "w": 261.0,
+      "h": 47.0
+     },
+     "rect_dp": {
+      "x": 169.52,
+      "y": 786.67,
+      "w": 99.43,
+      "h": 17.9
+     },
+     "role": "button label",
+     "asset_png": null,
+     "fg_hex": "#af89f0",
+     "bg_hex": "#303337",
+     "font_px": 47.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s15.e46",
+     "mcp_ref": "@e78",
+     "type": "Button",
+     "text": "",
+     "label": "filter or sort",
+     "source": "mcp",
+     "rect_px": {
+      "x": 42.0,
+      "y": 167.0,
+      "w": 84.0,
+      "h": 84.0
+     },
+     "rect_dp": {
+      "x": 16.0,
+      "y": 11.81,
+      "w": 32.0,
+      "h": 32.0
+     },
+     "role": "filter icon button",
+     "asset_png": null,
+     "fg_hex": "#303337",
+     "bg_hex": "#0a0a0b",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s15.e47",
+     "mcp_ref": "@e79",
+     "type": "View",
+     "text": "My Chats",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 155.0,
+      "y": 174.0,
+      "w": 799.0,
+      "h": 71.0
+     },
+     "rect_dp": {
+      "x": 59.05,
+      "y": 14.48,
+      "w": 304.38,
+      "h": 27.05
+     },
+     "role": "screen title",
+     "asset_png": null,
+     "fg_hex": "#303337",
+     "bg_hex": "#0a0a0b",
+     "font_px": null,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s15.e48",
+     "mcp_ref": "@e80",
+     "type": "Button",
+     "text": "",
+     "label": "menu",
+     "source": "mcp",
+     "rect_px": {
+      "x": 954.0,
+      "y": 167.0,
+      "w": 84.0,
+      "h": 84.0
+     },
+     "rect_dp": {
+      "x": 363.43,
+      "y": 11.81,
+      "w": 32.0,
+      "h": 32.0
+     },
+     "role": "menu icon button",
+     "asset_png": null,
+     "fg_hex": "#303337",
+     "bg_hex": "#0a0a0b",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s15.e49",
+     "mcp_ref": "@e81",
+     "type": "EditText",
+     "text": "",
+     "label": "chat conversation",
+     "source": "mcp",
+     "rect_px": {
+      "x": 23.0,
+      "y": 294.0,
+      "w": 1034.0,
+      "h": 112.0
+     },
+     "rect_dp": {
+      "x": 8.76,
+      "y": 60.19,
+      "w": 393.9,
+      "h": 42.67
+     },
+     "role": "search field",
+     "asset_png": null,
+     "fg_hex": "#cbc7d9",
+     "bg_hex": "#303337",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s15.e50",
+     "mcp_ref": "@e82",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "Kang Jun-Seo (Idol x Idol), 08:52, 7 chats",
+     "source": "mcp",
+     "rect_px": {
+      "x": 17.0,
+      "y": 408.0,
+      "w": 1046.0,
+      "h": 223.0
+     },
+     "rect_dp": {
+      "x": 6.48,
+      "y": 103.62,
+      "w": 398.48,
+      "h": 84.95
+     },
+     "role": "chat list row",
+     "asset_png": null,
+     "fg_hex": "#af89f0",
+     "bg_hex": "#303337",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s15.e51",
+     "mcp_ref": "@e83",
+     "type": "TextView",
+     "text": "Kang Jun-Seo (Idol x Idol)",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 205.0,
+      "y": 442.0,
+      "w": 732.0,
+      "h": 47.0
+     },
+     "rect_dp": {
+      "x": 78.1,
+      "y": 116.57,
+      "w": 278.86,
+      "h": 17.9
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": null,
+     "bg_hex": "#303337",
+     "font_px": 47.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r3"
+    },
+    {
+     "id": "s15.e52",
+     "mcp_ref": "@e84",
+     "type": "TextView",
+     "text": "08:52",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 946.0,
+      "y": 448.0,
+      "w": 88.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 360.38,
+      "y": 118.86,
+      "w": 33.52,
+      "h": 15.62
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": null,
+     "bg_hex": "#303337",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r4"
+    },
+    {
+     "id": "s15.e53",
+     "mcp_ref": "@e85",
+     "type": "TextView",
+     "text": "7 chats",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 279.0,
+      "y": 521.0,
+      "w": 115.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 106.29,
+      "y": 146.67,
+      "w": 43.81,
+      "h": 15.62
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#a0a1a4",
+     "bg_hex": "#414348",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r2"
+    },
+    {
+     "id": "s15.e54",
+     "mcp_ref": "@e86",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "NANAMI KENTO, 08:35, 2 chats",
+     "source": "mcp",
+     "rect_px": {
+      "x": 17.0,
+      "y": 631.0,
+      "w": 1046.0,
+      "h": 223.0
+     },
+     "rect_dp": {
+      "x": 6.48,
+      "y": 188.57,
+      "w": 398.48,
+      "h": 84.95
+     },
+     "role": "chat list row",
+     "asset_png": null,
+     "fg_hex": "#b9b1be",
+     "bg_hex": "#303337",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s15.e55",
+     "mcp_ref": "@e87",
+     "type": "TextView",
+     "text": "NANAMI KENTO",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 205.0,
+      "y": 665.0,
+      "w": 732.0,
+      "h": 47.0
+     },
+     "rect_dp": {
+      "x": 78.1,
+      "y": 201.52,
+      "w": 278.86,
+      "h": 17.9
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#ffffff",
+     "bg_hex": "#303337",
+     "font_px": 47.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r3"
+    },
+    {
+     "id": "s15.e56",
+     "mcp_ref": "@e88",
+     "type": "TextView",
+     "text": "08:35",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 946.0,
+      "y": 671.0,
+      "w": 88.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 360.38,
+      "y": 203.81,
+      "w": 33.52,
+      "h": 15.62
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#c1c2c3",
+     "bg_hex": "#303337",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r4"
+    },
+    {
+     "id": "s15.e57",
+     "mcp_ref": "@e89",
+     "type": "TextView",
+     "text": "2 chats",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 279.0,
+      "y": 744.0,
+      "w": 115.0,
+      "h": 41.0
+     },
+     "rect_dp": {
+      "x": 106.29,
+      "y": 231.62,
+      "w": 43.81,
+      "h": 15.62
+     },
+     "role": "text",
+     "asset_png": null,
+     "fg_hex": "#bdbebf",
+     "bg_hex": "#303337",
+     "font_px": 41.0,
+     "font_guess": "Roboto",
+     "in_mock": true,
+     "repeat_group": "s15.r2"
+    },
+    {
+     "id": "s15.e58",
+     "mcp_ref": "@e90",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "tab",
+     "source": "mcp",
+     "rect_px": {
+      "x": 72.0,
+      "y": 2170.0,
+      "w": 167.0,
+      "h": 167.0
+     },
+     "rect_dp": {
+      "x": 27.43,
+      "y": 774.86,
+      "w": 63.62,
+      "h": 63.62
+     },
+     "role": "tab",
+     "asset_png": null,
+     "fg_hex": "#635681",
+     "bg_hex": "#303337",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s15.r6"
+    },
+    {
+     "id": "s15.e59",
+     "mcp_ref": "@e91",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "tab",
+     "source": "mcp",
+     "rect_px": {
+      "x": 264.0,
+      "y": 2170.0,
+      "w": 167.0,
+      "h": 167.0
+     },
+     "rect_dp": {
+      "x": 100.57,
+      "y": 774.86,
+      "w": 63.62,
+      "h": 63.62
+     },
+     "role": "tab",
+     "asset_png": null,
+     "fg_hex": "#635681",
+     "bg_hex": "#303337",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s15.r6"
+    },
+    {
+     "id": "s15.e60",
+     "mcp_ref": "@e92",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "start new chat",
+     "source": "mcp",
+     "rect_px": {
+      "x": 457.0,
+      "y": 2170.0,
+      "w": 167.0,
+      "h": 167.0
+     },
+     "rect_dp": {
+      "x": 174.1,
+      "y": 774.86,
+      "w": 63.62,
+      "h": 63.62
+     },
+     "role": "tab",
+     "asset_png": null,
+     "fg_hex": "#856db3",
+     "bg_hex": "#303337",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s15.e61",
+     "mcp_ref": "@e93",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "tab",
+     "source": "mcp",
+     "rect_px": {
+      "x": 649.0,
+      "y": 2170.0,
+      "w": 167.0,
+      "h": 167.0
+     },
+     "rect_dp": {
+      "x": 247.24,
+      "y": 774.86,
+      "w": 63.62,
+      "h": 63.62
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#635681",
+     "bg_hex": "#303337",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s15.r6"
+    },
+    {
+     "id": "s15.e62",
+     "mcp_ref": "@e94",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "tab",
+     "source": "mcp",
+     "rect_px": {
+      "x": 841.0,
+      "y": 2170.0,
+      "w": 167.0,
+      "h": 167.0
+     },
+     "rect_dp": {
+      "x": 320.38,
+      "y": 774.86,
+      "w": 63.62,
+      "h": 63.62
+     },
+     "role": "container",
+     "asset_png": null,
+     "fg_hex": "#635681",
+     "bg_hex": "#303337",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": "s15.r6"
+    },
+    {
+     "id": "s15.e63",
+     "mcp_ref": "@e95",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 0.0,
+      "y": 2205.0,
+      "w": 58.0,
+      "h": 195.0
+     },
+     "rect_dp": {
+      "x": 0.0,
+      "y": 788.19,
+      "w": 22.1,
+      "h": 74.29
+     },
+     "role": "edge gesture area",
+     "asset_png": "assets/s15.e63.png",
+     "fg_hex": "#635681",
+     "bg_hex": "#303337",
+     "font_px": null,
+     "font_guess": "unknown",
+     "in_mock": true,
+     "repeat_group": null
+    },
+    {
+     "id": "s15.e64",
+     "mcp_ref": "@e96",
+     "type": "ViewGroup",
+     "text": "",
+     "label": "",
+     "source": "mcp",
+     "rect_px": {
+      "x": 1022.0,
+      "y": 2205.0,
+      "w": 58.0,
+      "h": 195.0
+     },
+     "rect_dp": {
+      "x": 389.33,
+      "y": 788.19,
+      "w": 22.1,
+      "h": 74.29
+     },
+     "role": "edge gesture area",
+     "asset_png": "assets/s15.e64.png",
+     "fg_hex": "#635681",
+     "bg_hex": "#303337",
      "font_px": null,
      "font_guess": "unknown",
      "in_mock": true,

@@ -468,8 +468,14 @@ def resolve_terms(meaning: ModelMeaning, states: list[State], edges: list[Edge],
     def rest(e: Element, name: re.Pattern[str]) -> str:
         return " ".join(name.sub(" ", f) for f in app_text(e))
 
+    def carries(e: Element, name: re.Pattern[str]) -> bool:
+        return any(name.search(f) for f in app_text(e))
+
     def anchors(e: Element, name: re.Pattern[str]) -> bool:
-        return any(name.search(f) for f in app_text(e)) and WORD.search(rest(e, name)) is not None
+        return carries(e, name) and WORD.search(rest(e, name)) is not None
+
+    def counts(e: Element, name: re.Pattern[str]) -> bool:
+        return anchors(e, name) if carries(e, name) else re.search(r"\w", rest(e, name)) is not None
 
     terms = []
     for t in meaning.terms:
@@ -477,7 +483,7 @@ def resolve_terms(meaning: ModelMeaning, states: list[State], edges: list[Edge],
         cited = [elements[i] for i in t.defined_by if i in elements]
         explained = ({screen[e.id] for e in cited if anchors(e, name)}
                      | {g.to_state for g in taps if anchors(elements[g.element_id], name)})
-        defined_by = [e.id for e in cited if screen[e.id] in explained and re.search(r"\w", rest(e, name))]
+        defined_by = [e.id for e in cited if screen[e.id] in explained and counts(e, name)]
         terms.append(Term(term=t.term, meaning=t.meaning if defined_by else NOT_OBSERVED, defined_by=defined_by,
                           used_in=t.used_in, everyday=t.everyday, observed=bool(defined_by)))
     return terms
