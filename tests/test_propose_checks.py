@@ -329,10 +329,11 @@ def test_a_sheet_over_a_chat_screen_not_rated_unsafe_opened_by_a_limit_passes(mo
     assert check(c, chat) is None
 
 
-def run_with(model, tmp_path, monkeypatch, fail_lenses, delay=None, benefit=None, part_of=None, draft=None):
+def run_with(model, tmp_path, monkeypatch, fail_lenses, delay=None, benefit=None, part_of=None, draft=None,
+             counts=None):
     """Runs the stage on fake calls: every lens and the top-up return one valid draft (`draft` overrides its
     fields), and the naming call gives every idea `benefit` (a different name each when None) and links it to
-    `part_of`. Returns each call's step and prompt text."""
+    `part_of`. `counts` gives a step's number of drafts (1 when absent). Returns each call's step and prompt text."""
     (tmp_path / "model").mkdir()
     (tmp_path / "propose").mkdir()
     (tmp_path / "model" / "product_model.json").write_text(model.model_dump_json())
@@ -348,13 +349,31 @@ def run_with(model, tmp_path, monkeypatch, fail_lenses, delay=None, benefit=None
         if schema is propose.BenefitNames:
             return schema(ideas=[{"id": f"c{n:02d}", "benefit": benefit or f"benefit {n}", "part_of": part_of}
                                  for n in range(1, 20)]), None
-        return LensOutput(candidates=[draft]), None
+        return LensOutput(candidates=[draft] * (counts or {}).get(step, 1)), None
 
     monkeypatch.setattr(llm, "call", fake_call)
     ctx = Ctx(app={"name": model.app}, run_dir=tmp_path, profile="dev", no_cache=False, replay=False,
               usd_cap=None, allow_fixtures=True)
     propose.run(ctx)
     return calls
+
+
+def test_a_lens_that_returns_more_than_two_ideas_keeps_two_and_says_so(model, tmp_path, monkeypatch):
+    run_with(model, tmp_path, monkeypatch, set(), counts={"lens:free_at_limit": 3})
+    trace = [json.loads(line) for line in (tmp_path / "trace.jsonl").read_text().splitlines()]
+    notes = [t["note"] for t in trace if t["step"] == "lens:free_at_limit"]
+    assert notes == ["returned 3 ideas, kept the first 2; left out: A daily bonus"]
+    out = CandidatesFile.model_validate_json((tmp_path / "propose" / "candidates.json").read_text()).candidates
+    assert sum(c.lens == "free_at_limit" for c in out) == 2
+
+
+@pytest.mark.parametrize("fail, counts, said", [({"topup"}, None, "its call failed"),
+                                                (set(), {"topup": 0}, "it answered with no ideas")])
+def test_the_exhibit_tells_a_failed_top_up_from_one_that_answered_with_nothing(model, tmp_path, monkeypatch, fail,
+                                                                               counts, said):
+    run_with(model, tmp_path, monkeypatch, fail, benefit="gold badge", counts=counts)
+    exhibit = (tmp_path / "exhibits" / "05-propose.md").read_text()
+    assert f"- Top-up call: fired (1 distinct after dedupe, under {propose.MIN_DISTINCT}; {said})." in exhibit
 
 
 def test_a_screen_the_mock_left_undrawn_counts_as_outside_the_mock(model, tmp_path, monkeypatch):

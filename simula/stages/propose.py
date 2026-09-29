@@ -20,6 +20,7 @@ PROMPTS = ROOT / "prompts" / "propose"
 ALLOWED_INPUTS = (BIBLE, PROMPTS)
 MAX_TOKENS = 16000
 MAX_CANDIDATES = 10
+MAX_PER_LENS = 2  # the system prompt asks each lens for 1 or 2 ideas
 NAMING_MAX_TOKENS = 4000
 MIN_DISTINCT = 4
 MAX_LEDGER_LENSES = 2
@@ -162,7 +163,11 @@ def ask_lens(ctx: Ctx, model: ProductModel, lens: Lens, system: str, budget: llm
         run_trace(ctx.run_dir, stage="propose", step=step, decider="code", outcome=e.outcome,
                   note="lens skipped after its retry failed")
         return None
-    return [Candidate(**{**draft.model_dump(), "lens": lens.id}) for draft in output.candidates[:2]]
+    if len(output.candidates) > MAX_PER_LENS:
+        left_out = "; ".join(d.title for d in output.candidates[MAX_PER_LENS:])
+        note = f"returned {len(output.candidates)} ideas, kept the first {MAX_PER_LENS}; left out: {left_out}"
+        run_trace(ctx.run_dir, stage="propose", step=step, decider="code", note=note[:300])
+    return [Candidate(**{**draft.model_dump(), "lens": lens.id}) for draft in output.candidates[:MAX_PER_LENS]]
 
 
 # ---------- code checks ----------
@@ -553,8 +558,9 @@ def run(ctx: Ctx) -> None:
         if extra:
             candidates, repairs, names = finish(drafts + extra, model, mode,
                                                 lambda live: name_benefits(ctx, live, budget, "dedupe:topup", model))
-        topup = (f"fired ({distinct} distinct after dedupe, under {MIN_DISTINCT}; "
-                 + (f"{live_count(candidates)} after the top-up)" if extra else "its call failed)"))
+        result = ("its call failed" if extra is None else "it answered with no ideas" if not extra
+                  else f"{live_count(candidates)} after the top-up")
+        topup = f"fired ({distinct} distinct after dedupe, under {MIN_DISTINCT}; {result})"
     run_trace(ctx.run_dir, stage="propose", step="topup", decider="code", note=topup)
     for cid, note in repairs.items():
         run_trace(ctx.run_dir, stage="propose", step=f"resolve:{cid}", decider="code", note=note[:300])
