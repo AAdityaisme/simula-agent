@@ -195,41 +195,58 @@ def chrome_failures(chrome: dict[str, dict[str, Rect]], mocks: dict[str, Image.I
     """Each data-chrome part (a header, a tab bar) must differ between two screens no more than the real app's does:
     a pair fails when its mock SSIM over both boxes is more than 1 - CHROME_GATE below the real screens' SSIM there.
     Chrome the app draws identically must score at least CHROME_GATE, and a highlighted tab may differ only as much as
-    it does in the app. A bar drawn in another place fails too. Only pairs whose real screens show the same part (SSIM
-    at least SAME_PART at one of the pair's boxes) are compared. A screen with no tag of the part is compared at the
-    other screen's box, so a bar left off one screen fails. The screen that matches fewer others is the one to fix;
-    on a tie, the later in the mock's order. The screen to copy is the marked one that matches the most others.
-    chrome maps every drawn screen, in the mock's order, to its parts' boxes (none when it marks none); mocks and reals
-    are content-dp images."""
+    it does in the app. A bar drawn in another place fails too. chrome maps every drawn screen, in the mock's order,
+    to its parts' boxes (none when it marks none); mocks and reals are content-dp images."""
+    kinds = dict.fromkeys(kind for parts in chrome.values() for kind in parts)
+    if not kinds:
+        return []
     mock = {sid: np.asarray(image.convert("RGB")) for sid, image in mocks.items()}
     real = {sid: np.asarray(image.convert("RGB")) for sid, image in reals.items()}
-    failures = []
-    for kind in dict.fromkeys(k for parts in chrome.values() for k in parts):
-        scores = {}
-        for a, b in itertools.combinations(chrome, 2):
-            boxes = [chrome[sid][kind] for sid in (a, b) if kind in chrome[sid]]
-            in_app = max((s for s in (box_ssim(real[a], real[b], box) for box in boxes) if s is not None), default=0.0)
-            if in_app >= SAME_PART:
-                scores[a, b] = box_ssim(mock[a], mock[b], union(*boxes)), in_app
-        matches = Counter(sid for pair, (m, r) in scores.items() if m >= r - (1 - CHROME_GATE) for sid in pair)
-        differs = {}
-        for (a, b), (m, r) in scores.items():
-            if m < r - (1 - CHROME_GATE):
-                odd, other = (a, b) if matches[a] < matches[b] else (b, a)
-                differs.setdefault(odd, []).append((other, m, r))
-        for odd, others in differs.items():
-            names = ", ".join(other for other, _, _ in others)
-            _, m, r = min(others, key=lambda o: o[1] - o[2])
-            marked_others = [other for other, _, _ in others if kind in chrome[other]]
-            like = max(marked_others or [others[0][0]], key=lambda other: matches[other])
-            marked = kind in chrome[odd]
-            part = f'data-chrome="{kind}" on {odd}' if marked else f'{odd} has no data-chrome="{kind}", and its place'
-            failures.append({"kind": "chrome", "screen": odd, "detail":
-                             f"{part} renders differently from {names} (SSIM {m:.3f}, where the real screens score "
-                             f"{r:.3f}): draw it as {like} does, keeping only what the real screens show differently "
-                             "(a highlighted tab, a title)"
-                             + ("" if marked else f', marked data-chrome="{kind}"')})
-    return failures
+    return [failure for kind in kinds for failure in part_failures(kind, chrome, mock, real)]
+
+
+def part_scores(kind: str, chrome: dict, mock: dict, real: dict) -> dict[tuple[str, str], tuple[float, float]]:
+    """(mock SSIM, real SSIM) for each pair of screens whose real screens show the part: SSIM at least SAME_PART at
+    one of the pair's boxes. A screen with no tag of the part is compared at the other screen's box, so a bar left
+    off one screen is caught."""
+    scores = {}
+    for a, b in itertools.combinations(chrome, 2):
+        boxes = [chrome[sid][kind] for sid in (a, b) if kind in chrome[sid]]
+        in_app = max((s for s in (box_ssim(real[a], real[b], box) for box in boxes) if s is not None), default=0.0)
+        if in_app >= SAME_PART:
+            scores[a, b] = box_ssim(mock[a], mock[b], union(*boxes)), in_app
+    return scores
+
+
+def alike(mock_ssim: float, real_ssim: float) -> bool:
+    return mock_ssim >= real_ssim - (1 - CHROME_GATE)
+
+
+def part_failures(kind: str, chrome: dict, mock: dict, real: dict) -> list[dict]:
+    """One failure per screen whose part differs from others more than the app's does. Of a pair, the screen that
+    matches fewer others is the one to fix; on a tie, the later in the mock's order."""
+    scores = part_scores(kind, chrome, mock, real)
+    matches = Counter(sid for pair, ssims in scores.items() if alike(*ssims) for sid in pair)
+    differs = {}
+    for (a, b), (mock_ssim, real_ssim) in scores.items():
+        if not alike(mock_ssim, real_ssim):
+            odd, other = (a, b) if matches[a] < matches[b] else (b, a)
+            differs.setdefault(odd, []).append((other, mock_ssim, real_ssim))
+    return [part_failure(kind, odd, others, chrome, matches) for odd, others in differs.items()]
+
+
+def part_failure(kind: str, odd: str, others: list[tuple[str, float, float]], chrome: dict, matches: Counter) -> dict:
+    """The fix for one screen: the screens it differs from, the worst pair's numbers, and the screen to copy (the
+    marked one that matches the most others, so an odd screen is never told to copy another odd one)."""
+    _, mock_ssim, real_ssim = min(others, key=lambda o: o[1] - o[2])
+    marked_others = [other for other, _, _ in others if kind in chrome[other]]
+    like = max(marked_others or [others[0][0]], key=lambda other: matches[other])
+    marked = kind in chrome[odd]
+    part = f'data-chrome="{kind}" on {odd}' if marked else f'{odd} has no data-chrome="{kind}", and its place'
+    return {"kind": "chrome", "screen": odd, "detail":
+            f"{part} renders differently from {', '.join(other for other, _, _ in others)} (SSIM {mock_ssim:.3f}, "
+            f"where the real screens score {real_ssim:.3f}): draw it as {like} does, keeping only what the real "
+            "screens show differently (a highlighted tab, a title)" + ("" if marked else f', marked data-chrome="{kind}"')}
 
 
 NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
@@ -238,7 +255,8 @@ NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
 def shows(value: str, text: str) -> bool:
     """Whether a tag's text shows a value. A value with numbers is shown when each of its numbers is a whole number in
     the tag, whatever words sit around it: '0 Following' and '💎 0' show '0', and '120' shows '120 coins', but '10',
-    '1.0' and 'coins' don't. A value with no number must appear in whole words, in any case and spacing."""
+    '1.0' and 'coins' don't. A value with no number must appear in whole words, in any case and spacing (text.find
+    has no word boundary, so it would take 'Pro' inside 'Proton')."""
     numbers = NUMBER.findall(value)
     if numbers:
         return all(n in NUMBER.findall(text) for n in numbers)
@@ -247,12 +265,17 @@ def shows(value: str, text: str) -> bool:
     return bool(words) and re.search(pattern, text, re.IGNORECASE) is not None
 
 
+def screen_of(model: ProductModel) -> dict[str, str]:
+    """The screen each element id, and each screen id, belongs to."""
+    return {e.id: s.id for s in model.states for e in s.elements} | {s.id: s.id for s in model.states}
+
+
 def value_failures(values: dict[str, list[tuple[str, str]]], model: ProductModel) -> list[dict]:
     """A shared value reads the same everywhere: each data-value tag shows the model's value for its id, the one
     value_text the product model records, and a drawn screen the model's evidence puts the value on carries its tag.
     values maps every drawn screen, in the mock's order, to its (id, text) tags."""
     known = {v.id: v for v in model.cross_screen_values}
-    owner = {e.id: s.id for s in model.states for e in s.elements} | {s.id: s.id for s in model.states}
+    owner = screen_of(model)
     failures = []
     for sid, tags in values.items():
         for vid, text in tags:

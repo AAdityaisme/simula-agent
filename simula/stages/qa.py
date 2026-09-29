@@ -170,7 +170,7 @@ def measure(ctx: Ctx, model: ProductModel, scope: list[State], n: int, html: str
         taps = check_taps(page, model, drawn)
         flows = walk_flows(page, model, scope, set(undrawn))
     details = [measure_screen(ctx, model, s, round_dir, *dom[s.id], taps) for s in drawn]
-    cross = cross_screen(model, round_dir, shared)
+    cross = cross_screen_failures(model, round_dir, shared)
     metrics = QAMetrics(round=n, screens=[d["metrics"] for d in details],
                         cross_screen_failures=[f["detail"] for f in cross],
                         score=sum(d["metrics"].score for d in details) / len(details))
@@ -217,7 +217,7 @@ def measure_screen(ctx: Ctx, model: ProductModel, state: State, round_dir, boxes
             "taps_passed": passed, "misses": misses}
 
 
-def cross_screen(model: ProductModel, round_dir, shared: dict) -> list[dict]:
+def cross_screen_failures(model: ProductModel, round_dir, shared: dict) -> list[dict]:
     """The cross-screen check on one version: shared chrome renders the same on every screen that draws it, and a
     shared value reads the same wherever it appears. Each failure names the screen to fix; failures go to the critic
     and the fixer like any finding, and never into the score."""
@@ -409,7 +409,7 @@ def fix(ctx: Ctx, budget: llm.Budget, model: ProductModel, version: Version, cri
 
 def named_screens(model: ProductModel, critique: Critique) -> set[str]:
     """The screens a critique's fixes are on: each fix names a data-el id or a screen id."""
-    owner = {e.id: s.id for s in model.states for e in s.elements} | {s.id: s.id for s in model.states}
+    owner = qa_metrics.screen_of(model)
     return {owner[f.element_id] for f in critique.fixes if f.element_id in owner}
 
 
