@@ -101,6 +101,17 @@ def test_a_screen_that_leaves_the_tab_bar_off_fails_though_it_carries_no_mark(tm
 
 
 @pytest.mark.parametrize("app", APPS)
+def test_a_tab_bar_drawn_over_the_content_on_one_screen_fails_on_that_screen(tmp_path, app):
+    """Its own box holds different content on every real screen, but the real screens match at the others' box."""
+    model = golden(app)
+    last = mock.pick_scope(model)[-1].id
+    top_bar = bars(model)[last].replace(f"top:{838.2 - BAR_DP}px", "top:300px")
+    run_dir, scope, html = run_with(tmp_path, app, model, lambda h: at_top(h, {**bars(model), last: top_bar}))
+    share_band(run_dir, model)
+    assert [f["screen"] for f in chrome(qa.measure(ctx_for(run_dir, app), model, scope, 0, html))] == [last]
+
+
+@pytest.mark.parametrize("app", APPS)
 def test_the_same_tab_bar_on_every_screen_passes(tmp_path, app):
     model = golden(app)
     run_dir, scope, html = run_with(tmp_path, app, model, lambda h: at_top(h, bars(model)))
