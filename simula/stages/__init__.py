@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from simula.llm import CapReached, ProviderUnavailable
+from simula.llm import Budget, CapReached, ProviderUnavailable
 
 UPSTREAM = {
     "explore": [],
@@ -67,18 +67,22 @@ def rerun_command(stage: str, ctx: Ctx) -> str:
 def resume_command(ctx: Ctx, stage: str, *causes: BaseException, fresh: bool = False) -> str:
     """The command that gets `stage` past what stopped it short, built from why:
     - the provider refusing the account: the run again from this stage, as it was opened;
-    - our own $ cap: the stage with --usd-cap raised to the figure the cap names (`<higher>` if it names none);
+    - our own $ cap: the stage with --usd-cap raised to the figure the cap names;
     - an answer the cache keeps (a refusal, max_tokens, an answer that failed its schema or couldn't be parsed), or
       `fresh` (the stage's own recorded answers are what fell short): a normal rerun replays it, so --no-cache;
     - a lost call (`TRANSIENT`) isn't replayed, so the plain stage.
-    Several causes add their flags up."""
+    Several causes add their flags up. --no-cache asks every call again against a budget that already counts what
+    the stage spent, so it comes with --usd-cap at what is spent plus a whole cap again, the same figure a cap stop
+    that names none gets: every printed command runs as printed."""
     if any(isinstance(c, ProviderUnavailable) for c in causes):
         return (f"simula run {ctx.app['name']} --from {stage} {run_options(ctx)}"
                 + (f" --usd-cap {ctx.usd_cap:g}" if ctx.usd_cap is not None else ""))
+    fresh = fresh or any(not isinstance(c, CapReached) and getattr(c, "outcome", None) not in TRANSIENT for c in causes)
+    figures = [c.usd_needed for c in causes if isinstance(c, CapReached)]
+    if fresh or None in figures:
+        again = Budget.for_stage(stage, ctx.run_dir / "trace.jsonl", ctx.usd_cap).rerun_cap(0)
+        figures = [f or again for f in figures] + ([again] if fresh else [])
     command = rerun_command(stage, ctx)
-    needed = [c.usd_needed for c in causes if isinstance(c, CapReached)]
-    if needed:
-        command += f" --usd-cap {max(needed):.2f}" if all(needed) else " --usd-cap <higher>"
-    if fresh or any(not isinstance(c, CapReached) and getattr(c, "outcome", None) not in TRANSIENT for c in causes):
-        command += " --no-cache"
-    return command
+    if figures:
+        command += f" --usd-cap {max(figures):.2f}"
+    return command + (" --no-cache" if fresh else "")

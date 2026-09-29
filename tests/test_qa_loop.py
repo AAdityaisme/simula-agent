@@ -5,9 +5,11 @@ model."""
 
 import json
 import re
+import shutil
 import threading
 import time
 from dataclasses import replace
+from pathlib import Path
 
 import anthropic
 import pytest
@@ -355,11 +357,11 @@ def test_a_provider_usage_limit_mid_qa_fails_the_stage_instead_of_approving(mock
     assert not list((mocked_run.parent.parent.parent / "cache").glob("*.json"))
 
 
-def answering_provider(calls: list, refuse: str | None = None, fixer_out: int = 100):
-    """Stands in for the provider behind the real llm.call (cache, budget, trace). The builder draws each batch's
-    skeleton, but refuses the batch holding screen `refuse` the first time it is asked; the critic names s01, and the
-    fixer answers with no edits, spending `fixer_out` tokens."""
-    model = golden("janitorai")
+def answering_provider(calls: list, model: ProductModel | None = None, refuse: str | None = None,
+                       fixer_out: int = 100, builder_out: int = 1000):
+    """Stands in for the provider behind the real llm.call (cache, budget, trace). The builder draws each batch of
+    `model` as its skeleton, spending `builder_out` tokens, but refuses the batch holding screen `refuse` the first
+    time it is asked; the critic names s01, and the fixer answers with no edits, spending `fixer_out` tokens."""
     refused = []
 
     def call(model_id, system, messages, effort, schema, max_tokens, total_timeout=None):
@@ -371,7 +373,7 @@ def answering_provider(calls: list, refuse: str | None = None, fixer_out: int = 
                 refused.append(screens)
                 return Reply(text="", model=model_id, tokens_in=1000, tokens_out=10, stop_reason="refusal")
             return Reply(text=f"```html\n{skeleton_html(model, screens)}\n```", model=model_id, tokens_in=1000,
-                         tokens_out=1000)
+                         tokens_out=builder_out)
         calls.append((schema.__name__,))
         if schema is Critique:
             answer = Critique(fixes=[Fix(element_id="s01", problem="p", fix="f")], summary="s")
@@ -403,31 +405,56 @@ def test_our_own_cap_in_qa_approves_the_best_round_and_its_printed_resume_gets_f
     assert ("Critique",) in calls and ("Edits",) in calls
 
 
-def test_a_refused_mock_batch_resumes_with_a_fresh_call_that_draws_it(runs, monkeypatch, tmp_path):
-    """Red team 9a98e87 F1 (probe B): the refusal is stored, so `simula run --from mock` made no builder call and left
-    the same screens undrawn. The printed resume asks the mock afresh and says so, then reruns QA on the new page
-    (Greptile on 71604e9); run as printed, the screens are drawn and QA no longer reports them."""
+def cloned_scope(tmp_path, app: str, screens: int) -> tuple[Path, ProductModel]:
+    """The app's golden model with its in-scope states cloned (new state and element ids, same screenshots and assets)
+    until `screens` are in scope, written as a model fixture folder."""
+    model = golden(app)
+    scope = mock.pick_scope(model)
+    clones = []
+    for k in range(screens - len(scope)):
+        state, sid = scope[k % len(scope)], f"x{k + 1:02}"
+        elements = [e.model_copy(update={"id": sid + e.id[len(state.id):]}) for e in state.elements]
+        clones.append(state.model_copy(update={"id": sid, "parent_id": None, "elements": elements}))
+    model = model.model_copy(update={"states": [*model.states, *clones]})
+    folder = tmp_path / "model"
+    shutil.copytree(FIXTURES / "golden" / app, folder)
+    (folder / "product_model.json").write_text(model.model_dump_json())
+    return folder, model
+
+
+def undrawn_now(run_dir) -> list[str]:
+    errors = ContractReport.model_validate_json((run_dir / "mock" / "contract_report.json").read_text()).errors
+    return sorted(e.screen for e in errors if e.kind == "undrawn_screen")
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_a_refused_mock_batch_resumes_to_every_screen_on_a_large_scope_at_real_prices(runs, monkeypatch, tmp_path,
+                                                                                      app):
+    """Red team 0ecf32a F1 (probe H): 24 screens in 6+ batches, real-profile prices, one batch refused once. The
+    printed resume asks the mock afresh (a stored refusal would replay) with --usd-cap at what is spent plus a whole
+    cap again, since --no-cache re-buys every batch against a budget that counts the first run. Run as printed, it
+    draws every screen: the ones the first run drew and the refused ones. Without the cap it planned fewer."""
+    folder, model = cloned_scope(tmp_path, app, 24)
+    groups = mock.batches(mock.pick_scope(model))
+    refused = sorted(s.id for s in groups[1])
     calls = []
-    monkeypatch.setitem(llm.PROVIDERS, "anthropic", answering_provider(calls, refuse="s06"))
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic",
+                        answering_provider(calls, model, refuse=groups[1][0].id, builder_out=80000))
     real = llm.call
     monkeypatch.setattr(llm, "call", lambda **kwargs: real(**kwargs, cache_dir=tmp_path / "cache"))
-    golden_model = str(FIXTURES / "golden" / "janitorai")
-    assert cli.main(["mock", "janitorai", "--allow-fixtures", "--fixture", f"model={golden_model}", "--profile", "dev"]) == 0
-    run = (runs / "janitorai" / "latest").resolve()
-    assert cli.main(["qa", "janitorai", "--run", run.name, "--allow-fixtures", "--profile", "dev"]) == 0
+    options = ["--allow-fixtures", "--profile", "real"]
+    assert len(groups) >= 6
+    assert cli.main(["mock", app, *options, "--fixture", f"model={folder}"]) == 0
+    run = (runs / app / "latest").resolve()
+    assert undrawn_now(run) == refused
+    assert cli.main(["qa", app, "--run", run.name, *options]) == 0
     report = json.loads((run / "qa" / "qa_report.json").read_text())
-    assert report["reasons"][0].startswith("the mock left screens undrawn: s06") and "(refusal: " in report["reasons"][0]
-    assert report["resume"] == (f"simula mock janitorai --run {run.name} {OPTIONS} --no-cache "
-                                f"&& simula qa janitorai --run {run.name} {OPTIONS}")
-    assert report["reasons"][-1] == FRESH_CALLS
-    drawn_before = sum(c[0] == "builder" for c in calls)
+    mock_half, qa_half = report["resume"].split(" && ")
+    assert "--no-cache" in mock_half and "--usd-cap" in mock_half and "<higher>" not in report["resume"]
 
-    assert [cli.main(command.split()[1:]) for command in report["resume"].split(" && ")] == [0, 0]
-    assert sum(c[0] == "builder" for c in calls) > drawn_before
-    errors = ContractReport.model_validate_json((run / "mock" / "contract_report.json").read_text()).errors
-    again = json.loads((run / "qa" / "qa_report.json").read_text())
-    assert not [e for e in errors if e.kind == "undrawn_screen"] and not again["undrawn_screens"]
-    assert not any(reason.startswith("the mock left screens undrawn") for reason in again["reasons"])
+    assert [cli.main(command.split()[1:]) for command in (mock_half, qa_half)] == [0, 0]
+    assert undrawn_now(run) == []
+    assert not json.loads((run / "qa" / "qa_report.json").read_text())["undrawn_screens"]
 
 
 @pytest.mark.parametrize("drift", [0.0, 0.01], ids=["same-renders", "renders-drift"])
@@ -655,7 +682,8 @@ def test_undrawn_screens_are_reported_and_never_scored_criticized_or_fixed(twelv
     assert calls and all(set(c["seen"]).isdisjoint(undrawn) for c in calls)
     assert (report["status"], report["outcome"]) == ("qa_incomplete", "partial") and not report["contract_errors"]
     assert report["reasons"][0] == f"the mock left screens undrawn: {', '.join(undrawn)} (refusal: no)"
-    assert report["resume"] == (f"simula mock {app} --run {run_dir.name} {OPTIONS} --no-cache "
+    assert report["resume"] == (f"simula mock {app} --run {run_dir.name} {OPTIONS} "
+                                f"--usd-cap {config.stage_cap('mock'):.2f} --no-cache "
                                 f"&& simula qa {app} --run {run_dir.name} {OPTIONS}")
     edges = {e.id: e for e in mock.scope_edges(model, mock.pick_scope(model))}
     for flow in (f for f in model.flows if f.edge_ids and all(i in edges for i in f.edge_ids)):
