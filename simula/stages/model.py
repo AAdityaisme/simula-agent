@@ -547,6 +547,17 @@ def mock_scope(states: list[State], edges: list[Edge], meaning: ModelMeaning) ->
     return list(dict.fromkeys(s for s in ordered if s in eligible))
 
 
+def junk_crop(e: Element, crop: Image.Image, device: Device) -> bool:
+    """A crop that isn't art: flat (two colors or fewer, which CSS draws from the element's colors), or a wordless
+    container in a bottom corner of the screen, touching a side edge and running past the content area, like an
+    edge-gesture area, whose pixels are only what sits under it. A wordless box inside the content area, such as
+    a full-width banner, keeps its crop."""
+    r = e.rect_px
+    in_corner = (r.x <= 0 or r.x + r.w >= device.w_px) and r.y + r.h > device.content_bottom_px
+    empty_container = e.type not in ROLE_BY_CLASS and not (e.text or e.label)
+    return crop.getcolors(2) is not None or (empty_container and in_corner)
+
+
 def finish_elements(state: State, scope: set[str], tapped: set[str], image: Image.Image, out: Path,
                     device: Device) -> State:
     """Crops image assets and marks what the mock draws: every in-scope element with words or art, and every
@@ -556,9 +567,11 @@ def finish_elements(state: State, scope: set[str], tapped: set[str], image: Imag
     for e in state.elements:
         asset = None
         if in_scope and is_image_like(e, state.elements, device):
-            asset = f"assets/{e.id}.png"
             r = e.rect_px
-            image.crop((int(r.x), int(r.y), int(r.x + r.w), int(r.y + r.h))).save(out / asset)
+            crop = image.crop((int(r.x), int(r.y), int(r.x + r.w), int(r.y + r.h)))
+            if not junk_crop(e, crop, device):
+                asset = f"assets/{e.id}.png"
+                crop.save(out / asset)
         in_mock = in_scope and (e.id in tapped or bool(e.text or e.label or asset))
         elements.append(e.model_copy(update={"asset_png": asset, "in_mock": in_mock}))
     return state.model_copy(update={"elements": elements, "in_mock_scope": in_scope})

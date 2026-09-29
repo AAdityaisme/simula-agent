@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from simula.contracts import ActionLine, Device, Point, ProductModel, Rect, StateFile, VisionElement
+from simula.contracts import ActionLine, Device, Point, ProductModel, Rect, State, StateFile, VisionElement
 from simula.stages import model as stage
 from tests.conftest import APPS, FIXTURES
 from tests.explore_fixture import add_core_loop, build
@@ -154,6 +154,33 @@ def test_assets_are_cropped_to_their_rect_for_in_scope_states_only(app, tmp_path
                 assert s.id in scope
                 assert Image.open(tmp_path / e.asset_png).size == (int(e.rect_px.w), int(e.rect_px.h))
             assert not e.in_mock or s.in_mock_scope
+
+
+def test_flat_crops_and_wordless_corner_boxes_get_no_asset(tmp_path):
+    """The edge-gesture areas of a real run: wordless boxes in the bottom corners, whose crops show whatever the
+    screen has under them. Art and a full-width wordless banner keep their crops."""
+    rng = np.random.default_rng(0)
+    pixels = rng.integers(0, 256, (DEVICE.h_px, DEVICE.w_px, 3), dtype=np.uint8)
+    pixels[800:900, 500:600] = (40, 40, 60)
+    bottom = DEVICE.h_px - 195
+
+    def element(n, kind, rect, label=""):
+        return stage.make_element(f"s01.e{n:02d}", rect, kind, "", label, f"@e{n}", pixels, DEVICE)
+    elements = [element(1, "ViewGroup", Rect(x=0, y=bottom, w=58, h=195)),
+                element(2, "ViewGroup", Rect(x=DEVICE.w_px - 58, y=bottom, w=58, h=195)),
+                element(3, "ViewGroup", Rect(x=500, y=800, w=100, h=100)),
+                element(4, "ViewGroup", Rect(x=0, y=400, w=DEVICE.w_px, h=300)),
+                element(5, "ImageView", Rect(x=0, y=bottom, w=300, h=195)),
+                element(6, "ViewGroup", Rect(x=200, y=1200, w=300, h=300))]
+    state = State(id="s01", kind="screen", parent_id=None, name="", purpose="", fingerprint="", canonical_png="",
+                  elements=elements, in_mock_scope=False, content_rating="safe", dynamic_regions=[],
+                  blocked_reason=None)
+    (tmp_path / "assets").mkdir()
+    done = stage.finish_elements(state, {"s01"}, set(), Image.fromarray(pixels), tmp_path, DEVICE)
+    assert [(e.id, bool(e.asset_png), e.in_mock) for e in done.elements] == [
+        ("s01.e01", False, False), ("s01.e02", False, False), ("s01.e03", False, False),
+        ("s01.e04", True, True), ("s01.e05", True, True), ("s01.e06", True, True)]
+    assert sorted(p.name for p in (tmp_path / "assets").iterdir()) == ["s01.e04.png", "s01.e05.png", "s01.e06.png"]
 
 
 def test_a_box_crop_never_holds_text(app):
