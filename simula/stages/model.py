@@ -23,7 +23,6 @@ PREFIX = "Found these elements on screen: "
 PROMPT = config.ROOT / "prompts" / "model" / "meaning.md"
 MAX_IMAGES = 20
 IMAGE_LONG_SIDE = 1568
-MAX_TOKENS = 64000
 ANSWER_RESERVE_TOKENS = 8000
 TOKENS_PER_NAME = 30
 QUESTION_CAP = 5
@@ -308,8 +307,8 @@ def png_bytes(image: Image.Image) -> bytes:
 
 
 def max_tokens(profile: str) -> int:
-    model = config.roles(profile)["model_meaning"]["model"]
-    return min(MAX_TOKENS, config.models()[model]["max_out"])
+    role = config.roles(profile)["model_meaning"]
+    return min(role["max_tokens"], config.models()[role["model"]]["max_out"])
 
 
 def ask_meaning(ctx: Ctx, dump: str, shots: list[tuple[str, bytes]],
