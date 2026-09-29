@@ -46,6 +46,8 @@ The bible calls some fields by other names: its `adapted_from` is `bible_mechani
 
 The `title` says what the user gets, in the app's own words, in 10 words or fewer. How it works goes in `adds` and `what_is_different_here`, not the title.
 
+When an idea rests on something the product model doesn't show, say it wasn't seen, not that the app lacks it: "no paywall was seen in the explored screens", never "the app has no paywall".
+
 ## Rules
 
 - Check what the app already offers before you propose. If the product model already shows the same thing free (a free sample of the feature), a rewarded taste of it adds nothing; don't propose it.
