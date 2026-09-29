@@ -732,6 +732,7 @@ def appendix_html(decisions: list[Decision], candidates: dict[str, Candidate], n
         if c and c.dropped_reason:
             facts.append(f"<b>Dropped by code:</b> {escape(c.dropped_reason)}")
         if c:
+            facts += [f"<b>Flagged by code:</b> {escape(flag)}" for flag in c.flags]
             steps = " → ".join(s.state_id for s in c.flow_steps)
             facts += [f"<b>Cost line:</b> {escape(c.economics.assumption_line) if c.economics else 'not priced'}",
                       f"<b>Evidence:</b> {escape(', '.join(c.anchor_evidence_ids) or 'none cited')} · trigger "

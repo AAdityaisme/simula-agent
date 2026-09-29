@@ -24,6 +24,7 @@ from tests.test_mock_isolation import ctx_for
 
 COST_LINE = "Costs nothing extra to serve, so any completed view pays for it above $0.00 eCPM."
 ROUND6 = FIXTURES / "flows" / "luzia-round6"
+FLAG = 'uses "Zap", whose meaning was never observed'
 
 
 def decision(cid: str, final: str, rank: float, passed: int = 11) -> Decision:
@@ -132,6 +133,18 @@ def golden_idea(run_dir, cid: str = "c01"):
     return next(c for c in ideas if c.id == cid)
 
 
+def text_of(fragment: str) -> str:
+    return " ".join(html.unescape(re.sub(r"<[^>]+>", " ", fragment)).split())
+
+
+def drawn(c, d) -> dict:
+    """A flow as build_flow returns it, every step wired and the ad at step 3, for building slides without a walk."""
+    shots = [{"state_id": s.state_id, "caption": s.caption, "png": f"step-{i}.png", "wired": True, "tap": None}
+             for i, s in enumerate(c.flow_steps)]
+    return {"candidate": c, "decision": d, "before": "before.png", "shots": shots, "ad_at": 2, "copy_shown": True,
+            "decline": ""}
+
+
 def slides(run_dir) -> list[tuple[str, str, str]]:
     """(idea, part, visible text) for every main slide."""
     deck = (run_dir / "flows" / "slides.html").read_text()
@@ -197,6 +210,20 @@ def test_a_failed_check_is_named_with_a_cost_question_and_no_numbers():
                    "serve only where ad prices are high; the cost line in the appendix has the numbers."
     free = c.model_copy(update={"economics": c.economics.model_copy(update={"cost_2k": 0})})
     assert "wasn't observed" in flows.condition(decision("c01", "conditional", 1.0), free, ROUND6)
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_code_flags_show_on_the_idea_appendix_card_and_reach_no_slide_or_model(tmp_path, app):
+    run_dir = seed_run(tmp_path, app, {"c01": {"flags": [FLAG]}})
+    decisions = DecisionsFile.model_validate_json((run_dir / "judge" / "decisions.json").read_text()).decisions
+    ideas, model = flows.load_candidates(run_dir), golden(app)
+    appendix = text_of(flows.appendix_html(decisions, ideas, [], run_dir))
+    assert appendix.count("Flagged by code") == 1
+    assert f"Flagged by code: {FLAG}" in appendix[appendix.index("c01 · "):appendix.index("c02 · ")]
+    main = text_of("".join(flows.idea_slides(drawn(ideas["c01"], decisions[0]), model, run_dir)))
+    page = flows.strip_runtime((run_dir / "mock" / "index.html").read_text())
+    editor = flows.editor_brief(ideas["c01"], model, page) + flows.system_prompt()
+    assert "Flagged" not in main and FLAG not in main and FLAG not in editor
 
 
 def test_the_walk_reaches_every_step_and_grants_the_reward_once(built):
