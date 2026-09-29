@@ -20,7 +20,8 @@ from simula.contracts import (ContractError, ContractReport, Critique, Edit, Edi
                               QAReport, Rect, ScreenMetrics, StageOutcome)
 from simula.llm import Reply
 from simula.runlog import read_trace
-from simula.stages import FRESH_CALLS, flows, mock, qa
+from simula.stages import FRESH_CALLS, mock, qa
+from simula.stages.flows import deck
 from tests.conftest import APPS, FIXTURES
 from tests.mock_fake import golden, seed_model, skeleton_html
 from tests.test_mock_isolation import ctx_for, fake_builder
@@ -399,7 +400,7 @@ def test_a_partial_qa_says_so_in_its_done_marker_and_on_the_decks_cover(mocked_r
     assert runfolder.read_done(mocked_run / "qa").outcome == StageOutcome(status="partial", reasons=report.reasons,
                                                                           resume=report.resume)
     assert report.resume in (mocked_run / "needs-human.md").read_text()
-    assert flows.unfinished_stages(mocked_run) == [
+    assert deck.unfinished_stages(mocked_run) == [
         f"The qa step finished only part of its work: {'; '.join(report.reasons)}."]
 
 
