@@ -143,8 +143,8 @@ def test_a_refused_capture_is_tried_once_more_logged_and_nothing_else_is(caplog)
     caplog.set_level(logging.WARNING, logger="simula.render")
     once = RefusingPage(1)
     assert screenshot(once, animations="disabled") == b"png" and once.calls == 2
-    assert [r.getMessage() for r in caplog.records] == [f"Chromium refused a screenshot ({CAPTURE_REFUSED}); "
-                                                         "trying once more"]
+    warned = f"Chromium refused a screenshot ({CAPTURE_REFUSED}); trying once more"
+    assert [r.getMessage() for r in caplog.records] == [warned]
     twice = RefusingPage(2)
     with pytest.raises(PlaywrightError, match=CAPTURE_REFUSED):
         screenshot(twice)
