@@ -148,6 +148,8 @@ FLOW_JS = """(() => {
 REWARDED_JS = "on => document.body.classList.toggle('simula-rewarded', on)"
 REWARD_LABELS_JS = """() => [...document.querySelectorAll('[data-reward]')].filter(e => e.checkVisibility())
   .map(e => { const b = e.getBoundingClientRect(); return {text: (e.innerText ?? e.textContent).trim(), box: [b.x, b.y, b.width, b.height]}; })"""
+REPLACED_JS = """() => [...document.querySelectorAll('[data-unrewarded]')]
+  .some(e => { const b = e.getBoundingClientRect(); return e.checkVisibility() && b.width > 0 && b.height > 0; })"""
 NOTE_ON_TOP_JS = """() => { const note = document.querySelector('.sa-note');
   if (!note || !note.checkVisibility()) return false;
   const b = note.getBoundingClientRect();
@@ -491,9 +493,11 @@ def play(page, ad: str, target: str) -> tuple[bool, dict | None, str]:
 def reward_effect(page, granted: Path) -> tuple[bool, list[str] | None]:
     """What granting the reward visibly changes on the screen just captured with it granted: whether anything
     changes, and when everything that changes sits inside reward elements that appeared (a label, a badge), their
-    words (None when more than that changes)."""
+    words (None when more than that changes). Something the reward replaces (data-unrewarded) showing with the
+    reward off is more than a label, even when its rewarded form is drawn in the same place."""
     labels = page.evaluate(REWARD_LABELS_JS)
     page.evaluate(REWARDED_JS, False)
+    replaced = page.evaluate(REPLACED_JS)
     without = render.screenshot(page, animations="disabled")
     page.evaluate(REWARDED_JS, True)
     with Image.open(granted) as on, Image.open(io.BytesIO(without)) as off:
@@ -502,6 +506,8 @@ def reward_effect(page, granted: Path) -> tuple[bool, list[str] | None]:
         scale = on.width / VIEW_W
     if diff.getbbox() is None:
         return False, None
+    if replaced:
+        return True, None
     draw = ImageDraw.Draw(diff)
     for x, y, w, h in (label["box"] for label in labels):
         draw.rectangle([(x - LABEL_PAD) * scale, (y - LABEL_PAD) * scale, (x + w + LABEL_PAD) * scale,
