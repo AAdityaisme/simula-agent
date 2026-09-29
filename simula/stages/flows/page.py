@@ -1,4 +1,5 @@
-"""The flow's page: code-owned CSS and JS for the simulated ad, the ad card, the palette, blur, and the phone viewport."""
+"""The flow's page: code-owned CSS and JS for the simulated ad, the ad card, the palette, blur, the phone viewport,
+and reading or stripping the mock's runtime."""
 
 import json
 import re

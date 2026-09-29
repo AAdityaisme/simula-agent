@@ -5,7 +5,9 @@ lays out slides for the app's product team, then prints them to PDF."""
 import json
 import re
 import shutil
+import threading
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from pathlib import Path
 
 from simula import llm
@@ -175,12 +177,49 @@ def unbuildable(c: Candidate | None) -> str | None:
     return None
 
 
+@dataclass
+class Turn:
+    """The stage's budget as the rank-th editor call sees it (llm.call only reserves and charges). Its first hold waits
+    until every better-ranked call has taken its own or finished, since an answer from the cache takes none. So when
+    the $ cap can't cover every idea, the best-ranked are drawn, not whichever thread got there first."""
+    budget: llm.Budget
+    rank: int
+    settled: set[int]
+    moved: threading.Condition
+
+    def reserve(self, worst_usd: float, **where) -> None:
+        # ponytail: only first holds queue; a retried attempt's hold takes what is left, in no fixed order
+        with self.moved:
+            self.moved.wait_for(lambda: self.settled.issuperset(range(self.rank)))
+        try:
+            self.budget.reserve(worst_usd, **where)
+        finally:
+            self.settle()
+
+    def charge(self, usd: float, reserved: float) -> None:
+        self.budget.charge(usd, reserved)
+
+    def settle(self) -> None:
+        with self.moved:
+            self.settled.add(self.rank)
+            self.moved.notify_all()
+
+
 def edit_all(ctx: Ctx, model: ProductModel, page: str, budget: llm.Budget, chosen: list[Decision],
              candidates: dict[str, Candidate]) -> tuple[list[tuple[Decision, Edits | None]], list[Decision]]:
-    """One editor call per idea, all at once on the stage's budget. The ideas the $ cap turns away come back apart, so
-    the ones whose edits fit are still drawn; any other failure stops the stage before anything is walked."""
+    """One editor call per idea, all at once on the stage's budget, holding it in rank order (`Turn`). The ideas the $
+    cap turns away come back apart, so the ones whose edits fit are still drawn; any other failure stops the stage
+    before anything is walked."""
+    settled, moved = set(), threading.Condition()
+
+    def in_turn(d: Decision, turn: Turn) -> Edits | None:
+        try:
+            return ask_editor(ctx, candidates[d.candidate_id], model, page, turn)
+        finally:
+            turn.settle()
+
     with ThreadPoolExecutor(max_workers=max(1, len(chosen))) as pool:
-        asked = [(d, pool.submit(ask_editor, ctx, candidates[d.candidate_id], model, page, budget)) for d in chosen]
+        asked = [(d, pool.submit(in_turn, d, Turn(budget, rank, settled, moved))) for rank, d in enumerate(chosen)]
     edited, capped = [], []
     for d, ask in asked:
         if isinstance(ask.exception(), llm.CapReached):

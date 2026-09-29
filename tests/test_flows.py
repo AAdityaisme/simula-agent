@@ -4,6 +4,7 @@ import dataclasses
 import html
 import re
 import shutil
+import time
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -75,10 +76,11 @@ def fake_edits(c, page: str, wire_accept: bool = True, ad_section: str = "marked
                decline_to: str | None = None, show_copy: bool = True, break_page: bool = False,
                show_reward: bool = True, hide_note: bool = False) -> Edits:
     """What a good editor returns for any idea: an entry point on the trigger, the offer, an empty ad screen, a plain
-    screen for each new step after the ad, and a badge that shows the reward. The options plant one defect each: ad_section "unmarked" draws the ad screen without
-    data-ad and "missing" leaves it out; block_play covers the game's Play button; decline_to sends "No thanks" to a new
-    screen instead of back; show_copy=False drops the offer copy; break_page leaves an HTML comment open, which kills
-    the page's scripts; show_reward=False draws no badge; hide_note hides the note a failed ad shows."""
+    screen for each new step after the ad, and a badge that shows the reward. The options plant one defect each:
+    ad_section "unmarked" draws the ad screen without data-ad and "missing" leaves it out; block_play covers the game's
+    Play button; decline_to sends "No thanks" to a new screen instead of back; show_copy=False drops the offer copy;
+    break_page leaves an HTML comment open, which kills the page's scripts; show_reward=False draws no badge; hide_note
+    hides the note a failed ad shows."""
     trigger, offer, ad = (s.state_id for s in c.flow_steps[:3])
     tag = re.search(rf'<section[^>]*data-screen="{trigger}"[^>]*>', page).group(0)
     button = 'style="position:absolute;left:20px;top:{}px;z-index:5"'
@@ -769,7 +771,8 @@ def assert_contained(run_dir, reason: str):
 
 
 def test_an_idea_the_cap_turns_away_is_not_built_and_the_rest_still_make_the_deck(tmp_path, monkeypatch):
-    """Greptile on #11: a refused editor call escaped the thread pool, and the stage died with no deck."""
+    """Greptile on #11: a refused editor call escaped the thread pool, and the stage died with no deck. Greptile on
+    #18: the calls took the budget in thread order, so a lower-ranked idea could push the best one off the deck."""
     ideas = ("c01", "c02", "c03", "c04")
     run_dir = seed_run(tmp_path, "luzia", changes={"c04": {"dropped_reason": None}})
     ranked = [decision(cid, "accept", 4.0 - n) for n, cid in enumerate(ideas)]
@@ -779,13 +782,16 @@ def test_an_idea_the_cap_turns_away_is_not_built_and_the_rest_still_make_the_dec
     edit = fake_editor(run_dir)
 
     def held_until_the_end(**kwargs):
+        if kwargs["step"] == "edit:c01":
+            time.sleep(0.3)  # the best-ranked idea is the last to ask
         kwargs["budget"].reserve(1.0, step=kwargs["step"])  # as llm.call does, never settled: $3 fits three calls
         return edit(**kwargs)
     monkeypatch.setattr(llm, "call", held_until_the_end)
     flows.stage.run(dataclasses.replace(ctx_for(run_dir, "luzia"), usd_cap=3.0))
     drawn_ideas = {idea for idea, _, _ in slides(run_dir)}
     [capped] = set(ideas) - drawn_ideas
-    assert len(drawn_ideas) == 3 and not (run_dir / "flows" / capped).exists()
+    assert capped == "c04", "the lowest-ranked idea is the one the cap turns away"
+    assert not (run_dir / "flows" / capped).exists()
     deck = (run_dir / "flows" / "slides.html").read_text()
     not_built = html.unescape(re.search(r'<ul class="not-built">(.*?)</ul>', deck, re.S).group(1))
     assert f"{capped} · " in not_built and flows.stage.OVER_BUDGET in not_built
@@ -794,7 +800,8 @@ def test_an_idea_the_cap_turns_away_is_not_built_and_the_rest_still_make_the_dec
     assert f"- {capped}: {flows.stage.OVER_BUDGET}" in (run_dir / "exhibits" / "07-flows.md").read_text()
     trace = read_trace(run_dir / "trace.jsonl")
     assert any(line.step == f"build:{capped}" and flows.stage.OVER_BUDGET in line.note for line in trace)
-    assert [line.step for line in trace if line.outcome == "cap"] == [f"edit:{capped}"],         "the budget's own record of the refusal, which makes run_stage mark the stage partial"
+    assert [line.step for line in trace if line.outcome == "cap"] == [f"edit:{capped}"], \
+        "the budget's own record of the refusal, which makes run_stage mark the stage partial"
 
 
 def test_a_hung_page_leaves_only_that_idea_not_built(tmp_path, monkeypatch):
