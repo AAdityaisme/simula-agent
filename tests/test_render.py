@@ -156,10 +156,11 @@ def test_a_refused_capture_is_tried_once_more_logged_and_nothing_else_is(caplog)
 
 
 def test_every_browser_capture_goes_through_render_screenshot():
-    """Any `.screenshot(` call (page, frame, tab, locator) under simula/ is render.screenshot or the helper itself."""
+    """Any `.screenshot(` call under simula/ (page, frame, tab, locator; spaced or not) is render.screenshot or the
+    helper itself."""
     lines, start = inspect.getsourcelines(screenshot)
     helper = {f"simula/render.py:{n}" for n in range(start, start + len(lines))}
     direct = [f"{path.relative_to(ROOT)}:{n}" for path in sorted((ROOT / "simula").rglob("*.py"))
               for n, line in enumerate(path.read_text().splitlines(), 1)
-              if len(re.findall(r"\.screenshot\(", line)) > line.count("render.screenshot(")]
+              if len(re.findall(r"\.screenshot\s*\(", line)) > len(re.findall(r"\brender\.screenshot\s*\(", line))]
     assert [d for d in direct if d not in helper] == [] and len(direct) == 2, direct
