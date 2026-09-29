@@ -30,10 +30,8 @@ LOWEST_SHOWN = 3
 CLICK_TIMEOUT_MS = 1500
 TYPED = "hello"
 GESTURE_MAP = "() => JSON.parse(document.getElementById('simula-actions')?.textContent || '{}')"
-CRITIC_MAX_TOKENS = 16000
 CRITIC_SCREENS = 4
 PARALLEL_CRITICS = 4
-FIXER_MAX_TOKENS = 64000
 RECORDS = llm.CACHE / "qa"
 # How mock.run and mock.failure_reason word a placeholder's reason, read back by undrawn_cause.
 UNDRAWN_PREFIX = "screen not drawn: "
@@ -489,7 +487,7 @@ def criticize_group(ctx: Ctx, budget: llm.Budget, version: Version, history: lis
                     + json.dumps(pictures(ctx, ids), separators=(",", ":"))
                     + "\n\nEarlier rounds:\n" + json.dumps(history, separators=(",", ":"))})
     return ask(ctx, budget, version, step=f"critic r{n} g{k}", model=role["model"], effort=role.get("effort"),
-               system=prompt("critic"), content=content, max_tokens=role.get("max_tokens", CRITIC_MAX_TOKENS),
+               system=prompt("critic"), content=content, max_tokens=role["max_tokens"],
                schema=Critique)
 
 
@@ -520,7 +518,7 @@ def fix(ctx: Ctx, budget: llm.Budget, model: ProductModel, version: Version, cri
                     + without_runtime(version.html) + "\n```"})
     return ask(ctx, budget, version, step=f"fixer r{n}", model=role["model"], effort=effort,
                system=prompt("fixer") + "\n\n" + mock.contract_text(), content=content,
-               max_tokens=role.get("max_tokens", FIXER_MAX_TOKENS), schema=Edits)
+               max_tokens=role["max_tokens"], schema=Edits)
 
 
 def named_screens(model: ProductModel, critique: Critique) -> set[str]:
