@@ -569,11 +569,12 @@ def visible(page, selector: str) -> list:
     return [el for el in page.locator(selector).all() if el.is_visible()]
 
 
-def walk_decline(flow_dir: Path, c: Candidate, ad: str | None, ad_at: int) -> tuple[bool | None, str]:
-    """The second, short walk: reach the offer, check it shows the offer copy, tap its control that goes back (the
-    one back to the first step before any other, such as the app's own close), and check the app is as it was.
-    Returns whether the copy was shown (None when the offer couldn't be reached) and why saying no failed ("" when it
-    worked)."""
+def walk_decline(flow_dir: Path, c: Candidate, ad: str | None, ad_at: int,
+                 known: set[str]) -> tuple[bool | None, str]:
+    """The second, short walk: reach the offer, check it shows the offer copy, tap the offer's own control that goes
+    back (one whose edge isn't in the model's `known` edges; the app's own close only when the offer has none), and
+    check the app is as it was. Returns whether the copy was shown (None when the offer couldn't be reached) and why
+    saying no failed ("" when it worked)."""
     steps = [s.state_id for s in c.flow_steps]
     with render.open_mock(flow_dir) as (page, _):
         page.clock.install()
@@ -582,8 +583,8 @@ def walk_decline(flow_dir: Path, c: Candidate, ad: str | None, ad_at: int) -> tu
         offer = state(page)
         copy = words(c.offer_copy)
         shown = bool(copy) and copy in words(page.locator(f'[data-screen="{offer}"]').inner_text())
-        goes_back = f'[data-screen="{offer}"] [data-edge][data-transition="back"]'
-        back = visible(page, f'{goes_back}[data-edge$=">{steps[0]}"]') or visible(page, goes_back)
+        goes_back = visible(page, f'[data-screen="{offer}"] [data-edge][data-transition="back"]')
+        back = [el for el in goes_back if el.get_attribute("data-edge") not in known] or goes_back
         if not back:
             return shown, f"the offer on {offer} has no visible control that goes back"
         try:
@@ -630,7 +631,8 @@ def build_flow(ctx: Ctx, model: ProductModel, source: Path, c: Candidate, decisi
     applied = len(edits.edits) - len(rejected) if edits else 0
     run_trace(ctx.run_dir, stage="flows", step=f"edits:{c.id}", decider="code", outcome="ok" if applied else "error",
               note=f"{applied} applied, {len(rejected)} rejected" + (f"; first: {rejected[0]}" if rejected else ""))
-    edited, relabeled = decline_edges(edited, c.flow_steps[0].state_id, {e.id for e in model.edges})
+    known = {e.id for e in model.edges}
+    edited, relabeled = decline_edges(edited, c.flow_steps[0].state_id, known)
     if relabeled:
         run_trace(ctx.run_dir, stage="flows", step=f"edits:{c.id}", decider="code",
                   note=f"{relabeled} new control(s) that return to the first step now go back")
@@ -641,7 +643,7 @@ def build_flow(ctx: Ctx, model: ProductModel, source: Path, c: Candidate, decisi
     (flow_dir / "index.html").write_text(html)
 
     shots, recorded = walk(flow_dir, c, ad, ad_at)
-    copy_shown, decline = walk_decline(flow_dir, c, ad, ad_at)
+    copy_shown, decline = walk_decline(flow_dir, c, ad, ad_at, known)
     if decline or copy_shown is False:
         problem = decline or "the offer screen doesn't show the offer copy"
         run_trace(ctx.run_dir, stage="flows", step=f"decline:{c.id}", decider="code", outcome="error",

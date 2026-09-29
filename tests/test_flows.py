@@ -702,40 +702,48 @@ def test_saying_no_must_return_to_the_start_with_nothing_granted_and_the_offer_m
 
 
 @pytest.mark.parametrize("app", APPS)
-def test_saying_no_taps_the_offers_way_back_not_the_screens_own_close(tmp_path, app):
-    """The offer is drawn on a screen that already has a back control to another screen; saying no must use the
-    offer's own control, which returns to the first step."""
+@pytest.mark.parametrize("starts_on_offer", [True, False])
+def test_saying_no_taps_the_offers_own_way_back_never_the_apps_close(tmp_path, app, starts_on_offer):
+    """The offer is drawn on a screen that has its own close, and its No thanks returns to that screen. Starting
+    there, saying no works. Starting on the screen the app's close returns to, No thanks strays, and the walk must
+    say so instead of tapping the app's close."""
     model = golden(app)
     scope = {s.id for s in pick_scope(model)}
     own = next((e for e in model.edges if e.transition == "back" and e.from_state != e.to_state
                 and {e.from_state, e.to_state} <= scope), None)
     if own is None:
         pytest.skip(f"no screen in {app}'s golden scope has its own back control")
-    screen = own.from_state
+    screen, first = own.from_state, own.from_state if starts_on_offer else own.to_state
     steps = [FlowStep(state_id=state, caption=caption) for state, caption in
-             [(screen, "The screen is open"), (screen, "The offer shows"), ("new:ad", "They play"),
-              (screen, "The bonus shows")]]
-    run_dir = seed_run(tmp_path, app, {"c01": {"trigger_state_id": screen, "flow_steps": steps}})
+             [(first, "The screen is open"), (screen, "The offer shows"), ("new:ad", "They play"),
+              (first, "The bonus shows")]]
+    run_dir = seed_run(tmp_path, app, {"c01": {"trigger_state_id": first, "flow_steps": steps}})
     c = golden_idea(run_dir)
     style = 'style="position:absolute;left:20px;top:{}px;z-index:20"'
-    offer = (f'<p {style.format(500)}>{c.offer_copy}</p><div data-reward {style.format(40)}>Bonus on</div>'
-             f'<button data-edge="{screen}>new:ad" data-transition="modal" {style.format(560)}>Play</button>'
-             f'<button data-edge="{screen}>{screen}" data-transition="back" {style.format(620)}>No thanks</button>')
+    added = {screen: (f'<p {style.format(500)}>{c.offer_copy}</p><div data-reward {style.format(40)}>Bonus on</div>'
+                      f'<button data-edge="{screen}>new:ad" data-transition="modal" {style.format(560)}>Play</button>'
+                      f'<button data-edge="{screen}>{screen}" data-transition="back" {style.format(620)}>No thanks'
+                      '</button>')}
+    if not starts_on_offer:
+        added[first] = f'<button data-edge="{first}>{screen}" data-transition="modal" {style.format(700)}>Open</button>'
 
     def editor(**kwargs):
         page = flows.strip_runtime((run_dir / "mock" / "index.html").read_text())
-        tag = re.search(rf'<section[^>]*data-screen="{screen}"[^>]*>', page).group(0)
-        close = page.index("</section>", page.index(tag))
+        edits = []
+        for sid, html in added.items():
+            close = page.index("</section>", page.index(re.search(rf'<section[^>]*data-screen="{sid}"', page).group(0)))
+            edits.append(Edit(find=page[close - 40:close + 10], replace=page[close - 40:close] + html
+                              + page[close:close + 10], reason="added after the screen's own controls"))
         ad = f'<section data-screen="new:ad" data-flow="c01" data-parent="{screen}" data-ad></section>'
-        return Edits(edits=[Edit(find=page[close - 40:close + 10], replace=page[close - 40:close] + offer
-                                 + page[close:close + 10], reason="offer after the screen's own controls"),
-                            Edit(find="</body>", replace=ad + "</body>", reason="ad")]), None
+        return Edits(edits=[*edits, Edit(find="</body>", replace=ad + "</body>", reason="ad")]), None
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(llm, "call", editor)
         flows.run(ctx_for(run_dir, app))
     row = next(line for line in (run_dir / "exhibits" / "07-flows.md").read_text().splitlines()
                if line.startswith("| c01"))
-    assert "| 4 / 4 | 1 | ok | ok |" in row, row
+    saying_no = row.split("|")[6].strip()
+    assert saying_no == ("ok" if starts_on_offer else
+                         f"{flows.NOT_WIRED}: saying no led to {screen}, not back to {first}"), row
 
 
 @pytest.mark.parametrize("app", APPS)
