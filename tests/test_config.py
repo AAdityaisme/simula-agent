@@ -40,7 +40,6 @@ def test_budgets_are_run_flags():
 
 def test_doctor_probes_every_role_at_the_max_tokens_its_code_asks_for():
     from simula.doctor import role_probes
-    from simula.stages import model
     roles, models = config.roles("real"), config.models()
     probes = role_probes()
     called = {name for name, role in roles.items() if name != "jev" and "max_tokens" in role}
@@ -48,10 +47,24 @@ def test_doctor_probes_every_role_at_the_max_tokens_its_code_asks_for():
     for name in called:
         role = roles[name]
         for m in filter(None, (role["model"], role.get("declared_fallback"))):
-            assert (m, role.get("effort"), min(role["max_tokens"], models[m]["max_out"])) in probes, name
-    assert model.max_tokens("real") == min(roles["model_meaning"]["max_tokens"],
-                                           models[roles["model_meaning"]["model"]]["max_out"])
+            assert (m, role.get("effort"), config.max_tokens(role, m)) in probes, name
     assert any(n > models[m]["stream_above"] for m, _, n in probes), "a streamed call is probed streamed"
+
+
+def test_a_roles_max_tokens_is_capped_at_its_models_max_out():
+    model = "claude-haiku-4-5-20251001"
+    ceiling = config.models()[model]["max_out"]
+    assert config.max_tokens({"model": model, "max_tokens": ceiling + 1}) == ceiling
+    assert config.max_tokens({"model": model, "max_tokens": 1000}) == 1000
+
+
+def test_every_call_reads_its_budget_through_the_one_helper():
+    """One rule, one place: a call that read role["max_tokens"] raw would ask for more than its model allows while
+    doctor probed the capped number."""
+    raw = [f"{p.relative_to(config.ROOT)}:{n}" for p in sorted((config.ROOT / "simula").rglob("*.py"))
+           if p.name != "config.py" for n, line in enumerate(p.read_text().splitlines(), 1)
+           if 'role["max_tokens"]' in line or '["max_out"]' in line]
+    assert raw == []
 
 
 def test_every_role_belongs_to_a_stage_so_changing_it_reruns_that_stage():

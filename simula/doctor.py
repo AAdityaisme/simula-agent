@@ -197,7 +197,7 @@ def role_probes() -> dict[tuple, list[str]]:
         for model in models:
             efforts = {role.get("effort"), role.get("effort_last_round")} - {None} or {None}
             for effort in efforts:
-                key = (model, effort, min(role["max_tokens"], config.models()[model]["max_out"]))
+                key = (model, effort, config.max_tokens(role, model))
                 probes.setdefault(key, []).append(name if model == role["model"] else f"{name} fallback")
     probes.setdefault(("claude-haiku-4-5-20251001", None, PROBE_MAX_TOKENS), []).append("dev profile, jev adapter")
     return probes
