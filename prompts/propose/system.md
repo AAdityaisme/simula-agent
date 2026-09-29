@@ -38,7 +38,7 @@ The bible calls some fields by other names: its `adapted_from` is `bible_mechani
 - `character_use`: how (or whether) the app's own characters, mascots, or content appear in the ad moment. "None" is fine.
 - `flow_steps`: 3 to 6 steps. The first is `trigger_state_id` as it is today. Every existing screen you name must be in scope. New screens use `new:<short-slug>` as the state id. The steps go: where it starts → the offer → the ad plays → the reward lands.
 - `after_reward`: one plain sentence on what the user sees when the reward runs out, and why that moves them toward paying, returning, or playing again ("When the 3 days end, the extra slot locks again with a note that the paid plan keeps it for good."). Code drops an idea without it.
-- `rationale`: why this works for this app, in two or three sentences.
+- `rationale`: what the app gets, in two or three sentences: why users take the offer and what that brings the app. The slides print it under that heading; the reasons that rest on this app's screens go in `what_is_different_here`.
 
 ## Language
 
