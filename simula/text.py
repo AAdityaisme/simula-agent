@@ -41,7 +41,10 @@ def char_class(codes: list[int]) -> str:
 # Combining marks (Unicode category M): an Indic vowel sign, or an accent written as its own character. Regex \w leaves
 # them out, but they are part of the letter they sit on.
 MARK = char_class([c for c in range(sys.maxunicode + 1) if unicodedata.category(chr(c)).startswith("M")])
-SPACED_LETTER = f"(?:[^\\W{UNSPACED}]|(?![{UNSPACED}])[{MARK}])"
+# A letter or digit of a script written with spaces, or a mark written on one (directly or after another mark). A mark
+# on anything else, such as the emoji presentation selector in "⚡️Energy", doesn't join what follows to a word.
+SPACED_WORD_CHAR = f"[^\\W{UNSPACED}]"
+SPACED_LETTER = f"(?:{SPACED_WORD_CHAR}|(?![{UNSPACED}])(?<={SPACED_WORD_CHAR}|[{MARK}])[{MARK}])"
 
 
 def phrase(words: str) -> re.Pattern[str]:

@@ -604,6 +604,24 @@ def test_a_term_in_a_script_with_vowel_signs_can_be_observed(term, words):
     assert (resolved.observed, resolved.defined_by) == (True, ["s02.e04"])
 
 
+@pytest.mark.parametrize("term, words", [("Energy", "⚡️Energy refills every 4 hours"), ("Gems", "💎️Gems: 120 left"),
+                                         ("Premium", "⭐️Premium members skip the line")],
+                         ids=["energy", "gems", "premium"])
+def test_a_term_written_right_after_an_emoji_is_kept_and_observed(term, words):
+    """Red team PR13 @408cd35 #3: the emoji's presentation selector (U+FE0F) is a mark, but it sits on the emoji, not
+    on a letter, so it doesn't join the emoji to the word after it. Before, the merge check dropped such a term."""
+    states, meaning, edges, model_labels = real_terms("janitorai")
+    states = [s.model_copy(update={"elements": [e.model_copy(update={"text": words}) if e.id == "s02.e04" else e
+                                                for e in s.elements]}) for s in states]
+    meaning.value_ledger.append(LedgerItem(id="vl-term", kind="meter", verbatim=words, evidence_ids=["s02.e04"]))
+    meaning.terms[:] = [TermMeaning(term=term, meaning="a unit characters spend", defined_by=["s02.e04"],
+                                    used_in=["vl-term"], everyday=False)]
+    kept, rejected = stage.check_meaning(meaning, states, edges)
+    assert not [r for r in rejected if r.startswith("term") or "vl-term" in r]
+    (resolved,) = stage.resolve_terms(kept, states, edges, model_labels)
+    assert (resolved.observed, resolved.defined_by) == (True, ["s02.e04"])
+
+
 def test_a_term_shows_only_as_a_whole_word():
     """s01.e48 "Limitless" would explain "Limit" if part of a word counted: "less" is left once "Limit" is cut."""
     states, meaning, edges, model_labels = real_terms("janitorai")

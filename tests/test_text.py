@@ -46,3 +46,10 @@ def test_a_mark_written_on_a_letter_is_part_of_its_word():
     assert not text.phrase("कन").search("टोकन खरीदें") and not text.phrase("मा").search("सीमा")
     assert not text.phrase("Poke").search(unicodedata.normalize("NFD", "Pokémon cards"))
     assert text.phrase("ได้").search("ก็ได้"), "a mark in a script written without spaces still matches as a substring"
+
+
+def test_a_mark_on_an_emoji_does_not_join_it_to_the_next_word():
+    """The presentation selector U+FE0F is a mark written on the emoji, not on a letter."""
+    assert text.phrase("Energy").search("⚡️Energy refills every 4 hours") and text.phrase("Gems").search("💎️Gems: 120")
+    assert text.phrase("Premium").search("⭐️Premium members skip the line")
+    assert not text.phrase("nergy").search("⚡️Energy"), "the word itself still has its edges"
