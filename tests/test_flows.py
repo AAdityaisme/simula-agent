@@ -212,6 +212,30 @@ def test_a_failed_check_is_named_with_a_cost_question_and_no_numbers():
     assert "wasn't observed" in flows.condition(decision("c01", "conditional", 1.0), free, ROUND6)
 
 
+def test_a_cost_line_that_isnt_pass_is_a_mark_on_every_slide_and_never_the_verdict():
+    """Real round-6 output, as recorded (the old judge made three 11/11 ideas CONDITIONAL for cost) and as the judge
+    now decides them in annotate mode (accepted, cost carried as a mark)."""
+    decisions = DecisionsFile.model_validate_json((ROUND6 / "judge" / "decisions.json").read_text()).decisions
+    ideas, model = flows.load_candidates(ROUND6), golden("luzia")
+    chosen = flows.select(decisions, None)
+    assert sorted(ideas[d.candidate_id].economics.verdict for d in chosen) == ["CONDITIONAL", "CONDITIONAL", "FAIL",
+                                                                               "PASS"]
+    for d in chosen:
+        c, marked = ideas[d.candidate_id], ideas[d.candidate_id].economics.verdict != "PASS"
+        for final in ("conditional", "accept"):
+            texts = [text_of(s) for s in flows.idea_slides(drawn(c, d.model_copy(update={"final": final})), model,
+                                                            ROUND6)]
+            for text in texts:
+                assert (f"Cost check: {c.economics.verdict}" in text) == marked
+                assert (" Conditional " in text) == (final == "conditional")
+                assert not re.search(r"\$|eCPM", text), text
+            if marked:
+                assert texts[-1].count(flows.cost_question(c)) == 1
+            if marked and final == "accept":
+                assert f"Cost check ({c.economics.verdict}): {flows.cost_question(c)}." in texts[-1]
+                assert "Recommended with one condition" not in texts[-1]
+
+
 @pytest.mark.parametrize("app", APPS)
 def test_code_flags_show_on_the_idea_appendix_card_and_reach_no_slide_or_model(tmp_path, app):
     run_dir = seed_run(tmp_path, app, {"c01": {"flags": [FLAG]}})

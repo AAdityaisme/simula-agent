@@ -574,6 +574,8 @@ def slide_html(flow: dict, number: int, part: str, body: str) -> str:
     c, decision = flow["candidate"], flow["decision"]
     kind = "existing" if c.kind == "existing_anchor" else "change"
     conditional = '<span class="chip conditional">Conditional</span>' if decision.final == "conditional" else ""
+    if cost_question(c):
+        conditional += f'<span class="chip conditional">Cost check: {c.economics.verdict}</span>'
     footer = (f'<footer><b>When the reward runs out:</b> {escape(plain(c.after_reward))}</footer>'
               if c.after_reward else "")
     return (f'<section class="slide main" data-part="{part}" data-idea="{c.id}">'
@@ -679,6 +681,9 @@ def why_html(flow: dict, model: ProductModel, run_dir: Path) -> str:
     if decision.final == "conditional":
         html += (f'<div class="condition"><b>Recommended with one condition:</b> '
                  f"{escape(plain(condition(decision, c, run_dir)))}</div>")
+    elif cost := cost_question(c):
+        html += (f'<div class="condition"><b>Cost check ({c.economics.verdict}):</b> {escape(cost)}. '
+                 "The cost line in the appendix has the numbers.</div>")
     return f'<div class="why">{html}</div>'
 
 
