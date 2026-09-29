@@ -417,6 +417,45 @@ def test_labels_are_quoted_as_what_appears():
     assert flows.labels_text([]) == "A label appears."
 
 
+def test_the_ad_card_takes_the_apps_palette_and_its_most_saturated_color_as_the_accent():
+    root = ":root{--bg-1:#303337;--bg-2:#000000;--fg-1:#ffffff;--fg-2:#af89f0;--fg-3:#5a5c63;--font-1:Roboto,sans-serif}"
+    assert flows.ad_palette_css(root) == ".sa-card{--sa-accent:#af89f0;--sa-on-accent:#000}\n"
+    assert flows.ad_palette_css(":root{--bg-1:#ffffff;--bg-3:#4264fc}") == ".sa-card{--sa-accent:#4264fc;--sa-on-accent:#fff}\n"
+    assert flows.ad_palette_css(":root{--bg-1:#303337;--fg-1:#ffffff}") == ""
+    assert flows.ad_palette_css("<p>a mock without a palette</p>") == ""
+    c = candidate(golden("luzia"))
+    page = (f"<style>{root}{flows.FLOW_CSS}{flows.ad_palette_css(root)}</style>"
+            f'<section data-screen="ad">{flows.ad_card(c)}</section>')
+    with sync_playwright() as p:
+        tab = p.chromium.launch().new_page()
+        tab.set_content(page)
+        styles = tab.evaluate("() => ['.sa-card', '.sa-play'].map(q => getComputedStyle(document.querySelector(q)))"
+                              ".map(s => [s.backgroundColor, s.color])")
+    assert styles == [["rgb(48, 51, 55)", "rgb(255, 255, 255)"], ["rgb(175, 137, 240)", "rgb(0, 0, 0)"]]
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_the_ad_card_shows_the_trigger_screens_character_only_when_the_idea_puts_one_in_the_ad(tmp_path, app):
+    model = golden(app)
+    trigger = root_id(model)
+    first = next(s for s in model.states if s.id == trigger).elements[0]
+    art = f"assets/{first.id}.png"
+    (tmp_path / "assets").mkdir()
+    Image.new("RGB", (80, 80), "red").save(tmp_path / art)
+    states = [s.model_copy(update={"elements": [e.model_copy(update={"role": "character art", "asset_png": art})
+                                                if e.id == first.id else e for e in s.elements]})
+              if s.id == trigger else s for s in model.states]
+    with_art = model.model_copy(update={"states": states})
+    cheers = candidate(model, trigger_state_id=trigger, character_use="The chat's character cheers during the game.")
+    assert flows.ad_character(with_art, cheers, tmp_path) == (f'<img class="sa-face" src="{art}" alt="">'
+                                                               '<p class="sa-with">The chat&#x27;s character cheers '
+                                                               "during the game.</p>")
+    assert flows.ad_character(with_art, cheers.model_copy(update={"character_use": "None; the app has no mascot."}),
+                              tmp_path) == ""
+    assert flows.ad_character(model, cheers, tmp_path) == ""
+    assert '<img class="sa-face"' in flows.ad_card(cheers, flows.ad_character(with_art, cheers, tmp_path))
+
+
 def test_reward_only_on_verification_and_only_once(built):
     ideas = CandidatesFile.model_validate_json((built / "propose" / "candidates.json").read_text()).candidates
     trigger, _, ad = (s.state_id for s in ideas[0].flow_steps[:3])
