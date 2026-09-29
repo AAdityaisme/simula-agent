@@ -41,7 +41,7 @@ Z95 = 1.96
 class KnownGood(Strict):
     """tests/fixtures/judge/known_good/<id>.json: a good idea for one app, unmutated."""
     id: str
-    source: Literal["base", "run", "deck"]
+    source: Literal["base", "run"]
     from_run: str = ""
     app: str
     app_type: str
@@ -232,7 +232,6 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
     planted = [c for c in cases if c.source == "planted" and c.target != C8]
     subtle = [c for c in planted if c.tier == "subtle"]
     goods = [c for c in cases if c.source in ("base", "run")]
-    deck = [c for c in cases if c.source == "deck"]
     c8 = [c for c in cases if c.target == C8]
     columns = [*judges, "combined"] if len(judges) > 1 else judges
 
@@ -259,7 +258,7 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
     lines = ["# Judge validation", "", f"Generated {datetime.now().isoformat(timespec='minutes')}. Judges: "
              + ", ".join(judges) + ". Prompts frozen in `config/frozen_prompts.toml`.", "",
              f"Fixtures: {len(planted)} planted LLM cases ({len(subtle)} subtle), {len(c8)} C8 cases, "
-             f"{len(goods)} known-good (bases and real-run ideas), {len(deck)} deck ideas; "
+             f"{len(goods)} known-good (bases and real-run ideas); "
              f"planted app types: {', '.join(types) or 'none'}; planted apps outside the test set: "
              f"{', '.join(outside) or 'none'}."]
     if not complete:
@@ -300,12 +299,12 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
                      f"{rate(ks, len(subtle))} | {wilson_lower(ks, len(subtle)):.3f} |")
 
     lines += ["", "## Known-good pass rate (every one of the 11 checks passed)", "",
-              "| Judge | Known-good (gate) | Deck ideas |", "|---|---|---|"]
+              "| Judge | Known-good (gate) |", "|---|---|"]
     kg_rate = {}
     for who in columns:
         ok = sum(is_passed(c, who) for c in goods)
         kg_rate[who] = ok / len(goods) if goods else 0.0
-        lines.append(f"| {who} | {rate(ok, len(goods))} | {rate(sum(is_passed(c, who) for c in deck), len(deck))} |")
+        lines.append(f"| {who} | {rate(ok, len(goods))} |")
 
     flips, unverified = {}, {}
     rerun_set = [c.id for c in planted if c.target in GATES]
@@ -333,16 +332,6 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
         labeled = [c for c in cases if c.id in labels and got(c, who)]
         k = kappa([labels[c.id]["overall"] == "pass" for c in labeled], [passes_all(got(c, who)) for c in labeled])
         lines.append(f"- {who}: kappa {'n/a' if k is None else f'{k:.2f}'} over {len(labeled)} labels.")
-
-    if deck:
-        lines += ["", "## Deck triage (Aadi labels each fail: rubric bug, conditional, or real finding)", "",
-                  "| Deck idea | Judge | Failed checks | Reason | Triage |", "|---|---|---|---|---|"]
-        for c in deck:
-            for who in judges:
-                v = got(c, who)
-                fails = [k for k in LLM_CHECKS if v and judge.failed(v, k)]
-                reason = "call failed" if v is None else (getattr(v, fails[0]).reason if fails else "passes all 11")
-                lines.append(f"| {c.id} | {who} | {', '.join(fails) or 'none'} | {reason} | |")
 
     gate = [(f"fixtures complete (1 flagrant + 1 subtle per LLM check and for {C8})", complete),
             (f"planted defects span ≥ {MIN_APP_TYPES} app types, one app outside the test set "

@@ -273,27 +273,19 @@ def test_a_real_candidate_can_be_a_planted_case(fixture_dir):
     assert case.expect_economics == "PASS"
 
 
-def test_real_run_ideas_count_toward_the_known_good_bar_and_deck_ideas_do_not():
+def test_real_run_ideas_count_toward_the_known_good_bar():
     cases = build_cases()
     m = golden("luzia")
-    cases += [Case("kg-run", "run", idea(m, "kg-run"), m, "luzia", "AI assistant", True),
-              Case("deck", "deck", idea(m, "deck"), m, "luzia", "AI assistant", True)]
-    verdicts = judged(cases) | {("kg-run", "judge_1"): verdict(["c5_moment"]), ("deck", "judge_1"): verdict(["g_policy"])}
+    cases += [Case("kg-run", "run", idea(m, "kg-run"), m, "luzia", "AI assistant", True)]
+    verdicts = judged(cases) | {("kg-run", "judge_1"): verdict(["c5_moment"])}
     text, passed = run_report(cases, verdicts)
-    assert "| Known-good (4) | 3 | 1 |" in text and "| judge_1 | 3/4 (75%) | 0/1 (0%) |" in text and passed
+    assert "| Known-good (4) | 3 | 1 |" in text and "| judge_1 | 3/4 (75%) |" in text and passed
 
 
 def test_the_committed_fixtures_load():
     cases = validate.load_cases()
-    assert {c.source for c in cases} >= {"deck", "run", "planted"}
+    assert {c.source for c in cases} >= {"run", "planted"}
     assert all(not c.candidate.title.startswith("Product change: Product change") for c in cases)
-
-
-def test_the_deck_ideas_load_as_known_good_with_what_the_agent_filled():
-    cases = [c for c in validate.load_cases() if c.source == "deck"]
-    assert len(cases) == 3 and {c.app for c in cases} == {"luzia"}
-    files = [json.loads((validate.CASES / "known_good" / f"{c.id}.json").read_text()) for c in cases]
-    assert all(f["filled_by"] and set(f["filled_by"].values()) <= {"aadi", "agent"} for f in files)
 
 
 # ---------- blind labels ----------

@@ -2,7 +2,7 @@
 
 Test data for `uv run python -m simula.validate validate-judge` (ARCHITECTURE §5). Never a proposer input.
 
-- `known_good/<id>.json`: a good idea for one app, unmutated. `source` is `base` (a base the planted defects change), `run` (a real candidate from a propose run that Aadi approved as good; `from_run` says which), or `deck` (one of Simula's Luzia deck ideas, reported for triage, not counted in the known-good bar).
+- `known_good/<id>.json`: a good idea for one app, unmutated. `source` is `base` (a base the planted defects change) or `run` (a real candidate from a propose run that Aadi approved as good; `from_run` says which).
 - `known_good/models/<app>.json`: a product-model sketch for an app outside the test set.
 - `planted/<id>.json`: a base with exactly one field changed, aimed at one check; or a real candidate from a run that fails one check.
 - `labels/<id>.json`: blind human labels written by `python -m simula.validate label`.
@@ -26,7 +26,7 @@ Ids: lowercase with dashes, no underscores (`kg-fitness-01`, `pd-g-policy-flagra
 }
 ```
 
-`model` is a path under `tests/fixtures/`: `golden/<app>/product_model.json` for a test app, or a sketch. `in_test_set` must match it (true exactly when the model is a golden one); the loader refuses a mismatch, so the outside-the-test-set requirement can't be met by a label. `filled_by` marks each candidate field the source didn't state, `"aadi"` or `"agent"` (deck ideas).
+`model` is a path under `tests/fixtures/`: `golden/<app>/product_model.json` for a test app, or a sketch. `in_test_set` must match it (true exactly when the model is a golden one); the loader refuses a mismatch, so the outside-the-test-set requirement can't be met by a label. `filled_by` marks each candidate field the source didn't state, `"aadi"` or `"agent"`.
 
 A sketch holds only what a judge reads; code fills the rest with empty defaults:
 
