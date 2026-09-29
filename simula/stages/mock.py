@@ -168,6 +168,10 @@ RUNTIME_JS = """<script id="simula-runtime-js">
 def run(ctx: Ctx) -> None:
     model_dir, mock_dir = ctx.run_dir / "model", ctx.run_dir / "mock"
     model = ProductModel.model_validate_json((model_dir / "product_model.json").read_text())
+    # A rerun starts from nothing: QA's replay key hashes mock/assets and later stages hash all of mock/, so a file
+    # the new page no longer uses would count. The records under mock/ are what --replay rebuilds from; they stay.
+    for built in ("assets", "renders"):
+        shutil.rmtree(mock_dir / built, ignore_errors=True)
     scope = pick_scope(model)
     screens = [s.id for s in scope]
     groups = batches(scope)

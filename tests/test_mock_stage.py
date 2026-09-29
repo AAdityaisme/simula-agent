@@ -3,6 +3,7 @@
 import pytest
 
 from simula import llm
+from simula.contracts import ProductModel
 from simula.runlog import read_trace
 from simula.stages import mock
 from tests.conftest import APPS
@@ -174,3 +175,30 @@ def test_the_mock_opens_on_the_first_screen_that_is_not_a_dialog(tmp_path, monke
     mock.run(ctx_for(run_dir, app))
     assert mock.pick_scope(model)[0].id == "s00" and mock.home_id(mock.pick_scope(model)) == home.id
     assert f'const ROOT = "{home.id}"' in (run_dir / "mock" / "index.html").read_text()
+
+
+def test_a_rerun_after_the_model_changes_leaves_no_stale_files_but_keeps_the_records(tmp_path, monkeypatch, app):
+    """The model reruns and one element with an asset is no longer drawn. The mock rerun drops its asset (and any old
+    render) instead of shipping dead files QA's replay key would hash, but keeps mock/font-records, which --replay
+    rebuilds the fonts from."""
+    run_dir = seed_model(tmp_path / "run", app)
+    monkeypatch.setattr(llm, "call", fake_builder([]))
+    mock.run(ctx_for(run_dir, app))
+    mock_dir = run_dir / "mock"
+    before = {p.name for p in (mock_dir / "assets").glob("*.png")}
+    path = run_dir / "model" / "product_model.json"
+    model = ProductModel.model_validate_json(path.read_text())
+    victim = next(e for s in mock.pick_scope(model) for e in s.elements if f"{e.id}.png" in before)
+    states = [s.model_copy(update={"elements": [e.model_copy(update={"in_mock": False, "asset_png": None})
+                                                if e.id == victim.id else e for e in s.elements]})
+              for s in model.states]
+    path.write_text(model.model_copy(update={"states": states}).model_dump_json())
+    (mock_dir / "renders" / "s99.png").write_bytes(b"old render")
+    record = mock_dir / mock.FONT_RECORDS / "kept.json"
+    record.parent.mkdir(exist_ok=True)
+    record.write_text("{}")
+
+    mock.run(ctx_for(run_dir, app))
+    assert f"{victim.id}.png" not in {p.name for p in (mock_dir / "assets").glob("*.png")}
+    assert not (mock_dir / "renders" / "s99.png").exists()
+    assert record.exists() and (mock_dir / mock.PLAN_RECORD).exists()
