@@ -17,21 +17,27 @@ header .count{color:#9aa0ab;font-variant-numeric:tabular-nums}
 .chip.conditional{background:#fff1d6;color:#8a5200;text-transform:uppercase;letter-spacing:.06em}
 h2{position:absolute;left:64px;top:70px;margin:0;font-size:40px;line-height:1.1;letter-spacing:-.01em;display:flex;align-items:center;gap:16px}
 .num{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;background:#3b5bfd;color:#fff;font-size:22px}
-.callouts{position:absolute;left:64px;top:170px;width:484px;display:flex;flex-direction:column;gap:16px}
-.callout{border-left:4px solid #3b5bfd;padding:6px 0 6px 16px}
-.callout b{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280}
-.callout p{margin:4px 0 0;font-size:20px;line-height:1.35}
-.flag{display:inline-block;margin-left:8px;background:#d92d20;color:#fff;border-radius:6px;padding:1px 8px;font-size:12px;letter-spacing:.04em}
-.phone{position:absolute;border-radius:26px;border:6px solid #16181d;background:#16181d;overflow:hidden;box-shadow:0 12px 32px rgba(22,24,29,.22)}
+.flag{display:inline-block;margin:2px 6px 0 0;background:#d92d20;color:#fff;border-radius:6px;padding:1px 8px;font-size:11px;letter-spacing:.04em;text-transform:none}
+.flow{position:absolute;left:64px;right:64px;top:64px;bottom:22px;display:flex;flex-direction:column}
+.flow h2{position:static;display:block;flex:none;font-size:28px;line-height:1.15;letter-spacing:-.01em}
+.flow .new{flex:none;margin:8px 0 20px;font-size:15px;line-height:1.35;color:#4b5160}
+.flow .new p{margin:0 0 2px}
+.flow footer{position:static;flex:none;margin-top:14px}
+.row{flex:1 1 0;min-height:0;display:grid;grid-auto-flow:column;grid-template-rows:minmax(0,1fr) auto;grid-auto-columns:var(--col);column-gap:var(--gap);justify-content:center}
+.step{display:contents}
+.shot{position:relative;justify-self:center;height:min(100%,var(--h));aspect-ratio:var(--aspect)}
+.step+.step .shot:before{content:"";position:absolute;left:calc((100% - var(--col) - var(--gap))/2 - 6px);top:calc(50% - 7px);border:7px solid transparent;border-left:12px solid #3b5bfd;border-right:0}
+.n{position:absolute;left:-10px;top:-10px;z-index:2;width:28px;height:28px;border-radius:50%;background:#3b5bfd;color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 3px #fff}
+.phone{position:absolute;inset:0;border-radius:22px;border:5px solid #16181d;background:#16181d;overflow:hidden;box-shadow:0 10px 26px rgba(22,24,29,.22)}
 .phone img{display:block;width:100%;height:100%;object-fit:cover}
-.notwired{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) rotate(-8deg);background:#d92d20;color:#fff;font-weight:800;text-transform:uppercase;letter-spacing:.08em;padding:8px 16px;border-radius:8px;font-size:18px}
-.phone-text{position:absolute;text-align:center}
-.phone-caption{margin:0;font-size:13px;line-height:1.35;color:#4b5160}
-.marks{position:absolute;inset:0;width:1280px;height:720px;pointer-events:none;overflow:visible}
-.marks line{stroke:#3b5bfd;stroke-width:3}
-.marks .ring{fill:none;stroke:#3b5bfd;stroke-width:4}
+.ring{position:absolute;border:3px solid #3b5bfd;border-radius:8px}
+.notwired{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) rotate(-8deg);background:#d92d20;color:#fff;font-weight:800;text-transform:uppercase;letter-spacing:.08em;padding:6px 10px;border-radius:8px;font-size:13px;white-space:nowrap}
+.cap{margin-top:12px}
+.cap b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280}
+.cap p{margin:3px 0 0;font-size:13px;line-height:1.3}
 footer{position:absolute;left:64px;right:64px;bottom:22px;font-size:14px;color:#4b5160;border-top:1px solid #e5e7eb;padding-top:10px}
-.why{position:absolute;left:64px;right:64px;top:150px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.why{position:absolute;left:64px;right:64px;top:150px;display:grid;grid-template-columns:1fr 1.5fr 1fr;gap:16px 20px}
+.reach{grid-column:1/-1;margin:0;font-size:14px;line-height:1.4;color:#4b5160}
 .why-block{background:#f5f6f8;border-radius:16px;padding:18px 20px}
 .why-block b{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280}
 .why-block p{margin:8px 0 0;font-size:16px;line-height:1.4}
@@ -42,24 +48,18 @@ footer{position:absolute;left:64px;right:64px;bottom:22px;font-size:14px;color:#
 .cover li{margin:14px 0}
 .cover li .chip{margin-right:12px;vertical-align:2px}
 .cover .how{margin-top:36px;color:#6b7280;font-size:18px}
-.appendix{width:1280px;margin:24px auto;padding:48px 64px;background:#fff;break-before:page;font-size:13px}
-.appendix h2{position:static;font-size:30px;margin:0 0 12px}
-.appendix .rule{color:#4b5160}
-.judged{break-inside:avoid;margin:20px 0;padding-top:12px;border-top:1px solid #e5e7eb}
-.judged h3{margin:0 0 6px;font-size:17px}
-.judged p{margin:3px 0}
-table{border-collapse:collapse;width:100%;margin:8px 0}
-th,td{border:1px solid #e5e7eb;padding:4px 8px;text-align:left;vertical-align:top}
-th{background:#f5f6f8}
-th:first-child{width:30%}
-td.pass{color:#0f6b44}
-td.fail{color:#b42318}
+.score-body{position:absolute;left:64px;right:64px;top:128px;font-size:12px;line-height:15px}
+.scores{border-collapse:collapse;width:100%;table-layout:fixed}
+.scores th,.scores td{border:1px solid #e5e7eb;padding:3px 6px;text-align:left;vertical-align:top}
+.scores th{background:#f5f6f8}
+.scores th:nth-child(1){width:60px}.scores th:nth-child(2){width:400px}.scores th:nth-child(3){width:128px}.scores th:nth-child(4){width:56px}
+.score-body h3{margin:14px 0 4px;font-size:15px}
+.score-body ul{margin:0;padding-left:20px}
 .watermark{position:fixed;left:0;top:300px;width:1280px;text-align:center;transform:rotate(-14deg);font-size:64px;font-weight:900;color:rgba(217,45,32,.16);pointer-events:none;z-index:99;letter-spacing:.04em}
-@media print{body{background:#fff}.slide,.appendix{margin:0;box-shadow:none}}
+@media print{body{background:#fff}.slide{margin:0;box-shadow:none}}
 </style>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute"><defs><marker id="head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#3b5bfd"/></marker></defs></svg>
 $slides
 </body>
 </html>

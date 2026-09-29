@@ -3,6 +3,7 @@ call per idea adds the idea's new screens; code draws the simulated ad, taps thr
 lays out slides for the app's product team, then prints them to PDF."""
 
 import json
+import math
 import re
 import shutil
 from concurrent.futures import ThreadPoolExecutor
@@ -39,21 +40,19 @@ FAIL_NOTE = "That didn't go through. Nothing was used, and the app is as it was.
 NOT_WIRED = "not wired"
 CODES = re.compile(r"\b(?:g|c\d)_[a-z_]+\b")
 
-PARTS = {"start": "Where it starts", "change": "What changes", "offer": "The offer", "ad": "The ad plays",
-         "value": "What they get", "why": "Why this works for your app"}
-CHECK_NAMES = {
-    "g_policy": "Gate: opt-in, reward stated first, no penalty for saying no, a failure path",
-    "g_no_cash": "Gate: no cash or cash-like reward",
-    "g_no_chat_content": "Gate: needs no chat content",
-    "g_no_free_removal": "Gate: takes nothing free away",
-    "g_brand_safety": "Gate: offer on app chrome, away from unsafe content",
-    "c1_revealed_value": "C1 revealed value",
-    "c2_evidence": "C2 evidence",
-    "c4_protects_subscription": "C4 protects the subscription",
-    "c5_moment": "C5 right moment",
-    "c6_fits_simula": "C6 fits Simula",
-    "c7_specific": "C7 specific to this app",
-}
+PARTS = ("flow", "why")
+WHY_TITLE = "Why this works for your app"
+REWARD_RULE = ("In every idea the user chooses to play. The reward comes once, only after the play is verified, and "
+               "closing the game or a failed ad uses nothing up.")
+COST_NUMBERS = "the review's cost line has the numbers"
+VERDICTS = {"accept": "accepted", "conditional": "conditional", "reject": "rejected",
+            "needs_human": "waiting on a person"}
+ROW_W, ROW_GAP = SLIDE_W - 2 * 64, 28
+PHONE_MAX_W, COLUMN_MAX_W, RING_PAD = 160, 220, 5
+# the score table's CSS: 12px text on 15px lines, 7px of padding and border a row, the rows' room between the table's
+# head and the footer; chars per line run low so a page's estimate runs high
+SCORE_LINE_PX, SCORE_ROW_PAD_PX, SCORE_PAGE_PX = 15, 7, 490
+SCORE_TITLE_CHARS, SCORE_WHY_CHARS = 60, 72
 PLAIN_CHECKS = {
     "g_policy": "a fair, opt-in offer",
     "g_no_cash": "no cash reward",
@@ -527,66 +526,73 @@ def build_flow(ctx: Ctx, model: ProductModel, source: Path, c: Candidate, decisi
 
 # ---------- slides ----------
 
-def phone_layout(count: int) -> list[tuple[float, float, float, float]]:
-    """Phone frames in slide px, side by side in the right half."""
-    left, right, top, height, gap = 600, 1216, 142, 400, 60
-    width = min(height * VIEW_W / VIEW_H, (right - left - gap * (count - 1)) / count)
-    height = width * VIEW_H / VIEW_W
-    x = left + (right - left - count * width - gap * (count - 1)) / 2
-    return [(x + i * (width + gap), top, width, height) for i in range(count)]
+def row_geometry(count: int) -> tuple[float, float]:
+    """(column width, tallest phone) in slide px for a row of count phones. Columns share the row, and a phone is
+    never wider than its column or PHONE_MAX_W; the slide's CSS shrinks every phone alike when captions need room."""
+    column = min(COLUMN_MAX_W, (ROW_W - ROW_GAP * (count - 1)) / count)
+    return column, min(PHONE_MAX_W, column) * VIEW_H / VIEW_W
 
 
-def phones_html(shots: list[dict], prefix: str, pointer: bool) -> str:
-    """Phone screenshots with a ring on what the user taps, arrows between phones, and (when pointer) an arrow from
-    the first callout to the first ring."""
-    frames = phone_layout(len(shots))
-    parts, lines, rings = [], [], []
-    for shot, (x, y, w, h) in zip(shots, frames):
-        image = f'<img src="{prefix}/screens/{shot["png"]}" alt="">' if shot["png"] else ""
-        badge = f'<span class="notwired">{NOT_WIRED}</span>' if not shot["wired"] else ""
-        text = f'<p class="phone-caption">{escape(plain(shot["caption"]))}</p>' if shot.get("show_caption") else ""
-        parts.append(f'<div class="phone" style="left:{x:.0f}px;top:{y:.0f}px;width:{w:.0f}px;height:{h:.0f}px">'
-                     f"{image}{badge}</div>"
-                     f'<div class="phone-text" style="left:{x - 28:.0f}px;top:{y + h + 10:.0f}px;width:{w + 56:.0f}px">'
-                     f"{text}</div>")
-        tap = shot.get("tap")
-        if tap and shot["wired"]:
-            s = w / VIEW_W
-            rings.append((x + tap["x"] * s - 5, y + tap["y"] * s - 5, tap["width"] * s + 10, tap["height"] * s + 10))
-    for (x, y, w, h), (nx, *_) in zip(frames, frames[1:]):
-        lines.append((x + w + 10, y + h / 2, nx - 10, y + h / 2))
-    if pointer and rings:
-        rx, ry, _, rh = rings[0]
-        lines.append((548, 196, rx - 4, ry + rh / 2))
-    svg = "".join(f'<rect x="{x:.0f}" y="{y:.0f}" width="{w:.0f}" height="{h:.0f}" rx="10" class="ring"/>'
-                  for x, y, w, h in rings)
-    svg += "".join(f'<line x1="{a:.0f}" y1="{b:.0f}" x2="{c:.0f}" y2="{d:.0f}" marker-end="url(#head)"/>'
-                   for a, b, c, d in lines)
-    return "".join(parts) + f'<svg class="marks" viewBox="0 0 {SLIDE_W} {SLIDE_H}">{svg}</svg>'
+def ring_html(tap: dict) -> str:
+    """A ring on what the user taps, placed in the screenshot's own proportions."""
+    x, y = (tap["x"] - RING_PAD) / VIEW_W, (tap["y"] - RING_PAD) / VIEW_H
+    w, h = (tap["width"] + 2 * RING_PAD) / VIEW_W, (tap["height"] + 2 * RING_PAD) / VIEW_H
+    return f'<span class="ring" style="left:{x:.2%};top:{y:.2%};width:{w:.2%};height:{h:.2%}"></span>'
 
 
-def callouts_html(callouts: list[tuple]) -> str:
-    """(label, text) or (label, text, flag): a flag is a red tag after the label, like "not wired"."""
-    items = "".join(f'<div class="callout"><b>{escape(label)}'
-                    + (f' <span class="flag">{escape(rest[0])}</span>' if rest and rest[0] else "")
-                    + f"</b><p>{escape(plain(text))}</p></div>"
-                    for label, text, *rest in callouts if text)
-    return f'<div class="callouts">{items}</div>'
+def step_label(i: int, ad_at: int) -> str:
+    return "When it appears" if i == 0 else "The offer" if i < ad_at else "The ad plays" if i == ad_at else \
+        "What they get"
 
 
-def slide_html(flow: dict, number: int, part: str, body: str) -> str:
+def row_phones(flow: dict) -> list[dict]:
+    """The flow slide's phones in order: the screen as it is today, then every step the walk took. Each has a label,
+    a caption, what the user taps on it, and a red flag for anything the walks couldn't show."""
+    c, shots, at = flow["candidate"], flow["shots"], flow["ad_at"]
+    phones = [{"label": "Today", "text": shots[0]["caption"], "png": flow["before"], "tap": None,
+               "flags": [] if flow["before"] else [NOT_WIRED]}]
+    same_screen = len(shots) > 1 and shots[1]["state_id"] == shots[0]["state_id"]
+    for i, shot in enumerate(shots):
+        tap = shot["tap"] or (shots[1]["tap"] if i == 0 and same_screen else None)
+        flags = [] if shot["wired"] else [NOT_WIRED]
+        text = c.trigger_event if i == 0 else shot["caption"]
+        phones.append({"label": step_label(i, at), "text": text, "png": shot["png"], "tap": tap, "flags": flags})
+    phones[at]["flags"] += (["copy not on the screen"] if flow["copy_shown"] is False else []) + \
+                           ([f"saying no: {NOT_WIRED}"] if flow["decline"] else [])  # the screen that makes the offer
+    return phones
+
+
+def step_html(number: int, phone: dict, prefix: str) -> str:
+    image = f'<img src="{prefix}/screens/{phone["png"]}" alt="">' if phone["png"] else ""
+    ring = ring_html(phone["tap"]) if phone["tap"] else ""
+    badge = f'<span class="notwired">{NOT_WIRED}</span>' if NOT_WIRED in phone["flags"] else ""
+    flags = "".join(f'<span class="flag">{escape(flag)}</span>' for flag in phone["flags"])
+    return (f'<div class="step"><div class="shot"><span class="n">{number}</span>'
+            f'<div class="phone">{image}{ring}{badge}</div></div>'
+            f'<div class="cap"><b>{escape(phone["label"])}</b>{flags}<p>{escape(plain(phone["text"]))}</p></div></div>')
+
+
+def row_html(phones: list[dict], prefix: str) -> str:
+    """Numbered phones in one row, arrows between them, a caption under each."""
+    column, height = row_geometry(len(phones))
+    steps = "".join(step_html(n, phone, prefix) for n, phone in enumerate(phones, 1))
+    return (f'<div class="row" style="--gap:{ROW_GAP}px;--col:{column:.0f}px;--h:{height:.0f}px;'
+            f'--aspect:{VIEW_W}/{VIEW_H}">{steps}</div>')
+
+
+def slide_html(flow: dict, part: str, body: str) -> str:
+    """One of an idea's slides: a header with the idea's labels, then the body (HTML)."""
     c, decision = flow["candidate"], flow["decision"]
     kind = "existing" if c.kind == "existing_anchor" else "change"
-    conditional = '<span class="chip conditional">Conditional</span>' if decision.final == "conditional" else ""
+    labels = '<span class="chip conditional">Conditional</span>' if decision.final == "conditional" else ""
     if cost_question(c):
-        conditional += f'<span class="chip conditional">Cost check: {c.economics.verdict}</span>'
-    footer = (f'<footer><b>When the reward runs out:</b> {escape(plain(c.after_reward))}</footer>'
-              if c.after_reward else "")
+        labels += f'<span class="chip conditional">Cost check: {c.economics.verdict}</span>'
+    idea = "" if part == "flow" else escape(plain(caption(c)))  # the flow slide's title already names the idea
     return (f'<section class="slide main" data-part="{part}" data-idea="{c.id}">'
             f'<header><span class="chip {kind}">{escape(BUCKETS.get(c.kind, ""))}</span>'
-            f'<span class="idea">{escape(plain(caption(c)))}</span>{conditional}'
-            f'<span class="count">{number} / {len(PARTS)}</span></header>'
-            f'<h2><span class="num">{number}</span>{PARTS[part]}</h2>{body}{footer}</section>')
+            f'<span class="idea">{idea}</span>{labels}'
+            f'<span class="count">{PARTS.index(part) + 1} / {len(PARTS)}</span></header>'
+            f"{body}</section>")
 
 
 def verdicts(decision: Decision, run_dir: Path) -> list[tuple[str, Verdict]]:
@@ -608,8 +614,8 @@ def failed_checks(decision: Decision, run_dir: Path) -> list[tuple[str, str]]:
 
 
 def cost_question(c: Candidate) -> str | None:
-    """The cost line's verdict in plain words, with no numbers (the appendix has them). A CONDITIONAL cost of zero is
-    one the line couldn't count."""
+    """The cost line's verdict in plain words, with no numbers (the judge's exhibit has them). A CONDITIONAL cost of
+    zero is one the line couldn't count."""
     e = c.economics
     if e is None or e.verdict == "PASS":
         return None
@@ -625,143 +631,128 @@ def condition(decision: Decision, c: Candidate, run_dir: Path) -> str:
     every check passed it says so and gives the cost question instead."""
     failed = failed_checks(decision, run_dir)
     cost = cost_question(c)
-    tail = f" Also, {cost}; the cost line in the appendix has the numbers." if cost else ""
+    tail = f" Also, {cost}; {COST_NUMBERS}." if cost else ""
     if failed:
         return "It didn't pass " + "; ".join(f"{PLAIN_CHECKS[k]} ({reason})" for k, reason in failed) + "." + tail
     if decision.checks_passed < decision.checks_total:
-        return f"It passed {decision.checks_passed} of {decision.checks_total} checks; the appendix shows which." + tail
+        return f"It passed {decision.checks_passed} of {decision.checks_total} checks; the last page shows which." + tail
     if cost:
-        return f"It passed every check, but {cost}. The cost line in the appendix has the numbers."
-    return "It passed every check; the appendix has the review's notes."
-
-
-def with_captions(shots: list[dict]) -> list[dict]:
-    return [{**shot, "show_caption": True} for shot in shots]
-
-
-def idea_slides(flow: dict, model: ProductModel, run_dir: Path) -> list[str]:
-    c, shots, at = flow["candidate"], flow["shots"], flow["ad_at"]
-    prefix = c.id
-
-    def missing(after: list[dict]) -> list[dict]:
-        last = next((s["png"] for s in reversed(after) if s["png"]), None)
-        return [{"png": last, "wired": False, "caption": "", "tap": None}]
-
-    start = [{"png": flow["before"], "wired": bool(flow["before"]), "caption": "", "tap": None}]
-    same_screen = len(shots) > 1 and shots[1]["state_id"] == shots[0]["state_id"]
-    change = [{**shots[0], "tap": shots[0]["tap"] or (shots[1]["tap"] if same_screen else None)}]
-    offer = with_captions(shots[1:at] or shots[:1])
-    ad = with_captions(shots[at:at + 1]) or missing(shots[:at])
-    value = with_captions(shots[at + 1:]) or missing(shots)
-    new_part = ("The new part", c.adds) if c.kind == "product_change" and c.adds else ("Where the offer appears",
-                                                                                        c.placement)
-    slides = [
-        ("start", [("Today", shots[0]["caption"])], start, False),
-        ("change", [new_part, ("It shows up when", c.trigger_event)], change, True),
-        ("offer", [("What the user sees", f"“{c.offer_copy}”",
-                    "not on the offer screen" if flow["copy_shown"] is False else ""),
-                   ("If they say no", "This mock doesn't bring the user back to where they were yet." if flow["decline"]
-                    else "Everything stays exactly as it was.", NOT_WIRED if flow["decline"] else "")],
-         offer, True),
-        ("ad", [("A short sponsored game", "The user chose to play it and can close it at any time."),
-                ("The reward", "Granted once, only after the play is verified. Closing early or a failed ad uses "
-                               "nothing up.")], ad, False),
-        ("value", [("They get", reward_line(c)), ("How often", c.frequency_cap)], value, False),
-    ]
-    html = [slide_html(flow, n, part, callouts_html(callouts) + phones_html(phones, prefix, pointer))
-            for n, (part, callouts, phones, pointer) in enumerate(slides, 1)]
-    return html + [slide_html(flow, len(PARTS), "why", why_html(flow, model, run_dir))]
+        return f"It passed every check, but {cost}. {COST_NUMBERS.capitalize()}."
+    return "It passed every check; the review's notes say more."
 
 
 def why_html(flow: dict, model: ProductModel, run_dir: Path) -> str:
     c, decision, shots = flow["candidate"], flow["decision"], flow["shots"]
     gets = shots[-1]["caption"] if len(shots) > flow["ad_at"] + 1 else reward_line(c)
     blocks = [("What the user gets", gets),
-              ("What the app gets", f"{c.rationale} {reach_text(c, model)}"),
+              ("What the app gets", c.rationale),
               ("What it never costs them", f"Nothing free is taken away, and saying no changes nothing. "
                                            f"{c.subscriber_treatment}")]
     html = "".join(f'<div class="why-block"><b>{escape(label)}</b><p>{escape(plain(text))}</p></div>'
                    for label, text in blocks)
+    html += f'<p class="reach">{escape(plain(reach_text(c, model)))}</p>'
     if decision.final == "conditional":
         html += (f'<div class="condition"><b>Recommended with one condition:</b> '
                  f"{escape(plain(condition(decision, c, run_dir)))}</div>")
     elif cost := cost_question(c):
         html += (f'<div class="condition"><b>Cost check ({c.economics.verdict}):</b> {escape(cost)}. '
-                 "The cost line in the appendix has the numbers.</div>")
+                 f"{COST_NUMBERS.capitalize()}.</div>")
     return f'<div class="why">{html}</div>'
 
 
-def cover_html(app: str, flows: list[dict], unbuilt: int = 0) -> str:
+def idea_slides(flow: dict, model: ProductModel, run_dir: Path) -> list[str]:
+    """An idea's two slides: its whole flow in one row of phones, then why the system thinks it's a good idea."""
+    c = flow["candidate"]
+    label, new = (("The new part", c.adds) if c.kind == "product_change" and c.adds
+                  else ("Where the offer appears", c.placement))
+    gets = f"<b>They get:</b> {escape(plain(reward_line(c)))} · <b>How often:</b> {escape(plain(c.frequency_cap))}"
+    declined = "Saying no changes nothing." if not flow["decline"] else "Saying no doesn't bring them back yet."
+    body = (f'<div class="flow"><h2>{escape(plain(caption(c)))}</h2><div class="new">'
+            f"<p><b>{label}:</b> {escape(plain(new))}</p>"
+            f"<p><b>The offer says:</b> “{escape(plain(c.offer_copy))}” {declined}</p></div>"
+            f"{row_html(row_phones(flow), c.id)}<footer>{gets}</footer></div>")
+    runs_out = f"<footer><b>When the reward runs out:</b> {escape(plain(c.after_reward))}</footer>" \
+        if c.after_reward else ""
+    why = f"<h2>{WHY_TITLE}</h2>{why_html(flow, model, run_dir)}{runs_out}"
+    return [slide_html(flow, "flow", body), slide_html(flow, "why", why)]
+
+
+def cover_html(app: str, flows: list[dict], unbuilt: int = 0, status: list[str] = ()) -> str:
+    """The overview: every idea in the deck, how to read it, the reward rule every idea follows, and status lines
+    for anything an earlier stage couldn't finish."""
     items = "".join(f'<li><span class="chip {"existing" if f["candidate"].kind == "existing_anchor" else "change"}">'
                     f'{escape(BUCKETS.get(f["candidate"].kind, ""))}</span>{escape(plain(caption(f["candidate"])))}</li>'
                     for f in flows)
     notes = []
     if flows:
-        notes.append("Each idea in six slides: where it starts, what changes, the offer, the ad, what the user gets, "
-                     "and why it works.")
+        notes += ["Each idea takes two slides: its whole flow, step by step, then why it works. The last page scores "
+                  "every idea the review saw.", REWARD_RULE]
     if unbuilt:
-        notes.append(f"{unbuilt} {'more ' if flows else ''}idea(s) passed the review but couldn't be drawn; the "
-                     "appendix says why.")
+        notes.append(f"{unbuilt} {'more ' if flows else ''}idea(s) passed the review but couldn't be drawn; the last "
+                     "page says why.")
     if not flows and not unbuilt:
-        notes.append("No idea passed every check. The appendix shows every idea's scores and reasons.")
-    body = (f"<ol>{items}</ol>" if flows else "") + "".join(f"<p class='how'>{n}</p>" for n in notes)
+        notes.append("No idea passed the review. The last page shows every idea's score and why.")
+    body = (f"<ol>{items}</ol>" if flows else "") + "".join(f"<p class='how'>{escape(n)}</p>" for n in [*notes, *status])
     return f'<section class="slide cover"><h1>Rewarded-ad ideas for {escape(app)}</h1>{body}</section>'
 
 
-def verdict_table(decision: Decision, run_dir: Path) -> str:
-    judged = verdicts(decision, run_dir)
-    head = "".join(f"<th>{escape(name)}</th>" for name, _ in judged)
+def score_reason(d: Decision, c: Candidate | None, run_dir: Path) -> str:
+    """Why an idea got its verdict, in one line: code's drop reason, the checks a judge failed, the cost question,
+    and code's flags."""
+    if c is None:
+        return "its candidate isn't in propose/candidates.json or judge/revisions.json"
+    parts = [f"dropped by code: {c.dropped_reason}"] if c.dropped_reason else []
+    if failed := failed_checks(d, run_dir):
+        parts.append("didn't pass " + ", ".join(PLAIN_CHECKS[k] for k, _ in failed))
+    if cost := cost_question(c):
+        parts.append(f"cost check: {cost}")
+    if d.revision_of:
+        parts.append(f"a revision of {d.revision_of}")
+    parts += [f"flagged by code: {flag}" for flag in c.flags]
+    return "; ".join(parts) or "passed every check"
+
+
+def row_px(*cells: tuple[str, int]) -> int:
+    """A score row's height in px, from each (text, chars per line) cell's wrapped line count."""
+    return SCORE_ROW_PAD_PX + SCORE_LINE_PX * max(1, *(math.ceil(len(text) / chars) for text, chars in cells))
+
+
+def score_pages(rows: list[tuple[str, int]], budget: int) -> tuple[list[list[str]], int]:
+    """Rows (html, height) packed in order onto as few pages as fit the budget each; also the last page's height."""
+    pages, used = [[]], 0
+    for html, height in rows:
+        if pages[-1] and used + height > budget:
+            pages, used = [*pages, []], 0
+        pages[-1].append(html)
+        used += height
+    return pages, used
+
+
+def score_slides(decisions: list[Decision], candidates: dict[str, Candidate], not_built: list[tuple[Decision, str]],
+                 run_dir: Path) -> list[str]:
+    """Every idea the review scored: verdict, checks passed, and one line on why, packed onto as few pages as fit.
+    The judge's exhibit has every check's reasoning; ideas that passed but couldn't be drawn are listed last."""
     rows = []
-    for key in GATES + JUDGMENT:
-        cells = "".join(f'<td class="{"pass" if getattr(v, key).passed else "fail"}">'
-                        f'{"pass" if getattr(v, key).passed else "fail"}: {escape(getattr(v, key).reason)}</td>'
-                        for _, v in judged)
-        rows.append(f"<tr><td>{escape(CHECK_NAMES[key])}</td>{cells}</tr>")
-    concerns = "".join(f"<p><b>{escape(name)}, other concern:</b> {escape(v.other_concern)}</p>"
-                       for name, v in judged if v.other_concern)
-    return f"<table><tr><th>Check</th>{head}</tr>{''.join(rows)}</table>{concerns}"
-
-
-def appendix_html(decisions: list[Decision], candidates: dict[str, Candidate], not_built: list[tuple[Decision, str]],
-                  run_dir: Path) -> str:
-    cards = []
     for d in decisions:
         c = candidates.get(d.candidate_id)
-        title = escape(c.title) if c else "(candidate not found)"
-        facts = [f"<b>{d.final.upper()}</b> · {d.checks_passed}/{d.checks_total} checks passed"
-                 + (f" · rank score {d.rank_score:g}" if d.rank_score is not None else "")]
-        if d.gate_fails:
-            facts.append(f"Gate fails: {escape(', '.join(d.gate_fails))}")
-        if d.judgment_splits:
-            facts.append(f"Judges split on: {escape(', '.join(d.judgment_splits))}")
-        if d.revision_of:
-            facts.append(f"Revision of {escape(d.revision_of)}")
-        if d.failure_type:
-            facts.append(f"Failure type {escape(d.failure_type)}, rerun {escape(d.rerun_stage or '')}")
-        if c and c.dropped_reason:
-            facts.append(f"<b>Dropped by code:</b> {escape(c.dropped_reason)}")
-        if c:
-            facts += [f"<b>Flagged by code:</b> {escape(flag)}" for flag in c.flags]
-            steps = " → ".join(s.state_id for s in c.flow_steps)
-            facts += [f"<b>Cost line:</b> {escape(c.economics.assumption_line) if c.economics else 'not priced'}",
-                      f"<b>Evidence:</b> {escape(', '.join(c.anchor_evidence_ids) or 'none cited')} · trigger "
-                      f"{escape(c.trigger_state_id)} · steps {escape(steps)}",
-                      f"<b>If they say no:</b> {escape(c.decline_path)}",
-                      f"<b>If the ad fails:</b> {escape(c.ad_fail_path)}"]
-        cards.append(f'<div class="judged"><h3>{escape(d.candidate_id)} · {title}</h3>'
-                     + "".join(f"<p>{f}</p>" for f in facts) + verdict_table(d, run_dir) + "</div>")
-    dropped = [c for c in candidates.values() if c.dropped_reason]
-    listed = "".join(f"<li>{escape(c.id)} · {escape(c.title)}: {escape(c.dropped_reason)}</li>" for c in dropped)
-    rule = ("The simulated ad follows Simula's SDK lifecycle: the reward is granted on REWARD_VERIFIED only, once. "
-            "CLICKED, CLOSED, EARNED_REWARD, LOAD_FAILED, and REWARD_VERIFICATION_FAILED never grant it, and "
-            "closing the ad or a failure returns the user to where the offer appeared.")
-    unbuilt = "".join(f"<li>{escape(d.candidate_id)} · "
-                      f"{escape(candidates[d.candidate_id].title) if d.candidate_id in candidates else ''}: "
-                      f"not built: {escape(why)}</li>" for d, why in not_built)
-    return ('<section class="appendix"><h2>Appendix: how the review scored every idea</h2>'
-            f'<p class="rule">{rule}</p>'
-            + (f'<h3>Not built</h3><ul class="not-built">{unbuilt}</ul>' if not_built else "") + "".join(cards)
-            + (f"<h3>Dropped by code</h3><ul>{listed}</ul>" if dropped else "") + "</section>")
+        title, why = caption(c) if c else "", score_reason(d, c, run_dir)
+        rows.append((f"<tr><td>{escape(d.candidate_id)}</td><td>{escape(title)}</td><td>{VERDICTS[d.final]}</td>"
+                     f"<td>{d.checks_passed}/{d.checks_total}</td><td>{escape(why)}</td></tr>",
+                     row_px((title, SCORE_TITLE_CHARS), (why, SCORE_WHY_CHARS))))
+    pages, used = score_pages(rows, SCORE_PAGE_PX)
+    head = "<tr><th>Idea</th><th>Title</th><th>Verdict</th><th>Checks</th><th>Why</th></tr>"
+    bodies = [f'<table class="scores">{head}{"".join(page)}</table>' for page in pages]
+    if not_built:
+        items = [f"{d.candidate_id} · {caption(candidates[d.candidate_id]) if d.candidate_id in candidates else ''}: "
+                 f"not built: {why}" for d, why in not_built]
+        block = f'<h3>Not built</h3><ul class="not-built">{"".join(f"<li>{escape(i)}</li>" for i in items)}</ul>'
+        height = 2 * SCORE_LINE_PX + sum(row_px((item, SCORE_TITLE_CHARS + SCORE_WHY_CHARS)) for item in items)
+        bodies = [*bodies, block] if used + height > SCORE_PAGE_PX else [*bodies[:-1], bodies[-1] + block]
+    return [f'<section class="slide scores"><h2>Every idea the review scored'
+            f'{f" ({n} of {len(bodies)})" if len(bodies) > 1 else ""}</h2><div class="score-body">{body}</div>'
+            "<footer>Every judge's reasoning for every check, and every cost line with its numbers: "
+            "<b>exhibits/06-judge.md</b>. Tap through any idea: <b>flows/&lt;idea&gt;/index.html</b>.</footer></section>"
+            for n, body in enumerate(bodies, 1)]
 
 
 def deck(ctx: Ctx, model: ProductModel, flows: list[dict], not_built: list[tuple[Decision, str]],
@@ -769,7 +760,7 @@ def deck(ctx: Ctx, model: ProductModel, flows: list[dict], not_built: list[tuple
     slides = [cover_html(ctx.app["name"], flows, len(not_built))]
     for flow in flows:
         slides += idea_slides(flow, model, ctx.run_dir)
-    slides.append(appendix_html(decisions, candidates, not_built, ctx.run_dir))
+    slides += score_slides(decisions, candidates, not_built, ctx.run_dir)
     watermark = ('<div class="watermark">FIXTURE TEST DATA · not a deliverable</div>'
                  if ctx.run_dir.name.endswith("-fixture") else "")
     return Template(TEMPLATE.read_text()).substitute(title=f"Rewarded-ad ideas for {escape(ctx.app['name'])}",

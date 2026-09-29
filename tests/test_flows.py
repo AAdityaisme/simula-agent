@@ -153,20 +153,53 @@ def slides(run_dir) -> list[tuple[str, str, str]]:
     return [(idea, part, html.unescape(re.sub(r"<[^>]+>", " ", body))) for part, idea, body in found]
 
 
-def test_each_idea_gets_the_four_flow_parts_a_why_slide_and_every_score_goes_in_the_appendix(built):
+def flow_phones(run_dir, idea: str) -> list[dict]:
+    """The phones on an idea's flow slide, in order: label, red flags, caption, and screenshot."""
+    deck = (run_dir / "flows" / "slides.html").read_text()
+    slide = re.search(rf'data-part="flow" data-idea="{idea}">(.*?)</section>', deck, re.S).group(1)
+    return [{"label": re.search(r"<b>(.*?)</b>", step).group(1),
+             "flags": re.findall(r'<span class="flag">(.*?)</span>', step),
+             "text": html.unescape(re.search(r"<p>(.*?)</p>", step, re.S).group(1)),
+             "img": (re.search(r'<img src="([^"]+)"', step) or [None, None])[1]}
+            for step in slide.split('<div class="step">')[1:]]
+
+
+def scores_text(run_dir) -> str:
+    deck = (run_dir / "flows" / "slides.html").read_text()
+    return text_of(deck[deck.index('<section class="slide scores">'):])
+
+
+def test_each_idea_gets_a_flow_slide_and_a_why_slide_and_every_idea_is_scored_on_the_last_page(built):
     parts = {}
     for idea, part, _ in slides(built):
         parts.setdefault(idea, []).append(part)
     assert parts == {"c01": list(flows.PARTS), "c02": list(flows.PARTS)}
     deck = (built / "flows" / "slides.html").read_text()
-    appendix = deck[deck.index('<section class="appendix">'):]
-    for cid, score in (("c01", "11/11"), ("c02", "10/11"), ("c03", "9/11")):
-        assert f"{cid} · " in appendix and f"{score} checks passed" in appendix
-    assert "c5_moment reason for c02" in appendix and "g_brand_safety reason for c03" in appendix
-    assert html.escape(COST_LINE) in appendix
+    scores = scores_text(built)
+    for cid, verdict, checks in (("c01", "accepted", "11/11"), ("c02", "conditional", "10/11"),
+                                 ("c03", "rejected", "9/11"), ("c04", "rejected", "11/11")):
+        assert f"{cid} " in scores and f"{verdict} {checks}" in scores
+    assert "didn't pass the right moment" in scores and "didn't pass a brand-safe place for the offer" in scores
+    assert "exhibits/06-judge.md" in scores and "appendix" not in deck
+    assert deck.count('<section class="slide scores">') == 1
     assert "FIXTURE TEST DATA" in deck
     assert (built / "flows" / "slides.pdf").read_bytes().startswith(b"%PDF")
     assert "## Not wired" not in (built / "exhibits" / "07-flows.md").read_text()
+
+
+def test_the_flow_slide_walks_from_today_to_what_they_get_and_says_each_thing_once(built):
+    c = golden_idea(built)
+    phones = flow_phones(built, "c01")
+    assert [p["label"] for p in phones] == ["Today", "When it appears", "The offer", "The ad plays", "What they get"]
+    assert [p["img"] for p in phones] == ["c01/screens/before.png", *(f"c01/screens/step-{i}.png" for i in range(4))]
+    assert phones[1]["text"] == flows.plain(c.trigger_event) and phones[-1]["text"] == "Badge shows"
+    assert not any(p["flags"] for p in phones)
+    flow = {(idea, part): text for idea, part, text in slides(built)}[("c01", "flow")]
+    for words in (flows.plain(flows.caption(c)), f"The offer says: “{c.offer_copy}” Saying no changes nothing.",
+                  f"They get: {flows.reward_line(c)}", f"How often: {c.frequency_cap}"):
+        assert words in " ".join(flow.split()), words
+    deck = text_of((built / "flows" / "slides.html").read_text())
+    assert deck.count("When the reward runs out") == 2
 
 
 def test_main_slides_carry_no_ids_or_cost_math(built):
@@ -222,8 +255,8 @@ def test_a_failed_check_is_named_with_a_cost_question_and_no_numbers():
         verdict="CONDITIONAL", assumption_line="Costs ~$0.0340 per reward to serve.")})
     d = decision("c01", "conditional", 1.0, passed=10)
     text = flows.condition(d, c, ROUND6.parent / "nowhere")
-    assert text == "It passed 10 of 11 checks; the appendix shows which. Also, a view pays for what it costs to " \
-                   "serve only where ad prices are high; the cost line in the appendix has the numbers."
+    assert text == "It passed 10 of 11 checks; the last page shows which. Also, a view pays for what it costs to " \
+                   "serve only where ad prices are high; the review's cost line has the numbers."
     free = c.model_copy(update={"economics": c.economics.model_copy(update={"cost_2k": 0})})
     assert "wasn't observed" in flows.condition(decision("c01", "conditional", 1.0), free, ROUND6)
 
@@ -271,13 +304,13 @@ def test_the_why_slides_box_clears_the_footer_on_real_output(tmp_path):
 
 
 @pytest.mark.parametrize("app", APPS)
-def test_code_flags_show_on_the_idea_appendix_card_and_reach_no_slide_or_model(tmp_path, app):
+def test_code_flags_show_on_the_score_page_and_reach_no_slide_or_model(tmp_path, app):
     run_dir = seed_run(tmp_path, app, {"c01": {"flags": [FLAG]}})
     decisions = DecisionsFile.model_validate_json((run_dir / "judge" / "decisions.json").read_text()).decisions
     ideas, model = flows.load_candidates(run_dir), golden(app)
-    appendix = text_of(flows.appendix_html(decisions, ideas, [], run_dir))
-    assert appendix.count("Flagged by code") == 1
-    assert f"Flagged by code: {FLAG}" in appendix[appendix.index("c01 · "):appendix.index("c02 · ")]
+    scores = text_of("".join(flows.score_slides(decisions, ideas, [], run_dir)))
+    assert scores.count("flagged by code") == 1
+    assert f"flagged by code: {FLAG}" in scores[scores.index("c01 "):scores.index("c02 ")]
     main = text_of("".join(flows.idea_slides(drawn(ideas["c01"], decisions[0]), model, run_dir)))
     page = flows.strip_runtime((run_dir / "mock" / "index.html").read_text())
     editor = flows.editor_brief(ideas["c01"], model, page) + flows.system_prompt()
@@ -321,11 +354,9 @@ def test_reward_only_on_verification_and_only_once(built):
 @pytest.mark.parametrize("app", APPS)
 def test_a_step_that_wont_tap_through_shows_the_last_good_screen_marked_not_wired(tmp_path, app):
     run_dir = run_flows(tmp_path, app, wire_accept=False)
-    parts = {(idea, part): text for idea, part, text in slides(run_dir)}
-    assert flows.NOT_WIRED in parts[("c01", "ad")] and flows.NOT_WIRED not in parts[("c01", "offer")]
-    deck = (run_dir / "flows" / "slides.html").read_text()
-    ad_slide = re.search(r'data-part="ad" data-idea="c01">(.*?)</section>', deck, re.S).group(1)
-    assert "c01/screens/step-1.png" in ad_slide
+    offer, ad = flow_phones(run_dir, "c01")[2:4]
+    assert flows.NOT_WIRED in ad["flags"] and not offer["flags"]
+    assert ad["img"] == "c01/screens/step-1.png"
     assert not (run_dir / "flows" / "c01" / "screens" / "step-2.png").exists()
     broken = [line for line in read_trace(run_dir / "trace.jsonl") if line.step == "walk:c01" and line.outcome == "error"]
     assert broken and "step 3 not wired" in broken[0].note
@@ -401,8 +432,8 @@ def test_art_from_a_risky_screen_is_blurred_wherever_it_is_drawn(tmp_path, app):
 
 
 def assert_contained(run_dir, reason: str):
-    """c02 failed to build: c01 still gets its six slides, and the deck, the PDF, and the exhibit still get written,
-    with c02 listed as not built."""
+    """c02 failed to build: c01 still gets its slides, and the deck, the PDF, and the exhibit still get written, with
+    c02 listed as not built."""
     assert {idea for idea, _, _ in slides(run_dir)} == {"c01"}
     deck = (run_dir / "flows" / "slides.html").read_text()
     not_built = re.search(r'<ul class="not-built">(.*?)</ul>', deck, re.S).group(1)
@@ -446,9 +477,9 @@ def test_saying_no_must_return_to_the_start_with_nothing_granted_and_the_offer_m
     first = golden_idea(run_dir).flow_steps[0].state_id
     assert f"not wired: saying no led to new:gift, not back to {first}" in exhibit
     assert "| c02 · A second look | conditional | 2 / 1 | 4 / 4 | 1 | ok |" in exhibit
-    offer = {(idea, part): text for idea, part, text in slides(run_dir)}[("c01", "offer")]
-    assert "If they say no not wired" in " ".join(offer.split())
-    assert "What the user sees not on the offer screen" in " ".join(offer.split())
+    assert flow_phones(run_dir, "c01")[2]["flags"] == ["copy not on the screen", f"saying no: {flows.NOT_WIRED}"]
+    flow = {(idea, part): text for idea, part, text in slides(run_dir)}[("c01", "flow")]
+    assert "Saying no doesn't bring them back yet." in " ".join(flow.split())
     assert any(line.step == "decline:c01" and line.outcome == "error" for line in read_trace(run_dir / "trace.jsonl"))
 
 
@@ -476,9 +507,7 @@ def test_the_copy_check_reads_words_in_any_script():
     assert flows.words("!!!") == ""
 
 
-def test_code_dropped_ideas_show_their_reason_on_the_card(built):
-    deck = (built / "flows" / "slides.html").read_text()
-    card = deck[deck.index("c04 · Product change: A dropped idea"):]
-    card = html.unescape(re.sub(r"<[^>]+>", "", card[:card.index("</div>")]))
-    assert "Dropped by code: duplicate of c01: same benefit" in card
-    assert "<h3>Dropped by code</h3>" in deck and "before the review" not in deck
+def test_code_dropped_ideas_show_their_reason_on_the_score_page(built):
+    scores = scores_text(built)
+    assert "c04 A dropped idea rejected 11/11 dropped by code: duplicate of c01: same benefit" in scores
+    assert "before the review" not in scores
