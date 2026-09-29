@@ -525,3 +525,14 @@ def test_a_later_cap_stop_in_the_same_run_beats_an_earlier_attempt_1_answer(tmp_
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
     with pytest.raises(llm.CapReached):
         call(tmp_path, replay=True)
+
+
+def test_a_replay_follows_its_run_past_an_attempt_0_entry_it_could_not_read(tmp_path, monkeypatch):
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", lost_then_answered("run-a"))
+    call(tmp_path, trace_path=tmp_path / "run-a.jsonl")
+    [lost] = [line for line in read_trace(tmp_path / "run-a.jsonl") if line.outcome == "timeout"]
+    [entry] = (tmp_path / "cache").glob(f"{llm.split_key(lost.note)[0]}*.json")
+    entry.write_text("{")  # attempt 0's only entry is damaged, the case the cache skip rule handles
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)
+    assert call(tmp_path, trace_path=tmp_path / "run-b.jsonl")[0].word == "run-a", "a normal run reads past it"
+    assert call(tmp_path, trace_path=tmp_path / "run-b.jsonl", replay=True)[0].word == "run-a", "and so does its replay"

@@ -296,7 +296,7 @@ def ask_editor(ctx: Ctx, c: Candidate, model: ProductModel, page: str, budget: l
     try:
         edits, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="flows", step=f"edit:{c.id}",
                             model=role["model"], effort=role.get("effort"), system=system_prompt(), messages=messages,
-                            max_tokens=min(role["max_tokens"], config.models()[role["model"]]["max_out"]), budget=budget,
+                            max_tokens=config.max_tokens(role), budget=budget,
                             schema=Edits, no_cache=ctx.no_cache, replay=ctx.replay)
     except llm.LLMFailure as e:
         run_trace(ctx.run_dir, stage="flows", step=f"edit:{c.id}", decider="code", outcome=e.outcome,

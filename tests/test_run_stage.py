@@ -288,9 +288,15 @@ def test_the_manifest_never_lists_a_stage_whose_marker_failed_to_write(runs, moc
     def unhashable(*args, **kwargs):
         raise OSError("an output can't be read")
     monkeypatch.setattr(runfolder, "write_done", unhashable)
+    committed = (run_dir / "mock" / "done.json").read_bytes()
     with pytest.raises(OSError):
         cli.main(["mock", "janitorai", "--run", run_dir.name, "--allow-fixtures", *replay])
-    assert not (run_dir / "mock" / "done.json").exists() and "mock" not in read_manifest(run_dir).stages_done
+    assert "mock" not in read_manifest(run_dir).stages_done and not runlog.complete(run_dir, "mock")
+    assert "an output can't be read" in (run_dir / "mock" / "failure.json").read_text()
+    if replay:  # the committed record goes back, beside the newer failure
+        assert (run_dir / "mock" / "done.json").read_bytes() == committed
+    else:
+        assert not (run_dir / "mock" / "done.json").exists()
     monkeypatch.setattr(runfolder, "write_done", writes)
     assert rerun(run_dir) and "mock" in read_manifest(run_dir).stages_done
 
@@ -419,13 +425,18 @@ def test_a_call_that_failed_live_fails_the_same_way_under_replay(runs, monkeypat
     assert (run_dir / "mock" / "page.txt").read_text() == live
 
 
-@pytest.mark.parametrize("clears_its_folder", [False, True], ids=["fails_at_once", "clears_its_folder_first"])
-def test_a_stage_that_cannot_replay_keeps_its_committed_marker(runs, monkeypatch, quiet, clears_its_folder):
+def empties_its_folder(folder):  # as flows' clean() does: the folder stays, everything in it goes
+    for child in folder.iterdir():
+        shutil.rmtree(child) if child.is_dir() else child.unlink()
+
+
+@pytest.mark.parametrize("clears", [None, empties_its_folder, shutil.rmtree],
+                         ids=["fails_at_once", "empties_its_folder", "removes_its_folder"])
+def test_a_stage_that_cannot_replay_keeps_its_committed_marker(runs, monkeypatch, quiet, clears):
     def drives_the_device(ctx):
         if ctx.replay:  # as explore does: --replay reuses a finished explore/ folder
-            if clears_its_folder:  # as flows' clean() and QA's rmtree do before they rebuild
-                shutil.rmtree(ctx.run_dir / "mock")
-                (ctx.run_dir / "mock").mkdir()
+            if clears:  # as QA does on a replay miss: rmtree(run_dir / "qa"), then ReplayMiss before it rebuilds
+                clears(ctx.run_dir / "mock")
             raise llm.ReplayMiss("explore drives the device; --replay reuses a finished explore/ folder")
     mock_that(monkeypatch, drives_the_device)
     run_dir = seeded_run(runs)
@@ -435,6 +446,8 @@ def test_a_stage_that_cannot_replay_keeps_its_committed_marker(runs, monkeypatch
     assert (run_dir / "mock" / "done.json").read_bytes() == committed, "the committed record survives"
     assert (run_dir / "mock" / "done.json").stat().st_mtime_ns == finished, "with its own time, older than the failure"
     assert "ReplayMiss" in (run_dir / "mock" / "failure.json").read_text()
+    last = read_trace(run_dir / "trace.jsonl")[-1]
+    assert (last.stage, last.step, last.outcome) == ("mock", "run", "error") and "ReplayMiss" in last.note
     assert cli.upstream_problem(run_dir, "qa").startswith("mock failed after it last finished")
     assert not runlog.complete(run_dir, "mock"), "beside a newer failure it counts as not done, as for the stages below"
     with pytest.raises(llm.ReplayMiss):

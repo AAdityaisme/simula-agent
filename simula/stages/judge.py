@@ -47,9 +47,9 @@ def prompt_hashes() -> dict[str, str]:
 
 
 def judge_settings() -> dict[str, str]:
-    roles, models = config.roles("real"), config.models()
+    roles = config.roles("real")
     return {f"judge role {r} (real profile)": f"{roles[r]['model']}, effort {roles[r].get('effort')}, max_tokens "
-                                              f"{min(roles[r]['max_tokens'], models[roles[r]['model']]['max_out'])}, fallback "
+                                              f"{config.max_tokens(roles[r])}, fallback "
                                               f"{roles[r].get('declared_fallback')}"
             for r in sorted(roles) if r.startswith("judge_")}
 
@@ -142,7 +142,7 @@ def ask_judge(role: dict, c: Candidate, model: ProductModel, *, trace_path: Path
     verdict, _ = llm.call(trace_path=trace_path, stage=stage, step=step, model=role["model"],
                           effort=role.get("effort"), system=read_prompt("rubric.md"),
                           messages=judge_messages(c, model),
-                          max_tokens=min(role["max_tokens"], config.models()[role["model"]]["max_out"]), budget=budget,
+                          max_tokens=config.max_tokens(role), budget=budget,
                           schema=Verdict, no_cache=no_cache, replay=replay, fallback=role.get("declared_fallback"))
     return verdict.model_copy(update={"candidate_id": c.id})
 
@@ -279,7 +279,7 @@ def revise(ctx: Ctx, c: Candidate, verdicts: list[Verdict], model: ProductModel,
     try:
         output, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="judge", step=step, model=role["model"],
                              effort=role.get("effort"), system=propose.system_prompt(), messages=messages,
-                             max_tokens=min(role["max_tokens"], config.models()[role["model"]]["max_out"]),
+                             max_tokens=config.max_tokens(role),
                              budget=budget, schema=LensOutput, no_cache=ctx.no_cache, replay=ctx.replay)
     except llm.LLMFailure as e:
         run_trace(ctx.run_dir, stage="judge", step=step, decider="code", outcome=e.outcome,
