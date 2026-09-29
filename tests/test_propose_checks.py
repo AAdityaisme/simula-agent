@@ -517,7 +517,7 @@ def test_the_proposer_is_asked_for_a_cap_with_its_own_period_since_less_than_dai
     """daily_cap types an offer taken less than once a day as 0, and the slides print frequency_cap as the idea's
     "How often", so the frequency_cap line can't ask for a daily count: a weekly offer would open with "1 per day"."""
     line = next(line for line in SYSTEM.splitlines() if line.startswith("- `frequency_cap`:"))
-    assert "daily" not in line and "per week" in line
+    assert "daily" not in line and "per week, resets" in line
 
 
 PRINTED = ["title", "offer_copy", "after_reward", "adds", "placement", "trigger_event", "frequency_cap", "rationale",
