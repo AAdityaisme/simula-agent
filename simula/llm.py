@@ -346,18 +346,19 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
         try:
             reply = PROVIDERS[provider](model, system, messages, effort, schema, max_tokens, total_timeout)
         except BaseException as e:
-            # Whatever ends a call early is settled here, so no hold outlives it: a typed failure, or any other error
-            # raised mid-call (a malformed stream event, a response the SDK can't validate), each charged what it
-            # streamed and retried alike; a stop that must propagate (the provider refusing the account, an
-            # interrupt) is settled and traced, then re-raised.
+            # Whatever ends a call early is settled here, so no hold outlives it, and charged what it streamed. Only
+            # a typed failure or an error from the provider boundary is retried; a stop that must propagate (the
+            # provider refusing the account, an interrupt) and a bug in our own code are traced, then re-raised.
+            retry = isinstance(e, LLMFailure) or (isinstance(e, Exception) and provider_error(e))
             failure = e if isinstance(e, LLMFailure) else _failure(
                 "blocked" if isinstance(e, ProviderUnavailable) else "error", e)
             cost = usd(model, failure.tokens_in, failure.tokens_out)
             budget.charge(cost, worst)
+            note = str(e) if retry or not isinstance(e, Exception) else f"{type(e).__name__}, not a provider error: {e}"
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
                   tokens_in=failure.tokens_in, tokens_out=failure.tokens_out, usd=round(cost, 6),
-                  outcome=failure.outcome, note=str(e)[:200])
-            if not isinstance(e, Exception):
+                  outcome=failure.outcome, note=note[:200])
+            if not retry:
                 raise
             last = failure
             continue
@@ -377,6 +378,16 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
         cache_write(key, reply, cache_dir)
         last = LLMFailure(outcome, reply.stop_reason, raw=reply.text)
     raise last
+
+
+def provider_error(e: Exception) -> bool:
+    """An error from the provider boundary that another attempt may cure: an SDK error, an HTTP transport or
+    decoding error, or data the SDK couldn't read (a ValueError, as in _check). Anything else is a bug in our code,
+    which no retry fixes."""
+    import anthropic
+    import httpx2
+    import openai
+    return isinstance(e, (anthropic.APIError, openai.APIError, httpx2.HTTPError, ValueError))
 
 
 def _check(reply: Reply, schema: type[BaseModel] | None):

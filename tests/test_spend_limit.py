@@ -212,6 +212,26 @@ def test_an_untyped_error_on_a_plain_call_is_a_typed_failure_that_releases_its_h
     assert (budget.held, budget.spent) == (0, 0) and read_trace(tmp_path / "trace.jsonl")[-1].outcome == "error"
 
 
+def test_a_bug_in_our_own_code_is_raised_as_itself_after_settling_and_is_never_retried(monkeypatch, tmp_path):
+    """Greptile on 5604df5: a TypeError in an adapter was retried as LLMFailure("error"), hiding its traceback."""
+    calls = []
+
+    def broken(model, system, messages, effort, schema, max_tokens, total_timeout=None):
+        calls.append(model)
+        raise TypeError("unexpected keyword argument 'effrt'")
+
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", broken)
+    budget = llm.Budget("model", 10.0)
+    with pytest.raises(TypeError, match="effrt"):
+        llm.call(trace_path=tmp_path / "trace.jsonl", stage="model", step="t", model="claude-haiku-4-5-20251001",
+                 effort=None, system="", messages=[{"role": "user", "content": [{"type": "text", "text": "hi"}]}],
+                 max_tokens=100, budget=budget, cache_dir=tmp_path / "cache", attempts=2,
+                 fallback="claude-haiku-4-5-20251001")
+    line = read_trace(tmp_path / "trace.jsonl")[-1]
+    assert calls == ["claude-haiku-4-5-20251001"] and (budget.held, budget.spent) == (0, 0)
+    assert line.outcome == "error" and line.note.startswith("TypeError, not a provider error")
+
+
 def test_a_provider_usage_limit_stops_the_call_releases_its_hold_and_is_never_cached(monkeypatch, tmp_path):
     fake_anthropic(monkeypatch, error_400(anthropic, "https://api.anthropic.com/v1/messages", USAGE_LIMIT))
     budget = llm.Budget("model", 10.0)

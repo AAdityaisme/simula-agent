@@ -23,6 +23,8 @@ def message(text="hi", png=None):
 def fake_provider(texts, calls):
     def provider(model, system, messages, effort, schema, max_tokens, total_timeout=None):
         calls.append(model)
+        if not texts:
+            raise llm.LLMFailure("error", "no reply left")
         return llm.Reply(text=texts.pop(0), model=model, tokens_in=100, tokens_out=10)
     return provider
 
@@ -120,8 +122,8 @@ def test_a_failed_one_attempt_call_replays_to_the_callers_own_retry(tmp_path, mo
 
 def test_a_rerun_skips_recorded_failed_attempts_and_pays_only_for_the_next(tmp_path, monkeypatch):
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['nope'], []))
-    # attempt 1 dies before answering (an untyped error, settled as a typed one), so only attempt 0 is recorded
-    with pytest.raises(llm.LLMFailure, match="error: pop from empty list"):
+    # attempt 1 dies before answering (a typed error), so only attempt 0 is recorded
+    with pytest.raises(llm.LLMFailure, match="error: no reply left"):
         call(tmp_path)
     rerun_calls = []
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "second"}'], rerun_calls))
