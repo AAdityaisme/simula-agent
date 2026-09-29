@@ -1287,8 +1287,9 @@ class Explorer:
             scrolls, shown, looked = scrolls + 1, ob.texts(self.obs.elements, self.device), self.obs.image
             self.act(Move("swipe", direction="up", why="core loop: the item's main action may be further down"),
                      purpose="nav")
+            # a scroll moves most of the page; an ad or a GIF that keeps playing in one corner is not movement
             moved = self.obs is None or ob.texts(self.obs.elements, self.device) != shown \
-                or not ob.still(looked, self.obs.image, self.device)
+                or ob.changed_boxes(looked, self.obs.image, self.device) is None
             still = 0 if moved else still + 1
         self.note("core", f"no input control inside {item.label[:40]!r}")
         return None

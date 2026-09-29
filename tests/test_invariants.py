@@ -270,12 +270,30 @@ def test_a_page_that_scrolls_pictures_under_the_same_text_is_still_moving(tmp_pa
             page = phone.screens[f"page{n}"]
             para = {**page.elements[1], "text": "A long description"}
             image = page.image.copy()
-            ImageDraw.Draw(image).rectangle((100, 300 + 120 * n, 980, 900 + 120 * n), fill=(250, 220, 60))
+            draw = ImageDraw.Draw(image)
+            for y in range(-400 + 160 * (n % 3), 2400, 480):  # pictures scrolled up by a third of a band each page
+                draw.rectangle((60, y, 1020, y + 240), fill=(250, 220, 60))
             phone.screens[f"page{n}"] = Screen([page.elements[0], para, *page.elements[2:]], image, PACKAGE)
         return phone
     ex, phone = run_explorer(tmp_path, monkeypatch, same_text)
     assert ex.core.kind == "chat" and phone.sent
     assert ("tap", "page5", "Chat with Avarus") in phone.log
+
+
+def test_the_walk_stops_at_the_end_of_a_page_with_a_blinking_ad(tmp_path, monkeypatch):
+    def blinking_ad(clock):
+        phone, frames = long_page(clock, 99), iter(range(10**6))
+        image = phone.image
+
+        def frame():
+            out = image()
+            if phone.screen.startswith("page") and next(frames) % 2:
+                ImageDraw.Draw(out).rectangle((100, 1500, 400, 1700), fill=(255, 255, 0))
+            return out
+        phone.image = frame
+        return phone
+    ex, phone = run_explorer(tmp_path, monkeypatch, blinking_ad)
+    assert sum(e[:2] == ("swipe", "page11") for e in phone.log) <= 2
 
 
 def test_a_start_control_the_screen_no_longer_shows_is_never_tapped(tmp_path, monkeypatch):
