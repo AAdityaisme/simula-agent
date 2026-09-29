@@ -72,7 +72,8 @@ def build_lenses(model: ProductModel) -> list[Lens]:
         Lens(id=f"ledger_{item.id}", name=f"Someone else in the app: {item.verbatim}", kind="ledger",
              ledger_ids=[item.id],
              focus=f'Someone in this app besides the viewer, seen as "{item.verbatim}". Look for ideas where '
-                   "the viewer's rewarded play also helps or involves them, and the viewer gets something too.")
+                   "the viewer's rewarded play also helps or involves them, and the viewer gets something they would "
+                   "want for their own use of the app; helping the other person comes on top of that, not instead.")
         for item in actors]
 
 

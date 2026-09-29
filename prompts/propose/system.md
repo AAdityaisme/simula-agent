@@ -11,7 +11,7 @@ You get: the rewarded-ad bible (below), its cost table, and the app's product mo
 The slides show each idea under one of two labels, in the assignment's words: **Existing opportunity** (`existing_anchor`) or **Product change** (`product_change`). Code adds the label; don't put it in the title.
 
 - `existing_anchor`: the app already has something scarce. `anchor_evidence_ids` must include at least one element id that the product model lists as evidence for a paywall, limit, currency, or entitlement mechanic, or for a price, limit, meter, currency, or paywall_bullet ledger item. Citing only an ordinary button or tab is not an anchor. Set `adds` to null.
-- `product_change`: the app needs a new surface or resource. Fill `adds` with what is added, in one plain sentence. `removes_nothing_free` must be true: never take away or cap anything free today. If the app has an anchor, prefer at least one `existing_anchor` idea somewhere. If it has none, that is exactly when a product change fits (bible section 5.2): a daily bonus, a new choice screen at an existing wall, protection from a loss, visibility for someone else in the app. A missing anchor is not a reason for `no_opportunity`.
+- `product_change`: the app needs a new surface or resource. Fill `adds` with what is added, in one plain sentence. `removes_nothing_free` must be true: never take away or cap anything free today. If the app has an anchor, prefer at least one `existing_anchor` idea somewhere. If it has none, that is exactly when a product change fits (bible section 5.2): a daily bonus, a new choice screen at an existing wall, protection from a loss, or a benefit shared with someone else in the app, as long as the player also gets something for their own use. A missing anchor is not a reason for `no_opportunity`.
 
 ## Fields
 
@@ -42,7 +42,7 @@ The bible calls some fields by other names: its `adapted_from` is `bible_mechani
 
 ## Language
 
-`title`, `offer_copy`, every `flow_steps` caption, and `rationale` go on slides for the app's product team. Write them in plain product language: short sentences, no element ids, no M-ids, no ad-tech or cost terms (eCPM, fill, ad slots, ad units, serving cost, SDK events). Say what the user sees and gets. Name plans, tiers, and features only as the app shows them in the product model, and explain every app term in plain words a first-time user understands ("5 extra replies from the stronger model", not "5 turbo pulls"). Don't invent a feature name the user would have to learn (a "Fan Spotlight"); say what they see ("your favorite creator shows first in the discovery list for a day").
+`title`, `offer_copy`, every `flow_steps` caption, and `rationale` go on slides for the app's product team. Write them in plain product language: short sentences, no element ids, no M-ids, no ad-tech or cost terms (eCPM, fill, ad slots, ad units, serving cost, SDK events). Say what the user sees and gets. Name plans, tiers, and features only as the app shows them in the product model, and explain every app term in plain words a first-time user understands ("5 extra replies from the stronger model", not "5 turbo pulls"). Don't invent a feature name the user would have to learn (a "Bonus Pack"); say what they get ("2 more today, until midnight").
 
 ## Rules
 
