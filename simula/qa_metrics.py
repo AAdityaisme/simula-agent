@@ -162,11 +162,11 @@ def within(got: Rect | None, want: Rect, tolerance: float = BOUNDS_TOLERANCE_DP)
 # ---------- cross-screen check: shared chrome and values ----------
 
 CHROME_GATE = 0.98
-# Two screens show the same part at a box when their real screens draw most of it alike (see alike); the rest is
-# what the app itself changes, a highlighted tab or a title, however large. Measured on the three test apps' own
-# screens: a tab bar two screens share leaves 0.69-1.0 of its box, a header with another title 0.63-0.87 (0.57 on the
-# real JanitorAI run), a box over unrelated content 0.34 or less. Two different bars on a plain background land in
-# between (0.45-0.68); above the mark they are compared only over that background.
+# Two screens show the same part at a box when their real screens draw most of it, more than half, alike (see
+# alike); the rest is what the app itself changes, a highlighted tab or a title, however large. Half is the rule, not
+# a tune: on the test apps' own screens a bar two screens share keeps 0.69-1.0 of its box, a header with another title
+# 0.57-0.87, and a box over unrelated content 0.34 or less. Two different bars on a plain background land in between
+# (0.45-0.68); above the mark they are compared only over that background.
 SAME_PART = 0.5
 # content_dp's Lanczos filter reaches 3 dp across an edge, so a box's outer rows mix in whatever is drawn beside it.
 # A chrome box is compared this far inside its edges.
