@@ -12,7 +12,6 @@ dependencies = [
     "pillow",
     "numpy",
     "scikit-image",
-    "pixelmatch",
     "playwright==1.63.0",
     "python-dotenv",
     "typesafe-sdk",
@@ -23,7 +22,7 @@ dependencies = [
 simula = "simula.cli:main"
 
 [dependency-groups]
-dev = ["pytest"]
+dev = ["pytest", "pixelmatch==0.4.0"]
 
 [build-system]
 requires = ["hatchling"]

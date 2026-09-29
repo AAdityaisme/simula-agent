@@ -43,6 +43,12 @@ def ssim(real: Image.Image, mock_image: Image.Image, masked: list[Rect] = ()) ->
     return qa_metrics.compare(real, mock_image, list(masked))["ssim"]
 
 
+def differing(real: Image.Image, mock_image: Image.Image, masked: list[Rect] = ()) -> float | None:
+    """pixelmatch's share of differing pixels, over the pixels the same mask leaves as SSIM's."""
+    result = qa_metrics.compare(real, mock_image, list(masked))
+    return qa_metrics.pixel_diff(result["real"], result["mock"], result["keep"])
+
+
 def test_an_identical_pair_scores_1(real):
     assert ssim(real, real.copy()) == pytest.approx(1.0)
 
@@ -83,7 +89,7 @@ def test_art_covering_90_percent_earns_no_pixel_score(real):
 def test_a_heatmap_is_content_dp_and_marks_the_changed_box(real):
     box = Rect(x=150, y=300, w=80, h=40)
     result = qa_metrics.compare(real, painted(real, box), [])
-    heat = np.asarray(qa_metrics.heatmap(real, result["map"], result["keep"])).astype(int)
+    heat = np.asarray(qa_metrics.heatmap(result["real"], result["map"], result["keep"])).astype(int)
     assert heat.shape == (838, 411, 3)
     inside, outside = heat[310:330, 160:220], heat[600:700, 20:100]
     assert (inside[..., 0] - inside[..., 1]).mean() > 150
@@ -98,6 +104,29 @@ def test_identity_render_passes_the_gate(name):
     assert ssim(real, rendered) >= qa_metrics.IDENTITY_GATE
 
 
+def test_an_identical_pair_has_no_differing_pixels(real):
+    assert differing(real, real.copy()) == 0.0
+
+
+def test_shifts_raise_the_differing_pixels_and_the_rise_grows_with_the_shift(real):
+    shares = [differing(real, shifted(real, px)) for px in (1, 2, 5, 10)]
+    assert 0.0 < shares[0] < shares[1] < shares[2] < shares[3]
+
+
+@pytest.mark.parametrize("name", IDENTITY_SCREENS)
+def test_identity_render_differs_in_under_a_quarter_of_the_pixels_a_10_px_shift_does(name):
+    real = Image.open(FIXTURES / "trees" / f"{name}.png")
+    assert differing(real, qa_metrics.identity_render(real)) < 0.25 * differing(real, shifted(real, 10))
+
+
+def test_differing_pixels_under_the_mask_never_count(real):
+    box = Rect(x=150, y=300, w=80, h=40)
+    wrong = painted(real, box)
+    assert differing(real, wrong) > 0.0
+    assert differing(real, wrong, [box]) == 0.0
+    assert differing(real, wrong, [Rect(x=0, y=0, w=411, h=755)]) is None
+
+
 @pytest.mark.parametrize("app", APPS)
 def test_bounds_round_trip_within_1_dp(tmp_path, app):
     model = golden(app)
@@ -106,7 +135,7 @@ def test_bounds_round_trip_within_1_dp(tmp_path, app):
     with open_mock(mock_dir) as (page, _):
         for state in mock.pick_scope(model):
             page.evaluate("id => window.simula.go(id)", state.id)
-            boxes, _ = qa_metrics.screen_dom(page, state.id)
+            boxes = qa_metrics.screen_dom(page, state.id).boxes
             for e in state.elements:
                 if e.id in mock.tagged_ids(state) and e.rect_dp.w > 0 and e.rect_dp.h > 0:
                     assert qa_metrics.within(boxes.get(e.id), e.rect_dp, tolerance=1.0), e.id

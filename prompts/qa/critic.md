@@ -13,6 +13,7 @@ Then the numbers code measured:
 - `failed_taps` and `failed_flows`: taps that don't land. The tap must hit the tag (nothing on top of it, not hidden, not zero-size) on its own screen.
 - `contract_errors`: rule breaks in the page (an edge or element id that doesn't exist in the model, an image over 40% of a screen that isn't one of the screen's pictures drawn at its `rect`, a console error, a missing file).
 - The pictures code made for each of your screens: real images cut from the real screen (element assets and art), each `src` with the `rect` it goes at. The page may draw any of them, at any size when it sits at its own `rect`.
+- `cross_screen_failures`: parts that should look the same on every screen and don't. A `data-chrome` header or tab bar that differs between this screen and the screens named more than the real screens differ there (the real app may move a highlighted tab or change a title; nothing else); a `data-value` tag that doesn't read the model's value; a screen that shows the value with no `data-value` tag. They don't change the score, but anyone tapping through the mock sees them.
 - The earlier rounds: what was asked, whether the score went up or down, and which edits could not be applied.
 
 ## What to write
@@ -21,7 +22,8 @@ A fix list, most valuable first, at most 25 fixes. Order by what moves the score
 1. every contract error (they come first; each gets its own fix);
 2. missing or misplaced `data-el` elements, which carry half the score: say which element, where it should sit (from `want`), and what it looks like on the real screen;
 3. failed taps;
-4. what the heatmap shows is visibly different: wrong colors, wrong sizes, missing parts, wrong text, wrong spacing. Where the real screen shows one of the listed pictures and the mock draws a flat stand-in or nothing, ask for that picture by its `src`, at its `rect`.
+4. every cross-screen failure, each its own fix named by the screen it is on: which screen's header or tab bar to draw it like, or which value to show;
+5. what the heatmap shows is visibly different: wrong colors, wrong sizes, missing parts, wrong text, wrong spacing. Where the real screen shows one of the listed pictures and the mock draws a flat stand-in or nothing, ask for that picture by its `src`, at its `rect`.
 
 Each fix names `element_id` (the element's `data-el` id, like `s03.e07`; the screen id, like `s03`, for a problem with no single element), the `problem` as you see it, and the `fix` as a concrete change: sizes and positions in px, colors as hex, the exact text. Don't repeat a fix that an earlier round already asked for and that didn't raise the score: say what to do differently. Don't ask for anything the rules forbid: no new edge or element ids, no image other than your screens' listed pictures, none over 40% of a screen unless it is one of those pictures at its own `rect`, no navigation script.
 

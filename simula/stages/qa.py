@@ -37,6 +37,9 @@ RECORDS = llm.CACHE / "qa"
 UNDRAWN_PREFIX = "screen not drawn: "
 CAP_PREFIX = "$ cap reached: "
 FAILED_CALL = re.compile(r"([a-z_]+): (.*)", re.S)
+# Part of a measurement record's key. Bumped when a record gains a field or its numbers change meaning, so a record
+# written before is a replay miss, never a crash or a stale number.
+MEASURE_RECORD = 2
 RUNTIME = re.compile(r'<style id="simula-runtime">.*?</style>\n?|<script id="simula-runtime-js">.*?</script>\n?', re.S)
 
 
@@ -50,6 +53,7 @@ class Version:
     taps: list[dict]
     flows: list[dict]
     contract_errors: list[ContractError]
+    cross_screen: list[dict] = field(default_factory=list)
 
     @property
     def score(self) -> float:
@@ -164,7 +168,7 @@ def measure_or_replay(ctx: Ctx, model: ProductModel, scope: list[State], n: int,
     page and its inputs, and --replay takes the recorded numbers: the loop then decides, and asks the models, exactly
     as the recorded run did. A replay with no record stops rather than measure live. It still renders, for the round
     folder's images."""
-    path = record_path("measure", n, html, inputs_digest(ctx))
+    path = measure_record_path(ctx, n, html)
     if not ctx.replay:
         version = measure(ctx, model, scope, n, html)
         write_record(path, version_record(version))
@@ -202,48 +206,66 @@ def measure(ctx: Ctx, model: ProductModel, scope: list[State], n: int, html: str
             dom[sid] = qa_metrics.screen_dom(page, sid)
         taps = check_taps(page, model, drawn)
         flows = walk_flows(page, model, scope, set(undrawn))
-    details = [measure_screen(ctx, model, s, round_dir, *dom[s.id], taps) for s in drawn]
-    metrics = QAMetrics(round=n, screens=[d["metrics"] for d in details], cross_screen_failures=[],
+    details = [measure_screen(ctx, model, s, round_dir, dom[s.id], taps) for s in drawn]
+    cross = cross_screen_failures(model, round_dir, dom)
+    metrics = QAMetrics(round=n, screens=[d["metrics"] for d in details],
+                        cross_screen_failures=[f["detail"] for f in cross],
                         score=sum(d["metrics"].score for d in details) / len(details))
     write_json(round_dir / "metrics.json", json.loads(metrics.model_dump_json()))
     if trace:
         run_trace(ctx.run_dir, stage="qa", step=f"round{n}", decider="code",
                   note=f"score {metrics.score:.2f}, {len(errors)} contract errors, "
-                       f"{sum(1 for t in taps if t['problem'])} of {len(taps)} taps failing")
-    return Version(n, html, metrics, details, taps, flows, errors)
+                       f"{sum(1 for t in taps if t['problem'])} of {len(taps)} taps failing, "
+                       f"{len(cross)} cross-screen failures")
+    return Version(n, html, metrics, details, taps, flows, errors, cross)
 
 
-def measure_screen(ctx: Ctx, model: ProductModel, state: State, round_dir, boxes: dict, images: list,
+def measure_screen(ctx: Ctx, model: ProductModel, state: State, round_dir, dom: qa_metrics.ScreenDom,
                    taps: list[dict]) -> dict:
     """Scores one screen. Masked out of SSIM: wherever a copied image sits over the spot it was cropped from (so a
     pasted crop earns nothing, and a misplaced one is scored), and regions that change between visits."""
     real = Image.open(ctx.run_dir / "model" / state.canonical_png)
     render_path = round_dir / "mock" / f"{state.id}.png"
     origins = {f"assets/{e.id}.png": e.rect_dp for e in state.elements} | art_origins(ctx, state)
-    copies = [qa_metrics.overlap(origins[src], drawn) for src, drawn in images if src in origins]
+    copies = [qa_metrics.overlap(origins[src], drawn) for src, drawn in dom.images if src in origins]
     masked = ([r for r in copies if r]
               + [qa_metrics.device_to_dp(r, model.device) for r in state.dynamic_regions])
     pixels = qa_metrics.compare(real, Image.open(render_path), masked)
-    save_png(render.content_dp(Image.open(render_path)), render_path)
-    save_png(render.content_dp(real), round_dir / "real" / f"{state.id}.png")
-    save_png(qa_metrics.heatmap(real, pixels["map"], pixels["keep"]), round_dir / "heatmap" / f"{state.id}.png")
+    differing = qa_metrics.pixel_diff(pixels["real"], pixels["mock"], pixels["keep"])
+    save_png(Image.fromarray(pixels["mock"]), render_path)
+    save_png(Image.fromarray(pixels["real"]), round_dir / "real" / f"{state.id}.png")
+    save_png(qa_metrics.heatmap(pixels["real"], pixels["map"], pixels["keep"]),
+             round_dir / "heatmap" / f"{state.id}.png")
 
     ids = mock.tagged_ids(state)
     tagged = [e for e in state.elements if e.id in ids]
     misses = [{"id": e.id, "text": e.text or e.label, "want": rect(e.rect_dp),
-               "got": rect(boxes[e.id]) if e.id in boxes else "missing"}
-              for e in tagged if not qa_metrics.within(boxes.get(e.id), e.rect_dp)]
+               "got": rect(dom.boxes[e.id]) if e.id in dom.boxes else "missing"}
+              for e in tagged if not qa_metrics.within(dom.boxes.get(e.id), e.rect_dp)]
     own_taps = [t for t in taps if t["screen"] == state.id]
     passed = sum(not t["problem"] for t in own_taps)
     bounds = 1 - len(misses) / len(tagged) if tagged else None
     nav = passed / len(own_taps) if own_taps else None
     # The contract's bounds and nav fields aren't optional: a dropped term stores 1.0 (vacuously, all of none pass)
     # and the score leaves it out.
-    metrics = ScreenMetrics(state_id=state.id, ssim_masked=pixels["ssim"], pixelmatch_ratio=None,
+    metrics = ScreenMetrics(state_id=state.id, ssim_masked=pixels["ssim"], pixelmatch_ratio=differing,
                             masked_coverage=pixels["coverage"], bounds_ok_share=1.0 if bounds is None else bounds,
                             nav_pass_rate=1.0 if nav is None else nav, score=screen_score(bounds, nav, pixels["ssim"]))
     return {"metrics": metrics, "name": state.name, "tagged": len(tagged), "taps": len(own_taps),
             "taps_passed": passed, "misses": misses}
+
+
+def cross_screen_failures(model: ProductModel, round_dir, dom: dict[str, qa_metrics.ScreenDom]) -> list[dict]:
+    """The cross-screen check on one version: shared chrome renders the same on every screen that draws it, and a
+    shared value reads the same wherever it appears. Each failure names the screen to fix; failures go to the critic
+    and the fixer like any finding, and never into the score."""
+    dialogs = {s.id for s in model.states if s.kind in mock.DIALOGS and s.parent_id}
+
+    def images(kind: str) -> dict:
+        return {sid: Image.open(round_dir / kind / f"{sid}.png") for sid in dom}
+    return (qa_metrics.chrome_failures({sid: d.chrome for sid, d in dom.items()}, images("mock"), images("real"),
+                                       dialogs)
+            + qa_metrics.value_failures({sid: d.values for sid, d in dom.items()}, model))
 
 
 def art_origins(ctx: Ctx, state: State) -> dict:
@@ -524,7 +546,7 @@ def fix(ctx: Ctx, budget: llm.Budget, model: ProductModel, version: Version, cri
 
 def named_screens(model: ProductModel, critique: Critique) -> set[str]:
     """The screens a critique's fixes are on: each fix names a data-el id or a screen id."""
-    owner = {e.id: s.id for s in model.states for e in s.elements} | {s.id: s.id for s in model.states}
+    owner = qa_metrics.screen_of(model)
     return {owner[f.element_id] for f in critique.fixes if f.element_id in owner}
 
 
@@ -566,7 +588,8 @@ def numbers(version: Version, ids: set | None = None) -> dict:
     return {"score": round(version.score, 2), "screens": screens,
             "failed_taps": [t for t in version.failed_taps() if on(t["screen"])],
             "failed_flows": [f for f in version.failed_flows() if on(f["screen"])],
-            "contract_errors": [e.model_dump() for e in version.contract_errors if on(e.screen)]}
+            "contract_errors": [e.model_dump() for e in version.contract_errors if on(e.screen)],
+            "cross_screen_failures": [f for f in version.cross_screen if on(f["screen"])]}
 
 
 def prompt(name: str) -> str:
@@ -621,6 +644,10 @@ def record_path(*key):
     return RECORDS / f"{digest(key)}.json"
 
 
+def measure_record_path(ctx: Ctx, n: int, html: str):
+    return record_path("measure", MEASURE_RECORD, n, html, inputs_digest(ctx))
+
+
 def write_record(path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text)
@@ -630,14 +657,15 @@ def version_record(v: Version) -> str:
     return json.dumps({"metrics": json.loads(v.metrics.model_dump_json()),
                        "screens": [{**s, "metrics": json.loads(s["metrics"].model_dump_json())} for s in v.screens],
                        "taps": v.taps, "flows": v.flows,
-                       "contract_errors": [e.model_dump(mode="json") for e in v.contract_errors]})
+                       "contract_errors": [e.model_dump(mode="json") for e in v.contract_errors],
+                       "cross_screen": v.cross_screen})
 
 
 def version_from(record: dict, n: int, html: str) -> Version:
     return Version(n, html, QAMetrics.model_validate(record["metrics"]),
                    [{**s, "metrics": ScreenMetrics.model_validate(s["metrics"])} for s in record["screens"]],
                    record["taps"], record["flows"],
-                   [ContractError.model_validate(e) for e in record["contract_errors"]])
+                   [ContractError.model_validate(e) for e in record["contract_errors"]], record["cross_screen"])
 
 
 # ---------- outputs ----------
@@ -652,7 +680,7 @@ def approve(ctx: Ctx, best: Version) -> None:
 def summary(version: Version, kept: bool, edits: list[dict] = ()) -> dict:
     return {"round": version.round, "keep_score": round(version.score, 3), "kept": kept,
             "contract_errors": len(version.contract_errors), "failed_taps": len(version.failed_taps()),
-            "failed_flows": len(version.failed_flows()),
+            "failed_flows": len(version.failed_flows()), "cross_screen_failures": len(version.cross_screen),
             "edits_applied": sum(e["applied"] for e in edits), "edits_rejected": sum(not e["applied"] for e in edits)}
 
 
@@ -672,7 +700,8 @@ def qa_report(ctx: Ctx, best: Version, loop: Loop, undrawn: dict[str, str]) -> d
             "screens": [{**json.loads(s["metrics"].model_dump_json()), "name": s["name"], "tagged": s["tagged"],
                          "taps": s["taps"], "data_el_misses": s["misses"]} for s in best.screens],
             "failed_taps": best.failed_taps(), "flows": best.flows,
-            "contract_errors": [e.model_dump() for e in best.contract_errors]}
+            "contract_errors": [e.model_dump() for e in best.contract_errors],
+            "cross_screen_failures": best.cross_screen}
 
 
 def outcome(ctx: Ctx, best: Version, loop: Loop, undrawn: dict[str, str]) -> dict:
@@ -698,6 +727,7 @@ def outcome(ctx: Ctx, best: Version, loop: Loop, undrawn: dict[str, str]) -> dic
         (best.failed_taps(), f"taps that still fail: {', '.join(t['edge'] for t in best.failed_taps())}"),
         (best.failed_flows(), f"core flows that still fail: {', '.join(f['flow'] for f in best.failed_flows())}"),
         (best.contract_errors, f"contract errors on the approved version: {len(best.contract_errors)}"),
+        (best.cross_screen, f"cross-screen failures on the approved version: {len(best.cross_screen)}"),
     ) if present]
     if not reasons:
         return {"outcome": "complete", "reasons": [], "resume": None, "resume_note": None}
@@ -736,12 +766,17 @@ def interaction(best: Version) -> dict:
 
 
 def visual(best: Version) -> dict:
-    """Masked SSIM on its own: the mean, and every scored screen from the lowest up. No pass mark: SSIM punishes a
-    line of text 2 px off about as hard as a missing picture, so it ranks screens for a person to look at."""
-    scored = sorted(((s["metrics"].state_id, s["metrics"].ssim_masked) for s in best.screens
-                     if s["metrics"].ssim_masked is not None), key=lambda pair: pair[1])
-    return {"masked_ssim_mean": round(sum(v for _, v in scored) / len(scored), 3) if scored else None,
-            "screens_by_ssim": [{"screen": sid, "ssim": round(v, 3)} for sid, v in scored]}
+    """Masked SSIM on its own: the mean, and every scored screen from the lowest up, with pixelmatch's share of
+    differing pixels beside it. No pass mark: SSIM punishes a line of text 2 px off about as hard as a missing
+    picture, so it ranks screens for a person to look at."""
+    scored = sorted((s["metrics"] for s in best.screens if s["metrics"].ssim_masked is not None),
+                    key=lambda m: m.ssim_masked)
+    shares = [m.pixelmatch_ratio for m in scored if m.pixelmatch_ratio is not None]
+    return {"masked_ssim_mean": round(sum(m.ssim_masked for m in scored) / len(scored), 3) if scored else None,
+            "pixelmatch_mean": round(sum(shares) / len(shares), 4) if shares else None,
+            "screens_by_ssim": [{"screen": m.state_id, "ssim": round(m.ssim_masked, 3),
+                                 "pixelmatch": None if m.pixelmatch_ratio is None else round(m.pixelmatch_ratio, 4)}
+                                for m in scored]}
 
 
 def fidelity_lines(report: dict, start: float) -> list[str]:
@@ -749,10 +784,11 @@ def fidelity_lines(report: dict, start: float) -> list[str]:
     st, it, vis = report["structure"], report["interaction"], report["visual"]
     lowest = ", ".join(f"{s['screen']} {s['ssim']:.3f}" for s in vis["screens_by_ssim"][:LOWEST_SHOWN])
     ssim = f"mean {vis['masked_ssim_mean']:.3f}, lowest {lowest}" if vis["screens_by_ssim"] else "nothing to score"
+    differing = "" if vis["pixelmatch_mean"] is None else f"; pixelmatch: {vis['pixelmatch_mean']:.2%} of pixels differ"
     return [f"- Structure: {st['within_4dp']} of {st['tagged']} tagged elements within 4 dp of the real screen.",
             f"- Interaction: {it['taps_passing']} of {it['taps']} taps land; "
             f"{it['flows_walked']} of {it['flows']} core flows walked by real input.",
-            f"- Visual: masked SSIM {ssim} (see the heatmaps). No pass mark.",
+            f"- Visual: masked SSIM {ssim}{differing} (see the heatmaps). No pass mark.",
             f"- Keep score {start:.2f} → {report['keep_score']:.2f}: {report['keep_score_formula']}"]
 
 
@@ -770,21 +806,24 @@ def exhibit(ctx: Ctx, model: ProductModel, best: Version, loop: Loop, report: di
              *(["", "Replayed: the scores are the recorded run's; the images in `qa/round<N>/` are this machine's "
                     "renders, so they can differ slightly from what was scored."] if ctx.replay else []),
              "",
-             "| Round | Keep score | Contract errors | Failed taps | Failed flows | Edits applied / rejected | Kept |",
-             "|---|---|---|---|---|---|---|"]
+             "| Round | Keep score | Contract errors | Failed taps | Failed flows | Cross-screen failures | "
+             "Edits applied / rejected | Kept |",
+             "|---|---|---|---|---|---|---|---|"]
     lines += [f"| {r['round']} | {r['keep_score']:.2f} | {r['contract_errors']} | {r['failed_taps']} | "
-              f"{r['failed_flows']} | {r['edits_applied']} / {r['edits_rejected']} | "
+              f"{r['failed_flows']} | {r['cross_screen_failures']} | {r['edits_applied']} / {r['edits_rejected']} | "
               f"{'yes' if r['kept'] else 'discarded'} |" for r in loop.rounds]
     lines += ["", f"Approved version (round {best.round}), per screen. A term with nothing to measure shows –.", "",
-              "| Screen | Name | Keep score | Masked SSIM (coverage) | data-el within 4 dp | Taps passing | Heatmap |",
-              "|---|---|---|---|---|---|---|"]
+              "| Screen | Name | Keep score | Masked SSIM (coverage) | pixelmatch (pixels differing) | "
+              "data-el within 4 dp | Taps passing | Heatmap |",
+              "|---|---|---|---|---|---|---|---|"]
     for s in best.screens:
         m = s["metrics"]
         ssim = "–" if m.ssim_masked is None else f"{m.ssim_masked:.3f}"
+        differing = "–" if m.pixelmatch_ratio is None else f"{m.pixelmatch_ratio:.2%}"
         bounds = f"{s['tagged'] - len(s['misses'])} / {s['tagged']}" if s["tagged"] else "–"
         taps = f"{s['taps_passed']} / {s['taps']}" if s["taps"] else "–"
-        lines.append(f"| {m.state_id} | {s['name']} | {m.score:.2f} | {ssim} ({m.masked_coverage:.0%}) | {bounds} | "
-                     f"{taps} | `qa/round{best.round}/heatmap/{m.state_id}.png` |")
+        lines.append(f"| {m.state_id} | {s['name']} | {m.score:.2f} | {ssim} ({m.masked_coverage:.0%}) | {differing} | "
+                     f"{bounds} | {taps} | `qa/round{best.round}/heatmap/{m.state_id}.png` |")
     lines += ["", "| Flow | Name | Walk |", "|---|---|---|"]
     lines += [f"| {f['flow']} | {f['name']} | {f['status'].replace('_', ' ')}{': ' + f['problem'] if f['problem'] else ''}"
               f"{' (by gesture: ' + ', '.join(f['gestures']) + ')' if f['gestures'] else ''} |"
@@ -794,6 +833,11 @@ def exhibit(ctx: Ctx, model: ProductModel, best: Version, loop: Loop, report: di
                   *[f"- {u['screen']}: {u['reason']}" for u in report["undrawn_screens"]]]
     if best.failed_taps():
         lines += ["", "Taps that still fail:", *[f"- `{t['edge']}`: {t['problem']}" for t in best.failed_taps()]]
+    shared = marked_screens(best.html)
+    lines += ["", f"Cross-screen check: the page marks `data-chrome` on {len(shared['data-chrome'])} screens and "
+                  f"`data-value` on {len(shared['data-value'])}; {len(best.cross_screen)} failures on the approved "
+                  "version (shared chrome that renders differently, shared values that don't read the same).",
+              *[f"- {f['detail']}" for f in best.cross_screen]]
     if best.contract_errors:
         lines += ["", "Contract errors on the approved version:",
                   *[f"- {e.kind} ({e.screen or 'page'}): {e.detail}" for e in best.contract_errors]]
@@ -804,6 +848,18 @@ def exhibit(ctx: Ctx, model: ProductModel, best: Version, loop: Loop, report: di
                   "(and the round stops if every group refuses). The refused images aren't bisected out to keep the "
                   "rest of the group."]
     return "\n".join(lines) + "\n"
+
+
+def marked_screens(html: str) -> dict[str, set[str]]:
+    """The screens whose sections carry a data-chrome or a data-value tag, so the exhibit says what the cross-screen
+    check had to check. Sections don't nest: a tag belongs to the last data-screen before it."""
+    found, screen = {"data-chrome": set(), "data-value": set()}, None
+    for tag in mock.StartTags(html).tags:
+        screen = tag["attrs"].get("data-screen", screen)
+        for attr, screens in found.items():
+            if attr in tag["attrs"] and screen:
+                screens.add(screen)
+    return found
 
 
 def keep_rule_line(report: dict) -> str:

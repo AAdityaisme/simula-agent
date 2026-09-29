@@ -16,6 +16,7 @@ def skeleton_html(model: ProductModel, screens: list[str] | None = None) -> str:
     # A mock batch's brief lists every edge from its screens to any in-scope screen, so a tap target stays on top
     # even when `screens` is one batch and its edge ends in another.
     tappable = {e.element_id for e in scope_edges(model, pick_scope(model))}
+    values = {i: v.id for v in model.cross_screen_values for i in v.evidence_ids}
     sections = []
     for state in scope:
         tagged = tagged_ids(state)
@@ -30,6 +31,8 @@ def skeleton_html(model: ProductModel, screens: list[str] | None = None) -> str:
             edge = edges.get(e.id)
             if edge:
                 attrs += f' data-edge="{edge.id}" data-transition="{edge.transition}"'
+            if e.id in values:
+                attrs += f' data-value="{values[e.id]}"'
             if e.id in tappable:
                 style += ";z-index:1"
             if usable_asset(e, state.elements, model.device):
