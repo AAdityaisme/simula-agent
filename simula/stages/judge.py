@@ -223,9 +223,12 @@ def fallback_pick(decisions: list[Decision], candidates: dict[str, Candidate],
 
 
 def ordered(decisions: list[Decision]) -> list[Decision]:
-    """Survivors first by rank_score (code), then those waiting on a person, then rejects by score."""
+    """Survivors first by rank_score (code), then those waiting on a person, then rejects by score. On an equal
+    score an accept goes before a CONDITIONAL, so the verdict (and in annotate mode, the cost line) breaks ties;
+    flows' top-4 cut keeps this order."""
     tier = {"accept": 0, "conditional": 0, "needs_human": 1, "reject": 2}
-    return sorted(decisions, key=lambda d: (tier[d.final], -(d.rank_score or 0), -d.checks_passed))
+    return sorted(decisions, key=lambda d: (tier[d.final], -(d.rank_score or 0), d.final != "accept",
+                                            -d.checks_passed))
 
 
 def condition(d: Decision, c: Candidate, verdicts: list[Verdict]) -> str | None:

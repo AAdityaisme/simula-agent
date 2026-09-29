@@ -4,7 +4,7 @@ fallback; no-opportunity; checks_passed/total; and the whole stage with a fake m
 import pytest
 
 from simula import llm, runlog
-from simula.contracts import GATES, JUDGMENT, CandidatesFile, DecisionsFile, LensOutput, Term
+from simula.contracts import GATES, JUDGMENT, CandidatesFile, Decision, DecisionsFile, LensOutput, Term
 from simula.stages import judge, propose
 from tests.conftest import APPS
 from tests.judge_helpers import ctx_for, fake_llm, idea, live, seed, verdict
@@ -144,6 +144,23 @@ def test_survivors_come_first_by_rank_then_people_then_rejects():
             judge.decide(idea(m, "c03", rank=4), [verdict()], ONE, "annotate"),
             judge.decide(idea(m, "c04", rank=9), [verdict()], TWO, "annotate")]
     assert [d.candidate_id for d in judge.ordered(rows)] == ["c03", "c02", "c04", "c01"]
+
+
+def test_an_accept_wins_a_tie_but_never_passes_a_higher_score():
+    # Real Luzia, round 6 (runs/luzia/20260928-042747-6d79ef8-fixture/judge/decisions.json): four survivors tied
+    # at 1.0, and the one clean accept, c06, came fourth.
+    rows = [Decision(candidate_id=cid, final=final, checks_passed=checks, checks_total=11, rank_score=rank,
+                     gate_fails=[], judgment_splits=[], verdict_paths=[], economics_verdict=econ, revision_of=None,
+                     failure_type="proposal" if final == "reject" else None, rerun_stage=None)
+            for cid, final, rank, checks, econ in [("c02", "conditional", 1.0, 11, "FAIL"),
+                                                   ("c03", "conditional", 1.0, 11, "CONDITIONAL"),
+                                                   ("c05", "conditional", 1.0, 11, "CONDITIONAL"),
+                                                   ("c06", "accept", 1.0, 11, "PASS"),
+                                                   ("c01", "reject", 0.5, 11, "CONDITIONAL"),
+                                                   ("c04", "reject", 0.5, 9, "PASS")]]
+    assert [d.candidate_id for d in judge.ordered(rows)] == ["c06", "c02", "c03", "c05", "c01", "c04"]
+    higher = [d.model_copy(update={"rank_score": 2.0}) if d.candidate_id == "c05" else d for d in rows]
+    assert [d.candidate_id for d in judge.ordered(higher)] == ["c05", "c06", "c02", "c03", "c01", "c04"]
 
 
 # ---------- the whole stage, with a fake model ----------
