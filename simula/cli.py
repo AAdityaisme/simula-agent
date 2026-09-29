@@ -236,11 +236,11 @@ def parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     config.load_env()
     argv = sys.argv[1:] if argv is None else argv
-    if argv[:1] and argv[0] in VALIDATE_COMMANDS:
-        from simula import validate
-        return validate.main(argv)
-    args = parser().parse_args(argv)
     try:
+        if argv[:1] and argv[0] in VALIDATE_COMMANDS:
+            from simula import validate
+            return validate.main(argv)
+        args = parser().parse_args(argv)
         return args.func(args)
     except runfolder.FixtureRefused as e:
         print(e, file=sys.stderr)

@@ -349,7 +349,10 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
             cells = []
             for who in columns:
                 ran = [got(c, j) for j in judges] if who == "combined" else [got(c, who)]
-                fails = judge.failed_by_any([v for v in ran if v])
+                if None in ran:
+                    cells.append("? no verdict: a judge call failed")
+                    continue
+                fails = judge.failed_by_any(ran)
                 held = c.target in fails if c.target else not is_passed(c, who)
                 cells.append(("✓ " if held else "✗ ") + (f"fails {', '.join(fails)}" if fails else "passes all 11"))
             lines.append(f"| {c.id} | {c.target or 'any'} | " + " | ".join(cells) + " |")

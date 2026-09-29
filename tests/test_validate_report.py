@@ -104,13 +104,14 @@ def test_a_regression_case_is_reported_on_its_own_and_counts_for_nothing_else():
     cases = build_cases()
     m = golden("janitorai")
     regressions = [Case(cid, "regression", idea(m, cid), m, m.app, "", True, target)
-                   for cid, target in (("rg-a", None), ("rg-b", None), ("rg-c", "c2_evidence"))]
+                   for cid, target in (("rg-a", None), ("rg-b", None), ("rg-c", "c2_evidence"), ("rg-d", None))]
     verdicts = judged(cases) | {("rg-a", "judge_1"): verdict(), ("rg-b", "judge_1"): verdict(["c1_revealed_value"]),
-                                ("rg-c", "judge_1"): verdict(["c1_revealed_value"])}
+                                ("rg-c", "judge_1"): verdict(["c1_revealed_value"]), ("rg-d", "judge_1"): None}
     text, passed = run_report(cases + regressions, verdicts)
     assert passed and "| Planted defects (22) | 22 | 0 |" in text and "| Known-good (3) | 3 | 0 |" in text
     assert "| rg-a | any | ✗ passes all 11 |" in text and "| rg-b | any | ✓ fails c1_revealed_value |" in text
     assert "| rg-c | c2_evidence | ✗ fails c1_revealed_value |" in text
+    assert "| rg-d | any | ? no verdict: a judge call failed |" in text
 
 
 def test_simula_validate_judge_and_label_run_the_validation_commands(monkeypatch):
@@ -123,6 +124,15 @@ def test_simula_validate_judge_and_label_run_the_validation_commands(monkeypatch
     monkeypatch.setattr(validate, "load_verdicts", lambda out: {})
     monkeypatch.setattr(validate, "label_cases", lambda cases, verdicts, labels_dir, limit: seen.update(limit=limit) or 0)
     assert cli.main(["label", "--limit", "3"]) == 0 and seen["limit"] == 3
+
+
+def test_simula_validate_judge_at_its_cap_exits_with_the_cap_code(monkeypatch):
+    from simula import cli, llm
+
+    def capped(*args):
+        raise llm.CapReached("validate: next call could cost $0.20")
+    monkeypatch.setattr(validate, "validate_judge", capped)
+    assert cli.main(["validate-judge"]) == cli.EXIT_CAP
 
 
 def test_the_regression_fixtures_load_with_the_product_model_their_judge_saw():
