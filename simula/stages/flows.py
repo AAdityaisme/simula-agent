@@ -42,7 +42,6 @@ FAIL_NOTE = "That didn't go through. Nothing was used, and the app is as it was.
 NOT_WIRED = "not wired"
 REWARD_NOT_SHOWN = "reward not shown"
 ACCENT_MIN_SATURATION = 0.4  # below it a palette color reads as gray (a dark theme's #303337 is 0.07)
-CHARACTER_ROLE = re.compile(r"\b(?:character|mascot|avatar|persona)\b", re.I)
 LABEL_PAD = 16  # a reward label's shadow and anti-aliasing reach this far past its box, in CSS px
 RENDER_NOISE = 8  # Chromium redraws a blurred glow up to 4 levels off after any style change (measured on a real mock)
 CODES = re.compile(r"\b(?:g|c\d)_[a-z_]+\b")
@@ -81,8 +80,6 @@ FLOW_CSS = """body:not(.simula-rewarded) [data-reward]{display:none!important}
 .sa-top{display:flex;justify-content:space-between;align-items:center}
 .sa-tag{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.6}
 .sa-close{border:0;background:rgba(127,127,127,.2);color:inherit;border-radius:50%;width:30px;height:30px;font-size:18px;line-height:30px;cursor:pointer}
-.sa-face{display:block;width:72px;height:72px;border-radius:50%;object-fit:cover;margin:12px auto 4px}
-.sa-with{margin:0;text-align:center;font-size:12px;opacity:.75}
 .sa-game{margin:14px 0 12px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .sa-game i{aspect-ratio:1;border-radius:12px;background:linear-gradient(135deg,#ffb347,#ff5f6d)}
 .sa-game i:nth-child(3n+2){background:linear-gradient(135deg,#43cea2,#185a9d)}
@@ -369,24 +366,10 @@ def ad_palette_css(page: str) -> str:
     return f".sa-card{{--sa-accent:{accent};--sa-on-accent:{text_on(accent)}}}\n"
 
 
-def ad_character(model: ProductModel, c: Candidate, flow_dir: Path) -> str:
-    """The trigger screen's character or mascot art, as the model cropped it, with the idea's character_use line, for
-    the ad card; "" when the idea puts no character in the ad or the model cropped none on that screen."""
-    if not c.character_use.strip() or c.character_use.strip().lower().startswith("none"):
-        return ""
-    trigger = next((s for s in model.states if s.id == c.trigger_state_id), None)
-    art = [e for e in trigger.elements if e.asset_png and CHARACTER_ROLE.search(e.role)
-           and (flow_dir / e.asset_png).exists()] if trigger else []
-    if not art:
-        return ""
-    face = max(art, key=lambda e: e.rect_dp.w * e.rect_dp.h)
-    return f'<img class="sa-face" src="{escape(face.asset_png)}" alt=""><p class="sa-with">{escape(plain(c.character_use))}</p>'
-
-
-def ad_card(c: Candidate, character: str = "") -> str:
+def ad_card(c: Candidate) -> str:
     tiles = "<i></i>" * 9
     return ('<div class="sa-dim"></div><div class="sa-card"><div class="sa-top"><span class="sa-tag">Sponsored game'
-            f'</span><button class="sa-close" aria-label="Close">×</button></div>{character}'
+            '</span><button class="sa-close" aria-label="Close">×</button></div>'
             f'<div class="sa-game">{tiles}</div><div class="sa-bar"><i></i></div>'
             f'<div class="sa-reward">Finish to get: {escape(reward_line(c))}</div>'
             '<button class="sa-play">Play</button><button class="sa-cta">Learn more</button></div>')
@@ -406,8 +389,8 @@ def ad_index(step_ids: list[str], ad: str | None) -> int:
     return max(1, min(2, len(step_ids) - 1))
 
 
-def flow_js(c: Candidate, ad: str | None, after_ad: str, character: str) -> str:
-    flow = {"trigger": c.flow_steps[0].state_id, "ad": ad, "afterAd": after_ad, "card": ad_card(c, character),
+def flow_js(c: Candidate, ad: str | None, after_ad: str) -> str:
+    flow = {"trigger": c.flow_steps[0].state_id, "ad": ad, "afterAd": after_ad, "card": ad_card(c),
             "failNote": FAIL_NOTE}
     data = json.dumps(flow).replace("</", "<\\/")
     return f'<script id="simula-flow-js">\n{FLOW_JS.replace("__FLOW__", data)}\n</script>\n'
@@ -426,10 +409,10 @@ def mark_ad(html: str, sid: str, c: Candidate) -> tuple[str, str]:
     return _insert_before(html, "</body>", section), "added the"
 
 
-def flow_page(original: str, edited: str, c: Candidate, css: str, character: str) -> tuple[str, str | None, int, str]:
-    """The edited page with the navigation runtime, the flow's CSS (plus css), and the simulated ad (showing character,
-    HTML or ""). Returns it with the ad's screen id, its step index, and what code did when the editor marked no ad
-    screen ("" when it marked one)."""
+def flow_page(original: str, edited: str, c: Candidate, css: str) -> tuple[str, str | None, int, str]:
+    """The edited page with the navigation runtime, the flow's CSS (plus css), and the simulated ad. Returns it with
+    the ad's screen id, its step index, and what code did when the editor marked no ad screen ("" when it marked
+    one)."""
     step_ids = [s.state_id for s in c.flow_steps]
     ad = ad_screen(edited, step_ids)
     at = ad_index(step_ids, ad)
@@ -439,7 +422,7 @@ def flow_page(original: str, edited: str, c: Candidate, css: str, character: str
         edited, fallback = mark_ad(edited, ad, c)
     after_ad = step_ids[at + 1] if ad in step_ids and at + 1 < len(step_ids) else step_ids[0]
     html = with_flow_css(with_runtime(edited, page_root(original)), css)
-    return _insert_before(html, "</body>", flow_js(c, ad, after_ad, character)), ad, at, fallback
+    return _insert_before(html, "</body>", flow_js(c, ad, after_ad)), ad, at, fallback
 
 
 # ---------- the tap-through ----------
@@ -637,7 +620,7 @@ def build_flow(ctx: Ctx, model: ProductModel, source: Path, c: Candidate, decisi
     if relabeled:
         run_trace(ctx.run_dir, stage="flows", step=f"edits:{c.id}", decider="code",
                   note=f"{relabeled} new control(s) that return to the first step now go back")
-    html, ad, ad_at, fallback = flow_page(original, edited, c, css, ad_character(model, c, flow_dir))
+    html, ad, ad_at, fallback = flow_page(original, edited, c, css)
     if fallback:
         run_trace(ctx.run_dir, stage="flows", step=f"edits:{c.id}", decider="code",
                   note=f"no screen was marked data-ad; code {fallback} ad screen at step {ad_at + 1} ({ad})")
