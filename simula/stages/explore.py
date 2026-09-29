@@ -498,7 +498,10 @@ class Explorer:
 
     def shows(self, cand: ob.Candidate, live: ob.Candidate, now: Obs) -> bool:
         """Invariant 3: a recorded control is tapped only when the screen shows it as it was recorded, compared with
-        its crop in the capture it was recorded from. A control read off the live screen is what the screen shows."""
+        its crop in the capture it was recorded from. A control read off the live screen is what the screen shows,
+        unless its tap point lies under the tab bar."""
+        if self.under_tab_bar(cand, live, now):
+            return False
         if any(c is cand for c in now.cands):
             return True
         owner = next((st for st in self.states if any(c is cand for c in st.cands)), None)
@@ -506,6 +509,14 @@ class Explorer:
             return True
         then = Image.open(self.out / "states" / f"{owner.sid}.png")
         return ob.looks_same(then, cand.rect, now.image, live.rect, self.device)
+
+    def under_tab_bar(self, cand: ob.Candidate, live: ob.Candidate, now: Obs) -> bool:
+        """Content scrolls under the tab bar and stays in the element list: a tap point at or below the top of tabs the
+        screen shows lands on a tab. A sheet over the tab bar hides the tabs, so its own controls there are shown."""
+        if cand.key in self.tab_keys():
+            return False
+        shown = [lt.rect.y for tab in self.tabs for lt in [ob.find(now.cands, tab)] if lt and self.shows(tab, lt, now)]
+        return bool(shown) and live.point[1] >= min(shown)
 
     def escape_billing(self) -> bool:
         """The store's billing screen gets BACK the moment it is seen, before anything else can run. What was

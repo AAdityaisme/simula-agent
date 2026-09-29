@@ -128,6 +128,23 @@ def test_a_sheet_halfway_in_counts_as_covering_the_tap_point():
     assert not ob.looks_same(home, tab, half, tab, DEVICE)
 
 
+def test_a_tap_point_under_a_shown_tab_bar_is_not_shown_but_a_sheet_over_the_bar_is(tmp_path, monkeypatch):
+    ex, phone = run_explorer(tmp_path, monkeypatch, janitor_like)
+    phone.screen = "root"
+    ex.scratch.mkdir()
+    now = ex.observe()
+    top = min(t.rect.y for t in ex.tabs)
+    card = ob.Candidate(label="2k tokens", kind="TextView", rect=Rect(x=200, y=top + 40, w=200, h=40), ref="@x",
+                        tree_label="2k tokens")
+    live_tab = ob.find(now.cands, ex.tabs[1])
+    assert ex.under_tab_bar(card, card, now) and not ex.shows(card, card, now)
+    assert not ex.under_tab_bar(ex.tabs[1], live_tab, now)
+    covered = now.image.copy()
+    ImageDraw.Draw(covered).rectangle((0, top - 200, 1080, 2400), fill=(40, 40, 44))
+    assert not ex.under_tab_bar(card, card, stage.Obs(now.reply, now.elements, covered, now.fg, now.fp, now.cands,
+                                                True, 0.0))
+
+
 # ---------- invariant 2: settle before leaving ----------
 
 def test_the_chat_waits_for_the_reply_and_for_send_to_come_back(tmp_path, monkeypatch):
