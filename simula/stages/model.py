@@ -503,7 +503,7 @@ def mock_scope(states: list[State], edges: list[Edge], meaning: ModelMeaning) ->
     root = next((s.id for s in states if s.kind == "screen"), None)
     flow_states = [sid for f in meaning.flows for i in f.edge_ids if i in edge_by_id
                    for sid in (edge_by_id[i].from_state, edge_by_id[i].to_state)]
-    eligible = {s.id for s in states if s.kind not in ("blocked", "external")
+    eligible = {s.id for s in states if s.kind not in ("blocked", "external", "rotated")
                 and (s.content_rating != "unsafe" or s.id in flow_states)}
     first = sorted(meaning.mechanics, key=lambda m: m.kind not in SCOPE_KINDS)
     mechanic_states = [i.split(".")[0] for m in first for i in m.evidence_ids]
@@ -673,7 +673,7 @@ def run(ctx: Ctx) -> None:
     name_limit = (max_tokens(ctx.profile) - ANSWER_RESERVE_TOKENS) // TOKENS_PER_NAME
     dump = describe(states, edges, ctx.app, device, name_limit, experience)
     shots = [(s.id, png_bytes(content_png(images[s.id], device)))
-             for s in states if s.kind != "external"][:MAX_IMAGES]
+             for s in states if s.kind not in ("external", "rotated")][:MAX_IMAGES]
     meaning, rounds = understand(ctx, dump, shots, states, edges)
 
     states = apply_meaning(states, meaning, config.profiles()["content"]["adult_keywords"])
