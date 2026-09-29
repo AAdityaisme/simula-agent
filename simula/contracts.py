@@ -378,8 +378,8 @@ class Candidate(CandidateDraft):
     reach_score: float | None = None
     rank_score: float | None = None
     dropped_reason: str | None = None
-    flags: list[str] = Field(default=[], description="Concerns code raises that don't drop the idea; the judge "
-                             "sees them.")
+    flags: list[str] = Field(default=[], description="Concerns code raises that don't drop the idea, for the person "
+                             "reading the run; the judge never sees them.")
 
 
 # ---------- judge (stage 6) ----------
