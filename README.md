@@ -18,7 +18,7 @@ Every run below ran on commit `<RUN: sha>` and is committed with its cache. Each
 | App | Why it's here | Budget | Run | Outcome | Screens | Ideas: proposed → accepted / split / rejected | API $ | Wall time | Judge-2 fallback used |
 |---|---|---|---|---|---|---|---|---|---|
 | JanitorAI | the deep run | `deep` | `runs/janitorai/<RUN>/` | <RUN> | <RUN> | <RUN> | <RUN> | <RUN> | <RUN> |
-| Luzia | checks the system transfers | `transfer` | `runs/luzia/<RUN>/` | <RUN> | <RUN> | <RUN> | <RUN> | <RUN> | <RUN> |
+| Luzia | checks the system transfers | `transfer` | `runs/luzia/20260929-204554-1f19585/` | All 7 stages done; deck draws 3 ideas. QA partial: 198 of 198 tagged elements within 4 dp and 19 of 19 taps land, but 1 of 6 core flows fails (the mock's chat screen has no text field) | 15 (explore complete, 40-action cap) | 10 → 3 / 2 / 5 (one of the 5 a duplicate code dropped; 3 ideas revised once) | $10.69 | 30 min (explore 7) | no |
 | AOL | checks the system transfers | `transfer` | `runs/aol/<RUN>/` | <RUN> | <RUN> | <RUN> | <RUN> | <RUN> | <RUN> |
 | OOC | checks the system transfers | `transfer` | `runs/ooc/<RUN>/` | <RUN> | <RUN> | <RUN> | <RUN> | <RUN> | <RUN> |
 | Perplexity | extra transfer evidence, outside the test set: nothing was built or tuned against it | `transfer` | `runs/perplexity/<RUN>/` | <RUN> | <RUN> | <RUN> | <RUN> | <RUN> | <RUN> |
