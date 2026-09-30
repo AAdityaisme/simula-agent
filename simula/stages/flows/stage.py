@@ -40,11 +40,14 @@ def load_approvals(flows_dir: Path) -> list[str] | None:
 
 def survivors(decisions: list[Decision], approvals: list[str] | None) -> list[Decision]:
     """Accepted and CONDITIONAL ideas in the judge's order (every accept first, D10), leaving out an idea the judges
-    split on (D11). flows/approvals.json picks among every survivor, a split one included."""
+    split on (D11) unless nothing was accepted: then the top-ranked split is drawn as the closest idea, so a deck
+    with survivors has a full slide. flows/approvals.json picks among every survivor, a split one included."""
     picked = [d for d in ordered(decisions) if d.final in SURVIVED]
-    if approvals is None:
-        return [d for d in picked if not needs_call(d)]
-    return [d for d in picked if d.candidate_id in approvals]
+    if approvals is not None:
+        return [d for d in picked if d.candidate_id in approvals]
+    splits = [d for d in picked if needs_call(d)]
+    closest = splits[:1] if not any(d.final == "accept" for d in decisions) else []
+    return [d for d in picked if not needs_call(d) or d in closest]
 
 
 def select(decisions: list[Decision], approvals: list[str] | None) -> list[Decision]:
@@ -240,9 +243,9 @@ def run(ctx: Ctx) -> None:
     approvals = load_approvals(out)
     clean(out)
     chosen = select(decisions, approvals)
-    cut = survivors(decisions, approvals)[MAX_IDEAS:]
-    picked = {d.candidate_id for d in survivors(decisions, approvals)}
-    waiting = [d for d in ordered(decisions) if needs_call(d) and d.candidate_id not in picked]
+    drawn = {d.candidate_id for d in chosen}
+    cut = [d for d in survivors(decisions, approvals)[MAX_IDEAS:] if not needs_call(d)]  # a split past the cap waits
+    waiting = [d for d in ordered(decisions) if needs_call(d) and d.candidate_id not in drawn]
     chosen_from = "narrowed by flows/approvals.json" if approvals is not None else "accepted + conditional"
     past_cap = f"; past the cap of {MAX_IDEAS}, not drawn: {' '.join(d.candidate_id for d in cut)}" if cut else ""
     calls = f"; needs your call: {' '.join(d.candidate_id for d in waiting)}" if waiting else ""

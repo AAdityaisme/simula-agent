@@ -12,12 +12,12 @@ What D10 and D11 do, measured on the saved VF′ runs through the stage's own `d
 |---|---|---|---|---|---|
 | 1 | 1 (Luzia c05) | 2 (Candy Crush, JanitorAI c02) | 1 (AOL c01) | 0 of 22 | 2 (pd-c7-flagrant, pd-c7-subtle) |
 | 2 | 2 (JanitorAI c02, Luzia c05) | 1 (Candy Crush) | 1 (AOL c01) | 0 of 22 | 2 (same) |
-| 3 | 0 | 3 (Candy Crush, JanitorAI c02, Luzia c05) | 1 (AOL c01) | 0 of 22 | 2 (same) |
+| 3 | 1 (JanitorAI c02, the top-ranked split, drawn as the closest idea: nothing was accepted) | 2 (Candy Crush, Luzia c05) | 1 (AOL c01) | 0 of 22 | 2 (same) |
 
 - **Before D10**, a judge_2-only fail went to a person and out of the deck: 1, 2 and 0 of the 4 known-good ideas reached flows in runs 1–3.
 - **Under D10 alone** (81c5945), 3 of 4 reached full slides in every run, and so did **both planted C7 defects, in 3 of 3 runs**: judge_2 is blind on C7, so every C7 defect judge_1 catches was a split. That is the cost D10 alone carried.
-- **Under D11**, no planted defect reaches a full slide; both C7 defects wait on Needs your call with judge_1's reason against them. Known-good ideas on full slides are 1, 2 and 0 again, as before D10; the others judge_1 accepts (2, 1 and 3) wait on Needs your call instead of being lost.
-- **Run 3 as a deck:** no accept, and the three split ideas count as survivors, so the judge's fallback doesn't fire. The deck would have no full slide, only the Needs your call page. The judge stage is unchanged by D11, so this is disclosed, not fixed.
+- **Under D11**, no planted defect reaches a full slide on its own merit; both C7 defects wait on Needs your call with judge_1's reason against them. The table scores each idea beside an accepted one. In a deck where nothing is accepted, the top-ranked split, planted defect or not, is drawn as the closest idea (below), and its slide names the doubted check with both reasons. Known-good ideas on full slides are 1, 2 and 1; the others judge_1 accepts (2, 1 and 2) wait on Needs your call instead of being lost.
+- **Run 3 as a deck:** no accept, and the three split ideas count as survivors, so the judge's fallback doesn't fire. flows then draws the top-ranked split as the closest idea ("Closest idea: The reviewers split on …; confirm it before building", with both reasons), so the deck has exactly one full slide and the other two wait on Needs your call. *(Decided for Aadi, 2026-09-29: a deck with no full slide fails both the finished-product bar and the assignment's flows. With at least one accept nothing changes. The judge stage is unchanged.)*
 - AOL c01, which both judges fail on c2, stays out. A gate any judge fails still rejects, and a person is asked about a judge's call only when that call failed.
 
 The three clauses written after seeing the failures are the absence clause (C2), the plain-meaning clause (C2), and the C1 clarification of where the player uses the reward. The rest of VF′ came from earlier rounds, which were shaped by earlier failures too (below).
@@ -97,7 +97,7 @@ The adoption rule is VF′'s dominance over V0 above. V0 fails the same judge_2 
 
 # Judge validation
 
-Generated 2026-09-29T16:44. Judges: judge_1, judge_2. Prompts frozen in `config/frozen_prompts.toml`.
+Generated 2026-09-29T17:04. Judges: judge_1, judge_2. Prompts frozen in `config/frozen_prompts.toml`.
 
 Fixtures: 22 planted LLM cases (11 subtle), 2 C8 cases, 4 known-good (bases and real-run ideas); planted app types: AI assistant chat, companion chat, news, puzzle game; planted apps outside the test set: Candy Crush Saga.
 

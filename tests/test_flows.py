@@ -18,7 +18,7 @@ from simula import llm, render, runfolder, validate
 from simula.contracts import (GATES, JUDGMENT, CandidatesFile, Check, Decision, DecisionsFile, Economics, Edit, Edits,
                               FlowStep, Provenance, StageOutcome, Verdict)
 from simula.runlog import read_trace
-from simula.stages import flows
+from simula.stages import flows, judge
 from simula.stages.mock import copy_assets, pick_scope, with_runtime
 from simula.stages.propose import anchor_ids, depths, root_id, with_bucket
 from tests.conftest import APPS, FIXTURES
@@ -767,6 +767,40 @@ def test_an_idea_the_judges_split_on_isnt_drawn_and_waits_on_the_needs_your_call
     assert "1 idea(s) split the reviewers, so they aren't drawn" in cover
 
 
+
+def test_with_no_accept_the_top_split_is_drawn_as_the_closest_idea_and_the_rest_wait(tmp_path):
+    """Run 3 of the saved VF' runs: nothing accepted, and three known-good ideas split on c2 (judge_2 fails it,
+    judge_1 passes it). The deck still gets exactly one full slide, the top-ranked split, worded as the closest idea;
+    the other two wait on Needs your call."""
+    run_dir = seed_run(tmp_path, "luzia")
+    cases = {c.id: c for c in validate.load_cases()}
+    saved = validate.load_runs(validate.VERDICTS / "VF2")
+    decisions = [decision("c04", "reject", 0.1)]
+    for cid, case, rank in [("c01", "kg-candycrush-01", 1.0), ("c02", "kg-run-janitorai-c02", 3.0),
+                            ("c03", "kg-run-luzia-c05", 2.0)]:
+        pair = [saved[(case, who)][2] for who in validate.JUDGES]
+        paths = [f"judge/verdicts/{cid}_{who}_r3.json" for who in validate.JUDGES]
+        for path, v in zip(paths, pair):
+            (run_dir / path).write_text(v.model_dump_json())
+        d = judge.decide(cases[case].candidate, pair, 2, "annotate", paths)
+        assert (d.final, d.judgment_splits) == ("conditional", ["c2_evidence"])
+        decisions.append(d.model_copy(update={"candidate_id": cid, "rank_score": rank}))
+    (run_dir / "judge" / "decisions.json").write_text(DecisionsFile(decisions=decisions).model_dump_json())
+    calls = []
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(llm, "call", fake_editor(run_dir, calls))
+        flows.stage.run(ctx_for(run_dir, "luzia"))
+    assert calls == ["c02"] and {idea for idea, _, _ in slides(run_dir)} == {"c02"}
+    assert not (run_dir / "flows" / "c01").exists() and not (run_dir / "flows" / "c03").exists()
+    why = {(idea, part): " ".join(text.split()) for idea, part, text in slides(run_dir)}[("c02", "why")]
+    assert ('Closest idea: The reviewers split on "backed by what was seen in the app"; confirm it before building. '
+            '"backed by what was seen in the app": one reviewer: no (') in why
+    deck = (run_dir / "flows" / "slides.html").read_text()
+    page = text_of(deck.split("<h2>Needs your call")[1].split("</section>")[0])
+    assert "c01 · " in page and "c03 · " in page and "c02 · " not in page
+    cover = text_of(deck.split('<section class="slide cover">')[1].split("</section>")[0])
+    assert "the closest is drawn" in cover and "2 idea(s) split the reviewers" in cover
+
 def test_approving_a_split_idea_draws_it_without_a_conditional_chip(tmp_path):
     run_dir, calls = split_run(tmp_path, approvals=["c01", "c02"])
     assert sorted(calls) == ["c01", "c02"] and (run_dir / "flows" / "c02").is_dir()
@@ -774,6 +808,23 @@ def test_approving_a_split_idea_draws_it_without_a_conditional_chip(tmp_path):
     assert "Needs your call" not in deck
     c02 = re.findall(r'<section class="slide main" data-part="\w+" data-idea="c02">.*?</section>', deck, re.S)
     assert c02 and not any("chip conditional\">Conditional<" in s for s in c02)
+
+
+def test_an_approved_split_past_the_cap_still_waits_on_the_needs_your_call_page(tmp_path, monkeypatch):
+    monkeypatch.setattr(flows.stage, "MAX_IDEAS", 1)
+    run_dir, calls = split_run(tmp_path, approvals=["c01", "c02"])
+    deck = (run_dir / "flows" / "slides.html").read_text()
+    assert calls == ["c01"] and "c02 · " in text_of(deck.split("<h2>Needs your call")[1].split("</section>")[0])
+    cover = text_of(deck.split('<section class="slide cover">')[1].split("</section>")[0])
+    assert "passed the review" not in cover and "1 idea(s) split the reviewers" in cover
+
+
+def test_a_deck_whose_only_survivors_wait_on_a_person_never_says_no_idea_passed_the_review(tmp_path):
+    run_dir, calls = split_run(tmp_path, approvals=[])
+    cover = text_of((run_dir / "flows" / "slides.html").read_text().split('<section class="slide cover">')[1]
+                    .split("</section>")[0])
+    assert calls == [] and "No idea passed the review" not in cover and "1 idea(s) split the reviewers" in cover
+
 
 def test_approvals_only_narrow():
     decisions = [decision("c01", "accept", 1.0), decision("c02", "conditional", 0.5), decision("c03", "reject", 2.0)]

@@ -177,7 +177,12 @@ def condition(decision: Decision, run_dir: Path, none_accepted: bool) -> tuple[s
                 f"No idea passed every check. This one passes every safety check but not {names} ({failed[0][1]}).")
     if failed and all(k in decision.judgment_splits for k, _ in failed):
         judged = [v for _, v in verdicts(decision, run_dir)]
-        return "The reviewers disagreed:", " ".join(disagreement(k, reason, judged) for k, reason in failed)
+        doubts = " ".join(disagreement(k, reason, judged) for k, reason in failed)
+        if none_accepted:  # drawn as the closest idea: nothing was accepted (stage.survivors)
+            checks = " and ".join(f'"{PLAIN_CHECKS[k]}"' for k, _ in failed)
+            return ("Closest idea:", f"The reviewers split on {checks}; confirm {'it' if len(failed) == 1 else 'each'} "
+                                     f"before building. {doubts}")
+        return "The reviewers disagreed:", doubts
     if failed:
         return "Not every check passed:", f"It didn't pass {names} ({failed[0][1]})."
     if decision.checks_passed < decision.checks_total:
@@ -255,7 +260,7 @@ def cover_html(app: str, flows: list[dict], *, cap: int, unbuilt: int = 0, fallb
     if calls:
         notes.append(f"{calls} idea(s) split the reviewers, so they aren't drawn; the Needs your call page at the end "
                      "lists them.")
-    if not flows and not unbuilt and not unbuilt_fallbacks:
+    if not flows and not unbuilt and not unbuilt_fallbacks and not calls:
         notes.append("No idea passed the review. The score pages at the end show every idea's score and why.")
     body = (f"<ol>{items}</ol>" if flows else "") + "".join(f"<p class='how'>{escape(n)}</p>" for n in [*notes, *status])
     return f'<section class="slide cover"><h1>Rewarded-ad ideas for {escape(app)}</h1>{body}</section>'
@@ -356,8 +361,10 @@ def deck(ctx: Ctx, model: ProductModel, flows: list[dict], not_built: list[tuple
          waiting: list[Decision] = ()) -> str:
     app = app_title(model, ctx.app["name"])
     none_accepted = not any(d.final == "accept" for d in decisions)
-    fallbacks = sum(is_fallback(f["decision"], ctx.run_dir, none_accepted) for f in flows)
-    unbuilt_fallbacks = sum(is_fallback(d, ctx.run_dir, none_accepted) for d, _ in not_built)
+    def closest(d: Decision) -> bool:  # the judge's fallback pick, or a split drawn because nothing was accepted
+        return is_fallback(d, ctx.run_dir, none_accepted) or (none_accepted and needs_call(d))
+    fallbacks = sum(closest(f["decision"]) for f in flows)
+    unbuilt_fallbacks = sum(closest(d) for d, _ in not_built)
     slides = [cover_html(app, flows, cap=cap, unbuilt=len(not_built) - unbuilt_fallbacks, fallbacks=fallbacks,
                          unbuilt_fallbacks=unbuilt_fallbacks, cut=cut, calls=len(waiting),
                          status=unfinished_stages(ctx.run_dir))]

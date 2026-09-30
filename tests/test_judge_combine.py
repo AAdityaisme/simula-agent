@@ -209,7 +209,8 @@ KNOWN_GOOD = ["kg-candycrush-01", "kg-run-aol-c01", "kg-run-janitorai-c02", "kg-
 def test_every_known_good_idea_judge_1_accepts_reaches_the_deck_with_both_judges(n):
     """The red team's routing check on the saved VF' runs (validation/verdicts/VF2): before D10, run 3 sent none of the 4
     known-good ideas to flows, because a judge_2-only c2 fail went to a person. Now an accept is drawn and a split
-    waits on the Needs your call page (D11); an idea every judge fails stays out of both."""
+    waits on the Needs your call page (D11), except that with no accept the top split is drawn as the closest idea;
+    an idea every judge fails stays out of both."""
     cases = {c.id: c for c in validate.load_cases()}
     runs = validate.load_runs(validate.VERDICTS / "VF2")
     decisions, accepted_alone, failed_by_both = [], [], []
@@ -224,16 +225,18 @@ def test_every_known_good_idea_judge_1_accepts_reaches_the_deck_with_both_judges
             assert d.final == "reject"
         decisions.append(d)
     drawn = {d.candidate_id for d in flows.stage.select(decisions, None)}
-    waiting = {d.candidate_id for d in decisions if flows.deck.needs_call(d)}
-    assert drawn == {d.candidate_id for d in decisions if d.final == "accept"} and not drawn & waiting
+    splits = [d.candidate_id for d in judge.ordered(decisions) if flows.deck.needs_call(d)]
+    waiting = set(splits) - drawn
+    assert drawn == ({d.candidate_id for d in decisions if d.final == "accept"} or set(splits[:1]))  # run 3: none
     assert accepted_alone and set(accepted_alone) <= drawn | waiting and not set(failed_by_both) & (drawn | waiting)
     finals = [d.final for d in judge.ordered(decisions) if d.final in judge.SURVIVORS]
     assert finals == sorted(finals, key=lambda f: f != "accept")
 
 
 def test_a_split_idea_is_labelled_with_both_reasons_and_never_as_the_fallback(tmp_path):
-    """Nothing accepted and one split idea (run 3 of the saved VF' runs has three): the slide says a reviewer
-    doubted it, with both reasons, and never calls it the judge's fallback pick."""
+    """A split idea's label carries both reasons and never calls it the judge's fallback pick. Drawn beside an
+    accept (only if a person approved it) it says the reviewers disagreed; drawn because nothing was accepted, it is
+    the closest idea with the question to settle before building."""
     split, verdicts = idea(golden("janitorai"), "c01"), two([], ["c2_evidence"])
     paths = [f"judge/verdicts/c01_judge_{i}_r1.json" for i in (1, 2)]
     for path, v in zip(paths, verdicts):
@@ -242,9 +245,11 @@ def test_a_split_idea_is_labelled_with_both_reasons_and_never_as_the_fallback(tm
     d = judge.decide(split, verdicts, TWO, "annotate", paths)
     assert d.final == "conditional"
     assert not flows.deck.is_fallback(d, tmp_path, none_accepted=True)
+    check = flows.wording.PLAIN_CHECKS["c2_evidence"]
+    doubt = f'"{check}": one reviewer: no (c2_evidence fails here); another: yes (c2_evidence passes here).'
+    assert flows.deck.condition(d, tmp_path, none_accepted=False) == ("The reviewers disagreed:", doubt)
     assert flows.deck.condition(d, tmp_path, none_accepted=True) == (
-        "The reviewers disagreed:", f'"{flows.wording.PLAIN_CHECKS["c2_evidence"]}": one reviewer: no '
-                                    "(c2_evidence fails here); another: yes (c2_evidence passes here).")
+        "Closest idea:", f'The reviewers split on "{check}"; confirm it before building. {doubt}')
 
 
 
