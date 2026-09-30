@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c06",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the seven-day opening-section reward before the user chooses to play. The decline and ad-failure fields preserve the current experience and provide a path when a game is unavailable or cannot be confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a seven-day choice of opening section, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses time since the last visit and a section-tab tap, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and removes-nothing-free fields introduce an optional opening-section setting without restricting the observed free news flow."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the home feed, which is rated content safe in s01; it is not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the reward gives the player a seven-day opening-section choice for their own use when entering the home-feed news flow observed in f1 and f2."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says the home feed always opens on Top Stories, and the decline field says it keeps doing so today. s01.e13 shows Top Stories selected on an observed screen, but does not establish behavior on every app opening."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward ends after seven days, and the model does not establish a paid opening-section benefit or a list advantage taken from other users."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement appears after the user taps a section tab and that section loads, rather than interrupting an article in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable tab tap, and the ad-failure field withholds the reward if the game cannot be confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea relies on the home feed's Top Stories, Sports, and Local tabs shown in s01.e13–s01.e21."
+ },
+ "other_concern": "",
+ "fixable": true
+}

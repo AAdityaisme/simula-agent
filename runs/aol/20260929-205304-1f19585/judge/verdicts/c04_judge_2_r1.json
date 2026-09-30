@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c04",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the reward is one streak save before the reader chooses to play. The decline and ad-failure fields preserve normal reading and provide a path when the game cannot load or be confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is one in-app streak save, not money or a transferable or externally exchangeable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses app-open and story-completion events, not anything the user typed, said, or wrote."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and removes-nothing-free fields introduce a streak without restricting the free news reading described in m3."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is under the Home header on s01, a content-safe screen, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the streak save benefits the reader personally on Home and is tied to finishing stories, as observed in core flow f1."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "s01 and core flow f1 support the Home-to-article-to-related-stories route, and the proposal says a streak was not seen rather than claiming the app has none. Daily readership is a user prediction; streak tracking is part of the proposed change."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward covers one missed day and is capped at one save per seven days; it does not grant lasting access to a paid benefit or take an advantage from others."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger and placement put the offer on Home when the reader returns after a missed day, rather than interrupting an article in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game triggered by detectable app events, and the ad-failure field withholds the save when play cannot be confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s01 Home header and ties its streak to reading stories through to the s32 related list."
+ },
+ "other_concern": "The model does not establish how many readers return daily or would value a streak.",
+ "fixable": false
+}

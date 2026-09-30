@@ -1,0 +1,749 @@
+<!doctype html>
+<html><head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<style id="simula-shared">
+:root{--bg-1:#000000;--bg-2:#282828;--bg-3:#ffffff;--bg-4:#4264fc;--fg-1:#ffffff;--fg-2:#000000;--fg-3:#282828;--fg-4:#cbcbcb;--font-1:"Plus Jakarta Sans",system-ui,sans-serif}
+body{background:var(--bg-1);font-family:var(--font-1)}
+</style>
+<style data-batch="1">
+:is(section[data-screen="s01"],section[data-screen="s05"],section[data-screen="s06"],section[data-screen="s07"]){overflow:hidden;font-family:var(--font-1);color:var(--fg-1)}
+:is(section[data-screen="s01"],section[data-screen="s06"],section[data-screen="s07"]){background:var(--bg-1)}
+:is(section[data-screen="s01"],section[data-screen="s05"],section[data-screen="s06"],section[data-screen="s07"]) .a{position:absolute;box-sizing:border-box;margin:0;white-space:nowrap}
+:is(section[data-screen="s01"],section[data-screen="s05"],section[data-screen="s06"],section[data-screen="s07"]) .x{display:flex;align-items:center;justify-content:center}
+:is(section[data-screen="s01"],section[data-screen="s05"],section[data-screen="s06"],section[data-screen="s07"]) .ic{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+:is(section[data-screen="s01"],section[data-screen="s05"],section[data-screen="s06"],section[data-screen="s07"]) .w{white-space:normal}
+:is(section[data-screen="s01"],section[data-screen="s05"],section[data-screen="s06"],section[data-screen="s07"]) .f22{font-size:22px;line-height:27.8px;font-weight:700}
+:is(section[data-screen="s01"],section[data-screen="s05"],section[data-screen="s06"],section[data-screen="s07"]) .f20{font-size:20px;line-height:25.1px;font-weight:700}
+:is(section[data-screen="s01"],section[data-screen="s05"],section[data-screen="s06"],section[data-screen="s07"]) .f16{font-size:16px;line-height:20.2px}
+:is(section[data-screen="s01"],section[data-screen="s05"],section[data-screen="s06"],section[data-screen="s07"]) .f14{font-size:14px;line-height:17.5px}
+:is(section[data-screen="s01"],section[data-screen="s05"],section[data-screen="s06"],section[data-screen="s07"]) .f12{font-size:12px;line-height:15.2px}
+:is(section[data-screen="s01"],section[data-screen="s05"],section[data-screen="s06"],section[data-screen="s07"]) .b{font-weight:600}
+:is(section[data-screen="s01"],section[data-screen="s05"],section[data-screen="s06"],section[data-screen="s07"]) .c{text-align:center}
+:is(section[data-screen="s01"],section[data-screen="s05"],section[data-screen="s06"],section[data-screen="s07"]) .o{border-radius:50%}
+section[data-screen="s01"] .hero{left:0;top:0;width:411px;height:164.6px;border-radius:0 0 44px 44px;overflow:hidden;background:linear-gradient(215deg,rgba(0,0,0,0) 6%,rgba(90,120,255,.5) 15%,rgba(0,0,0,0) 25%),radial-gradient(70% 110% at 0% 55%,#3150da 0%,#2742c4 35%,rgba(22,34,110,0) 75%),radial-gradient(45% 80% at 100% 12%,#2f4ef0 0%,rgba(40,60,220,.5) 45%,rgba(0,0,0,0) 80%),#0a1133}
+section[data-screen="s01"] .hr{background:#e07f5f}
+section[data-screen="s01"] .hb{width:32px;height:32px;background:rgba(255,255,255,.22);color:#fff}
+section[data-screen="s01"] .pb{border-radius:32px;background:rgba(40,40,46,.6);backdrop-filter:blur(10px)}
+section[data-screen="s01"] .card{width:121.1px;height:121.1px;border-radius:16px;overflow:hidden;background:var(--bg-4)}
+section[data-screen="s01"] .band{left:0;top:87.2px;width:121.1px;height:34px;background:rgba(28,40,120,.35);backdrop-filter:blur(5px)}
+section[data-screen="s01"] .cl{left:0;top:95.6px;width:121.1px;height:17.5px;font-weight:500;text-align:center}
+section[data-screen="s01"] .promo{left:16px;width:379px;height:62px;border-radius:12px;background:var(--bg-2)}
+section[data-screen="s01"] .av{width:38.5px;height:38.5px;border-radius:50%;overflow:hidden}
+section[data-screen="s01"] .rc{width:24px;height:24px;border-radius:50%;background:#1c1c1c;border:1px solid #3a3a3a;color:#fff}
+section[data-screen="s01"] .tb{left:0;top:764px;width:411px;height:74.2px;background:var(--bg-1)}
+section[data-screen="s05"] .tp{background:#232323;border-radius:16px 16px 0 0;overflow:hidden}
+section[data-screen="s05"] .dc{border-radius:50%;background:#303030;border:1px solid #3d3d3d}
+section[data-screen="s06"] .cb{width:31.5px;height:31.5px;border-radius:50%;background:#1f1f1f;border:1px solid #3d3d3d;color:#fff}
+</style>
+<style data-batch="2">
+:is(section[data-screen="s02"],section[data-screen="s08"],section[data-screen="s09"],section[data-screen="s11"]){overflow:hidden;background:var(--bg-1);color:var(--fg-1);font-family:var(--font-1)}
+:is(section[data-screen="s02"],section[data-screen="s08"],section[data-screen="s09"],section[data-screen="s11"]) .p{position:absolute;box-sizing:border-box;margin:0;display:block}
+:is(section[data-screen="s02"],section[data-screen="s08"],section[data-screen="s09"],section[data-screen="s11"]) .hd{left:0;top:0;width:411px;height:48px}
+:is(section[data-screen="s02"],section[data-screen="s08"],section[data-screen="s09"],section[data-screen="s11"]) .hb{top:0;width:48px;height:48px}
+:is(section[data-screen="s02"],section[data-screen="s08"],section[data-screen="s09"]) .hc{position:absolute;left:8px;top:8px;width:32px;height:32px;box-sizing:border-box;border-radius:50%;background:var(--bg-2);border:1px solid #3a3a3a;display:flex;align-items:center;justify-content:center}
+:is(section[data-screen="s02"],section[data-screen="s08"],section[data-screen="s09"],section[data-screen="s11"]) .ttl{top:11.4px;font-size:20px;line-height:25.1px;font-weight:700;text-align:center;white-space:nowrap}
+:is(section[data-screen="s02"],section[data-screen="s08"],section[data-screen="s09"],section[data-screen="s11"]) .t12{font-size:12px;line-height:15.2px;font-weight:500}
+:is(section[data-screen="s02"],section[data-screen="s08"],section[data-screen="s09"],section[data-screen="s11"]) .t14{font-size:14px;line-height:17.5px}
+:is(section[data-screen="s02"],section[data-screen="s08"],section[data-screen="s09"],section[data-screen="s11"]) .t16{font-size:16px;line-height:20.2px}
+:is(section[data-screen="s02"],section[data-screen="s08"],section[data-screen="s09"],section[data-screen="s11"]) .nw{white-space:nowrap}
+:is(section[data-screen="s02"],section[data-screen="s09"]) .rc{left:168.4px;top:56.1px;width:74.2px;height:27.3px;border-radius:14px;background:var(--bg-3)}
+:is(section[data-screen="s02"],section[data-screen="s09"]) .rct{left:180.6px;top:62.1px;width:50.3px;color:var(--fg-2);text-align:center}
+section[data-screen="s02"] .btn::before{content:"";position:absolute;left:0;right:0;top:4px;bottom:4px;border-radius:20px;background:var(--bg-3)}
+:is(section[data-screen="s02"],section[data-screen="s09"]) .tb{left:0;top:766px;width:411px;height:72.2px}
+:is(section[data-screen="s02"],section[data-screen="s09"]) .tl{font-size:14px;line-height:17.5px;text-align:center;white-space:nowrap}
+:is(section[data-screen="s02"],section[data-screen="s09"]) .tsc{left:189.5px;top:5.6px;width:32px;height:32px;border-radius:50%;background:#112255}
+:is(section[data-screen="s08"],section[data-screen="s11"]) .ic{display:flex;align-items:center;justify-content:center}
+section[data-screen="s08"] .ch{left:16px;height:44px;border:1px solid #444;border-radius:22px}
+section[data-screen="s11"] .cd{top:354px;width:227.6px;height:62px;border:1px solid #3d3d3d;border-radius:12px}
+:is(section[data-screen="s02"],section[data-screen="s08"],section[data-screen="s09"],section[data-screen="s11"]) [data-edge]{cursor:pointer}
+</style>
+<style data-batch="3">
+:is(section[data-screen="s13"],section[data-screen="s14"],section[data-screen="s04"],section[data-screen="s15"]){overflow:hidden;background:var(--bg-1);color:var(--fg-1);font-family:var(--font-1)}
+:is(section[data-screen="s13"],section[data-screen="s14"],section[data-screen="s04"],section[data-screen="s15"]) :is(.a,.t){position:absolute;box-sizing:border-box;margin:0}
+:is(section[data-screen="s13"],section[data-screen="s14"],section[data-screen="s04"],section[data-screen="s15"]) .t{white-space:nowrap;font-family:var(--font-1)}
+:is(section[data-screen="s13"],section[data-screen="s14"],section[data-screen="s04"],section[data-screen="s15"]) .c{text-align:center}
+:is(section[data-screen="s13"],section[data-screen="s14"],section[data-screen="s04"],section[data-screen="s15"]) svg{display:block;overflow:visible}
+:is(section[data-screen="s13"],section[data-screen="s14"],section[data-screen="s04"],section[data-screen="s15"]) .rd{border-radius:50%}
+:is(section[data-screen="s13"],section[data-screen="s14"],section[data-screen="s04"],section[data-screen="s15"]) .fx{display:flex;align-items:center;justify-content:center;box-sizing:border-box}
+:is(section[data-screen="s13"],section[data-screen="s14"]) .bd::after{content:"";position:absolute;inset:0;border:1px solid #3a3a3a;border-radius:inherit;pointer-events:none;z-index:3}
+:is(section[data-screen="s13"],section[data-screen="s14"]) .ln{position:absolute;top:0;bottom:0;width:0;border-left:1px solid rgba(255,255,255,.3)}
+:is(section[data-screen="s13"],section[data-screen="s14"]) .dl{border-left-style:dashed}
+section[data-screen="s13"] .cd{overflow:hidden;border-radius:24px;z-index:0;background:linear-gradient(90deg,#923a5d,#8c4572 50%,#98548a)}
+section[data-screen="s13"] .pl{background:var(--bg-2);border:1px solid #3a3a3a;border-radius:20px}
+section[data-screen="s13"] .ps{font:600 13px/15.2px var(--font-1);top:707.8px;height:15.2px}
+section[data-screen="s14"] .tc{overflow:hidden;border-radius:20px;z-index:0}
+section[data-screen="s14"] .gc{overflow:hidden;border-radius:16px;z-index:0}
+section[data-screen="s14"] .ct{top:517.3px;height:17.5px;font:600 15px/17.5px var(--font-1)}
+section[data-screen="s14"] .st{top:536.8px;height:15.2px;font:600 13px/15.2px var(--font-1)}
+section[data-screen="s14"] .ft{top:576.4px;height:17.5px;font:500 15px/17.5px var(--font-1);color:#8e8e8e}
+section[data-screen="s14"] .fi{top:577px;width:16px;height:16px;fill:none;stroke:#8e8e8e;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+section[data-screen="s14"] .hi{top:539.6px;width:11px;height:9.2px;fill:#fff}
+section[data-screen="s14"] .bk{top:539.6px;width:8px;height:10px;fill:#fff}
+section[data-screen="s14"] .gl{background-image:radial-gradient(circle,#2f8274 1.2px,transparent 1.7px);background-size:12px 12px}
+section[data-screen="s14"] .tl{height:17.5px;font:400 14.5px/17.5px var(--font-1)}
+section[data-screen="s14"] .ti{width:24px;height:24px;fill:none;stroke:#cbcbcb;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+section[data-screen="s04"] .pc{position:absolute;width:121.1px;height:121.1px;border-radius:16px;overflow:hidden;background:var(--bg-4);z-index:0}
+section[data-screen="s04"] .pc::before{content:"";position:absolute;left:0;right:0;top:101.7px;bottom:0;background:rgba(0,0,0,.28);z-index:1}
+section[data-screen="s04"] .pc i{position:absolute;bottom:0;height:24px;border-radius:8px 8px 0 0}
+section[data-screen="s04"] .pc img{position:absolute;left:0;top:0;width:121.1px;height:101.7px}
+section[data-screen="s04"] .pc span{position:absolute;left:0;top:101.7px;width:121.1px;height:17.5px;font:400 14.5px/17.5px var(--font-1);color:var(--fg-1);text-align:center;white-space:nowrap;z-index:2}
+</style>
+<style data-batch="4">
+section[data-screen="s03"]{overflow:hidden;background:var(--bg-1);color:var(--fg-1);font-family:var(--font-1)}
+section[data-screen="s03"] .a{position:absolute;white-space:nowrap}
+section[data-screen="s03"] svg.i{position:absolute;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+section[data-screen="s03"] .sg{font-size:22px;line-height:27.8px;font-weight:500;color:#8e8e8e}
+section[data-screen="s03"] .h2{left:16px;font-size:21px;line-height:26px;font-weight:600}
+section[data-screen="s03"] .cd{position:absolute;overflow:hidden;border-radius:16px}
+section[data-screen="s03"] .cd::after{content:"";position:absolute;inset:0;border-radius:inherit;border:1px solid rgba(255,255,255,.22);pointer-events:none}
+section[data-screen="s03"] .ln{position:absolute;background:rgba(255,255,255,.32)}
+section[data-screen="s03"] .dv{position:absolute;top:0;bottom:0;border-left:1px dashed rgba(255,255,255,.42)}
+section[data-screen="s03"] .dh{position:absolute;right:0;border-top:1px dashed rgba(255,255,255,.42)}
+section[data-screen="s03"] .rg{position:absolute;border:1px dashed rgba(255,255,255,.5);border-radius:50%;box-sizing:border-box}
+section[data-screen="s03"] .sh{position:absolute;left:0;right:0;bottom:0}
+section[data-screen="s03"] .dt{position:absolute;top:251.3px;width:7.5px;height:7.5px;border-radius:50%;background:rgba(255,255,255,.35)}
+section[data-screen="s03"] .rb{position:absolute;left:107px;top:0;width:34px;height:33px;background:rgba(160,160,160,.4);clip-path:polygon(0 0,100% 0,100% 100%,50% 80%,0 100%);font-size:16px;line-height:26px;font-weight:700;text-align:center}
+section[data-screen="s03"] .nm{left:12.3px;top:219.2px;font-size:15px;line-height:19px;font-weight:600}
+section[data-screen="s03"] .st{position:absolute;left:13.6px;top:239.5px;display:flex;align-items:center;font-size:12px;line-height:16px;font-weight:600;color:rgba(255,255,255,.85);white-space:nowrap}
+section[data-screen="s03"] .st svg{width:10px;height:10px;margin-right:3px;fill:currentColor}
+section[data-screen="s03"] .st i{font-style:normal;margin:0 6px}
+section[data-screen="s03"] .pk{position:absolute;left:-33.1px;top:7.6px;width:113px;height:32px;box-sizing:border-box;border:1px solid #585858;border-radius:16px;background:var(--bg-1)}
+section[data-screen="s03"] .bk{position:absolute;border-radius:3px;overflow:hidden;font-size:4.8px;line-height:5.8px}
+section[data-screen="s03"] .bk>*{position:absolute;left:4px;white-space:nowrap}
+section[data-screen="s03"] .bp{top:4.5px;padding:0 3px;border-radius:4px;background:#ececec;color:#222;font-size:4.5px;line-height:8px}
+section[data-screen="s03"] .bt{top:18px;font-weight:700}
+section[data-screen="s03"] .bs{color:#d0d0d0}
+section[data-screen="s03"] .bw{font-size:4px;line-height:5px;color:#b8b8b8}
+section[data-screen="s03"] .tl{font-size:14px;line-height:17.5px;text-align:center}
+section[data-screen="s03"] .cr::before{content:"";position:absolute;left:-4px;top:-4px;width:32px;height:32px;border-radius:50%;background:#112255}
+section[data-screen="s03"] .gf{background:radial-gradient(60% 55% at 72% 0,#f4a7bb,rgba(244,167,187,0)),radial-gradient(50% 65% at 100% 58%,#f22e4b,rgba(242,46,75,0)),radial-gradient(40% 50% at 0 68%,#fbaad3,rgba(251,170,211,0)),linear-gradient(90deg,#f68ad7 0,#d989c0 28%,#c686a9 52%,#dc7a9c 78%,#ee4f69 100%)}
+section[data-screen="s03"] .g1{background:radial-gradient(75% 45% at 100% 70%,#f03d5f,rgba(240,61,95,0)),radial-gradient(65% 40% at 0 80%,#fbb2d4,rgba(251,178,212,0)),linear-gradient(170deg,#f589d8 0,#ee8cc8 50%,#f095bd 100%)}
+section[data-screen="s03"] .g2{background:radial-gradient(60% 40% at 42% 80%,#88a9e4,rgba(136,169,228,0)),radial-gradient(55% 40% at 100% 38%,#bfda4a,rgba(191,218,74,0)),radial-gradient(50% 30% at 100% 82%,#ddb26a,rgba(221,178,106,0)),linear-gradient(180deg,#68b96f 0,#77bf85 45%,#80b5a8 100%)}
+section[data-screen="s03"] .g3{background:#0d0d0d}
+section[data-screen="s03"] .sf{top:135px;background:linear-gradient(180deg,rgba(80,35,60,0) 0,rgba(95,45,70,.5) 40%,rgba(60,35,48,.82) 100%)}
+section[data-screen="s03"] .s1{top:165px;background:linear-gradient(180deg,rgba(70,50,60,0) 0,rgba(70,50,60,.7) 50%,rgba(50,42,46,.92) 100%)}
+section[data-screen="s03"] .s2{top:165px;background:linear-gradient(180deg,rgba(55,60,60,0) 0,rgba(55,58,58,.72) 50%,rgba(42,44,44,.93) 100%)}
+section[data-screen="s03"] .s3{top:182px;background:linear-gradient(180deg,rgba(40,40,40,0) 0,rgba(52,52,52,.9) 55%,rgba(46,46,46,.96) 100%)}
+</style>
+<style id="simula-runtime">
+html,body{margin:0;padding:0;width:411px;height:914px;overflow:hidden}
+body{position:relative}
+[data-screen]{position:absolute!important;left:0!important;top:51.8px!important;width:411px!important;height:838.2px!important;overflow:hidden;box-sizing:border-box}
+[data-screen]:not(.simula-on){display:none!important}
+[data-screen][data-parent]{z-index:10;background:transparent!important}
+.simula-push{animation:simula-slide .25s ease-out}
+.simula-back{animation:simula-slide-back .25s ease-out}
+.simula-modal{animation:simula-fade .2s ease-out}
+@keyframes simula-slide{from{transform:translateX(100%)}}
+@keyframes simula-slide-back{from{transform:translateX(-30%)}}
+@keyframes simula-fade{from{opacity:0}}
+@media (prefers-reduced-motion:reduce){.simula-push,.simula-back,.simula-modal{animation:none}}
+[data-simula-field]{cursor:text;-webkit-user-select:text;user-select:text}
+[data-simula-field]:focus{outline:none}
+</style>
+</head><body>
+<section data-screen="s01">
+<div class="a hero">
+<div class="a f14" data-el="s01.e03" style="left:228.2px;top:13.7px;width:54.5px;height:17.5px;color:#08080f">Try Luzia</div>
+<div class="a" style="left:150px;top:98px;width:112px;height:70px;border-radius:48px 48px 0 0;background:#a9ddc7"></div>
+<div class="a" style="left:194px;top:70px;width:24px;height:32px;background:#eccdc2"></div>
+<div class="a hr" style="left:160px;top:9px;width:92px;height:72px;border-radius:46px 46px 12px 12px"></div>
+<div class="a hr" style="left:155px;top:38px;width:30px;height:90px;border-radius:15px 8px 15px 18px"></div>
+<div class="a hr" style="left:228px;top:38px;width:33px;height:96px;border-radius:8px 16px 18px 15px"></div>
+<div class="a" style="left:180px;top:18px;width:52px;height:64px;border-radius:24px 24px 28px 28px;background:#f6e1da"></div>
+<div class="a hr" style="left:176px;top:11px;width:60px;height:22px;border-radius:30px 30px 8px 22px"></div>
+<div class="a o" style="left:191px;top:46px;width:6px;height:4px;background:#2a1714"></div>
+<div class="a o" style="left:215px;top:46px;width:6px;height:4px;background:#2a1714"></div>
+<div class="a o" style="left:200px;top:65px;width:12px;height:4.5px;background:#d25e4a"></div>
+</div>
+<div class="a" data-chrome="header" style="left:0;top:0;width:411px;height:48.4px">
+<div class="a f22" data-el="s01.e01" style="left:12.2px;top:10.7px;width:195.8px;height:27.8px">Chats</div>
+<div class="a" data-el="s01.e04" style="left:319.2px;top:0.4px;width:40px;height:48px"><div class="a x o hb" style="left:6.6px;top:7.9px"><svg class="ic" width="18" height="18" viewBox="0 0 24 24"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2.5h-15zM10 21h4"/></svg></div></div>
+<img class="a" data-el="s01.e05" src="assets/s01.e05.png" alt="" style="left:359.2px;top:0.4px;width:48px;height:48px">
+</div>
+<div class="a pb" style="left:12.8px;top:88.7px;width:386px;height:64.2px"></div>
+<div class="a f12 b" data-el="s01.e07" style="left:32.4px;top:103.2px;width:28.9px;height:15.2px">Luzia</div>
+<div class="a f16 b" data-el="s01.e08" style="left:32.4px;top:118.5px;width:198.5px;height:20.2px">How can I help you today?</div>
+<div class="a x" data-el="s01.e45" style="left:342.5px;top:96.4px;width:48px;height:48px"><div class="x o" style="width:40px;height:40px;background:#fff;color:#000"><svg class="ic" width="21" height="21" viewBox="0 0 24 24"><path d="M21 3 2.5 10.2l7.3 3.3L13 21zM9.8 13.5 21 3"/></svg></div></div>
+<div class="a f16 b" data-el="s01.e09" style="left:16px;top:191.2px;width:270.1px;height:20.2px">New chat</div>
+<div class="a" data-el="s01.e10" data-edge="s01.e10>s04" data-transition="push" style="left:294.1px;top:177.5px;width:101.3px;height:48px">
+<div class="a f14" data-el="s01.e11" style="left:0;top:15.3px;width:69.3px;height:17.5px;font-weight:700">SEE MORE</div>
+<div class="a x rc" style="left:76.9px;top:11.7px"><svg class="ic" width="15" height="15" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+</div>
+<div class="a card" data-el="s01.e12" data-edge="s01.e12>s15" data-transition="push" style="left:16px;top:225.5px">
+<div class="a" data-el="s01.e13" style="left:0;top:0;width:121.1px;height:121.1px">
+<div class="a" style="left:14px;top:88px;width:94px;height:34px;background:#a9b5ef;border-radius:12px 12px 0 0"></div>
+<img class="a" src="assets/s01.e13.art.png" alt="" style="left:0;top:0.1px;width:121.1px;height:95.5px">
+</div>
+<div class="a band"></div>
+<div class="a f14 cl" data-el="s01.e14">Teacher</div>
+</div>
+<div class="a card" data-el="s01.e16" style="left:145.1px;top:225.5px">
+<div class="a" style="left:14px;top:88px;width:92px;height:34px;background:#333;border-radius:12px 12px 0 0"></div>
+<div class="a" style="left:36px;top:88px;width:5px;height:34px;background:#8b6fe0"></div>
+<div class="a" style="left:80px;top:88px;width:5px;height:34px;background:#8b6fe0"></div>
+<img class="a" src="assets/s01.e16.art.png" alt="" style="left:0.1px;top:0.1px;width:121px;height:95.5px">
+<div class="a band"></div>
+<div class="a f14 cl" data-el="s01.e17">Friend</div>
+</div>
+<div class="a card" style="left:274.3px;top:225.5px">
+<div class="a" style="left:14px;top:88px;width:94px;height:34px;background:#22317e;border-radius:12px 12px 0 0"></div>
+<img class="a" src="assets/s01.e19.art.png" alt="" style="left:0;top:0.1px;width:121.1px;height:95.5px">
+<div class="a band"></div>
+<div class="a f14 cl">Elias</div>
+</div>
+<div class="a promo" style="top:370.4px"></div>
+<div class="a av" style="left:27.8px;top:382.7px;background:var(--bg-4)"><svg width="38.5" height="38.5" viewBox="0 0 40 40"><circle cx="20" cy="17" r="7.5" fill="#000"/><path d="M5 42c0-10 6.5-15 15-15s15 5 15 15z" fill="#000"/><path d="M20 13.5v7M16.5 17h7" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+<div class="a f14 b" data-el="s01.e22" style="left:78.5px;top:382.9px;width:97.5px;height:17.5px">Custom Bestie</div>
+<div class="a f12" data-el="s01.e23" data-edge="s01.e23>s07" data-transition="push" style="left:78.5px;top:402.3px;width:179.1px;height:15.2px;color:#bfbfbf">Make an AI expert tailored to you</div>
+<div class="a x" data-el="s01.e24" style="left:349.3px;top:369.1px;width:48px;height:48px"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" style="stroke-width:2"><path d="M5 5l14 14M19 5 5 19"/></svg></div>
+<div class="a promo" style="top:457px"></div>
+<div class="a av" style="left:27.8px;top:469.3px;background:#3d3c4b;border:1px solid #6e6d82"><svg class="a" style="left:3.2px;top:3.2px" width="30" height="30" viewBox="0 0 30 30"><path d="M4 3l8 7.5-5 4zM26 3l-8 7.5 5 4z" fill="#b8aff3"/><ellipse cx="15" cy="17.5" rx="10" ry="8.5" fill="#b8aff3"/><circle cx="11.5" cy="16.5" r="1.4" fill="#2a2440"/><circle cx="18.5" cy="16.5" r="1.4" fill="#2a2440"/><path d="M12.5 20.5q2.5 2.2 5 0z" fill="#fff"/></svg></div>
+<div class="a f14 b" data-el="s01.e26" data-edge="s01.e26>s05" data-transition="modal" style="left:78.5px;top:469.3px;width:173.3px;height:17.5px">Meet Toki, your virtual pet!</div>
+<div class="a f12" data-el="s01.e27" style="left:78.5px;top:488.8px;width:203.8px;height:15.2px;color:#bebebe">Create and take care of your own pet</div>
+<div class="a x" style="left:349.3px;top:455.6px;width:48px;height:48px"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" style="stroke-width:2"><path d="M5 5l14 14M19 5 5 19"/></svg></div>
+<div class="a f16 b" data-el="s01.e29" style="left:16px;top:545.5px;width:323.4px;height:20.2px">Keep chatting</div>
+<div class="a" data-el="s01.e30" style="left:339.4px;top:531.8px;width:20.2px;height:41.9px"></div>
+<div class="a" data-el="s01.e31" style="left:359.6px;top:531.8px;width:48px;height:41.9px"><div class="a x rc" style="left:11.6px;top:11.5px"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" style="stroke-width:2.2"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg></div></div>
+<div class="a av" data-el="s01.e33" data-edge="s01.e33>s06" data-transition="push" style="left:16px;top:584px;width:40px;height:40px;background:#112255"><svg width="40" height="40" viewBox="0 0 40 40"><path d="M8 41c1-8 5-12 12-12s11 4 12 12z" fill="#a4b2ee"/><path d="M10.5 22c-2.5-10 3-16 9.5-16s12.5 5 10 15c-.8 3-2 5-3.5 6h-13c-1.5-1-2.5-3-3-5z" fill="#df7f5c"/><rect x="17.5" y="26" width="5" height="4" fill="#ecc9bd"/><ellipse cx="20" cy="20.5" rx="7" ry="8.3" fill="#f5ddd2"/><path d="M12.8 17c2-5 11-6 14.5-.5-4.5-2-9.5-2-14.5.5z" fill="#df7f5c"/><circle cx="17" cy="20.5" r="2.3" fill="none" stroke="#1d1d1d" stroke-width="1"/><circle cx="23" cy="20.5" r="2.3" fill="none" stroke="#1d1d1d" stroke-width="1"/><path d="M18.3 25.3q1.7 1 3.4 0" fill="none" stroke="#b2503e" stroke-width="1"/></svg></div>
+<div class="a f14 b" data-el="s01.e34" data-value="c4" data-edge="s01.e34>s06" data-transition="push" style="left:64px;top:586.7px;width:88px;height:17.5px">Our new chat</div>
+<div class="a f12" data-el="s01.e35" style="left:64px;top:606.1px;width:61px;height:15.2px;color:#bbbbbb">2 days ago</div>
+<div class="a tb" data-chrome="tabbar">
+<div class="a o" style="left:52.8px;top:7.6px;width:32px;height:32px;background:#13245a"></div>
+<svg class="a" data-el="s01.e37" style="left:56.8px;top:11.6px" width="24" height="24" viewBox="0 0 24 24"><path d="M12 2.5a9.5 9.5 0 1 1 0 19H2.5V12A9.5 9.5 0 0 1 12 2.5z" fill="#4264fc"/><path d="M8.6 9.2h6.6l-6.6 5.6h6.8" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<div class="a f14" data-el="s01.e38" style="left:52.6px;top:39.8px;width:32.4px;height:17.5px;font-weight:700">Chat</div>
+<div class="a" data-el="s01.e39" data-edge="s01.e39>s02" data-transition="tab" style="left:140.9px;top:10.5px;width:129.1px;height:48px">
+<svg class="a ic" data-el="s01.e40" style="left:52.6px;top:1.1px;color:var(--fg-4);stroke-width:1.6" width="24" height="24" viewBox="0 0 24 24"><path d="M3.5 18.5h15M5.5 18.5a5.5 5.5 0 0 1 11 0M11 13v-1.5M9.5 11.5h3M18.5 3.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg>
+<div class="a f14" data-el="s01.e41" style="left:37px;top:29.3px;width:55.6px;height:17.5px;color:#c6c6c6">Services</div>
+</div>
+<svg class="a ic" style="left:330.7px;top:11.6px;color:var(--fg-4);stroke-width:1.6" width="24" height="24" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>
+<div class="a f14" data-el="s01.e44" style="left:320.4px;top:39.8px;width:45px;height:17.5px;color:#c9c9c9">Create</div>
+</div>
+</section>
+<section data-screen="s05" data-parent="s01">
+<div class="a" data-el="s05.e10" style="left:318.9px;top:3.4px;width:48px;height:48px"></div>
+<div class="a" data-el="s05.e11" style="left:358.5px;top:0.4px;width:48px;height:48px"></div>
+<div class="a" style="left:0;top:0;width:411px;height:838.2px;background:rgba(0,0,0,.6)"></div>
+<div class="a" style="left:45.7px;top:421px;width:320px;height:259px;background:var(--bg-1)"></div>
+<div class="a tp" style="left:45.7px;top:170px;width:320px;height:251px">
+<div class="a dc" style="left:242.9px;top:34.7px;width:65px;height:65px"></div>
+<svg class="a" style="left:260.6px;top:53.4px" width="30.4" height="26.7" viewBox="0 0 30 27"><path d="M5 0h20a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H13l-7 6v-6H5a5 5 0 0 1-5-5V5a5 5 0 0 1 5-5z" fill="#c9c9c9"/></svg>
+<div class="a dc x" style="left:286.4px;top:141.4px;width:36.6px;height:36.6px"><svg width="14" height="18" viewBox="0 0 14 18"><path d="M7 0c1 4 7 6 7 11.5A7 6.5 0 0 1 0 11.5C0 8 3 6.5 3.5 4 5 5.5 5 7 5 7c1-2 2-4 2-7z" fill="#e2545b"/></svg></div>
+<div class="a dc" style="left:232.3px;top:195.4px;width:59.3px;height:59.3px"></div>
+<div class="a o x" style="left:246.1px;top:212.5px;width:31px;height:31px;background:#e8c264"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 0C8.6 5 11 7.4 16 8 11 8.6 8.6 11 8 16 7.4 11 5 8.6 0 8 5 7.4 7.4 5 8 0z" fill="#232323"/></svg></div>
+</div>
+<div class="a" style="left:45.8px;top:170px;width:271.9px;height:267.7px;overflow:hidden"><img class="a" src="assets/s05.e01.art.png" alt="" style="left:0;top:-170px;width:271.9px;height:437.7px"></div>
+<div class="a" data-el="s05.e02" data-edge="s05.back>s01" data-transition="back" style="left:317.7px;top:169.5px;width:48px;height:48px"><div class="a x o" style="left:8.1px;top:7.6px;width:31.4px;height:31.4px;background:#1d1d1d;border:1.5px solid #5e5e5e;color:#fff"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" style="stroke-width:2"><path d="M5 5l14 14M19 5 5 19"/></svg></div></div>
+<div class="a w c" data-el="s05.e03" style="left:61.7px;top:437.7px;width:288px;height:50.3px;font-size:20px;line-height:25.15px;font-weight:700">Tok-Tok! I'm Toki and I need <br>your help!</div>
+<div class="a w c f14" data-el="s05.e04" style="left:61.7px;top:492.2px;width:288px;height:35px;color:#c9c9c9">I want to grow and become as powerful as <br>Luzia. Care for me to see me grow!</div>
+<div class="a" style="left:61.5px;top:543px;width:287.5px;height:39.6px;border-radius:20px;background:var(--bg-3)"></div>
+<svg class="a" style="left:160.3px;top:553.7px" width="18" height="18" viewBox="0 0 24 24"><path d="M3 2.5l5.5 6.2A9 8 0 0 1 12 8a9 8 0 0 1 3.5.7L21 2.5l-1.2 9A8.5 7.5 0 1 1 4.2 11.5z" fill="#000"/><circle cx="9" cy="14.5" r="1.3" fill="#fff"/><circle cx="15" cy="14.5" r="1.3" fill="#fff"/><path d="M10.5 18q1.5 1.2 3 0" stroke="#fff" stroke-width="1.2" fill="none" stroke-linecap="round"/></svg>
+<div class="a f16 b" data-el="s05.e06" style="left:185.9px;top:553.1px;width:67.8px;height:20.2px;color:var(--fg-2)">Meet me</div>
+<div class="a" style="left:61.5px;top:591px;width:287.5px;height:35.4px;border-radius:18px;background:var(--bg-2);border:1px solid #4a4a4a"></div>
+<div class="a f16 b" data-el="s05.e08" style="left:185.9px;top:599.2px;width:40px;height:20.2px">Later</div>
+<svg class="a ic" style="left:63px;top:637px;color:#e0e0e0" width="15.2" height="15.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 11v6M12 7.5v.2"/></svg>
+<div class="a f12" data-el="s05.e09" style="left:83.8px;top:637px;width:244.2px;height:15.2px;color:#b9b9b9">You can turn me on &amp; off anytime in Settings.</div>
+</section>
+<section data-screen="s06">
+<img class="a" src="assets/s06.e21.png" alt="" data-edge="s06.back>s01" data-transition="back" style="left:8px;top:4.2px;width:48px;height:48px">
+<div class="a o" data-el="s06.e22" style="left:56px;top:8px;width:40px;height:40px;overflow:hidden;background:#112255"><svg width="40" height="40" viewBox="0 0 40 40"><path d="M8 41c1-8 5-12 12-12s11 4 12 12z" fill="#a4b2ee"/><path d="M10.5 22c-2.5-10 3-16 9.5-16s12.5 5 10 15c-.8 3-2 5-3.5 6h-13c-1.5-1-2.5-3-3-5z" fill="#df7f5c"/><rect x="17.5" y="26" width="5" height="4" fill="#ecc9bd"/><ellipse cx="20" cy="20.5" rx="7" ry="8.3" fill="#f5ddd2"/><path d="M12.8 17c2-5 11-6 14.5-.5-4.5-2-9.5-2-14.5.5z" fill="#df7f5c"/><circle cx="17" cy="20.5" r="2.3" fill="none" stroke="#1d1d1d" stroke-width="1"/><circle cx="23" cy="20.5" r="2.3" fill="none" stroke="#1d1d1d" stroke-width="1"/><path d="M18.3 25.3q1.7 1 3.4 0" fill="none" stroke="#b2503e" stroke-width="1"/></svg></div>
+<div class="a f20" data-el="s06.e23" style="left:104px;top:15.6px;width:160.8px;height:25.1px">Teacher</div>
+<div class="a" style="left:272.6px;top:11.8px;width:81.8px;height:32px;border-radius:16px;background:var(--bg-2);border:1px solid #3d3d3d"></div>
+<div class="a f12" data-el="s06.e25" style="left:284.9px;top:20.6px;width:26.3px;height:15.2px;font-weight:700">New</div>
+<svg class="a ic" style="left:322.4px;top:19.4px;color:#fff" width="17" height="17" viewBox="0 0 24 24"><path d="M12 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6M17.5 3.5a2 2 0 0 1 3 3L12 15l-3.5.8.8-3.5z"/></svg>
+<img class="a" src="assets/s06.e26.png" alt="" style="left:355.4px;top:4.2px;width:48px;height:48px">
+<div class="a" style="left:0;top:89.3px;width:411px;height:20px;overflow:hidden">
+<div class="a" data-el="s06.e02" style="left:16px;top:11.7px;width:379.4px;height:0.8px"><div class="a w f16" style="left:0;bottom:-3.4px;width:379.4px">Hello, I'm Teacher. Ask me for advice, answers, or let's talk about whatever you want. What would <br>you like to talk about today?</div></div>
+</div>
+<div class="a" style="left:16px;top:64px;width:379px;height:25.3px;border-radius:8px;background:var(--bg-2)"></div>
+<div class="a f14 c" data-el="s06.e28" data-value="c4" style="left:24px;top:68.2px;width:363.4px;height:17.5px;color:#cacaca">Our new chat</div>
+<div class="a" style="left:80.2px;top:113.8px;width:314.8px;height:63.2px;border-radius:14px 14px 0 14px;background:#112255"></div>
+<div class="a f16" data-el="s06.e04" style="left:88px;top:121.9px;width:39.6px;height:20.2px;color:#fefefe">fsfsd</div>
+<div class="a f12 b" data-el="s06.e05" style="left:349.7px;top:154.3px;width:37.7px;height:15.2px;color:var(--fg-4)">00:00</div>
+<div class="a w f16" data-el="s06.e07" style="left:16px;top:189.7px;width:379.4px;height:40.4px;color:#fefefe">Hello, what would you like to know? Remember <br>that sometimes my answer may not be exact.</div>
+<div class="a" data-el="s06.e08" style="left:8px;top:234.3px;width:40px;height:48px"><div class="a x cb" style="left:8px;top:8.3px"><svg class="ic" width="17" height="17" viewBox="0 0 24 24"><path d="M7 11v9H4.5a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1H7l3.5-7.5c1.4 0 2.6 1.2 2.3 2.8L12.3 10H18a2 2 0 0 1 2 2.4l-1.3 6A2 2 0 0 1 16.7 20H7"/></svg></div></div>
+<div class="a" data-el="s06.e09" style="left:48px;top:234.3px;width:48px;height:48px"><div class="a x cb" style="left:8.15px;top:8.3px"><svg class="ic" width="17" height="17" viewBox="0 0 24 24"><path transform="rotate(180 12 12)" d="M7 11v9H4.5a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1H7l3.5-7.5c1.4 0 2.6 1.2 2.3 2.8L12.3 10H18a2 2 0 0 1 2 2.4l-1.3 6A2 2 0 0 1 16.7 20H7"/></svg></div></div>
+<img class="a" data-el="s06.e10" src="assets/s06.e10.png" alt="" style="left:235.4px;top:234.3px;width:40px;height:48px">
+<div class="a" style="left:275.4px;top:234.3px;width:40px;height:48px"><svg class="a ic" style="left:13.9px;top:14px;color:#fff" width="20" height="20" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4zM15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg></div>
+<img class="a" src="assets/s06.e12.png" alt="" style="left:315.4px;top:234.3px;width:40px;height:48px">
+<div class="a" data-el="s06.e13" style="left:355.4px;top:234.3px;width:48px;height:48px"><svg class="a ic" style="left:13.3px;top:13.7px;color:#dedede" width="20" height="20" viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 14v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5"/></svg></div>
+<div class="a" style="left:8px;top:716.2px;width:394.5px;height:91.4px;border-radius:20px;background:#363636"></div>
+<div class="a f16" data-el="s06.e16" style="left:16px;top:726.5px;width:89.9px;height:20.2px;color:var(--fg-4)">Ask Teacher</div>
+<img class="a" data-el="s06.e17" src="assets/s06.e17.png" alt="" style="left:8px;top:760.8px;width:48px;height:48px">
+<div class="a" data-el="s06.e18" data-edge="s06.e18>s06" data-transition="push" style="left:355.4px;top:760.8px;width:48px;height:48px">
+<div class="a o" style="left:8px;top:8px;width:32px;height:32px;background:#fff"></div>
+<svg class="a ic" data-el="s06.e19" style="left:14.1px;top:14.1px;color:#000;stroke-width:2" width="19.8" height="19.8" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
+</div>
+<div class="a c" data-el="s06.e20" style="left:8px;top:816.8px;width:395.4px;height:13.7px;font-size:11px;line-height:13.7px;color:#adadad">Luzia is AI and can make mistakes. Verify important information.</div>
+</section>
+<section data-screen="s07">
+<img class="a" data-el="s07.e01" data-edge="s07.back>s01" data-transition="back" src="assets/s07.e01.png" alt="" style="left:8px;top:2.3px;width:48px;height:48px">
+<div class="a" data-el="s07.e02" style="left:355.4px;top:2.3px;width:48px;height:48px"></div>
+<svg class="a" style="left:116px;top:96.7px" width="180" height="167" viewBox="0 0 180 167">
+<rect x="0.5" y="18.7" width="93" height="103.6" rx="12" fill="#4b6cf2"/>
+<path d="M22 122.3C15 92 17 52 30 39c11-11 32-11 43 1 12 14 14 52 7 82.3z" fill="#d6ad68"/>
+<path d="M30 60v58M38 50v68M58 50v68M66 60v58" stroke="#b18743" stroke-width="1.2"/>
+<path d="M26 122.3c2-16 11-24 22-26 11 2 20 10 22 26z" fill="#222"/>
+<rect x="42" y="76" width="12" height="20" fill="#935d42"/>
+<ellipse cx="48" cy="61" rx="15.5" ry="19.5" fill="#a96c4d"/>
+<path d="M32 56c0-19 32-21 32 0-5-9-27-9-32 0z" fill="#d6ad68"/>
+<circle cx="42.5" cy="60" r="1.6" fill="#1d1d1d"/><circle cx="53.5" cy="60" r="1.6" fill="#1d1d1d"/>
+<ellipse cx="48" cy="71" rx="4.5" ry="2" fill="#5e2522"/>
+<path d="M101.8.5H166l13.5 13.5v62.8a12 12 0 0 1-12 12h-65.7a12 12 0 0 1-12-12V12.5a12 12 0 0 1 12-12z" fill="#d6e8fb"/>
+<path d="M103 88.8c2-17 14-24 31-24s29 7 31 24z" fill="#4c5a39"/>
+<rect x="127.5" y="50" width="13" height="16" fill="#e9bfa4"/>
+<ellipse cx="134" cy="36" rx="14.5" ry="18.5" fill="#f2cfb6"/>
+<path d="M119 34c-3-17 8-25 17-25 11 0 17 9 13 25-2-7-8-11-15-11s-13 4-15 11z" fill="#3a2e2a"/>
+<path d="M120 40c1 13 7 18 14 18s13-5 14-18c-4 7-24 7-28 0z" fill="#56413a"/>
+<circle cx="128.5" cy="34.5" r="1.5" fill="#1d1d1d"/><circle cx="139.5" cy="34.5" r="1.5" fill="#1d1d1d"/>
+<rect x="74.8" y="83" width="83.9" height="83.3" rx="12" fill="#9db8ea" stroke="#fff" stroke-width="1.5"/>
+<path d="M92 166.3c-6-28-4-60 12-71 12-8 26-5 34 7 11 17 11 44 6 64z" fill="#a98deb"/>
+<path d="M101 166.3c2-15 9-22 18-23 9 1 16 8 18 23z" fill="#222"/>
+<rect x="113" y="130" width="12" height="3" fill="#d9d9d9"/>
+<ellipse cx="119" cy="114" rx="13.5" ry="17" fill="#f7e1d8"/>
+<path d="M105 110c0-19 28-20 28-2-6-10-22-10-28 2z" fill="#a98deb"/>
+<circle cx="114" cy="114" r="1.5" fill="#1d1d1d"/><circle cx="124" cy="114" r="1.5" fill="#1d1d1d"/>
+<ellipse cx="119" cy="123" rx="3.5" ry="1.6" fill="#d25a5a"/>
+<rect x="32.6" y="105.3" width="50.2" height="49" rx="10" fill="#a6de3a" stroke="#fff" stroke-width="2"/>
+<path d="M57.7 118v24M45.7 130h24" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+</svg>
+<div class="a f22 c" data-el="s07.e03" style="left:84.6px;top:308.2px;width:242.3px;height:27.8px">Create your own Bestie</div>
+<div class="a w c f14" data-el="s07.e04" style="left:16px;top:340.2px;width:379.4px;height:35px;color:#c9c9c9">Personalize your unique friend and discover everything <br>they can do for you.</div>
+<div class="a" style="left:16px;top:785.7px;width:379px;height:35.8px;border-radius:18px;background:var(--bg-3)"></div>
+<div class="a f16 b c" data-el="s07.e06" style="left:139.4px;top:794.3px;width:132.6px;height:20.2px;color:var(--fg-2)">Let's get started!</div>
+</section>
+<section data-screen="s02">
+<div class="p hd" data-chrome="header">
+<img class="p hb" src="assets/s02.e01.png" alt="" data-el="s02.e01" data-edge="s02.e01>s01" data-transition="replace" style="left:8px">
+<div class="p ttl" data-el="s02.e02" data-edge="s02.e02>s09" data-transition="push" style="left:164.2px;width:83px">Services</div>
+<div class="p hb" data-el="s02.e03" style="left:315.4px;width:40px"><i class="hc"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a6 6 0 0 0-6 6v5.5L4.5 17.5h15L18 15V9.5a6 6 0 0 0-6-6z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg></i></div>
+<div class="p hb" data-el="s02.e04" style="left:355.4px"><i class="hc"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5h15M9.5 6.5v-2h5v2M6.5 6.5l.8 12.4a1.6 1.6 0 0 0 1.6 1.5h6.2a1.6 1.6 0 0 0 1.6-1.5l.8-12.4M10 10v6.5M12 10v6.5M14 10v6.5"/></svg></i></div>
+</div>
+<div class="p rc"></div>
+<div class="p t12 nw rct" data-el="s02.e06">Routines</div>
+<div class="p" style="left:157.2px;top:286.6px;width:96px;height:96px;border-radius:50%;background:#112255"><svg width="96" height="96" viewBox="0 0 96 96" fill="#4264fc"><rect x="18.6" y="68.5" width="58" height="5" rx="2.5"/><path d="M26 68A22 17 0 0 1 70 68Z"/><path d="M38 44.8h20M48 44.8V52" stroke="#4264fc" stroke-width="4.5" stroke-linecap="round"/><path d="M66 24c1.6 7.4 4.4 10.4 11 12-6.6 1.6-9.4 4.6-11 12-1.6-7.4-4.4-10.4-11-12 6.6-1.6 9.4-4.6 11-12z"/></svg></div>
+<div class="p nw" data-el="s02.e07" style="left:110.9px;top:398.9px;width:190.1px;font-size:22px;line-height:27.8px;font-weight:700;text-align:center">Let Luzia handle it!</div>
+<div class="p t16" data-el="s02.e08" style="left:16px;top:442.7px;width:379.4px;text-align:center;color:#fefefe">When Luzia shops, books or watches something <br>for you, every update lands here.</div>
+<div class="p btn" data-el="s02.e09" data-edge="s02.e09>s08" data-transition="push" style="left:16px;top:698.7px;width:379.4px;height:48px">
+<svg class="p" style="left:117px;top:15.4px" width="17" height="17" viewBox="0 0 17 17" stroke="#000" stroke-width="1.8" stroke-linecap="round"><path d="M8.5 1v15M1 8.5h15"/></svg>
+<div class="p t16 nw" data-el="s02.e10" style="left:141.7px;top:13.7px;width:124.6px;font-weight:600;color:var(--fg-2)">Start something</div>
+</div>
+<div class="p tb" data-chrome="tabbar">
+<svg class="p" data-el="s02.e12" style="left:56.8px;top:9.6px" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#cbcbcb" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8a9.2 9.2 0 1 1-4.4 17.3L3.6 21.2l1.1-4A9.2 9.2 0 0 1 12 2.8z"/><path d="M9 8.6h5.6L9.4 15.4H15"/></svg>
+<div class="p tl" data-el="s02.e13" style="left:52.6px;top:37.8px;width:32px;color:#c7c7c7">Chat</div>
+<i class="p tsc"></i>
+<svg class="p" data-el="s02.e15" style="left:193.5px;top:9.6px" width="24" height="24" viewBox="12 14 72 72" fill="#4264fc"><rect x="18.6" y="68.5" width="58" height="5" rx="2.5"/><path d="M26 68A22 17 0 0 1 70 68Z"/><path d="M38 44.8h20M48 44.8V52" stroke="#4264fc" stroke-width="4.5" stroke-linecap="round"/><path d="M66 24c1.6 7.4 4.4 10.4 11 12-6.6 1.6-9.4 4.6-11 12-1.6-7.4-4.4-10.4-11-12 6.6-1.6 9.4-4.6 11-12z"/></svg>
+<div class="p tl" data-el="s02.e16" style="left:177.1px;top:37.8px;width:56.8px;font-weight:600;color:var(--fg-1)">Services</div>
+<div class="p" data-el="s02.e17" data-edge="s02.e17>s03" data-transition="tab" style="left:278.1px;top:8.5px;width:129.1px;height:48px">
+<svg class="p" style="left:52.6px;top:1.1px" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#cbcbcb" stroke-width="1.7"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>
+<div class="p tl" data-el="s02.e19" style="left:42.3px;top:29.3px;width:45px;color:#c9c9c9">Create</div>
+</div>
+</div>
+</section>
+<section data-screen="s08">
+<div class="p hd">
+<img class="p hb" src="assets/s08.e13.png" alt="" data-el="s08.e13" data-edge="s08.back>s02" data-transition="back" style="left:8px">
+<div class="p ttl" data-el="s08.e14" style="left:163.8px;width:83.8px">Routines</div>
+<div class="p hb" style="left:355.4px"><i class="hc"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5h15M9.5 6.5v-2h5v2M6.5 6.5l.8 12.4a1.6 1.6 0 0 0 1.6 1.5h6.2a1.6 1.6 0 0 0 1.6-1.5l.8-12.4M10 10v6.5M12 10v6.5M14 10v6.5"/></svg></i></div>
+</div>
+<div class="p" style="left:180.6px;top:88.2px;width:49.8px;height:18.7px;border-radius:9.4px;background:var(--bg-2)"></div>
+<div class="p t12 nw" data-el="s08.e01" style="left:188.6px;top:89.9px;width:34.7px;color:var(--fg-4);text-align:center">Today</div>
+<div class="p t16 nw" data-el="s08.e02" style="left:16px;top:119.2px;width:379.4px;color:#fefefe">Hi! I can set up a routine that quietly works in the <br>background for you: watching a price until it drops, <br>sending you a daily briefing, or reminding you <br>before an important date. What would you like me <br>to keep an eye on?</div>
+<img class="p" src="assets/s08.e03.png" alt="" data-el="s08.e03" style="left:8px;top:224.4px;width:40px;height:48px">
+<div class="p ic" data-el="s08.e04" style="left:48px;top:224.4px;width:48px;height:48px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dedede" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3.5M7 8l5-4.5L17 8M4 14v6h16v-6"/></svg></div>
+<div class="p ch" style="top:277px;width:263.6px"></div>
+<svg class="p" style="left:33px;top:289px" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.4 1.4 0 0 1 0 2l-6.7 6.7a1.4 1.4 0 0 1-2 0z"/><circle cx="8" cy="8" r="1.2"/></svg>
+<div class="p t14 nw" data-el="s08.e06" style="left:60.2px;top:290.3px;width:203.4px;color:#f8f8f8">Watch a price, event or product</div>
+<div class="p ch" style="top:329.6px;width:186.3px"></div>
+<svg class="p" style="left:33px;top:341.6px" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5.5a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1V18a2 2 0 0 1-2 2H5"/><path d="M7 5v13a2 2 0 0 1-4 0v-7h4"/><path d="M10.5 8h6v3.5h-6zM10.5 14.5h6M10.5 17h6"/></svg>
+<div class="p t14 nw" data-el="s08.e08" style="left:60.2px;top:342.9px;width:126.1px;color:#f8f8f8">Briefing, newsletter</div>
+<div class="p ch" style="top:382.1px;width:192.8px"></div>
+<svg class="p" style="left:33px;top:394.1px" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+<div class="p t14 nw" data-el="s08.e10" style="left:60.2px;top:395.4px;width:132.6px;color:#f9f9f9">Remind me of a date</div>
+<div class="p ch" style="top:434.7px;width:161.5px"></div>
+<svg class="p" style="left:33px;top:446.7px" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4c.9 4.6 2.4 6.1 7 7-4.6.9-6.1 2.4-7 7-.9-4.6-2.4-6.1-7-7 4.6-.9 6.1-2.4 7-7z"/><path d="M18.5 2.5v4M16.5 4.5h4"/><circle cx="5" cy="19.5" r="1.3"/></svg>
+<div class="p t14 nw" data-el="s08.e12" style="left:60.2px;top:448px;width:101.3px;color:#f7f7f7">Something else</div>
+<div class="p" style="left:8px;top:738px;width:395.4px;height:92px;border-radius:16px;background:#363636"></div>
+<div class="p t16 nw" data-el="s08.e17" style="left:16px;top:748.2px;width:67.4px;color:var(--fg-4)">Ask Luzia</div>
+<div class="p" style="left:363.4px;top:790px;width:32px;height:32px;border-radius:50%;background:var(--bg-3)"></div>
+<svg class="p" data-el="s08.e19" style="left:369.5px;top:796.6px" width="19.8" height="19.8" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
+</section>
+<section data-screen="s09">
+<div class="p hd" data-chrome="header">
+<img class="p hb" src="assets/s09.e01.png" alt="" data-el="s09.e01" style="left:8px">
+<div class="p ttl" data-el="s09.e02" style="left:164.2px;width:83px">Services</div>
+<div class="p hb" data-el="s09.e03" style="left:315.4px;width:40px"><i class="hc"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a6 6 0 0 0-6 6v5.5L4.5 17.5h15L18 15V9.5a6 6 0 0 0-6-6z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg></i></div>
+<div class="p hb" data-el="s09.e04" style="left:355.4px"><i class="hc"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5h15M9.5 6.5v-2h5v2M6.5 6.5l.8 12.4a1.6 1.6 0 0 0 1.6 1.5h6.2a1.6 1.6 0 0 0 1.6-1.5l.8-12.4M10 10v6.5M12 10v6.5M14 10v6.5"/></svg></i></div>
+</div>
+<div class="p rc"></div>
+<div class="p t12 nw rct" data-el="s09.e06">Routines</div>
+<div class="p t12 nw" data-el="s09.e07" style="left:16px;top:95.6px;width:395.4px;color:#8e8e8e">Active routines</div>
+<div class="p" style="left:16px;top:131px;width:32px;height:32px;border-radius:4px;background:var(--bg-2)"></div>
+<svg class="p" style="left:23px;top:138px" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 7v5.5l3 1.8"/></svg>
+<div class="p t12 nw" data-el="s09.e09" style="left:60.6px;top:139.8px;width:69px;font-weight:600">New routine</div>
+<div class="p" style="left:325px;top:135.2px;width:70.2px;height:23.5px;border-radius:12px;background:#664400"></div>
+<svg class="p" style="left:335.5px;top:140px" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffdd99" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7.5 18.5l-4 1 1-4z"/><path d="M14.5 5.5l3 3"/></svg>
+<div class="p t12 nw" data-el="s09.e10" data-value="c1" style="left:357.7px;top:139.8px;width:29.7px;font-weight:600;color:#ffdd99">Draft</div>
+<div class="p" style="left:8px;top:714px;width:395.4px;height:36px;border-radius:18px;background:var(--bg-3)"></div>
+<div class="p t16 nw" data-el="s09.e12" style="left:140.9px;top:722.3px;width:129.9px;font-weight:600;color:var(--fg-2);text-align:center">Add new Routine</div>
+<div class="p tb" data-chrome="tabbar">
+<svg class="p" data-el="s09.e14" style="left:56.8px;top:9.6px" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#cbcbcb" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8a9.2 9.2 0 1 1-4.4 17.3L3.6 21.2l1.1-4A9.2 9.2 0 0 1 12 2.8z"/><path d="M9 8.6h5.6L9.4 15.4H15"/></svg>
+<div class="p tl" data-el="s09.e15" style="left:52.6px;top:37.8px;width:32px;color:#c7c7c7">Chat</div>
+<i class="p tsc"></i>
+<svg class="p" data-el="s09.e17" style="left:193.5px;top:9.6px" width="24" height="24" viewBox="12 14 72 72" fill="#4264fc"><rect x="18.6" y="68.5" width="58" height="5" rx="2.5"/><path d="M26 68A22 17 0 0 1 70 68Z"/><path d="M38 44.8h20M48 44.8V52" stroke="#4264fc" stroke-width="4.5" stroke-linecap="round"/><path d="M66 24c1.6 7.4 4.4 10.4 11 12-6.6 1.6-9.4 4.6-11 12-1.6-7.4-4.4-10.4-11-12 6.6-1.6 9.4-4.6 11-12z"/></svg>
+<div class="p tl" data-el="s09.e18" style="left:177.1px;top:37.8px;width:56.8px;font-weight:600;color:var(--fg-1)">Services</div>
+<div class="p" data-el="s09.e19" data-edge="s09.e19>s03" data-transition="tab" style="left:278.1px;top:8.5px;width:129.1px;height:48px">
+<svg class="p" style="left:52.6px;top:1.1px" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#cbcbcb" stroke-width="1.7"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>
+<div class="p tl" data-el="s09.e21" style="left:42.3px;top:29.3px;width:45px;color:#c9c9c9">Create</div>
+</div>
+</div>
+</section>
+<section data-screen="s11">
+<div class="p hd">
+<img class="p hb" src="assets/s11.e01.png" alt="" data-el="s11.e01" data-edge="s11.back>s03" data-transition="back" style="left:8px">
+<div class="p ttl" data-el="s11.e02" style="left:172.9px;width:65.9px">Create</div>
+</div>
+<div class="p nw" data-el="s11.e03" style="left:16px;top:57.9px;width:251.1px;font-size:20px;line-height:25.1px;font-weight:700">Start with an idea or remix.</div>
+<div class="p" style="left:16px;top:107px;width:379.4px;height:199.3px;border-radius:16px;background:var(--bg-2);border:1px solid #3d3d3d"></div>
+<div class="p t14" data-el="s11.e04" style="left:32px;top:123px;width:347.4px;height:128px;line-height:17.6px;color:#cacaca"><span data-el="s11.e05">I want to make a chaotic mini-game where you tap to keep a llama from escaping.</span></div>
+<div class="p" data-el="s11.e06" style="left:343.6px;top:255.2px;width:48px;height:48px"><i class="p" style="left:4px;top:4px;width:40px;height:40px;border-radius:50%;background:#fdfdfd"></i><svg class="p" data-el="s11.e07" style="left:11.8px;top:11.9px" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></div>
+<div class="p" data-el="s11.e08" style="left:16px;top:315.1px;width:379.4px;font-size:12px;line-height:15.25px;text-align:center;color:#b8b8b8">Luzia is AI and can make mistakes. Creations are public once published.</div>
+<div class="p cd" style="left:16px"></div>
+<div class="p t14 nw" data-el="s11.e10" style="left:32px;top:367.6px;width:81.5px;font-weight:700">Pixel Art Pad</div>
+<div class="p t14 nw" data-el="s11.e11" style="left:32px;top:385.1px;width:55.2px;color:#c8c8c8">Creative</div>
+<div class="p cd" style="left:254.4px"></div>
+<div class="p t14 nw" data-el="s11.e13" style="left:270.1px;top:367.6px;width:113.5px;font-weight:700">Gratitude Journal</div>
+<div class="p t14 nw" data-el="s11.e14" style="left:270.1px;top:385.1px;width:54.5px;color:#c9c9c9">Lifestyle</div>
+</section>
+<section data-screen="s13">
+<img class="a" data-el="s13.e01" data-edge="s13.back>s03" data-transition="back" src="assets/s13.e01.png" alt="Back" style="left:8px;top:0;width:48px;height:48px">
+<div class="a cd bd" data-el="s13.e03" aria-label="Photoedit" style="left:12.2px;top:72px;width:387.1px;height:545.9px"><i class="ln" style="left:97.4px"></i><i class="ln dl" style="left:289.8px"></i><img class="a" src="assets/s13.e03.art.png" alt="" style="left:0;top:0;width:387px;height:501.7px"></div>
+<div class="a" style="left:28.3px;top:565.5px;width:354.5px;height:36px;border-radius:18px;background:var(--bg-3)"></div>
+<span class="t c" data-el="s13.e05" style="left:167.2px;top:573.7px;width:77.3px;height:20.2px;font:500 16.5px/20.2px var(--font-1);color:var(--fg-2)">Open app</span>
+<div class="t" data-el="s13.e06" style="left:16px;top:633.9px;width:105.1px;height:27.8px;font:700 23px/27.8px var(--font-1)">Photoedit</div>
+<span class="t" data-el="s13.e07" style="left:16px;top:669.7px;width:51.4px;height:17.5px;font:400 14px/17.5px var(--font-1);color:#c9c9c9">By Luzia</span>
+<div class="a pl" style="left:16px;top:694.8px;width:120.8px;height:39.6px"></div>
+<div class="a pl" style="left:144.8px;top:694.8px;width:120.8px;height:39.6px"></div>
+<div class="a pl" style="left:274.2px;top:694.8px;width:121.2px;height:39.6px"></div>
+<svg class="a" style="left:58px;top:706.5px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e9435b" stroke-width="2.2" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 7.9 3.6 4.5 7 4.5c2 0 3.6 1.1 5 3 1.4-1.9 3-3 5-3 3.4 0 5.6 3.4 4.3 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg>
+<span class="t ps" data-el="s13.e09" data-value="c2" style="left:83px;width:15.2px">2K</span>
+<svg class="a" style="left:182.5px;top:706.5px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f0913a" stroke-width="2.2" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-4-5.5 4z"/></svg>
+<span class="t ps" data-el="s13.e11" data-value="c3" style="left:207.6px;width:24.4px">1.4K</span>
+<svg class="a" style="left:308px;top:706.5px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 13v6.5h14V13"/></svg>
+<span class="t ps" data-el="s13.e13" style="left:328.8px;width:32.8px">Share</span>
+<div class="a" data-el="s13.e15" role="button" aria-label="Remix" style="left:16px;top:739.4px;width:379.4px;height:43.4px"><img class="a" data-el="s13.e14" src="assets/s13.e14.png" alt="" style="left:0;top:3.8px;width:379.4px;height:39.6px"></div>
+<svg class="a" style="left:165px;top:800.5px" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8e8e8e" stroke-width="2.2" stroke-linejoin="round"><path d="M5 22V3h13l-2.5 4.5L18 12H5"/></svg>
+<span class="t" data-el="s13.e17" style="left:182.9px;top:799.2px;width:64.4px;height:15.2px;font:500 12.5px/15.2px var(--font-1);color:#8e8e8e">Report app</span>
+</section>
+<section data-screen="s14">
+<div class="a" style="left:0;top:0;width:411px;height:51.8px;background:var(--bg-1);z-index:2">
+<span class="t" data-el="s14.e02" style="left:16px;top:12.2px;width:89.9px;height:15.6px;font:600 22px/32px var(--font-1);color:#8e8e8e">My Apps</span>
+<span class="t" data-el="s14.e04" style="left:121.9px;top:8px;width:80px;height:19.8px;font:600 22px/28px var(--font-1)">Explore</span>
+<i class="a" style="left:121.9px;top:41.7px;width:79.6px;height:2px;border-radius:1px;background:var(--bg-3)"></i>
+<div class="a fx" data-el="s14.e05" aria-label="Search" style="left:355.4px;top:1.9px;width:48px;height:48px"><span class="fx rd" style="width:31px;height:31px;background:var(--bg-2);border:1px solid #3c3c3c"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="7"/><path d="M16 16l5 5"/></svg></span></div>
+</div>
+<div class="a" data-el="s14.e07" aria-label="Photoedit" style="left:16px;top:51.8px;width:379.4px;height:186.3px;overflow:hidden;border-radius:0 0 20px 20px;background:linear-gradient(180deg,rgba(60,15,30,0) 40%,rgba(60,15,30,.6)),linear-gradient(165deg,#f8a4d4,#f08bbb 35%,#dd5f80 70%,#c33b57)">
+<i class="ln" style="left:105.9px"></i>
+<i class="a rd" style="left:107px;top:-82.8px;width:165.6px;height:165.6px;border:1px dashed rgba(255,255,255,.45)"></i>
+<img class="a" src="assets/s14.e07.art.png" alt="" style="left:123.5px;top:.1px;width:255.9px;height:186.2px">
+<i class="a rd" style="left:16px;top:162px;width:7.5px;height:7.5px;background:#fff"></i>
+<i class="a rd" style="left:28.4px;top:162px;width:7.5px;height:7.5px;background:rgba(255,255,255,.4)"></i>
+<i class="a rd" style="left:40.7px;top:162px;width:7.5px;height:7.5px;background:rgba(255,255,255,.4)"></i>
+</div>
+<span class="t" data-el="s14.e08" style="left:32px;top:144.4px;width:56px;height:15.2px;font:600 12px/15.2px var(--font-1)">CREATIVE</span>
+<span class="t" data-el="s14.e09" style="left:32px;top:161.5px;width:96.4px;height:25.1px;font:600 21px/25.1px var(--font-1)">Photoedit</span>
+<span class="t" data-el="s14.e10" style="left:32px;top:188.6px;width:107.4px;height:17.5px;font:400 14.5px/17.5px var(--font-1);color:#fdfdfd">Edit your images</span>
+<span class="t" data-el="s14.e11" style="left:16px;top:260.2px;width:379.4px;height:25.1px;font:600 20px/25.1px var(--font-1)">Trending</span>
+<div class="a tc bd" data-el="s14.e13" aria-label="Photoedit" style="left:16px;top:297.5px;width:150.1px;height:266.7px;background:linear-gradient(90deg,#f588d0,#f4a8cd) 0 0/100% 22px no-repeat,linear-gradient(180deg,#f590c8,#e45a78 55%,#9a4561 81%,#5d3446)"><i class="ln" style="left:27.8px"></i><i class="ln" style="left:121.9px"></i><img class="a" src="assets/s14.e13.art.png" alt="" style="left:0;top:21.8px;width:150.1px;height:198px"><i class="a" style="left:107px;top:0;width:33.6px;height:21.8px;background:#d29eb8"></i></div>
+<span class="t c" data-el="s14.e18" style="left:131.4px;top:301.7px;width:17.1px;height:17.5px;font:700 15px/17.5px var(--font-1)">#1</span>
+<span class="t ct" data-el="s14.e14" style="left:28.2px;width:67.4px">Photoedit</span>
+<svg class="a hi" style="left:29px" viewBox="0 2 24 20"><path d="M12 21S3.5 15.8 2 10.7C.8 6.6 3.4 3 7 3c2.1 0 3.8 1.1 5 2.9C13.2 4.1 14.9 3 17 3c3.6 0 6.2 3.6 5 7.7C20.5 15.8 12 21 12 21z"/></svg>
+<span class="t st" data-el="s14.e15" data-value="c2" style="left:42.3px;width:15.2px">2K</span>
+<span class="t st" data-el="s14.e16" style="left:61.7px;width:4.2px;color:#c1b4ba">·</span>
+<svg class="a bk" style="left:72px" viewBox="5 2 14 20"><path d="M5 2h14v20l-7-5-7 5z"/></svg>
+<span class="t st" data-el="s14.e17" data-value="c3" style="left:84.2px;width:24.4px">1.4K</span>
+<div class="a tc bd" data-el="s14.e20" aria-label="Anima" style="left:178.3px;top:297.5px;width:150.1px;height:266.7px;background:linear-gradient(90deg,#6ebf7f,#b5d35b) 0 0/100% 22px no-repeat,linear-gradient(180deg,#8cc56c,#7e9fa8 55%,#6d808b 81%,#4c575c)"><i class="ln" style="left:27.8px"></i><i class="ln" style="left:121.9px"></i><img class="a" src="assets/s14.e20.art.png" alt="" style="left:0;top:21.8px;width:150px;height:198px"><i class="a" style="left:106.6px;top:0;width:34px;height:21.8px;background:#8faa72"></i></div>
+<span class="t c" style="left:292.2px;top:301.7px;width:20.2px;height:17.5px;font:700 15px/17.5px var(--font-1)">#2</span>
+<span class="t ct" data-el="s14.e21" style="left:190.5px;width:41.5px">Anima</span>
+<svg class="a hi" style="left:191px" viewBox="0 2 24 20"><path d="M12 21S3.5 15.8 2 10.7C.8 6.6 3.4 3 7 3c2.1 0 3.8 1.1 5 2.9C13.2 4.1 14.9 3 17 3c3.6 0 6.2 3.6 5 7.7C20.5 15.8 12 21 12 21z"/></svg>
+<span class="t st" data-el="s14.e22" style="left:204.6px;width:24px">1.3K</span>
+<span class="t st" data-el="s14.e23" style="left:232.8px;width:4.2px;color:#bcbfc0">·</span>
+<svg class="a bk" style="left:243px" viewBox="5 2 14 20"><path d="M5 2h14v20l-7-5-7 5z"/></svg>
+<span class="t st" style="left:255.2px;width:12.6px">1K</span>
+<div class="a tc bd" data-el="s14.e27" aria-label="Stories" style="left:340.6px;top:297.5px;width:70.9px;height:266.7px;border-radius:20px 0 0 20px;background:#131715"><img class="a" src="assets/s14.e27.art.png" alt="" style="left:0;top:.1px;width:70.8px;height:219.7px"></div>
+<i class="a" style="left:348.5px;top:531.8px;width:70px;height:24px;border-radius:12px;background:rgba(110,110,110,.85)"></i>
+<span class="t ct" data-el="s14.e28" style="left:352.8px;width:47.2px;color:#a0a0a0">Stories</span>
+<svg class="a hi" style="left:353.8px" viewBox="0 2 24 20"><path d="M12 21S3.5 15.8 2 10.7C.8 6.6 3.4 3 7 3c2.1 0 3.8 1.1 5 2.9C13.2 4.1 14.9 3 17 3c3.6 0 6.2 3.6 5 7.7C20.5 15.8 12 21 12 21z"/></svg>
+<span class="t st" style="left:366.9px;width:23.2px">580</span>
+<span class="t st" data-el="s14.e30" style="left:394.3px;width:4.2px;color:#1f1f1f">·</span>
+<svg class="a bk" style="left:405px" viewBox="5 2 14 20"><path d="M5 2h14v20l-7-5-7 5z"/></svg>
+<svg class="a fi" style="left:15.5px;stroke:#fff" viewBox="0 0 24 24"><path d="M12 2.5c.6 3.8 5.5 5.6 5.5 10.5a5.5 5.5 0 0 1-11 0c0-2.6 1.4-4.3 2.6-5.3.2 1.9 1 3 2.3 3.4C10.8 8.8 11 5.6 12 2.5z"/></svg>
+<span class="t ft" style="left:38.1px;width:24.8px;color:#fff;font-weight:600">Hot</span>
+<i class="a" style="left:16px;top:599.7px;width:46.5px;height:2px;border-radius:1px;background:#fff"></i>
+<svg class="a fi" style="left:83px" viewBox="0 0 24 24"><path d="M10 3.5l1.6 4.9 4.9 1.6-4.9 1.6L10 16.5l-1.6-4.9L3.5 10l4.9-1.6zM18 14l.8 2.2 2.2.8-2.2.8L18 20l-.8-2.2L15 17l2.2-.8z"/></svg>
+<span class="t ft" data-el="s14.e33" style="left:105.1px;width:30.5px">New</span>
+<svg class="a fi" style="left:156px" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1 0 1.6-.7 1.6-1.6 0-.5-.2-.8-.5-1.1-.3-.3-.5-.7-.5-1.1 0-.9.7-1.6 1.6-1.6h1.9c2.8 0 5-2.2 5-5C21 6.6 17 3 12 3zM7.5 11.5h.01M10 7.5h.01M15 7.5h.01"/></svg>
+<span class="t ft" data-el="s14.e35" style="left:177.9px;width:57.1px">Creative</span>
+<svg class="a fi" style="left:255.5px" viewBox="0 0 24 24"><path d="M6.5 7h11a4.5 4.5 0 0 1 4.5 4.5v1a4.5 4.5 0 0 1-4.5 4.5h-11A4.5 4.5 0 0 1 2 12.5v-1A4.5 4.5 0 0 1 6.5 7zM7.5 10v4M5.5 12h4M15 11h.01M17.5 13.5h.01"/></svg>
+<span class="t ft" data-el="s14.e37" style="left:277.3px;width:48.4px">Arcade</span>
+<svg class="a fi" style="left:346.3px" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+<span class="t ft" data-el="s14.e39" style="left:368px;width:35px">Tools</span>
+<div class="a gc bd" data-el="s14.e40" aria-label="arcade game card" style="left:16px;top:614.1px;width:183.6px;height:144.4px">
+<div class="a" data-el="s14.e41" aria-label="GTA VI" style="left:0;top:0;width:100%;height:100%;background:#1e202f">
+<i class="a gl" style="left:0;top:0;width:67px;height:100%;background-color:#231a30;border-right:2px solid #7a2f6a"></i>
+<i class="a" style="left:69px;top:0;width:49px;height:100%;background:#2a2b34"></i>
+<i class="a" style="left:92px;top:0;width:2px;height:100%;background:repeating-linear-gradient(180deg,#c9ac36 0 8px,transparent 8px 20px)"></i>
+<i class="a gl" style="left:118px;top:0;width:62px;height:100%;background-color:#18223a;border-left:2px solid #2e8a9e;border-right:2px solid #2e8a9e"></i>
+<i class="a" style="left:85.5px;top:65px;width:13px;height:16px;border-radius:2px;background:#c4323c"></i>
+<i class="a" style="left:10px;top:50px;width:5px;height:9px;background:#e3a07a"></i>
+<i class="a" style="left:166px;top:32px;width:5px;height:9px;background:#e3a07a"></i>
+<i class="a" style="left:162px;top:69px;width:5px;height:9px;background:#e3a07a"></i>
+<div class="a" style="left:5.4px;top:-1px;width:93.6px;height:26.7px;background:#14161e;border:1px solid #4a5a6a;border-radius:5px">
+<span class="t" style="left:4px;top:1px;font:500 5.5px/8px var(--font-1);color:#aaa;letter-spacing:.5px">CHAOS</span>
+<span class="t" style="left:30px;top:-1px;font:800 11px/11px var(--font-1)">000000</span>
+<span class="t" style="left:73px;top:0;font:700 6px/9px var(--font-1)">♥♥♥</span>
+<span class="t" style="left:5px;top:13px;font:800 6.5px/9px var(--font-1);color:#e8c23a;letter-spacing:.4px">WANTED ☆☆☆☆☆</span>
+</div>
+</div>
+</div>
+<div class="a gc bd" aria-label="chess game card" style="left:211.8px;top:614.1px;width:183.6px;height:144.4px;background:#433327">
+<span class="t" style="left:11.6px;top:3px;font:400 6.5px/9px var(--font-1);color:#9c8a72">White vs. the walnut computer</span>
+<i class="a" style="left:149px;top:-2px;width:29px;height:14px;border:1px solid #6b5540;border-radius:0 0 6px 6px"></i>
+<div class="a" style="left:8.2px;top:19px;width:166px;height:130px;background:#4c392a;border:1.5px solid #6d5842;border-radius:10px"></div>
+<span class="t c" style="left:8.2px;top:30px;width:166px;font:700 13.5px/18px Georgia,serif;color:#f2e8d8">Chess 2000 ELO</span>
+<i class="a" style="left:20.7px;top:54px;width:141.3px;height:100px;border-radius:4px;background:#5b4634"></i>
+<i class="a" style="left:23.4px;top:58px;width:136.3px;height:90px;background:repeating-conic-gradient(#9d7a56 0 25%,#e9dbc3 0 50%) 0 0/34.1px 34.1px"></i>
+</div>
+<i class="a" style="left:0;top:698px;width:411px;height:68px;background:linear-gradient(180deg,rgba(0,0,0,0),#000 90%)"></i>
+<div class="a" style="left:16px;top:706px;width:379.4px;height:36px;border-radius:18px;background:var(--bg-3)"></div>
+<span class="t c" data-el="s14.e45" style="left:162.7px;top:714.3px;width:86.5px;height:20.2px;font:500 16.5px/20.2px var(--font-1);color:var(--fg-2)">Create app</span>
+<nav class="a" data-chrome="tabbar" style="left:0;top:765px;width:411px;height:73.2px;background:var(--bg-1)">
+<div class="a" data-el="s14.e46" data-edge="s14.e46>s01" data-transition="tab" role="button" aria-label="Chat" style="left:4.2px;top:9.5px;width:128.8px;height:48px">
+<svg class="a ti" data-el="s14.e47" aria-label="Chat" style="left:52.6px;top:1.1px" viewBox="0 0 24 24"><path d="M12 2.8a9.2 9.2 0 1 1-4.3 17.3L3 21.2l1.2-4.4A9.2 9.2 0 0 1 12 2.8z"/><path d="M8.8 8.5h6.2l-4.2 3.2c2.6-.3 4.5 1 4.3 2.9-.2 1.6-2 2.5-4.1 2"/></svg>
+<span class="t c tl" style="left:48.4px;top:29.3px;width:32px;color:#c7c7c7">Chat</span>
+</div>
+<svg class="a ti" data-el="s14.e50" aria-label="Services" style="left:193.5px;top:10.6px" viewBox="0 0 24 24"><path d="M2.5 19h19M4.5 19a7.5 7.5 0 0 1 15 0M12 11.5V10M17.5 3.5l.7 1.6 1.6.7-1.6.7-.7 1.6-.7-1.6-1.6-.7 1.6-.7z"/></svg>
+<span class="t c tl" style="left:177.9px;top:38.8px;width:55.6px;color:#c6c6c6">Services</span>
+<i class="a rd" style="left:326.6px;top:6.3px;width:31.5px;height:31.5px;background:#112255"></i>
+<svg class="a" style="left:330.7px;top:10.6px" width="24" height="24" viewBox="0 0 24 24" fill="#4264fc"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>
+<span class="t c tl" style="left:319.6px;top:38.8px;width:46.1px;font-weight:600;color:#fff">Create</span>
+</nav>
+</section>
+<section data-screen="s04">
+<img class="a" data-el="s04.e01" data-edge="s04.back>s01" data-transition="back" src="assets/s04.e01.png" alt="Back" style="left:8px;top:0;width:48px;height:48px">
+<span class="t c" data-el="s04.e02" style="left:160.8px;top:11.4px;width:89.9px;height:25.1px;font:600 20px/25.1px var(--font-1)">New chat</span>
+<div class="pc" data-el="s04.e04" aria-label="Luzia" style="left:16px;top:72px"><i style="left:27px;width:70px;background:#a8dcc4"></i><img src="assets/s04.e04.art.png" alt=""><span data-el="s04.e05">Luzia</span></div>
+<div class="pc" data-el="s04.e07" aria-label="Teacher" style="left:145.1px;top:72px"><i style="left:22px;width:78px;background:#a9b8f0"></i><img src="assets/s04.e07.art.png" alt=""><span data-el="s04.e08">Teacher</span></div>
+<div class="pc" style="left:274.3px;top:72px"><i style="left:9px;width:97px;background:linear-gradient(90deg,#2b2b2b 0 22%,#8a5bd0 22% 30%,#2b2b2b 30% 70%,#8a5bd0 70% 78%,#2b2b2b 78%)"></i><img src="assets/s04.e10.art.png" alt=""><span>Friend</span></div>
+<div class="pc" style="left:16px;top:201.1px"><i style="left:13px;width:95px;background:#1c2a6e"></i><img src="assets/s04.e13.art.png" alt=""><span>Elias</span></div>
+<div class="pc" style="left:145.1px;top:201.1px"><i style="left:14px;width:93px;background:linear-gradient(90deg,#b86b3c 0 22%,#2a2a2a 22% 78%,#b86b3c 78%)"></i><img src="assets/s04.e16.art.png" alt=""><span>Trainer</span></div>
+<div class="pc" style="left:274.3px;top:201.1px"><i style="left:12px;width:97px;background:#f2f2f2"></i><img src="assets/s04.e19.art.png" alt=""><span>Chef</span></div>
+<div class="pc" style="left:16px;top:330.3px"><i style="left:8px;width:91px;background:repeating-linear-gradient(180deg,#f3ecd9 0 5px,#222 5px 8px)"></i><img src="assets/s04.e22.art.png" alt=""><span>Languages</span></div>
+<div class="pc" style="left:145.1px;top:330.3px"><i style="left:27px;width:67px;background:#ecd0e8"></i><img src="assets/s04.e25.art.png" alt=""><span>Intimate</span></div>
+<div class="pc" style="left:274.3px;top:330.3px"><i style="left:6px;width:105px;background:#efe98a"></i><img src="assets/s04.e28.art.png" alt=""><span>Marketing</span></div>
+<div class="pc" style="left:16px;top:459.4px"><i style="left:14px;width:93px;background:linear-gradient(90deg,#f5f5f5 0 14%,#6aa66a 14% 86%,#f5f5f5 86%)"></i><img src="assets/s04.e31.art.png" alt=""><span>Stylist</span></div>
+<div class="pc" style="left:145.1px;top:459.4px"><i style="left:13px;width:93px;background:linear-gradient(90deg,#2d3fa8 0 12%,#2a2a2a 12% 88%,#2d3fa8 88%)"></i><img src="assets/s04.e34.art.png" alt=""><span>Astrologer</span></div>
+<div class="pc" style="left:274.3px;top:459.4px"><i style="left:21px;width:73px;background:#a8dcc4"></i><img src="assets/s04.e37.art.png" alt=""><span>Kawaii</span></div>
+<div class="pc" style="left:16px;top:588.6px"><i style="left:21px;width:81px;background:#a89c90"></i><img src="assets/s04.e40.art.png" alt=""><span>Legal</span></div>
+<div class="pc" style="left:145.1px;top:588.6px"><i style="left:23px;width:78px;background:#d8c3a5"></i><img src="assets/s04.e43.art.png" alt=""><span>Adult</span></div>
+<div class="pc" style="left:274.3px;top:588.6px"><i style="left:9px;width:94px;background:#f6f6f6"></i><img src="assets/s04.e46.art.png" alt=""><span>Staff</span></div>
+<span class="t" data-el="s04.e48" style="left:16px;top:741.7px;width:379.4px;height:25.1px;font:600 20px/25.1px var(--font-1)">Try something else</span>
+<div class="a" data-el="s04.e50" aria-label="Toki" style="left:16px;top:782.9px;width:121.1px;height:79.6px;border-radius:16px;overflow:hidden;background:#4667fa"><i class="a rd" style="left:22.5px;top:8.1px;width:76px;height:76px;background:radial-gradient(circle at 50% 40%,rgba(255,255,255,.28),rgba(255,255,255,.1));border:1px solid rgba(255,255,255,.2)"></i></div>
+<svg class="a" data-el="s04.e53" aria-label="bunny character card" style="left:52.2px;top:791.2px" width="48" height="47.2" viewBox="0 0 48 47.2"><path d="M14 36C10 25 11 12 17 6c5 5 8 16 7 28z" fill="#bdb4eb"/><path d="M42 36c3-11 2-24-4-30-5 5-8 16-7 28z" fill="#bdb4eb"/><path d="M16.5 30c-2-7-1-15 1.5-19 3 4 4 11 3.5 18z" fill="#d8cdf5"/><path d="M39 30c1.5-7 1-15-1.5-19-3 4-4 11-3.5 18z" fill="#d8cdf5"/><ellipse cx="28" cy="52" rx="21" ry="19" fill="#bdb4eb"/></svg>
+<div class="a" data-el="s04.e52" aria-label="Custom Bestie" style="left:145.1px;top:782.9px;width:121.1px;height:79.6px;border-radius:16px;overflow:hidden;background:var(--bg-4)"></div>
+<svg class="a" data-el="s04.e54" aria-label="create new character" style="left:181.7px;top:791.2px" width="48" height="47.2" viewBox="0 0 48 47.2"><circle cx="7.5" cy="27" r="4" fill="#000"/><circle cx="38.5" cy="27" r="4" fill="#000"/><ellipse cx="23" cy="24" rx="16" ry="22" fill="#000"/><path d="M23 15.6v22M12 26.6h22" stroke="#fff" stroke-width="4.5"/></svg>
+</section>
+<section data-screen="s15">
+<img class="a" data-el="s15.e11" src="assets/s15.e11.png" alt="Back" style="left:8px;top:4.2px;width:48px;height:48px">
+<div class="a rd" data-el="s15.e12" aria-label="User avatar" style="left:56px;top:8px;width:40px;height:40px;overflow:hidden;background:#112255"><svg width="40" height="40" viewBox="0 0 40 40"><path d="M9 22c-2-9 3-16 11-16s13 6 11 15l-2 5-3-10H14l-3 10z" fill="#df734c"/><path d="M6 42c1-7 6-10.5 14-10.5S33 35 34 42z" fill="#9fb0ee"/><rect x="17" y="27" width="6" height="6" fill="#f2cdbd"/><path d="M15 31.5h10v2a5 5 0 0 1-10 0z" fill="#b8c4f4"/><ellipse cx="20" cy="20.5" rx="7.5" ry="8.5" fill="#f6d7c8"/><path d="M11.5 17c1-6 6-9 11-8 4 1 6 4 6.5 8-4-3-11-4-17.5 0z" fill="#df734c"/><g fill="none" stroke="#2a2a2a" stroke-width="1"><circle cx="16.7" cy="20.5" r="2.6"/><circle cx="23.3" cy="20.5" r="2.6"/><path d="M19.3 20.5h1.4"/></g><path d="M18.3 25.2q1.7 1 3.4 0" stroke="#b5584a" stroke-width=".9" fill="none"/></svg></div>
+<span class="t" data-el="s15.e13" style="left:104px;top:15.6px;width:251.4px;height:25.1px;font:600 20px/25.1px var(--font-1)">Teacher</span>
+<img class="a" data-el="s15.e14" src="assets/s15.e14.png" alt="Search" style="left:355.4px;top:4.2px;width:48px;height:48px">
+<div class="a" style="left:181.7px;top:78px;width:48px;height:22px;border:1px solid #3a3a3a;border-radius:11px"></div>
+<div class="a" style="left:16px;top:64.1px;width:379.4px;height:25.2px;border-radius:8px;background:var(--bg-2)"></div>
+<span class="t c" data-el="s15.e16" data-value="c4" style="left:24px;top:68.2px;width:363.4px;height:17.5px;font:400 14px/17.5px var(--font-1);color:#cacaca">Our new chat</span>
+<div class="t" data-el="s15.e02" style="left:16px;top:113.9px;width:379.4px;height:121.1px;font:400 16.5px/20.2px var(--font-1);color:#fefefe">Hello! I am Teacher, your personal tutor. I'm here to <br>resolve your doubts, clarify those difficult <br>concepts, and guide you in your learning journey. <br>Every day is an opportunity to learn something <br>new. Which topic would you like to delve into <br>today?</div>
+<div class="a" data-el="s15.e03" style="left:0;top:672.4px;width:411.4px;height:36.2px;background:var(--bg-1)"></div>
+<div class="a" style="left:8px;top:716.2px;width:394.5px;height:92px;border-radius:18px;background:#363636"></div>
+<span class="t" data-el="s15.e06" style="left:16px;top:726.5px;width:89.9px;height:20.2px;font:400 16px/20.2px var(--font-1);color:var(--fg-4)">Ask Teacher</span>
+<img class="a" data-el="s15.e07" src="assets/s15.e07.png" alt="Attach" style="left:8px;top:760.8px;width:48px;height:48px">
+<i class="a rd" style="left:363.4px;top:768.6px;width:31.6px;height:31.6px;background:var(--bg-3)"></i>
+<svg class="a" data-el="s15.e09" aria-label="Audio Button" style="left:369.5px;top:774.9px" width="19.8" height="19.8" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
+<span class="t c" data-el="s15.e10" style="left:8px;top:816.8px;width:395.4px;height:13.7px;font:400 11px/13.7px var(--font-1);color:#adadad">Luzia is AI and can make mistakes. Verify important information.</span>
+</section>
+<section data-screen="s03">
+<div data-chrome="header" class="a" style="left:0;top:0;width:411px;height:52px">
+<div data-el="s03.e01" class="a" style="left:16px;top:2.3px;width:89.9px;height:48px"><div data-el="s03.e02" class="a sg" style="left:0;top:9.9px;width:89.9px;height:27.8px">My Apps</div></div>
+<div data-el="s03.e04" class="a sg" style="left:121.9px;top:8px;width:80px;height:27.8px;color:var(--fg-1);font-weight:600">Explore</div>
+<div class="a" style="left:121.9px;top:41.4px;width:79.6px;height:2.4px;border-radius:1px;background:var(--fg-1)"></div>
+<div data-el="s03.e05" class="a" style="left:355.4px;top:1.9px;width:48px;height:48px"><div class="a" style="left:8px;top:8px;width:32px;height:32px;box-sizing:border-box;border-radius:50%;background:var(--bg-2);border:1px solid #3e3e3e"></div><svg class="i" viewBox="0 0 24 24" style="left:14px;top:14px;width:20px;height:20px;color:var(--fg-1)"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></div>
+</div>
+<div class="a h2" style="top:70px">Recommended</div>
+<div data-el="s03.e18" data-edge="s03.e18>s13" data-transition="push" class="a" style="left:181.7px;top:172.6px;width:48px;height:48px">
+<div class="cd gf" style="left:-165.7px;top:-65.6px;width:378.4px;height:275.3px">
+<div class="ln" style="left:106px;top:0;width:1px;height:100%"></div>
+<div class="ln" style="left:0;top:62px;width:106px;height:1px"></div>
+<div class="dv" style="left:273px"></div>
+<div class="dh" style="left:273px;top:81px"></div>
+<div class="a" style="left:69.5px;top:2.5px;width:25.5px;height:2.5px;background:#fff"></div>
+<div class="a" style="left:81px;top:-9px;width:2.5px;height:16px;background:#fff"></div>
+<div class="rg" style="left:107px;top:7px;width:164px;height:164px"></div>
+<div class="sh sf"></div>
+<svg class="i" viewBox="0 0 24 24" style="left:285.5px;top:180.5px;width:32px;height:32px;opacity:.55"><path d="m12 2 10 5-10 5L2 7z"/><path d="m2 12 10 5 10-5"/><path d="m2 17 10 5 10-5"/></svg>
+<div class="a" style="left:16px;top:182px;font-size:12px;line-height:15px;font-weight:700;color:rgba(255,255,255,.9)">CREATIVE</div>
+<div class="a" style="left:16px;top:199px;font-size:21px;line-height:26px;font-weight:700">Photoedit</div>
+<div class="a" style="left:16px;top:226px;font-size:14px;line-height:18px">Edit your images</div>
+<div class="dt" style="left:16px;background:#fff"></div><div class="dt" style="left:28.3px"></div><div class="dt" style="left:40.6px"></div>
+</div>
+<svg class="i" viewBox="2 2 20 20" style="left:-18px;top:-18px;width:84px;height:84px"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>
+</div>
+<div data-el="s03.e19" data-edge="s03.e19>s13" data-transition="push" class="a" style="left:65.1px;top:115.4px;width:48px;height:48px">
+<div class="pk"><svg class="i" viewBox="0 0 24 24" style="left:9px;top:3px;width:22px;height:22px;stroke-width:2.4"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg><span class="a" style="left:35px;top:6px;font-size:13px;line-height:18px;font-weight:700">Luzia's Pick</span></div>
+</div>
+<div class="a h2" style="top:404.5px">Trending</div>
+<div data-el="s03.e06" class="a" style="left:142.1px;top:435.1px;width:127.2px;height:20.2px;font-size:16px;line-height:20.2px;color:#363636">Loading content</div>
+<div data-el="s03.e20" data-edge="s03.e20>s13" data-transition="push" class="a" style="left:66.7px;top:524.6px;width:48px;height:48px">
+<div class="cd g1" style="left:-50.7px;top:-83.1px;width:150px;height:265.1px">
+<div class="ln" style="left:28px;top:0;width:1px;height:100%"></div>
+<div class="dv" style="left:122px"></div>
+<div class="ln" style="left:0;top:90.8px;width:28px;height:1px"></div>
+<div class="dh" style="left:122px;top:101.5px"></div>
+<div class="rg" style="left:28.4px;top:59.8px;width:93px;height:93px"></div>
+<div class="rb">#1</div>
+<svg class="i" viewBox="0 0 24 24" style="left:2.5px;top:42px;width:20px;height:20px"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>
+<svg class="i" viewBox="0 0 24 24" style="left:126.3px;top:38.8px;width:16.5px;height:16.5px;opacity:.55"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/></svg>
+<svg class="i" viewBox="0 0 24 24" style="left:128.3px;top:157.8px;width:18.5px;height:18.5px;opacity:.8"><path d="m12 2 10 5-10 5L2 7z"/><path d="m2 12 10 5 10-5"/><path d="m2 17 10 5 10-5"/></svg>
+<div class="sh s1"></div>
+<div class="a nm">Photoedit</div>
+<div class="st"><svg viewBox="0 0 24 24"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg><b data-value="c2">2K</b><i>·</i><svg viewBox="0 0 24 24" style="width:11px;height:11px"><path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg><b data-value="c3">1.4K</b></div>
+</div>
+<svg class="i" viewBox="2 2 20 20" style="left:0;top:0;width:48px;height:48px"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>
+</div>
+<div data-el="s03.e21" class="a" style="left:228.9px;top:524.6px;width:48px;height:48px">
+<div class="cd g2" style="left:-50.9px;top:-83.1px;width:150px;height:265.1px">
+<div class="ln" style="left:28.8px;top:0;width:1px;height:100%"></div>
+<div class="dv" style="left:121.3px"></div>
+<div class="ln" style="left:0;top:90.8px;width:28.8px;height:1px"></div>
+<div class="dh" style="left:121.3px;top:101.5px"></div>
+<div class="rg" style="left:28.8px;top:59.8px;width:93px;height:93px"></div>
+<div class="rb">#2</div>
+<svg class="i" viewBox="0 0 24 24" style="left:3px;top:38.5px;width:22px;height:22px;opacity:.6"><path d="M9.9 15.5A2 2 0 0 0 8.5 14.1L2.4 12.5a.5.5 0 0 1 0-1l6.1-1.6a2 2 0 0 0 1.4-1.4L11.5 2.4a.5.5 0 0 1 1 0l1.6 6.1a2 2 0 0 0 1.4 1.4l6.1 1.6a.5.5 0 0 1 0 1l-6.1 1.6a2 2 0 0 0-1.4 1.4l-1.6 6.1a.5.5 0 0 1-1 0z"/><path d="M20 3v4M22 5h-4M4 17v2M5 18H3"/></svg>
+<svg class="i" viewBox="0 0 24 24" style="left:129.5px;top:40px;width:18px;height:18px;opacity:.9"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 3v18M17 3v18M3 7.5h4M3 12h18M3 16.5h4M17 7.5h4M17 16.5h4"/></svg>
+<svg class="i" viewBox="0 0 24 24" style="left:127.3px;top:161.8px;width:18.5px;height:18.5px;opacity:.9"><path d="m21.6 2.4-1-1a1.2 1.2 0 0 0-1.7 0L1.4 18.9a1.2 1.2 0 0 0 0 1.7l1 1a1.2 1.2 0 0 0 1.7 0L21.6 4.1a1.2 1.2 0 0 0 0-1.7M14 7l3 3M5 6v4M19 14v4M10 2v2M7 8H3M21 16h-4M11 3H9"/></svg>
+<div class="sh s2"></div>
+<div class="a nm">Anima</div>
+<div class="st"><svg viewBox="0 0 24 24"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg><b>1.3K</b><i>·</i><svg viewBox="0 0 24 24" style="width:11px;height:11px"><path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg><b>1K</b></div>
+</div>
+<svg class="i" viewBox="1 1 22 22" style="left:-2px;top:-2px;width:52px;height:52px"><path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3Z"/><path d="m6.2 5.3 3.1 3.9M12.4 3.4l3.1 4"/><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
+</div>
+<div data-el="s03.e22" class="a" style="left:353.1px;top:524.6px;width:48px;height:48px">
+<div class="cd g3" style="left:-12.6px;top:-83.1px;width:150px;height:265.1px">
+<div class="a" style="left:8px;top:3.5px;width:17px;height:17px;border-radius:50%;background:#262626"></div>
+<svg class="i" viewBox="0 0 24 24" style="left:11.5px;top:7px;width:10px;height:10px;stroke-width:3"><path d="m15 18-6-6 6-6"/></svg>
+<div class="a" style="left:64px;top:5.6px;font-size:7px;line-height:9px;font-weight:700">Stories</div>
+<div class="a" style="left:36.3px;top:37.5px;font-size:11px;line-height:14px;font-weight:700">Your books</div>
+<div class="a" style="left:12.2px;top:56px;font-size:5.5px;line-height:7px;color:#9a9a9a">Pick up where you left off</div>
+<div class="bk" style="left:5.3px;top:70.5px;width:45.4px;height:69.5px;background:linear-gradient(180deg,#3a5b56 0,#1d3833 55%,#0f1e1b 100%)"><span class="bp">In progress</span><span class="bt">The Archive of<br>Unspoken<br>Goodbyes</span><span class="bs" style="top:38px">Melancholic</span><span class="bw" style="top:56px">259 words · 13 Aug<br>2026</span></div>
+<div class="bk" style="left:52.3px;top:70.5px;width:45px;height:69.5px;background:linear-gradient(180deg,#c07443 0,#80442a 55%,#3b2016 100%)"><span class="bp">In progress</span><span class="bt">The Ar<br>Revol</span><span class="bs" style="top:32px">Dark &amp;</span></div>
+<div class="bk" style="left:6.5px;top:148px;width:43px;height:66.5px;background:linear-gradient(180deg,#3c3935 0,#5e5041 40%,#a07b50 72%,#3e3228 100%)"><span class="bp">In progress</span><span class="bt">The Salt-Glass<br>Archive</span><span class="bs" style="top:31px">Hopeful</span><span class="bw" style="top:50px">223 words · 13 Aug<br>2026</span></div>
+<div class="ln" style="left:50px;top:213px;width:40px;height:1px;opacity:.8"></div>
+<div class="sh s3"></div>
+<div class="a" style="left:8px;top:237px;width:84px;height:21px;border-radius:10.5px;background:rgba(125,125,125,.55)"></div>
+<div class="a nm">Stories</div>
+<div class="st" style="left:12.5px"><svg viewBox="0 0 24 24"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/></svg><b>580</b><i>·</i><svg viewBox="0 0 24 24" style="width:11px;height:11px"><path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div>
+</div>
+</div>
+<div class="a" style="left:393px;top:719px;font-size:16px;line-height:20px;color:#8e8e8e">s</div>
+<div class="a" style="left:16px;top:742.5px;width:46.5px;height:2.5px;border-radius:2px;background:#4d4d4d"></div>
+<div data-el="s03.e07" data-edge="s03.e07>s11" data-transition="push" class="a" style="left:16px;top:700.6px;width:379.4px;height:48px;z-index:5">
+<div class="a" style="left:0;right:0;top:6px;bottom:6px;border-radius:18px;background:var(--bg-3)"></div>
+<div data-el="s03.e08" class="a" style="left:146.7px;top:13.7px;width:86.5px;height:20.2px;font-size:16px;line-height:20.2px;font-weight:500;text-align:center;color:var(--fg-2)">Create app</div>
+</div>
+<div data-chrome="tabbar" class="a" style="left:0;top:760px;width:411px;height:78.2px;background:var(--bg-1)">
+<div data-el="s03.e09" data-edge="s03.e09>s01" data-transition="tab" class="a" style="left:4.2px;top:14.5px;width:128.8px;height:48px">
+<svg data-el="s03.e10" class="i" viewBox="0 0 24 24" style="left:52.6px;top:1.1px;width:24px;height:24px;color:var(--fg-4);stroke-width:1.8"><path d="M3.5 20.5l1.3-3.9A9 9 0 1 1 7.4 19.2z"/><path d="M9 9h6l-6 6h6"/></svg>
+<div data-el="s03.e11" class="a tl" style="left:48.4px;top:29.3px;width:32px;height:17.5px;color:#c7c7c7">Chat</div>
+</div>
+<svg data-el="s03.e13" class="i" viewBox="0 0 24 24" style="left:193.5px;top:15.6px;width:24px;height:24px;color:var(--fg-4);stroke-width:1.8"><path d="M3 18h18"/><path d="M4.5 18a7.5 7.5 0 0 1 15 0"/><path d="M12 10.5V8.5M10.5 8.5h3"/><path d="M18.5 2l.6 1.9 1.9.6-1.9.6-.6 1.9-.6-1.9-1.9-.6 1.9-.6z" stroke-width="1.2"/></svg>
+<div data-el="s03.e14" class="a tl" style="left:177.9px;top:43.8px;width:55.6px;height:17.5px;color:#c6c6c6">Services</div>
+<div class="a cr" style="left:330.7px;top:15.6px;width:24px;height:24px"><svg class="a" viewBox="0 0 24 24" style="left:0;top:0;width:24px;height:24px;fill:var(--bg-4)"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg></div>
+<div data-el="s03.e17" class="a tl" style="left:319.6px;top:43.8px;width:46.1px;height:17.5px;font-weight:700;color:var(--fg-1)">Create</div>
+</div>
+</section>
+<script id="simula-actions" type="application/json">{"s02": {"swipe": ["s09", "push", null]}, "s03": {"swipe": ["s14", "push", null]}, "s04": {"back": ["s01", "back", null]}, "s05": {"back": ["s01", "back", null]}, "s06": {"back": ["s01", "back", null], "type": ["s06", "push", null]}, "s07": {"back": ["s01", "back", null]}, "s08": {"back": ["s02", "back", null]}, "s11": {"back": ["s03", "back", null]}, "s13": {"back": ["s03", "back", null]}}</script>
+<script id="simula-runtime-js">
+(() => {
+  const ROOT = "s01";
+  const find = id => document.querySelector(`[data-screen="${CSS.escape(id)}"]`);
+  let current = null;
+  function show(id, transition) {
+    const target = find(id);
+    if (!target) return false;
+    const from = current && find(current);
+    const closingOverlay = from && from.dataset.parent === id;
+    const kind = transition === 'unknown' ? 'push' : transition;
+    for (const s of document.querySelectorAll('[data-screen]')) s.classList.remove('simula-on', 'simula-push', 'simula-back', 'simula-modal');
+    const parent = target.dataset.parent && find(target.dataset.parent);
+    if (parent) parent.classList.add('simula-on');
+    target.classList.add('simula-on');
+    if (['push', 'back', 'modal'].includes(kind) && !closingOverlay) target.classList.add('simula-' + kind);
+    current = id;
+    document.body.dataset.transition = kind;
+    return true;
+  }
+  // Edges that start on no element come from code's #simula-actions map: {screen: {action: [to, transition, field]}}.
+  // A drag of 48 px or more is a swipe, or the system back when it starts at the left edge and runs right; Escape is
+  // the system back too; Enter in the screen's text field sends what was typed.
+  let actions = null;
+  const actionsOf = () => actions = actions || JSON.parse(document.getElementById('simula-actions')?.textContent || '{}');
+  const gesture = kind => { const a = (actionsOf()[current] || {})[kind]; return !!a && show(a[0], a[1]); };
+  let start = null, dragged = false;
+  document.addEventListener('pointerdown', e => { start = [e.clientX, e.clientY]; dragged = false; });
+  document.addEventListener('pointercancel', () => { start = null; });
+  // A drag that starts on a picture must stay a swipe: the browser's own image drag would cancel the pointer.
+  document.addEventListener('dragstart', e => e.preventDefault());
+  document.addEventListener('pointerup', e => {
+    if (!start) return;
+    const [x, y] = start, dx = e.clientX - x, dy = e.clientY - y;
+    start = null;
+    if (Math.hypot(dx, dy) < 48) return;
+    dragged = true;
+    if (!(x <= 24 && dx > Math.abs(dy) && gesture('back'))) gesture('swipe');
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') gesture('back');
+    const field = e.target.closest && e.target.closest('[data-simula-field]');
+    if (e.key === 'Enter' && field && field.closest('[data-screen]').dataset.screen === current) {
+      e.preventDefault();
+      gesture('type');
+    }
+  });
+  const fields = () => {
+    for (const [sid, a] of Object.entries(actionsOf())) {
+      const id = a.type && a.type[2];
+      const f = id && document.querySelector(`[data-screen="${CSS.escape(sid)}"] [data-el="${CSS.escape(id)}"]`);
+      if (!f) continue;
+      f.contentEditable = 'plaintext-only';
+      f.tabIndex = 0;
+      f.dataset.simulaField = '';
+      // The drawn placeholder gives way on the first focus, as a real field's hint does.
+      f.addEventListener('focus', () => {
+        if ('simulaTyped' in f.dataset) return;
+        f.dataset.simulaTyped = '';
+        f.textContent = '';
+      });
+    }
+  };
+  document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', fields) : fields();
+  document.addEventListener('click', e => {
+    if (dragged) { dragged = false; return; }
+    const el = e.target.closest('[data-edge]');
+    if (!el) return;
+    e.preventDefault();
+    show(el.dataset.edge.split('>').pop(), el.dataset.transition || 'push');
+  });
+  window.simula = {go: id => show(id, 'tab'), state: () => current, reset: () => show(ROOT, 'tab')};
+  show(ROOT, 'tab');
+})();
+</script>
+</body></html>

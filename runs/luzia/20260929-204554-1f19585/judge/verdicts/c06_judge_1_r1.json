@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c06",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in through a dismissible card, and the offer copy states the reward (24 hours in the row plus a 7-day badge). Declining leaves Explore unchanged, and the 'if the ad fails' field covers both no game available and an unconfirmed game."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic spot in a row and a badge, with nothing withdrawable or transferable."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: opening the Explore catalog with a published app and a last session 3 or more days ago. No chat content is needed."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed or capped; the Trending list, likes, saves and creating apps all stay as they are (the 'removes nothing free' field)."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a card on s03, which is rated safe and is not a chat screen. It sits above the featured app, which is app chrome next to safe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is a product change. The reward is visibility for the player's own published app, used in the observed core flow f4 (explore and create mini apps), and it benefits the creator who plays, not another user."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about today's app are supported: ranked Explore with likes, saves and #1/#2 badges (s14.e15, s14.e18, s14.e25), and creations being public once published (s11.e08). The publishing-limit claim is worded as 'not seen', which matches the open question. The new row, badge and copy are the proposal's own additions."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires (24 hours in the row, 7-day badge) and the ranked Trending list is untouched. The separate row does not displace anyone's ranked place."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears on the Explore catalog, a screen the user chose to open, so it interrupts no task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit and the reward is granted only once the game is confirmed (flow step 4). The trigger, a returning user with a published app, is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Create tab's Explore catalog, the Trending list, the like, save and rank badges, and the featured app, so it depends on this app's mini-app platform."
+ },
+ "other_concern": "The 'cited evidence' field is empty even though the text relies on s14 and s11 elements. The returning-creator row could still reduce attention on other apps, and the 'last session' and 'published app' triggers need tracking that was not observed.",
+ "fixable": false
+}

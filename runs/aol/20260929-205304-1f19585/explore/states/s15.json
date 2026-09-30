@@ -1,0 +1,101 @@
+{
+ "schema_version": 1,
+ "state_id": "s15",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "com.aol.mobile.aolapp|2c0036000e0024c030c0000025820001|2ec031c12703230300b00020000004b0|e3b0c44298fc",
+ "foreground_package": "com.aol.mobile.aolapp",
+ "screenshot": "states/s15.png",
+ "elements_reply": "states/s15.elements.json",
+ "settled": true,
+ "settle_seconds": 2.74,
+ "dynamic_regions": [
+  {
+   "x": 80.0,
+   "y": 616.0,
+   "w": 920.0,
+   "h": 720.0
+  },
+  {
+   "x": 360.0,
+   "y": 1376.0,
+   "w": 360.0,
+   "h": 160.0
+  },
+  {
+   "x": 280.0,
+   "y": 2216.0,
+   "w": 160.0,
+   "h": 120.0
+  }
+ ],
+ "captured_at": "2026-09-29T20:58:25",
+ "box": null,
+ "icon_labels": [],
+ "vision_elements": [
+  {
+   "name": "email or phone field",
+   "rect_px": {
+    "x": 477.0,
+    "y": 651.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "forgot username",
+   "rect_px": {
+    "x": 203.0,
+    "y": 805.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "next",
+   "rect_px": {
+    "x": 477.0,
+    "y": 1007.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "create account",
+   "rect_px": {
+    "x": 477.0,
+    "y": 1359.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "help",
+   "rect_px": {
+    "x": 301.0,
+    "y": 2199.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "terms",
+   "rect_px": {
+    "x": 451.0,
+    "y": 2199.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "privacy",
+   "rect_px": {
+    "x": 627.0,
+    "y": 2199.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  }
+ ],
+ "blocked_reason": null
+}

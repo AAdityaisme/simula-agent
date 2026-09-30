@@ -1,0 +1,47 @@
+{
+ "schema_version": 1,
+ "state_id": "s19",
+ "kind": "sheet",
+ "parent_id": "s03",
+ "fingerprint": "com.janitor.ai|a082a322671010929873b18eb18e6496|1112118e0a8a0a8a0a8a0a8a020a0e8a|603d91acd809",
+ "foreground_package": "com.janitor.ai",
+ "screenshot": "states/s19.png",
+ "elements_reply": "states/s19.elements.json",
+ "settled": true,
+ "settle_seconds": 2.79,
+ "dynamic_regions": [],
+ "captured_at": "2026-09-29T20:40:24",
+ "box": {
+  "x": 0.0,
+  "y": 240.0,
+  "w": 1080.0,
+  "h": 2041.0
+ },
+ "icon_labels": [
+  {
+   "mcp_ref": "@e95",
+   "name": "Kang Jun-Seo chat title"
+  }
+ ],
+ "vision_elements": [
+  {
+   "name": "filter settings",
+   "rect_px": {
+    "x": 21.0,
+    "y": 149.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "menu",
+   "rect_px": {
+    "x": 933.0,
+    "y": 149.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  }
+ ],
+ "blocked_reason": null
+}

@@ -1,0 +1,241 @@
+{
+ "schema_version": 1,
+ "fixes": [
+  {
+   "element_id": "s10",
+   "problem": "A stray duplicate layer is drawn over the feed. 'See the latest news' shows at y41 behind the chips, and a second 'Entertainment Weekly' row plus a duplicate headline 'Amber Glenn sobs...' sit at y376-400. The hero headline also doubles up (ghosted text at y313-340). The Temu ad text ('TEMU', 'Ad', 'Elevate Your Ride') and a black dot overlap the E! row at y480-515. A brown rectangle sits at x283,y473. A second 'The Independent US' label overlaps the time row at y747.",
+   "fix": "Remove the header, weather and Temu ad content and any duplicate hero card from this scrolled screen. The real screen has only the chips row at y28, the hero (image 56-276, source row y292, headline y315/338, time row y368), an empty 'AD' gap at y438, then the E!, Independent and NBC rows. Hide the Temu ad thumbnail and its brown block so the AD gap is blank. Use the single 'The Independent US' label at y652 only."
+  },
+  {
+   "element_id": "s01",
+   "problem": "Ad thumbnail on the right (x283, y530, 110x108) is a flat stand-in in green and gray. The real screen shows a Temu go-kart photo collage. Source icons for Entertainment Weekly and E! are drawn as flat blocks, and the text next to them starts too close to the icon.",
+   "fix": "Draw the Temu ad art as its own asset if a listed picture covers it. Use the s01.e63.png-style thumbnail crop at rect 271.2,654.5 only for the E! photo. For the icons, add a 6px gap: start 'Entertainment Weekly' at x43 and 'E!' at x43, both about 1px lower (y433 and y664)."
+  },
+  {
+   "element_id": "s16",
+   "problem": "Ad thumbnail (x283, y531) is a flat avatar placeholder. The real screen shows a woman under a shower. The Kristi Noem headline overlaps a leftover 4th line and the time row, as on s01. The ad headline 'We tested 5 shower filters for hard water - only one helped' is wider than the real one.",
+   "fix": "Render the ad thumbnail as a rounded 108x108 photo crop (not a flat stand-in). Clamp the Noem headline to 3 lines with an ellipsis. Reduce the ad headline font by about 3% so it wraps like the real one, starting at x20."
+  },
+  {
+   "element_id": "s32",
+   "problem": "The Autumn Cleaning ad thumbnail (x271, y271) is a flat placeholder (dark blue figure with orange circles). The real one is a photo of a man on a ladder cleaning gutters. Headlines sit 1-2px lower than on the real screen, and logo rows are flat blocks.",
+   "fix": "Replace the ad thumbnail with a photo crop of the real man-on-ladder image at 271.6,271 120x120 with rounded corners. Move the headline text on the Ezra Frech and Dancing With the Stars rows up 1-2px. Draw the logo rows at their real size, using s32.e12/e32/e38 where they fit."
+  },
+  {
+   "element_id": "s33",
+   "problem": "The Noem hero photo is a flat cartoon (dark rectangle, cream bar, pink block), so the whole 20..572px image area is red. It was flagged in earlier rounds and is still unfixed. No hero picture is listed for s33 or s13, so the real photo cannot be used.",
+   "fix": "Replace the cartoon with a neutral dark (#15171c) block at the same rect (x20, y201, w371, h371). Drop the cream and pink shapes. This lowers the contrast error, since the real photo is mostly dark with pink and skin tones."
+  },
+  {
+   "element_id": "s13",
+   "problem": "The same flat cartoon hero at y200..571 makes the heatmap red across the photo.",
+   "fix": "Use the same neutral dark fill (#15171c) at x20, y200, w371, h371 and remove the cream and pink rectangles."
+  },
+  {
+   "element_id": "s13.e39",
+   "problem": "The 'Test Ad' label is 20.2px high, but the real one is 9.5px high (y829, w54.5).",
+   "fix": "Set the box to height 9.5px at y829 with overflow hidden, so it is clipped by the screen bottom. Keep x178.7 and w54.5."
+  },
+  {
+   "element_id": "s13.e26",
+   "problem": "The bold 'Bryon Noem' run sits at x288.9 with w85.8, but should be x284.6 with w87.2. The same applies to e27 (duplicate tag) at y660.2 and h19.1.",
+   "fix": "Move the bold run to x284.6, set its width to 87.2 and its height to 19.1. Since the letters are narrower, check the preceding text ' husband ' so the run starts 4px earlier, and apply letter-spacing about +0.15px to the bold text."
+  },
+  {
+   "element_id": "s33.e26",
+   "problem": "'Bryon Noem' is at x288.9 w85.8 and should be x284.6 w87.2.",
+   "fix": "Shift it 4px left, make it 87.2 wide and 19.1 high. Check that the text before it, 'Six months after photos of her husband', ends about 4px earlier."
+  },
+  {
+   "element_id": "s19.e29",
+   "problem": "The line ' season 35 air on Tuesdays...' is 352.4 wide and 41.6 high. It should be 348.2 wide and 43 high, starting at y754.3.",
+   "fix": "Narrow the text by about 1%. Use line-height 24.5px so the two lines total 43px, and start the box at y754.3."
+  },
+  {
+   "element_id": "s19",
+   "problem": "The ad thumbnail is a flat brown-gold gradient. The real one is a leaf and ladder photo. No picture is listed for it, and the mock's draw does not match.",
+   "fix": "Draw a mottled orange-brown and olive block, roughly #b7862f with darker #3d4a2b patches, at the thumbnail rect (x32, y142, w60, h60) with radius 8px. Avoid the gradient."
+  },
+  {
+   "element_id": "s05",
+   "problem": "The Temu ad thumbnail is flat blue/gray blocks and a flat red '$2.36'. The real one is a jacket collage with 'TEMU MEGA SALE' at the top. Article text is also 1px high: caption and bullets sit at y644 and y740 instead of 645 and 741.",
+   "fix": "Make the thumbnail a light collage (#e8e4dc background, navy #1c2a4a and gray blocks, dark red #b00 '$2.36' bold). Shift the caption, Key Points and bullet text down 1px. Shrink the bullet text so 'Amber Glenn and Pasha Pashkov scored high on' starts at x40."
+  },
+  {
+   "element_id": "s35",
+   "problem": "The Noem hero photo at the top is a flat cartoon stand-in (dark block, white bar, pink square), so the heatmap is solid red across it. No listed picture covers it on this screen.",
+   "fix": "Redraw the image area x20..391, y0..280 as a dark night photo with the man's black tuxedo, white shirt and bow tie on the left and the woman in a pink dress on the right (#d8207f pink, dark #0b0d14 background). Remove the white bar and the flat magenta rectangle."
+  },
+  {
+   "element_id": "s14",
+   "problem": "The Noem hero photo at y55..425 is a flat cartoon (faceless heads, brown hair blobs). The real screen is a photo, so the whole image area is red.",
+   "fix": "Replace the illustration with a closer stand-in. Use a dark #0a0c12 background, a man in a black tuxedo with a warm-toned face at x115..185, and a woman with long brown hair in a magenta-pink dress at x210..385. Give the heads oval skin tones (#c98a6a), and drop the flat hair-bar shapes."
+  },
+  {
+   "element_id": "s20.e30",
+   "problem": "The top image of s20 (y0..160) is a blurry pink stand-in. The real one shows two dancers in pink and mauve on a stage floor. The back-button picture also has a purple artifact at its lower left.",
+   "fix": "Draw the image as a purple-magenta stage: dancers' legs in pale pink at x20..150 and x250..320, a floor gradient from #c05a8a to #7a3a7a, and a dark step area at the top right. Draw assets/s20.e30.png cleanly at x8, y20.2, 32x32 with no extra overlay."
+  },
+  {
+   "element_id": "s20.e10",
+   "problem": "The bullet 'season 35 air on Tuesdays\u2026' is 352.4 wide x 42 high where 348.2 x 43 is wanted. Bullet text is slightly too wide, and the bullet dots are smaller and set closer to the text than the real ones.",
+   "fix": "Reduce letter-spacing or font-size by about 1.2%, set the line-height to 24px, and make the bullet dots about 5px with a 40px text indent."
+  },
+  {
+   "element_id": "s20.e20",
+   "problem": "The last paragraph is 375.3 wide x 90 high where 369.9 x 91 is wanted. It runs too wide, and 'Foxtrot.' is close to the edge.",
+   "fix": "Narrow the text by about 1.5% so the width is 369.9, keep the line-height at 24px so the height is 91, and set the block top at y603.4."
+  },
+  {
+   "element_id": "s35.e07",
+   "problem": "The bold 'Bryon Noem' is at x288.9, w85.8, h18. The wanted rect is x284.6, w87.2, h19.1. The same text on s14 (s14.e17, s14.e18) and s64 (s64.e13) has the same error.",
+   "fix": "Shift the run 4px left to x284.6, widen it to 87.2 and set the height to 19.1. The preceding text 'Six months after photos of her husband' should end about 4px earlier."
+  },
+  {
+   "element_id": "s35.e18",
+   "problem": "The TE Connectivity ad title 'TE Connectivity Leads AI' and 'Open' are drawn too bold and 2px too far left, and the logo box is offset. Text throughout the ad is heavier than the real one.",
+   "fix": "Use assets/s35.e18.art.png at x56, y557.4, 300.9x137.4 with nothing drawn over it. Set the title to regular weight (#222) starting at x77, and set 'Open' in blue #2a6cf0 at x268."
+  },
+  {
+   "element_id": "s64",
+   "problem": "The title and byline text is slightly wider and bolder than the real one, which causes red streaks in the heatmap. Body text 'Kristi Noem is stepping\u2026' is about 1px off.",
+   "fix": "Reduce the title's letter-spacing by about 1% so 'Kristi Noem Files for Divorce' ends near x350. Keep the same weight as the real one, and move the body text 1px lower."
+  },
+  {
+   "element_id": "s09",
+   "problem": "The background feed behind the dialog is wrong. The mock has a green ad thumbnail on the right at y~530-560, headlines that wrap differently, and a photo card at y655-773 (real y645-765). The 'E!' row is 9px too low. Header 'Home' and the chips sit 1-2px higher than real (Home y21 vs 26).",
+   "fix": "Remove the green ad thumbnail behind the dialog. Move the news card up so the photo card is at y645-765 and the 'E!' row at y653. Set the headline to 3 lines ending 'women's clot...' with the '9h ago' row at y751. Shift the header 'Home' and 'See the latest news' down 4px (to y26 and y46), and the chips and weather bar down 1-2px."
+  },
+  {
+   "element_id": "s17",
+   "problem": "The headline and subtext are wider than real and about 2px higher. The headline spans x58-354 versus 61-351. The subtext spans 58-353 versus 67-344. The Inbox and Home labels are 2px too high.",
+   "fix": "Set the headline to about 17.5px and the subtext to 15px so they span x61-351 and x67-344. Move both down 1-2px (headline centre y432, subtext y461). Move the nav labels down 2px (y827) and reduce them to 11px."
+  },
+  {
+   "element_id": "s15",
+   "problem": "The title 'Sign in to AOL' and the footer links Terms and Privacy are slightly off. The mock title is a bit lighter and wider than the real one. The footer links sit about 1px lower and 2-3px left of the real ones, and the AOL logo is offset by 1-2px.",
+   "fix": "Set the title to about 25px, weight 600, so it ends at x223. Move the footer links up 1px and shift Privacy right 3px (x237-290). Nudge the AOL logo by 1px to match the real crop. Make the Next button and the Create account link 1px lower."
+  },
+  {
+   "element_id": "s03",
+   "problem": "The sidebar labels and title are 1px off and slightly heavier than the real ones. 'Unsubscribe' and 'Call Customer Support' sit 1px lower, and the labels are 1px wider. The background news headline shows 'rehearsal' with a stray quote, wrapping differently.",
+   "fix": "Reduce label letter-spacing slightly (about -0.1px) and use weight 400 in #5f6368-like gray. Move the 'Unsubscribe' and 'Call Customer Support' rows up 1px. Set the background headline to end with 'rehearsal' without the quote mark, matching the real line."
+  },
+  {
+   "element_id": "s21.e10",
+   "problem": "Bullet text 'season 35 air on Tuesdays...' is 352.4 wide and 42 high; the target is 348.2 x 43.0. Lines run slightly wide and the italic run is drawn wider than the real one.",
+   "fix": "Set this run to w348.2 h43 at y294.9. Cut the letter-spacing or font-size by about 1.2% so the line ends at x386.7. Use line-height 24px so the two lines total 43px."
+  },
+  {
+   "element_id": "s21.e20",
+   "problem": "The 'featured the Olympic figure skater...' paragraph is 375.3 wide and 90 high. The target is 369.9 x 91.0 at y462.9. The mock text ends about 5px too far right and is 0.5px too high.",
+   "fix": "Set the box to x19.8 y462.9 w369.9 h91. Narrow the text by about 1.5%, using the same font-size and letter-spacing as the other body paragraphs. Keep line-height 24px."
+  },
+  {
+   "element_id": "s22.e06",
+   "problem": "The bullet 'season 35 air on Tuesdays...' is 352.4 wide and 42 high, but the target is 348.2 x 43 at y166.5.",
+   "fix": "Set the box to w348.2 h43 at y166.5, with the same tighter text width as on s21."
+  },
+  {
+   "element_id": "s22.e16",
+   "problem": "The 'featured the Olympic...' paragraph is 375.3 x 90 at y334. The target is 369.9 x 91 at y334.5.",
+   "fix": "Set the box to x19.8 y334.5 w369.9 h91. Narrow the text about 1.5%."
+  },
+  {
+   "element_id": "s24.e06",
+   "problem": "The 'featured the Olympic...' paragraph is 375.3 x 90 at y40.5. The target is 369.9 x 91 at y40.8.",
+   "fix": "Set the box to x19.8 y40.8 w369.9 h91, with narrower text as on s21.e20."
+  },
+  {
+   "element_id": "s21",
+   "problem": "The ad image is a flat cartoon (ladder, gray tiles) where the real screen shows a photo of a worker on a roof. The heatmap is solid red across the ad. Body text is also slightly wide, so every paragraph shows red streaks.",
+   "fix": "Make the ad art a real-looking worker-on-roof photo: a yellow ladder at left, a worker in a dark cap at center, gray shingles at right. It should sit at x56 y607 w300 h175 with a 6px radius. Reduce the body text width about 1.5% and keep the y positions of the baselines. Draw the back button assets/s21.e33.png at x8 y20.2 w32 h32."
+  },
+  {
+   "element_id": "s22",
+   "problem": "The ad image at y480-654 is a flat placeholder, not the real worker-on-roof photo. Text runs are too wide, giving red streaks across the paragraphs.",
+   "fix": "Use a photo-like worker-on-roof ad at x56 y480 w300 h174. Narrow the body text about 1.5%. Place assets/s22.e31.png at x8 y20.2 w32 h32."
+  },
+  {
+   "element_id": "s23",
+   "problem": "The ad image is a placeholder, and the body text is slightly too wide. The bottom bar text is fine.",
+   "fix": "Use a worker-on-roof photo-style image at x56 y333 w300 h175. Narrow the body text about 1.5%."
+  },
+  {
+   "element_id": "s24",
+   "problem": "The ad is a placeholder, and the DWTS photo at the bottom shows a green blob and a head shape with no real face. The real photo is a blonde woman's face, with a warm brown backdrop and a '#DWTS' watermark at the top right.",
+   "fix": "Draw the ad as a worker-on-roof photo at x56 y185 w300 h175. Redraw the bottom photo (y628-728, x20-391) as a close-up of a blonde woman's face, eyes near y700, on a warm brown background. Place assets/s24.e22.png at x8 y20.2 and assets/s24.e26.png at x363.1 y772.2 w24 h24."
+  },
+  {
+   "element_id": "s25",
+   "problem": "The article photo (Amber Glenn, blonde woman in a gray top against a blurred brick/plant background) is a flat cartoon stand-in. It causes the largest red block on s25, s26, s27 and s28. This was asked for in earlier rounds and the score did not move, because no listed picture covers it.",
+   "fix": "Redraw the photo block at x20, w371 with a realistic look: a blurred dark-orange/brown background (#5a3a22 to #7a4a2a) with a dark green plant on the left, a fair-skinned face with blonde hair pulled back at center-top, and a gray V-neck tee (#8a8a8a) with a black bra strap and a small gold necklace. Keep the image box and its position unchanged. No new image files, drawing only."
+  },
+  {
+   "element_id": "s26",
+   "problem": "The caption 'Amber Glenn on 'Dancing With the Stars'Credit: abc' ends at x355 in the mock against x319 on the real screen. The line under it, 'While spinning...', sits about 1px high.",
+   "fix": "Set the caption font-size to about 13px so the line ends near x319, and lower the paragraph below by 1px."
+  },
+  {
+   "element_id": "s27",
+   "problem": "The same caption is too wide, and the body lines are visibly wider than the real ones. 'graceful dance,' Glenn admitted... runs too far right in the real-vs-mock comparison.",
+   "fix": "Set the caption font-size to about 13px so it ends at x319, and trim body letter-spacing by about 0.2px."
+  },
+  {
+   "element_id": "s28",
+   "problem": "The caption is too wide (ends x355, real x319), and the text paragraphs drift 1px vs the real ones, which shows as red streaks.",
+   "fix": "Set the caption to about 13px, and move the paragraphs 1px up or down to match the real baselines."
+  },
+  {
+   "element_id": "s29.e09",
+   "problem": "The italic bold newsletter line is 363.2 wide where the real one is 356.9, so its text drifts right. It is about 1.8% too wide, and 0.6px too short in height.",
+   "fix": "Narrow the bold-italic run by ~1.8%: reduce letter-spacing by about 0.1px or font-size by ~0.2px so the line ends at x\u2248376.7. Set line-height to 24px so the box is 43px tall with y=721.5. Apply the same change to s30.e09 and s31.e07."
+  },
+  {
+   "element_id": "s29.e11",
+   "problem": "The blue 'EW Dispatch newsletter' link is 344.8 wide vs 339.8 and starts 0.4px too low. e12 is a duplicate with the same error. The real link is also a slightly different blue and looks bolder.",
+   "fix": "Shrink the link run to 339.8 wide by using the same reduced bold-italic sizing as the preceding text. Set its box y=745.5, h=43. Apply the same to e12, and to s30.e11/e12 and s31.e09/e10. Use #1a73e8-like blue (#0f6fff) as in the real screen."
+  },
+  {
+   "element_id": "s29",
+   "problem": "The hero photo shows a gray strip at the left (x20 to 40) because the art is placed at x=40 only. The real photo spans x20 to 391.",
+   "fix": "Draw assets/s29.e01.art.png at its rect (x40,y0,w371.4,h168.3) and fill x20-40 with the same photo, extending it under the back button. Do not leave a flat gray block."
+  },
+  {
+   "element_id": "s30",
+   "problem": "A dark 'U' shaped fragment appears at the top of the mock, y0-25, instead of the real image bottom (a dark green and pendant crop). The heatmap is red there.",
+   "fix": "Clip the hero image container to y<=25 and position the photo so its bottom edge, including the necklace/pendant, matches the real one. Use the same photo crop as s29 shifted up by the scroll offset (135px)."
+  },
+  {
+   "element_id": "s12",
+   "problem": "The title and byline sit about 1px off from the real text. The Temu ad thumbnail is a flat stand-in (three flat blocks) instead of the real jacket collage with '$2.36'. The ad title is bolder than the real one.",
+   "fix": "Move the title and 'Sasha Wayman' byline 1px lower. Reduce title letter-spacing slightly so 'Kristi Noem Files for Divorce' ends at x\u2248351. Draw the ad thumbnail as the real jacket collage at x\u224832,y\u2248257,w\u224861,h\u224860. Make the ad title weight 500."
+  },
+  {
+   "element_id": "s34",
+   "problem": "The hero photo is still a flat stand-in of black, cream and pink blocks, so the whole 20..425px image area is red. The photo of the man in a tuxedo and the woman in a pink dress is not drawn. No listed picture covers it, so it can't be pasted directly.",
+   "fix": "Replace the blocks with a photo-like rendering at x20,y55,w371,h371: dark night background (#0c0f14), man in black tux with white shirt on the left (x30-215), woman in pink #d6247f dress on the right (x210-385) with brown hair. Remove the flat cream bar and the pink rectangle. Do the same for the photo bottom on s36 (y0-133)."
+  },
+  {
+   "element_id": "s36",
+   "problem": "The bottom of the hero photo (y0-133) shows a flat cream bar and pink block, giving a heavy red patch. The real crop shows a black tux sleeve and white shirt on the left and a pink dress with a belt (#a01d70) on the right.",
+   "fix": "Draw the same photo-like art as on s34, cropped so its bottom ends at y133: dark suit left, pink dress with belt right, black edge at x20..391."
+  },
+  {
+   "element_id": "s34.e17",
+   "problem": "'Bryon Noem' bold run is at x288.9 w85.8 h18, but the target is x284.6 w87.2 h19.1. The bold is too narrow and starts 4px too far right, so the preceding text is too wide.",
+   "fix": "Make the preceding text 'Six months after photos of her husband ' about 4px narrower (letter-spacing about -0.1px) and give the bold text a little more width (about 1.4px). Set the body line-height to 19.1px in the inline runs. Apply the same to s36.e07, s37.e04 and the s38 inline runs."
+  },
+  {
+   "element_id": "s36.e14",
+   "problem": "The paragraph 'News of the couple's divorce...' is 372.9 wide and 96 high at y808.5, but the target is 365.7x91 at y811. The lines are too wide.",
+   "fix": "Narrow the paragraph to 365.7px, use line-height 24px with 19.1px text boxes, and start it at y811. Apply the same fix to s37.e11 (want y660.6, w365.7) and s38.e03 (want y510.9, w365.7)."
+  },
+  {
+   "element_id": "s38.e09",
+   "problem": "'At the time, a rep for Kristi\u2014who shares daughters' is 340.4 wide against 336, so 'and son ' (e15) sits at x231.3 instead of 225.5 and 'Booker' (e16) at x287.5 instead of 282.7.",
+   "fix": "Reduce the line's width by 4.4px so it ends at x355.8. Then 'and son ' starts at x225.5 (w58.3) and 'Booker' at x282.7 (w51)."
+  }
+ ],
+ "summary": "All data-el boxes and taps are within tolerance, so the remaining gain is in visuals. The biggest problems are the duplicate layers in s10 (ghost text, a stray Temu ad, a brown block) and the flat ad thumbnails on s01, s16 and s32. This round should remove the s10 overlay content, fix the Noem headline clamp on s01 and s16, and draw the real ad photos. All screens are close on layout: element positions are nearly all within 4px and every tap works. The biggest visible errors are the flat cartoon Noem hero on s33 and s13, and the placeholder ad thumbnails. This round should tone down the hero cartoon, fix the few misses (s13.e39, Bryon Noem, s19.e29), and shift text 1px. The mock is at 8.94 and the layout is mostly right. The largest remaining errors are the flat stand-in hero photos and the text that is still a bit too wide, which throws off the 'Bryon Noem' runs. This round should fix the hero images on s14, s20 and s35 and narrow the text so the few remaining data-el boxes land within 4px. All four screens are already within 4 px on every tagged element, with no failed taps or contract errors. The remaining loss is mostly on s09, where the feed behind the dialog is laid out differently and has a stray green ad, and where the text is slightly too wide. This round should fix the s09 background and then tighten the text widths and 1-2px offsets on s17, s15 and s03. The mock scores 8.94 with all taps working and no contract errors. Only five data-el boxes are off, all body text runs that are 1-2% too wide. This round should narrow the body text to the target widths and replace the flat ad and photo stand-ins with photo-like art. All tagged elements and taps already match, so what remains is the visual fidelity of the photos and text metrics. This round should replace the cartoon Amber Glenn photo and the ad photo with a more realistic drawing, and narrow the caption text across s26 to s28. The mock scores 8.94 with all taps working and no contract errors. The main remaining misses are the newsletter line and link runs on s29 to s31, which are 5-6px too wide. This round should fix those widths, the hero photo strip on s29 and the wrong crop on s30, and reduce the 1px vertical text offsets. The mock scores well (8.94) and taps and contracts are clean. The remaining misses are text width drift on the bold 'Bryon Noem' and the long paragraphs, plus the flat hero photo on s34 and s36. This round should fix the inline text widths and positions and make the hero photo look like the real one."
+}

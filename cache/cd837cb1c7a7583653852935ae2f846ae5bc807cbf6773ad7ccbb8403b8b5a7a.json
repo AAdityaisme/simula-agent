@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[],\"extra_points\":[{\"x\":49,\"y\":40,\"name\":\"back\"},{\"x\":489,\"y\":40,\"name\":\"follow topics\"},{\"x\":68,\"y\":105,\"name\":\"For You tab\"},{\"x\":191,\"y\":105,\"name\":\"Top Stories tab\"},{\"x\":347,\"y\":105,\"name\":\"Tech & Science tab\"},{\"x\":494,\"y\":105,\"name\":\"Business tab\"},{\"x\":328,\"y\":752,\"name\":\"listen\"},{\"x\":439,\"y\":752,\"name\":\"share\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1666,
+ "tokens_out": 184,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

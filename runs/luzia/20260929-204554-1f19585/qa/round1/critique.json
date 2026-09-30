@@ -1,0 +1,76 @@
+{
+ "schema_version": 1,
+ "fixes": [
+  {
+   "element_id": "s06",
+   "problem": "Flow f1 fails: the screen has no text field to type into. The composer 'Ask Teacher' is drawn as static text, so typing cannot work.",
+   "fix": "Make the 'Ask Teacher' placeholder a real input (input or textarea) inside the existing composer box, at the same rect (x 8, y ~717, w ~395). Keep the placeholder text, size 16px, color #9a9a9a, with a transparent background and no border. Do not add new ids."
+  },
+  {
+   "element_id": "s01",
+   "problem": "The hero character at the top is wrong. The mock shows a flat, cropped face with a dark strip and a stray 'Luzia' label peeking out at the top, and the mint sweater is missing. The real screen shows the full orange-haired woman with a mint sweater, centered at x~207, from y 0 to 165.",
+   "fix": "Redraw the hero as the real woman: head from y~8 to ~85, mint (#8fd9b6) shoulders reaching y~165, behind the input pill. Remove the stray 'Luzia' text at y~22. Match the blue gradient (#2a4bd7 to black) behind her."
+  },
+  {
+   "element_id": "s05",
+   "problem": "The modal text sits about 2px too far left and is heavier or wider than the real text. The title wraps identically but is bolder. The 'Meet me' icon is also a black cat, where the real one is a small dark Toki head. Overall text offsets show red across the modal.",
+   "fix": "Set the title to 20px, weight 600, letter-spacing 0, centered, lines at y~450 and ~477. Set the body to 14px, weight 400, centered. Use a smaller Toki-head icon (~20px) at x~161 in 'Meet me'. Also shift 'Later' and the info line down 1px."
+  },
+  {
+   "element_id": "s07",
+   "problem": "The hero collage faces do not match. The real one has a braided woman, a smiling bearded man and a purple-haired woman; the mock has generic flat faces with different hair and colors. The body text is also slightly wider than the real text.",
+   "fix": "Redraw the three portraits with real colors: woman with light-brown braids on blue #4a63f0, man with a dark beard and green sweater on #d0e6ff, woman with purple hair on #8fb0e8. Set the subtitle to 14px so it spans x 31-381, not 27-384."
+  },
+  {
+   "element_id": "s11.e05",
+   "problem": "The prompt text element is only 35.6px tall (the text run), but the real element is the whole text box, 347.4x128 at (32,123). The mock's text is also 2.6px too narrow.",
+   "fix": "Make the element tagged s11.e05 the full text area: x=32, y=123, w=347.4, h=128. Keep the text top-aligned inside it with the same padding, so the text stays at y\u2248132. Move the data-el onto the box or make the box the element's container."
+  },
+  {
+   "element_id": "s11",
+   "problem": "The heading, body text, card titles and disclaimer render slightly bolder and 1px higher than the real ones. The text box is offset about 1px, and the mic button is about 1px right and 1px up.",
+   "fix": "Use font-weight 500 for 'Start with an idea or remix.' and the card titles. Move the disclaimer and cards down 1px (disclaimer y=323, cards top=354). Move the mic button 1px left and 1px down (center x\u2248367, y\u2248279). Widen the textarea to 347px. Make the text-box background #2b2b2b."
+  },
+  {
+   "element_id": "s08",
+   "problem": "The chat text is heavier than the real one and wraps at slightly different offsets. The chips are 1-2px wider and their icons look different. Chip labels are placed slightly differently.",
+   "fix": "Use font-weight 400 for the message body at 16px with line-height 21px, and font-weight 400 for the chip labels. Set chip widths to match the real ones (first chip right edge \u2248278, second \u2248201, third \u2248208, fourth \u2248176). Use thinner outline icons at 20px, stroke 1.5. Draw the copy/share icon image assets/s08.e03.png at (8,224.4) 40x48 and the back button assets/s08.e13.png at (8,0) 48x48."
+  },
+  {
+   "element_id": "s02",
+   "problem": "The title, the 'Let Luzia handle it!' heading, the body text and the tab labels are bolder than the real ones. The hero circle icon is drawn about 1px off, with a different bell glyph.",
+   "fix": "Reduce the heading weight to 600 and the title 'Services' to 600. Use weight 400 for the body and 'Start something'. Use weight 500 for the nav labels. Center the 96px hero circle at x=205.5, y=335. Use a bell with a smaller sparkle, as in the real screen. Draw assets/s02.e01.png at (8,0) 48x48 for the back button."
+  },
+  {
+   "element_id": "s09",
+   "problem": "The 'Active routines' label sits 1px too high. The text weights are heavier than the real ones ('New routine', 'Draft', the button label). The list row icon and the Draft pencil differ slightly.",
+   "fix": "Move 'Active routines' down 1px (y\u2248103) and use weight 400 in #9a9a9a. Use weight 500 for 'New routine' and 'Add new Routine'. Make the Draft pill text weight 500. Use a thinner 20px clock icon in the 32px square. Draw assets/s09.e01.png at (8,0) 48x48."
+  },
+  {
+   "element_id": "s04",
+   "problem": "Persona name labels at the bottom of each avatar card are drawn with solid, opaque colored pills (green, navy, brown, gray, olive) that are narrower than the card. The real labels are a full-width translucent white/gray strip across the card bottom with white text. The heatmap shows red on every label.",
+   "fix": "Make each label a full-width strip (card width, ~24px tall, flush with the card bottom, rounded only at the bottom corners) with background rgba(255,255,255,0.3) or about #FFFFFF4D and white 15px medium text centered. Remove the per-persona colors. Keep the avatar art at its listed rect."
+  },
+  {
+   "element_id": "s13",
+   "problem": "Title 'Photoedit', 'By Luzia', the action pills (2K, 1.4K, Share) and 'Report app' text sit ~1px higher than the real screen and look bolder or wider. The heatmap shows red on the text.",
+   "fix": "Shift the title, byline, pill labels and Report app text down 1px. Set the title to 22px weight 500-600 with a slightly narrower letter-spacing, so its right edge ends at x\u2248121. Use 14px medium for the pill labels. Make the bookmark icon orange (#E8905A) and the heart icon pink-red (#E8455F), smaller (~14px)."
+  },
+  {
+   "element_id": "s14",
+   "problem": "The Trending tab row and category chips (Hot, New, Creative, Arcade, Tools) have icons and labels that are wider and drawn with a different font size. The heatmap shows red on the chips.",
+   "fix": "Use 15px labels with 6px icon gaps. Position New at x\u224883 with its icon, Creative at x\u2248157, Arcade at x\u2248255, Tools at x\u2248346. Icons should be thin outline, 18px, gray #B0B0B0."
+  },
+  {
+   "element_id": "s15",
+   "problem": "The chat greeting paragraph is drawn 1-2px off vertically and has slightly different letter spacing and weight, so every line shows red on the heatmap. The small pill under 'Our new chat' also differs.",
+   "fix": "Set the greeting to 17.5px, weight 400, line-height 20px, first baseline at y\u2248131, and left-aligned at x16. Reduce the letter-spacing slightly so the line 1 wrap ends at 'here to' at x\u2248390. Shift the footer disclaimer up 1px and use 11px so it spans x\u224850-361."
+  },
+  {
+   "element_id": "s03",
+   "problem": "Text renders about 1px off and a bit heavier or lighter than the real screen: the heatmap shows red over the 'My Apps', 'Explore', 'Recommended', 'Trending', 'Photoedit', 'Edit your images' and card title text. In the mock, 'Recommended' and 'Trending' sit about 1px higher.",
+   "fix": "Shift the headings 'Recommended' (real baseline ~y=90) and 'Trending' (~y=424) down 1px. Match the font weight to the real screen (semi-bold, 20px headings). Check that the card titles 'Photoedit' and 'Anima' are the same size and weight (about 20px semi-bold)."
+  }
+ ],
+ "summary": "Layout is nearly exact (all data-el within 4px, no failed taps), so the remaining loss is visual. The one functional gap is that flow f1 fails because s06 has no real text input. This round should add that input, then fix the hero art and avatars on s01 and the collage portraits on s07, then tune text weights. The mock is already close (9.71). All tagged elements are in place except s11.e05, where the box height is 35.6 instead of 128. This round should fix that element's size, then reduce the slightly heavy font weights and 1px offsets on all four screens. Layout is already very close, with all data-el elements placed within 4px and no failed taps, so the remaining gain is visual fidelity. The biggest visible differences are the s04 persona label strips (opaque colored pills instead of full-width translucent bars), the s14 game cards and chips, and small text weight and position offsets on s13 and s15. This round should fix the s04 labels first, then the s14 cards, then the text metrics. The mock is already very close: all 18 tagged elements are within 4px, all taps work, and there are no contract errors. Remaining differences are small text offsets and weight, gradient tones on the cards, a stray ghost text fragment near the Trending cards, and fine detail in the bottom pill and nav. This round should clean up the stray text and tune the text metrics and card colors."
+}

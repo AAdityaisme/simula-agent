@@ -1,0 +1,9 @@
+{
+ "text": "{\"ideas\":[{\"id\":\"c01\",\"benefit\":\"extra Computer task\",\"part_of\":\"l3\"},{\"id\":\"c02\",\"benefit\":\"home screen theme\",\"part_of\":null},{\"id\":\"c03\",\"benefit\":\"scheduled morning task runs\",\"part_of\":\"l5\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1058,
+ "tokens_out": 97,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

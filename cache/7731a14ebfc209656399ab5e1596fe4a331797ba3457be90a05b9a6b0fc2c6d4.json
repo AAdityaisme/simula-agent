@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[{\"box_id\":1,\"name\":\"filters title\"},{\"box_id\":2,\"name\":\"close\"},{\"box_id\":4,\"name\":\"decoration\"},{\"box_id\":29,\"name\":\"message count input\"},{\"box_id\":32,\"name\":\"tokens count input\"},{\"box_id\":34,\"name\":\"proxy toggle\"}],\"extra_points\":[{\"x\":497,\"y\":38,\"name\":\"menu\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1682,
+ "tokens_out": 141,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

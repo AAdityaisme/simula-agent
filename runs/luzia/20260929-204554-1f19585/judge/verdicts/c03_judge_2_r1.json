@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c03",
+ "g_policy": {
+  "passed": true,
+  "reason": "The home-card button and offer sheet make play optional, and the offer copy states one outfit for three days. The decline and ad-failure fields leave the pet unchanged and withhold the reward if play is not confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field gives one in-app cosmetic outfit, not cash or a cash-equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses a home-screen opening and pet state, not anything the user says or writes in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and removes-nothing-free fields introduce an outfit without removing or capping an existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a button on the Toki card and a sheet over s01 Chats home, which is rated safe; it is not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the outfit is for the player's own pet on the home card used in observed core flow f5, supported by s01.e26 and s01.e27."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The rationale says users who keep Toki on already open the home screen to care for it. The model observes the Toki promo and intro (s01.e26, s05.e04), but not that existing user behavior or a pet-care flow."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward and expiry fields limit the cosmetic outfit to three days; they grant no lasting paid access or advantage taken from other users."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a button on the persistent s01 home card that the user can choose to open, rather than an interruption mid-task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game after a detectable home-screen event and grants the outfit only once the game is confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The trigger, placement, and reward specifically use Toki and its observed home promo card (s01.e26–e27)."
+ },
+ "other_concern": "The proposed outfit display on the home card and the claim that it costs nothing to serve are untested product assumptions.",
+ "fixable": true
+}

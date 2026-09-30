@@ -1,0 +1,46 @@
+{
+ "schema_version": 1,
+ "fixes": [
+  {
+   "element_id": "s07",
+   "problem": "The hero photo is still a blurry, soft-focus stand-in. The real screen has sharp white and yellow wildflowers on green moss under a crisp glass sphere with a bright top highlight and rainbow edge. This is the largest heatmap error (SSIM 0.729). No picture is listed for s07, so it must be drawn in CSS.",
+   "fix": "Rebuild the hero in y0-480 without blur. Use a flat gray-blue #6b6f75 sky. Add many small sharp white (#f4f4f0) and yellow (#d9a83a) flower dots in 3-8px sizes over a dark green (#4a5a35 to #2f4a2a) moss band from y290 to y480. Keep the sphere at about x112-298, y122-315, with a 1px light rim, a bright white radial highlight at the top and a dark green reflection on the lower-left. Fade the bottom into #fcfbf9 over the last 20px."
+  },
+  {
+   "element_id": "s04",
+   "problem": "The row 'Hand off complex tasks and get polished results' stays on one line and runs to x381. The real screen wraps it onto two lines, ending 'polished' / 'results' at about x336. Text also renders slightly heavier and wider elsewhere, including the heading and the composer text.",
+   "fix": "Set the text column max-width to about 270px, so the row wraps after 'polished' with 'results' on the second line at y596. Keep the row's icon and dividers where they are. Reduce the heading letter-spacing slightly, so it spans x53-359. Set the composer text to font-weight 400 and 1px narrower."
+  },
+  {
+   "element_id": "s01",
+   "problem": "The 'Ask anything\u2026' placeholder renders wider than the real one, and the search icon in the tab is drawn slightly thicker. The incognito icon at the right of the composer also differs.",
+   "fix": "Narrow the placeholder by about 2px with letter-spacing -0.1px, at 15px weight 400 in #77736d. Use a 1.6px stroke on the search icon. Redraw the incognito glasses icon as an outline with a hat brim, 20px wide, at x278-296."
+  },
+  {
+   "element_id": "s10",
+   "problem": "The 'Set up Computer' banner title is bolder and wider, and it crowds the '0/3' counter. The 'Do anything\u2026' placeholder also renders wider, and the incognito icon differs.",
+   "fix": "Set the banner title to weight 500 at 14.5px, so it ends about 6px before '0/3'. Add a 4px margin before the counter. Narrow the 'Do anything\u2026' placeholder by about 2px, and draw the incognito icon as a thin-stroke outline."
+  },
+  {
+   "element_id": "s03",
+   "problem": "The hero card art is the biggest visible error, with SSIM 0.66. The mock shows a blurry olive sphere, a halftone dot grid and flat dark bands. The real card has a sharp glass sphere resting on green moss, with cyan particle waves across a near-black background. Round 1 asked for this and it barely moved.",
+   "fix": "No listed picture exists for s03, so redraw the art with CSS. Use a #050505 base. Add a moss-green (#5f6b2a to #3d4a1e) mound at the bottom, y\u2248560-700. Place a glass sphere about 135px across, centered near x=218,y=540: a dark radial fill, a green-tinted top half, a bright #cfeff5 glare at its left edge, and a soft cyan glow. Draw 2-3 thin wavy bands of small cyan dots (#6fd0d8, 1-2px) crossing at y\u2248350-560. Drop the coarse dot grid and the diagonal dark banding."
+  },
+  {
+   "element_id": "s09",
+   "problem": "The checklist card has a visible blue-ish rectangular patch at the right (x\u2248301-411, y\u2248151-214), from the art image. It cuts hard against the card's soft gradient and covers the right end of the description row. The real card has a smooth teal-to-white gradient, with the top brighter and no hard edge. The bottom composer has a soft teal glow but the mock uses a flat box.",
+   "fix": "Draw assets/s09.e24.art.png at exactly x301, y151.7, 110.4x62. Make sure the card's own gradient blends with it, with no extra overlay. Remove the harder teal blob at the top right. Use a smooth gradient from #e6f1f3 to #eef5f6 on the card. Give the composer a blurred 6-8px teal glow, box-shadow 0 0 12px rgba(150,200,205,.35), on a #e6e2dc fill instead of the flat outline."
+  },
+  {
+   "element_id": "s02",
+   "problem": "The backspace icon on the floating toolbar shows as a filled red block in the heatmap. It is drawn differently from the real outline icon, and the enter button is offset.",
+   "fix": "Redraw the backspace as a 24x18 outline with a 1.6px #1a1a1a stroke and a small x inside, centered at (36,345). Keep the enter button circle at 44px, centered at (36,395), fill #dde6fb."
+  },
+  {
+   "element_id": "s08",
+   "problem": "The same toolbar backspace and enter differences appear here. The composer glow is a hard thin teal outline, while the real one is a soft, wide teal glow that fades out.",
+   "fix": "Fix the toolbar as in s02. For the composer, remove the border and use a box-shadow of 0 0 14px rgba(140,205,210,.5) with an inner glow. Nudge the 'Do anything\u2026' placeholder about 1px narrower."
+  }
+ ],
+ "summary": "All tagged elements are in place and no taps or contracts fail, so what remains is visual fidelity. The biggest gap is the s07 hero photo, which is blurry instead of sharp flowers and a crisp glass sphere, followed by text width and weight and line-wrap differences on s04 and s07. Small text and icon tweaks on s01 and s10 finish the round. The mock is very close, with all elements and taps working. The main remaining error is the s03 hero art, which needs a redraw with a sharp glass sphere, moss and cyan particle waves. The rest is small text-width and weight differences, the soft composer glows, and the toolbar backspace icon on s02 and s08."
+}

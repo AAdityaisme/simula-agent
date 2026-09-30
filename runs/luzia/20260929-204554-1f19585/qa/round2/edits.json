@@ -1,0 +1,187 @@
+{
+ "schema_version": 1,
+ "edits": [
+  {
+   "find": "<input class=\"a f16\" type=\"text\" data-el=\"s06.e16\" placeholder=\"Ask Teacher\" style=\"left:16px;top:726.5px;width:89.9px;height:20.2px\">",
+   "replace": "<input class=\"a f16\" type=\"text\" data-el=\"s06.e16\" placeholder=\"Ask Teacher\" aria-label=\"Ask Teacher\" style=\"left:16px;top:726.5px;width:89.9px;height:20.2px;z-index:3;pointer-events:auto\">",
+   "reason": "s06 composer: real text field on top for type gesture",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "section[data-screen=\"s06\"] input.a::placeholder{color:var(--fg-4);opacity:1}",
+   "replace": "section[data-screen=\"s06\"] input.a::placeholder{color:#b0b0b0;opacity:1}",
+   "reason": "s06 placeholder color",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "style=\"left:61.7px;top:437.7px;width:288px;height:50.3px;font-size:20px;line-height:25.15px;font-weight:600\"",
+   "replace": "style=\"left:63.7px;top:437.7px;width:288px;height:50.3px;font-size:20px;line-height:25.15px;font-weight:600\"",
+   "reason": "s05 title shift right 2px",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "style=\"left:61.7px;top:492.2px;width:288px;height:35px;color:#c9c9c9\"",
+   "replace": "style=\"left:63.7px;top:492.2px;width:288px;height:35px;color:#c9c9c9;font-weight:400\"",
+   "reason": "s05 body shift right 2px, weight 400",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<div class=\"p ch\" style=\"top:277px;width:263.6px\"></div>",
+   "replace": "<div class=\"p ch\" style=\"top:277px;width:262px\"></div>",
+   "reason": "s08 first chip x16-278",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<div class=\"p ch\" style=\"top:329.6px;width:186.3px\"></div>",
+   "replace": "<div class=\"p ch\" style=\"top:329.6px;width:184.8px\"></div>",
+   "reason": "s08 chip narrower",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<div class=\"p ch\" style=\"top:382.1px;width:192.8px\"></div>",
+   "replace": "<div class=\"p ch\" style=\"top:382.1px;width:191.3px\"></div>",
+   "reason": "s08 chip narrower",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<div class=\"p ch\" style=\"top:434.7px;width:161.5px\"></div>",
+   "replace": "<div class=\"p ch\" style=\"top:434.7px;width:160px\"></div>",
+   "reason": "s08 chip narrower",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "style=\"left:16px;top:57.9px;width:251.1px;",
+   "replace": "style=\"left:16px;top:58.9px;width:251.1px;",
+   "reason": "s11 heading down 1px",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "style=\"left:16px;top:316.1px;width:379.4px;font-size:12px;line-height:15.25px;",
+   "replace": "style=\"left:16px;top:317.1px;width:379.4px;font-size:12px;font-weight:400;line-height:15.25px;",
+   "reason": "s11 disclaimer down 1px",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "style=\"left:32px;top:367.6px;width:81.5px;",
+   "replace": "style=\"left:32px;top:368.6px;width:81.5px;",
+   "reason": "s11 card title down 1px",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "style=\"left:32px;top:385.1px;width:55.2px;",
+   "replace": "style=\"left:32px;top:386.1px;width:55.2px;",
+   "reason": "s11 card subtitle down 1px",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "style=\"left:270.1px;top:367.6px;width:113.5px;",
+   "replace": "style=\"left:270.1px;top:368.6px;width:113.5px;",
+   "reason": "s11 card title down 1px",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "style=\"left:270.1px;top:385.1px;width:54.5px;",
+   "replace": "style=\"left:270.1px;top:386.1px;width:54.5px;",
+   "reason": "s11 card subtitle down 1px",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "data-el=\"s11.e06\" style=\"left:342.6px;top:256.2px;",
+   "replace": "data-el=\"s11.e06\" style=\"left:341.6px;top:257.2px;",
+   "reason": "s11 mic down 1px left 1px",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "section[data-screen=\"s04\"] .pc::before{content:\"\";position:absolute;left:0;right:0;top:101.7px;bottom:0;background:rgba(255,255,255,.3);z-index:1}\nsection[data-screen=\"s04\"] .pc i{position:absolute;bottom:0;height:24px;border-radius:8px 8px 0 0}",
+   "replace": "section[data-screen=\"s04\"] .pc::before{content:\"\";position:absolute;left:0;right:0;top:101.7px;bottom:0;background:rgba(255,255,255,.35);backdrop-filter:blur(4px);z-index:1}\nsection[data-screen=\"s04\"] .pc i{display:none}",
+   "reason": "s04 full-width translucent label strip, no pills",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "section[data-screen=\"s04\"] .pc span{position:absolute;left:0;top:101.7px;width:121.1px;height:17.5px;font:500 15px/17.5px var(--font-1);",
+   "replace": "section[data-screen=\"s04\"] .pc span{position:absolute;left:0;top:102.2px;width:121.1px;height:17.5px;font:500 14px/17.5px var(--font-1);",
+   "reason": "s04 label 14px medium centered",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "section[data-screen=\"s14\"] .ft{top:576.4px;height:17.5px;font:500 15px/17.5px var(--font-1);color:#8e8e8e}",
+   "replace": "section[data-screen=\"s14\"] .ft{top:576.4px;height:17.5px;font:500 14px/17.5px var(--font-1);color:#8e8e8e}",
+   "reason": "s14 chip font 14px medium",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<span class=\"t ft\" data-el=\"s14.e39\" style=\"left:368px;width:35px\">Tools</span>",
+   "replace": "<span class=\"t ft\" data-el=\"s14.e39\" style=\"left:372px;width:35px\">Tools</span>",
+   "reason": "s14 Tools label x 372",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<div class=\"a\" style=\"left:181.7px;top:78px;width:48px;height:22px;border:1px solid #3a3a3a;border-radius:11px\"></div>",
+   "replace": "<div class=\"a\" style=\"left:181px;top:88px;width:48px;height:13px;background:#2a2a2a;border:1px solid #3a3a3a;border-radius:6.5px\"></div>",
+   "reason": "s15 small pill shape",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "data-el=\"s15.e02\" style=\"left:16px;top:113.9px;width:379.4px;height:121.1px;font:400 16.5px/20.2px var(--font-1);color:#fefefe\"",
+   "replace": "data-el=\"s15.e02\" style=\"left:16px;top:114.9px;width:379.4px;height:121.1px;font:400 16.5px/20.2px var(--font-1);letter-spacing:-0.1px;color:#fefefe\"",
+   "reason": "s15 paragraph down 1px, tighter spacing",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "data-el=\"s15.e06\" style=\"left:16px;top:726.5px;",
+   "replace": "data-el=\"s15.e06\" style=\"left:16px;top:727.5px;",
+   "reason": "s15 Ask Teacher down 1px",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "data-el=\"s15.e10\" style=\"left:8px;top:816.8px;",
+   "replace": "data-el=\"s15.e10\" style=\"left:8px;top:817.8px;",
+   "reason": "s15 footer down 1px",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "data-el=\"s13.e05\" style=\"left:167.2px;top:573.7px;",
+   "replace": "data-el=\"s13.e05\" style=\"left:167.2px;top:574.7px;",
+   "reason": "s13 Open app down 1px",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "style=\"left:142.1px;top:435.1px;width:127.2px;height:20.2px;font-size:16px;line-height:20.2px;color:#363636\"",
+   "replace": "style=\"left:142.1px;top:435.1px;width:127.2px;height:20.2px;font-size:16px;line-height:20.2px;color:#000\"",
+   "reason": "s03 hide stray fragment near Trending",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<div class=\"a\" style=\"left:393px;top:719px;font-size:16px;line-height:20px;color:#8e8e8e\">s</div>\n",
+   "replace": "",
+   "reason": "s03 remove stray right-edge fragment",
+   "applied": true,
+   "why": ""
+  }
+ ]
+}

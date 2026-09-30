@@ -1,0 +1,9 @@
+{
+ "text": "{\"on_screen\":false,\"element_id\":null,\"confidence\":0.85,\"reason\":\"This is a news article page with only text and images; no control that starts a core action (only a back button) is visible.\"}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1747,
+ "tokens_out": 63,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

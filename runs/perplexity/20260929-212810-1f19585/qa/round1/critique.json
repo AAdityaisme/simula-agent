@@ -1,0 +1,46 @@
+{
+ "schema_version": 1,
+ "fixes": [
+  {
+   "element_id": "s07",
+   "problem": "The hero photo is drawn as a dotted, halftone-like green pattern with a blurry glass bubble. The real screen shows a photo of white and yellow wildflowers under a sharp glass sphere. This is the biggest visible difference on the screens (SSIM 0.676).",
+   "fix": "Remove the CSS gradient and dot pattern. Draw the real photo for the top ~480px of the screen: gray sky at the top, a wildflower meadow from y\u2248290 down, and a fade to #FDFCFA at the bottom. Keep the sphere at about x113\u2013299, y120\u2013318 with its bright top highlight and a crisp edge. Draw the computer icon inside it in light gray with a white outline. Use a listed picture only if one exists for s07. None is listed, so match it with a smoother gradient and no dot texture."
+  },
+  {
+   "element_id": "s04",
+   "problem": "The sheet text is a little too heavy and wide. The heading is wider than the real one (x51\u2013361 vs x53\u2013359). The list row 'Work across all your connected apps and tools' runs to x393, where the real one ends at x372. The 'LIMITED PREVIEW' pill text is also off.",
+   "fix": "Set the list text to 15px regular weight with letter-spacing of about -0.1px, so row 2 ends near x372. Reduce the heading size by about 1.5%. Shrink the pill text to about 11px with slightly wider letter-spacing. Make the 'Get started' label 16px medium, centered at y790 (the mock draws it at 789)."
+  },
+  {
+   "element_id": "s01",
+   "problem": "The 'Ask anything\u2026' placeholder and the 'Model' pill differ. The Model pill is about 4px taller in the mock, and its label sits slightly off. The placeholder renders a little wider.",
+   "fix": "Set the Model pill height to about 30px (y775\u2013805) with the label centered, weight 400, 14px. Set the placeholder to 16px with letter-spacing about -0.1px, color #6B6B6B. Make the incognito icon slightly lighter and smaller (about 18px)."
+  },
+  {
+   "element_id": "s10",
+   "problem": "The 'Set up Computer 0/3' banner text is bolder and wider than the real one, and the 'Do anything\u2026' placeholder is wider. The tab labels are off by about 1px.",
+   "fix": "Set the banner text to 14.5px weight 500 in #0B6B6B so 'Set up Computer' ends at about x165 and '0/3' sits at x175\u2013197. Set the placeholder to 16px with letter-spacing about -0.1px. Move the tab labels up 1px."
+  },
+  {
+   "element_id": "s09.e02",
+   "problem": "The 'Set up Computer' title is too wide (117x17 vs want 111x16) and sits 1px high. The mock's font weight and size are a bit larger, so it crowds the '0/3' counter, which is tight against it. In the real screen there is a visible gap.",
+   "fix": "Use font-size 15px with weight 500 (not 600) and letter-spacing 0. Set the box to x=55.2, y=85.7, w=111, h=16, line-height 16px. Give '0/3' a left margin of about 8px so it starts at x\u2248174 as on the real screen."
+  },
+  {
+   "element_id": "s03",
+   "problem": "The hero card art (the 'Start something new' background, about x16-395, y277-822) is very different from the real one. The real one has a crystal ball on green moss, with glowing cyan particle waves on a near-black background. The mock has a blurry olive sphere, a dotted halftone grid and flat dark bands. This is the largest heatmap error on the screen.",
+   "fix": "Rebuild the background as a near-black (#0b0908) top, with a cyan/teal (#5fb8c0) speckled wave band across y\u2248340-560 sloping slightly upward to the right. Add a glass sphere about 135px wide centered at x\u2248218, y\u2248540, with mossy green (#6b7a3a) texture in its upper half and a dark lower half. Put a moss ground gradient at y\u2248570-680 fading to black at the bottom. Remove the regular dot grid."
+  },
+  {
+   "element_id": "s09",
+   "problem": "The real checklist card has a soft glossy teal-to-white gradient and a lighter body text tone. The mock's card is more uniform, with a harder teal blob at the top right. The bottom composer in the real screen has a soft blurred teal glow border, while the mock has a flat rounded white/gray box with a thin outline.",
+   "fix": "Make the card gradient go from #e6f2f4 at the top left to #eef5f6 at the bottom, with a soft teal (#b8d8db) radial glow at the top right, blurred about 30px. Give the composer box a background of #e9e5df plus a 0 0 14px rgba(150,190,190,.35) glow, and remove the hard 1px border."
+  },
+  {
+   "element_id": "s02",
+   "problem": "On the focused-keyboard screens (s02 and s08) the floating side toolbar's active enter button is drawn slightly larger, at about 48px, than the real button at about 44px. The backspace icon also renders as a filled red block in the heatmap, so it is drawn differently from the real outline icon.",
+   "fix": "Set the enter button highlight to 44x44 at x=14, y=373, in #dde5fb. Draw the backspace icon as a 1.6px outline with the x inside, not filled, 24px wide, centered at x=36, y=345. Apply the same to s08."
+  }
+ ],
+ "summary": "Layout is already accurate: every data-el is within 4px, all taps work, and there are no contract errors. The biggest remaining loss is the s07 hero, which shows a dotted texture instead of the meadow photo and a crisp sphere, plus its title and body wrap. After that, fine-tune text weight, size, and letter-spacing across s04, s01 and s10. Element placement is nearly perfect (only s09.e02 is off, by 1px in height and 6px in width), so the remaining loss is visual. The Library hero art is the biggest gap by far, followed by small text metric and weight differences and the composer/card glow styling. This round should fix the s03 hero art and text wrap, then tune the title and icon weights and the focus toolbar sizing.."
+}

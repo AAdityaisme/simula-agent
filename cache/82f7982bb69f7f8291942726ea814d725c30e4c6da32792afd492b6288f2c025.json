@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[],\"extra_points\":[]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1666,
+ "tokens_out": 17,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

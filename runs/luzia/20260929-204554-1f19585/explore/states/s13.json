@@ -1,0 +1,23 @@
+{
+ "schema_version": 1,
+ "state_id": "s13",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "co.thewordlab.luzia|80008000d1f091f891f081f8e1f8a1f0|91f0a1f88650800880fef174c79ce71c|979b12fd8934",
+ "foreground_package": "co.thewordlab.luzia",
+ "screenshot": "states/s13.png",
+ "elements_reply": "states/s13.elements.json",
+ "settled": true,
+ "settle_seconds": 2.72,
+ "dynamic_regions": [],
+ "captured_at": "2026-09-29T20:49:20",
+ "box": null,
+ "icon_labels": [
+  {
+   "mcp_ref": "@e41",
+   "name": "remix"
+  }
+ ],
+ "vision_elements": [],
+ "blocked_reason": null
+}

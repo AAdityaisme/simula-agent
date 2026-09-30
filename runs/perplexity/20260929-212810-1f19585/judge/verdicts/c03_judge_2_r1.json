@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c03",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states one task each morning for three days before the user chooses to play. The decline and ad-failure fields preserve the existing experience and provide a failed-verification path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is three Computer task runs for the player's use, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses app-open timing, session inactivity, and the setup counter, not message or task content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields say the runs are extra and existing preview access remains unchanged."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the safe s10 Computer home, beneath its checklist, not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, it gives the player task runs for their own use in the Computer flow shown by f4 and the first-task checklist item s09.e32."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says past results land in Library Sessions, but s03.e07 shows only a Sessions section; it does not establish where Computer task results go today."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward samples the recurring-task benefit in s04.e08 for only three morning runs; it does not grant lasting access."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a card on the Computer home, a persistent surface the user can choose to engage with rather than an interruption mid-task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game and sets up runs only after the play is confirmed; the trigger is a detectable app-open event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the s10 Computer setup counter, the Computer task flow, and the recurring-task benefit named in s04.e08."
+ },
+ "other_concern": "The proposal's assumptions about week-away return behavior and serving economics need validation.",
+ "fixable": true
+}

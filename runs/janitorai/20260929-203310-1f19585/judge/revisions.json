@@ -1,0 +1,157 @@
+{
+ "schema_version": 1,
+ "candidates": [
+  {
+   "id": "c08-rev",
+   "lens": "ledger_l10",
+   "kind": "product_change",
+   "title": "Product change: Faster replies for 30 minutes with a Hidden Gems character",
+   "anchor_evidence_ids": [
+    "s16.e10",
+    "s01.e15",
+    "s18.e14"
+   ],
+   "bible_mechanic": "M02",
+   "what_is_different_here": "The Janitor Plus paywall lists 'Priority routing for faster replies' (s16.e10) as a paid benefit. The chat history sheet (s18) opens when a user returns to a character from My Chats (s03), and Hidden Gems (s01.e15) marks characters from smaller creators made in the last 30 days. This change adds two things. First, a check when the sheet opens: is this character currently listed in Hidden Gems? No such check was seen on the sheet in the explored screens, so it is part of the change. Second, a new cheer count on the creator's public profile (s07); no cheer count was seen there. A card above Start new chat (s18.e14) offers a short window of faster replies with that character, and each verified play adds one cheer to its creator. The reward adds no extra replies. How much faster paid routing is, and what capacity it uses, were not measured in the explored screens. The sheet is rated safe.",
+   "adds": "A check for whether a character is in Hidden Gems when its chat history sheet opens, a card there offering 30 minutes of faster replies, and a new cheer count on the creator's public profile.",
+   "removes_nothing_free": true,
+   "trigger_event": "The chat history sheet opens for a character that is currently listed in Hidden Gems",
+   "trigger_state_id": "s18",
+   "placement": "A card at the bottom of the chat history sheet, above the Start new chat button",
+   "offer_copy": "Play a short game to get faster replies from this character for 30 minutes, and send 1 cheer to its creator.",
+   "reward": {
+    "kind": "queue_priority",
+    "unit": "faster replies",
+    "amount": 1.0,
+    "duration": "30 minutes"
+   },
+   "for_users": "free",
+   "grants_id": "l5",
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "2 per day, resets at midnight local time; one cheer per creator per day",
+   "daily_cap": 2,
+   "decline_path": "The card can be ignored or closed; the sheet, saved chats, and Start new chat work exactly as before.",
+   "ad_fail_path": "If no game is available, the card doesn't show. If the play can't be confirmed, a short note says no reward was given, and the attempt still counts as unused.",
+   "subscriber_treatment": "Janitor Plus members already get faster replies and don't see this card.",
+   "advertiser_category": "Casual mobile games and anime streaming services",
+   "character_use": "The card names the character and its creator's handle as text; neither appears inside the game.",
+   "flow_steps": [
+    {
+     "state_id": "s18",
+     "caption": "The user opens saved chats with a character that is currently in Hidden Gems."
+    },
+    {
+     "state_id": "s18",
+     "caption": "A card offers 30 minutes of faster replies with this character, plus one cheer for its creator, for one short game."
+    },
+    {
+     "state_id": "new:playable",
+     "caption": "The user plays a short sponsored game."
+    },
+    {
+     "state_id": "s18",
+     "caption": "The card shows 'Faster replies on for 30 minutes'."
+    },
+    {
+     "state_id": "s07",
+     "caption": "The creator's public profile shows one more cheer."
+    }
+   ],
+   "after_reward": "When the 30 minutes end, replies return to normal speed with a note that Janitor Plus gives faster replies in every chat, all the time, so the user can compare and decide.",
+   "rationale": "Users returning to a character they already chat with get a short taste of a paid Janitor Plus benefit right before they chat, and they also help the smaller creator who made it. That steers chat time toward new characters from small creators, which is the goal Hidden Gems already serves. It also shows free users what the paid plan adds without giving away extra replies.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost (the peak-capacity cost is real but unknown); one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 1.0,
+   "rank_score": 1.0,
+   "dropped_reason": null,
+   "flags": []
+  },
+  {
+   "id": "c03-rev",
+   "lens": "subscriber",
+   "kind": "existing_anchor",
+   "title": "Existing opportunity: Double your Janitor Plus memory for one chat",
+   "anchor_evidence_ids": [
+    "s16.e09",
+    "s16.e08",
+    "s16.e03"
+   ],
+   "bible_mechanic": "M02",
+   "what_is_different_here": "Janitor Plus is sold on memory. The paywall headline is 'More memory for long chats' (s16.e01), and the first bullet is '5× context for better memory' (s16.e09), at $12.99/month (s16.e03). The chat history sheet (s18) lists a character's saved chat sessions with message counts: one session shows 15 messages (s18.e13), and My Chats shows a character with 15 chats (s03.e12). A short boost from 5× to 10× context for one chosen chat adds more of the exact benefit on the paywall and builds on its stated 5× number. It leaves what subscribers already have unchanged. The offer sits on the chat history sheet, which is app chrome, not inside the conversation. No add-on for extra memory and no ads were seen in the explored screens. How the app serves replies and what they cost it was not observed, so the reward is priced conservatively: 5 full replies at a larger 8k-token input.",
+   "adds": null,
+   "removes_nothing_free": true,
+   "trigger_event": "A Janitor Plus subscriber opens a character's chat history sheet that has at least one saved chat.",
+   "trigger_state_id": "s18",
+   "placement": "A card at the bottom of the chat history sheet, under the Start new chat button.",
+   "offer_copy": "Play a short sponsored game to give this chat 10× memory, double your Janitor Plus 5×, for your next 5 replies today.",
+   "reward": {
+    "kind": "inference",
+    "unit": "replies with 10× context",
+    "amount": 5.0,
+    "duration": "next 5 replies in the chosen chat, until midnight local time"
+   },
+   "for_users": "paying",
+   "grants_id": "l4",
+   "cost_inputs": {
+    "inference_count": 5,
+    "tokens_in": 8000,
+    "tokens_out": 300,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per day, resets at midnight local time; one chat per boost",
+   "daily_cap": 1,
+   "decline_path": "The card closes, and the chat history sheet works exactly as before. The chat keeps its normal Janitor Plus 5× memory.",
+   "ad_fail_path": "The card hides if no game is available. If the play can't be confirmed, a short note says no boost was added and that today's try is still available.",
+   "subscriber_treatment": "Only Janitor Plus subscribers see this offer, since it builds on the memory they already pay for. It is always optional.",
+   "advertiser_category": "Casual mobile games and streaming entertainment",
+   "character_use": "The card shows the character's name from the sheet header, so the user knows which chat gets the boost. The character does not appear in the game.",
+   "flow_steps": [
+    {
+     "state_id": "s03",
+     "caption": "The subscriber opens My Chats and taps a character with saved chats."
+    },
+    {
+     "state_id": "s18",
+     "caption": "The chat history sheet shows a card offering 10× memory for the next 5 replies."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The subscriber plays a short sponsored game."
+    },
+    {
+     "state_id": "s18",
+     "caption": "The card confirms that 10× memory is on for the next 5 replies in this chat today."
+    }
+   ],
+   "after_reward": "After the 5 replies, the chat returns to the usual 5× memory with a note that the boost can be taken again tomorrow, which brings the subscriber back for their next long session.",
+   "rationale": "Janitor Plus is sold on memory for long chats, and the chat history sheet is where users reopen their saved chats. That makes a bigger memory boost for one chosen chat, offered right there, more of the exact thing subscribers pay for. It gives the app a new, optional way to earn from its paying users without changing anything they already have. Because the 5 boosted replies need fresh model work with a larger context, the offer pays for itself at typical North American ad rates; in lower-paying regions it needs cheaper serving or cached character details.",
+   "economics": {
+    "cost_2k": 0.0055,
+    "cost_8k": 0.013,
+    "breakeven_ecpm_2k": 5.5,
+    "breakeven_ecpm_8k": 13.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "CONDITIONAL",
+    "assumption_line": "Costs ~$0.0055 per reward to serve; pays for itself above $5.50 eCPM at 2k context ($13.00 at 8k). A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 5 replies of 300 tokens out, at $0.25 / $2.00 per million tokens in / out (central prices); the verdict uses the 8k figure; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 0.5,
+   "rank_score": 0.5,
+   "dropped_reason": null,
+   "flags": []
+  }
+ ]
+}

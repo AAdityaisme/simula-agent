@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c03",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 15-minute reward before the user chooses to play. The decline and ad-failure fields leave reading unchanged if the user declines or the game cannot be confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 15 minutes without in-story ad blocks, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses a story count and the next-story bar, not anything the user typed or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and reward fields hide ad blocks temporarily; they do not remove, lock, or cap free reading."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card by the next-story bar on s24, which the product model rates content safe, rather than an unsafe or chat surface."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product-change reward is for the reader's own use while reading stories, an observed core flow in f1 and f2."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work-here field says several ad blocks appear inside every story, and the rationale says three or more do; m2 supports only one or more blocks per article. That field also calls the s24 next-story bar the point where the story ends, although the story continues through s31."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward lasts 15 minutes and the frequency cap limits it to twice daily; it grants no lasting access to a paid benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger event places the offer at a story end, and the placement describes an optional card by the next-story bar rather than an interruption that must be dismissed to continue."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow requires playing a sponsored game, and the ad-failure field says the reward is withheld if the play cannot be confirmed. The story-count and bar trigger is an app-detectable event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The placement names the 'Next in More For You' bar at s24.e24, and the reward concerns the in-article ADVERTISEMENT blocks shown at s20.e23."
+ },
+ "other_concern": "The proposal should distinguish an observed next-story bar from a verified story-end position when implementing the trigger.",
+ "fixable": true
+}

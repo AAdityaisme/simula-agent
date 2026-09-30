@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[{\"box_id\":1,\"name\":\"close\"}],\"extra_points\":[{\"x\":450,\"y\":36,\"name\":\"notifications\"},{\"x\":502,\"y\":32,\"name\":\"settings\"},{\"x\":481,\"y\":159,\"name\":\"send message\"},{\"x\":503,\"y\":264,\"name\":\"next arrow\"},{\"x\":90,\"y\":1035,\"name\":\"chat tab\"},{\"x\":270,\"y\":1050,\"name\":\"services tab\"},{\"x\":449,\"y\":1050,\"name\":\"create tab\"},{\"x\":503,\"y\":729,\"name\":\"search\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1667,
+ "tokens_out": 193,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

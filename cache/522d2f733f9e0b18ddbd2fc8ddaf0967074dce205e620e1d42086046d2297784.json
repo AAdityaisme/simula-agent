@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[{\"box_id\":1,\"name\":\"back\"},{\"box_id\":4,\"name\":\"more options\"},{\"box_id\":14,\"name\":\"message input\"}],\"extra_points\":[]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1673,
+ "tokens_out": 64,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

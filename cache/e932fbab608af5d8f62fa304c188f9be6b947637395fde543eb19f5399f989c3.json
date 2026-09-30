@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[{\"box_id\":2,\"name\":\"menu\"},{\"box_id\":5,\"name\":\"previous page\"},{\"box_id\":6,\"name\":\"next page\"}],\"extra_points\":[{\"x\":238,\"y\":266,\"name\":\"share count 25\"},{\"x\":488,\"y\":264,\"name\":\"share count 273\"},{\"x\":236,\"y\":1061,\"name\":\"share count 154\"},{\"x\":497,\"y\":1061,\"name\":\"share count 26\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1673,
+ "tokens_out": 152,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

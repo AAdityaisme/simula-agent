@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[],\"extra_points\":[{\"x\":48,\"y\":453,\"name\":\"delete key\"},{\"x\":48,\"y\":519,\"name\":\"search key\"},{\"x\":48,\"y\":588,\"name\":\"emoji key\"},{\"x\":48,\"y\":655,\"name\":\"menu key\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1666,
+ "tokens_out": 97,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

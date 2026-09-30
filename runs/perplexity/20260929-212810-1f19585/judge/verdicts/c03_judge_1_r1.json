@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c03",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user chooses to play via a card, the offer copy states the reward (one task each morning for 3 days), declining leaves the home unchanged, and the ad-failure path is given."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 scheduled Computer task runs, which have no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (first open after 7+ days and the setup counter below 3), not anything the user typed. The later task choice is the user's own input and is not used for targeting."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing, and the runs are added on top of the preview without reducing anything free today."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a card under the checklist on s10 Computer home, which is rated safe and is app chrome, not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the new resource is scheduled runs. These are a slice of l5 'Automate recurring tasks on any schedule' and are used by the player in the Computer flow (f4/f5), with results going to the player's own Library."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about today's app are supported: the 0 of 3 counter (s10.e03), the preview sheet's 'Automate recurring tasks on any schedule' (s04.e08), and the Library Sessions list (s03.e07, with the Do pill at s03.e14). The unseen cap and price are stated as not seen."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a sample that ends: 3 runs over 3 mornings and then nothing more. It gives no lasting or unlimited access to automation and takes nothing from other users."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the persistent Computer home at app open after a week away, so it doesn't interrupt a task the user is in the middle of."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit, and the runs are set up only after the play is confirmed (step 4 follows the confirmed play). The trigger is a detectable app event (inactivity of 7+ days plus the setup counter)."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Computer home, the Set up Computer checklist counter, the preview's recurring-task benefit and the Library Sessions, so it only makes sense in this app."
+ },
+ "other_concern": "Step 5 and the claim that results land in Library Sessions depend on scheduled Computer runs producing sessions, which was not observed (open question about what happens when a first task starts). The cost of about 8,000 tokens per run is also unverified. The task the user picks may draw on chat content, but it isn't used for targeting.",
+ "fixable": false
+}

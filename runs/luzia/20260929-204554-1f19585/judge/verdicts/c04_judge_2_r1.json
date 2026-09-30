@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c04",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states that playing earns placement for the creator’s app in Player Picks for 24 hours. The flow makes play optional, and the decline and ad-failure fields leave the app unchanged without granting an unverified reward."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field grants a temporary in-app placement, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses publication and a return to Explore, not the contents of a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields describe a new row and preserve the published app’s existing treatment; they do not remove or cap a free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card and sheet on s03, which the product model rates content safe, rather than an offer inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the Player Picks spot gives the player visibility for their own app in the Explore-and-create flow observed in f4."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work field asserts that new apps start at zero likes, and flow step 1 says creators land on Explore after publishing “as today.” Neither current behavior is established by the product model."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 24 hours, and the adds field places it in a new row rather than taking another app’s existing position in Trending."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger follows publication, a finished action, and presents an optional card on the Explore screen."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game and adds the spot only once play is confirmed; publication and opening Explore are detectable app events."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the Create–Explore screen, published mini apps, and the existing likes, saves, and ranking shown in s11 and s14."
+ },
+ "other_concern": "The offer sheet would show a creator’s app preview alongside a sponsored offer; moderation of newly published previews is worth considering.",
+ "fixable": true
+}

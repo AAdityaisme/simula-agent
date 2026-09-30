@@ -1,0 +1,35 @@
+{
+ "schema_version": 1,
+ "lenses": [
+  {
+   "id": "free_at_limit",
+   "name": "Free user at a limit",
+   "kind": "fixed",
+   "ledger_ids": [],
+   "focus": "A free user who has just hit a limit, a paywall, or a locked item, or would if the app had one. What do they want right now that a rewarded play could give them, partially and for a while?"
+  },
+  {
+   "id": "subscriber",
+   "name": "Subscriber",
+   "kind": "fixed",
+   "ledger_ids": [],
+   "focus": "A paying user. What do they still lack or want more of that an opt-in rewarded play could add without devaluing what they pay for? If the app has no subscription, take its most engaged user."
+  },
+  {
+   "id": "drifting",
+   "name": "Drifting user",
+   "kind": "fixed",
+   "ledger_ids": [],
+   "focus": "A user whose visits are thinning out. What would bring them back or protect progress they would lose, through a rewarded play at a natural moment rather than an interruption?"
+  },
+  {
+   "id": "ledger_l10",
+   "name": "Someone else in the app: Hidden Gems show characters from smaller creators with engaging conversations, created in the last 30 days.",
+   "kind": "ledger",
+   "ledger_ids": [
+    "l10"
+   ],
+   "focus": "Someone in this app besides the viewer, seen as \"Hidden Gems show characters from smaller creators with engaging conversations, created in the last 30 days.\". Look for ideas where the viewer's rewarded play also helps or involves them, and the viewer gets something they would want for their own use of the app; helping the other person comes on top of that, not instead."
+  }
+ ]
+}

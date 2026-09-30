@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c10",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 24-hour Fresh remixes reward before the optional game. The decline and ad-failure fields preserve normal remix creation or allow a retry."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field gives a temporary Explore row spot, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is a tap on the remix button shown at s13.e15; it does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and removes-nothing-free fields describe a new row without removing or capping an existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a sheet over s11, which the product model rates content safe, rather than an offer inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward gives the player visibility for their own remix in the Explore and create-mini-app flow observed in f4; the original maker's credit is secondary."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The trigger event and flow claim that tapping s13.e15 opens s11 with the remix already started. The cited elements establish a remix button and a Create prompt, but do not establish that transition or prefilled state."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 24 hours in a new Fresh remixes row. The proposal says it leaves the existing Trending order and rank badges unchanged."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The placement automatically opens a sheet after the create screen opens with the remix started, interrupting creation. This is neither a limit hit, a locked-item tap, or a finished action, nor a persistent surface the user chooses to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game, and the ad-failure field says the spot is not added if the game cannot be confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea ties the reward to the s13 remix button, the s11 Create screen, and the app's Explore catalog."
+ },
+ "other_concern": "The sheet shows an original app's preview and name; user-generated previews should be moderated before appearing alongside an ad.",
+ "fixable": true
+}

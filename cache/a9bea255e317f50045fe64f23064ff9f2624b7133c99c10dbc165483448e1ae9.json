@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[{\"box_id\":4,\"name\":\"search\"}],\"extra_points\":[{\"x\":64,\"y\":1037,\"name\":\"add attachment\"},{\"x\":430,\"y\":1037,\"name\":\"incognito mode\"},{\"x\":482,\"y\":1037,\"name\":\"voice input\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1667,
+ "tokens_out": 98,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

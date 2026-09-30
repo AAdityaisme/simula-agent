@@ -1,0 +1,18 @@
+{
+ "schema_version": 1,
+ "state_id": "s13",
+ "kind": "external",
+ "parent_id": "s12",
+ "fingerprint": "co.thewordlab.luzia|833c833e07130716c616870687008018|871e8716e718e5129182a002a000430c|9a9c8e220cf6",
+ "foreground_package": "co.thewordlab.luzia",
+ "screenshot": "states/s13.png",
+ "elements_reply": "states/s13.elements.json",
+ "settled": true,
+ "settle_seconds": 4.45,
+ "dynamic_regions": [],
+ "captured_at": "2026-09-29T21:33:03",
+ "box": null,
+ "icon_labels": [],
+ "vision_elements": [],
+ "blocked_reason": null
+}

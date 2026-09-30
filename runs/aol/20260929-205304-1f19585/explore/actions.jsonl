@@ -1,0 +1,134 @@
+{"step":1,"from_state":"s01","to_state":"s02","action":"tap","mcp_ref":"@e100","tap_px":{"x":270,"y":2262},"transition":"tab","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":2,"from_state":"s02","to_state":"s01","action":"relaunch","mcp_ref":null,"tap_px":null,"transition":"unknown","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":3,"from_state":"s01","to_state":"s01","action":"tap","mcp_ref":"@e102","tap_px":{"x":810,"y":2304},"transition":"tab","change_summary":"+'Ad'; +'Elevate Your Your Ride'; +'Image for Taboola Advertising Unit'","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":4,"from_state":"s01","to_state":null,"action":"tap","mcp_ref":"@e73","tap_px":{"x":398,"y":1667},"transition":"unknown","change_summary":"control covered on the live screen","outcome":"error","loop_pass":null,"loop_stop":null}
+{"step":5,"from_state":"s03","to_state":null,"action":"tap","mcp_ref":"@e151","tap_px":{"x":407,"y":844},"transition":"unknown","change_summary":"denied: unsubscribe","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":6,"from_state":"s01","to_state":"s03","action":"tap","mcp_ref":"@e33","tap_px":{"x":92,"y":226},"transition":"modal","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":7,"from_state":"s03","to_state":"s01","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":8,"from_state":"s01","to_state":null,"action":"tap","mcp_ref":"@e88","tap_px":{"x":376,"y":2014},"transition":"unknown","change_summary":"control covered on the live screen","outcome":"error","loop_pass":null,"loop_stop":null}
+{"step":9,"from_state":"s01","to_state":"s04","action":"tap","mcp_ref":"@e38","tap_px":{"x":880,"y":220},"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":10,"from_state":"s04","to_state":"s01","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":11,"from_state":"s01","to_state":null,"action":"tap","mcp_ref":"@e81","tap_px":{"x":886,"y":1667},"transition":"unknown","change_summary":"control covered on the live screen","outcome":"error","loop_pass":null,"loop_stop":null}
+{"step":12,"from_state":"s01","to_state":null,"action":"tap","mcp_ref":"@e92","tap_px":{"x":869,"y":2011},"transition":"unknown","change_summary":"control covered on the live screen","outcome":"error","loop_pass":null,"loop_stop":null}
+{"step":13,"from_state":"s01","to_state":null,"action":"tap","mcp_ref":"@e35","tap_px":{"x":221,"y":192},"transition":"unknown","change_summary":"control not on the live screen","outcome":"error","loop_pass":null,"loop_stop":null}
+{"step":14,"from_state":"s05","to_state":null,"action":"tap","mcp_ref":"@e44","tap_px":{"x":646,"y":971},"transition":"unknown","change_summary":"denied: get","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":15,"from_state":"s01","to_state":"s05","action":"tap","mcp_ref":"@e65","tap_px":{"x":540,"y":1370},"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":16,"from_state":"s06","to_state":null,"action":"tap","mcp_ref":"@e44","tap_px":{"x":646,"y":592},"transition":"unknown","change_summary":"denied: get","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":17,"from_state":"s05","to_state":"s06","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":18,"from_state":"s06","to_state":"s07","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":19,"from_state":"s07","to_state":"s06","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":20,"from_state":"s06","to_state":"s05","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":21,"from_state":"s05","to_state":"s01","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":22,"from_state":"s01","to_state":null,"action":"tap","mcp_ref":"@e87","tap_px":{"x":126,"y":1877},"transition":"unknown","change_summary":"control covered on the live screen","outcome":"error","loop_pass":null,"loop_stop":null}
+{"step":23,"from_state":"s01","to_state":"s08","action":"tap","mcp_ref":"@e39","tap_px":{"x":1006,"y":220},"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":24,"from_state":"s08","to_state":"s08","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":25,"from_state":"s08","to_state":"s01","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":26,"from_state":"s09","to_state":null,"action":"tap","mcp_ref":"@e30","tap_px":{"x":723,"y":1526},"transition":"unknown","change_summary":"denied: allow","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":27,"from_state":"s01","to_state":"s09","action":"tap","mcp_ref":"@e56","tap_px":{"x":540,"y":527},"transition":"modal","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":28,"from_state":"s09","to_state":"s01","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":29,"from_state":"s01","to_state":null,"action":"tap","mcp_ref":"@e98","tap_px":{"x":540,"y":2137},"transition":"unknown","change_summary":"control covered on the live screen","outcome":"error","loop_pass":null,"loop_stop":null}
+{"step":30,"from_state":"s01","to_state":"s01","action":"tap","mcp_ref":"@e41","tap_px":{"x":172,"y":357},"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":31,"from_state":"s01","to_state":"s10","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":32,"from_state":"s10","to_state":"s01","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":33,"from_state":"s01","to_state":"s11","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":34,"from_state":"s12","to_state":null,"action":"tap","mcp_ref":"@e113","tap_px":{"x":646,"y":889},"transition":"unknown","change_summary":"denied: get","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":35,"from_state":"s11","to_state":"s12","action":"tap","mcp_ref":"@e110","tap_px":{"x":398,"y":1520},"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":36,"from_state":"s13","to_state":null,"action":"tap","mcp_ref":"@e113","tap_px":{"x":646,"y":503},"transition":"unknown","change_summary":"denied: get","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":37,"from_state":"s12","to_state":"s13","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":38,"from_state":"s13","to_state":"s14","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":39,"from_state":"s14","to_state":"s13","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":40,"from_state":"s13","to_state":"s12","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":41,"from_state":"s12","to_state":"s11","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":42,"from_state":"s11","to_state":"s01","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":43,"from_state":"s15","to_state":null,"action":"tap","mcp_ref":null,"tap_px":{"x":540,"y":714},"transition":"unknown","change_summary":"denied: email","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":44,"from_state":"s15","to_state":null,"action":"tap","mcp_ref":null,"tap_px":{"x":540,"y":1422},"transition":"unknown","change_summary":"denied: create account","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":45,"from_state":"s15","to_state":null,"action":"tap","mcp_ref":null,"tap_px":{"x":514,"y":2262},"transition":"unknown","change_summary":"denied: terms","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":46,"from_state":"s15","to_state":null,"action":"tap","mcp_ref":null,"tap_px":{"x":690,"y":2262},"transition":"unknown","change_summary":"denied: privacy","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":47,"from_state":"s01","to_state":"s15","action":"tap","mcp_ref":"@e100","tap_px":{"x":270,"y":2262},"transition":"tab","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":48,"from_state":"s15","to_state":"s01","action":"relaunch","mcp_ref":null,"tap_px":null,"transition":"unknown","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":49,"from_state":"s16","to_state":"s15","action":"tap","mcp_ref":"@e100","tap_px":{"x":270,"y":2262},"transition":"tab","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":50,"from_state":"s15","to_state":"s01","action":"relaunch","mcp_ref":null,"tap_px":null,"transition":"unknown","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":51,"from_state":"s01","to_state":"s03","action":"tap","mcp_ref":"@e33","tap_px":{"x":92,"y":226},"transition":"modal","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":52,"from_state":"s03","to_state":"s03","action":"tap","mcp_ref":"@e64","tap_px":{"x":273,"y":1271},"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":53,"from_state":"s03","to_state":"s17","action":"tap","mcp_ref":"@e148","tap_px":{"x":407,"y":696},"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":54,"from_state":"s17","to_state":"s16","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":55,"from_state":"s16","to_state":"s01","action":"tap","mcp_ref":"@e102","tap_px":{"x":810,"y":2304},"transition":"tab","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":56,"from_state":"s01","to_state":"s03","action":"tap","mcp_ref":"@e33","tap_px":{"x":92,"y":226},"transition":"modal","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":57,"from_state":"s03","to_state":null,"action":"tap","mcp_ref":"@e140","tap_px":{"x":300,"y":226},"transition":"unknown","change_summary":"control not on the live screen","outcome":"error","loop_pass":null,"loop_stop":null}
+{"step":58,"from_state":"s03","to_state":"s15","action":"tap","mcp_ref":"@e142","tap_px":{"x":407,"y":400},"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":59,"from_state":"s15","to_state":"s15","action":"tap","mcp_ref":null,"tap_px":{"x":540,"y":1070},"transition":"push","change_summary":"+'This is required.'","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":60,"from_state":"s15","to_state":null,"action":"tap","mcp_ref":null,"tap_px":{"x":266,"y":868},"transition":"unknown","change_summary":"control covered on the live screen","outcome":"error","loop_pass":null,"loop_stop":null}
+{"step":61,"from_state":"s15","to_state":"s18","action":"tap","mcp_ref":null,"tap_px":{"x":364,"y":2262},"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":62,"from_state":"s18","to_state":"s15","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":63,"from_state":"s15","to_state":"s01","action":"relaunch","mcp_ref":null,"tap_px":null,"transition":"unknown","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":64,"from_state":"s01","to_state":"s05","action":"tap","mcp_ref":"@e65","tap_px":{"x":540,"y":1370},"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":65,"from_state":"s05","to_state":"s19","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":66,"from_state":"s20","to_state":null,"action":"tap","mcp_ref":"@e129","tap_px":{"x":916,"y":2117},"transition":"unknown","change_summary":"denied: privacy","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":67,"from_state":"s19","to_state":"s20","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":68,"from_state":"s20","to_state":"s21","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":69,"from_state":"s21","to_state":"s22","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":70,"from_state":"s22","to_state":"s22","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"timeout","loop_pass":null,"loop_stop":null}
+{"step":71,"from_state":"s22","to_state":"s23","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":72,"from_state":"s23","to_state":"s24","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":73,"from_state":"s24","to_state":"s25","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":74,"from_state":"s25","to_state":"s26","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":75,"from_state":"s27","to_state":null,"action":"tap","mcp_ref":"@e75","tap_px":{"x":541,"y":2045},"transition":"unknown","change_summary":"denied: send","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":76,"from_state":"s26","to_state":"s27","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":77,"from_state":"s28","to_state":null,"action":"tap","mcp_ref":"@e75","tap_px":{"x":541,"y":1690},"transition":"unknown","change_summary":"denied: send","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":78,"from_state":"s27","to_state":"s28","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":79,"from_state":"s29","to_state":null,"action":"tap","mcp_ref":"@e75","tap_px":{"x":541,"y":1332},"transition":"unknown","change_summary":"denied: send","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":80,"from_state":"s28","to_state":"s29","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":81,"from_state":"s30","to_state":null,"action":"tap","mcp_ref":"@e75","tap_px":{"x":541,"y":978},"transition":"unknown","change_summary":"denied: send","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":82,"from_state":"s29","to_state":"s30","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":83,"from_state":"s30","to_state":"s30","action":"tap","mcp_ref":"@e73","tap_px":{"x":541,"y":442},"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":84,"from_state":"s31","to_state":null,"action":"tap","mcp_ref":"@e75","tap_px":{"x":541,"y":661},"transition":"unknown","change_summary":"denied: send","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":85,"from_state":"s30","to_state":"s31","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":86,"from_state":"s31","to_state":"s32","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":87,"from_state":"s32","to_state":"s32","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":88,"from_state":"s32","to_state":"s32","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":89,"from_state":"s32","to_state":"s01","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":90,"from_state":"s01","to_state":"s12","action":"tap","mcp_ref":"@e88","tap_px":{"x":376,"y":2014},"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":91,"from_state":"s12","to_state":"s12","action":"tap","mcp_ref":"@e104","tap_px":{"x":540,"y":478},"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":92,"from_state":"s12","to_state":"s33","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":93,"from_state":"s33","to_state":"s34","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":94,"from_state":"s34","to_state":"s35","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":95,"from_state":"s35","to_state":"s36","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":96,"from_state":"s36","to_state":"s37","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":97,"from_state":"s37","to_state":"s38","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":98,"from_state":"s38","to_state":"s39","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":99,"from_state":"s40","to_state":null,"action":"tap","mcp_ref":"@e188","tap_px":{"x":498,"y":2079},"transition":"unknown","change_summary":"denied: post","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":100,"from_state":"s39","to_state":"s40","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":101,"from_state":"s41","to_state":null,"action":"tap","mcp_ref":"@e188","tap_px":{"x":498,"y":1695},"transition":"unknown","change_summary":"denied: post","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":102,"from_state":"s40","to_state":"s41","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":103,"from_state":"s42","to_state":null,"action":"tap","mcp_ref":"@e188","tap_px":{"x":498,"y":1309},"transition":"unknown","change_summary":"denied: post","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":104,"from_state":"s41","to_state":"s42","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":105,"from_state":"s43","to_state":null,"action":"tap","mcp_ref":"@e188","tap_px":{"x":498,"y":920},"transition":"unknown","change_summary":"denied: post","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":106,"from_state":"s42","to_state":"s43","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":107,"from_state":"s44","to_state":null,"action":"tap","mcp_ref":"@e188","tap_px":{"x":498,"y":530},"transition":"unknown","change_summary":"denied: post","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":108,"from_state":"s43","to_state":"s44","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":109,"from_state":"s44","to_state":"s45","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":110,"from_state":"s45","to_state":"s46","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":111,"from_state":"s46","to_state":"s47","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":112,"from_state":"s47","to_state":"s48","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":113,"from_state":"s48","to_state":"s49","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":114,"from_state":"s49","to_state":"s50","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":115,"from_state":"s50","to_state":"s51","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":116,"from_state":"s52","to_state":null,"action":"tap","mcp_ref":null,"tap_px":{"x":540,"y":1416},"transition":"unknown","change_summary":"denied: photo","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":117,"from_state":"s52","to_state":null,"action":"tap","mcp_ref":null,"tap_px":{"x":540,"y":2146},"transition":"unknown","change_summary":"denied: photo","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":118,"from_state":"s51","to_state":"s52","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":119,"from_state":"s52","to_state":"s53","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":120,"from_state":"s53","to_state":"s54","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":121,"from_state":"s54","to_state":"s55","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":122,"from_state":"s55","to_state":"s56","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":123,"from_state":"s56","to_state":"s57","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":124,"from_state":"s57","to_state":"s58","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":125,"from_state":"s58","to_state":"s59","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":126,"from_state":"s59","to_state":"s60","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":127,"from_state":"s60","to_state":"s61","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":128,"from_state":"s61","to_state":"s62","action":"swipe","mcp_ref":null,"tap_px":null,"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":129,"from_state":"s62","to_state":"s01","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":130,"from_state":"s01","to_state":"s63","action":"tap","mcp_ref":"@e65","tap_px":{"x":540,"y":1370},"transition":"push","change_summary":"load started 2.2 s, finished 2.2 s, 630 chars","outcome":"ok","loop_pass":1,"loop_stop":null}
+{"step":131,"from_state":"s63","to_state":"s01","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":1,"loop_stop":null}
+{"step":132,"from_state":"s01","to_state":"s64","action":"tap","mcp_ref":"@e88","tap_px":{"x":376,"y":2014},"transition":"push","change_summary":"load started 3.3 s, finished 3.3 s, 471 chars","outcome":"ok","loop_pass":2,"loop_stop":null}
+{"step":133,"from_state":"s64","to_state":"s01","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":2,"loop_stop":null}
+{"step":134,"from_state":"s01","to_state":"s05","action":"tap","mcp_ref":"@e65","tap_px":{"x":540,"y":1370},"transition":"push","change_summary":"load started 2.1 s, finished 2.1 s, 823 chars","outcome":"ok","loop_pass":3,"loop_stop":"paywall"}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c09",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the cheer and one 7-day badge before play. The decline and ad-failure fields preserve the like and provide paths when the game cannot load or be confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field gives a cosmetic supporter badge, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is a tap on an app detail page; it does not use chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields leave existing likes and app-detail functionality in place."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a sheet over s13 App detail, which the product model rates safe, rather than an offer in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product change gives the player a badge for their own app cards, tying their reward to the mini-app browsing and creation flow f4. The maker also receives a cheer, but the reward is not mostly for the maker."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The trigger event, placement, and flow assume the user can tap like and have a like registered on s13. Elements s13.e09 and s13.e11 show counts, but the model does not show a like control or an observed liking action."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The badge in the reward field expires after seven days, and the proposal says the new cheer line leaves Explore ordering and rank badges unchanged."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement opens the sheet after the proposed like action is registered, a finished action rather than a mid-task interruption."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a chosen sponsored game, and the ad-failure field withholds the cheer when play cannot be confirmed. A button tap is an app-detectable trigger, even though this particular like control was not observed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses s13 App detail's maker byline and like and save counts, and distinguishes its new cheer line from the Explore ranking shown at s14.e18."
+ },
+ "other_concern": "The observed s13.e07 byline is “By Luzia,” so the maker receiving a cheer on that example app is an AI, not necessarily a human creator.",
+ "fixable": false
+}

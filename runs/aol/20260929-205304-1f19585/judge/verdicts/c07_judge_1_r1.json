@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c07",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner is opt-in and dismissible, and the offer copy states the reward (30 ad-free minutes) before the game. Declining leaves the feed unchanged, and the 'if the ad fails' field gives a path for a game that can't load or be confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without ads, a feature-time reward with no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event, returning to the feed after the third article open. It needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed or capped. Ads are hidden temporarily only as a reward, and the feed and articles stay as they are for users who decline."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The banner is a list card under the header of the home feed (s01), which is rated safe. It is not in a conversation, and no chat screen is involved."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is a product_change. The new resource, an ad-free reading window, is used by the player in the observed core flows f1 and f2 (reading articles). None of the reward goes to another party."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about today's app are supported by the model: feed cards (m1), cards under the byline and in-body ADVERTISEMENT blocks (m2, s05.e13, s13.e34, s20.e27), and TEMU rotation. The no-paid-plan and paywall statements are worded as not seen, matching m4 and the open questions."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a 30-minute sample that ends, and no paid ad-free plan was observed. It takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The banner appears on the home feed after the user comes back from an article, so it does not interrupt a task. It is also dismissible and sits on a persistent surface."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn sponsored game, and the 30 minutes start only once the game is confirmed. The trigger, the third article open followed by a return to the feed, is an app event the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names this app's specific ad surfaces: the Taboola cards between stories on the home feed, the card under each article byline, and the in-article ADVERTISEMENT blocks."
+ },
+ "other_concern": "Hiding Taboola cards for 30 minutes may conflict with the app's ad revenue or Taboola terms. Whether one brand can sponsor the credit line beside Taboola inventory is an unverified assumption.",
+ "fixable": false
+}

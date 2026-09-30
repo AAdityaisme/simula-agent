@@ -1,0 +1,37 @@
+{
+ "schema_version": 1,
+ "state_id": "s61",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "com.aol.mobile.aolapp|50c02a4d4e6516351635133728331263|4e751637586366ff2e6726f32a0b7e95|32f53ce5be2b",
+ "foreground_package": "com.aol.mobile.aolapp",
+ "screenshot": "states/s61.png",
+ "elements_reply": "states/s61.elements.json",
+ "settled": true,
+ "settle_seconds": 3.25,
+ "dynamic_regions": [],
+ "captured_at": "2026-09-29T21:13:36",
+ "box": null,
+ "icon_labels": [],
+ "vision_elements": [
+  {
+   "name": "Kelly Osbourne and Sid Wilson photo",
+   "rect_px": {
+    "x": 477.0,
+    "y": 1449.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "Joey Bada$$ and Serayah photo",
+   "rect_px": {
+    "x": 477.0,
+    "y": 2093.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  }
+ ],
+ "blocked_reason": null
+}

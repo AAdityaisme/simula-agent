@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[],\"extra_points\":[{\"x\":440,\"y\":43,\"name\":\"bookmark\"},{\"x\":503,\"y\":43,\"name\":\"search\"},{\"x\":86,\"y\":111,\"name\":\"top stories tab\"},{\"x\":227,\"y\":111,\"name\":\"entertainment tab\"},{\"x\":348,\"y\":111,\"name\":\"local tab\"},{\"x\":443,\"y\":111,\"name\":\"sports tab\"},{\"x\":454,\"y\":195,\"name\":\"weather settings\"},{\"x\":135,\"y\":1060,\"name\":\"inbox tab\"},{\"x\":405,\"y\":1060,\"name\":\"home tab\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1666,
+ "tokens_out": 207,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

@@ -1,0 +1,71 @@
+{
+ "schema_version": 1,
+ "run_id": "20260929-204554-1f19585",
+ "app": "luzia",
+ "created_at": "2026-09-29T20:45:54",
+ "git_sha": "1f19585",
+ "git_dirty": false,
+ "profile": "real",
+ "budget": "transfer",
+ "allow_account_create": false,
+ "roles": {
+  "jev": "jev-latest",
+  "explore_vision": "claude-sonnet-5-5 low 2000",
+  "model_meaning": "claude-opus-5-5 high 64000",
+  "mock_builder": "claude-opus-5-5 xhigh 128000",
+  "qa_critic": "claude-sonnet-5-5 medium 16000",
+  "qa_fixer": "claude-opus-5-5 high xhigh 64000",
+  "proposer": "claude-opus-5-5 high 16000",
+  "propose_dedupe": "claude-sonnet-5-5 low 4000",
+  "judge_1": "claude-sonnet-5-5 high 16001",
+  "judge_2": "gpt-6-sol high gpt-6-luna 16001",
+  "pairwise": "claude-sonnet-5-5 low",
+  "flows_editor": "claude-opus-5-5 high 16000"
+ },
+ "prompt_hashes": {
+  "prompts/explore/arrival.md": "712f2d82012a95e9d598ada274f066870f781baba1a67e30de81e05f492e0212",
+  "prompts/explore/hard_screen.md": "213c86e0e3b534c47b0c0918a0f2781956dc7bbf85f691457ebcbfc22ac50090",
+  "prompts/explore/icons.md": "5068adc3c16ccc29071f5fdf47c7d2e458dd4eb34bc4840b75069ae47ac49225",
+  "prompts/explore/settle.md": "af6eaeba69a59151c0fd4f7fe27d84c964ffcf0cd0ce953c37177263a8821c9d",
+  "prompts/explore/walk.md": "5c2dc841fe22e5ef990ea659f7c8bedcfb0521d72cf39cde6cdf670521fd9bb9",
+  "prompts/flows/editor.md": "0e039c6f33de6020b3813c2ade7c3da7461a1c5f53658d58dafff5f01f523908",
+  "prompts/judge/revise.md": "24341ceec4bdede90df801572a15713ab19023a7394ee63ce521983b33efdec5",
+  "prompts/judge/rubric.md": "e29fac2865aa1a55136c83753185c54c5199b99c14799982f01a820a76c0c0c2",
+  "prompts/mock/builder.md": "b4f54caff8d339eac98c0c929ab1ecca4ae7cc4f2cc5e916505c46cf3d67595c",
+  "prompts/model/meaning.md": "4485dd1bd1f86897ab70df2cb8785e2739c4fb4b81a8fc1edac07a90aee2a0b1",
+  "prompts/propose/dedupe.md": "068073bc4470694f8df72c90ac3fed2a74351520966fa87a31097e7abe6b2562",
+  "prompts/propose/lens.md": "f3d64089ca72c1be63e63b59a52bf808f34b2371594913989f5e48e0ffe7c264",
+  "prompts/propose/system.md": "7ce8cacff65cabc775b7a9077ef0516d4e50342973e67c6e261b685d4f45b736",
+  "prompts/qa/critic.md": "cf2799df81e03bb9f466b2c0a88e6b95a35831b195637ebedd2020972cd2f46c",
+  "prompts/qa/fixer.md": "cda00dff4aa193f58e917c1bea26c156594d66ad58616bc40320f0f344f6b354"
+ },
+ "app_package": "co.thewordlab.luzia",
+ "app_version": "5.44.0",
+ "mobile_mcp_version": "1.0.5",
+ "playwright_version": "1.63.0",
+ "caps_usd": {
+  "explore": 3.0,
+  "model": 4.0,
+  "mock": 25.0,
+  "qa": 12.0,
+  "propose": 6.0,
+  "judge": 8.0,
+  "flows": 8.0
+ },
+ "no_send": false,
+ "provenance": {
+  "source": "explorer_run",
+  "explorer_run_id": "20260929-204554-1f19585",
+  "fixture_path": null
+ },
+ "stages_done": [
+  "explore",
+  "model",
+  "mock",
+  "propose",
+  "judge",
+  "flows"
+ ],
+ "usd_total": 10.6883,
+ "fallbacks_used": []
+}

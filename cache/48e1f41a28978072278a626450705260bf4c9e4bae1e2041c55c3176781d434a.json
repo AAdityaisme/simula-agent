@@ -1,0 +1,9 @@
+{
+ "text": "{\"identifying_text\":\"\",\"verdict\":\"elsewhere\",\"confidence\":0.3,\"action\":null,\"element_id\":null,\"direction\":null,\"side_effect\":false,\"reason\":\"The current screen is blank with no controls, so the target's sign-in page cannot be found and no single action is identifiable.\"}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 2997,
+ "tokens_out": 99,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

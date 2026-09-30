@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c08",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before play, and the card is dismissible. The decline and ad-failure fields leave articles unchanged if the reader declines or verification fails."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without in-article advertisement blocks, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses article progress and the next-story bar, not anything a user typed or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields preserve ordinary article reading; the proposal does not lock or cap a free reader benefit."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card by the next-story bar on s24, which the product model rates content safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the reward gives the player a timed cleaner-reading option for their own use in the observed article-reading flows f1 and f2."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says every article has several in-body advertisement blocks, but m2 supports only one or more. It also calls the bar at s24.e24 a break after finishing the story, although the article continues through s31."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes, and the model does not establish a paid ad-free benefit that it would grant without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger event and flow place the offer after the reader finishes a story, rather than interrupting reading in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow grants the reward once the sponsored play is confirmed, and reaching an article-progress event is detectable by the app."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses this app's in-article advertisement blocks and its 'Next in More For You' bar at s24.e24."
+ },
+ "other_concern": "The 'when the reward runs out' copy suggests another game is available that day even if the stated two-per-day cap has already been reached.",
+ "fixable": true
+}

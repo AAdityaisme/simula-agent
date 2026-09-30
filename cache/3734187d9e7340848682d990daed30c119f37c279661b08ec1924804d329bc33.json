@@ -1,0 +1,9 @@
+{
+ "text": "{\"on_screen\":false,\"element_id\":null,\"confidence\":0.8,\"reason\":\"This is a news article, where the core action is reading the text, and no dedicated start control appears; the only 'Open' button belongs to an ad.\"}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1795,
+ "tokens_out": 76,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

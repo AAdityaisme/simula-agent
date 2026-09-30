@@ -1,0 +1,462 @@
+<!doctype html>
+<html><head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<style id="simula-shared">
+:root{--bg-1:#ffffff;--bg-2:#fdfbfa;--bg-3:#ebf3f4;--bg-4:#f3f0ec;--fg-1:#27251e;--fg-2:#6e6c66;--fg-3:#a4a099;--fg-4:#312f28;--font-1:"Inter",system-ui,sans-serif;--font-2:"Instrument Serif",system-ui,sans-serif}
+body{background:var(--bg-1);font-family:var(--font-1)}
+</style>
+<style data-batch="1">
+:is(section[data-screen="s01"],section[data-screen="s04"],section[data-screen="s07"],section[data-screen="s10"]){background:var(--bg-2);overflow:hidden;color:var(--fg-1);font-family:var(--font-1);
+& div,& img{position:absolute;box-sizing:border-box}
+& svg{display:block}
+& .t{white-space:nowrap}
+& .c{display:flex;justify-content:center;white-space:nowrap}
+& .hl{font-family:var(--font-2);color:var(--fg-1)}
+& .hb{top:6.1px;width:48px;height:48px;color:var(--fg-1)}
+& .hb::before{content:"";position:absolute;inset:2px;border-radius:50%;background:#fff;box-shadow:0 2px 12px rgba(39,37,30,.08)}
+& .hb.cb::before{background:#f5f3f1;box-shadow:none}
+& .hi{left:12px;top:12px;width:24px;height:24px}
+& .tg{left:75.9px;top:10.2px;width:259.7px;height:40px;border-radius:20px;background:var(--bg-4)}
+& .tp{top:12.3px;width:126.7px;height:36.3px;border-radius:18.2px;background:#fff;border:1px solid #e8e4df;box-shadow:0 1px 4px rgba(39,37,30,.06)}
+& .tl{top:20.2px;height:20.2px;display:flex;align-items:center;gap:5px;font-size:14px;white-space:nowrap;color:var(--fg-1)}
+& .g{color:var(--fg-2)}
+& .cmp{left:12.2px;top:706.6px;width:387.1px;height:115.9px;border-radius:26px;background:#fff;box-shadow:0 0 26px rgba(39,37,30,.07)}
+& .tc{background:#fcfefe;box-shadow:inset 0 0 22px rgba(140,200,208,.45),0 0 24px rgba(39,37,30,.05)}
+& .ph{left:32.4px;top:727.2px;width:346.7px;height:18.7px;font-size:16px;line-height:18.7px;letter-spacing:-.1px;color:#6b6b6b;white-space:nowrap}
+& .ci{top:780.6px;width:20.2px;height:20.2px}
+& .dh::after{content:"";position:absolute;left:0;top:4.8px;width:100%;height:4.6px;border-radius:3px;background:#92908c}
+& .dk::after{background:#4b4d4a}
+& .bi{left:28.3px;width:35.8px;height:35.8px;border-radius:8px;background:var(--bg-4);display:flex;align-items:center;justify-content:center}
+& .dv{left:28.3px;width:354.4px;height:1px;background:#e7e4e0}
+& .bt{font-size:14px;line-height:16px;letter-spacing:-.2px;font-weight:400;white-space:nowrap}
+& .pb{background:var(--fg-1)}
+}
+section[data-screen="s07"]{background:var(--bg-1);
+& .sky{left:0;top:0;width:411px;height:430px;background:linear-gradient(#6b7275,#747a7d 55%,#7d8386)}
+& .orb{left:112px;top:124px;width:188px;height:188px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:radial-gradient(circle at 50% 4%,#fff 0,rgba(255,255,255,.7) 10%,transparent 32%),radial-gradient(circle at 55% 97%,rgba(255,255,255,.95) 0,rgba(255,255,255,.4) 14%,transparent 34%),radial-gradient(ellipse 30% 40% at 12% 62%,rgba(70,100,50,.8),transparent 70%),radial-gradient(ellipse 40% 20% at 40% 85%,rgba(150,140,220,.45),transparent 70%),radial-gradient(circle at 50% 45%,rgba(190,196,199,.5),rgba(150,158,162,.55) 70%,rgba(230,232,234,.7) 100%);box-shadow:0 -14px 40px rgba(255,255,255,.35),0 12px 34px rgba(255,255,255,.3)}
+& .orb svg{position:absolute;left:39px;top:56px}
+& .mdw{left:0;top:280px;width:411px;height:208px;background:radial-gradient(ellipse 22% 26% at 50% 62%,rgba(74,98,48,.95),transparent 70%),radial-gradient(ellipse 18% 22% at 30% 88%,rgba(62,88,40,.9),transparent 70%),radial-gradient(ellipse 16% 20% at 72% 80%,rgba(80,104,52,.85),transparent 70%),radial-gradient(ellipse 14% 18% at 8% 32%,rgba(236,238,230,.85),transparent 70%),radial-gradient(ellipse 12% 12% at 68% 36%,rgba(216,174,69,.65),transparent 70%),radial-gradient(ellipse 10% 10% at 58% 30%,rgba(216,174,69,.55),transparent 70%),radial-gradient(ellipse 16% 14% at 90% 52%,rgba(236,238,230,.8),transparent 70%),radial-gradient(ellipse 18% 12% at 40% 58%,rgba(230,232,225,.7),transparent 70%),radial-gradient(ellipse 14% 10% at 22% 50%,rgba(210,176,90,.5),transparent 70%),radial-gradient(ellipse 30% 45% at 18% 60%,#3d5528,transparent 70%),radial-gradient(ellipse 30% 40% at 85% 65%,#4a6030,transparent 70%),linear-gradient(#9aa27a,#6a7d45 40%,#4f6834);-webkit-mask-image:linear-gradient(transparent,#000 24%,#000 70%,transparent);mask-image:linear-gradient(transparent,#000 24%,#000 70%,transparent)}
+}
+</style>
+<style data-batch="2">
+:is(section[data-screen="s09"],section[data-screen="s02"],section[data-screen="s03"],section[data-screen="s08"]){overflow:hidden;background:var(--bg-2);color:var(--fg-1);font-family:var(--font-1)}
+:is(section[data-screen="s09"],section[data-screen="s02"],section[data-screen="s03"],section[data-screen="s08"]) .a{position:absolute;box-sizing:border-box;margin:0}
+:is(section[data-screen="s09"],section[data-screen="s02"],section[data-screen="s03"],section[data-screen="s08"]) svg{display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+:is(section[data-screen="s09"],section[data-screen="s02"],section[data-screen="s03"],section[data-screen="s08"]) .f{fill:currentColor;stroke:none}
+:is(section[data-screen="s09"],section[data-screen="s02"],section[data-screen="s03"],section[data-screen="s08"]) .hd{position:absolute;left:0;top:0;width:411px;height:62px}
+:is(section[data-screen="s09"],section[data-screen="s02"],section[data-screen="s03"],section[data-screen="s08"]) .cb{position:absolute;top:6.1px;width:48px;height:48px;border-radius:50%;background:var(--bg-1);box-shadow:0 2px 12px rgba(39,37,30,.08)}
+:is(section[data-screen="s09"],section[data-screen="s02"],section[data-screen="s03"],section[data-screen="s08"]) .cb>svg{width:24px;height:24px;margin:12px}
+:is(section[data-screen="s09"],section[data-screen="s02"],section[data-screen="s03"],section[data-screen="s08"]) .ic{position:absolute;top:18.3px;width:24px;height:24px}
+:is(section[data-screen="s09"],section[data-screen="s02"],section[data-screen="s03"],section[data-screen="s08"]) .ic>svg{width:24px;height:24px}
+:is(section[data-screen="s09"],section[data-screen="s02"],section[data-screen="s03"],section[data-screen="s08"]) .trk{position:absolute;left:75.9px;top:9.8px;width:259.7px;height:40.4px;border-radius:20.2px;background:var(--bg-4)}
+:is(section[data-screen="s09"],section[data-screen="s02"],section[data-screen="s03"],section[data-screen="s08"]) .sel{position:absolute;top:12.4px;width:126px;height:35.6px;border-radius:18px;background:var(--bg-1);box-shadow:0 0 0 1px #ebe8e4,0 1px 4px rgba(39,37,30,.08)}
+:is(section[data-screen="s09"],section[data-screen="s02"],section[data-screen="s03"],section[data-screen="s08"]) .tg{position:absolute;top:6.5px;height:48px}
+:is(section[data-screen="s09"],section[data-screen="s02"],section[data-screen="s03"],section[data-screen="s08"]) .tab{position:absolute;top:20.2px;height:20.2px;display:flex;align-items:center;gap:5px;font-size:14.5px;line-height:20.2px;white-space:nowrap}
+:is(section[data-screen="s09"],section[data-screen="s02"],section[data-screen="s03"],section[data-screen="s08"]) .tab svg{width:20px;height:20px;flex:none}
+:is(section[data-screen="s09"],section[data-screen="s02"],section[data-screen="s03"],section[data-screen="s08"]) .cmp{position:absolute;left:12.8px;top:706.6px;width:385.9px;height:115.4px;border-radius:22px;background:var(--bg-1);box-shadow:0 -1px 14px rgba(39,37,30,.05)}
+:is(section[data-screen="s09"],section[data-screen="s02"],section[data-screen="s03"],section[data-screen="s08"]) .ph{position:absolute;left:32.4px;top:727.2px;width:346.7px;height:18.7px;font-size:16px;line-height:18.7px;white-space:nowrap;outline:none}
+:is(section[data-screen="s09"],section[data-screen="s02"],section[data-screen="s03"],section[data-screen="s08"]) .i20{position:absolute;top:780.6px;width:20.2px;height:20.2px}
+:is(section[data-screen="s09"],section[data-screen="s02"],section[data-screen="s03"],section[data-screen="s08"]) .kb{position:absolute;left:8px;top:315.9px;width:56.1px;height:212.1px;border-radius:28px;background:#faf8ff;box-shadow:0 10px 34px rgba(30,28,40,.16)}
+:is(section[data-screen="s09"],section[data-screen="s02"],section[data-screen="s03"],section[data-screen="s08"]) .key{position:absolute;left:11.8px;width:48px;height:48px;border-radius:50%;color:#1a1b20}
+:is(section[data-screen="s09"],section[data-screen="s02"],section[data-screen="s03"],section[data-screen="s08"]) .key svg{width:24px;height:24px;margin:12px}
+section[data-screen="s09"]{background:#e4e1dc}
+section[data-screen="s09"] .hd{color:#a4a099}
+section[data-screen="s09"] .cb{background:#e6e3de;box-shadow:0 2px 12px rgba(39,37,30,.05)}
+section[data-screen="s09"] .trk{background:#e0ddd6}
+section[data-screen="s09"] .sel{background:#e8e5e0;box-shadow:0 1px 4px rgba(39,37,30,.06)}
+section[data-screen="s09"] .cmp{background:#e9e5df;box-shadow:0 0 14px rgba(150,190,190,.35)}
+section[data-screen="s09"] .card{border-radius:16px;background:radial-gradient(150px 110px at 350px 22px,rgba(184,216,219,.7),transparent),radial-gradient(110px 70px at 22px 12px,rgba(184,216,219,.4),transparent),linear-gradient(170deg,#e6f2f4,#eef5f6)}
+section[data-screen="s09"] .t{font-size:14.5px;font-weight:500;line-height:16px;white-space:nowrap}
+section[data-screen="s09"] .row{left:58.3px;height:16px;font-size:14.5px;line-height:16px;white-space:nowrap;color:var(--fg-1)}
+section[data-screen="s09"] .dc{left:31.1px;width:18px;height:18px;color:#9a9a96;stroke-width:1.5;stroke-dasharray:1.4 2.5}
+section[data-screen="s09"] .chr{left:366px;width:14px;height:14px;color:#44423c;stroke-width:2.2}
+section[data-screen="s09"] .i20{color:#a4a099}
+section[data-screen="s02"] .chip::before{content:"";position:absolute;left:0;right:0;top:4.5px;bottom:4.5px;border-radius:16px;background:#eeebe8}
+section[data-screen="s08"] .cmp{box-shadow:inset 0 0 14px rgba(150,205,210,.4),0 0 0 1px #d9ecee,0 0 10px rgba(160,210,214,.35)}
+section[data-screen="s03"] .mi{left:17px;width:22px;height:22px}
+section[data-screen="s03"] .mt{left:52.2px;height:18.7px;font-size:16px;line-height:18.7px;white-space:nowrap}
+section[data-screen="s03"] .flt{display:flex;align-items:center;justify-content:center;gap:5px;font-size:15px}
+section[data-screen="s03"] .flt::before{content:"";position:absolute;left:0;right:0;top:8.7px;height:30.4px;border:1px solid #dedad4;border-radius:16px;box-sizing:border-box}
+section[data-screen="s03"] .flt>*{position:relative}
+section[data-screen="s03"] .flt svg{width:15px;height:15px;stroke-width:2}
+section[data-screen="s03"] .card{overflow:hidden;border-radius:20px;background:radial-gradient(150px 34px at 130px 160px,rgba(96,118,48,.65),transparent),radial-gradient(260px 60px at 190px 330px,rgba(112,132,54,.8),transparent 75%),radial-gradient(240px 46px at 120px 120px,rgba(90,170,175,.35),transparent 70%),radial-gradient(230px 40px at 300px 205px,rgba(90,170,175,.32),transparent 70%),radial-gradient(400px 34px at 190px 262px,rgba(110,185,190,.3),transparent 70%),#0b0908}
+section[data-screen="s03"] .dots{left:0;top:0;width:379px;height:545px;background:radial-gradient(circle,rgba(165,228,232,.9) .7px,transparent 1.2px) 0 0/7px 5px,radial-gradient(circle,rgba(165,228,232,.7) .6px,transparent 1.1px) 3px 2px/11px 9px,radial-gradient(circle,rgba(190,240,244,.8) .9px,transparent 1.4px) 5px 4px/17px 13px;-webkit-mask-image:linear-gradient(198deg,transparent 19%,#000 25%,#000 30%,transparent 37%,transparent 42%,#000 47%,#000 51%,transparent 57%);mask-image:linear-gradient(198deg,transparent 19%,#000 25%,#000 30%,transparent 37%,transparent 42%,#000 47%,#000 51%,transparent 57%);opacity:.7}
+section[data-screen="s03"] .sph{left:134.5px;top:196px;width:135px;height:135px;border-radius:50%;background:radial-gradient(circle at 26% 24%,#fff 0 3%,rgba(190,235,250,.55) 9%,transparent 22%),radial-gradient(circle at 84% 76%,rgba(235,250,255,.85) 0 3%,transparent 14%),linear-gradient(#5f6c33,#8d9a4c 32%,#3d4c2e 50%,#121a17 57%,#0b100f);box-shadow:0 0 24px rgba(170,220,235,.3),inset 0 0 10px rgba(205,240,250,.35)}
+section[data-screen="s03"] .fade{left:0;top:320px;width:379px;height:226px;background:linear-gradient(transparent,#2a2922 42%)}
+section[data-screen="s03"] .pl{left:32px;width:347px;height:47.6px;border-radius:24px;background:var(--bg-1)}
+section[data-screen="s03"] .pt{height:18.7px;font-size:15px;line-height:18.7px;white-space:nowrap}
+</style>
+<style id="simula-runtime">
+html,body{margin:0;padding:0;width:411px;height:914px;overflow:hidden}
+body{position:relative}
+[data-screen]{position:absolute!important;left:0!important;top:51.8px!important;width:411px!important;height:838.2px!important;overflow:hidden;box-sizing:border-box}
+[data-screen]:not(.simula-on){display:none!important}
+[data-screen][data-parent]{z-index:10;background:transparent!important}
+.simula-push{animation:simula-slide .25s ease-out}
+.simula-back{animation:simula-slide-back .25s ease-out}
+.simula-modal{animation:simula-fade .2s ease-out}
+@keyframes simula-slide{from{transform:translateX(100%)}}
+@keyframes simula-slide-back{from{transform:translateX(-30%)}}
+@keyframes simula-fade{from{opacity:0}}
+@media (prefers-reduced-motion:reduce){.simula-push,.simula-back,.simula-modal{animation:none}}
+[data-simula-field]{cursor:text;-webkit-user-select:text;user-select:text}
+[data-simula-field]:focus{outline:none}
+</style>
+<style id="simula-flow">
+body:not(.simula-rewarded) [data-reward]{display:none!important}
+body.simula-rewarded [data-unrewarded]{display:none!important}
+body.simula-hide-replaced [data-unrewarded]{opacity:0!important}
+[data-screen]{isolation:isolate}
+.sa-dim{position:absolute;inset:0;background:rgba(8,10,14,.72)}
+.sa-card{position:absolute;left:28px;right:28px;top:140px;border-radius:20px;background:var(--bg-1,#fff);color:var(--fg-1,#16181d);padding:18px;font:15px/1.35 var(--font-1,system-ui,-apple-system,Roboto,sans-serif);box-shadow:0 12px 40px rgba(0,0,0,.4)}
+.sa-top{display:flex;justify-content:space-between;align-items:center}
+.sa-tag{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.6}
+.sa-close{border:0;background:rgba(127,127,127,.2);color:inherit;border-radius:50%;width:30px;height:30px;font-size:18px;line-height:30px;cursor:pointer}
+.sa-game{margin:14px 0 12px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sa-game i{aspect-ratio:1;border-radius:12px;background:linear-gradient(135deg,#ffb347,#ff5f6d)}
+.sa-game i:nth-child(3n+2){background:linear-gradient(135deg,#43cea2,#185a9d)}
+.sa-game i:nth-child(4n){background:linear-gradient(135deg,#a18cd1,#fbc2eb)}
+.sa-bar{height:6px;border-radius:3px;background:rgba(127,127,127,.2);overflow:hidden}
+.sa-bar i{display:block;height:100%;width:0;background:var(--sa-accent,#22c55e);transition:width 3s linear}
+.sa-reward{margin:12px 0;font-weight:600}
+.sa-play{width:100%;border:0;border-radius:12px;padding:12px;background:var(--sa-accent,#16181d);color:var(--sa-on-accent,#fff);font:700 16px var(--font-1,system-ui,sans-serif);cursor:pointer}
+.sa-cta{width:100%;border:0;background:none;color:inherit;opacity:.7;padding:10px 0 0;font-size:14px;cursor:pointer}
+.sa-note{position:absolute;left:24px;right:24px;bottom:90px;z-index:50;background:#16181d;color:#fff;border-radius:12px;padding:12px 14px;font:14px system-ui,sans-serif}
+</style>
+</head><body>
+<section data-screen="s01">
+<div data-chrome="header" style="left:0;top:0;width:411px;height:60px">
+<div class="hb" data-el="s01.e03" data-edge="s01.e03>s03" data-transition="push" style="left:14.1px"><div class="hi" style="color:var(--fg-4)"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9.3"/><circle cx="12" cy="10" r="3.2"/><path d="M6.5 18.2c1.4-1.9 3.2-2.9 5.5-2.9s4.1 1 5.5 2.9"/></svg></div></div>
+<div class="tg"></div>
+<div class="tp" style="left:77.5px"></div>
+<div class="tl" data-el="s01.e04" style="left:105.5px;width:70.5px"><svg viewBox="3 3 19 19" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><span>Search</span></div>
+<div data-el="s01.e05" style="left:206.1px;top:6.5px;width:130.3px;height:48px"></div>
+<div class="tl g" data-el="s01.e07" style="left:226.3px;width:90.3px"><svg viewBox="2 2 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="3.5" width="16" height="12" rx="2"/><path d="M10 7.5v3.5M14 7.5v3.5M2.5 19.8h19"/></svg><span>Computer</span></div>
+<div class="hb" data-el="s01.e08" style="left:349.3px"><div class="hi" data-el="s01.e09"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M4 3.8h11.5v16.4H5.6A1.6 1.6 0 0 1 4 18.6zM15.5 8H20v10.6a1.6 1.6 0 0 1-1.6 1.6h-2.9M7.5 8h4.5M7.5 12h4.5M7.5 16h4.5"/></svg></div></div>
+</div>
+<img data-el="s01.e01" src="assets/s01.e01.png" alt="" style="left:175.6px;top:351.2px;width:60.2px;height:60.2px">
+<img data-el="s01.e02" src="assets/s01.e02.png" alt="" style="left:179.8px;top:353.5px;width:52.2px;height:56px">
+<div class="cmp"></div>
+<div class="ph" data-el="s01.e13">Ask anything…</div>
+<div data-el="s01.e14" data-edge="s01.e14>s02" data-transition="push" style="left:12.2px;top:766.1px;width:387.1px;height:56.4px;border-radius:0 0 26px 26px"></div>
+<div class="ci" data-el="s01.e16" style="left:38.9px"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 4v16M4 12h16"/></svg></div>
+<div data-el="s01.e18" style="left:72.8px;top:770.3px;width:57.1px;height:40px;border-radius:20px;background:#eeebe8;background-clip:content-box;padding:5px 0"></div>
+<div class="c" data-el="s01.e20" style="left:80.8px;top:782px;width:41.1px;height:16px;font-size:14px;font-weight:400;line-height:16px">Model</div>
+<div class="ci" style="left:277.3px;color:#3a3833"><svg viewBox="0 0 24 24" width="18" height="18" style="margin:1.1px" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5h18M6 11.5l1.2-4.8A2 2 0 0 1 9.1 5h5.8a2 2 0 0 1 1.9 1.7L18 11.5"/><circle cx="7.5" cy="16.5" r="2.8"/><circle cx="16.5" cy="16.5" r="2.8"/><path d="M10.3 16.5h3.4"/></svg></div>
+<div class="ci" style="left:317.3px"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="2.5" width="6" height="11.5" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5v4M8.5 21.5h7"/></svg></div>
+<div data-el="s01.e26" style="left:352.4px;top:775.6px;width:29.7px;height:29.7px;border-radius:50%;background:var(--fg-1);color:var(--bg-2);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 10.5v3M6.5 8v8M10 5v14M13.5 3v18M17 7v10M20.5 10v4"/></svg></div>
+</section>
+<section data-screen="s04">
+<div style="left:0;top:0;width:411px;height:60px">
+<div class="hb" style="left:14.1px"><div class="hi" style="color:var(--fg-4)"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9.3"/><circle cx="12" cy="10" r="3.2"/><path d="M6.5 18.2c1.4-1.9 3.2-2.9 5.5-2.9s4.1 1 5.5 2.9"/></svg></div></div>
+<div class="tg"></div>
+<div class="tp" style="left:77.5px"></div>
+<div class="tl" style="left:105.5px;width:70.5px"><svg viewBox="3 3 19 19" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><span>Search</span></div>
+<div class="tl g" style="left:226.3px;width:90.3px"><svg viewBox="2 2 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="3.5" width="16" height="12" rx="2"/><path d="M10 7.5v3.5M14 7.5v3.5M2.5 19.8h19"/></svg><span>Computer</span></div>
+<div class="hb" style="left:349.3px"><div class="hi"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M4 3.8h11.5v16.4H5.6A1.6 1.6 0 0 1 4 18.6zM15.5 8H20v10.6a1.6 1.6 0 0 1-1.6 1.6h-2.9M7.5 8h4.5M7.5 12h4.5M7.5 16h4.5"/></svg></div></div>
+</div>
+<div style="inset:0;background:rgba(0,0,0,.7)"></div>
+<div style="left:0;top:234.1px;width:411px;height:604.1px;background:var(--bg-2);border-radius:30px 30px 0 0"></div>
+<div class="dh" data-el="s04.e01" style="left:187.8px;top:234.3px;width:36.2px;height:19.8px"></div>
+<div class="hb cb" data-el="s04.e02" data-edge="s04.back>s01" data-transition="back" style="left:345.1px;top:252.2px"><div class="hi" data-el="s04.e03"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5.5 5.5l13 13M18.5 5.5l-13 13"/></svg></div></div>
+<div style="left:32.6px;top:338.3px;width:345.8px;height:93.6px;background:#fff;border:1px solid #e8e5e1;border-radius:18px"></div>
+<div style="left:44.4px;top:351px;width:320px;height:32px;font-size:12px;line-height:16px;color:#7a7872;white-space:nowrap">Computer <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:-1px;margin:0 2px"><path d="M3 6h10M3 11h6M3 16h4"/><circle cx="16" cy="14" r="4"/><path d="M19 17l3 3"/></svg> <b style="color:var(--fg-1);font-weight:500">researches</b> dozens of sources in parallel<br>and turns findings into polished repor</div>
+<div style="left:44.4px;top:397.1px;width:116.5px;height:23.6px;border-radius:12px;background:var(--bg-4)"></div>
+<div style="left:52px;top:403.3px;width:12px;height:12px;color:var(--fg-2)"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg></div>
+<div style="left:73.2px;top:397.1px;width:87.7px;height:23.6px;border-radius:12px;background:#fff;border:1px solid #e2dfda;display:flex;align-items:center;gap:5px;padding-left:9px;font-size:12px;white-space:nowrap"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="3.5" width="16" height="12" rx="2"/><path d="M10 7.5v3.5M14 7.5v3.5M2.5 19.8h19"/></svg><span>Computer</span></div>
+<div style="left:318.4px;top:403.3px;width:12px;height:12px;color:var(--fg-2)"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2.5" width="6" height="11.5" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5v4M8.5 21.5h7"/></svg></div>
+<div style="left:343.1px;top:397.1px;width:23.6px;height:23.6px;border-radius:50%;background:#8f8d89;color:#fff;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></div>
+<div style="left:145.9px;top:481px;width:119.7px;height:21.4px;border-radius:11px;background:#eff3f2"></div>
+<div class="c" data-el="s04.e04" style="left:153.9px;top:485.3px;width:104px;height:13.7px;font-size:11px;line-height:13.7px;letter-spacing:.5px;font-weight:500;color:#016a71">LIMITED PREVIEW</div>
+<div class="hl c" data-el="s04.e05" style="left:51.8px;top:519.2px;width:307.8px;height:32.8px;font-size:26.6px;line-height:32.8px;letter-spacing:-.3px">Computer is available for you to try</div>
+<div class="bi" style="top:568.2px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12.5V6.8a1.4 1.4 0 0 1 2.8 0v5M12.8 11.3v-1.2a1.4 1.4 0 0 1 2.8 0v1.6M15.6 11.2a1.4 1.4 0 0 1 2.8 0V15a6 6 0 0 1-6 6h-.8a5 5 0 0 1-4-2l-2.3-3.2a1.4 1.4 0 0 1 2.2-1.7l2.5 2.4M6 3.5l1.3 1.3M4 7.5h1.8M9.5 2v1.6"/></svg></div>
+<div class="bt" data-el="s04.e06" style="left:72.4px;top:566px;width:310.9px;height:40px;line-height:20px;white-space:normal">Hand off complex tasks and get polished results</div>
+<div class="dv" style="top:614.1px"></div>
+<div class="bi" style="top:624.8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4.5 11 8M19.5 9.5 16 13M9 6.5l8.5 8.5-1.8 1.8a4.5 4.5 0 0 1-6.4 0l-.2-.2a4.5 4.5 0 0 1 0-6.4zM8.2 15.8 4 20"/></svg></div>
+<div class="bt" data-el="s04.e07" style="left:72.4px;top:635.4px;width:299.8px;height:16px">Work across all your connected apps and tools</div>
+<div class="dv" style="top:670.8px"></div>
+<div class="bi" style="top:682px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 10.5V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h4.5M8 3v4M15 3v4M4 10h15"/><circle cx="17" cy="17" r="4"/><path d="M17 15.3V17l1.2 1"/></svg></div>
+<div class="bt" data-el="s04.e08" style="left:72.4px;top:692.6px;width:271.6px;height:16px">Automate recurring tasks on any schedule</div>
+<div class="pb" style="left:24px;top:766.4px;width:362.4px;height:47.1px;border-radius:23.6px"></div>
+<div class="c" data-el="s04.e10" style="left:163.2px;top:780.8px;width:85px;height:18.7px;font-size:16px;line-height:18.7px;font-weight:500;color:var(--bg-2)">Get started</div>
+</section>
+<section data-screen="s07">
+<div style="left:0;top:0;width:411px;height:838.2px;background:var(--bg-2);border-radius:28px 28px 0 0;overflow:hidden">
+<div class="sky"></div>
+<div class="mdw"></div>
+<div class="orb"><svg width="102" height="84" viewBox="0 0 102 84" fill="none" stroke="rgba(236,236,236,.95)" stroke-linecap="round" stroke-width="7"><rect x="12.8" y="5.2" width="76" height="54.5" rx="11"/><path d="M42 24v17M60 24v17M4 79h94"/></svg></div>
+</div>
+<div class="dh dk" data-el="s07.e09" style="left:187.8px;top:0;width:36.2px;height:19.8px"></div>
+<div class="hb" data-el="s07.e07" data-edge="s07.back>s08" data-transition="back" style="left:357.3px;top:18.3px"><div class="hi" data-el="s07.e08"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5.5 5.5l13 13M18.5 5.5l-13 13"/></svg></div></div>
+<div class="hl" data-el="s07.e01" style="left:16px;top:508.2px;width:379.4px;height:100.2px;padding-top:3px;font-size:44px;line-height:47px;text-align:center;letter-spacing:-.6px">Welcome to<br>Computer</div>
+<div data-el="s07.e02" style="left:16px;top:614.5px;width:379.4px;height:40px;font-size:14.5px;line-height:20px;text-align:center;color:#71706b">You have access to a limited preview of Computer, your always-on teammate that works for you.</div>
+<div class="pb" style="left:16px;top:702.3px;width:378.4px;height:55px;border-radius:27.5px"></div>
+<div class="c" data-el="s07.e04" style="left:164.9px;top:721.1px;width:81.5px;height:18.7px;font-size:15.5px;line-height:18.7px;font-weight:500;color:var(--bg-2)">Get started</div>
+<div class="c" data-el="s07.e06" style="left:171.8px;top:785.1px;width:68.2px;height:18.7px;font-size:15.5px;line-height:18.7px;font-weight:500">Skip intro</div>
+</section>
+<section data-screen="s10">
+<div data-edge="s10>new:bonus-task-sheet" data-transition="modal" style="position:absolute;left:16px;top:640px;width:379px;height:52px;border-radius:18px;background:#fff;border:1px solid #e8e5e1;box-shadow:0 2px 12px rgba(39,37,30,.08);z-index:20;cursor:pointer"><div style="position:absolute;left:12px;top:15px;width:20px;height:20px;border-radius:50%;background:var(--bg-3);color:#016a71;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><div style="position:absolute;left:42px;top:8px;width:300px;height:18px;font-size:14.5px;line-height:18px;font-weight:500;color:var(--fg-1);white-space:nowrap">Your Computer task is done</div><div style="position:absolute;left:42px;top:27px;width:300px;height:16px;font-size:13px;line-height:16px;color:#016a71;white-space:nowrap">Get 1 extra task today</div><div style="position:absolute;left:350px;top:19px;width:14px;height:14px;color:#016a71"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></div></div>
+<div data-chrome="header" style="left:0;top:0;width:411px;height:60px">
+<div class="hb" data-el="s10.e06" style="left:14.1px"><div class="hi" style="color:var(--fg-4)"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9.3"/><circle cx="12" cy="10" r="3.2"/><path d="M6.5 18.2c1.4-1.9 3.2-2.9 5.5-2.9s4.1 1 5.5 2.9"/></svg></div></div>
+<div class="tg"></div>
+<div class="tp" style="left:208.4px"></div>
+<div data-el="s10.e07" style="left:75.4px;top:6.5px;width:130.7px;height:48px"></div>
+<div class="tl g" data-el="s10.e08" style="left:105.5px;width:70.5px;top:19.2px"><svg viewBox="3 3 19 19" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><span>Search</span></div>
+<div class="tl" data-el="s10.e10" style="left:226.3px;width:90.3px;top:19.2px"><svg viewBox="2 2 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="3.5" width="16" height="12" rx="2"/><path d="M10 7.5v3.5M14 7.5v3.5M2.5 19.8h19"/></svg><span>Computer</span></div>
+<div class="hb" style="left:349.3px"><div class="hi" data-el="s10.e12"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M4 3.8h11.5v16.4H5.6A1.6 1.6 0 0 1 4 18.6zM15.5 8H20v10.6a1.6 1.6 0 0 1-1.6 1.6h-2.9M7.5 8h4.5M7.5 12h4.5M7.5 16h4.5"/></svg></div></div>
+</div>
+<div style="left:16px;top:72.2px;width:379px;height:42.7px;border-radius:21.4px;background:linear-gradient(90deg,#d0e4e7 0,#e5eff1 20%,var(--bg-3) 50%,#e7f0f1 80%,#d4e6e8 100%)"></div>
+<div style="left:28.3px;top:84.5px;width:18px;height:18px;border:2px solid #9dcacd;border-radius:50%"></div>
+<div class="t" data-el="s10.e02" style="left:55.2px;top:85.7px;width:110.9px;height:16px;font-size:14.5px;line-height:16px;font-weight:500;color:#0b6b6b">Set up Computer</div>
+<div class="t" data-el="s10.e03" data-value="c1" aria-label="0 of 3 completed" style="left:174.1px;top:85.7px;width:23.2px;height:16px;font-size:14px;line-height:16px;color:#539a9f">0/3</div>
+<div style="left:366.6px;top:86.5px;width:14px;height:14px;color:#016a71"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 15 7-7 7 7"/></svg></div>
+<img data-el="s10.e04" src="assets/s10.e04.png" alt="" style="left:175.6px;top:380.9px;width:60.2px;height:60.2px">
+<img data-el="s10.e05" src="assets/s10.e05.png" alt="" style="left:175.6px;top:380.9px;width:60.2px;height:60.2px">
+<div class="cmp tc"></div>
+<div class="ph" data-el="s10.e16">Do anything…</div>
+<div class="ci" data-el="s10.e19" style="left:38.9px"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 4v16M4 12h16"/></svg></div>
+<div class="ci" style="left:317.3px"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5h18M6 11.5l1.2-4.8A2 2 0 0 1 9.1 5h5.8a2 2 0 0 1 1.9 1.7L18 11.5"/><circle cx="7.5" cy="16.5" r="2.8"/><circle cx="16.5" cy="16.5" r="2.8"/><path d="M10.3 16.5h3.4"/></svg></div>
+<div class="ci" style="left:357.3px"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="2.5" width="6" height="11.5" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5v4M8.5 21.5h7"/></svg></div>
+</section>
+<section data-screen="s09">
+<div class="hd" data-chrome="header">
+<div class="cb" data-el="s09.e06" style="left:14.1px"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3.2"/><path d="M6.3 18.3c1.4-1.9 3.3-2.9 5.7-2.9s4.3 1 5.7 2.9"/></svg></div>
+<div class="trk"></div>
+<div class="sel" style="left:208.4px"></div>
+<div class="tg" data-el="s09.e07" style="left:75.4px;width:130.7px"><div class="tab" data-el="s09.e08" style="left:30.1px;top:13.7px;width:70.5px;color:#b9b5ae"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 20 20"/></svg>Search</div></div>
+<div class="tab" data-el="s09.e10" style="left:226.3px;width:90.3px"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="11" rx="2"/><path d="M10.5 7.5v2.5M13.5 7.5v2.5M3 19h18"/></svg>Computer</div>
+<div class="cb" style="left:349.5px"></div>
+<div class="ic" data-el="s09.e12" style="left:361.5px"><svg viewBox="0 0 24 24"><rect x="4" y="3.5" width="16" height="17" rx="2.5"/><path d="M14 3.5v17M7.5 8H11M7.5 12H11M7.5 16H11"/></svg></div>
+</div>
+<div class="a card" style="left:16px;top:72.2px;width:379px;height:221.2px"></div>
+<img class="a" src="assets/s09.e24.art.png" alt="" style="left:301px;top:151.7px;width:110.4px;height:62px">
+<svg class="a" viewBox="0 0 20 20" style="left:27.4px;top:83.5px;width:20px;height:20px;color:#9ccacc"><circle cx="10" cy="10" r="8.6"/></svg>
+<div class="a t" data-el="s09.e26" style="left:55.2px;top:85.7px;width:110.9px;height:16px;color:#016a71"><span data-el="s09.e02" style="display:block;height:16px;line-height:16px;font-size:14px;letter-spacing:-.1px">Set up Computer</span></div>
+<div class="a t" data-el="s09.e27" data-value="c1" aria-label="0 of 3 completed" style="left:174.1px;top:85.7px;width:23.2px;height:16px;color:#539a9f;font-weight:400"><span data-el="s09.e03" data-value="c1">0/3</span></div>
+<svg class="a" viewBox="0 0 24 24" style="left:365.6px;top:85.5px;width:16px;height:16px;color:#016a71;stroke-width:2.4"><path d="M6 9l6 6 6-6"/></svg>
+<div class="a" data-el="s09.e28" style="left:28.2px;top:115.4px;width:355.1px;height:36.2px;font-size:14px;line-height:18.1px;color:#6b6d69">Make the most of Computer and knock anything off your to-do list around the clock.</div>
+<svg class="a dc" viewBox="0 0 24 24" style="top:172.7px"><circle cx="12" cy="12" r="10"/></svg>
+<div class="a row" data-el="s09.e30" style="top:173.7px;width:242.7px">Connect your apps</div>
+<svg class="a dc" viewBox="0 0 24 24" style="top:212.7px"><circle cx="12" cy="12" r="10"/></svg>
+<div class="a row" data-el="s09.e32" style="top:213.7px;width:299.1px">Start your first task</div>
+<svg class="a chr" viewBox="0 0 24 24" style="top:214.7px"><path d="M9 5l7 7-7 7"/></svg>
+<svg class="a dc" viewBox="0 0 24 24" style="top:252.7px"><circle cx="12" cy="12" r="10"/></svg>
+<div class="a row" data-el="s09.e34" style="top:253.7px;width:299.1px">Turn on notifications</div>
+<svg class="a chr" viewBox="0 0 24 24" style="top:254.7px"><path d="M9 5l7 7-7 7"/></svg>
+<img class="a" data-el="s09.e04" src="assets/s09.e04.png" alt="" style="left:175.6px;top:380.9px;width:60.2px;height:60.2px">
+<img class="a" data-el="s09.e05" src="assets/s09.e05.png" alt="" style="left:175.6px;top:380.9px;width:60.2px;height:60.2px">
+<div class="cmp"></div>
+<div class="ph" data-el="s09.e16" style="color:#bab7b0">Do anything…</div>
+<svg class="i20" data-el="s09.e19" viewBox="0 0 24 24" style="left:38.9px"><path d="M12 4v16M4 12h16"/></svg>
+<svg class="i20" viewBox="0 0 24 24" style="left:317.3px"><path d="M6 11l1.2-4.6A2 2 0 0 1 9.1 5h5.8a2 2 0 0 1 1.9 1.4L18 11M3.5 11h17"/><circle cx="7.5" cy="16" r="2.7"/><circle cx="16.5" cy="16" r="2.7"/><path d="M10.2 16h3.6"/></svg>
+<svg class="i20" viewBox="0 0 24 24" style="left:357.3px"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"/></svg>
+</section>
+<section data-screen="s02">
+<div class="hd" data-chrome="header">
+<div class="cb" data-el="s02.e01" style="left:14.1px;color:var(--fg-4)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3.2"/><path d="M6.3 18.3c1.4-1.9 3.3-2.9 5.7-2.9s4.3 1 5.7 2.9"/></svg></div>
+<div class="trk"></div>
+<div class="sel" style="left:78px;width:125.6px"></div>
+<div class="tab" data-el="s02.e02" style="left:105.5px;width:70.5px"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 20 20"/></svg>Search</div>
+<div class="tg" data-el="s02.e03" style="left:206.1px;width:130.3px;color:var(--fg-2)"><div class="tab" data-el="s02.e05" style="left:20.2px;top:13.7px;width:90.3px"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="11" rx="2"/><path d="M10.5 7.5v2.5M13.5 7.5v2.5M3 19h18"/></svg>Computer</div></div>
+<div class="cb" style="left:349.5px"></div>
+<div class="ic" data-el="s02.e07" style="left:361.5px"><svg viewBox="0 0 24 24"><rect x="4" y="3.5" width="16" height="17" rx="2.5"/><path d="M14 3.5v17M7.5 8H11M7.5 12H11M7.5 16H11"/></svg></div>
+</div>
+<div class="kb"></div>
+<div class="key" data-el="s02.e25" style="top:321.1px;color:#25262b"><svg viewBox="0 0 24 24" style="stroke-width:1.6"><path d="M8.5 5H19a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8.5L3 12z"/><path d="M11.5 9l5 6M16.5 9l-5 6"/></svg></div>
+<div class="key" data-el="s02.e26" style="left:14px;top:373px;width:44px;height:44px;background:#dde5fb;color:#132b55"><svg viewBox="0 0 24 24" style="margin:10px"><path d="M19 6v5a2 2 0 0 1-2 2H5M9 9l-4 4 4 4"/></svg></div>
+<div class="key" style="top:423.2px"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle class="f" cx="9" cy="10" r="1.3"/><circle class="f" cx="15" cy="10" r="1.3"/><path class="f" d="M7.5 13.5h9a4.5 4.5 0 0 1-9 0z"/></svg></div>
+<div class="key" style="top:475.1px"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></div>
+<div class="cmp"></div>
+<div class="ph" data-el="s02.e11" style="color:#72716d">Ask anything…</div>
+<svg class="i20" data-el="s02.e14" viewBox="0 0 24 24" style="left:38.9px"><path d="M12 4v16M4 12h16"/></svg>
+<div class="a chip" data-el="s02.e16" style="left:72.8px;top:770.3px;width:57.1px;height:40px"><div class="a" data-el="s02.e18" style="left:8px;top:12.2px;width:41.1px;height:16px;font-size:14.5px;line-height:16px;text-align:center;white-space:nowrap">Model</div></div>
+<svg class="i20" viewBox="0 0 24 24" style="left:277.3px"><path d="M6 11l1.2-4.6A2 2 0 0 1 9.1 5h5.8a2 2 0 0 1 1.9 1.4L18 11M3.5 11h17"/><circle cx="7.5" cy="16" r="2.7"/><circle cx="16.5" cy="16" r="2.7"/><path d="M10.2 16h3.6"/></svg>
+<svg class="i20" viewBox="0 0 24 24" style="left:317.3px"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"/></svg>
+<div class="a" data-el="s02.e24" style="left:352.4px;top:775.6px;width:29.7px;height:29.7px;border-radius:50%;background:var(--fg-1);color:var(--bg-2)"><svg viewBox="0 0 24 24" style="width:17px;height:17px;margin:6.35px"><path d="M5 10v4M8.5 7v10M12 5v14M15.5 8v8M19 10.5v3"/></svg></div>
+</section>
+<section data-screen="s03">
+<div class="cb" style="left:14.1px"></div>
+<div class="ic" data-el="s03.e16" style="left:26.3px"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.2" style="stroke-width:3.2;stroke-dasharray:3 3.44;stroke-linecap:butt"/><circle cx="12" cy="12" r="6.6"/><circle cx="12" cy="12" r="2.8"/></svg></div>
+<div class="a" data-el="s03.e17" style="left:76.2px;top:19.8px;width:259.1px;height:20.9px;background:#000;color:#000;font-size:16px;line-height:20.9px;overflow:hidden">[redacted]</div>
+<div class="cb" style="left:349.5px"></div>
+<div class="ic" data-el="s03.e19" data-edge="s03.back>s04" data-transition="back" style="left:361.5px"><svg viewBox="0 0 24 24"><path d="M4 12h16M14 6l6 6-6 6"/></svg></div>
+<svg class="a mi" viewBox="0 0 24 24" style="top:80.7px"><rect x="3.5" y="7.5" width="13" height="13" rx="3"/><path d="M7.5 7.5v-1a3 3 0 0 1 3-3h7a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3h-1"/></svg>
+<div class="a mt" data-el="s03.e02" style="top:82.7px;width:59.4px">Projects</div>
+<svg class="a mi" viewBox="0 0 24 24" style="top:120.7px"><path d="M9 7V5.5a2 2 0 0 1 2-2h4.5L20 8v8.5a2 2 0 0 1-2 2h-1"/><path d="M4 9.5a2 2 0 0 1 2-2h4.5L15 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>
+<div class="a mt" data-el="s03.e04" style="top:122.7px;width:62.5px">Artifacts</div>
+<svg class="a mi" viewBox="0 0 24 24" style="top:160.7px"><path d="M8 8l8 8-2.5 2.5a5.7 5.7 0 0 1-8-8z"/><path d="M10 10l3-3M14 14l3-3M7 17l-4 4"/></svg>
+<div class="a mt" data-el="s03.e06" style="top:162.7px;width:84.6px">Connectors</div>
+<div class="a" style="left:0;top:199.5px;width:411px;height:1px;background:#e7e4df"></div>
+<div class="a mt" data-el="s03.e07" style="left:16px;top:219.4px;width:66.3px">Sessions</div>
+<div class="a flt" data-el="s03.e08" style="left:341.7px;top:204.6px;width:53.7px;height:48px"><span>All</span><svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></svg></div>
+<div class="a card" style="left:16px;top:276.3px;width:379px;height:545.2px"><div class="a dots"></div><div class="a sph"></div><div class="a fade"></div></div>
+<div class="a" data-el="s03.e09" style="left:32px;top:615.6px;width:182.5px;height:32.8px;font-family:var(--font-2);font-size:27px;line-height:32.8px;letter-spacing:-.3px;color:#cbcac5;white-space:nowrap">Start something new</div>
+<div class="a" data-el="s03.e10" style="left:32px;top:650.3px;width:347.4px;height:36.2px;font-size:13.5px;line-height:18.1px;color:#f8f6f5">Create a session and dive into a new world of curiosity and knowledge</div>
+<div class="a pl" style="top:702.3px"></div>
+<svg class="a" viewBox="0 0 24 24" style="left:142px;top:716.6px;width:19px;height:19px"><path d="M12 2.5v19M4.5 7.5 12 12l7.5-4.5M4.5 7.5V16l7.5-4 7.5 4V7.5M4.5 16l7.5 4.5 7.5-4.5M2.8 12h18.4"/></svg>
+<div class="a pt" data-el="s03.e12" style="left:165.7px;top:717.3px;width:104.8px">Ask anything…</div>
+<div class="a pl" style="top:758.4px"></div>
+<svg class="a" viewBox="0 0 24 24" style="left:146px;top:772.6px;width:19px;height:19px"><rect x="5" y="4" width="14" height="11" rx="2"/><path d="M10.5 7.5v2.5M13.5 7.5v2.5M3 19h18"/></svg>
+<div class="a pt" data-el="s03.e14" style="left:169.5px;top:773.3px;width:97.1px">Do anything…</div>
+</section>
+<section data-screen="s08">
+<div data-reward style="position:absolute;left:16px;top:662px;width:252px;height:32px;border-radius:16px;background:var(--bg-3);color:#016a71;font-size:13.5px;line-height:32px;font-weight:500;white-space:nowrap;display:flex;align-items:center;gap:6px;padding-left:12px;box-sizing:border-box;z-index:20"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>1 extra task ready until midnight</span></div>
+<div class="hd" data-chrome="header">
+<div class="cb" data-el="s08.e01" style="left:14.1px;color:var(--fg-4)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3.2"/><path d="M6.3 18.3c1.4-1.9 3.3-2.9 5.7-2.9s4.3 1 5.7 2.9"/></svg></div>
+<div class="trk"></div>
+<div class="sel" style="left:208.4px"></div>
+<div class="tg" data-el="s08.e02" style="left:75.4px;width:130.7px;color:var(--fg-2)"><div class="tab" data-el="s08.e03" style="left:30.1px;top:13.7px;width:70.5px"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 20 20"/></svg>Search</div></div>
+<div class="tab" data-el="s08.e05" style="left:226.3px;width:90.3px"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="11" rx="2"/><path d="M10.5 7.5v2.5M13.5 7.5v2.5M3 19h18"/></svg>Computer</div>
+<div class="cb" style="left:349.5px"></div>
+<div class="ic" data-el="s08.e07" style="left:361.5px"><svg viewBox="0 0 24 24"><rect x="4" y="3.5" width="16" height="17" rx="2.5"/><path d="M14 3.5v17M7.5 8H11M7.5 12H11M7.5 16H11"/></svg></div>
+</div>
+<div class="kb"></div>
+<div class="key" data-el="s08.e19" style="top:321.1px;color:#25262b"><svg viewBox="0 0 24 24" style="stroke-width:1.6"><path d="M8.5 5H19a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8.5L3 12z"/><path d="M11.5 9l5 6M16.5 9l-5 6"/></svg></div>
+<div class="key" data-el="s08.e20" style="left:14px;top:373px;width:44px;height:44px;background:#dde5fb;color:#132b55"><svg viewBox="0 0 24 24" style="margin:10px"><path d="M19 6v5a2 2 0 0 1-2 2H5M9 9l-4 4 4 4"/></svg></div>
+<div class="key" style="top:423.2px"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle class="f" cx="9" cy="10" r="1.3"/><circle class="f" cx="15" cy="10" r="1.3"/><path class="f" d="M7.5 13.5h9a4.5 4.5 0 0 1-9 0z"/></svg></div>
+<div class="key" style="top:475.1px"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></div>
+<div class="cmp"></div>
+<div class="a" style="left:32.2px;top:727.2px;width:2px;height:18.7px;background:#0d6b70;pointer-events:none"></div>
+<div class="ph" data-el="s08.e11" style="color:#72716d">Do anything…</div>
+<svg class="i20" data-el="s08.e14" viewBox="0 0 24 24" style="left:38.9px"><path d="M12 4v16M4 12h16"/></svg>
+<svg class="i20" viewBox="0 0 24 24" style="left:317.3px"><path d="M6 11l1.2-4.6A2 2 0 0 1 9.1 5h5.8a2 2 0 0 1 1.9 1.4L18 11M3.5 11h17"/><circle cx="7.5" cy="16" r="2.7"/><circle cx="16.5" cy="16" r="2.7"/><path d="M10.2 16h3.6"/></svg>
+<svg class="i20" viewBox="0 0 24 24" style="left:357.3px"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"/></svg>
+</section>
+<script id="simula-actions" type="application/json">{"s02": {"back": ["s01", "back", null]}, "s03": {"back": ["s04", "back", null]}, "s04": {"back": ["s01", "back", null]}, "s07": {"back": ["s08", "back", null]}, "s09": {"back": ["s10", "back", null]}}</script>
+<section data-screen="new:bonus-task-sheet" data-flow="c01" data-parent="s10">
+<div style="position:absolute;left:0;top:438px;width:411px;height:400px;background:var(--bg-2);border-radius:30px 30px 0 0;box-shadow:0 -6px 30px rgba(39,37,30,.18)"></div>
+<div style="position:absolute;left:187.4px;top:446px;width:36.2px;height:4.6px;border-radius:3px;background:#92908c"></div>
+<div style="position:absolute;left:140.6px;top:474px;width:130px;height:21.4px;border-radius:11px;background:#eff3f2;display:flex;align-items:center;justify-content:center;font-size:11px;letter-spacing:.5px;font-weight:500;color:#016a71;white-space:nowrap">TASK FINISHED</div>
+<div style="position:absolute;left:16px;top:508px;width:379px;height:33px;font-family:var(--font-2);font-size:26.6px;line-height:32.8px;letter-spacing:-.3px;color:var(--fg-1);text-align:center;white-space:nowrap">1 extra Computer task today</div>
+<div style="position:absolute;left:32px;top:556px;width:347px;height:60px;font-size:14.5px;line-height:20px;color:#71706b;text-align:center">Play a short sponsored game to get 1 extra Computer task today. It stays available until midnight.</div>
+<div data-edge="new:bonus-task-sheet>new:sponsored-play" data-transition="modal" style="position:absolute;left:24px;top:690px;width:362.4px;height:47.1px;border-radius:23.6px;background:var(--fg-1);color:var(--bg-2);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:500;white-space:nowrap;cursor:pointer">Play and get 1 task</div>
+<div data-edge="new:bonus-task-sheet>s10" data-transition="back" style="position:absolute;left:24px;top:748px;width:362.4px;height:48px;display:flex;align-items:center;justify-content:center;font-size:15.5px;font-weight:500;color:var(--fg-1);white-space:nowrap;cursor:pointer">Not now</div>
+</section>
+<section data-screen="new:sponsored-play" data-flow="c01" data-parent="s10" data-ad></section>
+<script id="simula-runtime-js">
+(() => {
+  const ROOT = "s01";
+  const find = id => document.querySelector(`[data-screen="${CSS.escape(id)}"]`);
+  let current = null;
+  function show(id, transition) {
+    const target = find(id);
+    if (!target) return false;
+    const from = current && find(current);
+    const closingOverlay = from && from.dataset.parent === id;
+    const kind = transition === 'unknown' ? 'push' : transition;
+    for (const s of document.querySelectorAll('[data-screen]')) s.classList.remove('simula-on', 'simula-push', 'simula-back', 'simula-modal');
+    const parent = target.dataset.parent && find(target.dataset.parent);
+    if (parent) parent.classList.add('simula-on');
+    target.classList.add('simula-on');
+    if (['push', 'back', 'modal'].includes(kind) && !closingOverlay) target.classList.add('simula-' + kind);
+    current = id;
+    document.body.dataset.transition = kind;
+    return true;
+  }
+  // Edges that start on no element come from code's #simula-actions map: {screen: {action: [to, transition, field]}}.
+  // A drag of 48 px or more is a swipe, or the system back when it starts at the left edge and runs right; Escape is
+  // the system back too; Enter in the screen's text field sends what was typed.
+  let actions = null;
+  const actionsOf = () => actions = actions || JSON.parse(document.getElementById('simula-actions')?.textContent || '{}');
+  const gesture = kind => { const a = (actionsOf()[current] || {})[kind]; return !!a && show(a[0], a[1]); };
+  let start = null, dragged = false;
+  document.addEventListener('pointerdown', e => { start = [e.clientX, e.clientY]; dragged = false; });
+  document.addEventListener('pointercancel', () => { start = null; });
+  // A drag that starts on a picture must stay a swipe: the browser's own image drag would cancel the pointer.
+  document.addEventListener('dragstart', e => e.preventDefault());
+  document.addEventListener('pointerup', e => {
+    if (!start) return;
+    const [x, y] = start, dx = e.clientX - x, dy = e.clientY - y;
+    start = null;
+    if (Math.hypot(dx, dy) < 48) return;
+    dragged = true;
+    if (!(x <= 24 && dx > Math.abs(dy) && gesture('back'))) gesture('swipe');
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') gesture('back');
+    const field = e.target.closest && e.target.closest('[data-simula-field]');
+    if (e.key === 'Enter' && field && field.closest('[data-screen]').dataset.screen === current) {
+      e.preventDefault();
+      gesture('type');
+    }
+  });
+  const fields = () => {
+    for (const [sid, a] of Object.entries(actionsOf())) {
+      const id = a.type && a.type[2];
+      const f = id && document.querySelector(`[data-screen="${CSS.escape(sid)}"] [data-el="${CSS.escape(id)}"]`);
+      if (!f) continue;
+      f.contentEditable = 'plaintext-only';
+      f.tabIndex = 0;
+      f.dataset.simulaField = '';
+      // The drawn placeholder gives way on the first focus, as a real field's hint does.
+      f.addEventListener('focus', () => {
+        if ('simulaTyped' in f.dataset) return;
+        f.dataset.simulaTyped = '';
+        f.textContent = '';
+      });
+    }
+  };
+  document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', fields) : fields();
+  document.addEventListener('click', e => {
+    if (dragged) { dragged = false; return; }
+    const el = e.target.closest('[data-edge]');
+    if (!el) return;
+    e.preventDefault();
+    show(el.dataset.edge.split('>').pop(), el.dataset.transition || 'push');
+  });
+  window.simula = {go: id => show(id, 'tab'), state: () => current, reset: () => show(ROOT, 'tab')};
+  show(ROOT, 'tab');
+})();
+</script>
+<script id="simula-flow-js">
+(() => {
+  const FLOW = {"trigger": "s10", "ad": "new:sponsored-play", "afterAd": "s08", "card": "<div class=\"sa-dim\"><\/div><div class=\"sa-card\"><div class=\"sa-top\"><span class=\"sa-tag\">Sponsored game<\/span><button class=\"sa-close\" aria-label=\"Close\">\u00d7<\/button><\/div><div class=\"sa-game\"><i><\/i><i><\/i><i><\/i><i><\/i><i><\/i><i><\/i><i><\/i><i><\/i><i><\/i><\/div><div class=\"sa-bar\"><i><\/i><\/div><div class=\"sa-reward\">Finish to get: tasks, until midnight local time<\/div><button class=\"sa-play\">Play<\/button><button class=\"sa-cta\">Learn more<\/button><\/div>", "failNote": "That didn't go through. Nothing was used, and the app is as it was."};
+  const find = id => id && document.querySelector(`[data-screen="${CSS.escape(id)}"]`);
+  const ad = find(FLOW.ad);
+  const log = {events: [], grants: 0};
+  const failures = ['LOAD_FAILED', 'DISPLAY_FAILED', 'REWARD_VERIFICATION_FAILED'];
+  const onAd = () => ad && window.simula.state() === FLOW.ad;
+  let timers = [];
+  function note(text) {
+    const el = document.createElement('div');
+    el.className = 'sa-note';
+    el.textContent = text;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2500);
+  }
+  function emit(type) {
+    log.events.push(type);
+    if (type === 'REWARD_VERIFIED' && log.grants === 0) {
+      log.grants = 1;
+      document.body.classList.add('simula-rewarded');
+      if (onAd()) window.simula.go(FLOW.afterAd);
+    } else if ((type === 'CLOSED' || failures.includes(type)) && onAd()) {
+      timers.forEach(clearTimeout);
+      timers = [];
+      window.simula.go(FLOW.trigger);
+      if (type !== 'CLOSED') note(FLOW.failNote);
+    }
+  }
+  window.simulaAd = {emit, complete: () => { emit('EARNED_REWARD'); emit('REWARD_VERIFIED'); },
+                     grants: () => log.grants, events: () => [...log.events]};
+  if (!ad) return;
+  ad.innerHTML = FLOW.card;
+  ad.querySelector('.sa-close').addEventListener('click', () => emit('CLOSED'));
+  ad.querySelector('.sa-cta').addEventListener('click', () => emit('CLICKED'));
+  ad.querySelector('.sa-play').addEventListener('click', () => {
+    ad.querySelector('.sa-bar i').style.width = '100%';
+    timers.push(setTimeout(() => {
+      emit('EARNED_REWARD');
+      timers.push(setTimeout(() => emit('REWARD_VERIFIED'), 400));
+    }, 3000));
+  });
+  let shown = false;
+  new MutationObserver(() => {
+    const on = ad.classList.contains('simula-on');
+    if (on && !shown) ['LOADED', 'DISPLAYED', 'IMPRESSION'].forEach(emit);
+    shown = on;
+  }).observe(ad, {attributes: true, attributeFilter: ['class']});
+})();
+</script>
+</body></html>

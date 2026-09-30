@@ -1,0 +1,9 @@
+{
+ "text": "{\"on_screen\":false,\"element_id\":null,\"confidence\":0.85,\"reason\":\"This is a news article page and the only visible controls are text links, ads and back, with no main call-to-action for using the item.\"}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1747,
+ "tokens_out": 68,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

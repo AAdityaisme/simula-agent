@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 20-minute reward before an optional game. The decline and ad-failure fields leave the article unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 20 minutes of ad-free reading, not cash or transferable value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event counts article opens; it does not use chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal does not cap or lock free reading; the decline path keeps the article as it is."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner on the s12 article screen, which the model rates content safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, ad-free reading benefits the player in the observed article-reading core flows f1 and f2."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field claims every article has several display blocks, but mechanic m2 supports only one or more blocks per article. That present-day claim exceeds the observed evidence."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 20 minutes, and the model does not establish a paid ad-free benefit that it would give away without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a slim banner when the third article opens, not an interruption in the middle of reading."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable article-open event, and the ad-failure field says nothing changes if play cannot be confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s12 article screen and the sponsored cards and display ads documented in m2."
+ },
+ "other_concern": "The claim that one completed game will outweigh the article-ad views it replaces is an unverified revenue forecast.",
+ "fixable": true
+}

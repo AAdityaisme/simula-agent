@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[{\"box_id\":1,\"name\":\"settings\"},{\"box_id\":3,\"name\":\"menu\"},{\"box_id\":5,\"name\":\"home tab\"},{\"box_id\":6,\"name\":\"search tab\"},{\"box_id\":7,\"name\":\"discover tab\"},{\"box_id\":8,\"name\":\"notifications tab\"},{\"box_id\":9,\"name\":\"profile tab\"}],\"extra_points\":[]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1685,
+ "tokens_out": 138,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

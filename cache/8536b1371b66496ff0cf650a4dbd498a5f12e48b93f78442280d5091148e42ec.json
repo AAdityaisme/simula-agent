@@ -1,0 +1,9 @@
+{
+ "text": "{\"edits\":[{\"find\":\"<div class=\\\"p\\\" style=\\\"top:658.1px\\\"><span data-el=\\\"s37.e11\\\">\",\"replace\":\"<div class=\\\"p\\\" style=\\\"top:657.4px;line-height:24.33px\\\"><span data-el=\\\"s37.e11\\\" style=\\\"letter-spacing:-.085px\\\">\",\"reason\":\"s37.e11 rect: y660.6, w365.7, h91\"},{\"find\":\"<div class=\\\"a ai\\\" data-el=\\\"s01.e52\\\" style=\\\"top:528.4px;background:linear-gradient(#5fb832 0,#8fcb5c 22%,#eef1ec 55%,#f3f4f1)\\\">\",\"replace\":\"<div class=\\\"a ai\\\" data-el=\\\"s01.e52\\\" style=\\\"top:528.4px;border-radius:12px;background:linear-gradient(#5fb832 0,#8fcb5c 20%,#f2f2f2 34%)\\\">\",\"reason\":\"s01 ad thumb plain light rounded rect\"},{\"find\":\"<path d=\\\"M20 58l18-16h30l20 14M38 42l-4 18M68 42l6 16M26 56h64\\\" fill=\\\"none\\\" stroke=\\\"#7fcf1a\\\" stroke-width=\\\"2.6\\\" stroke-linejoin=\\\"round\\\"/><rect x=\\\"50\\\" y=\\\"30\\\" width=\\\"14\\\" height=\\\"16\\\" rx=\\\"3\\\" fill=\\\"#2a2a2a\\\"/><g fill=\\\"#262626\\\"><ellipse cx=\\\"22\\\" cy=\\\"62\\\" rx=\\\"8\\\" ry=\\\"9\\\"/><ellipse cx=\\\"88\\\" cy=\\\"62\\\" rx=\\\"8\\\" ry=\\\"9\\\"/><ellipse cx=\\\"40\\\" cy=\\\"66\\\" rx=\\\"6\\\" ry=\\\"7\\\"/><ellipse cx=\\\"74\\\" cy=\\\"66\\\" rx=\\\"6\\\" ry=\\\"7\\\"/></g><g fill=\\\"#8a8d90\\\"><rect x=\\\"10\\\" y=\\\"80\\\" width=\\\"30\\\" height=\\\"4\\\" rx=\\\"2\\\"/><rect x=\\\"48\\\" y=\\\"78\\\" width=\\\"10\\\" height=\\\"10\\\" rx=\\\"2\\\"/><rect x=\\\"64\\\" y=\\\"80\\\" width=\\\"36\\",
+ "model": "claude-opus-5-5",
+ "tokens_in": 116710,
+ "tokens_out": 64000,
+ "tokens_cached": 0,
+ "stop_reason": "max_tokens",
+ "failure": "max_tokens"
+}

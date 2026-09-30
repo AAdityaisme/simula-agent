@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[{\"box_id\":2,\"name\":\"search\"}],\"extra_points\":[{\"x\":47,\"y\":453,\"name\":\"delete key\"},{\"x\":47,\"y\":520,\"name\":\"enter key\"},{\"x\":47,\"y\":587,\"name\":\"emoji\"},{\"x\":47,\"y\":655,\"name\":\"keyboard menu\"},{\"x\":64,\"y\":1037,\"name\":\"add\"},{\"x\":429,\"y\":1037,\"name\":\"incognito mode\"},{\"x\":482,\"y\":1037,\"name\":\"microphone\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1667,
+ "tokens_out": 178,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

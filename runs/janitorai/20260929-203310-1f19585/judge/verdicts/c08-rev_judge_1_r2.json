@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c08-rev",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user chooses to play the card, the offer copy states the reward (30 minutes of faster replies and 1 cheer), declining leaves the sheet unchanged, and the failure path is defined (the card hides, or a note says no reward was given)."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of queue priority plus a cheer count on a creator profile, and neither can be withdrawn, sold or exchanged."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the chat history sheet opening for a character currently listed in Hidden Gems, which is an app event and does not need message content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea adds a temporary boost and removes or caps nothing free today (removes nothing free: yes)."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits inside the s18 chat history sheet, which is rated safe and opens over My Chats (s03, also safe), not inside the conversation or over a chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward is a time-limited slice of Plus's paid 'Priority routing for faster replies' (l5), used by the player in chats, and the creator cheer is a minor add-on rather than most of the reward."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the app as it is today are supported: s16.e10 lists priority routing as a Plus benefit, s01.e15 defines Hidden Gems, and s03 and s18 show the sheet opening from a My Chats row. The Hidden Gems check and the cheer count are labeled as new additions, and the speed of paid routing is stated as unmeasured."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The boost expires after 30 minutes, is capped at 2 per day, and Plus subscribers keep an unlimited version. Creators lose nothing, since the cheer only adds a count."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card is inside the chat history sheet the user opened to pick or resume a chat, so it does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit, the reward is granted after the verified play, and the trigger (the sheet opening for a Hidden Gems character) is an app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It depends on Hidden Gems, the s18 chat history sheet with Start new chat, the s07 creator profile, and Plus's priority routing benefit, so it would not read the same in another app."
+ },
+ "other_concern": "The creator cheer adds a new social mechanic. Whether cheers ever affect creator ranking or visibility is not defined, and that could matter for the Hidden Gems feed. The proposal also does not say how the Hidden Gems check works for characters older than 30 days.",
+ "fixable": false
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c08-rev",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner is opt-in and its copy states the reward (24 hours in the Fresh creations row). Declining leaves the create screen unchanged, and the ad-fail path is covered in 'if the ad fails'."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 24 hours of visibility in a row on Explore. It has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the create screen (s11) opening after the user taps Create app, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea adds a new row and removes or caps nothing. The Trending list and its ranks are untouched ('removes nothing free: yes')."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The banner sits in the header area of s11, a non-chat screen rated safe. It is app chrome and is not in a conversation or next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The new resource is Explore visibility for the player's own new app. That is used by the player in core flow f4 (explore and create mini apps), and it goes to the player rather than to others."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the app today are supported: the Create app button (s03.e08), the s11 remix and public-once-published text (s11.e03, s11.e08), the creator byline (s13.e07), and Trending ranks (s14). The 'no limit seen' wording matches the model's open questions, and the Fresh creations row is the proposal's own addition."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The model records no paid benefit at stake. The reward expires after 24 hours and is capped at one per day. It adds a new row and leaves Trending placements untouched, so nothing is taken from other creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The banner appears when the user opens the create screen, at the start of creating and just before publishing. It is closable, does not block the task, and the reward is relevant to that moment."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a sponsored game play-to-earn unit. The reward is tied to the verified play, and the trigger (s11 opening) is an app event the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names this app's Explore tab, the Create app button (s03.e08), the s11 create screen, and its remix templates and public creations."
+ },
+ "other_concern": "The reward is granted at verification but only takes effect when a creation is published later. The proposal doesn't say how an unused grant is held, or what happens if the user never publishes.",
+ "fixable": false
+}

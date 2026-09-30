@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c04",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in by tapping the banner. The offer copy states the reward (1 streak save, usable once every 7 days). Declining leaves the feed as before, and 'if the ad fails' gives a no-offer path and a 'Couldn't save it' path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a streak save inside the app, with no cash value and nothing that can be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: the first open after a day with no story read to the end. No chat content is involved."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds a new free streak and a new capped save. 'removes nothing free' is yes, and nothing free today is removed or capped."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a banner under the header on s01, which is rated safe, and counts as app chrome. It is not in a chat and not next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "This is a product_change that adds a new resource, a streak save protecting a counter the proposal itself invents. The save is not a slice of anything the app charges for. It is also not used in an observed core flow such as f1 or f2. It only guards a new gamification layer, so it fails the new-resource condition."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about today's app are supported. The Home feed s01 and related list s32 appear in flow f1, and the lack of a streak is worded as 'not seen'. The streak, save, banner and copy are what the proposal itself adds."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The save covers one missed day, is capped at once per 7 days, and gives away no paid benefit. No paid plan was observed, and nothing is taken from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The banner appears on app open on Home, a persistent surface, so it does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn rewarded game. The save is granted only after the play is confirmed, and the trigger is a detectable app event (an open after a missed day)."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Home feed s01, the category tabs, and finishing stories through to the related list s32, so it is tied to this app's screens."
+ },
+ "other_concern": "The streak save is a manufactured scarcity on a feature that does not exist yet. The claim that the app can detect reading a story 'to the end' is asserted, not observed. The 'costs nothing to serve' and 'sponsored cards already earn' statements are unsupported predictions.",
+ "fixable": false
+}

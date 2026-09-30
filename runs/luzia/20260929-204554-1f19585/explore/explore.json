@@ -1,0 +1,31 @@
+{
+ "schema_version": 1,
+ "app_package": "co.thewordlab.luzia",
+ "app_version": "5.44.0",
+ "budget": "transfer",
+ "relaunches": 0,
+ "content_filter": null,
+ "blocked_state_ids": [],
+ "coverage": {
+  "states_found": 15,
+  "actions_taken": 51,
+  "stop_reason": "action cap (40)",
+  "checklist_answered": [
+   "root",
+   "all_tabs"
+  ],
+  "checklist_open": [
+   "paywall_or_membership",
+   "settings",
+   "limit"
+  ]
+ },
+ "device": {
+  "w_px": 1080,
+  "h_px": 2400,
+  "density": 420,
+  "scale": 2.625,
+  "content_top_px": 136,
+  "content_bottom_px": 2337
+ }
+}

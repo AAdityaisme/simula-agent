@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c08",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user chooses to play from the card, and the offer copy states the reward (30 minutes of faster replies plus 1 cheer) before the ad. Declining leaves the sheet unchanged, and a failed load or unconfirmed play has its own path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a 30-minute queue-priority window and a creator cheer, neither of which is cash or can be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the chat history sheet opening for a character in Hidden Gems, which is an app event and does not read anything the user typed."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea adds an optional card and removes or caps nothing free, and 'removes nothing free: yes' matches the fields."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits inside the s18 sheet, which is rated safe and opens over s03 My Chats (also safe). It is not in the conversation and is not next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward is a time-limited slice of the paid 'Priority routing for faster replies' benefit (l5, s16.e10). The player is the main recipient, with the cheer as a secondary effect."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal claims the app 'knows whether that character is currently in Hidden Gems' inside the chat history sheet, and that priority routing 'costs no extra reply generation, only a place higher in the line'. No element or mechanic supports either claim, since s16.e10 only says 'Priority routing for faster replies'. It also refers to a 'Cheers this week' count on the creator profile, which s07 does not show."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The faster replies last only 30 minutes, capped at 2 per day, and the app already sells priority routing. The cheer adds to the creator rather than taking anything from other users."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits in the chat history sheet the user opens from a My Chats row, a persistent surface the user chooses to open, and it does not interrupt a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "This is a play-to-earn playable, the reward is granted after the verified play, and the trigger is the sheet opening for a Hidden Gems character, which is an app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s18 chat history sheet, the Start new chat button, the Hidden Gems feed and the Janitor Plus priority routing benefit."
+ },
+ "other_concern": "The cheer / 'Cheers this week' feature and the creator-side effect are new product surface that would need building. Whether Hidden Gems status is available in the sheet is unverified. The sheet cited is the '1 chat' variant.",
+ "fixable": true
+}

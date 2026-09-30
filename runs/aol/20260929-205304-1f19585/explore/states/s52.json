@@ -1,0 +1,37 @@
+{
+ "schema_version": 1,
+ "state_id": "s52",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "com.aol.mobile.aolapp|52c0128b69a77000314932cf4a2728b7|32ef2aa75ae35859009f66d778134c53|c1a24b9991c0",
+ "foreground_package": "com.aol.mobile.aolapp",
+ "screenshot": "states/s52.png",
+ "elements_reply": "states/s52.elements.json",
+ "settled": true,
+ "settle_seconds": 3.29,
+ "dynamic_regions": [],
+ "captured_at": "2026-09-29T21:12:00",
+ "box": null,
+ "icon_labels": [],
+ "vision_elements": [
+  {
+   "name": "Audrina Patridge photo",
+   "rect_px": {
+    "x": 477.0,
+    "y": 1353.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "Balvin and Ferrer photo",
+   "rect_px": {
+    "x": 477.0,
+    "y": 2083.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  }
+ ],
+ "blocked_reason": null
+}

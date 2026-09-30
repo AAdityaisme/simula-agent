@@ -1,0 +1,64 @@
+{
+ "schema_version": 1,
+ "state_id": "s06",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "com.janitor.ai|580c5c3c1d101e98c904d9301ec01e88|dd1c1e801e000e00ce209ce13ac49880|1c27588be79b",
+ "foreground_package": "com.janitor.ai",
+ "screenshot": "states/s06.png",
+ "elements_reply": "states/s06.elements.json",
+ "settled": true,
+ "settle_seconds": 2.88,
+ "dynamic_regions": [
+  {
+   "x": 0.0,
+   "y": 976.0,
+   "w": 240.0,
+   "h": 520.0
+  },
+  {
+   "x": 0.0,
+   "y": 1536.0,
+   "w": 200.0,
+   "h": 400.0
+  },
+  {
+   "x": 0.0,
+   "y": 1976.0,
+   "w": 200.0,
+   "h": 200.0
+  },
+  {
+   "x": 0.0,
+   "y": 936.0,
+   "w": 240.0,
+   "h": 560.0
+  }
+ ],
+ "captured_at": "2026-09-29T20:34:19",
+ "box": null,
+ "icon_labels": [
+  {
+   "mcp_ref": "@e28",
+   "name": "menu"
+  },
+  {
+   "mcp_ref": "@e36",
+   "name": "next arrow"
+  },
+  {
+   "mcp_ref": "@e48",
+   "name": "profile tab"
+  },
+  {
+   "mcp_ref": "@e49",
+   "name": "username"
+  },
+  {
+   "mcp_ref": "@e51",
+   "name": "following"
+  }
+ ],
+ "vision_elements": [],
+ "blocked_reason": null
+}

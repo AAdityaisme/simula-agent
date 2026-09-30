@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c07",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 7-day frame and 1 backing before the user chooses to play. The decline and ad-failure fields leave the Explore list unchanged or grant no reward."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is an in-app cosmetic frame and a backing count; the proposal does not make either withdrawable, sellable, or exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses a catalog action and a return to Explore, not anything the user typed or said in chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal's 'removes nothing free' field and decline path preserve existing likes, saves, and app opening; the expiring frame is new."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on s14's safe Explore screen, not inside or over a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, it gives the player a frame for their own published apps, used in the mini-app creation and exploration flow f4."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The trigger event and flow assume a user can like an app during this visit. s13.e09 and s14.e15 show like counts, but no cited element or mechanic establishes an in-app liking action."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits the frame to 7 days, and the proposal says the new backing list will not change the existing Trending order or #1 rank."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places the offer after an action and a return to Explore, rather than in the middle of that action."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game, and the ad-failure field says an unconfirmed play grants no frame. The proposed catalog trigger is an app event the app could detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Explore list, Trending section, published mini-app cards, and app like counts shown on s13 and s14."
+ },
+ "other_concern": "A weekly most-backed list could invite manipulation; the proposed per-user backing cap may not address multiple accounts.",
+ "fixable": false
+}

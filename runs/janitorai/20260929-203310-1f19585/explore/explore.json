@@ -1,0 +1,31 @@
+{
+ "schema_version": 1,
+ "app_package": "com.janitor.ai",
+ "app_version": "2.5.0",
+ "budget": "deep",
+ "relaunches": 3,
+ "content_filter": "Limited Only",
+ "blocked_state_ids": [],
+ "coverage": {
+  "states_found": 20,
+  "actions_taken": 41,
+  "stop_reason": "relaunch cap",
+  "checklist_answered": [
+   "root",
+   "all_tabs",
+   "paywall_or_membership"
+  ],
+  "checklist_open": [
+   "settings",
+   "limit"
+  ]
+ },
+ "device": {
+  "w_px": 1080,
+  "h_px": 2400,
+  "density": 420,
+  "scale": 2.625,
+  "content_top_px": 136,
+  "content_bottom_px": 2337
+ }
+}

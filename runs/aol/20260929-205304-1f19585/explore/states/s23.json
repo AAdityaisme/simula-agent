@@ -1,0 +1,73 @@
+{
+ "schema_version": 1,
+ "state_id": "s23",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "com.aol.mobile.aolapp|0a450857059356b67e1b300029572d43|0a173d1765d390e69ce6175f5c7f768d|e3b0c44298fc",
+ "foreground_package": "com.aol.mobile.aolapp",
+ "screenshot": "states/s23.png",
+ "elements_reply": "states/s23.elements.json",
+ "settled": false,
+ "settle_seconds": 15.84,
+ "dynamic_regions": [],
+ "captured_at": "2026-09-29T21:04:18",
+ "box": null,
+ "icon_labels": [],
+ "vision_elements": [
+  {
+   "name": "back",
+   "rect_px": {
+    "x": 0.0,
+    "y": 169.0,
+    "w": 125.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "Amber Glenn link",
+   "rect_px": {
+    "x": 107.0,
+    "y": 309.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "Pasha Pashkov link",
+   "rect_px": {
+    "x": 439.0,
+    "y": 309.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "Dancing With the Stars link",
+   "rect_px": {
+    "x": 561.0,
+    "y": 593.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "ad info",
+   "rect_px": {
+    "x": 851.0,
+    "y": 965.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "next article arrow",
+   "rect_px": {
+    "x": 919.0,
+    "y": 2131.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  }
+ ],
+ "blocked_reason": null
+}

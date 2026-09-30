@@ -1,0 +1,375 @@
+{
+ "schema_version": 1,
+ "status": "approved",
+ "outcome": "complete",
+ "reasons": [],
+ "resume": null,
+ "resume_note": null,
+ "approved_round": 2,
+ "keep_score": 9.563,
+ "keep_score_formula": "10 \u00d7 (0.5 bounds + 0.3 nav + 0.2 ssim); a term with nothing to measure is dropped and the rest reweighted. It picks the round QA keeps; it is not a fidelity percentage.",
+ "structure": {
+  "tagged": 488,
+  "within_4dp": 488
+ },
+ "interaction": {
+  "taps": 14,
+  "taps_passing": 14,
+  "flows": 6,
+  "flows_walked": 6
+ },
+ "visual": {
+  "masked_ssim_mean": 0.821,
+  "screens_by_ssim": [
+   {
+    "screen": "s02",
+    "ssim": 0.66
+   },
+   {
+    "screen": "s17",
+    "ssim": 0.696
+   },
+   {
+    "screen": "s16",
+    "ssim": 0.701
+   },
+   {
+    "screen": "s11",
+    "ssim": 0.718
+   },
+   {
+    "screen": "s10",
+    "ssim": 0.727
+   },
+   {
+    "screen": "s01",
+    "ssim": 0.754
+   },
+   {
+    "screen": "s15",
+    "ssim": 0.768
+   },
+   {
+    "screen": "s07",
+    "ssim": 0.781
+   },
+   {
+    "screen": "s08",
+    "ssim": 0.825
+   },
+   {
+    "screen": "s06",
+    "ssim": 0.931
+   },
+   {
+    "screen": "s05",
+    "ssim": 0.937
+   },
+   {
+    "screen": "s18",
+    "ssim": 0.94
+   },
+   {
+    "screen": "s03",
+    "ssim": 0.94
+   },
+   {
+    "screen": "s14",
+    "ssim": 0.955
+   },
+   {
+    "screen": "s04",
+    "ssim": 0.984
+   }
+  ]
+ },
+ "open_findings": null,
+ "stop_reason": "round 2 gained 0.01 (< 0.3)",
+ "rounds": [
+  {
+   "round": 0,
+   "keep_score": 9.405,
+   "kept": true,
+   "contract_errors": 0,
+   "failed_taps": 0,
+   "failed_flows": 0,
+   "edits_applied": 0,
+   "edits_rejected": 0
+  },
+  {
+   "round": 1,
+   "keep_score": 9.551,
+   "kept": true,
+   "contract_errors": 0,
+   "failed_taps": 0,
+   "failed_flows": 0,
+   "edits_applied": 28,
+   "edits_rejected": 0
+  },
+  {
+   "round": 2,
+   "keep_score": 9.563,
+   "kept": true,
+   "contract_errors": 0,
+   "failed_taps": 0,
+   "failed_flows": 0,
+   "edits_applied": 22,
+   "edits_rejected": 0
+  }
+ ],
+ "keep_rule_disagreement": null,
+ "undrawn_screens": [],
+ "screens": [
+  {
+   "state_id": "s01",
+   "ssim_masked": 0.7542708645401652,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.8182586275978607,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.508541729080331,
+   "name": "Home character feed",
+   "tagged": 50,
+   "taps": 4,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s06",
+   "ssim_masked": 0.930816278140135,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.8825990511529594,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.86163255628027,
+   "name": "Side menu drawer",
+   "tagged": 36,
+   "taps": 1,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s16",
+   "ssim_masked": 0.7006981684151514,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 1.0,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.144851909757575,
+   "name": "Janitor Plus paywall",
+   "tagged": 20,
+   "taps": 0,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s08",
+   "ssim_masked": 0.8251607085703148,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.7926298857783275,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.500459167343758,
+   "name": "Character detail",
+   "tagged": 37,
+   "taps": 0,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s02",
+   "ssim_masked": 0.6595434305367099,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.9956970890023169,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.31908686107342,
+   "name": "Search",
+   "tagged": 30,
+   "taps": 2,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s14",
+   "ssim_masked": 0.9552449461448748,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.9547323310628364,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.872128417556786,
+   "name": "Search filter sheet",
+   "tagged": 59,
+   "taps": 0,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s05",
+   "ssim_masked": 0.9365653516599035,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 1.0,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.873130703319807,
+   "name": "My profile",
+   "tagged": 23,
+   "taps": 1,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s07",
+   "ssim_masked": 0.7814294484826294,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 1.0,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.375512709950371,
+   "name": "Creator profile",
+   "tagged": 4,
+   "taps": 0,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s03",
+   "ssim_masked": 0.9404159649496954,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.9177627185571021,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.88083192989939,
+   "name": "My Chats",
+   "tagged": 19,
+   "taps": 2,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s04",
+   "ssim_masked": 0.9839279171595161,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 1.0,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.967855834319032,
+   "name": "Notifications",
+   "tagged": 7,
+   "taps": 1,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s15",
+   "ssim_masked": 0.767620621245466,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.8176924550981656,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.535241242490933,
+   "name": "Home character feed (alternate)",
+   "tagged": 52,
+   "taps": 2,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s17",
+   "ssim_masked": 0.6963733506609554,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 1.0,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.13249528760273,
+   "name": "Janitor Plus paywall (scrolled)",
+   "tagged": 20,
+   "taps": 0,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s18",
+   "ssim_masked": 0.9402666079348129,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.9044213717053116,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.829333165528038,
+   "name": "Chat history sheet (1 chat)",
+   "tagged": 21,
+   "taps": 0,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s10",
+   "ssim_masked": 0.7267398061808367,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.7905684371896939,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.453479612361672,
+   "name": "Home feed scrolled (page 1)",
+   "tagged": 50,
+   "taps": 1,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s11",
+   "ssim_masked": 0.7181275264633061,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.7993107212747301,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.194650075609447,
+   "name": "Home feed page 2",
+   "tagged": 60,
+   "taps": 0,
+   "data_el_misses": []
+  }
+ ],
+ "failed_taps": [],
+ "flows": [
+  {
+   "flow": "f1",
+   "name": "Bottom tab tour",
+   "status": "passed",
+   "problem": null,
+   "screen": null,
+   "gestures": []
+  },
+  {
+   "flow": "f2",
+   "name": "Open a character",
+   "status": "passed",
+   "problem": null,
+   "screen": null,
+   "gestures": []
+  },
+  {
+   "flow": "f3",
+   "name": "Upgrade to Janitor Plus",
+   "status": "passed",
+   "problem": null,
+   "screen": null,
+   "gestures": [
+    "s16.swipe>s17"
+   ]
+  },
+  {
+   "flow": "f4",
+   "name": "Resume a chat",
+   "status": "passed",
+   "problem": null,
+   "screen": null,
+   "gestures": []
+  },
+  {
+   "flow": "f5",
+   "name": "Filter search results",
+   "status": "passed",
+   "problem": null,
+   "screen": null,
+   "gestures": []
+  },
+  {
+   "flow": "f6",
+   "name": "Page through the feed",
+   "status": "passed",
+   "problem": null,
+   "screen": null,
+   "gestures": [
+    "s01.swipe>s10"
+   ]
+  }
+ ],
+ "contract_errors": []
+}

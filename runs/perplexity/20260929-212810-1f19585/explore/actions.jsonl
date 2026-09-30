@@ -1,0 +1,28 @@
+{"step":1,"from_state":"s01","to_state":null,"action":"tap","mcp_ref":"@e39","tap_px":{"x":540,"y":2070},"transition":"unknown","change_summary":"denied: text input","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":2,"from_state":"s02","to_state":null,"action":"tap","mcp_ref":"@e37","tap_px":{"x":540,"y":2070},"transition":"unknown","change_summary":"denied: text input","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":3,"from_state":"s02","to_state":null,"action":"tap","mcp_ref":null,"tap_px":{"x":94,"y":1042},"transition":"unknown","change_summary":"denied: delete","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":4,"from_state":"s01","to_state":"s02","action":"tap","mcp_ref":"@e41","tap_px":{"x":540,"y":2221},"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":5,"from_state":"s02","to_state":"s01","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":6,"from_state":"s03","to_state":null,"action":"tap","mcp_ref":"@e44","tap_px":{"x":540,"y":215},"transition":"unknown","change_summary":"denied: account text","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":7,"from_state":"s01","to_state":"s03","action":"tap","mcp_ref":"@e30","tap_px":{"x":100,"y":215},"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":8,"from_state":"s03","to_state":"s04","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":9,"from_state":"s04","to_state":"s01","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":10,"from_state":"s01","to_state":"s05","action":"tap","mcp_ref":"@e35","tap_px":{"x":980,"y":215},"transition":"push","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":11,"from_state":"s06","to_state":null,"action":"tap","mcp_ref":"@e28","tap_px":{"x":434,"y":1439},"transition":"unknown","change_summary":"denied: cancel","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":12,"from_state":"s06","to_state":null,"action":"tap","mcp_ref":null,"tap_px":{"x":978,"y":216},"transition":"unknown","change_summary":"denied: follow","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":13,"from_state":"s05","to_state":"s06","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":14,"from_state":"s06","to_state":"s01","action":"relaunch","mcp_ref":null,"tap_px":null,"transition":"unknown","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":15,"from_state":"s08","to_state":null,"action":"tap","mcp_ref":null,"tap_px":{"x":94,"y":1042},"transition":"unknown","change_summary":"denied: delete","outcome":"denied","loop_pass":null,"loop_stop":null}
+{"step":16,"from_state":"s07","to_state":"s08","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":17,"from_state":"s08","to_state":"s08","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":18,"from_state":"s08","to_state":"s08","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":19,"from_state":"s08","to_state":"s08","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":20,"from_state":"s08","to_state":"s08","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":21,"from_state":"s08","to_state":"s01","action":"relaunch","mcp_ref":null,"tap_px":null,"transition":"unknown","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":22,"from_state":"s09","to_state":"s10","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":23,"from_state":"s10","to_state":"s11","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":24,"from_state":"s11","to_state":"s12","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":25,"from_state":"s12","to_state":"s01","action":"relaunch","mcp_ref":null,"tap_px":null,"transition":"unknown","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":26,"from_state":"s09","to_state":"s10","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":27,"from_state":"s10","to_state":"s12","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}
+{"step":28,"from_state":"s12","to_state":"s13","action":"back","mcp_ref":null,"tap_px":null,"transition":"back","change_summary":"","outcome":"ok","loop_pass":null,"loop_stop":null}

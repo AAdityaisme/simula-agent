@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c03",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 10× memory boost and its five-reply, same-day limit before the optional game. The decline and ad-failure fields leave the chat unchanged and the daily try available."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is additional context for replies in one chat, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is opening the chat history sheet with a saved chat; it does not require reading messages or other chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and the boost is added to a subscriber's existing benefit."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on s18, a chat history sheet rated safe, rather than an offer inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward temporarily increases context, which s16.e09 identifies as a Janitor Plus benefit."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field claims subscribers resume long stories from the history sheet and that the subscription covers the reply's cost; neither claim is established by s18 or the paywall. The rationale also says users otherwise see no ads, which the product model does not support."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward ends after five replies or at local midnight, so it does not grant lasting access to the paid context benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card is on the chat history sheet the user chooses to open, not an interruption during a reply."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game after the detectable sheet-opening event and shows the reward after the play; it does not specify granting it on a tap, start, click, or close."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses Janitor Plus's 5× context benefit from s16.e09 and places the offer on the s18 chat history sheet."
+ },
+ "other_concern": "The flow should explicitly say the app grants the boost once only after Simula's REWARD_VERIFIED event.",
+ "fixable": true
+}

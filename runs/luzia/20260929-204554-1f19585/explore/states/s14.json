@@ -1,0 +1,27 @@
+{
+ "schema_version": 1,
+ "state_id": "s14",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "co.thewordlab.luzia|8c02ec02850082008002801ac07ad0fe|8c02801a8130a1738172c31692f0c36c|11309ce34df0",
+ "foreground_package": "co.thewordlab.luzia",
+ "screenshot": "states/s14.png",
+ "elements_reply": "states/s14.elements.json",
+ "settled": true,
+ "settle_seconds": 4.38,
+ "dynamic_regions": [],
+ "captured_at": "2026-09-29T20:50:00",
+ "box": null,
+ "icon_labels": [
+  {
+   "mcp_ref": "@e66",
+   "name": "arcade game card"
+  },
+  {
+   "mcp_ref": "@e68",
+   "name": "chess game card"
+  }
+ ],
+ "vision_elements": [],
+ "blocked_reason": null
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c02",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the reward before an optional game; the decline and ad-failure fields leave Explore unchanged or explain that no placement was added."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a 24-hour Spotlight placement, not cash or an externally exchangeable asset."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses a published-app status and an Explore-tab opening, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and removes-nothing-free fields introduce a Spotlight row without locking or capping a free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a catalog card on s03, a screen rated safe, rather than an offer in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "The reward is visibility to other Explore visitors, not a resource the player uses for themselves in the observed explore-and-create flow f4; no paid slice of Spotlight is documented."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work-here field says a new creator's app has no likes and cannot reach Trending. The cited counts and rank badges on s14 do not establish either claim."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "Putting the new Spotlight row above the featured app in s03 takes visibility from creators already shown there, even if Trending and the editor's pick keep their internal ordering; no existing sale of that advantage is documented."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger and placement put the offer on the Explore catalog, a persistent surface users choose to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by opening Explore and describes earning the placement by playing it; it does not specify granting the reward for a tap, close, or unverified start."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Create tab, Explore catalog, published mini apps, and the featured and Trending placements shown on s03 and s14."
+ },
+ "other_concern": "The flow should explicitly say the placement is granted once only after REWARD_VERIFIED. A one-placement-at-a-time rule for the Spotlight row is also unspecified.",
+ "fixable": false
+}

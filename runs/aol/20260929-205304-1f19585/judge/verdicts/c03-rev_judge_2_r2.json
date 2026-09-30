@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c03-rev",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 15-minute reward before the reader chooses to play. The decline and ad-failure fields leave the story unchanged if the reader declines or the game cannot be confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 15 minutes without in-story ad blocks, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses a story count and scrolling past an ad block, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal's decline path preserves reading with ads as before; it does not remove or cap free reading."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is app chrome on s24, a screen rated content safe, rather than inside a conversation or next to unsafe or unknown-rated content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product-change reward gives the player an ad-light period for their own story reading, a core flow observed in f1 and f2."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The proposal's claims about in-story display blocks and the pinned next-story bar are supported by s13.e34, s20.e23, and s24.e12/e24/e26. It says a paid ad-free plan was not seen, rather than claiming none exists."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits ad-light reading to 15 minutes; it grants no lasting access to a paid benefit."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The trigger and placement make the card appear while the reader is still reading a story, after scrolling past an ad block. That interrupts an ongoing task without a limit hit, locked-item tap, finished action, or persistent surface the user chooses to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by detectable story events, and the ad-failure field withholds the reward when the play cannot be confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea relies on this app's in-story ADVERTISEMENT blocks and s24's pinned 'Next in More For You' bar."
+ },
+ "other_concern": "",
+ "fixable": true
+}

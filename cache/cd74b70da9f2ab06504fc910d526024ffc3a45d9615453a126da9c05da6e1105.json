@@ -1,0 +1,9 @@
+{
+ "text": "{\"identifying_text\":\"\",\"verdict\":\"elsewhere\",\"confidence\":0.3,\"action\":null,\"element_id\":null,\"direction\":null,\"side_effect\":false,\"reason\":\"Placeholder\"}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 3455,
+ "tokens_out": 69,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

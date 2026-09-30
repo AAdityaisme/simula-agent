@@ -1,0 +1,51 @@
+{
+ "schema_version": 1,
+ "state_id": "s02",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "ai.perplexity.app.android|626d625d858200000000000000000000|620d808270007800580070000c008c11|0491c63d3497",
+ "foreground_package": "ai.perplexity.app.android",
+ "screenshot": "states/s02.png",
+ "elements_reply": "states/s02.elements.json",
+ "settled": true,
+ "settle_seconds": 2.85,
+ "dynamic_regions": [],
+ "captured_at": "2026-09-29T21:29:23",
+ "box": null,
+ "icon_labels": [
+  {
+   "mcp_ref": "@e30",
+   "name": "computer mode"
+  }
+ ],
+ "vision_elements": [
+  {
+   "name": "delete",
+   "rect_px": {
+    "x": 31.0,
+    "y": 979.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "enter",
+   "rect_px": {
+    "x": 31.0,
+    "y": 1113.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "emoji",
+   "rect_px": {
+    "x": 31.0,
+    "y": 1247.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  }
+ ],
+ "blocked_reason": null
+}

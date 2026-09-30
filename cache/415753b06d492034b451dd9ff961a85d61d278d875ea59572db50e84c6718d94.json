@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[],\"extra_points\":[{\"x\":436,\"y\":129,\"name\":\"ad choices\"},{\"x\":457,\"y\":129,\"name\":\"ad options menu\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1666,
+ "tokens_out": 60,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

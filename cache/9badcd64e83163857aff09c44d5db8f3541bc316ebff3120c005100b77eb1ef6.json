@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[],\"extra_points\":[{\"x\":100,\"y\":1070,\"name\":\"bunny character card\"},{\"x\":270,\"y\":1070,\"name\":\"create new character\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1666,
+ "tokens_out": 61,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

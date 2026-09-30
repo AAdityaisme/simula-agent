@@ -1,0 +1,91 @@
+{
+ "schema_version": 1,
+ "state_id": "s07",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "com.janitor.ai|86a39b2366c366cfe315e6b766a96769|6683668956315d95643843c3a052a240|41dd08833832",
+ "foreground_package": "com.janitor.ai",
+ "screenshot": "states/s07.png",
+ "elements_reply": "states/s07.elements.json",
+ "settled": true,
+ "settle_seconds": 3.24,
+ "dynamic_regions": [],
+ "captured_at": "2026-09-29T20:34:38",
+ "box": null,
+ "icon_labels": [],
+ "vision_elements": [
+  {
+   "name": "back",
+   "rect_px": {
+    "x": 59.0,
+    "y": 136.0,
+    "w": 126.0,
+    "h": 115.0
+   }
+  },
+  {
+   "name": "more options",
+   "rect_px": {
+    "x": 961.0,
+    "y": 136.0,
+    "w": 119.0,
+    "h": 115.0
+   }
+  },
+  {
+   "name": "follow",
+   "rect_px": {
+    "x": 135.0,
+    "y": 1271.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "options",
+   "rect_px": {
+    "x": 427.0,
+    "y": 1271.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "share",
+   "rect_px": {
+    "x": 817.0,
+    "y": 1271.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "search for characters",
+   "rect_px": {
+    "x": 595.0,
+    "y": 1619.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "filter",
+   "rect_px": {
+    "x": 571.0,
+    "y": 1747.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "sort by latest",
+   "rect_px": {
+    "x": 819.0,
+    "y": 1747.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  }
+ ],
+ "blocked_reason": null
+}

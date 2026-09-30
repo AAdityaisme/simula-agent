@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c02",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in by playing. The offer copy says what is given and for how long ('Midnight theme on your home screens for 7 days'). Declining leaves the app unchanged, and the ad-failure path hides the card or shows a retry note."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic theme for 7 days, with no monetary value and nothing that can be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: opening the Library in the fifth or later session. It uses no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea adds an optional theme and removes or caps nothing free ('removes nothing free: yes'). The home screens keep their usual look by default."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a list card in the Library (s03), which is rated safe and is app chrome. It is not in a conversation or over a chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The theme is a new resource for the player's own use on the Search home (s01) and the Computer home (s10), which are part of the observed core flows f1 and f5. None of it goes to another user or a creator."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "Claims about today's app are supported or worded as 'not seen': no paid plan or limit seen, no theme options seen, and the Library lists Projects, Artifacts and Sessions (s03). The rest is new design or prediction. The claim that the card sits between 'Start something new' and the Sessions list is not clearly supported and is noted separately."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "A cosmetic theme lasting 7 days gives away no paid benefit and takes nothing from other users. It also expires."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the Library, a persistent surface the user chooses to open. It does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "This is a play-to-earn rewarded game. The theme is granted only once the play is confirmed, and the trigger (Library opened in the fifth or later session) is an app event the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Library screen, the 'Start something new' card, the Sessions list, and the Search home and Computer home screens."
+ },
+ "other_concern": "The card's position is unverified. The s03 element order lists the Sessions header before the 'Start something new' card, so 'below Start something new, above Sessions' may not match the layout. The cited evidence list is empty. A purely cosmetic reward has weak demand and may see low uptake.",
+ "fixable": false
+}

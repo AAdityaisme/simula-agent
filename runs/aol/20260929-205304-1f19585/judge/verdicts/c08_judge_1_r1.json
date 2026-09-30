@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c08",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in (the reader chooses to play), the offer copy states the reward (30 minutes without advertisement blocks) before the game, and declining just hides the card. There is a stated failure path ('That didn't go through, nothing was used')."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of ad-free reading (feature_time), which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (reaching the end of a second article so the next-story bar appears), and no chat content is involved."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free today is removed or capped. The reward only temporarily hides ad blocks, and 'removes nothing free: yes' holds."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits on s24, an article screen rated safe, and it is app chrome above the next-story bar. It is not in a chat and not next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The new resource is ad-free reading, which the player uses themselves in the observed core reading flows f1 and f2. None of it goes to another party."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about today's app are supported: ad cards and ADVERTISEMENT blocks in each article (m2, s05.e13, s20.e27), the gutter ad repeating across s20 to s26, and the 'Next in More For You' bar (s24.e24). The 'no paywall or paid plan seen' claim is worded as not seen and matches the open question. The new card, timer and copy are the proposal's own additions."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No paid plan or ad-free tier was observed, so nothing the app charges for is given away. The 30-minute reward expires, and nothing is taken from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears at a finished-action moment, when the reader finishes a story and the next-story bar appears. It does not cut into a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "This is a play-to-earn unit. The reward is granted only once the play is confirmed, and the trigger is a detectable article and next-story-bar event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It is tied to this app's Taboola cards, the in-article ADVERTISEMENT blocks, and the pinned 'Next in More For You' bar on the article screen."
+ },
+ "other_concern": "The next-story bar on s24 is pinned mid-article, so detecting 'end of a second article' may need scroll-end logic. It is also unclear whether third-party Taboola and display blocks can be suppressed, and hiding them may cost ad revenue. The proposal itself flags the revenue point.",
+ "fixable": false
+}
