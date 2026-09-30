@@ -12,7 +12,8 @@ from pathlib import Path
 import pytest
 
 from simula import replaycheck
-from simula.replaycheck import PINS, commit, key, read
+from simula.replaycheck import PINS, commit, git, key, read
+from tests.conftest import ROOT
 
 RUNS = replaycheck.committed_runs()
 by_run = pytest.mark.parametrize("run", RUNS, ids=[key(r) for r in RUNS])
@@ -46,6 +47,38 @@ def test_head_holds_the_run_and_the_cache_its_pin_replays(run):
     replaycheck.check_pin_held(run)
 
 
+@pytest.fixture
+def stray_objects(tmp_path, monkeypatch):
+    """Commits the test makes land in tmp_path, never in the repo, which git still reads through."""
+    repo_objects = Path(ROOT, git("rev-parse", "--git-path", "objects").strip())
+    (tmp_path / "objects").mkdir()
+    env = {"GIT_OBJECT_DIRECTORY": tmp_path / "objects", "GIT_ALTERNATE_OBJECT_DIRECTORIES": repo_objects,
+           "GIT_INDEX_FILE": tmp_path / "index", "GIT_AUTHOR_NAME": "test", "GIT_COMMITTER_NAME": "test",
+           "GIT_AUTHOR_EMAIL": "test@example.invalid", "GIT_COMMITTER_EMAIL": "test@example.invalid"}
+    for name, value in env.items():
+        monkeypatch.setenv(name, str(value))
+
+
+def test_a_pin_to_a_commit_outside_heads_history_is_refused(stray_objects):
+    """A commit a rebase left behind resolves on the laptop that has it and nowhere else."""
+    stray = git("commit-tree", "HEAD^{tree}", "-m", "left behind").strip()
+    with pytest.raises(replaycheck.Mismatch, match="not in HEAD's history"):
+        replaycheck.resolve(stray)
+
+
+@pytest.mark.skipif(not PINS, reason="no pinned runs")
+def test_a_pinned_run_cant_leave_together_with_its_pin_line(stray_objects, monkeypatch):
+    run = next(r for r in RUNS if key(r) in PINS)
+    pin = commit(run)
+    git("read-tree", pin)
+    git("update-index", "--add", "--cacheinfo", f"100644,{git('rev-parse', f'{pin}:{run}/manifest.json').strip()},"
+        "runs/gone/20260101-000000-0000000/manifest.json")
+    had_another_run = git("commit-tree", git("write-tree").strip(), "-m", "the pin, with a run HEAD dropped").strip()
+    monkeypatch.setattr(replaycheck, "commit", lambda _: had_another_run)
+    with pytest.raises(replaycheck.Mismatch, match="runs/gone/"):
+        replaycheck.check_pin_held(run)
+
+
 @pytest.mark.skipif(not RUNS, reason="no committed runs")
 def test_runs_that_share_a_pin_were_made_by_the_same_code(clones):
     """No code changed between the app runs one pin replays: the out-of-set app ran on exactly what the others did.
@@ -69,3 +102,14 @@ def test_the_graders_replay_reproduces_the_committed_outputs(clone, run):
     if skip := replaycheck.graders_skip(run):
         pytest.skip(skip)
     replaycheck.check_graders_replay(clone, run)
+
+
+@pytest.mark.skipif(not RUNS, reason="no committed runs")
+def test_replay_check_prints_a_line_per_run_and_fails_when_any_run_does(monkeypatch, capsys):
+    def check(run, under):
+        if run == RUNS[0]:
+            raise replaycheck.Mismatch("the replay wrote different structured outputs")
+        return "same"
+    monkeypatch.setattr(replaycheck, "check", check)
+    assert replaycheck.main() == 1
+    assert [line.split()[0] for line in capsys.readouterr().out.splitlines()] == ["FAIL"] + ["ok"] * (len(RUNS) - 1)
