@@ -58,7 +58,7 @@ flowchart LR
 - **Cheap re-visit, not full re-explore:** replay the recorded taps with no model call, recompute fingerprints, send only changed/missing screens to the explorer.
 - **Scheduled slow re-run** on a cadence catches server-side paywall/entitlement changes that never touch the binary version.
 
-**3. Where humans review.** Three gates: (a) login/age-gate/CAPTCHA walls, (b) judge disagreements and held cases, (c) approving which accepted proposals become slides. A single run has (a) and (b) today, as `needs-human.md`, the review's Needs your call page and `judge/human-queue.md`; (c) it doesn't have, since a run draws its accepted ideas without asking. The service would gather all three in one review queue. **Time-per-app is not sourced anywhere** — no vendor or paper gives a "minutes to review one app's slide deck" number, because this is Simula's own internal process. Treat any minutes figure below as an assumption to replace with a timed pass, not a researched fact.
+**3. Where humans review.** Three gates: (a) login/age-gate/CAPTCHA walls, (b) judge disagreements and held cases, (c) approving which accepted proposals become slides. A single run has (a) and (b) today, as `needs-human.md`, the deck's Needs your call page and `judge/human-queue.md`; (c) it doesn't have, since a run draws its accepted ideas without asking. The service would gather all three in one review queue. **Time-per-app is not sourced anywhere** — no vendor or paper gives a "minutes to review one app's slide deck" number, because this is Simula's own internal process. Treat any minutes figure below as an assumption to replace with a timed pass, not a researched fact.
 
 **4. Cost per app: one development JanitorAI run (n = 1).**
 
