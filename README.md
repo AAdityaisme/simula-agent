@@ -13,7 +13,7 @@ simula-agent takes an installed Android app through exploration, a product model
 
 ## Results
 
-Every run below ran on commit `<RUN: sha>` and is committed with its cache. Each row says how far that app got; a replay covers the stages its run finished (see Replay). `<RUN>` marks what tonight's runs fill in.
+Every run below ran on commit `1f19585` and is committed with its cache. Each row says how far that app got; a replay covers the stages its run finished (see Replay).
 
 | App | Why it's here | Budget | Run | Outcome | Screens | Ideas: proposed → accepted / split / rejected | API $ | Wall time | Judge-2 fallback used |
 |---|---|---|---|---|---|---|---|---|---|
@@ -27,7 +27,7 @@ Every run below ran on commit `<RUN: sha>` and is committed with its cache. Each
 
 **OOC** runs with the same command as every other app. It showed its own "Emulator Detected" dialog and closed itself; the run records that and moved on. The fix is a real device (the device pool in [docs/GOAL5.md](docs/GOAL5.md)), not a workaround in this system.
 
-**Hand fixes.** A person stepping in during a run is a `hand_fix` line, decided by `human`, in that run's `trace.jsonl` (`simula note --run ID`). Tonight's runs: <RUN: each hand fix, or "none">.
+**Hand fixes.** A person stepping in during a run is a `hand_fix` line, decided by `human`, in that run's `trace.jsonl` (`simula note --run ID`). Tonight's runs: none; no committed trace has a `hand_fix` line. Outside the committed runs, two earlier JanitorAI attempts are not committed: the first failed after its tour when a screenshot timed out under heavy host load, and the emulator then crashed; the second was stopped at once because the restored emulator had JanitorAI logged out. Aadi logged JanitorAI back in by hand, and the committed run started after that.
 
 ## What it does
 
@@ -232,9 +232,9 @@ Three calls carry the design:
 - `flows/approvals.json` replaces the draw list rather than adding to it, so an approval file must also name the accepted ideas; the Needs your call page's footer says to "add its 'To approve' entry to the list", which drops the accepted ideas unless they are listed too.
 - An approval of a split holds only while the judges split on exactly the checks it names; if the disagreement changes, the idea goes back to a person.
 - The Needs your call page and the score pages' footers are written for Simula's reviewer; the deck for the app's product team is the one produced after approvals.
-- The Needs your call page prints each idea's raw approval snippet, and where code strips element ids from a judge's reason it can leave stray punctuation (",,", "matches's").
+- The Needs your call page prints each idea's raw approval snippet. Where code strips element ids from a judge's reason, the Needs your call and Closest idea boxes can show stray punctuation or a broken sentence (",,", "matches's", JanitorAI's "…3+ days old from. That element…", Perplexity's "backed by, and").
 - The score table's reason names the evidence check without quotes, so it reads "didn't pass backed by what was seen in the app".
-- The duplicate check compares the benefit's name and who gets it, so two ideas that name their benefit differently can both be drawn: Luzia's deck draws two ideas that each feature a user's creation on Explore for 24 hours (c06, c08-rev).
+- The duplicate check compares the benefit's name and who gets it, so two ideas that name their benefit differently can both be drawn: Luzia's deck draws two ideas that each feature a user's creation on Explore for 24 hours (c06, c08-rev). It also cuts the other way: it compares the benefit, not the moment, so a timing or cohort variant is dropped as a duplicate. JanitorAI's memory offer to a free user closing the paywall (c01) was dropped as a duplicate of the come-back-after-three-days memory idea (c06).
 - The judges pass promotion ideas that add a separate row, because nobody else moves down (Luzia's c06 and c08-rev). A new row still spends the same finite attention, and the rubric counts what other creators lose but doesn't price attention, so a product team would likely cut these.
 - No check weighs showing an ad to paying subscribers: JanitorAI's accepted c03-rev is offered only to Janitor Plus subscribers. Its cost mark is CONDITIONAL for a separate reason (at 8k context it pays for itself only above $13 eCPM, against a $10.16 benchmark).
 - A trace line `declared fallback used` means that judge-2 call ran on gpt-6-luna, which the validation never measured.
@@ -242,6 +242,7 @@ Three calls carry the design:
 - QA's keep score picks the round QA keeps; it is not a fidelity percentage. Fonts and layered drawers are where the mocks visibly miss.
 - A drawn reward confirms the grant rather than demonstrating the benefit: a confirmation screen ("10× memory is on", "Toki grew 1 step!"), or, where the mock can't show it working, a label on the screen that the caption calls a label. Broken interactions and undrawn screens are flagged on the slide, not hidden.
 - The model stage's evidence check catches ids and quotes that were never captured, not wrong readings of what a screen means.
+- The paywall detector can fire on a sponsored price in a feed: AOL's explore recorded s05, an article with a Temu ad in its Taboola block ("jackets for $2.36"), as a paywall, and its core-loop pass stopped there. The model stage then noted that no upgrade screen was seen.
 - `config/profiles.toml`'s comment beside `judges` still says a split "goes to a person"; it goes to the Needs your call page.
 - A config value the code reads but doesn't hash, such as the adult-keyword list, doesn't trigger a rerun when it changes.
 - QA's measurement records in `cache/qa` are keyed by the page and its inputs, not by run, so two runs that draw the same page from the same inputs share one record.
