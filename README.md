@@ -13,7 +13,7 @@ simula-agent takes an installed Android app through exploration, a product model
 
 ## Where each deliverable is
 
-The assignment's deliverables, in its words. Paths are JanitorAI's run; every run folder has the same layout.
+The assignment's deliverables, in its words. Paths are JanitorAI's run; every run folder has the same layout, up to the stage the run reached (OOC's stops at explore).
 
 | Deliverable | Where |
 |---|---|
