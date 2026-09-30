@@ -17,6 +17,7 @@ dependencies = [
     "python-dotenv",
     "typesafe-sdk",
     "system-one-adapter[anthropic] @ git+https://github.com/typesafe-ai/system-one-adapter-python@e1d4cc9",
+    "regex>=2026.9.29",
 ]
 
 [project.scripts]

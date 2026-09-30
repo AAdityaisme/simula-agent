@@ -12,6 +12,7 @@ from io import BytesIO
 from pathlib import Path
 
 import numpy as np
+import regex
 from PIL import Image
 
 from simula import config, llm, render, runfolder, text
@@ -33,9 +34,7 @@ EVERYDAY = " (everyday word, never flagged)"
 # Two or more letters in a row, each with the marks written on it: "मैसेज" is three letters, not three runs of one.
 WORD = re.compile(f"(?:[^\\W\\d_][{text.MARK}]*){{2,}}")
 LABEL_CHARS = 30
-ZWJ = "‍"
-FLAG_LETTERS = "".join(map(chr, range(0x1F1E6, 0x1F200)))
-SKIN_TONES = "".join(map(chr, range(0x1F3FB, 0x1F400)))
+SEPARATORS = ",;:、，；："
 SCREEN_CHANGE = re.compile(r"→|(?:^|;\s*)[+-]['\"]")
 MEASURE = re.compile(r"^(?P<what>.*?)\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>[^\d\s]*)$")
 NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
@@ -753,30 +752,18 @@ def mermaid_label(text: str) -> str:
     return re.sub(r'["\[\](){}|<>]', " ", text).strip() or "?"
 
 
-def one_character(name: str, i: int) -> bool:
-    """Whether name[i - 1] and name[i] draw as one character: a mark, variation selector or skin tone on what precedes
-    it, a zero-width joiner on either side ("👨‍👩‍👧"), a virama joining a conjunct ("क्ष"), or a flag's second letter."""
-    before, after = name[i - 1], name[i]
-    flag_letters = i - len(name[:i].rstrip(FLAG_LETTERS))
-    return (unicodedata.category(after).startswith("M") or after in SKIN_TONES or ZWJ in (before, after)
-            or unicodedata.combining(before) == 9 or (after in FLAG_LETTERS and flag_letters % 2 == 1))
-
-
 def short_name(name: str, limit: int = LABEL_CHARS) -> str:
-    """`name` on one line, cut past `limit` characters with "…": at the last space in the cut's second half, else at
-    the limit, as a script written without spaces needs. Never inside one drawn character, and no punctuation or space
-    is left before the "…"."""
-    name = " ".join(name.split())
-    if len(name) <= limit:
-        return name
-    space = name.rfind(" ", limit // 2, limit + 1)
-    cut = space if space > 0 else limit
-    while cut and one_character(name, cut):
-        cut -= 1
-    kept = name[:cut]
-    while kept and unicodedata.category(kept[-1])[0] in "PZ":
-        kept = kept[:-1]
-    return kept + "…"
+    """`name` on one line, cut past `limit` drawn characters (Unicode grapheme clusters) with "…": at the last space
+    in the cut's second half, else at the limit, as a script written without spaces needs. A space, dash, opening
+    bracket or quote, or comma-like separator left before the "…" goes; "%", "?", "!", "." and closing quotes stay."""
+    chars = regex.findall(r"\X", " ".join(name.split()))
+    if len(chars) <= limit:
+        return "".join(chars)
+    cut = next((i for i in range(limit, limit // 2 - 1, -1) if chars[i] == " "), limit)
+    kept = chars[:cut]
+    while kept and (kept[-1] in SEPARATORS or unicodedata.category(kept[-1][0]) in ("Zs", "Pd", "Ps", "Pi")):
+        kept.pop()
+    return "".join(kept) + "…"
 
 
 def render_md(model: ProductModel) -> str:

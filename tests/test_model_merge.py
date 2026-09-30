@@ -586,24 +586,37 @@ def test_product_model_md_and_the_exhibit_show_which_unobserved_terms_are_everyd
             "never flagged), Annual (everyday word, never flagged)") in stage.exhibit(model, [], [], "")
 
 
+FAMILY = "\N{MAN}\N{ZERO WIDTH JOINER}\N{WOMAN}\N{ZERO WIDTH JOINER}\N{GIRL}"
+SCOTLAND = "\N{WAVING BLACK FLAG}" + "".join(chr(0xE0000 + ord(c)) for c in "gbsct") + "\N{CANCEL TAG}"
+HANGUL_KAK = "\N{HANGUL CHOSEONG KIYEOK}\N{HANGUL JUNGSEONG A}\N{HANGUL JONGSEONG KIYEOK}"
+
+
 @pytest.mark.parametrize("name, short", [
     ("Home", "Home"),
     ("line one\nline two", "line one line two"),
     ("Amber Glenn sobs after giving partner Pasha Pashkov a brutal bloody injury", "Amber Glenn sobs after giving…"),
     ("シルビア" * 10, "シルビア" * 7 + "シル…"),
     ("東京 " + "あ" * 40, "東京 " + "あ" * 27 + "…"),
-    ("a" + "कि" * 20, "a" + "कि" * 14 + "…"),
-    ("a" + "क्ष" * 12, "a" + "क्ष" * 9 + "…"),
-    ("a" * 29 + "🇺🇸🇺🇸", "a" * 29 + "…"),
-    ("a" * 29 + "👨‍👩‍👧", "a" * 29 + "…"),
-    ("a" * 28 + "👨‍👩", "a" * 28 + "…"),
-    ("a" * 29 + "❤️ and more", "a" * 29 + "…"),
-    ("a" * 29 + "👍🏽 and more", "a" * 29 + "…"),
+    ("a" + "कि" * 40, "a" + "कि" * 29 + "…"),
+    ("a" * 29 + "क्ष x", "a" * 29 + "क्ष…"),
+    ("a" * 29 + "🇺🇸🇺🇸", "a" * 29 + "🇺🇸…"),
+    ("a" * 29 + FAMILY + " x", "a" * 29 + FAMILY + "…"),
+    ("a" * 30 + FAMILY, "a" * 30 + "…"),
+    ("a" * 29 + "\N{HEAVY BLACK HEART}\N{VARIATION SELECTOR-16} and more",
+     "a" * 29 + "\N{HEAVY BLACK HEART}\N{VARIATION SELECTOR-16}…"),
+    ("a" * 29 + "👍\N{EMOJI MODIFIER FITZPATRICK TYPE-4} and more", "a" * 29 + "👍\N{EMOJI MODIFIER FITZPATRICK TYPE-4}…"),
+    ("a" * 29 + "สำ x", "a" * 29 + "สำ…"),
+    ("a" * 29 + "\N{ARABIC NUMBER SIGN}١٢ x", "a" * 29 + "\N{ARABIC NUMBER SIGN}١…"),
+    ("a" * 29 + SCOTLAND + " x", "a" * 29 + SCOTLAND + "…"),
+    ("a" * 29 + HANGUL_KAK + " x", "a" * 29 + HANGUL_KAK + "…"),
     ("Kang Jun-Seo Idol x Idol , 02:12, 15 chats", "Kang Jun-Seo Idol x Idol…"),
-    ("あ" * 29 + "。" + "い" * 5, "あ" * 29 + "…"),
+    ("あ" * 29 + "、" + "い" * 5, "あ" * 29 + "…"),
+    ("Unlock everything at 50% discount today", "Unlock everything at 50%…"),
 ], ids=["short", "one-line", "at-a-space", "unspaced", "early-space", "letter-and-mark", "virama-conjunct", "flag-pair",
-        "zwj-sequence", "after-a-zwj", "variation-selector", "skin-tone", "punctuation", "unspaced-punctuation"])
-def test_a_long_name_is_cut_between_words_or_characters(name, short):
+        "zwj-sequence", "zwj-sequence-past-the-limit", "variation-selector", "skin-tone", "thai-sara-am",
+        "arabic-prepend", "tag-flag", "decomposed-hangul", "punctuation", "unspaced-punctuation", "keeps-percent"])
+def test_a_long_name_is_cut_between_words_or_drawn_characters(name, short):
+    """The limit counts drawn characters (Unicode grapheme clusters), and a cut never lands inside one."""
     assert stage.short_name(name) == short
 
 
