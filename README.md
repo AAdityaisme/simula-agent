@@ -11,6 +11,21 @@ simula-agent takes an installed Android app through exploration, a product model
 - **Coverage:** JanitorAI, Luzia, AOL and Perplexity ran all seven stages. JanitorAI's and Perplexity's explores are partial, JanitorAI's never reached a chat, and AOL's mock drew 39 of its 64 screens; OOC stopped at launch on the emulator. The main limitation: neither judge rubric met its bar, so an accepted idea is two models' call, and a split waits for a person.
 - **Evidence:** [Results](#results) · [Replay without keys or a device](#replay-without-keys-or-a-device)
 
+## Where each deliverable is
+
+The assignment's deliverables, in its words. Paths are JanitorAI's run; every run folder has the same layout.
+
+| Deliverable | Where |
+|---|---|
+| **Code**: explorer, mock generator, QA loop, proposer and judge, one command per stage | [`simula/`](simula/); the seven stages are in [`simula/stages/`](simula/stages/). Commands: [Run it](#run-it). Models, keys, emulator and services: [Setup](#setup). To run it with no keys or device: [Replay](#replay-without-keys-or-a-device). |
+| **Product model**: what was explored, what was learned, how it's represented | [`model/product_model.md`](runs/janitorai/20260929-203310-1f19585/model/product_model.md) to read, and `product_model.json`, which every later stage reads. What explore did: [`exhibits/01-explore.md`](runs/janitorai/20260929-203310-1f19585/exhibits/01-explore.md). |
+| **Mock + QA evidence**: the recreation, and the QA loop's diffs and corrections | The mock: [`qa/approved/index.html`](runs/janitorai/20260929-203310-1f19585/qa/approved/index.html) (open it locally). Each QA round in `qa/round0` to `qa/round2` has, per screen, the real screenshot, the mock's render and a difference heatmap. From round 1 on, a round also has the critic's notes on the best version so far (`critique.json`) and the fixer's edits (`edits.json`); QA keeps the best-measured round. Summary: [`exhibits/04-qa.md`](runs/janitorai/20260929-203310-1f19585/exhibits/04-qa.md). |
+| **Rewarded flows**: the slides, and the judge's scores and reasons for every idea, rejected ones included | The deck: [`flows/slides.pdf`](runs/janitorai/20260929-203310-1f19585/flows/slides.pdf). Every idea's gates, scores and reasons: [`exhibits/06-judge.md`](runs/janitorai/20260929-203310-1f19585/exhibits/06-judge.md); raw verdicts in `judge/verdicts/`. |
+| **Trajectory**: what ran on its own, where it failed, what was fixed by hand, how decisions were made | [`trace.jsonl`](runs/janitorai/20260929-203310-1f19585/trace.jsonl): one line per decision or model call, with who decided (code, a model or a person), tokens and $. `explore/actions.jsonl`: every tap. [`needs-human.md`](runs/janitorai/20260929-203310-1f19585/needs-human.md): each point where the run stopped or came out partial, why, and the command to continue. Hand fixes: none tonight ([Results](#results)). One readable page per stage: [`exhibits/`](runs/janitorai/20260929-203310-1f19585/exhibits/). |
+| **Recording** | Linked in [Start here](#start-here). |
+| **Productionization sketch** (Goal 5) | [Goal 5](#goal-5-a-proposed-service-for-hundreds-of-apps-not-built), and the full sketch in [docs/GOAL5.md](docs/GOAL5.md). |
+| **What was spent** | [Money](#money): $51.50 for the five committed runs; every call's $ is in its run's `trace.jsonl`. |
+
 ## Results
 
 Every run below ran on commit `1f19585` and is committed with its cache. Each row says how far that app got; a replay covers the stages its run finished (see Replay).
@@ -224,7 +239,7 @@ Three calls carry the design:
 - **Storage and versioning.** The service would keep one immutable folder per app, platform, version and run. Two versions would diff screen by screen on the fingerprint the explorer already computes.
 - **When to re-explore.** On a new version (iOS has a public version lookup; on Android, the service would read the installed version after each run), plus a slow scheduled rerun for changes made on the server. A re-visit would replay the recorded taps and explore only the screens that changed.
 - **Where people review.** Login walls and age gates, ideas the judges split on (the deck's "Needs your call" page), judge calls that failed twice (`judge/human-queue.md`), and approving which ideas go to the app's product team. A single run raises the first three today, in `needs-human.md`, the deck and the judge folder; the service would gather them in a review queue.
-- **Cost per app.** One development JanitorAI run (n = 1, its stages at two commits, no judge 2) cost $19.84 in API calls, half of it the mock ($0.47 per screen drawn), plus about 17 minutes of emulator time. Under an assumed 15-minute review (about $12.50), that API spend exceeds the estimated review cost, so the lever at scale would be redrawing only the screens an update changed. Tonight's totals in Results are the numbers to quote.
+- **Cost per app.** Tonight's four full runs cost $4.72 to $20.93 each in API calls (per app in [Results](#results)), plus 7 to 30 minutes of emulator time to explore. The mock is the biggest share, 43% to 55% of each run, so the lever at scale would be redrawing only the screens an update changed. The idea stages alone (propose, judge, flows) cost $1.14 to $4.01 per app and need no phone, so re-proposing for an app already modeled is cheap. Under an assumed 15-minute review (about $12.50), a person's review costs about as much as a run. The per-stage breakdown of one development run is in docs/GOAL5.md.
 - **Plugging into Simula.** The slides would be the sales artifact. An accepted idea maps onto the rewarded ad in Simula's native SDKs, which grant the reward on `REWARD_VERIFIED`; the deck's simulated ad does the same. The sketch's first table says what's built and what's only proposed.
 
 ## Known limits
@@ -254,6 +269,8 @@ Three calls carry the design:
 - The deny-list is English only. The Play billing BACK works in any language, but covers Play purchases only.
 - The mock copies its web fonts in when it's built, and renders refuse every outside request. A font that can't be fetched at build time is replaced by system fonts, and the trace says so.
 - The mock draws 4 screens per batch, whatever their size; a batch of dense screens can still run out of output tokens.
+- The product model's map labels each arrow with the tapped element's text, so a tap on a character card writes the card's whole description onto the arrow: JanitorAI's map carries one in Japanese, and AOL's carries whole headlines. `product_model.json` stores the element separately, so later stages aren't affected. Shortening the label is a small change in `render_md` in `simula/stages/model.py`, left until after submission: any change to that file makes every committed run's `--replay` redo the model stage, and for JanitorAI and AOL every stage after it.
+- A picture found only by the vision pass is given a name, and a named element isn't cropped, so JanitorAI's profile picture (s05) has no crop and the mock draws a stand-in. The fix is to crop vision-found pictures whatever their name, in `is_image_like`, after submission for the same reason.
 - Art detection counts distinct colors, so a flat-shaded illustration with few colors isn't cropped as a picture.
 - A count badge drawn over a picture in the app can leave a strip on the cropped art.
 - In QA, a screen with nothing to measure (no tagged element, no tap, too little unmasked screen) scores 0 and still counts in the round's mean.
