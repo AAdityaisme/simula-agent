@@ -158,3 +158,12 @@ def test_remove_ads_opens_an_upsell_and_is_a_confirm_on_one():
     assert all(ENTRY.search(label) for label in ["Remove ads", "Go ad-free", "No ads for a month"])
     assert denied(control("Remove ads")) is None
     assert denied(control("Remove ads"), upsell=True) == "remove"
+
+
+def test_an_icon_only_close_named_by_its_id_is_allowed_and_text_commands_are_not():
+    x = Candidate(label="login-close-button", kind="View", rect=Rect(x=37, y=152, w=126, h=126), ref="@e27",
+                  tree_label="", ident="login-close-button")
+    assert denied(x) is None
+    assert [denied(control(label)) for label in ("Sign in", "Log in", "Close account")] == \
+        ["sign in", "log in", "close account"]
+    assert denied(control("Sign-in with Google")) == "sign in" and denied(control("E-mail")) == "e mail"

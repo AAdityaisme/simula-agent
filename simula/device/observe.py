@@ -46,14 +46,15 @@ SCRIM_SHARE = 0.84
 # control-shaped labels, since a headline that mentions "report" is not a report button. A toggle's on-state
 # ("Following", "Liked", "Subscribed") stays denied: tapping it undoes it.
 DENY_ALWAYS = re.compile(r"\b(?:log ?out|sign ?out|sign ?in|sign ?up|log ?in|create account|continue with|delete|"
-                         r"remove(?! ads\b)|cancel|(?:un)?subscribed?|buy|pay(?:ments?)?|purchases?|restore|confirm|"
+                         r"remove(?! ads\b)|close (?:my |your |the )?account|cancel|(?:un)?subscribed?|buy|"
+                         r"pay(?:ments?)?|purchases?|restore|confirm|"
                          r"start\b.{0,24}\btrial|passwords?|place order|check ?out|donat\w*)\b", re.IGNORECASE)
 # a command starts its clause, maybe after one adverb: "Yes, permanently delete my account", "Already have one? Log in"
 # ponytail: a command written mid-clause ("Tap here to confirm your purchase") reads like a headline and passes, and a
 # headline opening with an -ly word ("Early payments: …") is denied; the safe way round, it only loses a card
 DENY_COMMAND = re.compile(rf"(?:^|[,;:?!.\u2013\u2014])\W*(?:\w+ly\s+)?({DENY_ALWAYS.pattern})",
                           re.IGNORECASE | re.MULTILINE)
-DENY = re.compile(r"\b(?:report|(?:un)?block|clear|e-?mails?|security|personas?|(?:un)?follow(?:ing)?|"
+DENY = re.compile(r"\b(?:report|(?:un)?block|clear|e[- ]?mails?|security|personas?|(?:un)?follow(?:ing)?|"
                   r"(?:un)?favou?rit\w*|(?:un)?liked?|hearts?|hide|terms|privacy|rate us|review|camera|photo|gallery|"
                   r"allow|permissions?|install|open in|submit|proceed|tip|rate|give \d stars?|save changes|publish|"
                   r"post)\b", re.IGNORECASE)
@@ -61,7 +62,11 @@ CONTROL_WORDS = 4
 # a content filter's own phrase: on the filter's row its verb is no deny hit, while a "Block user" or "Report" there is
 FILTER_PHRASE = re.compile(r"\b(?:hide|block|allow)\s+(?:all\s+)?(?:nsfw|sfw|explicit|mature|adult|sensitive)\b",
                            re.IGNORECASE)
-ID_WORDS = re.compile(r"(?<=[a-z])(?=[A-Z])|_")  # an identifier's words ("buttonFavorite", "btn_like") for \b
+ID_WORDS = re.compile(r"(?<=[a-z])(?=[A-Z])|[_-]")  # an id's words ("buttonFavorite", "btn_like", "login-close") for \b
+# an icon-only control (no text beyond an X) whose id names a dismissal closes something and commits nothing, whatever
+# else its id says ("login-close-button"); a text button such as "Close account" still meets every deny word
+ICON_ONLY = re.compile(r"\s*[x×✕✖]?\s*", re.IGNORECASE)
+DISMISS_ID = re.compile(r"\b(?:close|dismiss|skip|not now)\b", re.IGNORECASE)
 TOGGLE = re.compile(r"Switch|CheckBox|ToggleButton", re.IGNORECASE)
 DENY_ON_UPSELL = re.compile(r"continue|try|start|get|claim|unlock|join|redeem|activate|\bremove\b", re.IGNORECASE)
 DENY_IN_TOUR = re.compile(r"send|swipe|regenerate", re.IGNORECASE)
@@ -389,8 +394,10 @@ def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bo
     text = ID_WORDS.sub(" ", text)
     shaped = len(c.label.split()) <= CONTROL_WORDS or "Button" in c.kind
     rest = FILTER_PHRASE.sub(" ", text) if toggle_ok else text
-    hit = (DENY_ALWAYS if shaped else DENY_COMMAND).search(text) or (DENY.search(rest) if shaped else None) \
-        or (DENY_ON_UPSELL.search(text) if upsell else None) or (DENY_IN_CORE if core else DENY_IN_TOUR).search(text)
+    closes = ICON_ONLY.fullmatch(c.tree_label) and DISMISS_ID.search(ID_WORDS.sub(" ", c.ident or c.label))
+    hit = None if closes else (DENY_ALWAYS if shaped else DENY_COMMAND).search(text) \
+        or (DENY.search(rest) if shaped else None) or (DENY_ON_UPSELL.search(text) if upsell else None) \
+        or (DENY_IN_CORE if core else DENY_IN_TOUR).search(text)
     if hit:
         return hit.group(hit.lastindex or 0).lower()  # a command's word, without the bullet before it
     if TOGGLE.search(c.kind) and not toggle_ok:
