@@ -157,10 +157,11 @@ def check_markers(clone: Path, run: Path) -> int:
 
 
 def graders_skip(run: Path) -> str | None:
-    """Why the grader's replay can't run on this machine, or None."""
-    if sys.platform != "darwin" and PINS.get(key(run)) in BYTE_KEYED:
-        return (f"its pin {PINS[key(run)]} keyed images by PNG bytes, and this platform encodes the same pixels to "
-                "other bytes than the macOS that recorded the cache (known limit, README)")
+    """Why the grader's replay can't run on this machine, or None. Decided by the commit the run replays at, so a
+    full-sha pin of a byte-keyed ref skips too."""
+    if sys.platform != "darwin" and (sha := commit(run)) in {resolve(ref) for ref in BYTE_KEYED}:
+        return (f"it replays at {sha[:12]}, whose code keyed images by PNG bytes, and this platform encodes the same "
+                "pixels to other bytes than the macOS that recorded the cache (known limit, README)")
     return None
 
 

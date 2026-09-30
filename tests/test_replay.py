@@ -119,6 +119,14 @@ def test_the_committed_markers_still_describe_the_pinned_code(clone, run):
     replaycheck.check_markers(clone, run)
 
 
+@pytest.mark.skipif(not any(ref in replaycheck.BYTE_KEYED for ref in PINS.values()), reason="no byte-keyed pins")
+def test_a_full_sha_pin_of_a_byte_keyed_ref_skips_the_graders_replay_off_macos(monkeypatch):
+    run = next(r for r in RUNS if PINS.get(key(r)) in replaycheck.BYTE_KEYED)
+    monkeypatch.setitem(PINS, key(run), commit(run))
+    monkeypatch.setattr(sys, "platform", "linux")
+    assert replaycheck.graders_skip(run)
+
+
 @by_run
 def test_the_graders_replay_reproduces_the_committed_outputs(clone, run):
     if skip := replaycheck.graders_skip(run):
