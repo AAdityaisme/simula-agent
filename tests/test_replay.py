@@ -1,7 +1,9 @@
 """Every run committed under runs/ replays from a clean checkout with no keys, no device and no network: its markers
 still describe this commit's code, and the grader's command re-executes model onward from the committed cache and
-writes the same structured outputs. Parametrized over the committed runs, so with none it skips."""
+writes the same structured outputs. A run replays the stages it finished: one that stopped at explore (an app that
+refused the emulator) replays explore alone. Parametrized over the committed runs, so with none it skips."""
 
+import itertools
 import os
 import subprocess
 import sys
@@ -46,6 +48,12 @@ def clone(tmp_path_factory) -> Path:
     return root
 
 
+def finished(run: Path) -> set[str]:
+    """The stages the committed run finished, in order up to the first it never did: what a replay replays."""
+    tracked = set(git("ls-files", "--", str(run)).splitlines())
+    return set(itertools.takewhile(lambda stage: str(run / stage / "done.json") in tracked, STAGES))
+
+
 def run_options(run_dir: Path) -> list[str]:
     """The options the run was opened with, as its resume line prints them, so every stage hashes the same params."""
     m = read_manifest(run_dir)
@@ -83,17 +91,18 @@ def test_every_committed_run_was_made_by_the_same_committed_code():
 
 @by_run
 def test_the_committed_markers_still_describe_this_code(clone, run):
-    """A bare --replay re-executes nothing: every stage's inputs, prompts, params, code and outputs hash as they did
-    when it finished. A merge that touched a stage's code, a prompt or a param after the run fails here."""
+    """A bare --replay re-executes nothing: every stage the run finished hashes its inputs, prompts, params, code and
+    outputs as it did then. A merge that touched a stage's code, a prompt or a param after the run fails here."""
     before = len(read_trace(clone / run / "trace.jsonl"))
     assert_ok(replay(clone, run))
     skipped = {line.stage for line in read_trace(clone / run / "trace.jsonl")[before:] if line.step == "skip"}
-    assert skipped == set(STAGES), f"no longer match, rerun them: {sorted(set(STAGES) - skipped)}"
+    assert skipped == finished(run), f"no longer match, rerun them: {sorted(finished(run) - skipped)}"
 
 
 @by_run
 def test_the_graders_replay_reproduces_the_committed_outputs(clone, run):
-    """Model onward re-executes from the committed cache (explore needs the device, so it keeps its capture). Every
+    """Model onward re-executes from the committed cache, as far as the run got (explore needs the device, so it keeps
+    its capture; a run that stopped at explore has nothing past it to re-execute). Every
     structured output comes back byte for byte. Renders (PNG, PDF) and the HTML laid out around them aren't
     byte-stable across machines, so they aren't compared; the numbers QA measured on them are, in qa_report.json."""
     assert_ok(replay(clone, run, "--from", "model"))

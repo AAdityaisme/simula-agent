@@ -329,6 +329,24 @@ def test_the_chain_reruns_a_stage_whose_code_changed(runs, mock_stage, monkeypat
     assert rerun(run_dir) and len(mock_stage[1]) == 2
 
 
+def test_a_replay_stops_at_the_first_stage_the_run_never_finished(runs, monkeypatch):
+    """An app that refuses the emulator leaves a run that stopped at explore: it replays cleanly, re-executing
+    nothing, while a live run still goes on to the next stage."""
+    ran = []
+    for stage in STAGES:
+        monkeypatch.setattr(importlib.import_module(f"simula.stages.{stage}"), "run",
+                            lambda ctx, stage=stage: ran.append(stage))
+    assert cli.main(["explore", "janitorai"]) == 0
+    run_dir = latest(runs)
+    for flags in ([], ["--from", "model"]):
+        assert cli.main(["run", "janitorai", "--run", run_dir.name, "--replay", *flags]) == 0
+        stop = read_trace(run_dir / "trace.jsonl")[-1]
+        assert (stop.stage, stop.step) == ("model", "replay") and "never finished" in stop.note
+    assert ran == ["explore"]
+    assert cli.main(["run", "janitorai", "--run", run_dir.name, "--from", "model"]) == 0
+    assert ran == ["explore", *STAGES[1:]]
+
+
 # ---------- --replay reproduces the recorded run, partial and failed calls included ----------
 
 HAIKU = "claude-haiku-4-5-20251001"
