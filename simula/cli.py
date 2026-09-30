@@ -289,6 +289,11 @@ def cmd_doctor(args) -> int:
     return doctor.main(keys=args.keys)
 
 
+def cmd_replay_check(args) -> int:
+    from simula import replaycheck
+    return replaycheck.main(args.app, args.run)
+
+
 def add_run_flags(p: argparse.ArgumentParser) -> None:
     p.add_argument("app")
     p.add_argument("--run", help="run id under runs/APP (default: latest)")
@@ -329,6 +334,12 @@ def parser() -> argparse.ArgumentParser:
     r.add_argument("--new", action="store_true", help="start a new run folder")
     r.add_argument("--from", dest="from_stage", choices=STAGES, help="rerun from this stage onward")
     r.set_defaults(func=cmd_run)
+
+    rc = sub.add_parser("replay-check", help="replay committed runs in a throwaway clone of the code each is pinned "
+                                            "to; leaves this checkout as it was")
+    rc.add_argument("app", nargs="?", help="only this app's committed runs (default: all)")
+    rc.add_argument("--run", metavar="ID", help="only this run id")
+    rc.set_defaults(func=cmd_replay_check)
 
     for name, text in VALIDATE_COMMANDS.items():
         sub.add_parser(name, help=f"{text}; `simula {name} -h` lists its options")
