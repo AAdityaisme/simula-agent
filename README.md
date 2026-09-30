@@ -58,6 +58,8 @@ uv run simula run ooc --run 20260929-212755-1f19585 --from model --replay
 uv run simula run perplexity --run 20260929-212810-1f19585 --from model --replay
 ```
 
+Replay reproduces on macOS, where these runs were recorded. On Linux the cache lookups miss, because the product-model step re-encodes screenshots and Linux writes different PNG bytes for the same pixels; keying images by their pixels instead of their file bytes is the fix.
+
 - `--from model --replay` re-executes model through flows, taking every model reply from `cache/`. Explore can't replay, since it drives the device, so its capture comes from the run folder. A call that isn't in the cache stops the run with exit code 4 instead of calling an API.
 - Plain `--replay`, with no `--from`, skips every stage whose inputs, prompts, settings, code and outputs still hash the same as when it finished, so on a finished run at this commit it re-executes nothing.
 - A replay covers only the stages the run finished: it stops at the first one the run never finished, says so, and exits 0. A run that stopped at explore (an app that refused the emulator) replays explore alone.
@@ -248,6 +250,7 @@ Three calls carry the design:
 - `config/profiles.toml`'s comment beside `judges` still says a split "goes to a person"; it goes to the Needs your call page.
 - A config value the code reads but doesn't hash, such as the adult-keyword list, doesn't trigger a rerun when it changes.
 - QA's measurement records in `cache/qa` are keyed by the page and its inputs, not by run, so two runs that draw the same page from the same inputs share one record.
+- Replay reproduces only on macOS, where the runs were recorded: the product-model step re-encodes screenshots to PNG and the cache key includes those bytes, and Linux writes different PNG bytes for the same pixels, so every lookup there misses. Keying images by their pixels instead of their file bytes is the fix; `tests/test_replay.py` skips the grader's replay on Linux until then.
 - The deny-list is English only. The Play billing BACK works in any language, but covers Play purchases only.
 - The mock copies its web fonts in when it's built, and renders refuse every outside request. A font that can't be fetched at build time is replaced by system fonts, and the trace says so.
 - The mock draws 4 screens per batch, whatever their size; a batch of dense screens can still run out of output tokens.
