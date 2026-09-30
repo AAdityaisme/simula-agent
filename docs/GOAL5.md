@@ -2,9 +2,25 @@
 
 The assignment's Goal 5. Costs are measured from one development run's traces; outside facts carry the date they were checked; anything marked Proposed isn't built.
 
+**Proposed service (not built).** Everything below describes a service that would run this system across hundreds of apps. What exists today is the single-run CLI; this table says which pieces are built.
+
+**Implemented vs proposed:**
+
+| Piece | Status |
+|---|---|
+| A cost line per model call in `trace.jsonl`; per-stage totals and `usd_total` in `manifest.json` | Implemented, on main |
+| A $ cap per stage that stops the stage cleanly (`config/profiles.toml` `[caps_usd]`, `llm.Budget`, `CapReached`) | Implemented, on main |
+| Picking the emulator (`--device SERIAL`) and one lock per device | Implemented, in the explorer (PR #11) |
+| Pipelined scheduling, a device pool, a job queue | Proposed |
+| Cloud device tiers (Device Farm, Firebase Test Lab, Genymotion) | Proposed: rates checked, nothing wired |
+| Content-addressed storage (the 28 % of byte-identical copies) | Proposed |
+| Redrawing only changed screens; a cheap re-visit instead of a full re-explore (§2) | Proposed, a sketch |
+| A human review queue beyond `needs-human.md` | Proposed |
+| The sales/integration handoff doc (§5) | Proposed, a sketch |
+
 ---
 
-## One-pager
+## One-pager: the proposed service (not built)
 
 ```mermaid
 flowchart LR
@@ -34,7 +50,7 @@ flowchart LR
   Integ --> SDK["Publisher shows Simula's rewarded ad (native SDKs: useRewardedAd / SimulaRewardedAd); grant on REWARD_VERIFIED"]
 ```
 
-**1. Storage and versioning.** One immutable folder per `(app_id, platform, app_version, run_id)`: `product.json`, mock bundle, asset files, manifest. Never overwritten. Two versions diff by comparing each screen's structural fingerprint (package/activity + element roles/IDs/bounds, text handled separately) — the same fingerprint the explorer already computes to tell screens apart within a run (`simula/device/observe.py`), reused here as the cross-version diff key. Old raw screenshots age out on a retention rule in code, not a cleanup agent.
+**1. Storage and versioning.** The service would keep one immutable folder per `(app_id, platform, app_version, run_id)`: `product.json`, mock bundle, asset files, manifest, never overwritten. Two versions would diff by comparing each screen's structural fingerprint (package/activity + element roles/IDs/bounds, text handled separately) — the same fingerprint the explorer already computes to tell screens apart within a run (`simula/device/observe.py`), reused as the cross-version diff key. Old raw screenshots would age out on a retention rule in code, not a cleanup agent.
 
 **2. Re-explore triggers.**
 - **iOS is queryable today, no key needed.** `https://itunes.apple.com/lookup?id=<appId>` is a live, public, unauthenticated JSON endpoint that returns a `"version"` field. Verified live 2026-09-27 against a real app (id 389801252) → `"version":"448.0.0"`.
@@ -42,9 +58,9 @@ flowchart LR
 - **Cheap re-visit, not full re-explore:** replay the recorded taps with no model call, recompute fingerprints, send only changed/missing screens to the explorer.
 - **Scheduled slow re-run** on a cadence catches server-side paywall/entitlement changes that never touch the binary version.
 
-**3. Where humans review.** Three gates, the same ones a single run has today: (a) login/age-gate/CAPTCHA walls, (b) judge disagreements and held cases, (c) approving which accepted proposals become slides. **Time-per-app is not sourced anywhere** — no vendor or paper gives a "minutes to review one app's slide deck" number, because this is Simula's own internal process. Treat any minutes figure below as an assumption to replace with a timed pass, not a researched fact.
+**3. Where humans review.** Three gates: (a) login/age-gate/CAPTCHA walls, (b) judge disagreements and held cases, (c) approving which accepted proposals become slides. A single run has (a) and (b) today, as `needs-human.md`, the deck's Needs your call page and `judge/human-queue.md`; (c) it doesn't have, since a run draws its accepted ideas without asking. The service would gather all three in one review queue. **Time-per-app is not sourced anywhere** — no vendor or paper gives a "minutes to review one app's slide deck" number, because this is Simula's own internal process. Treat any minutes figure below as an assumption to replace with a timed pass, not a researched fact.
 
-**4. Cost per app: measured on one real JanitorAI run.**
+**4. Cost per app: one development JanitorAI run (n = 1).**
 
 *Corrected 2026-09-29. An earlier version of this section counted tokens for explore, model, propose and judge only, before any run was measured. It missed mock, QA and flows, which were $14.45 of the run's $19.84 (72.8 %). Its storage line (5–10 MB/run) and its bottom line (human review is the largest cost) were also wrong.*
 
@@ -78,23 +94,9 @@ Token cost by stage, from development run `20260928-093155-a2a161c` (JanitorAI, 
 
 What this is: one historical run's traced API spend, with explore at a2a161c and stages 2–7 at integration fd6f293. It is not an invoice, not a four-app cost and not a production forecast, and n = 1. The run's manifest records mock's cap as $8.0, but the cap that bound mock was $15 from the live config, so `caps_usd` in a manifest is a snapshot, not what bound each stage. The committed runs' totals are in the README's Results table.
 
-**Bottom line, measured:** tokens ($19.84) are the largest line, not human review (an assumed $12.50). The mock is half the token cost, and 94 % of that is output: the model writing HTML for 22 screens. So the cost lever at scale is how many screens get mocked, and redrawing only the screens an update changed. Explore costs pennies in tokens ($0.04–$0.11 over 13 real runs); what it costs is device time, about 17 minutes.
+**Bottom line:** under an assumed 15-minute review, this run's API spend ($19.84) exceeds the estimated review cost (an assumed $12.50). The mock is half the token cost, and 94 % of that is output: the model writing HTML for 22 screens. So the cost lever at scale is how many screens get mocked, and redrawing only the screens an update changed. Explore costs pennies in tokens ($0.04–$0.11 over 13 real runs); what it costs is device time, about 17 minutes.
 
 **Throughput:** only explore holds a device. Serially, as today's CLI runs, that is about 25 apps per emulator per day. Pipelined, with stages 2–7 running off-device while the next app explores, the ceiling is about 86, before app install, login and reset time, which were never measured.
-
-**Implemented vs proposed:**
-
-| Piece | Status |
-|---|---|
-| A cost line per model call in `trace.jsonl`; per-stage totals and `usd_total` in `manifest.json` | Implemented, on main |
-| A $ cap per stage that stops the stage cleanly (`config/profiles.toml` `[caps_usd]`, `llm.Budget`, `CapReached`) | Implemented, on main |
-| Picking the emulator (`--device SERIAL`) and one lock per device | Implemented, in the explorer (PR #11) |
-| Pipelined scheduling, a device pool, a job queue | Proposed |
-| Cloud device tiers (Device Farm, Firebase Test Lab, Genymotion) | Proposed: rates checked, nothing wired |
-| Content-addressed storage (the 28 % of byte-identical copies) | Proposed |
-| Redrawing only changed screens; a cheap re-visit instead of a full re-explore (§2) | Proposed, a sketch |
-| A human review queue beyond `needs-human.md` | Proposed |
-| The sales/integration handoff doc (§5) | Proposed, a sketch |
 
 **5. Sales / integration plug-in.**
 - The mock + slides *are* the sales artifact — literally what the assignment describes Simula doing by hand today ("rebuild the relevant screens... mock the proposed changes"), now generated.
@@ -107,7 +109,7 @@ What this is: one historical run's traced API spend, with explore at a2a161c and
 ## Device scaling
 
 - **Default = emulator tier**, local AVD or cloud (Genymotion SaaS), since mobile-mcp/adb work unmodified there.
-- **Which apps block emulators, and how, confirmed today:** Google's own **Play Integrity API** lets an app's backend verify requests come from "an unmodified app binary, installed by Google Play, running on a genuine Android device" (`developer.android.com/google/play/integrity`, checked 2026-09-27) — the kind of check that lets an app refuse to run on an emulator. Which check a given app runs, OOC included, isn't known from outside; any newly onboarded app can trip the same pattern.
+- **Which apps block emulators, and how, confirmed today:** Google's own **Play Integrity API** lets an app's backend verify requests come from "an unmodified app binary, installed by Google Play, running on a genuine Android device" (`developer.android.com/google/play/integrity`, checked 2026-09-27) — the kind of check that lets an app refuse to run on an emulator. OOC does this: on the emulator it shows its own "Emulator Detected" dialog and closes itself (committed run `runs/ooc/20260929-212755-1f19585`). Which check it runs isn't known from outside, and any newly onboarded app can trip the same pattern. *(Updated 2026-09-29 21:55: this said OOC's behavior wasn't known from outside; tonight's run captured its dialog.)*
 - **Real-device tier** for a flagged app: promote to Firebase Test Lab physical devices, AWS Device Farm real devices, or BrowserStack App Live — pricing above.
 - **Partner-supplied tier** once the app is a signed customer: their own internal-testing/TestFlight build + test accounts + device allowlist, near-zero marginal device cost — but only available post-contract, so it can't be the default for a cold crawl of "hundreds of apps," most of which aren't customers yet.
 
