@@ -126,14 +126,18 @@ class Budget:
 
 # ---------- cache ----------
 
+VISUAL_METADATA = ("transparency", "gamma", "icc_profile", "srgb", "chromaticity")  # PNG chunks that change the look
+
+
 def pixels_sha256(png: bytes) -> str:
-    """Everything the image decodes to (mode, size, palette, metadata and samples, losslessly), hashed: two PNGs key the
-    same only when they differ in compression, filters or chunk order, as Linux's and macOS's encoders do."""
+    """The image's mode, size, palette, the metadata that changes how it looks (transparency, gamma, colour profile)
+    and its samples at native precision, hashed: two PNGs of the same picture key the same however an encoder
+    compressed them or whatever else it wrote (a Software or dpi chunk), as Linux's and macOS's encoders differ."""
     with Image.open(io.BytesIO(png)) as image:
         samples = image.tobytes()  # loads the image, so metadata after the pixel data is in info too
         palette = (image.palette.mode, image.palette.tobytes()) if image.palette else None
-        header = repr((image.mode, image.size, palette, sorted(image.info.items())))
-        return hashlib.sha256(header.encode() + samples).hexdigest()
+        looks = sorted((k, image.info[k]) for k in VISUAL_METADATA if k in image.info)
+        return hashlib.sha256(repr((image.mode, image.size, palette, looks)).encode() + samples).hexdigest()
 
 
 def canonical(messages: list[dict]) -> list[dict]:

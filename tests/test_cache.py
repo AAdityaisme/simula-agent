@@ -6,6 +6,7 @@ from types import SimpleNamespace
 import httpx2
 import pytest
 from PIL import Image
+from PIL.PngImagePlugin import PngInfo
 from pydantic import BaseModel
 
 from simula import llm, runfolder
@@ -82,6 +83,20 @@ def test_images_key_by_their_pixels_not_their_png_bytes_and_are_not_stored_raw()
 ], ids=["palette-transparency", "16-bit-samples", "rgb-colour-key"])
 def test_images_that_decode_differently_key_differently(a, b):
     assert key(messages=message(png=a)) != key(messages=message(png=b))
+
+
+def software(name: str) -> PngInfo:
+    info = PngInfo()
+    info.add_text("Software", name)
+    return info
+
+
+def test_chunks_that_dont_change_how_it_looks_dont_change_the_key():
+    pixels = bytes(range(12))
+    pngs = [png(pixels), png(pixels, pnginfo=software("a")), png(pixels, pnginfo=software("b")),
+            png(pixels, dpi=(144, 144))]
+    assert len(set(pngs)) == 4
+    assert len({key(messages=message(png=p)) for p in pngs}) == 1
 
 
 def test_schema_and_attempt_are_in_the_key():
