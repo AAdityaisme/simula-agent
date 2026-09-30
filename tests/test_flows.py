@@ -919,6 +919,10 @@ def test_approvals_survive_the_cleanup(tmp_path):
     (tmp_path / "approvals.json").write_text('{"approved": ["c01"]}')
     assert flows.stage.load_approvals(tmp_path) == (["c01"], [])
     assert flows.stage.load_approvals(tmp_path / "nowhere") == ([], [])
+    for typo in ('{"held": ["c01"]}', '{"hold": "c01"}'):  # a string would hold every id it contains
+        (tmp_path / "approvals.json").write_text(typo)
+        with pytest.raises(ValueError, match="expected"):
+            flows.stage.load_approvals(tmp_path)
 
 
 @pytest.mark.parametrize("app", APPS)

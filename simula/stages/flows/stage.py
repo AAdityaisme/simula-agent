@@ -38,6 +38,8 @@ def load_approvals(flows_dir: Path) -> tuple[list[str | dict], list[str]]:
     older file's "approved" list is read as promote, so it adds to what the judges draw and never drops an idea."""
     path = flows_dir / "approvals.json"
     data = json.loads(path.read_text()) if path.exists() else {}
+    if set(data) - {"promote", "hold", "approved"} or not all(isinstance(v, list) for v in data.values()):
+        raise ValueError(f'{path}: expected {{"promote": [...], "hold": [...]}}, got keys {sorted(data)}')
     return data.get("promote", []) + data.get("approved", []), data.get("hold", [])
 
 
