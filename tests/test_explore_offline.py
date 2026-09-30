@@ -471,6 +471,41 @@ def test_the_walk_follows_a_sheet_an_item_opens_to_the_conversation(tmp_path, mo
     assert ex.core.name.startswith("open an item and send messages") and phone.sent
 
 
+def reloaded_after_the_tour(tmp_path, monkeypatch, phone_factory=janitor_like):
+    """The first launch after the tour shows the feed with every item replaced, as a feed that reloads does; the new
+    first item opens the chat."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, phone_factory)
+    paywall_pass, launch = ex.paywall_pass, phone.launch
+
+    def reload():
+        launch()
+        phone.launch = launch
+        feed = phone.screens["limited"]
+        items = [c.tree_label for c in ob.feed_items(ob.controls(feed.elements, ex.device), ex.device)]
+        today = {item: f"Today: {item}" for item in items}
+        feed.elements[:] = [{**e, **{k: today[e[k]] for k in ("text", "label") if e.get(k) in today}}
+                            for e in feed.elements]
+        phone.taps[("limited", today[items[0]])] = "chat"
+
+    def after_the_tour():
+        phone.launch = reload
+        paywall_pass()
+    monkeypatch.setattr(ex, "paywall_pass", after_the_tour)
+    return ex, phone
+
+
+def test_the_walk_and_the_feed_pass_take_the_items_the_reloaded_feed_shows(tmp_path, monkeypatch):
+    ex, phone = reloaded_after_the_tour(tmp_path, monkeypatch)
+    stage.explore_app(ex)
+    walked = [line.note for line in runlog.read_trace(ex.run_dir / "trace.jsonl") if "look inside an item" in line.note]
+    assert walked and "'Today: " in walked[0] and ex.core.name.startswith("open an item and send messages")
+    ex, _ = reloaded_after_the_tour(tmp_path / "feed", monkeypatch)
+    monkeypatch.setattr(decide, "ask_choice", functools.partial(fake_jev, core_pick="open and read items"))
+    stage.explore_app(ex)
+    first = next(line for line in lines(ex) if line.loop_pass == 1)
+    assert ex.core.kind == "feed" and first.outcome == "ok" and ex.by_id[first.to_state].sid != first.from_state
+
+
 def test_a_sheet_the_feed_pass_opens_is_its_result_not_a_stop(tmp_path, monkeypatch):
     ex, _ = new_explorer(tmp_path, monkeypatch, sheet_first)
     monkeypatch.setattr(decide, "ask_choice", functools.partial(fake_jev, core_pick="open and read items"))

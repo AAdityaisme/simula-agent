@@ -1307,21 +1307,35 @@ class Explorer:
         finds is one more option for Jev, never a replacement for Jev's answer: a text box inside an item may be a
         comment box or a message to another person. One item's page can lack the action the others have, so up to
         WALK_ITEMS items are tried."""
-        for n, item in enumerate(feed.controls[:WALK_ITEMS]):
+        for n in range(WALK_ITEMS):
             if n and self.current.kind == "screen" and self.current is not feed.state:
                 self.act(Move("back", why="core loop: back to the list for the next item"), purpose="nav")
-            found = self.walk_into(feed, item)
+            found = self.walk_into(feed, n)
             if found:
                 return found
         return None
 
-    def walk_into(self, feed: CoreAction, item: ob.Candidate) -> CoreAction | None:
-        """Invariant 4: on the item's page, a conversation (text box + send) or a play/generate button ends the walk
-        at once. Otherwise the model says whether the control that starts the core action is on screen; the walk taps
-        it (at most WALK_STEPS times) or scrolls on, until the page stops moving or WALK_SCROLLS. An item that opens
-        a sheet or modal is walked the same way, on that surface's own controls."""
+    def items_now(self, feed: CoreAction) -> list[ob.Candidate]:
+        """The list's recorded items the screen still shows, or, when it shows none of them (the feed reloaded), the
+        items in their place: the live list shaped like them (class and width)."""
+        if self.obs is None:
+            return feed.controls
+        shown = [c for c in feed.controls if ob.find(self.obs.cands, c)]
+        shapes = {(c.kind, ob.bucket(c.rect.w, self.device)) for c in feed.controls}
+        live = [c for c in self.obs.cands if (c.kind, ob.bucket(c.rect.w, self.device)) in shapes]
+        return shown or ob.feed_items(live, self.device, self.tab_keys()) or feed.controls
+
+    def walk_into(self, feed: CoreAction, n: int) -> CoreAction | None:
+        """Invariant 4: on the n-th item's page, a conversation (text box + send) or a play/generate button ends the
+        walk at once. Otherwise the model says whether the control that starts the core action is on screen; the walk
+        taps it (at most WALK_STEPS times) or scrolls on, until the page stops moving or WALK_SCROLLS. An item that
+        opens a sheet or modal is walked the same way, on that surface's own controls."""
         if not self.goto(feed.state):
             return None
+        items = self.items_now(feed)
+        if n >= len(items):
+            return None
+        item = items[n]
         self.act(Move("tap", item, why="core loop: look inside an item"), purpose="nav")
         if self.current is feed.state:
             return None
@@ -1457,7 +1471,8 @@ class Explorer:
                 self.act(Move("tap", send, why="core loop: send"), purpose="core", loop=n,
                          watch=lambda: self.watch(before | {message}, "reply", idle))
             return self.last_summary, self.last_seen, self.stop_text()
-        control = core.controls[(n - 1) % len(core.controls)]
+        controls = self.items_now(core) if core.kind == "feed" else core.controls
+        control = controls[(n - 1) % len(controls)]
         verb = "load" if core.kind == "feed" else "result"
         self.note_dynamic(core.state, self.obs.image)  # an ad that moved since the state was saved isn't a result
         self.act(Move("tap", control, why=f"core loop: {core.kind}"), purpose="core", loop=n,
