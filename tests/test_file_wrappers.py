@@ -24,10 +24,12 @@ def test_empty_files_round_trip():
 
 
 RECT = {"x": 16.0, "y": 664.0, "w": 121.0, "h": 66.0}
-REPORT = {  # the shape PR 4's qa stage writes (checked against its qa_report() at 47a0152, partial and complete)
+REPORT = {  # the shape PR 4's qa stage writes (test_qa_loop's partial-QA test validates a real run's report too)
     "schema_version": 1, "status": "qa_incomplete", "outcome": "partial",
-    "reasons": ["the mock left screens undrawn: s04", "taps that still fail: s01.e03>s02"],
-    "resume": "simula run anyapp --run r1 --from mock", "approved_round": 1, "keep_score": 8.12,
+    "reasons": ["the mock left screens undrawn: s04 (the model declined)", "taps that still fail: s01.e03>s02"],
+    "resume": ("simula mock anyapp --run r1 --profile dev --budget transfer --usd-cap 25.00 --no-cache "
+               "&& simula qa anyapp --run r1 --profile dev --budget transfer"),
+    "resume_note": "What stopped it: mock: s04 (refusal: no).", "approved_round": 1, "keep_score": 8.12,
     "keep_score_formula": "10 × (0.5 bounds + 0.3 nav + 0.2 ssim); it is not a fidelity percentage.",
     "structure": {"tagged": 2, "within_4dp": 1},
     "interaction": {"taps": 1, "taps_passing": 0, "flows": 1, "flows_walked": 0},
@@ -59,7 +61,7 @@ def test_the_qa_and_art_wrappers_read_what_the_qa_and_mock_stages_write():
 
 
 def test_a_complete_report_with_nothing_open_and_nothing_scored_reads():
-    complete = {**REPORT, "status": "approved", "outcome": "complete", "reasons": [], "resume": None,
+    complete = {**REPORT, "status": "approved", "outcome": "complete", "reasons": [], "resume": None, "resume_note": None,
                 "open_findings": None, "visual": {"masked_ssim_mean": None, "screens_by_ssim": []}}
     assert QAReport.model_validate(complete).model_dump(mode="json") == complete
 
@@ -80,11 +82,12 @@ FLOW = REPORT["flows"][0]
 
 @pytest.mark.parametrize("report", [
     without(REPORT, "outcome", "reasons", "resume"),
+    without(REPORT, "resume_note"),
     without(REPORT, "open_findings"),
     {**REPORT, "flows": [without(FLOW, "gestures")]},
     {**without(REPORT, "keep_score"), "score": 8.12},
     {**REPORT, "flows": [{**without(FLOW, "gestures"), "navigated": ["s02.back>s01"]}]},
-], ids=["no outcome", "no open_findings", "a flow with no gestures", "score before keep_score",
+], ids=["no outcome", "no resume_note", "no open_findings", "a flow with no gestures", "score before keep_score",
         "navigated before gestures"])
 def test_a_report_missing_what_qa_always_writes_is_refused_not_read_with_a_default(report):
     with pytest.raises(ValidationError):
