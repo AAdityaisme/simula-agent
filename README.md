@@ -2,6 +2,10 @@
 
 Mobile app → product model → clickable mock, measured against the real screens → reviewed rewarded-ad proposals. This is Simula take-home #2; the assignment, verbatim, is in [docs/ASSIGNMENT.md](docs/ASSIGNMENT.md), and every file format is in [docs/CONTRACTS.md](docs/CONTRACTS.md).
 
+**Five-minute read:** [Start here](#start-here) · [Where each deliverable is](#where-each-deliverable-is) · [Results](#results) · [Decisions](#decisions) · [Goal 5](#goal-5-a-proposed-service-for-hundreds-of-apps-not-built) · [What I'd build next](#what-id-build-next)  
+**To run and check it:** [Replay without keys or a device](#replay-without-keys-or-a-device) · [What it does](#what-it-does) · [Run folders](#run-folders) · [Setup](#setup) · [Run it](#run-it) · [Money](#money) · [Safety and privacy](#safety-and-privacy)  
+**Limits:** [Known limits](#known-limits) · [Not built, and why](#not-built-and-why)
+
 ## Start here
 
 simula-agent takes an installed Android app through exploration, a product model, a clickable mock and reviewed rewarded-ad flows, with no per-app code. Tonight's five runs cost $51.50: JanitorAI's deck draws 2 accepted ideas ($15.15) and Luzia's 3 ($10.69); AOL and Perplexity had nothing accepted, so each deck draws its closest idea, labelled not a recommendation ($20.93, $4.72); OOC showed its own "Emulator Detected" dialog and closed itself ($0).
