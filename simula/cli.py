@@ -3,6 +3,7 @@
 import argparse
 import importlib
 import os
+import signal
 import sys
 from pathlib import Path
 
@@ -291,6 +292,7 @@ def cmd_doctor(args) -> int:
 
 def cmd_replay_check(args) -> int:
     from simula import replaycheck
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(128 + signal.SIGTERM))  # a stopped check still removes its clones
     return replaycheck.main(args.app, args.run)
 
 

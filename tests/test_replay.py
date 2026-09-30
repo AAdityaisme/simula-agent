@@ -6,7 +6,13 @@ the stages it finished: one that stopped at explore (an app that refused the emu
 mechanism is simula/replaycheck.py, which `simula replay-check` runs too. Parametrized over the committed runs, so with
 none it skips."""
 
+import os
+import shutil
+import signal
+import subprocess
+import sys
 from collections import defaultdict
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -20,9 +26,12 @@ by_run = pytest.mark.parametrize("run", RUNS, ids=[key(r) for r in RUNS])
 
 
 @pytest.fixture(scope="module")
-def clones(tmp_path_factory) -> Path:
-    """Where the module's clones live, one per pinned commit, shared by its tests."""
-    return tmp_path_factory.mktemp("replay")
+def clones(tmp_path_factory) -> Iterator[Path]:
+    """Where the module's clones live, one per pinned commit, shared by its tests and removed after them, passed or
+    failed."""
+    root = tmp_path_factory.mktemp("replay")
+    yield root
+    shutil.rmtree(root)
 
 
 @pytest.fixture
@@ -113,3 +122,34 @@ def test_replay_check_prints_a_line_per_run_and_fails_when_any_run_does(monkeypa
     monkeypatch.setattr(replaycheck, "check", check)
     assert replaycheck.main() == 1
     assert [line.split()[0] for line in capsys.readouterr().out.splitlines()] == ["FAIL"] + ["ok"] * (len(RUNS) - 1)
+
+
+@pytest.mark.skipif(not RUNS, reason="no committed runs")
+def test_replay_check_removes_its_clones_when_a_run_fails(monkeypatch):
+    made = []
+
+    def check(run, under):
+        made.append(under)
+        (under / "clone").mkdir(exist_ok=True)
+        raise replaycheck.Mismatch("the replay wrote different structured outputs")
+    monkeypatch.setattr(replaycheck, "check", check)
+    assert replaycheck.main() == 1
+    assert made and not made[0].exists()
+
+
+STOPPED = """import os, signal
+from simula import cli, replaycheck
+def check(run, under):
+    (under / "clone").mkdir()
+    print(under, flush=True)
+    os.kill(os.getpid(), signal.SIGTERM)
+replaycheck.check = check
+cli.main(["replay-check"])"""
+
+
+@pytest.mark.skipif(not RUNS, reason="no committed runs")
+def test_replay_check_removes_its_clones_when_it_is_stopped(tmp_path):
+    result = subprocess.run([sys.executable, "-c", STOPPED], cwd=ROOT, env=os.environ | {"TMPDIR": str(tmp_path)},
+                            capture_output=True, text=True)
+    under = Path(result.stdout.split()[0])
+    assert result.returncode == 128 + signal.SIGTERM and not under.exists(), (result.returncode, list(tmp_path.iterdir()))

@@ -188,7 +188,7 @@ def check(run: Path, under: Path) -> str:
 
 def main(app: str | None = None, run_id: str | None = None) -> int:
     """`simula replay-check`: one line per committed run (all of them, APP's, or the one --run names); 1 when any
-    doesn't replay as committed."""
+    doesn't replay as committed. Its clones are removed however it returns or raises."""
     runs = [r for r in committed_runs() if app in (None, r.parent.name) and run_id in (None, r.name)]
     if not runs:
         print("no committed run matches", *filter(None, (app, run_id)), file=sys.stderr)
