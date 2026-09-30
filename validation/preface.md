@@ -1,6 +1,6 @@
 # 2026-09-30: the live rubric is VF3 (VF′ plus `c3_spares_payers`)
 
-VF3 is VF′ with one judgment check added. `c3_spares_payers` fails an offer that sits inside what paying users pay for or is pitched as more of what the plan sells; one that members of an ad-free plan see; or one whose reward the plan already includes. An offer for something outside the plan and outside what payers pay for passes, even when only paying users see it. The new fixtures test it:
+VF3 is VF′ with one judgment check added. `c3_spares_payers` fails an offer that sits inside what paying users pay for; one paying users see that is pitched as more of what their plan sells, or whose reward their plan already includes; or one that members of an ad-free plan see. An offer only non-paying users see passes, even when its reward is a slice of the plan. An offer for something outside the plan and outside what payers pay for passes, even when only paying users see it. The new fixtures test it:
 - pd-c3-flagrant: Luzia+ members offered a benefit their plan includes.
 - pd-c3-subtle: an ad-free plan's members shown the offer, in a news-reader sketch.
 - kg-fitness-01: a known-good offer only paying users see, for a streak freeze their plan doesn't sell.

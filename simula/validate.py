@@ -475,13 +475,14 @@ def disagreeing(runs: list[Verdict], agreed: Verdict) -> Verdict:
     return next((v for v in runs if gates(v) != gates(agreed)), runs[0])
 
 
-def summarize(runs_dir: Path, preface: Path, out: Path = REPORT) -> bool:
-    """validation/report.md from saved runs: the preface, then report() on each judge's majority verdicts, over the
-    fixtures the runs judged (and the C8 cases code scores), so runs saved before a fixture existed are scored as
-    they were. Makes no calls, so the committed report can be rebuilt without re-judging."""
+def summarize(runs_dir: Path, preface: Path, out: Path = REPORT, only_judged: bool = False) -> bool:
+    """validation/report.md from saved runs: the preface, then report() on each judge's majority verdicts over every
+    fixture, a missing verdict counting as a miss. `only_judged` scores only the fixtures the runs judged (and the C8
+    cases code scores), for runs saved before newer fixtures existed. Makes no calls, so the committed report can be
+    rebuilt without re-judging."""
     runs = load_runs(runs_dir)
     judged = {cid for cid, _ in runs}
-    cases = [c for c in load_cases() if c.id in judged or c.target == C8]
+    cases = [c for c in load_cases() if not only_judged or c.id in judged or c.target == C8]
     agreed = {key: majority(vs) for key, vs in runs.items()}
     gate_cases = {c.id for c in cases if c.source == "planted" and c.target in GATES}
     reruns = {key: disagreeing(runs[key], v) for key, v in agreed.items() if key[0] in gate_cases}
@@ -561,12 +562,14 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--runs", type=Path, default=VERDICTS / "VF3", help="the live rubric's saved runs")
     s.add_argument("--preface", type=Path, default=REPORT.parent / "preface.md")
     s.add_argument("--out", type=Path, default=REPORT)
+    s.add_argument("--only-judged", action="store_true",
+                   help="score only the fixtures the runs judged, for runs saved before newer fixtures existed")
     sub.add_parser("freeze", help="pin the judge prompt hashes in config/frozen_prompts.toml")
     args = p.parse_args(argv)
     if args.command == "validate-judge":
         return 0 if validate_judge(args.profile, args.judges.split(","), args.no_cache, args.out) else 1
     if args.command == "summarize":
-        passed = summarize(args.runs, args.preface, args.out)
+        passed = summarize(args.runs, args.preface, args.out, args.only_judged)
         print(f"{args.out}: harness gate {'PASS' if passed else 'FAIL'} (rebuilt from {args.runs}, no calls)")
         return 0
     if args.command == "label":

@@ -16,10 +16,10 @@
    "s02.e02"
   ],
   "bible_mechanic": "none",
-  "what_is_different_here": "Every user gets one streak freeze a week (s01.e02); when it is used, the streak-about-to-break pop-up (s02) says none are left (s02.e02). Fitness Plus sells custom training plans and advanced heart-rate stats (s03.e03, s03.e04), not streak freezes. Free users see the Plus trial button in this pop-up (s02.e04), so this button goes to Plus members, who already pay.",
+  "what_is_different_here": "Every user gets one streak freeze a week (s01.e02); when it is used, the streak-about-to-break pop-up (s02) says none are left (s02.e02). Fitness Plus sells custom training plans and advanced heart-rate stats (s03.e03, s03.e04), not streak freezes, so the button goes to Plus members for something their plan doesn't include.",
   "adds": null,
   "removes_nothing_free": true,
-  "trigger_event": "A Plus member with no streak freeze left this week opens the app on a day without a workout, which opens the streak-about-to-break pop-up",
+  "trigger_event": "The streak-about-to-break pop-up opens for a Plus member who has no streak freeze left this week",
   "trigger_state_id": "s02",
   "placement": "A button under 'Start a 5-minute workout' in the streak-about-to-break pop-up",
   "offer_copy": "No freezes left. Play a short game to get 1 extra streak freeze this week.",
@@ -42,13 +42,13 @@
   "daily_cap": 0,
   "decline_path": "Closing the pop-up changes nothing: the workout button and the streak work as today.",
   "ad_fail_path": "If no game is ready, the button is hidden. If the game doesn't count, no freeze is given and the try isn't used.",
-  "subscriber_treatment": "Only Plus members see this button. Their plan (custom training plans, advanced heart-rate stats) doesn't include streak freezes; free users see the Plus trial button here instead.",
+  "subscriber_treatment": "Only Plus members see this button. Their plan (custom training plans, advanced heart-rate stats) doesn't include streak freezes.",
   "advertiser_category": "Health and fitness apps, casual mobile games",
   "character_use": "None",
   "flow_steps": [
    {
     "state_id": "s01",
-    "caption": "A Plus member with a 12-day streak and no freeze left opens the app without a workout today."
+    "caption": "A Plus member with a 12-day streak and no freeze left has no workout yet today."
    },
    {
     "state_id": "s02",

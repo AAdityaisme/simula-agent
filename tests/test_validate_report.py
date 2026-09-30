@@ -3,6 +3,7 @@ broken check at 0/2, Wilson over the 24 LLM cases, C8 kept out of LLM recall, re
 and the blind label CLI."""
 
 import json
+import shutil
 
 import pytest
 
@@ -356,13 +357,23 @@ def test_the_committed_report_rebuilds_from_the_committed_runs(tmp_path):
     assert validate.OUT / "report.md" != validate.REPORT
 
 
-def test_a_run_saved_before_a_fixture_existed_is_scored_without_it(tmp_path):
+def test_a_run_saved_before_a_fixture_existed_is_scored_without_it_only_when_asked(tmp_path):
     preface, out = tmp_path / "preface.md", tmp_path / "report.md"
     preface.write_text("")
-    validate.summarize(validate.VERDICTS / "VF2", preface, out)
+    validate.summarize(validate.VERDICTS / "VF2", preface, out, only_judged=True)
     text = out.read_text()
     assert "22 planted LLM cases (11 subtle)" in text and "| combined | 22/22 (100%)" in text
     assert "| c3_spares_payers | 0/0" in next(line for line in text.splitlines() if line.startswith("| c3_spares_payers"))
+
+
+def test_by_default_a_fixture_with_no_verdict_counts_as_a_miss(tmp_path):
+    runs, preface, out = tmp_path / "runs", tmp_path / "preface.md", tmp_path / "report.md"
+    shutil.copytree(validate.VERDICTS / "VF3", runs)
+    for p in runs.glob("kg-run-aol-c01_judge_*_r1.json"):
+        p.unlink()
+    preface.write_text("")
+    validate.summarize(runs, preface, out)
+    assert "| Known-good (6) |" in out.read_text()
 
 
 def test_the_committed_fixtures_load():

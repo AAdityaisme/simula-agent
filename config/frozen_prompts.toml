@@ -1,7 +1,7 @@
 # Judge prompt hashes. The judge refuses a prompt that differs. After changing one, re-freeze and re-run validate-judge.
 [prompts]
 "prompts/judge/revise.md" = "24341ceec4bdede90df801572a15713ab19023a7394ee63ce521983b33efdec5"
-"prompts/judge/rubric.md" = "dcded34a9f81f08ecad818325402e2c93cd332d2336976b6343b9a32d13aabf2"
+"prompts/judge/rubric.md" = "0fd96e23a4549066d222043a6feeae5d125fe76867706197fdf3fefeced5f01c"
 "rendered judge message (tests/fixtures/judge/pin.json)" = "2d53a59281185df6867253000dbe8f33766e0fb90a9eaa8c522ff3ed17104880"
 "rendered judge message (tests/fixtures/judge/pin-empty.json)" = "b277bd6f4ae351aed301ad691dc72cda402956af8cc7b44c6b1844c69670f152"
 "judge role judge_1 (real profile)" = "claude-sonnet-5-5, effort high, max_tokens 16001, fallback None"
