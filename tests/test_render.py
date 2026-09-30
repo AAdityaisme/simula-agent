@@ -94,14 +94,14 @@ def test_an_overlay_never_paints_over_its_parent(tmp_path, model):
             assert page.evaluate(background, modal.parent_id) == "rgb(0, 0, 0)"
 
 
-def test_fonts_that_fail_to_load_are_not_a_contract_error(tmp_path, model, monkeypatch):
-    monkeypatch.setattr(render, "FONT_HOSTS", ("fonts.invalid",))
+def test_a_google_fonts_link_is_blocked_and_breaks_the_contract(tmp_path, model):
+    """A mock carries its own fonts; a page that still links Google Fonts is not self-contained."""
     mock_dir, screens = write_mock(tmp_path, model)
     html = (mock_dir / "index.html").read_text()
-    link = '<link rel="stylesheet" href="https://fonts.invalid/css2?family=Roboto">'
-    (mock_dir / "index.html").write_text(html.replace("</head>", link + "</head>", 1))
+    url = "https://fonts.googleapis.com/css2?family=Roboto"
+    (mock_dir / "index.html").write_text(html.replace("</head>", f'<link rel="stylesheet" href="{url}"></head>', 1))
     report = render_and_validate(mock_dir, model, screens)
-    assert report.passed, report.errors
+    assert [(e.kind, e.detail) for e in report.errors] == [("blocked_request", url)]
 
 
 def test_an_edge_with_no_element_is_not_a_missing_edge(tmp_path, model):

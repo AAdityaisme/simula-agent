@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from simula import config, llm, runfolder, text
+from simula import config, llm, render, runfolder, text
 from simula.contracts import (ActionLine, ContentRating, Device, Edge, Element, ExploreFile, IconLabel, LedgerItem,
                               ModelMeaning, OpenQuestion, Point, ProductModel, Rect, State, StateFile, Term,
                               VisionElement)
@@ -85,10 +85,11 @@ def colors(pixels: np.ndarray) -> tuple[str | None, str | None]:
 
 def is_image_like(e: Element, siblings: list[Element], device: Device) -> bool:
     """Art worth cropping: an image (text over it is an overlay, drawn separately), or a wordless box that
-    holds no text (a crop would bake that text in)."""
+    holds no text (a crop would bake that text in). Under the no-wallpaper limit of the content area, the area the
+    mock and its validator measure; a bigger picture is left to the mock's art search."""
     r = e.rect_px
     holds_text = any((s.text or s.label) and s is not e and inside(s.rect_px, r) for s in siblings)
-    small_enough = r.w * r.h < 0.4 * device.w_px * device.h_px
+    small_enough = r.w * r.h < render.WALLPAPER_SHARE * device.w_px * (device.content_bottom_px - device.content_top_px)
     art = e.type == "ImageView" or not (e.text or e.label or holds_text)
     return art and min(r.w, r.h) >= 48 and small_enough
 

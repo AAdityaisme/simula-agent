@@ -13,6 +13,9 @@ from tests.conftest import FIXTURES
 def skeleton_html(model: ProductModel, screens: list[str] | None = None) -> str:
     scope = [s for s in pick_scope(model) if screens is None or s.id in screens]
     edges = {e.element_id: e for e in scope_edges(model, scope)}
+    # A mock batch's brief lists every edge from its screens to any in-scope screen, so a tap target stays on top
+    # even when `screens` is one batch and its edge ends in another.
+    tappable = {e.element_id for e in scope_edges(model, pick_scope(model))}
     sections = []
     for state in scope:
         tagged = tagged_ids(state)
@@ -27,8 +30,9 @@ def skeleton_html(model: ProductModel, screens: list[str] | None = None) -> str:
             edge = edges.get(e.id)
             if edge:
                 attrs += f' data-edge="{edge.id}" data-transition="{edge.transition}"'
+            if e.id in tappable:
                 style += ";z-index:1"
-            if usable_asset(e, model.device):
+            if usable_asset(e, state.elements, model.device):
                 boxes.append(f'<img src="assets/{e.id}.png" style="{style}"{attrs}>')
             else:
                 boxes.append(f'<div style="{style};color:{e.fg_hex or "#000"}"{attrs}>{escape(e.text or e.label)}</div>')
