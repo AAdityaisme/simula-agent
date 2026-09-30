@@ -1,9 +1,10 @@
 """Stage 7 offline, on every golden: selection, the tap-through, the reward rule, and the deck's parts."""
 
+import dataclasses
 import html
-import json
 import re
 import shutil
+import time
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -12,9 +13,9 @@ from PIL import Image
 from playwright.sync_api import TimeoutError as PlaywrightTimeout
 from playwright.sync_api import sync_playwright
 
-from simula import llm, render
+from simula import llm, render, runfolder
 from simula.contracts import (GATES, JUDGMENT, CandidatesFile, Check, Decision, DecisionsFile, Economics, Edit, Edits,
-                              FlowStep, Verdict)
+                              FlowStep, Provenance, StageOutcome, Verdict)
 from simula.runlog import read_trace
 from simula.stages import flows
 from simula.stages.mock import copy_assets, pick_scope, with_runtime
@@ -27,6 +28,7 @@ from tests.test_mock_isolation import ctx_for
 COST_LINE = "Costs nothing extra to serve, so any completed view pays for it above $0.00 eCPM."
 ROUND6 = FIXTURES / "flows" / "luzia-round6"
 FLAG = 'uses "Zap", whose meaning was never observed'
+FIXTURE = Provenance(source="fixture", fixture_path="tests/fixtures")
 
 
 def decision(cid: str, final: str, rank: float, passed: int = 11) -> Decision:
@@ -73,11 +75,12 @@ def seed_run(root, app: str, changes: dict | None = None):
 def fake_edits(c, page: str, wire_accept: bool = True, ad_section: str = "marked", block_play: bool = False,
                decline_to: str | None = None, show_copy: bool = True, break_page: bool = False,
                show_reward: bool = True, hide_note: bool = False) -> Edits:
-    """What a good editor returns for any idea: an entry point on the trigger, the offer, an empty ad screen, and a
-    badge that shows the reward. The options plant one defect each: ad_section "unmarked" draws the ad screen without
-    data-ad and "missing" leaves it out; block_play covers the game's Play button; decline_to sends "No thanks" to a new
-    screen instead of back; show_copy=False drops the offer copy; break_page leaves an HTML comment open, which kills
-    the page's scripts; show_reward=False draws no badge; hide_note hides the note a failed ad shows."""
+    """What a good editor returns for any idea: an entry point on the trigger, the offer, an empty ad screen, a plain
+    screen for each new step after the ad, and a badge that shows the reward. The options plant one defect each:
+    ad_section "unmarked" draws the ad screen without data-ad and "missing" leaves it out; block_play covers the game's
+    Play button; decline_to sends "No thanks" to a new screen instead of back; show_copy=False drops the offer copy;
+    break_page leaves an HTML comment open, which kills the page's scripts; show_reward=False draws no badge; hide_note
+    hides the note a failed ad shows."""
     trigger, offer, ad = (s.state_id for s in c.flow_steps[:3])
     tag = re.search(rf'<section[^>]*data-screen="{trigger}"[^>]*>', page).group(0)
     button = 'style="position:absolute;left:20px;top:{}px;z-index:5"'
@@ -96,6 +99,8 @@ def fake_edits(c, page: str, wire_accept: bool = True, ad_section: str = "marked
     if ad_section in ad_attrs:
         screens += (f'<section data-screen="{ad}" data-flow="{c.id}"{ad_attrs[ad_section]}>'
                     "<p>the editor's own game</p></section>")
+    screens += "".join(f'<section data-screen="{s.state_id}" data-flow="{c.id}"><p>Back to the app</p></section>'
+                       for s in c.flow_steps[3:] if s.state_id.startswith("new:"))
     edits = [Edit(find=tag, replace=tag + ("<!--" if break_page else "") + entry, reason="entry point"),
              Edit(find="</body>", replace=screens + "</body>", reason="offer and ad screens"),
              Edit(find="not in the page", replace="x", reason="a find that can't apply")]
@@ -116,7 +121,7 @@ def fake_editor(run_dir, calls: list | None = None, only: str | None = None, **o
         cid = kwargs["step"].split(":")[1]
         if calls is not None:
             calls.append(cid)
-        page = flows.strip_runtime((run_dir / "mock" / "index.html").read_text())
+        page = flows.page.strip_runtime((run_dir / "mock" / "index.html").read_text())
         return fake_edits(ideas[cid], page, **(options if only in (None, cid) else {})), None
     return call
 
@@ -125,7 +130,7 @@ def run_flows(root, app: str, changes: dict | None = None, calls: list | None = 
     run_dir = seed_run(root, app, changes)
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(llm, "call", fake_editor(run_dir, calls, **options))
-        flows.run(ctx_for(run_dir, app))
+        flows.stage.run(ctx_for(run_dir, app))
     return run_dir
 
 
@@ -144,9 +149,11 @@ def text_of(fragment: str) -> str:
 
 
 def drawn(c, d) -> dict:
-    """A flow as build_flow returns it, every step wired and the ad at step 3, for building slides without a walk."""
+    """A flow as build_flow returns it, every step wired, the ad at step 3, and the reward shown on each existing
+    screen after it, for building slides without a walk."""
     shots = [{"state_id": s.state_id, "caption": s.caption, "png": f"step-{i}.png", "wired": True, "tap": None,
-              "reward_shown": None, "reward_labels": None} for i, s in enumerate(c.flow_steps)]
+              "reward_shown": True if i > 2 and not s.state_id.startswith("new:") else None, "reward_labels": None}
+             for i, s in enumerate(c.flow_steps)]
     return {"candidate": c, "decision": d, "before": "before.png", "shots": shots, "ad_at": 2, "copy_shown": True,
             "decline": "", "ad_fail": ""}
 
@@ -178,7 +185,7 @@ def test_each_idea_gets_a_flow_slide_and_a_why_slide_and_every_idea_is_scored_on
     parts = {}
     for idea, part, _ in slides(built):
         parts.setdefault(idea, []).append(part)
-    assert parts == {"c01": list(flows.PARTS), "c02": list(flows.PARTS)}
+    assert parts == {"c01": list(flows.deck.PARTS), "c02": list(flows.deck.PARTS)}
     deck = (built / "flows" / "slides.html").read_text()
     scores = scores_text(built)
     for cid, verdict, checks in (("c01", "accepted", "11/11"), ("c02", "conditional", "10/11"),
@@ -198,14 +205,16 @@ def test_the_flow_slide_walks_from_today_to_what_they_get_and_says_each_thing_on
     phones = flow_phones(built, "c01")
     assert [p["label"] for p in phones] == ["Today", "When it appears", "The offer", "The ad plays", "What they get"]
     assert [p["img"] for p in phones] == ["c01/screens/before.png", *(f"c01/screens/step-{i}.png" for i in range(4))]
-    assert phones[1]["text"] == flows.plain(c.trigger_event) and phones[-1]["text"] == "A label appears: “Badge on”."
+    assert phones[1]["text"] == flows.wording.plain(c.trigger_event)
+    assert phones[-1]["text"] == "A label appears: “Badge on”."
     assert not any(p["flags"] for p in phones)
     flow = {(idea, part): text for idea, part, text in slides(built)}[("c01", "flow")]
-    for words in (flows.plain(flows.caption(c)), f"The offer says: “{c.offer_copy}” Saying no changes nothing.",
-                  f"They get: {flows.reward_line(c)}", f"How often: {c.frequency_cap}"):
+    for words in (flows.wording.plain(flows.wording.caption(c)),
+                  f"The offer says: “{c.offer_copy}” Saying no changes nothing.",
+                  f"They get: {flows.wording.reward_line(c)}", f"How often: {c.frequency_cap}"):
         assert words in " ".join(flow.split()), words
     why = " ".join({(idea, part): text for idea, part, text in slides(built)}[("c01", "why")].split())
-    reward = flows.reward_line(c)
+    reward = flows.wording.reward_line(c)
     assert f"What the user gets {reward[:1].upper()}{reward[1:]}." in why and "Badge shows" not in why
     deck = text_of((built / "flows" / "slides.html").read_text())
     assert deck.count("When the reward runs out") == 2
@@ -218,18 +227,19 @@ def test_the_cover_names_the_app_as_the_model_reads_it_else_the_config_key_title
     assert f"<h1>Rewarded-ad ideas for {title}</h1>" in deck and f"<title>Rewarded-ad ideas for {title}" in deck
     unnamed = golden(app).model_copy(update={"app_name": ""})
     named = unnamed.model_copy(update={"app_name": "Janitor AI"})
-    assert flows.app_title(named, app) == "Janitor AI" and flows.app_title(unnamed, app) == app.title()
+    assert flows.wording.app_title(named, app) == "Janitor AI" and flows.wording.app_title(unnamed, app) == app.title()
 
 
 def test_the_cover_carries_a_line_for_each_earlier_stage_that_finished_only_part_of_its_work(tmp_path):
     run_dir = seed_run(tmp_path, "luzia")
-    (run_dir / "qa").mkdir()
-    (run_dir / "qa" / "done.json").write_text(json.dumps({"stage": "qa", "outcome": {
-        "status": "partial", "reasons": ["round 1 stopped on the $ cap"], "resume": "simula run luzia --from qa"}}))
-    (run_dir / "judge" / "done.json").write_text(json.dumps({"stage": "judge", "outcome": {"status": "complete"}}))
+    for stage, outcome in (("qa", StageOutcome(status="partial", reasons=["round 1 stopped on the $ cap"],
+                                                resume="simula run luzia --from qa")),
+                           ("judge", StageOutcome())):
+        (run_dir / stage).mkdir(exist_ok=True)
+        runfolder.write_done(run_dir / stage, run_dir, [], [], {}, [run_dir / stage], FIXTURE, outcome=outcome)
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(llm, "call", fake_editor(run_dir))
-        flows.run(ctx_for(run_dir, "luzia"))
+        flows.stage.run(ctx_for(run_dir, "luzia"))
     cover = text_of((run_dir / "flows" / "slides.html").read_text().split('<section class="slide main"')[0])
     assert cover.endswith("The qa step finished only part of its work: round 1 stopped on the $ cap.")
     assert "judge step" not in cover
@@ -251,14 +261,14 @@ def test_a_conditional_idea_names_the_check_it_failed_in_plain_words_and_carries
 
 def test_why_slides_on_real_output_never_claim_a_failed_check_that_passed():
     decisions = DecisionsFile.model_validate_json((ROUND6 / "judge" / "decisions.json").read_text()).decisions
-    candidates = flows.load_candidates(ROUND6)
-    chosen = flows.select(decisions, None)
+    candidates = flows.stage.load_candidates(ROUND6)
+    chosen = flows.stage.select(decisions, None)
     assert len(chosen) == 4
     for d in chosen:
         c = candidates[d.candidate_id]
         flow = {"candidate": c, "decision": d, "shots": [{"caption": s.caption} for s in c.flow_steps], "ad_at": 2,
                 "decline": ""}
-        text = html.unescape(re.sub(r"<[^>]+>", " ", flows.why_html(flow, golden("luzia"), ROUND6, False)))
+        text = html.unescape(re.sub(r"<[^>]+>", " ", flows.deck.why_html(flow, golden("luzia"), ROUND6, False)))
         assert not re.search(r"\$|eCPM|\b(?:g|c\d)_[a-z]", text), text
         if d.checks_passed == d.checks_total:
             assert "didn't pass" not in text and "not every" not in text
@@ -278,12 +288,13 @@ def test_the_reach_line_says_where_the_offer_sits_and_when_it_appears_but_never_
     if tab := next((s for s in screens if depth[s] == 0 and s != root_id(model)), None):
         places[tab] = "sits on a main tab"
     for sid, where in places.items():
-        text = flows.reach_text(candidate(model, trigger_state_id=sid, trigger_event="After 3 days away."), model)
+        idea = candidate(model, trigger_state_id=sid, trigger_event="After 3 days away.")
+        text = flows.wording.reach_text(idea, model)
         assert text == (f"Reach scenario, not a measurement: the offer {where}, and appears only when this happens: "
                         "After 3 days away.")
     deep = candidate(model, trigger_state_id="s99", trigger_event="The user saves a story")
-    assert "sits on a screen a few taps in" in flows.reach_text(deep, model)
-    assert "every visit" not in flows.reach_text(deep, model)
+    assert "sits on a screen a few taps in" in flows.wording.reach_text(deep, model)
+    assert "every visit" not in flows.wording.reach_text(deep, model)
 
 
 @pytest.mark.parametrize("app", APPS)
@@ -293,11 +304,11 @@ def test_a_pop_up_is_placed_by_the_screen_it_covers_not_called_a_main_tab(app):
     if not popups:
         pytest.skip(f"{app}'s golden has no modal or sheet")
     for s in popups:
-        covered = flows.reach_text(candidate(model, trigger_state_id=s.parent_id), model).split("sits on ")[1]
-        text = flows.reach_text(candidate(model, trigger_state_id=s.id), model)
+        covered = flows.wording.reach_text(candidate(model, trigger_state_id=s.parent_id), model).split("sits on ")[1]
+        text = flows.wording.reach_text(candidate(model, trigger_state_id=s.id), model)
         assert text.split("the offer ")[1] == f"sits in a pop-up over {covered}", (s.id, text)
     if app == "janitorai":
-        assert "sits in a pop-up over the first screen people see" in flows.reach_text(
+        assert "sits in a pop-up over the first screen people see" in flows.wording.reach_text(
             candidate(model, trigger_state_id="s02"), model)
 
 
@@ -310,22 +321,30 @@ def judged(tmp_path, cid: str, fail: str | None) -> Decision:
 
 def test_the_judges_fallback_pick_reads_as_the_closest_idea_not_a_recommendation(tmp_path):
     missed = judged(tmp_path, "c01", "c5_moment")
-    assert flows.condition(missed, tmp_path, none_accepted=True) == (
+    assert flows.deck.condition(missed, tmp_path, none_accepted=True) == (
         "The closest idea, not a recommendation:",
         ("No idea passed every check. This one passes every safety check but not the right moment "
          "(c5_moment reason for c01)."))
-    assert flows.condition(missed, tmp_path, none_accepted=False) == (
+    assert flows.deck.condition(missed, tmp_path, none_accepted=False) == (
         "Not every check passed:", "It didn't pass the right moment (c5_moment reason for c01).")
-    assert flows.condition(judged(tmp_path, "c02", "g_policy"), tmp_path, none_accepted=True)[0] == \
+    assert flows.deck.condition(judged(tmp_path, "c02", "g_policy"), tmp_path, none_accepted=True)[0] == \
         "Not every check passed:"
-    assert flows.condition(decision("c03", "conditional", 1.0, passed=10), ROUND6.parent / "nowhere", True) == (
+    assert flows.deck.condition(decision("c03", "conditional", 1.0, passed=10), ROUND6.parent / "nowhere", True) == (
         "Not every check passed:", "It passed 10 of 11 checks; the score pages at the end show which.")
-    assert flows.condition(judged(tmp_path, "c04", None), tmp_path, True) is None
-    assert flows.condition(decision("c05", "accept", 1.0), tmp_path, True) is None
+    assert flows.deck.condition(judged(tmp_path, "c04", None), tmp_path, True) is None
+    assert flows.deck.condition(decision("c05", "accept", 1.0), tmp_path, True) is None
+
+
+def test_the_cover_takes_its_counts_by_name_so_two_can_never_swap():
+    with pytest.raises(TypeError):
+        flows.deck.cover_html("App", [], 4, 1, 0, 0, 2)
+    cover = text_of(flows.deck.cover_html("App", [], cap=4, cut=2, unbuilt_fallbacks=1))
+    assert "2 more idea(s) passed the review; the deck draws only the top 4 by rank" in cover
+    assert "the closest couldn't be drawn" in cover and "passed the review but couldn't be drawn" not in cover
 
 
 def test_a_survivor_past_the_cap_is_named_in_the_trace_and_counted_on_the_cover(tmp_path, monkeypatch):
-    monkeypatch.setattr(flows, "MAX_IDEAS", 1)
+    monkeypatch.setattr(flows.stage, "MAX_IDEAS", 1)
     run_dir = run_flows(tmp_path, "luzia")
     note = next(line.note for line in read_trace(run_dir / "trace.jsonl") if line.step == "select")
     assert note == "accepted + conditional: c01; past the cap of 1, not drawn: c02"
@@ -343,7 +362,7 @@ def test_an_unbuilt_fallback_pick_is_named_as_the_closest_idea_not_as_one_that_p
     (run_dir / "judge" / "verdicts" / "c01_judge_1_r1.json").write_text(verdict("c01", "c5_moment").model_dump_json())
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(llm, "call", fake_editor(run_dir))
-        flows.run(ctx_for(run_dir, "luzia"))
+        flows.stage.run(ctx_for(run_dir, "luzia"))
     deck = (run_dir / "flows" / "slides.html").read_text()
     cover = text_of(deck.split('<section class="slide cover">')[1].split("</section>")[0])
     assert "No idea passed every check; the closest couldn't be drawn, and the score pages at the end say why." in cover
@@ -361,7 +380,7 @@ def test_a_drawn_and_an_unbuilt_fallback_pick_read_as_one_coherent_line_on_the_c
         path.write_text(verdict(cid, "c5_moment").model_dump_json())
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(llm, "call", fake_editor(run_dir))
-        flows.run(ctx_for(run_dir, "luzia"))
+        flows.stage.run(ctx_for(run_dir, "luzia"))
     deck = (run_dir / "flows" / "slides.html").read_text()
     cover = text_of(deck.split('<section class="slide cover">')[1].split("</section>")[0])
     assert ("No idea passed every check, so the closest are marked as not a recommendation; 1 of them couldn't be "
@@ -376,7 +395,7 @@ def test_a_fallback_pick_is_named_on_the_cover_and_its_why_slide_never_says_reco
     (run_dir / "judge" / "verdicts" / "c01_judge_1_r1.json").write_text(verdict("c01", "c5_moment").model_dump_json())
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(llm, "call", fake_editor(run_dir))
-        flows.run(ctx_for(run_dir, "luzia"))
+        flows.stage.run(ctx_for(run_dir, "luzia"))
     deck = (run_dir / "flows" / "slides.html").read_text()
     cover = text_of(deck.split('<section class="slide main"')[0])
     assert "No idea passed every check, so the closest is drawn and marked as not a recommendation." in cover
@@ -388,32 +407,32 @@ def test_a_cost_line_that_isnt_pass_is_a_mark_on_every_slide_and_never_the_verdi
     """Real round-6 output, as recorded (the old judge made three 11/11 ideas CONDITIONAL for cost) and as the judge
     now decides them in annotate mode (accepted, cost carried as a mark)."""
     decisions = DecisionsFile.model_validate_json((ROUND6 / "judge" / "decisions.json").read_text()).decisions
-    ideas, model = flows.load_candidates(ROUND6), golden("luzia")
-    chosen = flows.select(decisions, None)
+    ideas, model = flows.stage.load_candidates(ROUND6), golden("luzia")
+    chosen = flows.stage.select(decisions, None)
     assert sorted(ideas[d.candidate_id].economics.verdict for d in chosen) == ["CONDITIONAL", "CONDITIONAL", "FAIL",
                                                                                "PASS"]
     for d in chosen:
         c, marked = ideas[d.candidate_id], ideas[d.candidate_id].economics.verdict != "PASS"
         for final in ("conditional", "accept"):
-            texts = [text_of(s) for s in flows.idea_slides(drawn(c, d.model_copy(update={"final": final})), model,
+            texts = [text_of(s) for s in flows.deck.idea_slides(drawn(c, d.model_copy(update={"final": final})), model,
                                                             ROUND6, False)]
             for text in texts:
                 assert (f"Cost check: {c.economics.verdict}" in text) == marked
                 assert (" Conditional " in text) == (final == "conditional")
                 assert not re.search(r"\$|eCPM", text), text
             if marked:
-                assert texts[-1].count(flows.cost_question(c)) == 1
+                assert texts[-1].count(flows.deck.cost_question(c)) == 1
             if marked and final == "accept":
-                assert f"Cost check ({c.economics.verdict}): {flows.cost_question(c)}." in texts[-1]
+                assert f"Cost check ({c.economics.verdict}): {flows.deck.cost_question(c)}." in texts[-1]
                 assert "Recommended with one condition" not in texts[-1]
 
 
 def rendered_overflows(slides_html: str) -> list[str]:
-    deck = flows.deck_html("t", slides_html)
+    deck = flows.deck.deck_html("t", slides_html)
     with sync_playwright() as p:
-        page = p.chromium.launch().new_page(viewport={"width": flows.SLIDE_W, "height": flows.SLIDE_H})
+        page = p.chromium.launch().new_page(viewport={"width": flows.deck.SLIDE_W, "height": flows.deck.SLIDE_H})
         page.set_content(deck)
-        return flows.overflows(page)
+        return flows.pdf.overflows(page)
 
 
 def why_slide(words: int) -> str:
@@ -425,9 +444,9 @@ def why_slide(words: int) -> str:
 @pytest.mark.parametrize("words, fits", [(150, True), (400, False)])
 def test_a_why_slide_steps_its_text_down_to_fit_and_the_check_reports_what_still_doesnt(words, fits):
     with sync_playwright() as p:
-        page = p.chromium.launch().new_page(viewport={"width": flows.SLIDE_W, "height": flows.SLIDE_H})
-        page.set_content(flows.deck_html("t", why_slide(words)))
-        problems = flows.overflows(page)
+        page = p.chromium.launch().new_page(viewport={"width": flows.deck.SLIDE_W, "height": flows.deck.SLIDE_H})
+        page.set_content(flows.deck.deck_html("t", why_slide(words)))
+        problems = flows.pdf.overflows(page)
         size = page.evaluate("document.querySelector('.why').style.fontSize")
     assert size in ("15px", "14px", "13px") and (problems == []) == fits, (size, problems)
     if not fits:
@@ -436,13 +455,13 @@ def test_a_why_slide_steps_its_text_down_to_fit_and_the_check_reports_what_still
 
 def test_the_deck_brings_its_own_font_so_it_lays_out_the_same_on_every_machine():
     with sync_playwright() as p:
-        page = p.chromium.launch().new_page(viewport={"width": flows.SLIDE_W, "height": flows.SLIDE_H})
-        page.set_content(flows.deck_html("t", why_slide(10)))
-        flows.overflows(page)
+        page = p.chromium.launch().new_page(viewport={"width": flows.deck.SLIDE_W, "height": flows.deck.SLIDE_H})
+        page.set_content(flows.deck.deck_html("t", why_slide(10)))
+        flows.pdf.overflows(page)
         loaded = page.evaluate("() => Promise.all([...document.fonts].map(f => f.load()))"
                                ".then(faces => faces.filter(f => f.family === 'Inter').map(f => Number(f.weight)))")
-    assert sorted(loaded) == list(flows.FONT_WEIGHTS)
-    assert (flows.FONTS / "OFL.txt").exists()
+    assert sorted(loaded) == list(flows.deck.FONT_WEIGHTS)
+    assert (flows.deck.FONTS / "OFL.txt").exists()
 
 
 def test_the_overflow_check_names_each_slide_whose_text_runs_off_it_or_into_its_footer():
@@ -465,19 +484,20 @@ def test_every_slide_fits_on_real_output(tmp_path):
     """Round 6's long rationales, offer copy, and triggers, as accepted ideas and as the judge's fallback pick, whose
     why slide carries both the missed-check box (with round 6's longest judge reason) and the cost box."""
     decisions = DecisionsFile.model_validate_json((ROUND6 / "judge" / "decisions.json").read_text()).decisions
-    ideas, model = flows.load_candidates(ROUND6), golden("luzia")
+    ideas, model = flows.stage.load_candidates(ROUND6), golden("luzia")
     fallback_run = tmp_path / "run"
     shutil.copytree(ROUND6, fallback_run)
-    reasons = [getattr(v, k).reason for _, v in flows.verdicts(decisions[0], ROUND6) for k in GATES + JUDGMENT]
+    reasons = [getattr(v, k).reason for _, v in flows.deck.verdicts(decisions[0], ROUND6) for k in GATES + JUDGMENT]
     for path in (fallback_run / "judge" / "verdicts").iterdir():
         v = Verdict.model_validate_json(path.read_text())
         path.write_text(v.model_copy(update={"c5_moment": Check(passed=False, reason=max(reasons, key=len))})
                         .model_dump_json())
-    chosen = flows.select(decisions, None)
-    deck = [slide for d in chosen for slide in flows.idea_slides(drawn(ideas[d.candidate_id], d), model, ROUND6, False)]
-    deck += [slide for d in chosen for slide in flows.idea_slides(
+    chosen = flows.stage.select(decisions, None)
+    deck = [slide for d in chosen
+            for slide in flows.deck.idea_slides(drawn(ideas[d.candidate_id], d), model, ROUND6, False)]
+    deck += [slide for d in chosen for slide in flows.deck.idea_slides(
         drawn(ideas[d.candidate_id], d.model_copy(update={"final": "conditional"})), model, fallback_run, True)]
-    deck += flows.score_slides(decisions, ideas, [], ROUND6)
+    deck += flows.deck.score_slides(decisions, ideas, [], ROUND6)
     assert sum("The closest idea, not a recommendation" in s for s in deck) == 4
     assert sum("Cost check (" in s for s in deck) == 6
     assert rendered_overflows("".join(deck)) == []
@@ -496,13 +516,13 @@ def test_a_slide_that_overflows_is_reported_in_the_exhibit_and_the_trace(tmp_pat
 def test_code_flags_show_on_the_score_page_and_reach_no_slide_or_model(tmp_path, app):
     run_dir = seed_run(tmp_path, app, {"c01": {"flags": [FLAG]}})
     decisions = DecisionsFile.model_validate_json((run_dir / "judge" / "decisions.json").read_text()).decisions
-    ideas, model = flows.load_candidates(run_dir), golden(app)
-    scores = text_of("".join(flows.score_slides(decisions, ideas, [], run_dir)))
+    ideas, model = flows.stage.load_candidates(run_dir), golden(app)
+    scores = text_of("".join(flows.deck.score_slides(decisions, ideas, [], run_dir)))
     assert scores.count("flagged by code") == 1
     assert f"flagged by code: {FLAG}" in scores[scores.index("c01 "):scores.index("c02 ")]
-    main = text_of("".join(flows.idea_slides(drawn(ideas["c01"], decisions[0]), model, run_dir, False)))
-    page = flows.strip_runtime((run_dir / "mock" / "index.html").read_text())
-    editor = flows.editor_brief(ideas["c01"], model, page) + flows.system_prompt()
+    main = text_of("".join(flows.deck.idea_slides(drawn(ideas["c01"], decisions[0]), model, run_dir, False)))
+    page = flows.page.strip_runtime((run_dir / "mock" / "index.html").read_text())
+    editor = flows.editor.editor_brief(ideas["c01"], model, page) + flows.editor.system_prompt()
     assert "Flagged" not in main and FLAG not in main and FLAG not in editor
 
 
@@ -519,13 +539,13 @@ def test_the_walk_reaches_every_step_and_grants_the_reward_once(built):
 def test_a_reward_that_changes_nothing_on_screen_is_marked_not_shown(tmp_path, app):
     run_dir = run_flows(tmp_path, app, only="c01", show_reward=False)
     value = flow_phones(run_dir, "c01")[-1]
-    assert value["flags"] == [flows.REWARD_NOT_SHOWN] and value["text"] == "Badge shows"
+    assert value["flags"] == [flows.wording.REWARD_NOT_SHOWN] and value["text"] == "Badge shows"
     exhibit = (run_dir / "exhibits" / "07-flows.md").read_text()
     root = golden_idea(run_dir).flow_steps[-1].state_id
-    assert f"| {flows.REWARD_NOT_SHOWN}: step 4 |" in exhibit
+    assert f"| {flows.wording.REWARD_NOT_SHOWN}: step 4 |" in exhibit
     assert f"## Reward not shown\n\n- c01 step 4 (`{root}`): nothing on it changes when the reward is granted" in exhibit
     assert "| c02 · A second look | conditional | 2 / 1 | 4 / 4 | 1 | ok | ok | only a label: step 4 |" in exhibit
-    assert any(line.step == "walk:c01" and line.outcome == "error" and flows.REWARD_NOT_SHOWN in line.note
+    assert any(line.step == "walk:c01" and line.outcome == "error" and flows.wording.REWARD_NOT_SHOWN in line.note
                for line in read_trace(run_dir / "trace.jsonl"))
 
 
@@ -533,9 +553,9 @@ def test_a_reward_that_changes_nothing_on_screen_is_marked_not_shown(tmp_path, a
 def test_a_failed_ad_must_bring_the_user_back_with_nothing_granted_and_say_so(tmp_path, app):
     run_dir = run_flows(tmp_path, app, only="c01", hide_note=True)
     exhibit = (run_dir / "exhibits" / "07-flows.md").read_text()
-    assert f"| ok | {flows.NOT_WIRED}: a failed ad shows no note that nothing was used |" in exhibit
+    assert f"| ok | {flows.wording.NOT_WIRED}: a failed ad shows no note that nothing was used |" in exhibit
     assert "| c02 · A second look | conditional | 2 / 1 | 4 / 4 | 1 | ok | ok |" in exhibit
-    assert flow_phones(run_dir, "c01")[3]["flags"] == [f"a failed ad: {flows.NOT_WIRED}"]
+    assert flow_phones(run_dir, "c01")[3]["flags"] == [f"a failed ad: {flows.wording.NOT_WIRED}"]
     assert any(line.step == "failed-ad:c01" and line.outcome == "error" for line in read_trace(run_dir / "trace.jsonl"))
 
 
@@ -568,11 +588,11 @@ def test_the_reward_effect_names_labels_and_ignores_render_noise(tmp_path, extra
     visibility, still does."""
     with sync_playwright() as p:
         page = p.chromium.launch().new_page(viewport=render.VIEWPORT)
-        page.set_content(REWARD_PAGE.replace("{flow_css}", flows.FLOW_CSS).replace("{extra}", extra)
+        page.set_content(REWARD_PAGE.replace("{flow_css}", flows.page.FLOW_CSS).replace("{extra}", extra)
                          .replace("{label}", label).replace("{before}", before))
-        page.evaluate(flows.REWARDED_JS, True)
+        page.evaluate(flows.walk.REWARDED_JS, True)
         render.screenshot(page, path=tmp_path / "on.png", animations="disabled")
-        assert flows.reward_effect(page, tmp_path / "on.png") == expected
+        assert flows.walk.reward_effect(page, tmp_path / "on.png") == expected
 
 
 def shot(wired: bool = True, shown: bool | None = None, labels: list[str] | None = None) -> dict:
@@ -582,32 +602,45 @@ def shot(wired: bool = True, shown: bool | None = None, labels: list[str] | None
 @pytest.mark.parametrize("after_ad, expected", [
     ([shot(wired=False)], "not reached"),
     ([shot()], "new screen, not measured"),
-    ([shot(), shot(shown=False)], f"{flows.REWARD_NOT_SHOWN}: step 5"),
+    ([shot(), shot(shown=False)], f"{flows.wording.REWARD_NOT_SHOWN}: step 5"),
     ([shot(shown=True, labels=["Badge on"])], "only a label: step 4"),
     ([shot(shown=True, labels=["Badge on"]), shot(shown=True)], "yes"),
 ])
 def test_the_exhibit_says_yes_only_when_the_reward_check_ran_and_found_more_than_a_label(after_ad, expected):
     before = [shot()] * 3
-    assert flows.reward_text({"shots": before + after_ad, "ad_at": 2}) == expected
+    assert flows.stage.reward_text({"shots": before + after_ad, "ad_at": 2}) == expected
+
+
+def test_a_new_screen_after_the_ad_says_only_what_the_walk_saw_not_the_reward_the_idea_claims(tmp_path):
+    """Greptile on #11: a new screen after the ad has no reward to switch off and check, yet its slide caption said the
+    reward was there."""
+    steps = candidate(golden("luzia")).flow_steps
+    claim = "Their three bonus replies are ready."
+    thanks = steps[-1].model_copy(update={"state_id": "new:thanks", "caption": claim})
+    run_dir = run_flows(tmp_path, "luzia", changes={"c01": {"flow_steps": [*steps[:3], thanks]}})
+    last = flow_phones(run_dir, "c01")[-1]
+    assert (last["label"], last["flags"], last["text"]) == ("What they get", [], flows.deck.AFTER_PLAY)
+    assert claim not in text_of((run_dir / "flows" / "slides.html").read_text())
+    assert "| new screen, not measured |" in (run_dir / "exhibits" / "07-flows.md").read_text()
 
 
 def test_labels_are_quoted_as_what_appears():
-    assert flows.labels_text(["Badge on"]) == "A label appears: “Badge on”."
-    assert flows.labels_text(["A", "B"]) == "Labels appear: “A”, “B”."
-    assert flows.labels_text([]) == "A label appears."
+    assert flows.deck.labels_text(["Badge on"]) == "A label appears: “Badge on”."
+    assert flows.deck.labels_text(["A", "B"]) == "Labels appear: “A”, “B”."
+    assert flows.deck.labels_text([]) == "A label appears."
 
 
 def test_the_ad_card_takes_the_apps_palette_and_its_most_colorful_color_as_the_accent():
     root = ":root{--bg-1:#303337;--bg-2:#000000;--fg-1:#ffffff;--fg-2:#af89f0;--fg-3:#5a5c63;--font-1:Roboto,sans-serif}"
-    assert flows.ad_palette_css(root) == ".sa-card{--sa-accent:#af89f0;--sa-on-accent:#000}\n"
-    assert flows.ad_palette_css(":root{--bg-1:#ffffff;--bg-3:#4264fc}") == ".sa-card{--sa-accent:#4264fc;--sa-on-accent:#fff}\n"
-    assert flows.ad_palette_css(":root{--bg-1:#303337;--fg-1:#ffffff}") == ""
-    assert flows.ad_palette_css("<p>a mock without a palette</p>") == ""
-    assert "--sa-accent:#e11d48;" in flows.ad_palette_css(":root{--bg-1:#fffdf7;--bg-2:#e11d48}")
-    assert "--sa-accent:#20808d;" in flows.ad_palette_css(":root{--bg-1:#000814;--fg-1:#20808d}")
+    assert flows.page.ad_palette_css(root) == ".sa-card{--sa-accent:#af89f0;--sa-on-accent:#000}\n"
+    assert flows.page.ad_palette_css(":root{--bg-1:#ffffff;--bg-3:#4264fc}") == ".sa-card{--sa-accent:#4264fc;--sa-on-accent:#fff}\n"
+    assert flows.page.ad_palette_css(":root{--bg-1:#303337;--fg-1:#ffffff}") == ""
+    assert flows.page.ad_palette_css("<p>a mock without a palette</p>") == ""
+    assert "--sa-accent:#e11d48;" in flows.page.ad_palette_css(":root{--bg-1:#fffdf7;--bg-2:#e11d48}")
+    assert "--sa-accent:#20808d;" in flows.page.ad_palette_css(":root{--bg-1:#000814;--fg-1:#20808d}")
     c = candidate(golden("luzia"))
-    page = (f"<style>{root}{flows.FLOW_CSS}{flows.ad_palette_css(root)}</style>"
-            f'<section data-screen="ad">{flows.ad_card(c)}</section>')
+    page = (f"<style>{root}{flows.page.FLOW_CSS}{flows.page.ad_palette_css(root)}</style>"
+            f'<section data-screen="ad">{flows.page.ad_card(c)}</section>')
     with sync_playwright() as p:
         tab = p.chromium.launch().new_page()
         tab.set_content(page)
@@ -645,7 +678,7 @@ def test_reward_only_on_verification_and_only_once(built):
 def test_a_step_that_wont_tap_through_shows_the_last_good_screen_marked_not_wired(tmp_path, app):
     run_dir = run_flows(tmp_path, app, wire_accept=False)
     offer, ad = flow_phones(run_dir, "c01")[2:4]
-    assert flows.NOT_WIRED in ad["flags"] and not offer["flags"]
+    assert flows.wording.NOT_WIRED in ad["flags"] and not offer["flags"]
     assert ad["img"] == "c01/screens/step-1.png"
     assert "| 2 / 4 | 0 | ok | " in (run_dir / "exhibits" / "07-flows.md").read_text()
     assert "| not reached | `flows/c01/index.html` |" in (run_dir / "exhibits" / "07-flows.md").read_text()
@@ -678,22 +711,22 @@ def test_the_walk_taps_play_so_a_covered_play_button_is_not_wired(tmp_path, app)
 def test_default_selection_is_accepted_and_conditional_best_rank_first_at_most_four():
     decisions = [decision("c01", "reject", 9.0), decision("c02", "accept", 1.0), decision("c03", "conditional", 3.0),
                  decision("c04", "needs_human", 5.0), *(decision(f"c1{n}", "accept", 0.5) for n in range(4))]
-    assert [d.candidate_id for d in flows.select(decisions, None)] == ["c03", "c02", "c10", "c11"]
+    assert [d.candidate_id for d in flows.stage.select(decisions, None)] == ["c03", "c02", "c10", "c11"]
 
 
 def test_approvals_only_narrow():
     decisions = [decision("c01", "accept", 1.0), decision("c02", "conditional", 0.5), decision("c03", "reject", 2.0)]
-    assert [d.candidate_id for d in flows.select(decisions, ["c03", "c02", "zz"])] == ["c02"]
-    assert flows.select(decisions, []) == []
+    assert [d.candidate_id for d in flows.stage.select(decisions, ["c03", "c02", "zz"])] == ["c02"]
+    assert flows.stage.select(decisions, []) == []
 
 
 def test_approvals_survive_the_cleanup(tmp_path):
     (tmp_path / "c01").mkdir()
     (tmp_path / "slides.html").write_text("old")
     (tmp_path / "approvals.json").write_text('{"approved": ["c01"]}')
-    flows.clean(tmp_path)
+    flows.stage.clean(tmp_path)
     assert [p.name for p in tmp_path.iterdir()] == ["approvals.json"]
-    assert flows.load_approvals(tmp_path) == ["c01"]
+    assert flows.stage.load_approvals(tmp_path) == ["c01"]
 
 
 @pytest.mark.parametrize("app", APPS)
@@ -712,7 +745,8 @@ def test_art_from_a_risky_screen_is_blurred_wherever_it_is_drawn(tmp_path, app):
                      for n in (f"{risky}.e90.art.png", f"{risky}.e91.png", f"{safe}.e92.art.png"))
     offer = f'<section data-screen="new:offer" data-flow="c01" data-parent="{safe}">{images}</section></body>'
     page = with_runtime(skeleton_html(model), safe).replace("</body>", offer)
-    (tmp_path / "index.html").write_text(flows.with_flow_css(page, flows.blur_css(model, tmp_path / "assets")))
+    css = flows.page.blur_css(model, tmp_path / "assets")
+    (tmp_path / "index.html").write_text(flows.page.with_flow_css(page, css))
     with render.open_mock(tmp_path) as (page, _):
         page.evaluate("() => window.simula.go('new:offer')")
         blurred = page.evaluate("() => [...document.querySelectorAll('[data-screen=\"new:offer\"] img')]"
@@ -720,7 +754,7 @@ def test_art_from_a_risky_screen_is_blurred_wherever_it_is_drawn(tmp_path, app):
     assert blurred == ["blur(14px)", "none", "none"]
     safe_model = model.model_copy(update={"states": [s.model_copy(update={"content_rating": "safe"})
                                                      for s in model.states]})
-    assert flows.blur_css(safe_model, tmp_path / "assets") == ""
+    assert flows.page.blur_css(safe_model, tmp_path / "assets") == ""
 
 
 def assert_contained(run_dir, reason: str):
@@ -735,6 +769,40 @@ def assert_contained(run_dir, reason: str):
     exhibit = (run_dir / "exhibits" / "07-flows.md").read_text()
     assert "## Not built" in exhibit and f"- c02: " in exhibit and reason in exhibit
     assert "1 idea(s) passed the review but couldn't be drawn" in html.unescape(deck).replace("1 more", "1")
+
+
+def test_an_idea_the_cap_turns_away_is_not_built_and_the_rest_still_make_the_deck(tmp_path, monkeypatch):
+    """Greptile on #11: a refused editor call escaped the thread pool, and the stage died with no deck. Greptile on
+    #18: the calls took the budget in thread order, so a lower-ranked idea could push the best one off the deck."""
+    ideas = ("c01", "c02", "c03", "c04")
+    run_dir = seed_run(tmp_path, "luzia", changes={"c04": {"dropped_reason": None}})
+    ranked = [decision(cid, "accept", 4.0 - n) for n, cid in enumerate(ideas)]
+    (run_dir / "judge" / "decisions.json").write_text(DecisionsFile(decisions=ranked).model_dump_json())
+    for cid in ideas:
+        (run_dir / "judge" / "verdicts" / f"{cid}_judge_1_r1.json").write_text(verdict(cid).model_dump_json())
+    edit = fake_editor(run_dir)
+
+    def held_until_the_end(**kwargs):
+        if kwargs["step"] == "edit:c01":
+            time.sleep(0.3)  # the best-ranked idea is the last to ask
+        kwargs["budget"].reserve(1.0, step=kwargs["step"])  # as llm.call does, never settled: $3 fits three calls
+        return edit(**kwargs)
+    monkeypatch.setattr(llm, "call", held_until_the_end)
+    flows.stage.run(dataclasses.replace(ctx_for(run_dir, "luzia"), usd_cap=3.0))
+    drawn_ideas = {idea for idea, _, _ in slides(run_dir)}
+    [capped] = set(ideas) - drawn_ideas
+    assert capped == "c04", "the lowest-ranked idea is the one the cap turns away"
+    assert not (run_dir / "flows" / capped).exists()
+    deck = (run_dir / "flows" / "slides.html").read_text()
+    not_built = html.unescape(re.search(r'<ul class="not-built">(.*?)</ul>', deck, re.S).group(1))
+    assert f"{capped} · " in not_built and flows.stage.OVER_BUDGET in not_built
+    assert "1 more idea(s) passed the review but couldn't be drawn" in html.unescape(deck)
+    assert (run_dir / "flows" / "slides.pdf").read_bytes().startswith(b"%PDF")
+    assert f"- {capped}: {flows.stage.OVER_BUDGET}" in (run_dir / "exhibits" / "07-flows.md").read_text()
+    trace = read_trace(run_dir / "trace.jsonl")
+    assert any(line.step == f"build:{capped}" and flows.stage.OVER_BUDGET in line.note for line in trace)
+    assert [line.step for line in trace if line.outcome == "cap"] == [f"edit:{capped}"], \
+        "the budget's own record of the refusal, which makes run_stage mark the stage partial"
 
 
 def test_a_hung_page_leaves_only_that_idea_not_built(tmp_path, monkeypatch):
@@ -769,7 +837,8 @@ def test_saying_no_must_return_to_the_start_with_nothing_granted_and_the_offer_m
     first = golden_idea(run_dir).flow_steps[0].state_id
     assert f"not wired: saying no led to new:gift, not back to {first}" in exhibit
     assert "| c02 · A second look | conditional | 2 / 1 | 4 / 4 | 1 | ok |" in exhibit
-    assert flow_phones(run_dir, "c01")[2]["flags"] == ["copy not on the screen", f"saying no: {flows.NOT_WIRED}"]
+    flags = flow_phones(run_dir, "c01")[2]["flags"]
+    assert flags == ["copy not on the screen", f"saying no: {flows.wording.NOT_WIRED}"]
     texts = {(idea, part): " ".join(text.split()) for idea, part, text in slides(run_dir)}
     assert "Saying no doesn't bring them back yet." in texts[("c01", "flow")]
     assert "Nothing free is taken away, and saying no doesn't bring them back yet." in texts[("c01", "why")]
@@ -805,7 +874,7 @@ def test_saying_no_taps_the_offers_own_way_back_never_the_apps_close(tmp_path, a
         added[first] = f'<button data-edge="{first}>{screen}" data-transition="modal" {style.format(700)}>Open</button>'
 
     def editor(**kwargs):
-        page = flows.strip_runtime((run_dir / "mock" / "index.html").read_text())
+        page = flows.page.strip_runtime((run_dir / "mock" / "index.html").read_text())
         edits = []
         for sid, markup in added.items():
             start = page.index(re.search(rf'<section[^>]*data-screen="{sid}"', page).group(0))
@@ -816,12 +885,12 @@ def test_saying_no_taps_the_offers_own_way_back_never_the_apps_close(tmp_path, a
         return Edits(edits=[*edits, Edit(find="</body>", replace=ad + "</body>", reason="ad")]), None
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(llm, "call", editor)
-        flows.run(ctx_for(run_dir, app))
+        flows.stage.run(ctx_for(run_dir, app))
     row = next(line for line in (run_dir / "exhibits" / "07-flows.md").read_text().splitlines()
                if line.startswith("| c01"))
     saying_no = row.split("|")[6].strip()
     assert saying_no == ("ok" if starts_on_offer else
-                         f"{flows.NOT_WIRED}: saying no led to {screen}, not back to {first}"), row
+                         f"{flows.wording.NOT_WIRED}: saying no led to {screen}, not back to {first}"), row
 
 
 @pytest.mark.parametrize("app", APPS)
@@ -831,21 +900,21 @@ def test_a_new_control_that_returns_to_the_first_step_goes_back(app):
     first = known.to_state
     page = (f'<a data-edge="new:offer>{first}" data-transition="replace">No</a><b data-edge="new:offer>new:ad">Yes</b>'
             f'<i data-edge="{known.id}" data-transition="{known.transition}">x</i>')
-    fixed, relabeled = flows.decline_edges(page, first, {e.id for e in model.edges})
+    fixed, relabeled = flows.page.decline_edges(page, first, {e.id for e in model.edges})
     assert relabeled == 1
     assert fixed == page.replace('data-transition="replace"', 'data-transition="back"')
 
 
 def test_an_idea_whose_id_is_not_a_plain_name_is_never_built():
     model = golden("luzia")
-    assert "isn't a plain name" in flows.unbuildable(candidate(model, id="../model"))
-    assert flows.unbuildable(candidate(model, id="c01-rev")) is None
+    assert "isn't a plain name" in flows.stage.unbuildable(candidate(model, id="../model"))
+    assert flows.stage.unbuildable(candidate(model, id="c01-rev")) is None
 
 
 def test_the_copy_check_reads_words_in_any_script():
-    assert flows.words("「広告を見て」30分 無料!") == "広告を見て 30分 無料"
-    assert flows.words("Échale un vistazo, ¡gratis!") == "échale un vistazo gratis"
-    assert flows.words("!!!") == ""
+    assert flows.walk.words("「広告を見て」30分 無料!") == "広告を見て 30分 無料"
+    assert flows.walk.words("Échale un vistazo, ¡gratis!") == "échale un vistazo gratis"
+    assert flows.walk.words("!!!") == ""
 
 
 def test_code_dropped_ideas_show_their_reason_on_the_score_page(built):
@@ -858,11 +927,11 @@ def test_the_editor_asks_for_its_roles_max_tokens_from_the_profile(tmp_path, mon
     app = APPS[0]
     run_dir = seed_run(tmp_path, app)
     ctx = ctx_for(run_dir, app)
-    roles = flows.config.roles(ctx.profile)
-    monkeypatch.setattr(flows.config, "roles", lambda profile: {
+    roles = flows.editor.config.roles(ctx.profile)
+    monkeypatch.setattr(flows.editor.config, "roles", lambda profile: {
         **roles, "flows_editor": {**roles["flows_editor"], "max_tokens": 1234}})
     asked = []
     monkeypatch.setattr(llm, "call", lambda **kwargs: (asked.append(kwargs["max_tokens"]), (Edits(edits=[]), None))[1])
-    page = flows.strip_runtime((run_dir / "mock" / "index.html").read_text())
-    flows.ask_editor(ctx, golden_idea(run_dir), golden(app), page, llm.Budget("flows", 1.0))
+    page = flows.page.strip_runtime((run_dir / "mock" / "index.html").read_text())
+    flows.editor.ask_editor(ctx, golden_idea(run_dir), golden(app), page, llm.Budget("flows", 1.0))
     assert asked == [1234], "one number: the profile's, the same one doctor --keys probes"
