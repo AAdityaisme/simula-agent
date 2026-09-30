@@ -134,12 +134,12 @@ uv run simula run janitorai --new               # all seven stages in a new run
 uv run simula run janitorai --from qa           # rerun qa and everything after it, in the latest run
 ```
 
-A stage command always reruns its stage. `simula run` skips a stage whose inputs, prompts, and settings still hash the same as when it finished, and with `--from` it reruns that stage and every one after it. Explore is the exception: `simula run` reuses a captured explore as it is (a complete one, or a partial one that later stages are built on), even under a different `--budget`; `--new` or `--from explore` explores again. A stage refuses to start when a stage it reads from isn't done.
+A stage command always reruns its stage. `simula run` skips a stage whose inputs, prompts, and settings still hash the same as when it finished, and with `--from` it reruns that stage and every one after it. Explore is the exception: `simula run` reuses a captured explore as it is (a complete one, or a partial one that later stages are built on), even under a different `--budget`, and since no other stage hashes the budget, a budget change alone reruns nothing; `--new` or `--from explore` explores again. A stage refuses to start when a stage it reads from isn't done.
 
 | Flag | Effect |
 |---|---|
 | `--profile real\|dev` | `real` (the default) uses the models in `[real.roles]` of `config/profiles.toml`. `dev` uses cheaper models and lower effort. |
-| `--budget deep\|transfer` | Exploration size. `transfer` (the default) is 40 actions or 12 minutes; `deep` is 80 actions or 25 minutes. |
+| `--budget deep\|transfer` | Exploration size. `transfer` (the default) is 40 actions or 12 minutes; `deep` is 80 actions or 25 minutes. On a run that already has an explore, a new budget takes effect only with `--new` or `--from explore`. |
 | `--no-send` | Explore skips the core-loop pass and sends no chat messages. `explore` and `run` only. |
 | `--device SERIAL` | The emulator to explore on (default: `ANDROID_SERIAL`, else the only device online). `explore` and `run` only. |
 | `--new` / `--from STAGE` | Start a new run folder; rerun from a stage onward (`run` only). |
