@@ -536,10 +536,11 @@ def draw_batches(ctx: Ctx, groups: list[list[State]], contents: list[list[dict]]
         """A batch's parts or what stopped it, or None for one the cap left out."""
         if ctx.replay:
             return ask(n, content, budget) if n <= keep else None
-        # ponytail: a batch's first hold keeps one worst case free for a max_tokens retry, so one retry at a time
-        # always fits; two at once near the cap can still turn a better-ranked batch's retry away while a later batch
-        # draws. Upgrade: a refused retry waits for later-ranked holds to settle. A batch the cap can't hold is left
-        # out, not queued until the calls in flight settle; queue it if cap stops leave much of the cap unspent.
+        # ponytail: a batch's first request keeps its own worst case free for a max_tokens retry. A retry fits unless,
+        # near the cap, another retry took that spare first or a later batch in flight holds less than the retrying
+        # one (its smaller worst case is all the spare it kept); then a better-ranked batch can go undrawn while a
+        # later one draws. Upgrade: a refused retry waits for later-ranked holds to settle. A batch the cap can't hold
+        # is left out, not queued until the calls in flight settle; queue it if cap stops leave much of the cap unspent.
         turn = llm.Turn(budget, n - 1, settled, moved, spare=True)
         try:
             turn.wait()
@@ -648,7 +649,9 @@ def parent_attr(state: State) -> str:
 
 
 def generate(ctx: Ctx, content: list[dict], budget: llm.Budget, step: str) -> str:
-    """One batch's call. An answer cut off at max_tokens is retried once, at lower effort, asking for shorter CSS."""
+    """One batch's call. An answer cut off at max_tokens is retried once, at lower effort, asking for shorter CSS. No
+    request follows the retry, so it keeps no spare for one (`llm.Turn.spare`), even when it is the batch's first
+    hold because the first answer came from the cache."""
     def ask(request: dict) -> str:
         text, _ = llm.call(trace_path=ctx.run_dir / "trace.jsonl", stage="mock", step=step, **request, budget=budget,
                            no_cache=ctx.no_cache, replay=ctx.replay, attempts=1, total_timeout=WALL_SECONDS)
@@ -662,6 +665,8 @@ def generate(ctx: Ctx, content: list[dict], budget: llm.Budget, step: str) -> st
             raise
     run_trace(ctx.run_dir, stage="mock", step=step, decider="code", outcome="retry",
               note=f"max_tokens: retrying at effort={retry['effort']} with shorter CSS")
+    if isinstance(budget, llm.Turn):
+        budget.spare = False
     return ask(retry)
 
 

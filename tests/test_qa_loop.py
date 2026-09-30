@@ -190,6 +190,28 @@ def test_a_screen_the_critic_missed_gets_the_next_round_even_with_nothing_to_rep
     assert (report["outcome"], report["stop_reason"]) == ("complete", "round 2 found nothing to repair")
 
 
+@pytest.mark.parametrize("twelve", APPS[:1], indirect=True)
+def test_a_screen_the_critic_missed_with_a_known_failure_ends_the_loop_with_nothing_to_repair(twelve, tmp_path,
+                                                                                            monkeypatch):
+    """Red team probe B2: group 1's critic answer isn't valid JSON, a known failure the cache gives back unpaid. Going
+    on meant rounds 2 and 3 replayed the same failure from the cache and the loop said all rounds ran; it stops at
+    round 1, and the missed screens stay reported."""
+    app, run_dir, model, ids = twelve
+    real = llm.call
+    monkeypatch.setattr(llm, "call", lambda **kwargs: real(**kwargs, cache_dir=tmp_path / "cache"))
+    sent = []
+
+    def provider(model_id, system, messages, effort, schema, max_tokens, total_timeout=None):
+        first = next(p["text"] for p in messages[0]["content"] if p["type"] == "text").split(" ")[0]
+        sent.append(first)
+        text = "not json" if first == ids[0] else Critique(fixes=[], summary="s").model_dump_json()
+        return Reply(text=text, model=model_id, tokens_in=10, tokens_out=10)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider)
+    _, loop = qa.improve(ctx_for(run_dir, app), model, mock.pick_scope(model), measured_twelve(run_dir, model))
+    assert loop.stop == "round 1 found nothing to repair" and ids[0] in loop.missed
+    assert not [t for t in read_trace(run_dir / "trace.jsonl") if t.step.startswith("critic r2")]
+
+
 def test_an_empty_critique_still_sends_a_failed_contract_check_to_the_fixer(scripted):
     _, calls, play = scripted
     report = play([5.0, 5.0, 5.0], errors=[1, 0, 0], call=fake_llm(calls, fixes=[]))

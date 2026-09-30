@@ -104,7 +104,10 @@ def improve(ctx: Ctx, model: ProductModel, scope: list[State], best: Version) ->
             critique = criticize(ctx, budget, best, history, n, missed=loop.missed)
             critiqued[best.round] = critique
             _, to_repair = worklist(model, best, critique)
-            if not to_repair and loop.missed:
+            # A known failure (a refusal, a bad answer) comes back from the cache next round: only a lost call, or a
+            # run asking afresh, can get the missed screens reviewed.
+            if not to_repair and loop.missed and (ctx.no_cache or any(e.outcome in llm.TRANSPORT
+                                                                      for _, e in loop.missed.values())):
                 run_trace(ctx.run_dir, stage="qa", step=f"round{n}", decider="code",
                           note=f"nothing to repair on the screens reviewed; the critic missed {' '.join(loop.missed)}")
                 continue
@@ -638,22 +641,27 @@ def rebuild(html: str, model: ProductModel, screens: list[str]) -> str:
 
 def apply_edits(html: str, edits: list[Edit], sections: set[str] | None = None) -> tuple[str, list[dict]]:
     """Applies each edit in order when its find matches the page exactly once, or, when the fixer was sent only some
-    screens' `sections`, exactly once inside them: it never saw the other matches. Any other edit is rejected and
-    logged."""
+    screens' `sections`, exactly once in all it was sent (the style blocks and those sections) and that once inside
+    a section: it never saw the other matches. Any other edit is rejected and logged."""
     results = []
     for edit in edits:
         starts = [m.start() for m in re.finditer(re.escape(edit.find), html)] if edit.find else []
-        inside = []
+        seen, at = [], starts[0] if len(starts) == 1 else None
         if len(starts) > 1 and sections:
             spans = section_spans(html, sections)
-            inside = [s for s in starts if any(a <= s and s + len(edit.find) <= b for a, b in spans)]
-        at = starts[0] if len(starts) == 1 else inside[0] if len(inside) == 1 else None
+            seen = [s for s in starts if within(s, edit.find, spans + [m.span() for m in STYLE_BLOCK.finditer(html)])]
+            if len(seen) == 1 and within(seen[0], edit.find, spans):
+                at = seen[0]
         if at is not None:
             html = html[:at] + edit.replace + html[at + len(edit.find):]
         why = f"find matches the page {len(starts)} times, not once" + (
-            f", and {len(inside)} times in the sections it was sent" if len(starts) > 1 and sections else "")
+            f", and {len(seen)} times in what it was sent" if len(starts) > 1 and sections else "")
         results.append({**edit.model_dump(), "applied": at is not None, "why": "" if at is not None else why})
     return html, results
+
+
+def within(start: int, text: str, spans: list[tuple[int, int]]) -> bool:
+    return any(a <= start and start + len(text) <= b for a, b in spans)
 
 
 # ---------- replay records ----------

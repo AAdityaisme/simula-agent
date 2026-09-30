@@ -47,6 +47,22 @@ def test_a_find_the_page_repeats_applies_where_it_is_unique_in_the_sections_the_
         assert not result["applied"] and result["why"].startswith("find matches the page 2 times, not once")
 
 
+STYLED = ('<html><head><style data-batch="1">.card{color:red}</style></head><body>\n'
+          '<section data-screen="s01"><p style="color:red">A</p></section>\n'
+          '<section data-screen="s02"><p style="color:red">B</p></section>\n</body></html>')
+
+
+@pytest.mark.parametrize("page", [STYLED, STYLED.replace('<p style="color:red">A', "<p>A")],
+                         ids=["twice-in-what-was-sent", "once-in-the-style-block-only"])
+def test_a_find_the_fixer_saw_in_a_style_block_never_applies_by_the_section_rule(page):
+    """Red team probes E1 and E3: sent s01, the fixer sees `color:red` in the style block (and maybe in s01); the page
+    also has it in s02. Seen twice, it breaks the prompt's once-in-what-you-were-given rule; seen once, but in the style
+    block, it must be unique in the whole page. Both are rejected, and the page is left alone."""
+    out, [result] = qa.apply_edits(page, [edit("color:red", "color:blue")], {"s01"})
+    assert not result["applied"] and out == page
+    assert result["why"].startswith(f"find matches the page {page.count('color:red')} times, not once")
+
+
 @pytest.mark.parametrize("app", APPS)
 def test_the_fixer_never_sees_the_runtime_and_code_adds_exactly_one_back(app):
     model = golden(app)

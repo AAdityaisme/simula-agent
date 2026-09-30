@@ -129,8 +129,9 @@ class Turn:
     """A budget as the rank-th of several calls sees it (llm.call only reserves and charges). Its first hold waits
     until every better-ranked call has taken its own or been settled, since an answer from the cache takes none. So
     when the $ cap can't cover every call, the best-ranked are held first, not whichever thread got there first. A
-    hold the cap turns away settles nothing: the call's owner settles it once it has acted on the refusal. With
-    `spare`, the first hold is taken only while one more worst case stays free, for the call's own retry."""
+    hold the cap turns away settles nothing: the call's owner settles it once it has acted on the refusal. While
+    `spare` is on, the first hold is taken only while one more worst case stays free, for the call's own retry; the
+    owner turns it off for a request no retry can follow."""
     budget: Budget
     rank: int
     settled: set[int]

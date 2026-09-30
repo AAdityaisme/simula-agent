@@ -354,6 +354,40 @@ def test_a_batch_whose_first_answer_is_cut_off_keeps_room_for_its_retry(tmp_path
     assert first not in undrawn and second in undrawn and kept(run_dir) == 1
 
 
+def test_a_retry_keeps_no_spare_even_as_its_batchs_first_hold(tmp_path, monkeypatch, app):
+    """Red team probe R: run 1 cuts batch 1's first answer off (a known failure, cached) and loses its retry to a
+    timeout. On the rerun the retry is the batch's first hold; it kept a spare for a retry that can't follow, so with
+    $1.50 of room and $1 holds the cap turned it away and every later batch with it. Now it draws."""
+    monkeypatch.setattr(mock, "BATCH_SCREENS", 1)
+    monkeypatch.setattr(mock, "PARALLEL_BATCHES", 1)
+    run_dir, _ = priced(tmp_path, monkeypatch, app, [])
+    monkeypatch.setattr(llm, "usd", lambda model_id, tokens_in, tokens_out, tokens_cached=0:
+                        0.9 if tokens_out >= 100000 else 0.3)
+    model = golden(app)
+    first = mock.batches(mock.pick_scope(model))[0][0].id
+    lose = [True]
+
+    def provider(model_id, system, messages, effort, schema, max_tokens, total_timeout=None):
+        retry = any(p.get("text") == mock.SHORTER for p in messages[0]["content"])
+        if first in screens_of(messages) and not retry:
+            return drawn(model, model_id, messages, tokens_out=128000, stop="max_tokens")
+        if first in screens_of(messages) and lose[0]:
+            raise llm.LLMFailure("timeout", "stream idle")
+        return drawn(model, model_id, messages)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider)
+    ctx = ctx_for(run_dir, app)
+    ctx.usd_cap = 100.0
+    mock.run(ctx)
+    report = ContractReport.model_validate_json((run_dir / "mock" / "contract_report.json").read_text())
+    assert first in {e.screen for e in report.errors if e.kind == "undrawn_screen"}
+
+    lose[0] = False
+    ctx.usd_cap = llm.Budget.for_stage("mock", run_dir / "trace.jsonl").spent + 1.5
+    mock.run(ctx)
+    report = ContractReport.model_validate_json((run_dir / "mock" / "contract_report.json").read_text())
+    assert not [e for e in report.errors if e.kind == "undrawn_screen"]
+
+
 def test_a_capped_run_replays_to_the_same_page_whatever_cap_or_batching_rule_the_replay_has(tmp_path, monkeypatch,
                                                                                             app, two_batches):
     """A batch the cap left out has no cache entry, and batches grouped another way ask other questions. The replay
