@@ -5,7 +5,8 @@ colors). The hand-written meaning (names, purposes, labels for unlabeled icons, 
 lives in golden/<app>/meaning.json and is hand-checked by Aadi. A state backed only by a screenshot has
 no elements, because the fixture capture got no tree for it. The mock scope is not hand-written: stage 2's
 own rule (model.mock_scope) picks it from the flows and mechanics, so the goldens follow any change to it.
-Terms and experience ledger items stay empty; no golden test needs them yet.
+Terms and experience ledger items stay empty; no golden test needs them yet. Crops follow stage 2's own rules for
+wordless corner boxes and flat fills (model.edge_overlay, model.flat).
 
     uv run python tests/fixtures/golden/build_golden.py
 """
@@ -19,7 +20,8 @@ from PIL import Image
 
 from simula.contracts import (Coverage, CrossScreenValue, Device, Edge, Element, Flow, LedgerItem, Mechanic,
                               ModelMeaning, ProductModel, Provenance, Rect, State)
-from simula.stages.model import mock_scope
+from simula.stages.model import edge_overlay, flat, mock_scope
+from simula.text import strip_placeholders
 
 HERE = Path(__file__).parent
 FIXTURES = HERE.parent
@@ -75,19 +77,25 @@ def build_elements(app: str, spec: dict, image: Image.Image, out: Path, scope: b
     elements = []
     for n, e in enumerate([e for e in load_tree(app, spec["tree"]) if in_content(e)], start=1):
         c, eid = e["coordinates"], f"{sid}.e{n:02d}"
-        text, label = e.get("text") or "", labels.get(e["ref"]) or e.get("label") or ""
+        text = strip_placeholders(e.get("text") or "")
+        label = strip_placeholders(labels.get(e["ref"]) or e.get("label") or "")
         kind = e["type"].split(".")[-1]
-        asset = None
-        if scope and is_image_like(e) and e["ref"] not in labels:
-            asset = f"assets/{eid}.png"
-            image.crop((c["x"], c["y"], c["x"] + c["width"], c["y"] + c["height"])).save(out / asset)
         fg, bg = colors(pixels[c["y"]:c["y"] + c["height"], c["x"]:c["x"] + c["width"]])
-        elements.append(Element(
+        element = Element(
             id=eid, mcp_ref=e["ref"], type=kind, text=text, label=label, source="mcp",
             rect_px=Rect(x=c["x"], y=c["y"], w=c["width"], h=c["height"]), rect_dp=to_dp(c),
             role=spec.get("roles", {}).get(e["ref"]) or ROLE_BY_CLASS.get(kind, "container"),
-            asset_png=asset, fg_hex=fg, bg_hex=bg, font_px=float(c["height"]) if kind == "TextView" else None,
-            font_guess="unknown", in_mock=scope and bool(text or label or asset), repeat_group=None))
+            asset_png=None, fg_hex=fg, bg_hex=bg, font_px=float(c["height"]) if kind == "TextView" else None,
+            font_guess="unknown", in_mock=False, repeat_group=None)
+        art = scope and is_image_like(e) and e["ref"] not in labels and not edge_overlay(element, DEVICE)
+        asset = None
+        if art:
+            crop = image.crop((c["x"], c["y"], c["x"] + c["width"], c["y"] + c["height"]))
+            if not flat(crop):
+                asset = f"assets/{eid}.png"
+                crop.save(out / asset)
+        in_mock = scope and bool(text or label or art)
+        elements.append(element.model_copy(update={"asset_png": asset, "in_mock": in_mock}))
     return elements
 
 
@@ -154,11 +162,12 @@ def build(app: str) -> ProductModel:
                                evidence_ids=[find(states, r) for r in v["evidence"]])
               for v in meaning.get("cross_screen_values", [])]
     order = mock_scope(list(states.values()), edges, ModelMeaning(
-        app_category=meaning["app_category"], states=[], elements=[], flows=flows, mechanics=mechanics,
+        app_name="", app_category=meaning["app_category"], states=[], elements=[], flows=flows, mechanics=mechanics,
         cross_screen_values=[], value_ledger=[], terms=[], open_questions=[]))
     states = {spec["id"]: build_state(app, spec, out, set(order)) for spec in meaning["states"]}
     model = ProductModel(
-        app=app, app_version=meaning["app_version"], app_category=meaning["app_category"], run_id="golden",
+        app=app, app_name=meaning["app_name"], app_version=meaning["app_version"],
+        app_category=meaning["app_category"], run_id="golden",
         device=DEVICE, states=list(states.values()), edges=edges, flows=flows, mechanics=mechanics, cross_screen_values=values,
         value_ledger=ledger, open_questions=meaning["open_questions"], mock_order=order,
         coverage=Coverage(states_found=len(states), actions_taken=0, stop_reason="fixture: assembled from captures",

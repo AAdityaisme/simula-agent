@@ -1,6 +1,7 @@
 {
  "schema_version": 1,
  "app": "aol",
+ "app_name": "",
  "app_version": "7.81.0",
  "app_category": "content",
  "run_id": "golden",
@@ -126,7 +127,7 @@
       "h": 48.0
      },
      "role": "image",
-     "asset_png": "assets/s01.e04.png",
+     "asset_png": null,
      "fg_hex": null,
      "bg_hex": "#ffffff",
      "font_px": null,
@@ -3565,7 +3566,7 @@
       "h": 48.0
      },
      "role": "image",
-     "asset_png": "assets/s04.e04.png",
+     "asset_png": null,
      "fg_hex": null,
      "bg_hex": "#ffffff",
      "font_px": null,
