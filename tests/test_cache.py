@@ -65,6 +65,15 @@ def test_images_key_by_their_pixels_not_their_png_bytes_and_are_not_stored_raw()
     assert "pixels_sha256" in json.dumps(llm.canonical(message(png=stored)))
 
 
+def test_the_same_palette_with_other_transparency_keys_differently():
+    image = Image.new("P", (2, 2))
+    image.putpalette([255, 0, 0] * 256)
+    see_through, opaque = io.BytesIO(), io.BytesIO()
+    image.save(see_through, "PNG", transparency=0)
+    image.save(opaque, "PNG", transparency=255)
+    assert key(messages=message(png=see_through.getvalue())) != key(messages=message(png=opaque.getvalue()))
+
+
 def test_schema_and_attempt_are_in_the_key():
     assert key(params={"schema": 2}) != key()
     assert key(attempt=1) != key()

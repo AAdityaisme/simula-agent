@@ -127,11 +127,10 @@ class Budget:
 # ---------- cache ----------
 
 def pixels_sha256(png: bytes) -> str:
-    """The image's decoded pixels (mode, size, palette, raw bytes), hashed: the same pixels key the same however an
-    encoder wrote them, and Linux and macOS write different PNG bytes for the same pixels."""
+    """The image as displayed (size and RGBA pixels, so palette and colour-key transparency count), hashed: the same
+    picture keys the same however an encoder wrote it, and Linux and macOS write different PNG bytes for it."""
     with Image.open(io.BytesIO(png)) as image:
-        header = json.dumps([image.mode, image.size, image.getpalette()])
-        return hashlib.sha256(header.encode() + image.tobytes()).hexdigest()
+        return hashlib.sha256(json.dumps(image.size).encode() + image.convert("RGBA").tobytes()).hexdigest()
 
 
 def canonical(messages: list[dict]) -> list[dict]:
