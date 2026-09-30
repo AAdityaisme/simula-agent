@@ -342,8 +342,9 @@ class Explorer:
     # ---------- recording ----------
 
     def record(self, obs: Obs, came_from: Seen | None, move: Move | None, before: Obs | None) -> Seen:
+        scrolled = move is not None and move.action == "swipe"
         for known in self.states:
-            if ob.same_state(known.fp, obs.fp):
+            if ob.same_state(known.fp, obs.fp, reloads=not scrolled):
                 if known is not came_from:
                     self.revisit(known, obs)
                 return known

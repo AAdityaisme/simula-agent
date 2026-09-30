@@ -437,6 +437,19 @@ def test_a_tall_sheet_is_recorded_over_its_parent_with_its_box(tmp_path, monkeyp
     assert saved[sheet.sid].box == sheet.box and saved[parent.sid].box is None
 
 
+def test_a_list_with_other_rows_is_a_scrolled_view_after_a_swipe_and_the_same_feed_after_a_launch(tmp_path,
+                                                                                                    monkeypatch):
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    phone.screens.update(first=capture("janitorai", "j04_tab1"), other=capture("janitorai", "j11_home_relaunched"))
+    phone.screen = "first"
+    feed = ex.current = ex.record(ex.observe(), None, None, None)
+    before = ex.obs
+    phone.screen = "other"
+    scrolled = ex.record(ex.observe(), feed, stage.Move("swipe"), before)
+    assert scrolled is not feed and scrolled.unscroll_to == feed.sid
+    assert ex.record(ex.observe(), None, None, None) is feed
+
+
 def test_a_sheet_offers_only_its_own_controls_never_the_screen_behind_it(tmp_path, monkeypatch):
     ex, _, sheet, before = tall_sheet(tmp_path, monkeypatch)
     behind = {c.key for c in before.cands}

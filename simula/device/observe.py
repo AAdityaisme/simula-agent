@@ -241,15 +241,17 @@ def frame(elements: list[dict], image: Image.Image, device: Device) -> tuple[tup
     return (bucket(top, device), bucket(floor, device)), dhash(around, 32, 16), frozenset(c.key for c in rows)
 
 
-def same_state(a: Fingerprint, b: Fingerprint) -> bool:
+def same_state(a: Fingerprint, b: Fingerprint, reloads: bool = True) -> bool:
     """Same package, same top chrome, and the same layout, nearly the same pixels (the tree can change on a
     pixel-identical screen), or the same frame around a list whose rows were replaced: a feed that reloaded other
-    items. An overlay in the same window leaves most rows listed where they were, so it stays another state. This
-    names new states when recording; arrival is judged by what a screen shows."""
+    items. An overlay in the same window leaves most rows listed where they were, so it stays another state; a scroll
+    replaces them too, so right after one (reloads=False) the frame doesn't count. This names new states when
+    recording; arrival is judged by what a screen shows."""
     replaced = 2 * len(a.rows & b.rows) < min(len(a.rows), len(b.rows))
     return (a.package == b.package and hamming(a.top, b.top) <= TOP_BITS
             and (a.skeleton == b.skeleton or hamming(a.content, b.content) <= CONTENT_BITS
-                 or (a.band is not None and a.band == b.band and replaced and hamming(a.frame, b.frame) <= FRAME_BITS)))
+                 or (reloads and a.band is not None and a.band == b.band and replaced
+                     and hamming(a.frame, b.frame) <= FRAME_BITS)))
 
 
 def structure(target: list[dict], now: list[dict], device: Device, dynamic: list[Rect] = ()) -> float:
