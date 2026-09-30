@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-free-removal-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is opt-in (a card the user can ignore) and the offer copy states the reward (priority routing, 60 minutes). Declining leaves the menu and reply speed unchanged, and the 'if the ad fails' field covers no-game and unverified plays."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority, which cannot be withdrawn, sold or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is returning to the profile menu from the Upgrade entry, which is a navigation event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The 'adds' field introduces a new daily limit on how many characters a free user can text. That caps something free today, and it is not a cap on model replies or queue priority, so the 'removes nothing free: yes' claim does not hold."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the s09 profile drawer, a sheet over the non-chat s08 screen. s09 is rated safe and no chat content is nearby."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Priority routing is a charged benefit (l02, s02.e06) and the free tier is inferred to have normal priority (m03, evidence s02.e07), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the app as it is today rest on cited elements: s02.e06 and s09.e31 show the priority routing benefit and the permanent Upgrade entry, and m03 (evidence s02.e07) supports free users having normal routing. The daily character limit and the 'costs no extra replies' remark are the proposal's own additions or predictions."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'subscribers' field says subscribers never see the card. The offer is shown to free users only and rewards something the plan includes only to those who don't have it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes and is capped at 2 per day, so it is a time-limited sample. The app already sells priority routing, so queue placement is not taken for free from other users."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the profile menu drawer, a persistent surface the user chooses to open. It does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "This is a play-to-earn unit and the reward is granted only after the verified play. The trigger is a detectable navigation event from the Upgrade entry back to the menu."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names Janitor+ priority routing (s02.e06), the Upgrade to Janitor Plus entry (s09.e31) and the profile menu drawer, so it would not read the same in another app."
+ },
+ "other_concern": "The new daily character-text limit is a paywall pressure tactic added to the free tier, and it is not evidenced in the model, which notes the free-tier limit was never observed. The trigger 'returned from the Upgrade entry without subscribing' may be awkward to detect reliably.",
+ "fixable": true
+}

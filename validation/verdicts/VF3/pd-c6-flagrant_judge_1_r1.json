@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c6-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner is opt-in, the offer copy states the reward (30 minutes without sponsored stories), declining changes nothing, and the 'if the ad fails' field gives a path for a failed ad."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a 30-minute window without sponsored cards, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an article-open counter reaching 3 plus a loaded playable, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed, locked or capped. Sponsored cards still show as usual for anyone who declines."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The banner is a card in the home feed (s01, rated safe), which counts as app chrome. It is not in a conversation, and the adjacent content is rated safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is a product_change. An ad-light feed and article view is for the player's own use in the observed core flow f01 'Read a story', and none of it goes to a third party."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "'what makes it work here' states 'The app has no paywall, limit, or currency' and 'The only friction a free reader meets' as facts about the whole app. The model only records under open questions that none was seen on the home feed, so the claim is not worded as 'not seen'."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no paid plan, so there are no paying users for the offer to target or to reward with something they already pay for."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The 30-minute window expires, no paid benefit is given away, and nothing is taken from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The banner appears when the reader returns to the feed after an article, which is a finished action and not mid-task."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The 'if the ad fails' field and flow step 4 grant the prize 'when the reader closes the game, played or not'. That grants the reward on a close, not on the verified play (REWARD_VERIFIED)."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names this app's feed ad slot below the first story (s01.e44), the in-article Taboola card (s02.e13), and the read-and-return flow from s01 to s02."
+ },
+ "other_concern": "The claim that hidden cards displace little revenue rests on patchy fill seen in only two sessions. The 'one more break available' note when the window ends may also push readers toward repeated plays.",
+ "fixable": true
+}

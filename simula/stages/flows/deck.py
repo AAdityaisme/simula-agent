@@ -8,7 +8,7 @@ from pathlib import Path
 from string import Template
 
 from simula.config import ROOT, STAGES
-from simula.contracts import GATES, JUDGMENT, Candidate, Decision, ProductModel, Verdict
+from simula.contracts import GATES, JUDGMENT, Candidate, Decision, ProductModel, SavedVerdict, Verdict
 from simula.runlog import read_marker
 from simula.stages import Ctx
 from simula.stages.flows.page import VIEW_H, VIEW_W
@@ -125,7 +125,7 @@ def slide_html(flow: dict, part: str, body: str) -> str:
 def verdicts(decision: Decision, run_dir: Path) -> list[tuple[str, Verdict]]:
     """(judge and round, verdict) for each verdict file the decision cites, e.g. ("judge_1_r1", …)."""
     return [(Path(p).stem.removeprefix(f"{decision.candidate_id}_"),
-             Verdict.model_validate_json((run_dir / p).read_text()))
+             SavedVerdict.model_validate_json((run_dir / p).read_text()))
             for p in decision.verdict_paths if (run_dir / p).exists()]
 
 
@@ -137,16 +137,16 @@ def failed_checks(decision: Decision, run_dir: Path) -> list[tuple[str, str]]:
 
 
 def cost_question(c: Candidate) -> str | None:
-    """The cost line's verdict in plain words, with no numbers (the judge's exhibit has them). A CONDITIONAL cost of
-    zero is one the line couldn't count."""
+    """The cost line's verdict and its lost-sale flag in plain words, with no numbers (the judge's exhibit has them).
+    A CONDITIONAL cost of zero is one the line couldn't count."""
     e = c.economics
-    if e is None or e.verdict == "PASS":
+    if e is None:
         return None
-    if e.verdict == "FAIL":
-        return "it may cost more to serve than a view earns"
-    if e.cost_2k == 0:
-        return "what it costs to serve wasn't observed"
-    return "a view pays for what it costs to serve only where ad prices are high"
+    serving = {"FAIL": "it may cost more to serve than a view earns",
+               "CONDITIONAL": "what it costs to serve wasn't observed" if e.cost_2k == 0
+               else "a view pays for what it costs to serve only where ad prices are high"}.get(e.verdict)
+    sale = e.lost_sale and "it may give away something the app could sell"
+    return "; ".join(p for p in (serving, sale) if p) or None
 
 
 def is_fallback(decision: Decision, run_dir: Path, none_accepted: bool) -> bool:

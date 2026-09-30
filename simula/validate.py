@@ -18,7 +18,8 @@ from typing import Literal
 
 from simula import config, economics, llm
 from simula.config import ROOT
-from simula.contracts import GATES, JUDGMENT, Candidate, CandidateDraft, Check, ProductModel, Strict, Verdict
+from simula.contracts import (GATES, JUDGMENT, Candidate, CandidateDraft, Check, ProductModel, SavedVerdict, Strict,
+                              Verdict)
 from simula.runfolder import write_json_atomic
 from simula.runlog import read_trace
 from simula.stages import judge, propose
@@ -216,7 +217,7 @@ def combined(verdicts: dict[str, Verdict | None]) -> tuple[bool, set[str]]:
 def economics_result(c: Candidate, model: ProductModel) -> str:
     if economics.input_problem(c):
         return "dropped"
-    return economics.annotate(c, model.app_category).verdict
+    return economics.annotate(c, model).verdict
 
 
 def wilson_lower(k: int, n: int, z: float = Z95) -> float:
@@ -324,7 +325,7 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
         lines.append(f"| {k} | " + " | ".join(cells) + " |")
 
 
-    lines += ["", "## Known-good pass rate (every one of the 11 checks passed)", "",
+    lines += ["", f"## Known-good pass rate (every one of the {len(LLM_CHECKS)} checks passed)", "",
               "| Judge | Known-good (gate) |", "|---|---|"]
     kg_rate = {}
     for who in columns:
@@ -358,7 +359,8 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
                     continue
                 fails = judge.failed_by_any(ran)
                 held = c.target in fails if c.target else not is_passed(c, who)
-                cells.append(("✓ " if held else "✗ ") + (f"fails {', '.join(fails)}" if fails else "passes all 11"))
+                cells.append(("✓ " if held else "✗ ")
+                             + (f"fails {', '.join(fails)}" if fails else f"passes all {len(LLM_CHECKS)}"))
             lines.append(f"| {c.id} | {c.target or 'any'} | " + " | ".join(cells) + " |")
 
     if c8:
@@ -452,7 +454,7 @@ def load_runs(runs: Path) -> dict[tuple[str, str], list[Verdict]]:
     for p in runs.glob("*_r*.json"):
         stem, n = p.stem.rsplit("_r", 1)
         who = next(j for j in JUDGES if stem.endswith(f"_{j}"))
-        verdict = Verdict.model_validate_json(p.read_text())
+        verdict = SavedVerdict.model_validate_json(p.read_text())
         found.setdefault((stem.removesuffix(f"_{who}"), who), []).append((int(n), verdict))
     return {key: [v for _, v in sorted(pairs, key=lambda x: x[0])] for key, pairs in found.items()}
 
@@ -493,7 +495,7 @@ def load_verdicts(out: Path = OUT) -> dict[tuple[str, str], Verdict]:
     for p in sorted((out / "verdicts").glob("*_r1.json")):
         who = next((j for j in JUDGES if p.stem.endswith(f"_{j}_r1")), None)
         if who:
-            found[(p.stem.removesuffix(f"_{who}_r1"), who)] = Verdict.model_validate_json(p.read_text())
+            found[(p.stem.removesuffix(f"_{who}_r1"), who)] = SavedVerdict.model_validate_json(p.read_text())
     return found
 
 
@@ -531,7 +533,7 @@ def label_cases(cases: list[Case], verdicts: dict[tuple[str, str], Verdict], lab
         for (cid, who), v in sorted(verdicts.items()):
             if cid == case.id:
                 fails = [f"{k}: {getattr(v, k).reason}" for k in LLM_CHECKS if judge.failed(v, k)]
-                say(f"{who}: " + ("passes all 11" if not fails else "fails " + " | ".join(fails)))
+                say(f"{who}: " + (f"passes all {len(LLM_CHECKS)}" if not fails else "fails " + " | ".join(fails)))
         if case.source == "planted":
             say(f"Planted to fail {case.target} ({case.tier}).")
     return labeled
@@ -554,7 +556,7 @@ def main(argv: list[str] | None = None) -> int:
     lab.add_argument("--limit", type=int, default=LABEL_TARGET)
     lab.add_argument("--out", type=Path, default=OUT, help="where validate-judge wrote its verdicts")
     s = sub.add_parser("summarize", help="rebuild validation/report.md from saved runs; makes no calls")
-    s.add_argument("--runs", type=Path, default=VERDICTS / "VF2", help="the live rubric's saved runs")
+    s.add_argument("--runs", type=Path, default=VERDICTS / "VF3", help="the live rubric's saved runs")
     s.add_argument("--preface", type=Path, default=REPORT.parent / "preface.md")
     sub.add_parser("freeze", help="pin the judge prompt hashes in config/frozen_prompts.toml")
     args = p.parse_args(argv)

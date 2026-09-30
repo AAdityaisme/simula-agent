@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c3-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is opt-in (a card the user may ignore), the offer copy states the reward (front of the priority lane for 60 minutes), declining changes nothing, and the 'if the ad fails' field hides the card or reports an unverified play without counting it."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a 60-minute queue-priority boost, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a subscriber opening the profile menu (s09), an app event that needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes or caps nothing that free users have today; it only adds a new optional boost, and 'removes nothing free' is yes."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the profile menu drawer (s09), a sheet over a non-chat screen rated safe. It is not placed inside or between messages."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing_anchor, and the app charges for priority routing (m02, l02 'Priority routing for faster replies'), so the reward gives a resource the app charges for."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal claims that Janitor+ subscribers already have priority routing and that a tier above it (other subscribers' priority replies) exists. The model supports the paywall bullet (s02.e06) but shows no mechanic of ordering among subscribers. Its 'flow' also has the profile-menu card confirming and then sending the user to s06, which is a new flow."
+ },
+ "c3_spares_payers": {
+  "passed": false,
+  "reason": "The offer is shown only to paying users ('offered to: paying users'), and it rewards them with more of a benefit they already pay for (priority routing). This matches the fail condition."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The reward expires after 60 minutes, so it is not lasting access. However, it moves subscribers ahead of other subscribers' priority replies, taking from other users their place in a queue the app orders, and the app does not sell that advantage."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the profile menu, a persistent surface the user chooses to open, so it does not interrupt a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit, the reward is granted after a verified play (the card confirms only after verification), and the trigger is an app event (opening the profile menu)."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names Janitor+ priority routing (s02.e06) and the profile menu with Upgrade and Billing (s09.e31), which are specific to this app."
+ },
+ "other_concern": "Priority-lane ordering among subscribers is not observed, and the free-tier limit is an open question. Whether users can notice a faster lane is also untested.",
+ "fixable": false
+}

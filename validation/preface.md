@@ -1,3 +1,19 @@
+# 2026-09-30: the live rubric is VF3 (VF′ plus `c3_spares_payers`)
+
+VF3 is VF′ with one judgment check added: `c3_spares_payers` fails an offer aimed at users who already pay, one a plan's ad-free members still see, or one that rewards payers with something their plan includes or more of a benefit they pay for. Two planted cases test it (pd-c3-flagrant, pd-c3-subtle). The generated sections under "Judge validation" are **one** `validate-judge` run of VF3 (round 1 and the gate reruns, `validation/verdicts/VF3/`), not a majority of 3: the change's API cap paid for one. Everything from "How the live judge rubric was chosen" to that heading is about VF′ and its three saved runs in `validation/verdicts/VF2/`, kept as the record.
+
+Against VF′'s three saved runs, each scored alone:
+
+| | VF′ run 1 / 2 / 3 | VF3 run |
+|---|---|---|
+| The 22 original planted defects, combined | 22/22 each | 22/22 |
+| judge_2 on those 22 | 20 / 20 / 19 | 19 (c1 subtle, c7 flagrant and subtle missed) |
+| The 2 new c3 cases | not in VF′ | 2/2 by each judge |
+| Known-good, combined (judge_1; judge_2) | 1/4, 2/4, 0/4 (3/4 each; 1, 2, 0) | 1/4 (3/4; 1/4) |
+| Known-good failing c3 | – | none; the misses are judge_2's c2 strictness and AOL c01's c2, as before |
+
+The gate reruns flipped twice where VF′'s saved runs showed none: judge_2 missed pd-g-no-cash-subtle on its rerun, and judge_1 added g_policy to pd-g-no-free-removal-flagrant (its target caught both times). Combined, every planted defect is still caught.
+
 # How the live judge rubric was chosen (read this first)
 
 **The adoption bar, set after seeing earlier rounds' failures, was not met by either rubric (known-good 1/4 each). VF′ dominates V0 on every item of the bar (combined verdicts). Per judge, judge_2's C7 falls from 1/2 to 0/2. VF′ was adopted on that dominance (D9); three of its clauses were written after seeing the failures; judge_2 fails c2 on 3 of 4 known-goods under both rubrics; 0 human labels.**
@@ -76,7 +92,7 @@ Whether judge_2's reading of small restatements is too strict is open.
 - The combined verdict still catches both C7 cases through judge_1. "Caught" in this report means failed by any judge: rejected, or held for a person (a split waits on Needs your call, D11). A split still reaches a full slide when a person approves that exact disagreement, or, in a deck with nothing accepted, as the closest idea, labelled with the doubted check. Under D10 alone both C7 defects were drawn as labelled CONDITIONAL ideas (above).
 
 **How the sections below were computed.**
-- `validate.report` ran on VF′'s majority-of-3 verdicts per judge.
+- `validate.report` ran on VF′'s majority-of-3 verdicts per judge. *(2026-09-30: the sections below are now VF3's one run; see the top.)*
 - The planted set is 22 cases. pd-c4-subtle counts from here on because VF′'s C4 fails a grant that never expires.
 - 4 known-good ideas; c07 and c09 are held out; the C8 cases are scored by code.
 - In the `--no-cache` rerun section, each gate case is compared with the first of its 3 runs that disagrees with the
@@ -85,11 +101,11 @@ Whether judge_2's reading of small restatements is too strict is open.
   on c2).
 - Every saved verdict is committed: `validation/verdicts/VF2/` for VF′ and `validation/verdicts/V0/` for V0, as
   `<case>_<judge>_r<n>.json`.
-- `uv run python -m simula.validate summarize` rebuilds this file from `validation/verdicts/VF2/` and this preface
+- `uv run python -m simula.validate summarize` rebuilds this file from `validation/verdicts/VF3/` (VF2 until 2026-09-30) and this preface
   (`validation/preface.md`) with no calls.
 - `simula validate-judge` writes a fresh single-run report to `validation/latest/`, never over this file.
 
-**The harness gate below is not the adoption rule.** It judges VF′ alone, against fixed thresholds. Run on V0's saved runs, the same gate trades lines rather than improving: V0 fails judge_1's known-good line (50%), which VF′ passes (75%), and VF′ fails judge_2's broken-check line (C7 0/2), which V0 passes (1/2).
+**The harness gate below is not the adoption rule.** It judges VF′ alone *(VF3 since 2026-09-30)*, against fixed thresholds. Run on V0's saved runs, the same gate trades lines rather than improving: V0 fails judge_1's known-good line (50%), which VF′ passes (75%), and VF′ fails judge_2's broken-check line (C7 0/2), which V0 passes (1/2).
 - judge_1 passes every item.
 - The gate fails on judge_2 alone: C7 is broken (0/2), and known-good is 25%, under 70%.
 

@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c1-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the one-hour Search reward before play, and the flow lets users choose the game. The decline and ad-failure fields leave the menu usable and withhold the reward if play is not verified."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field offers time in Search, not cash or a transferable or externally exchangeable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is a return to the profile menu without subscribing; it does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and its expiry field changes the menu card, not access to the existing Search tab."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile menu, which the product model rates content safe, rather than in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "This is an existing_anchor, but the model shows neither a charge nor a limit for the Search access given by the one-hour reward; the observed Janitor+ benefits in m02 do not include Search."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work field claims Search finds characters by name and trait filters. The cited s05.e01 only says “Search”; no supplied element supports those existing capabilities."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The offered-to and subscribers fields restrict the card to free users and say subscribers never see it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes and does not grant the Janitor+ benefits listed in m02 or take an existing advantage from other users."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a card in the persistent profile menu that the user chooses to open, not an interruption to an active task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game, the trigger is a detectable return to the profile menu, and the ad-failure field says unverified play does not turn on the reward."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the s09 Upgrade to Janitor Plus entry and the app’s Search tab as the trigger context and reward."
+ },
+ "other_concern": "An hour of Search may have no practical value if users can already use Search without a limit. The proposal does not say that free Search stops when the hour ends; if that is intended, it would change the free-removal verdict.",
+ "fixable": false
+}

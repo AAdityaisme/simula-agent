@@ -1,0 +1,13 @@
+{
+ "id": "pd-c3-flagrant",
+ "target": "c3_spares_payers",
+ "tier": "flagrant",
+ "one_liner": "Luzia+ members see the same card and play an ad for the Advanced reasoning mode their plan already includes.",
+ "author": "claude-opus-5-5",
+ "base": "kg-run-luzia-c05",
+ "change": {
+  "trigger_event": "First app open after 3 or more days with no session.",
+  "for_users": "everyone",
+  "subscriber_treatment": "Luzia+ members see the same card and can play for the same 3 answers in Advanced reasoning mode, which their plan already includes."
+ }
+}

@@ -1,3 +1,19 @@
+# 2026-09-30: the live rubric is VF3 (VF′ plus `c3_spares_payers`)
+
+VF3 is VF′ with one judgment check added: `c3_spares_payers` fails an offer aimed at users who already pay, one a plan's ad-free members still see, or one that rewards payers with something their plan includes or more of a benefit they pay for. Two planted cases test it (pd-c3-flagrant, pd-c3-subtle). The generated sections under "Judge validation" are **one** `validate-judge` run of VF3 (round 1 and the gate reruns, `validation/verdicts/VF3/`), not a majority of 3: the change's API cap paid for one. Everything from "How the live judge rubric was chosen" to that heading is about VF′ and its three saved runs in `validation/verdicts/VF2/`, kept as the record.
+
+Against VF′'s three saved runs, each scored alone:
+
+| | VF′ run 1 / 2 / 3 | VF3 run |
+|---|---|---|
+| The 22 original planted defects, combined | 22/22 each | 22/22 |
+| judge_2 on those 22 | 20 / 20 / 19 | 19 (c1 subtle, c7 flagrant and subtle missed) |
+| The 2 new c3 cases | not in VF′ | 2/2 by each judge |
+| Known-good, combined (judge_1; judge_2) | 1/4, 2/4, 0/4 (3/4 each; 1, 2, 0) | 1/4 (3/4; 1/4) |
+| Known-good failing c3 | – | none; the misses are judge_2's c2 strictness and AOL c01's c2, as before |
+
+The gate reruns flipped twice where VF′'s saved runs showed none: judge_2 missed pd-g-no-cash-subtle on its rerun, and judge_1 added g_policy to pd-g-no-free-removal-flagrant (its target caught both times). Combined, every planted defect is still caught.
+
 # How the live judge rubric was chosen (read this first)
 
 **The adoption bar, set after seeing earlier rounds' failures, was not met by either rubric (known-good 1/4 each). VF′ dominates V0 on every item of the bar (combined verdicts). Per judge, judge_2's C7 falls from 1/2 to 0/2. VF′ was adopted on that dominance (D9); three of its clauses were written after seeing the failures; judge_2 fails c2 on 3 of 4 known-goods under both rubrics; 0 human labels.**
@@ -76,7 +92,7 @@ Whether judge_2's reading of small restatements is too strict is open.
 - The combined verdict still catches both C7 cases through judge_1. "Caught" in this report means failed by any judge: rejected, or held for a person (a split waits on Needs your call, D11). A split still reaches a full slide when a person approves that exact disagreement, or, in a deck with nothing accepted, as the closest idea, labelled with the doubted check. Under D10 alone both C7 defects were drawn as labelled CONDITIONAL ideas (above).
 
 **How the sections below were computed.**
-- `validate.report` ran on VF′'s majority-of-3 verdicts per judge.
+- `validate.report` ran on VF′'s majority-of-3 verdicts per judge. *(2026-09-30: the sections below are now VF3's one run; see the top.)*
 - The planted set is 22 cases. pd-c4-subtle counts from here on because VF′'s C4 fails a grant that never expires.
 - 4 known-good ideas; c07 and c09 are held out; the C8 cases are scored by code.
 - In the `--no-cache` rerun section, each gate case is compared with the first of its 3 runs that disagrees with the
@@ -85,11 +101,11 @@ Whether judge_2's reading of small restatements is too strict is open.
   on c2).
 - Every saved verdict is committed: `validation/verdicts/VF2/` for VF′ and `validation/verdicts/V0/` for V0, as
   `<case>_<judge>_r<n>.json`.
-- `uv run python -m simula.validate summarize` rebuilds this file from `validation/verdicts/VF2/` and this preface
+- `uv run python -m simula.validate summarize` rebuilds this file from `validation/verdicts/VF3/` (VF2 until 2026-09-30) and this preface
   (`validation/preface.md`) with no calls.
 - `simula validate-judge` writes a fresh single-run report to `validation/latest/`, never over this file.
 
-**The harness gate below is not the adoption rule.** It judges VF′ alone, against fixed thresholds. Run on V0's saved runs, the same gate trades lines rather than improving: V0 fails judge_1's known-good line (50%), which VF′ passes (75%), and VF′ fails judge_2's broken-check line (C7 0/2), which V0 passes (1/2).
+**The harness gate below is not the adoption rule.** It judges VF′ alone *(VF3 since 2026-09-30)*, against fixed thresholds. Run on V0's saved runs, the same gate trades lines rather than improving: V0 fails judge_1's known-good line (50%), which VF′ passes (75%), and VF′ fails judge_2's broken-check line (C7 0/2), which V0 passes (1/2).
 - judge_1 passes every item.
 - The gate fails on judge_2 alone: C7 is broken (0/2), and known-good is 25%, under 70%.
 
@@ -97,9 +113,9 @@ The adoption rule is VF′'s dominance over V0 above. V0 fails the same judge_2 
 
 # Judge validation
 
-Generated 2026-09-29T17:59. Judges: judge_1, judge_2. Prompts frozen in `config/frozen_prompts.toml`.
+Generated 2026-09-30T05:34. Judges: judge_1, judge_2. Prompts frozen in `config/frozen_prompts.toml`.
 
-Fixtures: 22 planted LLM cases (11 subtle), 2 C8 cases, 4 known-good (bases and real-run ideas); planted app types: AI assistant chat, companion chat, news, puzzle game; planted apps outside the test set: Candy Crush Saga.
+Fixtures: 24 planted LLM cases (12 subtle), 2 C8 cases, 4 known-good (bases and real-run ideas); planted app types: AI assistant chat, companion chat, news, puzzle game; planted apps outside the test set: Candy Crush Saga.
 
 ## Headline: recall over every LLM-judged planted defect (C8 excluded)
 
@@ -107,9 +123,9 @@ The pooled rate and its Wilson 95% lower bound are the claim this report support
 
 | Judge | All planted | Wilson 95% lower | Subtle only | Wilson 95% lower |
 |---|---|---|---|---|
-| judge_1 | 22/22 (100%) | 0.851 | 11/11 (100%) | 0.741 |
-| judge_2 | 20/22 (91%) | 0.722 | 10/11 (91%) | 0.623 |
-| combined | 22/22 (100%) | 0.851 | 11/11 (100%) | 0.741 |
+| judge_1 | 24/24 (100%) | 0.862 | 12/12 (100%) | 0.757 |
+| judge_2 | 21/24 (88%) | 0.690 | 10/12 (83%) | 0.552 |
+| combined | 24/24 (100%) | 0.862 | 12/12 (100%) | 0.757 |
 
 ## Planted defects caught vs known-good passed
 
@@ -119,21 +135,21 @@ A judge that fails everything catches every defect and passes no known-good idea
 
 | | caught / passed | missed / failed |
 |---|---|---|
-| Planted defects (22) | 22 | 0 |
+| Planted defects (24) | 24 | 0 |
 | Known-good (4) | 3 | 1 |
 
 **judge_2**
 
 | | caught / passed | missed / failed |
 |---|---|---|
-| Planted defects (22) | 20 | 2 |
+| Planted defects (24) | 21 | 3 |
 | Known-good (4) | 1 | 3 |
 
 **combined**
 
 | | caught / passed | missed / failed |
 |---|---|---|
-| Planted defects (22) | 22 | 0 |
+| Planted defects (24) | 24 | 0 |
 | Known-good (4) | 1 | 3 |
 
 ## Per check: a smoke test (a check with 0 of 2 caught is broken)
@@ -147,14 +163,15 @@ Two cases per check tell a blind check (0 of 2) from one that works. They can't 
 | g_no_chat_content | 2/2  (flagrant ✓, subtle ✓) | 2/2  (flagrant ✓, subtle ✓) | 2/2  (flagrant ✓, subtle ✓) |
 | g_no_free_removal | 2/2  (flagrant ✓, subtle ✓) | 2/2  (flagrant ✓, subtle ✓) | 2/2  (flagrant ✓, subtle ✓) |
 | g_brand_safety | 2/2  (flagrant ✓, subtle ✓) | 2/2  (flagrant ✓, subtle ✓) | 2/2  (flagrant ✓, subtle ✓) |
-| c1_revealed_value | 2/2  (flagrant ✓, subtle ✓) | 2/2  (flagrant ✓, subtle ✓) | 2/2  (flagrant ✓, subtle ✓) |
+| c1_revealed_value | 2/2  (flagrant ✓, subtle ✓) | 1/2  (flagrant ✓, subtle ✗) | 2/2  (flagrant ✓, subtle ✓) |
 | c2_evidence | 2/2  (flagrant ✓, subtle ✓) | 2/2  (flagrant ✓, subtle ✓) | 2/2  (flagrant ✓, subtle ✓) |
+| c3_spares_payers | 2/2  (flagrant ✓, subtle ✓) | 2/2  (flagrant ✓, subtle ✓) | 2/2  (flagrant ✓, subtle ✓) |
 | c4_protects_subscription | 2/2  (flagrant ✓, subtle ✓) | 2/2  (flagrant ✓, subtle ✓) | 2/2  (flagrant ✓, subtle ✓) |
 | c5_moment | 2/2  (flagrant ✓, subtle ✓) | 2/2  (flagrant ✓, subtle ✓) | 2/2  (flagrant ✓, subtle ✓) |
 | c6_fits_simula | 2/2  (flagrant ✓, subtle ✓) | 2/2  (flagrant ✓, subtle ✓) | 2/2  (flagrant ✓, subtle ✓) |
 | c7_specific | 2/2  (flagrant ✓, subtle ✓) | 0/2 **broken** (flagrant ✗, subtle ✗) | 2/2  (flagrant ✓, subtle ✓) |
 
-## Known-good pass rate (every one of the 11 checks passed)
+## Known-good pass rate (every one of the 12 checks passed)
 
 | Judge | Known-good (gate) |
 |---|---|
@@ -164,15 +181,15 @@ Two cases per check tell a blind check (0 of 2) from one that works. They can't 
 
 ## `--no-cache` rerun: do safety verdicts flip?
 
-- judge_1: 10 of 10 gate cases compared; safety flips 0; any-check flips 0.
-- judge_2: 10 of 10 gate cases compared; safety flips 0; any-check flips 3.
+- judge_1: 10 of 10 gate cases compared; safety flips 1 (pd-g-no-free-removal-flagrant); any-check flips 1.
+- judge_2: 10 of 10 gate cases compared; safety flips 1 (pd-g-no-cash-subtle); any-check flips 2.
 
 ## Regression cases (held out of the gate; each must fail its target, or any check without one)
 
 | Case | Target | judge_1 | judge_2 | combined |
 |---|---|---|---|---|
 | rg-janitorai-c07-fan-boost | any | ✓ fails c1_revealed_value, c2_evidence, c4_protects_subscription | ✓ fails c1_revealed_value, c2_evidence, c4_protects_subscription | ✓ fails c1_revealed_value, c2_evidence, c4_protects_subscription |
-| rg-janitorai-c09-empty-evidence | c2_evidence | ✓ fails c1_revealed_value, c2_evidence, c4_protects_subscription | ✓ fails c1_revealed_value, c2_evidence, c4_protects_subscription | ✓ fails c1_revealed_value, c2_evidence, c4_protects_subscription |
+| rg-janitorai-c09-empty-evidence | c2_evidence | ✗ fails c1_revealed_value, c4_protects_subscription | ✓ fails c1_revealed_value, c2_evidence, c4_protects_subscription | ✓ fails c1_revealed_value, c2_evidence, c4_protects_subscription |
 
 ## C8 economics (code, not the judges)
 
@@ -194,10 +211,10 @@ Two cases per check tell a blind check (0 of 2) from one that works. They can't 
 - ✓ judge_1: no LLM check broken
 - ✓ judge_1: every flagrant gate defect caught (5/5)
 - ✓ judge_1: known-good ≥ 70% (75%)
-- ✓ judge_1: no safety flip on the --no-cache rerun, every gate case compared
+- ✗ judge_1: no safety flip on the --no-cache rerun, every gate case compared
 - ✗ judge_2: no LLM check broken
 - ✓ judge_2: every flagrant gate defect caught (5/5)
 - ✗ judge_2: known-good ≥ 70% (25%)
-- ✓ judge_2: no safety flip on the --no-cache rerun, every gate case compared
+- ✗ judge_2: no safety flip on the --no-cache rerun, every gate case compared
 
 A failure means fixing that judge's prompt and re-freezing; never loosening the rule.

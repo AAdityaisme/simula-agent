@@ -1,5 +1,5 @@
 """validate-judge's report and gate on synthetic cases (never Aadi's fixtures): the 2x2, per-check counts, a
-broken check at 0/2, Wilson over the 22 LLM cases, C8 kept out of LLM recall, rerun flips; the fixture loader;
+broken check at 0/2, Wilson over the 24 LLM cases, C8 kept out of LLM recall, rerun flips; the fixture loader;
 and the blind label CLI."""
 
 import json
@@ -77,17 +77,17 @@ def test_a_judge_that_catches_every_defect_and_passes_known_good_passes_the_gate
     cases = build_cases()
     text, passed = run_report(cases, judged(cases))
     assert passed and "## Gate: PASS" in text
-    assert "| judge_1 | 22/22 (100%) | 0.851 | 11/11 (100%) | 0.741 |" in text
+    assert "| judge_1 | 24/24 (100%) | 0.862 | 12/12 (100%) | 0.757 |" in text
     assert text.index("## Headline: recall") < text.index("## Planted defects caught") < text.index(
         "## Per check: a smoke test") and "can't tell a 50% catch rate from 100%" in text
-    assert "| Planted defects (22) | 22 | 0 |" in text and "| Known-good (3) | 3 | 0 |" in text
+    assert "| Planted defects (24) | 24 | 0 |" in text and "| Known-good (3) | 3 | 0 |" in text
 
 
-def test_a_judge_that_fails_everything_catches_22_of_22_and_the_2x2_shows_it():
+def test_a_judge_that_fails_everything_catches_24_of_24_and_the_2x2_shows_it():
     cases = build_cases()
     text, passed = run_report(cases, judged(cases, fail_all=True))
     assert not passed
-    assert "| Planted defects (22) | 22 | 0 |" in text and "| Known-good (3) | 0 | 3 |" in text
+    assert "| Planted defects (24) | 24 | 0 |" in text and "| Known-good (3) | 0 | 3 |" in text
     assert "✗ judge_1: known-good ≥ 70% (0%)" in text
 
 
@@ -108,8 +108,8 @@ def test_a_regression_case_is_reported_on_its_own_and_counts_for_nothing_else():
     verdicts = judged(cases) | {("rg-a", "judge_1"): verdict(), ("rg-b", "judge_1"): verdict(["c1_revealed_value"]),
                                 ("rg-c", "judge_1"): verdict(["c1_revealed_value"]), ("rg-d", "judge_1"): None}
     text, passed = run_report(cases + regressions, verdicts)
-    assert passed and "| Planted defects (22) | 22 | 0 |" in text and "| Known-good (3) | 3 | 0 |" in text
-    assert "| rg-a | any | ✗ passes all 11 |" in text and "| rg-b | any | ✓ fails c1_revealed_value |" in text
+    assert passed and "| Planted defects (24) | 24 | 0 |" in text and "| Known-good (3) | 3 | 0 |" in text
+    assert "| rg-a | any | ✗ passes all 12 |" in text and "| rg-b | any | ✓ fails c1_revealed_value |" in text
     assert "| rg-c | c2_evidence | ✗ fails c1_revealed_value |" in text
     assert "| rg-d | any | ? no verdict: a judge call failed |" in text
 
@@ -148,7 +148,7 @@ def test_one_miss_is_counted_but_not_broken():
     text, passed = run_report(cases, judged(cases, miss={"pd-c7_specific-subtle"}))
     assert passed
     assert "1/2  (flagrant ✓, subtle ✗)" in next(line for line in text.splitlines() if line.startswith("| c7_specific |"))
-    assert "| judge_1 | 21/22 (95%)" in text
+    assert "| judge_1 | 23/24 (96%)" in text
 
 
 def test_every_flagrant_gate_defect_must_be_caught():
@@ -160,7 +160,7 @@ def test_every_flagrant_gate_defect_must_be_caught():
 def test_c8_is_scored_by_the_economics_code_and_kept_out_of_llm_recall():
     cases = build_cases()
     text, _ = run_report(cases, judged(cases))
-    assert "22 planted LLM cases (11 subtle), 2 C8 cases" in text
+    assert "24 planted LLM cases (12 subtle), 2 C8 cases" in text
     assert "| c8-flagrant | flagrant | dropped | dropped | ✓ |" in text
     assert "| c8-subtle | subtle | PASS | PASS | ✓ |" in text
 
@@ -216,7 +216,7 @@ def test_the_combined_rule_catches_what_either_judge_catches_and_passes_only_wha
     verdicts = judged(cases) | judged(cases, "judge_2", miss={"pd-c7_specific-subtle"}, fail_known_good=True)
     text, passed = run_report(cases, verdicts, judges=("judge_1", "judge_2"))
     assert not passed
-    assert "| combined | 22/22 (100%)" in text and "| judge_2 | 21/22 (95%)" in text
+    assert "| combined | 24/24 (100%)" in text and "| judge_2 | 23/24 (96%)" in text
     assert "| combined | 0/3 (0%) |" in text
 
 
@@ -224,7 +224,7 @@ def test_human_labels_give_a_kappa_per_judge():
     cases = build_cases()
     labels = {c.id: {"overall": "fail" if c.source == "planted" else "pass"} for c in cases if c.target != C8}
     text, _ = run_report(cases, judged(cases), labels=labels)
-    assert "- judge_1: kappa 1.00 over 25 labels." in text
+    assert "- judge_1: kappa 1.00 over 27 labels." in text
 
 
 # ---------- fixture files ----------
@@ -348,7 +348,7 @@ def test_the_committed_fixtures_meet_the_gates_completeness_and_spread_rules():
 
 def test_the_committed_report_rebuilds_from_the_committed_runs(tmp_path):
     rebuilt = tmp_path / "report.md"
-    validate.summarize(validate.VERDICTS / "VF2", validate.REPORT.parent / "preface.md", rebuilt)
+    validate.summarize(validate.VERDICTS / "VF3", validate.REPORT.parent / "preface.md", rebuilt)
     def body(path):
         return [line for line in path.read_text().splitlines() if not line.startswith("Generated ")]
     assert body(rebuilt) == body(validate.REPORT)
@@ -369,7 +369,7 @@ def test_a_committed_fixture_stores_the_cost_line_the_economics_code_gives():
     assert len(stored) >= 10
     for c in stored:
         assert not economics.input_problem(c.candidate), c.id
-        assert c.candidate.economics == economics.annotate(c.candidate, c.model.app_category), c.id
+        assert c.candidate.economics == economics.annotate(c.candidate, c.model), c.id
 
 
 # ---------- blind labels ----------

@@ -305,8 +305,7 @@ def revise(ctx: Ctx, c: Candidate, verdicts: list[Verdict], model: ProductModel,
     new, _ = propose.resolve_ids(new, model)
     reason = f"no opportunity: {new.rationale}" if not is_idea(new) else propose.check(new, model)
     flags = [] if reason else propose.jargon_flags(new, model)
-    new = economics.apply([new.model_copy(update={"dropped_reason": reason, "flags": flags})], model.app_category,
-                          mode)[0]
+    new = economics.apply([new.model_copy(update={"dropped_reason": reason, "flags": flags})], model, mode)[0]
     return propose.with_bucket(propose.rank(new, model, mode))
 
 

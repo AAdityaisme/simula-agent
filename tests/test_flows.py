@@ -16,7 +16,7 @@ from playwright.sync_api import sync_playwright
 
 from simula import llm, render, runfolder, validate
 from simula.contracts import (GATES, JUDGMENT, CandidatesFile, Check, Decision, DecisionsFile, Economics, Edit, Edits,
-                              FlowStep, Provenance, StageOutcome, Verdict)
+                              FlowStep, Provenance, SavedVerdict, StageOutcome, Verdict)
 from simula.runlog import read_trace
 from simula.stages import flows, judge
 from simula.stages.mock import copy_assets, pick_scope, with_runtime
@@ -496,7 +496,7 @@ def test_every_slide_fits_on_real_output(tmp_path):
     shutil.copytree(ROUND6, fallback_run)
     reasons = [getattr(v, k).reason for _, v in flows.deck.verdicts(decisions[0], ROUND6) for k in GATES + JUDGMENT]
     for path in (fallback_run / "judge" / "verdicts").iterdir():
-        v = Verdict.model_validate_json(path.read_text())
+        v = SavedVerdict.model_validate_json(path.read_text())
         path.write_text(v.model_copy(update={"c5_moment": Check(passed=False, reason=max(reasons, key=len))})
                         .model_dump_json())
     chosen = flows.stage.select(decisions, None)

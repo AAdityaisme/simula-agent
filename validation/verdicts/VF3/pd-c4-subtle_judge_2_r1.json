@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c4-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The home card states the reward before the user chooses to play. The decline and ad-failure fields leave home usable and withhold the reward if play is not confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is Advanced reasoning mode in three chats, not cash or a transferable asset."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses the app-open event and time since the last session, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free; its reward draws on the paid Advanced reasoning mode listed at s02.e03."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the safe Chats home screen (s01), above the prompt card rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, s02.e03 establishes Advanced reasoning mode as a paid-plan benefit."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'when the reward runs out' field says Luzia+ turns Advanced reasoning mode on in every chat. s02.e03 names the paid feature but does not establish that it applies to every chat."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'offered to' and 'subscribers' fields restrict the card to free users and say Luzia+ members never see it."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The reward and offer copy keep three chats in the paid mode 'for good.' That grants lasting access without expiry, even though the number of chats is limited."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places a dismissible card on Chats home at app open, not in the middle of a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a chosen sponsored game and a detectable app-open trigger; the ad-failure field withholds the reward when play is not confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the Chats home placement at s01 and the Advanced reasoning mode benefit at s02.e03."
+ },
+ "other_concern": "The rationale's forecast that the reward pays for itself in higher-earning markets is unverified.",
+ "fixable": false
+}

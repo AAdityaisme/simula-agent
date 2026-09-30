@@ -1,0 +1,40 @@
+{
+ "id": "pd-c3-subtle",
+ "target": "c3_spares_payers",
+ "tier": "subtle",
+ "one_liner": "Only Janitor Plus subscribers see it: a game moves their replies ahead of the priority routing they already pay for.",
+ "author": "claude-opus-5-5",
+ "base": "kg-run-janitorai-c02",
+ "change": {
+  "title": "Existing opportunity: Top-priority replies for an hour for Janitor Plus members",
+  "what_is_different_here": "Janitor+ sells priority routing for faster replies (s02.e06). A subscriber who opens the profile menu (s09) already has it, so the card offers a lane above it: for an hour, their replies go ahead of other subscribers' priority replies. It costs no extra replies, only earlier placement in line.",
+  "trigger_event": "A Janitor Plus subscriber opens the profile menu",
+  "placement": "Card at the top of the profile menu drawer",
+  "offer_copy": "Play a short sponsored game to put your replies at the front of the Janitor Plus priority lane for the next 60 minutes.",
+  "reward": {
+   "unit": "top-priority routing"
+  },
+  "for_users": "paying",
+  "subscriber_treatment": "Only Janitor Plus subscribers see this card. It moves them ahead of the priority routing their plan already gives, and it is always optional.",
+  "flow_steps": [
+   {
+    "state_id": "s09",
+    "caption": "A subscriber opens the profile menu."
+   },
+   {
+    "state_id": "new:priority-card",
+    "caption": "A card at the top offers top-priority replies for 60 minutes for one short sponsored game."
+   },
+   {
+    "state_id": "new:sponsored-game",
+    "caption": "The subscriber plays the short sponsored game and can quit at any time."
+   },
+   {
+    "state_id": "s06",
+    "caption": "The card confirms top-priority replies are on for 60 minutes, and the subscriber goes back to their chats."
+   }
+  ],
+  "after_reward": "When the hour ends, replies go back to the plan's usual priority routing, and the card offers one more hour tomorrow.",
+  "rationale": "Subscribers already feel the speed of priority routing, so a faster lane on top is a reward they can notice at once. It adds no extra replies, so it is cheap to give, and it earns from users who already pay."
+ }
+}
