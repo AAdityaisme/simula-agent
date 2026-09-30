@@ -18,6 +18,7 @@ from pathlib import Path
 import pytest
 
 from simula import replaycheck
+from simula.config import STAGES
 from simula.replaycheck import PINS, commit, git, key, read
 from tests.conftest import ROOT
 
@@ -58,7 +59,7 @@ def test_head_holds_the_run_and_the_cache_its_pin_replays(run):
 
 @pytest.fixture
 def stray_objects(tmp_path, monkeypatch):
-    """Commits the test makes land in tmp_path, never in the repo, which git still reads through."""
+    """Commits and index entries the test makes land in tmp_path, never in the repo, which git still reads through."""
     repo_objects = Path(ROOT, git("rev-parse", "--git-path", "objects").strip())
     (tmp_path / "objects").mkdir()
     env = {"GIT_OBJECT_DIRECTORY": tmp_path / "objects", "GIT_ALTERNATE_OBJECT_DIRECTORIES": repo_objects,
@@ -73,6 +74,18 @@ def test_a_pin_to_a_commit_outside_heads_history_is_refused(stray_objects):
     stray = git("commit-tree", "HEAD^{tree}", "-m", "left behind").strip()
     with pytest.raises(replaycheck.Mismatch, match="not in HEAD's history"):
         replaycheck.resolve(stray)
+
+
+@pytest.mark.skipif(not RUNS, reason="no committed runs")
+def test_a_staged_run_or_marker_is_not_committed(stray_objects):
+    """HEAD's clone replays only what HEAD holds, not what's staged."""
+    run = min(RUNS, key=lambda r: len(replaycheck.finished(r, STAGES)))
+    done = replaycheck.finished(run, STAGES)
+    manifest = git("rev-parse", f"HEAD:{run}/manifest.json").strip()
+    git("read-tree", "HEAD")
+    for path in ["runs/staged/20260101-000000-0000000/manifest.json", *(f"{run}/{s}/done.json" for s in STAGES)]:
+        git("update-index", "--add", "--cacheinfo", f"100644,{manifest},{path}")
+    assert replaycheck.committed_runs() == RUNS and replaycheck.finished(run, STAGES) == done
 
 
 @pytest.mark.skipif(not PINS, reason="no pinned runs")

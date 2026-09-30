@@ -36,9 +36,10 @@ def git(*args: str, cwd: Path = ROOT) -> str:
 
 
 def committed_runs() -> list[Path]:
-    """runs/<app>/<run_id>/ for every manifest git tracks; none outside a git checkout."""
+    """runs/<app>/<run_id>/ for every manifest HEAD holds (not one only staged, which HEAD's clone lacks); none outside
+    a git checkout."""
     try:
-        tracked = git("ls-files", "-z", "--", "runs/").split("\0")
+        tracked = git("ls-tree", "-r", "-z", "--name-only", "HEAD", "--", "runs/").split("\0")
     except (subprocess.CalledProcessError, FileNotFoundError):
         return []
     return sorted(Path(p).parent for p in tracked if Path(p).name == "manifest.json" and len(Path(p).parts) == 4)
@@ -110,7 +111,7 @@ def read(clone: Path, run: Path) -> dict:
 
 def finished(run: Path, stages: list[str]) -> set[str]:
     """The stages the committed run finished, in order up to the first it never did: what a replay replays."""
-    tracked = set(git("ls-files", "--", str(run)).splitlines())
+    tracked = set(git("ls-tree", "-r", "--name-only", "HEAD", "--", str(run)).splitlines())
     return set(itertools.takewhile(lambda stage: str(run / stage / "done.json") in tracked, stages))
 
 
