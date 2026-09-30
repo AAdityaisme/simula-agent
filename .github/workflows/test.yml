@@ -14,10 +14,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [0, 1, 2, 3]
+        shard: [0, 1, 2, 3]  # only makes and names the legs; each leg's split comes from the matrix itself
     env:
-      PYTEST_SHARD: ${{ matrix.shard }}
-      PYTEST_SHARDS: 4
+      PYTEST_SHARD: ${{ strategy.job-index }}
+      PYTEST_SHARDS: ${{ strategy.job-total }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
