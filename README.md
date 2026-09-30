@@ -78,7 +78,7 @@ The rewarded interaction is always a short sponsored game, because that is Simul
 | `explore` | Drives the app through mobile-mcp, an emulator-control tool. Records every distinct screen, the tap graph, full-size screenshots and element trees (each element's text and position). Then repeats the app's core action to measure the free experience (the core-loop pass). |
 | `model` | Turns the capture into `product_model.json`. Code writes the facts. One model call adds the meaning (names, purposes, flows, mechanics, content ratings), keyed to those facts. Code checks cited IDs, quoted UI text and connected edges; the meaning itself can be wrong. |
 | `mock` | Draws the screens in scope as one clickable HTML page, in parallel batches, reusing pictures cropped from the screenshots. |
-| `qa` | Scores each mock screen against its screenshot on element positions, navigation, and masked SSIM (0-to-1 pixel similarity, ignoring parts that change between visits). A critic explains the gaps, a fixer edits the page, and the best round goes to `qa/approved/`. The three results are reported separately, with no pass mark. |
+| `qa` | Scores each mock screen against its screenshot on element positions, navigation, and masked SSIM (a structural-similarity score where 1 means identical, ignoring parts that change between visits). A critic explains the gaps, a fixer edits the page, and the best round goes to `qa/approved/`. The three results are reported separately, with no pass mark. |
 | `propose` | One model call per lens (a point of view, such as a subscriber's) proposes rewarded-ad ideas. Code checks each idea against the product model, adds a cost line, and ranks them. |
 | `judge` | Blind judges score every idea on gates (hard rules) and judgment checks. Code turns their verdicts into accept, reject, conditional (the judges split, so the idea waits on Needs your call) or needs-human. A fixable reject gets one revision. |
 | `flows` | Adds each drawn idea's new screens (at most 4 ideas) to a copy of the approved mock. Taps through every step in Playwright and writes `slides.html` and `slides.pdf`. |
@@ -276,11 +276,11 @@ flowchart LR
   subgraph Proposed["Proposed, not built"]
     T["New version or schedule"] --> Q["Job queue"]
     Q --> D["Device pool: emulator, real device, partner build"]
-    D --> S["Seven stages"]
+    D --> S["Explore to judge: six stages"]
     S --> V[("Versioned store")]
-    S --> R["Review queue"]
-    R --> P["Slides: product team, Simula sales"]
-    R --> I["Integration spec"]
+    S --> R["Review queue: splits, approvals, login walls"]
+    R --> F["Flows: slides for the product team and Simula sales"]
+    F --> I["Integration spec"]
     I --> K["Simula SDK: grant on REWARD_VERIFIED"]
   end
 ```
