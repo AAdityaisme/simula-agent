@@ -283,7 +283,7 @@ class Explorer:
         self.settles: list[tuple[float, str]] = []
         self.landing: Landing | None = None
         self.replay_fingerprint = (0, 0)
-        self.reloads = False  # while a launch is set up: its feed may have reloaded other items
+        self.home: Seen | None = None  # while a relaunch is set up: the screen it lands on, maybe reloaded
         (out / "states").mkdir(parents=True, exist_ok=True)
         self.scratch = out / ".scratch"
         self.scratch.mkdir(exist_ok=True)
@@ -344,20 +344,25 @@ class Explorer:
 
     def record(self, obs: Obs, came_from: Seen | None, move: Move | None, before: Obs | None) -> Seen:
         for known in self.states:
-            if ob.same_state(known.fp, obs.fp, reloads=self.reloads):
+            if ob.same_state(known.fp, obs.fp):
                 if known is not came_from:
                     self.revisit(known, obs)
                 return known
         kind, box = self.kind_of(obs, before)
-        sid = f"s{len(self.states) + 1:02d}"
+        home = self.home if kind == "screen" else None
+        sid = home.sid if home else f"s{len(self.states) + 1:02d}"
         shutil.copyfile(self.scratch / "now.png", self.out / "states" / f"{sid}.png")
         (self.out / "states" / f"{sid}.elements.json").write_text(json.dumps(obs.reply, indent=1, ensure_ascii=False))
         # an overlay in the parent's window leaves the parent's controls listed behind it, maybe moved: only the new
-        # ones are its own (a control without words is told by its place too)
+        # ones are its own (a control without words is told by its place too); a control something lies over is none
         keys = {c.key for c in before.cands} if box and before else set()
-        named = {(c.tree_label, c.kind) for c in before.cands if c.tree_label} if box and before else set()
-        cands = [c for c in obs.cands if box is None or (ob.inside(c.rect, box) and c.key not in keys
-                                                         and (c.tree_label, c.kind) not in named)]
+        named = {(c.tree_label, c.kind) for c in before.cands if c.tree_label and ob.overlaps(c.rect, box)} \
+            if box and before else set()
+        cands = [c for c in obs.cands if (box is None or (ob.inside(c.rect, box) and c.key not in keys
+                                                          and (c.tree_label, c.kind) not in named))
+                 and not ob.covered(c, obs.elements, self.device)]
+        if home:
+            return self.refresh(home, obs, cands)
         tab_move = move is not None and move.cand is not None and move.cand.key in self.tab_keys()
         seen = Seen(sid=sid, kind=kind, parent=came_from.sid if came_from and kind != "screen" else None,
                     fp=obs.fp, fg=obs.fg, cands=cands, elements=obs.elements,
@@ -378,6 +383,20 @@ class Explorer:
             self.name_icons(seen)
             self.log_denied(seen)
         return seen
+
+    def refresh(self, home: Seen, obs: Obs, cands: list[ob.Candidate]) -> Seen:
+        """A relaunch lands on its home screen by definition: one no recorded state matches is home with its list
+        reloaded, re-recorded from this capture (the saved capture, its controls and their crops). A reload is no
+        evidence of a region that moves on its own."""
+        known = {c.key for c in home.cands}
+        home.fp, home.fg, home.cands, home.elements = obs.fp, obs.fg, cands, obs.elements
+        home.settled, home.settle_s, home.captured_at = obs.settled, obs.settle_s, now()
+        home.upsell, home.priced = ob.is_upsell(obs.elements, self.device), ob.priced(obs.elements, self.device)
+        home.visits += 1
+        self.note("state", f"{home.sid} re-recorded: the relaunch landed on it with other content")
+        self.name_icons(home)
+        self.log_denied(home, [c for c in cands if c.key not in known])
+        return home
 
     def kind_of(self, obs: Obs, before: Obs | None) -> tuple[str, Rect | None]:
         if obs.fg != self.package:
@@ -400,8 +419,8 @@ class Explorer:
             if not any(ob.inside(b, d) for d in s.dynamic):
                 s.dynamic.append(b)
 
-    def log_denied(self, s: Seen) -> None:
-        for c in s.cands:
+    def log_denied(self, s: Seen, cands: list[ob.Candidate] | None = None) -> None:
+        for c in s.cands if cands is None else cands:
             reason = ob.denied(c, upsell=s.upsell)
             if reason and c.key not in self.tab_keys():
                 self.log(s, None, Move("tap", c, why=f"denied: {reason}"), c, "unknown", f"denied: {reason}", "denied")
@@ -642,24 +661,18 @@ class Explorer:
 
     # ---------- launching ----------
 
-    @contextlib.contextmanager
-    def launching(self):
-        """While a launch is set up (its dialogs, the way back to the root, the content filter), a feed it reloaded is
-        still the state recorded before: records match by the frame around the list too."""
-        self.reloads = True
-        try:
-            yield
-        finally:
-            self.reloads = False
-
     def relaunch(self, first: bool = False, why: str = "") -> None:
-        """Terminate, launch, settle, record and dismiss launch dialogs, then re-apply the content filter."""
+        """Terminate, launch, settle, record and dismiss launch dialogs, then re-apply the content filter. After the
+        first launch, where it lands is home: the launch screen, or the filtered root once the filter is re-applied.
+        A screen the tour recorded (the fingerprint matches) is a deeper screen the app restored, and back_to_root
+        goes back from there; any other screen is home with its list reloaded, re-recorded (refresh)."""
         if not first:
             self.count_relaunch(why)
         self.phone.terminate()
         self.phone.launch()
-        with self.launching():
-            self.wait_for_app(None if first else self.launch_root)
+        self.home = None if first else self.launch_root
+        try:
+            self.wait_for_app(self.home)
             self.current = None
             self.normalize()
             home = self.record(self.obs, None, None, None)
@@ -675,7 +688,10 @@ class Explorer:
                 self.tabs = [t for t in ob.tab_bar(home.cands, self.device) if not ob.denied(t)]
             else:
                 self.back_to_root()
+                self.home = self.root
             self.apply_filter(first)
+        finally:
+            self.home = None
         self.segments.append([])
 
     def count_relaunch(self, why: str) -> None:
@@ -693,9 +709,8 @@ class Explorer:
         self.count_relaunch(f"reopen the launch dialog {dialog.sid}")
         self.phone.terminate()
         self.phone.launch()
-        with self.launching():
-            self.wait_for_app(dialog)
-            self.current = self.record(self.obs, None, None, None)
+        self.wait_for_app(dialog)
+        self.current = self.record(self.obs, None, None, None)
         return self.current is dialog
 
     def wait_for_app(self, expect: Seen | None = None) -> Obs:
@@ -711,12 +726,10 @@ class Explorer:
             obs = self.look(splash_deadline)
         deadline = self.clock() + LAUNCH_WAIT_S
         while obs.fg == self.package and self.clock() < deadline and (not self.launchable(obs) or (
-                expect and not ob.same_state(obs.fp, expect.fp, reloads=True)
-                and not ob.dialog_box(obs.cands, self.device))):
+                expect and not ob.same_state(obs.fp, expect.fp) and not ob.dialog_box(obs.cands, self.device))):
             self.sleep(1.5)
             obs = self.look(splash_deadline) or obs
-        while not (expect and ob.same_state(obs.fp, expect.fp, reloads=True)) and obs.fg == self.package \
-                and self.clock() < deadline:
+        while not (expect and ob.same_state(obs.fp, expect.fp)) and obs.fg == self.package and self.clock() < deadline:
             self.sleep(LAUNCH_QUIET_S)
             again = self.look(splash_deadline)
             if again and ob.same_state(again.fp, obs.fp):
@@ -872,8 +885,8 @@ class Explorer:
                and abs(o.rect.h - live.rect.h) < 24]
         if not row:
             return False
-        others = np.median([ob.mean_color(self.obs.image, o.rect) for o in row], axis=0)
-        return float(np.abs(ob.mean_color(self.obs.image, live.rect) - others).sum()) > 40
+        others = np.median([mean_color(self.obs.image, o.rect) for o in row], axis=0)
+        return float(np.abs(mean_color(self.obs.image, live.rect) - others).sum()) > 40
 
     def check_filter(self) -> None:
         last = self.filter_taps[-1]
@@ -1333,17 +1346,12 @@ class Explorer:
                 return found
         return None
 
-    def items_now(self, feed: CoreAction) -> list[ob.Candidate]:
-        """The list's recorded items the screen still shows, or, when it shows none of them (the feed reloaded), the
-        items in their place: the live list shaped like them (class and width). A live item whose tap point lies under
-        another control (a card, the tab bar) is skipped like a gone one (invariant 3)."""
-        if self.obs is None:
-            return feed.controls
-        shown = [c for c in feed.controls if ob.find(self.obs.cands, c)]
-        shapes = {(c.kind, ob.bucket(c.rect.w, self.device)) for c in feed.controls}
-        live = [c for c in self.obs.cands if (c.kind, ob.bucket(c.rect.w, self.device)) in shapes]
-        free = [r for r in ob.feed_items(live, self.device, self.tab_keys()) if not ob.covered(r, self.obs.cands)]
-        return shown or free or feed.controls
+    def rows(self, feed: CoreAction) -> list[ob.Candidate]:
+        """The list's rows its state still holds, or, once a relaunch re-recorded home without them, the rows it holds
+        now: recorded candidates only, crop-checked when tapped (invariant 3)."""
+        keys = {c.key for c in feed.state.cands}
+        return [c for c in feed.controls if c.key in keys] or ob.feed_items(feed.state.cands, self.device,
+                                                                               self.tab_keys()) or feed.controls
 
     def walk_into(self, feed: CoreAction, n: int) -> CoreAction | None:
         """Invariant 4: on the n-th item's page, a conversation (text box + send) or a play/generate button ends the
@@ -1352,7 +1360,7 @@ class Explorer:
         opens a sheet or modal is walked the same way, on that surface's own controls."""
         if not self.goto(feed.state):
             return None
-        items = self.items_now(feed)
+        items = self.rows(feed)
         if n >= len(items):
             return None
         item = items[n]
@@ -1491,7 +1499,7 @@ class Explorer:
                 self.act(Move("tap", send, why="core loop: send"), purpose="core", loop=n,
                          watch=lambda: self.watch(before | {message}, "reply", idle))
             return self.last_summary, self.last_seen, self.stop_text()
-        controls = self.items_now(core) if core.kind == "feed" else core.controls
+        controls = self.rows(core) if core.kind == "feed" else core.controls
         control = controls[(n - 1) % len(controls)]
         verb = "load" if core.kind == "feed" else "result"
         self.note_dynamic(core.state, self.obs.image)  # an ad that moved since the state was saved isn't a result
@@ -1652,9 +1660,11 @@ class Explorer:
         if self.core.kind == "chat":
             return self.chat_stop(here, before, move)
         if here is not s and here.kind in ("modal", "sheet"):
-            named = self.named(self.within(here)) or ("sign-in wall" if ob.walled(c.tree_label for c in here.cands)
-                                                      else "")
-            # a sheet the action opened shows its result (an item's page) unless it names a price, a limit or an account
+            wall = ob.walled(ob.controls(self.within(here), self.device))
+            named = self.named(self.within(here)) or {"account": "sign-in wall",
+                                                      "money": "paywall" if here.priced else "upsell"}.get(wall, "")
+            # a sheet the action opened shows its result (an item's page) unless it names a price, a limit, an account
+            # or money
             if named or here.kind == "modal":
                 return named or "modal opened", here.sid
         if here is not s and here.upsell:
@@ -1876,6 +1886,11 @@ class Explorer:
             device=self.device)
         (self.out / "explore.json").write_text(explore.model_dump_json(indent=1))
         shutil.rmtree(self.scratch, ignore_errors=True)
+
+
+def mean_color(image: Image.Image, r: Rect) -> np.ndarray:
+    crop = image.crop((int(r.x), int(r.y), int(r.x + r.w), int(r.y + r.h)))
+    return np.asarray(crop, dtype=float).reshape(-1, 3).mean(axis=0)
 
 
 def adb_shell(serial: str, args: list[str]) -> str | None:
