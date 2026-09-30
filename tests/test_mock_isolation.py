@@ -1,5 +1,6 @@
 """Stage 3 reads model/ only: a run folder holding nothing but model/ still produces a rendered, valid mock."""
 
+import json
 import re
 
 import pytest
@@ -22,11 +23,18 @@ def without_edges(html: str) -> str:
     return re.sub(r' data-(edge|transition)="[^"]*"', "", html)
 
 
+def batch_screens(kwargs) -> list[str]:
+    """The screen ids a mock batch call asks for, read back from its brief."""
+    data = json.loads(kwargs["messages"][0]["content"][-1]["text"].split("\n\n", 1)[1])
+    return [s["id"] for s in data["screens"]]
+
+
 def fake_builder(calls: list):
+    """Answers each batch call with a boxes-only page holding just that batch's screens."""
     def call(**kwargs):
         calls.append(kwargs)
         model = ProductModel.model_validate_json((kwargs["trace_path"].parent / "model" / "product_model.json").read_text())
-        return f"Here it is.\n```html\n{without_edges(skeleton_html(model))}\n```\n", None
+        return f"Here it is.\n```html\n{without_edges(skeleton_html(model, batch_screens(kwargs)))}\n```\n", None
     return call
 
 
@@ -45,8 +53,8 @@ def test_only_model_folder_still_renders(tmp_path, monkeypatch, app):
     assert (run_dir / "exhibits" / "03-mock.md").exists()
     assert {p.name for p in run_dir.iterdir()} == {"model", "mock", "trace.jsonl", "exhibits"}
 
-    [call] = calls
-    content = call["messages"][0]["content"]
-    assert sum(p["type"] == "image" for p in content) == len(screens) <= mock.MAX_SCREENS
-    assert "## 7. Mock contract" in call["system"]
-    assert [line.step for line in read_trace(run_dir / "trace.jsonl")] == ["scope", "contract"]
+    assert len(calls) == len(mock.batches(mock.pick_scope(model)))
+    images = [sum(p["type"] == "image" for p in call["messages"][0]["content"]) for call in calls]
+    assert sorted(images) == sorted(len(batch_screens(call)) for call in calls) and sum(images) == len(screens)
+    assert all("## 7. Mock contract" in call["system"] for call in calls)
+    assert [line.step for line in read_trace(run_dir / "trace.jsonl")] == ["scope", "plan", "contract"]
