@@ -25,9 +25,12 @@ TAB_BAND_PX = 330
 TOP_BITS = 8
 CONTENT_BITS = 12
 # The 512-bit dHash of what surrounds a list, on the labeled pairs in tests/fixtures/trees/pairs.toml: a feed that
-# reloaded sits at <= 5 (the deep app's home a day apart and after relaunches), the same frame with its filter chip
-# moved and its item count changed at >= 17.
-FRAME_BITS = 10
+# reloaded sits at <= 5 (the deep app's home a day apart and after relaunches); the same home with the other filter
+# chip selected and another item count sits at 10 and 17.
+FRAME_BITS = 7
+# How far a control outside the list may drift in mean color (summed over RGB) and keep its look: 0 on every reloaded
+# feed measured; selecting another bottom tab moves the newly selected tab's by 18.
+CHROME_COLOR = 9
 PATCH_DP = 24
 LOOK_BITS = 16
 # Arrival's structural threshold, picked once in step 4a on labeled pairs from all three test apps (the deep app's
@@ -63,6 +66,8 @@ DENY = re.compile(r"\b(?:report|(?:un)?block|clear|e[- ]?mails?|security|persona
                   r"allow|permissions?|install|open in|submit|proceed|tip|rate|give \d stars?|save changes|publish|"
                   r"post)\b", re.IGNORECASE)
 CONTROL_WORDS = 4
+# the always-denied words that undo something; the rest ask for an account or money
+UNDOING = {"delete", "remove", "cancel", "restore", "confirm"}
 # a content filter's own phrase: on the filter's row its verb is no deny hit, while a "Block user" or "Report" there is
 FILTER_PHRASE = re.compile(r"\b(?:hide|block|allow)\s+(?:all\s+)?(?:nsfw|sfw|explicit|mature|adult|sensitive)\b",
                            re.IGNORECASE)
@@ -119,6 +124,11 @@ def overlaps(a: Rect, b: Rect) -> bool:
 
 def center(r: Rect) -> tuple[int, int]:
     return int(r.x + r.w / 2), int(r.y + r.h / 2)
+
+
+def mean_color(image: Image.Image, r: Rect) -> np.ndarray:
+    crop = image.crop((int(r.x), int(r.y), int(r.x + r.w), int(r.y + r.h)))
+    return np.asarray(crop, dtype=float).reshape(-1, 3).mean(axis=0)
 
 
 def bbox(rects: list[Rect]) -> Rect:
@@ -212,6 +222,8 @@ class Fingerprint:
     band: tuple[int, int] | None = None  # the list's rows, first row down to the tab bar, in 8 dp buckets
     frame: int = 0
     rows: frozenset[str] = frozenset()  # the rows' candidate keys
+    chrome: tuple = ()  # the controls outside the band: words, class, place, on/off and selected state
+    looks: tuple = ()  # their mean colors, in the same order
 
     def __str__(self) -> str:
         band = f"{self.band[0]}-{self.band[1]}:{self.frame:0128x}" if self.band else "-"
@@ -224,34 +236,43 @@ def fingerprint(package: str, elements: list[dict], image: Image.Image, device: 
     return Fingerprint(package, dhash(top), dhash(content), skeleton(elements, device), *frame(elements, image, device))
 
 
-def frame(elements: list[dict], image: Image.Image, device: Device) -> tuple[tuple[int, int] | None, int, frozenset]:
+def frame(elements: list[dict], image: Image.Image, device: Device) -> tuple:
     """What surrounds the screen's list, which stays put when the list's items reload: the band from its first row
-    down to the tab bar, a fine dHash of the content area with that band blanked, and the rows. A screen with no list
-    has none."""
+    down to the tab bar, a fine dHash of the content area with that band blanked, the rows, and the controls outside
+    the band (above it, and the tabs) with their mean colors. A screen with no list has none, nor has one where another
+    control lies over a row's tap point: a card or an overlay."""
     cands = controls(elements, device)
-    rows = feed_items(cands, device)
-    if not rows:
-        return None, 0, frozenset()
-    tabs = tab_bar(cands, device)
-    top = int(min(c.rect.y for c in rows))
+    rows, tabs = feed_items(cands, device), tab_bar(cands, device)
+    top = int(min(c.rect.y for c in rows)) if rows else 0
     floor = int(min(t.rect.y for t in tabs)) if tabs else device.content_bottom_px
+    if not rows or any(r.point[1] < floor and covered(r, cands) for r in rows):
+        return None, 0, frozenset(), (), ()
     gray = np.asarray(image.convert("L")).copy()
     gray[top:floor] = 0
     around = Image.fromarray(gray[device.content_top_px:device.content_bottom_px])
-    return (bucket(top, device), bucket(floor, device)), dhash(around, 32, 16), frozenset(c.key for c in rows)
+    chrome = sorted((c for c in cands if center(c.rect)[1] < top), key=lambda c: (c.rect.y, c.rect.x)) + tabs
+    return ((bucket(top, device), bucket(floor, device)), dhash(around, 32, 16), frozenset(c.key for c in rows),
+            tuple((c.tree_label or c.ident, c.kind, c.checked, c.selected, bucket(c.rect.x, device),
+                   bucket(c.rect.y, device)) for c in chrome),
+            tuple(tuple(mean_color(image, c.rect).round()) for c in chrome))
 
 
-def same_state(a: Fingerprint, b: Fingerprint, reloads: bool = True) -> bool:
-    """Same package, same top chrome, and the same layout, nearly the same pixels (the tree can change on a
-    pixel-identical screen), or the same frame around a list whose rows were replaced: a feed that reloaded other
-    items. An overlay in the same window leaves most rows listed where they were, so it stays another state; a scroll
-    replaces them too, so right after one (reloads=False) the frame doesn't count. This names new states when
+def reloaded(a: Fingerprint, b: Fingerprint) -> bool:
+    """The same list band, frame and controls around it, with the rows replaced: the same feed after a reload. An
+    overlay in the same window leaves most rows listed where they were."""
+    return (a.band is not None and a.band == b.band and a.chrome == b.chrome
+            and 2 * len(a.rows & b.rows) < min(len(a.rows), len(b.rows)) and hamming(a.frame, b.frame) <= FRAME_BITS
+            and all(np.abs(np.subtract(x, y)).sum() <= CHROME_COLOR for x, y in zip(a.looks, b.looks, strict=True)))
+
+
+def same_state(a: Fingerprint, b: Fingerprint, reloads: bool = False) -> bool:
+    """Same package, same top chrome, and the same layout or nearly the same pixels (the tree can change on a
+    pixel-identical screen). Where a reload is expected (reloads=True, right after a launch), also the same feed with
+    other rows; anywhere else other rows are another place, like a scrolled view. This names new states when
     recording; arrival is judged by what a screen shows."""
-    replaced = 2 * len(a.rows & b.rows) < min(len(a.rows), len(b.rows))
     return (a.package == b.package and hamming(a.top, b.top) <= TOP_BITS
             and (a.skeleton == b.skeleton or hamming(a.content, b.content) <= CONTENT_BITS
-                 or (reloads and a.band is not None and a.band == b.band and replaced
-                     and hamming(a.frame, b.frame) <= FRAME_BITS)))
+                 or (reloads and reloaded(a, b))))
 
 
 def structure(target: list[dict], now: list[dict], device: Device, dynamic: list[Rect] = ()) -> float:
@@ -333,6 +354,7 @@ class Candidate:
     ident: str = ""
     enabled: bool = True
     checked: bool | None = None  # a switch's or a chip's on/off; None for a control with no such state
+    selected: bool = False
 
     @property
     def key(self) -> str:
@@ -373,7 +395,7 @@ def controls(elements: list[dict], device: Device) -> list[Candidate]:
         checked = True if e.get("checked") else False if TOGGLE.search(e["type"]) else None
         found.append(Candidate(label=tree_label or ident, kind=e["type"].split(".")[-1], rect=r, ref=e["ref"],
                                tree_label=tree_label, ident=ident, enabled=e.get("enabled") is not False,
-                               checked=checked))
+                               checked=checked, selected=bool(e.get("selected"))))
     kept = [c for c in found if not any(o is not c and area(o.rect) > area(c.rect) and inside(c.rect, o.rect)
                                         for o in found)]
     return [c for n, c in enumerate(kept) if all(o.rect != c.rect for o in kept[:n])]
@@ -394,6 +416,12 @@ def tab_bar(cands: list[Candidate], device: Device) -> list[Candidate]:
     tabs.sort(key=lambda c: c.rect.x)
     spread = tabs[-1].rect.x + tabs[-1].rect.w - tabs[0].rect.x if tabs else 0
     return tabs if len(tabs) >= 2 and spread >= 0.4 * device.w_px else []
+
+
+def covered(c: Candidate, cands: list[Candidate]) -> bool:
+    """Another control that isn't part of c holds c's tap point, so a tap there lands on it (invariant 3)."""
+    x, y = c.point
+    return any(o is not c and not inside(o.rect, c.rect) and inside(Rect(x=x, y=y, w=0, h=0), o.rect) for o in cands)
 
 
 def find(cands: list[Candidate], want: Candidate) -> Candidate | None:
@@ -438,6 +466,11 @@ def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bo
     if c.kind == "EditText" and not core:
         return "text input"
     return None
+
+
+def walled(texts) -> bool:
+    """Words that ask for an account or money (sign in, create account, subscribe, buy ...): a wall, not a result."""
+    return any(m.group(0).lower() not in UNDOING for t in texts for m in DENY_ALWAYS.finditer(t))
 
 
 def anr(elements: list[dict]) -> bool:

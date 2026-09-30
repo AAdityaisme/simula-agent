@@ -283,6 +283,7 @@ class Explorer:
         self.settles: list[tuple[float, str]] = []
         self.landing: Landing | None = None
         self.replay_fingerprint = (0, 0)
+        self.reloads = False  # while a launch is set up: its feed may have reloaded other items
         (out / "states").mkdir(parents=True, exist_ok=True)
         self.scratch = out / ".scratch"
         self.scratch.mkdir(exist_ok=True)
@@ -342,9 +343,8 @@ class Explorer:
     # ---------- recording ----------
 
     def record(self, obs: Obs, came_from: Seen | None, move: Move | None, before: Obs | None) -> Seen:
-        scrolled = move is not None and move.action == "swipe"
         for known in self.states:
-            if ob.same_state(known.fp, obs.fp, reloads=not scrolled):
+            if ob.same_state(known.fp, obs.fp, reloads=self.reloads):
                 if known is not came_from:
                     self.revisit(known, obs)
                 return known
@@ -352,9 +352,12 @@ class Explorer:
         sid = f"s{len(self.states) + 1:02d}"
         shutil.copyfile(self.scratch / "now.png", self.out / "states" / f"{sid}.png")
         (self.out / "states" / f"{sid}.elements.json").write_text(json.dumps(obs.reply, indent=1, ensure_ascii=False))
-        # an overlay in the parent's window leaves the parent's controls listed behind it: only the new ones are its own
-        behind = {c.key for c in before.cands} if box and before else set()
-        cands = [c for c in obs.cands if box is None or (ob.inside(c.rect, box) and c.key not in behind)]
+        # an overlay in the parent's window leaves the parent's controls listed behind it, maybe moved: only the new
+        # ones are its own (a control without words is told by its place too)
+        keys = {c.key for c in before.cands} if box and before else set()
+        named = {(c.tree_label, c.kind) for c in before.cands if c.tree_label} if box and before else set()
+        cands = [c for c in obs.cands if box is None or (ob.inside(c.rect, box) and c.key not in keys
+                                                         and (c.tree_label, c.kind) not in named)]
         tab_move = move is not None and move.cand is not None and move.cand.key in self.tab_keys()
         seen = Seen(sid=sid, kind=kind, parent=came_from.sid if came_from and kind != "screen" else None,
                     fp=obs.fp, fg=obs.fg, cands=cands, elements=obs.elements,
@@ -639,29 +642,40 @@ class Explorer:
 
     # ---------- launching ----------
 
+    @contextlib.contextmanager
+    def launching(self):
+        """While a launch is set up (its dialogs, the way back to the root, the content filter), a feed it reloaded is
+        still the state recorded before: records match by the frame around the list too."""
+        self.reloads = True
+        try:
+            yield
+        finally:
+            self.reloads = False
+
     def relaunch(self, first: bool = False, why: str = "") -> None:
         """Terminate, launch, settle, record and dismiss launch dialogs, then re-apply the content filter."""
         if not first:
             self.count_relaunch(why)
         self.phone.terminate()
         self.phone.launch()
-        self.wait_for_app(None if first else self.launch_root)
-        self.current = None
-        self.normalize()
-        home = self.record(self.obs, None, None, None)
-        self.current = home
-        if first:
-            self.root = self.launch_root = home
-            home.depth, home.back_to = 0, None
-            reason = self.blocked(self.obs)
-            if reason:
-                home.kind, home.blocked_reason = "blocked", reason
-                self.human("the app can't be explored", reason)
-                raise Stop(f"blocked root: {reason}")
-            self.tabs = [t for t in ob.tab_bar(home.cands, self.device) if not ob.denied(t)]
-        else:
-            self.back_to_root()
-        self.apply_filter(first)
+        with self.launching():
+            self.wait_for_app(None if first else self.launch_root)
+            self.current = None
+            self.normalize()
+            home = self.record(self.obs, None, None, None)
+            self.current = home
+            if first:
+                self.root = self.launch_root = home
+                home.depth, home.back_to = 0, None
+                reason = self.blocked(self.obs)
+                if reason:
+                    home.kind, home.blocked_reason = "blocked", reason
+                    self.human("the app can't be explored", reason)
+                    raise Stop(f"blocked root: {reason}")
+                self.tabs = [t for t in ob.tab_bar(home.cands, self.device) if not ob.denied(t)]
+            else:
+                self.back_to_root()
+            self.apply_filter(first)
         self.segments.append([])
 
     def count_relaunch(self, why: str) -> None:
@@ -679,8 +693,9 @@ class Explorer:
         self.count_relaunch(f"reopen the launch dialog {dialog.sid}")
         self.phone.terminate()
         self.phone.launch()
-        self.wait_for_app(dialog)
-        self.current = self.record(self.obs, None, None, None)
+        with self.launching():
+            self.wait_for_app(dialog)
+            self.current = self.record(self.obs, None, None, None)
         return self.current is dialog
 
     def wait_for_app(self, expect: Seen | None = None) -> Obs:
@@ -696,10 +711,12 @@ class Explorer:
             obs = self.look(splash_deadline)
         deadline = self.clock() + LAUNCH_WAIT_S
         while obs.fg == self.package and self.clock() < deadline and (not self.launchable(obs) or (
-                expect and not ob.same_state(obs.fp, expect.fp) and not ob.dialog_box(obs.cands, self.device))):
+                expect and not ob.same_state(obs.fp, expect.fp, reloads=True)
+                and not ob.dialog_box(obs.cands, self.device))):
             self.sleep(1.5)
             obs = self.look(splash_deadline) or obs
-        while not (expect and ob.same_state(obs.fp, expect.fp)) and obs.fg == self.package and self.clock() < deadline:
+        while not (expect and ob.same_state(obs.fp, expect.fp, reloads=True)) and obs.fg == self.package \
+                and self.clock() < deadline:
             self.sleep(LAUNCH_QUIET_S)
             again = self.look(splash_deadline)
             if again and ob.same_state(again.fp, obs.fp):
@@ -855,8 +872,8 @@ class Explorer:
                and abs(o.rect.h - live.rect.h) < 24]
         if not row:
             return False
-        others = np.median([mean_color(self.obs.image, o.rect) for o in row], axis=0)
-        return float(np.abs(mean_color(self.obs.image, live.rect) - others).sum()) > 40
+        others = np.median([ob.mean_color(self.obs.image, o.rect) for o in row], axis=0)
+        return float(np.abs(ob.mean_color(self.obs.image, live.rect) - others).sum()) > 40
 
     def check_filter(self) -> None:
         last = self.filter_taps[-1]
@@ -1318,13 +1335,15 @@ class Explorer:
 
     def items_now(self, feed: CoreAction) -> list[ob.Candidate]:
         """The list's recorded items the screen still shows, or, when it shows none of them (the feed reloaded), the
-        items in their place: the live list shaped like them (class and width)."""
+        items in their place: the live list shaped like them (class and width). A live item whose tap point lies under
+        another control (a card, the tab bar) is skipped like a gone one (invariant 3)."""
         if self.obs is None:
             return feed.controls
         shown = [c for c in feed.controls if ob.find(self.obs.cands, c)]
         shapes = {(c.kind, ob.bucket(c.rect.w, self.device)) for c in feed.controls}
         live = [c for c in self.obs.cands if (c.kind, ob.bucket(c.rect.w, self.device)) in shapes]
-        return shown or ob.feed_items(live, self.device, self.tab_keys()) or feed.controls
+        free = [r for r in ob.feed_items(live, self.device, self.tab_keys()) if not ob.covered(r, self.obs.cands)]
+        return shown or free or feed.controls
 
     def walk_into(self, feed: CoreAction, n: int) -> CoreAction | None:
         """Invariant 4: on the n-th item's page, a conversation (text box + send) or a play/generate button ends the
@@ -1633,8 +1652,9 @@ class Explorer:
         if self.core.kind == "chat":
             return self.chat_stop(here, before, move)
         if here is not s and here.kind in ("modal", "sheet"):
-            named = self.named(self.within(here))
-            # a sheet the action opened shows its result (an item's page) unless it says price or limit
+            named = self.named(self.within(here)) or ("sign-in wall" if ob.walled(c.tree_label for c in here.cands)
+                                                      else "")
+            # a sheet the action opened shows its result (an item's page) unless it names a price, a limit or an account
             if named or here.kind == "modal":
                 return named or "modal opened", here.sid
         if here is not s and here.upsell:
@@ -1856,11 +1876,6 @@ class Explorer:
             device=self.device)
         (self.out / "explore.json").write_text(explore.model_dump_json(indent=1))
         shutil.rmtree(self.scratch, ignore_errors=True)
-
-
-def mean_color(image: Image.Image, r: Rect) -> np.ndarray:
-    crop = image.crop((int(r.x), int(r.y), int(r.x + r.w), int(r.y + r.h)))
-    return np.asarray(crop, dtype=float).reshape(-1, 3).mean(axis=0)
 
 
 def adb_shell(serial: str, args: list[str]) -> str | None:

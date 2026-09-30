@@ -2,6 +2,7 @@
 filter, Jev and Sonnet through the stage's cap and cache, externals, billing, a relaunch, dynamic regions,
 the core-loop pass, and outputs in the frozen explore/ format."""
 
+import dataclasses
 import functools
 import json
 import re
@@ -19,6 +20,7 @@ from tests import fake_device
 from tests.fake_device import PACKAGE, Clock, FakePhone, Screen, blank, capture, fake_jev, new_run
 from tests.fake_device import explore as run_explorer
 from tests.fake_device import explorer as new_explorer
+from tests.test_fingerprint import CARD, with_card
 
 TABS = ["155,2253", "347,2253", "540,2253", "732,2253", "924,2253"]
 TRANSITIONS = {"push", "modal", "tab", "back", "replace", "unknown"}
@@ -412,8 +414,9 @@ def test_a_sheet_over_the_tab_bar_is_closed_with_back_not_a_relaunch(tmp_path, m
     assert any("control covered on the live screen" in line.note for line in trace)
 
 
-def tall_sheet(tmp_path, monkeypatch):
-    """A list row's tall sheet over its parent, whose controls stay listed behind it, recorded from the parent."""
+def tall_sheet(tmp_path, monkeypatch, moved: str = ""):
+    """A list row's tall sheet over its parent, whose controls stay listed behind it, recorded from the parent. The
+    parent control whose words start with moved sat 3 cells lower in the parent's capture (a list still loading)."""
     def screen(name: str) -> Screen:
         fix = Path(__file__).parent / "fixtures" / "invariants"
         image = Image.new("RGB", (1080, 2400), (30, 30, 30))
@@ -424,6 +427,9 @@ def tall_sheet(tmp_path, monkeypatch):
     phone.screen = "parent"
     parent = ex.current = ex.record(ex.observe(), None, None, None)
     before = ex.obs
+    for c in before.cands:
+        if moved and c.tree_label.startswith(moved):
+            c.rect = c.rect.model_copy(update={"y": c.rect.y + 63})
     phone.screen = "sheet"
     sheet = ex.current = ex.record(ex.observe(), parent, stage.Move("tap", before.cands[0]), before)
     return ex, parent, sheet, before
@@ -437,17 +443,60 @@ def test_a_tall_sheet_is_recorded_over_its_parent_with_its_box(tmp_path, monkeyp
     assert saved[sheet.sid].box == sheet.box and saved[parent.sid].box is None
 
 
-def test_a_list_with_other_rows_is_a_scrolled_view_after_a_swipe_and_the_same_feed_after_a_launch(tmp_path,
-                                                                                                    monkeypatch):
+def scrolled_feed(tmp_path, monkeypatch):
+    """A feed (j04) and the view a swipe brought (j11): the same frame around other rows."""
     ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
     phone.screens.update(first=capture("janitorai", "j04_tab1"), other=capture("janitorai", "j11_home_relaunched"))
     phone.screen = "first"
     feed = ex.current = ex.record(ex.observe(), None, None, None)
     before = ex.obs
     phone.screen = "other"
-    scrolled = ex.record(ex.observe(), feed, stage.Move("swipe"), before)
+    scrolled = ex.current = ex.record(ex.observe(), feed, stage.Move("swipe"), before)
+    return ex, phone, feed, scrolled
+
+
+def test_a_list_with_other_rows_is_a_scrolled_view_after_a_swipe_and_the_same_feed_after_a_launch(tmp_path,
+                                                                                                    monkeypatch):
+    ex, _, feed, scrolled = scrolled_feed(tmp_path, monkeypatch)
     assert scrolled is not feed and scrolled.unscroll_to == feed.sid
-    assert ex.record(ex.observe(), None, None, None) is feed
+    assert ex.record(ex.observe(), None, None, None) is scrolled
+    with ex.launching():
+        assert ex.record(ex.observe(), None, None, None) is feed
+
+
+def test_back_to_a_scrolled_view_is_the_scrolled_view(tmp_path, monkeypatch):
+    ex, phone, _, scrolled = scrolled_feed(tmp_path, monkeypatch)
+    phone.screen = "chats"
+    child = ex.current = ex.record(ex.observe(), scrolled, stage.Move("tap", ex.obs.cands[0]), ex.obs)
+    phone.screen = "other"
+    assert ex.record(ex.observe(), child, stage.Move("back"), None) is scrolled
+
+
+def test_arrival_at_the_scrolled_view_is_not_claimed_from_the_top_of_the_feed(tmp_path, monkeypatch):
+    ex, phone, _, scrolled = scrolled_feed(tmp_path, monkeypatch)
+    phone.screen = "first"
+    ex.observe()
+    monkeypatch.setattr(ex, "judge", lambda *a, **k: stage.Landing(False, None, "", 0.0))
+    assert not ex.arrived(scrolled)
+
+
+def test_a_live_row_under_another_control_is_skipped_like_a_gone_one(tmp_path, monkeypatch):
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    phone.screen = "limited"
+    feed = ex.current = ex.record(ex.observe(), None, None, None)
+    rows = ob.feed_items(feed.cands, ex.device)
+    gone = [dataclasses.replace(c, label=f"Gone {c.label}", tree_label=f"Gone {c.tree_label}") for c in rows]
+    x, y = rows[0].point
+    phone.screens["limited"].elements.append({"ref": "@card", "type": "android.widget.Button", "text": "Subscribe",
+                                              "coordinates": {"x": x - 100, "y": y - 50, "width": 400, "height": 100}})
+    ex.observe()
+    items = [c.tree_label for c in ex.items_now(stage.CoreAction("feed", feed, gone, "read items"))]
+    assert rows[0].tree_label not in items and rows[1].tree_label in items
+
+
+def test_a_parent_row_that_moved_is_still_behind_the_sheet_not_its_own(tmp_path, monkeypatch):
+    _, _, sheet, _ = tall_sheet(tmp_path, monkeypatch, moved="The Former Husband")
+    assert sheet.kind == "sheet" and not [c for c in sheet.cands if c.tree_label.startswith("The Former Husband")]
 
 
 def test_a_sheet_offers_only_its_own_controls_never_the_screen_behind_it(tmp_path, monkeypatch):
@@ -517,6 +566,66 @@ def test_the_walk_and_the_feed_pass_take_the_items_the_reloaded_feed_shows(tmp_p
     stage.explore_app(ex)
     first = next(line for line in lines(ex) if line.loop_pass == 1)
     assert ex.core.kind == "feed" and first.outcome == "ok" and ex.by_id[first.to_state].sid != first.from_state
+
+
+def reloaded_with_a_card(tmp_path, monkeypatch):
+    """reloaded_after_the_tour, plus a card with no scrim over the reloaded feed; the card's button is under the new
+    first item's tap point. Returns the phone log's length at that launch."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    paywall_pass, launch = ex.paywall_pass, phone.launch
+    after = []
+
+    def reload():
+        launch()
+        phone.launch = launch
+        feed = phone.screens["limited"]
+        items = [c.tree_label for c in ob.feed_items(ob.controls(feed.elements, ex.device), ex.device)]
+        today = {item: f"Today: {item}" for item in items}
+        feed.elements[:] = [{**e, **{k: today[e[k]] for k in ("text", "label") if e.get(k) in today}}
+                            for e in feed.elements] + CARD
+        feed.image.paste(with_card(feed.image))
+        phone.taps[("limited", today[items[0]])] = "chat"
+        after.append(len(phone.log))
+
+    def after_the_tour():
+        phone.launch = reload
+        paywall_pass()
+    monkeypatch.setattr(ex, "paywall_pass", after_the_tour)
+    return ex, phone, after
+
+
+def test_the_walk_never_taps_through_a_card_over_the_reloaded_feed(tmp_path, monkeypatch):
+    ex, phone, after = reloaded_with_a_card(tmp_path, monkeypatch)
+    stage.explore_app(ex)
+    later = [e for e in phone.log[after[0]:] if e[0] == "tap" and e[1] == "limited"]
+    assert after and not [e for e in later if e[2] == "Subscribe to Plus"], (later, [s.sid for s in ex.states])
+
+
+def sign_in_sheet(clock):
+    """A feed item opens a sheet in the feed's window that asks the guest to sign in."""
+    phone = janitor_like(clock)
+    feed = phone.screens["limited"]
+    image = feed.image.copy()
+    ImageDraw.Draw(image).rectangle((0, 1250, 1080, 2400), fill=(40, 40, 48))
+    own = [{"ref": "@s1", "type": "android.view.ViewGroup", "text": "Sign in to read this character",
+            "coordinates": {"x": 0, "y": 1250, "width": 1080, "height": 110}},
+           {"ref": "@s2", "type": "android.widget.Button", "text": "Sign in with Google",
+            "coordinates": {"x": 240, "y": 1950, "width": 600, "height": 120}},
+           {"ref": "@s3", "type": "android.widget.Button", "text": "Not now",
+            "coordinates": {"x": 240, "y": 2150, "width": 600, "height": 120}}]
+    phone.screens["sheet"] = Screen(feed.elements + own, image, PACKAGE)
+    phone.taps[("limited", "JJK - GOJO’S RELATIVE")] = "sheet"
+    phone.taps[("limited", "Adrian & Eleanor || Your Dad & Stepmom's Hometown Fling")] = "sheet"
+    return phone
+
+
+def test_a_sign_in_sheet_in_the_feed_pass_stops_it(tmp_path, monkeypatch):
+    ex, _ = new_explorer(tmp_path, monkeypatch, sign_in_sheet)
+    monkeypatch.setattr(decide, "ask_choice", functools.partial(fake_jev, core_pick="open and read items"))
+    stage.explore_app(ex)
+    opened = [line for line in lines(ex)
+              if line.loop_pass and line.to_state and ex.by_id[line.to_state].kind == "sheet"]
+    assert ex.core.kind == "feed" and opened and opened[0].loop_stop == "sign-in wall"
 
 
 def test_a_sheet_the_feed_pass_opens_is_its_result_not_a_stop(tmp_path, monkeypatch):

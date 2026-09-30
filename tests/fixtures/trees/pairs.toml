@@ -1,5 +1,6 @@
 # Labeled capture pairs for the fingerprint test (PR 1). Captures are in trees/<app>/.
-# Every pair of captures listed under `captures` is DIFFERENT unless it appears in `same`.
+# Every pair of captures listed under `captures` is DIFFERENT unless it appears in `same`, or in `reloaded`: the same
+# screen only where a reload is expected (right after a launch), anywhere else another place, like a scrolled view.
 # Source: merge check 2026-09-27 (architecture/merged/DIFF.md §4.2), pixel-checked.
 
 captures = [
@@ -13,7 +14,7 @@ captures = [
   "luzia/luzia-settings", "luzia/luzia-settings-scrolled", "luzia/luzia-pet-intro",
   "aol/aol-home", "aol/aol-home-repeat", "aol/aol-home-scrolled", "aol/aol-article", "aol/aol-article-external",
   "aol/aol-tab-entertainment", "aol/aol-tab-local", "aol/aol-tab-sports",
-  "janitorai/j11_home_relaunched", "janitorai/j12_home_relaunched_again",
+  "janitorai/j11_home_relaunched", "janitorai/j12_home_relaunched_again", "janitorai/jr5",
 ]
 
 same = [
@@ -36,8 +37,12 @@ same = [
   ["aol/aol-a", "aol/aol-home-repeat"],
   ["aol/aol-b", "aol/aol-home"],
   ["aol/aol-b", "aol/aol-home-repeat"],
-  # 2026-09-30: JanitorAI home after two relaunches of the deep run (its s13, s15): the same frame around a feed that
-  # reloaded other characters. janitorai-hidden has the same title, tabs and feed tab but the other filter chip.
+]
+
+# 2026-09-30: JanitorAI home after two relaunches of the deep run (its s13, s15): the same frame around a feed that
+# reloaded other characters. Hard negatives with the same title, tabs and feed tab but the other filter chip:
+# janitorai-hidden (vs j04), and jr5 (All + Trending) vs janitorai-limited (Limited Only + Trending).
+reloaded = [
   ["janitorai/j04_tab1", "janitorai/j11_home_relaunched"],
   ["janitorai/j04_tab1", "janitorai/j12_home_relaunched_again"],
   ["janitorai/j11_home_relaunched", "janitorai/j12_home_relaunched_again"],
