@@ -64,14 +64,13 @@ def test_a_live_run_that_lost_a_batch_replays_to_the_same_page(tmp_path, monkeyp
     model = golden(APP)
     ctx = ctx_for(run_dir, APP)
     if kind == "retry_turned_away":
-        # A first answer costs $1 and a retry $0.50. The plan keeps every batch with one $1 spare, so, one batch at a
-        # time, the last batch's retry finds no room left and is turned away.
-        monkeypatch.setattr(mock, "worst_usd", lambda ctx, content: 1.0)
+        # Every call holds $1; a first answer costs $1 and a retry $0.50. One batch at a time, under a $2.50 cap,
+        # batch 1 spends $1.50 and batch 2's first answer the last $1, so its retry is turned away.
         monkeypatch.setattr(llm, "worst_case_usd", lambda model_id, tokens_in, tokens_out: 1.0)
         monkeypatch.setattr(llm, "usd", lambda model_id, tokens_in, tokens_out, tokens_cached=0:
                             1.0 if tokens_out >= 100000 else 0.5)
         monkeypatch.setattr(mock, "PARALLEL_BATCHES", 1)
-        ctx.usd_cap = len(mock.batches(mock.pick_scope(model))) + 1.0
+        ctx.usd_cap = 2.5
         provider = running_out_of_tokens_first(model)
     else:
         provider = losing_first_batch(model, kind)
@@ -79,6 +78,11 @@ def test_a_live_run_that_lost_a_batch_replays_to_the_same_page(tmp_path, monkeyp
     mock.run(ctx)
     live = (run_dir / "mock" / "index.html").read_text()
     assert "screen not drawn" in live
+    if kind == "retry_turned_away":
+        second = mock.batches(mock.pick_scope(model))[1]
+        report = ContractReport.model_validate_json((run_dir / "mock" / "contract_report.json").read_text())
+        assert next(e.detail for e in report.errors if e.screen == second[0].id).startswith(
+            "screen not drawn: $ cap reached: mock: next call could cost $1.00")
 
     replay = ctx_for(run_dir, APP)
     replay.replay = True
@@ -174,14 +178,14 @@ def test_a_batch_lost_to_a_known_failure_is_a_contract_error_qa_repairs_not_a_pa
 
 
 def test_batches_the_cap_left_out_are_one_plain_reason_and_resume_with_a_higher_cap(runs, tmp_path, monkeypatch):
-    """The cap's own trace line makes the stage partial (run_stage), and the deck cover prints it, so it names the
-    screens and says why in the product team's words."""
+    """The stage's outcome makes it partial, and the deck cover prints it, so it names the screens and says why in the
+    product team's words: the budget's own refusal, with its dollar figures, stays in the trace."""
     with_cache_in(tmp_path, monkeypatch)
     model = golden(APP)
-    monkeypatch.setattr(mock, "worst_usd", lambda ctx, content: 1.0)
     monkeypatch.setattr(llm, "worst_case_usd", lambda model_id, tokens_in, tokens_out: 1.0)
+    monkeypatch.setattr(llm, "usd", lambda model_id, tokens_in, tokens_out, tokens_cached=0: 1.0)
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider_drawing(model, []))
-    assert cli.main(["mock", APP, "--allow-fixtures", "--fixture", f"model={GOLDEN}", "--usd-cap", "2"]) == 0
+    assert cli.main(["mock", APP, "--allow-fixtures", "--fixture", f"model={GOLDEN}", "--usd-cap", "1"]) == 0
     run_dir = (runs / APP / "latest").resolve()
     left_out = [s for batch in mock.batches(mock.pick_scope(model))[1:] for s in batch]
     outcome = runfolder.read_done(run_dir / "mock").outcome

@@ -38,11 +38,11 @@ def records(tmp_path, monkeypatch):
     return tmp_path / "records"
 
 
-def fake_llm(calls: list, edits=lambda n: []):
+def fake_llm(calls: list, edits=lambda n: [], fixes=(Fix(element_id="s01", problem="p", fix="f"),)):
     def call(**kwargs):
         calls.append(kwargs)
         if kwargs["schema"] is Critique:
-            return Critique(fixes=[Fix(element_id="s01", problem="p", fix="f")], summary="s"), None
+            return Critique(fixes=list(fixes), summary="s"), None
         return Edits(edits=edits(sum(c["schema"] is Edits for c in calls))), None
     return call
 
@@ -151,13 +151,49 @@ def test_the_fixer_runs_high_then_xhigh_in_round_3_and_the_critic_gets_the_histo
 
 
 @pytest.mark.parametrize("profile", ["dev", "real"])
-def test_the_fixer_has_room_to_think_on_a_whole_page_and_streams(scripted, profile):
+def test_the_fixer_has_room_to_think_and_streams_but_never_gets_the_whole_page(scripted, profile):
     _, calls, play = scripted
     play([5.0, 6.0, 7.0, 8.0], profile=profile)
     fixers = [c for c in calls if c["schema"] is Edits]
-    assert fixers and all(c["max_tokens"] == 64000 for c in fixers)
+    assert fixers and all("v0" not in c["messages"][0]["content"][-1]["text"] for c in fixers)
+    assert all(c["max_tokens"] == 64000 for c in fixers)
     assert all(c["max_tokens"] > config.models()[c["model"]]["stream_above"] for c in fixers)
     assert all(c["max_tokens"] == 16000 for c in calls if c["schema"] is Critique)
+
+
+@pytest.mark.parametrize("finding", [[], [Fix(element_id="not.in.the.model", problem="p", fix="f")]],
+                         ids=["empty", "unknown-id"])
+def test_with_nothing_to_repair_the_fixer_is_never_called_and_open_findings_are_kept(scripted, finding):
+    _, calls, play = scripted
+    report = play([5.0, 6.0], call=fake_llm(calls, fixes=finding))
+    assert not [c for c in calls if c["schema"] is Edits]
+    assert (report["approved_round"], report["stop_reason"]) == (0, "round 1 found nothing to repair")
+    assert report["open_findings"] == [f.model_dump() for f in finding]
+
+
+def test_an_empty_critique_still_sends_a_failed_contract_check_to_the_fixer(scripted):
+    _, calls, play = scripted
+    report = play([5.0, 5.0, 5.0], errors=[1, 0, 0], call=fake_llm(calls, fixes=[]))
+    fixers = [c for c in calls if c["schema"] is Edits]
+    assert len(fixers) == 1 and [e["kind"] for e in told(fixers[0])["contract_errors"]] == ["invented_edge"]
+    assert (report["approved_round"], report["stop_reason"]) == (1, "round 2 found nothing to repair")
+
+
+def test_a_repair_cut_off_at_max_tokens_is_reported_as_unresolved(scripted):
+    """The failed repair stops the loop, and the report keeps all it left undone: the critic's findings, the failed
+    checks, and why."""
+    _, calls, play = scripted
+
+    def call(**kwargs):
+        calls.append(kwargs)
+        if kwargs["schema"] is Critique:
+            return Critique(fixes=[Fix(element_id="s01", problem="p", fix="f")], summary="s"), None
+        raise llm.LLMFailure("max_tokens", "max_tokens")
+    report = play([5.0], errors=[1], call=call)
+    assert (report["outcome"], report["approved_round"]) == ("partial", 0)
+    assert report["reasons"] == ["the review stopped early: the model's answer was cut off",
+                                 "contract errors on the approved version: 1"]
+    assert [f["element_id"] for f in report["open_findings"]] == ["s01"] and len(report["contract_errors"]) == 1
 
 
 def test_rejected_edits_are_logged_and_reach_the_next_critic(scripted):
@@ -365,8 +401,8 @@ def test_a_provider_usage_limit_mid_qa_fails_the_stage_instead_of_approving(mock
 def answering_provider(calls: list, model: ProductModel | None = None, refuse: str | None = None,
                        fixer_out: int = 100, builder_out: int = 1000):
     """Stands in for the provider behind the real llm.call (cache, budget, trace). The builder draws each batch of
-    `model` as its skeleton, spending `builder_out` tokens, but refuses the batch holding screen `refuse` the first
-    time it is asked; the critic names s01, and the fixer answers with no edits, spending `fixer_out` tokens."""
+    `model` as its skeleton, spending `builder_out` tokens a screen, but refuses the batch holding screen `refuse` the
+    first time it is asked; the critic names s01, and the fixer answers with no edits, spending `fixer_out` tokens."""
     refused = []
 
     def call(model_id, system, messages, effort, schema, max_tokens, total_timeout=None):
@@ -378,7 +414,7 @@ def answering_provider(calls: list, model: ProductModel | None = None, refuse: s
                 refused.append(screens)
                 return Reply(text="", model=model_id, tokens_in=1000, tokens_out=10, stop_reason="refusal")
             return Reply(text=f"```html\n{skeleton_html(model, screens)}\n```", model=model_id, tokens_in=1000,
-                         tokens_out=builder_out)
+                         tokens_out=builder_out * len(screens))
         calls.append((schema.__name__,))
         if schema is Critique:
             answer = Critique(fixes=[Fix(element_id="s01", problem="p", fix="f")], summary="s")
@@ -476,7 +512,7 @@ def test_a_refused_mock_batch_resumes_to_every_screen_on_a_large_scope_at_real_p
     refused = sorted(s.id for s in groups[1])
     calls = []
     monkeypatch.setitem(llm.PROVIDERS, "anthropic",
-                        answering_provider(calls, model, refuse=groups[1][0].id, builder_out=80000))
+                        answering_provider(calls, model, refuse=groups[1][0].id, builder_out=20000))
     real = llm.call
     monkeypatch.setattr(llm, "call", lambda **kwargs: real(**kwargs, cache_dir=tmp_path / "cache"))
     options = ["--allow-fixtures", "--profile", "real"]
@@ -677,21 +713,36 @@ def test_the_critic_and_the_fixer_are_given_the_pictures_code_made_for_their_scr
 
 
 @pytest.mark.parametrize("twelve", APPS, indirect=True)
-def test_the_fixer_gets_only_the_screens_the_critique_names(twelve, monkeypatch):
+def test_the_fixer_gets_only_the_screens_on_its_worklist_and_of_the_page_only_theirs(twelve, monkeypatch):
+    """The screens the critique's fixes are on and those with a failed check, and of the page the style blocks and
+    those screens' sections alone: a finding on one screen sends no other screen's markup."""
     app, run_dir, model, ids = twelve
     with_elements = next(s for s in mock.pick_scope(model) if s.elements)
     page_wide = ContractError(kind="console_error", detail="page-wide", screen=None)
+    on_five = ContractError(kind="unknown_el", detail="on the fifth screen", screen=ids[4])
     critique = Critique(fixes=[Fix(element_id=ids[10], problem="p", fix="f"),
                                Fix(element_id=with_elements.elements[0].id, problem="p", fix="f"),
                                Fix(element_id="not.in.the.model", problem="p", fix="f")], summary="s")
-    calls = []
-    monkeypatch.setattr(llm, "call", fake_critic(calls))
-    qa.fix(ctx_for(run_dir, app), llm.Budget("qa", 12.0), model, measured_twelve(run_dir, model, [page_wide]),
-           critique, 1)
-    named = [sid for sid in ids if sid in {ids[10], with_elements.id}]
+    version = measured_twelve(run_dir, model, [page_wide, on_five])
+    style = '<style data-batch="1">section[data-screen="s01"] p{margin:0}</style>'
+    version.html = skeleton_html(model).replace("</head>", style + "</head>")
+    calls, pages = [], []
+
+    def call(**kwargs):
+        pages.append(kwargs["messages"][0]["content"][-1]["text"].split("```html\n")[1])
+        return fake_critic(calls)(**kwargs)
+    monkeypatch.setattr(llm, "call", call)
+    qa.fix(ctx_for(run_dir, app), llm.Budget("qa", 12.0), model, version, critique, 1)
+    named = [sid for sid in ids if sid in {ids[4], ids[10], with_elements.id}]
     assert calls[0]["seen"] == named
     assert [s["screen"] for s in calls[0]["told"]["screens"]] == named
-    assert [e["detail"] for e in calls[0]["told"]["contract_errors"]] == ["page-wide"]
+    assert [e["detail"] for e in calls[0]["told"]["contract_errors"]] == ["page-wide", "on the fifth screen"]
+    assert [f["element_id"] for f in calls[0]["told"]["fixes"]] == [ids[10], with_elements.elements[0].id]
+    sections = [t["attrs"]["data-screen"] for t in mock.StartTags(pages[0]).tags if "data-screen" in t["attrs"]]
+    assert pages[0].startswith(style) and sections == named
+    for sid in named:
+        whole = re.search(rf'<section data-screen="{sid}".*?</section>', version.html, re.S)[0]
+        assert whole in pages[0]
 
 
 @pytest.mark.parametrize("twelve", APPS, indirect=True)

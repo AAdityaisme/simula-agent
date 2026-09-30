@@ -9,12 +9,12 @@ import json
 import math
 import re
 import shutil
+import threading
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from html import escape, unescape
 from html.parser import HTMLParser
-from itertools import accumulate
 import urllib.request
 from urllib.parse import quote_plus
 
@@ -26,10 +26,13 @@ from simula.config import ROOT
 from simula.contracts import (ContractError, ContractReport, Device, Edge, Element, ProductModel, Rect, StageOutcome,
                               State)
 from simula.runlog import read_trace, run_trace, write_exhibit
-from simula.stages import Ctx
+from simula.stages import Ctx, resume_command
 
-# ponytail: a fixed batch size. If a batch still runs out of output tokens, size batches from measured tokens per screen.
+# ponytail: batches sized by screens and tagged elements, not by a token estimate. In the committed runs the two densest
+# batches (116 and 143 tagged) reached 83% and 98% of the builder's 128K output ceiling, and none of at most 100 passed
+# 70%. If a batch still runs out of output tokens, size batches from measured tokens per screen.
 BATCH_SCREENS = 4
+BATCH_TAGGED = 100
 PARALLEL_BATCHES = 4
 DIALOGS = ("modal", "sheet")
 PALETTE_SIZE = 4
@@ -182,7 +185,7 @@ def run(ctx: Ctx) -> StageOutcome:
             shutil.rmtree(mock_dir / built, ignore_errors=True)
     scope = pick_scope(model)
     screens = [s.id for s in scope]
-    groups = batches(scope)
+    groups, keep = recorded_plan(ctx, scope) if ctx.replay else (batches(scope), None)
     run_trace(ctx.run_dir, stage="mock", step="scope", decider="code",
               note=" | ".join(" ".join(s.id for s in batch) for batch in groups))
     copy_assets(model_dir, mock_dir, scope, model.device)
@@ -190,10 +193,8 @@ def run(ctx: Ctx) -> StageOutcome:
 
     style = shared_style(scope)
     contents = [batch_content(ctx, model, batch, screens, art, style) for batch in groups]
-    plan = batch_plan(ctx, contents)
-    budget = llm.Budget.for_stage("mock", ctx.run_dir / "trace.jsonl", plan.cap)
-    run_trace(ctx.run_dir, stage="mock", step="plan", decider="code", note=plan.line(len(groups)))
-    drawn = draw_batches(ctx, groups, contents, budget, plan)
+    budget = llm.Budget.for_stage("mock", ctx.run_dir / "trace.jsonl", ctx.usd_cap)
+    drawn = draw_batches(ctx, groups, contents, budget, keep)
     undrawn = {s.id: failure_reason(e) for batch, e in drawn.lost for s in batch}
     fonts = vendor_fonts(ctx, mock_dir, fonts_of(scope), page_chars(drawn.parts))
     html = with_runtime(wire_edges(stitch(style, fonts, drawn.parts), model, screens), home_id(scope))
@@ -206,22 +207,32 @@ def run(ctx: Ctx) -> StageOutcome:
     (mock_dir / "contract_report.json").write_text(report.model_dump_json(indent=1))
     run_trace(ctx.run_dir, stage="mock", step="contract", decider="code", outcome="ok" if report.passed else "error",
               note=f"{len(screens)} screens rendered, {len(undrawn)} not drawn, {len(errors)} contract errors")
-    write_exhibit(ctx.run_dir, 3, "mock", exhibit(ctx, model, scope, groups, undrawn, html, report, plan))
-    return outcome(drawn.lost)
+    write_exhibit(ctx.run_dir, 3, "mock", exhibit(ctx, model, scope, groups, undrawn, html, report, drawn.plan))
+    return outcome(ctx, drawn.lost)
 
 
-def outcome(lost: list[tuple[list[State], BaseException]]) -> StageOutcome:
-    """Partial only for batches a lost call left undrawn, which the plain rerun run_stage prints does draw. A batch the
-    $ cap left out makes the stage partial through its cap trace line (run_stage, with the raise-the-cap resume). A
-    known failure (a refusal, an answer cut off twice, one with no page) is replayed free on a rerun, so it stays an
-    undrawn_screen contract error that QA round 1 repairs. The reasons are for the app's product team: screen names
-    and what happened, while ids and the provider's words stay in the trace and contract_report.json."""
+def outcome(ctx: Ctx, lost: list[tuple[list[State], BaseException]]) -> StageOutcome:
+    """Partial for the batches a rerun draws: ones a lost call left undrawn (the plain rerun) and ones the $ cap left
+    out (the rerun with a raised cap). A known failure (a refusal, an answer cut off twice, one with no page) is
+    replayed free on a rerun, so it stays an undrawn_screen contract error that QA round 1 repairs. The reasons are
+    for the app's product team, and the deck cover prints them: screen names and what happened, while ids, dollar
+    figures and the provider's words stay in the trace and contract_report.json. The stage builds its own resume, so
+    run_stage keeps these reasons rather than the cap's trace lines."""
     by_cause: dict[str, list[State]] = {}
+    causes = []
     for batch, e in lost:
-        if isinstance(e, llm.LLMFailure) and e.outcome in llm.TRANSPORT:
-            by_cause.setdefault(LOST_CALL[e.outcome], []).extend(batch)
-    reasons = [not_drawn(states, why) for why, states in by_cause.items()]
-    return StageOutcome(status="partial", reasons=reasons) if reasons else StageOutcome()
+        if isinstance(e, llm.CapReached):
+            why = OVER_BUDGET
+        elif isinstance(e, llm.LLMFailure) and e.outcome in llm.TRANSPORT:
+            why = LOST_CALL[e.outcome]
+        else:
+            continue
+        by_cause.setdefault(why, []).extend(batch)
+        causes.append(e)
+    if not causes:
+        return StageOutcome()
+    return StageOutcome(status="partial", reasons=[not_drawn(states, why) for why, states in by_cause.items()],
+                        resume=resume_command(ctx, "mock", *causes))
 
 
 def not_drawn(states: list[State], why: str) -> str:
@@ -241,19 +252,24 @@ def pick_scope(model: ProductModel) -> list[State]:
 
 
 def batches(scope: list[State]) -> list[list[State]]:
-    """Consecutive screens in priority order, at most BATCH_SCREENS per batch. A modal or sheet joins the batch of
-    the screen it sits on, so a batch holding a screen with more dialogs than that can run over."""
+    """Consecutive screens in priority order, at most BATCH_SCREENS and BATCH_TAGGED tagged elements per batch, so
+    dense screens go in smaller batches. A modal or sheet joins the batch of the screen it sits on, so a batch holding
+    a screen with more dialogs, or more tagged elements, than that can run over."""
     by_id = {s.id: s for s in scope}
     units = {}
     for state in scope:
         units.setdefault(anchor(state, by_id), []).append(state)
     groups = []
     for unit in units.values():
-        if groups and len(groups[-1]) + len(unit) <= BATCH_SCREENS:
+        if groups and fits(groups[-1] + unit):
             groups[-1] += unit
         else:
             groups.append(list(unit))
     return groups
+
+
+def fits(batch: list[State]) -> bool:
+    return len(batch) <= BATCH_SCREENS and sum(len(tagged_ids(s)) for s in batch) <= BATCH_TAGGED
 
 
 def anchor(state: State, by_id: dict[str, State]) -> str:
@@ -446,80 +462,34 @@ def contains(a: Rect, b: Rect) -> bool:
 
 @dataclass(frozen=True)
 class Plan:
-    """How many batches, in priority order, the stage asks for, and on a live run the figures that decided it: each
-    batch's planned cost (`usd`) against what was left of `cap` after the `spent` already in the run. A replay has only
-    `keep`, the one thing the run records."""
+    """How many batches, in priority order, the $ cap admitted (`keep`), and on a live run the cap and the mock spend
+    already in the run when it began. A replay has only `keep`, the one figure the run records."""
     keep: int
     cap: float | None = None
     spent: float | None = None
-    usd: list[float] | None = None
 
     def line(self, batches: int) -> str:
-        if self.usd is None:
-            return f"{self.keep} of {batches} batches, as the live run planned"
-        cached = self.usd.count(0.0)
-        return (f"{self.keep} of {batches} batches fit the ${self.cap:.2f} cap with ${self.spent:.2f} already "
-                f"spent, at worst case: ${sum(self.usd[:self.keep]):.2f} + ${max(self.usd):.2f} spare for one retry"
-                + (f"; {cached} already cached, at $0" if cached else ""))
+        if self.cap is None:
+            return f"{self.keep} of {batches} batches, as the live run admitted them"
+        return (f"{self.keep} of {batches} batches admitted in priority order under the ${self.cap:.2f} cap with "
+                f"${self.spent:.2f} already spent, each call holding its worst case only while in flight")
 
 
-def batch_plan(ctx: Ctx, contents: list[list[dict]]) -> Plan:
-    """A live run plans with the $ check's own arithmetic: it counts the mock spend already in the run against the
-    cap (after any --usd-cap), and a batch whose calls all settle from the cache costs nothing. It records how many
-    batches it keeps in mock/plan.json, and nothing else: a rerun that draws the same page leaves it byte for byte, so
-    the stages below don't rerun. --replay reads that record instead of planning again: its trace and cache also hold
-    what the live run spent and drew, so a new plan could differ. With no record it stops, like a model call's replay
-    miss."""
+def recorded_plan(ctx: Ctx, scope: list[State]) -> tuple[list[list[State]], int]:
+    """--replay's batches and how many of them the live run admitted, from its mock/plan.json: a replay asks for
+    exactly the calls the live run made, whatever the batching rule or the cap is now. With no record of this scope
+    it stops, like a model call's replay miss."""
     path = ctx.run_dir / "mock" / PLAN_RECORD
-    if ctx.replay:
-        if not path.exists():
-            raise llm.ReplayMiss(f"--replay: no recorded batch plan at mock/{PLAN_RECORD}")
-        return Plan(keep=json.loads(path.read_text())["keep"])
-    cap = config.stage_cap("mock") if ctx.usd_cap is None else ctx.usd_cap
-    spent = stage_usd(ctx)
-    usd = [planned_usd(ctx, content) for content in contents]
-    plan = Plan(keep=affordable(usd, max(cap - spent, 0.0)), cap=cap, spent=spent, usd=usd)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"keep": plan.keep}))
-    return plan
-
-
-def planned_usd(ctx: Ctx, content: list[dict]) -> float:
-    """What one batch can cost this run: nothing when every call generate would make settles from the cache (an
-    answer, or a known failure the call raises again, free; after a cut-off first answer, the retry's record decides),
-    else its worst case."""
-    if not ctx.no_cache:
-        for request in builder_requests(ctx, content):
-            settled = llm.answered_from_cache(**request)
-            if settled is None:
-                break
-            if settled.failure != "max_tokens":
-                return 0.0
-        else:
-            return 0.0
-    return worst_usd(ctx, content)
-
-
-def affordable(worst: list[float], cap: float) -> int:
-    """How many batches, in priority order, fit the cap at their worst case with one worst case spare for a
-    max_tokens retry. Stops at the first that doesn't fit: never skips a batch to fit a cheaper later one."""
-    # ponytail: a priority prefix, so a cached ($0) batch behind the first batch that doesn't fit is left out too, and
-    # a rerun under a tight cap stops the stage. Keep $0 batches past the prefix (keep as a list) if that gets common.
-    spare = max(worst, default=0.0)
-    return sum(1 for total in accumulate(worst) if total + spare <= cap)
-
-
-def worst_usd(ctx: Ctx, content: list[dict]) -> float:
-    """The most one batch's call can cost: its retry prompt (the longer one) answered up to max_tokens."""
-    role = config.roles(ctx.profile)["mock_builder"]
-    _, retry = builder_requests(ctx, content)
-    return llm.worst_case_usd(role["model"], llm.estimate_tokens_in(retry["system"], retry["messages"]),
-                              config.max_tokens(role))
+    record = json.loads(path.read_text()) if path.exists() else {}
+    by_id = {s.id: s for s in scope}
+    if sorted(sid for batch in record.get("batches", []) for sid in batch) != sorted(by_id):
+        raise llm.ReplayMiss(f"--replay: no recorded batch plan for this scope at mock/{PLAN_RECORD}")
+    return [[by_id[sid] for sid in batch] for batch in record["batches"]], record["keep"]
 
 
 def builder_requests(ctx: Ctx, content: list[dict]) -> tuple[dict, dict]:
-    """generate's two calls for one batch, as llm.call and llm.answered_from_cache take them: the first at the role's
-    effort, and the retry after an answer cut off at max_tokens, at lower effort and asking for shorter CSS."""
+    """generate's two calls for one batch, as llm.call takes them: the first at the role's effort, and the retry after
+    an answer cut off at max_tokens, at lower effort and asking for shorter CSS."""
     role = config.roles(ctx.profile)["mock_builder"]
     effort = role.get("effort")
 
@@ -533,33 +503,61 @@ def builder_requests(ctx: Ctx, content: list[dict]) -> tuple[dict, dict]:
 @dataclass(frozen=True)
 class Drawn:
     """What the batches came back as: each batch's (CSS, sections) in order, a placeholder for one not drawn; each
-    batch not drawn with what stopped it; and the contract errors of batches that reach outside their own screens."""
+    batch not drawn with what stopped it; the contract errors of batches that reach outside their own screens; and how
+    many batches the $ cap admitted."""
     parts: list[tuple[str, str]]
     lost: list[tuple[list[State], BaseException]]
     errors: list[ContractError]
+    plan: Plan
 
 
 def draw_batches(ctx: Ctx, groups: list[list[State]], contents: list[list[dict]], budget: llm.Budget,
-                 plan: Plan) -> Drawn:
-    """Draws the batches, at most PARALLEL_BATCHES at once. Only the plan's first `keep` batches are asked for; it
-    left the rest over budget. A batch that fails becomes placeholder sections and the rest still ship; the stage
-    fails only if all fail."""
-    over = llm.CapReached(f"over budget: batches {plan.keep + 1}-{len(groups)} don't fit the mock's $ cap at worst "
-                          "case; raise with --usd-cap")
+                 keep: int | None) -> Drawn:
+    """Draws the batches, at most PARALLEL_BATCHES at once. A live run admits them at reserve time, in priority order:
+    each batch's first call takes its worst-case hold in turn (`llm.Turn`) and gives it back at what it cost, and once
+    the cap turns a call away no later batch is asked for, so the batches drawn are a priority prefix. It records the
+    batches and how many it admitted in mock/plan.json; a replay asks for the first `keep`, as recorded. A batch that
+    fails becomes placeholder sections and the rest still ship; the stage fails only if all fail."""
+    settled, moved, stopped = set(), threading.Condition(), threading.Event()
+    spent = budget.spent
 
-    def draw(n: int, content: list[dict]):
-        if n > plan.keep:
-            return over
+    def ask(n: int, content: list[dict], budget) -> tuple[str, str] | BaseException:
         try:
             return batch_parts(generate(ctx, content, budget, f"batch{n}"))
         except (llm.LLMFailure, llm.CapReached, ValueError) as e:
             return e
 
-    # ponytail: the plan fits every first call plus one max_tokens retry at worst case, so the $ check never turns a
-    # planned call away. A second retry in one run is outside the plan: the budget's lock turns it away, so that
-    # batch becomes a placeholder and the run's replay misses on it. Keep more spare if retries get common.
+    def draw(n: int, content: list[dict]) -> tuple[str, str] | BaseException | None:
+        """A batch's parts or what stopped it, or None for one the cap left out."""
+        if ctx.replay:
+            return ask(n, content, budget) if n <= keep else None
+        # ponytail: a batch the cap can't hold beside the calls in flight is left out, not queued until they settle.
+        # Queue it if cap stops leave much of the cap unspent.
+        turn = llm.Turn(budget, n - 1, settled, moved)
+        try:
+            turn.wait()
+            if stopped.is_set():
+                return None
+            result = ask(n, content, turn)
+            if isinstance(result, llm.CapReached):
+                stopped.set()
+                return result if turn.held else None  # turned away before holding anything: left out, not drawn
+            return result
+        finally:
+            turn.settle()
+
     with ThreadPoolExecutor(PARALLEL_BATCHES) as pool:
         results = list(pool.map(draw, range(1, len(groups) + 1), contents))
+    admitted = sum(r is not None for r in results)
+    plan = Plan(admitted) if ctx.replay else Plan(admitted, budget.cap, spent)
+    if not ctx.replay:
+        path = ctx.run_dir / "mock" / PLAN_RECORD
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({"batches": [[s.id for s in batch] for batch in groups], "keep": admitted}))
+    run_trace(ctx.run_dir, stage="mock", step="plan", decider="code", note=plan.line(len(groups)))
+    over = llm.CapReached(f"over budget: batches {admitted + 1}-{len(groups)} were left out once the mock's $ cap "
+                          "turned a call away; raise with --usd-cap")
+    results = [over if r is None else r for r in results]
     failures = [r for r in results if isinstance(r, BaseException)]
     if len(failures) == len(results):
         # A cap failure gets the CLI's needs-human instructions (raise --usd-cap), so it wins over any other.
@@ -576,12 +574,12 @@ def draw_batches(ctx: Ctx, groups: list[list[State]], contents: list[list[dict]]
         parts.append(result)
     if left_out := [s for batch, e in lost if e is over for s in batch]:
         trace_undrawn(ctx, "over_budget", left_out, over)
-    return Drawn(parts, lost, errors)
+    return Drawn(parts, lost, errors, plan)
 
 
 def trace_undrawn(ctx: Ctx, step: str, states: list[State], e: BaseException) -> None:
-    """One trace line for screens not drawn. A cap line's note becomes a reason on the deck cover (run_stage), so it is
-    in the product team's words; any other keeps the screen ids and the provider's own words."""
+    """One trace line for screens not drawn: a cap line in the product team's words, as the stage's outcome puts it;
+    any other keeps the screen ids and the provider's own words."""
     note = (not_drawn(states, OVER_BUDGET) if isinstance(e, llm.CapReached)
             else f"not drawn: {' '.join(s.id for s in states)}: {failure_reason(e)}")
     run_trace(ctx.run_dir, stage="mock", step=step, decider="code", outcome=failure_outcome(e), note=note[:300])
@@ -1016,12 +1014,11 @@ def exhibit(ctx: Ctx, model: ProductModel, scope: list[State], groups: list[list
              f"Contract: **{'PASS' if report.passed else 'FAIL'}** ({len(report.errors)} errors). "
              f"Model spend this stage: ${stage_usd(ctx):.4f}.", "",
              f"Batch plan: {plan.line(len(groups))}.", "",
-             "| Batch | Screens | Result | Worst case |", "|---|---|---|---|"]
+             "| Batch | Screens | Result |", "|---|---|---|"]
     for n, batch in enumerate(groups, 1):
         reason = undrawn.get(batch[0].id)
         result = f"not drawn: {reason.replace('|', '/')}" if reason else "drawn"
-        cost = f"${plan.usd[n - 1]:.2f}" if plan.usd else "as planned live"
-        lines.append(f"| {n} | {' '.join(s.id for s in batch)} | {result} | {cost} |")
+        lines.append(f"| {n} | {' '.join(s.id for s in batch)} | {result} |")
     lines += ["", "| Screen | Name | data-el placed / expected | Render |", "|---|---|---|---|"]
     for s in scope:
         lines.append(f"| {s.id} | {s.name} | {placed[s.id]} / {len(tagged_ids(s))} | `mock/renders/{s.id}.png` |")
