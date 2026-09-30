@@ -30,15 +30,14 @@ def golden(app: str) -> ProductModel:
 
 def recorded_answer(g: ProductModel) -> ModelMeaning:
     return ModelMeaning(
-        app_category=g.app_category,
+        app_name="", app_category=g.app_category,
         states=[StateMeaning(state_id=s.id, name=s.name, purpose=s.purpose, content_rating=s.content_rating)
                 for s in g.states],
         elements=[ElementMeaning(element_id=e.id, role=e.role, font_guess="Inter")
                   for e in [e for s in g.states for e in s.elements if e.text][::2]],
         flows=g.flows, mechanics=g.mechanics, cross_screen_values=g.cross_screen_values, value_ledger=g.value_ledger,
-        terms=[], open_questions=[QuestionDraft(id=f"q{n}", question=q, start_state=g.states[0].id,
-                                                look_for="the screen that answers it")
-                                  for n, q in enumerate(g.open_questions, start=1)])
+        terms=[], open_questions=[QuestionDraft(question=q, start_state=g.states[0].id,
+                                                look_for="the screen that answers it") for q in g.open_questions])
 
 
 @pytest.fixture(params=APPS)
@@ -85,7 +84,7 @@ def test_a_ledger_line_may_not_span_text_and_label_but_whitespace_is_normalized(
     state = State(id="s01", kind="screen", parent_id=None, name="", purpose="", fingerprint="", canonical_png="",
                   elements=[element], in_mock_scope=False, content_rating="safe", dynamic_regions=[],
                   blocked_reason=None)
-    answer = ModelMeaning(app_category="other", states=[StateMeaning(state_id="s01", name="x", purpose="x",
+    answer = ModelMeaning(app_name="", app_category="other", states=[StateMeaning(state_id="s01", name="x", purpose="x",
                                                                      content_rating="safe")],
                           elements=[], flows=[], mechanics=[], cross_screen_values=[], open_questions=[], terms=[],
                           value_ledger=[LedgerItem(id="span", kind="price", verbatim="$ 1.99 Premium", evidence_ids=["s01.e01"]),
@@ -222,7 +221,7 @@ def test_a_modal_in_scope_brings_its_parent_first():
         return State(id=sid, kind=kind, parent_id=parent, name="", purpose="", fingerprint="", canonical_png="",
                      elements=[], in_mock_scope=False, content_rating="safe", dynamic_regions=[], blocked_reason=None)
     states = [state("s01"), state("s02"), state("s03", "modal", "s02")]
-    meaning = ModelMeaning(app_category="other", states=[], elements=[], flows=[], cross_screen_values=[],
+    meaning = ModelMeaning(app_name="", app_category="other", states=[], elements=[], flows=[], cross_screen_values=[],
                            value_ledger=[], open_questions=[], terms=[],
                            mechanics=[Mechanic(id="m1", kind="ad", evidence_ids=["s03"], summary="x",
                                                observed_numbers=[], status="observed")])
@@ -241,8 +240,8 @@ def test_a_flow_dialog_keeps_its_parent_even_when_the_parent_is_unsafe_and_off_t
     states = [state("s01"), state("s02", rating="unsafe"), state("s03", "modal", "s02")]
     edges = [Edge(id="s03.e01>s01", from_state="s03", to_state="s01", element_id=None, action="tap",
                   transition="back", change_summary="")]
-    meaning = ModelMeaning(app_category="other", states=[], elements=[], cross_screen_values=[], value_ledger=[],
-                           open_questions=[], terms=[], mechanics=[],
+    meaning = ModelMeaning(app_name="", app_category="other", states=[], elements=[], cross_screen_values=[],
+                           value_ledger=[], open_questions=[], terms=[], mechanics=[],
                            flows=[Flow(id="f01", name="x", purpose="x", edge_ids=["s03.e01>s01"], evidence_ids=[])])
     assert stage.mock_scope(states, edges, meaning) == ["s01", "s02", "s03"]
 
@@ -252,13 +251,57 @@ def test_a_sheet_over_a_modal_brings_the_whole_stack_parent_first():
         return State(id=sid, kind=kind, parent_id=parent, name="", purpose="", fingerprint="", canonical_png="",
                      elements=[], in_mock_scope=False, content_rating="safe", dynamic_regions=[], blocked_reason=None)
     states = [state("s01"), state("s02"), state("s03", "modal", "s02"), state("s04", "sheet", "s03")]
-    meaning = ModelMeaning(app_category="other", states=[], elements=[], flows=[], cross_screen_values=[],
+    meaning = ModelMeaning(app_name="", app_category="other", states=[], elements=[], flows=[], cross_screen_values=[],
                            value_ledger=[], open_questions=[], terms=[],
                            mechanics=[Mechanic(id="m1", kind="paywall", evidence_ids=["s04"], summary="x",
                                                observed_numbers=[], status="observed")])
     assert stage.mock_scope(states, [], meaning) == ["s01", "s02", "s03", "s04"]
     unsafe_screen = [states[0], states[1].model_copy(update={"content_rating": "unsafe"}), *states[2:]]
     assert stage.mock_scope(unsafe_screen, [], meaning) == ["s01"]
+
+
+def test_a_bullet_folded_out_of_a_kept_paywall_list_gets_its_own_ledger_item():
+    def text(n, words, x, y, group="s01.r1"):
+        return Element(id=f"s01.e{n:02d}", mcp_ref=None, type="TextView", text=words, label="", source="mcp",
+                       rect_px=Rect(x=x, y=y, w=745, h=52), rect_dp=Rect(x=0, y=0, w=0, h=0), role="text",
+                       asset_png=None, fg_hex=None, bg_hex=None, font_px=None, font_guess="unknown", in_mock=False,
+                       repeat_group=group)
+    elements = [text(1, "More memory", 213, 1447), text(2, "Faster replies", 213, 1511),
+                text(3, "A badge by your name", 213, 1692), text(4, "Same size, other column", 40, 2000),
+                text(5, "", 213, 1760), text(6, "Another list", 213, 900, "s01.r2")]
+    states = [State(id="s01", kind="screen", parent_id=None, name="", purpose="", fingerprint="", canonical_png="",
+                    elements=elements, in_mock_scope=False, content_rating="safe", dynamic_regions=[],
+                    blocked_reason=None)]
+    ledger = [LedgerItem(id="pb1", kind="paywall_bullet", verbatim="More memory", evidence_ids=["s01.e01"]),
+              LedgerItem(id="v2", kind="paywall_bullet", verbatim="Faster replies", evidence_ids=["s01.e02"])]
+    assert stage.folded_bullets(ledger, states) == [
+        LedgerItem(id="pb2", kind="paywall_bullet", verbatim="A badge by your name", evidence_ids=["s01.e03"])]
+    assert stage.folded_bullets([i.model_copy(update={"kind": "meter"}) for i in ledger], states) == [], \
+        "only a paywall bullet's list is completed"
+
+
+def test_a_paywall_captured_twice_has_each_bullet_quoted_once():
+    def capture(sid):
+        def text(n, words, y):
+            return Element(id=f"{sid}.e{n:02d}", mcp_ref=None, type="TextView", text=words, label="", source="mcp",
+                           rect_px=Rect(x=213, y=y, w=745, h=52), rect_dp=Rect(x=0, y=0, w=0, h=0), role="text",
+                           asset_png=None, fg_hex=None, bg_hex=None, font_px=None, font_guess="unknown",
+                           in_mock=False, repeat_group=f"{sid}.r1")
+        return State(id=sid, kind="screen", parent_id=None, name="", purpose="", fingerprint="", canonical_png="",
+                     elements=[text(1, "More memory", 1447), text(2, "Faster replies", 1511),
+                               text(3, "A badge by your name", 1692)],
+                     in_mock_scope=False, content_rating="safe", dynamic_regions=[], blocked_reason=None)
+    ledger = [LedgerItem(id="v1", kind="paywall_bullet", verbatim="More memory", evidence_ids=["s01.e01"]),
+              LedgerItem(id="v2", kind="paywall_bullet", verbatim="Faster  replies", evidence_ids=["s02.e02"])]
+    assert stage.folded_bullets(ledger, [capture("s01"), capture("s02")]) == [
+        LedgerItem(id="pb1", kind="paywall_bullet", verbatim="A badge by your name", evidence_ids=["s01.e03"])]
+    elsewhere = LedgerItem(id="v3", kind="actor", verbatim="A badge by your name", evidence_ids=["s05.e01"])
+    assert [i.evidence_ids for i in stage.folded_bullets([*ledger, elsewhere], [capture("s01"), capture("s02")])] == \
+        [["s01.e03"]], "the same words quoted as something else still leave the benefit without a paywall bullet"
+    as_limit = [ledger[0], LedgerItem(id="v2", kind="limit", verbatim="Faster replies", evidence_ids=["s01.e02"]),
+                LedgerItem(id="v3", kind="paywall_bullet", verbatim="More memory", evidence_ids=["s02.e01"])]
+    assert [i.evidence_ids for i in stage.folded_bullets(as_limit, [capture("s01"), capture("s02")])] == \
+        [["s01.e03"]], "a bullet the model filed as another kind is quoted on neither capture"
 
 
 def test_the_model_may_not_write_measured_experience(app):
@@ -537,7 +580,7 @@ def test_product_model_md_and_the_exhibit_show_which_unobserved_terms_are_everyd
     assert "- **Weekly** (everyday word, never flagged): meaning not observed" in md
     assert "- **Luzia+**: " in md and "**Luzia+** (everyday" not in md
     assert ("app terms: 5, meaning not observed for: Weekly (everyday word, never flagged), Monthly (everyday word, "
-            "never flagged), Annual (everyday word, never flagged)") in stage.exhibit(model, [], [])
+            "never flagged), Annual (everyday word, never flagged)") in stage.exhibit(model, [], [], "")
 
 
 # Guesses built from PR 2's real screens (red team D): the model's own meaning and used_in, with these citations.
@@ -641,12 +684,12 @@ def test_a_term_shows_only_as_a_whole_word():
 
 def test_questions_need_a_real_start_state_and_are_capped(app):
     _, states, edges, answer = app
-    answer.open_questions[:] = [QuestionDraft(id=f"q{n}", question="?", start_state=states[0].id, look_for="x")
+    answer.open_questions[:] = [QuestionDraft(question=f"q{n}?", start_state=states[0].id, look_for="x")
                                 for n in range(7)]
-    answer.open_questions.insert(1, QuestionDraft(id="nowhere", question="?", start_state="s99", look_for="x"))
+    answer.open_questions.insert(1, QuestionDraft(question="nowhere?", start_state="s99", look_for="x"))
     kept, rejected = stage.check_meaning(answer, states, edges)
-    assert rejected == ["question nowhere: start_state 's99' is not a recorded state"]
-    assert [q.id for q in kept.open_questions] == ["q0", "q1", "q2", "q3", "q4"]
+    assert rejected == ["question 'nowhere?': start_state 's99' is not a recorded state"]
+    assert [q.question for q in kept.open_questions] == ["q0?", "q1?", "q2?", "q3?", "q4?"]
 
 
 def test_scope_is_root_then_money_screens_then_other_mechanics_then_the_core_flow_and_nothing_else():
@@ -666,9 +709,9 @@ def test_scope_is_root_then_money_screens_then_other_mechanics_then_the_core_flo
     edges = ([edge("s01", t, "tab") for t in tabs] + [edge(a, b) for a, b in hops] + [edge("s01", paywall, "modal")]
              + [edge("s01", f) for f in filler])
     meaning = ModelMeaning(
-        app_category="chat", states=[], elements=[], cross_screen_values=[], value_ledger=[], open_questions=[],
-        terms=[], flows=[Flow(id="f1", name="core", purpose="x", edge_ids=[f"{a}.tap>{b}" for a, b in hops],
-                              evidence_ids=[])],
+        app_name="", app_category="chat", states=[], elements=[], cross_screen_values=[], value_ledger=[],
+        open_questions=[], terms=[],
+        flows=[Flow(id="f1", name="core", purpose="x", edge_ids=[f"{a}.tap>{b}" for a, b in hops], evidence_ids=[])],
         mechanics=[Mechanic(id="m1", kind="paywall", evidence_ids=[paywall], summary="x", observed_numbers=[],
                             status="observed"),
                    Mechanic(id="m2", kind="entitlement", evidence_ids=[filler[0]], summary="x", observed_numbers=[],
@@ -714,13 +757,14 @@ def merge_notes(ctx):
 
 @pytest.mark.parametrize("name", APPS)
 def test_the_stage_writes_a_valid_model(name, tmp_path, monkeypatch):
-    clean = recorded_answer(golden(name))
+    clean = recorded_answer(golden(name)).model_copy(update={"app_name": "Shown Name"})
     calls = fake_calls(monkeypatch, [clean, clean])
     ctx = make_ctx(name, tmp_path)
     stage.run(ctx)
     out = ctx.run_dir / "model"
     model = ProductModel.model_validate_json((out / "product_model.json").read_text())
     assert calls[0]["schema"] is ModelMeaning and calls[0]["max_tokens"] == 64000
+    assert (model.app, model.app_name) == (name, "Shown Name")
     assert model.device == golden(name).device
     assert all((out / s.canonical_png).exists() for s in model.states)
     assert all((out / e.asset_png).exists() for s in model.states for e in s.elements if e.asset_png)
@@ -731,8 +775,9 @@ def test_the_stage_writes_a_valid_model(name, tmp_path, monkeypatch):
     assert all(e.in_mock for s in model.states for e in s.elements if e.id in tapped and s.id in scope)
     assert model.flows
     md = (out / "product_model.md").read_text()
-    assert md.count("```mermaid") == 1 + len(model.flows)
+    assert md.startswith("# Product model: Shown Name ") and md.count("```mermaid") == 1 + len(model.flows)
     assert model.open_questions == [q.question for q in model.questions] and not any(q.answered for q in model.questions)
+    assert [q.id for q in model.questions] == [f"q{n}" for n in range(1, len(model.questions) + 1)]
     assert (ctx.run_dir / "exhibits" / "02-model.md").exists()
     images = [p for m in calls[0]["messages"] for p in m["content"] if p["type"] == "image"]
     assert 1 <= len(images) <= stage.MAX_IMAGES
@@ -832,3 +877,67 @@ def test_core_loop_passes_become_measured_experience_in_the_model(name, tmp_path
     assert all(set(i.evidence_ids) <= edges for i in experience)
     assert "MEASURED BY CODE" in calls[0]["messages"][0]["content"][0]["text"]
     assert experience[0].verbatim in calls[0]["messages"][0]["content"][0]["text"]
+
+
+def drawn_state(sid: str, kind: str, parent: str | None, texts: list[tuple[str, int]]) -> State:
+    """A state in the mock's scope whose (text, top) pairs are full-width TextViews, all drawn."""
+    elements = [Element(id=f"{sid}.e{n:02d}", mcp_ref=None, type="TextView", text=t, label="", source="mcp",
+                        rect_px=Rect(x=40, y=y, w=1000, h=100), rect_dp=Rect(x=0, y=0, w=0, h=0), role="text",
+                        asset_png=None, fg_hex=None, bg_hex=None, font_px=None, font_guess="unknown", in_mock=True,
+                        repeat_group=None) for n, (t, y) in enumerate(texts, start=1)]
+    return State(id=sid, kind=kind, parent_id=parent, name="", purpose="", fingerprint="", canonical_png="",
+                 elements=elements, in_mock_scope=True, content_rating="safe", dynamic_regions=[], blocked_reason=None)
+
+
+def test_a_sheets_copies_of_its_parents_elements_are_not_drawn_again():
+    """The mock draws the parent as its own layer under a sheet, behind the backdrop, so a copy the sheet's capture
+    lists is drawn once, by the parent, whether the sheet covers it or not."""
+    page = [("Header above", 200), ("Card under", 1500), ("Card across the top edge", 1150), ("Tapped under", 1800)]
+    parent = drawn_state("s02", "screen", None, page)
+    sheet = drawn_state("s03", "sheet", "s02", [*page, ("Filters", 1250), ("Header above", 1400)])
+    external = drawn_state("s04", "external", "s02", [("Header above", 200)])
+    states, copies = stage.hide_parent_copies([parent, sheet, external], tapped={"s03.e04"})
+    assert [(e.text, e.in_mock) for e in states[1].elements] == [
+        ("Header above", False), ("Card under", False), ("Card across the top edge", False), ("Tapped under", True),
+        ("Filters", True), ("Header above", True)], "the sheet's own text, even words the parent also shows, stays drawn"
+    assert all(e.in_mock for e in states[0].elements + states[2].elements), "only a modal or sheet is a layer"
+    assert copies == ["s03.e01", "s03.e02", "s03.e03"]
+
+
+def test_a_dialog_over_a_dialog_hides_only_what_the_layer_under_it_draws():
+    """The runtime shows a dialog's layer and its parent's. The paywall's layer leaves the chat to the chat's layer,
+    which isn't shown under the confirm, so the confirm's layer draws the chat itself. The confirm comes first, as a
+    launch dialog can come before its screen."""
+    chat, paywall = [("Chat title", 200), ("Last message", 900)], [("Upgrade to Plus", 1300), ("$9.99 / month", 1400)]
+    states, copies = stage.hide_parent_copies([
+        drawn_state("s05", "modal", "s04", [*chat, *paywall, ("Leave without upgrading?", 1000)]),
+        drawn_state("s03", "screen", None, chat), drawn_state("s04", "modal", "s03", [*chat, *paywall])], set())
+    assert {s.id: [e.text for e in s.elements if e.in_mock] for s in states} == {
+        "s03": ["Chat title", "Last message"], "s04": ["Upgrade to Plus", "$9.99 / month"],
+        "s05": ["Chat title", "Last message", "Leave without upgrading?"]}, "every text shows in a layer on screen"
+    assert copies == ["s04.e01", "s04.e02", "s05.e03", "s05.e04"]
+
+
+def test_the_stage_draws_a_parents_element_once_when_its_sheet_lists_it_too(tmp_path, monkeypatch):
+    fake_calls(monkeypatch, [recorded_answer(golden("janitorai"))] * 2)
+    ctx = make_ctx("janitorai", tmp_path)
+    folder = ctx.run_dir / "explore" / "states"
+
+    def read(sid):
+        reply = json.loads((folder / f"{sid}.elements.json").read_text())
+        return reply, json.loads(reply["content"][0]["text"].removeprefix(stage.PREFIX))
+    _, parent_tree = read("s08")
+    reply, sheet_tree = read("s09")
+    copied = next(e for e in parent_tree if e.get("text") and stage.in_content(e, DEVICE))
+    reply["content"][0]["text"] = stage.PREFIX + json.dumps([*sheet_tree, {**copied, "ref": "@e999"}])
+    (folder / "s09.elements.json").write_text(json.dumps(reply))
+    stage.run(ctx)
+    model = ProductModel.model_validate_json((ctx.run_dir / "model" / "product_model.json").read_text())
+    by_id = {s.id: s for s in model.states}
+    assert by_id["s09"].in_mock_scope and by_id["s08"].in_mock_scope
+    assert [e.in_mock for e in by_id["s08"].elements if e.mcp_ref == copied["ref"]] == [True]
+    assert [e.in_mock for e in by_id["s09"].elements if e.mcp_ref == "@e999"] == [False]
+    assets = [t.note for t in read_trace(ctx.run_dir / "trace.jsonl") if t.step == "assets"]
+    assert len(assets) == 1 and assets[0].endswith("not drawn again: 1")
+    shown = (ctx.run_dir / "exhibits" / "02-model.md").read_text()
+    assert f"- drawing (code): {assets[0]}" in shown and "- app name (the meaning call, read off the screens): " in shown

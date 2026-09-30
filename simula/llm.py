@@ -7,6 +7,7 @@ Messages use one provider-neutral shape:
 import base64
 import hashlib
 import json
+import math
 import re
 import threading
 import time
@@ -25,6 +26,7 @@ IMAGE_TOKENS_WORST = 4784  # high-res tier cap per image (Anthropic vision docs,
 RATE_HEADERS = ("anthropic-ratelimit-", "x-ratelimit-", "retry-after")
 REQUEST_TIMEOUT_S = 180.0
 STREAM_IDLE_TIMEOUT_S = 60.0
+RAISE_TO = re.compile(r"raise with --usd-cap (\d+(?:\.\d+)?)$")
 
 
 class LLMFailure(Exception):
@@ -45,7 +47,13 @@ def _failure(outcome: str, error: Exception) -> "LLMFailure":
 
 
 class CapReached(SystemExit):
-    """Our own $ cap: a planned stop, where the best work so far is valid. Only Budget raises it."""
+    """Our own $ cap: a planned stop, where the best work so far is valid. Its message ends with the --usd-cap a rerun
+    needs (`raise with --usd-cap <n>`), so a stop rebuilt from its recorded message resumes the same way."""
+
+    @property
+    def usd_needed(self) -> float | None:
+        found = RAISE_TO.search(str(self))
+        return float(found.group(1)) if found else None
 
 
 class ProviderUnavailable(SystemExit):
@@ -92,12 +100,19 @@ class Budget:
             if self.spent + self.held + worst_usd > self.cap:
                 refused = CapReached(f"{self.stage}: next call could cost ${worst_usd:.2f}, ${self.spent:.2f} of "
                                      f"${self.cap:.2f} already spent, ${self.held:.2f} held by calls in flight; "
-                                     "raise with --usd-cap")
+                                     f"raise with --usd-cap {self.rerun_cap(worst_usd):.2f}")
                 if self.trace_path:  # the run's record that the cap cut this stage short, even if the stage goes on
                     trace(self.trace_path, stage=self.stage, step=step, decider="code", outcome="cap",
                           note=(f"key {key[:12]} " if key else "") + str(refused))
                 raise refused
             self.held += worst_usd
+
+    def rerun_cap(self, worst_usd: float) -> float:
+        """A cap that gets a rerun past this stop even when nothing it did comes back from the cache (a render that
+        changed misses it): what is spent and held, a whole cap again (the configured one, if this run's was lower),
+        and the call that was turned away, rounded up to the cent."""
+        room = max(self.cap, config.profiles()["caps_usd"].get(self.stage, 0.0))
+        return math.ceil(round((self.spent + self.held + room + worst_usd) * 100, 6)) / 100
 
     def charge(self, usd: float, reserved: float) -> None:
         """Settles one call: adds what it cost and gives back exactly what its reserve() held. `reserved` has no

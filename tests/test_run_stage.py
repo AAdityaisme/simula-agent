@@ -14,7 +14,7 @@ import anthropic
 import httpx2
 import pytest
 
-from simula import cli, llm, runfolder, runlog
+from simula import cli, config, llm, runfolder, runlog
 from simula.config import STAGES
 from simula.contracts import StageOutcome
 from simula.runlog import read_manifest, read_trace
@@ -175,19 +175,21 @@ def rerun(run_dir, *flags):
     return read_trace(run_dir / "trace.jsonl")[-1].step != "skip"
 
 
-@pytest.mark.parametrize("behavior, reason", [(refused_by_the_budget, "mock: next call could cost $5.00"),
-                                              (planned_away, "batches 2-3 don't fit the $1.00 mock cap")],
-                         ids=["refused_call", "planned_batches"])
+@pytest.mark.parametrize("behavior, reason, turned_away", [
+    (refused_by_the_budget, "mock: next call could cost $5.00", 5.0),
+    (planned_away, "batches 2-3 don't fit the $1.00 mock cap", 0.0)], ids=["refused_call", "planned_batches"])
 def test_a_stage_its_cap_cut_short_is_partial_and_says_how_to_continue(runs, monkeypatch, quiet, capsys, behavior,
-                                                                      reason):
+                                                                      reason, turned_away):
     mock_that(monkeypatch, behavior)
     cli.main(["mock", "janitorai", "--allow-fixtures", "--fixture", f"model={GOLDEN}", "--usd-cap", "1"])
     run_dir = latest(runs)
     marker = runfolder.read_done(run_dir / "mock")
     assert marker.outcome.status == "partial"
     assert any(r.startswith(reason) for r in marker.outcome.reasons), marker.outcome.reasons
+    # the figure the stop names, or, naming none, what is spent plus a whole cap again (the configured one: 1 is lower)
+    figure = config.stage_cap("mock") + turned_away
     assert marker.outcome.resume == (f"simula mock janitorai --run {run_dir.name} --profile real --budget transfer "
-                                     "--allow-fixtures --usd-cap <higher>"), "it reruns the run as it was opened"
+                                     f"--allow-fixtures --usd-cap {figure:.2f}"), "it reruns the run as it was opened"
     asked = (run_dir / "needs-human.md").read_text()
     assert "partial output" in asked and marker.outcome.resume in asked
     assert "mock: done (partial" in capsys.readouterr().out
@@ -515,8 +517,8 @@ def test_os_metadata_in_a_loader_folder_is_neither_hashed_nor_blocking(runs, che
 # ---------- a printed resume command reopens the run with the options it ran under ----------
 
 def reopened(command: str):
-    """The run a printed command opens, read by the CLI's own parser; a cap line's `<higher>` stands for 50."""
-    return cli.open_run(cli.parser().parse_args(shlex.split(command.replace("<higher>", "50"))[1:]))
+    """The run a printed command opens, read by the CLI's own parser."""
+    return cli.open_run(cli.parser().parse_args(shlex.split(command)[1:]))
 
 
 @pytest.mark.parametrize("flag", [["--profile", "dev"], ["--budget", "deep"], ["--allow-account-create"],
@@ -533,7 +535,7 @@ def test_a_partial_stages_resume_parses_back_to_the_options_it_ran_under(runs, m
     assert {s: cli.stage_params(s, again) for s in STAGES} == {s: cli.stage_params(s, ran) for s in STAGES}
 
 
-@pytest.mark.parametrize("stop, cap", [(llm.CapReached("mock: next call could cost $5.00"), 50.0),
+@pytest.mark.parametrize("stop, cap", [(llm.CapReached("mock: next call could cost $5.00"), 25.0),
                                        (llm.ProviderUnavailable("429: usage limit reached"), 12.5)],
                          ids=["cap_raised", "outage_keeps_the_cap"])
 def test_a_stopped_stages_command_carries_its_options_and_one_cap(runs, monkeypatch, quiet, stop, cap):

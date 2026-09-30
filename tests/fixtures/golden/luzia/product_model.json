@@ -1,6 +1,7 @@
 {
  "schema_version": 1,
  "app": "luzia",
+ "app_name": "Luzia",
  "app_version": "5.44.0",
  "app_category": "chat",
  "run_id": "golden",
@@ -854,7 +855,7 @@
       "h": 41.9
      },
      "role": "container",
-     "asset_png": "assets/s01.e30.png",
+     "asset_png": null,
      "fg_hex": null,
      "bg_hex": "#000000",
      "font_px": null,

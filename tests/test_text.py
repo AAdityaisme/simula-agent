@@ -39,6 +39,11 @@ def test_a_phrase_is_a_whole_word_where_words_are_spaced_and_a_substring_where_t
     assert text.phrase(" ").search("anything") is None
 
 
+def test_placeholder_characters_are_stripped_and_nothing_else():
+    assert text.strip_placeholders("￼Hidden Gems show�") == "Hidden Gems show"
+    assert text.strip_placeholders("🧑‍🎨 OC ‏$\xa01.99\n") == "🧑‍🎨 OC ‏$\xa01.99\n"
+
+
 def test_a_mark_written_on_a_letter_is_part_of_its_word():
     """A vowel sign (Devanagari, Bengali) or an accent typed as its own character is a combining mark, which regex \\w
     leaves out; the whole-word edge still counts it as part of the word."""
