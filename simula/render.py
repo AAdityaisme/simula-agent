@@ -10,13 +10,14 @@ from PIL import Image
 from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import sync_playwright
 
-from simula.contracts import ContractError, ContractReport, Device, ProductModel
+from simula.contracts import ContractError, ContractReport, Device, ProductModel, Rect
 
 VIEWPORT = {"width": 411, "height": 914}
 SCALE = 2.625
-FONT_HOSTS = ("fonts.googleapis.com", "fonts.gstatic.com")
 TRANSITIONS = ("push", "modal", "tab", "back", "replace", "unknown")
 WALLPAPER_SHARE = 0.4
+# A crop counts as drawn over its origin when every edge is within this many dp: QA's bounds tolerance.
+ORIGIN_DP = 4
 DECODE_WAIT_MS = 10_000
 CAPTURE_REFUSED = "Unable to capture screenshot"
 
@@ -39,13 +40,14 @@ PAGE_FACTS = """() => {
   };
 }"""
 
-# After simula.go(id): is the screen shown, and which image covers the most of its content area?
-SCREEN_FACTS = """(id) => {
+# After simula.go(id): is the screen shown, and which images cover more than `limit` of its content area? Each comes
+# with its rect in the section's own coordinates (content dp).
+SCREEN_FACTS = """([id, limit]) => {
   const section = document.querySelector(`[data-screen="${CSS.escape(id)}"]`);
   if (!section) return null;
   const box = section.getBoundingClientRect();
   const shown = getComputedStyle(section).display !== 'none' && box.width > 0 && box.height > 0;
-  let biggest = {share: 0, what: ''};
+  const big = [];
   for (const el of [document.body, section, ...section.querySelectorAll('*')]) {
     const isImg = el.tagName === 'IMG' || getComputedStyle(el).backgroundImage.includes('url(');
     if (!isImg) continue;
@@ -53,23 +55,26 @@ SCREEN_FACTS = """(id) => {
     const w = Math.max(0, Math.min(r.right, box.right) - Math.max(r.left, box.left));
     const h = Math.max(0, Math.min(r.bottom, box.bottom) - Math.max(r.top, box.top));
     const share = (w * h) / (box.width * box.height);
-    if (share > biggest.share) biggest = {share, what: el.getAttribute('src') || el.dataset.el || el.tagName.toLowerCase()};
+    if (share > limit) big.push({share, src: el.tagName === 'IMG' ? el.getAttribute('src') : null,
+                                 what: el.getAttribute('src') || el.dataset.el || el.tagName.toLowerCase(),
+                                 x: r.left - box.left, y: r.top - box.top, w: r.width, h: r.height});
   }
-  return {state: window.simula.state(), shown, biggest};
+  return {state: window.simula.state(), shown, big};
 }"""
 
 
 @contextmanager
 def open_mock(mock_dir: Path):
-    """Yields (page, log) with the mock loaded at 411x914 @2.625, animation off, and every request blocked
-    except the mock's own files and Google Fonts. log collects console errors, blocked and failed requests."""
+    """Yields (page, log) with the mock loaded at 411x914 @2.625, animation off, and every request blocked except
+    the mock's own files (its fonts included: the mock stage vendors them). log collects console errors, blocked
+    and failed requests."""
     mock_dir = mock_dir.resolve()
     log = {"console": [], "blocked": [], "failed": []}
 
     def route(r):
         url = urlparse(r.request.url)
         local = url.scheme == "file" and Path(unquote(url.path)).resolve().is_relative_to(mock_dir)
-        if local or url.hostname in FONT_HOSTS:
+        if local:
             r.continue_()
         else:
             log["blocked"].append(r.request.url)
@@ -81,7 +86,7 @@ def open_mock(mock_dir: Path):
             log["console"].append(msg.text)
 
     def failed(request):
-        if request.url not in log["blocked"] and urlparse(request.url).hostname not in FONT_HOSTS:
+        if request.url not in log["blocked"]:
             log["failed"].append(request.url)
 
     with sync_playwright() as p:
@@ -129,18 +134,23 @@ def screenshot_screens(page, screens: list[str], out_dir: Path) -> list[Path]:
     return paths
 
 
-def check_contract(page, log: dict, mock_dir: Path, model: ProductModel, screens: list[str]) -> list[ContractError]:
+def check_contract(page, log: dict, mock_dir: Path, model: ProductModel, screens: list[str], *,
+                   crops: dict[str, tuple[str, Rect]] | None = None) -> list[ContractError]:
+    """crops: the code-made images that hold no listed interface (`mock.crop_origins`), each src with its screen and
+    the rect it was cut from. Drawn there, one may pass the wallpaper limit; with none given, nothing may."""
     facts = page.evaluate(PAGE_FACTS)
     if not facts["hasApi"]:
         return [ContractError(kind="missing_api", detail="window.simula.go/state/reset not defined", screen=None)]
     return (_screen_errors(facts, model, screens) + _element_errors(facts, model) + _edge_errors(facts, model, screens)
-            + _image_errors(facts, mock_dir) + _shown_errors(page, screens) + _log_errors(log, facts, mock_dir))
+            + _image_errors(facts, mock_dir) + _shown_errors(page, screens, crops or {})
+            + _log_errors(log, facts, mock_dir))
 
 
-def render_and_validate(mock_dir: Path, model: ProductModel, screens: list[str]) -> ContractReport:
+def render_and_validate(mock_dir: Path, model: ProductModel, screens: list[str], *,
+                        crops: dict[str, tuple[str, Rect]] | None = None) -> ContractReport:
     """Renders every screen to mock_dir/renders/<sid>.png and validates the contract in the same browser."""
     with open_mock(mock_dir) as (page, log):
-        errors = check_contract(page, log, mock_dir, model, screens)
+        errors = check_contract(page, log, mock_dir, model, screens, crops=crops)
         screenshot_screens(page, screens, mock_dir / "renders")
     return ContractReport(passed=not errors, screens=screens, errors=errors)
 
@@ -216,20 +226,32 @@ def _image_errors(facts: dict, mock_dir: Path) -> list[ContractError]:
     return errors
 
 
-def _shown_errors(page, screens: list[str]) -> list[ContractError]:
+def _shown_errors(page, screens: list[str], crops: dict[str, tuple[str, Rect]]) -> list[ContractError]:
+    """go failures, and wallpaper: an image over the limit that isn't a crop holding no interface drawn over the rect
+    it was cut from on its own screen."""
     errors = []
     for sid in screens:
         page.evaluate("id => window.simula.go(id)", sid)
-        facts = page.evaluate(SCREEN_FACTS, sid)
+        facts = page.evaluate(SCREEN_FACTS, [sid, WALLPAPER_SHARE])
         if facts is None:
             continue
         if facts["state"] != sid or not facts["shown"]:
             errors.append(_error("go_failed", f"simula.go({sid!r}) left state={facts['state']!r}, shown={facts['shown']}", sid))
-        if facts["biggest"]["share"] > WALLPAPER_SHARE:
-            share, what = facts["biggest"]["share"], facts["biggest"]["what"]
-            errors.append(_error("wallpaper", f"{what} covers {share:.0%} of the screen (max {WALLPAPER_SHARE:.0%})", sid))
+        for img in facts["big"]:
+            screen, origin = crops.get(img["src"], (None, None))
+            if screen == sid and _over(img, origin):
+                continue
+            errors.append(_error("wallpaper", f"{img['what']} covers {img['share']:.0%} of the screen (max "
+                                              f"{WALLPAPER_SHARE:.0%}, unless a crop that holds no interface is drawn "
+                                              "at the rect it was cut from)", sid))
     page.evaluate("() => window.simula.reset()")
     return errors
+
+
+def _over(drawn: dict, origin: Rect) -> bool:
+    return all(abs(a - b) <= ORIGIN_DP for a, b in ((drawn["x"], origin.x), (drawn["y"], origin.y),
+                                                    (drawn["x"] + drawn["w"], origin.x + origin.w),
+                                                    (drawn["y"] + drawn["h"], origin.y + origin.h)))
 
 
 def _log_errors(log: dict, facts: dict, mock_dir: Path) -> list[ContractError]:

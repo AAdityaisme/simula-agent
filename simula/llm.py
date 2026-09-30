@@ -173,6 +173,25 @@ def cache_write(key: str, reply: Reply, cache_dir: Path = CACHE) -> None:
     write_json_atomic(cache_dir / f"{key}.json", json.dumps(data, indent=1))
 
 
+def answered_from_cache(*, model: str, effort: str | None, system: str, messages: list[dict], max_tokens: int,
+                        schema: type[BaseModel] | None = None, cache_dir: Path = CACHE) -> Reply | None:
+    """What a live call with these arguments settles on from the cache, costing nothing and reserving nothing: its
+    first attempt's recorded answer, which may be a known failure the call raises again, or None when it would call
+    the model. A planner asks this so it doesn't price a free call at its worst case. It reads the cache by the call's
+    own rule: every readable try of the attempt, the latest one the model answered."""
+    provider = config.models()[model]["provider"]
+    key = cache_key(provider, model, system, messages, request_params(provider, effort, max_tokens, schema), 0)
+    chosen = latest_answer(cache_tries(key, cache_dir)[0])
+    return chosen[1] if chosen else None
+
+
+def latest_answer(tries: list[tuple[str, Reply]]) -> tuple[str, Reply] | None:
+    """A normal run's pick among one attempt's recorded tries (unreadable ones already skipped): the latest the model
+    answered. A known failure is never paid for again; a lost call (TRANSPORT) is transient, so it is tried again."""
+    answered = [t for t in tries if t[1].failure not in TRANSPORT]
+    return answered[-1] if answered else None
+
+
 # ---------- money ----------
 
 def estimate_tokens_in(system: str, messages: list[dict]) -> int:
@@ -192,6 +211,11 @@ def worst_case_usd(model: str, tokens_in: int, max_tokens: int) -> float:
 
 
 # ---------- providers ----------
+
+def request_params(provider: str, effort: str | None, max_tokens: int, schema: type[BaseModel] | None) -> dict:
+    """The call parameters that go into its cache key, besides the model, system text and messages."""
+    return {"effort": effort, "max_tokens": max_tokens, "schema": json_schema_for(provider, schema) if schema else None}
+
 
 def json_schema_for(provider: str, schema: type[BaseModel]) -> dict:
     if provider == "anthropic":
@@ -371,17 +395,15 @@ def call(*, trace_path: Path, stage: str, step: str, model: str, effort: str | N
 def _call_model(*, trace_path, stage, step, model, effort, system, messages, max_tokens, budget, schema,
                 no_cache, replay, cache_dir, attempts, total_timeout):
     provider = config.models()[model]["provider"]
-    params = {"effort": effort, "max_tokens": max_tokens,
-              "schema": json_schema_for(provider, schema) if schema else None}
+    params = request_params(provider, effort, max_tokens, schema)
     keys = [cache_key(provider, model, system, messages, params, attempt) for attempt in range(attempts)]
     last, pending = LLMFailure("error", "no attempt made"), []
     named, capped = trace_keys(trace_path) if replay else ({}, {})
 
     def recorded(key: str, tries: list[tuple[str, Reply]]) -> tuple[str, Reply] | None:
         """--replay follows the try this run's trace names last, unless the run's last record of the call is its $ cap
-        turning it away; a try the run never named is another run's, so it is never taken. A normal run takes the
-        latest try the model answered: a known failure is never paid for again, and a lost call is transient, so it
-        is tried again."""
+        turning it away; a try the run never named is another run's, so it is never taken. A normal run takes
+        latest_answer, the rule a planner asks through answered_from_cache too."""
         if replay:
             used = [t for t in tries if t[0][:12] in named]
             last = max(used, key=lambda t: named[t[0][:12]]) if used else None
@@ -389,8 +411,7 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
             if stop and (last is None or stop[0] > named[last[0][:12]]):
                 return None
             return last
-        answered = [t for t in tries if t[1].failure not in TRANSPORT]
-        return answered[-1] if answered else None
+        return latest_answer(tries)
 
     def last_record(key: str) -> int:
         """The index of this run's last trace line about one attempt, a try it named or its cap stop; -1 if none."""
