@@ -232,6 +232,10 @@ Three calls carry the design:
 - `flows/approvals.json` replaces the draw list rather than adding to it, so an approval file must also name the accepted ideas; the Needs your call page's footer says to "add its 'To approve' entry to the list", which drops the accepted ideas unless they are listed too.
 - An approval of a split holds only while the judges split on exactly the checks it names; if the disagreement changes, the idea goes back to a person.
 - The Needs your call page and the score pages' footers are written for Simula's reviewer; the deck for the app's product team is the one produced after approvals.
+- The Needs your call page prints each idea's raw approval snippet, and where code strips element ids from a judge's reason it can leave stray punctuation (",,", "matches's").
+- The score table's reason names the evidence check without quotes, so it reads "didn't pass backed by what was seen in the app".
+- The duplicate check compares the benefit's name and who gets it, so two ideas that name their benefit differently can both be drawn: Luzia's deck draws two ideas that each feature a user's creation on Explore for 24 hours (c06, c08-rev).
+- No check weighs showing an ad to paying subscribers: JanitorAI's accepted c03-rev is offered only to Janitor Plus subscribers. Its cost mark is CONDITIONAL for a separate reason (at 8k context it pays for itself only above $13 eCPM, against a $10.16 benchmark).
 - A trace line `declared fallback used` means that judge-2 call ran on gpt-6-luna, which the validation never measured.
 - The deck draws at most 4 ideas; any survivor past the cap is scored and listed as not drawn, with no flow.
 - QA's keep score picks the round QA keeps; it is not a fidelity percentage. Fonts and layered drawers are where the mocks visibly miss.
