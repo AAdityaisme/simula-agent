@@ -727,7 +727,7 @@ def test_default_selection_is_every_accept_first_then_conditional_by_rank_at_mos
 
 
 
-def split_run(tmp_path, approvals: list[str] | None = None):
+def split_run(tmp_path, approvals: list | None = None):
     """A seeded run whose c02 the judges split on, with pd-c7-subtle's committed r1 verdicts under VF': judge_1 fails
     C7 and passes C5, judge_2 the reverse. c01 is accepted."""
     run_dir = seed_run(tmp_path, "luzia")
@@ -768,10 +768,9 @@ def test_an_idea_the_judges_split_on_isnt_drawn_and_waits_on_the_needs_your_call
 
 
 
-def test_with_no_accept_the_top_split_is_drawn_as_the_closest_idea_and_the_rest_wait(tmp_path):
-    """Run 3 of the saved VF' runs: nothing accepted, and three known-good ideas split on c2 (judge_2 fails it,
-    judge_1 passes it). The deck still gets exactly one full slide, the top-ranked split, worded as the closest idea;
-    the other two wait on Needs your call."""
+def run3(tmp_path, approvals: list | None = None):
+    """Run 3 of the saved VF' runs as a seeded deck: nothing accepted, and three known-good ideas split on c2
+    (judge_2 fails it, judge_1 passes it), ranked c02, c03, c01."""
     run_dir = seed_run(tmp_path, "luzia")
     cases = {c.id: c for c in validate.load_cases()}
     saved = validate.load_runs(validate.VERDICTS / "VF2")
@@ -786,10 +785,20 @@ def test_with_no_accept_the_top_split_is_drawn_as_the_closest_idea_and_the_rest_
         assert (d.final, d.judgment_splits) == ("conditional", ["c2_evidence"])
         decisions.append(d.model_copy(update={"candidate_id": cid, "rank_score": rank}))
     (run_dir / "judge" / "decisions.json").write_text(DecisionsFile(decisions=decisions).model_dump_json())
+    if approvals is not None:
+        (run_dir / "flows").mkdir(exist_ok=True)
+        (run_dir / "flows" / "approvals.json").write_text(json.dumps({"approved": approvals}))
     calls = []
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(llm, "call", fake_editor(run_dir, calls))
         flows.stage.run(ctx_for(run_dir, "luzia"))
+    return run_dir, calls
+
+
+def test_with_no_accept_the_top_split_is_drawn_as_the_closest_idea_and_the_rest_wait(tmp_path):
+    """The deck still gets exactly one full slide, the top-ranked split, worded as the closest idea; the other two
+    wait on Needs your call."""
+    run_dir, calls = run3(tmp_path)
     assert calls == ["c02"] and {idea for idea, _, _ in slides(run_dir)} == {"c02"}
     assert not (run_dir / "flows" / "c01").exists() and not (run_dir / "flows" / "c03").exists()
     why = {(idea, part): " ".join(text.split()) for idea, part, text in slides(run_dir)}[("c02", "why")]
@@ -801,22 +810,53 @@ def test_with_no_accept_the_top_split_is_drawn_as_the_closest_idea_and_the_rest_
     cover = text_of(deck.split('<section class="slide cover">')[1].split("</section>")[0])
     assert "the closest is drawn" in cover and "2 idea(s) split the reviewers" in cover
 
-def test_approving_a_split_idea_draws_it_without_a_conditional_chip(tmp_path):
-    run_dir, calls = split_run(tmp_path, approvals=["c01", "c02"])
+
+def test_with_no_accept_splits_a_person_approved_are_labelled_as_approved_never_as_the_closest(tmp_path):
+    run_dir, calls = run3(tmp_path, [{"id": cid, "splits": ["c2_evidence"]} for cid in ("c02", "c03")])
+    assert sorted(calls) == ["c02", "c03"]
+    whys = {idea: " ".join(text.split()) for idea, part, text in slides(run_dir) if part == "why"}
+    assert all(w.count("Approved by a person: The reviewers split on") == 1 and "Closest idea" not in w
+               for w in whys.values())
+    deck = (run_dir / "flows" / "slides.html").read_text()
+    cover = text_of(deck.split('<section class="slide cover">')[1].split("</section>")[0])
+    assert "2 idea(s) the reviewers split on are drawn because a person approved them" in cover
+    assert "the closest" not in cover and "c01 · " in text_of(deck.split("<h2>Needs your call")[1])
+
+APPROVED_C02 = {"id": "c02", "splits": ["c5_moment", "c7_specific"]}
+
+
+def test_approving_a_split_idea_draws_it_marked_as_a_persons_call_on_every_slide(tmp_path):
+    run_dir, calls = split_run(tmp_path, approvals=["c01", APPROVED_C02])
     assert sorted(calls) == ["c01", "c02"] and (run_dir / "flows" / "c02").is_dir()
     deck = (run_dir / "flows" / "slides.html").read_text()
     assert "Needs your call" not in deck
     c02 = re.findall(r'<section class="slide main" data-part="\w+" data-idea="c02">.*?</section>', deck, re.S)
-    assert c02 and not any("chip conditional\">Conditional<" in s for s in c02)
+    assert len(c02) == 2 and all("Approved by a person</span>" in s and ">Conditional<" not in s for s in c02)
+    why = {(idea, part): " ".join(text.split()) for idea, part, text in slides(run_dir)}[("c02", "why")]
+    assert 'Approved by a person: The reviewers split on "the right moment" and "specific to this app".' in why
 
 
-def test_an_approved_split_past_the_cap_still_waits_on_the_needs_your_call_page(tmp_path, monkeypatch):
+def test_an_approval_holds_only_for_the_disagreement_it_approved(tmp_path):
+    """The judges now split on C5 and C7; an approval naming only C7, or naming no checks, isn't honored: the idea
+    goes back to Needs your call and says why."""
+    for entry, why in [({"id": "c02", "splits": ["c7_specific"]}, "the reviewers' disagreement changed since your "
+                        "approval"), ("c02", "approved without the checks the reviewers split on")]:
+        run_dir, calls = split_run(tmp_path / why[:12].replace(" ", "-"), approvals=["c01", entry])
+        page = text_of((run_dir / "flows" / "slides.html").read_text().split("<h2>Needs your call")[1]
+                       .split("</section>")[0])
+        assert calls == ["c01"] and f"Not drawn: {why}." in page
+        assert 'To approve: {"id": "c02", "splits": ["c5_moment", "c7_specific"]}' in page
+
+
+def test_an_approved_split_past_the_cap_is_counted_past_the_cap_not_asked_about_again(tmp_path, monkeypatch):
     monkeypatch.setattr(flows.stage, "MAX_IDEAS", 1)
-    run_dir, calls = split_run(tmp_path, approvals=["c01", "c02"])
+    run_dir, calls = split_run(tmp_path, approvals=["c01", APPROVED_C02])
     deck = (run_dir / "flows" / "slides.html").read_text()
-    assert calls == ["c01"] and "c02 · " in text_of(deck.split("<h2>Needs your call")[1].split("</section>")[0])
+    assert calls == ["c01"] and "Needs your call" not in deck
+    note = next(line.note for line in read_trace(run_dir / "trace.jsonl") if line.step == "select")
+    assert note.endswith("past the cap of 1, not drawn: c02")
     cover = text_of(deck.split('<section class="slide cover">')[1].split("</section>")[0])
-    assert "passed the review" not in cover and "1 idea(s) split the reviewers" in cover
+    assert "1 more idea(s) passed the review; the deck draws only the top 1 by rank" in cover
 
 
 def test_a_deck_whose_only_survivors_wait_on_a_person_never_says_no_idea_passed_the_review(tmp_path):

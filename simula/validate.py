@@ -207,8 +207,8 @@ def caught(case: Case, v: Verdict | None) -> bool:
 def combined(verdicts: dict[str, Verdict | None]) -> tuple[bool, set[str]]:
     """The stage's rule over every judge: (every judge passes every check, checks any judge failed). A check counts
     as caught when any judge fails it: a gate any judge fails rejects; a judgment check every judge fails rejects;
-    one only some judges fail is a split, which the deck lists on its Needs your call page and never draws unless a
-    person approves it (D10, D11)."""
+    one only some judges fail is a split, which the deck lists on its Needs your call page and draws only when a
+    person approves that disagreement, or, in a deck with nothing accepted, as the closest idea (D10, D11)."""
     ran = [v for v in verdicts.values() if v]
     return (len(ran) == len(verdicts) and all(passes_all(v) for v in ran)), set(judge.failed_by_any(ran))
 

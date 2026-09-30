@@ -33,9 +33,24 @@ def load_candidates(run_dir: Path) -> dict[str, Candidate]:
     return {c.id: c for f in files if f.exists() for c in CandidatesFile.model_validate_json(f.read_text()).candidates}
 
 
-def load_approvals(flows_dir: Path) -> list[str] | None:
+def load_approvals(flows_dir: Path) -> list[str | dict] | None:
     path = flows_dir / "approvals.json"
     return json.loads(path.read_text())["approved"] if path.exists() else None
+
+
+def honored(approvals: list[str | dict] | None, decisions: list[Decision]) -> tuple[list[str] | None, dict[str, str]]:
+    """The approved ids flows acts on, and why each approval of a split it sets aside doesn't hold. An entry is an
+    id, or {"id": ..., "splits": [checks]}: approving a split holds only while the judges split on exactly the
+    checks it names, so a changed disagreement goes back to a person."""
+    if approvals is None:
+        return None, {}
+    ids = [e if isinstance(e, str) else e["id"] for e in approvals]
+    checks = {e["id"]: set(e["splits"]) for e in approvals if isinstance(e, dict)}
+    stale = {d.candidate_id: ("the reviewers' disagreement changed since your approval" if d.candidate_id in checks
+                              else "approved without the checks the reviewers split on")
+             for d in decisions if needs_call(d) and d.candidate_id in ids
+             and checks.get(d.candidate_id) != set(d.judgment_splits)}
+    return [i for i in ids if i not in stale], stale
 
 
 def survivors(decisions: list[Decision], approvals: list[str] | None) -> list[Decision]:
@@ -240,12 +255,12 @@ def run(ctx: Ctx) -> None:
     decisions = DecisionsFile.model_validate_json((run_dir / "judge" / "decisions.json").read_text()).decisions
     candidates = load_candidates(run_dir)
     out.mkdir(exist_ok=True)
-    approvals = load_approvals(out)
+    approvals, set_aside = honored(load_approvals(out), decisions)
     clean(out)
     chosen = select(decisions, approvals)
-    drawn = {d.candidate_id for d in chosen}
-    cut = [d for d in survivors(decisions, approvals)[MAX_IDEAS:] if not needs_call(d)]  # a split past the cap waits
-    waiting = [d for d in ordered(decisions) if needs_call(d) and d.candidate_id not in drawn]
+    kept = {d.candidate_id for d in survivors(decisions, approvals)}
+    cut = survivors(decisions, approvals)[MAX_IDEAS:]  # an approved split past the cap is cut, not asked about again
+    waiting = [d for d in ordered(decisions) if needs_call(d) and d.candidate_id not in kept]
     chosen_from = "narrowed by flows/approvals.json" if approvals is not None else "accepted + conditional"
     past_cap = f"; past the cap of {MAX_IDEAS}, not drawn: {' '.join(d.candidate_id for d in cut)}" if cut else ""
     calls = f"; needs your call: {' '.join(d.candidate_id for d in waiting)}" if waiting else ""
@@ -268,8 +283,10 @@ def run(ctx: Ctx) -> None:
     for d, why in not_built:
         run_trace(run_dir, stage="flows", step=f"build:{d.candidate_id}", decider="code", outcome="error",
                   note=f"not built: {why}"[:300])
+    for flow in flows:  # a drawn split is either a person's approval or, with nothing accepted, the closest idea
+        flow["approved"] = approvals is not None and needs_call(flow["decision"])
     (out / "slides.html").write_text(deck(ctx, model, flows, not_built, decisions, candidates, cap=MAX_IDEAS,
-                                            cut=len(cut), waiting=waiting))
+                                            cut=len(cut), waiting=waiting, set_aside=set_aside))
     layout = write_pdf(out / "slides.html")
     for problem in layout:
         run_trace(run_dir, stage="flows", step="layout", decider="code", outcome="error", note=problem[:300])

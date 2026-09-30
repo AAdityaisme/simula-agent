@@ -1,6 +1,7 @@
 """The slides: the cover, each idea's flow and why slides, and the score pages, filled into the template."""
 
 import base64
+import json
 import math
 from html import escape
 from pathlib import Path
@@ -106,8 +107,11 @@ def slide_html(flow: dict, part: str, body: str) -> str:
     """One of an idea's slides: a header with the idea's labels, then the body (HTML)."""
     c, decision = flow["candidate"], flow["decision"]
     kind = "existing" if c.kind == "existing_anchor" else "change"
-    conditional = decision.final == "conditional" and not needs_call(decision)  # a split is drawn only if approved
-    labels = '<span class="chip conditional">Conditional</span>' if conditional else ""
+    if needs_call(decision):  # a drawn split: a person approved it, or it is the closest idea (D11)
+        chip = "Approved by a person" if flow.get("approved") else "Closest idea"
+        labels = f'<span class="chip conditional">{chip}</span>'
+    else:
+        labels = '<span class="chip conditional">Conditional</span>' if decision.final == "conditional" else ""
     if cost_question(c):
         labels += f'<span class="chip conditional">Cost check: {c.economics.verdict}</span>'
     idea = "" if part == "flow" else escape(plain(caption(c)))  # the flow slide's title already names the idea
@@ -164,7 +168,8 @@ def disagreement(k: str, failing: str, judged: list[Verdict]) -> str:
             + (f" ({passing.rstrip('.')})." if passing else "."))
 
 
-def condition(decision: Decision, run_dir: Path, none_accepted: bool) -> tuple[str, str] | None:
+def condition(decision: Decision, run_dir: Path, none_accepted: bool,
+              approved: bool = False) -> tuple[str, str] | None:
     """A CONDITIONAL idea's heading and sentence about the checks it missed, in plain words, with both judges'
     reasons when they split (D10); None when it missed none (its condition is then its cost line, which the cost box
     says)."""
@@ -178,8 +183,10 @@ def condition(decision: Decision, run_dir: Path, none_accepted: bool) -> tuple[s
     if failed and all(k in decision.judgment_splits for k, _ in failed):
         judged = [v for _, v in verdicts(decision, run_dir)]
         doubts = " ".join(disagreement(k, reason, judged) for k, reason in failed)
+        checks = " and ".join(f'"{PLAIN_CHECKS[k]}"' for k, _ in failed)
+        if approved:
+            return "Approved by a person:", f"The reviewers split on {checks}. {doubts}"
         if none_accepted:  # drawn as the closest idea: nothing was accepted (stage.survivors)
-            checks = " and ".join(f'"{PLAIN_CHECKS[k]}"' for k, _ in failed)
             return ("Closest idea:", f"The reviewers split on {checks}; confirm {'it' if len(failed) == 1 else 'each'} "
                                      f"before building. {doubts}")
         return "The reviewers disagreed:", doubts
@@ -206,7 +213,7 @@ def why_html(flow: dict, model: ProductModel, run_dir: Path, none_accepted: bool
     html = "".join(f'<div class="why-block"><b>{escape(label)}</b><p>{escape(plain(text))}</p></div>'
                    for label, text in blocks)
     html += f'<p class="reach">{escape(plain(reach_text(c, model)))}</p>'
-    if note := condition(decision, run_dir, none_accepted):
+    if note := condition(decision, run_dir, none_accepted, flow.get("approved", False)):
         html += f'<div class="condition"><b>{note[0]}</b> {escape(plain(note[1]))}</div>'
     if cost := cost_question(c):
         html += (f'<div class="condition"><b>Cost check ({c.economics.verdict}):</b> {escape(cost)}. '
@@ -232,7 +239,8 @@ def idea_slides(flow: dict, model: ProductModel, run_dir: Path, none_accepted: b
 
 
 def cover_html(app: str, flows: list[dict], *, cap: int, unbuilt: int = 0, fallbacks: int = 0,
-               unbuilt_fallbacks: int = 0, cut: int = 0, calls: int = 0, status: list[str] = ()) -> str:
+               unbuilt_fallbacks: int = 0, cut: int = 0, calls: int = 0, approved: int = 0,
+               status: list[str] = ()) -> str:
     """The overview: every idea in the deck, how to read it, the reward rule every idea follows, whether an idea is
     only the judge's fallback pick (drawn, or not drawn), how many survivors past the cap of `cap` were left out, and
     status lines for anything an earlier stage couldn't finish. `unbuilt` counts only ideas that passed the review."""
@@ -257,6 +265,8 @@ def cover_html(app: str, flows: list[dict], *, cap: int, unbuilt: int = 0, fallb
     if unbuilt:
         notes.append(f"{unbuilt} {'more ' if flows else ''}idea(s) passed the review but couldn't be drawn; the score "
                      "pages at the end say why.")
+    if approved:
+        notes.append(f"{approved} idea(s) the reviewers split on are drawn because a person approved them.")
     if calls:
         notes.append(f"{calls} idea(s) split the reviewers, so they aren't drawn; the Needs your call page at the end "
                      "lists them.")
@@ -298,7 +308,8 @@ def score_pages(rows: list[tuple[str, int]], budget: int) -> tuple[list[list[str
     return pages, used
 
 
-def call_slides(waiting: list[Decision], candidates: dict[str, Candidate], run_dir: Path) -> list[str]:
+def call_slides(waiting: list[Decision], candidates: dict[str, Candidate], run_dir: Path,
+                set_aside: dict[str, str] | None = None) -> list[str]:
     """The last pages (D11): every idea the judges split on that no one approved, each split check as its open
     question with both sides. None of them is drawn; a person draws one by approving it."""
     rows = []
@@ -307,15 +318,17 @@ def call_slides(waiting: list[Decision], candidates: dict[str, Candidate], run_d
         c = candidates.get(d.candidate_id)
         clauses = [disagreement(k, why, judged) for k, why in failed_checks(d, run_dir) if k in d.judgment_splits]
         # plain() would drop the id, and the id is what a person puts in approvals.json
-        lines = [f"{d.candidate_id} · {plain(caption(c)) if c else ''}", *map(plain, clauses)]
+        lines = [f"{d.candidate_id} · {plain(caption(c)) if c else ''}", *map(plain, clauses),
+                 *([f"Not drawn: {set_aside[d.candidate_id]}."] if d.candidate_id in (set_aside or {}) else []),
+                 f'To approve: {{"id": "{d.candidate_id}", "splits": {json.dumps(d.judgment_splits)}}}']
         rows.append((f"<li><b>{escape(lines[0])}</b>" + "".join(f"<br>{escape(line)}" for line in lines[1:]) + "</li>",
                      SCORE_ROW_PAD_PX + SCORE_LINE_PX * sum(
                          math.ceil(len(line) / (SCORE_TITLE_CHARS + SCORE_WHY_CHARS)) for line in lines)))
     pages, _ = score_pages(rows, SCORE_PAGE_PX)
     return [f'<section class="slide scores"><h2>Needs your call{f" ({n} of {len(pages)})" if len(pages) > 1 else ""}'
             f'</h2><div class="score-body"><ul class="calls">{"".join(page)}</ul></div>'
-            "<footer>The reviewers split on these ideas, so none is drawn. To draw one, add its id to "
-            "<b>flows/approvals.json</b> and run flows again.</footer></section>"
+            "<footer>The reviewers split on these ideas, so none is drawn. To draw one, add its \"To approve\" entry to "
+            "the list in <b>flows/approvals.json</b> and run flows again.</footer></section>"
             for n, page in enumerate(pages, 1)] if waiting else []
 
 
@@ -358,20 +371,21 @@ def unfinished_stages(run_dir: Path) -> list[str]:
 
 def deck(ctx: Ctx, model: ProductModel, flows: list[dict], not_built: list[tuple[Decision, str]],
          decisions: list[Decision], candidates: dict[str, Candidate], *, cap: int, cut: int = 0,
-         waiting: list[Decision] = ()) -> str:
+         waiting: list[Decision] = (), set_aside: dict[str, str] | None = None) -> str:
     app = app_title(model, ctx.app["name"])
     none_accepted = not any(d.final == "accept" for d in decisions)
-    def closest(d: Decision) -> bool:  # the judge's fallback pick, or a split drawn because nothing was accepted
-        return is_fallback(d, ctx.run_dir, none_accepted) or (none_accepted and needs_call(d))
-    fallbacks = sum(closest(f["decision"]) for f in flows)
+    def closest(d: Decision, approved: bool = False) -> bool:  # the fallback pick, or a split drawn for want of an accept
+        return is_fallback(d, ctx.run_dir, none_accepted) or (none_accepted and needs_call(d) and not approved)
+    fallbacks = sum(closest(f["decision"], f.get("approved", False)) for f in flows)
     unbuilt_fallbacks = sum(closest(d) for d, _ in not_built)
     slides = [cover_html(app, flows, cap=cap, unbuilt=len(not_built) - unbuilt_fallbacks, fallbacks=fallbacks,
                          unbuilt_fallbacks=unbuilt_fallbacks, cut=cut, calls=len(waiting),
+                         approved=sum(f.get("approved", False) for f in flows),
                          status=unfinished_stages(ctx.run_dir))]
     for flow in flows:
         slides += idea_slides(flow, model, ctx.run_dir, none_accepted)
     slides += score_slides(decisions, candidates, not_built, ctx.run_dir)
-    slides += call_slides(waiting, candidates, ctx.run_dir)
+    slides += call_slides(waiting, candidates, ctx.run_dir, set_aside)
     watermark = ('<div class="watermark">FIXTURE TEST DATA · not a deliverable</div>'
                  if ctx.run_dir.name.endswith("-fixture") else "")
     return deck_html(f"Rewarded-ad ideas for {escape(app)}", watermark + "\n".join(slides))

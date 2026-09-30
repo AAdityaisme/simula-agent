@@ -73,7 +73,7 @@ Whether judge_2's reading of small restatements is too strict is open.
 **A second limitation: judge_2 is blind on C7 under VF′ (0 of 2).**
 - It was blind under V2, V4 and VF in phase 2 too.
 - Under V0 it catches 1 of 2 (pd-c7-flagrant).
-- The combined verdict still catches both C7 cases through judge_1. "Caught" in this report means failed by any judge: rejected, or kept off the full slides (a split waits on Needs your call, D11). Under D10 alone both C7 defects were drawn as labelled CONDITIONAL ideas (above).
+- The combined verdict still catches both C7 cases through judge_1. "Caught" in this report means failed by any judge: rejected, or held for a person (a split waits on Needs your call, D11). A split still reaches a full slide when a person approves that exact disagreement, or, in a deck with nothing accepted, as the closest idea, labelled with the doubted check. Under D10 alone both C7 defects were drawn as labelled CONDITIONAL ideas (above).
 
 **How the sections below were computed.**
 - `validate.report` ran on VF′'s majority-of-3 verdicts per judge.
@@ -97,7 +97,7 @@ The adoption rule is VF′'s dominance over V0 above. V0 fails the same judge_2 
 
 # Judge validation
 
-Generated 2026-09-29T17:04. Judges: judge_1, judge_2. Prompts frozen in `config/frozen_prompts.toml`.
+Generated 2026-09-29T17:59. Judges: judge_1, judge_2. Prompts frozen in `config/frozen_prompts.toml`.
 
 Fixtures: 22 planted LLM cases (11 subtle), 2 C8 cases, 4 known-good (bases and real-run ideas); planted app types: AI assistant chat, companion chat, news, puzzle game; planted apps outside the test set: Candy Crush Saga.
 
