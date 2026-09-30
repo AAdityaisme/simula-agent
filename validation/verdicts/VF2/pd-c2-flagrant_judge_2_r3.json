@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c2-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before the optional game; the decline and ad-failure fields leave the reading experience unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored cards, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses an article-open counter and a return to the home feed, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields do not remove, lock, or cap a free reading feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a dismissible banner on s01, a content-safe home feed, above the first story."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the timed reward benefits the player while using the observed read-a-story flow f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field claims an AOL full-screen video ad appears after every third article, which no product-model element supports. It also states absolutely that the app has no paywall, limit, or currency, while the open question says only that none was seen on the home feed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes, and the proposal identifies no paid benefit it would grant permanently."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places the banner on s01 after the reader returns from an article, rather than during a read."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game and unlocks the reward once play is confirmed; the failed-ad path grants nothing without confirmation."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the observed sponsored cards in the home feed (s01.e44) and article (s02.e13)."
+ },
+ "other_concern": "The expiry note promises another break even when the reader may already have used both daily plays.",
+ "fixable": true
+}

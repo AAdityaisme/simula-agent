@@ -1,0 +1,49 @@
+{
+ "candidate_id": "probe-absence-not-seen",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the reward is 3 Advanced reasoning mode answers today before the user chooses to play. The decline and ad-failure paths leave the home screen usable and do not consume the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 in-app Advanced reasoning mode answers, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses time since the last session and Luzia+ status, not anything the user wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds a sample of the paid feature listed at s02.e03 and says it removes nothing free."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The dismissible card is placed on the Chats home screen, s01, which is rated safe; it is not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The existing-anchor reward samples Advanced reasoning mode, which the Luzia+ paywall lists at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The cited paywall element s02.e03 supports Advanced reasoning mode as a paid benefit, and s01.e02 supports the home badge. The proposal correctly says that no free-tier answer limit was observed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 3 answers until midnight local time, rather than granting unlimited access to Advanced reasoning mode."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer is a dismissible card on the Chats home screen at app open, not an interruption in the middle of a chat."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a chosen sponsored game, and the ad-failure path says an unconfirmed play does not count. First app open after a session gap is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Chats home placement, its Luzia+ badge at s01.e02, and the Advanced reasoning mode benefit at s02.e03."
+ },
+ "other_concern": "The proposal does not explain how the app would enable and count exactly three reasoning-mode answers. Its claim that the sample pays for itself in certain markets is speculative.",
+ "fixable": false
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "probe-absence-not-seen",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the reward of 3 answers before the user chooses to play. The decline and ad-failure fields preserve normal use and provide a path when play is not confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 Advanced reasoning mode answers for use in the app, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses session inactivity and subscription status, not the contents of a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and the reward adds a sample of the paid feature listed at s02.e03."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on s01 Chats (home), which the product model rates safe; it is not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples Advanced reasoning mode, which the Luzia+ paywall lists at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The paid-mode and trial claims are supported by s02.e03 and s02.e19. The proposal says no free-answer limit was seen, consistent with the model's open question."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 3 answers and expires at midnight local time, so it does not grant lasting access to the paid mode."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears as a dismissible card on s01 Chats (home), a persistent surface, rather than interrupting an active task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game, the trigger is a detectable app-open event, and the ad-failure field withholds the reward when play is not confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the Luzia+ badge on s01.e02 and samples Advanced reasoning mode from s02.e03."
+ },
+ "other_concern": "",
+ "fixable": false
+}

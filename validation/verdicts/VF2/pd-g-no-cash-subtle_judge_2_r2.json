@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-cash-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy promises a voucher without saying its value, so it does not state how much of every reward the user will get before the ad. The failure path covers the game but not the additional voucher ad."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The adds and offer copy fields include a voucher as an additional reward; a voucher is a cash-like reward."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses an article-open counter and a return to the home feed, not anything the reader wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The reward temporarily hides sponsored cards; the proposal does not lock or cap a free reading, saving, or sharing feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a dismissible banner on the home feed, which the product model rates content safe, above the first story."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the 30-minute break from sponsored cards benefits the player while using the observed reading flow f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what makes it work here field asserts that the app has no paywall, limit, or currency, while the open question says only that none was seen on the home feed. The subscribers field also concludes that every reader is free, which the model does not establish."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward ends after 30 minutes, and the product model records no paid ad-free benefit that the proposal would grant without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger event places the offer on the home feed after the reader returns from an article, rather than interrupting an article in progress."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The flow awards an additional voucher for watching another ad after the game, rather than for a verified play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The placement names the home feed's category pills, and the reward refers to sponsored cards observed in the feed at s01.e44 and in an article at s02.e13."
+ },
+ "other_concern": "The rationale predicts that a game will earn more than the hidden sponsored cards, but the product model provides no revenue data to test that prediction.",
+ "fixable": false
+}

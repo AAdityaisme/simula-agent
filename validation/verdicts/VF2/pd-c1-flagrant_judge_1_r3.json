@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c1-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in, the offer copy states the reward ('an hour of Search'), declining leaves the menu unchanged, and the 'if the ad fails' field covers both no game and unverified play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of Search, a feature with no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (returning to the profile menu from the Upgrade entry) and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing, and no field says Search gets locked or capped. The reward only makes sense if Search is gated, which is noted under other_concern."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the profile menu drawer (s09), a sheet over a non-chat screen rated safe, and it is not in the conversation."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "For an existing_anchor, the app must charge for or limit the reward's resource. The model records no limit or charge on Search, and the proposal's own rationale says 'Search is something free users can use right away'."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The claim that Search lets users find characters 'by name and trait filters' rests only on cited s05.e01 (the text 'Search'), and s05 is out of scope with no such mechanic in the model. The 'comes back from Upgrade without subscribing' flow is also not shown by any observed element."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a one-hour sample of Search, which is not a Janitor+ benefit, and it expires and is capped at 2 per day."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the persistent profile menu that the user opens by choice, right after they looked at Janitor+ and left without subscribing."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn sponsored game, the reward is granted after the verified play, and the trigger is a detectable navigation event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Upgrade to Janitor Plus entry (s09.e31), the profile menu drawer, and the Search tab of this app."
+ },
+ "other_concern": "The reward has no revealed value: Search appears free, so the offer implies a lock the app doesn't have, or gives away something already free. The expiry line ('menu card shows Janitor+ again') is also unclear about what happens to Search after the hour.",
+ "fixable": false
+}

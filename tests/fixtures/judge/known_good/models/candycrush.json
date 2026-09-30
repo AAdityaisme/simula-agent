@@ -1,0 +1,115 @@
+{
+ "app": "candycrush",
+ "app_category": "game",
+ "states": [
+  {
+   "id": "s01",
+   "name": "Level map",
+   "purpose": "The saga map of levels, with a heart meter showing lives left.",
+   "content_rating": "safe",
+   "elements": [
+    {
+     "id": "s01.e01",
+     "text": "Lives: 0 of 5",
+     "role": "heart meter"
+    },
+    {
+     "id": "s01.e02",
+     "text": "Play",
+     "role": "level button"
+    }
+   ]
+  },
+  {
+   "id": "s02",
+   "name": "Out of lives",
+   "kind": "modal",
+   "parent_id": "s01",
+   "purpose": "The pop-up shown when the player tries a level with no lives left.",
+   "content_rating": "safe",
+   "elements": [
+    {
+     "id": "s02.e01",
+     "text": "Out of lives!",
+     "role": "title"
+    },
+    {
+     "id": "s02.e02",
+     "text": "Next life in 30:00",
+     "role": "timer"
+    },
+    {
+     "id": "s02.e03",
+     "text": "Get more lives with gold bars",
+     "role": "gold-bar button"
+    },
+    {
+     "id": "s02.e04",
+     "text": "Close",
+     "role": "button"
+    }
+   ]
+  },
+  {
+   "id": "s03",
+   "name": "Gold bar shop",
+   "purpose": "Gold bars bought with real money.",
+   "content_rating": "safe",
+   "elements": [
+    {
+     "id": "s03.e01",
+     "text": "Gold bars, bought with real money",
+     "role": "price list"
+    }
+   ]
+  }
+ ],
+ "mechanics": [
+  {
+   "id": "m01",
+   "kind": "limit",
+   "evidence_ids": [
+    "s01.e01",
+    "s02.e02"
+   ],
+   "summary": "Up to 5 lives; a failed level costs 1; one life comes back every 30 minutes.",
+   "observed_numbers": [
+    "5",
+    "30"
+   ],
+   "status": "observed"
+  },
+  {
+   "id": "m02",
+   "kind": "currency",
+   "evidence_ids": [
+    "s02.e03",
+    "s03.e01"
+   ],
+   "summary": "Extra lives cost gold bars, which are bought with real money. No subscription.",
+   "observed_numbers": [],
+   "status": "observed"
+  }
+ ],
+ "value_ledger": [
+  {
+   "id": "l01",
+   "kind": "limit",
+   "verbatim": "Next life in 30:00",
+   "evidence_ids": [
+    "s02.e02"
+   ]
+  },
+  {
+   "id": "l02",
+   "kind": "currency",
+   "verbatim": "Get more lives with gold bars",
+   "evidence_ids": [
+    "s02.e03"
+   ]
+  }
+ ],
+ "open_questions": [
+  "How many gold bars a set of lives costs."
+ ]
+}

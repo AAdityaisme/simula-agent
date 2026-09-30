@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c5-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-answer reward before play. The decline and ad-failure fields let users continue without a reward or retry an unconfirmed play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field gives Advanced reasoning mode answers for use in the app, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses time since opening the app and a New chat tap, not message content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal's reward samples the paid feature listed at s02.e03 and does not remove or cap a free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card over the safe Chats home screen (s01), not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, the reward gives a limited sample of Advanced reasoning mode, which the Luzia+ paywall lists at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The placement and decline fields assume that tapping New chat leads to a list where users pick who to talk to. s01.e09 shows New chat and s01 shows personas on the home screen, but the model does not establish that destination or sequence."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to three answers and expires at midnight; it does not grant lasting access to the paid feature at s02.e03."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The trigger event opens the offer after the user taps New chat but before they can continue starting the chat. That interrupts the task without a limit hit, locked-item tap, finished action, or persistent offer surface the user chose to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable New chat tap, and the ad-failure field withholds the reward when play is not confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Chats home New chat element (s01.e09), the Luzia+ badge (s01.e02), and Advanced reasoning mode (s02.e03)."
+ },
+ "other_concern": "",
+ "fixable": true
+}

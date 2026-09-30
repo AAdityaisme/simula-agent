@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-brand-safety-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the opt-in game and its reward—3 Advanced reasoning answers—before play. The decline and ad-failure fields leave the chat unchanged or allow a retry without using the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field grants answers for use in Luzia, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses a session gap and opening the Teacher chat, not the content of any message."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free; its reward samples Advanced reasoning mode, which s02.e03 lists on the Luzia+ paywall."
+ },
+ "g_brand_safety": {
+  "passed": false,
+  "reason": "The placement and flow put the offer card inside the Teacher conversation, directly under Luzia's last reply. An offer placed in the message list fails this gate even though s07 is rated safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward gives a limited sample of Advanced reasoning mode, a paid feature listed at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about today's app rest on the Luzia+ paywall at s02.e03 and the home badge at s01.e02; the welcome-back card and answer allowance are proposed additions."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 3 answers and expires at midnight, while the proposal keeps ongoing access with Luzia+."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger presents the card when the user opens the Teacher chat after a session gap, rather than interrupting a task already underway."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable chat-opening event. The ad-failure field says an unconfirmed play does not use the offer, so the reward depends on confirmed play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the Teacher chat at s07 and the Advanced reasoning benefit at s02.e03."
+ },
+ "other_concern": "The rationale's prediction that the sample pays for itself in higher-earning markets is unverified.",
+ "fixable": true
+}

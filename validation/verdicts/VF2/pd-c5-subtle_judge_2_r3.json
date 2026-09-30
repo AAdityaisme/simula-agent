@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c5-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the reward before the game, and the flow lets the user choose whether to play. The decline and ad-failure paths leave the user able to continue without losing the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is three in-app Advanced reasoning mode answers, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses time since last open, subscription status, and a New chat tap; it does not require message content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and its reward samples the paid feature listed at s02.e03."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card opens over the safe Chats home screen, s01, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, s02.e03 lists Advanced reasoning mode as a Luzia+ benefit, and the reward provides a limited sample of it."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The placement and decline path say the New chat tap leads to picking who to talk to, including a list and doing so 'as usual.' s01.e09 shows New chat and s01 shows persona cards, but the product model does not show what happens after that tap."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to three answers and expires at midnight; the proposal does not grant lasting access to the paid mode."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The trigger and flow open the card immediately after New chat is tapped, before the user can finish starting a conversation. That interrupts an in-progress task, rather than appearing at a moment of need, after a finished action, or on a surface the user chooses to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game, the failure path withholds the reward when play is not confirmed, and the New chat tap is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Chats home, New chat, the Luzia+ badge, and Advanced reasoning mode."
+ },
+ "other_concern": "The rationale's claim that the answers would pay for themselves in higher-earning markets needs cost and ad-revenue validation.",
+ "fixable": true
+}

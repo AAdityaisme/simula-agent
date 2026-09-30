@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c7-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user chooses to play from a card. The copy states the reward (1 day of premium), declining changes nothing, and the 'if the ad fails' field gives a no-loss path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 24 hours of premium feature time, which has no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the app opening on the home screen, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free and adds a card only."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a card on s01 Chats (home), which is rated safe and is app chrome, not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward is premium, which the app charges for through the Luzia+ subscription (m01, weekly, monthly and annual plans)."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The only claim about the app as it is today is that a paid premium exists, and m01 supports that. The rest is new offer copy or a prediction about users."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a 24-hour sample that ends, so it grants no lasting access to anything the app charges for."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the home screen, a persistent surface, and does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn game. Premium is granted after the play counts, and the trigger (opening the app) is an app event the app can detect."
+ },
+ "c7_specific": {
+  "passed": false,
+  "reason": "Fail condition: the idea would read the same in any app. 'What makes it work here' and the offer copy say only 'premium' and never name a Luzia+ feature, plan, or paywall element."
+ },
+ "other_concern": "A 1-per-day cap on a 24-hour reward could add up to continuous free premium for daily users, which could cannibalize subscriptions. Also, the proposal cites no evidence and does not say which premium features the day unlocks.",
+ "fixable": true
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c1-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the one-hour reward before the user chooses to play. The decline and ad-failure paths leave the menu unchanged and grant no unverified reward."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is time using Search, not cash or a transferable or externally exchangeable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a return to the profile menu from Upgrade, not anything typed or said in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The reward and its expiry time-box access to Search, although the Search tab is already available at s01.e67. That caps something users get free today, despite the proposal's 'removes nothing free' field."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the safe s09 profile-menu drawer, away from chats and character content."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "This is an existing_anchor, but the model shows no charge or limit on Search, the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field claims Search has name and trait filters, but the model lists s05 only as a Search screen and does not observe those filters."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "An hour of Search is not one of the Janitor+ benefits listed in m02, and the reward is time-limited."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears in the profile menu after the user returns from the Upgrade entry; it does not interrupt an ongoing task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a chosen sponsored game and the ad-failure path withholds the reward if play is not verified. Returning to the menu is an app-detectable trigger."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names this app's Search tab and the Upgrade to Janitor Plus entry in s09."
+ },
+ "other_concern": "",
+ "fixable": false
+}

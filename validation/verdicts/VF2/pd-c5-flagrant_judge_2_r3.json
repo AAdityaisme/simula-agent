@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c5-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before an optional game. The decline and ad-failure paths leave reading unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored stories, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is progress through an article, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal hides sponsored cards temporarily; its decline path keeps feed, article, save, and share access unchanged."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a pop-up over s02 Article, which is rated content safe, rather than an offer inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product-change reward gives the player an ad-free interval for their own use while reading articles and browsing the feed, both observed core flows."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal states that the app has no paywall and that every reader is free, although the model only says no paywall was seen. It also calls the sponsored cards cheap or low-value and places the s02.e13 card further down the article, none of which the cited elements support."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes, and the product model records no observed paid benefit that it grants indefinitely."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The trigger and placement make the pop-up appear halfway through an article, interrupting reading without a limit hit, locked-item tap, finished action, or user-opened persistent surface."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow grants the reward once the sponsored game play is confirmed, and progress through an article is an app-detectable trigger."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s02 article reader and the sponsored placements in s01, s02, and s06."
+ },
+ "other_concern": "The proposal does not establish whether a rewarded play would offset the sponsored-card impressions it hides.",
+ "fixable": true
+}

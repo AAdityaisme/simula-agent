@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c6-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner is opt-in and the offer copy states the reward (30 minutes without sponsored stories). Declining only closes the banner, and the trigger requires a loaded playable, and 'if the ad fails' gives a path, so no listed fail condition holds."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of hidden sponsored cards (feature_time), which is not cash or cash-like."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an article-open counter reaching 3 and the return to the s01 feed, both app events, and no chat content is used."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea adds a temporary ad-free window and removes, locks or caps nothing users get free today; sponsored cards keep showing as usual otherwise."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner card in app chrome on s01, which is rated safe, and it is not in a conversation or next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is a product_change. The new resource, ad-free reading, is tied to the observed read-a-story core loop (f01, s01 to s02), so it passes even though the app charges for and limits nothing."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The sponsored cards in the feed (s01.e44, s06.e33) and inside articles (s02.e13) are observed, as is the patchy fill. The claim that hiding them costs little revenue is an inference, not a claim about app behavior."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No paid plan was observed and the reward is a time-limited 30-minute window, capped at 2 per day."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears when the reader returns to the feed after finishing a third article, which is a finished action. It never interrupts a read in progress."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "'if the ad fails' says the prize is given when the reader closes the game, played or not. That grants the reward on a close rather than on the verified play (REWARD_VERIFIED), so the c6 fail condition holds."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names this app's feed sponsored card below the first story, the in-article Taboola card, and the article-return loop, so it would not read the same in any app."
+ },
+ "other_concern": "Hiding third-party Taboola or direct-sold cards may conflict with network agreements, and it would give up ad revenue that is otherwise served. The proposal's own admission that it pays for itself only if the hidden cards are low-value is a business risk, not an observed fact.",
+ "fixable": true
+}

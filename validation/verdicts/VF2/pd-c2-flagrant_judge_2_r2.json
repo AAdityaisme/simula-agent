@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c2-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner is opt-in and its offer copy states the 30-minute reward before play. The decline and ad-failure fields leave the app unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a 30-minute in-app break from sponsored cards, not cash or a transferable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses an article-open counter and a return to the home feed, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields leave free reading, saving, and sharing available; the reward temporarily hides ads."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner on s01 Home · Top Stories, which is rated content safe, above the first story."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the reward gives the player a cleaner experience in the observed read-a-story flow f01 and category-browsing flow f02."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work field claims AOL shows a full-screen video ad after every third article, which no product-model element supports. The subscribers field also treats every reader as free merely because no paid plan was observed, and the rationale calls the ad placements cheap without evidence."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes and does not grant lasting paid access or take an advantage from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places the offer on the home feed after the reader returns from an article, rather than interrupting an article."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game and grants the reward only once play is confirmed; an unconfirmed play leaves the feed unchanged."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s01 home feed, its category pills, and the sponsored cards observed at s01.e44 and s02.e13."
+ },
+ "other_concern": "The reward says its 30-minute timer starts when the game ends, but access waits for play confirmation; a verification delay could shorten the usable break.",
+ "fixable": true
+}

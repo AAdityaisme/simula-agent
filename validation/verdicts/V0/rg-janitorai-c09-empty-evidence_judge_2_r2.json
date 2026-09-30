@@ -1,0 +1,49 @@
+{
+ "candidate_id": "rg-janitorai-c09-empty-evidence",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 24-hour boost and 7-day supporter mention before the optional game. The decline and ad-failure paths leave the like intact and grant nothing if verification fails."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is an in-app character-list boost and supporter mention, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a tap on the like button on s07, not anything the user writes or says in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds a boost and supporter row; its decline path says the like still counts and the existing page and feed remain unchanged."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on s07, a character-detail screen rated safe, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the new list boost is tied to the observed f1 core flow, which starts with choosing a character from the Home feed."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The rationale claims fans have 'no way to help beyond a like,' but the model does not establish that absence of other options; s07.e03 also shows a comments button. This is an unsupported claim about the current app."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward does not grant Janitor Plus's context, routing, frontier-model swipes, or badge benefits listed on s13."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The support card appears after the user taps like on s07, at the end of that action rather than during a chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses an optional sponsored game triggered by a detectable like-button tap; it does not specify granting the reward for a tap, ad start, or close instead of verified play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses s01's Hidden Gems list and s07's creator byline and like button, with a reward tied to that character's placement."
+ },
+ "other_concern": "Fan-funded boosts may need ranking-integrity controls beyond the proposed daily caps.",
+ "fixable": true
+}

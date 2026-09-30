@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-free-removal-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reading reward before the user chooses the game. The decline and ad-failure fields provide paths that leave the fourth article locked rather than worsening its state at the time of the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of article access, not cash or a transferable or externally redeemable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is opening a fourth article today; it does not require anything the user typed or said."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The adds field locks articles after the third one each day, newly capping the free reading shown in core flow f01. Article reading is not a per-use model reply or queue-priority resource."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a lock panel over s02 Article, a content-safe screen, with no chat placement or unsafe adjacent content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product_change, the new 30-minute reading unlock is tied to the observed read-a-story core flow f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work-here field claims the app has no paywall, limit, or currency, and the subscribers field concludes every reader is free. The model only says none was seen on the home feed; it does not establish those app-wide claims."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 30 minutes, with a frequency cap of two games per day, rather than unlimited access."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger occurs when the reader taps a fourth story and encounters its lock, a moment of need rather than an interruption mid-article."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow offers a sponsored game on a detectable fourth-article event and unlocks the article only once the play is confirmed; the ad-failure field withholds the unlock when confirmation fails."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the s01 story card, s02 article reader, and a fourth-article lock tied to this app's reading flow."
+ },
+ "other_concern": "",
+ "fixable": false
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-run-aol-c01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner is opt-in, the offer copy states the reward (30 minutes with no sponsored stories), declining changes nothing, and 'if the ad fails' covers a missing or unverified game."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a 30-minute window without sponsored cards, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an article-open counter reaching 3, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed or capped. Sponsored cards keep showing as usual unless the user chooses to play, and the 2-per-day cap limits only the new offer."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The banner is a list card under the pill bar on s01, which is rated safe, so it counts as app chrome and is not in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is a product_change. The ad-free window is something the player uses for their own benefit while reading the feed and articles (core flow f01), and none of it goes to another party."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "'What makes it work here' states as fact that 'The app has no paywall, limit, or currency' and the rationale says 'This app has nothing locked'. The model only records that none was seen on the home feed, and the Inbox is blocked behind a sign-in. These are absence claims worded as facts about the whole app rather than as 'not seen'."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No paid plan was observed, and the reward is time-limited (30 minutes), so it grants no lasting access. It takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears when the reader returns to the feed after a finished article, as a dismissible banner. It does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "This is a play-to-earn rewarded playable. The reward is granted only once the play is confirmed, and the trigger is an article-open counter the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Taboola sponsored card below the first story (s01.e44, s06.e33), the in-article card (s02.e13), and the home feed to article loop."
+ },
+ "other_concern": "Hiding ads in the app to reward an ad view may cut the app's own ad revenue, and the sponsored game may not fill reliably. The claim that hidden cards displace little revenue is only a prediction, and 'no sponsored stories' also covers in-article cards on a screen the model treats as a separate view (s05).",
+ "fixable": true
+}

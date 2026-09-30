@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-free-removal-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in, and the offer copy states the reward (priority routing for 60 minutes). Declining leaves the menu and replies as today, and the 'if the ad fails' field covers both no-fill and unverified play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority, which has no cash value and can't be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event, returning to the profile menu from the Upgrade entry. No chat content is needed."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The 'adds' field introduces a new 24-hour cap on how many characters free users can text. That is a new limit on something free today, and it isn't a cap on model replies or queue priority, so 'removes nothing free: yes' is wrong."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the profile menu drawer (s09), a sheet over a non-chat screen rated safe, with no chat or characters nearby."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Priority routing is a paid Janitor+ benefit (s02.e06, m02), and the app limits it for free users (m03, inferred from s02.e07), so the app already charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "Its claims about the app today rest on s02.e06, s09.e31 and m03, which is inferred with cited evidence. The daily character cap and the claim that Janitor+ lifts it are what the proposal itself adds, so they don't count against this check."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes and is capped at 2 per day. The app already sells queue priority, so this takes nothing from other users that isn't already for sale."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer is on the profile menu, a persistent surface the user chooses to open, and it appears after they have looked at the upgrade entry. It interrupts no task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn rewarded game. The reward is granted only after the verified play, and the trigger is a detectable navigation event in the menu."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names Janitor+ priority routing, the s09 Upgrade to Janitor Plus entry, and the profile menu drawer, so it wouldn't read the same in another app."
+ },
+ "other_concern": "The daily limit on how many characters free users can text is invented and has no support in the product model. The 'when the reward runs out' copy claims Janitor+ lifts that limit, which the plan's benefits don't state. Declining the offer arguably leaves free users worse off than before because of the new cap.",
+ "fixable": true
+}

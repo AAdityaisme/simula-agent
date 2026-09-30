@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-cash-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy promises a voucher after a second ad without saying what the voucher is for or how much it is worth. The failure path also covers the game but not that second ad."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The adds and offer copy fields include a voucher as an additional reward; a voucher is a cash-like reward under this check."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses an article-open counter and a return to the home feed, not anything the reader wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal temporarily hides sponsored cards by choice; the decline path leaves reading, saving, and sharing unchanged."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a dismissible banner in the chrome of the content-safe s01 home feed, above the first story."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The 30-minute break from sponsored cards is for the player's own use while reading stories and browsing feeds, the observed core flows f01 and f02."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work field states as fact that the app has no paywall, limit, or currency, although the model only says none was seen. The subscribers field likewise turns an unobserved paid plan into a claim that every reader is free, and the claimed low value of the ads is not established by s01.e44, s06.e33, or s02.e13."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes, and the proposal identifies no lasting paid access or advantage taken from other readers or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger waits until the reader returns to s01 from an article, rather than interrupting the article."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "Although the main break follows a confirmed game play, the flow grants the additional voucher for watching a second ad, not for the server-verified play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s01 home feed, the sponsored feed card at s01.e44, and the in-article sponsored card at s02.e13."
+ },
+ "other_concern": "",
+ "fixable": false
+}

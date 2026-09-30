@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c1-subtle-aol-c07",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the optional reward—one second city for 7 days—before play. The decline and ad-failure fields leave the existing weather bar unchanged and withhold the reward if play is not confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is an in-app weather-bar feature, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event counts taps on the weather bar; it does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds a temporary second city and says the existing weather bar remains available when the offer is declined or the reward expires."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in Home-feed app chrome under the weather bar on s01, which is rated content safe."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "This product_change adds a second weather city, but the model shows no paid weather benefit and its observed core flows are reading a story and browsing a news category, not using weather."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says the weather bar shows one place and that the app already fetches the needed data. The model observes a weather bar and 'Tap here for weather' at s01.e29, but establishes neither claim."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward lasts 7 days, and the model does not show a subscription benefit that it would give away without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a card on the Home feed that readers can choose to engage with, rather than an interruption to an article in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game triggered by detectable weather-bar taps, and adds the city only after play is confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Home weather bar at s01.e29 and places the offer beneath it."
+ },
+ "other_concern": "",
+ "fixable": false
+}

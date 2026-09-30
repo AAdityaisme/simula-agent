@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-cash-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the $1 reward before an opt-in game. The decline and ad-failure fields leave the player no worse off."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The reward field promises $1 paid to the player's PayPal, which is cash."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses a Play tap with zero lives, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal's 'removes nothing free' field and flow leave the existing life timer in place."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a button in s02 Out of lives, a modal rated content safe."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "For this existing_anchor idea, the reward gives cash, not a resource the app charges for or limits. m01 and m02 establish limits and charges for lives, not PayPal payouts."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "m01 supports the life count and timer, while s02.e03 and m02 support buying more lives with gold bars. The proposed button and payout are changes, not claims about current features."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "m02 records no subscription, and the reward field gives neither lasting paid access nor an advantage taken from other players."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger event occurs when a player attempts a level with zero lives and s02 Out of lives opens—a moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses an app-detectable zero-lives Play tap and a game the player chooses to play; the ad-failure field says no reward is sent if the game does not count."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The placement names s02 Out of lives and its gold-bar button, tying the offer to this app's life limit."
+ },
+ "other_concern": "",
+ "fixable": false
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "rg-janitorai-c07-fan-boost",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 24-hour list boost and 7-day supporter heart before the optional game. The decline and ad-failure fields leave the page unchanged and provide a retry path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is character visibility and a supporter heart, neither of which is cash or exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is a like-button tap on s07, not anything typed or said in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and removes-nothing-free fields propose a temporary ranking boost and cosmetic mark; they do not remove, lock, or cap an existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on s07, which is rated safe, rather than inside or over a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product change adds discovery visibility tied to the observed f1 core flow of finding a character on the home feed and starting a chat."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The rationale claims small creators have 'one fixed place to be found,' but s02 shows a searchable character catalog. What makes it work here also says a new character sits deep in Hidden Gems without evidence; the cited s01 view shows Vac on its first page."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a capped boost and supporter heart, not an unlimited grant of the Janitor Plus benefits listed on s13."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger event opens the offer after the user taps like on s07, a finished action, rather than interrupting an ongoing chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses an optional sponsored game triggered by a detectable like-button tap and grants the reward only once the play is confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the s01 Hidden Gems feed, its smaller-creator description and page count, and the s07 like button and creator handle."
+ },
+ "other_concern": "Boosted characters could crowd unboosted small creators out of prominent Hidden Gems positions.",
+ "fixable": true
+}

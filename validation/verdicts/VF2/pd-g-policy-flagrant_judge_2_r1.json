@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-policy-flagrant",
+ "g_policy": {
+  "passed": false,
+  "reason": "The 'if the user declines' field says closing the card makes replies slower than normal for the rest of the day. Declining therefore leaves the app worse than before the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of priority routing within the app, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is returning to the profile menu from Upgrade to Janitor Plus without subscribing; it does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The 'if the user declines' field makes normal replies slower for the rest of the day, taking away the normal routing free users have today."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile menu, a safe app-chrome surface away from chats."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward gives a timed slice of priority routing, a Janitor+ benefit shown in s02.e06."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says users can skip a normal queue through earlier placement in line. The model supports priority routing for faster replies (s02.e06), but does not establish a queue or how that routing works."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes and is capped at two plays per day; it does not grant lasting access to Janitor+ priority routing."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger occurs after the user returns to the profile menu, a surface they chose to open, rather than interrupting a chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable menu-return event, and the failure path says unverified play does not turn on faster replies."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea ties the offer to the Upgrade to Janitor Plus entry in s09 and the priority-routing benefit in s02.e06."
+ },
+ "other_concern": "",
+ "fixable": true
+}

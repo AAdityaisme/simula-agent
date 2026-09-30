@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-run-aol-c01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner is opt-in, the offer copy states the reward (30 minutes with no sponsored stories) before the game, declining leaves the feed unchanged, and 'if the ad fails' covers both a missing game and a failed or unconfirmed play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored cards (feature_time), which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an article-open counter reaching 3 on return to s01, which is an app event, not user-written content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed, locked or capped. The idea only offers a temporary hiding of sponsored cards, and the declined path leaves the feed as before."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a dismissible list-style banner card on s01, which is rated safe and is app chrome. It is not in a conversation, and the neighbouring news content is rated safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is a product_change. The new resource (an ad-free window) is not a slice of anything paid, but it sits in the observed read-a-story loop (f01, s01 -> s02) and hides the cards seen in the feed and in articles."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The sponsored cards in the feed (s01.e44, s06.e33) and in articles (s02.e13) are observed, and so is the patchy fill (m01). But 'The app has no paywall, limit, or currency' is stated as fact, while the model lists it only as an open question ('none seen on the home feed', Inbox blocked)."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No subscription or paid plan was observed, and the reward is time-limited (30 minutes, 2 per day), so no main benefit is given away."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The banner appears when the reader returns to the feed after a finished read, never mid-article. It is dismissible, so it does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn rewarded playable. The reward is granted only once the play is confirmed ('Once the play is confirmed'), and the trigger is an article-open counter the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Taboola sponsored card below the first story on s01, the in-article card on s02, the category pill bar, and the read-then-return loop."
+ },
+ "other_concern": "The reward hides the same kind of native ad inventory the game would replace, and the proposal only asserts that this is net positive. Hiding third-party Taboola cards on demand may also depend on the ad network integration, and the model does not show whether that is possible.",
+ "fixable": true
+}

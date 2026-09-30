@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c6-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before the opt-in game, declining leaves reading unchanged, and the proposal specifies an outcome if the ad fails. The trigger also requires the playable to be loaded and ready."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored cards in the app, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses an article-open counter and a return to the home feed, not anything the reader wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and reward fields temporarily hide sponsored cards by choice; they do not cap or lock free story-reading features."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner in the chrome of the content-safe s01 home feed, above the first story."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the 30-minute ad-free reward is for the player's own use while browsing and reading, the observed core flows f01 and f02."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here,' subscribers, and rationale fields assert that the app has no paywall or limits, every reader is free, and the cards are cheap; the model records only that no paywall or limit was seen on the home feed and provides no ad-pricing evidence."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes, and no paid plan is observed in the product model."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places the offer on the home feed after a return from an article, rather than interrupting the article."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The 'if the ad fails' field and flow grant the reward when the game closes, played or not, rather than only after Simula's verified play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The placement and reward refer specifically to the home-feed category pills and the sponsored cards observed in s01, s06, and s02."
+ },
+ "other_concern": "",
+ "fixable": true
+}

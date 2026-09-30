@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-policy-flagrant",
+ "g_policy": {
+  "passed": false,
+  "reason": "The 'if the user declines' field makes replies slower than normal for the rest of the day, so declining leaves the user worse off than before the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a return to the profile menu from the Upgrade entry without subscribing; it does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The 'if the user declines' field takes away normal reply speed for the rest of the day. Mechanic m03 supports normal-priority routing as the free baseline, so this removes something free users get today."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile menu drawer, which is rated content safe and is away from chats."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward samples priority routing, a Janitor+ subscriber benefit shown in s02.e06."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The existing Upgrade entry and paid priority-routing benefit are supported by s09.e31 and s02.e06; m03 supports the inferred normal-priority free baseline."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward ends after 60 minutes and is capped at two plays per day, rather than granting lasting subscription access. The app already sells the priority-routing advantage in s02.e06."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger occurs when the user returns to the persistent s09 profile menu, a surface the user chooses to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The offer is a sponsored game triggered by a detectable menu return; the 'if the ad fails' field says unverified play does not turn on faster replies."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s09 Upgrade to Janitor Plus entry and the priority-routing benefit in s02.e06."
+ },
+ "other_concern": "The proposal describes priority routing as literal queue placement, but the model does not establish how routing is implemented.",
+ "fixable": true
+}

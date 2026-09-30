@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c5-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before the user chooses to play. The decline and ad-failure fields leave reading unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored stories, not cash or a transferable or externally exchangeable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses progress through an article, not anything the user typed, said, or wrote."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal does not lock or cap an existing free reading feature; the frequency cap applies to the new ad-free window."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a pop-up over the article on s02, which is rated content safe, rather than an offer inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the ad-free window benefits the player in the observed read-a-story flow f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here,' 'subscribers,' and 'rationale' fields turn limited observations into unsupported claims that the app has no paywall or locked content, every reader is free, and the ad placements are low-value. The flow also says the in-article sponsored card is further down from the halfway point, while s02.e13 is shown before the article body text."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward ends after 30 minutes and does not grant lasting access to a paid benefit or take an ordered position from another user or creator."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The trigger event opens the pop-up halfway through reading an article, interrupting a task without a limit hit, locked-item tap, finished action, or user-opened persistent surface."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow grants the reward once play is confirmed, and reaching a point in an article is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s01 home-feed sponsored card and the s02 in-article sponsored card as the placements its reward would hide."
+ },
+ "other_concern": "The 'when the reward runs out' field promises one more break without accounting for a reader who has already used both daily plays.",
+ "fixable": true
+}

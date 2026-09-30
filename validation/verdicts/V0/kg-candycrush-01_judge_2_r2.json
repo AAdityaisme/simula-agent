@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-candycrush-01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The s02 button is opt-in, the offer copy promises 1 life, and the decline and ad-failure fields preserve the existing timer without granting an unearned life."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 1 in-game life, not cash or a transferable or externally exchangeable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses a tap on Play with 0 lives, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds an optional life offer; its decline path leaves the existing life timer unchanged."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a button in s02, a modal rated content safe, rather than inside a conversation or next to unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing opportunity rewards a life, and m01 limits lives while m02 says extra lives cost gold bars."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The rationale refers to a gold-bar sale for a “full set of lives,” but s02.e03 establishes only that gold bars buy more lives, not a full set."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "M02 says there is no subscription, and the proposed reward is capped at 3 lives a day."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger is the observed out-of-lives moment: tapping Play with 0 lives opens s02."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game after an app-detectable tap; it does not say a tap, close, or started ad grants the life."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The offer uses this app’s s02 out-of-lives modal, 30-minute timer, and gold-bar button."
+ },
+ "other_concern": "The flow should explicitly say the app grants the life once, only after REWARD_VERIFIED.",
+ "fixable": true
+}

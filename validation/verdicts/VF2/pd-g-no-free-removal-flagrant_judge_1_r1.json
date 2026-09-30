@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-free-removal-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is opt-in, the copy states the reward (30 minutes of unlocked articles), the X leaves the feed, saving and sharing working, and a failure path is given."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of article access, which has no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event, the reader opening a fourth article today, and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The 'adds' field puts a new cap on free article reading, which users get free today, and articles do not cost the app money per use the way model replies do."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The lock panel sits over s02 Article, which is rated safe and is not a chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward gives the player reading time in the observed core flow f01 (Read a story), and it goes to the player."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "'what makes it work here' says flatly 'The app has no paywall, limit, or currency'. The model only records that none was seen on the home feed, so this is a fact about the whole app rather than a 'not seen' statement."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No paid benefit is involved, and the reward expires after 30 minutes and is capped at 2 per day."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears when the reader hits the limit on a fourth article, which is a moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit, the reward is granted only once the play is confirmed, and the trigger is a detectable app event (opening a fourth article)."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the s01 story cards, the s02 article reader and the reading flow of this news app."
+ },
+ "other_concern": "The whole idea depends on inventing a daily article limit the app doesn't have. That amounts to a new paywall-style gate on a free core flow, and it may hurt retention.",
+ "fixable": false
+}

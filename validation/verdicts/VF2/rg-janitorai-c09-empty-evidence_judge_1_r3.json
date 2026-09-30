@@ -1,0 +1,49 @@
+{
+ "candidate_id": "rg-janitorai-c09-empty-evidence",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is a card the fan opts into. The offer copy states the reward (a 24-hour list lift and a 7-day supporter mention). Declining leaves the page and the like unchanged, and the ad-fails field gives a hide path and a retry path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic list boost for a creator's character plus a supporter name. It has no monetary value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a like-button tap on a character page, which is an app event. Targeting depends on list eligibility and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea adds an opt-in card and removes or caps nothing that users get free today. The 'removes nothing free' field says yes, and no cap is applied to existing features."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits on the character detail page s07, which is rated safe and is not a chat screen. It is a card on a non-chat screen, so it counts as app chrome, and it is not in or over a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "This is a product_change whose new resource is a list boost for another user's character. Most of what the reward gives goes to the creator, and the fan gets only a name mention. The boost is not a slice of anything the app charges for, and it is not for the player's own use in a core flow the model lists."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal cites no evidence. It says the Home list of smaller creators' characters is ranked and can be lifted, but s01.e15 only describes Hidden Gems as new characters from smaller creators. It also says the like button is on character pages, and the model records no such ordering mechanic. It further claims a 'Home list of new characters' can be boosted, and nothing in the product model shows how that list is ordered. Nothing in the model shows a supporters row either, though that would be a proposed addition."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The reward takes from other creators their place in an app-ordered list (Hidden Gems). A boost pushes other creators' characters down, and the app does not sell that advantage today (m5 shows the list is promoted by the app, and no paid visibility appears)."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer opens after the fan taps like, which is a finished action. It is also a card on the character page and does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn sponsored game. The reward is granted after the verified play, and the trigger (a like tap on a character page) is an event the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the character detail screen, the like button, the creator byline, and the Hidden Gems list of smaller creators. It would not read the same in another app."
+ },
+ "other_concern": "The boost mechanism is entirely new and needs backend ranking changes. The claim that the like button exists on s07 is supported (s07.e16), but whether a boost of a character already in the list can be verified is unknown. A 20-plays-per-day cap per character still lets creators with many fans crowd others out.",
+ "fixable": false
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-chat-content-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 60-minute reward before an optional game. The decline and ad-failure fields leave existing access unchanged and withhold the reward if verification fails."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field grants in-app priority routing, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": false,
+  "reason": "The trigger event targets users whose chats are 'mostly long roleplay stories.' Determining whether chats are roleplay stories needs chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and its decline path keeps replies at their normal speed."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the safe s09 profile-menu drawer, not in a conversation or next to unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, the reward samples priority routing, a Janitor+ benefit shown in s02.e06."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about today's paid priority routing and persistent Upgrade entry are supported by s02.e06 and m01/s09.e31. The card, targeting, and 60-minute reward are proposed behavior, not claims that those features already exist."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward ends after 60 minutes, while s02.e06 identifies priority routing as a paid benefit; the proposal does not grant lasting access."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is the profile menu, a persistent surface the user chooses to open, after returning from the Upgrade entry."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game, the return to the profile menu is a detectable app event, and the ad-failure field withholds the reward when play is not verified."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s09 Upgrade to Janitor Plus entry and the priority-routing benefit in s02.e06."
+ },
+ "other_concern": "The reward field's '1 priority routing' is ambiguous beside the offer's 60-minute period; clarify that it means one 60-minute activation.",
+ "fixable": false
+}

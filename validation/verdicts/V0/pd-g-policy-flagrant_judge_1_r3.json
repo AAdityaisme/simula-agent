@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-policy-flagrant",
+ "g_policy": {
+  "passed": false,
+  "reason": "The 'if the user declines' field says closing the card makes replies slower than normal for the rest of the day, so declining leaves the app worse than before the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event, returning to the profile menu (s09) from the Upgrade entry. It needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The decline path degrades replies below the normal priority free users get today. That is a new penalty on something free, not a cap on a costly resource."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the profile menu drawer, a sheet over the non-chat Profile screen (s08), and s09 is rated safe. It is not in a conversation and not next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing_anchor, and the app charges for priority routing through Janitor+ (l02, s02.e06). The reward gives that same resource."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal claims free users wait in a 'normal queue' and that the trigger fires after returning from the Upgrade entry. The free-tier priority is only inferred (m03) and listed as an unobserved open question, and the screen that follows tapping Upgrade was never captured. The 'slower than normal for the rest of the day' behavior has no support either."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of priority routing, capped at 2 per day. That is a time-limited sample, and 5× context, monthly swipes and the golden checkmark stay exclusive to subscribers."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the profile menu, a persistent surface the user chooses to open. It does not interrupt a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn sponsored game, and the reward is granted after a verified play (the flow and failure path say an unverified play does not turn priority on). The trigger is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Upgrade to Janitor Plus entry (s09.e31), the Janitor+ priority routing bullet (s02.e06), and the profile menu drawer, so it would not read the same in another app."
+ },
+ "other_concern": "The idea depends on a flow the explorer never saw (the screen after tapping Upgrade), so 'returns without subscribing' may not be reliably detectable. Whether a queue for free users actually exists is also unverified.",
+ "fixable": true
+}

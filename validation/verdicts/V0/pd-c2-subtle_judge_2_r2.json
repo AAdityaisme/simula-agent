@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c2-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the reward—3 Advanced reasoning mode answers—before the user chooses to play. The decline and ad-failure paths leave home usable and do not consume the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is answers in Advanced reasoning mode, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses app-open and session-history events, not anything the user wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free and samples the paid feature listed at s02.e03."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a dismissible card on the safe s01 Chats home screen, not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples Advanced reasoning mode, which the Luzia+ paywall lists at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The offer copy claims past chats will be lost in 30 days without an upgrade. The product model does not observe any such deletion rule."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 3 Advanced reasoning mode answers until midnight, rather than giving away the subscription benefit without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places an optional card on s01 Chats home at app open, where the user can choose whether to engage."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow offers a short sponsored game, and the proposal does not grant the reward for a tap, close, or unconfirmed play. First app open after a session gap is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s01 Chats home placement, its Luzia+ badge, and the Advanced reasoning mode feature on the s02 paywall."
+ },
+ "other_concern": "The unsupported chat-loss warning is also unnecessarily alarming for a welcome-back offer.",
+ "fixable": true
+}

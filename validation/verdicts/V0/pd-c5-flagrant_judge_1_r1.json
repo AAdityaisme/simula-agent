@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c5-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is an opt-in pop-up, and the offer copy states the reward (no sponsored stories for 30 minutes) before the game. The decline path leaves the app unchanged, and the ad-fails text covers a game that doesn't load or verify."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of hidden sponsored cards (feature_time), which has no cash value and can't be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is reading position in an article on s02, which is an app event, and no chat content is used."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed or capped. Users see the sponsored cards today and still see them after declining or when the window ends."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The pop-up is a dialog over s02 Article, which is rated safe and is not a chat screen. It is not placed in a message list and has no unsafe or unknown content beside it."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product_change, the new resource (a sponsored-card-free window) is tied to the observed core loop f01 Read a story, and the cards it hides are observed on s01, s06 and s02."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field asserts as fact that 'the app has no paywall, limit, or currency', but the model lists that only as an open question (not observed). The claim that the cards are 'low-value' and displace little revenue is also not in the model, which shows only that fill varies."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No paid plan was observed and the reward is capped at 30 minutes, at most twice a day, so it gives away no subscription benefit."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The trigger field pops the offer up when the reader is halfway through an article. That interrupts a task in progress, and it is not a limit hit, a locked item tapped, or a finished action. It is also not a persistent surface the user chooses to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn sponsored game, and flow step 4 grants the reward only once the play is confirmed. The trigger (reading position in s02) is an app event the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Taboola sponsored cards in the s01 home feed and in s02 articles, and it builds on the patchy fill observed in the feed slot."
+ },
+ "other_concern": "The feed ad network varies by session (Taboola or direct cards), so it is unclear whether the app can hide every sponsored card. Because the reward is only hidden cards, its value could be low for the user, and hiding them could cost the app ad revenue.",
+ "fixable": true
+}

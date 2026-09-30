@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c6-flagrant",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer is opt-in and states the 30-minute reward, but `if the ad fails` grants it when the reader closes the game. If the game never loads, there is no stated path to close it or handle that failure."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The `reward` is 30 minutes without sponsored stories, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The `trigger event` uses an article-open counter and a return to the feed, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The `adds` and `if the user declines` fields leave reading, saving, and sharing available as before; the idea introduces no cap on a free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The `placement` is a banner on the content-safe s01 home feed, above the first story, not inside a conversation or next to content rated unsafe or unknown."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This `product_change` adds a timed, sponsored-story-free reading benefit tied to the observed f01 read-a-story core flow."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The cited elements show sponsored cards, but `what makes it work here`, `subscribers`, and `rationale` assert that there is no paywall or paid plan, every reader is free, and the cards are cheap or low-value. The model says no paywall was seen, not that none exists, and supplies no card-value evidence."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The `reward` lasts only 30 minutes and the `frequency cap` is two offers per day, so it does not give away any potential subscription benefit without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The `trigger event` occurs after the reader returns to the home feed from an article, rather than interrupting an article in progress."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The `if the ad fails` field and step 4 of `flow` grant the reward when the game is closed, played or not. Simula requires reward on verified play, not on close."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The `placement`, `reward`, and cited evidence name this app's home-feed category pills and sponsored cards in the feed and article reader."
+ },
+ "other_concern": "",
+ "fixable": true
+}

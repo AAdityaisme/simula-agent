@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-run-aol-c01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before the optional game. The decline and ad-failure fields leave reading unchanged and provide a path when the game cannot load or be confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored stories, not cash or a transferable or externally exchangeable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses article opens and a return to the home feed, not anything the user typed, said, or wrote."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields do not remove or cap the existing free reading, saving, or sharing functions."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner under the category pills on s01, a content-safe home feed, rather than inside a conversation or beside unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the 30-minute reading window is tied to the observed read-a-story core flow f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The claim that the app has no paywall, limit, or currency exceeds the open question, which says only that none was seen on the home feed. The claims that every reader is free and that the ad cards are cheap or low-value are also unsupported by the cited elements."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward lasts 30 minutes and is capped at two uses per day, so it does not give away an unlimited subscription benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places the offer on the home feed after the reader returns from an article, not during an article-reading task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game and unlocks the reward only once the play is confirmed; the trigger is a detectable article-open and return event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The placement names s01’s category pills, and the reward targets the sponsored cards observed in the home feed and article."
+ },
+ "other_concern": "",
+ "fixable": true
+}

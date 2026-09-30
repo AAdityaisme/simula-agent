@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c6-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The 'if the ad fails' field covers an unfinished game but gives no path for a game that finishes and fails verification."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is returning to the profile menu from Upgrade without subscribing; it does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and declining leaves replies at their normal speed."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile-menu drawer over the safe s08 profile screen, not in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples priority routing, a Janitor+ benefit shown in s02.e06."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says the app has a normal queue that users can skip for earlier placement. s02.e06 supports faster replies through priority routing, but neither it nor m03 establishes how that routing works."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes and is capped at two plays per day; it does not grant lasting access to the paid benefit in s02.e06."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger follows a return from Upgrade, and the card is on the persistent s09 profile menu rather than interrupting a chat task."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The 'if the ad fails' field turns on faster replies when the user taps Play, rather than only after Simula verifies the play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the s09 Upgrade to Janitor Plus entry and the priority-routing benefit shown in s02.e06."
+ },
+ "other_concern": "",
+ "fixable": true
+}

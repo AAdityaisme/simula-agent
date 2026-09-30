@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c7-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner is opt-in, the offer copy states the reward (30 minutes with no ads), declining leaves the app as before, and 'if the ad fails' covers a game that is not ready or a play that is not confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without ads (feature_time), which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is time in the app plus a loaded playable on s01, which are app events and need no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed or capped. Ads stay by default and are hidden only as a temporary reward."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The banner sits on s01 Home, rated safe, as app chrome. It is not inside a conversation and is not next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the new resource is ad-free time. The player uses it themselves in the observed core flows f01 (read a story) and f02 (browse a category), and none of it goes to another party."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "'The app shows ads' is supported by m01, the Taboola native ad slot in the feed. The revenue claim is a prediction, and the banner, copy and reward are what the proposal adds."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No paid tier or subscription benefit was observed. The reward is a 30-minute window that expires, and it takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "A dismissible banner on the home feed does not interrupt a task in progress, because the user can ignore or dismiss it while browsing."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit and the reward is granted only after the play is confirmed ('If the play is not confirmed, nothing changes'). The trigger is detectable: time in the app plus a ready playable."
+ },
+ "c7_specific": {
+  "passed": false,
+  "reason": "The idea would read the same in any ad-supported app. It never names the feed's native ad slot (m01), the story cards or any other element or limit of this app that makes it work here, and 'a banner in the app' is generic."
+ },
+ "other_concern": "It is unclear whether the app can actually hide the feed's Taboola/network ad cards (m01) for 30 minutes, since their fill varies by session and the slot is sometimes empty. An empty slot would make the reward feel worthless. Also, the 'used the app for a while' trigger is vague.",
+ "fixable": true
+}

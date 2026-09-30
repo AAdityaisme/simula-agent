@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-brand-safety-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the reward is 3 Advanced reasoning answers today. Playing is optional, declining leaves the chat unchanged, and the failure path covers unavailable or unconfirmed games."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 in-app Advanced reasoning answers, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses a session gap and opening the Teacher chat, not anything the user wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free and adds a limited sample of the paid feature listed at s02.e03."
+ },
+ "g_brand_safety": {
+  "passed": false,
+  "reason": "The placement puts the offer inside the Teacher conversation, right under Luzia's last reply. An offer placed in the message list fails this gate."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, s02.e03 lists Advanced reasoning mode as a Luzia+ benefit, so the app charges for the resource being sampled."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The cited s02.e03 supports the paid-mode claim, and s01.e02 supports the home Luzia+ badge. The Teacher chat and subscription plans also appear in the product model."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is capped at 3 answers and expires at midnight local time; it does not grant unlimited Advanced reasoning mode."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger shows the card when the user opens the Teacher chat after a gap, rather than stopping an action already in progress. Its in-conversation placement is separately disallowed by g_brand_safety."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game, and the failure path says an unconfirmed play does not count. It specifies no grant on a tap, close, or started ad."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Teacher chat, the Luzia+ badge, and the paywall's Advanced reasoning mode."
+ },
+ "other_concern": "The flow should explicitly say the app grants the reward once, only after REWARD_VERIFIED.",
+ "fixable": true
+}

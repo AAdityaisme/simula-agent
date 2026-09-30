@@ -1,0 +1,82 @@
+{
+ "id": "kg-candycrush-01",
+ "source": "base",
+ "app": "Candy Crush Saga",
+ "app_type": "puzzle game",
+ "in_test_set": false,
+ "model": "judge/known_good/models/candycrush.json",
+ "author": "aadi",
+ "filled_by": {
+  "title": "agent",
+  "anchor_evidence_ids": "agent",
+  "bible_mechanic": "agent",
+  "what_is_different_here": "agent",
+  "reward": "agent",
+  "for_users": "agent",
+  "grants_id": "agent",
+  "cost_inputs": "agent",
+  "advertiser_category": "agent",
+  "character_use": "agent",
+  "flow_steps": "agent",
+  "after_reward": "agent",
+  "rationale": "agent"
+ },
+ "note": "Outside the test set: a hand-written sketch from the worksheet (screen, limit, offer, reward, cap, decline and failure paths are Aadi's; the rest is filled in).",
+ "candidate": {
+  "kind": "existing_anchor",
+  "title": "Out of lives? One life now for a short game",
+  "anchor_evidence_ids": [
+   "s02.e02",
+   "s02.e03"
+  ],
+  "bible_mechanic": "none",
+  "what_is_different_here": "A player gets up to 5 lives, a failed level costs 1, and one comes back every 30 minutes (s01.e01, s02.e02). The out-of-lives pop-up (s02) sells more lives for gold bars (s02.e03), which cost real money.",
+  "adds": null,
+  "removes_nothing_free": true,
+  "trigger_event": "The player taps Play on a level with 0 lives, which opens the out-of-lives pop-up",
+  "trigger_state_id": "s02",
+  "placement": "A button under the gold-bar button in the out-of-lives pop-up",
+  "offer_copy": "Out of lives? Play a short game to get 1 life now.",
+  "reward": {
+   "kind": "currency",
+   "unit": "life",
+   "amount": 1.0,
+   "duration": "right away"
+  },
+  "for_users": "everyone",
+  "grants_id": "l02",
+  "cost_inputs": {
+   "inference_count": 0,
+   "tokens_in": 0,
+   "tokens_out": 0,
+   "minutes": 0.0,
+   "currency_amount": 0.0
+  },
+  "frequency_cap": "Up to 3 a day, resets at midnight local time",
+  "decline_path": "Closing it changes nothing: the pop-up and the life timer work as today.",
+  "ad_fail_path": "If no game is ready, the button is hidden. If the game doesn't count, no life is given and the try isn't used.",
+  "subscriber_treatment": "There is no subscription; every player sees the same offer.",
+  "advertiser_category": "Casual mobile games",
+  "character_use": "None",
+  "flow_steps": [
+   {
+    "state_id": "s01",
+    "caption": "The player taps Play on a level with 0 lives."
+   },
+   {
+    "state_id": "s02",
+    "caption": "The out-of-lives pop-up shows the new button under the gold-bar button."
+   },
+   {
+    "state_id": "new:sponsored-game",
+    "caption": "The player plays a short game and can close it at any time."
+   },
+   {
+    "state_id": "s01",
+    "caption": "The heart meter shows 1 life and the level can start."
+   }
+  ],
+  "after_reward": "When the life is used, lives come back every 30 minutes as today, and the button offers another life, up to 3 a day.",
+  "rationale": "Running out of lives is the moment a player stops. One life keeps them playing without touching the gold-bar sale for a full set of lives, and it costs the game nothing to give."
+ }
+}

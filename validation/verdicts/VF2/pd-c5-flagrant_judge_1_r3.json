@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c5-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The pop-up is opt-in, the offer copy states the reward (30 minutes with no sponsored stories) before the game, and declining leaves everything as before. A failed or unconfirmed play has its own path (note shown, attempt not counted)."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored cards, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the reader being halfway through an article, which is a screen and scroll event. It does not depend on anything the user typed or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea takes nothing away from what users get free today. It only offers a temporary ad-free window as a reward, and declining leaves sponsored cards showing as usual."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The pop-up sits over s02 Article, which is rated safe and is not a chat screen. It is app chrome, not a message or an item in a feed."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is a product_change that adds an ad-free window. The player uses it themselves in the observed Read a story flow (f01) and no one else receives it."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "'What makes it work here' says 'The app has no paywall, limit, or currency' as a fact about the whole app. The model only records that none was seen on the home feed, and lists this under open questions. The proposal also says the in-article card 'sits further down' in the article, which the model does not establish."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No paid plan was observed, so nothing paid is given away. The reward expires after 30 minutes and takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The pop-up appears halfway through an article, which interrupts a reader mid-task. That is not a moment of need (no limit hit, no locked item tapped, no finished action) and not a persistent surface the user chooses to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "This is a play-to-earn rewarded game. The reward is granted only once the play is confirmed, and the trigger is a detectable article-screen event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the s02 article reader, the Taboola sponsored cards in the home feed and in articles, and the patchy fill of the feed slot."
+ },
+ "other_concern": "Hiding the app's own native ad cards for 30 minutes may cost more revenue than one game earns. The claim that the cards are low-value is a prediction, not an observed fact. A better moment might be the end of an article.",
+ "fixable": true
+}

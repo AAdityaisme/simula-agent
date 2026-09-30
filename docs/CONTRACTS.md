@@ -56,7 +56,8 @@ runs/<app>/<run_id>/                run_id = YYYYMMDD-HHMMSS-<git sha>[-fixture]
 runs/<app>/latest -> <run_id>
 ```
 
-- Spend outside a run has its own trace: `build/trace.jsonl` (build spend, hand fixes via `simula note`, and one line per paid `simula doctor --keys` probe) and `validation/trace.jsonl` (`simula validate-judge`, under its own $20 cap).
+- `flows/approvals.json` (a person's, kept across reruns): `{"approved": [...]}`, each entry an idea id, or `{"id": "c02", "splits": ["c5_moment", "c7_specific"]}` for an idea the judges split on. An approval of a split holds only while the judge's `judgment_splits` are exactly those checks; otherwise the idea goes back to Needs your call, which says why and shows the entry to approve it again. A plain id still approves an accepted or other CONDITIONAL idea.
+- Spend outside a run has its own trace: `build/trace.jsonl` (build spend, hand fixes via `simula note`, and one line per paid `simula doctor --keys` probe) and `validation/latest/trace.jsonl` (`simula validate-judge`, under its own $20 cap; its report goes to `validation/latest/`, never over the committed `validation/report.md`, which `python -m simula.validate summarize` rebuilds from the saved runs in `validation/verdicts/` with no calls).
 - Run ids are `YYYYMMDD-HHMMSS-<git sha>`, plus `-fixture` for a fixture run, plus `-2`, `-3` … when two runs start in the same second.
 - A stage writes only its own folder. It never edits another stage's.
 - Every JSON file a stage writes carries `schema_version`. Files that hold a list use a wrapper from `contracts.py` (all code-written, none model-facing):
@@ -140,7 +141,7 @@ Code writes every number and id; a model writes meaning keyed by ids code gave i
 | OpenQuestion | `id` (`q1`, `q2`, … in the model's order; the model writes no id, since 2026-09-29); rejects a `start_state` that isn't a recorded state; keeps at most 5 (the model orders them, most monetization-relevant first); `answered` starts false and is set by the targeted explore pass (a later PR) | question, start_state, look_for |
 | Candidate | id (`c01`, `c02`, … in draft order), the bucket prefix in `title` (`Existing opportunity: ` or `Product change: `), economics, reach_score, rank_score, dropped_reason, flags (concerns code raises that don't drop the idea, one readable sentence each, e.g. `uses "Pro", whose meaning was never observed`, checked against every field the slides print; for a person reviewing the output, never the judge). The economics cost term comes from `reward.kind`; `app_category` only breaks ties | everything else in CandidateDraft |
 | Verdict | nothing | every check, `other_concern`, `fixable` |
-| Decision | everything. `checks_total` = the 11 LLM-judged checks (5 gates + 6 judgment checks); `checks_passed` counts a check only when every judge that ran passed it | nothing |
+| Decision | everything. `checks_total` = the 11 LLM-judged checks (5 gates + 6 judgment checks); `checks_passed` counts a check only when every judge that ran passed it. `final` is `conditional` for an idea the judges split on (a judgment check some fail and some pass; ranked below every accept, D10; flows lists it on the deck's Needs your call page and draws it only if `flows/approvals.json` approves that disagreement, or as the closest idea when nothing was accepted and it is the top-ranked split, D11) and `needs_human` only for a lost judge call. The fallback pick is `conditional` too and keeps its reject's `failure_type`, which is how flows tells it from a split | nothing |
 
 ## 7. Mock contract (data attributes)
 

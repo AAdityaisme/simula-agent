@@ -67,7 +67,7 @@ def test_category_only_picks_the_reading_of_an_ambiguous_kind():
 
 
 @pytest.mark.parametrize("app", APPS)
-def test_annotate_never_drops_or_ranks_down(app):
+def test_annotate_never_drops_or_changes_the_rank_score(app):
     model = golden(app)
     cases = verdict_cases(model)
     assert {v: economics.annotate(c, model.app_category).verdict for v, c in cases.items()} == \

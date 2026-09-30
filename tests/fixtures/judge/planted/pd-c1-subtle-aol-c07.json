@@ -1,0 +1,85 @@
+{
+ "id": "pd-c1-subtle-aol-c07",
+ "target": "c1_revealed_value",
+ "tier": "subtle",
+ "one_liner": "A new feature invented only to gate behind an ad: not a slice of anything paid and not tied to an observed core loop.",
+ "author": "aadi",
+ "expanded_by": "none: a real candidate, approved by Aadi (2026-09-28)",
+ "from_run": "PR 5 round 6: runs/aol/20260928-042747-6d79ef8-fixture/propose/candidates.json c07",
+ "app": "aol",
+ "app_type": "news",
+ "in_test_set": true,
+ "model": "golden/aol/product_model.json",
+ "candidate": {
+  "id": "c07",
+  "lens": "topup",
+  "kind": "product_change",
+  "title": "Product change: Play a short game to add a second city to the home weather bar for 7 days",
+  "anchor_evidence_ids": [],
+  "bible_mechanic": "M11",
+  "what_is_different_here": "The home feed (s01) has a weather bar ('Tap here for weather', s01.e29) that shows one place. Letting a reader add a second city (family, commute, travel) to that bar is useful on its own. It uses data the app already fetches, and it lives in app chrome above the story cards, apart from the feed ad slot (s01.e44).",
+  "adds": "An optional second city in the home weather bar, turned on for 7 days by playing a short sponsored game.",
+  "removes_nothing_free": true,
+  "trigger_event": "User taps the weather bar on the Home feed for the third day in the same week",
+  "trigger_state_id": "s01",
+  "placement": "A slim card directly under the weather bar at the top of the Home feed, above the first story",
+  "offer_copy": "Play a short game to add a second city to your weather bar for 7 days.",
+  "reward": {
+   "kind": "content_unlock",
+   "unit": "weather cities",
+   "amount": 1.0,
+   "duration": "7 days"
+  },
+  "for_users": "everyone",
+  "grants_id": null,
+  "cost_inputs": {
+   "inference_count": 0,
+   "tokens_in": 0,
+   "tokens_out": 0,
+   "minutes": 0.0,
+   "currency_amount": 0.0
+  },
+  "frequency_cap": "1 per day, resets at midnight local time",
+  "decline_path": "Dismissing the card hides it for the day; the weather bar and feed work exactly as before.",
+  "ad_fail_path": "If no game is available the card is not shown; if the play isn't confirmed the user sees a short 'That one didn't count' note, no city is added, and the daily try is not used up.",
+  "subscriber_treatment": "No paid plan was observed; every reader sees the same optional card.",
+  "advertiser_category": "Travel and airlines, outdoor apparel, casual mobile games",
+  "character_use": "None",
+  "flow_steps": [
+   {
+    "state_id": "s01",
+    "caption": "A regular reader opens Home and checks the weather bar again this week."
+   },
+   {
+    "state_id": "new:weather-offer-card",
+    "caption": "A slim card under the weather bar offers a second city for 7 days after a short game."
+   },
+   {
+    "state_id": "new:sponsored-game",
+    "caption": "The reader plays a short sponsored game and can close it at any time."
+   },
+   {
+    "state_id": "new:pick-city",
+    "caption": "Once the play is confirmed, the reader types a city name."
+   },
+   {
+    "state_id": "s01",
+    "caption": "Home now shows both cities side by side in the weather bar."
+   }
+  ],
+  "after_reward": "When the 7 days end, the bar goes back to one city with a small note that another short game brings the second city back for a week.",
+  "rationale": "Readers who check the weather bar several days a week show they care about it. A second city is a small, practical extra that costs almost nothing to serve. It is also a different kind of benefit from ad-free time, streak saves, or a pinned category.",
+  "economics": {
+   "cost_2k": 0.00142,
+   "cost_8k": 0.00142,
+   "breakeven_ecpm_2k": 1.42,
+   "breakeven_ecpm_8k": 1.42,
+   "benchmark_ecpm": 10.16,
+   "verdict": "PASS",
+   "assumption_line": "Costs ~$0.0014 per reward to serve; pays for itself above $1.42 eCPM. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 1 unlocked item(s), one ad slot per item at $1.42 CPM; no price observed, so lost sales are not counted; one view per reward; a publisher-net eCPM (share 1)."
+  },
+  "reach_score": 1.0,
+  "rank_score": 1.0,
+  "dropped_reason": null
+ }
+}

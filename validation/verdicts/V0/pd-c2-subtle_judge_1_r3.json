@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c2-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in, the offer copy states the reward (3 Advanced reasoning answers today), 'Not now' leaves home unchanged, and the ad-fail path is defined."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 Advanced reasoning mode answers, an in-app benefit with no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event, the first open after 3 or more days without a session by a non-subscriber. It does not use chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says 'removes nothing free', and it only adds a sample of a paid feature. The copy's threat about chats is a claim, not an actual removal."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card is app chrome on s01 Chats home, which is rated safe. It is not in the conversation or over a chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Advanced reasoning mode is listed as a paid paywall bullet (l02, s02.e03), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The offer copy claims 'All your past chats will be lost in 30 days if you do not upgrade'. Nothing in the product model supports a chat-retention limit, and the paywall bullets and open questions say nothing of the kind."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 3 answers until midnight, so it is a quantity- and time-limited sample rather than the full benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the Chats home at app open and is dismissible, so it does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn sponsored game. The card only updates after the play is confirmed, and an unconfirmed play gets a retry note. The trigger is a detectable app-open event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Luzia+ paywall's 'Advanced reasoning mode' bullet, the Luzia+ badge, and the Chats home prompt card."
+ },
+ "other_concern": "The copy invents a false urgency (chat deletion in 30 days) to push the upgrade. That is misleading and a possible consumer-protection problem, apart from being unsupported. The reward is also flagged as an inference, and no free-tier limit on reasoning mode was observed.",
+ "fixable": true
+}

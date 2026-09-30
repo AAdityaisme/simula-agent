@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c7-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute ad-free reward before an opt-in game. The decline and ad-failure fields leave the app unchanged if the user closes the banner or play is not confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without in-app ads, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses time in the app and playable readiness, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and removes-nothing-free fields do not lock or cap a feature users currently get free."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is an app banner on s01 Home · Top Stories, which the product model rates content safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this product change, the ad-free window is for the player's own use while browsing and reading, the observed core flows f01 and f02."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claim that the app shows ads is supported by the sponsored card at s01.e44 and the article ad at s02.e13. The revenue statement is a prediction, not a claim about a current app mechanic."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits ad-free use to 30 minutes; it does not grant lasting access or take another user's place or visibility."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The trigger and flow make the banner appear after the user has been using the app for a while, interrupting browsing on s01 rather than responding to a moment of need or residing on a surface the user chooses to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game, and the ad-failure field says an unconfirmed play changes nothing. Time in the app and playable readiness are detectable trigger events."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names s01 Home · Top Stories and builds on the app's observed ads, including the feed ad at s01.e44."
+ },
+ "other_concern": "",
+ "fixable": true
+}

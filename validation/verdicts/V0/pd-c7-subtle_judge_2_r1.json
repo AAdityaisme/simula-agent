@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c7-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute ad-free reward before the user chooses to play. The decline and ad-failure paths leave the app unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without in-app ads, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses time spent in the app and playable readiness, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free; the reward temporarily hides ads rather than restricting an existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The banner is placed on s01 Home · Top Stories, a content-safe feed, rather than inside a conversation or beside unsafe or unknown-rated content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the ad-free window is tied to the observed story-reading and category-browsing core flows f01 and f02."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field claims that hiding ads for a short window displaces little revenue. The product model observes ad placements but provides no revenue evidence for that claim."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 30 minutes, with a frequency cap of two per day; it does not give away an unlimited subscription benefit."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The trigger shows the banner after the user has been using the app for a while, interrupting an in-progress visit rather than following a finished action or moment of need. The timed banner is not a persistent surface the user chooses to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game, and the ad-failure path says an unconfirmed play changes nothing. Time spent in the app and playable readiness are detectable app events."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names s01 Home · Top Stories and builds on the app's observed ads, including the home-feed placement in m01."
+ },
+ "other_concern": "",
+ "fixable": true
+}

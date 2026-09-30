@@ -1,0 +1,49 @@
+{
+ "candidate_id": "probe-absence-not-seen",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user chooses to play the game from the card. The offer copy states the reward (3 Advanced reasoning mode answers today). Declining leaves Home unchanged, and the ad-fail path is covered (card hidden if no game, retry if the play isn't confirmed)."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 Advanced reasoning mode answers until midnight, which is an in-app feature sample with no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the first app open after a gap of 3 or more days without Luzia+. That is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "'removes nothing free: yes'. The proposal adds a sample of a paid mode and takes away or caps nothing free."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card is app chrome on the Chats home screen (s01, rated safe). It is not inside a conversation or over a chat thread."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Advanced reasoning mode is a paid Luzia+ paywall bullet (l02, s02.e03), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "Claims about today's app are supported. The paywall lists the feature (s02.e03), the badge and prompt card exist on home (s01.e02, s01.e08), and the trial button exists (s02.e19). The absence of a free-tier limit is worded as 'not seen', matching the open question. The model-cost and market remarks are predictions."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a sample that ends: 3 answers, expiring at midnight. It takes nothing from other users, and the full feature stays behind the plans."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card shows on the Chats home at app open after a gap, with no task in progress. It is a dismissible card on the home surface, so nothing is interrupted."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn rewarded game. The card only changes to 'answers ready' after the play is confirmed, and an unconfirmed play gets a retry note. The trigger (first open after a 3+ day gap) is detectable by the app."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names Luzia's 'Advanced reasoning mode' paywall bullet, the Luzia+ badge on Chats home, the prompt card and the 3-day trial, so it would not read the same in another app."
+ },
+ "other_concern": "The 'Welcome back' card is shown only on the first open after a gap, so the '1 per day' cap is redundant. It is unclear how the app would gate 3 answers of the mode, which is an implementation matter. Cost per answer in lower-earning markets is unverified.",
+ "fixable": false
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c2-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-answer reward before the user chooses to play. The decline and ad-failure paths leave the offer optional without taking anything away."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is three in-app Advanced reasoning mode answers, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses the time since the user's last session and subscription status, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and its reward samples the paid feature listed at s02.e03."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the safe Chats home screen (s01), not an offer inside a conversation or beside unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The existing-anchor reward samples Advanced reasoning mode, which the Luzia+ paywall lists at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The offer copy claims past chats will be lost in 30 days without an upgrade. No product-model element supports that claim about how the app works today."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to three answers and expires at midnight, so it does not grant lasting access to the paid feature at s02.e03."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger shows a dismissible card on Chats home at app open, rather than interrupting a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable app-open event; the ad-failure path says an unconfirmed play does not count."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the Chats home placement, Luzia+ badge (s01.e02), and Advanced reasoning mode benefit (s02.e03)."
+ },
+ "other_concern": "The unsupported chat-loss warning is also needlessly alarming.",
+ "fixable": true
+}

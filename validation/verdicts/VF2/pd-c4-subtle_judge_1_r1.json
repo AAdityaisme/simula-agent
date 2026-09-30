@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c4-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in by tapping the card. The offer copy states the reward (3 chats in Advanced reasoning mode). 'Not now' leaves home unchanged, and the ad-fail path hides the card or offers a retry."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 chats in a feature mode, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the first app open after a 3+ day gap, which is an app event, and it does not use chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed, locked or capped. The proposal adds a card and keeps everything else as it was."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits on s01 Chats home, which is rated safe, as a list card under the header. It is not in a conversation or over a chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Advanced reasoning mode is a paid feature on the paywall (s02.e03, l02), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about today's app are supported: s02.e03 lists Advanced reasoning mode as a paywall bullet, s01.e02 is the Luzia+ badge, and s01.e08 is the prompt card. The rest is the proposal's own new copy, reward and predictions."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "Each of the 3 chats stays in Advanced reasoning mode 'for good'. The reward never expires and gives lasting access to something the app charges for, even though the count is limited."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card is a dismissible item on the home screen at app open, before the user has started a task, so it does not interrupt one."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit. The reward is granted after the verified play, and the trigger (an open after a 3+ day gap) is an app event the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names Luzia+'s Advanced reasoning mode paywall bullet, the Luzia+ badge and the Chats home layout, so it is specific to this app."
+ },
+ "other_concern": "The 3+ day gap trigger depends on session tracking, which the model does not show. The rationale's claims about model cost and market earnings are unverified predictions.",
+ "fixable": true
+}

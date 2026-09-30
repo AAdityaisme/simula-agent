@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-brand-safety-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the reward (priority routing, 60 minutes), declining leaves replies at normal speed, and the 'if the ad fails' field covers both no game available and an unverified play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: returning from the Upgrade entry without subscribing, then opening a chat from My Chats. It does not read what the user typed."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds an optional boost and removes or caps nothing that free users have today ('removes nothing free: yes')."
+ },
+ "g_brand_safety": {
+  "passed": false,
+  "reason": "The placement is 'Inside the character's reply: toward the end of their message, the character says the offer copy.' That puts the offer inside the conversation, dressed as a character message, which the gate forbids."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Janitor+ charges for priority routing (m02, l02), and free users are implied to get normal-priority routing (m03, inferred from s02.e07), so the reward is a slice of a paid resource."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about Janitor+ selling priority routing (s02.e06) and the permanent Upgrade entry (s09.e31) are supported. Free users having normal-priority routing rests on inferred m03, which cites s02.e07. The cost reasoning and the offer flow are the proposal's own additions."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The boost lasts 60 minutes and is capped at 2 per day, so it is a sample that ends. It takes nothing from other users, and subscribers keep permanent priority plus longer memory and more swipes."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The offer appears in the middle of a conversation, in the character's next reply. No limit has been hit, no locked item tapped, and no action finished, and it is not on a persistent surface the user chooses to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn rewarded game. The reward is granted after the verified play, and the trigger is a detectable app-side event (returning from the Upgrade entry, then opening a chat)."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names Janitor+ priority routing, the profile menu Upgrade entry (s09.e31), and My Chats, so it would not read the same in another app."
+ },
+ "other_concern": "The idea assumes the app can detect that the user visited Upgrade and left without subscribing, and that it can turn on priority routing for 60 minutes. Neither was observed. The free-tier queue behavior was never probed in a chat.",
+ "fixable": true
+}

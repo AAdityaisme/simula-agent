@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-chat-content-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 60-minute priority-routing reward before the user chooses the game; the decline and ad-failure fields preserve normal use and address unavailable or unverified plays."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": false,
+  "reason": "The trigger event restricts the card to users whose chats are mostly long roleplay stories, so targeting needs chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal's decline path leaves replies at their normal speed and does not remove or cap an existing free benefit."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the safe s09 profile-menu drawer, away from chat messages and character content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, s02.e06 shows that priority routing—the rewarded resource—is a Janitor+ benefit."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "s02.e06 supports the faster-replies benefit, and s09.e31 supports the persistent Upgrade entry; the proposed card and its targeting are changes, not claims that those features exist today."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes, while s02.e06 identifies priority routing as a benefit the app already sells."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places the offer in the profile menu after the user returns from the Upgrade entry, a surface the user chose to open rather than an interrupted chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game, the return to the profile menu is a detectable app event, and the ad-failure field withholds the reward when play is not verified."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal ties the card to s09's Upgrade to Janitor Plus entry and s02.e06's priority-routing benefit."
+ },
+ "other_concern": "",
+ "fixable": false
+}

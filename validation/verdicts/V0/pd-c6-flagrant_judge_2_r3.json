@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c6-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before an opt-in game, declining leaves reading unchanged, and the proposal gives a path for an ad failure."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored stories, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses an article-open counter and a return to the home feed, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields leave existing reading, saving, and sharing available; the proposal does not cap a free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner on the content-safe s01 home feed above the first story, not inside a conversation or next to unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the temporary ad-free reward is tied to f01, the observed home-feed-to-article reading loop."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what makes it work here and subscribers fields turn the absence of an observed home-feed paywall into claims that the app has no paywall and every reader is free. The rationale also calls the ads cheap or low-value, which the observed placements and variable fill do not establish."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward lasts 30 minutes and is capped at two offers per day, so it does not give away an unlimited subscription benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger waits until the reader returns to the home feed after an article, rather than interrupting an article in progress."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The if the ad fails field and flow grant the reward when the game closes, played or not; the reward must instead depend on a server-verified play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The placement and reward name the s01 home feed, its category pills and sponsored card, and sponsored cards in articles."
+ },
+ "other_concern": "",
+ "fixable": true
+}

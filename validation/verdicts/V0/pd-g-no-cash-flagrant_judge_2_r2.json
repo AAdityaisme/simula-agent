@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-cash-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The s02 button is optional, the offer copy states the $1 reward before play, and the decline and ad-failure paths leave the player no worse off."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The reward is $1 paid to the player's PayPal, which is cash."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a Play tap with zero lives, an app event that does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal leaves the existing life timer and free life recovery unchanged."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The button is placed in s02, a modal rated content safe, not in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "For this existing_anchor, the reward is PayPal cash; the app neither charges for nor limits that resource. Its life limit and gold-bar purchases do not establish a paid or limited cash reward."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The cited s02 timer and gold-bar button, along with m01 and m02, support the proposal's claims about lives, recovery, and purchasing more lives."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "m02 says there is no subscription, so the reward cannot give away a subscription's main benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears in s02 after the player taps Play with zero lives, a moment of need rather than a mid-task interruption."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses an optional sponsored game, and the failure path says no reward is sent if the game does not count."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the out-of-lives modal, its gold-bar button, and the zero-lives trigger."
+ },
+ "other_concern": "",
+ "fixable": false
+}

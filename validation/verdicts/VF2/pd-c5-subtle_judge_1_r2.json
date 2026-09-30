@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c5-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user chooses to play from the card. The offer copy states the reward (3 Advanced reasoning answers today). 'Not now' leaves the app as before, and the ad-fails field covers no game available and an unconfirmed play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 Advanced reasoning mode answers that expire at midnight, which has no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: a gap of 3+ days since the last open, then a tap on New chat. It uses no message content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says 'removes nothing free' and only adds a temporary sample of a paid feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card opens over s01 Chats home, which is rated safe and is not a chat screen. It is not placed in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward is a slice of 'Advanced reasoning mode', which the paywall lists as a paid feature (l02, s02.e03), so the app charges for the resource."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the paid feature, the Luzia+ badge, the three plans and the 3-day trial are supported by s02.e03, s01.e02 and s02.e19. The 'tap New chat' step is thinly evidenced, since s01.e09 is only a text element beside the persona list, so it is logged under other_concern rather than failed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The sample is 3 answers that end at midnight, so it grants no lasting or unlimited access to the paid feature."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The card intercepts the user's tap on New chat before they can pick who to talk to. This interrupts a chat the user is starting, and it is not a limit hit, a locked item tapped, a finished action, or a persistent surface the user chose to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit, the reward is granted after the verified play, and the trigger (3+ day gap plus New chat tap) is an app event the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names Luzia+ 'Advanced reasoning mode', the Luzia+ badge, the Chats home, the New chat flow and the 3-day trial, so it does not read the same in any app."
+ },
+ "other_concern": "The proposal assumes New chat is a tappable element that opens a list of who to talk to, but the model shows only a 'New chat' text label above persona containers on home. The pricing claim about model cost in higher-earning markets is also a prediction.",
+ "fixable": true
+}

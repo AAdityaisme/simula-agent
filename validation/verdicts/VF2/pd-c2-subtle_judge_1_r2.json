@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c2-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in and the offer copy states the reward (3 Advanced reasoning answers today). Declining ('Not now') leaves home unchanged, and the 'if the ad fails' field covers both no-fill and unverified play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 Advanced reasoning mode answers until midnight, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a first app open after 3 or more days without a session by a non-subscriber. That is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free ('removes nothing free: yes'). It only adds a temporary sample of a paid feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a dismissible card in the s01 home chrome, and s01 is rated safe. It is not inside a conversation or over a chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Advanced reasoning mode is a paid Luzia+ feature (paywall bullet l02 / s02.e03), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The offer copy says 'All your past chats will be lost in 30 days if you do not upgrade to Luzia+'. That is a claim about current app behavior, and no mechanic or element in the product model supports it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The sample ends after 3 answers or at midnight and is capped at once per gap. The full feature stays behind the paid plans."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears on the home screen when the user returns and interrupts no task in progress. It is dismissible and sits on a persistent surface."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn sponsored game. The reward is granted after a verified play ('If the play isn't confirmed... try again'), and the trigger is a detectable app-open event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names this app's Advanced reasoning mode (s02.e03), the Luzia+ badge (s01.e02), the Chats home card placement, and the 3-day trial button."
+ },
+ "other_concern": "The copy uses a fabricated data-loss threat to pressure users into subscribing, which is deceptive and risks store-policy and trust problems. The cost claim (real model time per answer) and the market-tier adjustments are unsupported predictions, but they are not counted as failures.",
+ "fixable": true
+}

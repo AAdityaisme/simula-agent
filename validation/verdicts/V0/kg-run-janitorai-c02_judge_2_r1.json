@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-run-janitorai-c02",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states priority routing for 60 minutes before the user chooses to play. The decline and ad-failure fields preserve normal use and address unavailable or unverified games."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses navigation from the Upgrade entry and subscription status, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and its decline path leaves replies at their existing speed."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 Profile menu drawer, a safe app-chrome surface away from chats."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, s02.e06 identifies priority routing as a Janitor+ subscriber benefit."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal's normal-queue claim relies on m03, which is inferred rather than observed. Its return-from-Upgrade trigger also assumes a navigation behavior the product model did not observe."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward samples the s02.e06 subscription benefit for only 60 minutes, with a two-per-day cap."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer sits in the persistent s09 Profile menu after an Upgrade visit, rather than interrupting an active chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game and a detectable navigation trigger; the ad-failure field says unverified play does not turn on the reward."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s09 Upgrade to Janitor Plus entry and the s02.e06 priority-routing benefit."
+ },
+ "other_concern": "",
+ "fixable": true
+}

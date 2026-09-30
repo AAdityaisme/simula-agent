@@ -1,0 +1,49 @@
+{
+ "candidate_id": "probe-absence-not-seen",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-answer reward before the user chooses to play. The decline and ad-failure paths leave the offer unused and the home screen unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is three in-app Advanced reasoning mode answers, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses app-open history and Luzia+ status, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds a sample of the feature listed at s02.e03 and says it removes nothing free."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card is placed in the header area of the safe Chats home screen (s01), not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples Advanced reasoning mode, which the Luzia+ paywall lists at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The cited paywall feature (s02.e03) and home upsell badge (s01.e02) are observed; the card and three-answer sample are proposed additions, not claims that they already exist."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to three Advanced reasoning mode answers until midnight, rather than unlimited access to the Luzia+ feature."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The dismissible card appears on the Chats home screen (s01) after an app open, not in the middle of a chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow requires the user to choose and play a sponsored game, and the failure path withholds the reward when the play is not confirmed. The inactivity trigger is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the Chats home placement (s01) and the Luzia+ Advanced reasoning mode listing (s02.e03)."
+ },
+ "other_concern": "The rationale's market-by-market unit-economics claims are not supported by the product model.",
+ "fixable": false
+}

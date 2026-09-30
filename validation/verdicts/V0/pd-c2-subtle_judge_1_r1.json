@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c2-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in by tapping the card. The offer copy states the reward (3 Advanced reasoning mode answers today), 'Not now' leaves home unchanged, and the 'if the ad fails' field covers no-fill and unverified plays."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 in-app Advanced reasoning answers until midnight, which has no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the first app open after 3 or more days without a session by a non-subscriber. That is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal states 'removes nothing free: yes' and adds no cap or lock. The false chat-loss line in the copy is a claim rather than a mechanic of the idea."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card is app chrome on s01 Chats (home), which is rated safe. It is not in the conversation or over a chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Advanced reasoning mode is a paywall feature (l02, s02.e03) that Luzia+ charges for, so the anchor resource is one the app gates."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The offer copy says 'All your past chats will be lost in 30 days if you do not upgrade', but no product-model element supports a chat-retention limit. The model lists no free-tier limit and says what the free tier is missing is not on screen."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 3 answers and expires at midnight on the day, with a 1 per day cap. That is a quantity- and time-limited sample."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears on the Chats home at app open, a dismissible surface, and does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn sponsored game. The reward is granted only after the play is verified (an unconfirmed play shows 'try again'), and the trigger is a detectable app-open-after-gap event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Advanced reasoning mode bullet, the Luzia+ badge, the Chats home prompt card and the 3-day trial button, all specific to this app."
+ },
+ "other_concern": "The copy invents a data-loss threat as fear-based pressure. It is likely deceptive and could raise store-policy or user-trust problems even apart from the evidence failure. The rationale about earnings in different markets is speculative.",
+ "fixable": true
+}

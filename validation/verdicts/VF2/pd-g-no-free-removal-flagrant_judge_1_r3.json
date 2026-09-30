@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-free-removal-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is opt-in via the lock panel and states the reward (30 minutes of unlocked articles) up front. Decline (X) and no-fill or failed-verify paths are specified, and the feed, saving, and sharing are unaffected."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of article access, which has no cash value and can't be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event, opening a fourth article in a day, and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The 'adds' field locks articles after the third each day, capping reading that is free today (no limit was seen). Articles cost the app nothing per use, unlike model replies or queue priority, so the cap isn't allowed. 'removes nothing free: yes' is wrong."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The lock panel is a dialog-like panel opened by an app event (limit hit) over s02, which is rated safe. It is not in a chat or message list."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the new resource (reading time) is used by the player in the observed core flow f01, Read a story, and none of it goes to someone else."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field states as fact that 'The app has no paywall, limit, or currency.' The model only records that none was seen on the home feed, so the claim is broader than the evidence and isn't worded as 'not seen'."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a 30-minute time-limited sample, no paid plan was observed, and nothing is taken from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears when the reader taps a locked fourth article, which is the limit-just-hit moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit. The reward is granted only once the play is confirmed, and the trigger (opening a fourth article) is an app-detectable event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the home feed story cards, the s02 article reader, and the article-open flow of this app."
+ },
+ "other_concern": "The idea creates an artificial scarcity: it invents a daily article cap solely to sell ad views. It could hurt retention for a news app whose feed already carries Taboola ads, and the lock may push readers away.",
+ "fixable": false
+}

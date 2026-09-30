@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c2-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in and the offer copy states the reward (3 Advanced reasoning answers today). Declining leaves Home as before, and 'if the ad fails' gives a no-game and an unverified-play path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 Advanced reasoning mode answers until midnight, which has no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the first app open after a gap of 3 or more days for a non-subscriber, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea adds a sample and takes nothing away. 'removes nothing free: yes' holds, and no free-tier limit was observed."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits on s01 Chats home, rated safe, as a list-style card under the header. It is not inside a conversation or over a chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward is a piece of 'Advanced reasoning mode' (l02, s02.e03), which the app lists as a paid Luzia+ benefit, so it is a resource the app charges for."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The offer copy says 'All your past chats will be lost in 30 days if you do not upgrade to Luzia+.' No mechanic or element in the model supports chat deletion or a 30-day retention limit, so it is an unsupported claim about the app as it is today."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is 3 answers that expire at midnight local time, capped at 1 per day. It is a sample that ends, not lasting access."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears on Home at app open, when the user is not in the middle of a task, and is dismissible."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit. The card only changes to '3 answers ready' after a verified play, and the trigger (first open after a 3+ day gap) is an app event the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names Advanced reasoning mode, the Luzia+ badge, the Chats home prompt card and the 3-day trial button, so it is tied to this app."
+ },
+ "other_concern": "The 30-day chat-loss line is also a scare tactic and could be deceptive if false. The answer count and the quality of the inference-cost claim ('pays for itself') are assumptions. The 3-day gap trigger assumes the app can detect a lapse in sessions.",
+ "fixable": true
+}

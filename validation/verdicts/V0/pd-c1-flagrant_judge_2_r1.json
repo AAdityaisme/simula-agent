@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c1-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the one-hour Search reward before the user chooses to play. The decline and ad-failure fields provide paths that do not grant an unverified reward."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of an in-app feature, not cash or a transferable or externally exchangeable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a return to the profile menu after opening Upgrade, not anything the user wrote or said in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free and does not specify a lock or cap on the existing Search tab."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile menu, a safe sheet away from chats and character content."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "This is an existing_anchor, but the model shows no charge or limit for Search; the Janitor+ benefits in s02 concern context, routing, swipes, and a checkmark."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field claims Search supports name and trait filters. The provided model identifies a Search tab and screen but does not establish those filters."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to one hour, and Search is not listed among the Janitor+ benefits in s02."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer is a card in the profile menu after the user returns from Upgrade, not an interruption to an ongoing chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a chosen sponsored game and a detectable menu-return event; the ad-failure field says the reward is not turned on if play is not verified."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names this app's s09 Upgrade to Janitor Plus entry and its Search tab."
+ },
+ "other_concern": "The proposal does not clarify whether Search remains available after the rewarded hour expires. Restricting it would require a separate free-removal assessment.",
+ "fixable": false
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c6-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The 'if the ad fails' field does not say what happens if a completed game fails server verification. It therefore lacks a path for an ad that fails to verify."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or an externally exchangeable reward."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses a return to the profile menu, not anything the user wrote or said in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and its decline path leaves normal replies unchanged."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the content-safe s09 profile menu drawer, away from chats."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples priority routing, a Janitor+ benefit shown in s02.e06."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal says free users can skip a 'normal queue,' but free-user queue priority is only inferred in m03 and is explicitly unobserved in the open questions. That app claim is not supported by observed evidence."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward limits the Janitor+ priority-routing benefit to 60 minutes, with a frequency cap of two plays per day."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears in the s09 profile menu after the user returns from the Upgrade entry, rather than interrupting an ongoing chat task."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The 'if the ad fails' field turns on faster replies when the user taps Play. That grants the reward on a tap instead of the verified play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s09 Upgrade to Janitor Plus entry and the priority-routing benefit shown in s02.e06."
+ },
+ "other_concern": "",
+ "fixable": true
+}

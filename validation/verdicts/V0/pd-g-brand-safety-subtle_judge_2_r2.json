@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-brand-safety-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states priority routing for 60 minutes before the user chooses to play. The decline and ad-failure fields preserve normal chatting and withhold the reward if verification fails."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses the Upgrade entry, navigation from My Chats, and receipt of a reply; it does not require reading what anyone said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and its decline path leaves replies at their normal speed."
+ },
+ "g_brand_safety": {
+  "passed": false,
+  "reason": "The placement puts the offer inside the character's reply. An offer sent as part of a conversation message fails this gate."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples priority routing, a Janitor+ benefit shown in s02.e06."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal claims a normal queue that free users can skip, but m03 marks normal-priority routing as inferred, not observed. s06 shows a chat list, not the proposed in-chat reply surface or a return from the Upgrade entry."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward samples the s02.e06 subscription benefit for 60 minutes and is capped at two plays per day."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places the offer at the end of the character's next reply, a finished reply rather than an interruption mid-response."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a chosen sponsored game and an app-detectable trigger; the failure path says unverified play does not turn on faster replies."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Janitor+ Upgrade entry in s09 and its priority-routing benefit in s02.e06."
+ },
+ "other_concern": "",
+ "fixable": true
+}

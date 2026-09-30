@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c2-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-answer reward before play, and the flow makes the game optional. The decline and ad-failure paths leave the home screen usable without consuming the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is three in-app Advanced reasoning mode answers, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses time since the last session and subscription status, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free and does not specify a change to chat retention. The chat-loss statement in the offer copy is unsupported, but it is not a specified removal mechanic."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the safe s01 Chats home screen, outside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples Advanced reasoning mode, which the s02 paywall lists as a Luzia+ benefit."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The offer copy claims past chats will be lost in 30 days without an upgrade. Neither the cited evidence nor the product model supports a chat-retention deadline."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to three answers until midnight, rather than unlimited access to the paywall's Advanced reasoning mode."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears on s01 Chats home at app open, before the user starts a chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses an optional sponsored game, and the ad-failure path withholds the reward when play is not confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s01 Luzia+ badge and the Advanced reasoning mode benefit on the s02 paywall."
+ },
+ "other_concern": "The unsupported chat-loss warning is also unnecessarily alarming and could undermine trust.",
+ "fixable": true
+}

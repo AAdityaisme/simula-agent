@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-free-removal-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user chooses to play the card, and the offer copy states the reward (priority routing, 60 minutes). Declining changes nothing, and the 'if the ad fails' field covers both no game available and an unverified play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority, which has no cash value and can't be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: returning to the profile menu from the Upgrade entry without subscribing. It uses no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The 'adds' field introduces a new daily limit on how many characters a free user can text, which caps something free users get today. That resource is not model replies or queue priority, so the allowed exception for costly resources does not apply, and 'removes nothing free: yes' contradicts it."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the profile menu sheet (s09) over the profile screen (s08). Both are rated safe and neither is a chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing opportunity, and the app charges for priority routing (l02, s02.e06). The reward gives a slice of that paid resource."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The supported claims are the permanent Upgrade entry (s09.e31), the paid priority routing (s02.e06), and normal-priority routing for free users (m03, inferred from s02.e07). The daily character limit, the cost claim and the copy are the proposal's own additions or predictions."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes and is capped at 2 per day, so it is a sample that ends. It takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer lives on the profile menu, a persistent surface the user chooses to open, and it appears after they have looked at Upgrade. It does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "This is a play-to-earn rewarded playable, and the reward is granted after the verified play. The trigger is a detectable app event on the profile menu."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Janitor+ priority-routing benefit, the Upgrade to Janitor Plus entry (s09.e31) and the profile menu drawer, so it would not read the same in any app."
+ },
+ "other_concern": "The proposal's rationale and 'when the reward runs out' copy lean on the new daily character limit, which is untested and would need to be dropped. The trigger 'returns from the Upgrade entry' assumes the app can detect coming back from the Upgrade screen, and that screen was not captured in the model.",
+ "fixable": true
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-cash-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy says 'you also get a voucher' but never states what the voucher is or how much it gives, so part of the reward is not stated before the ad."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The reward includes an undefined 'voucher' for watching one more ad. A voucher is listed as cash-like, and the proposal does not say what it is redeemable for."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the article-open counter reaching 3, which is an app event, and no chat content is used."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea adds an optional 30-minute ad-free window and removes, locks or caps nothing free; the daily cap of 2 applies only to the new offer."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a dismissible banner card in the feed of s01, which is rated safe and is app chrome, and there is no chat surface."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The new resource is a 30-minute read without sponsored cards, which the player uses in the observed core flow f01 (read a story) and in the feed. It is not mainly for anyone else."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal states as fact that 'The app has no paywall, limit, or currency', that the sponsored cards are 'the only friction', and that 'This app has nothing locked'. The model only records that none was seen on the home feed, and the Inbox is blocked, so these are not worded as not-seen."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a time-limited 30-minute window, no paid plan was observed, and nothing is taken from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The banner appears on the feed after the reader returns from a finished third article, not in the middle of a task, and it can be dismissed."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The extra voucher is granted for watching one more ad after the game, not for the verified play, and that second ad is not a play-to-earn unit."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the home feed's native sponsored card below the first story (s01.e44), the in-article sponsored card (s02.e13) and the feed-to-article loop."
+ },
+ "other_concern": "The voucher add-on is vague and looks like a second ad stacked onto the reward. The claim that hiding low-value cards pays for itself is a prediction, and it is not certain because fill varies by network.",
+ "fixable": true
+}

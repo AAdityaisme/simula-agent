@@ -1,0 +1,49 @@
+{
+ "candidate_id": "probe-absence-not-seen",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 3-answer reward before the user chooses to play. The decline and ad-failure paths leave the home screen available and do not use up the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is three in-app Advanced reasoning mode answers, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses app-open and session-gap events, not the contents of a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal's 'removes nothing free' field and reward add a temporary paid-mode sample without capping an existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a dismissible card on the Chats home screen, which is rated safe, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, s02.e03 lists Advanced reasoning mode as a Luzia+ benefit, and the reward gives a limited sample of it."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The paid-mode claim is supported by s02.e03, the home badge by s01.e02, and the proposal phrases the absence of a free-answer limit as something not seen."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to three answers and expires at midnight local time, so it does not grant lasting access to the paid mode."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a dismissible home card on s01 that the user can choose to use, not an interruption during a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game triggered by a detectable app-open event; the ad-failure path says an unconfirmed play does not count."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea ties the offer to the Chats home screen and the Advanced reasoning mode benefit listed on the Luzia+ paywall."
+ },
+ "other_concern": "The flow could explicitly name REWARD_VERIFIED and specify once-only fulfillment for the three-answer grant.",
+ "fixable": false
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c1-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the one-hour reward before an optional game. The decline and ad-failure fields leave the menu usable and provide a path when the game is unavailable or unverified."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is an hour of in-app Search, not cash or a cash-like asset."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a return to the profile menu from Upgrade, not anything the user said or wrote."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The reward and expiry fields make access to Search last only an hour, effectively timing out a feature available through the existing Search tab (s01.e67). Search is not a resource eligible for a new cap."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the safe s09 profile-menu drawer, not in or over a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "For this existing_anchor, the reward gives Search access, but the model shows neither a charge nor a limit on Search; the Janitor+ benefits in m02 do not include it."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says Search supports finding characters by name and trait filters. The cited Search label and product model do not establish those filters."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes and does not grant any of the Janitor+ benefits listed in m02."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is in the profile menu, a persistent surface the user chooses to open, after returning from Upgrade."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable return to the menu, and the ad-failure field says unverified play does not turn on the reward."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Search tab and places its card under the s09 Upgrade to Janitor Plus entry."
+ },
+ "other_concern": "",
+ "fixable": false
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c1-subtle-aol-c07",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the second-city reward and its 7-day duration before the user chooses to play. The decline and ad-failure paths leave the existing bar unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a second city in the app’s weather bar, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses taps on the Home weather bar, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says the existing weather bar and feed continue to work if the offer is declined; it adds an optional feature rather than removing a free one."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in Home-feed chrome below the weather bar on s01, a content-safe screen, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "The new second-city resource is not a slice of an observed paid benefit, and weather-city selection is not tied to the observed core flows f01 (read a story) or f02 (browse a category)."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says the weather bar shows one place and that the app already fetches the needed data. s01.e29 says only 'Tap here for weather'; neither claim was observed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No paid plan was observed, and the proposed reward is limited to 7 days."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a non-blocking Home-feed card shown after a weather-bar tap, not an interruption inside a story-reading task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow offers a short sponsored game after a detectable weather-bar tap and adds the city only once the play is confirmed; the ad-failure path grants nothing for an unconfirmed play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s01 weather bar, places the card beneath it, and distinguishes it from the existing feed ad slot s01.e44."
+ },
+ "other_concern": "",
+ "fixable": false
+}

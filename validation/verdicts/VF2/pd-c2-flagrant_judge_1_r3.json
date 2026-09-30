@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c2-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is an opt-in banner. Its offer copy states the reward (30 minutes without sponsored stories). Declining leaves the feed unchanged, and 'if the ad fails' gives a failure path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of hiding sponsored cards (feature_time). It has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an article-open counter reaching 3 on the home feed, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed or capped. Sponsored cards show as usual unless the user chooses to play, and declining changes nothing."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The banner sits in the app chrome of s01, a home feed rated safe. It is not inside a chat or next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is a product_change. The new resource, an uninterrupted read without sponsored cards, is for the player's own use in the observed 'Read a story' flow (f01). It does not go to another party."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "'What makes it work here' claims that 'a full-screen video ad AOL shows after every third article'. No mechanic or element in the model states this; s05 is only listed as 'Article with in-article ad'. It also states 'The app has no paywall, limit, or currency' as a fact about the whole app, when the model only records that none was seen on the home feed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No paid plan was observed. The reward is a 30-minute window that expires, and it takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The banner appears when the reader returns to the feed after finishing a third article, which is a finished action. It never interrupts a reading task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "This is a play-to-earn unit. The reward is granted once the play is confirmed, and the trigger is a detectable article-open counter."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the home feed's sponsored Taboola card below the first story, the in-article sponsored card, and the feed-to-article reading loop of this app."
+ },
+ "other_concern": "The rationale's revenue claims are predictions and are not counted. It is unclear whether the article-page sponsored card (s02.e13) can be reliably hidden mid-window. Simula's own sponsored game alongside a hidden-ad reward may cannibalize ad income.",
+ "fixable": true
+}

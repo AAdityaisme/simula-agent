@@ -1,4 +1,5 @@
 economics_mode = "annotate"   # annotate | gate
+judges = ["judge_1", "judge_2"]  # every run; a judgment check they split on goes to a person
 jev_backend = "typesafe"       # typesafe | adapter; env SIMULA_JEV_BACKEND overrides
 validation_usd_cap = 20.0
 
@@ -36,6 +37,8 @@ qa_critic = { model = "claude-sonnet-5-5", effort = "medium", max_tokens = 16000
 qa_fixer = { model = "claude-opus-5-5", effort = "high", effort_last_round = "xhigh", max_tokens = 64000 }
 proposer = { model = "claude-opus-5-5", effort = "high", max_tokens = 16000 }
 propose_dedupe = { model = "claude-sonnet-5-5", effort = "low", max_tokens = 4000 }
+# The judges ask one over stream_above (16000, checked with >), so their calls stream: a stall fails after 60 s idle
+# with no SDK retries, and a reply lost mid-stream is still charged.
 judge_1 = { model = "claude-sonnet-5-5", effort = "high", max_tokens = 16001 }
 judge_2 = { model = "gpt-6-sol", effort = "high", declared_fallback = "gpt-6-luna", max_tokens = 16001 }
 pairwise = { model = "claude-sonnet-5-5", effort = "low" }

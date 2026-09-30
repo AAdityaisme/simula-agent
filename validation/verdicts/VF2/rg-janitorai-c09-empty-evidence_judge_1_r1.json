@@ -1,0 +1,49 @@
+{
+ "candidate_id": "rg-janitorai-c09-empty-evidence",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in (fan taps like, then chooses to play), the offer copy states the reward (24-hour list boost and 7-day supporter mention), declining leaves the page unchanged, and the ad-fail path hides the card or shows a retry note."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic list boost and a supporter name mention, with no cash or withdrawable value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a like-button tap on the character page (s07.e16), which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea adds a card and removes, locks or caps nothing that users get free today; the daily caps apply only to the new boost."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits on s07, which is rated safe and is not a chat screen, so it counts as app chrome placed next to safe content."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "As a product_change, the boost goes to the creator (visibility for @IoakimTumo), so most of what the reward gives goes to someone other than the player; the fan's own share is only a cosmetic name mention, which is not a slice of a paid benefit or a core-flow resource."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal cites no evidence, and it claims the Home list of smaller creators is 'ordered' and that a play can move a character higher; the model shows Hidden Gems only as a section description (s01.e15) and never shows how the list is ordered or whether ranking can be shifted. It also says 'the plan doesn't include boosting other people's characters', which is supported by the paywall benefits but does not cover the claim about list behavior."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The reward takes from other creators their place in a list the app orders: lifting one character pushes others down in the Hidden Gems list, and the app does not sell that advantage (m1/m2 list no such benefit)."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears right after the user taps like, which is a finished action on the character detail page, not an interruption of a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit: the boost and mention are granted after the verified play, and the trigger is a like tap the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names this app's Hidden Gems list for smaller creators (s01.e13/e15), the character detail page byline, and the like button (s07.e16)."
+ },
+ "other_concern": "The 'Home list' boost has no shown mechanism and would need a backend ranking change; the supporters row is a public display of user names, and both are new features rather than observed ones. Free like remains ungated, which is fine.",
+ "fixable": false
+}

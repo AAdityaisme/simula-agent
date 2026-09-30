@@ -1,0 +1,49 @@
+{
+ "candidate_id": "rg-janitorai-c07-fan-boost",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the character boost and supporter heart with their durations before play. The user chooses whether to play, declining leaves the page unchanged, and the failure path permits a retry without using an attempt."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is an in-app list boost and supporter heart, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a tap on the like button on s07, not anything the user typed or said in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free; the new boost does not lock or cap an existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer card is placed on s07, a character-detail screen rated safe, beneath its like and stats row rather than in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the new visibility boost ties to the observed f1 core loop of finding a character in the home feed and starting a chat."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The claims that a character sits deep in Hidden Gems and that small creators have only one fixed place to be found are unsupported: s01 shows Vac on page 1, and f4 includes catalog search. The 102-page indicator does not establish a particular character's position."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward does not give away Janitor Plus's main benefits listed in m2; the boost and supporter heart are also time-limited."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger follows a completed like-button tap on s07, rather than interrupting a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a chosen sponsored game triggered by a detectable like-button tap, and grants the reward only once the play is confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the Hidden Gems tab, its 102-page indicator, and s07's creator and like button as the elements that make the idea work here."
+ },
+ "other_concern": "Boosting one character near the top could reduce visibility for other small creators; the proposal does not address ranking fairness.",
+ "fixable": true
+}
