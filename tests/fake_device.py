@@ -1,6 +1,7 @@
 """A fake phone built from fixture captures, for offline explorer tests. Each screen is a real tree + PNG; a tap
 moves to another screen by the tapped element's words (or its center, for controls without words)."""
 
+import hashlib
 import io
 import json
 import re
@@ -84,6 +85,7 @@ class FakePhone:
         self.list_seconds, self.shots, self.reply_polls, self.splash_left = [], {}, 0, 0
         self.chats: dict[str, list[tuple[str, str]]] = {}
         self.draft, self.sent, self.busy_until = "", 0, 0.0
+        self.pngs: dict[bytes, bytes] = {}
         self.screens.setdefault("launcher", blank("com.android.launcher"))
 
     def tick(self, seconds: float = 0.3) -> None:
@@ -160,9 +162,19 @@ class FakePhone:
     def screenshot(self, path: Path, size=None) -> Path:
         self.tick()
         self.shots[self.screen] = self.shots.get(self.screen, 0) + 1
-        self.image().save(path)
+        path.write_bytes(self.png(self.image()))
         self.log.append(("shot", self.screen))
         return path
+
+    def png(self, image: Image.Image) -> bytes:
+        """The image as PNG, encoded once per picture: an explore captures the same few screens over and over, and
+        encoding a full-size capture costs ~30x hashing it."""
+        key = hashlib.sha1(image.tobytes()).digest()
+        if key not in self.pngs:
+            buffer = io.BytesIO()
+            image.save(buffer, "PNG")
+            self.pngs[key] = buffer.getvalue()
+        return self.pngs[key]
 
     def foreground(self) -> str:
         self.tick(0.1)
