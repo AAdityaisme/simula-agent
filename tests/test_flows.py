@@ -860,9 +860,14 @@ def test_with_no_accept_holding_the_closest_idea_draws_no_replacement(tmp_path):
     assert "2 idea(s) split the reviewers" in review and "No idea passed the review" not in review
 
 
-def test_the_reviews_cover_names_only_a_hold_that_took_an_idea_out_of_the_deck(tmp_path):
-    run_dir, calls = split_run(tmp_path, approvals={"hold": ["c03"]})  # c03 was rejected, so never drawn
+def test_the_reviews_cover_names_a_persons_hold_of_a_split_waiting_on_them_but_not_of_a_reject(tmp_path):
+    run_dir, calls = split_run(tmp_path / "reject", approvals={"hold": ["c03"]})  # c03 was rejected, so never drawn
     assert calls == ["c01"] and "held" not in cover_of(review_text(run_dir))
+    run_dir, calls = split_run(tmp_path / "split", approvals={"hold": ["c02"]})
+    review = review_text(run_dir)
+    assert calls == ["c01"] and "Needs your call" not in review
+    assert "A person held c02 out of the deck in flows/approvals.json." in cover_of(review)
+    assert "split the reviewers" not in cover_of(review)
 
 
 APPROVED_C02 = {"id": "c02", "splits": ["c5_moment", "c7_specific"]}
@@ -957,6 +962,9 @@ def test_approvals_survive_the_cleanup(tmp_path):
     ('{"hold": [{"id": "c02", "splits": ["c5_moment"]}]}', "a hold entry is an id"),  # Needs your call's entry
     ('{"promote": [{"id": "c02"}]}', "a hold entry is an id"),
     ('{"promote": ["c01"], "hold": ["c03rev", "c9"]}', "has the id 'c03rev', 'c9'"),
+    ('{"promote": ["c03"]}', "c03 was rejected; promote draws an accepted or split idea"),
+    ('{"promote": [{"id": "c02", "splits": ["c5_moment", "c7_specific"]}], "hold": ["c02"]}',
+     "c02 is both promoted and held"),
 ])
 def test_a_malformed_approvals_file_stops_flows_before_it_clears_the_last_deck(tmp_path, written, error):
     run_dir, _ = split_run(tmp_path)

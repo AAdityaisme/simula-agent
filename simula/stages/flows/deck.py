@@ -405,7 +405,8 @@ def review(ctx: Ctx, model: ProductModel, flows: list[dict], not_built: list[tup
            waiting: list[Decision] = (), set_aside: dict[str, str] | None = None, held: list[str] = (),
            promoted: list[str] = ()) -> str:
     """Simula's own review, kept out of the product team's deck: its cover, every idea's score, and Needs your call.
-    `held` names only the ideas a person's hold took out of the deck."""
+    `held` names the accepted and CONDITIONAL ideas a person held, whether the deck would draw them or they'd wait on
+    Needs your call."""
     app = app_title(model, ctx.app["name"])
     none_accepted = not any(d.final == "accept" for d in decisions)
     fallbacks = sum(closest(f["decision"], ctx.run_dir, none_accepted, f.get("approved", False)) for f in flows)

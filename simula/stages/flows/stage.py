@@ -19,7 +19,7 @@ from simula.stages.flows.editor import apply_edits, ask_editor
 from simula.stages.flows.page import ad_palette_css, blur_css, decline_edges, flow_page, strip_runtime, with_flow_css
 from simula.stages.flows.pdf import write_pdf
 from simula.stages.flows.walk import screenshot_before, walk, walk_decline, walk_failed_ad
-from simula.stages.flows.wording import NOT_WIRED, REWARD_NOT_SHOWN, caption
+from simula.stages.flows.wording import NOT_WIRED, REWARD_NOT_SHOWN, VERDICTS, caption
 from simula.stages.judge import ordered
 
 MAX_IDEAS = 4
@@ -43,7 +43,8 @@ def is_approval(entry) -> bool:
 def load_approvals(flows_dir: Path, decisions: list[Decision]) -> tuple[list[str | dict], list[str]]:
     """A person's overrides, (promote, hold), from flows/approvals.json: {"promote": [entries], "hold": [ids]}. An
     older file's "approved" list is read as promote, so it adds to what the judges draw and never drops an idea. A
-    malformed file, or an id no decision has, raises here, before anything of the last run is cleared."""
+    malformed file, an id no decision has, a promote of an idea the judges didn't pass, or an id both promoted and held
+    raises here, before anything of the last run is cleared, so every promotion that holds is drawn."""
     path = flows_dir / "approvals.json"
     data = json.loads(path.read_text()) if path.exists() else {}
     if (not isinstance(data, dict) or set(data) - {"promote", "hold", "approved"}
@@ -53,9 +54,15 @@ def load_approvals(flows_dir: Path, decisions: list[Decision]) -> tuple[list[str
     if bad := [e for e in promote if not is_approval(e)] + [e for e in hold if not isinstance(e, str)]:
         raise ValueError(f'{path}: a hold entry is an id, a promote entry an id or {{"id": ..., "splits": [...]}}; '
                          f"got {bad[0]!r}")
-    known = {d.candidate_id for d in decisions}
-    if unknown := [i for i in [*(e if isinstance(e, str) else e["id"] for e in promote), *hold] if i not in known]:
+    finals = {d.candidate_id: d.final for d in decisions}
+    ids = [e if isinstance(e, str) else e["id"] for e in promote]
+    if unknown := [i for i in [*ids, *hold] if i not in finals]:
         raise ValueError(f"{path}: no idea in judge/decisions.json has the id {', '.join(map(repr, unknown))}")
+    if undrawable := [i for i in ids if finals[i] not in SURVIVED]:
+        raise ValueError(f"{path}: {undrawable[0]} was {VERDICTS[finals[undrawable[0]]]}; promote draws an accepted or "
+                         "split idea")
+    if both := [i for i in ids if i in hold]:
+        raise ValueError(f"{path}: {', '.join(both)} is both promoted and held")
     return promote, hold
 
 
@@ -309,9 +316,9 @@ def run(ctx: Ctx) -> None:
     for flow in flows:  # a drawn split is either a person's approval or, with nothing accepted, the closest idea
         flow["approved"] = needs_call(flow["decision"]) and flow["decision"].candidate_id in promoted
     (out / "slides.html").write_text(deck(ctx, model, flows, decisions))
-    removed = [d.candidate_id for d in survivors(decisions, promoted) if d.candidate_id in held]
+    decided = [d.candidate_id for d in ordered(decisions) if d.candidate_id in held and d.final in SURVIVED]
     (out / "review.html").write_text(review(ctx, model, flows, not_built, decisions, candidates, cap=MAX_IDEAS,
-                                            cut=len(cut), waiting=waiting, set_aside=set_aside, held=removed,
+                                            cut=len(cut), waiting=waiting, set_aside=set_aside, held=decided,
                                             promoted=promoted))
     layout = write_pdf(out / "slides.html") + [f"review: {p}" for p in write_pdf(out / "review.html")]
     for problem in layout:
