@@ -7,7 +7,7 @@ Mobile app → product model → clickable mock, measured against the real scree
 simula-agent takes an installed Android app through exploration, a product model, a clickable mock and reviewed rewarded-ad flows, with no per-app code. <RUN: one sentence on the outcome>.
 
 - **Recording** (10–15 min): <RECORDING>
-- **JanitorAI, the deep run:** [deck](runs/janitorai/<RUN>/flows/slides.pdf) · [clickable mock](runs/janitorai/<RUN>/qa/approved/index.html) (open it locally; GitHub shows HTML as source)
+- **JanitorAI, the deep run:** [deck](runs/janitorai/20260929-203310-1f19585/flows/slides.pdf) · [clickable mock](runs/janitorai/20260929-203310-1f19585/qa/approved/index.html) (open it locally; GitHub shows HTML as source)
 - **Coverage:** <RUN: which apps ran and how far>. The main limitation: neither judge rubric met its bar, so an accepted idea is two models' call, and a split waits for a person.
 - **Evidence:** [Results](#results) · [Replay without keys or a device](#replay-without-keys-or-a-device)
 
@@ -17,7 +17,7 @@ Every run below ran on commit `<RUN: sha>` and is committed with its cache. Each
 
 | App | Why it's here | Budget | Run | Outcome | Screens | Ideas: proposed → accepted / split / rejected | API $ | Wall time | Judge-2 fallback used |
 |---|---|---|---|---|---|---|---|---|---|
-| JanitorAI | the deep run | `deep` | `runs/janitorai/<RUN>/` | <RUN> | <RUN> | <RUN> | <RUN> | <RUN> | <RUN> |
+| JanitorAI | the deep run | `deep` | `runs/janitorai/20260929-203310-1f19585/` | All 7 stages done on a partial explore (it used its 3 relaunches and stopped at 41 of 80 actions); deck draws the 2 accepted ideas, 2 split ideas wait on Needs your call. QA approved: 488 of 488 tagged elements within 4 dp, 14 of 14 taps land, 6 of 6 core flows walk | 20 (explore partial, relaunch limit) | 8 → 2 / 2 / 4 (all 4 dropped by code: 3 duplicates, 1 claiming a payer benefit never observed; both accepted ideas passed after one revision) | $15.15 | 50 min (explore 13) | no |
 | Luzia | checks the system transfers | `transfer` | `runs/luzia/20260929-204554-1f19585/` | All 7 stages done; deck draws 3 ideas. QA partial: 198 of 198 tagged elements within 4 dp and 19 of 19 taps land, but 1 of 6 core flows fails (the mock's chat screen has no text field) | 15 (explore complete, 40-action cap) | 10 → 3 / 2 / 5 (one of the 5 a duplicate code dropped; 3 ideas revised once) | $10.69 | 30 min (explore 7) | no |
 | AOL | checks the system transfers | `transfer` | `runs/aol/<RUN>/` | <RUN> | <RUN> | <RUN> | <RUN> | <RUN> | <RUN> |
 | OOC | checks the system transfers | `transfer` | `runs/ooc/<RUN>/` | <RUN> | <RUN> | <RUN> | <RUN> | <RUN> | <RUN> |
@@ -51,8 +51,8 @@ Every committed run replays from a clean clone: no API keys, no emulator, and no
 git clone https://github.com/AAdityaisme/simula-agent && cd simula-agent   # on a Mac, clone outside ~/Desktop (iCloud)
 uv sync
 uv run playwright install chromium
-uv run simula run janitorai --run <RUN> --budget deep --from model --replay
-uv run simula run luzia --run <RUN> --from model --replay
+uv run simula run janitorai --run 20260929-203310-1f19585 --budget deep --from model --replay
+uv run simula run luzia --run 20260929-204554-1f19585 --from model --replay
 uv run simula run aol --run <RUN> --from model --replay
 uv run simula run ooc --run <RUN> --from model --replay
 uv run simula run perplexity --run <RUN> --from model --replay
