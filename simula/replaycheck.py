@@ -179,11 +179,11 @@ def check(run: Path, under: Path) -> str:
     """Every replay check on one run, in a clone under `under`; what passed, or Mismatch."""
     check_pin_held(run)
     where = clone(commit(run), under)
-    line = f"bare --replay skipped all {check_markers(where, run)} finished stages"
+    line = f"a bare --replay skipped every finished stage ({check_markers(where, run)})"
     if skip := graders_skip(run):
         return f"{line}; --from model --replay not run: {skip}"
     check_graders_replay(where, run)
-    return f"{line}; --from model --replay wrote the same structured outputs"
+    return f"{line}; --from model --replay changed no structured output"
 
 
 def main(app: str | None = None, run_id: str | None = None) -> int:
