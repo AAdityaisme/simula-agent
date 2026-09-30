@@ -10,7 +10,8 @@ Mobile app → product model → clickable mock, measured against the real scree
 
 simula-agent takes an installed Android app and explores it. It writes down how the product works, rebuilds it as a clickable mock, and proposes rewarded-ad ideas (ads a user opts into for a reward). Two AI judges review the ideas. Nothing in the code is specific to one app. The five committed runs (2026-09-29) cost $51.50 in API calls.
 
-- **Recording** (10–15 min): <RECORDING>
+- **Recording** (15:53, chapters and subtitles): [watch on Google Drive](https://drive.google.com/file/d/14EqJ6bC-ZbnR5EBgTJh3XkixH6aQBAag/view). 0:04 What this is · 1:19 One command, no keys, no phone · 3:18 Explore · 5:16 The product model · 6:41 Mock and QA · 8:08 Propose · 10:08 Judge · 12:01 Does it transfer? · 13:23 Running it for hundreds of apps · 14:40 What's next
+- **Everything in one folder** (video, subtitles, the three decks as PDFs, and the clickable mocks zipped): [Google Drive](https://drive.google.com/drive/folders/1vMfZO18MmhWbsRr2KZ3SrDNaXFKnNdqw)
 - **JanitorAI, the deep run:** [deck](runs/janitorai/20260929-203310-1f19585/flows/slides.pdf) · [clickable mock](runs/janitorai/20260929-203310-1f19585/qa/approved/index.html) (open it locally; GitHub shows HTML as source)
 - **Coverage:** JanitorAI, Luzia, AOL and Perplexity ran all seven stages. JanitorAI's and Perplexity's explores are partial; JanitorAI's never reached a chat. AOL's mock drew 39 of its 64 screens. OOC stopped at launch on the emulator.
 - **The main limitation:** neither of the two judge rubrics met its bar. So an accepted idea is two models' call, and a split (the judges disagree) waits for a person.
