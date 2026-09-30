@@ -7,7 +7,6 @@ both run it.
 The pinned code runs on this checkout's dependencies, not the pin's uv.lock. uv.lock hasn't changed since
 submitted-2026-09-30, so a venv per clone isn't worth it yet."""
 
-import contextlib
 import itertools
 import json
 import os
@@ -25,7 +24,8 @@ DROPPED_ENV = {"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "TYPESAFE_API_KEY", "ANDRO
 DEAD_PROXY = "http://127.0.0.1:9"  # nothing listens on the discard port, so any outside request fails at once
 MARKERS = {"done.json", "failure.json", "manifest.json"}
 PINS = tomllib.loads((ROOT / "runs" / "PINS.toml").read_text())
-BYTE_KEYED = {"submitted-2026-09-30"}  # pins whose code keyed images by PNG bytes, which Linux writes differently
+# Commits whose code keyed images by PNG bytes, which Linux writes differently; commits, so a tagless clone knows them.
+BYTE_KEYED = {"071309fb5188d39f7101cbf45bdd05b3dd12703d"}  # submitted-2026-09-30
 
 
 class Mismatch(Exception):
@@ -158,16 +158,11 @@ def check_markers(clone: Path, run: Path) -> int:
 
 
 def graders_skip(run: Path) -> str | None:
-    """Why the grader's replay can't run on this machine, or None. Decided by the commit a pinned run replays at, so a
-    full-sha pin of a byte-keyed ref skips too; a byte-keyed ref this checkout lacks (a fork, a tagless clone) can't be
-    that commit."""
+    """Why the grader's replay can't run on this machine, or None. Decided by the commit a pinned run replays at,
+    however its pin spells it."""
     if sys.platform == "darwin" or key(run) not in PINS:
         return None
-    byte_keyed = set()
-    for ref in BYTE_KEYED:
-        with contextlib.suppress(Mismatch):
-            byte_keyed.add(resolve(ref))
-    if (sha := commit(run)) in byte_keyed:
+    if (sha := commit(run)) in BYTE_KEYED:
         return (f"it replays at {sha[:12]}, whose code keyed images by PNG bytes, and this platform encodes the same "
                 "pixels to other bytes than the macOS that recorded the cache (known limit, README)")
     return None

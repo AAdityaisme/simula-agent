@@ -119,19 +119,28 @@ def test_the_committed_markers_still_describe_the_pinned_code(clone, run):
     replaycheck.check_markers(clone, run)
 
 
-@pytest.mark.skipif(not any(ref in replaycheck.BYTE_KEYED for ref in PINS.values()), reason="no byte-keyed pins")
-def test_a_full_sha_pin_of_a_byte_keyed_ref_skips_the_graders_replay_off_macos(monkeypatch):
-    run = next(r for r in RUNS if PINS.get(key(r)) in replaycheck.BYTE_KEYED)
+@pytest.mark.parametrize("tags", ["visible", "hidden"])
+def test_a_full_sha_pin_of_byte_keyed_code_skips_the_graders_replay_off_macos(monkeypatch, tags):
+    run = next((r for r in RUNS if key(r) in PINS and commit(r) in replaycheck.BYTE_KEYED), None)
+    if run is None:
+        pytest.skip("no run pinned to byte-keyed code")
     monkeypatch.setitem(PINS, key(run), commit(run))
+    if tags == "hidden":  # a fork or a tagless clone
+
+        def tagless(*args: str, **kwargs) -> str:
+            if any("refs/tags/" in arg for arg in args):
+                raise subprocess.CalledProcessError(1, "git")
+            return git(*args, **kwargs)
+        monkeypatch.setattr(replaycheck, "git", tagless)
     monkeypatch.setattr(sys, "platform", "linux")
     assert replaycheck.graders_skip(run)
 
 
 @pytest.mark.skipif(not RUNS, reason="no committed runs")
-def test_a_byte_keyed_ref_this_checkout_lacks_neither_skips_nor_fails_an_unpinned_run(monkeypatch):
+def test_an_unpinned_run_is_never_skipped_and_resolves_nothing(monkeypatch):
     run = RUNS[0]
     monkeypatch.delitem(PINS, key(run), raising=False)
-    monkeypatch.setattr(replaycheck, "BYTE_KEYED", replaycheck.BYTE_KEYED | {"no-such-tag"})
+    monkeypatch.setattr(replaycheck, "resolve", lambda ref: pytest.fail(f"resolved {ref!r} for an unpinned run"))
     monkeypatch.setattr(sys, "platform", "linux")
     assert replaycheck.graders_skip(run) is None
 
