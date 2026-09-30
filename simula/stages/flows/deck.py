@@ -194,8 +194,7 @@ def condition(decision: Decision, run_dir: Path, none_accepted: bool,
     if failed:
         return "Not every check passed:", f"It didn't pass {names} ({failed[0][1]})."
     if decision.checks_passed < decision.checks_total:
-        return ("Not every check passed:", (f"It passed {decision.checks_passed} of {decision.checks_total} checks; "
-                                            "Simula's review shows which."))
+        return "Not every check passed:", f"It passed {decision.checks_passed} of {decision.checks_total} checks."
     return None
 
 
@@ -217,8 +216,7 @@ def why_html(flow: dict, model: ProductModel, run_dir: Path, none_accepted: bool
     if note := condition(decision, run_dir, none_accepted, flow.get("approved", False)):
         html += f'<div class="condition"><b>{note[0]}</b> {escape(plain(note[1]))}</div>'
     if cost := cost_question(c):
-        html += (f'<div class="condition"><b>Cost check ({c.economics.verdict}):</b> {escape(cost)}. '
-                 "The review's cost line has the numbers.</div>")
+        html += f'<div class="condition"><b>Cost check ({c.economics.verdict}):</b> {escape(cost)}.</div>'
     return f'<div class="why">{html}</div>'
 
 
@@ -404,12 +402,14 @@ def deck(ctx: Ctx, model: ProductModel, flows: list[dict], decisions: list[Decis
 
 def review(ctx: Ctx, model: ProductModel, flows: list[dict], not_built: list[tuple[Decision, str]],
            decisions: list[Decision], candidates: dict[str, Candidate], *, cap: int, cut: int = 0,
-           waiting: list[Decision] = (), set_aside: dict[str, str] | None = None, held: list[str] = ()) -> str:
-    """Simula's own review, kept out of the product team's deck: its cover, every idea's score, and Needs your call."""
+           waiting: list[Decision] = (), set_aside: dict[str, str] | None = None, held: list[str] = (),
+           promoted: list[str] = ()) -> str:
+    """Simula's own review, kept out of the product team's deck: its cover, every idea's score, and Needs your call.
+    `held` names only the ideas a person's hold took out of the deck."""
     app = app_title(model, ctx.app["name"])
     none_accepted = not any(d.final == "accept" for d in decisions)
     fallbacks = sum(closest(f["decision"], ctx.run_dir, none_accepted, f.get("approved", False)) for f in flows)
-    unbuilt_fallbacks = sum(closest(d, ctx.run_dir, none_accepted) for d, _ in not_built)
+    unbuilt_fallbacks = sum(closest(d, ctx.run_dir, none_accepted, d.candidate_id in promoted) for d, _ in not_built)
     slides = [review_cover_html(app, flows, cap=cap, unbuilt=len(not_built) - unbuilt_fallbacks, fallbacks=fallbacks,
                                 unbuilt_fallbacks=unbuilt_fallbacks, cut=cut, calls=len(waiting),
                                 approved=sum(f.get("approved", False) for f in flows), held=held,

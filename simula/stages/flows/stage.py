@@ -33,14 +33,30 @@ def load_candidates(run_dir: Path) -> dict[str, Candidate]:
     return {c.id: c for f in files if f.exists() for c in CandidatesFile.model_validate_json(f.read_text()).candidates}
 
 
-def load_approvals(flows_dir: Path) -> tuple[list[str | dict], list[str]]:
+def is_approval(entry) -> bool:
+    """An id, or {"id": id, "splits": [checks]} as the Needs your call page prints it."""
+    return isinstance(entry, str) or (isinstance(entry, dict) and set(entry) == {"id", "splits"}
+                                      and isinstance(entry["id"], str) and isinstance(entry["splits"], list)
+                                      and all(isinstance(k, str) for k in entry["splits"]))
+
+
+def load_approvals(flows_dir: Path, decisions: list[Decision]) -> tuple[list[str | dict], list[str]]:
     """A person's overrides, (promote, hold), from flows/approvals.json: {"promote": [entries], "hold": [ids]}. An
-    older file's "approved" list is read as promote, so it adds to what the judges draw and never drops an idea."""
+    older file's "approved" list is read as promote, so it adds to what the judges draw and never drops an idea. A
+    malformed file, or an id no decision has, raises here, before anything of the last run is cleared."""
     path = flows_dir / "approvals.json"
     data = json.loads(path.read_text()) if path.exists() else {}
-    if set(data) - {"promote", "hold", "approved"} or not all(isinstance(v, list) for v in data.values()):
-        raise ValueError(f'{path}: expected {{"promote": [...], "hold": [...]}}, got keys {sorted(data)}')
-    return data.get("promote", []) + data.get("approved", []), data.get("hold", [])
+    if (not isinstance(data, dict) or set(data) - {"promote", "hold", "approved"}
+            or not all(isinstance(v, list) for v in data.values())):
+        raise ValueError(f'{path}: expected {{"promote": [...], "hold": [...]}}')
+    promote, hold = data.get("promote", []) + data.get("approved", []), data.get("hold", [])
+    if bad := [e for e in promote if not is_approval(e)] + [e for e in hold if not isinstance(e, str)]:
+        raise ValueError(f'{path}: a hold entry is an id, a promote entry an id or {{"id": ..., "splits": [...]}}; '
+                         f"got {bad[0]!r}")
+    known = {d.candidate_id for d in decisions}
+    if unknown := [i for i in [*(e if isinstance(e, str) else e["id"] for e in promote), *hold] if i not in known]:
+        raise ValueError(f"{path}: no idea in judge/decisions.json has the id {', '.join(map(repr, unknown))}")
+    return promote, hold
 
 
 def honored(approvals: list[str | dict], decisions: list[Decision]) -> tuple[list[str], dict[str, str]]:
@@ -58,12 +74,13 @@ def honored(approvals: list[str | dict], decisions: list[Decision]) -> tuple[lis
 
 def survivors(decisions: list[Decision], promoted: list[str] = (), held: list[str] = ()) -> list[Decision]:
     """Accepted and CONDITIONAL ideas in the judge's order (every accept first, D10), leaving out an idea the judges
-    split on (D11) unless nothing was accepted: then the top-ranked split is drawn as the closest idea, so a deck
-    with survivors has a full slide. A person promotes a split survivor into the deck and holds any idea out of it
-    (flows/approvals.json); everything else follows the judges."""
+    split on (D11) unless nothing was accepted and no one promoted an idea: then the top-ranked split is drawn as
+    the closest idea, so a deck with survivors has a full slide. A person promotes a split survivor into the deck and
+    holds any idea out of it (flows/approvals.json), and a held closest idea gets no replacement; everything else
+    follows the judges."""
     picked = [d for d in ordered(decisions) if d.final in SURVIVED]
     splits = [d for d in picked if needs_call(d)]
-    closest = splits[:1] if not any(d.final == "accept" for d in decisions) else []
+    closest = splits[:1] if not promoted and not any(d.final == "accept" for d in decisions) else []
     return [d for d in picked if (not needs_call(d) or d in closest or d.candidate_id in promoted)
             and d.candidate_id not in held]
 
@@ -259,7 +276,7 @@ def run(ctx: Ctx) -> None:
     decisions = DecisionsFile.model_validate_json((run_dir / "judge" / "decisions.json").read_text()).decisions
     candidates = load_candidates(run_dir)
     out.mkdir(exist_ok=True)
-    promote, held = load_approvals(out)
+    promote, held = load_approvals(out, decisions)
     promoted, set_aside = honored(promote, decisions)
     clean(out)
     chosen = select(decisions, promoted, held)
@@ -292,8 +309,10 @@ def run(ctx: Ctx) -> None:
     for flow in flows:  # a drawn split is either a person's approval or, with nothing accepted, the closest idea
         flow["approved"] = needs_call(flow["decision"]) and flow["decision"].candidate_id in promoted
     (out / "slides.html").write_text(deck(ctx, model, flows, decisions))
+    removed = [d.candidate_id for d in survivors(decisions, promoted) if d.candidate_id in held]
     (out / "review.html").write_text(review(ctx, model, flows, not_built, decisions, candidates, cap=MAX_IDEAS,
-                                            cut=len(cut), waiting=waiting, set_aside=set_aside, held=held))
+                                            cut=len(cut), waiting=waiting, set_aside=set_aside, held=removed,
+                                            promoted=promoted))
     layout = write_pdf(out / "slides.html") + [f"review: {p}" for p in write_pdf(out / "review.html")]
     for problem in layout:
         run_trace(run_dir, stage="flows", step="layout", decider="code", outcome="error", note=problem[:300])

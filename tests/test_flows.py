@@ -353,7 +353,7 @@ def test_the_judges_fallback_pick_reads_as_the_closest_idea_not_a_recommendation
     assert flows.deck.condition(judged(tmp_path, "c02", "g_policy"), tmp_path, none_accepted=True)[0] == \
         "Not every check passed:"
     assert flows.deck.condition(decision("c03", "conditional", 1.0, passed=10), ROUND6.parent / "nowhere", True) == (
-        "Not every check passed:", "It passed 10 of 11 checks; Simula's review shows which.")
+        "Not every check passed:", "It passed 10 of 11 checks.")
     assert flows.deck.condition(judged(tmp_path, "c04", None), tmp_path, True) is None
     assert flows.deck.condition(decision("c05", "accept", 1.0), tmp_path, True) is None
 
@@ -842,6 +842,29 @@ def test_with_no_accept_splits_a_person_approved_are_labelled_as_approved_never_
     assert "the closest" not in cover_of(review) + cover_of((run_dir / "flows" / "slides.html").read_text())
     assert "c01 · " in text_of(review.split("<h2>Needs your call")[1])
 
+def test_with_no_accept_a_promotion_replaces_the_closest_idea_and_the_deck_is_just_the_persons_pick(tmp_path):
+    run_dir, calls = run3(tmp_path, {"promote": [{"id": "c03", "splits": ["c2_evidence"]}]})
+    assert calls == ["c03"] and {idea for idea, _, _ in slides(run_dir)} == {"c03"}
+    assert "closest" not in cover_of((run_dir / "flows" / "slides.html").read_text())
+    review = cover_of(review_text(run_dir))
+    assert "closest" not in review and "1 idea(s) the reviewers split on are drawn because a person approved" in review
+    assert "2 idea(s) split the reviewers" in review
+
+
+def test_with_no_accept_holding_the_closest_idea_draws_no_replacement(tmp_path):
+    run_dir, calls = run3(tmp_path, {"hold": ["c02"]})
+    assert calls == [] and not slides(run_dir)
+    assert cover_of((run_dir / "flows" / "slides.html").read_text()).endswith("No idea is drawn in this deck.")
+    review = cover_of(review_text(run_dir))
+    assert "draws no idea." in review and "A person held c02 out of the deck" in review
+    assert "2 idea(s) split the reviewers" in review and "No idea passed the review" not in review
+
+
+def test_the_reviews_cover_names_only_a_hold_that_took_an_idea_out_of_the_deck(tmp_path):
+    run_dir, calls = split_run(tmp_path, approvals={"hold": ["c03"]})  # c03 was rejected, so never drawn
+    assert calls == ["c01"] and "held" not in cover_of(review_text(run_dir))
+
+
 APPROVED_C02 = {"id": "c02", "splits": ["c5_moment", "c7_specific"]}
 
 
@@ -907,6 +930,11 @@ def test_approvals_add_and_hold_by_id_and_never_draw_a_reject():
     assert picked(["c04", "c03", "zz"]) == ["c01", "c04", "c02"]
     assert picked(held=["c01", "c04"]) == ["c02"]
     assert picked(["c04"], ["c04"]) == ["c01", "c02"]
+    splits = [decision(cid, "conditional", rank).model_copy(update={"judgment_splits": ["c2_evidence"]})
+              for cid, rank in (("c05", 2.0), ("c06", 1.0))]
+    assert [d.candidate_id for d in flows.stage.select(splits)] == ["c05"]
+    assert [d.candidate_id for d in flows.stage.select(splits, ["c06"])] == ["c06"]
+    assert flows.stage.select(splits, held=["c05"]) == []
 
 
 def test_approvals_survive_the_cleanup(tmp_path):
@@ -915,14 +943,29 @@ def test_approvals_survive_the_cleanup(tmp_path):
     (tmp_path / "approvals.json").write_text('{"promote": [{"id": "c02", "splits": ["c5_moment"]}], "hold": ["c01"]}')
     flows.stage.clean(tmp_path)
     assert [p.name for p in tmp_path.iterdir()] == ["approvals.json"]
-    assert flows.stage.load_approvals(tmp_path) == ([{"id": "c02", "splits": ["c5_moment"]}], ["c01"])
+    known = [decision("c01", "accept", 1.0), decision("c02", "conditional", 0.5)]
+    assert flows.stage.load_approvals(tmp_path, known) == ([{"id": "c02", "splits": ["c5_moment"]}], ["c01"])
     (tmp_path / "approvals.json").write_text('{"approved": ["c01"]}')
-    assert flows.stage.load_approvals(tmp_path) == (["c01"], [])
-    assert flows.stage.load_approvals(tmp_path / "nowhere") == ([], [])
-    for typo in ('{"held": ["c01"]}', '{"hold": "c01"}'):  # a string would hold every id it contains
-        (tmp_path / "approvals.json").write_text(typo)
-        with pytest.raises(ValueError, match="expected"):
-            flows.stage.load_approvals(tmp_path)
+    assert flows.stage.load_approvals(tmp_path, known) == (["c01"], [])
+    assert flows.stage.load_approvals(tmp_path / "nowhere", known) == ([], [])
+
+
+@pytest.mark.parametrize("written, error", [
+    ('{"held": ["c01"]}', "expected"),
+    ('{"hold": "c01"}', "expected"),  # a string would hold every id it contains
+    ('[{"id": "c01"}]', "expected"),
+    ('{"hold": [{"id": "c02", "splits": ["c5_moment"]}]}', "a hold entry is an id"),  # Needs your call's entry
+    ('{"promote": [{"id": "c02"}]}', "a hold entry is an id"),
+    ('{"promote": ["c01"], "hold": ["c03rev", "c9"]}', "has the id 'c03rev', 'c9'"),
+])
+def test_a_malformed_approvals_file_stops_flows_before_it_clears_the_last_deck(tmp_path, written, error):
+    run_dir, _ = split_run(tmp_path)
+    before = sorted(p.name for p in (run_dir / "flows").iterdir())
+    (run_dir / "flows" / "approvals.json").write_text(written)
+    with pytest.raises(ValueError, match=re.escape(error)):
+        flows.stage.run(ctx_for(run_dir, "luzia"))
+    assert sorted(p.name for p in (run_dir / "flows").iterdir()) == sorted([*before, "approvals.json"])
+    assert (run_dir / "flows" / "slides.pdf").read_bytes().startswith(b"%PDF")
 
 
 @pytest.mark.parametrize("app", APPS)
