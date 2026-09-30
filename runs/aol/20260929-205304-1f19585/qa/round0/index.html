@@ -1,0 +1,1246 @@
+<!doctype html>
+<html><head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<style id="simula-shared">
+:root{--bg-1:#ffffff;--bg-2:#f5f8fa;--bg-3:#f0f3f5;--bg-4:#fafafa;--fg-1:#1d2228;--fg-2:#0f69ff;--fg-3:#232a31;--fg-4:#000000;--font-1:"Figtree",system-ui,sans-serif;--font-2:"Roboto",system-ui,sans-serif}
+body{background:var(--bg-1);font-family:var(--font-1)}
+</style>
+<style data-batch="1">
+:is(section[data-screen="s01"],section[data-screen="s03"],section[data-screen="s09"],section[data-screen="s16"]){overflow:hidden;font-family:var(--font-1);color:var(--fg-1)}
+:is(section[data-screen="s01"],section[data-screen="s16"]){background:var(--bg-1)}
+:is(section[data-screen="s01"],section[data-screen="s03"],section[data-screen="s09"],section[data-screen="s16"]) .a{position:absolute;box-sizing:border-box;margin:0}
+:is(section[data-screen="s01"],section[data-screen="s03"],section[data-screen="s09"],section[data-screen="s16"]) .n{white-space:nowrap}
+:is(section[data-screen="s01"],section[data-screen="s03"],section[data-screen="s09"],section[data-screen="s16"]) .f{left:0;top:0;width:100%;height:100%}
+:is(section[data-screen="s01"],section[data-screen="s03"],section[data-screen="s09"],section[data-screen="s16"]) .hl{font-size:16px;font-weight:700;line-height:23.2px;color:var(--fg-3);overflow:hidden}
+:is(section[data-screen="s01"],section[data-screen="s03"],section[data-screen="s09"],section[data-screen="s16"]) .c3{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3}
+:is(section[data-screen="s01"],section[data-screen="s03"],section[data-screen="s09"],section[data-screen="s16"]) .pb{font-size:12.5px;line-height:16.4px;white-space:nowrap}
+:is(section[data-screen="s01"],section[data-screen="s03"],section[data-screen="s09"],section[data-screen="s16"]) .ts{font-size:11.5px;line-height:14.5px;white-space:nowrap}
+:is(section[data-screen="s01"],section[data-screen="s03"],section[data-screen="s09"],section[data-screen="s16"]) .ic{width:16px;height:16px}
+:is(section[data-screen="s01"],section[data-screen="s03"],section[data-screen="s09"],section[data-screen="s16"]) :is(.ic,.ib,.md)>svg{display:block}
+:is(section[data-screen="s01"],section[data-screen="s03"],section[data-screen="s09"],section[data-screen="s16"]) .bd{left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.6)}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .hdr{left:0;top:0;width:100%;height:64px;background:var(--bg-1)}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .h4{left:11.1px;top:10.3px;width:48px;height:48px}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .h7{left:65.1px;top:10.3px;width:44.2px;height:22.5px;font-size:17px;font-weight:700;line-height:22.5px;white-space:nowrap}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .h8{left:65.1px;top:32.8px;width:174.1px;height:25.5px;font-size:14px;line-height:25.5px;white-space:nowrap}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .ib{top:12.2px;width:40px;height:40px;display:flex;align-items:center;justify-content:center}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .chip{top:68.4px;height:31px;padding:0 16px;border-radius:15.5px;background:var(--bg-3);display:flex;align-items:center;font-size:11.5px;font-weight:700;line-height:14.5px;color:var(--fg-4);white-space:nowrap}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .on{background:#ffd327}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .wx{left:0;top:112px;width:100%;background:var(--bg-1)}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .pill{left:30.5px;top:13px;width:350px;height:47px;border-radius:23.5px;background:var(--bg-1);box-shadow:0 1px 10px rgba(0,0,0,.15)}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .wt{left:50.7px;top:25.1px;width:271.6px;height:24px;font-size:18px;line-height:24px;color:var(--fg-4);white-space:nowrap}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .wg{left:322.3px;top:13.3px;width:48px;height:48px}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .hero{left:0;width:100%;height:231.6px}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .lg{left:20.3px;width:17.6px;height:17.6px}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .adc{left:18.7px;width:266.3px;height:110.1px}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .am{font-size:12px;line-height:16px;color:#5b636a;white-space:nowrap;text-align:center}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .ah{font-size:16px;font-weight:700;line-height:20px;color:var(--fg-3)}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .ai{left:282.7px;width:110.1px;height:110.1px;border-radius:9px;overflow:hidden}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .mo{left:203.4px;top:-5.7px;width:48px;height:40.4px}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .md{left:13.7px;top:6.1px;width:20.2px;height:20.2px}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .th{left:271.2px;width:120px;height:120px;border-radius:10px}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .t2{left:271.2px;width:120px;object-fit:contain;object-position:left top}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .tb{left:0;top:781.3px;width:100%;height:56.9px;background:var(--bg-1);box-shadow:inset 0 1px #e0e4e9}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .tab{top:0;width:205.7px;height:57.1px}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .ti{left:90.8px;top:6px}
+:is(section[data-screen="s01"],section[data-screen="s16"]) .tl{top:38.1px;height:13.3px;font-size:10px;line-height:13.3px;white-space:nowrap;text-align:center}
+section[data-screen="s03"] .drw{left:0;top:0;width:310.1px;height:100%;background:var(--bg-1)}
+section[data-screen="s03"] .row{left:0;width:310.1px;height:56.4px}
+section[data-screen="s03"] .row img{position:absolute;left:20.2px;top:12.2px;width:32px;height:32px}
+section[data-screen="s03"] .row span{position:absolute;left:84.2px;top:18.6px;width:213.7px;height:19.1px;font-size:16px;line-height:19.1px;color:#5b636a;white-space:nowrap}
+section[data-screen="s09"] .dlg{left:26.7px;top:250.7px;width:357.6px;height:336.2px;background:var(--bg-1);border-radius:6px}
+section[data-screen="s09"] .btn{top:260.9px;height:36.2px;border-radius:18.1px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;white-space:nowrap}
+section[data-screen="s09"] .v{width:48px;height:48px}
+</style>
+<style data-batch="2">
+:is(section[data-screen="s10"],section[data-screen="s32"],section[data-screen="s05"],section[data-screen="s19"]){background:var(--bg-1);overflow:hidden;font-family:var(--font-1);color:var(--fg-3)}
+:is(section[data-screen="s10"],section[data-screen="s32"],section[data-screen="s05"],section[data-screen="s19"]) .a{position:absolute;box-sizing:border-box;margin:0;white-space:nowrap}
+:is(section[data-screen="s10"],section[data-screen="s32"],section[data-screen="s05"],section[data-screen="s19"]) img.a{display:block}
+:is(section[data-screen="s10"],section[data-screen="s32"],section[data-screen="s05"],section[data-screen="s19"]) .m{height:14.5px;line-height:14.5px;font-size:12.3px}
+:is(section[data-screen="s10"],section[data-screen="s32"],section[data-screen="s05"],section[data-screen="s19"]) .h{font-size:16px;font-weight:700;line-height:23.4px;color:var(--fg-3)}
+:is(section[data-screen="s10"],section[data-screen="s32"],section[data-screen="s05"],section[data-screen="s19"]) .el{display:block;overflow:hidden;text-overflow:ellipsis}
+:is(section[data-screen="s10"],section[data-screen="s32"],section[data-screen="s05"],section[data-screen="s19"]) .th{width:120px;height:120px;border-radius:10px}
+:is(section[data-screen="s10"],section[data-screen="s32"],section[data-screen="s05"],section[data-screen="s19"]) .kb{width:20.2px;height:20.2px}
+:is(section[data-screen="s10"],section[data-screen="s32"],section[data-screen="s05"],section[data-screen="s19"]) .kb::before{content:"";position:absolute;left:8.6px;top:2.7px;width:3px;height:3px;border-radius:50%;background:#656e76;box-shadow:0 5.9px #656e76,0 11.8px #656e76}
+:is(section[data-screen="s32"],section[data-screen="s19"]) .bk{width:32px;height:32px;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+:is(section[data-screen="s05"],section[data-screen="s19"]) .adb{border:1px solid #dde1e5;border-radius:8px}
+:is(section[data-screen="s05"],section[data-screen="s19"]) .adh{font-size:15px;font-weight:600;color:var(--fg-3)}
+:is(section[data-screen="s05"],section[data-screen="s19"]) .adm{height:16px;line-height:16px;font-size:12.3px;color:#828c93}
+:is(section[data-screen="s05"],section[data-screen="s19"]) .ah{width:371.1px;height:125px;font-size:26px;font-weight:700;line-height:31.25px;color:var(--fg-3)}
+:is(section[data-screen="s05"],section[data-screen="s19"]) .by{width:84.6px;height:36.6px;padding-top:13.7px;font-size:14.5px;line-height:20px;color:var(--fg-3)}
+:is(section[data-screen="s05"],section[data-screen="s19"]) .dt{width:139.1px;color:#6f7880}
+:is(section[data-screen="s05"],section[data-screen="s19"]) .cap{width:372.9px;height:43px;font-size:13px;line-height:20.8px;color:#767d84}
+:is(section[data-screen="s05"],section[data-screen="s19"]) .kh{width:372.9px;height:25.9px;line-height:25.9px;font-size:15px;font-weight:700;color:var(--fg-1)}
+:is(section[data-screen="s05"],section[data-screen="s19"]) .kp{font-size:15.5px;line-height:23.6px;color:var(--fg-1)}
+:is(section[data-screen="s05"],section[data-screen="s19"]) .bu{width:6.9px;height:25.1px}
+:is(section[data-screen="s05"],section[data-screen="s19"]) .tx{width:354.3px;height:73.1px}
+:is(section[data-screen="s05"],section[data-screen="s19"]) .lk{color:var(--fg-2);text-decoration:underline;text-underline-offset:2px}
+section[data-screen="s05"] .bb{background:var(--bg-1);border-top:1px solid #1d2228}
+section[data-screen="s05"] .ib{width:24px;height:24px}
+section[data-screen="s10"] .gh{position:absolute;inset:0;opacity:0;pointer-events:none}
+section[data-screen="s10"] .chip{top:12.2px;height:31.6px;border-radius:16px;background:var(--bg-3);display:flex;align-items:center;justify-content:center}
+section[data-screen="s10"] .on{background:#ffd327}
+section[data-screen="s10"] .ct{font-size:11.8px;font-weight:600;line-height:14.5px;color:var(--fg-4)}
+section[data-screen="s10"] .pub{height:16.4px;line-height:16.4px;padding-left:5.2px;font-size:12.3px}
+section[data-screen="s10"] .lg{left:20.3px;width:17.6px;height:17.6px;border-radius:50%}
+section[data-screen="s10"] .ic{width:16px;height:16px;fill:none;stroke:#5b636a;stroke-width:1.5;stroke-linejoin:round}
+section[data-screen="s10"] .ic circle{fill:#5b636a;stroke:none}
+section[data-screen="s32"] .np{background:var(--bg-2);border-top:1px solid #1d2228}
+</style>
+<style data-batch="3">
+:is(section[data-screen="s33"],section[data-screen="s13"],section[data-screen="s20"],section[data-screen="s35"]){background:var(--bg-1);overflow:hidden;font-family:var(--font-1);color:var(--fg-1)}
+:is(section[data-screen="s33"],section[data-screen="s13"],section[data-screen="s20"],section[data-screen="s35"]) .a{position:absolute;margin:0}
+:is(section[data-screen="s33"],section[data-screen="s13"],section[data-screen="s20"],section[data-screen="s35"]) .t{position:absolute;margin:0;left:19.8px;font-size:16px;line-height:24px;white-space:nowrap}
+:is(section[data-screen="s33"],section[data-screen="s13"],section[data-screen="s20"],section[data-screen="s35"]) .lk{color:var(--fg-2)}
+:is(section[data-screen="s33"],section[data-screen="s13"],section[data-screen="s20"],section[data-screen="s35"]) .u{text-decoration:underline;text-underline-offset:2px}
+:is(section[data-screen="s33"],section[data-screen="s13"],section[data-screen="s20"],section[data-screen="s35"]) .b{font-weight:700}
+:is(section[data-screen="s33"],section[data-screen="s13"],section[data-screen="s20"],section[data-screen="s35"]) .bk{position:absolute;left:8px;top:20.2px;width:32px;height:32px}
+:is(section[data-screen="s33"],section[data-screen="s13"],section[data-screen="s20"],section[data-screen="s35"]) .ttl{left:20px;top:-4px;font-size:26px;line-height:32px;font-weight:700;color:var(--fg-3);white-space:nowrap}
+:is(section[data-screen="s33"],section[data-screen="s13"],section[data-screen="s20"],section[data-screen="s35"]) .by{left:20.2px;width:97.1px;height:36.6px;box-sizing:border-box;padding-top:14.2px;font-size:16px;line-height:20px;color:var(--fg-3);white-space:nowrap}
+:is(section[data-screen="s33"],section[data-screen="s13"],section[data-screen="s20"],section[data-screen="s35"]) .up{left:20.2px;width:183.2px;height:14.5px;font-size:12.5px;line-height:14.5px;color:#6e7780;white-space:nowrap}
+:is(section[data-screen="s33"],section[data-screen="s13"],section[data-screen="s20"],section[data-screen="s35"]) .card{left:19.8px;width:370.6px;height:85px;border-radius:8px;overflow:hidden;background:#fff;box-shadow:inset 0 0 0 1px #dfe3e8}
+:is(section[data-screen="s33"],section[data-screen="s13"],section[data-screen="s20"],section[data-screen="s35"]) .th{left:11.8px;top:11.8px;width:61px;height:61px;border-radius:6px;overflow:hidden}
+:is(section[data-screen="s33"],section[data-screen="s13"],section[data-screen="s20"],section[data-screen="s35"]) .hl{left:0;top:-1.1px;font-size:15px;line-height:17.5px;font-weight:600;color:var(--fg-3);white-space:nowrap}
+:is(section[data-screen="s33"],section[data-screen="s13"],section[data-screen="s20"],section[data-screen="s35"]) .m{font-size:12px;line-height:16px;color:#828c93;white-space:nowrap}
+:is(section[data-screen="s33"],section[data-screen="s13"],section[data-screen="s20"],section[data-screen="s35"]) .mo{left:317px;width:48px;height:47.6px}
+:is(section[data-screen="s33"],section[data-screen="s13"],section[data-screen="s20"],section[data-screen="s35"]) .band{left:0;width:411px;background:var(--bg-3)}
+:is(section[data-screen="s33"],section[data-screen="s13"],section[data-screen="s20"],section[data-screen="s35"]) .adl{left:157.3px;width:97.1px;height:16.8px;font-size:12.5px;line-height:16.8px;font-weight:500;color:#828c93;text-align:center;letter-spacing:.3px}
+:is(section[data-screen="s33"],section[data-screen="s13"],section[data-screen="s20"],section[data-screen="s35"]) .tb{left:122.7px;top:0;width:54.5px;height:20.2px;background:#444;color:#fff;font:14px/20.2px var(--font-2);text-align:center;border-radius:0 0 3px 3px}
+:is(section[data-screen="s33"],section[data-screen="s13"],section[data-screen="s20"],section[data-screen="s35"]) .ph{left:20.3px;width:370.9px;height:371.4px;overflow:hidden;background:radial-gradient(55% 40% at 6% 72%,#3a3726,transparent 70%),linear-gradient(#0a0e15,#10151b 60%,#1b1e18)}
+:is(section[data-screen="s33"],section[data-screen="s13"],section[data-screen="s20"],section[data-screen="s35"]) .ph svg{position:absolute;left:0;top:0;width:100%;height:100%}
+:is(section[data-screen="s33"],section[data-screen="s13"],section[data-screen="s20"],section[data-screen="s35"]) .te{left:56px;width:300.9px;height:157.7px;background:#47474b}
+:is(section[data-screen="s33"],section[data-screen="s13"],section[data-screen="s20"],section[data-screen="s35"]) .tel{left:237px;top:.6px;width:48px;height:19.7px;background:#f7941d;color:#fff;font:italic 800 12px/19.7px var(--font-1);padding-left:9px;box-sizing:border-box}
+:is(section[data-screen="s33"],section[data-screen="s13"],section[data-screen="s20"],section[data-screen="s35"]) .tep{left:266px;top:.6px;width:33px;height:14.5px;background:#fff}
+</style>
+<style data-batch="4">
+:is(section[data-screen="s14"],section[data-screen="s64"],section[data-screen="s15"],section[data-screen="s17"]){overflow:hidden;background:var(--bg-1);font-family:var(--font-1)}
+:is(section[data-screen="s14"],section[data-screen="s64"],section[data-screen="s15"],section[data-screen="s17"]) .a{position:absolute;margin:0;box-sizing:border-box}
+:is(section[data-screen="s14"],section[data-screen="s64"]) .ln{left:19.8px;height:19.1px;line-height:19.1px;font-size:16px;color:var(--fg-1);white-space:nowrap}
+:is(section[data-screen="s14"],section[data-screen="s64"]) .pa{left:19.8px;width:372.9px;font-size:16px;line-height:24px;color:var(--fg-1)}
+:is(section[data-screen="s14"],section[data-screen="s64"]) .lk{color:var(--fg-2)}
+:is(section[data-screen="s14"],section[data-screen="s64"]) .ul{text-decoration:underline;text-underline-offset:2px}
+:is(section[data-screen="s14"],section[data-screen="s64"]) b{font-weight:700}
+section[data-screen="s14"] .mt{font-size:13px;line-height:16px;color:#828c93;white-space:nowrap}
+section[data-screen="s14"] .ph i{position:absolute;display:block}
+section[data-screen="s64"] .ic{width:24px;height:24px;top:800.8px}
+section[data-screen="s15"] .gl{color:#5b636a;text-decoration:underline;font-size:16px;line-height:20px;white-space:nowrap}
+section[data-screen="s15"] .hr{top:422.6px;height:1px;width:148px;background:#dfe2e5}
+section[data-screen="s17"] .tl{top:100.9px;font-size:12px;line-height:13.3px;color:#7e848a;white-space:nowrap}
+</style>
+<style data-batch="5">
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]){overflow:hidden;background:var(--bg-1)}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .a{position:absolute;margin:0}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .t{font:16px/24px var(--font-1);color:var(--fg-1);white-space:nowrap}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .bl{left:38.5px;width:354.3px}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .pp{left:19.8px;width:372.9px}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .dot{left:26.7px;width:6.9px}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .lk{color:var(--fg-2)}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .u{text-decoration:underline 1px;text-underline-offset:3px}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .bk{left:8px;top:20.2px;width:32px;height:32px;z-index:3}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .band{left:0;width:411px;height:303.7px;background:var(--bg-3)}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .adl{left:157.3px;top:14.9px;width:97.1px;height:16.8px;font:500 12px/16.8px var(--font-1);color:#828c93;text-align:center;white-space:nowrap}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .ad{left:56px;top:39.6px;width:300.6px;height:250.3px}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .aim{left:0;top:0;width:300.6px;height:175.6px;border-radius:7px;overflow:hidden;background:repeating-linear-gradient(120deg,transparent 0 17px,rgba(0,0,0,.12) 17px 19px),repeating-linear-gradient(30deg,transparent 0 11px,rgba(255,255,255,.06) 11px 13px),linear-gradient(160deg,#737a83,#59606a 55%,#8a9097)}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .aim i{position:absolute;display:block}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .gr{left:-8px;top:-8px;width:180px;height:100px;border-radius:0 0 100% 20%;background:radial-gradient(circle at 60% 35%,#ead0d6 0 8px,transparent 9px),radial-gradient(circle at 78% 20%,#dfc1ca 0 7px,transparent 8px),radial-gradient(circle at 42% 68%,#dab6c1 0 6px,transparent 7px),radial-gradient(circle at 25% 25%,#e6ccd2 0 5px,transparent 6px),linear-gradient(135deg,#76a152,#3d6a2e)}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .ld{left:24px;top:-8px;width:38px;height:180px;transform:rotate(-38deg);transform-origin:0 0;background:linear-gradient(90deg,#e6c62f 0 7px,transparent 7px 31px,#e6c62f 31px),repeating-linear-gradient(180deg,transparent 0 15px,#c3c5c2 15px 21px)}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .sh{left:98px;top:44px;width:104px;height:120px;border-radius:46% 46% 30% 30%;background:#7d7b70}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .vs{left:124px;top:54px;width:54px;height:100px;border-radius:30%;background:linear-gradient(90deg,#222426,#3b3d3f 50%,#222426)}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .ar{top:90px;width:22px;height:72px;border-radius:11px;background:#a7876f}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .a1{left:86px;transform:rotate(-22deg)}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .a2{left:192px;transform:rotate(22deg)}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .cp{left:126px;top:14px;width:50px;height:44px;border-radius:50% 50% 45% 45%;background:#2f3338}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .gu{left:-20px;top:86px;width:235px;height:20px;transform:rotate(27deg);transform-origin:0 0;background:repeating-linear-gradient(90deg,#f5f6f7 0 3px,#c9cdd2 3px 5px);border-top:2px solid #fff}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .gv{left:262px;top:-10px;width:11px;height:205px;transform:rotate(26deg);transform-origin:0 0;background:repeating-linear-gradient(0deg,#f2f3f5 0 3px,#c8ccd1 3px 5px)}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .ta{left:122.7px;top:0;width:54.5px;height:20.2px;background:#444;color:#fff;font:14.5px/20.2px var(--font-2);text-align:center;border-radius:0 0 3px 3px;white-space:nowrap}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .pv{left:285.3px;top:0;width:15.2px;height:13.7px}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .lg{left:1.9px;top:180.6px;width:20.9px;height:20.9px;border-radius:50%;background:#e9e7ea;color:#3488ea;font:700 14px/20.9px var(--font-2);display:flex;justify-content:center;overflow:hidden;white-space:nowrap}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .dm{left:27.8px;top:180.6px;width:267.8px;height:20.9px;font:14px/20.9px var(--font-2);color:#939292}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .hl{left:3.8px;top:206.5px;width:300.6px;font:500 17px/20.5px var(--font-2);color:var(--fg-3);white-space:nowrap}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .nx{left:0;top:728.5px;width:411px;height:109.7px;background:var(--bg-2);box-shadow:inset 0 1px #2f3439;z-index:2}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .nxl{left:20.2px;top:21.6px;width:132.2px;font:700 14px/18.3px var(--font-1);color:var(--fg-1);white-space:nowrap}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .nxt{left:20.2px;top:41.8px;width:338.7px;font:13px/24px var(--font-1);color:#34393e;white-space:nowrap}
+:is(section[data-screen="s21"],section[data-screen="s22"],section[data-screen="s23"],section[data-screen="s24"]) .nxa{left:363.1px;top:43.7px;width:24px;height:24px}
+section[data-screen="s21"] .hero{left:19.8px;top:0;width:371.4px;height:20.8px;background:linear-gradient(95deg,#caa6d8,#e9bde0 22%,#c49ad6 45%,#efc6e4 62%,#b58fd2 80%,#e2b3dc)}
+section[data-screen="s21"] .cap{left:19.8px;top:29.7px;width:372.9px;font:14px/20.5px var(--font-1);color:#767d84;white-space:nowrap}
+section[data-screen="s21"] .kp{left:19.8px;top:83.8px;font:700 17px/25.9px var(--font-1);color:var(--fg-1)}
+section[data-screen="s23"] .bb{left:0;top:12.6px;width:47.6px;height:48px;z-index:3}
+section[data-screen="s23"] .bc{position:absolute;left:8px;top:7.6px;width:32px;height:32px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center}
+section[data-screen="s24"] .ph{left:19.8px;top:627.8px;width:372.9px;height:248.8px;overflow:hidden;background:radial-gradient(ellipse at 88% 20%,#6a5238,transparent 40%),linear-gradient(100deg,#1e1610,#3a2b1c 40%,#281e14 65%,#4b3a28)}
+section[data-screen="s24"] .ph i{position:absolute;display:block}
+section[data-screen="s24"] .pl{left:0;top:28px;width:150px;height:100px;border-radius:50%;background:radial-gradient(#3b4b2d,#1f2917 60%,transparent 70%)}
+section[data-screen="s24"] .hr{left:130px;top:18px;width:180px;height:240px;border-radius:48% 48% 40% 40%;background:linear-gradient(90deg,#8f7149,#cfb07f 28%,#dcc08f 50%,#c6a473 72%,#846643)}
+section[data-screen="s24"] .fc{left:176px;top:44px;width:86px;height:124px;border-radius:46% 46% 44% 44%;background:linear-gradient(180deg,#e8c9b2,#d8b097)}
+section[data-screen="s24"] .ey{top:82px;width:15px;height:6px;border-radius:50%;background:#56636d}
+section[data-screen="s24"] .wm{right:-12px;top:0;font:700 24px/26px var(--font-1);color:rgba(255,255,255,.14);font-style:normal}
+</style>
+<style data-batch="6">
+:is(section[data-screen="s25"],section[data-screen="s26"],section[data-screen="s27"],section[data-screen="s28"]){background:var(--bg-1);overflow:hidden;font-family:var(--font-1);color:var(--fg-1);
+.a,.p,.cap,.ph,.bk,.nb,.lg,.src,.hd,.adbg{position:absolute}
+.adbg{left:0;top:0;width:100%;background:var(--bg-3)}
+.p,.cap{left:19.8px;width:372.9px;margin:0;white-space:nowrap}
+.p{font-size:16px;line-height:24.4px}
+.cap{font-size:14.5px;line-height:23.2px;color:#767d84}
+.bk{left:8px;top:20.2px;width:32px;height:32px;z-index:5}
+.nb{left:0;top:728.5px;width:100%;height:109.7px;box-sizing:border-box;background:var(--bg-2);border-top:1.5px solid #30353a;z-index:4}
+.nx{position:absolute;left:20.2px;top:20.1px;width:132.2px;height:18.3px;font-size:14.3px;line-height:18.3px;font-weight:700;white-space:nowrap;color:var(--fg-1)}
+.kn{position:absolute;left:20.2px;top:40.3px;width:338.7px;height:48px;font-size:13.3px;line-height:24px;color:#34393e;white-space:nowrap}
+.ar{position:absolute;left:363.1px;top:42.2px;width:24px;height:24px}
+.lg{width:20.9px;height:20.9px;border-radius:50%;overflow:hidden;background:#e9e7ea;color:#3488ea;font:700 14px/20.9px var(--font-2);white-space:nowrap}
+.lg span{margin-left:-47px}
+.src{width:267.8px;height:20.9px;color:#939292;font:14px/20.9px var(--font-2);white-space:nowrap}
+.hd{width:300.6px;height:41.1px;color:var(--fg-3);font:700 16.5px/20.5px var(--font-2);white-space:nowrap}
+.ph{left:19.8px;width:372.9px;height:248.8px;overflow:hidden;background:radial-gradient(ellipse at 74% 38%,#8e6545 0,rgba(142,101,69,0) 55%),linear-gradient(90deg,#29221a 0,#3e2f20 15%,#664830 40%,#795637 68%,#5c3f29 100%)}
+.ph i{position:absolute;display:block}
+.q1{left:22px;top:52px;width:120px;height:135px;border-radius:50%;background:radial-gradient(closest-side,#3e4d2d,#28331e 65%,rgba(40,51,30,0));filter:blur(3px)}
+.q2{left:52px;top:186px;width:48px;height:70px;border-radius:6px 6px 0 0;background:#c8c9c4;filter:blur(2px)}
+.q3{left:140px;top:8px;width:122px;height:170px;border-radius:46% 46% 42% 42%;background:#a68a60}
+.q4{left:92px;top:152px;width:232px;height:110px;border-radius:48% 48% 0 0/38% 38% 0 0;background:linear-gradient(90deg,#76766f,#97968f 50%,#7c7b75)}
+.q5{left:160px;top:150px;width:82px;height:62px;background:#1c1c1c;clip-path:polygon(0 0,100% 0,50% 100%)}
+.q6{left:167px;top:150px;width:68px;height:52px;background:#c99a82;clip-path:polygon(0 0,100% 0,50% 100%)}
+.q7{left:178px;top:110px;width:46px;height:52px;background:#c99a82}
+.q8{left:160px;top:30px;width:80px;height:100px;border-radius:46% 46% 50% 50%/40% 40% 60% 60%;background:#d6aa92}
+.q9{left:152px;top:20px;width:96px;height:30px;border-radius:50% 50% 35% 35%;background:#b4976c}
+.q10{left:186px;top:104px;width:28px;height:5px;border-radius:3px;background:#b87468}
+.q11{left:178px;top:72px;width:11px;height:5px;border-radius:50%;background:#6a5750;box-shadow:32px 0 0 #6a5750}
+}
+section[data-screen="s25"]{
+.adl{position:absolute;left:157.3px;top:11.4px;width:97.1px;height:16.8px;font-size:12.5px;line-height:16.8px;font-weight:600;letter-spacing:.2px;color:#828c93;text-align:center;white-space:nowrap}
+.ai{position:absolute;left:0;top:0;width:300.6px;height:175.6px;border-radius:7px;overflow:hidden;background:repeating-linear-gradient(162deg,#737a86 0 9px,#5d636d 9px 11px)}
+.ai i{position:absolute;display:block}
+.g1{left:45px;top:0;width:105px;height:46px;border-radius:0 0 45% 25%;background:radial-gradient(circle at 25% 40%,#e9d2cc 0 8px,rgba(0,0,0,0) 9px),radial-gradient(circle at 62% 28%,#efdcd6 0 10px,rgba(0,0,0,0) 11px),radial-gradient(circle at 48% 78%,#d9bfb8 0 7px,rgba(0,0,0,0) 8px),radial-gradient(circle at 85% 60%,#e3cbc4 0 6px,rgba(0,0,0,0) 7px),#4c763a}
+.g2{left:42px;top:-22px;width:34px;height:164px;box-sizing:border-box;transform:rotate(-44deg);border-left:6px solid #e4c42b;border-right:6px solid #d1ae1c;background:repeating-linear-gradient(0deg,rgba(0,0,0,0) 0 17px,#a3a8ae 17px 21px)}
+.g3{left:-15px;top:110px;width:210px;height:24px;transform:rotate(29deg);background:repeating-linear-gradient(60deg,#f1f3f5 0 2px,#b3bac1 2px 4px);border:2px solid #e8ecef}
+.g4{left:203px;top:-6.5px;width:22px;height:185px;transform:rotate(19deg);background:repeating-linear-gradient(-30deg,#f1f3f5 0 2px,#b3bac1 2px 4px);border:2px solid #e8ecef}
+.g5{left:95px;top:55px;width:104px;height:88px;border-radius:45%;background:#80827e}
+.g6{left:126px;top:68px;width:44px;height:58px;border-radius:6px;background:#2a2a2a}
+.g7{left:98px;top:108px;width:13px;height:52px;border-radius:6px;transform:rotate(32deg);background:#a97d60}
+.g8{left:183px;top:100px;width:13px;height:56px;border-radius:6px;transform:rotate(-24deg);background:#a97d60}
+.g9{left:129px;top:40px;width:32px;height:30px;border-radius:50%;background:#a87a5f}
+.g10{left:124px;top:28px;width:42px;height:24px;border-radius:50% 50% 35% 35%;background:#3b3e43}
+.ta{position:absolute;left:122.7px;top:0;width:54.5px;height:20.2px;background:#444444;color:#ffffff;border-radius:0 0 3px 3px;font:14px/20.2px var(--font-2);text-align:center;white-space:nowrap}
+.pv{position:absolute;left:285.3px;top:0;width:15.2px;height:13.7px;background:#f6f8fa;border-radius:0 7px 0 4px}
+.pv svg{display:block;width:15.2px;height:13.7px}
+}
+</style>
+<style data-batch="7">
+:is(section[data-screen="s29"],section[data-screen="s30"],section[data-screen="s31"],section[data-screen="s12"]){overflow:hidden;background:var(--bg-1);color:var(--fg-1);font-family:var(--font-1)}
+:is(section[data-screen="s29"],section[data-screen="s30"],section[data-screen="s31"],section[data-screen="s12"]) .a{position:absolute;margin:0;box-sizing:border-box;white-space:nowrap}
+:is(section[data-screen="s29"],section[data-screen="s30"],section[data-screen="s31"],section[data-screen="s12"]) .bk{position:absolute;left:8px;top:20.2px;width:32px;height:32px;z-index:6}
+:is(section[data-screen="s29"],section[data-screen="s30"],section[data-screen="s31"]) .p{position:absolute;left:19.8px;width:372.9px;margin:0;font-size:16px;line-height:24.4px;white-space:nowrap;color:var(--fg-1)}
+:is(section[data-screen="s29"],section[data-screen="s30"],section[data-screen="s31"]) .cap{height:23.2px;font-size:14px;line-height:23.2px;color:#767d84}
+:is(section[data-screen="s29"],section[data-screen="s30"],section[data-screen="s31"]) .pl{font-weight:800;font-style:italic}
+:is(section[data-screen="s29"],section[data-screen="s30"],section[data-screen="s31"]) .lk{color:var(--fg-2)}
+:is(section[data-screen="s29"],section[data-screen="s30"],section[data-screen="s31"]) .ph{position:absolute;left:19.8px;top:0}
+:is(section[data-screen="s29"],section[data-screen="s30"],section[data-screen="s31"]) .nx{position:absolute;left:0;top:728.8px;width:411.4px;height:109.4px;background:var(--bg-2);box-shadow:0 -1px 0 #c3c8cd;z-index:5}
+:is(section[data-screen="s29"],section[data-screen="s30"],section[data-screen="s31"]) .nx .h{position:absolute;left:20.2px;top:21.3px;width:132.2px;height:18.3px;font-size:14px;font-weight:700;line-height:18.3px;white-space:nowrap}
+:is(section[data-screen="s29"],section[data-screen="s30"],section[data-screen="s31"]) .nx .t{position:absolute;left:20.2px;top:41.5px;width:338.7px;height:48px;font-size:13px;line-height:24px;color:#34393e;white-space:nowrap}
+:is(section[data-screen="s29"],section[data-screen="s30"],section[data-screen="s31"]) .nx img{position:absolute;left:363.1px;top:43.4px;width:24px;height:24px}
+section[data-screen="s31"] .nx{box-shadow:0 -1px 0 #2b3036}
+section[data-screen="s12"] .b{font-size:16px;line-height:19.1px}
+section[data-screen="s12"] .hl{left:20.2px;top:83.4px;width:371.1px;height:93.7px;font-size:26px;font-weight:700;line-height:31.2px;color:var(--fg-3)}
+section[data-screen="s12"] .card{left:19.8px;top:244.6px;width:370.7px;height:85px;border:1px solid #dde2e6;border-radius:8px}
+section[data-screen="s12"] .g{font-size:13px;line-height:16px;color:#828c93}
+section[data-screen="s12"] .tm{background:#f3f1ef;overflow:hidden}
+section[data-screen="s12"] .tm span{position:absolute}
+section[data-screen="s12"] .tm .t1{left:0;top:3px;width:61px;text-align:center;font-size:6px;font-weight:900;line-height:7px;color:#111}
+section[data-screen="s12"] .tm .j{top:12px;width:20px;height:30px;border-radius:5px 5px 2px 2px}
+section[data-screen="s12"] .tm .pr{left:0;top:43px;width:61px;text-align:center;font-size:11px;font-weight:800;line-height:13px;color:#b3121b}
+section[data-screen="s12"] .tb{left:0;top:783px;width:411.4px;height:55.2px;background:var(--bg-1);box-shadow:0 -1px 0 #c3c8cd;z-index:5}
+section[data-screen="s12"] .tb img{position:absolute;width:24px;height:24px}
+</style>
+<style data-batch="8">
+:is(section[data-screen="s34"],section[data-screen="s36"],section[data-screen="s37"],section[data-screen="s38"]){overflow:hidden;background:var(--bg-1);font-family:var(--font-1);color:var(--fg-1)}
+:is(section[data-screen="s34"],section[data-screen="s36"],section[data-screen="s37"],section[data-screen="s38"]) .x{position:absolute;display:block;margin:0}
+:is(section[data-screen="s34"],section[data-screen="s36"],section[data-screen="s37"],section[data-screen="s38"]) .p{position:absolute;left:19.8px;width:372.9px;margin:0;font-size:15.5px;line-height:24px;white-space:nowrap;color:var(--fg-1)}
+:is(section[data-screen="s34"],section[data-screen="s36"],section[data-screen="s37"],section[data-screen="s38"]) .b{font-weight:700}
+:is(section[data-screen="s34"],section[data-screen="s36"],section[data-screen="s37"],section[data-screen="s38"]) .a{color:var(--fg-2)}
+:is(section[data-screen="s34"],section[data-screen="s36"],section[data-screen="s37"],section[data-screen="s38"]) .u{text-decoration:underline;text-underline-offset:2px}
+:is(section[data-screen="s34"],section[data-screen="s36"],section[data-screen="s37"],section[data-screen="s38"]) .back{position:absolute;left:8px;top:20.2px;width:32px;height:32px;z-index:5}
+:is(section[data-screen="s34"],section[data-screen="s36"],section[data-screen="s37"],section[data-screen="s38"]) .band{position:absolute;left:0;width:411px;height:302.9px;background:var(--bg-3)}
+:is(section[data-screen="s34"],section[data-screen="s36"],section[data-screen="s37"],section[data-screen="s38"]) .adl{position:absolute;left:157.3px;width:97.1px;height:16.8px;font-size:12.5px;line-height:16.8px;font-weight:500;color:#828c93;text-align:center;white-space:nowrap}
+:is(section[data-screen="s34"],section[data-screen="s36"],section[data-screen="s37"],section[data-screen="s38"]) .ph{position:absolute;left:20.3px;width:371px;height:371.5px;overflow:hidden;background:linear-gradient(#08090d,#0b0c10 45%,#121310)}
+:is(section[data-screen="s34"],section[data-screen="s36"],section[data-screen="s37"],section[data-screen="s38"]) .ph i{position:absolute;display:block}
+:is(section[data-screen="s34"],section[data-screen="s36"],section[data-screen="s37"],section[data-screen="s38"]) .adu{position:absolute;left:56px;width:300.9px;height:249px}
+:is(section[data-screen="s34"],section[data-screen="s36"],section[data-screen="s37"],section[data-screen="s38"]) .adi{position:absolute;left:0;top:0;width:300.9px;height:157.7px;background:#4a494c;overflow:hidden}
+:is(section[data-screen="s34"],section[data-screen="s36"],section[data-screen="s37"],section[data-screen="s38"]) .adi img{position:absolute;left:0;top:20.2px;width:300.9px;height:137.5px}
+:is(section[data-screen="s34"],section[data-screen="s36"],section[data-screen="s37"],section[data-screen="s38"]) .ta{position:absolute;left:122.7px;top:0;width:54.5px;height:20.2px;background:#444;color:#fff;font:14.5px/20.2px var(--font-2);text-align:center;white-space:nowrap}
+:is(section[data-screen="s34"],section[data-screen="s36"],section[data-screen="s37"],section[data-screen="s38"]) .adc{position:absolute;left:0;top:157.7px;width:299.8px;height:91.3px;box-sizing:border-box;background:#fff;border:1px solid #dfe2e5;border-top:0;border-radius:0 0 6px 6px}
+:is(section[data-screen="s34"],section[data-screen="s36"],section[data-screen="s37"],section[data-screen="s38"]) .t1{position:absolute;left:19.8px;top:171.8px;width:235.1px;height:25.9px;font:500 21px/25.9px var(--font-2);color:#333;white-space:nowrap}
+:is(section[data-screen="s34"],section[data-screen="s36"],section[data-screen="s37"],section[data-screen="s38"]) .t2{position:absolute;top:219.8px;height:22.9px;font:18.5px/22.9px var(--font-2);white-space:nowrap}
+section[data-screen="s34"] .tb{position:absolute;font-size:13px;line-height:16px;white-space:nowrap;color:#838d94}
+</style>
+<style id="simula-runtime">
+html,body{margin:0;padding:0;width:411px;height:914px;overflow:hidden}
+body{position:relative}
+[data-screen]{position:absolute!important;left:0!important;top:51.8px!important;width:411px!important;height:838.2px!important;overflow:hidden;box-sizing:border-box}
+[data-screen]:not(.simula-on){display:none!important}
+[data-screen][data-parent]{z-index:10;background:transparent!important}
+.simula-push{animation:simula-slide .25s ease-out}
+.simula-back{animation:simula-slide-back .25s ease-out}
+.simula-modal{animation:simula-fade .2s ease-out}
+@keyframes simula-slide{from{transform:translateX(100%)}}
+@keyframes simula-slide-back{from{transform:translateX(-30%)}}
+@keyframes simula-fade{from{opacity:0}}
+@media (prefers-reduced-motion:reduce){.simula-push,.simula-back,.simula-modal{animation:none}}
+[data-simula-field]{cursor:text;-webkit-user-select:text;user-select:text}
+[data-simula-field]:focus{outline:none}
+</style>
+</head><body>
+<section data-screen="s01">
+<div class="a hdr" data-chrome="header">
+<div class="a h4" data-el="s01.e04" data-edge="s01.e04>s03" data-transition="modal"></div>
+<div class="a h7" data-el="s01.e07">Home</div>
+<div class="a h8" data-el="s01.e08">See the latest news</div>
+<div class="a ib" data-el="s01.e09" style="left:315.4px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1d2228" stroke-width="2" stroke-linejoin="round"><path d="M5 2.5h14a1 1 0 0 1 1 1v18l-8-5.6-8 5.6v-18a1 1 0 0 1 1-1z"/></svg></div>
+<div class="a ib" data-el="s01.e10" data-edge="s01.e10>s08" data-transition="push" style="left:363.4px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1d2228" stroke-width="2.2" stroke-linecap="round"><circle cx="10.2" cy="10.2" r="7.2"/><path d="M15.6 15.6l5.9 5.9"/></svg></div>
+</div>
+<div class="a chip on" style="left:20.2px"><span data-el="s01.e13">Top Stories</span></div>
+<div class="a chip" style="left:119.2px"><span data-el="s01.e15">Entertainment</span></div>
+<div class="a chip" style="left:235.4px"><span data-el="s01.e17">Local</span></div>
+<div class="a chip" style="left:304px"><span data-el="s01.e19">Sports</span></div>
+<div class="a chip" style="left:379.1px"><span data-el="s01.e21">Business</span></div>
+<div class="a wx" data-el="s01.e27" data-edge="s01.e27>s09" data-transition="modal" style="height:73.9px">
+<div class="a pill"></div>
+<div class="a wt" data-el="s01.e29">Tap here for weather</div>
+<img class="a wg" data-el="s01.e30" src="assets/s01.e30.png" alt="">
+</div>
+<div class="a hero" data-el="s01.e32" style="top:185.9px"><img class="a f" data-el="s01.e33" src="assets/s01.e33.png" alt=""></div>
+<div class="a lg" style="top:424px;background:#1d8a4e"><div class="a" style="left:3px;top:7.8px;width:11.6px;height:2px;background:#cfe9d9"></div></div>
+<div class="a pb" data-el="s01.e35" style="left:38.1px;top:424.4px;width:132.2px;color:#616970">Entertainment Weekly</div>
+<div class="a hl" data-el="s01.e36" data-edge="s01.e36>s05" data-transition="push" style="left:0;top:443.4px;width:411.4px;height:53.3px;padding:.5px 12px 0 20.2px">Amber Glenn sobs after giving partner Pasha Pashkov a brutal bloody injury in 'DWTS' rehearsal</div>
+<div class="a ts" data-el="s01.e37" style="left:20.2px;top:502.5px;width:37.7px;color:#5d656c">2h ago</div>
+<div class="a ic" data-el="s01.e38" style="left:73.9px;top:501.7px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#5b636a" stroke-width="1.5" stroke-linejoin="round"><path d="M3.2 1.4h9.6v13.2L8 11.2l-4.8 3.4z"/></svg></div>
+<div class="a ic" data-el="s01.e39" style="left:105.9px;top:501.7px"><svg width="16" height="16" viewBox="0 0 16 16" fill="#5b636a"><path d="M12 3.3L4 8l8 4.7" fill="none" stroke="#5b636a" stroke-width="1.4"/><circle cx="12" cy="3.3" r="2.3"/><circle cx="4" cy="8" r="2.3"/><circle cx="12" cy="12.7" r="2.3"/></svg></div>
+<div class="a adc" data-el="s01.e44" style="top:528.4px">
+<div class="a" data-el="s01.e45" style="left:0;top:0;width:34.3px;height:18.3px"><div class="a am" style="left:0;top:1.1px;width:34.3px">TEMU</div></div>
+<div class="a am" data-el="s01.e47" style="left:37.3px;top:1.1px;width:5px">·</div>
+<div class="a" data-el="s01.e48" style="left:45.3px;top:4.9px;width:16.8px;height:15.2px"></div>
+<div class="a am" data-el="s01.e49" style="left:45.3px;top:1.1px;width:16.8px;color:#5c646b">Ad</div>
+<div class="a" data-el="s01.e50" style="left:0;top:28.2px;width:172.2px;height:22.1px"><div class="a ah n" data-el="s01.e51" data-value="c2" style="left:0;top:.7px;width:172.2px">Elevate Your Your Ride</div></div>
+<div class="a mo" data-el="s01.e54"><div class="a md" data-el="s01.e55"><svg width="20" height="20" viewBox="0 0 20 20" fill="#656e76"><circle cx="10" cy="5" r="1.7"/><circle cx="10" cy="10" r="1.7"/><circle cx="10" cy="15" r="1.7"/></svg></div></div>
+</div>
+<div class="a ai" data-el="s01.e52" style="top:528.4px;background:linear-gradient(#5fb832 0,#8fcb5c 22%,#eef1ec 55%,#f3f4f1)"><svg class="a f" data-el="s01.e53" role="img" aria-label="Image for Taboola Advertising Unit" viewBox="0 0 110 110"><text x="55" y="10.5" text-anchor="middle" fill="#fff" style="font:800 10px var(--font-1)">TEMU CLEARANCE</text><rect x="22" y="13" width="66" height="7" rx="1.5" fill="#e3261d"/><text x="55" y="18.2" text-anchor="middle" fill="#fff" style="font:800 5px var(--font-1)">COMPLETE GO KART KIT</text><path d="M20 58l18-16h30l20 14M38 42l-4 18M68 42l6 16M26 56h64" fill="none" stroke="#7fcf1a" stroke-width="2.6" stroke-linejoin="round"/><rect x="50" y="30" width="14" height="16" rx="3" fill="#2a2a2a"/><g fill="#262626"><ellipse cx="22" cy="62" rx="8" ry="9"/><ellipse cx="88" cy="62" rx="8" ry="9"/><ellipse cx="40" cy="66" rx="6" ry="7"/><ellipse cx="74" cy="66" rx="6" ry="7"/></g><g fill="#8a8d90"><rect x="10" y="80" width="30" height="4" rx="2"/><rect x="48" y="78" width="10" height="10" rx="2"/><rect x="64" y="80" width="36" height="4" rx="2"/><rect x="14" y="92" width="80" height="4" rx="2"/><circle cx="20" cy="102" r="4"/><circle cx="90" cy="102" r="4"/></g><g fill="#d33"><rect x="70" y="98" width="3" height="8"/><rect x="76" y="98" width="3" height="8"/><rect x="82" y="98" width="3" height="8"/></g></svg></div>
+<div class="a lg" style="top:654.6px;border-radius:50%;background:#000"><div class="a" style="left:3px;top:7.3px;width:11.6px;height:3px;background:linear-gradient(90deg,#fff 45%,#35c2d6 45%)"></div></div>
+<div class="a pb" style="left:38.1px;top:655.2px;width:19.8px;color:#5b636a">E!</div>
+<div class="a hl c3" data-el="s01.e59" data-edge="s01.e59>s12" data-transition="push" style="left:20.2px;top:677.3px;width:246.1px"><span data-edge="s01.e59>s64" data-transition="push">Former DHS chief Kristi Noem</span> files for divorce after photo of husband wearing women's clothing, fake breasts surfaces</div>
+<div class="a ts" data-el="s01.e60" style="left:20.2px;top:754.7px;width:38.1px;color:#5f676e">9h ago</div>
+<div class="a ic" style="left:74.3px;top:753.9px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#5b636a" stroke-width="1.5" stroke-linejoin="round"><path d="M3.2 1.4h9.6v13.2L8 11.2l-4.8 3.4z"/></svg></div>
+<div class="a ic" style="left:106.3px;top:753.9px"><svg width="16" height="16" viewBox="0 0 16 16" fill="#5b636a"><path d="M12 3.3L4 8l8 4.7" fill="none" stroke="#5b636a" stroke-width="1.4"/><circle cx="12" cy="3.3" r="2.3"/><circle cx="4" cy="8" r="2.3"/><circle cx="12" cy="12.7" r="2.3"/></svg></div>
+<img class="a th" data-el="s01.e63" src="assets/s01.e63.png" alt="" style="top:654.5px">
+<div class="a pb" data-el="s01.e66" style="left:38.1px;top:795px;width:124.2px;color:#6e7780">The Independent US</div>
+<div class="a hl" data-el="s01.e67" style="left:20.2px;top:817.1px;width:246.1px;height:45.3px;color:#666666">GOP Sen. Britt's look as gotcha moment at Jack Smith hearing flames out goes viral</div>
+<img class="a t2" data-el="s01.e68" src="assets/s01.e68.png" alt="" style="top:794.3px;height:68.2px">
+<div class="a tb" data-chrome="tabbar">
+<div class="a tab" data-el="s01.e71" data-edge="s01.e71>s15" data-transition="tab" style="left:0"><svg class="a ti" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7e848a" stroke-width="1.6" stroke-linejoin="round"><rect x="1.5" y="4.5" width="21" height="15" rx="1.5"/><path d="M2.2 5.4 12 12.6l9.8-7.2"/></svg><div class="a tl" data-el="s01.e72" style="left:90.7px;width:24.4px;color:#7e848a">Inbox</div></div>
+<div class="a tab" style="left:205.7px"><svg class="a ti" width="24" height="24" viewBox="0 0 24 24" fill="#000"><path d="M12 1.5 1 11h3v11h6v-6.5h4V22h6V11h3z"/></svg><div class="a tl" data-el="s01.e73" data-edge="s01.e73>s01" data-transition="tab" style="left:89.5px;width:26.7px;color:#515151">Home</div></div>
+</div>
+</section>
+<section data-screen="s03" data-parent="s01">
+<div class="a" style="left:0;top:518px;width:100%;height:263px;background:var(--bg-1)"></div>
+<div class="a" data-el="s03.e30" style="left:322.3px;top:125.3px;width:48px;height:48px"></div>
+<div class="a" data-el="s03.e136" style="left:359.2px;top:8px;width:48px;height:48px"></div>
+<div class="a n" data-el="s03.e88" style="left:198.9px;top:571.8px;width:13.3px;height:13.7px;font-size:10px;font-weight:700;line-height:13.7px;color:#5b636a">AD</div>
+<div class="a pb" data-el="s03.e91" style="left:38.1px;top:645.3px;width:19.8px;color:#5b636a">E!</div>
+<div class="a hl c3" data-el="s03.e92" style="left:20.2px;top:667.4px;width:246.1px">Former DHS chief Kristi Noem files for divorce after photo of husband wearing women's clothing, fake breasts surfaces</div>
+<div class="a ts" data-el="s03.e93" style="left:20.2px;top:744.8px;width:38.1px;color:#5f676e">9h ago</div>
+<div class="a ic" data-el="s03.e94" style="left:74.3px;top:744px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#5b636a" stroke-width="1.5" stroke-linejoin="round"><path d="M3.2 1.4h9.6v13.2L8 11.2l-4.8 3.4z"/></svg></div>
+<div class="a ic" data-el="s03.e95" style="left:106.3px;top:744px"><svg width="16" height="16" viewBox="0 0 16 16" fill="#5b636a"><path d="M12 3.3L4 8l8 4.7" fill="none" stroke="#5b636a" stroke-width="1.4"/><circle cx="12" cy="3.3" r="2.3"/><circle cx="4" cy="8" r="2.3"/><circle cx="12" cy="12.7" r="2.3"/></svg></div>
+<div class="a pb" data-el="s03.e99" style="left:38.1px;top:785.1px;width:124.2px;color:#6e7780">The Independent US</div>
+<div class="a hl" data-el="s03.e100" style="left:20.2px;top:807.2px;width:246.1px;height:55.2px;color:#666666">GOP Sen. Britt's look as gotcha moment at Jack Smith hearing flames out goes viral</div>
+<div class="a bd"></div>
+<div class="a drw">
+<img class="a" data-el="s03.e108" data-edge="s03.back>s01" data-transition="back" src="assets/s03.e108.png" alt="" style="left:8px;top:12.2px;width:44.2px;height:44.2px">
+<div class="a n" data-el="s03.e109" style="left:60.2px;top:12.2px;width:108.2px;height:44.2px;font-size:20px;font-weight:700;line-height:44.2px">Accounts</div>
+<div class="a row" data-el="s03.e111" data-edge="s03.e111>s15" data-transition="push" style="top:72.4px"><img data-el="s03.e112" src="assets/s03.e112.png" alt=""><span data-el="s03.e113">Manage Accounts</span></div>
+<div class="a row" style="top:128.7px"><img data-el="s03.e115" src="assets/s03.e115.png" alt=""><span data-el="s03.e116">Contacts</span></div>
+<div class="a row" data-el="s03.e117" data-edge="s03.e117>s17" data-transition="push" style="top:185.1px"><img src="assets/s03.e118.png" alt=""><span>Receipts</span></div>
+<div class="a row" style="top:241.5px"><img src="assets/s03.e121.png" alt=""><span>Unsubscribe</span></div>
+<div class="a row" style="top:297.9px"><img src="assets/s03.e124.png" alt=""><span>Manage Notifications</span></div>
+<div class="a row" style="top:354.3px"><img src="assets/s03.e127.png" alt=""><span>Settings</span></div>
+<div class="a" data-el="s03.e129" style="left:0;top:422.9px;width:310.1px;height:1.1px;background:#e0e4e9"></div>
+<div class="a row" style="top:436.2px"><img src="assets/s03.e131.png" alt=""><span>Give feedback</span></div>
+<div class="a row" style="top:492.6px"><img src="assets/s03.e134.png" alt=""><span>Call Customer Support</span></div>
+</div>
+<img class="a" data-el="s03.e96" src="assets/s03.e96.png" alt="" style="left:271.2px;top:644.6px;width:120px;height:120px">
+<img class="a" data-el="s03.e101" src="assets/s03.e101.png" alt="" style="left:271.2px;top:784.4px;width:120px;height:78.1px;object-fit:contain;object-position:left top">
+</section>
+<section data-screen="s09" data-parent="s01">
+<div class="a" style="left:282px;top:587px;width:112px;height:54px;background:var(--bg-1)"></div>
+<div class="a v" data-el="s09.e07" style="left:311.2px;top:8.8px"></div>
+<div class="a v" data-el="s09.e08" style="left:359.2px;top:8.8px"></div>
+<div class="a v" style="left:41.5px;top:60.6px"></div>
+<div class="a v" style="left:148.9px;top:60.6px"></div>
+<div class="a v" style="left:241.1px;top:60.6px"></div>
+<div class="a v" style="left:313.5px;top:60.6px"></div>
+<div class="a v" style="left:321.9px;top:124.6px"></div>
+<div class="a v" style="left:78.9px;top:783.6px"></div>
+<div class="a bd"></div>
+<div class="a dlg">
+<img class="a" data-el="s09.e02" src="assets/s09.e02.png" alt="" style="left:104px;top:40px;width:150.1px;height:132.2px">
+<div class="a" data-el="s09.e03" style="left:20.2px;top:172.2px;width:317.7px;height:45.3px;font-size:16px;font-weight:700;line-height:22.65px;color:var(--fg-3);text-align:center">Allow Location permission to get the most accurate weather forecasts</div>
+<div class="a n" data-el="s09.e04" style="left:20.2px;top:229.7px;width:317.7px;height:19.1px;font-size:14.5px;line-height:19.1px;color:var(--fg-3);text-align:center">Do you want to allow Location permission?</div>
+<div class="a btn" data-el="s09.e05" style="left:33.1px;width:110.9px;border:2px solid #0063eb;color:#0063eb;background:var(--bg-1)">Not now</div>
+<div class="a btn" data-el="s09.e06" style="left:172.9px;width:152px;background:#0063eb;color:#ffffff">Allow Location</div>
+</div>
+</section>
+<section data-screen="s16">
+<div class="a hdr" data-chrome="header">
+<div class="a h4" data-el="s16.e04"></div>
+<div class="a h7" data-el="s16.e07">Home</div>
+<div class="a h8" data-el="s16.e08">See the latest news</div>
+<div class="a ib" data-el="s16.e09" style="left:315.4px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1d2228" stroke-width="2" stroke-linejoin="round"><path d="M5 2.5h14a1 1 0 0 1 1 1v18l-8-5.6-8 5.6v-18a1 1 0 0 1 1-1z"/></svg></div>
+<div class="a ib" data-el="s16.e10" style="left:363.4px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1d2228" stroke-width="2.2" stroke-linecap="round"><circle cx="10.2" cy="10.2" r="7.2"/><path d="M15.6 15.6l5.9 5.9"/></svg></div>
+</div>
+<div class="a chip on" style="left:20.2px"><span data-el="s16.e13">Top Stories</span></div>
+<div class="a chip" style="left:119.2px"><span data-el="s16.e15">Entertainment</span></div>
+<div class="a chip" style="left:235.4px"><span data-el="s16.e17">Local</span></div>
+<div class="a chip" style="left:304px"><span data-el="s16.e19">Sports</span></div>
+<div class="a chip" style="left:379.1px"><span data-el="s16.e21">Business</span></div>
+<div class="a wx" style="height:75.8px">
+<div class="a pill"></div>
+<div class="a wt" data-el="s16.e29">Tap here for weather</div>
+<img class="a wg" data-el="s16.e30" src="assets/s16.e30.png" alt="">
+</div>
+<div class="a hero" data-el="s16.e32" style="top:187.8px"><img class="a f" data-el="s16.e33" src="assets/s16.e33.png" alt=""></div>
+<div class="a lg" style="top:426px;background:#1d8a4e"><div class="a" style="left:3px;top:7.8px;width:11.6px;height:2px;background:#cfe9d9"></div></div>
+<div class="a pb" data-el="s16.e35" style="left:38.1px;top:426.3px;width:132.2px;color:#616970">Entertainment Weekly</div>
+<div class="a hl" data-el="s16.e36" style="left:0;top:445.3px;width:411.4px;height:53.3px;padding:.5px 12px 0 20.2px">Amber Glenn sobs after giving partner Pasha Pashkov a brutal bloody injury in 'DWTS' rehearsal</div>
+<div class="a ts" data-el="s16.e37" style="left:20.2px;top:504.4px;width:38.1px;color:#5f676e">3h ago</div>
+<div class="a ic" data-el="s16.e38" style="left:74.3px;top:503.6px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#5b636a" stroke-width="1.5" stroke-linejoin="round"><path d="M3.2 1.4h9.6v13.2L8 11.2l-4.8 3.4z"/></svg></div>
+<div class="a ic" data-el="s16.e39" style="left:106.3px;top:503.6px"><svg width="16" height="16" viewBox="0 0 16 16" fill="#5b636a"><path d="M12 3.3L4 8l8 4.7" fill="none" stroke="#5b636a" stroke-width="1.4"/><circle cx="12" cy="3.3" r="2.3"/><circle cx="4" cy="8" r="2.3"/><circle cx="12" cy="12.7" r="2.3"/></svg></div>
+<div class="a adc" data-el="s16.e44" style="top:530.3px">
+<div class="a" data-el="s16.e45" style="left:0;top:0;width:80px;height:18.3px"><div class="a am" data-el="s16.e46" style="left:0;top:1.1px;width:80px">Toxin Free Life</div></div>
+<div class="a am" data-el="s16.e47" style="left:84.2px;top:1.1px;width:3.8px">·</div>
+<div class="a" data-el="s16.e48" style="left:92.2px;top:4.9px;width:16px;height:15.2px"></div>
+<div class="a am" data-el="s16.e49" style="left:92.2px;top:1.1px;width:16px">Ad</div>
+<div class="a" data-el="s16.e50" style="left:0;top:28.2px;width:246.1px;height:41.9px"><div class="a ah" data-el="s16.e51" style="left:0;top:.7px;width:224px;height:40px">We tested 5 shower filters for hard water - only one helped</div></div>
+<div class="a mo" data-el="s16.e54"><div class="a md" data-el="s16.e55"><svg width="20" height="20" viewBox="0 0 20 20" fill="#656e76"><circle cx="10" cy="5" r="1.7"/><circle cx="10" cy="10" r="1.7"/><circle cx="10" cy="15" r="1.7"/></svg></div></div>
+</div>
+<div class="a ai" data-el="s16.e52" style="top:530.3px;background:#e9e8e6"><svg class="a f" data-el="s16.e53" role="img" aria-label="Image for Taboola Advertising Unit" viewBox="0 0 110 110"><path d="M0 28h110M0 56h110M0 84h110M28 0v110M56 0v110M84 0v110" stroke="#d8d6d3" stroke-width=".6"/><rect x="60" y="0" width="7" height="4" fill="#8f9194"/><ellipse cx="64" cy="7" rx="15" ry="4.5" fill="#a3a5a8"/><path d="M54 12l-6 40M60 12l-3 42M66 12l1 40M72 12l4 38" stroke="#fff" stroke-width=".8" opacity=".8"/><path d="M20 110V72c0-24 12-38 34-38s30 14 30 38v38z" fill="#3b2a21"/><ellipse cx="54" cy="74" rx="15" ry="20" fill="#c99178"/><path d="M28 110c4-14 14-18 26-18s22 4 26 18z" fill="#b57c63"/></svg></div>
+<div class="a lg" style="top:656.5px;border-radius:50%;background:#000"><div class="a" style="left:3px;top:7.3px;width:11.6px;height:3px;background:linear-gradient(90deg,#fff 45%,#35c2d6 45%)"></div></div>
+<div class="a pb" style="left:38.1px;top:657.1px;width:19.8px;color:#5b636a">E!</div>
+<div class="a hl c3" data-el="s16.e59" style="left:20.2px;top:679.2px;width:246.1px">Former DHS chief Kristi Noem files for divorce after photo of husband wearing women's clothing, fake breasts surfaces</div>
+<div class="a ts" data-el="s16.e60" style="left:20.2px;top:756.6px;width:38.1px;color:#5f676e">9h ago</div>
+<div class="a ic" style="left:74.3px;top:755.8px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#5b636a" stroke-width="1.5" stroke-linejoin="round"><path d="M3.2 1.4h9.6v13.2L8 11.2l-4.8 3.4z"/></svg></div>
+<div class="a ic" style="left:106.3px;top:755.8px"><svg width="16" height="16" viewBox="0 0 16 16" fill="#5b636a"><path d="M12 3.3L4 8l8 4.7" fill="none" stroke="#5b636a" stroke-width="1.4"/><circle cx="12" cy="3.3" r="2.3"/><circle cx="4" cy="8" r="2.3"/><circle cx="12" cy="12.7" r="2.3"/></svg></div>
+<img class="a th" data-el="s16.e63" src="assets/s16.e63.png" alt="" style="top:656.4px">
+<div class="a pb" data-el="s16.e66" style="left:38.1px;top:797px;width:124.2px;color:#6e7780">The Independent US</div>
+<div class="a hl" data-el="s16.e67" style="left:20.2px;top:819px;width:246.1px;height:43.4px;color:#666666">GOP Sen. Britt's look as gotcha moment at Jack Smith hearing flames out goes viral</div>
+<img class="a t2" data-el="s16.e68" src="assets/s16.e68.png" alt="" style="top:796.2px;height:66.3px">
+<div class="a tb" data-chrome="tabbar">
+<div class="a tab" data-el="s16.e71" data-edge="s16.e71>s15" data-transition="tab" style="left:0"><svg class="a ti" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7e848a" stroke-width="1.6" stroke-linejoin="round"><rect x="1.5" y="4.5" width="21" height="15" rx="1.5"/><path d="M2.2 5.4 12 12.6l9.8-7.2"/></svg><div class="a tl" data-el="s16.e72" style="left:90.7px;width:24.4px;color:#7e848a">Inbox</div></div>
+<div class="a tab" style="left:205.7px"><svg class="a ti" width="24" height="24" viewBox="0 0 24 24" fill="#000"><path d="M12 1.5 1 11h3v11h6v-6.5h4V22h6V11h3z"/></svg><div class="a tl" data-el="s16.e73" data-edge="s16.e73>s01" data-transition="tab" style="left:89.5px;width:26.7px;color:#515151">Home</div></div>
+</div>
+</section>
+<section data-screen="s10">
+<div class="a chip on" style="left:20.3px;width:90.9px"><span class="ct" data-el="s10.e11">Top Stories</span></div>
+<div class="a chip" style="left:119.2px;width:108px"><span class="ct" data-el="s10.e13">Entertainment</span></div>
+<div class="a chip" style="left:235.4px;width:60.6px"><span class="ct" data-el="s10.e15">Local</span></div>
+<div class="a chip" style="left:304px;width:67px"><span class="ct" data-el="s10.e17">Sports</span></div>
+<div class="a chip" style="left:379.1px;width:90px"></div>
+<div class="a ct" data-el="s10.e19" style="left:395.1px;top:20.9px;width:16.4px;height:14.5px;overflow:hidden">Business</div>
+<img class="a" data-el="s10.e22" src="assets/s10.e22.png" style="left:0;top:56px;width:411.4px;height:220.2px" alt="">
+<div class="a lg" style="top:282.3px;background:#217d4e;border-radius:2px"></div>
+<div class="a pub" data-el="s10.e24" style="left:38.1px;top:283.1px;width:132.2px;color:#616970">Entertainment Weekly</div>
+<div class="a h" data-el="s10.e25" style="left:0;top:302.1px;width:411.4px;height:53.3px;padding-left:20.2px">Amber Glenn sobs after giving partner Pasha <br>Pashkov a brutal bloody injury in 'DWTS' rehearsal</div>
+<div class="a m" data-el="s10.e26" style="left:20.2px;top:361.1px;width:37.7px;color:#5d656c">2h ago</div>
+<svg class="a ic" data-el="s10.e27" style="left:73.9px;top:360.4px" viewBox="0 0 16 16"><path d="M3 1.8h10v12.8L8 11l-5 3.6z"/></svg>
+<svg class="a ic" data-el="s10.e28" style="left:105.9px;top:360.4px" viewBox="0 0 16 16"><path d="M11.5 3.2 4.3 8l7.2 4.8"/><circle cx="11.5" cy="3.2" r="2"/><circle cx="4.3" cy="8" r="2"/><circle cx="11.5" cy="12.8" r="2"/></svg>
+<div class="a" data-el="s10.e33" style="left:198.9px;top:430.5px;width:13.3px;height:13.7px;line-height:13.7px;font-size:10px;color:#5c646b">AD</div>
+<div class="a lg" style="top:503.2px;background:#000"></div>
+<div class="a pub" style="left:38.1px;top:504px;width:19.8px;color:#5b636a">E!</div>
+<div class="a h" data-el="s10.e37" style="left:20.2px;top:526.1px;width:246.1px;height:76.6px">Former DHS chief Kristi Noem <br>files for divorce after photo of <span class="el">husband wearing women's clothing, fake breasts surfaces</span></div>
+<div class="a m" data-el="s10.e38" style="left:20.2px;top:603.4px;width:38.1px;color:#5f676e">9h ago</div>
+<svg class="a ic" style="left:74.3px;top:602.7px" viewBox="0 0 16 16"><path d="M3 1.8h10v12.8L8 11l-5 3.6z"/></svg>
+<svg class="a ic" style="left:106.3px;top:602.7px" viewBox="0 0 16 16"><path d="M11.5 3.2 4.3 8l7.2 4.8"/><circle cx="11.5" cy="3.2" r="2"/><circle cx="4.3" cy="8" r="2"/><circle cx="11.5" cy="12.8" r="2"/></svg>
+<img class="a th" data-el="s10.e41" src="assets/s10.e41.png" style="left:271.2px;top:503.2px" alt="">
+<div class="a lg" style="top:643.5px;background:#e1242b"></div>
+<div class="a pub" data-el="s10.e44" style="left:38.1px;top:643.8px;width:124.2px;color:#5f676e">The Independent US</div>
+<div class="a h" data-el="s10.e45" style="left:20.2px;top:665.9px;width:246.1px;height:76.6px">GOP Sen. Britt's look as gotcha <br>moment at Jack Smith hearing <br>flames out goes viral</div>
+<div class="a m" style="left:20.2px;top:743.2px;width:37.7px;color:#5d656c">2h ago</div>
+<svg class="a ic" style="left:73.9px;top:742.5px" viewBox="0 0 16 16"><path d="M3 1.8h10v12.8L8 11l-5 3.6z"/></svg>
+<svg class="a ic" style="left:105.9px;top:742.5px" viewBox="0 0 16 16"><path d="M11.5 3.2 4.3 8l7.2 4.8"/><circle cx="11.5" cy="3.2" r="2"/><circle cx="4.3" cy="8" r="2"/><circle cx="11.5" cy="12.8" r="2"/></svg>
+<img class="a th" data-el="s10.e49" src="assets/s10.e49.png" style="left:271.2px;top:643px" alt="">
+<div class="a lg" style="top:782.5px;background:conic-gradient(from 270deg at 50% 64%,#fcb711 0 30deg,#f37021 0 60deg,#cc004c 0 90deg,#6460aa 0 120deg,#0089d0 0 150deg,#0db14b 0 180deg,#000 0)"></div>
+<div class="a pub" data-el="s10.e52" style="left:38.1px;top:783.6px;width:88px;color:#5e666d">NBC Universal</div>
+<div class="a h" data-el="s10.e53" style="left:20.2px;top:805.7px;width:246.1px;height:56.8px">Toddler pulls loaded handgun <br>from their backpack at Michigan <br>daycare</div>
+<img class="a th" data-el="s10.e54" src="assets/s10.e54.png" style="left:271.2px;top:782.9px;height:79.6px" alt="">
+<div class="gh">
+<img class="a" data-el="s10.e02" src="assets/s10.e02.png" style="left:11.1px;top:6.1px;width:48px;height:48px" alt="">
+<div class="a" data-el="s10.e05" style="left:65.1px;top:9.1px;width:44.2px;height:22.5px;color:#fff">Home</div>
+<div class="a" data-el="s10.e06" style="left:65.1px;top:31.6px;width:120.8px;height:19.1px;color:#ffd327">See the latest news</div>
+<div class="a" data-el="s10.e07" style="left:315.4px;top:8px;width:40px;height:40px;border-radius:50%;background:var(--bg-3)"></div>
+<div class="a" data-el="s10.e08" style="left:363.4px;top:8px;width:40px;height:40px;border-radius:50%;background:var(--bg-3)"></div>
+<div class="a" data-el="s10.e57" style="left:50.7px;top:81.1px;width:271.6px;height:24px">Tap here for weather</div>
+<img class="a" data-el="s10.e58" src="assets/s10.e58.png" style="left:322.3px;top:69.3px;width:48px;height:48px" alt="">
+<img class="a" data-el="s10.e61" src="assets/s10.e61.png" style="left:0;top:129.9px;width:411.4px;height:231.6px" alt="">
+<div class="a pub" data-el="s10.e63" style="left:38.1px;top:368.4px;width:132.2px">Entertainment Weekly</div>
+<div class="a h" data-el="s10.e64" style="left:0;top:387.4px;width:411.4px;height:53.3px;padding-left:20.2px">Amber Glenn sobs after giving partner Pasha Pashkov a brutal bloody injury in 'DWTS' rehearsal</div>
+<div class="a" data-el="s10.e72" style="left:18.7px;top:472.4px;width:266.3px;height:110.1px"></div>
+<div class="a" data-el="s10.e73" style="left:18.7px;top:472.4px;width:34.3px;height:18.3px">TEMU</div>
+<div class="a" data-el="s10.e75" style="left:56px;top:473.5px;width:5px;height:16px">·</div>
+<div class="a" data-el="s10.e76" style="left:64px;top:477.3px;width:16.8px;height:15.2px">Ad</div>
+<div class="a" data-el="s10.e78" style="left:18.7px;top:500.6px;width:172.2px;height:22.1px"></div>
+<div class="a" data-el="s10.e79" data-value="c2" style="left:18.7px;top:501.3px;width:172.2px;height:20.2px;color:#000">Elevate Your Your Ride</div>
+<div class="a" data-el="s10.e80" style="left:282.7px;top:472.4px;width:110.1px;height:110.1px;background:#72442e"></div>
+<div class="a" data-el="s10.e81" style="left:282.7px;top:472.4px;width:110.1px;height:110.1px"></div>
+<div class="a" data-el="s10.e82" style="left:222.1px;top:466.7px;width:48px;height:40.4px"></div>
+<div class="a kb" data-el="s10.e83" style="left:235.8px;top:472.8px"></div>
+<div class="a pub" data-el="s10.e94" style="left:38.1px;top:739px;width:124.2px">The Independent US</div>
+</div>
+</section>
+<section data-screen="s32">
+<div class="a" data-el="s32.e06" style="left:19.8px;top:0;width:185.9px;height:3.8px"><div class="a" style="left:0;top:0;width:19.8px;height:3.8px;background:#35a6dc"></div></div>
+<div class="a h" data-el="s32.e07" style="left:19.8px;top:8px;width:235.8px;height:42.3px;line-height:23px">‘DWTS’: Who Was Eliminated on <br>Yacht Rock Night?</div>
+<div class="a m" data-el="s32.e08" style="left:19.8px;top:89.1px;width:235.8px;color:#707981">2hr ago</div>
+<img class="a th" data-el="s32.e09" src="assets/s32.e09.png" style="left:271.6px;top:0;height:103.6px;border-radius:0 0 10px 10px" alt="">
+<img class="a" data-el="s32.e12" src="assets/s32.e12.png" style="left:19.8px;top:127.2px;width:185.9px;height:20.2px" alt="">
+<div class="a h" data-el="s32.e13" style="left:19.8px;top:151.6px;width:235.8px;height:65.5px;line-height:23px">“DWTS ”season 35 week 3 <br>recap: A bloody nose, a coconut <span class="el">bra, and a bummer elimination on ‘Yacht Rock Night’</span></div>
+<div class="a m" data-el="s32.e14" style="left:19.8px;top:232.8px;width:235.8px;color:#707982">1hr ago</div>
+<img class="a th" data-el="s32.e15" src="assets/s32.e15.png" style="left:271.6px;top:127.2px" alt="">
+<div class="a" data-el="s32.e19" style="left:20.2px;top:271.2px;width:251.8px;height:120px"></div>
+<div class="a" data-el="s32.e20" style="left:20.2px;top:276.2px;width:234.7px;height:17.9px"></div>
+<div class="a" data-el="s32.e21" style="left:20.2px;top:276.9px;width:88px;height:16px;line-height:16px;font-size:12.3px;color:#6e7880">Extend-A-Reach</div>
+<div class="a kb" data-el="s32.e29" style="left:225.9px;top:276.2px"></div>
+<div class="a" data-el="s32.e24" style="left:20.2px;top:295.2px;width:234.7px;height:61px"></div>
+<div class="a h" data-el="s32.e25" style="left:20.2px;top:295.2px;width:200px;height:59.8px;line-height:20px">The Autumn Cleaning Hack <br>That Saves Homeowners <br>Thousands</div>
+<div class="a" data-el="s32.e22" style="left:20.2px;top:374.1px;width:16px;height:17.1px"></div>
+<div class="a" data-el="s32.e23" style="left:20.2px;top:375.2px;width:16px;height:16px;line-height:16px;font-size:12.3px;color:#6e7880">Ad</div>
+<div class="a" data-el="s32.e26" style="left:270.9px;top:271.2px;width:122.3px;height:120px;border-radius:10px;overflow:hidden;background:linear-gradient(#c3c6c8,#a7aaa6 45%,#7a7c70 70%,#5d5f52)"><div class="a" data-el="s32.e27" style="left:0;top:0;width:100%;height:100%">
+<div class="a" style="left:0;top:8px;width:66px;height:12px;background:#6d6863"></div>
+<div class="a" style="left:0;top:18px;width:60px;height:44px;background:#d9dad7"></div>
+<div class="a" style="left:8px;top:36px;width:30px;height:24px;background:#bfc1bf"></div>
+<div class="a" style="left:50px;top:-4px;width:50px;height:46px;border-radius:50%;background:#b8773a"></div>
+<div class="a" style="left:78px;top:0;width:45px;height:120px;background:linear-gradient(170deg,#4a403a,#2f2a27 50%,#5b3f25);clip-path:polygon(30% 0,100% 0,100% 100%,0 100%)"></div>
+<div class="a" style="left:86px;top:10px;width:36px;height:110px;background:radial-gradient(circle at 30% 20%,#c07a30 0 5px,transparent 6px),radial-gradient(circle at 70% 50%,#9c5a26 0 7px,transparent 8px),radial-gradient(circle at 40% 82%,#d0913d 0 6px,transparent 7px)"></div>
+<div class="a" style="left:46px;top:26px;width:3px;height:97px;background:#d5d8da;transform:rotate(-19deg);transform-origin:top"></div>
+<div class="a" style="left:58px;top:26px;width:3px;height:97px;background:#d5d8da;transform:rotate(-19deg);transform-origin:top"></div>
+<div class="a" style="left:4px;top:60px;width:62px;height:62px;border-radius:26px 26px 0 0;background:#394253"></div>
+<div class="a" style="left:23px;top:38px;width:17px;height:22px;border-radius:50%;background:#c09179"></div>
+</div></div>
+<img class="a" data-el="s32.e32" src="assets/s32.e32.png" style="left:19.8px;top:425.1px;width:185.9px;height:20.2px" alt="">
+<div class="a h" data-el="s32.e33" style="left:19.8px;top:449.5px;width:235.8px;height:65.5px;line-height:23px">Why Ezra Frech &amp; Amber <br>Glenn Should Have the DWTS <br>Competition Worried</div>
+<div class="a m" style="left:19.8px;top:530.7px;width:235.8px;color:#707981">6d ago</div>
+<img class="a th" data-el="s32.e35" src="assets/s32.e35.png" style="left:271.6px;top:425.1px" alt="">
+<img class="a" src="assets/s32.e38.png" style="left:19.8px;top:568.8px;width:185.9px;height:20.2px" alt="">
+<div class="a h" style="left:19.8px;top:593.1px;width:235.8px;height:65.5px;line-height:23px">Dancing With the Stars: Who <br>Was Eliminated After Yacht <br>Rock Night Performances?</div>
+<div class="a m" style="left:19.8px;top:674.3px;width:235.8px;color:#6f7881">4hr ago</div>
+<img class="a th" src="assets/s32.e41.png" style="left:271.6px;top:568.8px" alt="">
+<div class="a np" style="left:0;top:728px;width:411.4px;height:110.2px"></div>
+<div class="a" data-el="s32.e44" style="left:20.2px;top:750.1px;width:132.2px;height:18.3px;line-height:18.3px;font-size:13.5px;font-weight:700;color:var(--fg-1)">Next in More For You:</div>
+<div class="a" data-el="s32.e45" style="left:20.2px;top:770.3px;width:338.7px;height:48px;line-height:23.5px;font-size:12px;color:#34393e">Kristi Noem Files for Divorce From Bryon Noem After Photo <br>Scandal</div>
+<img class="a" data-el="s32.e46" src="assets/s32.e46.png" style="left:363.1px;top:772.2px;width:24px;height:24px" alt="">
+<img class="a bk" data-el="s32.e42" data-edge="s32.back>s01" data-transition="back" src="assets/s32.e42.png" style="left:8px;top:20.2px" alt="">
+</section>
+<section data-screen="s05">
+<div class="a" style="left:0;top:69px;width:411.4px;height:713.5px"></div>
+<img class="a" src="assets/s05.e01.art.png" style="left:0;top:362.7px;width:411.4px;height:272.7px" alt="">
+<div class="a m" data-el="s05.e03" style="left:20.2px;top:69px;width:120.8px;color:#767e87">Entertainment Weekly</div>
+<div class="a ah" data-el="s05.e04" style="left:20.2px;top:83.4px">Amber Glenn sobs after giving <br>partner Pasha Pashkov a brutal <br>bloody injury in “DWTS” <br>rehearsal</div>
+<div class="a by" data-el="s05.e05" style="left:20.2px;top:208.8px">Marina Watts</div>
+<div class="a m dt" data-el="s05.e06" style="left:20.2px;top:245.3px">Sep. 29, 2026 5:56 PM PT</div>
+<div class="a adb" style="left:19.8px;top:275.8px;width:370.7px;height:85px"></div>
+<div class="a" data-el="s05.e11" style="left:19.8px;top:275.8px;width:83.8px;height:85px"></div>
+<div class="a" data-el="s05.e12" style="left:31.6px;top:287.6px;width:61px;height:61px;background:#fff;overflow:hidden">
+<div class="a" style="left:0;top:2px;width:61px;text-align:center;font-size:6px;line-height:7px;font-weight:800;color:#1c2b4f">TEMU MEGA SALE</div>
+<div class="a" style="left:1px;top:13px;width:21px;height:32px;background:#dcdad6;border-radius:6px 6px 2px 2px"></div>
+<div class="a" style="left:39px;top:13px;width:21px;height:32px;background:#23262c;border-radius:6px 6px 2px 2px"></div>
+<div class="a" style="left:20px;top:11px;width:22px;height:34px;background:#2b3a66;border-radius:6px 6px 2px 2px"></div>
+<div class="a" style="left:0;top:45.3px;width:61px;text-align:center;font-size:11px;line-height:13px;font-weight:800;color:#c0141f">$2.36</div>
+</div>
+<div class="a" data-el="s05.e13" style="left:101.7px;top:275.8px;width:288.8px;height:85px"></div>
+<div class="a" data-el="s05.e14" style="left:101.7px;top:287.6px;width:276.9px;height:17.1px"></div>
+<div class="a adh" data-el="s05.e15" data-value="c1" style="left:101.7px;top:286.5px;width:254.1px;height:19.1px;line-height:19.1px">New Temu users get jackets for $2.36</div>
+<div class="a" data-el="s05.e16" style="left:127.6px;top:333.7px;width:33.9px;height:14.9px"></div>
+<div class="a adm" data-el="s05.e17" style="left:127.6px;top:333.7px;width:33.9px">TEMU</div>
+<div class="a adm" data-el="s05.e18" style="left:120.8px;top:333.7px;width:3.8px">·</div>
+<div class="a" data-el="s05.e19" style="left:101.7px;top:336.8px;width:16.8px;height:14.9px"></div>
+<div class="a adm" data-el="s05.e20" style="left:101.7px;top:333.7px;width:16.8px">Ad</div>
+<div class="a" data-el="s05.e21" style="left:336.8px;top:315.1px;width:48px;height:47.6px"></div>
+<div class="a kb" data-el="s05.e22" style="left:350.5px;top:328.8px"></div>
+<div class="a cap" data-el="s05.e23" style="left:19.8px;top:635.4px">Amber Glenn and Pasha Pashkov on ‘Dancing With the <br>Stars’Credit: abc</div>
+<div class="a kh" data-el="s05.e24" style="left:19.8px;top:689.5px">Key Points</div>
+<div class="a kp bu" data-el="s05.e25" style="left:26.7px;top:729.5px">• </div>
+<div class="a kp tx" data-el="s05.e26" style="left:38.5px;top:729.5px">Amber Glenn and Pasha Pashkov scored high on <br>“Yacht Rock Night” after she gave the pro dancer a <br>gnarly bloody nose in rehearsal.</div>
+<div class="a kp bu" data-el="s05.e27" style="left:26.7px;top:813.3px;color:var(--fg-3)">• </div>
+<div class="a kp tx" data-el="s05.e28" style="left:38.5px;top:813.3px">“The hardest part of the Foxtrot for me is that it’s a <br>more graceful dance,” Glenn admitted about the <br>dance they had planned.</div>
+<div class="a bb" style="left:0;top:782.5px;width:411.4px;height:55.7px"></div>
+<img class="a ib" data-el="s05.e33" src="assets/s05.e33.png" style="left:20.2px;top:800.4px" alt="">
+<img class="a ib" data-el="s05.e34" src="assets/s05.e34.png" style="left:234.7px;top:800.8px" alt="">
+<img class="a ib" src="assets/s05.e35.png" style="left:278.9px;top:800.8px" alt="">
+<img class="a ib" src="assets/s05.e36.png" style="left:323.1px;top:800.8px" alt="">
+<img class="a ib" src="assets/s05.e37.png" style="left:367.2px;top:800.8px" alt="">
+<img class="a" data-el="s05.e29" data-edge="s05.back>s01" data-transition="back" src="assets/s05.e29.png" style="left:8px;top:20.2px;width:32px;height:32px" alt="">
+</section>
+<section data-screen="s19">
+<div class="a ah" style="left:20.2px;top:-62.9px">Amber Glenn sobs after giving <br>partner Pasha Pashkov a brutal <br>bloody injury in “DWTS” <br>rehearsal</div>
+<div class="a by" data-el="s19.e02" style="left:20.2px;top:62.5px">Marina Watts</div>
+<div class="a m dt" data-el="s19.e03" style="left:20.2px;top:99px">Sep. 29, 2026 5:56 PM PT</div>
+<img class="a" src="assets/s05.e01.art.png" style="left:0;top:216.4px;width:411.4px;height:272.7px" alt="">
+<div class="a adb" style="left:19.8px;top:129.5px;width:370.7px;height:85px"></div>
+<div class="a" data-el="s19.e08" style="left:19.8px;top:129.5px;width:83.8px;height:85px"></div>
+<div class="a" data-el="s19.e09" style="left:31.6px;top:141.3px;width:61px;height:61px;border-radius:3px;background:radial-gradient(circle at 72% 72%,#e0a64a 0 5px,transparent 6px),radial-gradient(circle at 35% 85%,#8a5a2b 0 6px,transparent 7px),linear-gradient(150deg,#2e3131 0 26%,#55524a 33%,#a36b2d 45%,#cf9a45 55%,#7d5129 68%,#b87a31 82%,#634628)"></div>
+<div class="a" data-el="s19.e10" style="left:101.7px;top:129.5px;width:288.8px;height:85px"></div>
+<div class="a" data-el="s19.e11" style="left:101.7px;top:141.3px;width:276.9px;height:33.1px"></div>
+<div class="a adh" data-el="s19.e12" style="left:101.7px;top:140.2px;width:257.9px;height:35px;padding-top:2px;line-height:16px">Why Everyone Is Ditching Ladders For <br>Fall Cleanup Now</div>
+<div class="a" data-el="s19.e13" style="left:127.6px;top:187.4px;width:89.1px;height:14.9px"></div>
+<div class="a adm" data-el="s19.e14" style="left:127.6px;top:187.4px;width:89.1px">Extend-A-Reach</div>
+<div class="a adm" data-el="s19.e15" style="left:120.8px;top:187.4px;width:3.8px">·</div>
+<div class="a" data-el="s19.e16" style="left:101.7px;top:190.5px;width:16.8px;height:14.9px"></div>
+<div class="a adm" data-el="s19.e17" style="left:101.7px;top:187.4px;width:16.8px">Ad</div>
+<div class="a" data-el="s19.e18" style="left:336.8px;top:168.8px;width:48px;height:47.6px"></div>
+<div class="a kb" data-el="s19.e19" style="left:350.5px;top:182.5px"></div>
+<div class="a cap" data-el="s19.e20" style="left:19.8px;top:489.1px">Amber Glenn and Pasha Pashkov on ‘Dancing With the <br>Stars’Credit: abc</div>
+<div class="a kh" data-el="s19.e21" style="left:19.8px;top:543.2px">Key Points</div>
+<div class="a kp bu" data-el="s19.e22" style="left:26.7px;top:583.2px">• </div>
+<div class="a kp tx" data-el="s19.e23" style="left:38.5px;top:583.2px">Amber Glenn and Pasha Pashkov scored high on <br>“Yacht Rock Night” after she gave the pro dancer a <br>gnarly bloody nose in rehearsal.</div>
+<div class="a kp bu" data-el="s19.e24" style="left:26.7px;top:667px">• </div>
+<div class="a kp tx" data-el="s19.e25" style="left:38.5px;top:667px">“The hardest part of the Foxtrot for me is that it’s a <br>more graceful dance,” Glenn admitted about the <br>dance they had planned.</div>
+<div class="a kp bu" data-el="s19.e26" style="left:26.7px;top:751.2px">• </div>
+<p class="a kp" style="left:38.5px;top:751.2px"><span data-el="s19.e27">New episodes of </span><i data-el="s19.e28">Dancing With the Stars</i><span data-el="s19.e29"> season 35 <br>air on Tuesdays at 8 p.m. ET/PT on ABC and Disney+.</span></p>
+<p class="a kp" style="left:19.8px;top:811.3px"><span class="lk" data-el="s19.e30"><span data-el="s19.e31">Amber Glenn</span></span><span data-el="s19.e32"> and </span><span class="lk" data-el="s19.e33"><span data-el="s19.e34">Pasha Pashkov</span></span><span data-el="s19.e35"> didn’t let a gnarly <br>bloody nose keep them from scoring high on “Yacht <br>Rock Night.”</span></p>
+<img class="a bk" data-el="s19.e36" src="assets/s19.e36.png" style="left:8px;top:20.2px" alt="">
+</section>
+<section data-screen="s33">
+<div class="a ttl">Scandal</div>
+<div class="a by" data-el="s33.e02" style="top:31.2px">Sasha Wayman</div>
+<div class="a up" data-el="s33.e03" style="top:67.8px">Updated Sep. 29, 2026 1:31 PM PT</div>
+<div class="a card" style="top:98.3px">
+<div class="a" data-el="s33.e08" style="left:0;top:0;width:83.8px;height:85px"></div>
+<div class="a th" data-el="s33.e09" style="background:#303559"><svg viewBox="0 0 61 61" width="61" height="61" fill="none" stroke="#f6df88" stroke-width="1.8"><path d="M5 31v-3a3.5 3.5 0 0 1 7 0v3M18 31v-3a3.5 3.5 0 0 1 7 0v3M31 31v-3a3.5 3.5 0 0 1 7 0v1M44 31v-3a3.5 3.5 0 0 1 7 0v3M57 31v-3a3.5 3.5 0 0 1 7 0v3"/><g fill="#f0cd5a" stroke="none"><rect x="3" y="30" width="11" height="10" rx="1.5"/><rect x="16" y="30" width="11" height="10" rx="1.5"/><rect x="29" y="30" width="11" height="10" rx="1.5"/><rect x="42" y="30" width="11" height="10" rx="1.5"/><rect x="55" y="30" width="11" height="10" rx="1.5"/></g></svg></div>
+<div class="a" data-el="s33.e10" style="left:81.9px;top:0;width:324.9px;height:85px"></div>
+<div class="a" data-el="s33.e11" style="left:81.9px;top:11.8px;width:313.9px;height:33.1px"><div class="a hl" data-el="s33.e12" style="width:304.8px;height:35px">Find Results For Secure Business It Networks<br>Solutions</div></div>
+<div class="a" data-el="s33.e16" style="left:81.9px;top:60.9px;width:16.8px;height:14.9px"><div class="a m" data-el="s33.e17" style="left:0;top:-3px;width:16.8px;height:16px">Ad</div></div>
+<div class="a m" data-el="s33.e15" style="left:101px;top:57.9px;width:3.8px;height:16px">·</div>
+<div class="a" data-el="s33.e13" style="left:107.8px;top:57.9px;width:288px;height:14.9px"><div class="a m" data-el="s33.e14" style="left:0;top:0;width:288px;height:16px">Yahoo Search | Secure Business It Networks Solutions</div></div>
+<div class="a mo" data-el="s33.e18" style="top:39.2px"><div class="a" data-el="s33.e19" style="left:13.7px;top:13.7px;width:20.2px;height:20.2px"><svg viewBox="0 0 20 20" width="20.2" height="20.2" fill="#828c93"><circle cx="10" cy="4.5" r="1.9"/><circle cx="10" cy="10" r="1.9"/><circle cx="10" cy="15.5" r="1.9"/></svg></div></div>
+</div>
+<div class="a ph" style="top:201px"><svg viewBox="0 0 371 371"><ellipse cx="283" cy="205" rx="64" ry="125" fill="#4a2c1d"/><path d="M0 371V186q8-38 58-48l52-10 30 34 26-34 42 12q24 10 26 60l4 171z" fill="#1b1c1f"/><path d="M118 128h42l4 243h-36z" fill="#ece8e1"/><rect x="121" y="102" width="30" height="28" fill="#b3785b"/><ellipse cx="135" cy="50" rx="35" ry="23" fill="#5a4030"/><ellipse cx="135" cy="80" rx="32" ry="42" fill="#c78b6c"/><path d="M123 133l17 6 17-6v15l-17-6-17 6z" fill="#101012"/><path d="M200 371l4-120q10-38 46-42l30 40 26-42q36 6 48 50l17 44v70z" fill="#e3399c"/><path d="M262 172h36l10 48h-56z" fill="#c4886b"/><ellipse cx="280" cy="142" rx="28" ry="38" fill="#cc8e72"/><ellipse cx="243" cy="218" rx="16" ry="72" fill="#5b3726"/><ellipse cx="322" cy="225" rx="18" ry="78" fill="#5b3726"/><path d="M204 296h150v36H204z" fill="#b02a7c"/><rect x="252" y="300" width="44" height="28" rx="4" fill="none" stroke="#8f1f66" stroke-width="4"/></svg></div>
+<p class="t" style="top:586.5px"><span data-el="s33.e20">Originally appeared on </span><span class="lk u" data-el="s33.e21"><span data-el="s33.e22">E! Online</span></span></p>
+<p class="t" style="top:622.1px"><span class="b" data-el="s33.e23">Kristi Noem</span><span data-el="s33.e24"> is stepping into a new chapter.</span></p>
+<p class="t" data-el="s33.e27" style="top:657.9px;width:372.9px;height:121.1px"><span data-el="s33.e25">Six months after photos of her husband </span><span class="b" data-el="s33.e26">Bryon Noem</span><br><span class="lk" data-el="s33.e28"><span data-el="s33.e29">wearing women’s clothing and fake breasts</span></span><span data-el="s33.e30"> surfaced,<br>the former Department of Homeland Security head has<br>filed for divorce, according to court documents<br>reviewed by E! News.</span></p>
+<div class="a band" style="top:789.4px;height:48.8px"></div>
+<div class="a adl" data-el="s33.e33" style="top:805px">ADVERTISEMENT</div>
+<div class="a te" data-el="s33.e36" style="top:829.7px"><div class="a tel">TE</div><div class="a tep"><svg viewBox="0 0 33 14.5" width="33" height="14.5"><path d="M5 2.5l8 4.75-8 4.75z" fill="none" stroke="#3488ea" stroke-width="1.8" stroke-linejoin="round"/><g fill="#5f6b7a"><circle cx="26" cy="3.5" r="1.3"/><circle cx="26" cy="7.25" r="1.3"/><circle cx="26" cy="11" r="1.3"/></g></svg></div><div class="a tb" data-el="s33.e38">Test Ad</div></div>
+<img class="bk" data-el="s33.e39" src="assets/s33.e39.png" alt="Back">
+</section>
+<section data-screen="s13">
+<div class="a ttl">Scandal</div>
+<div class="a by" data-el="s13.e02" style="top:30.5px">Sasha Wayman</div>
+<div class="a up" data-el="s13.e03" style="top:67px">Updated Sep. 29, 2026 1:31 PM PT</div>
+<div class="a card" style="top:97.5px">
+<div class="a" data-el="s13.e08" style="left:0;top:0;width:83.8px;height:85px"></div>
+<div class="a th" data-el="s13.e09" style="background:#fff"><div class="a" style="left:0;top:3px;width:61px;text-align:center;font:800 6px/7px var(--font-1);color:#1c2b5e;white-space:nowrap">TEMU MEGA SALE</div><div class="a" style="left:1px;top:11px;width:22px;height:32px;border-radius:7px 7px 2px 2px;background:#dcdcd8"></div><div class="a" style="left:19px;top:12px;width:22px;height:31px;border-radius:7px 7px 2px 2px;background:#2f4476"></div><div class="a" style="left:37px;top:11px;width:23px;height:32px;border-radius:7px 7px 2px 2px;background:#26272b"></div><div class="a" style="left:0;top:45px;width:61px;text-align:center;font:800 10px/12px var(--font-1);color:#c8102e">$2.36</div></div>
+<div class="a" data-el="s13.e10" style="left:81.9px;top:0;width:288.8px;height:85px"></div>
+<div class="a" data-el="s13.e11" style="left:81.9px;top:11.8px;width:276.9px;height:17.1px"><div class="a hl" data-el="s13.e12" data-value="c1" style="width:254.1px;height:19.1px;line-height:19.1px">New Temu users get jackets for $2.36</div></div>
+<div class="a" data-el="s13.e16" style="left:81.9px;top:61px;width:16.8px;height:14.9px"><div class="a m" data-el="s13.e17" style="left:0;top:-3.1px;width:16.8px;height:16px">Ad</div></div>
+<div class="a m" data-el="s13.e15" style="left:101px;top:57.9px;width:3.8px;height:16px">·</div>
+<div class="a" data-el="s13.e13" style="left:107.8px;top:57.9px;width:33.9px;height:14.9px"><div class="a m" data-el="s13.e14" style="left:0;top:0;width:33.9px;height:16px">TEMU</div></div>
+<div class="a mo" data-el="s13.e18" style="top:39.3px"><div class="a" data-el="s13.e19" style="left:13.7px;top:13.7px;width:20.2px;height:20.2px"><svg viewBox="0 0 20 20" width="20.2" height="20.2" fill="#656e76"><circle cx="10" cy="4.5" r="1.9"/><circle cx="10" cy="10" r="1.9"/><circle cx="10" cy="15.5" r="1.9"/></svg></div></div>
+</div>
+<div class="a ph" style="top:200.2px"><svg viewBox="0 0 371 371"><ellipse cx="283" cy="205" rx="64" ry="125" fill="#4a2c1d"/><path d="M0 371V186q8-38 58-48l52-10 30 34 26-34 42 12q24 10 26 60l4 171z" fill="#1b1c1f"/><path d="M118 128h42l4 243h-36z" fill="#ece8e1"/><rect x="121" y="102" width="30" height="28" fill="#b3785b"/><ellipse cx="135" cy="50" rx="35" ry="23" fill="#5a4030"/><ellipse cx="135" cy="80" rx="32" ry="42" fill="#c78b6c"/><path d="M123 133l17 6 17-6v15l-17-6-17 6z" fill="#101012"/><path d="M200 371l4-120q10-38 46-42l30 40 26-42q36 6 48 50l17 44v70z" fill="#e3399c"/><path d="M262 172h36l10 48h-56z" fill="#c4886b"/><ellipse cx="280" cy="142" rx="28" ry="38" fill="#cc8e72"/><ellipse cx="243" cy="218" rx="16" ry="72" fill="#5b3726"/><ellipse cx="322" cy="225" rx="18" ry="78" fill="#5b3726"/><path d="M204 296h150v36H204z" fill="#b02a7c"/><rect x="252" y="300" width="44" height="28" rx="4" fill="none" stroke="#8f1f66" stroke-width="4"/></svg></div>
+<p class="t" style="top:585.7px"><span data-el="s13.e20">Originally appeared on </span><span class="lk u" data-el="s13.e21"><span data-el="s13.e22">E! Online</span></span></p>
+<p class="t" style="top:621.4px"><span class="b" data-el="s13.e23">Kristi Noem</span><span data-el="s13.e24"> is stepping into a new chapter.</span></p>
+<p class="t" data-el="s13.e28" style="top:657.1px;width:372.9px;height:121.1px"><span data-el="s13.e25">Six months after photos of her husband </span><span class="b" data-el="s13.e26"><span data-el="s13.e27">Bryon Noem</span></span><br><span class="lk" data-el="s13.e29"><span data-el="s13.e30">wearing women’s clothing and fake breasts</span></span><span data-el="s13.e31"> surfaced,<br>the former Department of Homeland Security head has<br>filed for divorce, according to court documents<br>reviewed by E! News.</span></p>
+<div class="a band" style="top:788.9px;height:49.3px"></div>
+<div class="a adl" data-el="s13.e34" style="top:804.2px">ADVERTISEMENT</div>
+<div class="a" data-el="s13.e38" style="left:56px;top:829px;width:300.6px;height:250.3px;background:var(--bg-4);box-shadow:inset 0 0 0 1px #d6d9dc;border-radius:8px 8px 0 0"><div class="a" data-el="s13.e37" style="left:163.4px;top:3.8px;width:128px;height:235.8px"><div class="a" style="left:36px;top:2.2px;width:31px;height:20px;background:#5b3b2c;border-radius:6px 6px 0 0"></div></div><div class="a tb" data-el="s13.e39">Test Ad</div><svg class="a" style="left:282px;top:2px" viewBox="0 0 14 12" width="14" height="12"><path d="M3 1.5l8 4.5-8 4.5z" fill="none" stroke="#3488ea" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
+<img class="bk" data-el="s13.e40" src="assets/s13.e40.png" alt="Back">
+</section>
+<section data-screen="s20">
+<div class="a" style="left:20.3px;top:0;width:370.9px;height:160.9px;overflow:hidden;background:linear-gradient(180deg,#6b4a78 0%,#a26a9a 28%,#d89bb8 52%,#e6aac4 76%,#cf8fb0 100%)"><div class="a" style="left:0;top:0;width:100%;height:62px;background:repeating-linear-gradient(180deg,rgba(255,255,255,.14) 0 2px,transparent 2px 14px)"></div><div class="a" style="left:10px;top:-20px;width:150px;height:170px;border-radius:50%;background:#efc7cf;opacity:.55;filter:blur(8px)"></div><div class="a" style="left:220px;top:-10px;width:110px;height:130px;border-radius:50%;background:#f0d6c8;opacity:.5;filter:blur(8px)"></div></div>
+<p class="a" data-el="s20.e01" style="left:19.8px;top:170.3px;width:372.9px;height:43px;font-size:14px;line-height:21.5px;color:#767d84;white-space:nowrap">Amber Glenn and Pasha Pashkov on ‘Dancing With the<br>Stars’Credit: abc</p>
+<div class="a" data-el="s20.e02" style="left:19.8px;top:224.4px;width:372.9px;height:25.9px;font-size:16.5px;line-height:25.9px;font-weight:700">Key Points</div>
+<div class="t" data-el="s20.e03" style="left:26.7px;top:264.4px;width:6.9px;height:25.1px;line-height:25.1px">• </div>
+<p class="t" data-el="s20.e04" style="left:38.5px;top:264.4px;width:354.3px;height:73.1px">Amber Glenn and Pasha Pashkov scored high on<br>“Yacht Rock Night” after she gave the pro dancer a<br>gnarly bloody nose in rehearsal.</p>
+<div class="t" data-el="s20.e05" style="left:26.7px;top:348.2px;width:6.9px;height:25.1px;line-height:25.1px">• </div>
+<p class="t" data-el="s20.e06" style="left:38.5px;top:348.2px;width:354.3px;height:73.1px">“The hardest part of the Foxtrot for me is that it’s a<br>more graceful dance,” Glenn admitted about the<br>dance they had planned.</p>
+<div class="t" data-el="s20.e07" style="left:26.7px;top:432.4px;width:6.9px;height:25.1px;line-height:25.1px">• </div>
+<p class="t" style="left:38.5px;top:432.4px"><span data-el="s20.e08">New episodes of </span><i data-el="s20.e09">Dancing With the Stars</i><span data-el="s20.e10"> season 35<br>air on Tuesdays at 8 p.m. ET/PT on ABC and Disney+.</span></p>
+<p class="t" style="top:492.4px"><span class="lk u" data-el="s20.e11"><span data-el="s20.e12">Amber Glenn</span></span><span data-el="s20.e13"> and </span><span class="lk" data-el="s20.e14"><span data-el="s20.e15">Pasha Pashkov</span></span><span data-el="s20.e16"> didn’t let a gnarly<br>bloody nose keep them from scoring high on “Yacht<br>Rock Night.”</span></p>
+<p class="t" style="top:576.4px"><span data-el="s20.e17">A rehearsal clip of the dancing duo shown during<br>Tuesday’s episode of </span><i class="lk" data-el="s20.e18"><span data-el="s20.e19">Dancing With the Stars</span></i> <span data-el="s20.e20">featured<br>the Olympic figure skater and pro trying out the Foxtrot.<br>“We need to create what you do on the ice out on the<br>floor,” Pashkov said.</span></p>
+<div class="a band" style="top:708.2px;height:130px"></div>
+<div class="a adl" data-el="s20.e23" style="top:723px">ADVERTISEMENT</div>
+<div class="a" data-el="s20.e27" style="left:56px;top:747.8px;width:300.6px;height:250.3px;background:#fff;border-radius:6px 6px 0 0;overflow:hidden"><div class="a" data-el="s20.e28" style="left:0;top:0;width:300.6px;height:175.6px;background:#8b97a5"><div class="a" style="left:0;top:0;width:299.8px;height:90.7px"><img class="a" src="assets/s20.e24.art.png" style="left:0;top:20.2px;width:299.8px;height:70.4px" alt=""></div><div class="a" style="left:0;top:0;width:299.8px;height:90.7px"><img class="a" src="assets/s20.e25.art.png" style="left:0;top:.1px;width:122.6px;height:90.5px" alt=""></div></div><div class="a tb" data-el="s20.e29">Test Ad</div><div class="a" data-el="s20.e26" style="left:285.3px;top:0;width:15.2px;height:13.7px;background:#f9fbfa"><svg viewBox="0 0 15 14" width="15.2" height="13.7"><path d="M4 2.5l7.5 4.5L4 11.5z" fill="none" stroke="#3488ea" stroke-width="1.8" stroke-linejoin="round"/></svg></div></div>
+<img class="bk" data-el="s20.e30" src="assets/s20.e30.png" alt="Back">
+</section>
+<section data-screen="s35">
+<div class="a ph" style="top:-91.6px"><svg viewBox="0 0 371 371"><ellipse cx="283" cy="205" rx="64" ry="125" fill="#4a2c1d"/><path d="M0 371V186q8-38 58-48l52-10 30 34 26-34 42 12q24 10 26 60l4 171z" fill="#1b1c1f"/><path d="M118 128h42l4 243h-36z" fill="#ece8e1"/><rect x="121" y="102" width="30" height="28" fill="#b3785b"/><ellipse cx="135" cy="50" rx="35" ry="23" fill="#5a4030"/><ellipse cx="135" cy="80" rx="32" ry="42" fill="#c78b6c"/><path d="M123 133l17 6 17-6v15l-17-6-17 6z" fill="#101012"/><path d="M200 371l4-120q10-38 46-42l30 40 26-42q36 6 48 50l17 44v70z" fill="#e3399c"/><path d="M262 172h36l10 48h-56z" fill="#c4886b"/><ellipse cx="280" cy="142" rx="28" ry="38" fill="#cc8e72"/><ellipse cx="243" cy="218" rx="16" ry="72" fill="#5b3726"/><ellipse cx="322" cy="225" rx="18" ry="78" fill="#5b3726"/><path d="M204 296h150v36H204z" fill="#b02a7c"/><rect x="252" y="300" width="44" height="28" rx="4" fill="none" stroke="#8f1f66" stroke-width="4"/></svg></div>
+<p class="t" style="top:293.9px"><span data-el="s35.e01">Originally appeared on </span><span class="lk u" data-el="s35.e02"><span data-el="s35.e03">E! Online</span></span></p>
+<p class="t" style="top:329.6px"><span class="b" data-el="s35.e04">Kristi Noem</span><span data-el="s35.e05"> is stepping into a new chapter.</span></p>
+<p class="t" data-el="s35.e08" style="top:365.3px;width:372.9px;height:121.1px"><span data-el="s35.e06">Six months after photos of her husband </span><span class="b" data-el="s35.e07">Bryon Noem</span><br><span class="lk" data-el="s35.e09"><span data-el="s35.e10">wearing women’s clothing and fake breasts</span></span><span data-el="s35.e11"> surfaced,<br>the former Department of Homeland Security head has<br>filed for divorce, according to court documents<br>reviewed by E! News.</span></p>
+<div class="a band" style="top:497.1px;height:303.5px"></div>
+<div class="a adl" data-el="s35.e15" style="top:512.4px">ADVERTISEMENT</div>
+<div class="a" style="left:56px;top:537.1px;width:300.9px;height:248.6px;background:#fff;box-shadow:inset 0 0 0 1px #dcdcdc;border-radius:0 0 5px 5px"></div>
+<div class="a te" data-el="s35.e18" style="top:537.1px"><div class="a tel">TE</div><div class="a tep"><svg viewBox="0 0 33 14.5" width="33" height="14.5"><path d="M5 2.5l8 4.75-8 4.75z" fill="none" stroke="#3488ea" stroke-width="1.8" stroke-linejoin="round"/><g fill="#5f6b7a"><circle cx="26" cy="3.5" r="1.3"/><circle cx="26" cy="7.25" r="1.3"/><circle cx="26" cy="11" r="1.3"/></g></svg></div><img class="a" src="assets/s35.e18.art.png" style="left:0;top:20.3px;width:300.9px;height:137.4px" alt=""><div class="a tb" data-el="s35.e27">Test Ad</div></div>
+<div class="a" style="left:56px;top:751px;width:300.9px;height:1px;background:#e3e3e3"></div>
+<div class="a" data-el="s35.e19" style="left:75.8px;top:709px;width:235.1px;height:25.9px"><div class="a" data-el="s35.e20" style="left:0;top:0;width:235.1px;height:25.9px;font:500 19.5px/25.9px var(--font-2);color:#333;white-space:nowrap">TE Connectivity Leads AI</div></div>
+<div class="a" data-el="s35.e21" style="left:75.8px;top:757px;width:126.1px;height:22.9px"><div class="a" data-el="s35.e22" style="left:0;top:0;width:126.1px;height:22.9px;font:17px/22.9px var(--font-2);color:#7a7a7a;white-space:nowrap">TE Connectivity</div></div>
+<div class="a" data-el="s35.e23" style="left:266.7px;top:757px;width:44.2px;height:22.9px"><div class="a" data-el="s35.e24" style="left:0;top:0;width:44.2px;height:22.9px;font:700 17.5px/22.9px var(--font-2);color:#4896fa;white-space:nowrap">Open</div></div>
+<div class="a" data-el="s35.e25" style="left:312.8px;top:757px;width:23.2px;height:24px"><svg viewBox="0 0 24 24" width="23.2" height="24"><path d="M9 5l7 7-7 7" fill="none" stroke="#4896fa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+<p class="t" data-el="s35.e12" style="top:811.4px;width:372.9px;height:73.1px">Kristi, 54, cited irreconcilable differences as the cause<br>for their breakup, per the docs, which were filed in<br>South Dakota Sept. 28.</p>
+<img class="bk" data-el="s35.e28" src="assets/s35.e28.png" alt="Back">
+</section>
+<section data-screen="s14">
+<div class="a" style="left:20px;top:-20px;width:370px;height:56.5px;border:1px solid #dde1e5;border-radius:8px"></div>
+<div class="a" style="left:32px;top:0;width:60px;height:24px;background:#f5f6f8;overflow:hidden"><div class="a" style="left:5px;top:0;width:50px;height:8px;border-radius:0 0 8px 8px;background:linear-gradient(90deg,#d5d9e0,#3d4f7c 35%,#2a3a62 65%,#d5d9e0)"></div><div class="a" style="left:15px;top:9px;font-size:11px;line-height:12px;font-weight:800;color:#b3121b">$2.36</div><div class="a" style="left:14px;top:20px;width:32px;height:2px;background:#c8ccd2"></div></div>
+<div class="a" data-el="s14.e08" style="left:101.7px;top:12.6px;width:16.8px;height:14.9px"><span class="a mt" data-el="s14.e09" style="left:0;top:-3.1px">Ad</span></div>
+<span class="a mt" data-el="s14.e07" style="left:120.8px;top:9.5px;width:3.8px;height:16px">·</span>
+<div class="a" data-el="s14.e05" style="left:127.6px;top:9.5px;width:33.9px;height:14.9px"><span class="a mt" data-el="s14.e06" style="left:0;top:0">TEMU</span></div>
+<svg class="a" data-el="s14.e10" style="left:350.5px;top:4.6px" width="20.2" height="20.2" viewBox="0 0 20 20" fill="#656e76"><circle cx="10" cy="3.4" r="1.9"/><circle cx="10" cy="9.8" r="1.9"/><circle cx="10" cy="15.7" r="1.9"/></svg>
+<div class="a ph" style="left:19.8px;top:54.2px;width:371.4px;height:371.4px;overflow:hidden;background:radial-gradient(55% 40% at 6% 80%,#3a3a25,rgba(40,40,26,.5) 50%,transparent 75%),radial-gradient(35% 25% at 96% 72%,#2b2d22,transparent 75%),linear-gradient(180deg,#07090e,#0e1116 55%,#1c1f18)">
+<i style="left:8px;top:108px;width:212px;height:264px;border-radius:70px 80px 0 0;background:linear-gradient(#1c1d21,#0e0f12)"></i>
+<i style="left:116px;top:96px;width:38px;height:34px;background:#b47758;border-radius:0 0 12px 12px"></i>
+<i style="left:106px;top:116px;width:64px;height:256px;background:#efece6;clip-path:polygon(0 0,100% 0,88% 100%,16% 100%)"></i>
+<i style="left:122px;top:128px;width:42px;height:22px;background:#0b0b0d;clip-path:polygon(0 0,50% 38%,100% 0,100% 100%,50% 62%,0 100%)"></i>
+<i style="left:94px;top:10px;width:68px;height:104px;border-radius:46% 46% 44% 44%;background:radial-gradient(circle at 50% 45%,#d7a07e,#b67a5a)"></i>
+<i style="left:96px;top:5px;width:64px;height:30px;border-radius:50% 50% 25% 25%;background:#6a4f3e"></i>
+<i style="left:192px;top:76px;width:128px;height:180px;border-radius:48% 48% 40% 40%;background:linear-gradient(#452a1c,#7b5438)"></i>
+<i style="left:184px;top:186px;width:188px;height:186px;border-radius:60px 30px 0 0;background:linear-gradient(135deg,#f443ad,#d81b8c 55%,#f04aa9)"></i>
+<i style="left:232px;top:180px;width:46px;height:58px;background:#cf9677;clip-path:polygon(0 0,100% 0,50% 100%)"></i>
+<i style="left:220px;top:100px;width:66px;height:92px;border-radius:46% 46% 50% 50%;background:radial-gradient(circle at 50% 45%,#e3b394,#c88d6f)"></i>
+<i style="left:196px;top:150px;width:26px;height:112px;border-radius:40%;background:#5c3a25"></i>
+<i style="left:290px;top:146px;width:32px;height:144px;border-radius:40%;background:#6a4630"></i>
+<i style="left:192px;top:292px;width:178px;height:38px;background:#a5176d;transform:rotate(5deg)"></i>
+</div>
+<img class="a" data-el="s14.e34" src="assets/s14.e34.png" alt="" style="left:8px;top:20.2px;width:32px;height:32px">
+<div class="a ln" style="top:442.3px"><span data-el="s14.e11">Originally appeared on </span><span class="lk" data-el="s14.e12"><span class="ul" data-el="s14.e13">E! Online</span></span></div>
+<div class="a ln" style="top:478.5px;height:17.9px;line-height:17.9px"><b data-el="s14.e14">Kristi Noem</b><span data-el="s14.e15"> is stepping into a new chapter.</span></div>
+<div class="a pa" data-el="s14.e19" style="top:511.2px"><span data-el="s14.e16">Six months after photos of her husband </span><span data-el="s14.e17"><b data-el="s14.e18">Bryon Noem</b></span> <span class="lk" data-el="s14.e20"><span data-el="s14.e21">wearing women’s clothing and fake breasts</span></span><span data-el="s14.e22"> surfaced, the former Department of Homeland Security head has filed for divorce, according to court documents reviewed by E! News.</span></div>
+<div class="a" style="left:0;top:642.4px;width:100%;height:196px;background:var(--bg-3)"></div>
+<div class="a" data-el="s14.e25" style="left:157.3px;top:658.3px;width:97.1px;height:16.8px;line-height:16.8px;font-size:12.5px;font-weight:500;text-align:center;color:#828c93;white-space:nowrap">ADVERTISEMENT</div>
+<div class="a" data-el="s14.e32" style="left:56px;top:683px;width:300.6px;height:250.3px;background:#fbfbfb;border:1px solid #e3e3e3;border-radius:8px"></div>
+<div class="a" data-el="s14.e31" style="left:219.4px;top:686.9px;width:128px;height:235.8px;background:var(--bg-4);overflow:hidden">
+<div class="a" style="left:34px;top:2px;width:46px;height:240px;border-radius:5px 5px 0 0;background:linear-gradient(90deg,#5a2825,#8a4841 40%,#6a3734 70%,#4a201e)"></div>
+<div class="a" style="left:38px;top:120px;writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;letter-spacing:1px;color:#c98f6b;white-space:nowrap">BETTER THAN SEX</div>
+<div class="a" style="left:70px;top:88px;width:8px;height:150px;background:#141414"></div>
+<div class="a" style="left:58px;top:6px;width:32px;height:86px;background:repeating-linear-gradient(0deg,#0c0c0c 0 2px,#2c2c2c 2px 3px);clip-path:polygon(35% 0,65% 0,100% 30%,80% 100%,20% 100%,0 30%)"></div>
+</div>
+<div class="a" data-el="s14.e33" style="left:178.7px;top:683px;width:54.5px;height:20.2px;line-height:20.2px;background:#444444;color:#fff;font-family:var(--font-2);font-size:15px;text-align:center;border-radius:3px;white-space:nowrap">Test Ad</div>
+<svg class="a" style="left:340px;top:686px" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#00aecd" stroke-width="1.6" stroke-linejoin="round"><path d="M2 1.5v9l8-4.5z"/><path d="M4.5 4.5v3l2.6-1.5z" fill="#00aecd"/></svg>
+<div class="a" data-el="s14.e28" style="left:71.6px;top:712.8px;width:129.1px;height:38.1px;line-height:38.1px;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:28px;color:#302c2d;white-space:nowrap;overflow:hidden">Too Faced</div>
+<div class="a" data-el="s14.e29" style="left:71.6px;top:752.8px;width:129.1px;height:72.8px;font-family:var(--font-2);font-size:17.5px;line-height:24.3px;color:#000011">The #1 prestige mascara in America.</div>
+<div class="a" data-el="s14.e30" style="left:71.6px;top:828.6px;width:129.1px;height:19.1px;display:flex;align-items:center;gap:3px;font-size:13px;color:#555;white-space:nowrap">4.4<span style="color:#de7921;letter-spacing:-1px">★★★★★</span>18,110</div>
+</section>
+<section data-screen="s64">
+<img class="a" data-el="s64.e18" data-edge="s64.back>s01" data-transition="back" src="assets/s64.e18.png" alt="" style="left:8px;top:20.2px;width:32px;height:32px">
+<div class="a" data-el="s64.e03" style="left:1.5px;top:69px;width:48px;height:31.2px;padding-left:18.8px;font-size:12px;line-height:16px;color:#6e7780">E!</div>
+<div class="a" data-el="s64.e04" style="left:20.2px;top:83.4px;width:371.1px;font-size:26px;line-height:31.2px;font-weight:700;color:var(--fg-3)">Kristi Noem Files for Divorce From Bryon Noem After Photo Scandal</div>
+<div class="a" data-el="s64.e05" style="left:20.2px;top:177.5px;width:97.1px;height:36.6px;padding-top:14px;font-size:14.5px;line-height:20px;color:var(--fg-3);white-space:nowrap">Sasha Wayman</div>
+<div class="a" data-el="s64.e06" style="left:20.2px;top:214.1px;width:183.2px;height:14.5px;font-size:12.5px;line-height:14.5px;color:#6e7780;white-space:nowrap">Updated Sep. 29, 2026 1:31 PM PT</div>
+<img class="a" src="assets/s64.e01.art.png" alt="" style="left:0;top:228.6px;width:411.4px;height:403.7px">
+<div class="a ln" style="top:632.4px"><span data-el="s64.e07">Originally appeared on </span><span class="lk" data-el="s64.e08"><span class="ul" data-el="s64.e09">E! Online</span></span></div>
+<div class="a ln" style="top:668.6px;height:17.9px;line-height:17.9px"><b data-el="s64.e10">Kristi Noem</b><span data-el="s64.e11"> is stepping into a new chapter.</span></div>
+<div class="a pa" data-el="s64.e14" style="top:701.3px"><span data-el="s64.e12">Six months after photos of her husband </span><b data-el="s64.e13">Bryon Noem</b> <span class="lk" data-el="s64.e15"><span data-el="s64.e16">wearing women’s clothing and fake breasts</span></span><span data-el="s64.e17"> surfaced, the former Department of Homeland Security head has filed for divorce, according to court documents reviewed by E! News.</span></div>
+<div class="a" style="left:0;top:782.6px;width:411.4px;height:56px;background:var(--bg-1);border-top:1px solid #e1e4e8"></div>
+<img class="a" data-el="s64.e22" src="assets/s64.e22.png" alt="" style="left:20.2px;top:800.4px;width:24px;height:24px">
+<img class="a ic" data-el="s64.e23" src="assets/s64.e23.png" alt="" style="left:234.7px">
+<img class="a ic" src="assets/s64.e24.png" alt="" style="left:278.9px">
+<img class="a ic" src="assets/s64.e25.png" alt="" style="left:323.1px">
+<img class="a ic" src="assets/s64.e26.png" alt="" style="left:367.2px">
+</section>
+<section data-screen="s15">
+<svg class="a" style="left:40px;top:18.7px" width="116" height="41" viewBox="0 0 116 41" fill="var(--fg-4)" fill-rule="evenodd"><path d="M0 40.3L13.5 0h17L44 40.3H30.2L28 33H16l-2.2 7.3ZM17.8 24.5h8.4L22 10.5Z"/><path d="M44.4 20.2a19.8 20.1 0 1 0 39.6 0a19.8 20.1 0 1 0-39.6 0ZM57.2 20.2a7 7.3 0 1 0 14 0a7 7.3 0 1 0-14 0Z"/><path d="M85 0h14.2v28.2h16.3v12.1H85Z"/></svg>
+<div class="a" style="left:40px;top:95.3px;font-size:29px;line-height:36px;font-weight:700;color:var(--fg-1);white-space:nowrap">Sign in to AOL</div>
+<div class="a" style="left:40px;top:162px;font-size:16px;line-height:22px;font-weight:600;color:var(--fg-3);white-space:nowrap">Email or phone number</div>
+<div class="a" data-el="s15.e01" style="left:40px;top:191.3px;width:331.4px;height:58.3px;border:1px solid #7b848c;border-radius:4px;background:var(--bg-1);padding:0 12px;font-size:16px;line-height:56px;color:var(--fg-1)"></div>
+<div class="a gl" data-el="s15.e02" style="left:40px;top:268.5px">Forgot username</div>
+<div class="a" data-el="s15.e03" data-edge="s15.e03>s15" data-transition="push" style="left:40px;top:326px;width:331.4px;height:60px;background:#0d66ff;border-radius:4px;color:#fff;font-size:18.5px;font-weight:700;display:flex;align-items:center;justify-content:center">Next</div>
+<div class="a hr" style="left:40px"></div>
+<div class="a" style="left:185.8px;top:412.3px;width:40px;line-height:21px;font-size:16px;font-weight:600;text-align:center;color:#5b636a">or</div>
+<div class="a hr" style="left:223.4px"></div>
+<div class="a" style="left:105.7px;top:477.6px;width:200px;line-height:24px;font-size:18.5px;font-weight:700;text-align:center;color:#0d66ff;white-space:nowrap">Create account</div>
+<div class="a" style="left:0;top:799.2px;width:411.4px;display:flex;justify-content:center;gap:19px"><span class="gl" data-el="s15.e05">Help</span><span class="gl">Terms</span><span class="gl">Privacy</span></div>
+</section>
+<section data-screen="s17">
+<img class="a" data-el="s17.e02" src="assets/s17.e02.png" alt="" style="left:115.8px;top:229.3px;width:180.2px;height:180.2px">
+<div class="a" data-el="s17.e03" style="left:20.2px;top:417.5px;width:371.1px;height:24.8px;line-height:24.8px;font-size:18px;font-weight:600;text-align:center;color:var(--fg-3);white-space:nowrap">There isn't any spending activity yet</div>
+<div class="a" data-el="s17.e04" style="left:20.2px;top:450.3px;width:371.1px;height:19.1px;line-height:19.1px;font-size:15px;text-align:center;color:var(--fg-3);white-space:nowrap">View transactions based on your inbox here.</div>
+<div class="a" data-chrome="tabbar" style="left:0;top:718.5px;width:411.4px;height:119.7px;background:var(--bg-1)">
+<svg class="a" style="left:91.4px;top:71px" width="22" height="18" viewBox="0 0 22 18" fill="none" stroke="#6e7780" stroke-width="2.2"><rect x="1.1" y="1.1" width="19.8" height="15.8" rx="2"/><path d="M1.5 2l9.5 7.5L20.5 2"/></svg>
+<svg class="a" style="left:297px;top:69.5px" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="#6e7780" stroke-width="2.2" stroke-linejoin="round"><path d="M2 9.5L11 2l9 7.5v11h-6v-7H8v7H2Z"/></svg>
+<img class="a" data-el="s17.e05" src="assets/s17.e05.png" alt="" style="left:0;top:0;width:411.4px;height:88px">
+<div class="a tl" data-el="s17.e08" style="left:90.7px">Inbox</div>
+<div class="a tl" data-el="s17.e10" style="left:295.2px">Home</div>
+</div>
+</section>
+<section data-screen="s21">
+<div class="a hero"></div>
+<div class="a cap" data-el="s21.e01">Amber Glenn and Pasha Pashkov on ‘Dancing With the <br>Stars’Credit: abc</div>
+<div class="a kp" data-el="s21.e02">Key Points</div>
+<div class="a t dot" data-el="s21.e03" style="top:123.8px">• </div>
+<p class="a t bl" data-el="s21.e04" style="top:123.8px">Amber Glenn and Pasha Pashkov scored high on <br>“Yacht Rock Night” after she gave the pro dancer a <br>gnarly bloody nose in rehearsal.</p>
+<div class="a t dot" data-el="s21.e05" style="top:207.6px">• </div>
+<p class="a t bl" data-el="s21.e06" style="top:207.6px">“The hardest part of the Foxtrot for me is that it’s a <br>more graceful dance,” Glenn admitted about the <br>dance they had planned.</p>
+<div class="a t dot" data-el="s21.e07" style="top:291.8px">• </div>
+<p class="a t bl" style="top:291.8px"><span data-el="s21.e08">New episodes of </span><i data-el="s21.e09">Dancing With the Stars</i><span data-el="s21.e10"> season 35 <br>air on Tuesdays at 8 p.m. ET/PT on ABC and Disney+.</span></p>
+<p class="a t pp" style="top:351.5px"><span class="lk u" data-el="s21.e11"><span data-el="s21.e12">Amber Glenn</span></span><span data-el="s21.e13"> and </span><span class="lk" data-el="s21.e14"><span data-el="s21.e15">Pasha Pashkov</span></span><span data-el="s21.e16"> didn’t let a gnarly <br>bloody nose keep them from scoring high on “Yacht <br>Rock Night.”</span></p>
+<p class="a t pp" style="top:435.4px"><span data-el="s21.e17">A rehearsal clip of the dancing duo shown during <br>Tuesday’s episode of </span><i class="lk" data-el="s21.e18"><span data-el="s21.e19">Dancing With the Stars</span></i> <span data-el="s21.e20">featured <br>the Olympic figure skater and pro trying out the Foxtrot. <br>“We need to create what you do on the ice out on the <br>floor,” Pashkov said.</span></p>
+<div class="a band" style="top:567.6px">
+<div class="a adl" data-el="s21.e23">ADVERTISEMENT</div>
+<div class="a ad" data-el="s21.e27">
+<div class="a aim" data-el="s21.e28" role="img" aria-label="Antioch This Is The Cost To Cover 150 Feet Of Gutters In 1 Day"><i class="gr"></i><i class="ld"></i><i class="sh"></i><i class="ar a1"></i><i class="ar a2"></i><i class="vs"></i><i class="cp"></i><i class="gu"></i><i class="gv"></i></div>
+<div class="a ta" data-el="s21.e32">Test Ad</div>
+<svg class="a pv" data-el="s21.e26" viewBox="0 0 15 14"><path d="M3.5 2v10l8-5z" fill="none" stroke="#3488ea" stroke-width="1.6" stroke-linejoin="round"/></svg>
+<div class="a lg" data-el="s21.e29">HOMEBUDDY.COM</div>
+<div class="a dm" data-el="s21.e30">Homebuddy.com</div>
+<div class="a hl" data-el="s21.e31">Antioch This Is The Cost To Cover 150 <br>Feet Of Gutters In 1 Day</div>
+</div>
+</div>
+<img class="a bk" data-el="s21.e33" src="assets/s21.e33.png" alt="Back">
+</section>
+<section data-screen="s22">
+<div class="a t dot" style="top:-4.6px">• </div>
+<p class="a t bl" style="top:-4.6px">Amber Glenn and Pasha Pashkov scored high on <br>“Yacht Rock Night” after she gave the pro dancer a <br>gnarly bloody nose in rehearsal.</p>
+<div class="a t dot" data-el="s22.e01" style="top:79.2px">• </div>
+<p class="a t bl" data-el="s22.e02" style="top:79.2px">“The hardest part of the Foxtrot for me is that it’s a <br>more graceful dance,” Glenn admitted about the <br>dance they had planned.</p>
+<div class="a t dot" data-el="s22.e03" style="top:163.4px">• </div>
+<p class="a t bl" style="top:163.4px"><span data-el="s22.e04">New episodes of </span><i data-el="s22.e05">Dancing With the Stars</i><span data-el="s22.e06"> season 35 <br>air on Tuesdays at 8 p.m. ET/PT on ABC and Disney+.</span></p>
+<p class="a t pp" style="top:223.1px"><span class="lk u" data-el="s22.e07"><span data-el="s22.e08">Amber Glenn</span></span><span data-el="s22.e09"> and </span><span class="lk" data-el="s22.e10"><span data-el="s22.e11">Pasha Pashkov</span></span><span data-el="s22.e12"> didn’t let a gnarly <br>bloody nose keep them from scoring high on “Yacht <br>Rock Night.”</span></p>
+<p class="a t pp" style="top:307px"><span data-el="s22.e13">A rehearsal clip of the dancing duo shown during <br>Tuesday’s episode of </span><i class="lk" data-el="s22.e14"><span data-el="s22.e15">Dancing With the Stars</span></i> <span data-el="s22.e16">featured <br>the Olympic figure skater and pro trying out the Foxtrot. <br>“We need to create what you do on the ice out on the <br>floor,” Pashkov said.</span></p>
+<div class="a band" style="top:439.2px">
+<div class="a adl" data-el="s22.e21">ADVERTISEMENT</div>
+<div class="a ad" data-el="s22.e25">
+<div class="a aim" data-el="s22.e26" role="img" aria-label="Antioch This Is The Cost To Cover 150 Feet Of Gutters In 1 Day"><i class="gr"></i><i class="ld"></i><i class="sh"></i><i class="ar a1"></i><i class="ar a2"></i><i class="vs"></i><i class="cp"></i><i class="gu"></i><i class="gv"></i></div>
+<div class="a ta" data-el="s22.e30">Test Ad</div>
+<svg class="a pv" data-el="s22.e24" viewBox="0 0 15 14"><path d="M3.5 2v10l8-5z" fill="none" stroke="#3488ea" stroke-width="1.6" stroke-linejoin="round"/></svg>
+<div class="a lg" data-el="s22.e27">HOMEBUDDY.COM</div>
+<div class="a dm" data-el="s22.e28">Homebuddy.com</div>
+<div class="a hl" data-el="s22.e29">Antioch This Is The Cost To Cover 150 <br>Feet Of Gutters In 1 Day</div>
+</div>
+</div>
+<p class="a t pp" data-el="s22.e17" style="top:753.4px">Glenn found their song choice,“Hold the Line” by Toto, <br>especially relevant as a figure skater. However, that <br>didn’t mean dancing to it would be easy.</p>
+<p class="a t pp" data-el="s22.e18" style="top:837.3px">“The hardest part of the Foxtrot for me is that it’s a more <br>graceful dance,” Glenn admitted of the number. “So I <br>need to make sure I don’t push, like I do on the ice.”</p>
+<img class="a bk" data-el="s22.e31" src="assets/s22.e31.png" alt="Back">
+</section>
+<section data-screen="s23">
+<div class="a t dot" style="top:-66.1px">• </div>
+<p class="a t bl" style="top:-66.1px">“The hardest part of the Foxtrot for me is that it’s a <br>more graceful dance,” Glenn admitted about the <br>dance they had planned.</p>
+<div class="a t dot" style="top:18.1px">• </div>
+<p class="a t bl" style="top:18.1px">New episodes of <i>Dancing With the Stars</i> season 35 <br>air on Tuesdays at 8 p.m. ET/PT on ABC and Disney+.</p>
+<p class="a t pp" style="top:77.8px"><span class="lk u">Amber Glenn</span> and <span class="lk">Pasha Pashkov</span> didn’t let a gnarly <br>bloody nose keep them from scoring high on “Yacht <br>Rock Night.”</p>
+<span class="a" data-el="s23.e02" style="left:40.8px;top:65.9px;width:48px;height:48px;z-index:1"></span>
+<p class="a t pp" style="top:161.7px">A rehearsal clip of the dancing duo shown during <br>Tuesday’s episode of <i class="lk">Dancing With the Stars</i> featured <br>the Olympic figure skater and pro trying out the Foxtrot. <br>“We need to create what you do on the ice out on the <br>floor,” Pashkov said.</p>
+<div class="a band" style="top:293.9px">
+<div class="a adl">ADVERTISEMENT</div>
+<div class="a ad">
+<div class="a aim"><i class="gr"></i><i class="ld"></i><i class="sh"></i><i class="ar a1"></i><i class="ar a2"></i><i class="vs"></i><i class="cp"></i><i class="gu"></i><i class="gv"></i></div>
+<div class="a ta">Test Ad</div>
+<svg class="a pv" viewBox="0 0 15 14"><path d="M3.5 2v10l8-5z" fill="none" stroke="#3488ea" stroke-width="1.6" stroke-linejoin="round"/></svg>
+<div class="a lg">HOMEBUDDY.COM</div>
+<div class="a dm">Homebuddy.com</div>
+<div class="a hl">Antioch This Is The Cost To Cover 150 <br>Feet Of Gutters In 1 Day</div>
+</div>
+</div>
+<p class="a t pp" style="top:608.1px">Glenn found their song choice,“Hold the Line” by Toto, <br>especially relevant as a figure skater. However, that <br>didn’t mean dancing to it would be easy.</p>
+<p class="a t pp" style="top:692px">“The hardest part of the Foxtrot for me is that it’s a more <br>graceful dance,” Glenn admitted of the number. “So I <br>need to make sure I don’t push, like I do on the ice.”</p>
+<div class="a nx"><div class="a nxl">Next in More For You:</div><div class="a nxt">Kristi Noem Files for Divorce From Bryon Noem After Photo <br>Scandal</div><svg class="a nxa" viewBox="0 0 24 24"><path d="M4 12h15M13 5.5l6.5 6.5-6.5 6.5" fill="none" stroke="#1d2228" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+<div class="a bb" data-el="s23.e01"><div class="bc"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M10 2.5L4.5 8l5.5 5.5" fill="none" stroke="#1d2228" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+</section>
+<section data-screen="s24">
+<p class="a t pp" style="top:13.5px"><span data-el="s24.e03">A rehearsal clip of the dancing duo shown during <br>Tuesday’s episode of </span><i class="lk" data-el="s24.e04"><span data-el="s24.e05">Dancing With the Stars</span></i> <span data-el="s24.e06">featured <br>the Olympic figure skater and pro trying out the Foxtrot. <br>“We need to create what you do on the ice out on the <br>floor,” Pashkov said.</span></p>
+<div class="a band" style="top:145.5px">
+<div class="a adl" data-el="s24.e12">ADVERTISEMENT</div>
+<div class="a ad" data-el="s24.e16">
+<div class="a aim" data-el="s24.e17" role="img" aria-label="Antioch This Is The Cost To Cover 150 Feet Of Gutters In 1 Day"><i class="gr"></i><i class="ld"></i><i class="sh"></i><i class="ar a1"></i><i class="ar a2"></i><i class="vs"></i><i class="cp"></i><i class="gu"></i><i class="gv"></i></div>
+<div class="a ta" data-el="s24.e21">Test Ad</div>
+<svg class="a pv" data-el="s24.e15" viewBox="0 0 15 14"><path d="M3.5 2v10l8-5z" fill="none" stroke="#3488ea" stroke-width="1.6" stroke-linejoin="round"/></svg>
+<div class="a lg" data-el="s24.e18">HOMEBUDDY.COM</div>
+<div class="a dm" data-el="s24.e19">Homebuddy.com</div>
+<div class="a hl" data-el="s24.e20">Antioch This Is The Cost To Cover 150 <br>Feet Of Gutters In 1 Day</div>
+</div>
+</div>
+<p class="a t pp" data-el="s24.e07" style="top:459.8px">Glenn found their song choice,“Hold the Line” by Toto, <br>especially relevant as a figure skater. However, that <br>didn’t mean dancing to it would be easy.</p>
+<p class="a t pp" data-el="s24.e08" style="top:543.6px">“The hardest part of the Foxtrot for me is that it’s a more <br>graceful dance,” Glenn admitted of the number. “So I <br>need to make sure I don’t push, like I do on the ice.”</p>
+<div class="a ph" data-el="s24.e09" role="img" aria-label="Amber Glenn on ‘Dancing With the Stars’Credit: abc"><i class="pl"></i><i class="hr"></i><i class="fc"></i><i class="ey" style="left:192px"></i><i class="ey" style="left:230px"></i><i class="wm">#DWTS</i></div>
+<div class="a nx"><div class="a nxl" data-el="s24.e24">Next in More For You:</div><div class="a nxt" data-el="s24.e25">Kristi Noem Files for Divorce From Bryon Noem After Photo <br>Scandal</div><img class="a nxa" data-el="s24.e26" src="assets/s24.e26.png" alt="Right Arrow"></div>
+<img class="a bk" data-el="s24.e22" src="assets/s24.e22.png" alt="Back">
+</section>
+<section data-screen="s25">
+<div class="adbg" style="height:300.4px"></div>
+<div data-el="s25.e10" class="adl">ADVERTISEMENT</div>
+<div data-el="s25.e14" class="a" style="left:56px;top:36.2px;width:300.6px;height:250.3px">
+<div data-el="s25.e15" class="ai"><i class="g1"></i><i class="g3"></i><i class="g4"></i><i class="g5"></i><i class="g2"></i><i class="g6"></i><i class="g7"></i><i class="g8"></i><i class="g9"></i><i class="g10"></i></div>
+<div data-el="s25.e19" class="ta">Test Ad</div>
+<div data-el="s25.e13" class="pv"><svg viewBox="0 0 15 14"><path d="M4.5 2.5v9l7.5-4.5z" fill="none" stroke="#3488ea" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+<div data-el="s25.e16" class="lg" style="left:1.9px;top:180.6px"><span>HOMEBUDDY.COM</span></div>
+<div data-el="s25.e17" class="src" style="left:27.8px;top:180.6px">Homebuddy.com</div>
+<div data-el="s25.e18" class="hd" style="left:3.8px;top:206.5px">Antioch This Is The Cost To Cover 150 <br>Feet Of Gutters In 1 Day</div>
+</div>
+<p data-el="s25.e03" class="p" style="top:310.9px">Glenn found their song choice,“Hold the Line” by Toto, <br>especially relevant as a figure skater. However, that <br>didn’t mean dancing to it would be easy.</p>
+<p data-el="s25.e04" class="p" style="top:394.7px">“The hardest part of the Foxtrot for me is that it’s a more <br>graceful dance,” Glenn admitted of the number. “So I <br>need to make sure I don’t push, like I do on the ice.”</p>
+<div data-el="s25.e05" class="ph" style="top:478.9px"><i class="q1"></i><i class="q2"></i><i class="q3"></i><i class="q4"></i><i class="q5"></i><i class="q6"></i><i class="q7"></i><i class="q8"></i><i class="q9"></i><i class="q10"></i><i class="q11"></i></div>
+<p data-el="s25.e06" class="cap" style="top:735.6px;color:var(--fg-1)">Amber Glenn on ‘Dancing With the Stars’Credit: abc</p>
+<p data-el="s25.e07" class="p" style="top:769.9px;color:#5e6364">While spinning during a rehearsal, Glenn’s arm flew <br>forcefully into Pashkov’s face, giving him a bloody nose. <br>Glenn apologized profusely in the moment, but during <br>a confessional became emotional.</p>
+<img data-el="s25.e20" class="bk" src="assets/s25.e20.png" alt="Back">
+<div class="nb"><div data-el="s25.e22" class="nx">Next in More For You:</div><div data-el="s25.e23" class="kn">Kristi Noem Files for Divorce From Bryon Noem After Photo <br>Scandal</div><img data-el="s25.e24" class="ar" src="assets/s25.e24.png" alt="Right Arrow"></div>
+</section>
+<section data-screen="s26">
+<div class="adbg" style="height:152.9px"></div>
+<img class="a" src="assets/s26.e01.art.png" alt="" style="left:40px;top:0;width:371.4px;height:69.3px">
+<div data-el="s26.e14" class="lg" style="left:57.9px;top:69.3px"><span>HOMEBUDDY.COM</span></div>
+<div data-el="s26.e15" class="src" style="left:83.8px;top:69.3px">Homebuddy.com</div>
+<div data-el="s26.e16" class="hd" style="left:59.8px;top:95.2px">Antioch This Is The Cost To Cover 150 <br>Feet Of Gutters In 1 Day</div>
+<p data-el="s26.e03" class="p" style="top:163.4px">Glenn found their song choice,“Hold the Line” by Toto, <br>especially relevant as a figure skater. However, that <br>didn’t mean dancing to it would be easy.</p>
+<p data-el="s26.e04" class="p" style="top:247.2px">“The hardest part of the Foxtrot for me is that it’s a more <br>graceful dance,” Glenn admitted of the number. “So I <br>need to make sure I don’t push, like I do on the ice.”</p>
+<div data-el="s26.e05" class="ph" style="top:331.4px"><i class="q1"></i><i class="q2"></i><i class="q3"></i><i class="q4"></i><i class="q5"></i><i class="q6"></i><i class="q7"></i><i class="q8"></i><i class="q9"></i><i class="q10"></i><i class="q11"></i></div>
+<p data-el="s26.e06" class="cap" style="top:588.2px">Amber Glenn on ‘Dancing With the Stars’Credit: abc</p>
+<p data-el="s26.e07" class="p" style="top:622.5px">While spinning during a rehearsal, Glenn’s arm flew <br>forcefully into Pashkov’s face, giving him a bloody nose. <br>Glenn apologized profusely in the moment, but during <br>a confessional became emotional.</p>
+<p class="p" style="top:730.3px">The paramedics came to check out the dancing pro, <br>who said he felt a little nauseous and light-headed after <br>getting hit.</p>
+<p data-el="s26.e09" class="p" style="top:814.5px;color:#646464">“I had never been the cause of physical pain like that <br>before. And I want to be cautious.” Glenn said in her <br>confessional, choking back tears. “I don’t know how to <br>deal right now. I just want to wrap him in bubble wrap <br>and send him on his way.”</p>
+<img data-el="s26.e17" class="bk" src="assets/s26.e17.png" alt="Back">
+<div class="nb"><div data-el="s26.e19" class="nx">Next in More For You:</div><div data-el="s26.e20" class="kn">Kristi Noem Files for Divorce From Bryon Noem After Photo <br>Scandal</div><img data-el="s26.e21" class="ar" src="assets/s26.e21.png" alt="Right Arrow"></div>
+</section>
+<section data-screen="s27">
+<div class="adbg" style="height:5.3px"></div>
+<p data-el="s27.e03" class="p" style="top:15.2px">Glenn found their song choice,“Hold the Line” by Toto, <br>especially relevant as a figure skater. However, that <br>didn’t mean dancing to it would be easy.</p>
+<p data-el="s27.e04" class="p" style="top:99px">“The hardest part of the Foxtrot for me is that it’s a more <br>graceful dance,” Glenn admitted of the number. “So I <br>need to make sure I don’t push, like I do on the ice.”</p>
+<div data-el="s27.e05" class="ph" style="top:183.2px"><i class="q1"></i><i class="q2"></i><i class="q3"></i><i class="q4"></i><i class="q5"></i><i class="q6"></i><i class="q7"></i><i class="q8"></i><i class="q9"></i><i class="q10"></i><i class="q11"></i></div>
+<p data-el="s27.e06" class="cap" style="top:440px">Amber Glenn on ‘Dancing With the Stars’Credit: abc</p>
+<p data-el="s27.e07" class="p" style="top:474.3px">While spinning during a rehearsal, Glenn’s arm flew <br>forcefully into Pashkov’s face, giving him a bloody nose. <br>Glenn apologized profusely in the moment, but during <br>a confessional became emotional.</p>
+<p class="p" style="top:582.1px">The paramedics came to check out the dancing pro, <br>who said he felt a little nauseous and light-headed after <br>getting hit.</p>
+<p data-el="s27.e09" class="p" style="top:666.3px">“I had never been the cause of physical pain like that <br>before. And I want to be cautious.” Glenn said in her <br>confessional, choking back tears. “I don’t know how to <br>deal right now. I just want to wrap him in bubble wrap <br>and send him on his way.”</p>
+<p class="p" style="top:798.1px;color:#646464">When they hit the dance floor for show night, however, <br>they wowed the judges with their Foxtrot, showing no <br>signs of trouble after the brutal rehearsal blow.</p>
+<img data-el="s27.e13" class="bk" src="assets/s27.e13.png" alt="Back">
+<div class="nb"><div data-el="s27.e15" class="nx">Next in More For You:</div><div data-el="s27.e16" class="kn">Kristi Noem Files for Divorce From Bryon Noem After Photo <br>Scandal</div><img data-el="s27.e17" class="ar" src="assets/s27.e17.png" alt="Right Arrow"></div>
+</section>
+<section data-screen="s28">
+<p class="p" style="top:-11.8px">graceful dance,” Glenn admitted of the number. “So I <br>need to make sure I don’t push, like I do on the ice.”</p>
+<div data-el="s28.e03" class="ph" style="top:48px"><i class="q1"></i><i class="q2"></i><i class="q3"></i><i class="q4"></i><i class="q5"></i><i class="q6"></i><i class="q7"></i><i class="q8"></i><i class="q9"></i><i class="q10"></i><i class="q11"></i></div>
+<p data-el="s28.e04" class="cap" style="top:304.8px">Amber Glenn on ‘Dancing With the Stars’Credit: abc</p>
+<p data-el="s28.e05" class="p" style="top:339.1px">While spinning during a rehearsal, Glenn’s arm flew <br>forcefully into Pashkov’s face, giving him a bloody nose. <br>Glenn apologized profusely in the moment, but during <br>a confessional became emotional.</p>
+<p data-el="s28.e06" class="p" style="top:446.9px">The paramedics came to check out the dancing pro, <br>who said he felt a little nauseous and light-headed after <br>getting hit.</p>
+<p data-el="s28.e07" class="p" style="top:531px">“I had never been the cause of physical pain like that <br>before. And I want to be cautious.” Glenn said in her <br>confessional, choking back tears. “I don’t know how to <br>deal right now. I just want to wrap him in bubble wrap <br>and send him on his way.”</p>
+<p data-el="s28.e08" class="p" style="top:662.9px">When they hit the dance floor for show night, however, <br>they wowed the judges with their Foxtrot, showing no <br>signs of trouble after the brutal rehearsal blow.</p>
+<p data-el="s28.e09" class="p" style="top:747px;white-space:normal">Derek Hough praised the “ice queen,” pointing out how she glided on the dance floor like she figure skates. Bruno Tonioli pointed out the “lilt and sway” that the dancers perfected.</p>
+<img data-el="s28.e10" class="bk" src="assets/s28.e10.png" alt="Back">
+<div class="nb"><div data-el="s28.e12" class="nx">Next in More For You:</div><div data-el="s28.e13" class="kn">Kristi Noem Files for Divorce From Bryon Noem After Photo <br>Scandal</div><img data-el="s28.e14" class="ar" src="assets/s28.e14.png" alt="Right Arrow"></div>
+</section>
+<section data-screen="s29">
+<div class="ph" style="width:20.2px;height:160px;background:linear-gradient(#3e4436,#4d5244 62%,#7c7b76 70%,#8a8985)"></div>
+<img src="assets/s29.e01.art.png" alt="" style="position:absolute;left:40px;top:0;width:371.4px;height:168.3px">
+<div data-el="s29.e03" class="p cap" style="top:168.4px">Amber Glenn on ‘Dancing With the Stars’Credit: abc</div>
+<div data-el="s29.e04" class="p" style="top:202.7px;height:97.9px">While spinning during a rehearsal, Glenn’s arm flew <br>forcefully into Pashkov’s face, giving him a bloody nose. <br>Glenn apologized profusely in the moment, but during <br>a confessional became emotional.</div>
+<div data-el="s29.e05" class="p" style="top:310.5px;height:73.1px">The paramedics came to check out the dancing pro, <br>who said he felt a little nauseous and light-headed after <br>getting hit.</div>
+<div data-el="s29.e06" class="p" style="top:394.7px;height:121.9px">“I had never been the cause of physical pain like that <br>before. And I want to be cautious.” Glenn said in her <br>confessional, choking back tears. “I don’t know how to <br>deal right now. I just want to wrap him in bubble wrap <br>and send him on his way.”</div>
+<div data-el="s29.e07" class="p" style="top:526.5px;height:73.1px">When they hit the dance floor for show night, however, <br>they wowed the judges with their Foxtrot, showing no <br>signs of trouble after the brutal rehearsal blow.</div>
+<div data-el="s29.e08" class="p" style="top:610.7px;height:97.9px">Derek Hough praised the “ice queen,” pointing out how <br>she glided on the dance floor like she figure skates. <br>Bruno Tonioli pointed out the “lilt and sway” that the <br>dancers perfected.</div>
+<div class="p pl" style="top:718.5px;height:73.1px"><span data-el="s29.e09">Get your daily dose of entertainment news, celebrity <br>updates, and what to watch with our </span><span data-el="s29.e11"><span data-el="s29.e12" class="lk">EW Dispatch <br>newsletter</span></span><span data-el="s29.e13"> </span><span data-el="s29.e14">.</span></div>
+<div class="p" style="top:802.7px;height:97.9px">Carrie Ann Inaba called out the growth that Glenn <br>demonstrated since starting on the reality show. <br>“Watching you from week 1 to where you are now, this <br>show is about growth. I’m seeing true growth,” she said.</div>
+<img data-el="s29.e16" class="bk" src="assets/s29.e16.png" alt="Back">
+<div class="nx"><div data-el="s29.e18" class="h">Next in More For You:</div><div data-el="s29.e19" class="t">Kristi Noem Files for Divorce From Bryon Noem After Photo <br>Scandal</div><img data-el="s29.e20" src="assets/s29.e20.png" alt="Right Arrow"></div>
+</section>
+<section data-screen="s30">
+<div class="ph" style="width:371.5px;height:25.2px;background:linear-gradient(90deg,#7d7c78,#8e8d89 45%,#858480)"></div>
+<div style="position:absolute;left:185px;top:0;width:9px;height:15px;border:2px solid #262626;border-top:0;border-radius:0 0 6px 6px"></div>
+<div data-el="s30.e03" class="p cap" style="top:33.5px">Amber Glenn on ‘Dancing With the Stars’Credit: abc</div>
+<div data-el="s30.e04" class="p" style="top:67.8px;height:97.9px">While spinning during a rehearsal, Glenn’s arm flew <br>forcefully into Pashkov’s face, giving him a bloody nose. <br>Glenn apologized profusely in the moment, but during <br>a confessional became emotional.</div>
+<div data-el="s30.e05" class="p" style="top:175.6px;height:73.1px">The paramedics came to check out the dancing pro, <br>who said he felt a little nauseous and light-headed after <br>getting hit.</div>
+<div data-el="s30.e06" class="p" style="top:259.8px;height:121.9px">“I had never been the cause of physical pain like that <br>before. And I want to be cautious.” Glenn said in her <br>confessional, choking back tears. “I don’t know how to <br>deal right now. I just want to wrap him in bubble wrap <br>and send him on his way.”</div>
+<div data-el="s30.e07" class="p" style="top:391.6px;height:73.1px">When they hit the dance floor for show night, however, <br>they wowed the judges with their Foxtrot, showing no <br>signs of trouble after the brutal rehearsal blow.</div>
+<div data-el="s30.e08" class="p" style="top:475.8px;height:97.9px">Derek Hough praised the “ice queen,” pointing out how <br>she glided on the dance floor like she figure skates. <br>Bruno Tonioli pointed out the “lilt and sway” that the <br>dancers perfected.</div>
+<div class="p pl" style="top:583.6px;height:73.1px"><span data-el="s30.e09">Get your daily dose of entertainment news, celebrity <br>updates, and what to watch with our </span><span data-el="s30.e11"><span data-el="s30.e12" class="lk">EW Dispatch <br>newsletter</span></span><span data-el="s30.e13"> </span><span data-el="s30.e14">.</span></div>
+<div class="p" style="top:667.8px;height:97.9px">Carrie Ann Inaba called out the growth that Glenn <br>demonstrated since starting on the reality show. <br>“Watching you from week 1 to where you are now, this <br>show is about growth. I’m seeing true growth,” she said.</div>
+<div class="p" style="top:775.6px;height:73.1px">She noted that Glenn’s goal is to be “softer while <br>maintaining the strength,” calling her “poetic and <br>“mesmerizing.”</div>
+<img data-el="s30.e17" class="bk" src="assets/s30.e17.png" alt="Back">
+<div class="nx"><div data-el="s30.e19" class="h">Next in More For You:</div><div data-el="s30.e20" class="t">Kristi Noem Files for Divorce From Bryon Noem After Photo <br>Scandal</div><img data-el="s30.e21" src="assets/s30.e21.png" alt="Right Arrow"></div>
+</section>
+<section data-screen="s31">
+<div class="p" style="top:-52.9px;height:97.9px">While spinning during a rehearsal, Glenn’s arm flew <br>forcefully into Pashkov’s face, giving him a bloody nose. <br>Glenn apologized profusely in the moment, but during <br>a confessional became emotional.</div>
+<div data-el="s31.e03" class="p" style="top:54.9px;height:73.1px">The paramedics came to check out the dancing pro, <br>who said he felt a little nauseous and light-headed after <br>getting hit.</div>
+<div data-el="s31.e04" class="p" style="top:139.1px;height:121.9px">“I had never been the cause of physical pain like that <br>before. And I want to be cautious.” Glenn said in her <br>confessional, choking back tears. “I don’t know how to <br>deal right now. I just want to wrap him in bubble wrap <br>and send him on his way.”</div>
+<div data-el="s31.e05" class="p" style="top:270.9px;height:73.1px">When they hit the dance floor for show night, however, <br>they wowed the judges with their Foxtrot, showing no <br>signs of trouble after the brutal rehearsal blow.</div>
+<div data-el="s31.e06" class="p" style="top:355.1px;height:97.9px">Derek Hough praised the “ice queen,” pointing out how <br>she glided on the dance floor like she figure skates. <br>Bruno Tonioli pointed out the “lilt and sway” that the <br>dancers perfected.</div>
+<div class="p pl" style="top:462.9px;height:73.1px"><span data-el="s31.e07">Get your daily dose of entertainment news, celebrity <br>updates, and what to watch with our </span><span data-el="s31.e09"><span data-el="s31.e10" class="lk">EW Dispatch <br>newsletter</span></span><span data-el="s31.e11"> </span><span data-el="s31.e12">.</span></div>
+<div data-el="s31.e13" class="p" style="top:547px;height:97.9px">Carrie Ann Inaba called out the growth that Glenn <br>demonstrated since starting on the reality show. <br>“Watching you from week 1 to where you are now, this <br>show is about growth. I’m seeing true growth,” she said.</div>
+<div class="p" style="top:654.9px;height:73.1px">She noted that Glenn’s goal is to be “softer while <br>maintaining the strength,” calling her “poetic and <br>“mesmerizing.”</div>
+<div class="p" style="top:739px;height:97.9px;white-space:normal">Their performance lived up to the judges’ praise. Inaba, Hough, and Tonioli gave Pashkov and Glenn scores of 8 all around — the first of the season — despite the brutal injury Pashkov suffered while rehearsing.</div>
+<img data-el="s31.e16" class="bk" src="assets/s31.e16.png" alt="Back">
+<div class="nx"><div data-el="s31.e18" class="h">Next in More For You:</div><div data-el="s31.e19" class="t">Kristi Noem Files for Divorce From Bryon Noem After Photo <br>Scandal</div><img data-el="s31.e20" src="assets/s31.e20.png" alt="Right Arrow"></div>
+</section>
+<section data-screen="s12">
+<img data-el="s12.e35" class="bk" src="assets/s12.e35.png" alt="Back">
+<div data-el="s12.e03" class="a" style="left:1.5px;top:69px;width:48px;height:31.2px;text-align:center;font-size:12px;line-height:15px;color:#6e7780">E!</div>
+<div data-el="s12.e04" class="a hl">Kristi Noem Files for Divorce <br>From Bryon Noem After Photo <br>Scandal</div>
+<div data-el="s12.e05" class="a" style="left:20.2px;top:177.5px;width:97.1px;height:36.6px;padding-top:13.5px;font-size:16px;line-height:20px;color:var(--fg-3)">Sasha Wayman</div>
+<div data-el="s12.e06" class="a" style="left:20.2px;top:214.1px;width:183.2px;height:14.5px;font-size:13px;line-height:14.5px;color:#6e7780">Updated Sep. 29, 2026 1:31 PM PT</div>
+<div class="a card"></div>
+<div data-el="s12.e11" class="a" style="left:19.8px;top:244.6px;width:83.8px;height:85px"><div data-el="s12.e12" class="a tm" style="left:11.8px;top:11.8px;width:61px;height:61px"><span class="t1">TEMU MEGA SALE</span><span class="j" style="left:5px;background:#ececee;box-shadow:inset 0 0 0 1px #cfcfd2"></span><span class="j" style="left:20.5px;background:#39578f"></span><span class="j" style="left:36px;background:#1f2025"></span><span class="pr">$2.36</span></div></div>
+<div data-el="s12.e13" class="a" style="left:101.7px;top:244.6px;width:288.8px;height:85px">
+<div data-el="s12.e14" class="a" style="left:0;top:11.8px;width:276.9px;height:17.1px"><div data-el="s12.e15" data-value="c1" class="a" style="left:0;top:-1.2px;width:254.1px;height:19.1px;font-size:15px;font-weight:700;line-height:19.1px;color:var(--fg-3)">New Temu users get jackets for $2.36</div></div>
+<div data-el="s12.e19" class="a g" style="left:0;top:60.9px;width:16.8px;height:14.9px"><div data-el="s12.e20" class="a" style="left:0;top:-3px;width:16.8px;height:16px">Ad</div></div>
+<div data-el="s12.e18" class="a g" style="left:19.1px;top:57.9px;width:3.8px;height:16px;text-align:center">·</div>
+<div data-el="s12.e16" class="a g" style="left:25.9px;top:57.9px;width:33.9px;height:14.9px"><div data-el="s12.e17" class="a" style="left:0;top:0;width:33.9px;height:16px">TEMU</div></div>
+<div data-el="s12.e21" class="a" style="left:235.1px;top:39.2px;width:48px;height:47.6px"><div data-el="s12.e22" class="a" style="left:13.7px;top:13.7px;width:20.2px;height:20.2px"><svg width="20.2" height="20.2" viewBox="0 0 20 20"><g fill="#656e76"><circle cx="10" cy="4.5" r="1.9"/><circle cx="10" cy="10" r="1.9"/><circle cx="10" cy="15.5" r="1.9"/></g></svg></div></div>
+</div>
+<img src="assets/s12.e01.art.png" alt="" class="a" style="left:0;top:331.5px;width:411.4px;height:403.7px">
+<div data-el="s12.e23" class="a b" style="left:19.8px;top:735.2px;width:156.9px;height:19.1px">Originally appeared on </div>
+<div data-el="s12.e24" class="a b" style="left:174.5px;top:735.2px;width:61.3px;height:19.1px"><div data-el="s12.e25" class="a" style="left:0;top:0;width:61.3px;height:19.1px;color:var(--fg-2);text-decoration:underline">E! Online</div></div>
+<div data-el="s12.e26" class="a b" style="left:19.8px;top:771.4px;width:80.8px;height:17.9px;line-height:17.9px;font-weight:700">Kristi Noem</div>
+<div data-el="s12.e27" class="a b" style="left:99.8px;top:771.4px;width:206.9px;height:17.9px;line-height:17.9px;white-space:pre"> is stepping into a new chapter.</div>
+<div data-el="s12.e31" class="a" style="left:19.8px;top:804.2px;width:372.9px;height:121.1px"> </div>
+<div data-el="s12.e28" class="a b" style="left:19.8px;top:807.2px;width:266.7px;height:19.1px;color:var(--fg-3)">Six months after photos of her husband </div>
+<div data-el="s12.e29" class="a b" style="left:284.6px;top:807.2px;width:87.2px;height:19.1px;font-weight:700;color:var(--fg-3)"><div data-el="s12.e30" class="a" style="left:0;top:0;width:87.2px;height:19.1px">Bryon Noem</div></div>
+<div data-el="s12.e32" class="a b" style="left:19.8px;top:831.2px;width:288px;height:19.1px;background:var(--bg-4);color:#646464"><div data-el="s12.e33" class="a" style="left:0;top:0;width:288px;height:19.1px;text-decoration:underline">wearing women’s clothing and fake breasts</div></div>
+<div data-el="s12.e34" class="a b" style="left:19.8px;top:831.2px;width:368.8px;height:91px;white-space:normal;text-indent:290px;line-height:24.2px;color:#646464"> surfaced, the former Department of Homeland Security head has filed for divorce, according to court documents reviewed by E! News.</div>
+<div class="a tb">
+<img data-el="s12.e39" src="assets/s12.e39.png" alt="View Comments" style="left:20.2px;top:17.4px">
+<img data-el="s12.e40" src="assets/s12.e40.png" alt="Font size" style="left:234.7px;top:17.8px">
+<img src="assets/s12.e41.png" alt="Share link on Facebook" style="left:278.9px;top:17.8px">
+<img src="assets/s12.e42.png" alt="Copy link" style="left:323.1px;top:17.8px">
+<img src="assets/s12.e43.png" alt="Share article" style="left:367.2px;top:17.8px">
+</div>
+</section>
+<section data-screen="s34">
+<div class="x" style="left:20.3px;top:-30px;width:369.9px;height:67.4px;box-sizing:border-box;border:1px solid #e0e4e8;border-radius:8px;background:#fff"></div>
+<div class="x" style="left:33.1px;top:-30px;width:58.8px;height:54.6px;border-radius:6px;background:linear-gradient(#2a3150,#1f2440)"></div>
+<i class="x" style="left:36px;top:0;width:53px;height:5px;background:repeating-linear-gradient(90deg,#f2c53d 0 6px,transparent 6px 8px)"></i>
+<div data-el="s34.e08" class="x" style="left:101.7px;top:12.9px;width:16.8px;height:14.9px"><span data-el="s34.e09" class="tb" style="left:0;top:-3px;width:16.8px;color:#828c93">Ad</span></div>
+<span data-el="s34.e07" class="tb" style="left:120.8px;top:9.9px;width:3.8px">·</span>
+<div data-el="s34.e05" class="x" style="left:127.6px;top:9.9px;width:288px;height:14.9px"><span data-el="s34.e06" class="tb" style="left:0;top:0">Yahoo Search | Secure Business It Networks Solutions</span></div>
+<svg data-el="s34.e10" class="x" style="left:350.5px;top:5px" width="20.2" height="20.2" viewBox="0 0 20.2 20.2"><circle cx="10.1" cy="4.3" r="1.7" fill="#828c93"/><circle cx="10.1" cy="10.1" r="1.7" fill="#828c93"/><circle cx="10.1" cy="15.9" r="1.7" fill="#828c93"/></svg>
+<div class="ph" style="top:55.05px">
+<i style="left:0;top:5%;width:20%;height:95%;background:radial-gradient(ellipse at 35% 50%,#34331f,#1a1a12 50%,rgba(8,9,13,0) 72%)"></i>
+<i style="left:78%;top:33%;width:22%;height:.6%;background:repeating-linear-gradient(90deg,#b99a62 0 1.5px,transparent 1.5px 9px)"></i>
+<i style="left:5%;top:37%;width:58%;height:63%;background:#17181c;border-radius:42% 36% 0 0/16% 14% 0 0"></i>
+<i style="left:32%;top:29%;width:13%;height:8%;background:#bd8263"></i>
+<i style="left:31%;top:34%;width:22%;height:54%;background:#eeece5;clip-path:polygon(0 0,100% 0,72% 100%,28% 100%)"></i>
+<i style="left:32.5%;top:35%;width:11.5%;height:5.5%;background:#0b0b0d;clip-path:polygon(0 0,42% 38%,58% 38%,100% 0,100% 100%,58% 62%,42% 62%,0 100%)"></i>
+<i style="left:41.5%;top:52%;width:1.3%;height:1.3%;background:#222;border-radius:50%"></i>
+<i style="left:41.5%;top:64%;width:1.3%;height:1.3%;background:#222;border-radius:50%"></i>
+<i style="left:55.5%;top:48%;width:2.5%;height:2.2%;background:#7d2c3d"></i>
+<i style="left:26.5%;top:8%;width:21.5%;height:26%;background:#cf9373;border-radius:46%/38% 38% 62% 62%"></i>
+<i style="left:27%;top:3.8%;width:20%;height:9%;background:#8b6a4e;border-radius:50% 50% 25% 25%/90% 90% 20% 20%"></i>
+<i style="left:56.5%;top:25%;width:38%;height:70%;background:#5d3c27;border-radius:48% 48% 36% 40%/28% 28% 18% 18%"></i>
+<i style="left:52%;top:53%;width:48%;height:47%;background:linear-gradient(100deg,#df2e8e,#f35ab2 50%,#de308e);border-radius:44% 26% 0 0/22% 14% 0 0"></i>
+<i style="left:66%;top:50%;width:13%;height:20%;background:#dba088;clip-path:polygon(0 0,100% 0,50% 100%)"></i>
+<i style="left:59%;top:77%;width:38%;height:11%;background:#b3216f;border-radius:3px"></i>
+<i style="left:72%;top:78.5%;width:9%;height:8%;border:2px solid #8a1756;border-radius:2px;box-sizing:border-box"></i>
+<i style="left:58%;top:36%;width:6%;height:26%;background:#6d4830;border-radius:40%"></i>
+<i style="left:82%;top:36%;width:10%;height:42%;background:#6a452e;border-radius:40%"></i>
+<i style="left:62%;top:28%;width:19%;height:25%;background:#e1ad91;border-radius:46%/40% 40% 60% 60%"></i>
+<i style="left:61%;top:25.5%;width:21%;height:7%;background:#5d3c27;border-radius:50% 50% 20% 20%/100% 100% 20% 20%"></i>
+<i style="left:69%;top:46%;width:5.5%;height:1.6%;background:#c65a6c;border-radius:50%"></i>
+</div>
+<div class="p" style="top:440.2px"><span data-el="s34.e11">Originally appeared on </span><span data-el="s34.e12" class="a u"><span data-el="s34.e13">E! Online</span></span></div>
+<div class="p" style="top:475.85px"><span data-el="s34.e14" class="b">Kristi Noem</span><span data-el="s34.e15"> is stepping into a new chapter.</span></div>
+<div data-el="s34.e18" class="p" style="top:512.2px"><span data-el="s34.e16">Six months after photos of her husband </span><span data-el="s34.e17" class="b">Bryon Noem</span><br><span data-el="s34.e19" class="a"><span data-el="s34.e20">wearing women’s clothing and fake breasts</span></span><span data-el="s34.e21"> surfaced, <br>the former Department of Homeland Security head has <br>filed for divorce, according to court documents <br>reviewed by E! News.</span></div>
+<div class="band" style="top:644px;height:194.2px"></div>
+<div data-el="s34.e24" class="adl" style="top:658.7px">ADVERTISEMENT</div>
+<div data-el="s34.e27" class="adi" style="left:56px;top:683.4px">
+<img src="assets/s34.e25.art.png" alt="" style="left:0;top:20.3px;width:299.8px;height:134.7px">
+<img src="assets/s34.e26.art.png" alt="" style="left:177.2px;top:.1px;width:122.6px;height:154.9px">
+<img src="assets/s34.e27.art.png" alt="" style="left:0;top:.1px;width:122.6px;height:154.9px">
+<span data-el="s34.e29" class="ta">Test Ad</span>
+</div>
+<img data-el="s34.e30" class="back" src="assets/s34.e30.png" alt="">
+</section>
+<section data-screen="s36">
+<div class="ph" style="top:-238.8px">
+<i style="left:0;top:5%;width:20%;height:95%;background:radial-gradient(ellipse at 35% 50%,#34331f,#1a1a12 50%,rgba(8,9,13,0) 72%)"></i>
+<i style="left:78%;top:33%;width:22%;height:.6%;background:repeating-linear-gradient(90deg,#b99a62 0 1.5px,transparent 1.5px 9px)"></i>
+<i style="left:5%;top:37%;width:58%;height:63%;background:#17181c;border-radius:42% 36% 0 0/16% 14% 0 0"></i>
+<i style="left:32%;top:29%;width:13%;height:8%;background:#bd8263"></i>
+<i style="left:31%;top:34%;width:22%;height:54%;background:#eeece5;clip-path:polygon(0 0,100% 0,72% 100%,28% 100%)"></i>
+<i style="left:32.5%;top:35%;width:11.5%;height:5.5%;background:#0b0b0d;clip-path:polygon(0 0,42% 38%,58% 38%,100% 0,100% 100%,58% 62%,42% 62%,0 100%)"></i>
+<i style="left:41.5%;top:52%;width:1.3%;height:1.3%;background:#222;border-radius:50%"></i>
+<i style="left:41.5%;top:64%;width:1.3%;height:1.3%;background:#222;border-radius:50%"></i>
+<i style="left:55.5%;top:48%;width:2.5%;height:2.2%;background:#7d2c3d"></i>
+<i style="left:26.5%;top:8%;width:21.5%;height:26%;background:#cf9373;border-radius:46%/38% 38% 62% 62%"></i>
+<i style="left:27%;top:3.8%;width:20%;height:9%;background:#8b6a4e;border-radius:50% 50% 25% 25%/90% 90% 20% 20%"></i>
+<i style="left:56.5%;top:25%;width:38%;height:70%;background:#5d3c27;border-radius:48% 48% 36% 40%/28% 28% 18% 18%"></i>
+<i style="left:52%;top:53%;width:48%;height:47%;background:linear-gradient(100deg,#df2e8e,#f35ab2 50%,#de308e);border-radius:44% 26% 0 0/22% 14% 0 0"></i>
+<i style="left:66%;top:50%;width:13%;height:20%;background:#dba088;clip-path:polygon(0 0,100% 0,50% 100%)"></i>
+<i style="left:59%;top:77%;width:38%;height:11%;background:#b3216f;border-radius:3px"></i>
+<i style="left:72%;top:78.5%;width:9%;height:8%;border:2px solid #8a1756;border-radius:2px;box-sizing:border-box"></i>
+<i style="left:58%;top:36%;width:6%;height:26%;background:#6d4830;border-radius:40%"></i>
+<i style="left:82%;top:36%;width:10%;height:42%;background:#6a452e;border-radius:40%"></i>
+<i style="left:62%;top:28%;width:19%;height:25%;background:#e1ad91;border-radius:46%/40% 40% 60% 60%"></i>
+<i style="left:61%;top:25.5%;width:21%;height:7%;background:#5d3c27;border-radius:50% 50% 20% 20%/100% 100% 20% 20%"></i>
+<i style="left:69%;top:46%;width:5.5%;height:1.6%;background:#c65a6c;border-radius:50%"></i>
+</div>
+<div class="p" style="top:146.4px"><span data-el="s36.e01">Originally appeared on </span><span data-el="s36.e02" class="a u"><span data-el="s36.e03">E! Online</span></span></div>
+<div class="p" style="top:182.05px"><span data-el="s36.e04" class="b">Kristi Noem</span><span data-el="s36.e05"> is stepping into a new chapter.</span></div>
+<div data-el="s36.e08" class="p" style="top:218.4px"><span data-el="s36.e06">Six months after photos of her husband </span><span data-el="s36.e07" class="b">Bryon Noem</span><br><span data-el="s36.e09" class="a"><span data-el="s36.e10">wearing women’s clothing and fake breasts</span></span><span data-el="s36.e11"> surfaced, <br>the former Department of Homeland Security head has <br>filed for divorce, according to court documents <br>reviewed by E! News.</span></div>
+<div class="band" style="top:350.2px"></div>
+<div data-el="s36.e17" class="adl" style="top:364.9px">ADVERTISEMENT</div>
+<div class="adu" style="top:389.7px">
+<div data-el="s36.e20" class="adi">
+<i class="x" style="left:0;top:0;width:100%;height:20.2px;background:#444"></i>
+<i class="x" style="left:236.9px;top:0;width:48.1px;height:21px;background:#f39200"></i>
+<i class="x" style="left:242px;top:7px;width:10px;height:6px;box-sizing:border-box;border-top:2px solid #fff;border-bottom:2px solid #fff"></i>
+<b class="x" style="left:254px;top:2px;font:italic 800 17px/19px var(--font-2);color:#fff">TE</b>
+<svg class="x" style="left:268.4px;top:0" width="31.4" height="15" viewBox="0 0 31.4 15"><rect width="31.4" height="15" rx="2" fill="#fff"/><path d="M8 3.2v8.6l7.2-4.3z" fill="none" stroke="#00aecd" stroke-width="1.5" stroke-linejoin="round"/><circle cx="25" cy="3.8" r="1.3" fill="#00aecd"/><circle cx="25" cy="7.5" r="1.3" fill="#00aecd"/><circle cx="25" cy="11.2" r="1.3" fill="#00aecd"/></svg>
+<img src="assets/s36.e20.art.png" alt="">
+<span data-el="s36.e29" class="ta">Test Ad</span>
+</div>
+<div class="adc"><i class="x" style="left:0;top:56.6px;width:100%;height:1px;background:#e3e6e9"></i></div>
+<div data-el="s36.e21" class="t1"><span data-el="s36.e22">TE Connectivity Leads AI</span></div>
+<div data-el="s36.e23" class="t2" style="left:19.8px;width:126.1px;color:#7a7a7a"><span data-el="s36.e24">TE Connectivity</span></div>
+<div data-el="s36.e25" class="t2" style="left:210.7px;width:44.2px;color:#4896fa;font-weight:500"><span data-el="s36.e26">Open</span></div>
+<svg data-el="s36.e27" class="x" style="left:256.8px;top:219.8px" width="23.2" height="24" viewBox="0 0 23.2 24"><path d="M7.5 5.5l7 6.8-7 6.8" fill="none" stroke="#4896fa" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+</div>
+<div data-el="s36.e12" class="p" style="top:664px">Kristi, 54, cited irreconcilable differences as the cause <br>for their breakup, per the docs, which were filed in <br>South Dakota Sept. 28.</div>
+<div data-el="s36.e13" class="p" style="top:747.8px">E! News has reached out to attorneys for Kristi and <br>Bryon for comment but has not yet heard back.</div>
+<div data-el="s36.e14" class="p" style="top:808.5px">News of the couple’s divorce after 34 years of marriage <br>comes months after photos of what appeared to be <br>Bryon dressed in women's clothing and donning fake <br>breasts were published by </div>
+<img data-el="s36.e30" class="back" src="assets/s36.e30.png" alt="">
+</section>
+<section data-screen="s37">
+<div class="p" style="top:-4px">Originally appeared on <span class="a u">E! Online</span></div>
+<div class="p" style="top:31.65px"><span data-el="s37.e01" class="b">Kristi Noem</span><span data-el="s37.e02"> is stepping into a new chapter.</span></div>
+<div data-el="s37.e05" class="p" style="top:68px"><span data-el="s37.e03">Six months after photos of her husband </span><span data-el="s37.e04" class="b">Bryon Noem</span><br><span data-el="s37.e06" class="a"><span data-el="s37.e07">wearing women’s clothing and fake breasts</span></span><span data-el="s37.e08"> surfaced, <br>the former Department of Homeland Security head has <br>filed for divorce, according to court documents <br>reviewed by E! News.</span></div>
+<div class="band" style="top:199.7px"></div>
+<div data-el="s37.e19" class="adl" style="top:214.5px">ADVERTISEMENT</div>
+<div class="adu" style="top:239.2px">
+<div data-el="s37.e22" class="adi">
+<i class="x" style="left:0;top:0;width:100%;height:20.2px;background:#444"></i>
+<i class="x" style="left:236.9px;top:0;width:48.1px;height:21px;background:#f39200"></i>
+<i class="x" style="left:242px;top:7px;width:10px;height:6px;box-sizing:border-box;border-top:2px solid #fff;border-bottom:2px solid #fff"></i>
+<b class="x" style="left:254px;top:2px;font:italic 800 17px/19px var(--font-2);color:#fff">TE</b>
+<svg class="x" style="left:268.4px;top:0" width="31.4" height="15" viewBox="0 0 31.4 15"><rect width="31.4" height="15" rx="2" fill="#fff"/><path d="M8 3.2v8.6l7.2-4.3z" fill="none" stroke="#00aecd" stroke-width="1.5" stroke-linejoin="round"/><circle cx="25" cy="3.8" r="1.3" fill="#00aecd"/><circle cx="25" cy="7.5" r="1.3" fill="#00aecd"/><circle cx="25" cy="11.2" r="1.3" fill="#00aecd"/></svg>
+<img src="assets/s37.e22.art.png" alt="" style="top:20.3px;height:137.4px">
+<span data-el="s37.e31" class="ta">Test Ad</span>
+</div>
+<div class="adc"><i class="x" style="left:0;top:56.6px;width:100%;height:1px;background:#e3e6e9"></i></div>
+<div data-el="s37.e23" class="t1"><span data-el="s37.e24">TE Connectivity Leads AI</span></div>
+<div data-el="s37.e25" class="t2" style="left:19.8px;width:126.1px;color:#7a7a7a"><span data-el="s37.e26">TE Connectivity</span></div>
+<div data-el="s37.e27" class="t2" style="left:210.7px;width:44.2px;color:#4896fa;font-weight:500"><span data-el="s37.e28">Open</span></div>
+<svg data-el="s37.e29" class="x" style="left:256.8px;top:219.8px" width="23.2" height="24" viewBox="0 0 23.2 24"><path d="M7.5 5.5l7 6.8-7 6.8" fill="none" stroke="#4896fa" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+</div>
+<div data-el="s37.e09" class="p" style="top:513.5px">Kristi, 54, cited irreconcilable differences as the cause <br>for their breakup, per the docs, which were filed in <br>South Dakota Sept. 28.</div>
+<div data-el="s37.e10" class="p" style="top:597.3px">E! News has reached out to attorneys for Kristi and <br>Bryon for comment but has not yet heard back.</div>
+<div class="p" style="top:658.1px"><span data-el="s37.e11">News of the couple’s divorce after 34 years of marriage <br>comes months after photos of what appeared to be <br>Bryon dressed in women's clothing and donning fake <br>breasts were published by </span><span data-el="s37.e12" class="a"><span data-el="s37.e13">the </span></span><span data-el="s37.e14" class="a"><i data-el="s37.e15">Daily Mail</i></span><span> March 31, with <br>the outlet alleging that the 56-year-old had been living <br>a double life where he chatted in online fetish forums <br>with models.</span></div>
+<img data-el="s37.e32" class="back" src="assets/s37.e32.png" alt="">
+</section>
+<section data-screen="s38">
+<div class="p" style="top:-81.7px">Six months after photos of her husband <span class="b">Bryon Noem</span><br><span class="a">wearing women’s clothing and fake breasts</span> surfaced, <br>the former Department of Homeland Security head has <br>filed for divorce, according to court documents <br>reviewed by E! News.</div>
+<div class="band" style="top:50px"></div>
+<div data-el="s38.e24" class="adl" style="top:64.8px">ADVERTISEMENT</div>
+<div class="adu" style="top:89.5px">
+<div data-el="s38.e27" class="adi">
+<i class="x" style="left:0;top:0;width:100%;height:20.2px;background:#444"></i>
+<i class="x" style="left:236.9px;top:0;width:48.1px;height:21px;background:#f39200"></i>
+<i class="x" style="left:242px;top:7px;width:10px;height:6px;box-sizing:border-box;border-top:2px solid #fff;border-bottom:2px solid #fff"></i>
+<b class="x" style="left:254px;top:2px;font:italic 800 17px/19px var(--font-2);color:#fff">TE</b>
+<svg class="x" style="left:268.4px;top:0" width="31.4" height="15" viewBox="0 0 31.4 15"><rect width="31.4" height="15" rx="2" fill="#fff"/><path d="M8 3.2v8.6l7.2-4.3z" fill="none" stroke="#00aecd" stroke-width="1.5" stroke-linejoin="round"/><circle cx="25" cy="3.8" r="1.3" fill="#00aecd"/><circle cx="25" cy="7.5" r="1.3" fill="#00aecd"/><circle cx="25" cy="11.2" r="1.3" fill="#00aecd"/></svg>
+<img src="assets/s38.e27.art.png" alt="" style="top:20.3px;height:137.4px">
+<span data-el="s38.e36" class="ta">Test Ad</span>
+</div>
+<div class="adc"><i class="x" style="left:0;top:56.6px;width:100%;height:1px;background:#e3e6e9"></i></div>
+<div data-el="s38.e28" class="t1"><span data-el="s38.e29">TE Connectivity Leads AI</span></div>
+<div data-el="s38.e30" class="t2" style="left:19.8px;width:126.1px;color:#7a7a7a"><span data-el="s38.e31">TE Connectivity</span></div>
+<div data-el="s38.e32" class="t2" style="left:210.7px;width:44.2px;color:#4896fa;font-weight:500"><span data-el="s38.e33">Open</span></div>
+<svg data-el="s38.e34" class="x" style="left:256.8px;top:219.8px" width="23.2" height="24" viewBox="0 0 23.2 24"><path d="M7.5 5.5l7 6.8-7 6.8" fill="none" stroke="#4896fa" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+</div>
+<div data-el="s38.e01" class="p" style="top:363.8px">Kristi, 54, cited irreconcilable differences as the cause <br>for their breakup, per the docs, which were filed in <br>South Dakota Sept. 28.</div>
+<div data-el="s38.e02" class="p" style="top:447.6px">E! News has reached out to attorneys for Kristi and <br>Bryon for comment but has not yet heard back.</div>
+<div class="p" style="top:508.4px"><span data-el="s38.e03">News of the couple’s divorce after 34 years of marriage <br>comes months after photos of what appeared to be <br>Bryon dressed in women's clothing and donning fake <br>breasts were published by </span><span data-el="s38.e04" class="a"><span data-el="s38.e05">the </span></span><span data-el="s38.e06" class="a"><i data-el="s38.e07">Daily Mail</i></span><span data-el="s38.e08"> March 31, with <br>the outlet alleging that the 56-year-old had been living <br>a double life where he chatted in online fetish forums <br>with models.</span></div>
+<div class="p" style="top:688.2px"><span data-el="s38.e09">At the time, a rep for Kristi—who shares daughters </span><br><span data-el="s38.e10" class="b">Kassidy</span><span data-el="s38.e11"> , 32, </span><span data-el="s38.e12">and </span><span data-el="s38.e13" class="b">Kennedy</span><span> , 29, </span><span data-el="s38.e15">and son </span><span data-el="s38.e16" class="b">Booker</span><span data-el="s38.e17"> , 24, <br>with Bryon—said the former South Dakota Governor <br>was “devastated” by the images.</span></div>
+<div data-el="s38.e18" class="p b" style="top:796px">More from E! Online</div>
+<span data-el="s38.e19" class="x" style="left:26.7px;top:831.6px;width:6.9px;height:25.1px;font-size:15.5px;line-height:25.1px;background:var(--bg-4)">• </span>
+<div data-el="s38.e20" class="x" style="left:38.5px;top:834.7px;width:314.3px;height:43px;background:var(--bg-4)"><span data-el="s38.e21" style="display:block;font-size:15px;line-height:21.5px;color:#646464">Why Jason Kelce Apologized Live on Air During ESPN Broadcast of Eagles Game</span></div>
+<img data-el="s38.e37" class="back" src="assets/s38.e37.png" alt="">
+</section>
+<section data-screen="s39"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<section data-screen="s40"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<section data-screen="s41"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<section data-screen="s42"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<section data-screen="s43"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<section data-screen="s44"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<section data-screen="s45"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<section data-screen="s46"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<section data-screen="s47"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<section data-screen="s48"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<section data-screen="s49"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<section data-screen="s50"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<section data-screen="s51"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<section data-screen="s52"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<section data-screen="s53"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<section data-screen="s54"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<section data-screen="s55"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<section data-screen="s56"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<section data-screen="s57"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<section data-screen="s58"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<section data-screen="s59"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<section data-screen="s60"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<section data-screen="s61"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<section data-screen="s62"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<section data-screen="s08"><p style="margin:0;padding:24px;font:16px system-ui,sans-serif;color:#888">screen not drawn: $ cap reached: over budget: batches 9-15 don&#x27;t fit the mock&#x27;s $ cap at worst case; raise with --usd-cap</p></section>
+<script id="simula-actions" type="application/json">{"s01": {"swipe": ["s10", "push", null]}, "s03": {"back": ["s01", "back", null]}, "s05": {"back": ["s01", "back", null], "swipe": ["s19", "push", null]}, "s08": {"back": ["s01", "back", null]}, "s09": {"back": ["s01", "back", null]}, "s10": {"swipe": ["s01", "push", null]}, "s12": {"swipe": ["s13", "push", null]}, "s13": {"swipe": ["s14", "push", null]}, "s14": {"swipe": ["s13", "push", null]}, "s17": {"back": ["s16", "back", null]}, "s19": {"swipe": ["s20", "push", null]}, "s20": {"swipe": ["s21", "push", null]}, "s21": {"swipe": ["s22", "push", null]}, "s22": {"swipe": ["s23", "push", null]}, "s23": {"swipe": ["s24", "push", null]}, "s24": {"swipe": ["s25", "push", null]}, "s25": {"swipe": ["s26", "push", null]}, "s26": {"swipe": ["s27", "push", null]}, "s27": {"swipe": ["s28", "push", null]}, "s28": {"swipe": ["s29", "push", null]}, "s29": {"swipe": ["s30", "push", null]}, "s30": {"swipe": ["s31", "push", null]}, "s31": {"swipe": ["s32", "push", null]}, "s32": {"back": ["s01", "back", null]}, "s33": {"swipe": ["s34", "push", null]}, "s34": {"swipe": ["s35", "push", null]}, "s35": {"swipe": ["s36", "push", null]}, "s36": {"swipe": ["s37", "push", null]}, "s37": {"swipe": ["s38", "push", null]}, "s38": {"swipe": ["s39", "push", null]}, "s39": {"swipe": ["s40", "push", null]}, "s40": {"swipe": ["s41", "push", null]}, "s41": {"swipe": ["s42", "push", null]}, "s42": {"swipe": ["s43", "push", null]}, "s43": {"swipe": ["s44", "push", null]}, "s44": {"swipe": ["s45", "push", null]}, "s45": {"swipe": ["s46", "push", null]}, "s46": {"swipe": ["s47", "push", null]}, "s47": {"swipe": ["s48", "push", null]}, "s48": {"swipe": ["s49", "push", null]}, "s49": {"swipe": ["s50", "push", null]}, "s50": {"swipe": ["s51", "push", null]}, "s51": {"swipe": ["s52", "push", null]}, "s52": {"swipe": ["s53", "push", null]}, "s53": {"swipe": ["s54", "push", null]}, "s54": {"swipe": ["s55", "push", null]}, "s55": {"swipe": ["s56", "push", null]}, "s56": {"swipe": ["s57", "push", null]}, "s57": {"swipe": ["s58", "push", null]}, "s58": {"swipe": ["s59", "push", null]}, "s59": {"swipe": ["s60", "push", null]}, "s60": {"swipe": ["s61", "push", null]}, "s61": {"swipe": ["s62", "push", null]}, "s62": {"back": ["s01", "back", null]}, "s64": {"back": ["s01", "back", null]}}</script>
+<script id="simula-runtime-js">
+(() => {
+  const ROOT = "s01";
+  const find = id => document.querySelector(`[data-screen="${CSS.escape(id)}"]`);
+  let current = null;
+  function show(id, transition) {
+    const target = find(id);
+    if (!target) return false;
+    const from = current && find(current);
+    const closingOverlay = from && from.dataset.parent === id;
+    const kind = transition === 'unknown' ? 'push' : transition;
+    for (const s of document.querySelectorAll('[data-screen]')) s.classList.remove('simula-on', 'simula-push', 'simula-back', 'simula-modal');
+    const parent = target.dataset.parent && find(target.dataset.parent);
+    if (parent) parent.classList.add('simula-on');
+    target.classList.add('simula-on');
+    if (['push', 'back', 'modal'].includes(kind) && !closingOverlay) target.classList.add('simula-' + kind);
+    current = id;
+    document.body.dataset.transition = kind;
+    return true;
+  }
+  // Edges that start on no element come from code's #simula-actions map: {screen: {action: [to, transition, field]}}.
+  // A drag of 48 px or more is a swipe, or the system back when it starts at the left edge and runs right; Escape is
+  // the system back too; Enter in the screen's text field sends what was typed.
+  let actions = null;
+  const actionsOf = () => actions = actions || JSON.parse(document.getElementById('simula-actions')?.textContent || '{}');
+  const gesture = kind => { const a = (actionsOf()[current] || {})[kind]; return !!a && show(a[0], a[1]); };
+  let start = null, dragged = false;
+  document.addEventListener('pointerdown', e => { start = [e.clientX, e.clientY]; dragged = false; });
+  document.addEventListener('pointercancel', () => { start = null; });
+  // A drag that starts on a picture must stay a swipe: the browser's own image drag would cancel the pointer.
+  document.addEventListener('dragstart', e => e.preventDefault());
+  document.addEventListener('pointerup', e => {
+    if (!start) return;
+    const [x, y] = start, dx = e.clientX - x, dy = e.clientY - y;
+    start = null;
+    if (Math.hypot(dx, dy) < 48) return;
+    dragged = true;
+    if (!(x <= 24 && dx > Math.abs(dy) && gesture('back'))) gesture('swipe');
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') gesture('back');
+    const field = e.target.closest && e.target.closest('[data-simula-field]');
+    if (e.key === 'Enter' && field && field.closest('[data-screen]').dataset.screen === current) {
+      e.preventDefault();
+      gesture('type');
+    }
+  });
+  const fields = () => {
+    for (const [sid, a] of Object.entries(actionsOf())) {
+      const id = a.type && a.type[2];
+      const f = id && document.querySelector(`[data-screen="${CSS.escape(sid)}"] [data-el="${CSS.escape(id)}"]`);
+      if (!f) continue;
+      f.contentEditable = 'plaintext-only';
+      f.tabIndex = 0;
+      f.dataset.simulaField = '';
+      // The drawn placeholder gives way on the first focus, as a real field's hint does.
+      f.addEventListener('focus', () => {
+        if ('simulaTyped' in f.dataset) return;
+        f.dataset.simulaTyped = '';
+        f.textContent = '';
+      });
+    }
+  };
+  document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', fields) : fields();
+  document.addEventListener('click', e => {
+    if (dragged) { dragged = false; return; }
+    const el = e.target.closest('[data-edge]');
+    if (!el) return;
+    e.preventDefault();
+    show(el.dataset.edge.split('>').pop(), el.dataset.transition || 'push');
+  });
+  window.simula = {go: id => show(id, 'tab'), state: () => current, reset: () => show(ROOT, 'tab')};
+  show(ROOT, 'tab');
+})();
+</script>
+</body></html>

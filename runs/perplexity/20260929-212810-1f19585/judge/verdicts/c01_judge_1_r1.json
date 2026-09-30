@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is a sheet the user opts into, and the offer copy states the reward (1 extra Computer task today). Declining leaves the home unchanged, and the 'if the ad fails' field gives a path for no game or an unconfirmed play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is one extra Computer task that expires at midnight, with no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (a Computer task finishing on s10), not anything the user typed or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds an optional bonus and removes or caps nothing users get free today ('removes nothing free: yes')."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a bottom sheet over s10, a Computer home rated safe, opened by a finished-task event. It is not placed in the conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The app labels Computer a 'LIMITED PREVIEW' (l1, l2, m2 inferred from s04.e04 and s07.e02), so the app limits the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the limited preview and the benefit line are backed by s04.e04, s07.e02 and s04.e06. The proposal states that the size of the allowance and any paid plan were not seen, so it does not rest on an open question."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is one extra task that expires at midnight, capped at 1 per day. It is a sample that ends and takes nothing from other users."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears when a task has just finished, which is a finished-action moment and does not interrupt work in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn rewarded playable, the reward is granted only after the play is confirmed, and the trigger (a task finishing) is an app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Computer limited-preview sheet (s04), the intro (s07), the Computer home (s10) and the 'Do anything' composer."
+ },
+ "other_concern": "The idea assumes the preview cap is counted in tasks, but the cap could be in time or credits and none was observed. Task-completion behavior was also never seen because no task was run. The claim that the app has free versus paid users is unverified, since a paid plan was never seen.",
+ "fixable": false
+}

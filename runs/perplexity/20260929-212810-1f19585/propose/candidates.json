@@ -1,0 +1,297 @@
+{
+ "schema_version": 1,
+ "candidates": [
+  {
+   "id": "c01",
+   "lens": "free_at_limit",
+   "kind": "existing_anchor",
+   "title": "Existing opportunity: 1 extra Computer task today",
+   "anchor_evidence_ids": [
+    "s04.e04",
+    "s07.e02",
+    "s04.e06"
+   ],
+   "bible_mechanic": "M17",
+   "what_is_different_here": "Computer is offered only as a limited preview: the badge on the preview sheet (s04) and the text on the Welcome to Computer intro (s07) say so, and the sheet sells handing off complex tasks. The actual size of the preview allowance, its counter, and any paid plan were not seen in the explored screens. So the reward is one task on top of whatever the preview gives, not a refill of an unknown meter. It is offered when a Computer task finishes on the Computer home (s10), when a user who has just used Computer is most likely to want another.",
+   "adds": null,
+   "removes_nothing_free": true,
+   "trigger_event": "A Computer task the user started finishes and they return to the Computer home, at most once per day.",
+   "trigger_state_id": "s10",
+   "placement": "A bottom sheet over the Computer home, opened when the user's Computer task finishes.",
+   "offer_copy": "Play a short sponsored game to get 1 extra Computer task today. It stays available until midnight.",
+   "reward": {
+    "kind": "inference",
+    "unit": "tasks",
+    "amount": 1.0,
+    "duration": "until midnight local time"
+   },
+   "for_users": "free",
+   "grants_id": "l3",
+   "cost_inputs": {
+    "inference_count": 10,
+    "tokens_in": 4000,
+    "tokens_out": 300,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per day, resets at midnight local time",
+   "daily_cap": 1,
+   "decline_path": "The sheet closes and the Computer home is exactly as it was, with the preview unchanged.",
+   "ad_fail_path": "If no game is available the sheet is not shown. If the game does not load or the play is not confirmed, a short note says no task was added, and the offer stays available to try again today.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Productivity software, business tools and online courses",
+   "character_use": "None",
+   "flow_steps": [
+    {
+     "state_id": "s10",
+     "caption": "The user's Computer task has finished and they are back on the Computer home."
+    },
+    {
+     "state_id": "new:bonus-task-sheet",
+     "caption": "A sheet offers 1 extra Computer task today in exchange for playing a short sponsored game."
+    },
+    {
+     "state_id": "new:sponsored-play",
+     "caption": "The user plays the short sponsored game and can close it at any time."
+    },
+    {
+     "state_id": "s08",
+     "caption": "Once the play is confirmed, the Do anything box opens with a note that 1 extra task is ready until midnight."
+    }
+   ],
+   "after_reward": "At midnight the unused extra task expires, and the next finished task offers a new one, so users come back to hand Computer more work each day.",
+   "rationale": "The app tells new users Computer is a limited preview whose main promise is handing off complex tasks, so a user who has just finished one has a clear reason to want another. One extra task a day keeps the preview feeling generous without touching anything free today, and builds a daily Computer habit. An agent task uses several model calls, so this pays for itself only for audiences with high ad value such as North America, or if the app runs tasks on a cheap model; it does not pay in low-value regions.",
+   "economics": {
+    "cost_2k": 0.011,
+    "cost_8k": 0.026,
+    "breakeven_ecpm_2k": 11.0,
+    "breakeven_ecpm_8k": 26.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "CONDITIONAL",
+    "assumption_line": "Costs ~$0.0110 per reward to serve; pays for itself above $11.00 eCPM at 2k context ($26.00 at 8k). A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 10 replies of 300 tokens out, at $0.25 / $2.00 per million tokens in / out (central prices); the verdict uses the 8k figure; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 0.25,
+   "rank_score": 0.25,
+   "dropped_reason": null,
+   "flags": []
+  },
+  {
+   "id": "c04",
+   "lens": "topup",
+   "kind": "product_change",
+   "title": "Product change: Your next 3 Computer tasks start first today",
+   "anchor_evidence_ids": [],
+   "bible_mechanic": "M05",
+   "what_is_different_here": "Computer is the app's always-on agent, offered as a limited preview (s04.e04, s07.e02). Users hand it tasks from the Do anything composer on Computer home (s10, s08). A preview agent shared by many users is a natural place for a start-first lane. The reward is when a task starts, not an extra task, a theme, or a scheduled run, so it costs no fresh model work. This adapts Character.AI's skip-the-slow-mode Charm to a single play per day. No busy wait or queue was seen in the explored screens, so the value depends on the app actually having busy periods; the team should confirm this before building.",
+   "adds": "A start-first lane that puts the user's next few Computer tasks ahead of standard tasks when Computer is busy.",
+   "removes_nothing_free": true,
+   "trigger_event": "The user returns to Computer home after sending at least one Computer task in the current session.",
+   "trigger_state_id": "s10",
+   "placement": "A card under the Set up Computer checklist on Computer home",
+   "offer_copy": "Play a short game and your next 3 Computer tasks start first when Computer is busy, until midnight tonight.",
+   "reward": {
+    "kind": "queue_priority",
+    "unit": "tasks",
+    "amount": 3.0,
+    "duration": "until midnight local time"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per day, resets at midnight local time",
+   "daily_cap": 1,
+   "decline_path": "The card closes and does not show again today. Tasks run exactly as they did before.",
+   "ad_fail_path": "If no game is available, the card is not shown. If the game can't be confirmed, a short note says no reward was added and the user can try again later today. The attempt is not used up.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Productivity and work software, such as note-taking, calendar, or cloud storage apps",
+   "character_use": "None",
+   "flow_steps": [
+    {
+     "state_id": "s10",
+     "caption": "Computer home as it is today, with the setup checklist and the Do anything box"
+    },
+    {
+     "state_id": "new:start-first-card",
+     "caption": "A card offers: play a short game and your next 3 tasks start first until midnight"
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays a short sponsored game and can close it at any time"
+    },
+    {
+     "state_id": "s08",
+     "caption": "Back in the Do anything box, a note confirms that the next 3 tasks start first today"
+    }
+   ],
+   "after_reward": "After 3 tasks, or at midnight, tasks go back to their normal start time and the card can return tomorrow, which brings users back to Computer daily.",
+   "rationale": "People who have just handed Computer a task want the next one done sooner. Start-first costs the app no extra model work, so every play is pure ad income. It also gives preview users a daily reason to come back to Computer home and keep sending tasks, which is the activation the setup checklist is pushing for.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost (the peak-capacity cost is real but unknown); one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 0.25,
+   "rank_score": 0.25,
+   "dropped_reason": null,
+   "flags": []
+  },
+  {
+   "id": "c02",
+   "lens": "subscriber",
+   "kind": "product_change",
+   "title": "Product change: A new home screen look for 7 days",
+   "anchor_evidence_ids": [],
+   "bible_mechanic": "M11",
+   "what_is_different_here": "No paid plan, price, or usage limit was seen in the explored screens, and the Computer preview's cap is only inferred, so this lens takes the most engaged user: someone who keeps returning to the Library (s03) to reopen past Sessions, Projects, and Artifacts. A theme costs nothing to serve and touches nothing the app gives today. It changes the look of the Search home (s01) and the Computer home (s10), the two screens this user opens most. No theme or appearance options were seen in the explored screens, so the theme itself is the addition.",
+   "adds": "A set of optional color themes for the home screens that any user can use for 7 days after playing a short sponsored game.",
+   "removes_nothing_free": true,
+   "trigger_event": "The user opens the Library in their fifth or later session in the app.",
+   "trigger_state_id": "s03",
+   "placement": "A card in the Library, below the Start something new card, above the Sessions list.",
+   "offer_copy": "Play a short game to use the Midnight theme on your home screens for 7 days.",
+   "reward": {
+    "kind": "cosmetic",
+    "unit": "theme",
+    "amount": 1.0,
+    "duration": "7 days"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per user per week, resets 7 days after it was taken; the card stays hidden while a theme is active.",
+   "daily_cap": 0,
+   "decline_path": "Dismissing the card hides it until next week. The Library, Sessions, and home screens stay exactly as they are.",
+   "ad_fail_path": "If no game is available, the card is not shown. If the play isn't confirmed, a short note says the theme wasn't added and the user can try again. The weekly chance is not used up.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Productivity software, consumer electronics, and travel booking",
+   "character_use": "None. The card shows a small preview of the Search home in the Midnight theme.",
+   "flow_steps": [
+    {
+     "state_id": "s03",
+     "caption": "The user opens the Library to pick up a past session."
+    },
+    {
+     "state_id": "s03",
+     "caption": "A card below Start something new offers the Midnight theme for 7 days in exchange for a short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays a short sponsored game and can close it at any time."
+    },
+    {
+     "state_id": "s01",
+     "caption": "Once the play is confirmed, the Search home opens in the Midnight theme with a note saying it lasts 7 days."
+    }
+   ],
+   "after_reward": "When the 7 days end, the home screens switch back to the usual look, and the Library card returns so the user can play again for another week.",
+   "rationale": "Heavy users spend their time on the Search and Computer home screens and in the Library, so a fresh look for those screens is a small, visible perk they can pick up without giving up anything. Nothing else of value was seen that could be offered, so a theme lets the app add rewarded plays for its most loyal users at no serving cost. It also leaves any future paid plan untouched.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 0.0,
+   "rank_score": 0.0,
+   "dropped_reason": null,
+   "flags": []
+  },
+  {
+   "id": "c03",
+   "lens": "drifting",
+   "kind": "product_change",
+   "title": "Product change: Computer runs your task every morning for 3 days",
+   "anchor_evidence_ids": [
+    "s10.e03",
+    "s04.e08",
+    "s07.e02"
+   ],
+   "bible_mechanic": "M11",
+   "what_is_different_here": "Drifting users come back to the Computer home (s10) and find the Set up Computer checklist still at 0 of 3 (s10.e03), with nothing started. The preview sheet already promises 'Automate recurring tasks on any schedule' (s04.e08), and past results land in Library Sessions (s03.e07). One play sets up a short recurring task that puts a fresh result in their Library each morning, which gives them a reason to open the app three days in a row. The preview's actual cap and price were not seen, so the runs are added on top of whatever the preview includes and nothing current is reduced. Each run costs fresh model work: roughly 3 runs at about 8,000 tokens in and 800 out. The idea needs a mostly North American audience, or cheap serving, for one play to cover it.",
+   "adds": "A card on the Computer home for users back after a week away, where one play sets up 3 extra morning runs of a task they choose, on top of their preview.",
+   "removes_nothing_free": true,
+   "trigger_event": "First app open after 7 or more days with no session, while the Computer setup counter shows fewer than 3 steps done",
+   "trigger_state_id": "s10",
+   "placement": "A card just under the collapsed Set up Computer checklist on the Computer home",
+   "offer_copy": "Welcome back. Play a short game and Computer will run one task for you every morning for the next 3 days, with each result waiting in your Library.",
+   "reward": {
+    "kind": "inference",
+    "unit": "tasks",
+    "amount": 3.0,
+    "duration": "one run each morning for 3 days"
+   },
+   "for_users": "everyone",
+   "grants_id": "l5",
+   "cost_inputs": {
+    "inference_count": 3,
+    "tokens_in": 8000,
+    "tokens_out": 800,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per week per user, resets 7 days after it was taken; shown only after 7 or more days away",
+   "daily_cap": 0,
+   "decline_path": "The card closes and the Computer home stays exactly as it was. The checklist, the composer and the preview work as before, and the card won't return until the next week-long absence.",
+   "ad_fail_path": "If no game is available, the card doesn't appear. If the game can't be confirmed, the user sees 'That one didn't count, try again later', no runs are set up, and the offer stays available.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Productivity and business software, news subscriptions, online learning",
+   "character_use": "None",
+   "flow_steps": [
+    {
+     "state_id": "s10",
+     "caption": "The user opens the app after a week away and lands on the Computer home, with setup at 0 of 3."
+    },
+    {
+     "state_id": "s10",
+     "caption": "A card under the checklist offers 3 mornings of a task Computer runs for them, for one short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays a short sponsored game and can close it at any time."
+    },
+    {
+     "state_id": "new:pick-morning-task",
+     "caption": "Once the play is confirmed, the user picks what to run each morning, such as a news brief on a topic."
+    },
+    {
+     "state_id": "s03",
+     "caption": "Each morning's result shows up as a new session in the Library, three days in a row."
+    }
+   ],
+   "after_reward": "After the third morning, the Library shows the last result with a note that Computer can keep running it on any schedule, which gives the user a reason to come back and set up recurring tasks themselves.",
+   "rationale": "Users who drift away never reach the first task the setup checklist asks for, and this idea completes that step for them in exchange for one play. Three mornings of results in their Library bring them back three days in a row and show what Computer does, and each open is another visit for the app.",
+   "economics": {
+    "cost_2k": 0.0063,
+    "cost_8k": 0.0108,
+    "breakeven_ecpm_2k": 6.3,
+    "breakeven_ecpm_8k": 10.8,
+    "benchmark_ecpm": 10.16,
+    "verdict": "CONDITIONAL",
+    "assumption_line": "Costs ~$0.0063 per reward to serve; pays for itself above $6.30 eCPM at 2k context ($10.80 at 8k). A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 3 replies of 800 tokens out, at $0.25 / $2.00 per million tokens in / out (central prices); the verdict uses the 8k figure; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 0.0,
+   "rank_score": 0.0,
+   "dropped_reason": null,
+   "flags": []
+  }
+ ]
+}

@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[],\"extra_points\":[{\"x\":270,\"y\":258,\"name\":\"Photoedit featured card\"},{\"x\":117,\"y\":183,\"name\":\"Luzia's Pick\"},{\"x\":119,\"y\":720,\"name\":\"Photoedit trending card\"},{\"x\":332,\"y\":720,\"name\":\"Anima trending card\"},{\"x\":495,\"y\":720,\"name\":\"Stories trending card\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1666,
+ "tokens_out": 138,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

@@ -1,0 +1,653 @@
+{
+ "schema_version": 1,
+ "candidates": [
+  {
+   "id": "c07",
+   "lens": "ledger_l1",
+   "kind": "product_change",
+   "title": "Product change: 30 minutes of reading with no ads, sponsored by one brand",
+   "anchor_evidence_ids": [
+    "s01.e44",
+    "s01.e45",
+    "s05.e13",
+    "s13.e34",
+    "s20.e27"
+   ],
+   "bible_mechanic": "M22",
+   "what_is_different_here": "The app runs light ads: native sponsored cards between stories on the home feed (s01.e44, s10.e72) and under every article byline (s05.e13, s12.e13), plus ADVERTISEMENT display blocks inside article bodies (s13.e34, s20.e27, s35.e18). These are banner-like, so the ad value a half hour displaces is low. Advertisers such as TEMU (s01.e45, s05.e15) already rotate through those cards. Here one of them can sponsor the game instead. In return it gets a single labeled credit line at the top of the feed for the ad-free half hour. That slot exists only to show the sponsor and reorders no stories. No paid ad-free plan was seen in the explored screens, and the paywall flagged on the third article open (s64) was never seen with a price or benefit, so the idea does not rest on it. The trigger is the repeated-reading moment the explorer measured (third article open).",
+   "adds": "A dismissible banner on the home feed that offers 30 minutes without sponsored cards or in-article ads in exchange for one short sponsored game, with a small line crediting the game's brand during that time.",
+   "removes_nothing_free": true,
+   "trigger_event": "The user comes back to the home feed after opening their third article of the day.",
+   "trigger_state_id": "s01",
+   "placement": "A dismissible banner card directly under the home feed header, above the first story.",
+   "offer_copy": "Reading a lot today? Play a short sponsored game and read with no ads between stories or inside articles for the next 30 minutes.",
+   "reward": {
+    "kind": "feature_time",
+    "unit": "minutes without ads",
+    "amount": 30.0,
+    "duration": "30 minutes from when the game is confirmed"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 30.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per day, resets at midnight local time",
+   "daily_cap": 1,
+   "decline_path": "Closing the banner hides it for the rest of the day, and the feed and articles stay exactly as they are.",
+   "ad_fail_path": "If no game is ready, the banner does not appear. If the game can't be confirmed, a short note says the ads stay as usual and the user can try again. The day's chance is not used up.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Online shopping and home goods brands, such as the ones already sponsoring stories in the feed",
+   "character_use": "None. The sponsoring brand's name appears only in the small credit line at the top of the feed during the ad-free half hour.",
+   "flow_steps": [
+    {
+     "state_id": "s01",
+     "caption": "The home feed as it is today, with sponsored cards between the top stories."
+    },
+    {
+     "state_id": "s01",
+     "caption": "After the third article of the day, a banner under the header offers 30 ad-free minutes for one short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays a short game from the sponsoring brand and can close it at any time."
+    },
+    {
+     "state_id": "s05",
+     "caption": "Articles open without the card under the byline or ads in the body, and the 30-minute timer starts."
+    },
+    {
+     "state_id": "s01",
+     "caption": "The feed shows no sponsored cards, and a thin line at the top says who sponsored this ad-free half hour."
+    }
+   ],
+   "after_reward": "When the 30 minutes end, a small note says the usual stories and ads are back and the ad-free half hour can be earned again tomorrow, which gives heavy readers a reason to come back daily.",
+   "rationale": "Readers who open several articles in a row scroll past a sponsored card under every byline and several ad blocks inside each story, so a clean half hour is worth one short game to them. The app replaces a stretch of low-value card and block impressions with one opted-in game that earns more. The sponsoring brand gets full attention and a labeled credit line, which is more than a card users scroll past.",
+   "economics": {
+    "cost_2k": 0.0582,
+    "cost_8k": 0.0582,
+    "breakeven_ecpm_2k": 58.2,
+    "breakeven_ecpm_8k": 58.2,
+    "benchmark_ecpm": 10.16,
+    "verdict": "CONDITIONAL",
+    "assumption_line": "Costs ~$0.0582 per reward to serve; pays for itself above $58.20 eCPM. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 30 ad-free minutes at 0.2 ads a minute, each worth $9.70 eCPM (the NA Android interstitial rate); if the ads it hides are banners ($0.55 eCPM), it pays for itself above $3.30; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 1.0,
+   "rank_score": 1.0,
+   "dropped_reason": null,
+   "flags": []
+  },
+  {
+   "id": "c03",
+   "lens": "subscriber",
+   "kind": "product_change",
+   "title": "Product change: 15 minutes of stories without the ad blocks inside",
+   "anchor_evidence_ids": [],
+   "bible_mechanic": "M22",
+   "what_is_different_here": "Heavy readers scroll past several ADVERTISEMENT blocks inside every story (s13.e34, s20.e23, s24.e12) on the way to the 'Next in More For You' bar (s24.e24). That bar marks the moment one story ends and the next starts, so the offer can sit there without interrupting reading. No paid ad-free plan was seen in the explored screens, so this adds a short, earned break from ads inside stories. The labeled sponsored cards in the feed and under the byline stay as they are, so only the low-value display blocks are removed.",
+   "adds": "A small card above the next-story bar that lets a reader play one short sponsored game to hide the ad blocks inside stories for 15 minutes.",
+   "removes_nothing_free": true,
+   "trigger_event": "The reader reaches the next-story bar at the end of their third story of the day.",
+   "trigger_state_id": "s24",
+   "placement": "A slim card just above the 'Next in More For You' bar at the bottom of the story.",
+   "offer_copy": "Play a short game to read the next 15 minutes without the ad blocks inside stories.",
+   "reward": {
+    "kind": "feature_time",
+    "unit": "minutes without in-story ad blocks",
+    "amount": 15.0,
+    "duration": "15 minutes from when the game is finished"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 15.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "2 per day, resets at midnight local time; offered again only after the previous 15 minutes have ended",
+   "daily_cap": 2,
+   "decline_path": "The card closes and the reader keeps reading with ads exactly as before. It does not come back until the next story end.",
+   "ad_fail_path": "If no game is available the card is not shown. If the game can't be confirmed, the reader sees a short 'Couldn't unlock this time' note, the story stays as it was, and the attempt doesn't count toward today's 2.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Casual mobile games and streaming TV services",
+   "character_use": "None",
+   "flow_steps": [
+    {
+     "state_id": "s24",
+     "caption": "Reader reaches the end of their third story and sees the next-story bar."
+    },
+    {
+     "state_id": "new:ad-light-offer",
+     "caption": "A card above the bar offers 15 minutes without the ad blocks inside stories for one short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The reader plays a short sponsored game and can close it at any time."
+    },
+    {
+     "state_id": "s12",
+     "caption": "The next story opens with no ad blocks between paragraphs, and a small timer shows the minutes left."
+    }
+   ],
+   "after_reward": "When the 15 minutes end, the ad blocks return in the next story, and the card comes back at a later story end so the reader can play again, up to twice a day.",
+   "rationale": "The most engaged readers scroll past three or more ad blocks in every story, so a quieter stretch of reading is something they'd choose to play for. The app swaps several low-value display impressions for one higher-value sponsored play, and keeps its most active readers reading more stories in a row.",
+   "economics": {
+    "cost_2k": 0.0291,
+    "cost_8k": 0.0291,
+    "breakeven_ecpm_2k": 29.1,
+    "breakeven_ecpm_8k": 29.1,
+    "benchmark_ecpm": 10.16,
+    "verdict": "CONDITIONAL",
+    "assumption_line": "Costs ~$0.0291 per reward to serve; pays for itself above $29.10 eCPM. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 15 ad-free minutes at 0.2 ads a minute, each worth $9.70 eCPM (the NA Android interstitial rate); if the ads it hides are banners ($0.55 eCPM), it pays for itself above $1.65; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 0.5,
+   "rank_score": 0.5,
+   "dropped_reason": null,
+   "flags": []
+  },
+  {
+   "id": "c02",
+   "lens": "free_at_limit",
+   "kind": "product_change",
+   "title": "Product change: Save your reading streak after missing a day",
+   "anchor_evidence_ids": [],
+   "bible_mechanic": "M16",
+   "what_is_different_here": "The home feed (s01) is a daily habit screen: fresh Top Stories, category tabs and timestamps like '2h ago' give readers a reason to come back each day. No streak, limit or reward system was seen in the explored screens, so this adds a light daily streak on the home feed and pairs it with a one-time save when a day is missed, turning a small loss into the moment for the offer. The reward costs nothing to give and touches no paid feature.",
+   "adds": "A reading streak on the home feed that counts days in a row with at least one story opened, plus a banner that lets the reader keep it after one missed day by playing a short game.",
+   "removes_nothing_free": true,
+   "trigger_event": "The first home feed open after a missed day, when the reader had a streak of 3 or more days.",
+   "trigger_state_id": "s01",
+   "placement": "A banner under the Home header, above the Top Stories list.",
+   "offer_copy": "You missed yesterday. Play a short game to keep your 5-day reading streak, one save this week.",
+   "reward": {
+    "kind": "streak_protection",
+    "unit": "reading streak save",
+    "amount": 1.0,
+    "duration": "covers one missed day"
+   },
+   "for_users": "free",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per week, resets 7 days after it was taken.",
+   "daily_cap": 0,
+   "decline_path": "Tapping No thanks starts the streak again from today; the feed and all stories work exactly as before.",
+   "ad_fail_path": "If no game is available the banner does not appear and the streak is held until the next open. If the game can't be confirmed, the reader sees a short note, the streak is not lost, and the weekly save is not used up.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Casual puzzle games and everyday retail",
+   "character_use": "None.",
+   "flow_steps": [
+    {
+     "state_id": "s01",
+     "caption": "The reader opens the home feed after missing a day; the feed looks as it does today."
+    },
+    {
+     "state_id": "new:streak-save-banner",
+     "caption": "A banner under the header says the streak is at risk and offers one save for a short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The reader plays a short sponsored game and can close it at any time."
+    },
+    {
+     "state_id": "new:streak-kept",
+     "caption": "The banner confirms the streak is kept and shows the day count."
+    }
+   ],
+   "after_reward": "The next time a day is missed within the week, the streak resets with a note that a new save opens in a few days, which nudges the reader to open a story every day.",
+   "rationale": "A daily news feed lives on return visits, and a visible streak gives readers a small, real thing to lose when they skip a day. Keeping it for one short game costs the app nothing to give, and every kept streak is another day of feed and article views.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 0.0,
+   "rank_score": 0.0,
+   "dropped_reason": null,
+   "flags": []
+  },
+  {
+   "id": "c06",
+   "lens": "drifting",
+   "kind": "product_change",
+   "title": "Product change: Open straight to your favorite section for 7 days",
+   "anchor_evidence_ids": [],
+   "bible_mechanic": "M11",
+   "what_is_different_here": "The home feed (s01) always opens on the Top Stories tab, with Entertainment, Local, Sports and Business beside it. A returning reader who goes straight to one of those tabs is showing what they came for. No way to change the opening tab was seen in the explored screens, so this adds one as a free reward. It costs nothing per use and doesn't touch the feed's ads.",
+   "adds": "A new option to make the home screen open on a chosen section, such as Sports or Local, instead of Top Stories, earned for 7 days by playing a short game.",
+   "removes_nothing_free": true,
+   "trigger_event": "On the first visit after 3 or more days away, the user taps a section tab other than Top Stories on the home feed.",
+   "trigger_state_id": "s01",
+   "placement": "A small card that slides up from the bottom of the home feed after the section tab loads.",
+   "offer_copy": "Want the app to open on Sports every time? Play a short game to start on Sports for the next 7 days.",
+   "reward": {
+    "kind": "cosmetic",
+    "unit": "opening section",
+    "amount": 1.0,
+    "duration": "7 days"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per week, resets 7 days after it was taken.",
+   "daily_cap": 0,
+   "decline_path": "The card closes, the chosen section stays open for this visit, and the app keeps opening on Top Stories as it does today.",
+   "ad_fail_path": "If no game is available the card isn't shown. If the game can't be confirmed, the user sees 'That didn't go through, try again anytime' and the weekly offer is not used up.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Sports streaming, local services and casual mobile games",
+   "character_use": "None",
+   "flow_steps": [
+    {
+     "state_id": "s01",
+     "caption": "A reader back after 4 days taps the Sports tab on the home feed."
+    },
+    {
+     "state_id": "new:opening-section-card",
+     "caption": "A card offers to open the app on Sports for the next 7 days after a short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The reader plays a short sponsored game."
+    },
+    {
+     "state_id": "new:opens-on-sports",
+     "caption": "Next launch, the home screen opens right on Sports, with a note that this lasts 7 days."
+    }
+   ],
+   "after_reward": "When the 7 days end, the app opens on Top Stories again with a card offering another week on Sports, which gives the reader a reason to return and play again.",
+   "rationale": "Drifting readers often leave because the first screen isn't what they came for, and their own tab tap shows the fix. Opening on their section makes each return visit quicker to pay off. It costs nothing to serve and keeps them reading stories that already carry ads.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 0.0,
+   "rank_score": 0.0,
+   "dropped_reason": null,
+   "flags": []
+  },
+  {
+   "id": "c09",
+   "lens": "ledger_l2",
+   "kind": "product_change",
+   "title": "Product change: Pick which kinds of sponsored stories you see for 7 days",
+   "anchor_evidence_ids": [],
+   "bible_mechanic": "none",
+   "what_is_different_here": "The home feed's sponsored cards rotate between visits across very different advertisers: TEMU fashion deals ('New Temu users get jackets for $2.36'), Toxin Free Life shower filters, Extend-A-Reach cleaning tools and car accessories (s01.e44, s16.e44, s32.e19). Readers can't steer that mix in any explored screen (what the card's more-options menu does was not seen), so this adds a new choice. It helps both sides the lens is about: the reader gets a feed with sponsors they find relevant, and advertisers in the chosen categories reach a reader who asked for them. No card is removed; only the mix of categories changes, so nothing free is taken away.",
+   "adds": "A card under the category tabs that lets a reader play one short sponsored game to choose which kinds of sponsored stories (for example fashion, home, cars, tech) fill their feed for 7 days.",
+   "removes_nothing_free": true,
+   "trigger_event": "The reader opens the home feed for the third time in a day.",
+   "trigger_state_id": "s01",
+   "placement": "A dismissible card just below the category tabs on the home feed.",
+   "offer_copy": "Play a short sponsored game and choose which kinds of sponsored stories show in your feed for the next 7 days.",
+   "reward": {
+    "kind": "cosmetic",
+    "unit": "sponsored story choices",
+    "amount": 1.0,
+    "duration": "7 days from when the game ends"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per week per reader, resets 7 days after it was taken.",
+   "daily_cap": 0,
+   "decline_path": "Closing the card hides it until the next week; the feed keeps its usual mix of stories and sponsored cards.",
+   "ad_fail_path": "If no game is available the card doesn't appear; if the game can't be confirmed, the reader sees a short 'That didn't go through, nothing was used' note, the feed stays as it was, and the weekly chance isn't used up.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Online retail, home improvement, household products and car accessories, matching the sponsors already in the feed.",
+   "character_use": "None; the choice screen shows the app's own feed style with sample sponsor categories.",
+   "flow_steps": [
+    {
+     "state_id": "s01",
+     "caption": "The reader opens the home feed for the third time today, with a sponsored card between stories."
+    },
+    {
+     "state_id": "new:sponsor-choice-offer",
+     "caption": "A card under the tabs offers 7 days of choosing which kinds of sponsored stories appear, for one short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The reader plays a short sponsored game and can close it at any time."
+    },
+    {
+     "state_id": "new:sponsor-picker",
+     "caption": "Once the play is confirmed, the reader ticks the kinds of sponsored stories they want, like home or fashion."
+    },
+    {
+     "state_id": "s01",
+     "caption": "The feed now shows sponsored cards from the chosen kinds, with a note saying 7 days left."
+    }
+   ],
+   "after_reward": "When the 7 days end, the feed goes back to its usual mix of sponsors with a small card offering to set the choice again for another game, which brings regular readers back each week.",
+   "rationale": "Regular readers see the same rotating sponsors every visit, so a say in which kinds appear makes the feed feel more their own at no running cost to the app. Sponsored cards shown to readers who picked that kind are more likely to be tapped, which helps the advertisers and the app's existing feed income on top of the play itself.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 0.0,
+   "rank_score": 0.0,
+   "dropped_reason": null,
+   "flags": []
+  },
+  {
+   "id": "c01",
+   "lens": "free_at_limit",
+   "kind": "product_change",
+   "title": "Product change: Read stories without ads for 20 minutes",
+   "anchor_evidence_ids": [
+    "s12.e13",
+    "s13.e34",
+    "s33.e33"
+   ],
+   "bible_mechanic": "M22",
+   "what_is_different_here": "Every article opens with a sponsored card under the byline (s12.e13, s05.e13) and then several display blocks marked ADVERTISEMENT down the body (s13.e34, s20.e23, s33.e33, s35.e15). Long reads like the gallery story (f2) pass many of them, so a reader three stories in has felt the ad load. No paid ad-free plan or upgrade screen was seen in the explored screens, and the paywall flag on the third article open was not confirmed, so this idea rests on the ad load that was seen, not on a paywall. The ads it pauses are display blocks and sponsored cards, which earn far less per view than one completed sponsored game.",
+   "adds": "A banner at the top of an article, from the third story opened in a session, that lets the reader play a short game to hide article ads for 20 minutes.",
+   "removes_nothing_free": true,
+   "trigger_event": "The user opens their third article in one session.",
+   "trigger_state_id": "s12",
+   "placement": "A slim banner under the article header, above the story text, on the article screen.",
+   "offer_copy": "Play a short game and read every story without ads for the next 20 minutes.",
+   "reward": {
+    "kind": "feature_time",
+    "unit": "minutes of ad-free reading",
+    "amount": 20.0,
+    "duration": "20 minutes from when the game ends"
+   },
+   "for_users": "free",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 20.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per day, resets at midnight local time.",
+   "daily_cap": 1,
+   "decline_path": "Tapping No thanks hides the banner for the rest of the day; the article and its ads stay exactly as they are.",
+   "ad_fail_path": "If no game is available the banner does not appear. If the game can't be confirmed, the reader sees a short note that nothing changed, ads stay as before, and the daily try is not used up.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Casual mobile games and streaming services",
+   "character_use": "None.",
+   "flow_steps": [
+    {
+     "state_id": "s12",
+     "caption": "The reader opens a third story; the article looks as it does today."
+    },
+    {
+     "state_id": "new:ad-free-banner",
+     "caption": "A banner under the header offers 20 minutes of ad-free reading for one short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The reader plays a short sponsored game and can close it at any time."
+    },
+    {
+     "state_id": "new:ad-free-article",
+     "caption": "The story reloads without the sponsored card or ad blocks, with a small timer showing 20 minutes left."
+    }
+   ],
+   "after_reward": "When the 20 minutes end, ads return to stories with a note that another ad-free window is available tomorrow, which brings the reader back for their next long read.",
+   "rationale": "Readers who open several stories scroll past a sponsored card and several ad blocks in every article, so a quiet 20 minutes is something they can see and want. One completed sponsored game is worth more than the card and display views it pauses for a single reader, and heavy readers get a reason to return daily. It pays for itself only where the ads it hides are the low-value display blocks seen here.",
+   "economics": {
+    "cost_2k": 0.0388,
+    "cost_8k": 0.0388,
+    "breakeven_ecpm_2k": 38.8,
+    "breakeven_ecpm_8k": 38.8,
+    "benchmark_ecpm": 10.16,
+    "verdict": "CONDITIONAL",
+    "assumption_line": "Costs ~$0.0388 per reward to serve; pays for itself above $38.80 eCPM. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 20 ad-free minutes at 0.2 ads a minute, each worth $9.70 eCPM (the NA Android interstitial rate); if the ads it hides are banners ($0.55 eCPM), it pays for itself above $2.20; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 0.5,
+   "rank_score": 0.5,
+   "dropped_reason": "duplicate of c07: same benefit (ad-free reading)",
+   "flags": []
+  },
+  {
+   "id": "c08",
+   "lens": "ledger_l2",
+   "kind": "product_change",
+   "title": "Product change: 30 minutes of articles without the advertisement blocks",
+   "anchor_evidence_ids": [],
+   "bible_mechanic": "M22",
+   "what_is_different_here": "Every article carries a sponsored card under the byline and several ADVERTISEMENT blocks inside the body (s05.e13, s13.e34, s20.e27, s35.e18), and long reads like the DWTS story repeat the same gutter ad down the page (s20 to s26). The natural break is the pinned 'Next in More For You' bar (s24.e24), where the reader has just finished one story. No paywall or paid ad-free plan was seen in the explored screens (the paywall flagged on the repeat open is unconfirmed), so this adds a new choice rather than resting on an existing wall. The other party here is the advertiser, like the Temu card offering new users jackets for $2.36: it gets one play the reader chose, in place of blocks readers scroll past.",
+   "adds": "A dismissible card above the next-story bar that lets a reader play one short sponsored game to read articles without the in-article advertisement blocks for 30 minutes.",
+   "removes_nothing_free": true,
+   "trigger_event": "The reader reaches the end of a second article in one visit and the next-story bar appears.",
+   "trigger_state_id": "s24",
+   "placement": "A small card that slides up just above the 'Next in More For You' bar at the end of an article, with a close button.",
+   "offer_copy": "Play a short sponsored game to read the next 30 minutes of stories without the advertisement blocks.",
+   "reward": {
+    "kind": "feature_time",
+    "unit": "minutes without advertisement blocks",
+    "amount": 30.0,
+    "duration": "30 minutes from when the game ends"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 30.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "2 per day, resets at midnight local time; shown at most once per visit.",
+   "daily_cap": 2,
+   "decline_path": "Closing the card hides it for the rest of the visit; the article and next-story bar work exactly as before.",
+   "ad_fail_path": "If no game is available the card doesn't appear; if the game can't be confirmed, the reader sees a short 'That didn't go through, nothing was used' note, articles stay as they were, and the attempt doesn't count toward today's 2.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Retail and home goods brands already seen here, such as online shopping, home improvement and cleaning tools.",
+   "character_use": "None; the card uses the app's own article styling.",
+   "flow_steps": [
+    {
+     "state_id": "s24",
+     "caption": "The reader finishes a story and the 'Next in More For You' bar appears."
+    },
+    {
+     "state_id": "new:clean-reading-offer",
+     "caption": "A card above the bar offers 30 minutes of stories without advertisement blocks for one short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The reader plays a short sponsored game and can close it at any time."
+    },
+    {
+     "state_id": "new:article-clean",
+     "caption": "Once the play is confirmed, the next story opens without the advertisement blocks and a small timer shows 30 minutes left."
+    }
+   ],
+   "after_reward": "When the 30 minutes end, the advertisement blocks return on the next article with a small note that another game can clear them again today, which brings readers back to play at the end of their next story.",
+   "rationale": "Readers here scroll past many advertisement blocks per story, so a cleaner half hour of reading is something they feel right away and can choose at a natural stopping point. The app trades blocks that are mostly scrolled past for one play the reader chose, and advertisers get an engaged moment. It pays best if the blocks it hides earn like banners; the app should check that before rollout.",
+   "economics": {
+    "cost_2k": 0.0582,
+    "cost_8k": 0.0582,
+    "breakeven_ecpm_2k": 58.2,
+    "breakeven_ecpm_8k": 58.2,
+    "benchmark_ecpm": 10.16,
+    "verdict": "CONDITIONAL",
+    "assumption_line": "Costs ~$0.0582 per reward to serve; pays for itself above $58.20 eCPM. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 30 ad-free minutes at 0.2 ads a minute, each worth $9.70 eCPM (the NA Android interstitial rate); if the ads it hides are banners ($0.55 eCPM), it pays for itself above $3.30; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 0.5,
+   "rank_score": 0.5,
+   "dropped_reason": "duplicate of c07: same benefit (ad-free reading)",
+   "flags": []
+  },
+  {
+   "id": "c04",
+   "lens": "subscriber",
+   "kind": "product_change",
+   "title": "Product change: Keep your reading streak after a missed day",
+   "anchor_evidence_ids": [],
+   "bible_mechanic": "M16",
+   "what_is_different_here": "Engaged readers open the Home feed (s01) daily and finish stories through to the related list (s32), which the app can detect. No streak, badge or loyalty counter was seen in the explored screens. This adds a free daily reading streak under the Home header and a one-play save when a day is missed. The save costs nothing to serve and gives regulars a reason to return that doesn't depend on ads inside stories.",
+   "adds": "A free reading streak on Home that counts days in a row with at least one story read to the end, plus an option to play one short game to save the streak after a missed day.",
+   "removes_nothing_free": true,
+   "trigger_event": "The first app open after a calendar day with no story read to the end, while the reader's streak was 3 days or longer.",
+   "trigger_state_id": "s01",
+   "placement": "A banner under the Home header, above the category tabs.",
+   "offer_copy": "You missed yesterday. Play a short game to keep your reading streak going: 1 save, usable once every 7 days.",
+   "reward": {
+    "kind": "streak_protection",
+    "unit": "streak save",
+    "amount": 1.0,
+    "duration": "covers 1 missed day"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per week, resets 7 days after it was taken",
+   "daily_cap": 0,
+   "decline_path": "The banner closes, the streak starts again from zero as it normally would, and the feed works exactly as before.",
+   "ad_fail_path": "If no game is available the banner shows only the streak count, with no offer. If the game can't be confirmed, the reader sees 'Couldn't save it this time', the streak stays saveable for the rest of the day, and the weekly save is not used up.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Casual puzzle games and entertainment streaming",
+   "character_use": "None",
+   "flow_steps": [
+    {
+     "state_id": "s01",
+     "caption": "A regular reader opens Home after a day without finishing a story."
+    },
+    {
+     "state_id": "new:streak-banner",
+     "caption": "A banner under the header shows the streak and offers to keep it for one short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The reader plays a short sponsored game and can close it at any time."
+    },
+    {
+     "state_id": "s01",
+     "caption": "The streak count is kept, and a small note says the next save is available in 7 days."
+    }
+   ],
+   "after_reward": "If another day is missed before the 7 days pass, the streak resets, which gives the reader a reason to come back and finish a story every day.",
+   "rationale": "Daily readers who have built up a run of days don't want to lose it, so a one-tap save at the moment they notice is an easy yes. It costs the app nothing to grant and brings regulars back to the Home feed every day, where the sponsored cards already earn.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 0.0,
+   "rank_score": 0.0,
+   "dropped_reason": "duplicate of c02: same benefit (reading streak save)",
+   "flags": []
+  },
+  {
+   "id": "c05",
+   "lens": "drifting",
+   "kind": "product_change",
+   "title": "Product change: Keep your reading streak after a missed day",
+   "anchor_evidence_ids": [],
+   "bible_mechanic": "M16",
+   "what_is_different_here": "The home feed (s01) is where every visit starts, and the core flow is reading a story to the end and landing on the related stories list (s32). Counting days with at least one finished story gives a lapsing reader progress they can see. When they come back after a gap, the same home screen can offer to cover the missed day. No streak, paywall or paid plan was seen in the explored screens, so this adds a new, free counter and a way to protect it. The reward costs nothing to serve, unlike ad-free time, which would remove several of the in-article ad blocks (s13, s20) for one play.",
+   "adds": "A free reading streak on the home screen that counts days you finish at least one story, plus a one-time save when you miss a day.",
+   "removes_nothing_free": true,
+   "trigger_event": "The app opens on the home feed and the user's last finished story was two calendar days ago, with a streak of 3 days or more before the gap.",
+   "trigger_state_id": "s01",
+   "placement": "A card under the home header, above the category tabs, shown only on that return visit.",
+   "offer_copy": "Your 6-day reading streak missed yesterday. Play a short game to cover 1 missed day and keep your streak going.",
+   "reward": {
+    "kind": "streak_protection",
+    "unit": "missed day",
+    "amount": 1.0,
+    "duration": "one-time, covers yesterday only"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per week, resets 7 days after it was taken; only covers a single missed day.",
+   "daily_cap": 0,
+   "decline_path": "The card closes, the streak restarts at 1 with today's reading, and the feed and every story work exactly as before.",
+   "ad_fail_path": "If no game is available the card isn't shown. If the game can't be confirmed, the user sees 'That didn't go through, your streak is still saved for now' and can try again this visit without using up the weekly save.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Casual mobile games and home goods retail",
+   "character_use": "None",
+   "flow_steps": [
+    {
+     "state_id": "s01",
+     "caption": "The reader opens the app for the first time in two days and lands on the home feed."
+    },
+    {
+     "state_id": "new:streak-save-card",
+     "caption": "A card under the header says the 6-day streak missed yesterday and offers a short game to keep it."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The reader plays a short sponsored game."
+    },
+    {
+     "state_id": "new:streak-kept",
+     "caption": "The streak shows 6 days again, and finishing a story today makes it 7."
+    }
+   ],
+   "after_reward": "The next time a day is missed within the week, the streak simply resets, which nudges the reader to open the app daily and to come back next week for another save.",
+   "rationale": "A reader whose visits are thinning out has no visible reason to come back to the feed today. A streak they can rescue at the moment they return turns a lapse into a reason to finish a story now. It costs nothing to serve and brings the reader back to a feed and articles already full of display ads, so each saved streak pays twice.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 0.0,
+   "rank_score": 0.0,
+   "dropped_reason": "duplicate of c02: same benefit (reading streak save)",
+   "flags": []
+  }
+ ]
+}

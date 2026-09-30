@@ -1,0 +1,37 @@
+{
+ "schema_version": 1,
+ "state_id": "s10",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "co.thewordlab.luzia|8e8e8e8e9200b0008000b00cb00e0000|b60ea00c00000000000000000000c270|9d82741b6ecf",
+ "foreground_package": "co.thewordlab.luzia",
+ "screenshot": "states/s10.png",
+ "elements_reply": "states/s10.elements.json",
+ "settled": true,
+ "settle_seconds": 4.24,
+ "dynamic_regions": [],
+ "captured_at": "2026-09-29T20:48:16",
+ "box": null,
+ "icon_labels": [
+  {
+   "mcp_ref": "@e41",
+   "name": "delete"
+  },
+  {
+   "mcp_ref": "@e42",
+   "name": "settings"
+  }
+ ],
+ "vision_elements": [
+  {
+   "name": "routine clock icon",
+   "rect_px": {
+    "x": 21.0,
+    "y": 477.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  }
+ ],
+ "blocked_reason": null
+}

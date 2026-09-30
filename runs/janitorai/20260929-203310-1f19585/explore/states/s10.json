@@ -1,0 +1,50 @@
+{
+ "schema_version": 1,
+ "state_id": "s10",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "com.janitor.ai|a42ab4128990e40592398181838092a8|a41283a892a2c2946859b45bdc7f881e|2c47c78c3d04",
+ "foreground_package": "com.janitor.ai",
+ "screenshot": "states/s10.png",
+ "elements_reply": "states/s10.elements.json",
+ "settled": true,
+ "settle_seconds": 5.62,
+ "dynamic_regions": [],
+ "captured_at": "2026-09-29T20:35:26",
+ "box": null,
+ "icon_labels": [
+  {
+   "mcp_ref": "@e29",
+   "name": "menu"
+  },
+  {
+   "mcp_ref": "@e43",
+   "name": "previous page"
+  },
+  {
+   "mcp_ref": "@e46",
+   "name": "next page"
+  }
+ ],
+ "vision_elements": [
+  {
+   "name": "share count 154",
+   "rect_px": {
+    "x": 409.0,
+    "y": 2195.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "share count 26",
+   "rect_px": {
+    "x": 931.0,
+    "y": 2195.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  }
+ ],
+ "blocked_reason": null
+}

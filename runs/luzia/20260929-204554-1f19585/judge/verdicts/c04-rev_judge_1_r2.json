@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c04-rev",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opens the sheet by choice, the offer copy states the reward (a Player Picks spot for 24 hours), declining leaves Explore unchanged, and the ad-fail path is covered."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic, 24-hour spot in a row and cannot be withdrawn, sold, or moved."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: the user has a published app and opens Explore. No chat content is used."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea adds a new row and removes, locks, or caps nothing users get free today."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card and sheet sit on s03 Explore, which is rated safe and is not a chat screen. They are app chrome."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The new resource is the creator's own spot on Explore, used in the observed create-and-explore flow (f4). It is not a slice of a paid benefit, but it goes to the player rather than to another user."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the app as it is today (prompt or remix creation, public once published, the Luzia's Pick badge, the Trending counts and rank badges) match s11.e03, s11.e08, s03.e19 and s14.e15/e17/e18. What was not seen is worded as not seen."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The spot is time-limited to 24 hours and capped at 3 shows per app. It is a separate row that leaves Trending order and the editor's pick unchanged, and it gives away no paid benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer is a card on the Explore screen the user browses, not an interruption of a task in progress. It is a persistent surface the user can choose to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn rewarded game, and the spot is granted only after the confirmed play. The trigger, a published app plus opening Explore, is an app event the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names Explore, the Create tab, the Trending list, and the publish-to-public behavior of this app."
+ },
+ "other_concern": "The proposal cites no evidence ids. Whether the app can detect that a user has a published app depends on My Apps (s12), which was out of scope. The row also gives a creator visibility for playing a game and could favor heavy players over other creators, though it is capped at 1 per day.",
+ "fixable": false
+}

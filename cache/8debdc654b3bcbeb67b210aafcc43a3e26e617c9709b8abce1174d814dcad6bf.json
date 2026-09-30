@@ -1,0 +1,9 @@
+{
+ "text": "{\"on_screen\":false,\"element_id\":null,\"confidence\":0.85,\"reason\":\"This is a news article page where the core action is reading, and no dedicated call-to-action control is visible, only article text, a newsletter link, and navigation elements.\"}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1787,
+ "tokens_out": 81,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

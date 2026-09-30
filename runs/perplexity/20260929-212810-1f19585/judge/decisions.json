@@ -1,0 +1,79 @@
+{
+ "schema_version": 1,
+ "decisions": [
+  {
+   "candidate_id": "c01",
+   "final": "conditional",
+   "checks_passed": 10,
+   "checks_total": 11,
+   "rank_score": 0.25,
+   "gate_fails": [],
+   "judgment_splits": [
+    "c2_evidence"
+   ],
+   "verdict_paths": [
+    "judge/verdicts/c01_judge_1_r1.json",
+    "judge/verdicts/c01_judge_2_r1.json"
+   ],
+   "economics_verdict": "CONDITIONAL",
+   "revision_of": null,
+   "failure_type": null,
+   "rerun_stage": null
+  },
+  {
+   "candidate_id": "c02",
+   "final": "conditional",
+   "checks_passed": 10,
+   "checks_total": 11,
+   "rank_score": 0.0,
+   "gate_fails": [],
+   "judgment_splits": [
+    "c2_evidence"
+   ],
+   "verdict_paths": [
+    "judge/verdicts/c02_judge_1_r1.json",
+    "judge/verdicts/c02_judge_2_r1.json"
+   ],
+   "economics_verdict": "PASS",
+   "revision_of": null,
+   "failure_type": null,
+   "rerun_stage": null
+  },
+  {
+   "candidate_id": "c03",
+   "final": "conditional",
+   "checks_passed": 10,
+   "checks_total": 11,
+   "rank_score": 0.0,
+   "gate_fails": [],
+   "judgment_splits": [
+    "c2_evidence"
+   ],
+   "verdict_paths": [
+    "judge/verdicts/c03_judge_1_r1.json",
+    "judge/verdicts/c03_judge_2_r1.json"
+   ],
+   "economics_verdict": "CONDITIONAL",
+   "revision_of": null,
+   "failure_type": null,
+   "rerun_stage": null
+  },
+  {
+   "candidate_id": "c04",
+   "final": "reject",
+   "checks_passed": 9,
+   "checks_total": 11,
+   "rank_score": 0.25,
+   "gate_fails": [],
+   "judgment_splits": [],
+   "verdict_paths": [
+    "judge/verdicts/c04_judge_1_r1.json",
+    "judge/verdicts/c04_judge_2_r1.json"
+   ],
+   "economics_verdict": "PASS",
+   "revision_of": null,
+   "failure_type": "product_model",
+   "rerun_stage": "explore"
+  }
+ ]
+}

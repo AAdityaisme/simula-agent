@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner is opt-in and its offer copy states the reward (20 minutes of ad-free reading). Declining hides the banner and leaves the article as it is today, and the 'if the ad fails' field covers a game that is unavailable or unconfirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 20 minutes of ad-free reading, which has no cash value and can't be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event, the third article opened in a session, and needs no chat or typed content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed or capped. Ads stay as they are unless the user plays, and the ad-free window is only a temporary extra."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The banner sits in the header area of the article screen s12, which is rated safe, so it counts as app chrome. It is not in a chat and not next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is a product change that adds ad-free reading time, which the player uses in the observed core reading flows f1 and f2. Almost all of the benefit goes to the player."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about today's app are backed by the model. m2 shows a sponsored card under the byline and ADVERTISEMENT blocks in articles, and the open questions record no paid plan and an unconfirmed paywall, which the proposal words as 'not seen'. The revenue comparison is a prediction, not a claim about the app."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No paid ad-free plan was observed, and the reward expires after 20 minutes with a 1-per-day cap. It takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "A slim banner under the header does not block or interrupt reading, and it appears when the user opens their third story."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn rewarded game, and the reward comes after the game ends. The trigger is a detectable app event, the third article opened, and the failure path grants nothing if the play can't be confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names this app's article screen, the sponsored card under the byline, the ADVERTISEMENT display blocks, and the f2 gallery flow."
+ },
+ "other_concern": "Suppressing Taboola cards and display blocks may depend on the ad partners allowing it. 'Third article in a session' also needs a definition, and the trigger screen names only one article (s12).",
+ "fixable": false
+}

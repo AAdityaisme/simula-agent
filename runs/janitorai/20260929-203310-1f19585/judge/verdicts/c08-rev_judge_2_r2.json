@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c08-rev",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute faster-replies reward and 1 cheer before the user chooses to play. The decline and ad-failure fields preserve the existing chat flow and withhold rewards if play cannot be confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is temporary faster replies and a creator cheer, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses the chat history sheet opening and the character's Hidden Gems listing, not the content of a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The 'removes nothing free' and decline fields leave saved chats and Start new chat unchanged."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on s18, a safe-rated chat history sheet, rather than an offer inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product change gives the player a 30-minute slice of the paid priority-routing benefit listed at s16.e10; the additional cheer goes to the creator."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The current-app claims about priority routing, Hidden Gems, the chat history sheet, and the creator profile are supported by s16.e10, s01.e15, s18, and s07. The membership check and cheer count are explicitly described as additions."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The faster-replies reward expires after 30 minutes and is capped at two offers per day; the new cheer count does not take existing visibility or benefits from others."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a card on the chat history sheet the user opens, before they choose a saved chat or Start new chat."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game, and the ad-failure field withholds the reward when play cannot be confirmed. Opening the sheet for a Hidden Gems character is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea ties s18's Start new chat button and s01's Hidden Gems listing to the priority-routing benefit shown at s16.e10."
+ },
+ "other_concern": "",
+ "fixable": false
+}

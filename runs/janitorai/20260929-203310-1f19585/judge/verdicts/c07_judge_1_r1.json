@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c07",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user chooses to play from the sheet, and the offer copy states the reward (24-hour golden checkmark plus 1 cheer). Declining leaves the follow and profile unchanged, and a failed or unverified play gives no reward without using up the day's chance."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic checkmark that lasts 24 hours, and the cheer is a count on a profile; neither can be withdrawn or exchanged."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a tap on the Follow button (s07.e05), which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal states 'removes nothing free'. It adds a temporary status item and a count, and it doesn't lock or cap anything free."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a sheet over s07 Creator profile, which is rated safe and is not a chat screen. It sits in no conversation and next to no unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The new resource is a slice of a paid benefit (l7 'Golden checkmark next to your username', s16.e12), and the player uses it on their own profile. Most of the reward goes to the player; the cheer is only a count for the creator."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the app today are supported: the Plus checkmark (s16.e12), Hidden Gems (s01.e15), the Follow button (s07.e05) and the safe rating of s07. The claim of no visible way to show support is worded as an observation and matches s07's recorded elements. The cheers count, sheet and copy are the proposal's own additions."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The checkmark expires after 24 hours, and the checkmark is not Plus's main benefit, which is memory, priority routing and swipes. The cheers count explicitly never reorders Hidden Gems or any feed, so creators lose no place or visibility."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The sheet opens right after the follow is confirmed, which is a finished action, so it doesn't interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn rewarded playable, and the checkmark and cheer are granted only after a verified play. The trigger is the Follow tap, which the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Plus golden checkmark (s16.e12), the Hidden Gems tab, and the Follow button on the creator profile (s07), so it would not read the same in another app."
+ },
+ "other_concern": "Step 4 says the viewer's checkmark appears on the creator profile screen, but the viewer's own username isn't shown there; it would show on the viewer's own profile. Whether the app can tell that a creator profile was opened from a Hidden Gems card is not established. Users could unfollow and refollow different creators to farm daily cheers.",
+ "fixable": false
+}

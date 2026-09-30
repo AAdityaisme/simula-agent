@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c07",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before the user chooses to play. The decline and ad-failure fields leave normal reading available without consuming the day's chance."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field grants 30 minutes without in-app ads, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event counts article opens and a return to the feed; it does not need anything the user wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and removes-nothing-free fields leave the existing free reading flow intact and offer temporary ad suppression as an extra."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner under the header of s01, a content-safe home feed, rather than inside a conversation or beside unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product change gives the player an ad-free period for reading articles, their own use of the observed core flows f1 and f2."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field claims the ad value displaced by a half hour is low. Mechanics m1 and m2 establish where ads appear, but do not support a claim about their current value."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes, and the model does not establish a paid ad-free benefit that it would grant without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger and placement put a dismissible banner on s01 after the user returns from reading, not in the middle of an article."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow requires playing a sponsored game, while the reward and ad-failure fields withhold the ad-free period unless the game is confirmed. The third article open is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names s01's sponsored feed cards, s05's under-byline card, and the in-article ADVERTISEMENT blocks it would temporarily suppress."
+ },
+ "other_concern": "The proposal does not establish whether existing ad arrangements permit suppressing sponsored cards and display blocks.",
+ "fixable": true
+}

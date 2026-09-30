@@ -1,0 +1,225 @@
+{
+ "schema_version": 1,
+ "candidates": [
+  {
+   "id": "c02-rev",
+   "lens": "free_at_limit",
+   "kind": "product_change",
+   "title": "Product change: 3 extra starter templates for your next app, for 24 hours",
+   "anchor_evidence_ids": [
+    "s11.e10",
+    "s11.e13",
+    "s03.e08"
+   ],
+   "bible_mechanic": "M11",
+   "what_is_different_here": "The Create screen (s11) already offers ready-made starting points to remix, such as Pixel Art Pad (s11.e10) and Gratitude Journal (s11.e13), and Explore (s03) has a Create app button (s03.e08) that leads there. No creation limit, price, or paid plan was seen in the explored screens, so this adds a daily bonus: a card on Explore, placed below the Trending cards, that unlocks 3 extra pre-made templates on the Create screen for 24 hours. The reward is for the player's own use in the explore-and-create flow. It changes nothing other users see and does not move any app in Explore. The templates are pre-built, so unlocking them costs no AI replies. Building from them costs the same as building from a free prompt today.",
+   "adds": "A daily card on Explore that unlocks 3 extra starter templates on the Create screen for 24 hours after the user plays a short game.",
+   "removes_nothing_free": true,
+   "trigger_event": "The user opens the Explore tab and has not taken today's template offer yet.",
+   "trigger_state_id": "s03",
+   "placement": "A card in the Explore list, below the Trending cards, that leaves the featured app and Trending cards where they are.",
+   "offer_copy": "Play a short game to unlock 3 extra starter templates for your next app for 24 hours.",
+   "reward": {
+    "kind": "content_unlock",
+    "unit": "templates",
+    "amount": 3.0,
+    "duration": "24 hours"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per user per day, resets at midnight local time",
+   "daily_cap": 1,
+   "decline_path": "The card closes. Explore, Trending, and the Create screen stay exactly as they were, with the usual templates.",
+   "ad_fail_path": "If no game is available, the card stays hidden. If the game can't be confirmed, a short note says the templates weren't unlocked, and the offer stays available today.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Creative tools, casual games, and app-building services",
+   "character_use": "None",
+   "flow_steps": [
+    {
+     "state_id": "s03",
+     "caption": "The user browses the Explore catalog of community mini apps, as today."
+    },
+    {
+     "state_id": "new:template-offer",
+     "caption": "A card below Trending offers 3 extra starter templates for 24 hours in exchange for a short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays a short sponsored game and can close it at any time."
+    },
+    {
+     "state_id": "s11",
+     "caption": "The Create screen shows 3 new templates next to the usual ones, ready to remix for the next 24 hours."
+    }
+   ],
+   "after_reward": "When the 24 hours end, the extra templates leave the Create screen, but any app the user started from them stays theirs, so they come back tomorrow to unlock a new set.",
+   "rationale": "People who browse Explore and tap Create app are looking for a starting idea, and more ready-made templates give them one for their own use. The reward costs nothing to serve and changes no other creator's visibility. It gives browsers a daily reason to open the Create tab and turns browsing into building.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "CONDITIONAL",
+    "assumption_line": "Serving cost not counted: no price observed. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 3 unlocked item(s); one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 1.0,
+   "rank_score": 1.0,
+   "dropped_reason": null,
+   "flags": []
+  },
+  {
+   "id": "c04-rev",
+   "lens": "subscriber",
+   "kind": "product_change",
+   "title": "Product change: Show your published app in a Player Picks row for 24 hours",
+   "anchor_evidence_ids": [],
+   "bible_mechanic": "M27",
+   "what_is_different_here": "The Create tab lets users build mini apps from a prompt or by remixing (s11.e03), and creations become public once published (s11.e08). Explore shows an editor's pick badge (s03.e19) and a Trending list with like and save counts and rank badges (s14.e15, s14.e17, s14.e18), where the cards seen carry 2K, 1.3K and 580 likes. How a newly published app appears in Explore, and what counts it starts with, was not seen in the explored screens. No paid plan, limit, or currency was seen either. So this adds a separate, clearly labeled row that exists only to show apps their creators chose to place there. It does not change the Trending order, the editor's pick, or any like and save counts. Unlike Twitch's cheering, the creator places their own app, so the player gets something for their own use.",
+   "adds": "A clearly labeled Player Picks row on the Explore screen, where a creator can place one of their own published apps for 24 hours by playing one short sponsored game.",
+   "removes_nothing_free": true,
+   "trigger_event": "A user who has at least one published mini app opens the Explore view of the Create tab.",
+   "trigger_state_id": "s03",
+   "placement": "A card at the top of the Explore screen, shown only to users who have a published app, that opens a sheet.",
+   "offer_copy": "Play a short game to show your app in the Player Picks row on Explore for 24 hours.",
+   "reward": {
+    "kind": "cosmetic",
+    "unit": "spot in Player Picks",
+    "amount": 1.0,
+    "duration": "24 hours"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per day per user, resets at midnight local time; each app can be shown at most 3 times in total.",
+   "daily_cap": 1,
+   "decline_path": "The card closes and the user's app stays exactly as it was; Explore works as before.",
+   "ad_fail_path": "If no game is available the card stays hidden; if the game is not confirmed the user sees a kind note that the spot wasn't added, and today's try is not used up.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Casual mobile games and creative or productivity apps",
+   "character_use": "The creator's own app preview appears on the offer sheet; no app characters appear in the sponsored game.",
+   "flow_steps": [
+    {
+     "state_id": "s03",
+     "caption": "A creator with a published app opens Explore in the Create tab."
+    },
+    {
+     "state_id": "new:spotlight-offer",
+     "caption": "A card offers 24 hours in the Player Picks row for one short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The creator plays a short sponsored game and can close it at any time."
+    },
+    {
+     "state_id": "new:player-picks-row",
+     "caption": "Once confirmed, the app appears in the labeled Player Picks row on Explore for 24 hours."
+    }
+   ],
+   "after_reward": "When the 24 hours end, the app leaves the Player Picks row and keeps whatever likes and saves it earned, so the creator comes back to make or remix another app to show next.",
+   "rationale": "Creators want their apps to be seen, and the Explore screen shows the top Trending apps carrying thousands of likes and rank badges, so a free day in a visible row is worth a short game to them. It costs nothing to serve, gives creators a reason to keep publishing, and gives other users more apps to open, like, and remix.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 1.0,
+   "rank_score": 1.0,
+   "dropped_reason": null,
+   "flags": []
+  },
+  {
+   "id": "c08-rev",
+   "lens": "ledger_v1",
+   "kind": "product_change",
+   "title": "Product change: Feature your new app on Explore for 24 hours",
+   "anchor_evidence_ids": [
+    "s03.e08",
+    "s11.e03",
+    "s11.e08",
+    "s11.e10",
+    "s13.e07"
+   ],
+   "bible_mechanic": "M27",
+   "what_is_different_here": "No paywall or limit on creating or publishing was seen in the explored screens, so this adds a labeled spot on Explore. The observed path is Explore (s03), then the Create app button (s03.e08), then the create screen (s11). That screen invites the user to start from an idea or remix a template such as Pixel Art Pad (s11.e03, s11.e10) and says creations are public once published (s11.e08). App pages already show a creator byline (s13.e07). The offer sits only on the create screen. What happens after tapping remix on an app page, and the publish steps themselves, were not observed, so nothing here depends on them. Once the user's creation is public, it gets 24 hours in a new labeled 'Fresh creations' row on Explore. When it was remixed from a template, the spot names and credits the original. The Trending list and its ranks are untouched.",
+   "adds": "A labeled 'Fresh creations' row on Explore where a user's new public app can be featured for 24 hours, with credit to the original when it is a remix.",
+   "removes_nothing_free": true,
+   "trigger_event": "The create screen opens after the user taps Create app on Explore.",
+   "trigger_state_id": "s11",
+   "placement": "A banner under the header of the create screen, closable with one tap.",
+   "offer_copy": "Play a short game to feature your next app in the Fresh creations row on Explore for 24 hours once it's public.",
+   "reward": {
+    "kind": "queue_priority",
+    "unit": "hours in the Fresh creations row on Explore",
+    "amount": 24.0,
+    "duration": "24 hours, starting when the creation becomes public"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per day, resets at midnight local time; one feature per creation.",
+   "daily_cap": 1,
+   "decline_path": "The banner closes and the create screen stays exactly as it was.",
+   "ad_fail_path": "If no game is available, the banner doesn't show. If the play isn't confirmed, a short note says the feature wasn't added and the attempt isn't counted.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Casual mobile games and app-building or design tools",
+   "character_use": "None. When the creation is a remix, the featured spot shows the original template's name and credit.",
+   "flow_steps": [
+    {
+     "state_id": "s03",
+     "caption": "On Explore, the user taps Create app."
+    },
+    {
+     "state_id": "s11",
+     "caption": "The create screen opens with a banner offering a 24-hour feature on Explore."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays a short sponsored game."
+    },
+    {
+     "state_id": "new:remix-featured",
+     "caption": "Once the creation is public, it sits in Fresh creations for 24 hours, with credit to the original if it's a remix."
+    }
+   ],
+   "after_reward": "When the 24 hours end, the app leaves the row with a note that the next creation can be featured tomorrow, which brings the user back to make another.",
+   "rationale": "People who make apps here want others to see them, and a day in a labeled row on Explore is worth a short game. When the creation is a remix, the original also gets credit. The app gets more creations made public and more browsing between apps, at no model cost.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost (the peak-capacity cost is real but unknown); one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 0.5,
+   "rank_score": 0.5,
+   "dropped_reason": null,
+   "flags": []
+  }
+ ]
+}

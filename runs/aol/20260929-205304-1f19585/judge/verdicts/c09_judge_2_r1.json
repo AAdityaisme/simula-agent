@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c09",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the choice and its seven-day duration before play. The card is optional, declining preserves the usual feed, and 'if the ad fails' provides a no-reward path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a seven-day choice of sponsored-story categories, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a count of home-feed opens, not anything the user typed or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The 'adds' and 'if the user declines' fields keep the existing feed available; the optional choice changes the mix of sponsored cards rather than locking free content."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a dismissible card below the category tabs on s01, a content-safe home feed, rather than inside a conversation or next to unknown-rated content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product change gives the reader a choice they use in the home feed, which is part of the observed story-reading flows f1 and f2. The benefit is not predominantly given to another person."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field presents the quoted TEMU jacket deal as part of the home feed's sponsor mix, but that headline is observed on article s05.e15, not home-feed card s01.e44. Its claim that car accessories are among the observed sponsors is also unsupported by s01.e44's 'Elevate Your Your Ride' headline."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after seven days, and the model establishes no paid benefit that it gives away. The proposal changes which paid sponsor categories appear, not another user's or creator's existing placement."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The 'placement' is a dismissible card on the home feed when it opens, not an interruption in the middle of reading an article."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game and grants the choice only once play is confirmed. Opening the home feed for the third time is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses s01's category tabs and sponsored cards, whose rotation is observed in m1."
+ },
+ "other_concern": "",
+ "fixable": true
+}

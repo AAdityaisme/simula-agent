@@ -1,0 +1,738 @@
+{
+ "schema_version": 1,
+ "candidates": [
+  {
+   "id": "c07",
+   "lens": "ledger_v1",
+   "kind": "product_change",
+   "title": "Product change: Unlock a gold card frame for your apps",
+   "anchor_evidence_ids": [
+    "s13.e07",
+    "s13.e09",
+    "s14.e15",
+    "s14.e18"
+   ],
+   "bible_mechanic": "M27",
+   "what_is_different_here": "No paywall, limit, or currency was seen in the explored screens, so this adds a two-sided reward on the mini app catalog. Community apps carry a creator byline (s13.e07) and public like and save counts (s13.e09, s13.e11, s14.e15, s14.e17), and users publish their own apps (s11.e08). The viewer's play unlocks a frame for their own published app cards and adds one backing to the creator of an app they just liked. Backings show in a new labeled count and a weekly most-backed list; they never change the Trending order or the #1 rank badge (s14.e18).",
+   "adds": "A labeled backing count on each mini app's detail page with a weekly most-backed list, plus card frames players can unlock for the apps they publish.",
+   "removes_nothing_free": true,
+   "trigger_event": "The user returns to the Explore list after liking at least one app during this visit.",
+   "trigger_state_id": "s14",
+   "placement": "A card in the Explore list, above the Trending section.",
+   "offer_copy": "Play a short game to unlock a gold frame for your own app cards for 7 days, and add 1 backing to the creator of the app you just liked.",
+   "reward": {
+    "kind": "cosmetic",
+    "unit": "gold card frame for your published apps",
+    "amount": 1.0,
+    "duration": "7 days"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "3 per day, resets at midnight local time; each app can be backed by the same user at most once a day.",
+   "daily_cap": 3,
+   "decline_path": "The card closes and the Explore list stays exactly as it was. Likes, saves, and opening apps work the same.",
+   "ad_fail_path": "If no game is available the card doesn't show. If the play isn't confirmed, a short note says no frame was added and the attempt isn't counted.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Casual mobile games and creative tools",
+   "character_use": "None. The card shows the liked app's name and preview image next to the frame.",
+   "flow_steps": [
+    {
+     "state_id": "s14",
+     "caption": "The user scrolls Explore after liking an app."
+    },
+    {
+     "state_id": "new:backing-card",
+     "caption": "A card offers a 7-day gold frame for their own apps plus 1 backing for the creator."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays a short sponsored game."
+    },
+    {
+     "state_id": "new:frame-unlocked",
+     "caption": "The gold frame is on their apps for 7 days and the creator's backing count goes up by 1."
+    }
+   ],
+   "after_reward": "When the 7 days end, the frame goes back to plain with a note that backing another app you like brings it back, which pulls the user back into Explore.",
+   "rationale": "Users who like an app already want to show support, and anyone who publishes wants their app cards to stand out, so the play gives them something for themselves and a way to thank the creator. The app gets a zero-cost reward that drives more browsing, liking, and publishing in the catalog.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 1.5,
+   "rank_score": 1.5,
+   "dropped_reason": null,
+   "flags": []
+  },
+  {
+   "id": "c09",
+   "lens": "ledger_v2",
+   "kind": "product_change",
+   "title": "Product change: Cheer an app's maker and wear a supporter badge",
+   "anchor_evidence_ids": [
+    "s13.e09",
+    "s13.e11",
+    "s13.e07"
+   ],
+   "bible_mechanic": "M27",
+   "what_is_different_here": "Mini apps on the app detail page (s13) are public creations with visible like and save counts (s13.e09, s13.e11) and a maker byline (s13.e07), so there is a real maker to thank. No paywall, message limit, or currency was seen in the explored screens, so this adds a new two-sided reward. The viewer gets a badge for their own profile and their own app cards, and the maker gets a cheer in a new labeled line that exists only to show player support. The Trending order and the rank badges on Explore (s14.e18) stay untouched.",
+   "adds": "A 'Cheers from players' line on each app's detail page, plus a 7-day supporter badge the viewer can earn by playing a short sponsored game after liking an app.",
+   "removes_nothing_free": true,
+   "trigger_event": "The user taps like on an app's detail page.",
+   "trigger_state_id": "s13",
+   "placement": "A small sheet that slides up over the app detail page right after the like is registered.",
+   "offer_copy": "Play a short game to send this app's maker a cheer and get a supporter badge on your profile for 7 days.",
+   "reward": {
+    "kind": "cosmetic",
+    "unit": "supporter badge",
+    "amount": 1.0,
+    "duration": "7 days"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "3 per day, resets at midnight local time; at most 1 cheer per app per day from the same user.",
+   "daily_cap": 3,
+   "decline_path": "The sheet closes, the like stays counted, and the detail page works exactly as before.",
+   "ad_fail_path": "If no game is ready, the sheet does not appear. If the game can't be confirmed, a short note says no cheer was sent, and the attempt does not count toward today's 3.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Casual mobile games and creative tools",
+   "character_use": "None; the sheet shows the app's own preview image and name from its detail page.",
+   "flow_steps": [
+    {
+     "state_id": "s13",
+     "caption": "The user opens an app's detail page and taps like."
+    },
+    {
+     "state_id": "new:cheer-sheet",
+     "caption": "A sheet offers: play a short game to cheer the maker and get a supporter badge for 7 days."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays a short sponsored game."
+    },
+    {
+     "state_id": "new:cheer-confirmed",
+     "caption": "The maker's cheer count goes up by one, and the badge appears on the user's profile and app cards."
+    }
+   ],
+   "after_reward": "When the 7 days end, the badge fades with a note that liking and cheering another app brings it back, which draws the user back to browse Explore.",
+   "rationale": "People already like and save these apps in the thousands, so a like is a moment when the user wants to thank the maker. A free badge makes that thanks worth a short game, and the cheer line gives makers a new reason to keep publishing. The reward costs nothing to serve.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 1.5,
+   "rank_score": 1.5,
+   "dropped_reason": null,
+   "flags": []
+  },
+  {
+   "id": "c01",
+   "lens": "free_at_limit",
+   "kind": "product_change",
+   "title": "Product change: One extra growth step for Toki today",
+   "anchor_evidence_ids": [
+    "s01.e26",
+    "s01.e27",
+    "s05.e04",
+    "s05.e06"
+   ],
+   "bible_mechanic": "M11",
+   "what_is_different_here": "The Toki intro modal (s05.e04) promises the pet grows when the user cares for it, and the Toki promo card sits on Chats home (s01.e26, s01.e27). Growth is the thing a Toki owner waits for, so a bonus treat is the natural daily extra. No message limit, paywall, or price was seen in the explored screens, and the care screens after Meet me were not seen, so this adds a small daily bonus on top of normal care. It is purely visual progress and needs no new AI reply.",
+   "adds": "A once-a-day bonus treat on the Toki card on Chats home that gives Toki one extra growth step, on top of normal care.",
+   "removes_nothing_free": true,
+   "trigger_event": "Chats home opens for a user who has met Toki and has not taken today's bonus treat.",
+   "trigger_state_id": "s01",
+   "placement": "A small offer strip under the Toki card on Chats home.",
+   "offer_copy": "Play a short game to give Toki a bonus treat: 1 extra growth step, once today.",
+   "reward": {
+    "kind": "cosmetic",
+    "unit": "growth step",
+    "amount": 1.0,
+    "duration": "permanent, one per day"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per day, resets at midnight local time",
+   "daily_cap": 1,
+   "decline_path": "The strip closes for the day and Toki and Chats home work exactly as before; normal care still grows Toki.",
+   "ad_fail_path": "If no game is available the strip stays hidden; if the game can't be confirmed, a note says the treat wasn't added and the offer stays available today.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Casual mobile games and family-friendly snack brands",
+   "character_use": "Toki appears on the offer strip holding an empty treat bowl and celebrates on the reward screen; Toki does not appear inside the sponsored game.",
+   "flow_steps": [
+    {
+     "state_id": "s01",
+     "caption": "Chats home with the Toki card, as today."
+    },
+    {
+     "state_id": "new:toki-treat-offer",
+     "caption": "A strip under the Toki card offers 1 extra growth step for a short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays a short sponsored game and can close it anytime."
+    },
+    {
+     "state_id": "new:toki-grown",
+     "caption": "Toki eats the treat and grows one step; the strip says come back tomorrow."
+    }
+   ],
+   "after_reward": "Once today's treat is used, the strip shows when tomorrow's treat unlocks, giving the user a reason to come back and care for Toki again.",
+   "rationale": "Toki is pitched as a pet that grows with care, so owners want visible progress and a daily reason to return. A free extra growth step costs the app nothing to serve and turns Toki into a daily return habit that also earns ad revenue.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 1.0,
+   "rank_score": 1.0,
+   "dropped_reason": null,
+   "flags": []
+  },
+  {
+   "id": "c02",
+   "lens": "free_at_limit",
+   "kind": "product_change",
+   "title": "Product change: Your published app shown in Explore's Spotlight for 24 hours",
+   "anchor_evidence_ids": [
+    "s11.e08",
+    "s14.e18",
+    "s14.e15",
+    "s14.e17",
+    "s03.e08"
+   ],
+   "bible_mechanic": "M27",
+   "what_is_different_here": "The Create tab ranks community mini apps by likes and saves with #1 and #2 badges on Explore (s14.e18, s14.e15, s14.e17), and creations become public once published (s11.e08). A new creator's app has no likes yet and can't reach Trending. No creation limit or price was seen in the explored screens, so this adds a separate, clearly labeled Spotlight row that never reorders Trending or the editor's pick. The creator gets visibility for their own app, and it costs no AI replies.",
+   "adds": "A labeled Spotlight row at the top of Explore where a creator can place one of their published apps for 24 hours by playing a short game.",
+   "removes_nothing_free": true,
+   "trigger_event": "A user who has at least one published mini app opens the Explore tab.",
+   "trigger_state_id": "s03",
+   "placement": "A card at the top of the Explore catalog, above the featured app.",
+   "offer_copy": "Play a short game to show your app in the Spotlight row for 24 hours.",
+   "reward": {
+    "kind": "cosmetic",
+    "unit": "Spotlight placement",
+    "amount": 1.0,
+    "duration": "24 hours"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per user per day, resets at midnight local time; each app at most once per week",
+   "daily_cap": 1,
+   "decline_path": "The card closes and Explore, Trending, and the user's apps stay exactly as they were.",
+   "ad_fail_path": "If no game is available the card stays hidden; if the game can't be confirmed, a note says the Spotlight wasn't added and the offer stays available today.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Creative tools, casual games, and app-building services",
+   "character_use": "None",
+   "flow_steps": [
+    {
+     "state_id": "s03",
+     "caption": "Explore catalog with Trending apps ranked by likes, as today."
+    },
+    {
+     "state_id": "new:spotlight-offer",
+     "caption": "A card at the top offers 24 hours in the Spotlight row for a short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays a short sponsored game and can close it anytime."
+    },
+    {
+     "state_id": "new:spotlight-row",
+     "caption": "The user's app appears in the labeled Spotlight row for 24 hours."
+    }
+   ],
+   "after_reward": "When the 24 hours end, the app leaves the Spotlight row with a note showing the likes and saves it gained, so the creator comes back to feature it again or build another app.",
+   "rationale": "New creators are stuck behind apps with thousands of likes, so a day of visibility is something they want right after publishing. It costs nothing to serve, brings fresh apps in front of browsers, and keeps creators returning to the Create tab.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 1.0,
+   "rank_score": 1.0,
+   "dropped_reason": null,
+   "flags": []
+  },
+  {
+   "id": "c03",
+   "lens": "subscriber",
+   "kind": "product_change",
+   "title": "Product change: A new outfit for your virtual pet Toki for 3 days",
+   "anchor_evidence_ids": [],
+   "bible_mechanic": "M11",
+   "what_is_different_here": "The home screen (s01) promotes Toki, a virtual pet that grows when the user cares for it (s01.e26, s01.e27), and the intro modal (s05.e04) frames caring for it as a reason to come back. The most engaged users who keep the pet on see its card every day, so a once-a-day outfit fits that habit and costs nothing to serve. No paid plan, limit, or currency was seen in the explored screens, and the pet's care screen itself was not seen, so this adds a new daily bonus next to the existing pet card and takes nothing away.",
+   "adds": "A once-a-day button on the home screen's Toki card that lets the user play a short sponsored game to dress the pet in a new outfit for 3 days.",
+   "removes_nothing_free": true,
+   "trigger_event": "User opens the home screen for the first time that day while the virtual pet is turned on and the pet card is showing.",
+   "trigger_state_id": "s01",
+   "placement": "A small button on the existing Toki card on the home screen, opening a sheet over the home screen.",
+   "offer_copy": "Play a short game to dress Toki in a new outfit for 3 days. 1 per day.",
+   "reward": {
+    "kind": "cosmetic",
+    "unit": "pet outfit",
+    "amount": 1.0,
+    "duration": "3 days"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per day per user, resets at midnight local time.",
+   "daily_cap": 1,
+   "decline_path": "The sheet closes and the home screen and pet card stay exactly as they were; the button comes back the next day.",
+   "ad_fail_path": "If no game is available the button stays hidden; if the game is not confirmed the user sees a kind note that the outfit wasn't added, and today's try is not used up.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Casual mobile games and family-friendly consumer brands",
+   "character_use": "Toki appears on the offer sheet wearing a preview of the outfit; the pet does not appear inside the sponsored game.",
+   "flow_steps": [
+    {
+     "state_id": "s01",
+     "caption": "The home screen shows the Toki card as it does today."
+    },
+    {
+     "state_id": "new:toki-outfit-offer",
+     "caption": "A sheet offers a new outfit for Toki for 3 days in exchange for one short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays a short sponsored game and can close it at any time."
+    },
+    {
+     "state_id": "new:toki-outfit-granted",
+     "caption": "Once the game is confirmed, Toki wears the new outfit on the home card for 3 days."
+    }
+   ],
+   "after_reward": "When the 3 days end, Toki goes back to its usual look and the button offers a new outfit the next day, giving engaged users a reason to return daily.",
+   "rationale": "Users who keep the pet on already open the home screen to care for it, so a visible reward for that pet is something they want and cannot get another way. It costs the app nothing per grant and adds a daily reason to come back to the home screen, where chats and personas start.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 1.0,
+   "rank_score": 1.0,
+   "dropped_reason": null,
+   "flags": []
+  },
+  {
+   "id": "c04",
+   "lens": "subscriber",
+   "kind": "product_change",
+   "title": "Product change: Show your new app in a Player Picks row for 24 hours",
+   "anchor_evidence_ids": [],
+   "bible_mechanic": "M27",
+   "what_is_different_here": "The Create tab lets users build mini apps from a prompt or remix (s11.e03), creations become public once published (s11.e08), and Explore ranks apps by likes and saves with badges like #1 (s14.e15, s14.e17, s14.e18). The most engaged users are creators whose new apps start at zero likes and are hard to find next to apps with 2K likes. No paid plan, limit, or currency was seen in the explored screens, so this adds a separate, clearly labeled row that exists only to show player-chosen apps; it does not change the Trending order, the editor's pick, or like and save counts.",
+   "adds": "A clearly labeled Player Picks row on the Explore screen, where a creator can place their own published app for 24 hours by playing one short sponsored game.",
+   "removes_nothing_free": true,
+   "trigger_event": "User publishes a mini app and then returns to the Explore screen.",
+   "trigger_state_id": "s03",
+   "placement": "A card at the top of the Explore screen, shown only to the creator after they publish, opening a sheet.",
+   "offer_copy": "Play a short game to show your new app in the Player Picks row on Explore for 24 hours.",
+   "reward": {
+    "kind": "cosmetic",
+    "unit": "spot in Player Picks",
+    "amount": 1.0,
+    "duration": "24 hours"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per day per user, resets at midnight local time; each app can be shown at most 3 times in total.",
+   "daily_cap": 1,
+   "decline_path": "The card closes and the published app stays public and listed exactly as it would have been; Explore works as before.",
+   "ad_fail_path": "If no game is available the card stays hidden; if the game is not confirmed the user sees a kind note that the spot wasn't added, and today's try is not used up.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Casual mobile games and creative or productivity apps",
+   "character_use": "The creator's own app preview appears on the offer sheet; no app characters appear in the sponsored game.",
+   "flow_steps": [
+    {
+     "state_id": "s03",
+     "caption": "The creator lands on Explore after publishing, as today."
+    },
+    {
+     "state_id": "new:spotlight-offer",
+     "caption": "A card offers 24 hours in the Player Picks row for one short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The creator plays a short sponsored game and can close it at any time."
+    },
+    {
+     "state_id": "new:player-picks-row",
+     "caption": "Once confirmed, the app appears in the labeled Player Picks row on Explore for 24 hours."
+    }
+   ],
+   "after_reward": "When the 24 hours end, the app leaves the Player Picks row and keeps whatever likes and saves it earned, so the creator comes back to make or remix another app to show next.",
+   "rationale": "Creators want their new app to be seen, and Explore shows that attention goes to apps with thousands of likes, so a free day of visibility is worth a short game to them. It costs nothing to serve, keeps new creations flowing into Explore, and gives other users fresh apps to open, like, and remix.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 1.0,
+   "rank_score": 1.0,
+   "dropped_reason": null,
+   "flags": []
+  },
+  {
+   "id": "c08",
+   "lens": "ledger_v1",
+   "kind": "product_change",
+   "title": "Product change: Feature your remix for 24 hours, credited to the original",
+   "anchor_evidence_ids": [
+    "s13.e07",
+    "s13.e15",
+    "s11.e03",
+    "s11.e08"
+   ],
+   "bible_mechanic": "M27",
+   "what_is_different_here": "No paywall or limit on creating or publishing was seen in the explored screens, so this adds a labeled spot on Explore. Apps show a creator byline (s13.e07) and a remix button (s13.e15), and the create screen invites remixing (s11.e03) with creations public once published (s11.e08). The viewer's own remix gets 24 hours in a new labeled 'Fresh remixes' row, and every spot there names and links the original app and its creator, so the original creator gets exposure too. The Trending list and its ranks are untouched.",
+   "adds": "A labeled 'Fresh remixes' row on Explore where a remix can be featured for 24 hours, always shown with a credit and link to the original app and its creator.",
+   "removes_nothing_free": true,
+   "trigger_event": "The user taps remix on an app's detail page and the create screen opens.",
+   "trigger_state_id": "s11",
+   "placement": "A banner under the header of the create screen, closable with one tap.",
+   "offer_copy": "Play a short game to feature your remix in the Fresh remixes row for 24 hours after you publish it, with credit to the original creator.",
+   "reward": {
+    "kind": "queue_priority",
+    "unit": "hours in the Fresh remixes row on Explore",
+    "amount": 24.0,
+    "duration": "24 hours, starting when the remix is published"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per day, resets at midnight local time; one feature per remix.",
+   "daily_cap": 1,
+   "decline_path": "The banner closes and remixing and publishing work exactly as before.",
+   "ad_fail_path": "If no game is available the banner doesn't show. If the play isn't confirmed, a short note says the feature wasn't added and the attempt isn't counted.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Casual mobile games and app-building or design tools",
+   "character_use": "None. The banner shows the original app's name and creator credit.",
+   "flow_steps": [
+    {
+     "state_id": "s13",
+     "caption": "The user taps remix on a community app."
+    },
+    {
+     "state_id": "s11",
+     "caption": "The create screen opens as today, with a banner offering a 24-hour feature."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays a short sponsored game."
+    },
+    {
+     "state_id": "new:remix-featured",
+     "caption": "After publishing, the remix sits in Fresh remixes for 24 hours, credited to the original creator."
+    }
+   ],
+   "after_reward": "When the 24 hours end, the remix leaves the row with a note that the next remix can be featured tomorrow, which brings the user back to make another.",
+   "rationale": "Remixers want people to see what they made, and a day of visibility is worth a short game to them; the original creator gains exposure and credit from every featured remix. The app gets more published remixes and more traffic between apps at no model cost.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost (the peak-capacity cost is real but unknown); one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 0.5,
+   "rank_score": 0.5,
+   "dropped_reason": null,
+   "flags": []
+  },
+  {
+   "id": "c06",
+   "lens": "drifting",
+   "kind": "product_change",
+   "title": "Product change: Your mini app shown in a community row for 24 hours",
+   "anchor_evidence_ids": [],
+   "bible_mechanic": "M27",
+   "what_is_different_here": "The Create tab's Explore catalog (s03, s14) already ranks public mini apps with likes, saves, and #1/#2 badges (s14.e15, s14.e18, s14.e25), and creations are public once published (s11.e08). A creator who has drifted away has published work that could bring them back if people see it. Instead of changing the ranked Trending list, this adds a separate, clearly labeled row on Explore that shows the creator's own app for a day, plus a badge on their app they keep for the week. No paid plan or limit on publishing was seen in the explored screens.",
+   "adds": "A clearly labeled 'From returning creators' row on the Explore catalog, where one play shows the user's own published mini app for 24 hours, plus a 7-day badge on that app's card.",
+   "removes_nothing_free": true,
+   "trigger_event": "A user who has published at least one mini app opens the Create tab's Explore catalog, and their last session was 3 or more days ago.",
+   "trigger_state_id": "s03",
+   "placement": "A dismissible card at the top of the Explore catalog in the Create tab, above the featured app.",
+   "offer_copy": "Welcome back! Play a short game to show your app in the 'From returning creators' row for 24 hours and get a 7-day creator badge.",
+   "reward": {
+    "kind": "cosmetic",
+    "unit": "spot in the returning creators row",
+    "amount": 1.0,
+    "duration": "24 hours in the row, badge for 7 days"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per week per user, and only on a return after 3 or more days away; resets 7 days after it was taken.",
+   "daily_cap": 0,
+   "decline_path": "The card closes; the Explore catalog, Trending list, likes, saves, and creating apps all work exactly as before.",
+   "ad_fail_path": "If no game is available, the card is not shown. If the game can't be confirmed, the user sees 'That game didn't count, your app wasn't added this time' and can try again on the same visit.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Creative tools, casual games, and learning apps",
+   "character_use": "None; the user's own mini app card is shown in the row.",
+   "flow_steps": [
+    {
+     "state_id": "s03",
+     "caption": "A creator returns after several days away and opens the Explore catalog in the Create tab."
+    },
+    {
+     "state_id": "new:creator-spotlight-card",
+     "caption": "A card offers to show their app in the 'From returning creators' row for 24 hours, plus a 7-day badge, for one short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays a short sponsored game, which they can close at any time."
+    },
+    {
+     "state_id": "s14",
+     "caption": "Once the game is confirmed, the scrolled Explore catalog shows the user's app in the labeled row with its new badge; the Trending list is unchanged."
+    }
+   ],
+   "after_reward": "When the 24 hours end, the app leaves the row with a note showing any new likes and saves it picked up, which pulls the creator back to check on it and make or remix another app.",
+   "rationale": "Explore already shows likes, saves, and rank badges, so creators care about being seen, and a returning creator gets a concrete reason to come back to their work. The reward costs nothing to serve and never touches the ranked Trending list, so the catalog stays fair. The app gets returning creators and fresh community apps in front of other users.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 0.0,
+   "rank_score": 0.0,
+   "dropped_reason": null,
+   "flags": []
+  },
+  {
+   "id": "c10",
+   "lens": "ledger_v2",
+   "kind": "product_change",
+   "title": "Product change: Your remix shown in Fresh remixes for 24 hours",
+   "anchor_evidence_ids": [
+    "s13.e15",
+    "s11.e03",
+    "s11.e08"
+   ],
+   "bible_mechanic": "M26",
+   "what_is_different_here": "Users can Remix a public app (s13.e15) into the create screen (s11.e03), and creations are public once published (s11.e08), so a remix both builds on another person's app and wants to be seen. No paywall, limit, or currency was seen in the explored screens, so this adds a new labeled Explore row. The viewer gets visibility for their own remix, and the original maker gets a 'Remixed by players' credit on their app page. The existing Trending order and rank badges are not changed.",
+   "adds": "A labeled 'Fresh remixes' row on Explore, plus a 'Remixed by players' credit on the original app's page, both earned by playing a short sponsored game when starting a remix.",
+   "removes_nothing_free": true,
+   "trigger_event": "The user taps remix on an app's detail page and the create screen opens.",
+   "trigger_state_id": "s11",
+   "placement": "A sheet over the create screen, shown once when it opens from a remix tap.",
+   "offer_copy": "Play a short game to show your remix in Fresh remixes on Explore for 24 hours after you publish it, and credit the original maker.",
+   "reward": {
+    "kind": "cosmetic",
+    "unit": "spot in Fresh remixes",
+    "amount": 1.0,
+    "duration": "24 hours after publishing"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per day, resets at midnight local time; the spot applies to the next remix the user publishes within 7 days.",
+   "daily_cap": 1,
+   "decline_path": "The sheet closes and the user keeps creating their remix exactly as before; publishing works the same.",
+   "ad_fail_path": "If no game is ready, the sheet does not appear. If the game can't be confirmed, a short note says the spot wasn't added, and the user can try again today.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Creative apps, photo and design tools, casual games",
+   "character_use": "None; the sheet shows the original app's preview image and name.",
+   "flow_steps": [
+    {
+     "state_id": "s13",
+     "caption": "The user taps remix on an app's detail page."
+    },
+    {
+     "state_id": "s11",
+     "caption": "The create screen opens with the remix started."
+    },
+    {
+     "state_id": "new:remix-spotlight-sheet",
+     "caption": "A sheet offers 24 hours in Fresh remixes plus credit for the original maker, for one short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays a short sponsored game."
+    },
+    {
+     "state_id": "new:spot-saved",
+     "caption": "A confirmation says the next published remix will show in Fresh remixes for 24 hours, and the maker gets credit."
+    }
+   ],
+   "after_reward": "When the 24 hours end, the remix leaves the row with a note showing the likes it gained there, which invites the user to remix and publish again.",
+   "rationale": "People who remix want their creation seen, and a labeled row gives a new maker a fair first look without touching the ranked lists. Original makers see their work spread, and more publishing keeps Explore fresh. The reward costs nothing to serve.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 0.5,
+   "rank_score": 0.5,
+   "dropped_reason": "duplicate of c08: same benefit (Fresh remixes placement)",
+   "flags": []
+  },
+  {
+   "id": "c05",
+   "lens": "drifting",
+   "kind": "product_change",
+   "title": "Product change: A treat outfit for Toki when you come back",
+   "anchor_evidence_ids": [],
+   "bible_mechanic": "M11",
+   "what_is_different_here": "The Chats home screen (s01) already promotes Toki, a pet that grows when cared for (s01.e26, s05.e04), as a reason to come back. A welcome-back card beside the Toki promo turns the return itself into the moment: one play gives Toki a dress-up item. No paid plan, limit, or currency was seen in the explored screens, so this adds a new free cosmetic rather than a piece of something sold. How Toki's care works day to day was not observed, so the reward does not change growth.",
+   "adds": "A welcome-back card on the Chats home screen, shown after 3 or more days away, that offers a 7-day outfit for Toki in exchange for one short sponsored game.",
+   "removes_nothing_free": true,
+   "trigger_event": "The user opens the app and lands on the Chats home screen, and their last session was 3 or more days ago.",
+   "trigger_state_id": "s01",
+   "placement": "A card at the top of the Chats home screen, next to the Toki card, that the user can dismiss.",
+   "offer_copy": "Welcome back! Play a short game to give Toki a party outfit for 7 days.",
+   "reward": {
+    "kind": "cosmetic",
+    "unit": "Toki outfit",
+    "amount": 1.0,
+    "duration": "7 days"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per week, and only on a return after 3 or more days away; resets 7 days after it was taken.",
+   "daily_cap": 0,
+   "decline_path": "The card closes and does not come back until the next return after 3 or more days away; the home screen, Toki, and chats work exactly as before.",
+   "ad_fail_path": "If no game is available, the card is not shown. If the game can't be confirmed, the user sees 'That game didn't count, no outfit this time' and the offer stays available for their next try.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Casual mobile games and family-friendly entertainment brands",
+   "character_use": "Toki appears on the card and on the reward screen wearing the outfit; Toki does not appear inside the sponsored game.",
+   "flow_steps": [
+    {
+     "state_id": "s01",
+     "caption": "The user opens the app after several days away and lands on the Chats home screen."
+    },
+    {
+     "state_id": "new:welcome-back-card",
+     "caption": "A card next to the Toki card offers a party outfit for Toki for 7 days in exchange for one short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user taps Play and plays a short sponsored game, which they can close at any time."
+    },
+    {
+     "state_id": "new:toki-outfit-reward",
+     "caption": "Once the game is confirmed, Toki appears in the party outfit with a note that it stays for 7 days."
+    }
+   ],
+   "after_reward": "When the 7 days end, Toki's outfit comes off with a note that another comes with the next return, which gives a drifting user a small reason to open the app again.",
+   "rationale": "Toki is already promoted on the home screen as something to care for and watch grow, so a returning user has a reason to take a free treat for it. The reward costs nothing to serve and gives the app a friendly, one-tap way to reconnect lapsed users with Toki instead of a bare home screen. The weekly cap keeps it a welcome, not a habit.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 0.0,
+   "rank_score": 0.0,
+   "dropped_reason": "duplicate of c03: same benefit (pet outfit)",
+   "flags": []
+  }
+ ]
+}

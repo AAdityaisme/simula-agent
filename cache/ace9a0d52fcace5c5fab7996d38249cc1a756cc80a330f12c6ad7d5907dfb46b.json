@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[{\"box_id\":7,\"name\":\"email field\"},{\"box_id\":13,\"name\":\"back\"}],\"extra_points\":[]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1670,
+ "tokens_out": 48,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c02",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the one-hour reward before the user chooses to play. The decline and ad-failure fields leave existing access unchanged and grant nothing if the game cannot be confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is temporary priority routing for replies, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses drawer-opening and paywall-closing events, not the content of a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and the decline path preserves existing chats and access."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the side drawer, which the product model rates safe, rather than an offer inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, s16.e10 shows that Janitor Plus charges for priority routing for faster replies."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says a reply loaded in 0.9 seconds, but exp1 measured opening a chat-history sheet from s03.e05, not loading a reply. That claim about the app's observed behavior is unsupported."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after one hour, and the frequency cap limits it to once per day. Although it grants queue priority, s16.e10 shows the app already sells that advantage."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places the card in the side drawer when the user chooses to open it, rather than interrupting an active task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a chosen sponsored game, and the reward and ad-failure fields make the grant conditional on the game being confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea ties the offer to the s06.e44 upgrade banner and the priority-routing benefit shown at s16.e10."
+ },
+ "other_concern": "The proposal's claim that the reward costs no extra model work is unverified.",
+ "fixable": true
+}

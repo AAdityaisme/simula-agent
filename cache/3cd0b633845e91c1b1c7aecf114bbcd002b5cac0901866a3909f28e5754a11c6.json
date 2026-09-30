@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[{\"box_id\":29,\"name\":\"decoration\"}],\"extra_points\":[{\"x\":107,\"y\":985,\"name\":\"save article\"},{\"x\":149,\"y\":985,\"name\":\"share\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1667,
+ "tokens_out": 71,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

@@ -1,0 +1,18 @@
+{
+ "schema_version": 1,
+ "state_id": "s47",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "com.aol.mobile.aolapp|1e4336473647640048796a500cc35b0b|164749bb29e712fe664f124112596807|0cd5fadc2c71",
+ "foreground_package": "com.aol.mobile.aolapp",
+ "screenshot": "states/s47.png",
+ "elements_reply": "states/s47.elements.json",
+ "settled": true,
+ "settle_seconds": 3.26,
+ "dynamic_regions": [],
+ "captured_at": "2026-09-29T21:11:14",
+ "box": null,
+ "icon_labels": [],
+ "vision_elements": [],
+ "blocked_reason": null
+}

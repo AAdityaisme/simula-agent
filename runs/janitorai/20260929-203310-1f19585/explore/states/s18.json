@@ -1,0 +1,47 @@
+{
+ "schema_version": 1,
+ "state_id": "s18",
+ "kind": "sheet",
+ "parent_id": "s03",
+ "fingerprint": "com.janitor.ai|a082e302960032423833b18eb18cb266|b222b186322240090000000000000e40|7836e7db1e75",
+ "foreground_package": "com.janitor.ai",
+ "screenshot": "states/s18.png",
+ "elements_reply": "states/s18.elements.json",
+ "settled": true,
+ "settle_seconds": 2.76,
+ "dynamic_regions": [],
+ "captured_at": "2026-09-29T20:40:06",
+ "box": {
+  "x": 0.0,
+  "y": 240.0,
+  "w": 1080.0,
+  "h": 2041.0
+ },
+ "icon_labels": [
+  {
+   "mcp_ref": "@e50",
+   "name": "Rodrick Heffley title"
+  }
+ ],
+ "vision_elements": [
+  {
+   "name": "filters",
+   "rect_px": {
+    "x": 21.0,
+    "y": 149.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "menu",
+   "rect_px": {
+    "x": 931.0,
+    "y": 149.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  }
+ ],
+ "blocked_reason": null
+}

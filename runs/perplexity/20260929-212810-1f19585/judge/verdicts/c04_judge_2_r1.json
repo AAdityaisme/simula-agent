@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c04",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-task reward before play, and the card is opt-in. The decline and ad-failure fields preserve normal task behavior and provide a failure path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is temporary priority for Computer tasks, not cash or a transferable or externally exchangeable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses a sent-task event and a return to Computer home; it does not require the task's contents."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and the reward does not lock or cap an existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card under the setup checklist on s10 Computer home, a screen rated safe; it is not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product change gives the player priority for their own Computer tasks, which they use in the Computer flow represented by f4 and s10."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field describes the preview agent as shared by many users. The model supports a limited Computer preview, but does not establish shared task processing."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The 'adds' field puts rewarded tasks ahead of standard tasks when Computer is busy. That priority takes a share of limited start capacity from other users' tasks, and the model does not show that the app already sells this advantage."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger follows a sent task, and the offer sits on Computer home rather than interrupting task entry."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game after a detectable app event. The ad-failure field withholds the reward when the game cannot be confirmed; no field grants it for a tap or an unverified start."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names Computer home, its setup checklist, the Do anything composer, and the limited Computer preview."
+ },
+ "other_concern": "The proposal acknowledges that busy periods were not observed; its claims about no extra model work and pure ad income also need validation.",
+ "fixable": false
+}

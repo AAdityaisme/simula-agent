@@ -1,0 +1,31 @@
+{
+ "schema_version": 1,
+ "app_package": "ai.perplexity.app.android",
+ "app_version": "2.100.0",
+ "budget": "transfer",
+ "relaunches": 3,
+ "content_filter": null,
+ "blocked_state_ids": [],
+ "coverage": {
+  "states_found": 13,
+  "actions_taken": 18,
+  "stop_reason": "relaunch cap",
+  "checklist_answered": [
+   "root",
+   "all_tabs"
+  ],
+  "checklist_open": [
+   "paywall_or_membership",
+   "settings",
+   "limit"
+  ]
+ },
+ "device": {
+  "w_px": 1080,
+  "h_px": 2400,
+  "density": 420,
+  "scale": 2.625,
+  "content_top_px": 136,
+  "content_bottom_px": 2337
+ }
+}

@@ -1,0 +1,9 @@
+{
+ "text": "{\"on_screen\":false,\"element_id\":null,\"confidence\":0.85,\"reason\":\"This is a news article page where the core action is reading, and the visible controls are only text links and a back button, with no main call-to-action control.\"}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1866,
+ "tokens_out": 72,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c03-rev",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in by tapping the card. The offer copy states the reward (15 minutes without in-story ad blocks). Declining leaves reading unchanged, and the ad-fails field gives a no-show and a 'Couldn't unlock' path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 15 minutes of hidden in-story ad blocks, which has no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: the third story of the day plus scrolling past an ad block. No chat content is involved."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed or capped. The reward only temporarily hides display ads, and the ad blocks stay as they are for users who decline."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a slim card in the app chrome of s24, an article screen rated safe. It is not in a conversation, and no unsafe or unknown content sits next to it."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is a product change that adds ad-free reading time. The player uses it themselves in the observed core flows f1 and f2, reading stories with in-body ad blocks, and none of it goes to another party."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "Its claims about today's app are supported by the model: in-body ADVERTISEMENT blocks (s13.e34, s20.e23, s24.e12) and the pinned next-story bar (s24.e24). The paid-plan point is worded as 'not seen', which matches the open question. Cited ids are empty, but nothing unsupported is asserted."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No paid ad-free plan was observed. The reward also expires after 15 minutes, is capped at 2 per day, and takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The slim card sits above the pinned bar without covering the text, so it does not interrupt reading. It also appears right after the reader passes an ad block, which is a plausible moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit. The reward is granted only once the game is confirmed, and the failure path withholds it. The trigger is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the in-story ADVERTISEMENT blocks, the s24 pinned 'Next in More For You' bar and the article flow, so it is specific to this news app."
+ },
+ "other_concern": "Hiding third-party Taboola or display blocks on demand may be technically or contractually hard, and the model does not show whether it is possible. Reduced ad revenue during the reward window is a business tradeoff.",
+ "fixable": false
+}

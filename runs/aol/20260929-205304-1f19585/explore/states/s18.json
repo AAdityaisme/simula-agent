@@ -1,0 +1,18 @@
+{
+ "schema_version": 1,
+ "state_id": "s18",
+ "kind": "external",
+ "parent_id": "s15",
+ "fingerprint": "com.android.chrome|0b728f72408800000000000000000000|0b704080000000000000000000000000|b7dc455203ab",
+ "foreground_package": "com.android.chrome",
+ "screenshot": "states/s18.png",
+ "elements_reply": "states/s18.elements.json",
+ "settled": true,
+ "settle_seconds": 13.03,
+ "dynamic_regions": [],
+ "captured_at": "2026-09-29T21:00:12",
+ "box": null,
+ "icon_labels": [],
+ "vision_elements": [],
+ "blocked_reason": null
+}

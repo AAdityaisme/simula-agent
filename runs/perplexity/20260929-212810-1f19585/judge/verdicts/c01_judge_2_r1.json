@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the one-task reward before play. The flow makes play optional, and the decline and ad-failure fields leave the preview unchanged or allow a retry."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field grants a Computer task for use in the app, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is a task finishing and a return to Computer home; it does not require what the user typed."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds a bonus task and says the existing preview remains unchanged if the user declines."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a sheet over s10 Computer home, which the product model rates content safe, rather than an offer in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing_anchor, the reward gives Computer use, which m1 and inferred m2 support as a limited preview."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The trigger and flow treat a finished Computer task returning the user to s10 as existing behavior, but the model observes no task being completed or what happens afterward. The rationale also asserts that an agent task uses several model calls without product-model support."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward and frequency-cap fields limit the bonus to one task per day, with unused access expiring at midnight."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The proposed trigger is after a task finishes, a finished-action moment rather than an interruption mid-task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow grants the task once play is confirmed, not on a tap or ad start, and uses a task-finished app event as its trigger."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Computer limited preview on s04 and s07 and places the offer on s10 Computer home."
+ },
+ "other_concern": "The model does not establish whether a bonus task would work with the preview’s unknown limiting mechanism. The 'offered to' and 'subscribers' fields also give different audience descriptions.",
+ "fixable": true
+}

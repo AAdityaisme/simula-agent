@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[],\"extra_points\":[{\"x\":31,\"y\":48,\"name\":\"back\"},{\"x\":85,\"y\":118,\"name\":\"Amber Glenn link\"},{\"x\":251,\"y\":118,\"name\":\"Pasha Pashkov link\"},{\"x\":312,\"y\":260,\"name\":\"Dancing With the Stars link\"},{\"x\":457,\"y\":446,\"name\":\"ad info\"},{\"x\":491,\"y\":1029,\"name\":\"next article arrow\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1666,
+ "tokens_out": 157,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

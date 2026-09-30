@@ -1,0 +1,23 @@
+{
+ "schema_version": 1,
+ "state_id": "s07",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "ai.perplexity.app.android|00c6800614061e010e000e001e000c98|1e064e0007806f8167f100f00e8724c3|d418b1e1ae98",
+ "foreground_package": "ai.perplexity.app.android",
+ "screenshot": "states/s07.png",
+ "elements_reply": "states/s07.elements.json",
+ "settled": true,
+ "settle_seconds": 3.1,
+ "dynamic_regions": [],
+ "captured_at": "2026-09-29T21:30:44",
+ "box": null,
+ "icon_labels": [
+  {
+   "mcp_ref": "@e33",
+   "name": "close"
+  }
+ ],
+ "vision_elements": [],
+ "blocked_reason": null
+}

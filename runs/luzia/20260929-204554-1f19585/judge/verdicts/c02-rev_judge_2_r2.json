@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c02-rev",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 3-template, 24-hour reward before the user chooses to play. The decline and ad-failure fields leave the existing experience intact and withhold the reward if play cannot be confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field gives access to starter templates in the app, not cash or something exchangeable outside it."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses opening the Explore tab and whether today's offer was taken; it does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields keep the usual templates available and add only temporary extras."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the s03 Explore screen, which the product model rates safe, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product change gives the player templates for their own app creation, a use within the observed f4 explore-and-create flow."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work-here field calls today's app-building prompt free. The model shows an idea field at s11.e04 but leaves whether creating an app is limited or paid as an open question, so it does not support that claim."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward and when-the-reward-runs-out fields limit access to the extra templates to 24 hours. The proposal also leaves other creators' Explore placement unchanged."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a card on the Explore list that a user can choose while browsing, not an interruption to an ongoing task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow offers a sponsored game, and the ad-failure field says unconfirmed play does not unlock templates. Opening Explore is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal builds on the s11 starter-template cards and the s03 Create app button."
+ },
+ "other_concern": "",
+ "fixable": true
+}

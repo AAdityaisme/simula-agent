@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[{\"box_id\":2,\"name\":\"menu\"},{\"box_id\":3,\"name\":\"search field\"},{\"box_id\":4,\"name\":\"filters\"},{\"box_id\":15,\"name\":\"home tab\"},{\"box_id\":16,\"name\":\"search tab\"},{\"box_id\":17,\"name\":\"explore tab\"},{\"box_id\":18,\"name\":\"notifications tab\"},{\"box_id\":19,\"name\":\"profile tab\"}],\"extra_points\":[{\"x\":324,\"y\":361,\"name\":\"previous page\"},{\"x\":495,\"y\":361,\"name\":\"next page\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1688,
+ "tokens_out": 193,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

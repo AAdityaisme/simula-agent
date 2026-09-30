@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c06",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 24-hour app placement and 7-day badge before an optional game. The decline and ad-failure fields preserve access to Explore and provide a retry if verification fails."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is placement for the player's mini app and a badge, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses an Explore opening, publication eligibility, and time since the last session; it does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The 'removes nothing free' and decline fields leave existing catalog and creation functions available."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a dismissible card on the safe Create–Explore screen (s03), not in or over a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product change gives the player a temporary placement for their own mini app in the Explore catalog, part of the observed explore-and-create flow f4."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The cited s14 elements show counts and rank badges, and s11.e08 says creations are public once published. The proposal phrases the absence of a paid plan or publishing limit as 'not seen,' rather than claiming neither exists."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 24 hours for placement and seven days for the badge. The proposed separate row leaves the existing ranked Trending list unchanged."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears on the Explore catalog when an eligible user opens it, rather than interrupting a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game and grants the placement only once the game is confirmed; opening Explore is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Create tab's Explore catalog, published mini apps, and its observed likes, saves, and rank badges."
+ },
+ "other_concern": "A new promotional row could draw attention away from existing catalog cards even though it does not change their rankings.",
+ "fixable": false
+}

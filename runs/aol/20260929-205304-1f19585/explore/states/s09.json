@@ -1,0 +1,96 @@
+{
+ "schema_version": 1,
+ "state_id": "s09",
+ "kind": "modal",
+ "parent_id": "s01",
+ "fingerprint": "com.aol.mobile.aolapp|18059f1513963196400129920cd1dcdd|1b961cd3dce8c1e0c25cce4451d3084b|371371ac025d",
+ "foreground_package": "com.aol.mobile.aolapp",
+ "screenshot": "states/s09.png",
+ "elements_reply": "states/s09.elements.json",
+ "settled": true,
+ "settle_seconds": 4.54,
+ "dynamic_regions": [],
+ "captured_at": "2026-09-29T20:56:38",
+ "box": {
+  "x": 123.0,
+  "y": 899.0,
+  "w": 834.0,
+  "h": 675.0
+ },
+ "icon_labels": [],
+ "vision_elements": [
+  {
+   "name": "bookmark",
+   "rect_px": {
+    "x": 817.0,
+    "y": 159.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "search",
+   "rect_px": {
+    "x": 943.0,
+    "y": 159.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "top stories tab",
+   "rect_px": {
+    "x": 109.0,
+    "y": 295.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "entertainment tab",
+   "rect_px": {
+    "x": 391.0,
+    "y": 295.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "local tab",
+   "rect_px": {
+    "x": 633.0,
+    "y": 295.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "sports tab",
+   "rect_px": {
+    "x": 823.0,
+    "y": 295.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "weather settings",
+   "rect_px": {
+    "x": 845.0,
+    "y": 463.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "inbox tab",
+   "rect_px": {
+    "x": 207.0,
+    "y": 2193.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  }
+ ],
+ "blocked_reason": null
+}

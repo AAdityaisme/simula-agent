@@ -1,0 +1,101 @@
+{
+ "schema_version": 1,
+ "state_id": "s05",
+ "kind": "modal",
+ "parent_id": "s01",
+ "fingerprint": "co.thewordlab.luzia|833e833e071b0716c6168706f708f318|871ef71cc698e610bf92f160a700430c|51c374826005",
+ "foreground_package": "co.thewordlab.luzia",
+ "screenshot": "states/s05.png",
+ "elements_reply": "states/s05.elements.json",
+ "settled": true,
+ "settle_seconds": 2.85,
+ "dynamic_regions": [],
+ "captured_at": "2026-09-29T20:46:59",
+ "box": {
+  "x": 162.0,
+  "y": 581.0,
+  "w": 798.0,
+  "h": 1267.0
+ },
+ "icon_labels": [
+  {
+   "mcp_ref": "@e26",
+   "name": "close"
+  }
+ ],
+ "vision_elements": [
+  {
+   "name": "notifications",
+   "rect_px": {
+    "x": 837.0,
+    "y": 145.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "settings",
+   "rect_px": {
+    "x": 941.0,
+    "y": 137.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "send message",
+   "rect_px": {
+    "x": 899.0,
+    "y": 391.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "next arrow",
+   "rect_px": {
+    "x": 943.0,
+    "y": 601.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "chat tab",
+   "rect_px": {
+    "x": 117.0,
+    "y": 2143.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "services tab",
+   "rect_px": {
+    "x": 477.0,
+    "y": 2173.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "create tab",
+   "rect_px": {
+    "x": 835.0,
+    "y": 2173.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "search",
+   "rect_px": {
+    "x": 943.0,
+    "y": 1531.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  }
+ ],
+ "blocked_reason": null
+}

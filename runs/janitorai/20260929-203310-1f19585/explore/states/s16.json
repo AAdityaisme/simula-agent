@@ -1,0 +1,18 @@
+{
+ "schema_version": 1,
+ "state_id": "s16",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "com.janitor.ai|202632123c800e888321dc01dc21d481|3e82dc015829f0607d60f01bd033c008|c4a7458cc2e4",
+ "foreground_package": "com.janitor.ai",
+ "screenshot": "states/s16.png",
+ "elements_reply": "states/s16.elements.json",
+ "settled": true,
+ "settle_seconds": 2.9,
+ "dynamic_regions": [],
+ "captured_at": "2026-09-29T20:39:15",
+ "box": null,
+ "icon_labels": [],
+ "vision_elements": [],
+ "blocked_reason": null
+}

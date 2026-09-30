@@ -1,0 +1,118 @@
+{
+ "schema_version": 1,
+ "stage": "explore",
+ "input_hashes": [
+  {
+   "path": "config/apps/ooc.toml",
+   "sha256": "d57c5bc9214aeca06f72d43c647f652d6747ef9eec0bfe2c13c0269fc963db1e"
+  }
+ ],
+ "prompt_hashes": [
+  {
+   "path": "prompts/explore/arrival.md",
+   "sha256": "712f2d82012a95e9d598ada274f066870f781baba1a67e30de81e05f492e0212"
+  },
+  {
+   "path": "prompts/explore/hard_screen.md",
+   "sha256": "213c86e0e3b534c47b0c0918a0f2781956dc7bbf85f691457ebcbfc22ac50090"
+  },
+  {
+   "path": "prompts/explore/icons.md",
+   "sha256": "5068adc3c16ccc29071f5fdf47c7d2e458dd4eb34bc4840b75069ae47ac49225"
+  },
+  {
+   "path": "prompts/explore/settle.md",
+   "sha256": "af6eaeba69a59151c0fd4f7fe27d84c964ffcf0cd0ce953c37177263a8821c9d"
+  },
+  {
+   "path": "prompts/explore/walk.md",
+   "sha256": "5c2dc841fe22e5ef990ea659f7c8bedcfb0521d72cf39cde6cdf670521fd9bb9"
+  }
+ ],
+ "params_hash": "ef2bfae4d56fb61c07bc54b7e179c9d385227197172ff3b5008aeeb6f40a8ea3",
+ "code_hashes": [
+  {
+   "path": "simula/__init__.py",
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "path": "simula/config.py",
+   "sha256": "a9e5c716e7eee149e0c6c9b509e948b13b9019137f953401b2b15708597506ab"
+  },
+  {
+   "path": "simula/contracts.py",
+   "sha256": "b7879488d02b4f88aa80d91b80dc060aecc4eff859ad59202eca2cd270a9afa8"
+  },
+  {
+   "path": "simula/decide.py",
+   "sha256": "d760b257878ca9c6423ba02cdd0d2e5867cdd9701426f6086890b36238d02582"
+  },
+  {
+   "path": "simula/device/__init__.py",
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "path": "simula/device/devices.py",
+   "sha256": "08462f27d40f220f9944145074b6c43fde1c1a7fc333bbacf7e781ca705ce363"
+  },
+  {
+   "path": "simula/device/mcp.py",
+   "sha256": "ee7ab7073b6fba52928b2b75edd218b2b1dc4fa5daed52f2d2a8ac83a707dedc"
+  },
+  {
+   "path": "simula/device/observe.py",
+   "sha256": "c2361f6c536dfff6e66fe43e2237776bd4da2e7d70e3d2025117ea4ceb9b94a2"
+  },
+  {
+   "path": "simula/llm.py",
+   "sha256": "1b3fc748a00a67bf22261daaf6e5192e8b7ade34940c5c360a9958c56ce37fa6"
+  },
+  {
+   "path": "simula/runfolder.py",
+   "sha256": "296b4b399333f1014fb3f7b238c0891975167dff1db86ae727f38655f553fc9c"
+  },
+  {
+   "path": "simula/runlog.py",
+   "sha256": "80a3350bb560291e339830695fc872082f6d7362db9e1435dc5a8950fcac7cee"
+  },
+  {
+   "path": "simula/stages/__init__.py",
+   "sha256": "20acee52551d0e5c34b564c8e6b53ebfd9b3225d9b9f59bd4f705827c61c8649"
+  },
+  {
+   "path": "simula/stages/explore.py",
+   "sha256": "e4724b94bbbbf269aa0807b37fb054af65612da18ef27b759787fec0dc1346d7"
+  }
+ ],
+ "output_hashes": [
+  {
+   "path": "explore/explore.json",
+   "sha256": "596903d34338afe04c632dfac3a0378c1d545af7141ce0cd0e41fb7c54b1f317"
+  },
+  {
+   "path": "explore/states/s01.elements.json",
+   "sha256": "f734ed476e4b5ccb97176f2b214278ead2ec8eab341dbdb750d76165a172c99b"
+  },
+  {
+   "path": "explore/states/s01.json",
+   "sha256": "5d8f13411881f78e801cdb4b9c19505c46cb80c73796729ae55a0a1af4876424"
+  },
+  {
+   "path": "explore/states/s01.png",
+   "sha256": "ceab137137a66f31704776684d852f3530204d3a21854993633f8b1a89ccb764"
+  }
+ ],
+ "provenance": {
+  "source": "explorer_run",
+  "explorer_run_id": "20260929-212755-1f19585",
+  "fixture_path": null
+ },
+ "outcome": {
+  "status": "partial",
+  "reasons": [
+   "the core loop completed 0 of 3 passes (last: the tour ended: blocked root: the app is not in the foreground after launch (com.aol.mobile.aolapp is))"
+  ],
+  "resume": "simula explore ooc --run 20260929-212755-1f19585 --profile real --budget transfer --device emulator-5554  # re-runs explore; it starts over"
+ },
+ "finished_at": "2026-09-29T21:28:10"
+}

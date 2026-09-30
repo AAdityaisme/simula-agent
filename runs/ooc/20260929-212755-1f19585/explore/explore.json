@@ -1,0 +1,33 @@
+{
+ "schema_version": 1,
+ "app_package": "com.newai.ooc",
+ "app_version": "0.1.20",
+ "budget": "transfer",
+ "relaunches": 0,
+ "content_filter": null,
+ "blocked_state_ids": [
+  "s01"
+ ],
+ "coverage": {
+  "states_found": 1,
+  "actions_taken": 0,
+  "stop_reason": "blocked root: the app is not in the foreground after launch (com.aol.mobile.aolapp is)",
+  "checklist_answered": [
+   "root",
+   "all_tabs"
+  ],
+  "checklist_open": [
+   "paywall_or_membership",
+   "settings",
+   "limit"
+  ]
+ },
+ "device": {
+  "w_px": 1080,
+  "h_px": 2400,
+  "density": 420,
+  "scale": 2.625,
+  "content_top_px": 136,
+  "content_bottom_px": 2337
+ }
+}

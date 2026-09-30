@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[],\"extra_points\":[{\"x\":41,\"y\":1066,\"name\":\"comments\"},{\"x\":323,\"y\":1066,\"name\":\"text size\"},{\"x\":381,\"y\":1066,\"name\":\"share on Facebook\"},{\"x\":439,\"y\":1066,\"name\":\"copy link\"},{\"x\":497,\"y\":1066,\"name\":\"share\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1666,
+ "tokens_out": 121,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

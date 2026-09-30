@@ -1,0 +1,49 @@
+{
+ "schema_version": 1,
+ "state_id": "s01",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "co.thewordlab.luzia|833c833e07130716c616870687008018|871e8716e718e5129082b002a000430c|f718cdaa7a36",
+ "foreground_package": "co.thewordlab.luzia",
+ "screenshot": "states/s01.png",
+ "elements_reply": "states/s01.elements.json",
+ "settled": true,
+ "settle_seconds": 3.23,
+ "dynamic_regions": [],
+ "captured_at": "2026-09-29T20:46:20",
+ "box": null,
+ "icon_labels": [
+  {
+   "mcp_ref": "@e31",
+   "name": "notifications"
+  },
+  {
+   "mcp_ref": "@e51",
+   "name": "dismiss custom bestie"
+  },
+  {
+   "mcp_ref": "@e55",
+   "name": "dismiss Toki card"
+  },
+  {
+   "mcp_ref": "@e57",
+   "name": "decoration"
+  },
+  {
+   "mcp_ref": "@e58",
+   "name": "search chats"
+  }
+ ],
+ "vision_elements": [
+  {
+   "name": "send message",
+   "rect_px": {
+    "x": 899.0,
+    "y": 389.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  }
+ ],
+ "blocked_reason": null
+}

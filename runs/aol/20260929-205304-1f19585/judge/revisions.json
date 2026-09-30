@@ -1,0 +1,75 @@
+{
+ "schema_version": 1,
+ "candidates": [
+  {
+   "id": "c03-rev",
+   "lens": "subscriber",
+   "kind": "product_change",
+   "title": "Product change: 15 minutes of stories without the ad blocks inside",
+   "anchor_evidence_ids": [],
+   "bible_mechanic": "M22",
+   "what_is_different_here": "In both stories read in the explored screens, the body carried one or more ADVERTISEMENT display blocks (s13.e34, s20.e23, s24.e12). In the DWTS story, the same display ad stayed on screen across several scroll positions. A 'Next in More For You' bar (s24.e24, s24.e26) stays pinned at the bottom of the story while the reader scrolls, so a slim card above it is app chrome that doesn't cover the text. The card appears only after the reader has scrolled past an ad block, so it shows up when that ad is fresh. No paid ad-free plan was seen in the explored screens, so this adds a short, earned break from the display blocks inside stories. The labeled sponsored cards in the feed and under the byline stay as they are; only the display blocks inside the story body are hidden.",
+   "adds": "A slim card above the pinned next-story bar that lets a reader play one short sponsored game to hide the ad blocks inside stories for 15 minutes.",
+   "removes_nothing_free": true,
+   "trigger_event": "In the reader's third story of the day, they scroll past the first ad block inside the story.",
+   "trigger_state_id": "s24",
+   "placement": "A slim card just above the pinned 'Next in More For You' bar at the bottom of the story screen.",
+   "offer_copy": "Play a short game to read the next 15 minutes without the ad blocks inside stories.",
+   "reward": {
+    "kind": "feature_time",
+    "unit": "minutes without in-story ad blocks",
+    "amount": 15.0,
+    "duration": "15 minutes from when the game is finished"
+   },
+   "for_users": "everyone",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 15.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "2 per day, resets at midnight local time; offered again only after the previous 15 minutes have ended, and at most once per story",
+   "daily_cap": 2,
+   "decline_path": "The card closes and the reader keeps reading with ads exactly as before. It does not come back in the same story.",
+   "ad_fail_path": "If no game is available, the card is not shown. If the game can't be confirmed, the reader sees a short 'Couldn't unlock this time' note. The story stays as it was, and the attempt doesn't count toward today's 2.",
+   "subscriber_treatment": "Every user sees the same offer.",
+   "advertiser_category": "Casual mobile games and streaming TV services",
+   "character_use": "None",
+   "flow_steps": [
+    {
+     "state_id": "s24",
+     "caption": "In their third story today, the reader scrolls past an ad block, with the next-story bar pinned at the bottom."
+    },
+    {
+     "state_id": "new:ad-light-offer",
+     "caption": "A slim card above the bar offers 15 minutes without the ad blocks inside stories for one short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The reader plays a short sponsored game and can close it at any time."
+    },
+    {
+     "state_id": "s12",
+     "caption": "The reader taps to the next story, which opens with no ad blocks in the text. A small timer shows the minutes left."
+    }
+   ],
+   "after_reward": "When the 15 minutes end, the ad blocks return in the next story, and the card can appear again in a later story so the reader can play again, up to twice a day.",
+   "rationale": "Readers who go through several stories in a row scroll past display ad blocks in each story, so a quieter stretch of reading is something they would choose to play for. The app trades a few low-value display ads for one higher-value sponsored play and keeps its most active readers moving from story to story.",
+   "economics": {
+    "cost_2k": 0.0291,
+    "cost_8k": 0.0291,
+    "breakeven_ecpm_2k": 29.1,
+    "breakeven_ecpm_8k": 29.1,
+    "benchmark_ecpm": 10.16,
+    "verdict": "CONDITIONAL",
+    "assumption_line": "Costs ~$0.0291 per reward to serve; pays for itself above $29.10 eCPM. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 15 ad-free minutes at 0.2 ads a minute, each worth $9.70 eCPM (the NA Android interstitial rate); if the ads it hides are banners ($0.55 eCPM), it pays for itself above $1.65; one view per reward; a publisher-net eCPM (share 1)."
+   },
+   "reach_score": 0.5,
+   "rank_score": 0.5,
+   "dropped_reason": "duplicate of c07: same benefit (temporary ad-free reading)",
+   "flags": []
+  }
+ ]
+}

@@ -1,0 +1,390 @@
+{
+ "schema_version": 1,
+ "edits": [
+  {
+   "find": "<div class=\"a pub\" data-el=\"s10.e94\" style=\"left:38.1px;top:739px;width:124.2px;color:#5f6368\">The Independent US</div>\n</div>",
+   "replace": "<div class=\"a pub\" data-el=\"s10.e94\" style=\"left:38.1px;top:739px;width:124.2px;color:#5f6368\">The Independent US</div>\n<div class=\"a\" style=\"left:0;top:0;width:100%;height:100%;background:var(--bg-1)\"></div>\n</div>",
+   "reason": "s10: cover the stray duplicate layer so only the real feed shows",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<div class=\"a ah\" data-el=\"s16.e51\" style=\"left:0;top:.7px;width:224px;height:40px\">",
+   "replace": "<div class=\"a ah\" data-el=\"s16.e51\" style=\"left:0;top:.7px;width:224px;height:40px;font-size:15.5px\">",
+   "reason": "s16: ad headline ~3% smaller",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": ".ph{left:20.3px;width:370.9px;height:371.4px;overflow:hidden;background:linear-gradient(90deg,transparent 31%,#e9e6df 31%,#e9e6df 43%,transparent 43%) 0 100%/100% 64% no-repeat,linear-gradient(90deg,transparent 55%,#d6338f 55%,#d6338f 97%,transparent 97%) 0 100%/100% 45% no-repeat,linear-gradient(90deg,transparent 3%,#141519 3%,#141519 56%,transparent 56%) 0 100%/100% 62% no-repeat,radial-gradient(55% 40% at 6% 72%,#3a3726,transparent 70%),linear-gradient(#0b0d14,#10151b 60%,#1b1e18)}",
+   "replace": ".ph{left:20.3px;width:370.9px;height:371.4px;overflow:hidden;background:#15171c}",
+   "reason": "s33/s13: neutral dark hero instead of cartoon blocks",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": ":is(section[data-screen=\"s33\"],section[data-screen=\"s13\"],section[data-screen=\"s20\"],section[data-screen=\"s35\"]) .ph svg{display:none}",
+   "replace": ":is(section[data-screen=\"s33\"],section[data-screen=\"s13\"],section[data-screen=\"s20\"],section[data-screen=\"s35\"]) .ph svg{display:none}\n:is(section[data-screen=\"s33\"],section[data-screen=\"s13\"],section[data-screen=\"s20\"],section[data-screen=\"s35\"]) .bn{display:inline-block;height:19.1px;line-height:19.1px;letter-spacing:.14px}\n:is(section[data-screen=\"s33\"],section[data-screen=\"s13\"],section[data-screen=\"s20\"],section[data-screen=\"s35\"]) .pv0{letter-spacing:-.11px}",
+   "reason": "Bryon Noem run rect helpers (batch 3)",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<div class=\"a tb\" data-el=\"s13.e39\">Test Ad</div>",
+   "replace": "<div class=\"a tb\" data-el=\"s13.e39\" style=\"height:9.5px;overflow:hidden\">Test Ad</div>",
+   "reason": "s13.e39 height 9.5",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<span data-el=\"s13.e25\">Six months after photos of her husband </span><span class=\"b\" data-el=\"s13.e26\"><span data-el=\"s13.e27\">Bryon Noem</span></span>",
+   "replace": "<span class=\"pv0\" data-el=\"s13.e25\">Six months after photos of her husband </span><span class=\"b bn\" data-el=\"s13.e26\"><span class=\"bn\" data-el=\"s13.e27\">Bryon Noem</span></span>",
+   "reason": "s13.e26/e27 x284.6 w87.2 h19.1",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<span data-el=\"s33.e25\">Six months after photos of her husband </span><span class=\"b\" data-el=\"s33.e26\">Bryon Noem</span>",
+   "replace": "<span class=\"pv0\" data-el=\"s33.e25\">Six months after photos of her husband </span><span class=\"b bn\" data-el=\"s33.e26\">Bryon Noem</span>",
+   "reason": "s33.e26 rect",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<p class=\"a kp\" style=\"left:38.5px;top:751.2px\">",
+   "replace": "<p class=\"a kp\" style=\"left:38.5px;top:751.2px;line-height:25px\">",
+   "reason": "s19.e29 height 43",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<span data-el=\"s19.e29\">",
+   "replace": "<span data-el=\"s19.e29\" style=\"letter-spacing:-.085px\">",
+   "reason": "s19.e29 width 348.2",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<div class=\"a\" data-el=\"s19.e09\" style=\"left:31.6px;top:141.3px;width:61px;height:61px;border-radius:3px;background:radial-gradient(circle at 72% 72%,#e0a64a 0 5px,transparent 6px),radial-gradient(circle at 35% 85%,#8a5a2b 0 6px,transparent 7px),linear-gradient(150deg,#2e3131 0 26%,#55524a 33%,#a36b2d 45%,#cf9a45 55%,#7d5129 68%,#b87a31 82%,#634628)\"></div>",
+   "replace": "<div class=\"a\" data-el=\"s19.e09\" style=\"left:31.6px;top:141.3px;width:61px;height:61px;border-radius:8px;background:radial-gradient(circle at 20% 28%,#3d4a2b 0 8px,transparent 9px),radial-gradient(circle at 72% 20%,#3d4a2b 0 6px,transparent 7px),radial-gradient(circle at 55% 62%,#5a4a26 0 9px,transparent 10px),radial-gradient(circle at 25% 80%,#3d4a2b 0 7px,transparent 8px),radial-gradient(circle at 86% 76%,#d49a3c 0 6px,transparent 7px),#b7862f\"></div>",
+   "reason": "s19: mottled leaf/ladder thumbnail, no gradient",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "data-el=\"s05.e23\" style=\"left:19.8px;top:635.4px\"",
+   "replace": "data-el=\"s05.e23\" style=\"left:19.8px;top:636.4px\"",
+   "reason": "s05 caption down 1px",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "data-el=\"s05.e24\" style=\"left:19.8px;top:689.5px\"",
+   "replace": "data-el=\"s05.e24\" style=\"left:19.8px;top:690.5px\"",
+   "reason": "s05 Key Points down 1px",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "data-el=\"s05.e25\" style=\"left:26.7px;top:729.5px\"",
+   "replace": "data-el=\"s05.e25\" style=\"left:26.7px;top:730.5px\"",
+   "reason": "s05 bullet down 1px",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "data-el=\"s05.e26\" style=\"left:38.5px;top:729.5px\"",
+   "replace": "data-el=\"s05.e26\" style=\"left:38.5px;top:730.5px\"",
+   "reason": "s05 bullet text down 1px",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "data-el=\"s05.e27\" style=\"left:26.7px;top:813.3px;",
+   "replace": "data-el=\"s05.e27\" style=\"left:26.7px;top:814.3px;",
+   "reason": "s05 bullet down 1px",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "data-el=\"s05.e28\" style=\"left:38.5px;top:813.3px\"",
+   "replace": "data-el=\"s05.e28\" style=\"left:38.5px;top:814.3px\"",
+   "reason": "s05 bullet text down 1px",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<div class=\"a ph\" style=\"top:-91.6px\">",
+   "replace": "<div class=\"a ph\" style=\"top:-91.6px;background:linear-gradient(90deg,transparent 52%,#d8207f 52%,#e2439e 75%,#c81d78 96%,transparent 96%) 0 100%/100% 50% no-repeat,linear-gradient(90deg,transparent 28%,#e6e3dc 28%,#e6e3dc 47%,transparent 47%) 0 68%/100% 63% no-repeat,linear-gradient(90deg,#0b0d14 0,#18191e 4%,#1a1b20 52%,#0b0d14 53%)\">",
+   "reason": "s35: dark photo stand-in with shirt and pink dress",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<p class=\"t\" style=\"left:38.5px;top:432.4px\">",
+   "replace": "<p class=\"t\" style=\"left:38.5px;top:432.4px;line-height:25px\">",
+   "reason": "s20.e10 height 43",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<span data-el=\"s20.e10\">",
+   "replace": "<span data-el=\"s20.e10\" style=\"letter-spacing:-.085px\">",
+   "reason": "s20.e10 width 348.2",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<p class=\"t\" style=\"top:576.4px\">",
+   "replace": "<p class=\"t\" style=\"top:576.4px;line-height:24.33px\">",
+   "reason": "s20.e20 height 91",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<span data-el=\"s20.e20\">",
+   "replace": "<span data-el=\"s20.e20\" style=\"letter-spacing:-.095px\">",
+   "reason": "s20.e20 width 369.9",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<span data-el=\"s35.e06\">Six months after photos of her husband </span><span class=\"b\" data-el=\"s35.e07\">Bryon Noem</span>",
+   "replace": "<span class=\"pv0\" data-el=\"s35.e06\">Six months after photos of her husband </span><span class=\"b bn\" data-el=\"s35.e07\">Bryon Noem</span>",
+   "reason": "s35.e07 rect",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "section[data-screen=\"s14\"] .ph i{position:absolute;display:block}",
+   "replace": "section[data-screen=\"s14\"] .ph i{position:absolute;display:block}\n:is(section[data-screen=\"s14\"],section[data-screen=\"s64\"]) .bn{display:inline-block;height:19.1px;line-height:19.1px;letter-spacing:.14px}\n:is(section[data-screen=\"s14\"],section[data-screen=\"s64\"]) .pv0{letter-spacing:-.11px}",
+   "reason": "Bryon Noem helpers (batch 4)",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<span data-el=\"s14.e16\">Six months after photos of her husband </span><span data-el=\"s14.e17\"><b data-el=\"s14.e18\">Bryon Noem</b></span>",
+   "replace": "<span class=\"pv0\" data-el=\"s14.e16\">Six months after photos of her husband </span><span class=\"bn\" data-el=\"s14.e17\"><b class=\"bn\" data-el=\"s14.e18\">Bryon Noem</b></span>",
+   "reason": "s14.e17/e18 rect",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<span data-el=\"s64.e12\">Six months after photos of her husband </span><b data-el=\"s64.e13\">Bryon Noem</b>",
+   "replace": "<span class=\"pv0\" data-el=\"s64.e12\">Six months after photos of her husband </span><b class=\"bn\" data-el=\"s64.e13\">Bryon Noem</b>",
+   "reason": "s64.e13 rect",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<div class=\"a\" data-el=\"s35.e19\" style=\"left:75.8px;top:709px;",
+   "replace": "<div class=\"a\" data-el=\"s35.e19\" style=\"left:77px;top:709px;",
+   "reason": "s35.e18 ad title at x77",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "font:500 19.5px/25.9px var(--font-2);color:#333;",
+   "replace": "font:400 19.5px/25.9px var(--font-2);color:#222;",
+   "reason": "s35 ad title regular weight",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<div class=\"a\" data-el=\"s35.e23\" style=\"left:266.7px;",
+   "replace": "<div class=\"a\" data-el=\"s35.e23\" style=\"left:268px;",
+   "reason": "s35 Open at x268",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "font:700 17.5px/22.9px var(--font-2);color:#4896fa;",
+   "replace": "font:500 17.5px/22.9px var(--font-2);color:#2a6cf0;",
+   "reason": "s35 Open lighter, blue #2a6cf0",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "data-el=\"s17.e03\" style=\"left:20.2px;top:419.5px;width:371.1px;height:24.8px;line-height:24.8px;font-size:18px",
+   "replace": "data-el=\"s17.e03\" style=\"left:20.2px;top:421px;width:371.1px;height:24.8px;line-height:24.8px;font-size:17.6px",
+   "reason": "s17 headline narrower, lower",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "top:452.3px;width:371.1px;height:19.1px;line-height:19.1px;font-size:15px",
+   "replace": "top:453.5px;width:371.1px;height:19.1px;line-height:19.1px;font-size:14.1px",
+   "reason": "s17 subtext narrower, lower",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "section[data-screen=\"s17\"] .tl{top:100.9px;",
+   "replace": "section[data-screen=\"s17\"] .tl{top:102.9px;",
+   "reason": "s17 nav labels down 2px",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<p class=\"a t bl\" style=\"top:291.8px\">",
+   "replace": "<p class=\"a t bl\" style=\"top:291.8px;line-height:25px\">",
+   "reason": "s21.e10 height 43",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<span data-el=\"s21.e10\">",
+   "replace": "<span data-el=\"s21.e10\" style=\"letter-spacing:-.085px\">",
+   "reason": "s21.e10 width 348.2",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<p class=\"a t pp\" style=\"top:435.4px\">",
+   "replace": "<p class=\"a t pp\" style=\"top:435.4px;line-height:24.33px\">",
+   "reason": "s21.e20 height 91, y462.9",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<span data-el=\"s21.e20\">",
+   "replace": "<span data-el=\"s21.e20\" style=\"letter-spacing:-.095px\">",
+   "reason": "s21.e20 width 369.9",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<p class=\"a t bl\" style=\"top:163.4px\">",
+   "replace": "<p class=\"a t bl\" style=\"top:163.4px;line-height:25px\">",
+   "reason": "s22.e06 height 43",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<span data-el=\"s22.e06\">",
+   "replace": "<span data-el=\"s22.e06\" style=\"letter-spacing:-.085px\">",
+   "reason": "s22.e06 width 348.2",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<p class=\"a t pp\" style=\"top:307px\">",
+   "replace": "<p class=\"a t pp\" style=\"top:307px;line-height:24.33px\">",
+   "reason": "s22.e16 height 91",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<span data-el=\"s22.e16\">",
+   "replace": "<span data-el=\"s22.e16\" style=\"letter-spacing:-.095px\">",
+   "reason": "s22.e16 width 369.9",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<p class=\"a t pp\" style=\"top:13.5px\">",
+   "replace": "<p class=\"a t pp\" style=\"top:13.5px;line-height:24.33px\">",
+   "reason": "s24.e06 height 91",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<span data-el=\"s24.e06\">",
+   "replace": "<span data-el=\"s24.e06\" style=\"letter-spacing:-.095px\">",
+   "reason": "s24.e06 width 369.9",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": ".cap{font-size:14.5px;line-height:23.2px;color:#767d84}",
+   "replace": ".cap{font-size:13px;line-height:23.2px;color:#767d84}",
+   "reason": "s26/s27/s28 caption ends near x319",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<div class=\"p pl\" style=\"top:718.5px;height:73.1px\">",
+   "replace": "<div class=\"p pl\" style=\"top:718px;height:75px;line-height:25px;letter-spacing:-.12px\">",
+   "reason": "s29.e09/e11/e12 narrower, 43 high",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<div class=\"p pl\" style=\"top:583.6px;height:73.1px\">",
+   "replace": "<div class=\"p pl\" style=\"top:583.2px;height:75px;line-height:25px;letter-spacing:-.12px\">",
+   "reason": "s30.e09/e11/e12 narrower, 43 high",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<div class=\"p pl\" style=\"top:462.9px;height:73.1px\">",
+   "replace": "<div class=\"p pl\" style=\"top:462.9px;height:75px;line-height:25px;letter-spacing:-.12px\">",
+   "reason": "s31.e07/e09 same narrowing",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<div class=\"ph\" style=\"width:20.2px;height:160px;background:linear-gradient(#3e4436,#4d5244 62%,#7c7b76 70%,#8a8985)\"></div>",
+   "replace": "<div class=\"ph\" style=\"width:20.2px;height:168.3px;overflow:hidden\"><img src=\"assets/s29.e01.art.png\" alt=\"\" style=\"position:absolute;left:0;top:0;width:371.4px;height:168.3px\"></div>",
+   "reason": "s29: fill x20-40 with the photo, not gray",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<div class=\"ph\" style=\"width:371.5px;height:25.2px;background:linear-gradient(90deg,#7d7c78,#8e8d89 45%,#858480)\"></div>\n<div style=\"position:absolute;left:185px;top:0;width:9px;height:15px;border:2px solid #262626;border-top:0;border-radius:0 0 6px 6px\"></div>",
+   "replace": "<div class=\"ph\" style=\"width:20.2px;height:33.3px;overflow:hidden\"><img src=\"assets/s29.e01.art.png\" alt=\"\" style=\"position:absolute;left:0;top:-135px;width:371.4px;height:168.3px\"></div>\n<img src=\"assets/s29.e01.art.png\" alt=\"\" style=\"position:absolute;left:40px;top:-135px;width:371.4px;height:168.3px\">",
+   "reason": "s30: photo bottom from s29 art shifted by scroll offset",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "section[data-screen=\"s34\"] .tb{position:absolute;font-size:13px;line-height:16px;white-space:nowrap;color:#838d94}",
+   "replace": "section[data-screen=\"s34\"] .tb{position:absolute;font-size:13px;line-height:16px;white-space:nowrap;color:#838d94}\n:is(section[data-screen=\"s34\"],section[data-screen=\"s36\"],section[data-screen=\"s37\"],section[data-screen=\"s38\"]) .bn{display:inline-block;height:19.1px;line-height:19.1px;letter-spacing:.14px}\n:is(section[data-screen=\"s34\"],section[data-screen=\"s36\"],section[data-screen=\"s37\"],section[data-screen=\"s38\"]) .pv0{letter-spacing:-.11px}",
+   "reason": "Bryon Noem helpers (batch 8)",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<span data-el=\"s34.e16\">Six months after photos of her husband </span><span data-el=\"s34.e17\" class=\"b\">Bryon Noem</span>",
+   "replace": "<span data-el=\"s34.e16\" class=\"pv0\">Six months after photos of her husband </span><span data-el=\"s34.e17\" class=\"b bn\">Bryon Noem</span>",
+   "reason": "s34.e17 rect",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<span data-el=\"s36.e06\">Six months after photos of her husband </span><span data-el=\"s36.e07\" class=\"b\">Bryon Noem</span>",
+   "replace": "<span data-el=\"s36.e06\" class=\"pv0\">Six months after photos of her husband </span><span data-el=\"s36.e07\" class=\"b bn\">Bryon Noem</span>",
+   "reason": "s36.e07 rect",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<span data-el=\"s37.e03\">Six months after photos of her husband </span><span data-el=\"s37.e04\" class=\"b\">Bryon Noem</span>",
+   "replace": "<span data-el=\"s37.e03\" class=\"pv0\">Six months after photos of her husband </span><span data-el=\"s37.e04\" class=\"b bn\">Bryon Noem</span>",
+   "reason": "s37.e04 same fix",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<div data-el=\"s36.e14\" class=\"p\" style=\"top:808.5px\">News of the couple\u2019s divorce after 34 years of marriage <br>comes months after photos of what appeared to be <br>Bryon dressed in women's clothing and donning fake <br>breasts were published by </div>",
+   "replace": "<div class=\"p\" style=\"top:808px;line-height:24.33px\"><span data-el=\"s36.e14\" style=\"letter-spacing:-.085px\">News of the couple\u2019s divorce after 34 years of marriage <br>comes months after photos of what appeared to be <br>Bryon dressed in women's clothing and donning fake <br>breasts were published by </span></div>",
+   "reason": "s36.e14 w365.7 h91 y811",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<div class=\"p\" style=\"top:508.4px\"><span data-el=\"s38.e03\">",
+   "replace": "<div class=\"p\" style=\"top:507.7px;line-height:24.33px\"><span data-el=\"s38.e03\" style=\"letter-spacing:-.085px\">",
+   "reason": "s38.e03 w365.7 h91 y510.9",
+   "applied": true,
+   "why": ""
+  },
+  {
+   "find": "<span data-el=\"s38.e09\">At the time, a rep for Kristi\u2014who shares daughters </span><br><span data-el=\"s38.e10\" class=\"b\">Kassidy</span><span data-el=\"s38.e11\"> , 32, </span><span data-el=\"s38.e12\">and </span><span data-el=\"s38.e13\" class=\"b\">Kennedy</span><span> , 29, </span><span data-el=\"s38.e15\">and son </span><span data-el=\"s38.e16\" class=\"b\">Booker</span>",
+   "replace": "<span data-el=\"s38.e09\" style=\"display:inline-block;height:19.1px;line-height:19.1px;letter-spacing:-.086px\">At the time, a rep for Kristi\u2014who shares daughters </span><br><span style=\"letter-spacing:-.18px\"><span data-el=\"s38.e10\" class=\"b\">Kassidy</span><span data-el=\"s38.e11\"> , 32, </span><span data-el=\"s38.e12\">and </span><span data-el=\"s38.e13\" class=\"b\">Kennedy</span><span> , 29, </span></span><span data-el=\"s38.e15\" style=\"letter-spacing:.25px\">and son </span><span data-el=\"s38.e16\" class=\"b\" style=\"letter-spacing:.45px\">Booker</span>",
+   "reason": "s38.e09 width 336; e15 at x225.5, e16 at x282.7",
+   "applied": true,
+   "why": ""
+  }
+ ]
+}

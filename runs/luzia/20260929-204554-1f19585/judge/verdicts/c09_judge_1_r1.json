@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c09",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in through the sheet. The offer copy states the reward (a cheer for the maker and a 7-day supporter badge). Declining just closes the sheet, and the ad-failure path is specified."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic 7-day badge and a cheer count, and neither can be withdrawn, sold, or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a tap on like on the app detail page, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed, locked, or capped. The proposal only adds a badge and a cheer line."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a sheet over s13, a non-chat screen rated safe, so it is not in a conversation and not next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "The new resource is a cosmetic badge for a profile and app cards, and it is not a slice of anything the app charges for. It is also not something the player uses in an observed core flow, since no profile appears in the model. The cheer, which is the main pitch, goes to the maker rather than the player."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The trigger assumes a tappable like button on s13, but the model lists only a like count (s13.e09) alongside Open app, share, remix and report. The model also shows no user profile, and the cheer line assumes a real maker to thank, yet the cited byline (s13.e07) reads 'By Luzia'."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The badge is cosmetic and expires after 7 days, so it gives away no paid benefit. The proposal leaves the Trending order and rank badges untouched, so it takes nothing from other creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The sheet opens right after the like is registered, which is a finished action and so a moment of need rather than an interruption."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn sponsored game. The reward is granted only after the game is confirmed, and the trigger is an app-detectable like tap."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the app detail page (s13), its like and save counts, and the byline. It also names the Explore Trending order, so it is tied to this app's mini-app catalog."
+ },
+ "other_concern": "The only maker seen is 'Luzia' itself, so the value of a cheer to a real creator is unproven. The viewer-side badge has no clear use in any observed flow.",
+ "fixable": false
+}

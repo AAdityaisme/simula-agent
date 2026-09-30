@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c07",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer card states the reward (7-day gold frame plus 1 backing) before the play, the user opts in, the decline path leaves Explore unchanged, and there is a no-game and unconfirmed-play path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic frame and a backing count. Neither can be withdrawn, sold, or exchanged outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (returning to Explore after liking an app), not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea only adds a card, a count, and a cosmetic frame. It removes or caps nothing users get free today, and Trending order and the #1 badge are unchanged."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the list on s14, which is rated safe, and is not in a conversation or next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The frame is for the player's own published apps, which ties to the observed create-and-explore flow f4. The reward is mainly for the player, with a single backing going to the creator."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The trigger, the offer copy, and the flow all depend on the user liking an app, but the model shows only like counts (s13.e09, s14.e15) and no like button or like mechanic. That leaves the like action unsupported as a claim about the app today."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a 7-day cosmetic that expires. The backing does not change Trending order or rank, so it takes no one's existing place, and no paid benefit is involved."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits in the Explore list on a browsing surface after the user has liked an app. It does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "This is a play-to-earn unit. The reward is granted after the verified play, and the trigger is an app-detectable event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Explore list on s14, the creator byline, like counts, the #1 rank badge, and user-published apps, all specific to this app."
+ },
+ "other_concern": "The backing and weekly most-backed list are new features that could be gamed, and about half of the reward goes to another user. The model also does not show how a user's published app cards look, so where the frame appears is an assumption.",
+ "fixable": false
+}

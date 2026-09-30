@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[],\"extra_points\":[{\"x\":270,\"y\":289,\"name\":\"email or phone field\"},{\"x\":133,\"y\":366,\"name\":\"forgot username\"},{\"x\":270,\"y\":467,\"name\":\"next\"},{\"x\":270,\"y\":643,\"name\":\"create account\"},{\"x\":182,\"y\":1063,\"name\":\"help\"},{\"x\":257,\"y\":1063,\"name\":\"terms\"},{\"x\":345,\"y\":1063,\"name\":\"privacy\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1666,
+ "tokens_out": 157,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

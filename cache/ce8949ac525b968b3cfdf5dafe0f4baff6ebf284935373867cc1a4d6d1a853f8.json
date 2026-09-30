@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[],\"extra_points\":[{\"x\":270,\"y\":688,\"name\":\"Kelly Osbourne and Sid Wilson photo\"},{\"x\":270,\"y\":1010,\"name\":\"Joey Bada$$ and Serayah photo\"},{\"x\":486,\"y\":832,\"name\":\"read more\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1666,
+ "tokens_out": 106,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

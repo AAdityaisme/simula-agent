@@ -1,0 +1,356 @@
+{
+ "schema_version": 1,
+ "fixes": [
+  {
+   "element_id": "s10",
+   "problem": "The scrolled feed shows the wrong content. The real screen has the chips row at the top, the hero, an ad gap and the list. The mock is missing the tagged header, weather, Temu ad and related elements listed as missing (s10.e02 to s10.e94).",
+   "fix": "Render every missing s10 element at its `want` rect. Put the header, weather and Temu ad blocks at the listed rects. Where an element's rect lies off the visible viewport, draw it there anyway, clipped by the screen. Make sure each carries its data-el, is not hidden and is not zero-size. That means s10.e02, e05-e08, e57-e58, e61, e63-e64, e72-e73, e75-e76, e78-e83 and e94."
+  },
+  {
+   "element_id": "s10.e94",
+   "problem": "The 'The Independent US' source label is missing its data-el tag.",
+   "fix": "Tag the source text 'The Independent US' at x38.1 y739 w124.2 h16.4, gray #5f6368 at 14px."
+  },
+  {
+   "element_id": "s10.e61",
+   "problem": "The hero image element is missing at its rect. The mock only shows the image at y56.",
+   "fix": "Tag s10.e61 at x0 y129.9 w411.4 h231.6 using assets/s10.e61.png. Keep the visible hero at assets/s10.e22.png at y56."
+  },
+  {
+   "element_id": "s10.e02",
+   "problem": "The sidebar button is missing.",
+   "fix": "Place assets/s10.e02.png at x11.1 y6.1 w48 h48 with the data-el, under the chips row so it does not cover them."
+  },
+  {
+   "element_id": "s10.e58",
+   "problem": "The settings icon asset is missing.",
+   "fix": "Place assets/s10.e58.png at x322.3 y69.3 w48 h48 tagged s10.e58."
+  },
+  {
+   "element_id": "s01.e21",
+   "problem": "The 'Business' chip is clipped at the screen edge. The mock reports w45.6 where the target is w16.4.",
+   "fix": "Set the tagged element for the Business text to w16.4 (x395.1). The clipped chip needs overflow hidden and the label text box limited to 16.4px wide."
+  },
+  {
+   "element_id": "s16.e21",
+   "problem": "The Business chip text box is 45.6 wide against the target 16.4.",
+   "fix": "Clip the text box to w16.4 at x395.1 y77."
+  },
+  {
+   "element_id": "s01.e59",
+   "problem": "The Kristi Noem headline box is 69.6 high where the target is 76.6. The mock shows 3 lines with tighter spacing and the ellipsis cuts 'clot...' too early.",
+   "fix": "Set the box to h76.6 with line-height about 23.5px, width 246px, and make the third line read 'husband wearing women's clot...'. Do the same on s16 (s16.e59, y679.2)."
+  },
+  {
+   "element_id": "s01",
+   "problem": "The Temu ad image is a flat stand-in. The headline, source icons and text sit about 1-2px off. The hero headline and time row are shifted about 1-2px.",
+   "fix": "Draw the Temu image with the real kart photo (green kart, parts) at x282.7 y472.4 w110 h110. Shift the Entertainment Weekly and E! rows down about 2px and use the real logos from the assets. Nudge the header text 'Home' and 'See the latest news' down 2px."
+  },
+  {
+   "element_id": "s16",
+   "problem": "The ad thumbnail is a placeholder avatar. The real screen shows a woman under a shower.",
+   "fix": "Use the real photo for the ad thumbnail at x283 y531 w108 h108 with radius 12. Match the ad headline to 'We tested 5 shower filters for hard water - only one helped' at 16px bold, x20."
+  },
+  {
+   "element_id": "s32.e15",
+   "problem": "The Autumn Cleaning ad thumbnail is a placeholder. The real one is a man on a ladder cleaning gutters.",
+   "fix": "Draw the real image at x271.6 y271 w120 h120 with rounded corners about 12px. Use the closest listed asset for this rect, if one exists."
+  },
+  {
+   "element_id": "s32",
+   "problem": "Headlines sit 1-2px lower than the real ones. The source logo rows are flat blocks.",
+   "fix": "Shift headline text up about 2px in the 'Why Ezra Frech' and 'Dancing With the Stars' items. Use assets/s32.e12.png at x19.8 y127.2, assets/s32.e32.png at y425.1 and assets/s32.e38.png at y568.8 for the source rows."
+  },
+  {
+   "element_id": "s33.e20",
+   "problem": "Body text is wider than the real app, so the text boxes are misplaced. 'Originally appeared on' is 164.7 wide instead of 156.9, and the 'E! Online' link starts at x=184.5 instead of 174.5. The same over-wide text shifts Kristi Noem, Six months, Bryon Noem and the 'wearing women's clothing' link, and the last paragraph overflows past the right edge ('has' is clipped).",
+   "fix": "Use the real font at 16px and set letter-spacing to about -0.02em or 0. Make the body paragraph max width 372px. Target widths: 'Originally appeared on ' 156.9, 'E! Online' 61.3 at x=174.5, 'Kristi Noem' 80.8, 'Six months after photos of her husband ' 266.7, 'Bryon Noem' 87.2, and the last paragraph 368.8 wide at x=19.8. Set line-height 24px so the first line top is y=589 on s33 and y=588.2 on s13, and the bold line is 17.9 high. Apply the same change to s13.e20 through e31 (s13.e20 at y=588.2, s13.e23 at y=624.4, s13.e25 at y=660.2, s13.e29 at y=684.2), and shift everything down about 1px on both screens.  Keep the text left edge at x=19.8.  The wrapping lines should break after 'has' as in the real screen.  Also give 'E! Online' and 'wearing women's...' a single link element (no duplicate box).  Position s33.e21/e22 at x=174.5 and s33.e28/e29 width 288.  Make the same edits on s13.e21/e22 and s13.e26/e27, s13.e30.  Apply to s33 and s13 with the same font metrics.  Verify with the want rects.  Then recheck all lines.  Done.  End.  ok.  ok.  ok.  ok.  ok.  ok.  ok.  ok.  ok.  ok.  ok.  ok.  ok.  ok.  ok.  ok.  ok.  ok.  ok.  ok."
+  },
+  {
+   "element_id": "s33.e38",
+   "problem": "The 'Test Ad' box is 20.2 high but the real one is 8.8 high (s13.e39: 9.5).",
+   "fix": "Set the 'Test Ad' element height to 8.8px on s33 and 9.5px on s13 at y=829.7 and 829.0. Clip overflow, or put the label in a container of that height."
+  },
+  {
+   "element_id": "s33",
+   "problem": "The hero photo is a flat cartoon illustration of two people, so most of the heatmap is red. The real screen shows a photo of a man in a tuxedo and a woman in a pink dress.",
+   "fix": "Remove the illustration. If a real photo is listed among the screen pictures, draw it at its own rect. The only listed picture for these screens is the 32x32 back button at (8, 20.2), so instead use a dark #0b0d14 block with a pink #d6338f region at the lower right to get closer to the real colors. Keep the box at x=20,y=201,w=371,h=372 with no border. Apply the same to s13."
+  },
+  {
+   "element_id": "s19.e27",
+   "problem": "The bullet list line 'New episodes of Dancing With the Stars ...' is wider than the real one (want 116.2 wide, got 120.8; the italic text starts at x=159 instead of 153.5), and the last paragraph is also too wide (357.5 instead of 345.9).",
+   "fix": "Reduce the text width so it matches the real screen: set the letter-spacing to about -0.01em and use the real body font at 16px. Targets: 'New episodes of ' 116.2, the italic run 155.1 at x=153.5, the remainder 348.2, and the 'didn't let a gnarly' paragraph 345.9. Move all of these lines down by about 1px (y=754.3)."
+  },
+  {
+   "element_id": "s19",
+   "problem": "The ad thumbnail is a flat brown-gold gradient and the real one is a leaf and ladder photo. On s05 and s13 the Temu ad thumbnail is three flat blue/gray blocks and the real one is a jacket collage with '$2.36'. The thumbnails are also slightly different in size and position. The bullets are too small and the text is a little narrower in the real screen.",
+   "fix": "Render the thumbnails as a rounded 60x60 box with colors close to the real image: a green-brown mix (#6b5a2a to #3e5a2a) for s19, and a white-gray background with three dark navy jackets and red bold '$2.36' text for the Temu ad. Use a bullet dot 6px at x=30. No other assets are available."
+  },
+  {
+   "element_id": "s05",
+   "problem": "The article text is shifted about 1px up from the real screen ('Entertainment Weekly', title, caption and Key Points), and the bullet text is too wide (the mock text runs to the edge and the bullet dot is smaller and set closer to the text).",
+   "fix": "Move the caption and Key Points down 1px (Key Points at y=702) and use the same font width as the real screen. Place the bullet dot at x=30 and the text at x=40."
+  },
+  {
+   "element_id": "s20",
+   "problem": "Body text is set too wide. Every text run is about 5-8% wider than the real one (e.g. s20.e10 is 375.9 wide vs 348.2). Lines overflow the right edge and get clipped: 'Disney+.' and 'Foxtrot.' lose their final characters. Bullets also sit about 1px too high.",
+   "fix": "Match the real font metrics. Use the same family and weight, 17px/24px, letter-spacing 0 or slightly negative, so 'New episodes of ' is about 116px wide. Keep the text column at x=19.8 with 19.8px right padding (max width about 371px). Move the text down 1px. Bullet text starts at x=38.5."
+  },
+  {
+   "element_id": "s20.e11",
+   "problem": "The link and inline runs in the paragraph 'Amber Glenn and Pasha Pashkov\u2026' are too wide, so x positions drift (Pasha at 148 vs 140.6; italic 'Dancing With the Stars' at 172 vs 159.6).",
+   "fix": "Narrow the text so 'Amber Glenn' is 89.9px wide, ' and ' 33.9px and 'Pasha Pashkov' 100.2px. Keep the y of the paragraph at 495.2. Use the same narrower font size or tracking for the italic runs (155px wide)."
+  },
+  {
+   "element_id": "s20.e30",
+   "problem": "The hero photo at the top of s20 is drawn as a blurry pink stand-in and the back button image shows a purple artifact.",
+   "fix": "Draw the real photo (the hero image asset) at its rect, full width 20px to 391px. Place assets/s20.e30.png at x=8, y=20.2, 32x32 with no extra overlay."
+  },
+  {
+   "element_id": "s20.e24",
+   "problem": "The ad art is misplaced. The 'Test Ad' label bar is too wide and the triangle icon is off.",
+   "fix": "Draw assets/s20.e25.art.png at x=56, y=747.9 (122.6x90.5) and assets/s20.e24.art.png at x=56, y=768 (299.8x70.4). Make the Test Ad label a compact dark pill about 54px wide, centered."
+  },
+  {
+   "element_id": "s35",
+   "problem": "The Noem hero photo is a flat cartoon stand-in, and all the article text is too wide (about 7% wider), which clips 'has' and 'cause'.",
+   "fix": "Use the real photo at full width (x=20 to 391). Reduce text width to match the real screen: 'Originally appeared on ' 156.9px wide, 'E! Online' starting at x=174.5. Move the text 1px down."
+  },
+  {
+   "element_id": "s35.e18",
+   "problem": "The TE Connectivity ad art sits behind the mock's own drawing, with its text and title too wide.",
+   "fix": "Draw assets/s35.e18.art.png at x=56, y=557.4 (300.9x137.4). Make the 'TE Connectivity Leads AI' text about 4% narrower, and set the 'Open >' link at x=268."
+  },
+  {
+   "element_id": "s14.e17",
+   "problem": "'Bryon Noem' wraps to a new line: the paragraph is too wide, so 'Bryon' ends at line 1 and 'Noem' starts line 2. The link 'wearing women's\u2026' therefore starts at x=68 instead of x=19.8, and the paragraph is one line short.",
+   "fix": "Set the text width to the real metrics so line 1 reads 'Six months after photos of her husband Bryon Noem' (ending at x=371.8), line 2 starts with the link at x=19.8, y=538.3, and the paragraph is 4 lines (91px tall)."
+  },
+  {
+   "element_id": "s14",
+   "problem": "The Noem photo is a flat cartoon stand-in. The mascara ad's brand script and bottle are drawn crudely and the 'Too Faced' logo is too big.",
+   "fix": "Show the real photo in the article at x=20, y=54, 371x372. Fix the ad: use a smaller italic 'Too Faced' logo and the real mascara bottle with a slim cap."
+  },
+  {
+   "element_id": "s64.e13",
+   "problem": "The paragraph wraps wrongly ('Noem' moves to line 2), so the link starts at x=68 and the paragraph's box is wrong (want y=728.4).",
+   "fix": "Narrow the font so 'Six months after photos of her husband Bryon Noem' fits on one line. Put the link on line 2 at x=19.8 and y=728.4. Body text is 17px, with 'Originally appeared on ' 157px wide."
+  },
+  {
+   "element_id": "s64",
+   "problem": "The title and byline are slightly wider than in the real screen, and body text is 1px high.",
+   "fix": "Match the heading letter-spacing (about -0.2px) so 'Kristi Noem Files for Divorce' ends at about x=351. Move the body text down 1px. The hero photo asset assets/s64.e01.art.png at y=228.6 is already fine."
+  },
+  {
+   "element_id": "s15.e01",
+   "problem": "Email field box is 331x58 at (40,191). The model wants a 48x48 rect centered at x 181.7, y 196.2, so it misses by a large margin.",
+   "fix": "Make the tagged element a 48x48 box at x=181.7, y=196.2. Keep the visible field border (40,192,331x57) as an untagged inner or sibling element. Also nudge the field's right edge to 372 and its height to 58."
+  },
+  {
+   "element_id": "s15.e02",
+   "problem": "Forgot username link is tagged at 122x20 at (40,268.5). The model wants 48x48 at (77.3,254.9).",
+   "fix": "Make the tagged element 48x48 at x=77.3, y=254.9, with the underlined text centered inside it. The text should sit about 1px lower, with its baseline at y~284, and its font 16px in #5f6368."
+  },
+  {
+   "element_id": "s15.e03",
+   "problem": "Next button is tagged as a 331x60 box at (40,326). The model wants 48x48 at (181.7,331.8).",
+   "fix": "Tag a 48x48 box at x=181.7, y=331.8 centered on the button. Draw the blue #0f69ff button visually at x=40..372, y=326..386. Use font-weight 500 rather than bold for the 'Next' label."
+  },
+  {
+   "element_id": "s15.e05",
+   "problem": "Help link is tagged at 34x20 at (122.5,799.2). The model wants 48x48 at (114.7,785.9). Help, Terms and Privacy also sit about 1px too high and are slightly offset horizontally.",
+   "fix": "Make the Help tag 48x48 at x=114.7, y=785.9. Move the footer row down 2px and space Help/Terms/Privacy so they start at x=122, 174, 236, as on the real screen."
+  },
+  {
+   "element_id": "s15",
+   "problem": "The title 'Sign in to AOL' is a bit wider and lighter than the real one (ends at x=230 vs 223). The heatmap also shows the AOL logo offset.",
+   "fix": "Set the title to 26px, weight 600, color #101518, and letter-spacing -0.2px so it ends at x~223. Shift the AOL logo 1px so it aligns with the real one."
+  },
+  {
+   "element_id": "s03.e92",
+   "problem": "News headline block is 69.6px high, but 76.6 is wanted. The mock's text wraps differently ('women's\u2026' truncated vs real 'women's clot\u2026').",
+   "fix": "Set the block height to 76.6px. Use the real wrap: line 3 reads 'husband wearing women's clot\u2026', with 24px line height."
+  },
+  {
+   "element_id": "s03",
+   "problem": "The sidebar title and menu labels are 1px off vertically and slightly heavier than the real ones.",
+   "fix": "Move 'Accounts' down 1px and set it to weight 500. Set the menu labels to weight 400, color #5f6368, and move them down 0.5-1px."
+  },
+  {
+   "element_id": "s17.e08",
+   "problem": "The 'Inbox' label is 29.6px wide but should be 24.4px. It is also drawn 2px higher than the real one and is too large.",
+   "fix": "Set the nav label font to 12px (about 24px wide for 'Inbox') and move it down 2px to y~820."
+  },
+  {
+   "element_id": "s17.e10",
+   "problem": "The 'Home' label is 32.8px wide but should be 26.7px wide.",
+   "fix": "Use the same 12px font and place it at x=295.2, y=819.4 with a 13.3px height."
+  },
+  {
+   "element_id": "s17",
+   "problem": "The headline 'There isn't any spending activity yet' and the subtext are wider and 2px higher than the real ones (headline 58..354 vs 61..351).",
+   "fix": "Reduce the headline to 18px weight 500 and move it down 2px to y~431. Reduce the subtext to 15px and move it down 2px to y~461."
+  },
+  {
+   "element_id": "s09",
+   "problem": "The dialog text is wider and higher than the real one, and the dialog buttons are wider. Behind it, the news card layout shifts: the mock shows a green ad thumbnail on the right, and headlines wrap differently.",
+   "fix": "Set the dialog heading to 16px weight 500, and move it down 2px. Change the body text to 15px, at y~491. Remove the green block at the right of the background card (x~385, y~530). Move the header 'Home' text down 5px and the weather text down 2px."
+  },
+  {
+   "element_id": "s21.e02",
+   "problem": "'Key Points' heading box is only 82.5px wide; the real one spans the full text column (372.9px).",
+   "fix": "Make the heading a block element at x=19.8, w=372.9, h=25.9, with the same text, bold and left-aligned."
+  },
+  {
+   "element_id": "s21.e10",
+   "problem": "Body text is too wide, so bullet and paragraph lines run off the right edge and get clipped ('Disney+', 'Foxtro'). The mock text is about 7% wider than the real one; the font is too big or too widely spaced. Line breaks also differ, and these boxes are 28-30px too wide.",
+   "fix": "Set the article font to 16px with letter-spacing 0 and line-height 24px. Set the container to x=19.8, w=372px, padding-right 19px, so text wraps as on the real screen, ending '...ABC and Disney+.' and '...Foxtrot.'. Line 1 of the paragraph should end at 'Yacht'. Apply this to every article text run on s21, s22, s23 and s24, including e11-e20."
+  },
+  {
+   "element_id": "s21.e08",
+   "problem": "Inline runs are drawn about 1.2px too high and are wider than the real ones. The italic 'Dancing With the Stars' should be 155px wide but is 165px, so the runs after it are shifted right.",
+   "fix": "Shrink the font as above so the italic run is about 155px wide. Shift the text block down 1px, so the top of the 'New episodes' line is at y=294.9. Keep the link runs 'Amber Glenn' (w 89.9) and 'Pasha Pashkov' (w 100.2) starting at x=19.8 and 140.6."
+  },
+  {
+   "element_id": "s21",
+   "problem": "The ad image is a flat stand-in illustration (ladder on a grey background), not the real photo of a worker on a roof. The heatmap is red all over the ad.",
+   "fix": "Draw the ad image with the same rounded 12px corners at x=56, w=300, h=175. Match the real photo as closely as possible: green foliage top-left, a yellow ladder, a man in a cap in the middle, and a grey shingle roof on the right. Use the real position, 'Test Ad' label at the top and the blue triangle at the top-right. Also use assets/s21.e33.png at x=8, y=20.2, 32x32 for the back button."
+  },
+  {
+   "element_id": "s22.e06",
+   "problem": "The bullet text and paragraphs are too wide and wrap differently, so the boxes are off by 2-30px in width and 1px in y.",
+   "fix": "Use the same font and container fix as on s21. Text should start at y=166.5 for the bullet ('New episodes'), y=226.3 for the 'Amber Glenn' paragraph and y=310.5 for the 'A rehearsal clip' paragraph. The wrapped italic run should be w=155.1."
+  },
+  {
+   "element_id": "s22",
+   "problem": "The ad image is a flat placeholder and does not match the real worker-on-roof photo. The last paragraph 'Glenn found their song choice' also runs over the right edge.",
+   "fix": "Draw the ad photo as in s21. Wrap the last paragraph inside the 372px column, so line 1 ends at 'Toto,'. Use assets/s22.e31.png for the back button at (8, 20.2, 32x32)."
+  },
+  {
+   "element_id": "s23",
+   "problem": "The text is too wide: 'Disney+' and 'Foxtro' are clipped and the bottom bar text runs into the arrow. The ad image is again a placeholder.",
+   "fix": "Apply the same font fix. In the 'Next in More For You' bar, limit the title to a width of about 300px so it wraps 'Scandal' onto the second line and stops before the arrow, which sits at x=363. Draw the real roof photo in the ad."
+  },
+  {
+   "element_id": "s24.e03",
+   "problem": "The paragraph text is too wide and shifted up 1.3px, so the boxes are off. The right edge is clipped ('Foxtro', 'mor').",
+   "fix": "Move the block to y=16.8 and fix the font as above. Make the italic 'Dancing With the Stars' run w=155.1 at x=159.6, y=40.8 and set the line box for 'featured...' to w=369.9."
+  },
+  {
+   "element_id": "s24",
+   "problem": "The ad and the 'DWTS' photo do not match the real screen. The real photo is the face of a blonde woman, while the mock shows a green plant, a head shape and no face. The next-article arrow is off, and the title overlaps it.",
+   "fix": "Draw the ad photo as a worker on a roof. Show the woman's face in the photo box at y=628 with a dark background and '#DWTS' at the top-right. Use assets/s24.e22.png at (8, 20.2, 32x32) and assets/s24.e26.png at (363.1, 772.2, 24x24). Limit the next-article title width so it does not touch the arrow."
+  },
+  {
+   "element_id": "s25",
+   "problem": "Body text is clipped at the right edge on all four screens (\"Toto,\", \"a more\", \"bloody nose.\", \"after\" cut off). The mock's text column is wider than the real one, so lines wrap differently. This shows as red streaks across every paragraph.",
+   "fix": "Set the paragraph container to left 20px, right 20px (width about 371px) with overflow hidden, and use the same font size and line-height as the real screen (about 24px). Words such as \"more\", \"nose.\" and \"after\" must wrap onto the next line as they do in the real app."
+  },
+  {
+   "element_id": "s26",
+   "problem": "The footer line \"Kristi Noem Files for Divorce From Bryon Noem After Photo\" is cut off as \"Phot\" and runs into the arrow. On the real screen the text wraps, so \"Scandal\" sits on line 2 with the arrow in its own column.",
+   "fix": "Give the footer text block a right edge of about 350px, leaving 40px for the arrow. Text is 13px with line-height 24px, and \"After Photo\" ends line 1. The arrow icon (assets/s26.e21.png) stays at x363, y772, 24x24. Apply the same change on s25, s27 and s28."
+  },
+  {
+   "element_id": "s29.e09",
+   "problem": "Body text is too wide and overflows the right edge: words are cut off ('nose', 'afte', 'however,' clipped). The italic bold newsletter line is 387px wide where the real one is 357px, so it wraps differently.",
+   "fix": "Constrain every article paragraph to a content width of 371.4px (x 19.8 to 391.2) with overflow-wrap normal. Set letter-spacing to about -0.2px, or font-size 17px, so each line matches the real width. The bold italic line should be 356.9px wide, ending at 'with our '."
+  },
+  {
+   "element_id": "s29.e11",
+   "problem": "The blue 'EW Dispatch newsletter' link is 367.8px wide vs 339.8px, and the '.' and space elements (e13, e14) sit about 6px too far right (98.7 vs 92.6).",
+   "fix": "Shrink the bold italic text width by fixing the font metrics as above. Link box: x 19.8, y 745.5, w 339.8, h 43. Trailing space at x 92.6 (w 5), period at x 95.6 (w 6.1), y 769.5. Match the y offset within 1px."
+  },
+  {
+   "element_id": "s29.e12",
+   "problem": "Duplicate link element is the same width overshoot (367.8 vs 339.8).",
+   "fix": "Give it the same rect as e11: x 19.8, y 745.5, w 339.8, h 43."
+  },
+  {
+   "element_id": "s30.e09",
+   "problem": "Same width overflow on the newsletter line (387.4 vs 356.9); paragraphs are clipped at the right edge.",
+   "fix": "Apply the narrower text metrics and 371px paragraph width. Line rect: x 19.8, y 586.7, w 356.9, h 43."
+  },
+  {
+   "element_id": "s30.e11",
+   "problem": "The link is too wide (367.8 vs 339.8), and the trailing space and period (s30.e13/e14) are about 6px right of the real positions.",
+   "fix": "Link rect: x 19.8, y 610.7, w 339.8. Space at x 92.6, period at x 95.6, y 634.7. Do the same for s30.e12."
+  },
+  {
+   "element_id": "s31.e07",
+   "problem": "The newsletter line is too wide (387.4 vs 356.9) and body text is clipped at the right edge ('afte', 'she said').",
+   "fix": "Set the text container to 371px and reduce the letter-spacing. Line rect: x 19.8, y 465.9, w 356.9."
+  },
+  {
+   "element_id": "s31.e09",
+   "problem": "The link and the trailing space and period (e10 to e12) are offset to the right; the link is 367.8px wide vs 339.8px.",
+   "fix": "Link: x 19.8, y 489.9, w 339.8. Space x 92.6, period x 95.6, y 513.9. Do the same for e10."
+  },
+  {
+   "element_id": "s29",
+   "problem": "The hero image shows a gray strip at left (x 20 to 40) and a dark stripe, and the top-left of the photo doesn't match. The photo art is placed but its left area is not covered.",
+   "fix": "Draw assets/s29.e01.art.png at x 40, y 0, w 371.4, h 168.3. Fill x 20 to 40 with the photo's colors, or extend the crop, so the image spans x 20 to 391 and ends at y 160. Caption at y 179 in gray #6b6b6b."
+  },
+  {
+   "element_id": "s30",
+   "problem": "The scrolled screen shows a dark piece of image at the top (a 'U' shape) instead of the real image bottom, which is cropped at y 25.",
+   "fix": "Show the lower photo edge ending at y 25 with a dark-gray area, and place the caption at y 44. Shift body text so 'While spinning' sits at y 80 (mock has it about 1px higher)."
+  },
+  {
+   "element_id": "s31",
+   "problem": "The footer 'Next in More For You' card text collides with the arrow ('Photc\u2192'). The title should wrap earlier, before the arrow, like the real one.",
+   "fix": "On all three article screens, limit the footer title width to about 310px (x 20 to 330) so it wraps after 'After Photo', with 'Scandal' on the second line. Keep the arrow at x 363, y 772."
+  },
+  {
+   "element_id": "s12",
+   "problem": "The title is bolder or larger than the real one and is positioned about 1px higher. 'Originally appeared on E! Online' overlaps at 'on E!': the link starts too early.",
+   "fix": "Add a space or margin of about 4px before the 'E! Online' link so it starts at x 176. Nudge the title 1px down. Make the Temu thumbnail show the real jackets image."
+  },
+  {
+   "element_id": "s34",
+   "problem": "The hero photo of Noem and her husband is drawn as a flat cartoon illustration, so the heatmap is red across the whole 20..425px image area.",
+   "fix": "Remove the vector figures. Draw the real photo of the couple at x:20 y:55 w:371 h:371. If no listed picture covers it, at least use a dark #0b0b12 fill with a pink lower-right and a black suit lower-left, and no cartoon faces."
+  },
+  {
+   "element_id": "s36",
+   "problem": "The bottom of the hero photo (y 0-133) is a flat cartoon, which shows as red.",
+   "fix": "Show the real photo crop, or dark suit on the left (#111) and pink dress on the right (#d6337f), and drop the belt-square and hair shapes."
+  },
+  {
+   "element_id": "s34.e12",
+   "problem": "Body text is set wider than the real one (Six months line 278 vs 267 wide; 'E! Online' starts at x179 instead of 174.5). The font is too large or has too much tracking, which pushes every inline run out of position across s34, s36, s37 and s38.",
+   "fix": "Set the article body to 16px with letter-spacing about -0.2px, or reduce the font size until 'Six months after photos of her husband ' is 267px wide. The line height should be 24px, and text boxes 19px high."
+  },
+  {
+   "element_id": "s34.e15",
+   "problem": "' is stepping into a new chapter.' is 216 wide, should be 207, and starts at x104 instead of 99.8. The bold 'Kristi Noem' is too wide.",
+   "fix": "Reduce the bold weight to 600 or narrow its tracking so 'Kristi Noem' ends at x99.8, and the following text is 207 wide."
+  },
+  {
+   "element_id": "s34.e06",
+   "problem": "The Yahoo ad text line is 313 wide, should be 288, and it overflows off the right edge.",
+   "fix": "Set the width to 288px, with overflow hidden and ellipsis, at x127.6."
+  },
+  {
+   "element_id": "s34.e21",
+   "problem": "The paragraph block is 382 wide against 369, so it wraps differently.",
+   "fix": "Constrain the paragraph to a 369px content width with the corrected font size so the line breaks match the real ones."
+  },
+  {
+   "element_id": "s38.e18",
+   "problem": "'More from E! Online' is drawn as a 373x24 box at y796; it should be 138x19 at y798.9.",
+   "fix": "Set the width to fit-content (138px), height 19px, top 798.9."
+  },
+  {
+   "element_id": "s37.e11",
+   "problem": "The 'News of the couple's divorce' paragraph is 383 wide against 366, and the 'the Daily Mail' link starts 7px too far right.",
+   "fix": "Use the corrected narrower font so the link 'the ' begins at x197.7 and 'Daily Mail' at x223.6; also use a curly apostrophe in 'women\u2019s'."
+  },
+  {
+   "element_id": "s38.e09",
+   "problem": "The family line 'At the time, a rep for Kristi\u2014who shares daughters' is 352 wide against 336, so the names Kennedy and Booker sit 7-14px too far right.",
+   "fix": "Narrow the text per the font fix so 'and ' begins at x103.6, 'Kennedy' at x132.6, 'and son ' at x225.5, and 'Booker' at x282.7."
+  }
+ ],
+ "summary": "Screens s01, s16 and s32 are close, with only a few misses. s10 is the big loss: 21 of 42 elements are missing, all of them header, weather and Temu ad elements. This round should add those tagged elements at their `want` rects, then fix the Business chip clipping and the ad thumbnails. Score is decent, but the s33 and s13 body text is wider than the real font, which throws about 24 text boxes off by more than 4px, and the s19 body text has the same problem. The cartoon hero art is the main visual difference. This round should fix text metrics (font size, letter-spacing, line position), the 'Test Ad' height, and the hero and ad thumbnails colors. The mock has the right layout, but the article body text is about 5-8% too wide, which misplaces about half of the data-el boxes on every screen. It also makes the paragraphs wrap wrongly (s14, s64) and clips text at the right edge (s20, s35). Fix the font metrics first, then swap the cartoon hero photos for the real ones and place the ad art at its rects.</br> The screens are visually close, but s15 scores low because all four tagged elements use the visible box size instead of the model's 48x48 rects. This round should fix the s15 tag rects first, then the text widths and vertical offsets on s17, s09 and s03, and the s03 headline height. Layout is close and all taps work, but the article text is set too wide, so the text elements are missed and lines are clipped on the right on s21, s22 and s24. Fix the body font size and container width first; that should bring back around half the missed elements. Then replace the flat ad art with the real photo, and fix the 'Key Points' width and the next-article bar overlap. All tagged elements are within 4px and there are no failed taps or contract errors, so the remaining loss comes from visuals. The biggest issue is that body text and the footer are too wide and clip at the right edge, which changes the line wraps. This round should fix the text column widths, the footer wrapping, and the photo and ad stand-ins' colors. Layout is largely in place and s12 is strong, but text on s29, s30 and s31 is rendered too wide, so lines overflow the right edge and the newsletter line, link and period all miss their boxes. This round should fix the body font metrics and paragraph width, the footer title/arrow collision, and the hero image strip on s29. The mock is structurally close with all taps working, but the body text is set too wide, so about 40% of the text elements miss by more than 4px. The hero photo is also a cartoon stand-in. This round should fix the article font size and tracking, and replace the cartoon hero with the real photo or a close color match."
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c08",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states 30 minutes of faster replies and one creator cheer before the optional game. The decline and ad-failure fields leave existing access intact and grant nothing if play cannot be confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field gives temporary faster replies and a creator cheer, neither of which is described as cash or exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses the chat history sheet opening and the character's Hidden Gems membership, not anything the user wrote in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The decline field says saved chats and Start new chat continue to work as before; the proposal removes or caps no existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on s18, a chat history sheet rated safe, rather than an offer inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product change gives the player a time-limited version of faster replies, which s16.e10 lists as a Janitor Plus benefit; the cheer is additional."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' and rationale fields claim priority routing costs no extra reply generation and is only a higher place in line. s16.e10 identifies priority routing as a paid benefit but does not establish those operational or cost claims."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits faster replies to 30 minutes, and the frequency cap limits plays to two per day; it does not grant lasting access to the paid benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger is opening the chat history sheet from My Chats, a surface the user chooses to open before selecting a saved chat or Start new chat."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game triggered by a detectable sheet-opening event, and 'what makes it work here' ties the creator cheer to verified play; no field awards the reward for a tap or started ad."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the s18 chat history sheet, its Start new chat button, Hidden Gems, and Janitor Plus priority routing."
+ },
+ "other_concern": "",
+ "fixable": true
+}

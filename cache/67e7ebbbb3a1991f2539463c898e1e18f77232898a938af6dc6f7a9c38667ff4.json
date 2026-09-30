@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[{\"box_id\":9,\"name\":\"filter settings\"},{\"box_id\":11,\"name\":\"menu\"},{\"box_id\":12,\"name\":\"search character name\"},{\"box_id\":16,\"name\":\"decoration\"},{\"box_id\":17,\"name\":\"decoration\"},{\"box_id\":18,\"name\":\"decoration\"},{\"box_id\":19,\"name\":\"decoration\"},{\"box_id\":20,\"name\":\"decoration\"}],\"extra_points\":[]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1688,
+ "tokens_out": 153,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

@@ -258,6 +258,13 @@ def cmd_run(args) -> int:
     ctx = open_run(args)
     first = STAGES.index(args.from_stage) if args.from_stage else 0
     for stage in STAGES[first:]:
+        if ctx.replay and runlog.read_marker(ctx.run_dir, stage) is None:
+            # A replay has only what the run recorded: a stage it never finished (an app that refused the emulator
+            # stops at explore) has nothing to replay, and neither has any stage after it.
+            runlog.run_trace(ctx.run_dir, stage=stage, step="replay", decider="code",
+                             note="never finished in this run: the replay stops here")
+            print(f"replay: {stage} never finished in this run; nothing from it on to replay")
+            break
         if not run_stage(stage, ctx, force=args.from_stage is not None):
             return EXIT_NOT_BUILT
     return 0

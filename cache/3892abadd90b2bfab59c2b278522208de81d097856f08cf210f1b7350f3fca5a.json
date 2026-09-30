@@ -1,0 +1,9 @@
+{
+ "text": "{\"identifying_text\":\"\",\"verdict\":\"elsewhere\",\"confidence\":0.4,\"action\":null,\"element_id\":null,\"direction\":null,\"side_effect\":false,\"reason\":\"Target is a 'Welcome to Computer' intro sheet with no usable identifying text; the current screen is the Computer home, and no single visible control clearly reopens the intro.\"}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 3052,
+ "tokens_out": 119,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

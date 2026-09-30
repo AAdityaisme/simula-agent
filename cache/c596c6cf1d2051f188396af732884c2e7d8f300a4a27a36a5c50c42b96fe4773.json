@@ -1,0 +1,14 @@
+{
+ "option_id": "o02",
+ "confidence": 0.81,
+ "probabilities": {
+  "o03": 0.06,
+  "o01": 0.06,
+  "o02": 0.88
+ },
+ "model": "jev-1.13.0",
+ "tokens_in": 533,
+ "tokens_out": 46,
+ "usd": 2.2386000000000002e-05,
+ "seconds": 0.23020433308556676
+}

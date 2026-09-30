@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[{\"box_id\":3,\"name\":\"computer mode\"}],\"extra_points\":[{\"x\":64,\"y\":1037,\"name\":\"add\"},{\"x\":133,\"y\":1037,\"name\":\"model picker\"},{\"x\":377,\"y\":1037,\"name\":\"incognito mode\"},{\"x\":430,\"y\":1037,\"name\":\"microphone\"},{\"x\":481,\"y\":1037,\"name\":\"voice mode\"},{\"x\":47,\"y\":453,\"name\":\"delete\"},{\"x\":47,\"y\":520,\"name\":\"enter\"},{\"x\":47,\"y\":587,\"name\":\"emoji\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1667,
+ "tokens_out": 199,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

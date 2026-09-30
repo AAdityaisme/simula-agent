@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c05",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the two-hour reward before the user chooses to play; the decline and ad-failure fields preserve normal access and grant nothing if play cannot be confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is two hours of in-app priority routing, not cash or a transferable or externally exchangeable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is opening My Chats after a period away; it does not require reading messages or other chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and the reward adds temporary priority routing rather than restricting an existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card above the rows on s03 My Chats, a safe list screen, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing_anchor, s16.e10 shows that Janitor Plus charges for the priority routing the reward temporarily provides."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field asserts an existing session log that the model does not observe. It also treats exp1's 0.9-second chat-history-sheet load as a free-tier reply-speed measurement, which exp1 is not."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits the paid priority-routing benefit to two hours, so it does not grant lasting access."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The welcome-back card appears on s03 My Chats, a screen the user chooses to open, rather than interrupting an ongoing task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow has the user play a sponsored game, and the ad-failure field says an unconfirmed game grants no reward; opening My Chats is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses s03 My Chats and the priority-routing benefit listed at s16.e10."
+ },
+ "other_concern": "",
+ "fixable": true
+}

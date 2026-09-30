@@ -1,0 +1,272 @@
+{
+ "schema_version": 1,
+ "stage": "mock",
+ "input_hashes": [
+  {
+   "path": "config/apps/perplexity.toml",
+   "sha256": "8c502d54c12667098a1863ab54a5b01b0a84a4e480db27339910c107806ad265"
+  },
+  {
+   "path": "docs/CONTRACTS.md",
+   "sha256": "d31deb486f79d47f4b79c59aeecf8f622b2da5030ce7f7a70042e74b7fc972c1"
+  },
+  {
+   "path": "model/assets/s01.e01.png",
+   "sha256": "cc8a75ae4e8039407cd9ec8b91a180259d4f99fb1d71f767e313e338e9adafab"
+  },
+  {
+   "path": "model/assets/s01.e02.png",
+   "sha256": "d8441efc44436eed4d8eabe35a36288f66ab83490734429b3fa8ac3d2f135c18"
+  },
+  {
+   "path": "model/assets/s09.e04.png",
+   "sha256": "bc9c1f01c77efe00d98e3b69798ae13680c7f1f2420287f88cf0c1a2b63392b8"
+  },
+  {
+   "path": "model/assets/s09.e05.png",
+   "sha256": "bc9c1f01c77efe00d98e3b69798ae13680c7f1f2420287f88cf0c1a2b63392b8"
+  },
+  {
+   "path": "model/assets/s10.e04.png",
+   "sha256": "15ccaf38032d8602a6d51eb2544ea703d9bb35e7477bc9f839fde339e9a68267"
+  },
+  {
+   "path": "model/assets/s10.e05.png",
+   "sha256": "15ccaf38032d8602a6d51eb2544ea703d9bb35e7477bc9f839fde339e9a68267"
+  },
+  {
+   "path": "model/product_model.json",
+   "sha256": "4a79d0ae577674633fd98d0f5f7665e46a5a7cab854350c494e3b3522ab7f498"
+  },
+  {
+   "path": "model/product_model.md",
+   "sha256": "f811ddf3e1aad8451ace38ef01972d9968b0c807c4f7ad1250f1abf46fb60c9a"
+  },
+  {
+   "path": "model/states/s01.png",
+   "sha256": "b07e943257b0b58e40fa5e481e636edf8e688ca56222f688dd14a9076c8345ba"
+  },
+  {
+   "path": "model/states/s02.png",
+   "sha256": "f7c3fb74b6229c44b2622178daa3913ae59fe2c01f29b508498608c54bdc2a21"
+  },
+  {
+   "path": "model/states/s03.png",
+   "sha256": "b67d2826741cfc12ab07c5396b8565d27fa77b7821a11aab766818829543f162"
+  },
+  {
+   "path": "model/states/s04.png",
+   "sha256": "39fee024273414a9eeae147026d9d9376530683ad4a4dac341fb4361c22283fd"
+  },
+  {
+   "path": "model/states/s05.png",
+   "sha256": "ccd2c7a1d71e1dd520982c7e3cc06fdec53d1fb71083e920060613eac11104c9"
+  },
+  {
+   "path": "model/states/s06.png",
+   "sha256": "a08c3026406b366342af0e7410d7f80342714e8fe52087607fdb7e9b9b9a1841"
+  },
+  {
+   "path": "model/states/s07.png",
+   "sha256": "197ea4dc0e7e000b980feeea1d3fd62f6ca444ec3fc7739650f8873909625928"
+  },
+  {
+   "path": "model/states/s08.png",
+   "sha256": "287b66957ed05042c1a01d29a265dbb6cd07cd62ff3cd8299e584fcdcb08ac21"
+  },
+  {
+   "path": "model/states/s09.png",
+   "sha256": "e2ff8d160042a75899178597a67d401906a2502d9de45669b7448444bc9491b1"
+  },
+  {
+   "path": "model/states/s10.png",
+   "sha256": "79e7aa5799c8942d85318d7c0951fcf8d4934dd1a31c2c5dcc1353ccbd507146"
+  },
+  {
+   "path": "model/states/s11.png",
+   "sha256": "ff25054e9c2e200b100edea6097ad52aaf1cb86d54355f4d7dffd50113c05872"
+  },
+  {
+   "path": "model/states/s12.png",
+   "sha256": "53f4f4b0c0aeb11b3de128e76e94e18684365170af22c3c472d02b6188c42db7"
+  },
+  {
+   "path": "model/states/s13.png",
+   "sha256": "71ebec10449417fc71cb34e5f4eff767b10c9f3c36bc3e1aaa76ad1627360a58"
+  }
+ ],
+ "prompt_hashes": [
+  {
+   "path": "prompts/mock/builder.md",
+   "sha256": "b4f54caff8d339eac98c0c929ab1ecca4ae7cc4f2cc5e916505c46cf3d67595c"
+  }
+ ],
+ "params_hash": "01af9d4caa0ce682793e4a431a61821e58a50b6fd51b3bff44b0e8376be03f2c",
+ "code_hashes": [
+  {
+   "path": "simula/__init__.py",
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "path": "simula/config.py",
+   "sha256": "a9e5c716e7eee149e0c6c9b509e948b13b9019137f953401b2b15708597506ab"
+  },
+  {
+   "path": "simula/contracts.py",
+   "sha256": "b7879488d02b4f88aa80d91b80dc060aecc4eff859ad59202eca2cd270a9afa8"
+  },
+  {
+   "path": "simula/llm.py",
+   "sha256": "1b3fc748a00a67bf22261daaf6e5192e8b7ade34940c5c360a9958c56ce37fa6"
+  },
+  {
+   "path": "simula/render.py",
+   "sha256": "1bb8bb014ad6489c0363cec99da7ace396a19811cb13ec3ba70018d3f19c33e9"
+  },
+  {
+   "path": "simula/runfolder.py",
+   "sha256": "296b4b399333f1014fb3f7b238c0891975167dff1db86ae727f38655f553fc9c"
+  },
+  {
+   "path": "simula/runlog.py",
+   "sha256": "80a3350bb560291e339830695fc872082f6d7362db9e1435dc5a8950fcac7cee"
+  },
+  {
+   "path": "simula/stages/__init__.py",
+   "sha256": "20acee52551d0e5c34b564c8e6b53ebfd9b3225d9b9f59bd4f705827c61c8649"
+  },
+  {
+   "path": "simula/stages/mock.py",
+   "sha256": "5972aeeb29beb67ad559bb3e4a78757620a38ffc30cb19cc847ac712da0f076c"
+  }
+ ],
+ "output_hashes": [
+  {
+   "path": "mock/art.json",
+   "sha256": "4e936aec65f2ab76f0ecac387ba8ca90b7406784883670f0fe137f24023760a3"
+  },
+  {
+   "path": "mock/assets/fonts/60c06664b5a95c7d.woff2",
+   "sha256": "60c06664b5a95c7de6cc3e00d1f9034d78bd1e40b564016b241674449a067d4d"
+  },
+  {
+   "path": "mock/assets/fonts/LICENSE.txt",
+   "sha256": "ca495ba9cd189e90eb66363e0e33828f36824669d1fd7fc80fec6d3cc937b803"
+  },
+  {
+   "path": "mock/assets/fonts/c940764593d0fe5d.woff2",
+   "sha256": "c940764593d0fe5d596be327ca7558855e018039fb78509aa21921fd3644c3e4"
+  },
+  {
+   "path": "mock/assets/fonts/fonts.css",
+   "sha256": "22580a62c3570f2dcb7695ef8ea6ada58bf080cd25e8af50deb189a302275b78"
+  },
+  {
+   "path": "mock/assets/s01.e01.png",
+   "sha256": "cc8a75ae4e8039407cd9ec8b91a180259d4f99fb1d71f767e313e338e9adafab"
+  },
+  {
+   "path": "mock/assets/s01.e02.png",
+   "sha256": "d8441efc44436eed4d8eabe35a36288f66ab83490734429b3fa8ac3d2f135c18"
+  },
+  {
+   "path": "mock/assets/s09.e04.png",
+   "sha256": "bc9c1f01c77efe00d98e3b69798ae13680c7f1f2420287f88cf0c1a2b63392b8"
+  },
+  {
+   "path": "mock/assets/s09.e05.png",
+   "sha256": "bc9c1f01c77efe00d98e3b69798ae13680c7f1f2420287f88cf0c1a2b63392b8"
+  },
+  {
+   "path": "mock/assets/s09.e24.art.png",
+   "sha256": "23e602a457b0dee171b1486563712bd1ef5679000d495e791227263014eb0b0c"
+  },
+  {
+   "path": "mock/assets/s10.e04.png",
+   "sha256": "15ccaf38032d8602a6d51eb2544ea703d9bb35e7477bc9f839fde339e9a68267"
+  },
+  {
+   "path": "mock/assets/s10.e05.png",
+   "sha256": "15ccaf38032d8602a6d51eb2544ea703d9bb35e7477bc9f839fde339e9a68267"
+  },
+  {
+   "path": "mock/contract_report.json",
+   "sha256": "43de422d0ece6dfbc0ca10503378eb5127f25c9c2c1c176c477622cfbc2f9863"
+  },
+  {
+   "path": "mock/font-records/1dee630514385afedb1f40bbaa0c44c220ee81c95c6e5af7613028a30a42105d.json",
+   "sha256": "bf333e12b8f340bd42c8f6c4b44919883ebcbf7d5e1d5def76d11174dc1b23ce"
+  },
+  {
+   "path": "mock/font-records/65f0ab3af3536c8f58338c41d8e5054dc137f7142689c6e5785305f5d8a15899.json",
+   "sha256": "649b5c41d4ff911e2d26417e5f474fed831b3d5a1a3b45ca93cb7a7f596e28b1"
+  },
+  {
+   "path": "mock/font-records/8f029b73ef9fea338cdd8ee54470b205855731b4939e1975f166605fe76b762a.json",
+   "sha256": "f8a2e76216b91351367e6346647c038f3e33c970c912062d3dda82a82456f892"
+  },
+  {
+   "path": "mock/font-records/8f43f58754f249df65ededa20ee03c5098ce679764a596478b40ca1ca5c2ff7d.json",
+   "sha256": "c49b8652d59106ccd68550a2bb30ca86ae9888d0f353cbc26abcb0eb85e277d8"
+  },
+  {
+   "path": "mock/font-records/a28b7e319024809fa76ecda6cd4836f722b58d4db1b8941e57a72e1a941424fc.json",
+   "sha256": "cf96fe1b52ff2c17befa3ea34fcc709ed4cc7180ca4501eb41b3c4c4a9eecae8"
+  },
+  {
+   "path": "mock/font-records/ae3ccc94f122860939e1ad816f98574cb35abed350181a3afd0595a0e417e341.json",
+   "sha256": "5a17e6810e802e1e4e73fcc3d3bd5f4b907ae6868e1b31bad16ae256ad5c82a4"
+  },
+  {
+   "path": "mock/index.html",
+   "sha256": "d59189b1d8fc97510aadd78d00efeb85512338b61807c4feb25f2a2212da283f"
+  },
+  {
+   "path": "mock/plan.json",
+   "sha256": "b52c8706d54a307264b8c5c7f1eff0152baf45eb504091f574b69ff3a9817bb1"
+  },
+  {
+   "path": "mock/renders/s01.png",
+   "sha256": "494fcfc57b8ea25fe7fe2dcdeae2d9ddaebda51a9f9221242961a7acda63053d"
+  },
+  {
+   "path": "mock/renders/s02.png",
+   "sha256": "eba8c3950c6a68929e42ab1fe52af826a84af6a5e925f697b8402e94a0e79c0b"
+  },
+  {
+   "path": "mock/renders/s03.png",
+   "sha256": "031abb1b1f2f0d12999182148d898f8deb543c5b91bcaca62c3c3715726a3c9f"
+  },
+  {
+   "path": "mock/renders/s04.png",
+   "sha256": "b28be82b85dd5cd88f1826f095029a9fe0250b33f4942cc96796db5fb0873212"
+  },
+  {
+   "path": "mock/renders/s07.png",
+   "sha256": "9ce4745d53bd6701e7da1af698b1f149b3d2841512d7d0cb5c585da0a2c8eb0f"
+  },
+  {
+   "path": "mock/renders/s08.png",
+   "sha256": "33e80aba03c12ec0e500d6128d8586ebde56a034c56cd10ae6b0b56f2cc7ce38"
+  },
+  {
+   "path": "mock/renders/s09.png",
+   "sha256": "5db835f9c278e298ea247fc2af5341df83c54d2314d91a2c02b305ba9919dd63"
+  },
+  {
+   "path": "mock/renders/s10.png",
+   "sha256": "7694d6828c7e4e68047e1210397f13a167ae3dd6b00f745aa58bd87f07ad3216"
+  }
+ ],
+ "provenance": {
+  "source": "explorer_run",
+  "explorer_run_id": "20260929-212810-1f19585",
+  "fixture_path": null
+ },
+ "outcome": {
+  "status": "complete",
+  "reasons": [],
+  "resume": null
+ },
+ "finished_at": "2026-09-29T21:47:54"
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c07",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 24-hour checkmark and 1 cheer before play; the decline and ad-failure fields leave the follow intact and describe what happens if play cannot be confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field gives a cosmetic checkmark, not cash or anything exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is tapping Follow from a Hidden Gems creator profile; it does not require message content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and removes-nothing-free fields introduce a sheet and cheer count without restricting an existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a bottom sheet over s07 Creator profile, which the product model rates safe, rather than an offer inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The player's primary reward is a 24-hour slice of the golden checkmark sold with Janitor Plus at s16.e12; the additional cheer goes to the creator."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "What makes it work here claims the checkmark costs nothing to serve, which s16.e12 does not establish, and says there is no visible way to show support beyond following, although s07.e07 shows a share action. These are unsupported claims about the app today."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward and frequency-cap fields limit the checkmark to 24 hours and one offer per day; the proposal says cheers do not alter feed order or existing creator visibility."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement opens the sheet after the Follow action is confirmed, rather than interrupting that action."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game triggered by a detectable Follow tap, and the proposal ties the cheer to verified play and withholds rewards when play cannot be confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses this app's Hidden Gems feed, creator Follow button at s07.e05, and Janitor Plus checkmark at s16.e12."
+ },
+ "other_concern": "",
+ "fixable": true
+}

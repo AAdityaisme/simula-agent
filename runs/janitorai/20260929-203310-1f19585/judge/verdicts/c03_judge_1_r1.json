@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c03",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in, the offer copy states the reward (10× memory for the next 5 replies), declining leaves the sheet as before, and the 'if the ad fails' field covers both no game and unconfirmed play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 5 replies with 10× context in one chat, which has no cash value and can't be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a subscriber opening the chat history sheet (s18), which is an app event. No message content is needed."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "'removes nothing free: yes' holds. The boost only adds to Plus memory, and nothing free is locked or capped."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits on the chat history sheet (s18), a sheet over the My Chats list (s03). Both are rated safe, and the card is not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Context memory is something the app charges for (l4 '5× context for better memory' in the Plus paywall). m3 also implies free chats keep less context, so the resource is charged and limited."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The rationale says users 'otherwise see no ads' and that this boost is something they 'can't buy today'. Both are stated as facts about the app today, but the model records no ad or add-on mechanic and the proposal doesn't word them as 'not seen'. The claim that the reply cost is 'already covered' by the subscription is also unsupported."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The boost is a sample that ends: 5 replies, one chat, once a day, expiring at midnight. It grants no lasting access and takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card is placed on the chat history sheet the user opens to pick a chat. It doesn't interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn rewarded game, the reward is granted only after the verified play, and the trigger (opening s18) is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the chat history sheet s18, the Start new chat button, and the Plus '5× context' benefit, so it wouldn't read the same in another app."
+ },
+ "other_concern": "The 10× context tier is a new, unobserved capability. Whether the backend can deliver it and how the app would detect subscriber status were not observed. The rationale's revenue and cost claims for lower-paying regions are unproven. The model was apparently explored on a free account, so s18 was never seen as a subscriber.",
+ "fixable": true
+}

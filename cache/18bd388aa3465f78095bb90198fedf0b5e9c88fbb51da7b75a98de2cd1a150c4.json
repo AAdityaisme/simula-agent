@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[{\"box_id\":14,\"name\":\"Kang Jun-Seo chat title\"}],\"extra_points\":[{\"x\":42,\"y\":38,\"name\":\"filter settings\"},{\"x\":498,\"y\":38,\"name\":\"menu\"},{\"x\":502,\"y\":131,\"name\":\"more options\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1667,
+ "tokens_out": 103,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

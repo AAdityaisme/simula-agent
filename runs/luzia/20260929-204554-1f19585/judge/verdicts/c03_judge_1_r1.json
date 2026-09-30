@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c03",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user taps a button on the Toki card to open the offer sheet, so it is opt-in. The offer copy states the reward (one outfit for 3 days), declining leaves the home screen unchanged, and the if_ad_fails path is defined."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic pet outfit lasting 3 days, which cannot be withdrawn, sold or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: the first home screen open of the day with the pet turned on and its card showing. No chat content is needed."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "It adds a daily bonus and removes or caps nothing free, since the Toki card and pet stay as they are."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The button sits on a card on s01, which is rated safe and is not a chat screen. The sheet opens over that safe home screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is a product_change. The outfit is a new cosmetic the player keeps for their own pet, and Toki is an observed core flow (f5, m2). None of it goes to another user or creator."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the Toki card, its return-visit framing and the pet being switchable on and off match s01.e26, s01.e27, s05.e04, s05.e09 and m2. The absence of a paid plan or limit is worded as not seen, and the rest is the proposal's own new content or a prediction."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "A cosmetic outfit that expires after 3 days gives away no paid benefit, and it takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer is a button on the persistent Toki card that the user chooses to tap. It interrupts no task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn rewarded playable. The outfit is granted only once the game is confirmed, and the trigger is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Toki virtual pet card on the s01 Chats home screen and depends on that feature, so it would not read the same in another app."
+ },
+ "other_concern": "No evidence was cited, and the pet's care screen was never observed, so whether an outfit shows on the home card is an assumption. Any value depends on Toki engagement, which is unmeasured.",
+ "fixable": false
+}

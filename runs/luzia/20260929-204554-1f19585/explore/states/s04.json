@@ -1,0 +1,37 @@
+{
+ "schema_version": 1,
+ "state_id": "s04",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "co.thewordlab.luzia|86808680c714e718e718e716e71ae61c|a718e71aa69ce718e718e718e718e480|99dd23ce0ef2",
+ "foreground_package": "co.thewordlab.luzia",
+ "screenshot": "states/s04.png",
+ "elements_reply": "states/s04.elements.json",
+ "settled": true,
+ "settle_seconds": 2.79,
+ "dynamic_regions": [],
+ "captured_at": "2026-09-29T20:46:48",
+ "box": null,
+ "icon_labels": [],
+ "vision_elements": [
+  {
+   "name": "bunny character card",
+   "rect_px": {
+    "x": 137.0,
+    "y": 2213.0,
+    "w": 126.0,
+    "h": 124.0
+   }
+  },
+  {
+   "name": "create new character",
+   "rect_px": {
+    "x": 477.0,
+    "y": 2213.0,
+    "w": 126.0,
+    "h": 124.0
+   }
+  }
+ ],
+ "blocked_reason": null
+}

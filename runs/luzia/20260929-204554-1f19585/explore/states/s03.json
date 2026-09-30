@@ -1,0 +1,64 @@
+{
+ "schema_version": 1,
+ "state_id": "s03",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "co.thewordlab.luzia|8c06ec06b800b8509ff0aea086008580|ac72a6808210803aa97381728972c32c|3030c30366ad",
+ "foreground_package": "co.thewordlab.luzia",
+ "screenshot": "states/s03.png",
+ "elements_reply": "states/s03.elements.json",
+ "settled": true,
+ "settle_seconds": 2.76,
+ "dynamic_regions": [],
+ "captured_at": "2026-09-29T20:46:35",
+ "box": null,
+ "icon_labels": [],
+ "vision_elements": [
+  {
+   "name": "Photoedit featured card",
+   "rect_px": {
+    "x": 477.0,
+    "y": 589.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "Luzia's Pick",
+   "rect_px": {
+    "x": 171.0,
+    "y": 439.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "Photoedit trending card",
+   "rect_px": {
+    "x": 175.0,
+    "y": 1513.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "Anima trending card",
+   "rect_px": {
+    "x": 601.0,
+    "y": 1513.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "Stories trending card",
+   "rect_px": {
+    "x": 927.0,
+    "y": 1513.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  }
+ ],
+ "blocked_reason": null
+}

@@ -1,0 +1,18 @@
+{
+ "schema_version": 1,
+ "state_id": "s01",
+ "kind": "blocked",
+ "parent_id": null,
+ "fingerprint": "com.aol.mobile.aolapp|00000000000000000000000000000000|00000000c0c080e08362c20200000000|f3e042cc8459",
+ "foreground_package": "com.aol.mobile.aolapp",
+ "screenshot": "states/s01.png",
+ "elements_reply": "states/s01.elements.json",
+ "settled": true,
+ "settle_seconds": 2.73,
+ "dynamic_regions": [],
+ "captured_at": "2026-09-29T21:28:10",
+ "box": null,
+ "icon_labels": [],
+ "vision_elements": [],
+ "blocked_reason": "the app is not in the foreground after launch (com.aol.mobile.aolapp is)"
+}

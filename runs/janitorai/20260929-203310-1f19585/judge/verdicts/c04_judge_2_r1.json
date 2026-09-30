@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c04",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states that playing earns a 7-day checkmark shine. The profile banner is optional, declining changes nothing, and the failure path withholds the shine if play cannot be confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic checkmark shine, not cash or an exchangeable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses a My profile opening, subscription status, and shine status; it does not need chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds a subscriber-only style and says it removes nothing from the free tier."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner on s05 My profile, a screen rated safe, rather than in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the shine is for the player's own use on My profile, which is visited in core flow f1; it styles the paid checkmark listed at s16.e12."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The rationale says these users 'see no ads today.' The product model does not support that claim about the app's current behavior."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward styles the subscriber's existing checkmark for only seven days; it does not grant lasting access to a paid benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The banner appears on My profile when the subscriber opens that persistent surface, rather than interrupting a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable profile-opening event, and the failure path says an unconfirmed play does not add the shine."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea relies on Janitor Plus's golden checkmark at s16.e12 and its placement beside the username on My profile."
+ },
+ "other_concern": "",
+ "fixable": true
+}

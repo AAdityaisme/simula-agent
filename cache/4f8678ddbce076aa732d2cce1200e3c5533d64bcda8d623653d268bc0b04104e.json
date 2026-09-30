@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[],\"extra_points\":[{\"x\":61,\"y\":26,\"name\":\"back\"},{\"x\":512,\"y\":26,\"name\":\"more options\"},{\"x\":99,\"y\":599,\"name\":\"follow\"},{\"x\":245,\"y\":599,\"name\":\"options\"},{\"x\":440,\"y\":599,\"name\":\"share\"},{\"x\":329,\"y\":773,\"name\":\"search for characters\"},{\"x\":317,\"y\":837,\"name\":\"filter\"},{\"x\":441,\"y\":837,\"name\":\"sort by latest\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1666,
+ "tokens_out": 171,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

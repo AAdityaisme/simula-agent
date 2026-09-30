@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the one-step reward before the user chooses to play. The decline and ad-failure fields leave normal care unchanged and withhold the treat if play cannot be confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is one cosmetic Toki growth step, not cash or an exchangeable credit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses Chats home opening, whether the user has met Toki, and whether today's bonus was taken; it needs no message content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields describe a bonus on top of normal Toki care, with nothing free removed or capped."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is under the Toki card on safe Chats home (s01), not inside a conversation or next to unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this product change, the player receives growth for their own Toki, which is part of the observed Toki core flow (f5) and its care-and-growth premise (m2)."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The existing Toki card and care-and-growth premise are supported by s01.e26, s01.e27, and s05.e04. The proposal phrases the absence of a seen paywall or limit as an observation, not a claim about the whole app."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits the bonus to one growth step per day; the model identifies no paid Toki benefit that it grants lasting access to."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a strip on Chats home that the user can choose to engage with, rather than an interruption during a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow offers a sponsored game from a detectable home-opening event, and the ad-failure field says an unconfirmed game does not add the treat."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses this app's Toki card on Chats home (s01.e26) and Toki's growth premise (s05.e04)."
+ },
+ "other_concern": "Only Toki's intro was explored; confirm that an earned growth step can be applied and displayed in the pet experience.",
+ "fixable": false
+}

@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[],\"extra_points\":[{\"x\":270,\"y\":640,\"name\":\"Audrina Patridge photo\"},{\"x\":270,\"y\":1005,\"name\":\"Balvin and Ferrer photo\"},{\"x\":118,\"y\":200,\"name\":\"Elysian link\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1666,
+ "tokens_out": 96,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

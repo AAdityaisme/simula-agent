@@ -1,0 +1,71 @@
+{
+ "schema_version": 1,
+ "fixes": [
+  {
+   "element_id": "s06",
+   "problem": "Flow f1 still fails: s06 has no text field to type into. The 'Ask Teacher' composer is drawn as static text, so the type gesture cannot work. Round 1 asked for this and it was not fixed.",
+   "fix": "Turn the 'Ask Teacher' placeholder in the composer (x 8-403, y ~717-808) into a real <input> or <textarea> with placeholder 'Ask Teacher'. Use 16px font, color #b0b0b0 placeholder, transparent background, no border, and place it at the same position as the current text. Keep the data-el tag on the box."
+  },
+  {
+   "element_id": "s01",
+   "problem": "The hero character is wrong. The mock shows a flat cropped face, a dark strip and a mint block at the bottom. The real one is the full orange-haired woman in a mint sweater, centered at x~207, y 0-165 and softly blurred into the blue gradient.",
+   "fix": "Redraw the hero centered at x=207 from y=0 to 165: orange hair (#e8805c), pale face, mint sweater (#8fd6b8) fading into the input bar. Remove the dark strip. Keep the prompt bar above it with a translucent dark fill."
+  },
+  {
+   "element_id": "s07",
+   "problem": "The hero collage faces do not match the real ones. The real collage has a braided woman with tan skin on a blue card, a smiling bearded man on a light-blue card, and a purple-haired woman on a light-blue card. The mock has generic faces with different hair and colors.",
+   "fix": "Redraw the three portrait cards at the same positions. Use a braided brown-blonde hairstyle on the left with dark top, a bearded smiling man with dark hair in a green sweater on the right, and long purple hair with a dark top on the front card. Keep the green plus tile."
+  },
+  {
+   "element_id": "s05",
+   "problem": "The modal title and body text are bolder and shifted about 2px left. The 'Meet me' icon is a black cat where the real one is a small dark Toki head.",
+   "fix": "Set the title to weight 600 and the body to weight 400, and shift both right by 2px. Replace the button icon with a small dark rounded Toki head with ears, 20px, at x~161."
+  },
+  {
+   "element_id": "s08",
+   "problem": "The chat paragraph and the four suggestion chips show heavy red in the heatmap. The text is bolder than the real text. The chips run 1px wider (e.g. the first chip ends at ~280 vs ~278 on the real screen). The chip icons (tag, newspaper, calendar, sparkle) are drawn differently.",
+   "fix": "Set the paragraph font-weight to 400/500 to match the real thin strokes, with the same 1px baseline. Narrow each chip by 1-2px, so 'Watch a price, event or product' spans x16-278. Redraw the chip icons as 20px thin-stroke outlines, white, with 12px gap to the label. Shift the chip label text about 1px right and up."
+  },
+  {
+   "element_id": "s11",
+   "problem": "The heading, disclaimer, prompt text and card titles are 1px higher than the real ones and heavier. The disclaimer wraps at slightly different offsets. The box border and mic button show red rings.",
+   "fix": "Move 'Start with an idea or remix.' down 1px and lighten it to weight 600. Move the disclaimer down 1px and set it to weight 400, centered with the same wrap ('...once' / 'published.'). Move the card titles and subtitles down 1px. Move the mic button down 1px and left 1px. Keep the prompt box at y107-306."
+  },
+  {
+   "element_id": "s02",
+   "problem": "The hero circle icon (bell with sparkle) is slightly off, and the 'Let Luzia handle it!' heading and body text are heavier than the real text and 1px shifted.",
+   "fix": "Redraw the bell glyph inside the 96px circle at center (205,335) with a smaller sparkle at the top right. Set the heading to weight 600 and the body to weight 400, and check the line wrap. Do the same for the tab labels 'Chat', 'Services' and 'Create', and the pill 'Routines'."
+  },
+  {
+   "element_id": "s09",
+   "problem": "The list row text and the button label are heavier than the real ones. The 'Draft' pill's pencil icon and the clock tile differ. The 'Add new Routine' button edge shows a red line at its top.",
+   "fix": "Set 'New routine', 'Draft' and 'Add new Routine' to weight 500. Redraw the pencil as a thin outline. Redraw the clock icon in the tile as thin white strokes. Move the button 1px down so its top is at y714, and move its label to y733."
+  },
+  {
+   "element_id": "s04",
+   "problem": "The persona name labels are still drawn as opaque colored pills of uneven width (e.g. Luzia mint, Teacher lavender, Chef white, Languages striped) and sit lower than the real ones. The real screen has a full-width translucent strip across the bottom of each card, about 20px tall, with centered white text. Round 1 asked for this and the heatmap still shows red on every label.",
+   "fix": "For each of the 15 cards, replace the pill with one strip that spans the card's full width at the bottom, about 20px tall, with background rgba(255,255,255,0.35) and a slight blur. Center the label in white, 14px medium weight, with its baseline near y=188 for row 1 (row pitch 129.1px). Remove the per-card colors, borders and any extra line above the strip."
+  },
+  {
+   "element_id": "s14",
+   "problem": "The Hot/New/Creative/Arcade/Tools chip row is drawn with wider spacing and different icons. The real 'Hot' tab is 12px narrower and 'Tools' fits with its icon at x~347. The heatmap is red here and over the tab labels.",
+   "fix": "Set the chip font to 14px medium. Place the labels at x: Hot 38, New 105, Creative 177, Arcade 277, Tools 372, with 16px outline icons directly left of each label. Keep the 2px white underline under Hot, about 48px wide."
+  },
+  {
+   "element_id": "s15",
+   "problem": "The greeting paragraph is still red on every line: the text is heavier, about 1px too high, and slightly wider than the real text. The pill under 'Our new chat' is also drawn as a rounded outline with a wrong shape. The 'Ask Teacher' and footer texts are 1px off.",
+   "fix": "Set the paragraph to weight 400 with the same 20px size, and shift it down 1px (first baseline about y=132). Set letter-spacing to -0.1px so the lines wrap at the same words. Draw the small pill at x 181-229, y 88-101 in dark gray with a hairline border. Move the footer text and 'Ask Teacher' down 1px."
+  },
+  {
+   "element_id": "s13",
+   "problem": "The hero art lower edge is off: the mock has a dark strip cut at about y=573 on the left, and the bottom edge of the card is not rounded like the real one. 'Open app' and the title texts are heavier and about 1px higher.",
+   "fix": "Draw assets/s13.e03.art.png at x=12.2, y=72, 387x501.7, and set the card radius to 24px with a 1px #444 outline reaching y=617. Set the 'Open app' label to weight 500 and move it down 1px. Move 'Photoedit', 'By Luzia', 2K, 1.4K, Share and 'Report app' down 1px with a lighter weight."
+  },
+  {
+   "element_id": "s03",
+   "problem": "Trending section has a stray faint text fragment ('Trendi...') showing behind the cards near y~440, and a stray light fragment at the right edge near y~730 that the real screen lacks.",
+   "fix": "Remove or hide any leftover text or overlay peeking between the Trending heading and the cards (x 140-200, y 435-450) and at the right edge (x 385-411, y 725-740). Keep the background pure black #000 there."
+  }
+ ],
+ "summary": "Layout is very close: every data-el is within tolerance and there are no failed taps or contract errors. The main structural problem is that flow f1 fails because the Ask Teacher composer is not a real input. The remaining loss is illustration accuracy (hero character, avatars, Bestie collage) and slightly heavy text weights. All elements are within tolerance and all taps work, so the remaining loss is text weight and 1px offsets. Red text outlines show up on every screen, plus small icon differences. This round should lighten the font weights and adjust the 1px vertical offsets, mainly on s08 and s11, then fix the icon glyphs. The layout is already accurate, with all data-el elements placed and every tap working, so the remaining gains come from visual fidelity. The biggest fixes are the s04 persona label strips, which are still opaque pills, the s14 chip row and game cards, and the text weight and 1px offsets in s15, s13 and s14. Lighter font weights and a 1px downward shift would clear most of the red.. The mock already matches all 18 tagged elements and the layout closely, so the remaining gap is fine visual detail. This round should remove the stray text artifacts, rebuild the Stories card, and tune the text weight and offset plus the card icon placement."
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c04-rev",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 24-hour Player Picks reward before the game. The flow is opt-in, and the decline and ad-failure fields leave the user's app unchanged without using up the try."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a 24-hour spot in an in-app row, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is opening Explore with a published app; it does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and removes-nothing-free fields describe a new row, with no existing free feature removed, locked, or capped."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is an Explore card opening a sheet on s03, which the product model rates safe; it is not in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The product-change reward lets the player show their own published mini app while using the Explore-and-create flow observed in f4."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field calls 580 a like count, but s14.e29 records only the text '580,' unlike the elements explicitly labeled as like counts. That claim about the app today is unsupported."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 24 hours, and the proposal says the separate row does not change Trending order or the editor's pick. It does not establish that another creator loses an existing placement."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger and placement put a card on Explore, a persistent surface the user chooses to open, rather than interrupting a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow awards the spot once the sponsored game is confirmed, and opening Explore is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses this app's Create tab, published mini apps, and Explore catalog, supported by s03 and s11."
+ },
+ "other_concern": "The subscribers field says every user sees the offer, while the trigger and placement restrict it to users with a published app; clarify the eligibility wording.",
+ "fixable": true
+}

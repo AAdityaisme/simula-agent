@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[{\"box_id\":3,\"name\":\"notifications\"},{\"box_id\":4,\"name\":\"delete\"}],\"extra_points\":[]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1670,
+ "tokens_out": 50,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

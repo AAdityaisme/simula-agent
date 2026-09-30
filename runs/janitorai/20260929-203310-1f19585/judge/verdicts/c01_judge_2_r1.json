@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 10-reply reward before the user chooses to play. The decline and ad-failure paths leave chats unchanged and grant nothing if the game cannot be confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is temporary 5× chat context for 10 replies, not cash or an exchangeable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is tapping s16.e21, the paywall close button; it does not depend on chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal's reward and decline path do not remove or cap existing free chat access."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a sheet over the safe s16 paywall, and the proposal says no character art appears in the ad moment."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As an existing opportunity, it samples 5× context, a benefit listed on the Janitor Plus paywall at s16.e09."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The rationale says the subscription lacks a concrete demo today. The s16 paywall evidence does not establish that no demo exists elsewhere, and the claim is phrased as an app-wide fact rather than something not seen."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 10 replies and expires at midnight; it does not grant lasting access to the s16.e09 paid benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The sheet appears after the user taps the s16.e21 close button, rather than interrupting an ongoing chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game triggered by a detectable paywall-close tap, and the ad-failure path says nothing is granted if the game cannot be confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea ties its trigger to the Janitor Plus paywall and its reward to the 5× context benefit at s16.e09."
+ },
+ "other_concern": "",
+ "fixable": true
+}

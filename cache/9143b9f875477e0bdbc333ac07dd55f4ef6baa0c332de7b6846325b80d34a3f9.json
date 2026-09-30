@@ -1,0 +1,9 @@
+{
+ "text": "{\"on_screen\":false,\"element_id\":null,\"confidence\":0.85,\"reason\":\"This is a character bot page and no start chat button is visible yet; it is probably further down the page.\"}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1679,
+ "tokens_out": 61,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

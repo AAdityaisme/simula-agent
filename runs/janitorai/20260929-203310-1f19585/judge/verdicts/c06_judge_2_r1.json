@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c06",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states 5× context for the next 10 replies before the user chooses to play. The decline and ad-failure fields leave normal chat available."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is temporary chat context, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses the chat history sheet opening and last-chat age, not message content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds a temporary context boost and does not remove or cap free chat features."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on s18, a chat history sheet rated safe, rather than an offer inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples the 5× context benefit sold by Janitor Plus in s16.e09."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says the app knows when a chat is 3+ days old from s18.e11. That element shows only a time of day, not a date or an observed ability to calculate days since the last chat."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits the paid 5× context benefit to 10 replies in one chat and expires it at midnight."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement puts the card on the s18 history sheet, which the user chooses to open, rather than interrupting an active conversation."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game after a detectable sheet-opening event, and the ad-failure field withholds the boost if the game cannot be confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea connects s18's saved-chat sheet and Start new chat button to the Janitor Plus 5× context benefit in s16.e09."
+ },
+ "other_concern": "The rationale suggests two plays may be needed in some regions, while the offer copy promises the reward for playing a short game. Any such variation should be disclosed before play.",
+ "fixable": true
+}

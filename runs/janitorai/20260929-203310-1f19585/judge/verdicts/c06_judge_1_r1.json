@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c06",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user chooses to play from a card, and the offer copy states the reward (10 replies with 5× memory). Declining leaves the sheet unchanged, and the ad-failure path hides the card or opens the chat normally."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 10 replies with larger context in one chat, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the s18 sheet opening for a character whose last chat is 3+ days old, judged from timestamps. No message text, topic or sentiment is used."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free. It adds a temporary boost and leaves normal memory unchanged."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the s18 chat-history sheet over s03 My Chats, and both are rated safe. It is a sheet card, not a message, and it does not sit between or pin into messages."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For an existing_anchor, the resource is chat context memory, which Janitor Plus charges for ('5× context for better memory', l4/s16.e09). Free chats are implied to keep less context (m3)."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about today's app are supported: the 5× context paid benefit (s16.e09), the s18 sheet with its Start new chat button, the 15-message row (s18.e13) and the 15 chats badge (s03.e12). The free-tier memory size is explicitly labelled as not seen, and the new card, reward and copy are the proposal's own additions."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a sample that ends (10 replies, once a day, until midnight, one chat), so it neither grants lasting access nor gives away the full benefit. It takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears in a sheet the user opened themselves to resume a story, and it does not interrupt an active task. It sits on a surface the user chose to open, just before continuing a chat."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn rewarded game, and the reward is confirmed only after the verified play ('The card confirms'). The trigger is a detectable app event, the sheet opening with an old last-chat timestamp."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It is tied to Janitor Plus's '5× context' benefit, the 'More memory for long chats' headline, and the s18 chat history sheet with its Start new chat button."
+ },
+ "other_concern": "The sheet shows only a time such as '20:08'. Whether the app has the date data needed to detect a 3-day gap was not observed, though it is plausible. The 10-reply metering with a midnight expiry needs its own implementation.",
+ "fixable": false
+}

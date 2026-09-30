@@ -1,0 +1,9 @@
+{
+ "text": "{\"ideas\":[{\"id\":\"c07\",\"benefit\":\"temporary ad-free reading\",\"part_of\":null},{\"id\":\"c02\",\"benefit\":\"reading streak save\",\"part_of\":null},{\"id\":\"c06\",\"benefit\":\"custom opening section\",\"part_of\":null},{\"id\":\"c09\",\"benefit\":\"sponsored story preferences\",\"part_of\":null},{\"id\":\"c03-rev\",\"benefit\":\"temporary ad-free reading\",\"part_of\":null}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1247,
+ "tokens_out": 150,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

@@ -1,0 +1,341 @@
+{
+ "schema_version": 1,
+ "status": "qa_incomplete",
+ "outcome": "partial",
+ "reasons": [
+  "core flows that still fail: f1"
+ ],
+ "resume": "simula qa luzia --run 20260929-204554-1f19585 --profile real --budget transfer --usd-cap 12.94 --no-cache",
+ "resume_note": "--no-cache asks every model call of the stage again, not only the one that fell short, and the same input may be answered the same way.",
+ "approved_round": 2,
+ "keep_score": 9.752,
+ "keep_score_formula": "10 \u00d7 (0.5 bounds + 0.3 nav + 0.2 ssim); a term with nothing to measure is dropped and the rest reweighted. It picks the round QA keeps; it is not a fidelity percentage.",
+ "structure": {
+  "tagged": 198,
+  "within_4dp": 198
+ },
+ "interaction": {
+  "taps": 19,
+  "taps_passing": 19,
+  "flows": 6,
+  "flows_walked": 5
+ },
+ "visual": {
+  "masked_ssim_mean": 0.899,
+  "screens_by_ssim": [
+   {
+    "screen": "s14",
+    "ssim": 0.809
+   },
+   {
+    "screen": "s03",
+    "ssim": 0.828
+   },
+   {
+    "screen": "s04",
+    "ssim": 0.838
+   },
+   {
+    "screen": "s05",
+    "ssim": 0.867
+   },
+   {
+    "screen": "s01",
+    "ssim": 0.873
+   },
+   {
+    "screen": "s15",
+    "ssim": 0.898
+   },
+   {
+    "screen": "s07",
+    "ssim": 0.915
+   },
+   {
+    "screen": "s08",
+    "ssim": 0.917
+   },
+   {
+    "screen": "s11",
+    "ssim": 0.92
+   },
+   {
+    "screen": "s13",
+    "ssim": 0.936
+   },
+   {
+    "screen": "s06",
+    "ssim": 0.938
+   },
+   {
+    "screen": "s02",
+    "ssim": 0.966
+   },
+   {
+    "screen": "s09",
+    "ssim": 0.985
+   }
+  ]
+ },
+ "open_findings": null,
+ "stop_reason": "round 2 gained 0.00 (< 0.3)",
+ "rounds": [
+  {
+   "round": 0,
+   "keep_score": 9.71,
+   "kept": true,
+   "contract_errors": 0,
+   "failed_taps": 0,
+   "failed_flows": 1,
+   "edits_applied": 0,
+   "edits_rejected": 0
+  },
+  {
+   "round": 1,
+   "keep_score": 9.75,
+   "kept": true,
+   "contract_errors": 0,
+   "failed_taps": 0,
+   "failed_flows": 1,
+   "edits_applied": 27,
+   "edits_rejected": 0
+  },
+  {
+   "round": 2,
+   "keep_score": 9.752,
+   "kept": true,
+   "contract_errors": 0,
+   "failed_taps": 0,
+   "failed_flows": 1,
+   "edits_applied": 26,
+   "edits_rejected": 0
+  }
+ ],
+ "keep_rule_disagreement": null,
+ "undrawn_screens": [],
+ "screens": [
+  {
+   "state_id": "s01",
+   "ssim_masked": 0.8732400567858896,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.8768589330406658,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.74648011357178,
+   "name": "Chats home",
+   "tagged": 32,
+   "taps": 7,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s06",
+   "ssim_masked": 0.9384800570202864,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.9589597523938934,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.876960114040573,
+   "name": "Teacher chat thread",
+   "tagged": 17,
+   "taps": 1,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s05",
+   "ssim_masked": 0.8670482574212658,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.6427625733846664,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.620137878346474,
+   "name": "Toki intro modal",
+   "tagged": 8,
+   "taps": 0,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s07",
+   "ssim_masked": 0.914777827588116,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.9915335435430204,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.756508078823188,
+   "name": "Custom Bestie intro",
+   "tagged": 5,
+   "taps": 0,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s02",
+   "ssim_masked": 0.9662022686467414,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.9920039022350748,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.932404537293483,
+   "name": "Services (Routines empty)",
+   "tagged": 15,
+   "taps": 4,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s08",
+   "ssim_masked": 0.9170464599600976,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.9846581769826199,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.762989885600279,
+   "name": "Routine setup chat",
+   "tagged": 12,
+   "taps": 0,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s09",
+   "ssim_masked": 0.9850284955160843,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.9920039022350748,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.970056991032168,
+   "name": "Services (routines list)",
+   "tagged": 15,
+   "taps": 1,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s11",
+   "ssim_masked": 0.9199433089333618,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.9920039022350748,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.771266596952463,
+   "name": "Create app prompt",
+   "tagged": 12,
+   "taps": 0,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s13",
+   "ssim_masked": 0.9359090668072582,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.35931919934498197,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.816883048020738,
+   "name": "App detail",
+   "tagged": 11,
+   "taps": 0,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s14",
+   "ssim_masked": 0.808511202102434,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.6161931141810242,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.617022404204867,
+   "name": "Create \u2013 Explore scrolled",
+   "tagged": 31,
+   "taps": 1,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s04",
+   "ssim_masked": 0.8377520983083714,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.3877149277912304,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.536434566595346,
+   "name": "New chat persona picker",
+   "tagged": 11,
+   "taps": 0,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s15",
+   "ssim_masked": 0.8984696360649008,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.9739705822576056,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.709913245899717,
+   "name": "Teacher new chat",
+   "tagged": 11,
+   "taps": 0,
+   "data_el_misses": []
+  },
+  {
+   "state_id": "s03",
+   "ssim_masked": 0.8284011443593712,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 1.0,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.656802288718742,
+   "name": "Create \u2013 Explore apps",
+   "tagged": 18,
+   "taps": 5,
+   "data_el_misses": []
+  }
+ ],
+ "failed_taps": [],
+ "flows": [
+  {
+   "flow": "f1",
+   "name": "Continue a chat and get a reply",
+   "status": "failed",
+   "problem": "s06.type>s06: its screen has no text field to type into",
+   "screen": "s06",
+   "gestures": [
+    "s06.type>s06"
+   ]
+  },
+  {
+   "flow": "f2",
+   "name": "Browse personas and start a persona chat",
+   "status": "passed",
+   "problem": null,
+   "screen": null,
+   "gestures": []
+  },
+  {
+   "flow": "f3",
+   "name": "Set up a routine",
+   "status": "passed",
+   "problem": null,
+   "screen": null,
+   "gestures": []
+  },
+  {
+   "flow": "f4",
+   "name": "Explore and create mini apps",
+   "status": "passed",
+   "problem": null,
+   "screen": null,
+   "gestures": []
+  },
+  {
+   "flow": "f5",
+   "name": "Meet Toki virtual pet",
+   "status": "passed",
+   "problem": null,
+   "screen": null,
+   "gestures": []
+  },
+  {
+   "flow": "f6",
+   "name": "Create a Custom Bestie",
+   "status": "passed",
+   "problem": null,
+   "screen": null,
+   "gestures": []
+  }
+ ],
+ "contract_errors": []
+}

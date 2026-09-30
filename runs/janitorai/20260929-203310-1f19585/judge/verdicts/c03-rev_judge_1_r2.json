@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c03-rev",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in, and the offer copy states the reward (10× memory for the next 5 replies today) before the game. Declining leaves the sheet unchanged, and the ad-fails path hides the card or shows a note that no boost was added."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is temporary extra context for 5 replies in one chat, which has no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: a subscriber opens the s18 chat history sheet. It does not use anything the user typed or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing (removes nothing free: yes) and leaves the subscriber's normal 5× memory unchanged."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits at the bottom of the s18 sheet, which is app chrome over the My Chats list (s03), not a chat screen. Both s18 and s03 are rated safe, and the card is not in the conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The existing_anchor reward is more context, which the app charges for: Plus sells '5× context for better memory' (s16.e09, m2) and free chats are implied to keep less (m3)."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the app today are supported: the paywall headline and 5× bullet (s16.e01, s16.e09), the $12.99 price (s16.e03), s18's message count of 15 (s18.e13), and My Chats showing 15 chats (s03.e12). The 'no add-on or ads seen' claim is worded as not seen. The boost itself is new content the proposal adds."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The boost is limited to 5 replies in one chat and expires at midnight, with a cap of 1 per day. It is offered only to subscribers and takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The user has opened the chat history sheet from My Chats, a surface they chose to open, so no task is interrupted."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "This is a play-to-earn rewarded playable. The boost is granted only once the play is confirmed, and the trigger is an app event (opening s18, with subscriber status)."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It is tied to Janitor Plus's 5× context benefit, the memory-focused paywall, and the s18 chat history sheet, so it would not read the same in another app."
+ },
+ "other_concern": "Offering ads to paying subscribers may feel odd. Serving 10× context has cost and feasibility that the model does not confirm, and the proposal itself says it was not observed.",
+ "fixable": false
+}

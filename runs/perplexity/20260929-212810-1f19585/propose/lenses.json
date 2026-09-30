@@ -1,0 +1,26 @@
+{
+ "schema_version": 1,
+ "lenses": [
+  {
+   "id": "free_at_limit",
+   "name": "Free user at a limit",
+   "kind": "fixed",
+   "ledger_ids": [],
+   "focus": "A free user who has just hit a limit, a paywall, or a locked item, or would if the app had one. What do they want right now that a rewarded play could give them, partially and for a while?"
+  },
+  {
+   "id": "subscriber",
+   "name": "Subscriber",
+   "kind": "fixed",
+   "ledger_ids": [],
+   "focus": "A paying user. What do they still lack or want more of that an opt-in rewarded play could add without devaluing what they pay for? If the app has no subscription, take its most engaged user."
+  },
+  {
+   "id": "drifting",
+   "name": "Drifting user",
+   "kind": "fixed",
+   "ledger_ids": [],
+   "focus": "A user whose visits are thinning out. What would bring them back or protect progress they would lose, through a rewarded play at a natural moment rather than an interruption?"
+  }
+ ]
+}

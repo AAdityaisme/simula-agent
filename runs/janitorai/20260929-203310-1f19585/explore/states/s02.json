@@ -1,0 +1,70 @@
+{
+ "schema_version": 1,
+ "state_id": "s02",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "com.janitor.ai|88028802b00284929320902098048100|882298028198f272f861c8c99cdcd96c|3b0aadc0c06d",
+ "foreground_package": "com.janitor.ai",
+ "screenshot": "states/s02.png",
+ "elements_reply": "states/s02.elements.json",
+ "settled": true,
+ "settle_seconds": 4.35,
+ "dynamic_regions": [],
+ "captured_at": "2026-09-29T20:33:52",
+ "box": null,
+ "icon_labels": [
+  {
+   "mcp_ref": "@e29",
+   "name": "menu"
+  },
+  {
+   "mcp_ref": "@e30",
+   "name": "search field"
+  },
+  {
+   "mcp_ref": "@e31",
+   "name": "filters"
+  },
+  {
+   "mcp_ref": "@e54",
+   "name": "home tab"
+  },
+  {
+   "mcp_ref": "@e55",
+   "name": "search tab"
+  },
+  {
+   "mcp_ref": "@e56",
+   "name": "explore tab"
+  },
+  {
+   "mcp_ref": "@e57",
+   "name": "notifications tab"
+  },
+  {
+   "mcp_ref": "@e58",
+   "name": "profile tab"
+  }
+ ],
+ "vision_elements": [
+  {
+   "name": "previous page",
+   "rect_px": {
+    "x": 585.0,
+    "y": 795.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  },
+  {
+   "name": "next page",
+   "rect_px": {
+    "x": 927.0,
+    "y": 795.0,
+    "w": 126.0,
+    "h": 126.0
+   }
+  }
+ ],
+ "blocked_reason": null
+}

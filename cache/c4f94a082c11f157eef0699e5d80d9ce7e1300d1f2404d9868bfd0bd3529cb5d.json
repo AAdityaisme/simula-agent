@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[{\"box_id\":3,\"name\":\"notifications\"},{\"box_id\":14,\"name\":\"dismiss custom bestie\"},{\"box_id\":17,\"name\":\"dismiss Toki card\"},{\"box_id\":19,\"name\":\"decoration\"},{\"box_id\":20,\"name\":\"search chats\"}],\"extra_points\":[{\"x\":481,\"y\":158,\"name\":\"send message\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1679,
+ "tokens_out": 132,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

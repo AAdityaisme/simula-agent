@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c02",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states that playing keeps a 5-day streak with one save this week. The banner is optional, declining leaves the feed and stories available, and the proposal gives paths for load and verification failures."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is one in-app reading streak save, not cash or a transferable or externally exchangeable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses a home-feed open and elapsed days since a story was opened, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds field introduces the streak and its save; the proposal does not remove or cap any existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner under the Home header on s01, which the product model rates content safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the save protects the reader's own streak earned by opening stories, an action in the observed reading flows f1 and f2."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "s01 shows the Home feed, Top Stories, category tabs, and timestamps cited in what makes it work here. The streak is described as a new addition, not an existing feature."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward covers one missed day and is limited to one save per week; it grants no lasting paid access or advantage taken from other users."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger is the first Home feed open after a missed day, and the placement is a banner rather than an interruption during article reading."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game triggered by a detectable feed-open event. The failure path says an unconfirmed game does not use the weekly save, rather than granting that save."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names s01's Home header and Top Stories list and ties the proposed streak to opening stories from the news feed."
+ },
+ "other_concern": "Clarify that a streak held after failed verification is only pending another chance to play, and is not marked permanently kept before REWARD_VERIFIED.",
+ "fixable": false
+}

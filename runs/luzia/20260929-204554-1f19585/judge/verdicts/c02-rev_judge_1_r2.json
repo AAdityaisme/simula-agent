@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c02-rev",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user chooses to play, the offer copy states the reward (3 templates for 24 hours), declining just closes the card, and there is a failure path for no game or an unconfirmed play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 starter templates for 24 hours, which is content and has no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the user opening the Explore tab and not having taken today's offer, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The usual templates and everything on Explore stay as they are (see 'if the user declines'), so nothing free is removed or capped."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a list card on s03, which is rated safe, so it is app chrome and not in or over a chat."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is a product_change. The new resource, extra templates, is for the player's own use in the observed core flow f4 (explore and create mini apps), and none of it goes to other users."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The claim that building from the templates 'costs the same as building from a free prompt today' asserts how creation is priced now. The model lists whether creating an app is limited or paid as an open question, so no element supports it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The templates expire after 24 hours, no paid benefit is given away, and no other creator's visibility or ranking changes."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits in the Explore list, a browsing surface the user has chosen to open, and it does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn rewarded game, the reward is unlocked after the verified play, and the trigger (opening Explore) is an app event the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea is tied to the Explore tab, the Create app button, and the Pixel Art Pad and Gratitude Journal templates on s11."
+ },
+ "other_concern": "The unlocked templates are new content that does not exist today, so how the 3 extra templates are chosen or produced is unspecified. The 'usual templates' wording is also loose.",
+ "fixable": true
+}

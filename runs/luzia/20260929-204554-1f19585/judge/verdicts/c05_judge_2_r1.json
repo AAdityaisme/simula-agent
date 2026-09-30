@@ -1,0 +1,49 @@
+{
+ "candidate_id": "c05",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states one Toki outfit for seven days before play, and the flow starts the game only after the user taps Play. The decline and ad-failure fields leave the existing app available and provide a retry path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field gives a temporary cosmetic outfit for Toki, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses an app open and time since the last session, not anything the user said or wrote."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free; the seven-day expiry applies only to the new outfit."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a dismissible card on s01 Chats home, which is rated safe, beside the existing Toki promo rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product change gives the player a cosmetic for their own Toki, a feature encountered in the observed f5 Toki core flow; it need not be a paid benefit."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about today's Toki promotion and growth are supported by s01.e26 and s05.e04. The proposal describes a paid plan and limit as not seen, rather than asserting that neither exists."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits the new outfit to seven days, and it does not take visibility or another benefit from users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a dismissible card on s01 Chats home after the user returns, not an interruption in the middle of a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow is play-to-earn, grants the outfit only once the game is confirmed, and uses app-open and last-session events as its trigger."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea depends on s01's Toki promo and the pet introduced in s05, rather than a generic app surface."
+ },
+ "other_concern": "The proposal shows the outfit on the new card and reward screen but does not say whether it remains visible in Toki's existing intro or later pet experience.",
+ "fixable": false
+}
