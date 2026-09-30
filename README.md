@@ -21,7 +21,7 @@ Every run below ran on commit `<RUN: sha>` and is committed with its cache. Each
 | Luzia | checks the system transfers | `transfer` | `runs/luzia/20260929-204554-1f19585/` | All 7 stages done; deck draws 3 ideas. QA partial: 198 of 198 tagged elements within 4 dp and 19 of 19 taps land, but 1 of 6 core flows fails (the mock's chat screen has no text field) | 15 (explore complete, 40-action cap) | 10 → 3 / 2 / 5 (one of the 5 a duplicate code dropped; 3 ideas revised once) | $10.69 | 30 min (explore 7) | no |
 | AOL | checks the system transfers | `transfer` | `runs/aol/<RUN>/` | <RUN> | <RUN> | <RUN> | <RUN> | <RUN> | <RUN> |
 | OOC | checks the system transfers | `transfer` | `runs/ooc/20260929-212755-1f19585/` | Blocked by the app: OOC showed its own "Emulator Detected" dialog ("Not allowed to launch the App on android emulator, app will get closed.") and closed itself, so explore stopped with 1 screen and 0 actions. No stages 2–7, since there was nothing of OOC to model. OOC needs a real device. *(Corrected 2026-09-29 21:55: an earlier version of this row said the phone showed the previous app and that the record didn't show the cause. The captured screen, `explore/states/s01`, is OOC's own dialog.)* | 1 (OOC's "Emulator Detected" dialog) | — | $0.00 | 15 s | — |
-| Perplexity | extra transfer evidence, outside the test set: nothing was built or tuned against it | `transfer` | `runs/perplexity/<RUN>/` | <RUN> | <RUN> | <RUN> | <RUN> | <RUN> | <RUN> |
+| Perplexity | extra transfer evidence, outside the test set: nothing was built or tuned against it | `transfer` | `runs/perplexity/20260929-212810-1f19585/` | All 7 stages done on a partial explore (it used its 3 relaunches, and its core-loop pass found no core action). Nothing was accepted, so the deck draws the top split, c01, labelled as the closest idea and not a recommendation; the other 2 splits wait on Needs your call. QA approved: 91 of 91 tagged elements within 4 dp, 2 of 2 taps land, 4 of 5 core flows walk | 13 (explore partial, relaunch limit) | 4 → 0 / 3 / 1 (the reject depends on a busy queue the explore never saw, so both judges failed its evidence) | $4.72 | 27 min (explore 10) | no |
 
 "Split" counts ideas the judges split on: they wait on the deck's "Needs your call" page. "Judge-2 fallback used" says whether the run's trace has a `declared fallback used` line, meaning that judge-2 call ran on gpt-6-luna, which the validation never measured.
 
@@ -55,7 +55,7 @@ uv run simula run janitorai --run 20260929-203310-1f19585 --budget deep --from m
 uv run simula run luzia --run 20260929-204554-1f19585 --from model --replay
 uv run simula run aol --run <RUN> --from model --replay
 uv run simula run ooc --run 20260929-212755-1f19585 --from model --replay
-uv run simula run perplexity --run <RUN> --from model --replay
+uv run simula run perplexity --run 20260929-212810-1f19585 --from model --replay
 ```
 
 - `--from model --replay` re-executes model through flows, taking every model reply from `cache/`. Explore can't replay, since it drives the device, so its capture comes from the run folder. A call that isn't in the cache stops the run with exit code 4 instead of calling an API.
