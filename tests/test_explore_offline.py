@@ -808,3 +808,19 @@ def test_a_result_the_model_calls_stalled_is_never_a_completed_pass(tmp_path, mo
     phone.screen = "chats"  # the tap loaded a page
     ex.watch(before, "load")
     assert ex.settles[-1][1] == how and ex.last_seen is seen
+
+
+def test_the_fake_phone_encodes_each_picture_once_and_writes_what_a_plain_save_would(tmp_path, monkeypatch):
+    """An explore captures the same few screens ~150 times; encoding every full-size capture again was most of what
+    an offline explore cost."""
+    phone = FakePhone(screens={"home": capture("janitorai", "j02_home"), "tab": capture("janitorai", "j04_tab1")},
+                      start="home", taps={}, clock=Clock())
+    encodes, save = [], Image.Image.save
+    monkeypatch.setattr(Image.Image, "save", lambda image, *args, **kwargs: encodes.append(image.size)
+                        or save(image, *args, **kwargs))
+    homes = [phone.screenshot(tmp_path / f"home-{n}.png") for n in range(3)]
+    phone.go("tab")
+    tab = phone.screenshot(tmp_path / "tab.png")
+    assert len(encodes) == 2
+    save(phone.screens["tab"].image, tmp_path / "plain.png")
+    assert {path.read_bytes() for path in homes} != {tab.read_bytes()} == {(tmp_path / "plain.png").read_bytes()}
