@@ -2,52 +2,52 @@
  "candidate_id": "pd-c3-subtle",
  "g_policy": {
   "passed": true,
-  "reason": "The offer copy states the 60-minute reward before play, and the card is optional. The decline and ad-failure fields leave normal routing in place and address unavailable or unverified games."
+  "reason": "The s02 button is optional, and the offer copy states three extra saved-story slots for seven days before play. The decline and ad-failure fields leave the list unchanged and provide a path when the game is unavailable or does not count."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is temporary in-app queue priority, not cash or a transferable value."
+  "reason": "The reward is saved-story slots for use in the app, not cash or a cash-like item."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger is a subscriber opening the profile menu, not anything in a chat."
+  "reason": "The trigger is a Save tap when the saved list is full, as observed in m01; it does not use chat content."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The proposal says it removes nothing free, and its reward does not lock or cap a free resource."
+  "reason": "The proposal keeps the existing five free slots shown in s02.e02 and temporarily adds three more."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The card is placed in the s09 profile menu drawer, which the model rates content safe, rather than in a conversation."
+  "reason": "The offer is a button in s02, a content-safe saved-list-full modal, not in or next to unsafe content."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "The reward gives temporary queue priority, and s02.e06 shows that Janitor+ charges for priority routing."
+  "reason": "This existing-anchor reward expands a resource the app limits: m01 observes a maximum of five saved stories."
  },
  "c2_evidence": {
   "passed": true,
-  "reason": "The proposal's claims about today's app rest on the s02.e06 priority-routing benefit and the s09 profile menu; it presents the higher-priority lane as the proposed reward."
+  "reason": "The proposal's claims about today's save limit, full-list pop-up, and Premium benefits are supported by m01, s02, and s03. The extra slots and their expiry are proposed changes."
  },
  "c3_spares_payers": {
   "passed": false,
-  "reason": "The 'offered to' and 'subscribers' fields target only Janitor+ members and reward them with more of the priority routing they already pay for."
+  "reason": "The subscribers field says Premium members see the offer, while s03.e03 says their plan removes ads. This fails the condition for showing an ad offer to members of a no-ads plan."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The boost expires after 60 minutes, and s02.e06 shows the app already sells a routing-priority advantage. The proposal does not establish that it takes an observed ordered-feed position or limited share from others."
+  "reason": "The reward expires after seven days and does not give away either Premium benefit listed on s03."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The trigger and placement put the card in the profile menu, a persistent surface the user chooses to open."
+  "reason": "The offer appears in s02 when a reader has just hit the observed saved-list limit, a moment of need."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The trigger is a detectable menu opening, and the ad-failure field says an unverified play does not turn on faster replies."
+  "reason": "The trigger is a detectable Save tap at the limit, and the flow uses a short game. The ad-failure field says no slots are added if the game does not count, consistent with granting the reward only after verified play."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The idea uses the s09 profile menu and the Janitor+ priority-routing benefit shown at s02.e06."
+  "reason": "The idea relies on this app's five-story saved-list limit, its s02 full-list pop-up, and its saved meter."
  },
- "other_concern": "The model confirms priority routing, but not that an above-subscriber routing lane can be implemented without affecting paid members' experience.",
- "fixable": false
+ "other_concern": "",
+ "fixable": true
 }

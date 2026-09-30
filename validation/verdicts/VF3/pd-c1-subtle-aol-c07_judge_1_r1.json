@@ -2,52 +2,52 @@
  "candidate_id": "pd-c1-subtle-aol-c07",
  "g_policy": {
   "passed": true,
-  "reason": "The card is opt-in, the offer copy states the reward (a second city for 7 days), declining just hides the card, and the 'if the ad fails' field covers a game that is unavailable or unconfirmed."
+  "reason": "The offer is an opt-in card whose copy states the reward (a second city for 7 days). Declining hides the card with no loss, and the 'if the ad fails' field covers both no game available and an unconfirmed play."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is a second weather city for 7 days, which has no cash value and can't be withdrawn or transferred."
+  "reason": "The reward is a temporary second city in the weather bar, which has no cash value and cannot be withdrawn or transferred."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger is an app event (weather bar taps over three days) and no chat content is involved."
+  "reason": "The trigger is an app event, the user tapping the weather bar on a third day in a week. No chat content is involved."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "Nothing free is removed or capped. The single-city bar stays as it is and the second city is purely additive."
+  "reason": "Nothing free today is removed or capped. The weather bar still shows its existing place, and the second city is a new add-on."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The card sits in app chrome on s01, which is rated safe. It is not in a conversation and not next to unsafe or unknown content."
+  "reason": "The card sits in app chrome on s01, which is rated safe, and it is not in a conversation or next to unsafe or unknown content."
  },
  "c1_revealed_value": {
   "passed": false,
-  "reason": "This is a product_change, and the new second-city resource is not a slice of anything the app charges for. The weather bar is also not in the observed core flows (f01 read a story, f02 browse a category), so the fail condition holds."
+  "reason": "This is a product_change that adds a new resource, a second weather city. The city is not a slice of anything the app charges for, and weather is not in the observed core flows (f01 read a story, f02 browse a category). The fail condition holds."
  },
  "c2_evidence": {
   "passed": false,
-  "reason": "The proposal cites no evidence and states as fact that the weather bar 'shows one place' and that the app 'already fetches' data for other cities. The model only records the text 'Tap here for weather' (s01.e29), so both claims are unsupported."
+  "reason": "The proposal cites no evidence. It claims the weather bar 'shows one place' and that it 'uses data the app already fetches', but s01.e29 says only 'Tap here for weather'. No element or mechanic supports either claim."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The product model shows no paid plan, and every reader sees the same optional card."
+  "reason": "The product model shows no paid plan, so there are no paying users to spare."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward expires after 7 days, no subscription benefit is given away, and nothing is taken from other users or creators."
+  "reason": "The reward expires after 7 days, and it takes nothing from other users or creators."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The offer is a slim dismissible card on the home feed and does not interrupt a task in progress."
+  "reason": "The card is a persistent surface on the home feed and does not interrupt a task in progress."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "It is a play-to-earn unit. The reward is granted only after the play is confirmed, and the trigger (weather bar taps over three days) is an app event the app can detect."
+  "reason": "This is a play-to-earn unit. The city is added only after the play is confirmed, and the trigger is a detectable tap on the weather bar."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "It names this app's home weather bar (s01.e29), the feed ad slot, and the home screen, so it would not read the same in another app."
+  "reason": "The idea names the home weather bar (s01.e29) and the feed ad slot on the Home screen, so it is tied to this app."
  },
- "other_concern": "The trigger (third weather-bar tap in a week) doesn't quite match the flow, which just says the reader opens Home. The weather bar may also be low-value for most readers, and the 7-day expiry note could feel like a nag.",
+ "other_concern": "The 'third day in the same week' trigger needs the app to track weather-bar taps across days, and the model does not show that. The idea also adds a new screen (city picker) and new weather functionality the app may not support.",
  "fixable": false
 }

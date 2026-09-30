@@ -1,18 +1,27 @@
 # 2026-09-30: the live rubric is VF3 (VF′ plus `c3_spares_payers`)
 
-VF3 is VF′ with one judgment check added: `c3_spares_payers` fails an offer aimed at users who already pay, one a plan's ad-free members still see, or one that rewards payers with something their plan includes or more of a benefit they pay for. Two planted cases test it (pd-c3-flagrant, pd-c3-subtle). The generated sections under "Judge validation" are **one** `validate-judge` run of VF3 (round 1 and the gate reruns, `validation/verdicts/VF3/`), not a majority of 3: the change's API cap paid for one. Everything from "How the live judge rubric was chosen" to that heading is about VF′ and its three saved runs in `validation/verdicts/VF2/`, kept as the record.
+VF3 is VF′ with one judgment check added. `c3_spares_payers` fails an offer that sits inside what paying users pay for or is pitched as more of what the plan sells; one that members of an ad-free plan see; or one whose reward the plan already includes. An offer for something outside the plan and outside what payers pay for passes, even when only paying users see it. The new fixtures test it:
+- pd-c3-flagrant: Luzia+ members offered a benefit their plan includes.
+- pd-c3-subtle: an ad-free plan's members shown the offer, in a news-reader sketch.
+- kg-fitness-01: a known-good offer only paying users see, for a streak freeze their plan doesn't sell.
+- kg-newsreader-01: a known-good offer only free readers see, in the ad-free-plan app.
+- rg-janitorai-c03-rev-payers: the committed JanitorAI c03-rev, as a regression case.
 
-Against VF′'s three saved runs, each scored alone:
+The generated sections under "Judge validation" are **one** `validate-judge` run of VF3: round 1 and the gate reruns, saved in `validation/verdicts/VF3/`. They are not a majority of 3, because the change's API cap paid for one. Everything from "How the live judge rubric was chosen" to that heading is about VF′ and its three saved runs in `validation/verdicts/VF2/`, kept as the record.
 
-| | VF′ run 1 / 2 / 3 | VF3 run |
+VF3 against VF′. The VF′ column is `uv run python -m simula.validate summarize --runs validation/verdicts/VF2 --out <file>`, which scores only the fixtures VF2 judged:
+
+| | VF′ (majority of 3) | VF3 (one run) |
 |---|---|---|
-| The 22 original planted defects, combined | 22/22 each | 22/22 |
-| judge_2 on those 22 | 20 / 20 / 19 | 19 (c1 subtle, c7 flagrant and subtle missed) |
-| The 2 new c3 cases | not in VF′ | 2/2 by each judge |
-| Known-good, combined (judge_1; judge_2) | 1/4, 2/4, 0/4 (3/4 each; 1, 2, 0) | 1/4 (3/4; 1/4) |
-| Known-good failing c3 | – | none; the misses are judge_2's c2 strictness and AOL c01's c2, as before |
+| The 22 original planted defects, combined | 22/22 | 22/22 |
+| judge_1 / judge_2 on those 22 | 22 / 20 | 22 / 20 (judge_2 misses c7 flagrant and subtle, as before) |
+| The 2 c3 planted cases | not in VF′ | 2/2 by each judge |
+| The 4 original known-goods, combined (judge_1; judge_2) | 1/4 (3/4; 1/4) | 2/4 (3/4; 2/4) |
+| The 2 new known-goods, combined | not in VF′ | 1/2 (kg-fitness-01: judge_2 fails c2) |
+| Known-goods failing c3 | – | none of 6 |
+| JanitorAI c03-rev regression | not in VF′ | fails c3 under both judges |
 
-The gate reruns flipped twice where VF′'s saved runs showed none: judge_2 missed pd-g-no-cash-subtle on its rerun, and judge_1 added g_policy to pd-g-no-free-removal-flagrant (its target caught both times). Combined, every planted defect is still caught.
+The gate reruns flipped once per judge. Each flip changed a gate other than the target, and the target was caught both times: judge_1 added g_no_free_removal to pd-g-policy-flagrant, and judge_2 dropped g_policy from pd-g-no-free-removal-flagrant. VF′'s saved runs showed none.
 
 # How the live judge rubric was chosen (read this first)
 

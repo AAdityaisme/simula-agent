@@ -2,52 +2,52 @@
  "candidate_id": "pd-c5-subtle",
  "g_policy": {
   "passed": true,
-  "reason": "The offer copy states the three-answer reward before play. The decline and ad-failure fields let the user continue without losing the offer."
+  "reason": "The offer copy states the three-answer reward before play. The decline and ad-failure fields provide paths that do not take anything away."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is three in-app Advanced reasoning mode answers, not cash or a transferable benefit."
+  "reason": "The reward is three in-app Advanced reasoning mode answers, not cash or a transferable equivalent."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger uses time since the last open and a New chat tap, not anything the user wrote or said."
+  "reason": "The trigger uses an app-opening gap and a New chat tap, not the contents of a conversation."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The proposal removes no free feature; Advanced reasoning mode is listed as a Luzia+ benefit at s02.e03."
+  "reason": "The proposal's reward samples a paid feature listed at s02.e03 and does not remove an existing free feature."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The card opens over the safe Chats home screen (s01), not inside a conversation or next to unsafe content."
+  "reason": "The placement is a card over the safe Chats home screen, not inside a conversation or next to unsafe content."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "This existing-anchor reward samples Advanced reasoning mode, which the paywall lists as a paid benefit at s02.e03."
+  "reason": "As an existing opportunity, it rewards a limited sample of Advanced reasoning mode, which the Luzia+ paywall lists at s02.e03."
  },
  "c2_evidence": {
-  "passed": true,
-  "reason": "The paywall supports the paid-mode claim (s02.e03), and the Chats home supports the New chat and persona references (s01.e09, s01.e13–e20). The card and answer allowance are proposed additions, not claims about current behavior."
+  "passed": false,
+  "reason": "The placement and decline fields describe picking who to talk to after tapping New chat as the usual flow. s01 shows a New chat label and personas, but does not establish that tapping New chat leads to that selection flow."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The 'offered to' and 'subscribers' fields restrict the offer to free users and say Luzia+ members never see it."
+  "reason": "The subscribers field says Luzia+ members never see the offer."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward is limited to three answers and expires at midnight, so it does not grant lasting access to the paid mode."
+  "reason": "The reward is limited to three answers and expires at midnight, so it does not grant lasting access to the paid feature."
  },
  "c5_moment": {
   "passed": false,
-  "reason": "The trigger and flow open the card immediately after a New chat tap, before the user can choose whom to talk to. This interrupts a task without a limit hit, locked-item tap, finished action, or persistent surface the user chose to open."
+  "reason": "The trigger and placement open the card immediately after the user taps New chat, interrupting the start of that task without a limit hit, locked-item tap, or finished action; it is not a persistent surface the user chooses to open."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The flow uses a sponsored game triggered by a detectable New chat tap, and the ad-failure field says an unconfirmed play does not count."
+  "reason": "The proposal uses a sponsored game triggered by a detectable app event, and the ad-failure field withholds the reward when play is not confirmed."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The proposal names the Chats home, New chat, the Luzia+ badge, and the paywall's Advanced reasoning mode benefit."
+  "reason": "The idea names the Chats home screen, its Luzia+ badge, and the paywall's Advanced reasoning mode benefit."
  },
- "other_concern": "",
+ "other_concern": "The rationale suggests reducing the reward to one answer or requiring a second game in some markets, which would need offer copy and terms distinct from the stated three-answer offer.",
  "fixable": true
 }

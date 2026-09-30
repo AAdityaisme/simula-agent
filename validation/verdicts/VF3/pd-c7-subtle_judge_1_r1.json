@@ -2,52 +2,52 @@
  "candidate_id": "pd-c7-subtle",
  "g_policy": {
   "passed": true,
-  "reason": "The banner is opt-in, the offer copy states the reward (30 minutes with no ads), declining hides it with no change, and the 'if the ad fails' field covers both no game ready and unconfirmed play."
+  "reason": "The banner is opt-in, the offer copy states the reward (no ads for 30 minutes), declining leaves the app as before, and 'if the ad fails' covers a game that isn't ready or a play that isn't confirmed."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is 30 minutes of ad-free use, a feature_time that cannot be withdrawn or exchanged."
+  "reason": "The reward is 30 minutes of ad-free time (feature_time), which has no cash value and cannot be withdrawn or transferred."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger is time in the app plus a loaded playable, which are app events. This is a news app with no chat content involved."
+  "reason": "The trigger is 'used the app for a while and a playable is loaded', which is an app event. No chat content is involved."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "'Removes nothing free: yes'. Nothing free today is removed or capped, and ads only get hidden as a bonus."
+  "reason": "Nothing free is removed or capped. The ad-free window is an addition, and ads return as they were afterwards."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The dismissible banner sits on s01, which is rated safe, as app chrome. It is not in a conversation and not next to unsafe or unknown content."
+  "reason": "The banner sits on s01 Home, which is rated safe, as app chrome. It is not in a conversation and not next to unsafe or unknown content."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "For a product_change, ad-free time is something the player uses for their own benefit in the observed core flows f01 and f02 (reading stories and browsing the feed, where the ad slot m01 appears)."
+  "reason": "This is a product_change. The new resource, an ad-free window, is used by the player while reading stories and browsing the feed (core flows f01 and f02), and it is not given to anyone else."
  },
  "c2_evidence": {
   "passed": true,
-  "reason": "The only claim about the app as it is today is that it shows ads, and m01 supports it. The revenue-displacement line is a prediction and the banner and window are the proposal's own additions."
+  "reason": "The only claim about the current app is that it shows ads, which m01 supports with the native ad placement. The banner, the reward, the copy and the revenue prediction are what the proposal itself adds or forecasts."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The product model shows no paid plan, so there are no paying users to spare."
+  "reason": "The product model shows no paid plan, so there are no paying users to protect."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward is ad-free time that expires after 30 minutes. No paid benefit is shown and nothing is taken from other users or creators."
+  "reason": "The reward ends after 30 minutes and is capped at 2 per day. It takes nothing from other users or creators, and no subscription is shown."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "A dismissible banner on the home feed does not block the user's task, so it does not interrupt anything."
+  "reason": "The banner is dismissible and sits on the Home feed, a browsing surface. It does not interrupt a task in progress such as reading an article."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "It is a play-to-earn unit, the reward is granted only on confirmed play ('if the play is not confirmed, nothing changes'), and the trigger is a detectable app event."
+  "reason": "This is a play-to-earn unit. The reward is granted only on a confirmed play ('if the play is not confirmed, nothing changes'), and the trigger is a detectable app event."
  },
  "c7_specific": {
   "passed": false,
-  "reason": "Fail condition: the idea would read the same in any app. 'What makes it work here' says only 'the app shows ads' and never names the feed ad slot (m01) or any other feature specific to this app."
+  "reason": "Nothing in the idea is specific to this app. The copy, the 'what makes it work here' field and the rationale would read the same in any ad-supported app. They never name the feed's native ad slot, the Taboola cards or the article-page ads."
  },
- "other_concern": "The app's native ad slots are filled by third-party Taboola or direct cards and are sometimes empty, so it is unverified that the app can hide them on demand. The reward may also feel empty when a slot is unfilled. No evidence was cited.",
+ "other_concern": "The proposal cites no evidence. It should cite m01, and it should say which ad placements the ad-free window hides (the home feed slot, the article ad). The slot is sometimes empty, so the reward may feel hollow, and the ad-free window may not reduce ads the user actually sees.",
  "fixable": true
 }

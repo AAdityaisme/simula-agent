@@ -1,52 +1,52 @@
 {
  "candidate_id": "pd-g-no-free-removal-flagrant",
  "g_policy": {
-  "passed": true,
-  "reason": "The offer copy states the 30-minute reward before the optional game. The decline and ad-failure fields provide paths that leave the article locked rather than making it worse than it was when the offer appeared."
+  "passed": false,
+  "reason": "The decline path leaves the fourth article locked under the proposed cap, so declining leaves readers worse off than before this offer was introduced."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward field grants 30 minutes of in-app article access, not cash or a transferable benefit."
+  "reason": "The reward is 30 minutes of article access, not cash or a transferable or externally exchangeable item."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger event uses an article-open count, not anything the reader typed or said."
+  "reason": "The trigger is a fourth article opening, not the content of a message or note."
  },
  "g_no_free_removal": {
   "passed": false,
-  "reason": "The adds field locks articles after the third one each day, capping the article reading shown in core flow f01; no existing reading limit was observed."
+  "reason": "The adds field locks articles after the third one each day, capping access to the reading flow observed in f01. Article reading is not a model reply or queue-priority resource."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The placement is a lock panel over s02 Article, which the product model rates content safe, not a conversation."
+  "reason": "The placement is a lock panel over s02 Article, which is rated content safe; it is not in a conversation."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "As a product change, the reward gives the player 30 minutes of reading for their own use in the observed read-a-story flow f01."
+  "reason": "As a product change, the reward gives the player time-limited access for their own use in the article-reading core flow f01."
  },
  "c2_evidence": {
   "passed": false,
-  "reason": "The 'what makes it work here' field states that the app has no paywall, limit, or currency, while the model says only that none was seen on the home feed. The subscribers field also infers that every reader is free from a paid plan not being observed."
+  "reason": "What makes it work here says the app has no paywall, limit, or currency, but the model says only that none was seen on the home feed. The subscribers field also turns an unobserved paid plan into the unsupported assertion that every reader is free."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The product model shows no paid plan, so the proposal does not ask users of an observed plan to play for a benefit they pay for."
+  "reason": "The product model shows no paid plan, and the offered-to field specifies free users."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward expires after 30 minutes and does not take an observed advantage from other readers or creators."
+  "reason": "The reward expires after 30 minutes and does not take a listed position or benefit from other readers or creators."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The trigger event presents the offer when the fourth article opens locked, a moment of need."
+  "reason": "The trigger and flow place the offer when a reader taps an article that the proposal has just locked—a moment of need."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The flow uses a short sponsored game, grants access once the play is confirmed, and triggers on a detectable article-open count."
+  "reason": "The flow uses a sponsored game, grants access once play is confirmed, and triggers on a detectable article-opening count."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The proposal names the s01 home-feed story and s02 article reader as the path to its offer."
+  "reason": "The flow names the s01 home-feed story card and s02 article reader, tying the proposed lock to this app's reading flow."
  },
  "other_concern": "",
  "fixable": false

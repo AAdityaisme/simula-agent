@@ -2,52 +2,52 @@
  "candidate_id": "pd-c6-flagrant",
  "g_policy": {
   "passed": true,
-  "reason": "The offer copy states the 30-minute reward before an opt-in game, and the decline field leaves reading unchanged. The trigger requires a ready playable, and the failure field gives an outcome if the ad fails."
+  "reason": "The offer copy states the 30-minute reward before an opt-in game, and the decline path leaves reading unchanged. The trigger requires a loaded game, and the ad-failure field describes a path when the game closes."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is 30 minutes without sponsored stories inside the app, not cash or a transferable equivalent."
+  "reason": "The reward is 30 minutes without sponsored stories, not cash or a transferable equivalent."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger event uses an article-open counter and a return to the home feed, not anything the reader wrote or said."
+  "reason": "The trigger uses an article-open counter and a return to the home feed, not chat content."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The adds and reward fields hide sponsored cards temporarily; they do not remove, lock, or cap a free reader feature."
+  "reason": "The adds and decline fields leave existing reading, saving, and sharing available; the reward temporarily hides sponsored cards."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The placement is a banner below the category pills on content-safe s01, above the first story, rather than inside a conversation or beside unsafe or unknown content."
+  "reason": "The placement is a banner under the category pills on the content-safe s01 home feed, not inside a conversation."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "This product change gives the player a 30-minute cleaner reading experience for their own use in the observed home-feed-to-article flow f01."
+  "reason": "This product change gives the player a 30-minute cleaner reading experience for their own use in the observed story-reading core flow f01."
  },
  "c2_evidence": {
   "passed": false,
-  "reason": "The 'what makes it work here' field says the app has no paywall, limit, or currency, but the open question says only that none was seen on the home feed. Its description of the existing cards as low-value, and the subscribers field's assertion that every reader is free, likewise go beyond what the model supports."
+  "reason": "The 'what makes it work here' and rationale fields assert that the app has no paywall or locked content and that its native ads are cheap or low-value. The model records only that no paywall or limit was seen on the home feed; m01 supports uneven ad fill, not ad value."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The product model shows no paid plan, and the proposal's offered-to field targets free users."
+  "reason": "The product model shows no paid plan, and the subscribers field says members of a future ad-free plan would not see the offer."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward expires after 30 minutes, as specified in the reward and when-the-reward-runs-out fields; it does not grant lasting access or take an advantage from other readers."
+  "reason": "The reward expires after 30 minutes and does not grant lasting access to a paid benefit or take an ordered-feed advantage from other users."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The trigger occurs when a reader returns to s01 after an article, and the dismissible banner is on the home feed rather than interrupting an article."
+  "reason": "The trigger places the offer on the home feed after the reader returns from an article, rather than interrupting an article in progress."
  },
  "c6_fits_simula": {
   "passed": false,
-  "reason": "The 'if the ad fails' and flow fields grant the reward when the game is closed, played or not. That is a close-based grant rather than one conditioned on a verified play."
+  "reason": "The ad-failure field and flow grant the reward when the game closes, played or not. Simula requires granting it only after REWARD_VERIFIED."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The proposal names the s01 home feed, its category pills, the sponsored slot shown at s01.e44, and the article placement at s02.e13."
+  "reason": "The proposal names the home-feed sponsored slot at s01.e44 and the in-article sponsored card at s02.e13 as the placements the reward would hide."
  },
- "other_concern": "The proposal predicts that one playable will outweigh the revenue from hidden cards, but the model provides no revenue data to test that prediction.",
+ "other_concern": "Whether one rewarded game offsets the revenue from hiding sponsored cards for 30 minutes needs testing.",
  "fixable": true
 }

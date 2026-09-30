@@ -2,52 +2,52 @@
  "candidate_id": "pd-g-brand-safety-flagrant",
  "g_policy": {
   "passed": true,
-  "reason": "The offer copy states the reward before play, and the decline and ad-failure fields leave the chat usable without consuming the offer."
+  "reason": "The offer copy states the 3-answer reward before the user chooses to play. The decline and ad-failure fields preserve the chat and provide a path if the game is unavailable or unconfirmed."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward field gives three in-app Advanced reasoning mode answers, not cash or a cash-like item."
+  "reason": "The reward is 3 Advanced reasoning mode answers for use in the app, not cash or a cash-like asset."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger event uses a Teacher chat opening and a session gap, not the content of any message."
+  "reason": "The trigger uses a session gap and opening the Teacher chat, not the content of any message."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The proposal says it removes nothing free, and its reward samples the paid feature listed at s02.e03."
+  "reason": "The proposal adds a temporary sample of a paid feature and says declining leaves the chat working as before."
  },
  "g_brand_safety": {
   "passed": false,
-  "reason": "The placement and flow put the offer card inside the Teacher conversation, right under Luzia's last reply. An offer inside the conversation fails this gate even though s07 is rated safe."
+  "reason": "The placement puts the offer inside the conversation, right under Luzia’s last reply. An offer placed in the message list fails this gate."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "For this existing opportunity, the reward is a limited sample of Advanced reasoning mode, which the paywall lists at s02.e03."
+  "reason": "The reward samples Advanced reasoning mode, which the Luzia+ paywall lists as a paid benefit at s02.e03."
  },
  "c2_evidence": {
   "passed": true,
-  "reason": "The proposal's claims about today's paid feature and trial are supported by s02.e03 and s02.e19. Its welcome-back card and answer allowance are proposed changes, not claims that they already exist."
+  "reason": "The claims about the current paywall, home badge, Teacher chat, plans, and trial are supported by s02, s01.e02, and s07; the proposed card and sample are changes, not claims about existing features."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The offered-to and subscribers fields restrict the offer to free users and say Luzia+ members never see it."
+  "reason": "The subscribers field says Luzia+ members never see the offer."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward is limited to three answers and expires at midnight local time, rather than granting lasting access to the paid feature at s02.e03."
+  "reason": "The reward is limited to 3 answers and expires at midnight local time, rather than granting lasting access to the subscription benefit."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The trigger event shows the card when a returning user chooses to open the Teacher chat, not during an exchange already in progress."
+  "reason": "The trigger is the user opening the Teacher chat after a session gap, not an interruption in the middle of an ongoing task."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The flow uses a sponsored game, and the ad-failure field withholds the reward if play is not confirmed. Opening the Teacher chat after a session gap is a detectable app event."
+  "reason": "The flow uses a sponsored game, and the ad-failure field says an unconfirmed play leaves the reward unavailable. The trigger is a detectable chat-open event."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The placement names the Teacher chat at s07, and the reward uses the Luzia+ Advanced reasoning mode listed at s02.e03."
+  "reason": "The idea names the Teacher chat and samples Advanced reasoning mode from the Luzia+ paywall."
  },
- "other_concern": "The rationale's prediction that ad revenue covers model costs in particular markets is unverified.",
+ "other_concern": "",
  "fixable": true
 }

@@ -2,52 +2,52 @@
  "candidate_id": "kg-run-janitorai-c02",
  "g_policy": {
   "passed": true,
-  "reason": "The card is opt-in, the offer copy states the reward (priority routing, 60 minutes), declining leaves the menu and replies as today, and 'if the ad fails' covers both no game and unverified play."
+  "reason": "The user opts in to the card, and the offer copy states the reward (priority routing, 60 minutes). The decline path leaves the menu, Upgrade and Billing unchanged, and the ad-failure path hides the card or shows a retry message."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is 60 minutes of queue priority, which cannot be withdrawn, sold, or transferred."
+  "reason": "The reward is 60 minutes of queue priority, which cannot be withdrawn, sold or transferred."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger is an app event: returning to the profile menu from the Upgrade entry without subscribing. It uses no chat content."
+  "reason": "The trigger is an app event, returning to the profile menu from the Upgrade entry. It uses no chat content."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The proposal removes or caps nothing ('removes nothing free: yes'). It only adds a temporary boost."
+  "reason": "The proposal removes nothing (\"removes nothing free: yes\"). Replies keep their normal speed if the user declines."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The card sits in the profile menu drawer (s09), a sheet over a non-chat screen rated safe. It is not in a conversation or next to unsafe or unknown content."
+  "reason": "The card sits in the s09 profile menu drawer, which is app chrome over a non-chat screen rated safe. It is not in the conversation and not next to unsafe or unknown content."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "Priority routing is a paid Janitor+ benefit (l02, s02.e06), and free users get normal priority (m03). The app charges for the resource the reward gives."
+  "reason": "Priority routing is a charged resource. m02 and l02 list it as a Janitor+ subscriber benefit, so the existing-anchor test is met."
  },
  "c2_evidence": {
   "passed": true,
-  "reason": "The claims about today's app rest on the model: Janitor+ sells priority routing (l02), the Upgrade entry exists in the menu (s09.e31), and free users have normal routing (m03, inferred from s02.e07). The cost remarks are predictions, and the new card and copy are the proposal's own additions."
+  "reason": "The claims about today's app rest on the model: Janitor+ sells priority routing (s02.e06, l02), s09.e31 is a permanent Upgrade entry, and m03 (inferred from s02.e07) supports free users having normal-priority routing. The new card, trigger and copy are the proposal's own additions, and its cost claim is a prediction."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The offer goes to free users only, and subscribers already have priority routing and never see the card."
+  "reason": "A paid plan exists, but the proposal says subscribers already have priority routing and never see the card. The model shows no ad-removal benefit for the plan."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward is 60 minutes of one benefit, so it expires and is not lasting access. The app already sells queue priority, so it takes nothing from others that it doesn't already sell."
+  "reason": "The reward is a 60-minute sample that ends, capped at 2 per day, so it grants no lasting access. The app already sells queue priority, so it does not take an unsold advantage from other users."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The card sits on a persistent surface the user chooses to open (the profile menu), and it does not interrupt a task."
+  "reason": "The offer sits on the profile menu, a persistent surface the user chooses to open, and does not interrupt a task in progress."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "It is a play-to-earn sponsored game, and the reward is granted only after the verified play. The trigger is a detectable app navigation event."
+  "reason": "It is a play-to-earn rewarded playable. The reward follows the verified play, and an unverified play gets no reward. The trigger is an app event."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "It names the Janitor+ priority routing benefit, the profile menu's Upgrade to Janitor Plus button and Billing entries, and the s06 My Chats screen, so it is specific to this app."
+  "reason": "It names Janitor+'s priority routing, the profile menu drawer, and the Upgrade to Janitor Plus button (s09.e31), so it would not read the same in another app."
  },
- "other_concern": "The model doesn't show what the Upgrade entry opens, so detecting a return from it without subscribing may take extra engineering. The claim that priority costs the app nothing extra is unverified, and the free-tier queue behavior was not observed directly.",
+ "other_concern": "The Upgrade entry's destination was not captured, so the \"returns from Upgrade without subscribing\" trigger is hard to detect. The placement is also ambiguous about whether the card shows permanently or only after a return. Free-tier queue behavior is only inferred (m03).",
  "fixable": false
 }

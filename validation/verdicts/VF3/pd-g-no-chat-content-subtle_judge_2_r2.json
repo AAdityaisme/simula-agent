@@ -2,52 +2,52 @@
  "candidate_id": "pd-g-no-chat-content-subtle",
  "g_policy": {
   "passed": true,
-  "reason": "The offer copy states the 60-minute reward before an optional game. The decline and ad-failure fields leave normal replies available and grant nothing after an unverified play."
+  "reason": "The offer copy states the 60-minute reward before the user chooses to play. The decline and ad-failure fields preserve normal access and withhold the reward if play is not verified."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is 60 minutes of in-app priority routing, not cash or a cash-like item."
+  "reason": "The reward is temporary priority routing within the app, not cash or a transferable equivalent."
  },
  "g_no_chat_content": {
   "passed": false,
-  "reason": "The trigger event field limits the card to users whose chats are mostly long roleplay stories; that targeting needs chat content."
+  "reason": "The trigger event field targets users whose chats are mostly long roleplay stories. Classifying their chats that way needs chat content, rather than just an app event."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The proposal removes nothing free, and its decline path keeps replies at their normal speed."
+  "reason": "The proposal says it removes nothing free, and its decline path leaves replies at their normal speed."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The placement is a card in the s09 profile-menu drawer, which is rated safe, rather than inside a conversation."
+  "reason": "The placement is a card in the s09 Profile menu, a content-safe sheet away from chats and character content."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "For this existing-anchor proposal, s02.e06 shows that Janitor+ includes the priority routing the reward samples."
+  "reason": "This existing-anchor reward samples priority routing, which the Janitor+ benefit at s02.e06 offers to subscribers."
  },
  "c2_evidence": {
-  "passed": true,
-  "reason": "s09.e31 supports the Upgrade entry, and s02.e06 supports priority routing for faster replies. The 60-minute card and its targeting are proposed additions, not claims that those features exist today."
+  "passed": false,
+  "reason": "The 'what makes it work here' field says priority routing skips a normal queue by moving users earlier in line. s02.e06 supports faster replies through priority routing, but does not establish that queue-ordering mechanism."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The offered-to and subscribers fields restrict the card to free users; subscribers who already have priority routing never see it."
+  "reason": "The 'offered to' and 'subscribers' fields restrict the card to free users and say subscribers never see it."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward ends after 60 minutes, while priority routing is a benefit Janitor+ already sells in s02.e06."
+  "reason": "The reward and expiry fields limit priority routing to 60 minutes; they do not grant lasting access to the Janitor+ benefit."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The trigger and placement put the optional card in the profile menu after a user returns from the Upgrade entry, not in the middle of a task."
+  "reason": "The trigger places the offer on the profile menu after a user returns from the upgrade entry, rather than interrupting an ongoing task."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The flow uses a sponsored game after a detectable menu-return event, and the ad-failure field says unverified play does not turn on the reward."
+  "reason": "The flow uses a chosen sponsored game, and the ad-failure field says unverified play cannot turn on faster replies. Returning to the profile menu is a detectable app event."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The idea names the s09 Upgrade to Janitor Plus entry and the priority-routing benefit shown at s02.e06."
+  "reason": "The idea ties its card to s09's Upgrade to Janitor Plus entry and rewards a timed sample of the priority-routing benefit at s02.e06."
  },
- "other_concern": "",
+ "other_concern": "The rationale assumes priority routing is cheap to provide; its operating cost is not established by the product model.",
  "fixable": true
 }

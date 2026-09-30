@@ -2,52 +2,52 @@
  "candidate_id": "rg-janitorai-c09-empty-evidence",
  "g_policy": {
   "passed": true,
-  "reason": "The offer copy states the 24-hour lift and seven-day supporter mention before play. The user chooses whether to play, declining preserves the like, and the ad-failure field provides load and verification paths."
+  "reason": "The offer copy states the 24-hour lift and seven-day supporter mention before an optional game. The decline and ad-failure fields leave the like and page unchanged and provide a path if verification fails."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is a list boost and supporter mention, not cash or an exchangeable item."
+  "reason": "The reward field gives a supporter mention and a temporary list boost, not cash or anything exchangeable outside the app."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger is a tap on the like button on s07, not anything the user wrote or said."
+  "reason": "The trigger event is a tap on the like button shown at s07.e16; it does not require chat content."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The proposal removes or caps no existing free feature; declining leaves the like and page unchanged."
+  "reason": "The adds and decline fields preserve the existing like and feed behavior rather than removing or capping a free feature."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The support card is placed on s07, a character-detail screen rated safe, rather than in a conversation."
+  "reason": "The placement is a card on s07, a character-detail screen rated safe, rather than inside or over a conversation."
  },
  "c1_revealed_value": {
   "passed": false,
-  "reason": "The proposal's main reward is higher placement for the creator's character. Most of what the reward gives goes to another user, not the player."
+  "reason": "The reward's primary benefit is lifting a creator's character in the Home list; most of that new resource goes to someone other than the player. The player's supporter mention is secondary."
  },
  "c2_evidence": {
   "passed": false,
-  "reason": "The rationale claims fans currently have no way to help beyond a like. The model does not establish that absence, and s07.e03 shows a comments button."
+  "reason": "The rationale claims fans currently have no way to help beyond a like, which the product model does not establish; s07.e03 also shows a comments button. This is an unsupported claim about the app today."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The subscribers field gives payers the same opt-in offer for a boost that is not among the Janitor Plus benefits in m2."
+  "reason": "The card sits on the character page at s07, and the creator boost is outside the Janitor Plus benefits listed at s13.e09–e12. The observed plan does not remove ads."
  },
  "c4_protects_subscription": {
   "passed": false,
-  "reason": "The proposed lift in the Home list takes ordered-feed placement and visibility from other creators; the model does not show the app already selling that advantage."
+  "reason": "The reward moves one character higher in the existing Home list, taking visibility and list position from other creators. The model does not show that the app already sells this advantage."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The support card appears after the user taps like on s07, a finished action rather than an interruption mid-task."
+  "reason": "The trigger event opens the offer after the user taps like, a finished action, rather than interrupting a task in progress."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The flow uses a short sponsored game triggered by a detectable like tap, and the ad-failure field says nothing changes if play cannot be verified."
+  "reason": "The flow uses a sponsored game triggered by a detectable like-button tap, and the ad-failure field says nothing changes if play cannot be verified."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The proposal uses s01's Hidden Gems list and s07's creator byline and like button to define the offer."
+  "reason": "The proposal uses the Hidden Gems Home list at s01.e13–e15 and Vac the Kinectic's creator and like button at s07.e12–e16."
  },
- "other_concern": "",
+ "other_concern": "The proposal calls the list boost “cosmetic,” although it changes feed ranking. It also proposes showing the fan's name publicly without specifying a separate choice about that display.",
  "fixable": false
 }

@@ -2,52 +2,52 @@
  "candidate_id": "pd-g-brand-safety-subtle",
  "g_policy": {
   "passed": true,
-  "reason": "The offer copy states the reward (priority routing for 60 minutes) before the ad and the user can ignore it. Declining changes nothing, and the 'if the ad fails' field covers both no game available and an unverified play."
+  "reason": "The user chooses to play, and the offer copy states the reward (priority routing, 60 minutes) before the ad. Declining leaves replies at normal speed, and 'if the ad fails' covers both no game available and an unverified play."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is 60 minutes of priority routing (queue_priority), which has no cash value."
+  "reason": "The reward is 60 minutes of queue priority, which has no cash value and cannot be withdrawn or transferred."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger is an app event: returning from the Upgrade entry without subscribing, then opening a chat from My Chats. It does not use anything the user typed."
+  "reason": "The trigger is app events: returning from the Upgrade entry without subscribing, opening a chat from My Chats, and a reply being delivered. It does not read what the user typed."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The idea adds an optional temporary boost and removes or caps nothing free. Normal speed is unchanged when the user declines."
+  "reason": "The proposal removes nothing free ('removes nothing free: yes'). Replies stay at normal speed."
  },
  "g_brand_safety": {
   "passed": false,
-  "reason": "The placement field puts the offer inside the conversation, as the character's own words at the end of its reply. That is an offer sent as a message and dressed up as chat content, which the gate forbids."
+  "reason": "The placement is 'Inside the character's reply: toward the end of their message', so the offer is inside the conversation itself and dressed as a character message. The failure note 'in the chat' is also a chat note."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "Priority routing is sold in Janitor+ (l02, s02.e06), and m03 infers a normal-priority queue for free users from s02.e07. The app therefore charges for the resource the reward gives."
+  "reason": "Priority routing is something the app charges for (m02, l02), so the reward gives a slice of a paid benefit."
  },
  "c2_evidence": {
   "passed": true,
-  "reason": "The claims about the app are supported: Janitor+ sells priority routing (s02.e06), the profile menu has a permanent Upgrade entry (s09.e31), and My Chats exists (s06). The cost claim and the new note and copy are proposal content or predictions, not claims about the app today."
+  "reason": "The claims about the Upgrade entry (s09.e31) and the priority routing bullet (s02.e06) match the model. Normal-priority routing for free users is m03, which is inferred from the subscriber bullets and cites evidence. The cost claim is the proposal's own prediction."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The subscribers field says subscribers already have priority routing and never see the offer line, so payers are not asked to play."
+  "reason": "The offer is shown only to free users ('offered to: free users'). Subscribers already have priority routing and never see the offer line."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward lasts 60 minutes and ends, with a cap of 2 per day. It is a time-limited sample of one benefit, not lasting access or the plan's main benefit, and it takes nothing from other users."
+  "reason": "The reward expires after 60 minutes and is capped at 2 per day. It takes nothing from other users or creators, and it is a time-limited sample of one benefit, not the whole subscription."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The offer comes at the end of a character reply, which is a finished action, and only after the user has looked at the paid plan. It does not interrupt a task in progress."
+  "reason": "The offer appears after the character's reply is delivered, which is a finished action in the user's chat. It does not cut off a task in progress."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The unit is a play-to-earn sponsored game, and the reward is granted after the play (flow step 4). The trigger, returning from the Upgrade entry and opening a chat, is an app event the app can detect."
+  "reason": "It is a play-to-earn unit and the reward is granted on the verified play. The trigger (returning from the Upgrade entry, then opening a chat) is an app navigation event."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The idea names Janitor+ priority routing, the profile menu's Upgrade entry (s09.e31) and My Chats, so it is specific to this app."
+  "reason": "It names Janitor+ priority routing (s02.e06), the profile menu Upgrade entry (s09.e31), and the My Chats screen, which are specific to this app."
  },
- "other_concern": "Chat behavior and the free-tier queue were never observed (the open question says the chat probe is needed). The 'hour of priority' cost claim is unverified. Detecting 'came back without subscribing' needs reliable state tracking.",
+ "other_concern": "Placement and failure note sit in the conversation as character or system-like text. The 'came back without subscribing' trigger needs the app to track a navigation path, and the model does not show that this is tracked.",
  "fixable": true
 }

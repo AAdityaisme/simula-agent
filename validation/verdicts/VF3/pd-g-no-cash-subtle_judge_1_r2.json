@@ -2,52 +2,52 @@
  "candidate_id": "pd-g-no-cash-subtle",
  "g_policy": {
   "passed": false,
-  "reason": "The offer copy says 'you also get a voucher' but never states what the voucher is or how much it gives, so the reward is not fully stated before the ad."
+  "reason": "The offer copy mentions 'a voucher' after a second ad but never says what it is or how much it gives, so part of the reward is not stated before the ad."
  },
  "g_no_cash": {
   "passed": false,
-  "reason": "The 'adds' field and offer copy grant an undefined 'voucher' for watching a second ad, and a voucher is listed as cash-like. Nothing in the proposal shows it can't be redeemed or exchanged outside the app."
+  "reason": "The 'voucher' in adds and offer copy is undefined and a voucher is listed as cash-like, so it could work like cash."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger is an app event, the article-open counter reaching 3 on return to s01. No chat content is involved."
+  "reason": "The trigger is an article-open counter reaching 3 and a return to the s01 feed, which are app events and need no chat content."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The idea only hides sponsored cards temporarily as a reward ('removes nothing free: yes'). It does not remove, lock or cap anything users get free today."
+  "reason": "Nothing free is removed or capped. Sponsored cards show as usual when the user declines or the window ends."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The offer is a dismissible banner card on s01, which is rated safe, and it is app chrome rather than anything inside a conversation."
+  "reason": "The banner is a list card on s01, which is rated safe, and is not in a conversation or next to unsafe or unknown content."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "This is a product_change. The ad-free window is something the reader uses in the observed core flow f01 (home feed to article), and it goes to the player, so it passes."
+  "reason": "As a product_change, ad-free time is used by the player in the observed 'Read a story' flow (f01, s01 to s02), and it does not go to anyone else."
  },
  "c2_evidence": {
   "passed": false,
-  "reason": "'what makes it work here' and the rationale state as fact that 'The app has no paywall, limit, or currency' and 'This app has nothing locked'. The model only records that none was seen on the home feed, and it lists the Inbox sign-in as blocked. The claim is not worded as 'not seen'."
+  "reason": "'The app has no paywall, limit, or currency' and 'This app has nothing locked' are stated as facts about the whole app. The model only records that none was seen on the home feed, and the Inbox is blocked."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The product model shows no paid plan, and the 'subscribers' field says so, so there is no payer to spare."
+  "reason": "The product model shows no paid plan, so there are no paying users to protect."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward lasts 30 minutes, then the sponsored cards return, and there is no subscription benefit to give away."
+  "reason": "The reward is a 30-minute window that expires and takes nothing from other users or creators."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The banner appears on return to the feed after a finished read (the third article). That is not mid-task and sits on the persistent home feed."
+  "reason": "The banner appears on the home feed after a finished read (return from the third article), not in the middle of a task."
  },
  "c6_fits_simula": {
   "passed": false,
-  "reason": "The voucher is granted for watching one more ad after the game. That is a reward for something other than the verified play."
+  "reason": "The voucher is granted for watching one more ad after the game, not on the verified play. That second ad is not a play-to-earn unit."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The idea names the Taboola native cards at s01.e44 and s02.e13, the home feed slot below the first story, and the read loop from s01 to s02."
+  "reason": "The idea names the Taboola native card below the first story (s01.e44), the in-article card (s02.e13), and the feed-to-article loop."
  },
- "other_concern": "The voucher ad adds a second ad and a vague reward. The idea is cleaner as just the 30-minute ad-free window. The 'pays for itself' revenue claim is a prediction that can't be checked.",
+ "other_concern": "The claim that the hidden cards displace little revenue is a prediction, and the 'North American audience' remark is an assumption. A second ad after the game adds friction and muddles the offer.",
  "fixable": true
 }

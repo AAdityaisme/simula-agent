@@ -2,52 +2,52 @@
  "candidate_id": "kg-run-janitorai-c02",
  "g_policy": {
   "passed": true,
-  "reason": "The offer copy states the 60-minute priority-routing reward before the user chooses to play. The decline and ad-failure fields leave replies unchanged if the user declines or play is not verified."
+  "reason": "The offer copy states the 60-minute reward before the user chooses to play. The decline and ad-failure fields preserve normal use and provide a path when a game is unavailable or verification fails."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward field gives temporary priority routing within the app, not cash or a transferable equivalent."
+  "reason": "The reward field grants in-app priority routing, not cash or a transferable equivalent."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger event is returning to the profile menu without subscribing; it does not require chat content."
+  "reason": "The trigger event uses a return from the Upgrade entry without subscribing, not anything the user wrote in a chat."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The removes-nothing-free and decline fields retain existing access and normal reply speed."
+  "reason": "The proposal's reward and frequency cap add a time-limited option; they do not remove or cap an existing free feature."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The placement is a card in the s09 profile menu, a safe sheet away from chats and character content."
+  "reason": "The offer placement is a card in the s09 profile-menu sheet, which is rated content safe and is away from chats."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "This existing-anchor reward samples priority routing, which s02.e06 lists as a Janitor+ benefit."
+  "reason": "This existing-anchor reward samples priority routing, a benefit Janitor+ sells in s02.e06."
  },
  "c2_evidence": {
-  "passed": false,
-  "reason": "The 'what makes it work here' field says users can skip a normal queue for earlier placement in line. s02.e06 supports priority routing for faster replies, but the model does not establish a literal queue or how that routing works."
+  "passed": true,
+  "reason": "The existing Upgrade entry and paid priority-routing benefit are supported by s09.e31 and s02.e06; m03 supports the reference to normal-priority routing for free users."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The offered-to and subscribers fields restrict the card to free users; subscribers already receive priority routing and never see it."
+  "reason": "The subscribers field says subscribers, who already receive priority routing under m02, never see the card."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward and expiration fields end priority routing after 60 minutes, rather than granting lasting access to the Janitor+ benefit."
+  "reason": "The reward ends after 60 minutes, and the frequency cap limits it to two plays per day rather than lasting subscription access."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The card appears in the s09 profile menu after the user returns from the upgrade entry, rather than interrupting a chat task."
+  "reason": "The trigger places the card after the user returns to the profile menu, a surface the user chose to open, rather than interrupting a chat."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The flow uses a sponsored game, the trigger is a detectable return to the menu, and the ad-failure field says unverified play does not turn on the reward."
+  "reason": "The flow uses a sponsored game, and the ad-failure field says unverified play does not turn on faster replies. Returning from the Upgrade entry is a detectable app event."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The idea names the s09 Upgrade to Janitor Plus entry and the priority-routing benefit shown at s02.e06."
+  "reason": "The placement names the s09 Upgrade to Janitor Plus entry and ties the reward to the priority-routing benefit shown in s02.e06."
  },
- "other_concern": "",
- "fixable": true
+ "other_concern": "The flow says the profile-menu card confirms the reward on s06 My Chats; clarify where confirmation appears. The model also does not establish that priority routing literally changes queue position or that providing it is cheap.",
+ "fixable": false
 }

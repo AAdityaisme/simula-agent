@@ -2,52 +2,52 @@
  "candidate_id": "pd-c4-flagrant",
  "g_policy": {
   "passed": true,
-  "reason": "The offer copy states the priority-routing reward and its duration before the optional game. The decline and ad-failure fields leave normal use available and provide a retry after failed verification."
+  "reason": "The offer copy states the priority-routing reward and its duration before an opt-in game. The decline and ad-failure fields leave existing access unchanged and provide a retry if verification fails."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward field grants in-app priority routing, not cash or a transferable benefit."
+  "reason": "The reward field gives in-app priority routing, not cash or a transferable benefit."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger event is returning to the profile menu without subscribing; it does not use chat content."
+  "reason": "The trigger event uses a return to the profile menu without subscribing, not anything the user wrote or said."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The proposal removes no existing free feature, and its decline field keeps replies at their normal speed."
+  "reason": "The proposal's decline path preserves normal replies, and its reward does not remove or cap a free feature."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The placement is a card in the s09 profile menu, a safe app-chrome surface away from chats and character content."
+  "reason": "The placement is a card in the s09 profile menu, a safe sheet over the safe s08 profile screen, away from chat content."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "For this existing_anchor, s02.e06 shows that Janitor+ charges for priority routing, the resource the reward grants."
+  "reason": "For this existing_anchor proposal, s02.e06 establishes that the priority routing given by the reward is a Janitor+ benefit."
  },
  "c2_evidence": {
   "passed": true,
-  "reason": "s09.e31 supports the Upgrade entry and s02.e06 supports priority routing for faster replies. The return flow is proposed navigation, while the cost claim is a forecast rather than an observed-app claim."
+  "reason": "s09.e31 and m01 support the persistent upgrade entry, while s02.e06 supports paid priority routing; m03 records the inferred normal-priority free routing."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The offered-to and subscribers fields restrict the card to free users; subscribers who already have the s02.e06 benefit do not see it."
+  "reason": "The subscribers field excludes subscribers, who already receive priority routing under m02."
  },
  "c4_protects_subscription": {
   "passed": false,
-  "reason": "The reward and when-the-reward-runs-out fields grant priority routing for as long as the user keeps the app. That is lasting access to a benefit Janitor+ charges for, with no expiry."
+  "reason": "The reward and 'when the reward runs out' fields make priority routing permanent. This fails because it grants lasting access to a benefit the app charges for."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The trigger occurs after the user returns from the Upgrade entry, and the placement is a card on the profile menu rather than an interruption mid-task."
+  "reason": "The placement is in the profile menu, a persistent surface the user chooses to open, after the trigger event returns them from the upgrade entry."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The flow uses an optional sponsored game triggered by a detectable menu-return event, and the ad-failure field says unverified play does not turn on the reward."
+  "reason": "The flow uses a sponsored playable, the trigger is a detectable menu-return event, and the ad-failure field says unverified play does not turn on the reward."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The idea uses the s09 Upgrade entry and Janitor+'s s02.e06 priority-routing benefit."
+  "reason": "The idea uses the s09 Upgrade to Janitor Plus entry and the priority-routing benefit shown at s02.e06."
  },
- "other_concern": "The rationale's claim that priority routing is cheap because it adds no replies is untested; queue capacity could still carry a cost.",
- "fixable": true
+ "other_concern": "",
+ "fixable": false
 }

@@ -2,51 +2,51 @@
  "candidate_id": "pd-c5-flagrant",
  "g_policy": {
   "passed": true,
-  "reason": "The offer copy states the 30-minute reward before an opt-in game. The decline and ad-failure fields leave reading unchanged if the user declines or the play cannot be confirmed."
+  "reason": "The offer copy states the 30-minute reward before the reader chooses to play. The decline and ad-failure fields leave reading unchanged."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is 30 minutes without sponsored stories, not cash or a transferable equivalent."
+  "reason": "The reward is 30 minutes without sponsored stories, not cash or a transferable value."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger uses progress through an article, not anything a user wrote or said."
+  "reason": "The trigger uses progress through an article, not chat content."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The adds and decline fields leave existing reading, saving, and sharing available; opting in temporarily hides sponsored cards."
+  "reason": "The adds and decline fields do not remove, lock, or cap a free reading feature."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The placement is a pop-up over s02 Article, which the product model rates content safe, rather than an offer inside a conversation."
+  "reason": "The placement is a pop-up over s02 Article, which is rated content safe, rather than inside a conversation."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "As a product change, the ad-free reading window is for the player's own use in the observed story-reading flow f01."
+  "reason": "This product change gives the player a 30-minute cleaner reading experience for their own use in the observed Read a story core flow."
  },
  "c2_evidence": {
   "passed": false,
-  "reason": "The 'what makes it work here' and rationale fields assert app-wide absence of a paywall and low-value or cheap ad placements; the model only says no paywall was seen on the home feed and does not establish ad value. The flow also says the in-article card is further down, which s02.e13 does not establish."
+  "reason": "The what-makes-it-work-here and subscribers fields turn an absence of observed paywalls or plans into app-wide claims that none exist and every reader is free. The rationale also calls the ad placements cheap, which s01.e44, s06.e33, and s02.e13 do not establish; these are claims about the app today that the model does not support."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The product model shows no paid plan whose members would be asked to play for a benefit they already buy; the subscribers field also proposes excluding members if an ad-free plan is added."
+  "reason": "The product model shows no paid plan, so the proposed offer is not shown to conflict with a benefit paying users receive."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward expires after 30 minutes and does not grant lasting access or take an ordered position from another user or creator."
+  "reason": "The reward expires after 30 minutes and does not take an ordered place or limited share from other users or creators."
  },
  "c5_moment": {
   "passed": false,
-  "reason": "The trigger and placement pop up halfway through an article, interrupting reading without a limit hit, locked-item tap, finished action, or persistent surface the reader chose to open."
+  "reason": "The trigger and placement pop up halfway through an article, interrupting active reading without a limit hit, finished action, or user-opened persistent surface."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The flow grants the reward once play is confirmed, and reaching a point in an article is a detectable app event."
+  "reason": "The flow uses a sponsored game, grants the reward once play is confirmed, and triggers from detectable article-reading progress."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The proposal names the article reader and the sponsored placements observed at s01.e44, s06.e33, and s02.e13."
+  "reason": "The proposal names the s02 Article reader and the sponsored cards observed at s01.e44, s06.e33, and s02.e13."
  },
  "other_concern": "",
  "fixable": true

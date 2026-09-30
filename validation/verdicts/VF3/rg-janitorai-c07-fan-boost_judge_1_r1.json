@@ -2,52 +2,52 @@
  "candidate_id": "rg-janitorai-c07-fan-boost",
  "g_policy": {
   "passed": true,
-  "reason": "The card appears after the user taps like, and the user chooses whether to play. The offer_copy states the reward (list boost for 24h, supporter heart for 7 days), declining hides the card with no loss, and if_the_ad_fails covers load and verify failures."
+  "reason": "The card appears after a like tap, and the user chooses to play. The offer copy states the reward, and the decline and failure paths are both given."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is a cosmetic supporter heart and a temporary list boost, neither of which can be withdrawn or exchanged."
+  "reason": "The reward is a cosmetic supporter heart plus a 24-hour list boost, neither of which works like cash."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger is a tap on the like button (s07.e16) on a character page, which is an app event and needs no chat content."
+  "reason": "The trigger is a tap on the like button (s07.e16) for a character created in the last 30 days. No chat content is needed."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The idea does not remove, lock, or cap anything users get free today. The page works as before if the user declines."
+  "reason": "The idea adds an optional card and does not remove, lock or cap anything users get free today."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The card sits on the character detail page s07, which is rated safe and is not a chat screen. It is not placed in a message list."
+  "reason": "The card sits on the character page s07, which is rated safe and is not a chat screen. It is not in the conversation, and the home feed only gets a small label."
  },
  "c1_revealed_value": {
   "passed": false,
-  "reason": "This is a product_change whose new resource is a list boost, and that boost goes mostly to the creator (@IoakimTumo), not the player. It is also not a slice of anything the app charges for and not something the player uses in a core flow. The player only gets a cosmetic heart."
+  "reason": "This is a product_change whose main reward, the list boost, goes to the creator (@IoakimTumo). The player gets only a cosmetic heart, so most of what the reward gives goes to someone other than the player."
  },
  "c2_evidence": {
   "passed": false,
-  "reason": "The rationale says small creators have 'one fixed place to be found', but the model shows Search (s02), Trending and Favorites as other ways to find characters. It also claims a new character 'sits deep in that list', but the model does not show how the Hidden Gems list is ordered."
+  "reason": "The claims that a new character 'sits deep in that list' and that small creators have 'one fixed place to be found' are not backed by the model. It shows 102 pages but nothing about how the list is ordered, and it shows other discovery surfaces such as Trending and Search."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "Subscribers see the same opt-in offer as everyone else for something Janitor Plus (m2) does not include, and it is not aimed at them."
+  "reason": "Janitor Plus (m2) does not include boosting other people's characters, and the model shows no ad removal in the plan. The card sits outside what subscribers pay for."
  },
  "c4_protects_subscription": {
   "passed": false,
-  "reason": "Moving one character near the top of the Hidden Gems list pushes other smaller creators down, taking away their place in a list the app orders. The model shows no place where the app sells that advantage."
+  "reason": "Moving one character near the top of the Hidden Gems list pushes other smaller creators down, taking their place in a list the app orders. The model shows no plan or sale of that advantage."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The card appears right after the user finishes the action of liking a character, which is a finished-action moment and not an interruption."
+  "reason": "The offer appears right after the user taps like, which is a finished action, and it does not interrupt a task in progress."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "It is a play-to-earn playable. The reward is granted only after the play is confirmed, and the trigger is the detectable like tap."
+  "reason": "It is a play-to-earn unit. The boost and heart are granted only once the play is confirmed, and the trigger is the like button tap, which the app can detect."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "It names the Hidden Gems tab, the character detail page s07, the like button, and the creator handle, so it is specific to this app."
+  "reason": "It is built on the Hidden Gems tab (s01.e13), the character page (s07) with its like button (s07.e16), and the creator handle, so it would not read the same in another app."
  },
- "other_concern": "The boost can be gamed by a creator's own accounts, and the 'Boosted by fans' label on s01 adds a new element to a screen rated mixed. Nothing shows that the app supports reordering the Hidden Gems feed.",
+ "other_concern": "The 'costs nothing to run' claim is a prediction. The daily per-user cap and the ten-boosts-per-character cap could be gamed, and the boost affects how all fans see the list.",
  "fixable": false
 }

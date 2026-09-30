@@ -2,52 +2,52 @@
  "candidate_id": "kg-run-aol-c01",
  "g_policy": {
   "passed": true,
-  "reason": "The banner is opt-in, and the offer copy states the reward (30 minutes without sponsored stories) before the game. Declining changes nothing, and the 'if the ad fails' field covers both a game that never loads and an unconfirmed play."
+  "reason": "The banner is opt-in, the offer copy states the reward (30 minutes with no sponsored stories), declining changes nothing, and the 'if the ad fails' field gives a path for a game that fails to load or verify."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is 30 minutes of hidden sponsored cards, which is not cash or anything that works like cash."
+  "reason": "The reward is 30 minutes without sponsored cards, which is in-app feature time and has no cash value."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger is an article-open counter reaching 3 plus a loaded playable, both app events. No chat content is involved."
+  "reason": "The trigger is an article-open counter reaching 3 plus a loaded playable, which is an app event and needs no chat content."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "Nothing free is removed, locked or capped. Sponsored cards show as usual unless the reader chooses to play."
+  "reason": "Nothing free is removed, locked, or capped; the sponsored cards show as usual unless the user chooses to play."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The banner is a card in the app's own chrome on s01, which is rated safe, and it is not inside any conversation."
+  "reason": "The banner is a list card on s01 Home, which is rated safe. It is not in a chat or conversation, and the ad moment has no story content."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "This is a product_change. The new resource, a window without sponsored cards, is used by the player in the observed read-a-story flow (f01, s01 to s02), and none of it goes to other people."
+  "reason": "This is a product change that adds ad-free time, which the player uses for their own benefit in the observed core flow f01 (Read a story). None of it goes to another party."
  },
  "c2_evidence": {
   "passed": false,
-  "reason": "'what makes it work here' says flatly 'The app has no paywall, limit, or currency', and the rationale says 'This app has nothing locked'. The model only records under open questions that none was seen on the home feed, and the Inbox was blocked. That is stated as a fact about the whole app rather than as 'not seen'."
+  "reason": "'What makes it work here' states 'The app has no paywall, limit, or currency' and the rationale says 'This app has nothing locked', both as facts about the whole app. The model only lists 'No paywall, limit, or currency was seen on the home feed' as an open question, so these should be worded as 'not seen'."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The model shows no paid plan, and the 'subscribers' field says paying members would never see the banner."
+  "reason": "The product model shows no paid plan, so no paying users are affected; the subscribers field also says an ad-free plan's members would not see the banner."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "There is no subscription benefit to give away. The reward expires after 30 minutes, and it takes nothing from other users or creators."
+  "reason": "No subscription is observed. The reward expires after 30 minutes and takes nothing from other users or creators."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The offer appears when the reader returns to the feed after a finished read, never in the middle of an article. That counts as a finished action."
+  "reason": "The banner appears on the home feed after a finished read, never in the middle of an article. The feed is a persistent surface, and the user can dismiss the banner."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The unit is a play-to-earn rewarded game. The reward is granted only once the play is confirmed (flow step 4), and the trigger is a detectable article-open counter."
+  "reason": "The unit is a play-to-earn sponsored game. The reward is granted only once the play is confirmed, and the trigger is an article-open counter the app can detect."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "It names specific elements of this app: the Taboola feed card s01.e44 below the first story, the in-article card s02.e13, and the home-to-article loop."
+  "reason": "The idea names the home feed Taboola card below the first story (s01.e44), the in-article sponsored card (s02.e13), and the read-and-return loop between s01 and s02."
  },
- "other_concern": "Hiding Taboola placements may conflict with the ad network's terms, and the revenue trade-off is only a prediction. The 'North American audience' remark is also a guess. None of this is counted.",
+ "other_concern": "Hiding Taboola placements may conflict with the ad network's terms, and the revenue trade-off is only an assumption. The rationale already concedes it pays off only if the hidden cards are low-value.",
  "fixable": true
 }

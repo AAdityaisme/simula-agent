@@ -2,52 +2,52 @@
  "candidate_id": "kg-candycrush-01",
  "g_policy": {
   "passed": true,
-  "reason": "The offer copy states the opt-in reward of 1 life, and the decline and ad-failure fields leave the player no worse off."
+  "reason": "The offer copy states that playing earns 1 life. The s02 button is optional, closing changes nothing, and the failure path grants no life if the game does not count."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward field gives 1 in-app life, not cash or something exchangeable outside the app."
+  "reason": "The reward is an in-app life, not cash or an externally exchangeable item."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger event uses a Play tap and a zero-lives count, not chat content."
+  "reason": "The trigger is tapping Play with 0 lives, not anything the user wrote or said."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The proposal removes nothing free; the decline field says the existing life timer still works."
+  "reason": "The proposal removes nothing free; m01's existing life regeneration remains."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The placement is a button in s02, a safe-rated out-of-lives modal, rather than in or next to unsafe content."
+  "reason": "The button sits in the s02 out-of-lives modal, which is rated safe and is not a conversation."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "This existing-anchor reward gives a life, and m02 shows that extra lives cost gold bars bought with real money."
+  "reason": "For this existing_anchor, m02 and s02.e03 show that the app charges gold bars for extra lives."
  },
  "c2_evidence": {
   "passed": false,
-  "reason": "The rationale calls the gold-bar purchase a sale for a 'full set of lives.' s02.e03 supports buying more lives with gold bars, but does not establish that the purchase gives a full set."
+  "reason": "The rationale describes a gold-bar sale for a 'full set of lives,' but s02.e03 only establishes that gold bars buy more lives; it does not establish the size of a purchase."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "Mechanic m02 records no subscription, so the offer does not ask subscribers to play for a benefit they already pay for."
+  "reason": "m02 records no subscription plan, so the offer does not duplicate a shown plan benefit."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward is one life that gets used up, with a three-per-day cap; m02 records no subscription."
+  "reason": "The reward is one life that gets used up, with a frequency cap; it grants no lasting paid access."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The trigger occurs when a player taps Play with zero lives and the s02 out-of-lives modal opens—a moment of need."
+  "reason": "The button appears on s02 after a player tries to start a level with no lives, a moment of need."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The flow uses a sponsored game triggered by a detectable Play tap, and the ad-failure field says no life is given if the game does not count."
+  "reason": "The trigger is a detectable Play tap at 0 lives, and the proposed failure path withholds the life if the sponsored game does not count."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The proposal names the s02 out-of-lives modal, its gold-bar button, and the life timer."
+  "reason": "The idea uses this app's s02 out-of-lives modal, life timer, and gold-bar button."
  },
- "other_concern": "",
+ "other_concern": "The rationale's claim that giving a life costs the game nothing is not established.",
  "fixable": true
 }

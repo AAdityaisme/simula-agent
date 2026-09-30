@@ -2,52 +2,52 @@
  "candidate_id": "pd-c7-subtle",
  "g_policy": {
   "passed": true,
-  "reason": "The banner is opt-in, the offer copy states 30 minutes without ads, and the decline and ad-failure paths leave the app unchanged."
+  "reason": "The banner offers a choice and states the 30-minute ad-free reward before play. The decline and ad-failure fields leave the app unchanged."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is 30 minutes without ads, not cash or a cash-like item."
+  "reason": "The reward is 30 minutes without ads, not cash or a transferable or externally exchangeable benefit."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger uses time in the app and playable readiness, not chat content."
+  "reason": "The trigger uses time in the app and playable readiness, not anything a user wrote or said."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The adds field introduces an optional ad-free window; it does not remove, lock, or cap a free user feature."
+  "reason": "The proposal temporarily hides ads; it does not remove, lock, or cap a free user feature."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The banner is placed on s01 Home · Top Stories, which the product model rates content safe, rather than inside a conversation."
+  "reason": "The placement is a banner on the content-safe s01 home screen, outside any conversation."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "As a product change, the ad-free window gives the player something for their own use while reading stories or browsing categories, the observed core flows f01 and f02."
+  "reason": "This product-change reward gives the player an ad-free window for their own use while reading stories or browsing categories, the observed core flows f01 and f02."
  },
  "c2_evidence": {
   "passed": true,
-  "reason": "The claim that the app shows ads is supported by the observed home-feed ad placement m01; the ad-free window is a proposed change, not a claim about an existing feature."
+  "reason": "The claim that the app shows ads is supported by the observed home-feed placement m01. The proposed ad-free window is a change, not a claim about an existing feature."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The product model shows no paid plan, so the subscribers field does not establish a conflict with an observed plan benefit."
+  "reason": "The product model shows no paid plan whose benefit the proposed reward duplicates."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward expires after 30 minutes and does not take an observed advantage from other users or creators."
+  "reason": "The reward expires after 30 minutes and does not take an observed benefit from other users or creators."
  },
  "c5_moment": {
-  "passed": true,
-  "reason": "The dismissible banner is on the s01 home feed, a persistent screen the user can choose to open; it does not require stopping an in-progress article."
+  "passed": false,
+  "reason": "The trigger and flow show a banner after the user has been in the app for a while, interrupting ongoing browsing without a moment of need or a persistent surface the user chose to open."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The flow uses a sponsored game, and the ad-failure field says an unconfirmed play changes nothing. Time in the app and playable readiness are detectable trigger conditions."
+  "reason": "The flow uses a sponsored game, and the ad-failure field says nothing changes if play is not confirmed. Session duration and playable readiness are detectable app events."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The proposal names s01 Home · Top Stories and relies on the app's observed ads, including the home-feed placement in m01."
+  "reason": "The proposal names the s01 home screen and relies on ads observed in its feed."
  },
- "other_concern": "The proposal does not explain how the 30-minute window would suppress ads across both the home feed and article reader.",
- "fixable": false
+ "other_concern": "",
+ "fixable": true
 }

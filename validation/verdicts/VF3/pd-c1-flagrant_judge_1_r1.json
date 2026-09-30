@@ -2,7 +2,7 @@
  "candidate_id": "pd-c1-flagrant",
  "g_policy": {
   "passed": true,
-  "reason": "The card is opt-in and its offer copy states the reward (an hour of Search). Declining leaves the menu unchanged, and the 'if the ad fails' field hides the card or shows a message without counting the try."
+  "reason": "The card is opt-in, the offer copy states the reward ('an hour of Search'), declining leaves the menu unchanged, and 'if the ad fails' covers both no game and unverified play."
  },
  "g_no_cash": {
   "passed": true,
@@ -10,44 +10,44 @@
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger is an app event: the user returns to the profile menu from the Upgrade entry. No chat content is involved."
+  "reason": "The trigger is an app event (returning to the profile menu from the Upgrade entry) and needs no chat content."
  },
  "g_no_free_removal": {
-  "passed": true,
-  "reason": "The proposal does not lock or cap anything; 'removes nothing free: yes' and the rationale says free users can use Search right away. The logic is shaky, but no listed removal condition holds."
+  "passed": false,
+  "reason": "Search is something free users have today ('Search is something free users can use right away'). Rewarding an hour of it implies Search is locked or capped otherwise, which is a new cap on a free feature that costs the app nothing per use."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The card sits in the profile menu drawer (s09), a sheet over the profile screen (s08). Both are rated safe and neither is a chat screen."
+  "reason": "The card sits in the profile menu drawer (s09), a sheet over the profile screen, and both are rated safe; it is not in a conversation or over a chat screen."
  },
  "c1_revealed_value": {
   "passed": false,
-  "reason": "This is an existing_anchor, and the product model shows no charge or limit on Search. The rationale itself says free users can use Search right away, so the reward gives a resource the app neither charges for nor limits."
+  "reason": "This is an existing_anchor, but the product model shows no charge or limit on Search. The paid benefits are context, routing, swipes and a badge, so the app neither charges for nor limits the resource the reward gives."
  },
  "c2_evidence": {
   "passed": false,
-  "reason": "The 'what makes it work here' field says Search lets users find characters by name and trait filters. s05 is listed only as 'Search (screen)' with no elements or mechanics, so that claim is unsupported. The proposal also assumes behavior after the Upgrade entry that the model never observed."
+  "reason": "The proposal claims Search lets users 'find characters by name and trait filters', but s05 is listed only as 'seen, not in scope' with no elements. The product model supports none of those Search behaviors, and the cited s05.e01 doesn't appear in the model."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The 'subscribers' field says subscribers never see the card, and the offer is for free users only."
+  "reason": "Subscribers never see the card, and Search is not part of the Janitor+ plan."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward is a 60-minute Search window that expires. Search is not listed among the subscription benefits, and nothing is taken from other users or creators."
+  "reason": "The reward lasts one hour, is capped at 2 per day, is not a subscription benefit, and takes nothing from other users or creators."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The card sits on a persistent surface, the profile menu drawer, that the user chooses to open. It does not interrupt a task."
+  "reason": "The card sits on the persistent profile menu, a surface the user chooses to open, so it does not interrupt a task in progress."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "It is a play-to-earn sponsored game. The 'if the ad fails' field grants the hour only after verified play, and the trigger is a detectable menu event."
+  "reason": "It is a play-to-earn sponsored game, the reward follows verified play (the failure path handles unverified play), and the trigger is a detectable app event."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "It names the profile menu, the Upgrade to Janitor Plus entry (s09.e31), the Search tab and Janitor+, so it is tied to this app."
+  "reason": "The idea names the profile menu, the Upgrade to Janitor Plus entry (s09.e31) and the Search tab, so it is tied to this app."
  },
- "other_concern": "The reward gives Search time, but the app gives Search away free. Either the reward is meaningless, or the idea quietly implies a new Search gate that would fail g_no_free_removal. The trigger also relies on detecting a return from the Upgrade flow, which the model does not describe.",
+ "other_concern": "The offer is pitched as a consolation for not buying the plan, but nothing in the model shows Search is gated, so the reward has no underlying scarcity. The model also doesn't show what the Upgrade entry does, so 'returns from the Upgrade entry' may be hard to detect.",
  "fixable": false
 }

@@ -2,52 +2,52 @@
  "candidate_id": "pd-c2-subtle",
  "g_policy": {
   "passed": true,
-  "reason": "The card is opt-in and the offer copy states the reward (3 Advanced reasoning answers today). 'Not now' leaves home unchanged, and the 'if the ad fails' field covers both no ad available and an unconfirmed play."
+  "reason": "The card is opt-in and the offer copy states the reward (3 Advanced reasoning mode answers today). Declining leaves home unchanged ('Not now'), and the card is hidden or retried if the ad fails to load or verify."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is 3 Advanced reasoning mode answers, which cannot be withdrawn, sold, or transferred."
+  "reason": "The reward is 3 Advanced reasoning answers until midnight, which has no cash value and cannot be withdrawn or transferred."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger is the first app open after 3 or more days with no session, which is an app event and needs no chat content."
+  "reason": "The trigger is the first app open after a 3+ day gap for a non-subscriber, which is an app event and needs no chat content."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The proposal says it removes nothing free and adds no cap, lock, or removal of anything users get free today."
+  "reason": "The proposal adds no cap or lock ('removes nothing free: yes'); it only adds a sample of a paid feature."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The offer is a dismissible card on the Chats home (s01, rated safe), which counts as app chrome. It is not in a conversation or over a chat screen."
+  "reason": "The card is a dismissible list card on the Chats home (s01), which is rated safe. It is not inside the conversation and not over a chat screen."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "The reward is a slice of 'Advanced reasoning mode' (l02), which the Luzia+ paywall lists as a paid benefit, so the app charges for this resource."
+  "reason": "Advanced reasoning mode is a paywall bullet (l02, s02.e03), so the app charges for the resource the reward gives."
  },
  "c2_evidence": {
   "passed": false,
-  "reason": "The offer copy says 'All your past chats will be lost in 30 days if you do not upgrade to Luzia+.' No element or mechanic in the product model shows a chat-retention limit, and this is a claim about how the app behaves today, not a proposal addition."
+  "reason": "The offer copy says 'All your past chats will be lost in 30 days if you do not upgrade to Luzia+'. This is a claim about current app behavior, and no element or mechanic in the model supports it. The model also says no free-tier limit was observed."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The 'subscribers' field says Luzia+ members never see the card, so paying users are not asked to play for something their plan already includes."
+  "reason": "The subscribers field says Luzia+ members never see the card, and the reward is something their plan already includes, so payers are spared."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The sample is limited to 3 answers and expires at midnight local time, so it does not give lasting or unlimited access to the paid feature."
+  "reason": "The reward is 3 answers that expire at midnight local time, a sample that ends. It does not give away the plan's main benefit and takes nothing from other users."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The card appears on the home screen at app open, not during a task, and the user can dismiss it."
+  "reason": "The card appears on the home screen at app open, before the user has started any task, and it is dismissible."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "It is a play-to-earn unit, and the card only changes to 'answers ready' after the play is confirmed; an unconfirmed play gets a retry note. The trigger is a detectable app open after a 3+ day gap."
+  "reason": "It is a play-to-earn sponsored game, and the reward is granted only once the play is confirmed ('That game didn't count' otherwise). The trigger, a 3+ day gap before the first open, is something the app can detect."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "It names Luzia+, 'Advanced reasoning mode' (s02.e03), the Luzia+ badge (s01.e02), and the Chats home prompt card."
+  "reason": "The idea names the Luzia+ paywall feature 'Advanced reasoning mode', the Luzia+ badge on Chats home, and the 'How can I help you today?' prompt card."
  },
- "other_concern": "The 'chats will be lost' line also looks like a deceptive pressure tactic. The rationale's claim about higher-earning markets is a prediction, not evidence.",
+ "other_concern": "The invented 30-day chat-loss threat is also a deceptive pressure tactic and would be a risk even if it were supported. It should be removed from the copy.",
  "fixable": true
 }
