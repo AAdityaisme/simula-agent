@@ -1,0 +1,49 @@
+{
+ "candidate_id": "rg-janitorai-c07-fan-boost",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in and states the reward (list boost for 24 hours, supporter heart for 7 days) in the offer copy. Declining hides the card with no loss, and the failure path is defined ('That game didn't finish, nothing was used')."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic supporter heart and a temporary list boost, with no monetary value and nothing withdrawable or transferable."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a tap on the like button (s07.e16) on a character page opened from the smaller-creators tab. No chat content is used."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea removes, locks or caps nothing free. It adds an optional card and a new visibility perk."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits on s07, a character detail page rated safe, and is not in a conversation. The s01 feed it affects is rated mixed, but the ad itself is not shown there, only a small 'Boosted by fans' label."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "This is a product_change. The new resource, list boost visibility for a creator's character, is not a slice of anything the app charges for (the Plus benefits are memory, routing, swipes and a badge). It is also not tied to the observed core loop (f1 start a chat, send a message, get a reply), since it is a creator-promotion feature."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal cites no evidence ids. It also relies on things the model does not show: that the smaller-creators list is ranked in a way that can be boosted, and that the like button can act as a trigger. The model shows only the like button element (s07.e16), not any behavior after a tap."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is cosmetic visibility and does not touch any Janitor Plus benefit (5× context, priority routing, frontier swipes, golden checkmark). A 'supporter heart' next to the name is loosely similar to the golden checkmark but does not give away the subscription's main benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer follows a finished action, the like tap. It is optional and does not interrupt an in-progress task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit. The reward is granted only after the play is confirmed ('Once the play is confirmed'), and the trigger is a detectable like tap."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Hidden Gems smaller-creators tab (s01.e13/e15), the 102-page list (s01.e27), and the character page like button and creator handle on s07."
+ },
+ "other_concern": "The boost affects other users' feeds and creators' fairness, and it needs a new ranking system, moderation against abuse, and a way to verify that the boost 'costs nothing to run'. The reward is not for the user's own benefit, so the value is weak.",
+ "fixable": false
+}

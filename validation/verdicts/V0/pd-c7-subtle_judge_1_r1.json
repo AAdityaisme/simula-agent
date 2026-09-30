@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c7-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is an opt-in banner, the offer copy states the reward (30 minutes with no ads), declining hides the banner and changes nothing, and 'if the ad fails' covers no game ready and unconfirmed play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of feature_time without ads, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is time in the app plus a loaded playable, both app events; this news app has no chat content involved."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "'removes nothing free' is yes: ads stay as they are today, and only a temporary ad-free window is added."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The banner is app chrome on s01, which is rated safe, and it is not in a conversation or next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is a product_change. The ad-free window is not a slice of anything paid, but it is tied to the observed core flow f01 (reading stories), where the native ad units in s01 and s02 sit."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claim that the app shows ads is supported by m01 (Taboola native card in the feed). The revenue-displacement claim is only rationale and not a claim about app behavior."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No subscription was observed ('piece of a paid benefit: none'), and the reward is a time-limited 30-minute window capped at 2 per day."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The dismissible banner sits on the home feed without blocking anything, so it does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit, the reward is granted only when the play is confirmed ('If the play is not confirmed, nothing changes'), and the trigger is a detectable app state."
+ },
+ "c7_specific": {
+  "passed": false,
+  "reason": "Fail condition: the idea would read the same in any ad-supported app. 'The app shows ads, and hiding them...' names no specific element, such as the native ad slot below the first story or the in-article Taboola unit."
+ },
+ "other_concern": "Ad slots are filled by third-party networks (Taboola, direct cards) and are sometimes empty, and hiding them was never observed to be possible. Also, the ad-free period gives little value when the slot is already empty.",
+ "fixable": true
+}

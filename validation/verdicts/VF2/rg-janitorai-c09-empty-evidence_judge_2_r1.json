@@ -1,0 +1,49 @@
+{
+ "candidate_id": "rg-janitorai-c09-empty-evidence",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 24-hour boost and seven-day supporter mention before play. The decline and ad-failure fields leave the like intact and grant nothing if verification fails."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a temporary list boost and supporter mention, not cash or an exchangeable token."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is a tap on the character-page like button, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says the like still counts on decline and does not remove, lock, or cap an existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on s07, a character-detail screen rated content safe, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "The product-change reward primarily lifts a creator's character in the Home list; most of what it gives goes to the creator rather than the player, who receives a supporter mention."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The rationale claims fans have 'no way to help beyond a like,' an unsupported claim about the app today; s07.e03 also shows a comments button."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The reward moves a character higher in the existing Home list described by s01.e15, taking list position or visibility from other creators. The observed Janitor Plus benefits in m2 do not sell that advantage."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger follows the user's like-button action on s07, so the offer appears at a finished action rather than interrupting an ongoing task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game after a detectable like-button tap, and the ad-failure field says an unverified play changes nothing."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names s07's creator byline and like button and s01's Hidden Gems list as the surfaces that make the idea work."
+ },
+ "other_concern": "The proposal does not define how far a character moves up the list or how simultaneous boosts are ordered.",
+ "fixable": false
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c2-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner is opt-in, the offer copy states the reward (30 minutes with no sponsored stories), declining changes nothing, and the 'if the ad fails' field covers a game that is not ready or a play that is not confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of hidden sponsored cards, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an article-open counter reaching 3 and the return to the home feed, both app events, and no chat content is used."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed or capped. Sponsored cards show as usual unless the reader opts in, and 'if the user declines' keeps the feed unchanged."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The banner sits as app chrome on s01, which is rated safe, and it is not in a conversation or next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product_change, ad-free time is something the reader uses for themselves inside the observed core flows f01 (read a story) and f02, and none of the reward goes to another party."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "'what makes it work here' claims that AOL shows a full-screen video ad after every third article, but no mechanic or element in the product model shows this. It also states 'The app has no paywall, limit, or currency' as a fact, when the model only records that none was seen on the home feed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No paid plan was observed, the reward is a 30-minute window that ends, and it takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears when the reader returns to the feed after finishing a third article, which is a finished action, and never in the middle of an article."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn playable, the reward is granted only once the play is confirmed, and the trigger is an article-open counter the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the home feed banner slot under the category pills, the Taboola sponsored cards in the feed (s01.e44) and in articles (s02.e13), and the feed-to-article loop."
+ },
+ "other_concern": "The rationale's claim that hidden cards are low-value is a prediction, not an observed fact. The reward hides a Taboola third-party placement, and the app may have contractual obligations it does not control. The banner is a new element and the 'no sponsored stories in articles' promise depends on the app being able to suppress in-article cards, and s05 shows a separate in-article ad that is not covered.",
+ "fixable": true
+}

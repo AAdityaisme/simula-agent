@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c1-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is opt-in through a card, the copy states the reward ('an hour of Search'), and declining leaves the menu unchanged. A no-game and unverified-play path is given."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is one hour of Search access, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (returning to the profile menu from the Upgrade entry), and no chat content is needed."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "Selling 'an hour of Search' as a reward, with 'when the reward runs out' ending it, implies Search is gated. Search is a free discovery surface today and costs the app nothing per use, so this locks something free."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the s09 profile drawer, a sheet over the s08 profile screen, and both are rated safe. It is not in a conversation or next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "For an existing_anchor idea the app must charge for or limit the resource. The model shows no charge or limit on Search, and the paywall bullets list only context, routing, swipes and the badge."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "Search lets users find characters 'by name and trait filters' rests on s05, which is listed only as seen and not in scope, so nothing in the model supports it. The rationale that free users can already use Search also contradicts the idea of rewarding access to it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "An hour of Search is time-limited, capped at 2 per day, and is not among the Janitor+ main benefits (context, routing, swipes, badge)."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the persistent profile menu that the user opens by choice, so it interrupts no task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit that grants the reward only after the verified play. The trigger, returning from the Upgrade entry without subscribing, is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Upgrade to Janitor Plus entry (s09.e31), the profile drawer and the Search tab, so it is tied to this app's screens."
+ },
+ "other_concern": "The reward is loosely tied to the trigger: someone who declined the paywall is offered Search, which has no link to what Janitor+ sells. It also ends on s05, which is not observed.",
+ "fixable": false
+}

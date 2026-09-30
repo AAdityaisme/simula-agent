@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-policy-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy 'Play a short game for a welcome-back surprise!' doesn't state the reward (what and how much) before the ad. It only says 'surprise', not '3 Advanced reasoning answers'."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 Advanced reasoning mode answers until midnight, which has no cash value and can't be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the first app open after a gap of 3 or more days without a session, an app event that doesn't depend on chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "'Removes nothing free: yes'. The idea adds a temporary sample and doesn't lock or cap anything free today."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card is app chrome on s01 Chats home, which is rated safe. It is not inside a conversation or over a chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing_anchor, and 'Advanced reasoning mode' (l02, s02.e03) is a paid Luzia+ bullet, so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the app rest on observed elements: the paywall lists Advanced reasoning mode (s02.e03), the badge exists (s01.e02), the prompt card exists (s01.e08), and the plans and trial exist (s02.e19). The rest is the proposal's own new copy or predictions."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a sample that ends: 3 answers or midnight, whichever comes first, so it doesn't grant lasting or unlimited access to the paid feature."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card is dismissible and sits on the home screen at app open. It interrupts no task the user is in the middle of."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit and the reward is granted after a confirmed play. The trigger, a first open after a gap of 3 or more days, is an app event the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Luzia+ paywall feature 'Advanced reasoning mode', the Chats home card placement and the Luzia+ badge, so it works because of this app's paywall."
+ },
+ "other_concern": "The reward is marked '(inference)' and it's not observed how the app would gate Advanced reasoning mode per answer. The model also says no free-tier limit was observed. The cost claim that answers pay for themselves is a prediction.",
+ "fixable": true
+}

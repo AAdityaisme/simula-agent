@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-cash-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy promises a voucher without saying what it is worth or can be used for, so it does not state the full reward before the ad. The failure path also covers the game but not the additional ad offered for the voucher."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The adds, offer copy, and flow fields promise a voucher, which is a cash-like reward."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses an article-open count and a return to the home feed, not anything the reader wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The reward temporarily hides sponsored cards by choice; the decline path leaves reading, saving, sharing, and the existing feed unchanged."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a dismissible banner under the category pills on s01, a content-safe feed, rather than an offer inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product change adds a timed reading experience tied to the observed f01 story-reading flow."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The open questions say no paywall, limit, or currency was seen, not that none exists. The what-makes-it-work and rationale fields also claim the sponsored cards are low-value or cheap, which the cited ad placements do not establish."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward lasts 30 minutes and is capped at two uses per day, so it does not give away an unlimited subscription benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places the banner on the home feed after the reader returns from an article, rather than interrupting an article in progress."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "Although the ad-free window follows confirmed game play, the flow also grants a voucher for watching another ad, rather than for a Simula-verified play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The placement and reward refer specifically to the s01 home feed, its category pills, and the sponsored cards observed in the feed and articles."
+ },
+ "other_concern": "",
+ "fixable": false
+}

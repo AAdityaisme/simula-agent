@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c4-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the priority-routing reward and its duration before the user chooses to play. The decline and ad-failure fields leave existing access intact and provide a retry path when verification fails."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field grants in-app priority routing, not cash or a cash-like benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is returning from the Upgrade entry without subscribing; it does not depend on chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and its decline path leaves replies at their existing speed."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile-menu drawer, a safe surface away from chats and character content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward gives priority routing, which the Janitor+ benefit at s02.e06 offers to subscribers."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field claims users can skip a normal queue through 'only earlier placement in line.' Neither s02.e06 nor inferred mechanic m03 establishes that queue or how priority routing is implemented."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The reward and 'when the reward runs out' fields make paid priority routing last for as long as the user keeps the app. Lasting access to a benefit the app charges for fails this check."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger and placement put the card in the profile menu after the user returns from the Upgrade entry, rather than interrupting a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game after a detectable app event, and the ad-failure field says unverified play does not turn on faster replies."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the Upgrade to Janitor Plus entry at s09.e31 and the priority-routing benefit at s02.e06."
+ },
+ "other_concern": "The rationale's claim that permanent priority is cheap because it adds no replies does not establish its routing-capacity cost.",
+ "fixable": false
+}

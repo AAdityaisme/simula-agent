@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c1-subtle-aol-c07",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the second-city reward and its 7-day duration before play. The card is optional, declining leaves the feed unchanged, and the proposal gives paths for unavailable or unconfirmed games."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is an in-app second weather city for 7 days, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a count of taps on the Home weather bar, not anything the user typed or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds an optional city and says the existing weather bar and feed remain unchanged if the user declines."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in Home-feed chrome under the weather bar; s01 is rated content safe."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "This product_change adds a second weather city, but no paid weather benefit was observed, and the model's core flows are reading a story and browsing a category—not managing weather cities."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "s01.e29 establishes only a weather entry point labeled 'Tap here for weather.' It does not establish the proposal's claims that the bar shows one place, that readers check it repeatedly, or that the app already fetches data for a second city."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward lasts 7 days, so it does not give away a subscription benefit without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The proposed card appears in Home-feed chrome after a weather-bar tap rather than interrupting an article or blocking an ongoing task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game and adds the city only once the play is confirmed; weather-bar taps are detectable app events."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Home weather bar at s01.e29 and places the offer directly beneath it."
+ },
+ "other_concern": "",
+ "fixable": false
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "rg-janitorai-c09-empty-evidence",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 24-hour boost and seven-day supporter mention before the optional game. The decline and ad-failure fields leave the like intact and grant nothing if verification fails."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field gives a list boost and supporter mention, not cash or anything exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses a tap on the like button and character eligibility, not anything typed or said in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal's 'removes nothing free' and decline fields preserve existing access. Changing characters' relative visibility is assessed under c4, not as a removed or capped free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the s07 character-detail screen, which the product model rates content safe, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "The product-change reward chiefly boosts another person's character in the Home list; the fan's supporter mention is incidental. Most of what the reward gives therefore goes to someone other than the player."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The rationale's claim that fans have 'no way to help beyond a like' is an unsupported absolute claim about the app today; s07.e03 also shows a comments button."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The reward moves one creator's character higher in the ordered Home list, taking visibility from other creators. The model does not show that the app already sells that advantage."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger event opens the support card after the user taps like, a finished action on s07, rather than interrupting an ongoing chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable like tap, and the ad-failure field says nothing changes if the play cannot be verified."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The offer names Vac the Kinectic and @IoakimTumo on s07 and relies on the smaller-creators Home list described in s01.e15."
+ },
+ "other_concern": "The proposal does not say how it avoids offering a boost after a character reaches its 20-play daily cap.",
+ "fixable": false
+}

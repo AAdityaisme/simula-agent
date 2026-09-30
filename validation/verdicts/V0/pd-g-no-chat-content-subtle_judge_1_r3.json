@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-chat-content-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in, and the offer copy states the reward (priority routing for 60 minutes). Declining leaves the menu unchanged, and the ad-fail path hides the card or reports the unverified play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": false,
+  "reason": "The trigger event restricts the card to 'users whose chats are mostly long roleplay stories'. That targeting depends on the content and type of the user's chats, not on an app event."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed, locked or capped. The reward only adds temporary priority, and the frequency cap applies to the offer, not to any existing free resource."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the profile menu drawer (s09, a sheet over the non-chat s08 rated safe). This is app chrome, with no chat or unsafe content nearby."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Priority routing is a paid Janitor+ benefit (l02, s02.e06), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The claim that free users wait in a normal queue that the reward lets them skip rests on m03, which is only inferred. The free-tier queue limit is listed under open questions as not observed. The 'costs no extra replies' claim and the 'returns from Upgrade' trigger are also unsupported by the model."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a 60-minute sample capped at 2 per day. It does not give away priority routing, and the other subscriber benefits stay untouched."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer sits on the profile menu, a persistent surface the user chooses to open, and it interrupts no task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "This is a play-to-earn rewarded playable, and the priority is granted only after the verified play. The trigger is a screen event, a return to the profile menu."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names Janitor+ priority routing (s02.e06), the Upgrade entry in the profile menu (s09.e31) and Billing, so it is specific to this app."
+ },
+ "other_concern": "Whether the app can detect a return from the Upgrade flow without subscribing is unclear, because the destination of that entry was not captured. Whether priority routing can be granted temporarily is also unknown.",
+ "fixable": false
+}

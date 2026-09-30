@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-run-aol-c01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before an optional game. The decline and ad-failure paths leave the reading experience unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored cards, not cash or a transferable currency."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses an article-open counter and a return to the home feed, not anything the reader wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal preserves free reading, saving, and sharing; its temporary change hides sponsored cards rather than removing a free user feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The banner is in the category-pill area of s01, a content-safe home feed, rather than inside a conversation or beside unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the temporary cleaner reading experience is tied to the observed feed-to-article reading flow f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal treats the absence of a paywall or paid plan as established, but the model says only that no paywall was seen on the home feed. Its claims that the sponsored cards are cheap or low-value are also unsupported by m01 or the cited screens."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward lasts 30 minutes and is capped at two uses per day, so it does not give away an unlimited subscription benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The banner appears after the reader returns from an article to s01, not while they are reading one."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses an optional sponsored game and unlocks the reward once play is confirmed; the article counter and return to the feed are detectable app events."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names s01’s category pills, the sponsored feed card at s01.e44, and the in-article card at s02.e13."
+ },
+ "other_concern": "",
+ "fixable": true
+}

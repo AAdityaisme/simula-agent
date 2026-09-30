@@ -1,0 +1,49 @@
+{
+ "candidate_id": "rg-janitorai-c07-fan-boost",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card appears only after the user taps like and starts the game only if they choose to. The offer copy states both rewards (list boost for 24 hours, supporter heart for 7 days), declining changes nothing, and an if_the_ad_fails path exists."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic supporter heart and a time-limited list boost, with no cash value and nothing withdrawable or transferable."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a tap on the like button (s07.e16), which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes, locks or caps nothing users get free today. It only adds an optional boost and a heart."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits on the character detail page (s07, rated safe), which is not a chat screen, and it is not in the message list. It is app chrome under the like and stats row."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the new resource is feed visibility and a supporter mark. Feed visibility is tied to the observed core loop f1 (pick a character card from the home feed, open its page, start a chat)."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The Hidden Gems tab (s01.e13, s01.e15), the 102 pages (s01.e27), the creator handle (s07.e13) and the like button (s07.e16) are all in the model. The paywall benefits (s13.e09-e11) support the claim that boosting is not a subscriber benefit."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is cosmetic and time-limited, and it gives away none of Janitor+'s benefits (5× context, priority routing, frontier swipes)."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears right after the user finishes an action (tapping like) and is an optional, dismissible card that does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit. The reward is granted only once the play is confirmed, and the trigger (like tap on a qualifying character) is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It is built on this app's Hidden Gems smaller-creators list, the character page like button and creator handle, and the 24-hour boost."
+ },
+ "other_concern": "Fan-side value is thin (a cosmetic heart), and the boost displaces other creators' placement in Hidden Gems. How the list is ordered was not observed, so 'sits deep in that list' is an assumption. The card may also show on character pages rated mixed or unknown (s20, s21) rather than only the safe s07.",
+ "fixable": false
+}

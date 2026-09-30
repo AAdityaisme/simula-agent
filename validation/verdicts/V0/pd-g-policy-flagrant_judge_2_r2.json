@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-policy-flagrant",
+ "g_policy": {
+  "passed": false,
+  "reason": "The 'if the user declines' field makes replies slower than normal for the rest of the day. Declining therefore leaves the app worse than before the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is returning to the profile menu, not anything the user wrote or said in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The decline path downgrades the user's existing reply speed to slower than normal. That removes part of the free baseline rather than merely capping a costly resource."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile-menu drawer, a safe app-chrome surface away from chats."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward samples priority routing, which s02.e06 lists as a Janitor+ subscriber benefit."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "s09.e31 supports the Upgrade entry, but the proposed return from that entry without subscribing was not observed. The claimed normal queue also relies on m03, which is inferred rather than observed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward limits priority routing to 60 minutes, with a frequency cap of two plays per day, rather than giving it away without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears in the profile menu after the proposed upgrade visit, on a surface the user chooses to open rather than during a chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game, and the failure path says unverified play does not turn on faster replies. The proposed menu-return trigger is an app-detectable event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the s09 Upgrade to Janitor Plus entry and the priority-routing benefit named in s02.e06."
+ },
+ "other_concern": "",
+ "fixable": true
+}

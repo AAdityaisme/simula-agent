@@ -1,0 +1,86 @@
+{
+ "id": "pd-c8-flagrant",
+ "target": "c8_economics",
+ "tier": "flagrant",
+ "one_liner": "One game hides sponsored stories for 24 hours.",
+ "author": "aadi",
+ "expanded_by": "claude-opus-5-5",
+ "from_run": "kg-run-aol-c01 (PR 5 round 6: runs/aol/20260928-042747-6d79ef8-fixture/propose/candidates.json c01), edited: 24 hours everywhere the offer states its length, and cost_inputs.minutes = 1440",
+ "app": "aol",
+ "app_type": "news",
+ "in_test_set": true,
+ "model": "golden/aol/product_model.json",
+ "candidate": {
+  "id": "c01",
+  "lens": "free_at_limit",
+  "kind": "product_change",
+  "title": "Product change: Play one short game to read without sponsored stories for 24 hours",
+  "anchor_evidence_ids": [
+   "s01.e44",
+   "s06.e33",
+   "s02.e13"
+  ],
+  "bible_mechanic": "M22",
+  "what_is_different_here": "The app has no paywall, limit, or currency. The only friction a free reader meets is the sponsored recommendation cards: one in the home feed below the first story (s01.e44, s06.e33) and one inside articles (s02.e13). These are low-value native cards whose fill is patchy (the feed slot was sometimes empty), so hiding them for a short window displaces little revenue. Reading is a clear loop (home feed s01 to article s02 and back), so the app can count finished reads and make the offer when the reader returns to the feed.",
+  "adds": "An opt-in banner on the home feed that lets a reader play one short sponsored game to hide the sponsored story cards in the feed and in articles for 24 hours.",
+  "removes_nothing_free": true,
+  "trigger_event": "The user returns to the home feed from their third article of the day (article-open counter reaches 3), and a playable is loaded and ready",
+  "trigger_state_id": "s01",
+  "placement": "A dismissible banner card directly under the category pill bar on the home feed, above the first story",
+  "offer_copy": "Enjoying the news? Play a quick game and read with no sponsored stories in your feed or articles for the next 24 hours.",
+  "reward": {
+   "kind": "feature_time",
+   "unit": "hours without sponsored stories",
+   "amount": 24.0,
+   "duration": "24 hours from when the game ends"
+  },
+  "for_users": "free",
+  "grants_id": null,
+  "cost_inputs": {
+   "inference_count": 0,
+   "tokens_in": 0,
+   "tokens_out": 0,
+   "minutes": 1440.0,
+   "currency_amount": 0.0
+  },
+  "frequency_cap": "2 per day, resets at midnight local time; the banner is not shown while a window is active",
+  "decline_path": "Tapping the X or No thanks closes the banner for the rest of the day; the feed, articles, saving, and sharing work exactly as before and sponsored cards show as usual.",
+  "ad_fail_path": "If no game is ready the banner never appears. If the game fails to load or the play is not confirmed, a short note says the break couldn't be unlocked this time, nothing changes in the feed, and the attempt does not count toward the daily 2.",
+  "subscriber_treatment": "No paid plan was observed in the app, so every reader is a free reader; if an ad-free plan is added later, its members would never see this banner.",
+  "advertiser_category": "Casual mobile games, streaming services, and mainstream retail brands",
+  "character_use": "None; the banner uses the app's own feed styling and no story content appears in the ad moment.",
+  "flow_steps": [
+   {
+    "state_id": "s01",
+    "caption": "The reader comes back to Top Stories after their third article today; the sponsored card sits below the first story."
+   },
+   {
+    "state_id": "s01",
+    "caption": "A banner under the category pills offers 24 hours with no sponsored stories for one quick game."
+   },
+   {
+    "state_id": "new:sponsored-game",
+    "caption": "The reader plays a short sponsored game and can close it at any time."
+   },
+   {
+    "state_id": "s06",
+    "caption": "Once the play is confirmed, the feed reloads without the sponsored card and a small note shows 24 hours left."
+   }
+  ],
+  "after_reward": "When the 24 hours end, the sponsored cards return with a small note that one more break is available today, so readers who liked the cleaner feed come back to play again the next time they settle in to read.",
+  "rationale": "This app has nothing locked, so the only thing a free reader would want more of is an uninterrupted read. The sponsored cards here are cheap native placements with uneven fill, so one chosen game can plausibly earn more than the few cards it hides in a day. The offer appears only after the reader has already read three stories, never in the middle of an article, and saying no changes nothing. It pays for itself only if the hidden cards are low-value native cards, not full-screen ads, and it fits best with a North American audience.",
+  "economics": {
+   "cost_2k": 2.7936,
+   "cost_8k": 2.7936,
+   "breakeven_ecpm_2k": 2793.6,
+   "breakeven_ecpm_8k": 2793.6,
+   "benchmark_ecpm": 10.16,
+   "verdict": "FAIL",
+   "assumption_line": "Costs ~$2.7936 per reward to serve; pays for itself above $2793.60 eCPM. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 1440 ad-free minutes at 0.2 ads a minute, each worth $9.70 eCPM (the NA Android interstitial rate); if the ads it hides are banners ($0.55 eCPM), it pays for itself above $158.40; one view per reward; a publisher-net eCPM (share 1)."
+  },
+  "reach_score": 2.0,
+  "rank_score": 2.0,
+  "dropped_reason": null
+ },
+ "expect_economics": "FAIL"
+}

@@ -1,0 +1,12 @@
+{
+ "id": "pd-c2-subtle",
+ "target": "c2_evidence",
+ "tier": "subtle",
+ "one_liner": "it says all your past chats will be lost in 3o days, if you do not upgrade to Luzia+",
+ "author": "aadi",
+ "expanded_by": "claude-opus-5-5",
+ "base": "kg-run-luzia-c05",
+ "change": {
+  "offer_copy": "Welcome back! All your past chats will be lost in 30 days if you do not upgrade to Luzia+. Play a short game to get 3 answers in Advanced reasoning mode today."
+ }
+}

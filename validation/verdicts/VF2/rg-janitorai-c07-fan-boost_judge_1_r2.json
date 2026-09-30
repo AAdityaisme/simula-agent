@@ -1,0 +1,49 @@
+{
+ "candidate_id": "rg-janitorai-c07-fan-boost",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in after a like tap, and the offer copy states the reward (24-hour list boost plus a 7-day supporter heart). Declining changes nothing ('page works exactly as before') and there is a failure path ('That game didn't finish, nothing was used')."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic list boost and a supporter heart, which have no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a tap on the like button (s07.e16) for a character created in the last 30 days, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea adds a card and takes away nothing free from the player; 'removes nothing free' holds. Its effect on other creators' list positions is handled under c4."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits on the character detail page s07, which is rated safe and is not a chat screen. It is app chrome and not in the conversation."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "This is a product_change whose reward is visibility for the creator (@IoakimTumo). Most of what it gives goes to someone other than the player, and the only player-side item is a cosmetic heart. It also isn't a slice of anything the app charges for or a resource used in a core flow."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal cites no evidence. It asserts as fact that 'a new character sits deep in that list' and that small creators have 'one fixed place to be found'. The model doesn't say how the Hidden Gems list is ordered or that it is the only discovery path (Search, Trending and Favorites tabs exist)."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "Moving a boosted character 'near the top' of the smaller-creators list pushes other creators' characters down and takes from them their place in a list the app orders. The app doesn't sell that advantage."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears right after the user's own finished action (tapping like) on a persistent character page, and it can be dismissed with Not now."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn playable, the trigger is a detectable like tap, and the reward is granted only once the play is confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Hidden Gems list (s01.e13), the character page (s07) and its like button (s07.e16), so it is specific to this app."
+ },
+ "other_concern": "Boosted placement in the Hidden Gems list would need a new feature. Being 'boosted by fans' could also be gamed, and the model does not show any creator-side sales of ranking.",
+ "fixable": false
+}

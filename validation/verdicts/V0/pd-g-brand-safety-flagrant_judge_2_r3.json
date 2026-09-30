@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-brand-safety-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the opt-in game and reward of 3 Advanced reasoning answers. The decline and ad-failure paths leave the chat unchanged and withhold unconfirmed rewards."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 in-app Advanced reasoning answers, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses a session gap and the opening of the Teacher chat, not what anyone wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and the reward samples Advanced reasoning mode, which s02.e03 lists as a Luzia+ feature."
+ },
+ "g_brand_safety": {
+  "passed": false,
+  "reason": "The placement puts the offer inside the Teacher conversation, directly under Luzia's last reply. An offer placed between messages fails this gate even though s07 is rated safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples Advanced reasoning mode, a benefit listed on the Luzia+ paywall at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "s02.e03 supports the paid-feature claim, and s01.e02 supports the home badge claim. The three-answer sample and return-after-three-days trigger are proposed mechanics, not claims that they were observed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 3 answers and expires at midnight local time, rather than granting Advanced reasoning mode without a limit."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The trigger inserts an unsolicited offer as the user resumes the Teacher chat. No limit was just hit or action finished, and the inline offer is not a persistent surface the user chose to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable chat-opening event. The ad-failure path says an unconfirmed play does not use the offer or grant the reward."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the Teacher chat, the Chats home Luzia+ badge, and the paywall's Advanced reasoning mode."
+ },
+ "other_concern": "The flow should explicitly say that the app grants the reward once, only after Simula's REWARD_VERIFIED event. Its claim about paying for model time in particular markets is also unsupported by the product model.",
+ "fixable": true
+}

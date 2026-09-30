@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c7-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the reward is one day of premium before the user chooses to play. The decline and ad-failure fields say nothing changes if the user closes the card or the game fails."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field grants in-app premium access for 24 hours, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is opening the app; neither the trigger nor the stated targeting requires chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal's adds and removes-nothing-free fields do not remove, lock, or cap an existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on s01 Chats (home), which the product model rates safe, rather than an offer inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing-anchor idea, m01 shows that the app charges for Luzia+; the reward grants a day of premium access."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "m01 and s02 support the proposal's claim that premium access exists, while s01 supports the named home screen. The card and one-day reward are proposed additions, not claims that they exist today."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward and expiration fields limit each premium grant to 24 hours, so it is not lasting access."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger and placement put a card on s01 when the app opens, not in the middle of a chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game and an app-open event. Its ad-failure field says an uncounted game grants nothing; it does not specify granting the reward for a tap, start, or close."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The trigger screen and flow name s01 Chats (home), and the reward uses the premium access offered through the app's Luzia+ subscription."
+ },
+ "other_concern": "At one grant per day, a user could potentially renew 24-hour premium access continuously. The flow would also be clearer if it explicitly named REWARD_VERIFIED before the grant.",
+ "fixable": false
+}

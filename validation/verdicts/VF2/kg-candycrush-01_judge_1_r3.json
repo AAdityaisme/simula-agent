@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-candycrush-01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The player opts in by tapping a button in the pop-up, the offer copy states the reward (\"1 life\") before the ad, declining leaves the pop-up and timer unchanged, and the failure path hides the button or gives no life."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 1 life, an in-game resource that cannot be withdrawn, sold, or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: tapping Play with 0 lives opens s02. No chat content is involved."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free; the pop-up, the life timer and the gold-bar button all stay as they are (\"removes nothing free: yes\")."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The button sits in the s02 modal, which is rated safe and opens on an app event (limit hit). It is not a chat screen and no content next to it is rated unsafe or unknown."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Existing anchor: the app limits lives (m01: 5 max, 30-minute regen) and charges gold bars for extra lives (m02), and the reward is a life."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about 5 lives, 1 lost per failed level, 30-minute regen, and gold-bar lives sold in s02 match m01, m02, s02.e02 and s02.e03. The button, cap and reward are the proposal's own additions."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is 1 life, used up on play, and does not give lasting access to what is charged for. It takes nothing from other users, and the app has no subscription."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears at a moment of need: the player just hit the limit and the out-of-lives pop-up opened."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit, the reward is granted only when the game counts as played (\"If the game doesn't count, no life is given\"), and the trigger is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the out-of-lives pop-up s02, the gold-bar button, the 5-lives cap and the 30-minute timer, so it is tied to this app."
+ },
+ "other_concern": "The proposal says the reward costs the game nothing, and that is a prediction, not checked. The 3 a day cap could still eat into gold-bar sales, though that isn't this check's concern.",
+ "fixable": false
+}

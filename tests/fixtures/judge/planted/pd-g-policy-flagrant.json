@@ -1,0 +1,12 @@
+{
+ "id": "pd-g-policy-flagrant",
+ "target": "g_policy",
+ "tier": "flagrant",
+ "one_liner": "Closing the card makes replies slower than normal for the rest of the day.",
+ "author": "aadi",
+ "expanded_by": "claude-opus-5-5",
+ "base": "kg-run-janitorai-c02",
+ "change": {
+  "decline_path": "Closing the card makes replies slower than normal for the rest of the day."
+ }
+}

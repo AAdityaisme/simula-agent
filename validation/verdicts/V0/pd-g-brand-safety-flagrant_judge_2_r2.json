@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-brand-safety-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 3-answer reward before the optional game. The decline and ad-failure paths leave the chat unchanged and withhold an unconfirmed reward."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 Advanced reasoning mode answers, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses a session gap and opening the Teacher chat, not the contents of any message."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free and samples a Luzia+ feature listed at s02.e03."
+ },
+ "g_brand_safety": {
+  "passed": false,
+  "reason": "The placement puts the offer inside the Teacher conversation, right under Luzia's last reply. An offer placed between messages fails this gate even though s07 is rated safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples Advanced reasoning mode, which the Luzia+ paywall lists at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The cited paywall element s02.e03 supports Advanced reasoning mode as a paid feature, and s01.e02 supports the home Luzia+ badge. The 3-answer allowance is framed as the proposed reward, not an observed existing limit."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward limits the paid-feature sample to 3 answers until midnight; it does not give away Advanced reasoning mode without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger fires when the user opens the Teacher chat after a session gap, rather than interrupting a task already in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses an optional sponsored game triggered by a detectable chat-opening event, and the failure path says an unconfirmed play does not count."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Teacher chat at s07, the Luzia+ badge at s01.e02, and Advanced reasoning mode at s02.e03."
+ },
+ "other_concern": "The claim that model costs would pay for themselves in particular markets is speculative; the product model provides no economics for it.",
+ "fixable": true
+}

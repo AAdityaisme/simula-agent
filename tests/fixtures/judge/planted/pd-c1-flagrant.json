@@ -1,0 +1,47 @@
+{
+ "id": "pd-c1-flagrant",
+ "target": "c1_revealed_value",
+ "tier": "flagrant",
+ "one_liner": "The prize becomes an hour of Search, which is already free with no limit.",
+ "author": "aadi",
+ "expanded_by": "claude-opus-5-5",
+ "base": "kg-run-janitorai-c02",
+ "change": {
+  "title": "Existing opportunity: An hour of Search from the profile menu",
+  "anchor_evidence_ids": [
+   "s09.e31",
+   "s05.e01"
+  ],
+  "what_is_different_here": "The Search tab (s05, s05.e01) lets a user find characters by name and trait filters. The profile menu (s09) keeps a permanent Upgrade to Janitor Plus entry (s09.e31). A free user who opens it and comes back without subscribing has shown interest but said no. An hour of Search gives them a reason to keep exploring characters instead of leaving.",
+  "offer_copy": "Play a short sponsored game to get an hour of Search.",
+  "reward": {
+   "kind": "feature_time",
+   "unit": "hour of Search",
+   "amount": 1.0
+  },
+  "grants_id": null,
+  "decline_path": "The user can ignore or close the card. The menu, Upgrade, and Billing work exactly as today.",
+  "ad_fail_path": "If no game is available, the card is hidden. If the play isn't verified, the card says the hour of Search couldn't be turned on and the try isn't counted against today's limit.",
+  "subscriber_treatment": "Subscribers never see the card.",
+  "flow_steps": [
+   {
+    "state_id": "s09",
+    "caption": "The user comes back to the profile menu after looking at Janitor+ without subscribing."
+   },
+   {
+    "state_id": "new:search-card",
+    "caption": "A card under Upgrade offers an hour of Search for one short sponsored game."
+   },
+   {
+    "state_id": "new:sponsored-game",
+    "caption": "The user plays the short sponsored game and can quit at any time."
+   },
+   {
+    "state_id": "s05",
+    "caption": "The hour of Search starts, and the user lands on Search."
+   }
+  ],
+  "after_reward": "When the hour ends, the menu card shows Janitor+ again, with one more play available that day.",
+  "rationale": "Search is something free users can use right away, and this gives them an hour of it after they looked at the plan but didn't buy. It adds no extra replies, so it is cheap to give. The plan still offers faster replies all the time, plus longer memory and more swipes."
+ }
+}

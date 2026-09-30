@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-brand-safety-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-answer reward before the optional game. The decline and ad-failure fields leave the chat unchanged and provide a path when play is not confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is three in-app Advanced reasoning mode answers, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses session inactivity and opening the Teacher chat, not the contents of a message."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free and does not describe locking or capping an existing free resource."
+ },
+ "g_brand_safety": {
+  "passed": false,
+  "reason": "The placement puts the offer inside the conversation, directly under Luzia’s last reply; offers placed in the message list fail this gate."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, the reward samples Advanced reasoning mode, which the Luzia+ paywall lists as a paid benefit at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the current app are supported by the cited Luzia+ badge and Advanced reasoning mode listing, along with the observed Teacher chat at s07. The proposed card and three-answer sample are changes, not claims that those mechanics exist today."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to three answers and expires at midnight local time, rather than granting lasting access to the paid mode."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places the offer when the user opens the Teacher chat, not in the middle of an ongoing task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable chat-opening event, and the ad-failure field withholds the reward when play is not confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Teacher chat, the Luzia+ badge, and the paywall’s Advanced reasoning mode benefit."
+ },
+ "other_concern": "The rationale predicts that the sample pays for itself in higher-earning markets, but the product model provides no evidence for that prediction.",
+ "fixable": true
+}

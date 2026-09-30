@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-run-janitorai-c02",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in by tapping the card. The offer copy states the reward (priority routing, 60 minutes) before the game, declining changes nothing, and 'if the ad fails' covers both no game and unverified play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (returning to the profile menu from the Upgrade entry) and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed, locked or capped; 'removes nothing free: yes' and replies keep normal speed."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the profile menu drawer (s09), a sheet over the Profile screen (s08). Both are rated safe, and the offer is not in or next to a chat."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Priority routing is a paid Janitor+ benefit (m02, l02, s02.e06), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal claims free users wait in a normal queue that the reward lets them skip, but m03 is only inferred and the free-tier queue limit is listed under open questions. What the Upgrade entry opens, and so the 'returns from Upgrade without subscribing' trigger, was also never observed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "Priority routing is given as a 60-minute sample capped at 2 per day. Longer memory, more swipes and the badge stay with Janitor+."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on a persistent surface the user chooses to open (the profile menu) and interrupts no task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "This is a play-to-earn unit that grants the reward after the verified play, and 'if the ad fails' says an unverified play grants nothing. The trigger is an app-detectable menu event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Janitor+ priority-routing benefit, the s09 profile menu and the Upgrade to Janitor Plus button, all specific to this app."
+ },
+ "other_concern": "Because the free-tier queue behavior is unobserved, the app may not delay free users' replies at all, so the reward could be worth nothing. The 'returns from Upgrade' trigger is also more complicated than simply opening the menu.",
+ "fixable": true
+}

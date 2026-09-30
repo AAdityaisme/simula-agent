@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-cash-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The placement is an optional button, the offer copy states the $1 reward, and the decline and ad-failure paths leave the player no worse off."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The reward is $1 paid to the player's PayPal, which is cash."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a Play tap with zero lives, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and the decline path preserves the existing life timer."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a button in the safe out-of-lives modal on s02, not inside a conversation or next to unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "As an existing_anchor, it rewards PayPal cash, which the app neither charges for nor limits; m01 and m02 concern lives instead."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The proposal's claims about today's life limit, timer, gold-bar purchases, and out-of-lives popup are supported by m01, m02, and s02."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The PayPal reward does not grant lasting access to a paid app benefit or take an advantage from other players; m02 also records no subscription."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears on s02 after the player tries to start a level with zero lives, a moment of need rather than an interruption mid-level."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The trigger is a detectable Play tap with zero lives, and the flow pays for playing the short game; the ad-failure path says no money is sent if the game does not count."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea specifically uses s02's out-of-lives popup, its gold-bar button, and the life timer."
+ },
+ "other_concern": "",
+ "fixable": false
+}

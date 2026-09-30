@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-policy-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy says only “welcome-back surprise”; it does not state before the game that the reward is 3 Advanced reasoning mode answers."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is in-app Advanced reasoning mode answers, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses time since the last session and subscription status, not what the user wrote in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free and samples Advanced reasoning mode, which the s02 paywall lists as a Luzia+ feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the safe s01 Chats home screen, not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples Advanced reasoning mode, listed on the s02 subscription paywall."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The cited s02.e03 supports Advanced reasoning mode as a paywall feature, and s01.e02 supports the Luzia+ badge on the proposed home screen. The welcome-back card is described as a proposed addition, not an observed feature."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is capped at 3 answers and expires at midnight, rather than providing unlimited access to the subscribed feature."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger event shows the dismissible card on s01 at app open, before the user begins a chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a user-chosen sponsored game, and the failure path withholds the reward when the play is not confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s01 Chats home placement, its Luzia+ badge, and the Advanced reasoning mode feature on the s02 paywall."
+ },
+ "other_concern": "The rationale's claim that the sample pays for itself in higher-earning markets is not established by the product model.",
+ "fixable": true
+}

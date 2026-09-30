@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-free-removal-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is opt-in via the lock panel, and the offer copy states the reward (30 minutes of reading). Declining leaves the article locked exactly as it was before the offer, and the 'if the ad fails' field covers no game ready and unconfirmed plays."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of unlocked articles (feature_time), which cannot be withdrawn or exchanged."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event, opening a fourth article, and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The 'adds' field locks articles after the third each day. Unlimited reading is free today, since the model saw no limit, and articles are not a resource that costs the app money per use. This is a new cap on something users get free."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a lock panel opened by an app event over s02 Article, which is rated safe. It is not in a chat and not next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product_change, the new resource (reading time) is tied to the observed core loop f01 'Read a story' (s01 -> s02)."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The cited s01.e59 and s02.e04 support the story-card-to-article flow. The claim of no existing paywall or limit matches the open question 'No paywall, limit, or currency was seen'."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No paid plan was observed and the reward is a 30-minute, capped sample, so no subscription benefit is given away."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears right when the user hits the limit on the fourth article, which is a moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit. Per the flow, the article unlocks only after the play is confirmed, and the trigger (an article count reaching four) is detectable by the app."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names this app's article reader (s02), the home story cards, and the read-a-story loop, so it does not read as generic."
+ },
+ "other_concern": "The idea invents a paywall-like limit in a news app that has none. That could hurt engagement and the app's existing ad impressions, such as the Taboola slots on articles.",
+ "fixable": false
+}

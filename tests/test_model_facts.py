@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from simula.contracts import ActionLine, Device, Point, ProductModel, Rect, StateFile, VisionElement
+from simula.contracts import ActionLine, Device, Point, ProductModel, Rect, State, StateFile, VisionElement
 from simula.stages import model as stage
 from tests.conftest import APPS, FIXTURES
 from tests.explore_fixture import add_core_loop, build
@@ -91,6 +91,103 @@ def test_only_moves_that_reach_a_state_or_change_something_are_edges(name, tmp_p
     assert notes == ["step 904: unknown state in s01>s99"]
 
 
+def move(step, frm, to, outcome="ok", summary="", action="tap") -> ActionLine:
+    return ActionLine(step=step, from_state=frm, to_state=to, action=action, mcp_ref=None, tap_px=None,
+                      transition="push", change_summary=summary, outcome=outcome)
+
+
+def test_only_a_move_its_two_captures_sit_right_around_is_diffed():
+    lines = [move(1, "s01", None, "denied"), move(2, "s01", "s02"), move(3, "s02", "s03"),
+             move(4, "s03", "s01"), move(5, "s01", "s04"),
+             move(6, "s04", "s04", summary="3 left → 2 left"), move(7, "s04", "s05"),
+             move(8, "s05", None, "denied"), move(9, "s05", "s06"),
+             move(10, "s06", None, "timeout"), move(11, "s06", "s07"),
+             move(12, "s07", "s07", action="swipe"), move(13, "s07", "s08")]
+    assert stage.bracketing_moves(lines) == {2, 3, 9, 13}, \
+        "a revisit, a change in place, or a timeout leaves the screen unlike its capture"
+    assert stage.bracketing_moves([]) == set()
+
+
+def text_state(sid, *texts) -> State:
+    """A state whose elements are (text, x, y, w, h) TextViews."""
+    elements = [stage.make_element(f"{sid}.e{n:02d}", Rect(x=x, y=y, w=w, h=h), "TextView", t, "", None,
+                                   np.zeros((1, 1, 3), np.uint8), DEVICE)
+                for n, (t, x, y, w, h) in enumerate(texts, start=1)]
+    return State(id=sid, kind="screen", parent_id=None, name="", purpose="", fingerprint="", canonical_png="",
+                 elements=elements, in_mock_scope=False, content_rating="safe", dynamic_regions=[], blocked_reason=None)
+
+
+def test_a_value_that_changed_in_one_spot_of_the_same_screen_is_what_changed():
+    title = ("My Chats", 155, 174, 799, 71), ("Sort by recent", 40, 260, 400, 40)
+    before = text_state("s01", *title, ("7 chats", 279, 521, 115, 41), ("08:52", 900, 450, 90, 40),
+                        ("8", 41, 838, 21, 42), ("1", 41, 838, 21, 42), ("9 coins", 40, 300, 100, 40),
+                        ("171", 600, 900, 60, 40), ("1 / 295", 600, 1000, 120, 40), ("Only here 5", 40, 1500, 200, 40))
+    after = text_state("s02", *title, ("8 chats", 279, 521, 115, 41), ("09:37", 900, 450, 90, 40),
+                       ("8", 41, 838, 21, 42), ("0", 41, 838, 21, 42), ("10 coins", 40, 300, 118, 40),
+                       ("20", 600, 900, 40, 40), ("1 / 102", 600, 1000, 120, 40), ("Elsewhere 6", 40, 1600, 200, 40))
+    assert stage.value_changes(before, after) == "7 chats → 8 chats; 9 coins → 10 coins", \
+        "a bare number, a clock, a spot holding two texts, and a text that moved are not changes"
+    assert stage.value_changes(before, before) == ""
+    other = text_state("s03", ("Search", 155, 174, 799, 71), ("Sort by name", 40, 260, 400, 40),
+                       ("8 chats", 279, 521, 115, 41), ("10 coins", 40, 300, 118, 40))
+    assert stage.value_changes(before, other) == "", "another screen with the same layout changed nothing"
+
+
+def capture_state(sid: str, capture: str) -> State:
+    """A state built from one of the JanitorAI fixture captures, as the model stage builds it."""
+    folder = FIXTURES / "trees" / "janitorai"
+    pixels = np.asarray(Image.open(folder / f"{capture}.png").convert("RGB"))
+    elements = stage.build_elements(sid, stage.read_tree(folder / f"{capture}.elements.json"), [], [], pixels, DEVICE)
+    return State(id=sid, kind="screen", parent_id=None, name=sid, purpose="", fingerprint=capture, canonical_png="",
+                 elements=elements, in_mock_scope=False, content_rating="unknown", dynamic_regions=[],
+                 blocked_reason=None)
+
+
+def test_a_tab_to_another_list_with_the_same_layout_changed_no_value(tmp_path):
+    """pairs.toml labels these two captures different screens. Their cards' stats (171 and 20) and page counters
+    (1 / 295 and 1 / 102) sit in the same spots, but they belong to other characters and another list."""
+    states = [capture_state("s01", "j04_tab1"), capture_state("s02", "janitorai-hidden")]
+    (tmp_path / "actions.jsonl").write_text(move(1, "s01", "s02").model_copy(update={"transition": "tab"})
+                                            .model_dump_json() + "\n")
+    edges, _ = stage.load_edges(tmp_path, states)
+    assert [(e.id, e.change_summary) for e in edges] == [("s01.tap>s02", "")]
+
+
+def test_a_list_that_re_sorted_changed_no_value():
+    """A chat list re-sorted by recency, as in a real JanitorAI My Chats pair: the row that moved up brings its own
+    count and time into the spot, and nothing went from 12 chats to 4."""
+    head = ("My Chats", 155, 174, 799, 71), ("Sort by recent", 40, 260, 400, 40), ("Mon", 900, 894, 90, 40)
+    last = ("The Former Husband", 40, 888, 500, 50), ("2 chats", 279, 967, 115, 41)
+
+    def row(name, chats, replied, y):
+        return (name, 40, y, 500, 50), (chats, 279, y + 79, 115, 41), (replied, 700, y + 79, 200, 41)
+    before = text_state("s01", *head, ("9 coins", 40, 330, 100, 40), *last,
+                        *row("NANAMI KENTO", "4 chats", "Replied 5 min", 443),
+                        *row("Kang Jun-Seo", "12 chats", "Replied 9 min", 665))
+    after = text_state("s02", *head, ("10 coins", 40, 330, 118, 40), *last,
+                       *row("Kang Jun-Seo", "13 chats", "Replied 1 min", 443),
+                       *row("NANAMI KENTO", "4 chats", "Replied 6 min", 665))
+    assert stage.value_changes(before, after) == "9 coins → 10 coins", \
+        "a list row's count and relative time say nothing about the row that sat there before; a lone count does"
+
+
+@pytest.mark.parametrize("name", APPS)
+def test_an_edge_says_what_changed_only_when_its_captures_sit_right_around_it(name, tmp_path):
+    explore = build(name, tmp_path / "explore")
+    states, _, _ = stage.load_states(explore, DEVICE)
+    title = ("My Chats", 155, 174, 799, 71)
+    a = text_state(states[0].id, title, ("7 chats", 279, 521, 115, 41))
+    b = text_state(states[1].id, title, ("8 chats", 279, 521, 115, 41))
+    lines = [move(1, a.id, b.id), move(2, b.id, a.id), move(3, a.id, b.id, action="swipe"),
+             move(4, b.id, a.id, summary="reply started 2 s", action="back")]
+    (explore / "actions.jsonl").write_text("".join(line.model_dump_json() + "\n" for line in lines))
+    edges, notes = stage.load_edges(explore, [a, b, *states[2:]])
+    assert [(e.id, e.change_summary) for e in edges] == [
+        (f"{a.id}.tap>{b.id}", "7 chats → 8 chats"), (f"{b.id}.tap>{a.id}", ""), (f"{a.id}.swipe>{b.id}", ""),
+        (f"{b.id}.back>{a.id}", "reply started 2 s")]
+    assert notes == ["step 1: what changed is code's diff of the move's two captures: 7 chats → 8 chats"]
+
+
 @pytest.mark.parametrize("name", APPS)
 def test_a_tap_binds_to_the_element_that_holds_it(name, tmp_path):
     explore = build(name, tmp_path / "explore")
@@ -154,6 +251,39 @@ def test_assets_are_cropped_to_their_rect_for_in_scope_states_only(app, tmp_path
                 assert s.id in scope
                 assert Image.open(tmp_path / e.asset_png).size == (int(e.rect_px.w), int(e.rect_px.h))
             assert not e.in_mock or s.in_mock_scope
+
+
+def test_flat_crops_get_no_asset_and_wordless_corner_boxes_are_not_drawn(tmp_path):
+    """The edge-gesture areas of a real run: wordless boxes in the bottom corners, whose crops show whatever the
+    screen has under them. Art and a full-width wordless banner keep their crops, even one the screen's bottom cuts."""
+    rng = np.random.default_rng(0)
+    pixels = rng.integers(0, 256, (DEVICE.h_px, DEVICE.w_px, 3), dtype=np.uint8)
+    pixels[800:900, 500:600] = (40, 40, 60)
+    pixels[1600:1700, 600:700] = (20, 90, 200)
+    pixels[1630:1670, 630:670] = (255, 255, 255)
+    bottom = DEVICE.h_px - 195
+
+    def element(n, kind, rect, label=""):
+        return stage.make_element(f"s01.e{n:02d}", rect, kind, "", label, f"@e{n}", pixels, DEVICE)
+    elements = [element(1, "ViewGroup", Rect(x=0, y=bottom, w=58, h=195)),
+                element(2, "ViewGroup", Rect(x=DEVICE.w_px - 58, y=bottom, w=58, h=195)),
+                element(3, "ViewGroup", Rect(x=500, y=800, w=100, h=100)),
+                element(4, "ViewGroup", Rect(x=0, y=400, w=DEVICE.w_px, h=300)),
+                element(5, "ImageView", Rect(x=0, y=bottom, w=300, h=195)),
+                element(6, "ViewGroup", Rect(x=200, y=1200, w=300, h=300)),
+                element(7, "ViewGroup", Rect(x=0, y=bottom - 55, w=DEVICE.w_px, h=250)),
+                element(8, "ViewGroup", Rect(x=600, y=1600, w=100, h=100))]
+    state = State(id="s01", kind="screen", parent_id=None, name="", purpose="", fingerprint="", canonical_png="",
+                  elements=elements, in_mock_scope=False, content_rating="safe", dynamic_regions=[],
+                  blocked_reason=None)
+    (tmp_path / "assets").mkdir()
+    done = stage.finish_elements(state, {"s01"}, set(), Image.fromarray(pixels), tmp_path, DEVICE)
+    assert [(e.id, bool(e.asset_png), e.in_mock) for e in done.elements] == [
+        ("s01.e01", False, False), ("s01.e02", False, False), ("s01.e03", False, True),
+        ("s01.e04", True, True), ("s01.e05", True, True), ("s01.e06", True, True), ("s01.e07", True, True),
+        ("s01.e08", True, True)], "a one-color box is drawn from its colors; a two-tone glyph keeps its crop"
+    assert sorted(p.name for p in (tmp_path / "assets").iterdir()) == [
+        "s01.e04.png", "s01.e05.png", "s01.e06.png", "s01.e07.png", "s01.e08.png"]
 
 
 def test_a_box_crop_never_holds_text(app):
@@ -265,7 +395,8 @@ def test_core_loop_passes_become_experience_facts(name, shape, tmp_path):
                                  f"{verb} started median 2.7 s (min 1.9, max 3.5, n=5); "
                                  "finished median 10.5 s (min 7.5, max 13.5, n=5); "
                                  "chars median 600 (min 400, max 800, n=5)")
-    assert outcome.verbatim == f"After 5 passes of the core action nothing limited it: no limit, paywall, or ad appeared ({steps})"
+    assert outcome.verbatim == ("After 5 passes of the core action nothing limited it: no limit, paywall, or ad appeared, "
+                                f"on an account whose plan (free or paid) was not recorded ({steps})")
 
 
 @pytest.mark.parametrize("name", APPS)
@@ -314,8 +445,24 @@ def test_a_pass_is_counted_once_and_measured_only_from_its_timing_line(tmp_path)
 def test_measurements_in_different_units_are_never_mixed(tmp_path):
     measured, _ = with_loop(tmp_path, loop_line(900, 1, "reply 2 s"), loop_line(901, 2, "reply 4 s"),
                             loop_line(902, 3, "reply 300 chars, reply started 900 ms"))
-    assert "reply median 3 s (min 2, max 4, n=2); reply median 300 chars (min 300, max 300, n=1)" in measured.verbatim
-    assert "ms" not in measured.verbatim.split("): ", 1)[1], "only s and chars are core-loop units"
+    assert measured.verbatim.endswith("reply median 3 s (min 2, max 4, n=2); reply 300 chars (1 measurement); "
+                                      "reply started 900 ms (1 measurement)"), "ms is its own unit, never mixed with s"
+
+
+def test_a_loop_that_is_not_a_chat_is_measured_in_its_own_units(tmp_path):
+    lines = [loop_line(900 + 2 * n, n, f"round took {30 + n} s, score {100 * n} points") for n in (1, 2)]
+    lines += [loop_line(903, 1, "3 lives → 2 lives"), loop_line(905, 2, "+'I have 3 cats'")]
+    measured, _ = with_loop(tmp_path, *sorted(lines, key=lambda a: a.step))
+    assert measured.verbatim.endswith("round took median 31.5 s (min 31, max 32, n=2); "
+                                      "score median 150 points (min 100, max 200, n=2)")
+
+
+def test_one_pass_is_said_as_one_measurement_and_an_unlimited_loop_says_the_plan_is_unknown(tmp_path):
+    measured, outcome = with_loop(tmp_path, loop_line(900, 1, "reply started 2.2 s, finished 50 s, 2170 chars"))
+    assert measured.verbatim == ("Core action over 1 pass (explore steps 900-900): reply started 2.2 s (1 measurement); "
+                                 "finished 50 s (1 measurement); chars 2170 (1 measurement)")
+    assert outcome.verbatim.startswith("After 1 pass of the core action nothing limited it")
+    assert "plan (free or paid) was not recorded" in outcome.verbatim
 
 
 def test_a_stop_on_a_denied_pass_is_kept(tmp_path):
@@ -328,3 +475,12 @@ def test_a_stop_on_a_denied_pass_is_kept(tmp_path):
 def test_a_stop_is_kept_even_when_no_pass_ran(tmp_path):
     (outcome,) = with_loop(tmp_path, loop_line(900, 1, "", to_state=None, outcome="denied", loop_stop="paywall"))
     assert outcome.verbatim.startswith("paywall appeared on pass 1") and outcome.evidence_ids == ["s01"]
+
+
+def test_tree_text_loses_its_placeholder_characters(tmp_path):
+    explore = build(APPS[0], tmp_path / "explore")
+    states, _, _ = stage.load_states(explore, DEVICE)
+    texts = [e.text + e.label for s in states for e in s.elements]
+    raw = "".join(p.read_text() for p in (explore / "states").glob("*.elements.json"))
+    assert "\ufffc" in raw, "the fixture trees carry the placeholder"
+    assert not any("￼" in t or "�" in t for t in texts)

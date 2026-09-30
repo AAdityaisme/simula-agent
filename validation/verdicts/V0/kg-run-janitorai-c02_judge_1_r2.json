@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-run-janitorai-c02",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in by tapping the card, and the offer copy states the reward (priority routing, 60 minutes). Declining changes nothing, and 'if the ad fails' covers both no game available and an unverified play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority inside the app, which has no cash value and can't be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (returning to the profile menu from the Upgrade entry without subscribing) and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds an optional boost and removes or caps nothing free ('removes nothing free: yes')."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the s09 profile menu drawer, a sheet over the non-chat s08 Profile, and s09 is rated safe. It is not in the conversation and not next to characters."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The app charges for priority routing: s02.e06 and l02 list it as a Janitor+ benefit, so the existing-anchor test is met."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal claims free users wait in a 'normal queue' and that replies 'keep their normal speed'. m03 marks that as inferred, and the free-tier queue priority is listed under open questions as not observed. The trigger also depends on what happens after tapping Upgrade, and no screen for that was captured."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a 60-minute sample of priority routing, capped at 2 per day, so it does not give away the subscription's full benefit. The plan still offers 5× context, more swipes and the badge."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card lives on the profile menu (s09), a persistent surface the user chooses to open. It does not interrupt a chat or other task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit, and the reward is granted only after the play is verified (the failure path says an unverified play doesn't turn priority on). The trigger is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Janitor+ priority routing bullet (s02.e06), the Upgrade to Janitor Plus entry (s09.e31) and the profile menu drawer, so it would not read the same in another app."
+ },
+ "other_concern": "The offer only makes sense if the free tier really has slower routing. Nobody has confirmed how replies are queued for free users, so the reward's value is unverified. Any 'try faster replies' offer is only valid once the chat probe confirms it.",
+ "fixable": false
+}

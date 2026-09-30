@@ -1,0 +1,80 @@
+{
+ "id": "rg-janitorai-c07-fan-boost",
+ "from_run": "integration fd6f293: runs/janitorai/20260928-093155-a2a161c/propose/candidates.json c07",
+ "app": "janitorai",
+ "note": "Accepted #1 on the real JanitorAI run: a fan plays so a small creator's character moves up the home list and the fan gets a supporter heart. Most of the reward goes to someone other than the player, and it reorders a list the app curates for everyone. The final rubric must not pass it. The model keeps only what the judge reads; the judge's message is byte-identical to the run's.",
+ "model": "judge/regression/models/janitorai-20260928-093155.json",
+ "candidate": {
+  "id": "c07",
+  "lens": "ledger_v11",
+  "kind": "product_change",
+  "title": "Product change: Fans play a short game to lift a new character from a small creator up the home list for a day",
+  "anchor_evidence_ids": [],
+  "bible_mechanic": "M27",
+  "what_is_different_here": "The home feed already has a tab (s01.e13, described by s01.e15) for characters from smaller creators made in the last 30 days, spread over 102 pages (s01.e27). A new character sits deep in that list. Character pages like Vac the Kinectic (s07) show the creator (@IoakimTumo, s07.e13) and a like button (s07.e16), so a fan who just liked a character can help it get seen. The fan's play becomes visibility for the creator and costs no reply generation.",
+  "adds": "A card on character pages opened from the smaller-creators list that lets a fan play a short game to move that character near the top of the list for 24 hours and get a supporter mark on the page.",
+  "removes_nothing_free": true,
+  "trigger_event": "User taps the like button on a character page opened from the smaller-creators tab, for a character created in the last 30 days",
+  "trigger_state_id": "s07",
+  "placement": "A card under the like and stats row on the character page, above the description",
+  "offer_copy": "Help @IoakimTumo get found. Play a short game and Vac the Kinectic moves near the top of the new-from-smaller-creators list on the home page for 24 hours. You also get a supporter heart next to your name on this character's page for 7 days.",
+  "reward": {
+   "kind": "cosmetic",
+   "unit": "supporter heart and list boost",
+   "amount": 1.0,
+   "duration": "24 hours for the list boost, 7 days for the supporter heart"
+  },
+  "for_users": "everyone",
+  "grants_id": null,
+  "cost_inputs": {
+   "inference_count": 0,
+   "tokens_in": 0,
+   "tokens_out": 0,
+   "minutes": 0.0,
+   "currency_amount": 0.0
+  },
+  "frequency_cap": "1 per user per day, resets at midnight local time; each character can be boosted by fans at most 10 times per day",
+  "decline_path": "The user closes the card or taps Not now; the card hides for this character today and the page works exactly as before.",
+  "ad_fail_path": "If no game is available the card is not shown. If the game fails to load or the play is not confirmed, the user sees 'That game didn't finish, nothing was used' and can try again; no boost or supporter heart is granted and the daily attempt is not used up.",
+  "subscriber_treatment": "Subscribers see the same optional card, since the monthly plan does not include boosting other people's characters; it never appears unless they tap like.",
+  "advertiser_category": "Casual mobile games and entertainment streaming apps",
+  "character_use": "The card shows the liked character's name and the creator's handle; the character's art appears on the thank-you screen after the game, not inside the ad.",
+  "flow_steps": [
+   {
+    "state_id": "s07",
+    "caption": "A fan opens a new character from the smaller-creators list and taps like."
+   },
+   {
+    "state_id": "new:boost-offer",
+    "caption": "A card appears: play a short game to move this character near the top of the list for 24 hours."
+   },
+   {
+    "state_id": "new:playable",
+    "caption": "The fan plays a short sponsored game and can close it at any time."
+   },
+   {
+    "state_id": "new:boost-thanks",
+    "caption": "Once the play is confirmed, the fan sees a thank-you with the creator's name and a supporter heart on the page for 7 days."
+   },
+   {
+    "state_id": "s01",
+    "caption": "On the home page, the character now shows near the top of the smaller-creators list with a small 'Boosted by fans' label."
+   }
+  ],
+  "after_reward": "When the 24 hours end, the character goes back to its usual place and the card on its page invites the fan to boost it again tomorrow. The supporter heart fades after 7 days, which gives fans a reason to come back and support their favorite small creators again.",
+  "rationale": "Small creators have one fixed place to be found: a list of new characters that runs over 100 pages. Letting a fan who just liked a character spend one short game to move it near the top gives the creator new chats and gives the fan a visible thank-you. It costs nothing to run and doesn't limit or take away anything free.",
+  "economics": {
+   "cost_2k": 0.0,
+   "cost_8k": 0.0,
+   "breakeven_ecpm_2k": 0.0,
+   "breakeven_ecpm_8k": 0.0,
+   "benchmark_ecpm": 10.16,
+   "verdict": "PASS",
+   "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1)."
+  },
+  "reach_score": 5.0,
+  "rank_score": 5.0,
+  "dropped_reason": null,
+  "flags": []
+ }
+}

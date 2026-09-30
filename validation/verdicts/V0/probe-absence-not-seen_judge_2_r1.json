@@ -1,0 +1,49 @@
+{
+ "candidate_id": "probe-absence-not-seen",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-answer reward before the user chooses to play. The decline and ad-failure paths leave the home screen unchanged and do not consume the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is three Advanced reasoning mode answers for use in Luzia, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses time since the last session and subscription status, not anything the user wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free and samples the Advanced reasoning mode listed on the paywall; it does not impose a free-tier cap."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The dismissible card is placed on the safe s01 Chats home screen, above the prompt card, not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, s02.e03 lists Advanced reasoning mode as a Luzia+ paywall benefit."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The cited s02.e03 supports the paid-mode anchor, and s01.e02 supports the home-screen badge. The proposal also acknowledges that no free-tier answer limit was observed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to three answers until midnight, rather than granting Advanced reasoning mode without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer is a dismissible card on s01 Chats home after an app open, not an interruption in the middle of a chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a chosen sponsored game, and the ad-failure path says an unconfirmed play does not count or use the offer."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s01 Luzia+ badge, the Chats home placement, and Advanced reasoning mode from the s02 paywall."
+ },
+ "other_concern": "The rationale suggests changing the reward to one answer or requiring a second game in some markets; that would need to be reconciled with the stated three-answer offer if implemented.",
+ "fixable": false
+}

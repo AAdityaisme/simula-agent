@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c2-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is an opt-in banner. Its copy states the reward (30 minutes with no sponsored stories), declining changes nothing, and 'if the ad fails' covers a game that is not ready or a play that is not confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of hidden sponsored cards, a feature_time reward with no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an article-open counter reaching 3, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed, locked or capped. Declining leaves the feed, articles, saving and sharing as they are, with sponsored cards shown as usual."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The banner is app chrome under the pill bar on s01, which is rated safe. It is not inside a conversation and not next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For a product_change, the new resource (an ad-light reading window) is tied to the observed core loop f01, reading a story from the feed to an article. The app charges for nothing, so the tie to the core loop is what carries this check."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal claims AOL shows a full-screen video ad after every third article. The product model has no such ad and no AOL mention; s05 is only an in-article ad. This claim rests on something never observed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No paid plan was observed, and the reward is a 30-minute window capped at 2 per day, so no subscription benefit is given away."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The banner appears after the user finishes a third article and returns to the feed. It is a finished-action moment and does not interrupt reading."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "This is a play-to-earn sponsored game. The reward is granted only once the play is confirmed, and the trigger is a detectable article-open counter."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s01 feed slot below the first story, the s02 in-article Taboola card, and the article-to-feed reading loop, so it is specific to this app."
+ },
+ "other_concern": "Hiding Taboola or direct-sold native placements in exchange for a game may conflict with those partners' terms. Revenue displacement is also unmeasured, and the idea depends on the game earning more than the hidden cards.",
+ "fixable": true
+}

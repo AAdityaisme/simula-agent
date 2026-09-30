@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-brand-safety-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states 60 minutes of priority routing before the user chooses to play. The decline and ad-failure fields leave normal chatting available and withhold the reward if play is not verified."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or a transferable value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses an Upgrade entry visit and the next reply event; it does not require reading what the user wrote."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and its decline path keeps replies at their normal speed."
+ },
+ "g_brand_safety": {
+  "passed": false,
+  "reason": "The placement puts the offer inside the character's reply. An offer sent as part of the conversation fails this gate."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples priority routing, which the Janitor+ announcement lists as a subscriber benefit at s02.e06."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal claims a free user can skip a normal queue, but free-user routing was only inferred in m03 and is an open question, not an observed mechanic."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward limits priority routing to 60 minutes, with a frequency cap of two plays per day."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places the offer at the end of the character's next reply, after that reply has finished."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game triggered by app-detectable events, and the failure path says unverified play does not turn on faster replies."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Janitor+ Upgrade entry at s09.e31 and the priority-routing benefit at s02.e06."
+ },
+ "other_concern": "",
+ "fixable": true
+}

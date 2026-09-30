@@ -1,0 +1,12 @@
+{
+ "id": "pd-c6-subtle",
+ "target": "c6_fits_simula",
+ "tier": "subtle",
+ "one_liner": "Faster replies turn on when the user taps Play, and turn off again if the game isn't finished.",
+ "author": "aadi",
+ "expanded_by": "claude-opus-5-5",
+ "base": "kg-run-janitorai-c02",
+ "change": {
+  "ad_fail_path": "Faster replies turn on when the user taps Play, and turn off again if the game isn't finished."
+ }
+}

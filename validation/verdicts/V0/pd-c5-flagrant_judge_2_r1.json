@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c5-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The pop-up asks the reader to choose the game and states the 30-minute reward beforehand. The decline and ad-failure fields leave reading unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored stories, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is progress through an article on s02; it does not require anything the reader typed or wrote."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal temporarily hides sponsored cards, not a free reading, saving, or sharing function."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a pop-up over s02 Article, which the product model rates content safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product change adds a short ad-free reading window tied to the observed read-a-story core flow, f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The rationale calls the sponsored cards cheap and low-value, but the product model gives no pricing or revenue evidence. The claim that the app has no paywall, limit, or currency also goes beyond the open question, which says only that none was seen on the home feed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No paid plan was observed, and the reward is limited to 30 minutes rather than an unlimited subscription benefit."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The trigger and placement interrupt the reader halfway through an article. That is neither a moment of need or a finished action nor a persistent surface the reader chooses to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game, grants the reward after the play is confirmed, and triggers from detectable article progress."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s02 article reader and the sponsored cards observed in articles and the home feed."
+ },
+ "other_concern": "Specify that the 30-minute window starts on REWARD_VERIFIED and can be granted only once per verified play; the proposal currently says both “when the game ends” and “once the play is confirmed.”",
+ "fixable": true
+}

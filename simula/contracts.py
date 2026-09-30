@@ -150,14 +150,15 @@ class Term(TermMeaning):
 
 
 class QuestionDraft(Strict):
-    """Something the captures could not answer that another explore pass could."""
-    id: str
+    """Something the captures could not answer that another explore pass could. No id: code numbers them, which
+    keeps ModelMeaning's schema under the API's compiled-grammar limit (measured 2026-09-29)."""
     question: str
     start_state: str = Field(description="The state id where the explorer should begin.")
     look_for: str = Field(description="One plain sentence on what would answer it.")
 
 
 class OpenQuestion(QuestionDraft):
+    id: str = Field(description="Code: q1, q2, ... in the model's order.")
     answered: bool = False
 
 
@@ -178,6 +179,8 @@ class Provenance(Strict):
 class ProductModel(Strict):
     schema_version: int = SCHEMA_VERSION
     app: str
+    app_name: str = Field(default="", description="The app's name as its own screens show it, for people to read "
+                          "(a deck's cover); empty when no screen shows it. `app` is the config key.")
     app_version: str
     app_category: AppCategory
     run_id: str
@@ -215,6 +218,8 @@ class ElementMeaning(Strict):
 
 
 class ModelMeaning(Strict):
+    app_name: str = Field(description="The app's name as its own screens show it, with its capitalization and "
+                          "spacing; empty when no screen shows it.")
     app_category: AppCategory
     states: list[StateMeaning]
     elements: list[ElementMeaning]

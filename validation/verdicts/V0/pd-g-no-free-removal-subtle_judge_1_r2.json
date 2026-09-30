@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-free-removal-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is opt-in (a card the user chooses to tap). The offer copy states the reward (priority routing for 60 minutes), and the decline and ad-failure paths are both specified."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app navigation event (returning to the profile menu from the Upgrade entry) and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The `adds` field introduces a new 24-hour cap on how many characters a free user can text. That is a cap on something free today, and it is not on a per-use cost resource such as model replies or queue priority. It contradicts the 'removes nothing free: yes' claim."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the s09 profile menu drawer over s08, both rated safe, and is app chrome that is not in or next to any conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The app charges for priority routing: the paywall bullet s02.e06 and the Janitor+ entitlements in m02 show it. A reward that gives a slice of that benefit satisfies the existing-anchor test."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal claims Janitor+ 'lifts the daily limit on how many characters a user can text'. No cited element supports that; the paywall bullets list no such limit, and the free-tier limit is an open question in the model. The claim that free users wait in a normal queue is only inferred (m03)."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The priority routing is a 60-minute sample, capped at 2 per day, so the subscription's always-on benefit is preserved."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the profile menu, a persistent surface the user chooses to open, and does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "This is a play-to-earn rewarded playable. The reward is granted only after the verified play, and the trigger is a detectable navigation event in the app."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Upgrade to Janitor Plus entry (s09.e31) in the profile menu and Janitor+'s priority routing benefit, so it is specific to this app."
+ },
+ "other_concern": "The added daily character-texting limit is invented and would hurt free users regardless of the ad. The 60-minute priority reward also depends on a free-tier routing behavior that was never directly observed.",
+ "fixable": true
+}

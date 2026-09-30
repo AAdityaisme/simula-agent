@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-brand-safety-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the reward (60 minutes of priority routing) before the ad, and declining leaves chat and speed unchanged. A failed load gets no offer line, and an unverified play has its own path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority, which has no cash value and can't be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: returning from the Upgrade entry without subscribing, then opening a chat from My Chats. It doesn't use anything the user typed."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds nothing and removes nothing free, and replies keep their normal speed for anyone who declines."
+ },
+ "g_brand_safety": {
+  "passed": false,
+  "reason": "Placement is 'Inside the character's reply: toward the end of their message', so the offer sits inside the conversation, dressed up as a character line. The failure path also posts a note in the chat."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Priority routing is sold as a Janitor+ benefit (l02, s02.e06), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal claims free users wait in a 'normal queue' and that replies return to 'normal speed'. The model marks this as inferred (m03) and lists the free-tier queue priority as not observed, so these claims are not supported."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a 60-minute sample capped at 2 per day, so it doesn't give away priority routing without a limit, and the subscription's other benefits stay paid."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The offer appears mid-conversation in the character's reply, with no limit just hit, no locked item tapped, and no finished action. It also isn't on a persistent surface the user can choose to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn rewarded game, and the reward is granted only after the verified play (step 4). The trigger is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names Janitor+'s priority routing bullet, the profile menu's Upgrade entry, and My Chats, so it is tied to this app."
+ },
+ "other_concern": "The trigger depends on the app tracking that the user left the Upgrade entry without subscribing, which the model never shows. The unverified-play note is also written as a chat note.",
+ "fixable": true
+}

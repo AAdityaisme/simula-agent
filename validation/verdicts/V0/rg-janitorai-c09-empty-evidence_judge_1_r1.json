@@ -1,0 +1,49 @@
+{
+ "candidate_id": "rg-janitorai-c09-empty-evidence",
+ "g_policy": {
+  "passed": true,
+  "reason": "The fan taps like and then chooses whether to play. The offer copy states the reward (24-hour Home list lift plus a 7-day supporter mention). Declining changes nothing and the like still counts, and the ad-failure path hides the card or shows a retry note."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic list boost and a supporter name mention, and neither can be withdrawn, sold or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a tap on the like button (s07.e16) on an eligible character page. It is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea adds a supporter card and a boost, and removes, locks or caps nothing that users get free today (removes nothing free: yes)."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits on the character detail page s07, which is rated safe and is not a chat screen. It is not in the conversation and has no unsafe or unknown neighbours."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For a product_change, the new resource is a Hidden Gems list boost and supporter credit. It is tied to the observed discovery step of f1 (pick a character card from the home feed) and to the creator marketplace mechanic m5."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims are supported by the model: Hidden Gems promotes smaller creators' new characters (s01.e15, s01.e13), the list has 102 pages (s01.e28), and s07 shows the creator byline, like button and comments button. Vac appears in the Hidden Gems list on s01."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is visibility for a creator's character and does not touch the Janitor Plus benefits (5× context, priority routing, frontier swipes, badge)."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears right after the user finishes a like action, which counts as a finished action. It does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn sponsored game, and the boost and supporter row are granted only after the play is verified. The trigger is an app-detectable like tap on an eligible character."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It is specific to this app: it names the Hidden Gems smaller-creators list, the s07 character page with creator byline and like button, and the @IoakimTumo / Vac the Kinectic example."
+ },
+ "other_concern": "The boost needs new backend ranking and supporter-display features that were not observed. Ranking manipulation is also possible, though the 20 plays per character per day cap limits it. The boost benefits the creator more than the fan, so fan motivation may be low.",
+ "fixable": false
+}

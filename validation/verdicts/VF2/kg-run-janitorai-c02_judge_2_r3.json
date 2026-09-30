@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-run-janitorai-c02",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 60-minute reward before an optional game. The decline and ad-failure fields preserve normal use and address unavailable or unverified plays."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is temporary priority routing, not cash or a transferable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is returning from the Upgrade entry without subscribing; it does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal's decline path leaves normal replies unchanged, and the idea removes or caps no existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile-menu drawer, which is rated content safe, rather than in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing-anchor idea, s02.e06 establishes priority routing as a Janitor+ benefit, and the reward provides a limited period of it."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says users can skip a normal queue and gain earlier placement in line. s02.e06 establishes priority routing for faster replies, but neither it nor m03 establishes that queue mechanism."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward lasts 60 minutes and is capped at two plays per day, so it does not grant lasting access to the paid priority-routing benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger returns the user to the profile menu, and the placement is a card on that persistent surface rather than an interruption to a chat."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game after a detectable navigation event, and the ad-failure field says unverified play does not turn on faster replies."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s09 Upgrade to Janitor Plus entry and the priority-routing benefit shown at s02.e06."
+ },
+ "other_concern": "The flow describes a confirmation card on My Chats, while the placement puts the card in the profile menu; clarify where confirmation appears.",
+ "fixable": true
+}

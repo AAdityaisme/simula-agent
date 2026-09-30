@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c1-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the one-hour reward before the user chooses to play. The decline and ad-failure fields leave the menu usable and provide a path when the game fails to load or verify."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is time using Search, not cash or a transferable or externally exchangeable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is returning to the profile menu from the upgrade entry without subscribing; it does not depend on chat content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The reward and 'when the reward runs out' fields make Search a 60-minute entitlement with a daily play cap, effectively capping access to a feature already available through the Search tab (s01.e67)."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the safe s09 profile-menu drawer, not in a conversation or next to unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "This is an existing_anchor, but neither the Search tab (s01.e67) nor the Janitor+ benefits (m02) establish that the app charges for or limits Search."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field claims Search supports name and trait filters. The cited s05.e01 says only 'Search'; no observed element or mechanic establishes those filters."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to one hour, gives no lasting access, and does not grant an unlimited Janitor+ benefit listed in m02."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is in the profile menu, a persistent surface the user chooses to open; the proposed card does not interrupt an ongoing chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable return to the menu, and the ad-failure field says an unverified play does not turn on the reward."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names this app's Search tab and the Upgrade to Janitor Plus entry in s09."
+ },
+ "other_concern": "",
+ "fixable": false
+}

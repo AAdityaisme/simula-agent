@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c4-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the reward before the optional game. The decline and ad-failure fields leave home unchanged or allow another attempt."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is access to Advanced reasoning mode in three chats, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses time since the last session and subscription status, not message content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free; Advanced reasoning mode is listed on the Luzia+ paywall at s02.e03."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the Chats home screen, s01, which is rated safe; it is not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As an existing opportunity, it rewards access to Advanced reasoning mode, a paid benefit listed at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'when the reward runs out' field says Luzia+ turns Advanced reasoning mode on in every chat. s02.e03 lists the mode but does not establish that it works in every chat."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The reward and offer copy say the three chats stay in the paid mode 'for good.' That grants lasting access to a charged benefit even though the number of chats is limited."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a dismissible card on the Chats home screen at first open, not an interruption to a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game, the trigger is a detectable app-open event, and the ad-failure field makes the reward contingent on confirmed play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Chats home screen and its Luzia+ badge at s01.e02, and rewards the paywall's Advanced reasoning mode at s02.e03."
+ },
+ "other_concern": "",
+ "fixable": false
+}

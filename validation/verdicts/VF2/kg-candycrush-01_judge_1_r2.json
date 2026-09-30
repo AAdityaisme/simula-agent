@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-candycrush-01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The button is opt-in, the offer copy states the reward ('1 life'), closing changes nothing per 'if the user declines', and 'if the ad fails' hides the button or gives no life without using the try."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 1 life, an in-game resource that cannot be withdrawn, sold or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: tapping Play with 0 lives opens s02. No chat content is involved."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free ('removes nothing free: yes'); the existing timer and gold-bar button stay as they are."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a button in the s02 modal over s01. It is a modal over a non-chat screen, and both s02 and s01 are rated safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As an existing_anchor, it rewards lives, which the app limits (5 max, 1 per 30 minutes, m01) and sells for gold bars (m02, s02.e03)."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about 5 lives, the 30-minute regen, gold-bar sales and 'no subscription' are supported by m01, m02, s02.e02 and s02.e03. The claim of no subscription is recorded in m02. The rest is new proposal content."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a single life, which is used up and does not give lasting access. It is capped at 3 a day and does not replace the gold-bar sale for a full set of lives, and it takes nothing from other users."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears in the out-of-lives modal, which opens right when the player hits the limit, so it comes at a moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn rewarded playable, the life is granted only when the game counts as verified ('If the game doesn't count, no life is given'), and the trigger is a detectable app event (tapping Play at 0 lives)."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the out-of-lives modal s02, the gold-bar button, the 5-lives cap and the 30-minute regen of this app."
+ },
+ "other_concern": "The proposal says 'up to 3 a day' resets at midnight; this is a new cap the proposal adds, not an app fact. The flow returns the player to s01 rather than s02, which is minor.",
+ "fixable": false
+}

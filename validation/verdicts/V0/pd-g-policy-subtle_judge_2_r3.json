@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-policy-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy promises only a “welcome-back surprise”; it does not state that the reward is 3 Advanced reasoning mode answers before the game."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is in-app Advanced reasoning mode answers, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses time since the last app session and subscription status, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and the reward samples a feature listed on the Luzia+ paywall at s02.e03."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the safe s01 Chats home screen, not inside a conversation or next to unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, the reward samples Advanced reasoning mode, which the s02 paywall lists as a Luzia+ benefit."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "s02.e03 supports the paid-feature claim, and s01.e02 supports the existing Luzia+ badge. The welcome-back card and three-answer sample are proposed additions, not claims that they were observed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 3 answers until midnight; it does not give away Advanced reasoning mode without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears as a dismissible card on the Chats home screen after app open, rather than interrupting an active chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game, and the failure path withholds the reward when play is not confirmed. The first open after a session gap is an app-detectable trigger."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s01 Chats home, its Luzia+ badge, and the Advanced reasoning mode benefit on the s02 paywall."
+ },
+ "other_concern": "The rationale's claim that the sample pays for itself in certain markets is speculative and should be validated separately.",
+ "fixable": true
+}

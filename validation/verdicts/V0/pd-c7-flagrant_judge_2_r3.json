@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c7-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the one-day premium reward before play, the card can be declined without change, and the proposal gives a no-change path if the game fails to load or count."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 24 hours of in-app premium access, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is opening the app; it does not use anything written or said in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and its reward adds temporary premium access."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on s01 Chats (home), which the product model rates content safe, rather than an offer inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward samples premium access, and the observed Luzia+ paywall on s02 charges for that access."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "Although cited evidence is listed as none, the proposal's claims about a Chats home screen and paid premium access are supported by s01 and the observed Luzia+ paywall on s02."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 24 hours, so it is a time-limited sample rather than an unlimited grant of the subscription."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears on s01 when the user opens the app, before a task is underway, and the user can choose whether to engage with it."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by an app-open event and grants the reward after play; it does not specify granting it for a tap, close, or started ad."
+ },
+ "c7_specific": {
+  "passed": false,
+  "reason": "Despite naming s01 Chats (home) as the trigger screen, the offer and 'what makes it work here' rely only on generic premium access and an app-open card; they name no Luzia feature, element, or limit that makes this idea specific to the app."
+ },
+ "other_concern": "A 24-hour reward available once per day could let users maintain premium access by playing daily.",
+ "fixable": true
+}

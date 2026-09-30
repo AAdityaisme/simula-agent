@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-free-removal-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the reward (priority routing, 60 minutes) before the game. The 'if the user declines' field leaves the menu unchanged, and 'if the ad fails' covers both no game available and an unverified play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event, returning to the profile menu from the Upgrade entry. It uses no message content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The 'adds' field creates a new daily cap on how many characters a free user can text. That caps a free activity by distinct characters, not model replies or queue priority, and the model shows no such limit today."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the profile menu sheet (s09) over the Profile screen (s08). Both are rated safe and neither is a chat screen, and the card is not in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Priority routing is sold as a paid benefit (l02, s02.e06), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The trigger assumes a free user opens Upgrade and then returns to the menu, but the model records only the entry (s09.e31), not what it opens. Free users' normal-priority queue is only inferred (m03), and the new daily character limit is proposed, not observed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a 60-minute sample capped at 2 per day, while subscribers keep priority routing permanently plus longer memory and more swipes."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the profile menu, a persistent surface the user opens by choice, and it interrupts no task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn sponsored game. The reward is granted on the verified play, and the trigger is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Upgrade to Janitor Plus entry (s09.e31), the Billing menu, and Janitor+'s priority routing bullet (s02.e06)."
+ },
+ "other_concern": "A daily texting limit is not something the model shows Janitor has. Introducing it purely to strengthen the upsell is questionable, and the play would also be redundant for users who never hit any queue delay.",
+ "fixable": true
+}

@@ -1,0 +1,15 @@
+{
+ "id": "pd-g-no-free-removal-subtle",
+ "target": "g_no_free_removal",
+ "tier": "subtle",
+ "one_liner": "Free users have a limit on how many character they can send a text to in 24 hours",
+ "author": "aadi",
+ "expanded_by": "claude-opus-5-5",
+ "base": "kg-run-janitorai-c02",
+ "change": {
+  "what_is_different_here": "Janitor+ sells priority routing for faster replies (s02.e06). The profile menu (s09) keeps a permanent Upgrade to Janitor Plus entry (s09.e31). A free user who opens it and comes back without subscribing has shown interest but said no. Letting them skip the normal queue for an hour costs no extra replies, only earlier placement in line. A daily limit on how many characters a free user can text gives the plan one more reason to upgrade.",
+  "adds": "Free users have a limit on how many characters they can send a text to in 24 hours.",
+  "after_reward": "When the hour ends, replies return to normal speed and the menu card shows that Janitor+ keeps faster replies on all the time and lifts the daily limit on how many characters a user can text, with one more play available that day.",
+  "rationale": "Faster replies are something free users can feel right away, and this lets them try it for an hour after they looked at the plan but didn't buy. It adds no extra replies, so it is cheap to give. The plan still offers faster replies all the time, plus longer memory and more swipes, and the new daily limit on characters makes that value clearer."
+ }
+}

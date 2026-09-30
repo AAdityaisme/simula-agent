@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c4-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in by tapping the card. The offer copy states the reward, the decline path leaves the menu unchanged, and the ad-failure path hides the card or shows a retry."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is queue priority (queue_priority), which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event, returning to the profile menu from the Upgrade entry. It uses no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free (\"removes nothing free: yes\"). It adds an optional card and does not lock or cap anything."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the s09 profile menu sheet over s08, both rated safe. It is app chrome, not in a conversation and not next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Priority routing is a paid Janitor+ benefit (l02, s02.e06), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The claim that free users wait in a normal queue rests on m03, which is only inferred, and the free-tier limit is listed under open questions. The model also never shows what the Upgrade entry opens, so the 'returns after looking at Janitor+' trigger is unobserved. The 'costs no extra replies' claim has no support in the model either."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The reward gives permanent priority routing, one of the four listed Janitor+ benefits (l02), for one play with no time or quantity limit. That gives away a subscription benefit without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits in the profile menu, a persistent surface the user chooses to open. It does not interrupt a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn sponsored game, and the reward is granted only after the verified play. The trigger is a menu navigation event the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Janitor+ priority routing benefit, the s09 profile menu and its Upgrade to Janitor Plus button, so it does not read like a generic idea."
+ },
+ "other_concern": "Permanent 'for as long as you keep the app' priority undercuts the subscription. It also has no clear way to be revoked and no cost check, since priority routing may cost the app money per use.",
+ "fixable": false
+}

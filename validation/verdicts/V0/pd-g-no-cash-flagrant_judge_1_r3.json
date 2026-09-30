@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-cash-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is a player-tapped button and the copy states the reward ($1 to PayPal). Declining changes nothing, and 'if the ad fails' hides the button and sends no money."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The reward is '1 US dollars paid to the player's PayPal', which is cash paid out and exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (tapping Play with 0 lives opens s02), with no chat content involved."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "'removes nothing free: yes'; lives and the 30-minute timer stay as today, and nothing free is locked or capped."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a button inside the s02 modal, which is rated safe and opened by an app event (out of lives). It is not in a conversation, and the s02 and s01 screens are rated safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The app limits lives (m01: 5 lives, 1 per 30 minutes) and sells extra ones for gold bars (m02). The proposal is an existing_anchor on a limited resource, so the check passes on what it rests on."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "Claims about 5 lives, a 30-minute regen, the out-of-lives pop-up and the gold-bar button are supported by m01, m02, s02.e02 and s02.e03. The proposal does not depend on the unobserved gold-bar price."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "There is no subscription in the app (m02), so no subscription benefit is given away."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears in the out-of-lives modal, which is a moment of need right after a limit is hit."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The reward follows a verified play of a short sponsored game, and the trigger is the detectable event of tapping Play with 0 lives. The proposal's flow says the game must count before money is sent."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the out-of-lives pop-up (s02), the gold-bar button, and the 5-lives/30-minute limit specific to this game."
+ },
+ "other_concern": "The reward is $1 cash and has nothing to do with lives, so the offer does not solve the player's need. Paying up to $3 a day per player would likely also cost more than the ad earns. Replacing it with a life reward would be a different idea.",
+ "fixable": false
+}

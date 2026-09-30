@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-policy-flagrant",
+ "g_policy": {
+  "passed": false,
+  "reason": "The 'if the user declines' field says closing the card makes replies slower than normal for the rest of the day, so declining leaves the app worse than before the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of priority routing, which cannot be withdrawn, sold or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (returning to the profile menu from the Upgrade entry). It needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The reward itself adds priority. Queue priority is a resource the rules allow to be capped. The slowdown on decline is a policy problem, recorded under g_policy."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the profile menu sheet (s09) over the Profile screen (s08), both rated safe, and it is not in a conversation or next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing_anchor. The app charges for priority routing (l02, s02.e06), and the reward gives a slice of it."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the app rest on observed elements: the Upgrade entry (s09.e31), the priority routing bullet (s02.e06), and the free-tier normal routing inferred in m03. The rest is the proposal's own new card, copy and predictions."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The 60-minute, twice-daily priority sample ends, so it does not give lasting access. It takes nothing from other users, and the app already sells priority."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the profile menu, a persistent surface the user chooses to open, right under the Upgrade button, so it interrupts no task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn rewarded game. The reward is granted on the verified play, and the trigger is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names Janitor+ priority routing, the profile menu Upgrade entry (s09.e31) and the My Chats screen, so it is specific to this app."
+ },
+ "other_concern": "The proposal's 'removes nothing free: yes' conflicts with its own decline penalty. The trigger also assumes the user can be detected returning from the Upgrade destination, which was not observed.",
+ "fixable": true
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c6-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user taps Play on the card (opt-in), and the offer copy states the reward and size (priority routing, 60 minutes). Declining leaves the menu as today, and the failure path turns the boost off if the game isn't finished."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority, which has no cash value and can't be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: returning to the profile menu from the Upgrade entry. It uses no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea removes and caps nothing free. It only adds a temporary boost, and 'removes nothing free: yes' matches the flow."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the profile menu drawer (s09), a sheet over a non-chat screen rated safe. It is not in a conversation, and the confirmation lands on s06 My Chats, rated safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing_anchor. The app charges for priority routing (l02 'Priority routing for faster replies', s02.e06), so the reward gives a resource the app charges for."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about today's app are supported: Janitor+ sells priority routing (s02.e06), the profile menu has a permanent Upgrade entry (s09.e31), and free users get normal routing (m03, inferred from s02.e07). The card, the copy and the 'costs no extra replies' remark are the proposal's own additions or predictions."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The boost lasts 60 minutes and is capped at 2 per day, so it is a sample that ends rather than lasting access. Priority routing is something the app already sells, so the queue advantage is not taken from anyone for free."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the persistent profile menu, a surface the user chooses to open, and it interrupts no task."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The if-the-ad-fails field says 'Faster replies turn on when the user taps Play', so the reward is granted on a tap before the play is verified. That fails the rule that the reward is granted only on the verified play (REWARD_VERIFIED)."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names Janitor+ priority routing, the Upgrade to Janitor Plus button in the profile menu (s09.e31), and the My Chats screen, so it would not read the same in another app."
+ },
+ "other_concern": "The Upgrade entry's destination was not observed, so 'returns from the Upgrade entry without subscribing' may be hard to detect. The claim that priority routing costs the app nothing extra is a prediction. Free users jumping the queue may slow other users.",
+ "fixable": true
+}

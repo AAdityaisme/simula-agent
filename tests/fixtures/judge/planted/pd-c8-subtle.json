@@ -1,0 +1,85 @@
+{
+ "id": "pd-c8-subtle",
+ "target": "c8_economics",
+ "tier": "subtle",
+ "one_liner": "The 3 answers become 3 high-quality images, another Luzia+ perk.",
+ "author": "aadi",
+ "expanded_by": "claude-opus-5-5",
+ "from_run": "kg-run-luzia-c05 (PR 5 round 6: runs/luzia/20260928-042747-6d79ef8-fixture/propose/candidates.json c05), edited: 3 high-quality images (paywall bullet l03, s02.e04) wherever the offer names its reward",
+ "app": "luzia",
+ "app_type": "AI assistant chat",
+ "in_test_set": true,
+ "model": "golden/luzia/product_model.json",
+ "candidate": {
+  "id": "c05",
+  "lens": "drifting",
+  "kind": "existing_anchor",
+  "title": "Welcome-back card: try 3 high-quality images",
+  "anchor_evidence_ids": [
+   "s02.e04",
+   "s01.e02"
+  ],
+  "bible_mechanic": "M02",
+  "what_is_different_here": "The Luzia+ paywall (s02) lists 'Higher-quality image generations' (s02.e04) as a paid feature. A returning free user sees a one-day sample of 3 on the Chats home (s01), under the existing Luzia+ badge (s01.e02). The full feature stays behind the Weekly / Monthly / Annual plans and the 3-day trial (s02.e19).",
+  "adds": null,
+  "removes_nothing_free": true,
+  "trigger_event": "First app open after 3 or more days with no session, by a user without Luzia+.",
+  "trigger_state_id": "s01",
+  "placement": "A dismissible card under the Chats header, above the 'How can I help you today?' prompt card.",
+  "offer_copy": "Welcome back! Play a short game to get 3 high-quality images today, a Luzia+ perk.",
+  "reward": {
+   "kind": "image",
+   "unit": "high-quality images",
+   "amount": 3.0,
+   "duration": "until midnight local time"
+  },
+  "for_users": "free",
+  "grants_id": "l03",
+  "cost_inputs": {
+   "inference_count": 3,
+   "tokens_in": 3000,
+   "tokens_out": 800,
+   "minutes": 0.0,
+   "currency_amount": 0.0
+  },
+  "frequency_cap": "1 per day, resets at midnight local time; shown only on the first open after a 3+ day gap",
+  "decline_path": "Tapping 'Not now' closes the card. Home works exactly as before, and the card does not return until the user's next gap of 3+ days.",
+  "ad_fail_path": "If no game is available, the card is not shown. If the play isn't confirmed, a note says 'That game didn't count, try again'. The card stays and the day's offer is not used up.",
+  "subscriber_treatment": "Never shown. Luzia+ members already have higher-quality images.",
+  "advertiser_category": "Casual mobile games, streaming services, language and learning apps",
+  "character_use": "Luzia's own avatar appears on the card, inviting the user back.",
+  "flow_steps": [
+   {
+    "state_id": "s01",
+    "caption": "A user who hasn't opened Luzia in 3+ days lands on Chats as usual."
+   },
+   {
+    "state_id": "s01",
+    "caption": "A welcome-back card offers 3 high-quality images for a short game."
+   },
+   {
+    "state_id": "new:sponsored-game",
+    "caption": "The user plays a short sponsored game and can close it at any time."
+   },
+   {
+    "state_id": "s01",
+    "caption": "The card changes to '3 high-quality images ready today.'"
+   }
+  ],
+  "after_reward": "When the 3 images are used or the day ends, a small note on Chats says Luzia+ keeps higher-quality images on every day and shows the 3-day free trial button.",
+  "rationale": "A lapsing user needs a reason to open Luzia today. A day's sample of a paid feature they haven't tried is a fresh reason, and it doubles as a preview of Luzia+. Each image takes real generation time, so the cost line decides where it pays for itself.",
+  "economics": {
+   "cost_2k": 0.102,
+   "cost_8k": 0.102,
+   "breakeven_ecpm_2k": 102.0,
+   "breakeven_ecpm_8k": 102.0,
+   "benchmark_ecpm": 10.16,
+   "verdict": "FAIL",
+   "assumption_line": "Costs ~$0.1020 per reward to serve; pays for itself above $102.00 eCPM. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 3 images at $0.034 each (central price); one view per reward; a publisher-net eCPM (share 1)."
+  },
+  "reach_score": 1.0,
+  "rank_score": 1.0,
+  "dropped_reason": null
+ },
+ "expect_economics": "FAIL"
+}

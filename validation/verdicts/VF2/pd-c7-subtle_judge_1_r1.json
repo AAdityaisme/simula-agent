@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c7-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner is opt-in, the offer copy states the reward (30 minutes without ads), declining leaves the app as before, and 'if the ad fails' covers a game that isn't ready or a play that isn't confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without ads (feature_time), which has no cash value and can't be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is time in the app plus a loaded playable, both app events, and no chat content is needed."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea removes and caps nothing free; ads are hidden only temporarily and only as a reward, and 'removes nothing free' is yes."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The banner sits on s01 Home, which is rated safe, as app chrome. It is not in a conversation and not next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, an ad-free window is something the player uses in the observed core flows (f01 read a story, f02 browse a category), where ads appear on the feed and article screens. It is not a slice of a paid benefit, but it goes entirely to the player."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The only claim about the app today is that it shows ads, which m01 supports as an observed native ad placement. The revenue remark is a prediction and the banner, window and copy are what the proposal adds."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No subscription was observed. The reward is a 30-minute window that ends and is capped at 2 per day, and it takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "A dismissible banner on the Home feed doesn't interrupt a task in progress, so it works as a persistent surface the user can ignore or choose."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn rewarded playable. The reward is granted only on a confirmed play ('if the play is not confirmed, nothing changes'), and the trigger is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": false,
+  "reason": "Fail condition: the idea would read the same in any ad-supported app. 'The app shows ads' and 'a banner in the app' name no element of this app, such as the native ad card below the first story (m01) or the in-article Taboola unit, that the reward hides."
+ },
+ "other_concern": "Which network fills the ad slots varies by session (Taboola or direct cards), so it is unverified that the app can hide third-party Taboola units for a window. The 'note that one more break is available' on return is new copy with no placement stated.",
+ "fixable": true
+}

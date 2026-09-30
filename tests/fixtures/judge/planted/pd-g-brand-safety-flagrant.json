@@ -1,0 +1,36 @@
+{
+ "id": "pd-g-brand-safety-flagrant",
+ "target": "g_brand_safety",
+ "tier": "flagrant",
+ "one_liner": "The offer appears inside the Teacher chat, right under Luzia's last reply.",
+ "author": "aadi",
+ "expanded_by": "claude-opus-5-5",
+ "base": "kg-run-luzia-c05",
+ "change": {
+  "what_is_different_here": "The Luzia+ paywall (s02) lists 'Advanced reasoning mode' (s02.e03) as a paid feature, and Chats carries a Luzia+ badge (s01.e02). A returning free user sees a one-day, 3-answer sample of it inside the Teacher chat (s07), right under Luzia's last reply. The full feature stays behind the Weekly / Monthly / Annual plans and the 3-day trial (s02.e19).",
+  "trigger_event": "A user without Luzia+ opens the Teacher chat for the first time after 3 or more days with no session.",
+  "trigger_state_id": "s07",
+  "placement": "Inside the Teacher chat, right under Luzia's last reply.",
+  "frequency_cap": "1 per day, resets at midnight local time; shown only in the first Teacher chat after a 3+ day gap",
+  "decline_path": "Tapping 'Not now' closes the card. The chat works exactly as before, and the card does not return until the user's next gap of 3+ days.",
+  "flow_steps": [
+   {
+    "state_id": "s07",
+    "caption": "A user who hasn't opened Luzia in 3+ days opens the Teacher chat."
+   },
+   {
+    "state_id": "s07",
+    "caption": "Right under Luzia's last reply, a welcome-back card offers 3 answers in Advanced reasoning mode for a short game."
+   },
+   {
+    "state_id": "new:sponsored-game",
+    "caption": "The user plays a short sponsored game and can close it at any time."
+   },
+   {
+    "state_id": "s07",
+    "caption": "The card in the chat changes to '3 Advanced reasoning answers ready today. Ask away.'"
+   }
+  ],
+  "after_reward": "When the 3 answers are used or the day ends, a small note in the chat says Luzia+ keeps Advanced reasoning mode on every day and shows the 3-day free trial button. The user has just felt what they would be paying for."
+ }
+}

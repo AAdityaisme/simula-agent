@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c4-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the priority-routing reward before the optional game. The decline and ad-failure fields leave the menu usable and provide a retry path if verification fails."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field grants in-app priority routing, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is a return to the profile menu from the upgrade entry, not an inspection of chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The removes-nothing-free and decline fields leave existing access and normal reply speed unchanged."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile menu, a sheet rated content safe, rather than in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing-anchor idea, the reward is a slice of priority routing, which s02.e06 identifies as a Janitor+ benefit."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says users can skip a normal queue through earlier placement in line. The model supports priority routing for faster replies (s02.e06), but does not establish that queue or how routing places users in it."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The reward and 'when the reward runs out' fields make paid priority routing last for as long as the user keeps the app. That is lasting access to a subscription benefit, even though the reward is described as one grant."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger waits until the user returns from the upgrade entry, and the offer is placed in the profile menu rather than interrupting a chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable menu return. The ad-failure field withholds the reward when play is not verified."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses s09's Upgrade to Janitor Plus entry and the priority-routing benefit shown at s02.e06."
+ },
+ "other_concern": "",
+ "fixable": false
+}

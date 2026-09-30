@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-cash-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is opt-in via a button and the copy states the reward ($1 to PayPal). Declining leaves the pop-up and timer unchanged, and the 'if the ad fails' field hides the button or withholds payment."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The reward is '1 US dollars paid to the player's PayPal', which is real money and therefore cash."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is tapping Play at 0 lives, which is an app event, and no chat content is involved."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and it adds a button without locking or capping anything the app currently gives free."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The button sits in s02, a modal over the level map. Both are rated safe, and it is not a chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The app limits lives (m01) and sells them for gold bars (m02). The reward is $1, though, not lives, so the check is only weakly met; under the existing_anchor condition the app does limit the anchored resource."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about 5 lives, the 30-minute timer, and the gold-bar button match m01, m02, s02.e02 and s02.e03. The PayPal payout is the proposal's own new feature, not a claim about the app."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The app has no subscription, so nothing is given away."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears right after the player hits the limit, in the out-of-lives modal, which is a moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit triggered by a detectable app event (tapping Play at 0 lives) and paid only after the game counts as played, though the reward type is problematic."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the out-of-lives pop-up, the gold-bar button, the 5-life limit and the 30-minute timer, all specific to this app."
+ },
+ "other_concern": "The $1 payout per play, up to 3 a day, would likely cost more than it earns and undercuts gold bar sales. Life-based rewards would fit the anchor better.",
+ "fixable": false
+}

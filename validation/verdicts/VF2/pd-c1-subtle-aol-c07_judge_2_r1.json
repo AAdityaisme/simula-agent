@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c1-subtle-aol-c07",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the second-city reward and its seven-day duration before the optional game. The decline and ad-failure fields preserve the existing experience and provide a failed-verification path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a second city in the app's weather bar, not cash or a cash-like asset."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event counts taps on the Home weather bar; it does not use chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields leave the existing weather bar and feed available without playing."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in app chrome on s01, a content-safe Home screen, above the first story."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "The product-change reward is a second weather city, but checking another city's weather is not part of the observed core flows f01 (read a story) or f02 (browse a category). The model also records no paid benefit of which this is a slice."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says the weather bar shows one place and uses data the app already fetches. s01.e29 and the s01 screen description establish a weather bar, but neither supports those claims about its current behavior."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after seven days, and the product model records no subscription benefit that it gives away without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a card on the Home feed that the user can choose to engage with, rather than an interruption inside a story."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow grants the city after the sponsored game play is confirmed, and the trigger is a countable weather-bar tap event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal uses the weather bar identified by s01.e29 and specifies its position relative to the first story and feed ad slot."
+ },
+ "other_concern": "The proposal does not say what happens if someone plays again while their seven-day second city is still active.",
+ "fixable": false
+}

@@ -1,4 +1,5 @@
 {
+ "app_name": "Janitor AI",
  "app_version": "2.5.0",
  "app_category": "chat",
  "states": [
@@ -565,7 +566,7 @@
    "verbatim": "Hidden Gems show characters from smaller creators",
    "evidence": [
     "s01",
-    "￼Hidden Gems"
+    "Hidden Gems show"
    ]
   },
   {
