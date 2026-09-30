@@ -4,11 +4,11 @@ Mobile app → product model → clickable mock, measured against the real scree
 
 ## Start here
 
-simula-agent takes an installed Android app through exploration, a product model, a clickable mock and reviewed rewarded-ad flows, with no per-app code. <RUN: one sentence on the outcome>.
+simula-agent takes an installed Android app through exploration, a product model, a clickable mock and reviewed rewarded-ad flows, with no per-app code. Tonight's five runs cost $51.50: JanitorAI's deck draws 2 accepted ideas ($15.15) and Luzia's 3 ($10.69); AOL and Perplexity had nothing accepted, so each deck draws its closest idea, labelled not a recommendation ($20.93, $4.72); OOC showed its own "Emulator Detected" dialog and closed itself ($0).
 
 - **Recording** (10–15 min): <RECORDING>
 - **JanitorAI, the deep run:** [deck](runs/janitorai/20260929-203310-1f19585/flows/slides.pdf) · [clickable mock](runs/janitorai/20260929-203310-1f19585/qa/approved/index.html) (open it locally; GitHub shows HTML as source)
-- **Coverage:** <RUN: which apps ran and how far>. The main limitation: neither judge rubric met its bar, so an accepted idea is two models' call, and a split waits for a person.
+- **Coverage:** JanitorAI, Luzia, AOL and Perplexity ran all seven stages. JanitorAI's and Perplexity's explores are partial, JanitorAI's never reached a chat, and AOL's mock drew 39 of its 64 screens; OOC stopped at launch on the emulator. The main limitation: neither judge rubric met its bar, so an accepted idea is two models' call, and a split waits for a person.
 - **Evidence:** [Results](#results) · [Replay without keys or a device](#replay-without-keys-or-a-device)
 
 ## Results
@@ -19,7 +19,7 @@ Every run below ran on commit `1f19585` and is committed with its cache. Each ro
 |---|---|---|---|---|---|---|---|---|---|
 | JanitorAI | the deep run | `deep` | `runs/janitorai/20260929-203310-1f19585/` | All 7 stages done on a partial explore that never entered a conversation (it used its 3 relaunches and stopped at 41 of 80 actions; see Known limits); deck draws the 2 accepted ideas, 2 split ideas wait on Needs your call. QA approved: 488 of 488 tagged elements within 4 dp, 14 of 14 taps land, 6 of 6 core flows walk | 20 (explore partial, relaunch limit) | 8 → 2 / 2 / 4 (all 4 dropped by code: 3 duplicates, 1 claiming a payer benefit never observed; both accepted ideas passed after one revision) | $15.15 | 50 min (explore 13) | no |
 | Luzia | checks the system transfers | `transfer` | `runs/luzia/20260929-204554-1f19585/` | All 7 stages done; deck draws 3 ideas. QA partial: 198 of 198 tagged elements within 4 dp and 19 of 19 taps land, but 1 of 6 core flows fails (the mock's chat screen has no text field) | 15 (explore complete, 40-action cap) | 10 → 3 / 2 / 5 (one of the 5 a duplicate code dropped; 3 ideas revised once) | $10.69 | 30 min (explore 7) | no |
-| AOL | checks the system transfers | `transfer` | `runs/aol/<RUN>/` | <RUN> | <RUN> | <RUN> | <RUN> | <RUN> | <RUN> |
+| AOL | checks the system transfers | `transfer` | `runs/aol/20260929-205304-1f19585/` | All 7 stages ran; the deck draws one idea, c07, labelled as the closest idea and not a recommendation, since nothing was accepted; the other 3 splits wait on Needs your call. Mock and QA are partial, for three reasons printed at the top of the deck: the mock left 25 of 64 screens undrawn over its $ budget; core flows f2 and f6 go through undrawn screens; and the QA review stopped early because a model's answer was cut off. QA on the drawn screens: 699 of 700 tagged elements within 4 dp, 12 of 12 taps land, 3 of 6 core flows walk | 64 (explore complete, 40-action cap; a news app, so every article is a screen) | 9 → 0 / 4 / 5 (all 5 dropped by code as duplicates, one of them after a revision) | $20.93 | 93 min (explore 30) | no |
 | OOC | checks the system transfers | `transfer` | `runs/ooc/20260929-212755-1f19585/` | Blocked by the app: OOC showed its own "Emulator Detected" dialog ("Not allowed to launch the App on android emulator, app will get closed.") and closed itself, so explore stopped with 1 screen and 0 actions. No stages 2–7, since there was nothing of OOC to model. OOC needs a real device. *(Corrected 2026-09-29 21:55: an earlier version of this row said the phone showed the previous app and that the record didn't show the cause. The captured screen, `explore/states/s01`, is OOC's own dialog.)* | 1 (OOC's "Emulator Detected" dialog) | — | $0.00 | 15 s | — |
 | Perplexity | extra transfer evidence, outside the test set: nothing was built or tuned against it | `transfer` | `runs/perplexity/20260929-212810-1f19585/` | All 7 stages done on a partial explore (it used its 3 relaunches, and its core-loop pass found no core action). Nothing was accepted, so the deck draws the top split, c01, labelled as the closest idea and not a recommendation; the other 2 splits wait on Needs your call. QA approved: 91 of 91 tagged elements within 4 dp, 2 of 2 taps land, 4 of 5 core flows walk | 13 (explore partial, relaunch limit) | 4 → 0 / 3 / 1 (the reject depends on a busy queue the explore never saw, so both judges failed its evidence) | $4.72 | 27 min (explore 10) | no |
 
@@ -53,7 +53,7 @@ uv sync
 uv run playwright install chromium
 uv run simula run janitorai --run 20260929-203310-1f19585 --budget deep --from model --replay
 uv run simula run luzia --run 20260929-204554-1f19585 --from model --replay
-uv run simula run aol --run <RUN> --from model --replay
+uv run simula run aol --run 20260929-205304-1f19585 --from model --replay
 uv run simula run ooc --run 20260929-212755-1f19585 --from model --replay
 uv run simula run perplexity --run 20260929-212810-1f19585 --from model --replay
 ```
@@ -174,7 +174,7 @@ Each stage has a $ cap in `config/profiles.toml` (`[caps_usd]`); override one wi
 - **Spend outside a run:** `uv run simula note "what I fixed by hand" --usd 0.40` appends a line to `build/trace.jsonl`. With `--run ID`, it goes into that run's trace as a hand fix.
 - **`caps_usd` in `manifest.json`** is a copy of `[caps_usd]` from when the run was created. A stage runs under `--usd-cap` if given, else under `[caps_usd]` as it is when that stage runs, so a stage rerun later can have had a different cap than the manifest shows. Its spend is in its trace lines either way.
 
-**Spend.** The committed runs cost $<RUN> in API calls, summed from their traces. Everything billed to the APIs while building this came to about $<RUN>: Anthropic $<RUN>, OpenAI $<RUN>. That covers these runs, development runs, PR merge-gate runs on fixtures, and the judge validation. Writing and reviewing the code ran on Claude Max and ChatGPT subscriptions, which aren't billed per call.
+**Spend.** The committed runs cost $51.50 in API calls, summed from their traces: JanitorAI $15.15, Luzia $10.69, AOL $20.93, Perplexity $4.72, OOC $0.00. The two earlier JanitorAI attempts, not committed, cost $0.40 in explore calls. Writing and reviewing the code ran on Claude Max and ChatGPT subscriptions, which aren't billed per call.
 
 ## Safety and privacy
 
