@@ -259,6 +259,8 @@ def test_flat_crops_get_no_asset_and_wordless_corner_boxes_are_not_drawn(tmp_pat
     rng = np.random.default_rng(0)
     pixels = rng.integers(0, 256, (DEVICE.h_px, DEVICE.w_px, 3), dtype=np.uint8)
     pixels[800:900, 500:600] = (40, 40, 60)
+    pixels[1600:1700, 600:700] = (20, 90, 200)
+    pixels[1630:1670, 630:670] = (255, 255, 255)
     bottom = DEVICE.h_px - 195
 
     def element(n, kind, rect, label=""):
@@ -269,7 +271,8 @@ def test_flat_crops_get_no_asset_and_wordless_corner_boxes_are_not_drawn(tmp_pat
                 element(4, "ViewGroup", Rect(x=0, y=400, w=DEVICE.w_px, h=300)),
                 element(5, "ImageView", Rect(x=0, y=bottom, w=300, h=195)),
                 element(6, "ViewGroup", Rect(x=200, y=1200, w=300, h=300)),
-                element(7, "ViewGroup", Rect(x=0, y=bottom - 55, w=DEVICE.w_px, h=250))]
+                element(7, "ViewGroup", Rect(x=0, y=bottom - 55, w=DEVICE.w_px, h=250)),
+                element(8, "ViewGroup", Rect(x=600, y=1600, w=100, h=100))]
     state = State(id="s01", kind="screen", parent_id=None, name="", purpose="", fingerprint="", canonical_png="",
                   elements=elements, in_mock_scope=False, content_rating="safe", dynamic_regions=[],
                   blocked_reason=None)
@@ -277,10 +280,10 @@ def test_flat_crops_get_no_asset_and_wordless_corner_boxes_are_not_drawn(tmp_pat
     done = stage.finish_elements(state, {"s01"}, set(), Image.fromarray(pixels), tmp_path, DEVICE)
     assert [(e.id, bool(e.asset_png), e.in_mock) for e in done.elements] == [
         ("s01.e01", False, False), ("s01.e02", False, False), ("s01.e03", False, True),
-        ("s01.e04", True, True), ("s01.e05", True, True), ("s01.e06", True, True), ("s01.e07", True, True)], \
-        "a flat box is drawn from its colors, with no asset"
+        ("s01.e04", True, True), ("s01.e05", True, True), ("s01.e06", True, True), ("s01.e07", True, True),
+        ("s01.e08", True, True)], "a one-color box is drawn from its colors; a two-tone glyph keeps its crop"
     assert sorted(p.name for p in (tmp_path / "assets").iterdir()) == [
-        "s01.e04.png", "s01.e05.png", "s01.e06.png", "s01.e07.png"]
+        "s01.e04.png", "s01.e05.png", "s01.e06.png", "s01.e07.png", "s01.e08.png"]
 
 
 def test_a_box_crop_never_holds_text(app):

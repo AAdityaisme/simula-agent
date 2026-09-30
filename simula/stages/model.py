@@ -677,14 +677,15 @@ def edge_overlay(e: Element, device: Device) -> bool:
 
 
 def flat(crop: Image.Image) -> bool:
-    """Two colors or fewer: a fill the mock draws from the element's colors, not a picture worth an asset."""
-    return crop.getcolors(2) is not None
+    """One color: a solid fill the mock draws from the element's colors, not a picture worth an asset. Two colors can
+    already be a shape, such as a glyph on a tile, which only its crop keeps."""
+    return crop.getcolors(1) is not None
 
 
 def finish_elements(state: State, scope: set[str], tapped: set[str], image: Image.Image, out: Path,
                     device: Device) -> State:
     """Crops image assets and marks what the mock draws: every in-scope element with words or art, and every
-    element that starts an edge. Flat art (two colors or fewer) is drawn from its colors, with no asset. Tagging
+    element that starts an edge. Flat art (one color) is drawn from its colors, with no asset. Tagging
     only two items of a repeated list is the mock's job."""
     in_scope = state.id in scope
     elements = []
