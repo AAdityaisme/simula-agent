@@ -28,7 +28,7 @@ KEEP_FORMULA = (f"10 × ({' + '.join(f'{w} {term}' for term, w in WEIGHTS.items(
                 "is dropped and the rest reweighted. It picks the round QA keeps; it is not a fidelity percentage.")
 LOWEST_SHOWN = 3
 CLICK_TIMEOUT_MS = 1500
-TYPED = "hello"
+TYPED = "qa typing probe"
 GESTURE_MAP = "() => JSON.parse(document.getElementById('simula-actions')?.textContent || '{}')"
 CRITIC_SCREENS = 4
 PARALLEL_CRITICS = 4

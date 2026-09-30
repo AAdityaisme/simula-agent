@@ -37,7 +37,7 @@ class Device(Strict):
 
 # ---------- product model (stage 2) ----------
 
-StateKind = Literal["screen", "modal", "sheet", "external", "blocked"]
+StateKind = Literal["screen", "modal", "sheet", "external", "blocked", "rotated"]
 ContentRating = Literal["safe", "mixed", "unsafe", "unknown"]
 ElementSource = Literal["mcp", "vision"]
 EdgeAction = Literal["tap", "swipe", "back", "type"]
@@ -254,6 +254,34 @@ class HardScreenAction(Strict):
     element_id: str | None
     text: str | None
     direction: Literal["up", "down"] | None
+    reason: str
+
+
+class Arrival(Strict):
+    """Is the screen now the target screen, one action away from it, or elsewhere?"""
+    identifying_text: str = Field(description="The target's title or identifying text as read on the current screen, "
+                                              "or an empty string when it is not there.")
+    verdict: Literal["same", "one_action", "elsewhere"]
+    confidence: float
+    action: Literal["tap", "back", "swipe"] | None
+    element_id: str | None
+    direction: Literal["up", "down"] | None
+    side_effect: bool = Field(description="The current screen shows that the last action created or changed "
+                                          "something the goal did not ask for.")
+    reason: str
+
+
+class WalkPick(Strict):
+    """Is the control that starts the core action on screen, and which one?"""
+    on_screen: bool
+    element_id: str | None
+    confidence: float
+    reason: str
+
+
+class Progress(Strict):
+    """While the screen keeps changing after an action: is the work still going, done, or stuck?"""
+    verdict: Literal["progressing", "finished", "stalled"]
     reason: str
 
 
@@ -497,6 +525,8 @@ class StateFile(Strict):
     settle_seconds: float
     dynamic_regions: list[Rect] = Field(description="Device px.")
     captured_at: str
+    box: Rect | None = Field(None, description="Device px. A modal's or sheet's own box over its parent; None for "
+                                               "every other kind.")
     icon_labels: list[IconLabel] = []
     vision_elements: list[VisionElement] = []
     blocked_reason: str | None = None
@@ -760,5 +790,5 @@ class Manifest(Strict):
     fallbacks_used: list[str] = []
 
 
-MODEL_FACING = [ModelMeaning, IconPass, HardScreenAction, Critique, Edits, LensOutput, BenefitNames, Verdict,
-                PairwisePick]
+MODEL_FACING = [ModelMeaning, IconPass, HardScreenAction, Arrival, WalkPick, Progress, Critique, Edits, LensOutput,
+                BenefitNames, Verdict, PairwisePick]

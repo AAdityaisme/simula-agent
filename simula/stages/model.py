@@ -655,7 +655,7 @@ def mock_scope(states: list[State], edges: list[Edge], meaning: ModelMeaning) ->
     # A flow modal keeps its parent even when that parent is unsafe, since a gap would break the flow: the mock draws
     # exactly this scope (nothing blurs it), and propose never triggers an offer on an unsafe screen.
     on_flow = {layer for sid in flow_states for layer in layers(sid)}
-    eligible = {s.id for s in states if s.kind not in ("blocked", "external")
+    eligible = {s.id for s in states if s.kind not in ("blocked", "external", "rotated")
                 and (s.content_rating != "unsafe" or s.id in on_flow)}
     first = sorted(meaning.mechanics, key=lambda m: m.kind not in SCOPE_KINDS)
     mechanic_states = [i.split(".")[0] for m in first for i in m.evidence_ids]
@@ -886,7 +886,7 @@ def run(ctx: Ctx) -> None:
     name_limit = (answer_tokens - ANSWER_RESERVE_TOKENS) // TOKENS_PER_NAME
     dump = describe(states, edges, ctx.app, device, name_limit, experience)
     shots = [(s.id, png_bytes(content_png(images[s.id], device)))
-             for s in states if s.kind != "external"][:MAX_IMAGES]
+             for s in states if s.kind not in ("external", "rotated")][:MAX_IMAGES]
     meaning, rounds = understand(ctx, dump, shots, states, edges)
 
     states = apply_meaning(states, meaning, config.profiles()["content"]["adult_keywords"])

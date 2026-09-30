@@ -52,16 +52,24 @@ class Ctx:
     allow_fixtures: bool
     budget: str = "transfer"
     allow_account_create: bool = False
-    no_send: bool = True
+    no_send: bool = False
+    device: str | None = None
+
+
+
+class NotStarted(Exception):
+    """A stage stopped before it changed anything (no device, a lock another run holds): its last record stands."""
 
 
 def run_options(ctx: Ctx) -> str:
     """The run and the options it was opened with, so a printed resume command reruns it the same way: every option
-    a stage hashes, the opt-ins, and an overridden $ cap. --no-cache and --replay are modes of one command, not of the
-    run. A line that raises the cap passes a ctx with usd_cap=None and adds its own --usd-cap."""
+    a stage hashes, the opt-ins, the device, and an overridden $ cap. --no-cache and --replay are modes of one
+    command, not of the run. A line that raises the cap passes a ctx with usd_cap=None and adds its own --usd-cap."""
     return " ".join([f"--run {ctx.run_dir.name}", f"--profile {ctx.profile}", f"--budget {ctx.budget}",
                      *(["--allow-fixtures"] if ctx.allow_fixtures else []),
                      *(["--allow-account-create"] if ctx.allow_account_create else []),
+                     *(["--no-send"] if ctx.no_send else []),
+                     *([f"--device {ctx.device}"] if ctx.device else []),
                      *([f"--usd-cap {ctx.usd_cap}"] if ctx.usd_cap is not None else [])])
 
 

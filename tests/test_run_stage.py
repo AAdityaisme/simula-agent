@@ -499,12 +499,13 @@ def test_os_metadata_in_a_loader_folder_is_neither_hashed_nor_blocking(runs, che
 # ---------- a printed resume command reopens the run with the options it ran under ----------
 
 def reopened(command: str):
-    """The run a printed command opens, read by the CLI's own parser."""
-    return cli.open_run(cli.parser().parse_args(shlex.split(command)[1:]))
+    """The run a printed command opens, read by the CLI's own parser, which stops at a `#` comment as a shell does."""
+    return cli.open_run(cli.parser().parse_args(shlex.split(command, comments=True)[1:]))
 
 
 @pytest.mark.parametrize("flag", [["--profile", "dev"], ["--budget", "deep"], ["--allow-account-create"],
-                                  ["--usd-cap", "12.3456789"]], ids=["profile", "budget", "account_create", "usd_cap"])
+                                  ["--usd-cap", "12.3456789"], ["--no-send"], ["--device", "emulator-5556"]],
+                         ids=["profile", "budget", "account_create", "usd_cap", "no_send", "device"])
 def test_a_partial_stages_resume_parses_back_to_the_options_it_ran_under(runs, monkeypatch, quiet, flag):
     reports = [StageOutcome(status="partial", reasons=["2 of 24 taps failed"])]
     mock_that(monkeypatch, lambda ctx: reports.pop(0) if reports else None)
@@ -513,7 +514,17 @@ def test_a_partial_stages_resume_parses_back_to_the_options_it_ran_under(runs, m
     run_dir = latest(runs)
     ran = cli.open_run(cli.parser().parse_args([*command, "--run", run_dir.name]))
     again = reopened(runfolder.read_done(run_dir / "mock").outcome.resume)
-    assert again.run_dir == run_dir and again.usd_cap == ran.usd_cap
+    assert again.run_dir == run_dir and (again.usd_cap, again.no_send, again.device) == (ran.usd_cap, ran.no_send,
+                                                                                         ran.device)
+    assert {s: cli.stage_params(s, again) for s in STAGES} == {s: cli.stage_params(s, ran) for s in STAGES}
+
+
+def test_explores_continue_command_parses_back_to_the_options_it_ran_under(runs):
+    from simula.stages import explore
+    ran = cli.open_run(cli.parser().parse_args(["explore", "janitorai", "--new", "--profile", "dev", "--budget", "deep",
+                                                "--no-send", "--device", "emulator-5556", "--usd-cap", "1.5"]))
+    again = reopened(explore.rerun(ran))
+    assert again.run_dir == ran.run_dir and (again.no_send, again.device, again.usd_cap) == (True, "emulator-5556", 1.5)
     assert {s: cli.stage_params(s, again) for s in STAGES} == {s: cli.stage_params(s, ran) for s in STAGES}
 
 

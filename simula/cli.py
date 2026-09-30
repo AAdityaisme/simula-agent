@@ -10,7 +10,7 @@ from simula import checkout, config, runfolder, runlog
 from simula.config import ROOT, STAGES
 from simula.contracts import Manifest, Provenance, StageOutcome
 from simula.llm import CapReached, ProviderUnavailable, ReplayMiss, split_key
-from simula.stages import EXTRA_INPUTS, ROLES, UPSTREAM, Ctx, rerun_command, resume_command
+from simula.stages import EXTRA_INPUTS, ROLES, UPSTREAM, Ctx, NotStarted, rerun_command, resume_command
 
 EXIT_NOT_BUILT, EXIT_CAP, EXIT_PROVIDER = 3, 4, 5
 # These parse their own options in simula.validate; `simula <command> -h` lists them.
@@ -38,7 +38,7 @@ def stage_params(stage: str, ctx: Ctx) -> dict:
     roles = config.roles(ctx.profile)
     return {"app": ctx.app, "profile": ctx.profile, "roles": {r: roles[r] for r in ROLES[stage]},
             "economics_mode": config.profiles()["economics_mode"] if stage in ("propose", "judge", "flows") else None,
-            "no_send": ctx.no_send,
+            "no_send": ctx.no_send if stage == "explore" else None,
             "budget": config.budget(ctx.budget) if stage == "explore" else None,
             "allow_account_create": ctx.allow_account_create if stage == "explore" else None}
 
@@ -60,7 +60,7 @@ def new_manifest(run_dir: Path, app: dict, args, provenance: Provenance) -> Mani
         prompt_hashes={str(p.relative_to(ROOT)): runfolder.sha256(p) for p in sorted((ROOT / "prompts").rglob("*.md"))},
         app_package=app["package"], app_version=None, mobile_mcp_version=checkout.mobile_mcp_version(),
         playwright_version=checkout.package_version("playwright"), caps_usd=config.profiles()["caps_usd"],
-        no_send=True, provenance=provenance, stages_done=[], usd_total=0.0,
+        no_send=args.no_send, provenance=provenance, stages_done=[], usd_total=0.0,
     )
 
 
@@ -87,6 +87,16 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
         raise SystemExit(f"{stage} can't run: {problem}")
     provenance = runfolder.upstream_provenance(ctx.run_dir, UPSTREAM[stage])
     runfolder.require_real(provenance, ctx.allow_fixtures)
+    marker = runlog.read_marker(ctx.run_dir, stage) if stage == "explore" and not force else None
+    built = built_on(ctx.run_dir) if marker else []
+    if marker and (marker.outcome.status == "complete" or built):
+        # explore has no resume: exploring again replaces the screens every later stage was built from
+        why = "a complete explore is reused as it is" if marker.outcome.status == "complete" else (
+            f"a partial explore ({'; '.join(marker.outcome.reasons)}) is reused, since {', '.join(built)} "
+            f"{'is' if len(built) == 1 else 'are'} built on it")
+        runlog.run_trace(ctx.run_dir, stage=stage, step="skip", decider="code",
+                         note=f"{why}; --new or --from explore explores again")
+        return True
     inputs, prompts, params = stage_inputs(stage, ctx), prompt_files(stage), stage_params(stage, ctx)
     code = runfolder.code_files(stage)
     if not force and runfolder.is_done(runlog.read_marker(ctx.run_dir, stage), ctx.run_dir, inputs, prompts, params,
@@ -97,23 +107,26 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     stage_dir.mkdir(exist_ok=True)
     # A live rerun's old marker no longer holds. --replay holds the committed one instead, and every exit that doesn't
     # write a new marker puts it back (failed), so a replay never costs a run its committed record.
+    # A stage that never starts (NotStarted) puts it back too.
     marker, committed = stage_dir / "done.json", None
-    if ctx.replay:
-        try:
-            committed = (marker.read_text(), marker.stat())
-        except (OSError, ValueError):  # none, or one that can't be read: nothing to keep, and the stage writes anew
-            pass
-    else:
+    try:
+        committed = (marker.read_text(), marker.stat())
+    except (OSError, ValueError):  # none, or one that can't be read: nothing to keep, and the stage writes anew
+        pass
+    if not ctx.replay:
         marker.unlink(missing_ok=True)
+
+    def restore() -> None:
+        runfolder.write_json_atomic(marker, committed[0])
+        os.utime(marker, ns=(committed[1].st_atime_ns, committed[1].st_mtime_ns))
 
     def failed(reason: str) -> None:
         """Records why the stage stopped, in a folder the stage may have removed (QA's rmtree). Under --replay the
         committed marker goes back as it was, its time included, before the newer failure.json, so it stays on disk
         and counts as not done, in the manifest too, whose usd_total then counts what the stage spent."""
         stage_dir.mkdir(parents=True, exist_ok=True)
-        if committed:
-            runfolder.write_json_atomic(marker, committed[0])
-            os.utime(marker, ns=(committed[1].st_atime_ns, committed[1].st_mtime_ns))
+        if committed and ctx.replay:
+            restore()
         runfolder.write_failure(stage_dir, reason)
         runlog.sync_manifest(ctx.run_dir)  # the restored marker counts as not done, and the stage's spend counts
     runlog.sync_manifest(ctx.run_dir)
@@ -153,6 +166,13 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
         runlog.needs_human(ctx.run_dir, stage, "the model provider is refusing calls", str(e),
                            [f"{stage}/failure.json"], resume_command(ctx, stage, e))
         raise
+    except NotStarted as e:
+        if committed:
+            restore()
+        runlog.sync_manifest(ctx.run_dir)
+        runlog.run_trace(ctx.run_dir, stage=stage, step="run", decider="code", outcome="blocked",
+                         note=f"did not start, so the last {stage} stands: {e}"[:300])
+        raise SystemExit(f"{stage} did not start: {e}") from None
     except BaseException as e:
         # Every other exit, SystemExit, Ctrl-C and a failed record included, still leaves a failure record; then it
         # propagates.
@@ -209,10 +229,27 @@ def open_run(args) -> Ctx:
     runlog.sync_manifest(run_dir)  # heals a manifest an earlier command failed to update
     return Ctx(app=app, run_dir=run_dir, profile=args.profile, no_cache=args.no_cache, replay=args.replay,
                usd_cap=args.usd_cap, allow_fixtures=args.allow_fixtures, budget=args.budget,
-               allow_account_create=args.allow_account_create)
+               allow_account_create=args.allow_account_create, no_send=args.no_send, device=args.device)
+
+
+def built_on(run_dir: Path) -> list[str]:
+    """The later stages whose marker holds, all built on this run's explore."""
+    return [s for s in STAGES[1:] if runlog.read_marker(run_dir, s)]
+
+
+def built_on_latest_explore(app: str) -> list[str]:
+    latest = runfolder.RUNS / app / "latest"
+    return built_on(latest.resolve()) if latest.exists() else []
 
 
 def cmd_stage(args) -> int:
+    replacing = args.command == "explore" and not args.new and args.run is None
+    built = built_on_latest_explore(args.app) if replacing else []
+    if built:
+        print(f"the latest {args.app} run has {', '.join(built)} built on its explore, "
+              "so explore won't replace it: add --new for a new run, or --run ID to replace that run's explore",
+              file=sys.stderr)
+        return 2
     ctx = open_run(args)
     return 0 if run_stage(args.command, ctx, force=True) else EXIT_NOT_BUILT
 
@@ -256,6 +293,9 @@ def add_run_flags(p: argparse.ArgumentParser) -> None:
                    help="exploration size: deep = 80 actions / 25 min, transfer = 40 / 12")
     p.add_argument("--allow-account-create", action="store_true",
                    help="let the explorer create a guest account if the app asks for one")
+    p.add_argument("--no-send", action="store_true", help="explore without the core-loop pass (sends nothing)")
+    p.add_argument("--device", metavar="SERIAL", help="adb serial to explore on (default: ANDROID_SERIAL, "
+                                                      "else the only device online)")
     p.add_argument("--allow-fixtures", action="store_true", help="accept fixture inputs (test data only)")
     p.add_argument("--fixture", action="append", metavar="STAGE=PATH",
                    help="the only way a fixture enters a run: seeds a stage folder in the run this call "
@@ -273,6 +313,8 @@ def parser() -> argparse.ArgumentParser:
     for stage in STAGES:
         s = sub.add_parser(stage, help=f"run the {stage} stage")
         add_run_flags(s)
+        if stage == "explore":
+            s.add_argument("--new", action="store_true", help="explore into a new run folder")
         s.set_defaults(func=cmd_stage)
 
     r = sub.add_parser("run", help="chain all seven stages; skips a stage whose hashes still match")
