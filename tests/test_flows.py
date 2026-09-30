@@ -747,10 +747,10 @@ def test_default_selection_is_every_accept_first_then_conditional_by_rank_at_mos
 
 
 
-def split_run(tmp_path, approvals: dict | None = None):
+def split_run(tmp_path, approvals: dict | None = None, changes: dict | None = None):
     """A seeded run whose c02 the judges split on, with pd-c7-subtle's committed r1 verdicts under VF': judge_1 fails
     C7 and passes C5, judge_2 the reverse. c01 is accepted."""
-    run_dir = seed_run(tmp_path, "luzia")
+    run_dir = seed_run(tmp_path, "luzia", changes)
     saved = validate.load_runs(validate.VERDICTS / "VF2")
     paths = [f"judge/verdicts/c02_{who}_r1.json" for who in validate.JUDGES]
     for path, who in zip(paths, validate.JUDGES):
@@ -860,14 +860,65 @@ def test_with_no_accept_holding_the_closest_idea_draws_no_replacement(tmp_path):
     assert "2 idea(s) split the reviewers" in review and "No idea passed the review" not in review
 
 
+def select_note(run_dir) -> str:
+    return next(line.note for line in read_trace(run_dir / "trace.jsonl") if line.step == "select")
+
+
 def test_the_reviews_cover_names_a_persons_hold_of_a_split_waiting_on_them_but_not_of_a_reject(tmp_path):
-    run_dir, calls = split_run(tmp_path / "reject", approvals={"hold": ["c03"]})  # c03 was rejected, so never drawn
-    assert calls == ["c01"] and "held" not in cover_of(review_text(run_dir))
     run_dir, calls = split_run(tmp_path / "split", approvals={"hold": ["c02"]})
     review = review_text(run_dir)
     assert calls == ["c01"] and "Needs your call" not in review
     assert "A person held c02 out of the deck in flows/approvals.json." in cover_of(review)
     assert "split the reviewers" not in cover_of(review)
+    assert select_note(run_dir) == "accepted + conditional, flows/approvals.json holding c02: c01"
+
+
+@pytest.mark.parametrize("approvals, effect", [
+    ({"hold": ["c03"]}, "holding c03, which the judges didn't pass"),  # c03 was rejected, so never drawn
+    ({"promote": ["c01"]}, "promoting c01, which the judges passed already"),
+])
+def test_an_override_that_changes_nothing_is_reported_as_no_effect_never_as_applied(tmp_path, approvals, effect):
+    run_dir, calls = split_run(tmp_path, approvals=approvals)
+    assert calls == ["c01"] and "held" not in cover_of(review_text(run_dir))
+    assert select_note(run_dir) == f"accepted + conditional: c01; needs your call: c02; no effect: {effect}"
+    assert f"no effect: {effect}" in (run_dir / "exhibits" / "07-flows.md").read_text()
+
+
+def test_a_hold_past_the_cap_is_reported_as_past_the_cap_not_as_taking_an_idea_out(tmp_path, monkeypatch):
+    """c01 and c02 both pass; with a cap of 1 the deck draws c01 only, so holding c02 changes nothing."""
+    monkeypatch.setattr(flows.stage, "MAX_IDEAS", 1)
+    run_dir = seed_run(tmp_path, "luzia")
+    (run_dir / "flows").mkdir()
+    (run_dir / "flows" / "approvals.json").write_text('{"hold": ["c02"]}')
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(llm, "call", fake_editor(run_dir))
+        flows.stage.run(ctx_for(run_dir, "luzia"))
+    cover = cover_of(review_text(run_dir))
+    assert ("A person held c02 in flows/approvals.json, past the deck's cap of 1, so the deck would have left it out "
+            "anyway.") in cover and "out of the deck in" not in cover
+    assert select_note(run_dir) == ("accepted + conditional: c01; no effect: holding c02, which the cap of 1 leaves "
+                                    "out anyway")
+
+
+def test_a_promoted_split_that_cant_be_drawn_is_named_as_a_persons_approval_not_as_one_that_passed(tmp_path):
+    one_step = candidate(golden("luzia")).flow_steps[:1]
+    run_dir, calls = split_run(tmp_path, approvals={"promote": [APPROVED_C02]},
+                               changes={"c02": {"flow_steps": one_step}})
+    cover = cover_of(review_text(run_dir))
+    assert calls == ["c01"] and "passed the review but couldn't be drawn" not in cover
+    assert "1 idea(s) the reviewers split on were approved by a person but couldn't be drawn" in cover
+
+
+def test_an_approval_that_doesnt_hold_on_the_closest_idea_is_named_on_the_reviews_cover(tmp_path):
+    """run3's top split c02 is drawn as the closest idea; an approval naming a check the reviewers no longer split on
+    is set aside, and since c02 isn't on Needs your call, the review's cover says so."""
+    run_dir, calls = run3(tmp_path, {"promote": [{"id": "c02", "splits": ["c1_revealed_value"]}]})
+    assert calls == ["c02"]
+    assert ("The approval of c02 in flows/approvals.json doesn't hold (the reviewers' disagreement changed since your "
+            "approval), so it is treated as the closest idea, not as a person's approval.") in \
+        cover_of(review_text(run_dir))
+    why = {(idea, part): " ".join(text.split()) for idea, part, text in slides(run_dir)}[("c02", "why")]
+    assert "Closest idea:" in why and "Approved by a person" not in why
 
 
 APPROVED_C02 = {"id": "c02", "splits": ["c5_moment", "c7_specific"]}

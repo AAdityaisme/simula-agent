@@ -252,12 +252,13 @@ def cover_html(app: str, flows: list[dict], *, fallbacks: int = 0) -> str:
 
 
 def review_cover_html(app: str, flows: list[dict], *, cap: int, unbuilt: int = 0, fallbacks: int = 0,
-                      unbuilt_fallbacks: int = 0, cut: int = 0, calls: int = 0, approved: int = 0,
-                      held: list[str] = (), status: list[str] = ()) -> str:
+                      unbuilt_fallbacks: int = 0, unbuilt_approved: int = 0, cut: int = 0, calls: int = 0,
+                      approved: int = 0, held: list[str] = (), held_past_cap: list[str] = (),
+                      set_aside: dict[str, str] | None = None, status: list[str] = ()) -> str:
     """The review's overview: which ideas the product team's deck draws, whether an idea is only the judge's fallback
     pick (drawn, or not drawn), how many survivors past the cap of `cap` were left out, what a person approved or
-    held, and status lines for anything an earlier stage couldn't finish. `unbuilt` counts only ideas that passed the
-    review."""
+    held and which of their approvals don't hold, and status lines for anything an earlier stage couldn't finish.
+    `unbuilt` counts only ideas that passed the review; `unbuilt_approved` the splits a person approved."""
     drawn = ", ".join(f["candidate"].id for f in flows) or "no idea"
     notes = [f"The product team's deck, flows/slides.pdf, draws {drawn}."]
     if fallbacks and unbuilt_fallbacks:
@@ -273,14 +274,22 @@ def review_cover_html(app: str, flows: list[dict], *, cap: int, unbuilt: int = 0
     if unbuilt:
         notes.append(f"{unbuilt} {'more ' if flows else ''}idea(s) passed the review but couldn't be drawn; the score "
                      "pages say why.")
+    if unbuilt_approved:
+        notes.append(f"{unbuilt_approved} idea(s) the reviewers split on were approved by a person but couldn't be "
+                     "drawn; the score pages say why.")
     if approved:
         notes.append(f"{approved} idea(s) the reviewers split on are drawn because a person approved them.")
+    notes += [f"The approval of {i} in flows/approvals.json doesn't hold ({why}), so it is treated as the closest "
+              "idea, not as a person's approval." for i, why in (set_aside or {}).items()]
     if held:
         notes.append(f"A person held {', '.join(held)} out of the deck in flows/approvals.json.")
+    if held_past_cap:
+        notes.append(f"A person held {', '.join(held_past_cap)} in flows/approvals.json, past the deck's cap of {cap}, "
+                     "so the deck would have left it out anyway.")
     if calls:
         notes.append(f"{calls} idea(s) split the reviewers, so they aren't drawn; the Needs your call page at the end "
                      "lists them.")
-    if not flows and not unbuilt and not unbuilt_fallbacks and not calls and not held:
+    if not flows and not unbuilt and not unbuilt_fallbacks and not unbuilt_approved and not calls and not held:
         notes.append("No idea passed the review. The score pages show every idea's score and why.")
     body = "".join(f"<p class='how'>{escape(n)}</p>" for n in [*notes, *status])
     return f'<section class="slide cover"><h1>Simula\'s review for {escape(app)}</h1>{body}</section>'
@@ -403,17 +412,22 @@ def deck(ctx: Ctx, model: ProductModel, flows: list[dict], decisions: list[Decis
 def review(ctx: Ctx, model: ProductModel, flows: list[dict], not_built: list[tuple[Decision, str]],
            decisions: list[Decision], candidates: dict[str, Candidate], *, cap: int, cut: int = 0,
            waiting: list[Decision] = (), set_aside: dict[str, str] | None = None, held: list[str] = (),
-           promoted: list[str] = ()) -> str:
+           held_past_cap: list[str] = (), promoted: list[str] = ()) -> str:
     """Simula's own review, kept out of the product team's deck: its cover, every idea's score, and Needs your call.
-    `held` names the accepted and CONDITIONAL ideas a person held, whether the deck would draw them or they'd wait on
-    Needs your call."""
+    `held` names the ideas a person's hold took out of the deck or off Needs your call; `held_past_cap` the ones the
+    cap left out anyway."""
     app = app_title(model, ctx.app["name"])
     none_accepted = not any(d.final == "accept" for d in decisions)
     fallbacks = sum(closest(f["decision"], ctx.run_dir, none_accepted, f.get("approved", False)) for f in flows)
     unbuilt_fallbacks = sum(closest(d, ctx.run_dir, none_accepted, d.candidate_id in promoted) for d, _ in not_built)
-    slides = [review_cover_html(app, flows, cap=cap, unbuilt=len(not_built) - unbuilt_fallbacks, fallbacks=fallbacks,
-                                unbuilt_fallbacks=unbuilt_fallbacks, cut=cut, calls=len(waiting),
+    unbuilt_approved = sum(needs_call(d) and d.candidate_id in promoted for d, _ in not_built)
+    asked = {d.candidate_id for d in waiting}  # a set-aside approval there says why on Needs your call
+    slides = [review_cover_html(app, flows, cap=cap, unbuilt=len(not_built) - unbuilt_fallbacks - unbuilt_approved,
+                                fallbacks=fallbacks, unbuilt_fallbacks=unbuilt_fallbacks,
+                                unbuilt_approved=unbuilt_approved, cut=cut, calls=len(waiting),
                                 approved=sum(f.get("approved", False) for f in flows), held=held,
+                                held_past_cap=held_past_cap,
+                                set_aside={i: why for i, why in (set_aside or {}).items() if i not in asked},
                                 status=unfinished_stages(ctx.run_dir))]
     slides += score_slides(decisions, candidates, not_built, ctx.run_dir)
     slides += call_slides(waiting, candidates, ctx.run_dir, set_aside)

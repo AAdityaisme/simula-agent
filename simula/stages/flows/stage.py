@@ -97,6 +97,15 @@ def select(decisions: list[Decision], promoted: list[str] = (), held: list[str] 
     return survivors(decisions, promoted, held)[:MAX_IDEAS]
 
 
+def hold_effects(decisions: list[Decision], promoted: list[str], held: list[str]) -> tuple[list[str], ...]:
+    """The held ids three ways: taken out of the deck or off Needs your call; past the cap of MAX_IDEAS, so the deck
+    would have left them out anyway; and never passed by the judges, so never drawn."""
+    past = [d.candidate_id for d in survivors(decisions, promoted)][MAX_IDEAS:]
+    passed = {d.candidate_id for d in decisions if d.final in SURVIVED}
+    return ([i for i in held if i in passed and i not in past], [i for i in held if i in past],
+            [i for i in held if i not in passed])
+
+
 def mock_source(run_dir: Path) -> Path:
     approved = run_dir / "qa" / "approved"
     return approved if (approved / "index.html").exists() else run_dir / "mock"
@@ -290,12 +299,19 @@ def run(ctx: Ctx) -> None:
     kept = {d.candidate_id for d in survivors(decisions, promoted, held)}
     cut = survivors(decisions, promoted, held)[MAX_IDEAS:]  # an approved split past the cap is cut, not asked again
     waiting = [d for d in ordered(decisions) if needs_call(d) and d.candidate_id not in kept | set(held)]
-    overrides = [f"{verb} {' '.join(ids)}" for verb, ids in (("promoting", promoted), ("holding", held)) if ids]
-    chosen_from = "accepted + conditional" + (f", flows/approvals.json {' and '.join(overrides)}" if overrides else "")
+    held_out, held_past_cap, held_idle = hold_effects(decisions, promoted, held)
+    splits = {d.candidate_id for d in decisions if needs_call(d)}
+    applied = [f"{verb} {' '.join(ids)}" for verb, ids in (("promoting", [i for i in promoted if i in splits]),
+                                                           ("holding", held_out)) if ids]
+    idle = ([f"promoting {i}, which the judges passed already" for i in promoted if i not in splits]
+            + [f"holding {i}, which the cap of {MAX_IDEAS} leaves out anyway" for i in held_past_cap]
+            + [f"holding {i}, which the judges didn't pass" for i in held_idle])
+    chosen_from = "accepted + conditional" + (f", flows/approvals.json {' and '.join(applied)}" if applied else "")
+    no_effect = f"; no effect: {'; '.join(idle)}" if idle else ""
     past_cap = f"; past the cap of {MAX_IDEAS}, not drawn: {' '.join(d.candidate_id for d in cut)}" if cut else ""
     calls = f"; needs your call: {' '.join(d.candidate_id for d in waiting)}" if waiting else ""
     run_trace(run_dir, stage="flows", step="select", decider="code",
-              note=f"{chosen_from}: {' '.join(d.candidate_id for d in chosen) or 'none'}{past_cap}{calls}")
+              note=f"{chosen_from}: {' '.join(d.candidate_id for d in chosen) or 'none'}{past_cap}{calls}{no_effect}")
     source = mock_source(run_dir)
     page = strip_runtime((source / "index.html").read_text())
     budget = llm.Budget.for_stage("flows", run_dir / "trace.jsonl", ctx.usd_cap)
@@ -316,12 +332,11 @@ def run(ctx: Ctx) -> None:
     for flow in flows:  # a drawn split is either a person's approval or, with nothing accepted, the closest idea
         flow["approved"] = needs_call(flow["decision"]) and flow["decision"].candidate_id in promoted
     (out / "slides.html").write_text(deck(ctx, model, flows, decisions))
-    decided = [d.candidate_id for d in ordered(decisions) if d.candidate_id in held and d.final in SURVIVED]
     (out / "review.html").write_text(review(ctx, model, flows, not_built, decisions, candidates, cap=MAX_IDEAS,
-                                            cut=len(cut), waiting=waiting, set_aside=set_aside, held=decided,
-                                            promoted=promoted))
+                                            cut=len(cut), waiting=waiting, set_aside=set_aside, held=held_out,
+                                            held_past_cap=held_past_cap, promoted=promoted))
     layout = write_pdf(out / "slides.html") + [f"review: {p}" for p in write_pdf(out / "review.html")]
     for problem in layout:
         run_trace(run_dir, stage="flows", step="layout", decider="code", outcome="error", note=problem[:300])
     usd = sum(line.usd for line in read_trace(run_dir / "trace.jsonl") if line.stage == "flows")
-    write_exhibit(run_dir, 7, "flows", exhibit(flows, not_built, chosen_from, source, run_dir, usd, layout))
+    write_exhibit(run_dir, 7, "flows", exhibit(flows, not_built, chosen_from + no_effect, source, run_dir, usd, layout))
