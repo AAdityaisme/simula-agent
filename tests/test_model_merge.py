@@ -6,6 +6,7 @@ import json
 import re
 
 import pytest
+import regex
 from anthropic.lib._parse._transform import transform_schema
 from openai.lib._pydantic import to_strict_json_schema
 from pydantic import ValidationError
@@ -624,7 +625,7 @@ def test_a_long_name_is_cut_between_words_or_drawn_characters(name, short):
 def test_every_arrow_on_the_map_is_short(name):
     """A map arrow named a tap with the element's whole text: AOL's whole headlines, JanitorAI's character sheets."""
     labels = re.findall(r"-->\|\w+: ([^|]*)\|", stage.render_md(golden(name)))
-    assert labels and max(map(len, labels)) <= stage.LABEL_CHARS + 1
+    assert labels and max(len(regex.findall(r"\X", label)) for label in labels) <= stage.LABEL_CHARS + 1
 
 
 # Guesses built from PR 2's real screens (red team D): the model's own meaning and used_in, with these citations.
