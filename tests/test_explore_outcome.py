@@ -341,3 +341,11 @@ def test_an_explore_whose_paywall_pass_stopped_early_is_partial(tmp_path, monkey
     ex, phone, outcome = explored(tmp_path, monkeypatch, janitor_like, paywall_pass=paywall_pass)
     assert ex.core_completed == ex.core_reps and outcome.status == "partial"
     assert outcome.reasons == ["the paywall pass stopped early (Stop: the upsell screen could not be reached)"]
+
+
+def test_an_explore_whose_replay_check_stopped_early_is_partial(tmp_path, monkeypatch):
+    def verify_replay():
+        raise stage.Stop("the recorded screen could not be reached")
+    ex, phone, outcome = explored(tmp_path, monkeypatch, janitor_like, verify_replay=verify_replay)
+    assert ex.core_completed == ex.core_reps and outcome.status == "partial"
+    assert outcome.reasons == ["the replay check stopped early (Stop: the recorded screen could not be reached)"]

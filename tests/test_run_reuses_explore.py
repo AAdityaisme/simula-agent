@@ -3,7 +3,7 @@ finished explore as it is: only --new or --from explore explores again."""
 
 import pytest
 
-from simula import cli, runfolder
+from simula import cli, runfolder, runlog
 from simula.contracts import Coverage, Device, ExploreFile, Provenance, StageOutcome
 from simula.runlog import read_manifest, read_trace
 from simula.stages import model
@@ -64,6 +64,45 @@ def test_run_explores_again_when_the_last_explore_was_partial(runs):
     trace = read_trace(run_dir / "trace.jsonl")
     assert not (run_dir / "explore" / "explore.json").exists() and trace[-1].outcome == "not_built"
     assert not any(line.stage == "explore" and line.step == "skip" for line in trace)
+
+
+def model_built_on(run_dir):
+    (run_dir / "model").mkdir(exist_ok=True)
+    runfolder.write_done(run_dir / "model", run_dir, [], [], {}, [run_dir / "model"],
+                         Provenance(source="explorer_run", explorer_run_id=run_dir.name))
+
+
+def no_device_online(monkeypatch):
+    from simula.device import devices
+    from simula.stages import explore
+    monkeypatch.setenv("SIMULA_REDACT", "someone")
+    monkeypatch.setattr(explore, "resolve_serial", devices.resolve_serial)
+    monkeypatch.setattr(devices, "adb", lambda: None)
+
+
+def test_run_reuses_a_partial_explore_a_later_stage_was_built_on(runs, monkeypatch):
+    cli.main(["run", "janitorai", "--new"])
+    run_dir = latest(runs)
+    finished_explore(run_dir, StageOutcome(status="partial", reasons=["the core loop completed 0 of 3 passes"]))
+    model_built_on(run_dir)
+    no_device_online(monkeypatch)
+    ctx = cli.open_run(cli.parser().parse_args(["run", "janitorai"]))
+    assert cli.run_stage("explore", ctx, force=False)  # the step `simula run` takes first, as cmd_run calls it
+    assert (run_dir / "explore" / "explore.json").exists() and runlog.read_marker(run_dir, "explore")
+    assert runlog.read_marker(run_dir, "model")
+    skip = [line.note for line in read_trace(run_dir / "trace.jsonl") if line.stage == "explore" and line.step == "skip"]
+    assert skip[-1] == ("a partial explore (the core loop completed 0 of 3 passes) is reused, since model is built on "
+                        "it; --new or --from explore explores again")
+
+
+def test_an_explore_with_no_device_online_leaves_the_last_explore_where_it_was(runs, monkeypatch):
+    cli.main(["run", "janitorai", "--new"])
+    run_dir = latest(runs)
+    finished_explore(run_dir, StageOutcome(status="partial", reasons=["the core loop completed 0 of 3 passes"]))
+    no_device_online(monkeypatch)
+    with pytest.raises(SystemExit, match="0 devices online"):
+        cli.main(["run", "janitorai"])
+    assert (run_dir / "explore" / "explore.json").exists()
 
 
 def test_from_explore_explores_again(runs):

@@ -1972,12 +1972,13 @@ def run(ctx: Ctx) -> StageOutcome:
                     [".env", ".env.example"], rerun(ctx))
         raise ExploreFailed("SIMULA_REDACT is empty: list the emulator account's handle and names in .env, "
                             "comma-separated, then explore again")
-    out = ctx.run_dir / "explore"
-    shutil.rmtree(out, ignore_errors=True)
-    (out / ".scratch").mkdir(parents=True)
+    # the device and its lock first: a run that can't explore leaves the last explore where it was
     serial = resolve_serial(ctx.device)
     signal.signal(signal.SIGTERM, lambda *_: sys.exit("explore stopped by SIGTERM"))
     with emulator_lock(serial, wait_s=LOCK_WAIT_S):
+        out = ctx.run_dir / "explore"
+        shutil.rmtree(out, ignore_errors=True)
+        (out / ".scratch").mkdir(parents=True)
         server = Server(cwd=out)
         try:
             avd = adb_shell(serial, ["getprop", "ro.boot.qemu.avd_name"]) or None

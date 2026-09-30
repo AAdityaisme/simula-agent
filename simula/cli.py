@@ -86,9 +86,15 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
         raise SystemExit(f"{stage} can't run: {problem}")
     provenance = runfolder.upstream_provenance(ctx.run_dir, UPSTREAM[stage])
     runfolder.require_real(provenance, ctx.allow_fixtures)
-    if stage == "explore" and not force and runlog.complete(ctx.run_dir, stage):
+    marker = runlog.read_marker(ctx.run_dir, stage) if stage == "explore" and not force else None
+    built = built_on(ctx.run_dir) if marker else []
+    if marker and (marker.outcome.status == "complete" or built):
+        # explore has no resume: exploring again replaces the screens every later stage was built from
+        why = "a complete explore is reused as it is" if marker.outcome.status == "complete" else (
+            f"a partial explore ({'; '.join(marker.outcome.reasons)}) is reused, since {', '.join(built)} "
+            f"{'is' if len(built) == 1 else 'are'} built on it")
         runlog.run_trace(ctx.run_dir, stage=stage, step="skip", decider="code",
-                         note="a complete explore is reused as it is; --new or --from explore explores again")
+                         note=f"{why}; --new or --from explore explores again")
         return True
     inputs, prompts, params = stage_inputs(stage, ctx), prompt_files(stage), stage_params(stage, ctx)
     code = runfolder.code_files(stage)
@@ -219,9 +225,14 @@ def open_run(args) -> Ctx:
                allow_account_create=args.allow_account_create, no_send=args.no_send, device=args.device)
 
 
+def built_on(run_dir: Path) -> list[str]:
+    """The later stages whose marker holds, all built on this run's explore."""
+    return [s for s in STAGES[1:] if runlog.read_marker(run_dir, s)]
+
+
 def built_on_latest_explore(app: str) -> list[str]:
     latest = runfolder.RUNS / app / "latest"
-    return [s for s in STAGES[1:] if latest.exists() and runlog.read_marker(latest.resolve(), s)]
+    return built_on(latest.resolve()) if latest.exists() else []
 
 
 def cmd_stage(args) -> int:
