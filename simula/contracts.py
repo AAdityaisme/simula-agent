@@ -655,14 +655,16 @@ class Visual(Strict):
 
 
 class QAReport(Strict):
-    """qa/qa_report.json. outcome, reasons and resume are the StageOutcome vocabulary; status is QA's label for the
-    same thing. keep_score picks the round QA keeps, and structure, interaction and visual report fidelity apart from
-    it. open_findings is None when no round critiqued the approved version."""
+    """qa/qa_report.json. outcome, reasons and resume are the StageOutcome vocabulary (qa.run returns them as its
+    StageOutcome); resume_note says, beside resume, what stopped each part; status is QA's label for the same thing.
+    keep_score picks the round QA keeps, and structure, interaction and visual report fidelity apart from it.
+    open_findings is None when no round critiqued the approved version."""
     schema_version: int = SCHEMA_VERSION
     status: Literal["approved", "qa_incomplete"]
     outcome: OutcomeStatus
     reasons: list[str]
     resume: str | None
+    resume_note: str | None
     approved_round: int
     keep_score: float
     keep_score_formula: str

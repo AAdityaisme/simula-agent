@@ -4,14 +4,13 @@ import argparse
 import importlib
 import os
 import sys
-from dataclasses import replace
 from pathlib import Path
 
 from simula import checkout, config, runfolder, runlog
 from simula.config import ROOT, STAGES
 from simula.contracts import Manifest, Provenance, StageOutcome
 from simula.llm import CapReached, ProviderUnavailable, ReplayMiss, split_key
-from simula.stages import EXTRA_INPUTS, ROLES, UPSTREAM, Ctx, rerun_command, run_options
+from simula.stages import EXTRA_INPUTS, ROLES, UPSTREAM, Ctx, rerun_command, resume_command
 
 EXIT_NOT_BUILT, EXIT_CAP, EXIT_PROVIDER = 3, 4, 5
 
@@ -155,13 +154,12 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     except CapReached as e:
         failed(str(e))
         runlog.needs_human(ctx.run_dir, stage, "$ cap reached", str(e), [f"{stage}/failure.json"],
-                           raise_cap(stage, ctx))
+                           resume_command(ctx, stage, e))
         raise
     except ProviderUnavailable as e:
         failed(str(e))
         runlog.needs_human(ctx.run_dir, stage, "the model provider is refusing calls", str(e),
-                           [f"{stage}/failure.json"],
-                           f"simula run {ctx.app['name']} --from {stage} {run_options(ctx)}")
+                           [f"{stage}/failure.json"], resume_command(ctx, stage, e))
         raise
     except BaseException as e:
         # Every other exit, SystemExit, Ctrl-C and a failed record included, still leaves a failure record; then it
@@ -179,20 +177,17 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
 
 def finished_outcome(stage: str, ctx: Ctx, result, capped: list[str]) -> StageOutcome:
     """What a stage that returned delivered: what it reported (a stage may return a StageOutcome), made partial when
-    its $ cap turned work away (`capped`, the trace notes saying so), since a higher cap could change the output."""
+    its $ cap turned work away (`capped`, the trace notes saying so), since a higher cap could change the output. A
+    stage that returns its own resume (QA) built it and its reasons from everything that stopped it, its cap included,
+    so it is kept as the stage wrote it."""
     outcome = result if isinstance(result, StageOutcome) else StageOutcome()
-    if capped:
+    if capped and not outcome.resume:
         # Sorted: calls running together reach the cap in no fixed order, and a replay must write the same reasons.
         return StageOutcome(status="partial", reasons=[*outcome.reasons, *sorted(dict.fromkeys(capped))],
-                            resume=raise_cap(stage, ctx))
+                            resume=resume_command(ctx, stage, *map(CapReached, capped)))
     if outcome.status == "partial" and not outcome.resume:
         return outcome.model_copy(update={"resume": rerun_command(stage, ctx)})
     return outcome
-
-
-def raise_cap(stage: str, ctx: Ctx) -> str:
-    """The command that reruns a stage its $ cap stopped, with a higher cap in place of the one it ran under."""
-    return f"{rerun_command(stage, replace(ctx, usd_cap=None))} --usd-cap <higher>"
 
 
 def open_run(args) -> Ctx:
