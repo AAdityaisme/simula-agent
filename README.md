@@ -40,7 +40,7 @@ Given an Android app on an emulator, the pipeline explores the app and writes a 
 | `mock` | Draws the screens in scope as one clickable HTML page, in parallel batches, reusing pictures cropped from the screenshots. |
 | `qa` | Scores each mock screen against its screenshot on element bounds, navigation, and masked SSIM. A critic explains the gaps, a fixer edits the page, and the best round goes to `qa/approved/`. Structure, taps and SSIM are reported separately, with no pass mark. |
 | `propose` | One model call per lens proposes rewarded-ad ideas. Code checks each idea against the product model, adds a cost line, and ranks the ideas. |
-| `judge` | Blind judges score every idea on gates and judgment checks. Code turns their verdicts into accept, reject, conditional, or needs-human, and a fixable reject gets one revision. |
+| `judge` | Blind judges score every idea on gates and judgment checks. Code turns their verdicts into accept, reject, conditional (the judges split; it waits on Needs your call), or needs-human, and a fixable reject gets one revision. |
 | `flows` | Adds each drawn idea's new screens (at most 4 ideas) to a copy of the approved mock, taps through every step in Playwright, and writes `slides.html` and `slides.pdf`. |
 
 ## Replay without keys or a device
