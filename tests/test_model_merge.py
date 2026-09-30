@@ -593,8 +593,17 @@ def test_product_model_md_and_the_exhibit_show_which_unobserved_terms_are_everyd
     ("シルビア" * 10, "シルビア" * 7 + "シル…"),
     ("東京 " + "あ" * 40, "東京 " + "あ" * 27 + "…"),
     ("a" + "कि" * 20, "a" + "कि" * 14 + "…"),
-], ids=["short", "one-line", "at-a-space", "unspaced", "early-space", "letter-and-mark"])
-def test_a_long_name_is_cut_between_words_or_letters(name, short):
+    ("a" + "क्ष" * 12, "a" + "क्ष" * 9 + "…"),
+    ("a" * 29 + "🇺🇸🇺🇸", "a" * 29 + "…"),
+    ("a" * 29 + "👨‍👩‍👧", "a" * 29 + "…"),
+    ("a" * 28 + "👨‍👩", "a" * 28 + "…"),
+    ("a" * 29 + "❤️ and more", "a" * 29 + "…"),
+    ("a" * 29 + "👍🏽 and more", "a" * 29 + "…"),
+    ("Kang Jun-Seo Idol x Idol , 02:12, 15 chats", "Kang Jun-Seo Idol x Idol…"),
+    ("あ" * 29 + "。" + "い" * 5, "あ" * 29 + "…"),
+], ids=["short", "one-line", "at-a-space", "unspaced", "early-space", "letter-and-mark", "virama-conjunct", "flag-pair",
+        "zwj-sequence", "after-a-zwj", "variation-selector", "skin-tone", "punctuation", "unspaced-punctuation"])
+def test_a_long_name_is_cut_between_words_or_characters(name, short):
     assert stage.short_name(name) == short
 
 

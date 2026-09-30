@@ -5,6 +5,7 @@ import json
 import re
 import shutil
 import statistics
+import unicodedata
 from collections import Counter
 from itertools import count
 from io import BytesIO
@@ -31,10 +32,10 @@ NOT_OBSERVED = "meaning not observed"
 EVERYDAY = " (everyday word, never flagged)"
 # Two or more letters in a row, each with the marks written on it: "मैसेज" is three letters, not three runs of one.
 WORD = re.compile(f"(?:[^\\W\\d_][{text.MARK}]*){{2,}}")
-LETTER_MARK = re.compile(f"[{text.MARK}]")
-# A name the vision pass ends with a picture's noun ("profile picture", "... photo"), not a control's ("photo tab").
-PICTURE = re.compile(r"\b(?:picture|photo|image|avatar|thumbnail|logo)s?\W*$", re.IGNORECASE)
 LABEL_CHARS = 30
+ZWJ = "‍"
+FLAG_LETTERS = "".join(map(chr, range(0x1F1E6, 0x1F200)))
+SKIN_TONES = "".join(map(chr, range(0x1F3FB, 0x1F400)))
 SCREEN_CHANGE = re.compile(r"→|(?:^|;\s*)[+-]['\"]")
 MEASURE = re.compile(r"^(?P<what>.*?)\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>[^\d\s]*)$")
 NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
@@ -92,15 +93,12 @@ def colors(pixels: np.ndarray) -> tuple[str | None, str | None]:
 
 def is_image_like(e: Element, siblings: list[Element], device: Device) -> bool:
     """Art worth cropping: an image (text over it is an overlay, drawn separately), or a wordless box that
-    holds no text (a crop would bake that text in). A box only the vision pass found is an image when its name says
-    it shows a picture: that name describes the box, where a tree's label can be the words drawn on it. Under the
-    no-wallpaper limit of the content area, the area the mock and its validator measure; a bigger picture is left to
-    the mock's art search."""
+    holds no text (a crop would bake that text in). Under the no-wallpaper limit of the content area, the area the
+    mock and its validator measure; a bigger picture is left to the mock's art search."""
     r = e.rect_px
     holds_text = any((s.text or s.label) and s is not e and inside(s.rect_px, r) for s in siblings)
     small_enough = r.w * r.h < render.WALLPAPER_SHARE * device.w_px * (device.content_bottom_px - device.content_top_px)
-    picture = e.type == "ImageView" or (e.source == "vision" and PICTURE.search(e.label) is not None)
-    art = picture or not (e.text or e.label or holds_text)
+    art = e.type == "ImageView" or not (e.text or e.label or holds_text)
     return art and min(r.w, r.h) >= 48 and small_enough
 
 
@@ -755,17 +753,30 @@ def mermaid_label(text: str) -> str:
     return re.sub(r'["\[\](){}|<>]', " ", text).strip() or "?"
 
 
+def one_character(name: str, i: int) -> bool:
+    """Whether name[i - 1] and name[i] draw as one character: a mark, variation selector or skin tone on what precedes
+    it, a zero-width joiner on either side ("👨‍👩‍👧"), a virama joining a conjunct ("क्ष"), or a flag's second letter."""
+    before, after = name[i - 1], name[i]
+    flag_letters = i - len(name[:i].rstrip(FLAG_LETTERS))
+    return (unicodedata.category(after).startswith("M") or after in SKIN_TONES or ZWJ in (before, after)
+            or unicodedata.combining(before) == 9 or (after in FLAG_LETTERS and flag_letters % 2 == 1))
+
+
 def short_name(name: str, limit: int = LABEL_CHARS) -> str:
     """`name` on one line, cut past `limit` characters with "…": at the last space in the cut's second half, else at
-    the limit, as a script written without spaces needs, and never between a letter and a mark written on it."""
+    the limit, as a script written without spaces needs. Never inside one drawn character, and no punctuation or space
+    is left before the "…"."""
     name = " ".join(name.split())
     if len(name) <= limit:
         return name
     space = name.rfind(" ", limit // 2, limit + 1)
     cut = space if space > 0 else limit
-    while cut and LETTER_MARK.match(name[cut]):
+    while cut and one_character(name, cut):
         cut -= 1
-    return name[:cut].rstrip() + "…"
+    kept = name[:cut]
+    while kept and unicodedata.category(kept[-1])[0] in "PZ":
+        kept = kept[:-1]
+    return kept + "…"
 
 
 def render_md(model: ProductModel) -> str:
