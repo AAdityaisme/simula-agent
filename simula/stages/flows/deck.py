@@ -113,7 +113,8 @@ def slide_html(flow: dict, part: str, body: str) -> str:
     else:
         labels = '<span class="chip conditional">Conditional</span>' if decision.final == "conditional" else ""
     if cost_question(c):
-        labels += f'<span class="chip conditional">Cost check: {c.economics.verdict}</span>'
+        chip = "May lose a sale" if c.economics.verdict == "PASS" else f"Cost check: {c.economics.verdict}"
+        labels += f'<span class="chip conditional">{chip}</span>'
     idea = "" if part == "flow" else escape(plain(caption(c)))  # the flow slide's title already names the idea
     return (f'<section class="slide main" data-part="{part}" data-idea="{c.id}">'
             f'<header><span class="chip {kind}">{escape(BUCKETS.get(c.kind, ""))}</span>'

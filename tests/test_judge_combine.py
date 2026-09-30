@@ -143,8 +143,8 @@ def test_fallback_picks_the_gate_passer_with_fewest_fails_then_rank():
     assert fallback(cands, verdicts) == "c03"
 
 
-@pytest.mark.parametrize("premise", judge.PREMISE)
-def test_fallback_never_rescues_a_false_premise(premise):
+@pytest.mark.parametrize("premise", judge.NO_FALLBACK)
+def test_fallback_never_rescues_a_false_premise_or_an_offer_aimed_at_payers(premise):
     m = golden("luzia")
     cands = [idea(m, "c01", rank=5), idea(m, "c02", rank=1)]
     verdicts = {"c01": [verdict([premise])], "c02": [verdict(["c5_moment", "c7_specific", "c4_protects_subscription"])]}

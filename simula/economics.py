@@ -7,7 +7,6 @@ The reward kind picks the cost term; the app category only picks between the two
 import importlib.util
 import re
 
-from simula import text
 from simula.config import ROOT
 from simula.contracts import Candidate, Economics, ProductModel
 
@@ -30,7 +29,7 @@ PRICED_KINDS = {"content_unlock", "currency"}
 # typed queue_priority, goes unflagged. A reward kind for placement would replace the words.
 PLACEMENT = re.compile(r"\b(rows?|spots?|spotlight|placement|boost(ed)?|featured|promoted|pinned|trending|"
                        r"visibility)\b", re.I)
-# One unit of an inference reward that the bible's per-reply cost can price.
+# A unit that names a model reply: the only inference reward the bible's per-reply cost prices.
 REPLY = re.compile(r"\b(repl(y|ies)|messages?|answers?|responses?)\b", re.I)
 
 
@@ -52,6 +51,8 @@ def input_problem(candidate: Candidate) -> str | None:
         if inputs.inference_count or inputs.tokens_in or inputs.tokens_out:
             return f"reward kind {reward.kind} doesn't match its cost inputs (it carries model replies or tokens)"
         return None
+    if reward.kind == "inference" and not per_reply(reward.unit):
+        return None  # its line isn't priced per reply, so it needs no reply counts
     values = {"inference_count": inputs.inference_count, "minutes": inputs.minutes, "amount": reward.amount}
     missing = [f for f in econ["reward_kinds"][reward.kind]["required_fields"]
                if FIELD_SOURCE[f] and values[FIELD_SOURCE[f]] <= 0]
@@ -88,11 +89,10 @@ def lost_sale(candidate: Candidate, model: ProductModel) -> str | None:
     return None
 
 
-def per_reply(unit: str, model: ProductModel) -> bool:
-    """Whether one unit of an inference reward is one model reply: the unit says so, or it names an app term the
-    product model explains as one."""
-    explained = (t for t in model.terms if t.observed and REPLY.search(t.meaning))
-    return bool(REPLY.search(unit)) or any(text.phrase(t.term).search(unit) for t in explained)
+def per_reply(unit: str) -> bool:
+    """Whether one unit of an inference reward is one model reply, as the unit itself says. What an app term means
+    never counts: a meaning that only mentions replies ("so replies arrive faster") doesn't make a unit one."""
+    return bool(REPLY.search(unit))
 
 
 def describe(candidate: Candidate, model: ProductModel) -> tuple[dict, str | None, str]:
@@ -101,9 +101,9 @@ def describe(candidate: Candidate, model: ProductModel) -> tuple[dict, str | Non
     reward, inputs = candidate.reward, candidate.cost_inputs
     kind, app_category = reward.kind, model.app_category
     price = inputs.currency_amount
-    if kind == "inference" and not per_reply(reward.unit, model):
-        return {"count": 0}, (f"one of its {reward.unit} isn't a chat reply, and the product model doesn't say what "
-                              "one costs to serve"), f"{reward.amount:g} {reward.unit}"
+    if kind == "inference" and not per_reply(reward.unit):
+        return {"count": 0}, (f"one of its {reward.unit} isn't known to be a chat reply, and the product model doesn't "
+                              "say what one costs to serve"), f"{reward.amount:g} {reward.unit}"
     if kind == "inference":
         p = {"count": inputs.inference_count, "tokens_out": inputs.tokens_out}
         c = central(kind, p)

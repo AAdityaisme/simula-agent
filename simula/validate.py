@@ -476,10 +476,12 @@ def disagreeing(runs: list[Verdict], agreed: Verdict) -> Verdict:
 
 
 def summarize(runs_dir: Path, preface: Path, out: Path = REPORT) -> bool:
-    """validation/report.md from saved runs of every fixture: the preface, then report() on each judge's majority
-    verdicts. Makes no calls, so the committed report can be rebuilt without re-judging."""
-    cases = load_cases()
+    """validation/report.md from saved runs: the preface, then report() on each judge's majority verdicts, over the
+    fixtures the runs judged (and the C8 cases code scores), so runs saved before a fixture existed are scored as
+    they were. Makes no calls, so the committed report can be rebuilt without re-judging."""
     runs = load_runs(runs_dir)
+    judged = {cid for cid, _ in runs}
+    cases = [c for c in load_cases() if c.id in judged or c.target == C8]
     agreed = {key: majority(vs) for key, vs in runs.items()}
     gate_cases = {c.id for c in cases if c.source == "planted" and c.target in GATES}
     reruns = {key: disagreeing(runs[key], v) for key, v in agreed.items() if key[0] in gate_cases}
@@ -558,13 +560,14 @@ def main(argv: list[str] | None = None) -> int:
     s = sub.add_parser("summarize", help="rebuild validation/report.md from saved runs; makes no calls")
     s.add_argument("--runs", type=Path, default=VERDICTS / "VF3", help="the live rubric's saved runs")
     s.add_argument("--preface", type=Path, default=REPORT.parent / "preface.md")
+    s.add_argument("--out", type=Path, default=REPORT)
     sub.add_parser("freeze", help="pin the judge prompt hashes in config/frozen_prompts.toml")
     args = p.parse_args(argv)
     if args.command == "validate-judge":
         return 0 if validate_judge(args.profile, args.judges.split(","), args.no_cache, args.out) else 1
     if args.command == "summarize":
-        passed = summarize(args.runs, args.preface)
-        print(f"{REPORT}: harness gate {'PASS' if passed else 'FAIL'} (rebuilt from {args.runs}, no calls)")
+        passed = summarize(args.runs, args.preface, args.out)
+        print(f"{args.out}: harness gate {'PASS' if passed else 'FAIL'} (rebuilt from {args.runs}, no calls)")
         return 0
     if args.command == "label":
         n = label_cases(load_cases(), load_verdicts(args.out), CASES / "labels", limit=args.limit)

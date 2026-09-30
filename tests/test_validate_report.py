@@ -136,9 +136,10 @@ def test_simula_validate_judge_at_its_cap_exits_with_the_cap_code(monkeypatch):
 
 
 def test_the_regression_fixtures_load_with_the_product_model_their_judge_saw():
-    c07, c09 = [c for c in validate.load_cases() if c.source == "regression"]
-    assert (c07.id, c07.target, c09.id, c09.target) == ("rg-janitorai-c07-fan-boost", None,
-                                                         "rg-janitorai-c09-empty-evidence", "c2_evidence")
+    c03, c07, c09 = [c for c in validate.load_cases() if c.source == "regression"]
+    assert [(c.id, c.target) for c in (c03, c07, c09)] == [("rg-janitorai-c03-rev-payers", "c3_spares_payers"),
+                                                           ("rg-janitorai-c07-fan-boost", None),
+                                                           ("rg-janitorai-c09-empty-evidence", "c2_evidence")]
     assert c07.model.app == "janitorai" and judge.candidate_text(c07.candidate, c07.model) != judge.candidate_text(
         c07.candidate, golden("janitorai"))
 
@@ -353,6 +354,15 @@ def test_the_committed_report_rebuilds_from_the_committed_runs(tmp_path):
         return [line for line in path.read_text().splitlines() if not line.startswith("Generated ")]
     assert body(rebuilt) == body(validate.REPORT)
     assert validate.OUT / "report.md" != validate.REPORT
+
+
+def test_a_run_saved_before_a_fixture_existed_is_scored_without_it(tmp_path):
+    preface, out = tmp_path / "preface.md", tmp_path / "report.md"
+    preface.write_text("")
+    validate.summarize(validate.VERDICTS / "VF2", preface, out)
+    text = out.read_text()
+    assert "22 planted LLM cases (11 subtle)" in text and "| combined | 22/22 (100%)" in text
+    assert "| c3_spares_payers | 0/0" in next(line for line in text.splitlines() if line.startswith("| c3_spares_payers"))
 
 
 def test_the_committed_fixtures_load():

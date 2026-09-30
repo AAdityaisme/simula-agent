@@ -197,16 +197,30 @@ def tasks(model, unit="agent tasks"):
 def test_an_inference_reward_that_isnt_chat_replies_is_not_priced_as_replies():
     model = golden("janitorai")
     econ = economics.annotate(tasks(model), model)
-    assert econ.assumption_line.startswith("Serving cost not counted: one of its agent tasks isn't a chat reply")
+    assert econ.assumption_line.startswith("Serving cost not counted: one of its agent tasks isn't known to be a "
+                                           "chat reply")
     assert "replies of" not in econ.assumption_line
     assert (econ.cost_2k, econ.cost_8k, econ.verdict) == (0, 0, "CONDITIONAL")
     assert economics.annotate(tasks(model, "replies"), model).cost_2k > 0
 
 
-@pytest.mark.parametrize("observed, priced", [(True, True), (False, False)])
-def test_an_app_unit_the_product_model_explains_as_a_reply_is_priced_as_one(observed, priced):
+@pytest.mark.parametrize("meaning", [
+    "Regenerates the character's last reply.",
+    "An agent that runs multi-step tasks and sends you an answer when done.",
+    "An agent that runs multi-step tasks, not a chat reply.",
+    "Works for you in the background rather than just giving a quick response."])
+def test_a_unit_is_priced_per_reply_only_when_it_names_one_whatever_its_term_means(meaning):
     model = golden("janitorai")
-    swipes = Term(term="swipes", meaning="Regenerates the character's last reply.", defined_by=[], used_in=[],
-                  everyday=False, observed=observed)
-    model = model.model_copy(update={"terms": [swipes]})
-    assert (economics.annotate(tasks(model, "swipes"), model).cost_2k > 0) == priced
+    agent = Term(term="Computer", meaning=meaning, defined_by=[], used_in=[], everyday=False, observed=True)
+    model = model.model_copy(update={"terms": [agent]})
+    econ = economics.annotate(tasks(model, "Computer tasks"), model)
+    assert econ.assumption_line.startswith("Serving cost not counted: one of its Computer tasks isn't known to be")
+    assert econ.cost_2k == 0
+
+
+def test_a_reward_not_priced_per_reply_needs_no_reply_counts():
+    model = golden("janitorai")
+    none = {**NO_COST}
+    assert economics.input_problem(candidate(model, reward={**reward("inference"), "unit": "agent tasks"},
+                                             cost_inputs=none)) is None
+    assert "count" in economics.input_problem(candidate(model, reward=reward("inference"), cost_inputs=none))

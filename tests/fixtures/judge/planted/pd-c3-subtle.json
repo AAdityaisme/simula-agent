@@ -2,39 +2,30 @@
  "id": "pd-c3-subtle",
  "target": "c3_spares_payers",
  "tier": "subtle",
- "one_liner": "Only Janitor Plus subscribers see it: a game moves their replies ahead of the priority routing they already pay for.",
+ "one_liner": "Premium members, who pay to remove ads, see the same ad offer for saved slots.",
  "author": "claude-opus-5-5",
- "base": "kg-run-janitorai-c02",
+ "base": "kg-newsreader-01",
  "change": {
-  "title": "Existing opportunity: Top-priority replies for an hour for Janitor Plus members",
-  "what_is_different_here": "Janitor+ sells priority routing for faster replies (s02.e06). A subscriber who opens the profile menu (s09) already has it, so the card offers a lane above it: for an hour, their replies go ahead of other subscribers' priority replies. It costs no extra replies, only earlier placement in line.",
-  "trigger_event": "A Janitor Plus subscriber opens the profile menu",
-  "placement": "Card at the top of the profile menu drawer",
-  "offer_copy": "Play a short sponsored game to put your replies at the front of the Janitor Plus priority lane for the next 60 minutes.",
-  "reward": {
-   "unit": "top-priority routing"
-  },
-  "for_users": "paying",
-  "subscriber_treatment": "Only Janitor Plus subscribers see this card. It moves them ahead of the priority routing their plan already gives, and it is always optional.",
+  "trigger_event": "A reader taps Save with 5 stories saved, which opens the saved-list-full pop-up",
+  "for_users": "everyone",
+  "subscriber_treatment": "Premium members see the same optional button. Their plan removes ads, but this is a game they choose to play, for saved space their plan doesn't include.",
   "flow_steps": [
    {
-    "state_id": "s09",
-    "caption": "A subscriber opens the profile menu."
+    "state_id": "s01",
+    "caption": "A reader, free or Premium, with 5 saved stories taps Save on a sixth."
    },
    {
-    "state_id": "new:priority-card",
-    "caption": "A card at the top offers top-priority replies for 60 minutes for one short sponsored game."
+    "state_id": "s02",
+    "caption": "The pop-up shows the new button under Manage saved."
    },
    {
     "state_id": "new:sponsored-game",
-    "caption": "The subscriber plays the short sponsored game and can quit at any time."
+    "caption": "The reader plays a short game and can close it at any time."
    },
    {
-    "state_id": "s06",
-    "caption": "The card confirms top-priority replies are on for 60 minutes, and the subscriber goes back to their chats."
+    "state_id": "s01",
+    "caption": "The story is saved and the meter reads 'Saved: 6 of 8'."
    }
-  ],
-  "after_reward": "When the hour ends, replies go back to the plan's usual priority routing, and the card offers one more hour tomorrow.",
-  "rationale": "Subscribers already feel the speed of priority routing, so a faster lane on top is a reward they can notice at once. It adds no extra replies, so it is cheap to give, and it earns from users who already pay."
+  ]
  }
 }

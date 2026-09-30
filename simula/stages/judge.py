@@ -23,6 +23,8 @@ FROZEN = ROOT / "config" / "frozen_prompts.toml"
 CHECKS = GATES + JUDGMENT
 # An idea resting on something never observed fails one of these; the CONDITIONAL fallback never rescues it.
 PREMISE = ("c1_revealed_value", "c2_evidence")
+# Nor does it draw an offer c3 found aimed at paying users: the closest idea would be the very ad that check stops.
+NO_FALLBACK = PREMISE + ("c3_spares_payers",)
 SURVIVORS = ("accept", "conditional")
 ECON_CONDITION = {"CONDITIONAL": "The cost to serve isn't known", "FAIL": "It may cost more to serve than a view earns"}
 
@@ -209,10 +211,10 @@ def revisable(c: Candidate, d: Decision, verdicts: list[Verdict]) -> bool:
 
 
 def could_fall_back(c: Candidate, d: Decision, verdicts: list[Verdict]) -> bool:
-    """An idea code kept that every judge passed on every gate, and whose premise checks no two judges both failed:
-    a premise only one judge doubts is a split, which doesn't exclude it (D10)."""
+    """An idea code kept that every judge passed on every gate, and whose premise checks and c3 no two judges both
+    failed: a check only one judge fails is a split, which doesn't exclude it (D10)."""
     return (is_idea(c) and not c.dropped_reason and bool(verdicts) and not d.gate_fails
-            and not set(PREMISE) & set(failed_by_all(verdicts)))
+            and not set(NO_FALLBACK) & set(failed_by_all(verdicts)))
 
 
 def superseded(revised: list[Candidate], decisions: dict[str, Decision],
@@ -474,13 +476,13 @@ def no_opportunity(decisions: list[Decision], candidates: dict[str, Candidate],
                    verdicts: dict[str, dict[str, Verdict]]) -> str:
     gate = [d for d in decisions if d.gate_fails]
     premise = [d for d in decisions if not d.gate_fails
-               and set(PREMISE) & set(failed_by_all([*verdicts.get(d.candidate_id, {}).values()]))]
+               and set(NO_FALLBACK) & set(failed_by_all([*verdicts.get(d.candidate_id, {}).values()]))]
     waiting = [d for d in decisions if d.final == "needs_human"]
     lines = ["# No opportunity", "", "No candidate reached Goal 4, and none was manufactured.", "",
              f"- {len(decisions)} candidates judged or dropped.",
              f"- {len(gate)} failed a safety gate.",
-             f"- {len(premise)} passed the gates but rest on something the product model doesn't show "
-             f"({', '.join(PREMISE)}), so the CONDITIONAL fallback can't carry them.",
+             f"- {len(premise)} passed the gates but rest on something the product model doesn't show or aim "
+             f"the offer at paying users ({', '.join(NO_FALLBACK)}), so the CONDITIONAL fallback can't carry them.",
              f"- {len(waiting)} wait on a person (`human-queue.md`).", ""]
     lines += [f"- {d.candidate_id} · {candidates[d.candidate_id].title}: {d.checks_passed}/{d.checks_total}"
               + why(d, candidates[d.candidate_id]) for d in decisions]
