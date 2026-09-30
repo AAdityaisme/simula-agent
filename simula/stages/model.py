@@ -6,6 +6,7 @@ import re
 import shutil
 import statistics
 from collections import Counter
+from itertools import count
 from io import BytesIO
 from pathlib import Path
 
@@ -30,8 +31,10 @@ NOT_OBSERVED = "meaning not observed"
 EVERYDAY = " (everyday word, never flagged)"
 # Two or more letters in a row, each with the marks written on it: "मैसेज" is three letters, not three runs of one.
 WORD = re.compile(f"(?:[^\\W\\d_][{text.MARK}]*){{2,}}")
-LOOP_UNITS = ("s", "chars")
+SCREEN_CHANGE = re.compile(r"→|(?:^|;\s*)[+-]['\"]")
 MEASURE = re.compile(r"^(?P<what>.*?)\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>[^\d\s]*)$")
+NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
+CLOCK = re.compile(r"\b\d{1,2}:\d{2}\b|\bago\b", re.IGNORECASE)
 MONEY_KINDS = ("paywall", "limit", "currency")
 SCOPE_KINDS = (*MONEY_KINDS, "ad")
 EDGE_ACTIONS = ("tap", "swipe", "back", "type")
@@ -107,15 +110,16 @@ def make_element(eid: str, rect: Rect, kind: str, text: str, label: str, mcp_ref
 
 def build_elements(sid: str, tree: list[dict], icon_labels: list[IconLabel], vision: list[VisionElement],
                    pixels: np.ndarray, device: Device) -> list[Element]:
-    """Listed elements first, in tree order, then the controls only the vision pass saw."""
+    """Listed elements first, in tree order, then the controls only the vision pass saw. Tree text loses its
+    placeholder characters here, so every later stage quotes the text a person sees."""
     names = {i.mcp_ref: i.name for i in icon_labels}
     elements = []
     for e in (e for e in tree if in_content(e, device)):
         c = e["coordinates"]
         elements.append(make_element(
             f"{sid}.e{len(elements) + 1:02d}", Rect(x=c["x"], y=c["y"], w=c["width"], h=c["height"]),
-            e["type"].split(".")[-1], e.get("text") or "", names.get(e["ref"]) or e.get("label") or "", e["ref"],
-            pixels, device))
+            e["type"].split(".")[-1], text.strip_placeholders(e.get("text") or ""),
+            text.strip_placeholders(names.get(e["ref"]) or e.get("label") or ""), e["ref"], pixels, device))
     for v in vision:
         elements.append(make_element(f"{sid}.e{len(elements) + 1:02d}", v.rect_px, "vision", "", v.name, None,
                                      pixels, device))
@@ -175,12 +179,70 @@ def read_actions(explore_dir: Path) -> list[ActionLine]:
     return [ActionLine.model_validate_json(raw) for raw in path.read_text().splitlines()] if path.exists() else []
 
 
+def bracketing_moves(lines: list[ActionLine]) -> set[int]:
+    """The steps of moves whose two captures sit right around them: the move first captured its to-state, and the
+    screen before it still matched the from-state's capture (the move just before captured it, and nothing changed
+    in place since). Only there is a difference between the two captures what this move changed. A state is
+    captured once, at its first arrival, so a revisit's screen may differ from its capture."""
+    if not lines:
+        return set()
+    current, captured, found = lines[0].from_state, {lines[0].from_state}, set()
+    for a in lines:
+        if a.outcome != "ok" or a.to_state is None:
+            current = current if a.outcome == "denied" else None
+            continue
+        if a.to_state == a.from_state:
+            current = None if a.change_summary else current
+            continue
+        first = a.to_state not in captured
+        if first and current == a.from_state:
+            found.add(a.step)
+        captured.add(a.to_state)
+        current = a.to_state if first else None
+    return found
+
+
+def value_changes(before: State, after: State) -> str:
+    """Values that changed in one spot between two captures of the same screen ("7 chats → 8 chats"): the same role
+    at the same left edge, top, and height (the width follows the digits), one text there on each side, the same
+    words, and a different number. The captures are one screen when most texts without a number are the same text in
+    the same spot; two lists that share a layout are not, since their cards' stats sit in the same spots. The words
+    occur once on each capture: a list's rows share theirs and can re-sort, so a spot there can't say whose value it
+    holds. A bare number ("171", "1 / 295") has no word saying what it counts, and a clock time changes by itself:
+    neither is one."""
+    # ponytail: a list row's own count (one card's "7 chats → 8 chats") is never reported, and a lone relative time
+    # without "ago" ("Synced 5 min") still is; match rows by their names, or add time units to CLOCK, if one reaches
+    # a real edge (none of 201 real bracketed moves has either)
+    def spots(s: State) -> dict[tuple, str]:
+        found: dict[tuple, list[str]] = {}
+        for e in s.elements:
+            if e.text:
+                found.setdefault((e.role, e.rect_px.x, e.rect_px.y, e.rect_px.h), []).append(e.text)
+        return {k: texts[0] for k, texts in found.items() if len(texts) == 1}
+
+    def lone(s: State) -> set[str]:
+        counts = Counter(NUMBER.sub("#", e.text) for e in s.elements if e.text)
+        return {t for t, n in counts.items() if n == 1}
+    old, new = spots(before), spots(after)
+    old_words, new_words = ([k for k, t in s.items() if not NUMBER.search(t)] for s in (old, new))
+    if 2 * sum(old[k] == new.get(k) for k in old_words) <= max(len(old_words), len(new_words)):
+        return ""
+    once = lone(before) & lone(after)
+    return "; ".join(f"{old[k]} → {new[k]}" for k in old if k in new and old[k] != new[k]
+                     and NUMBER.sub("#", old[k]) == NUMBER.sub("#", new[k]) and NUMBER.sub("#", old[k]) in once
+                     and WORD.search(NUMBER.sub("", old[k])) and not CLOCK.search(old[k]))
+
+
 def load_edges(explore_dir: Path, states: list[State]) -> tuple[list[Edge], list[str]]:
     """One edge per distinct recorded move that reached a state (or changed something in place). The
-    transition is the one explore recorded. Returns the edges and a note for every line not taken as given."""
+    transition is the one explore recorded. What changed is the explorer's summary, or else, for a move its two
+    captures sit right around, the values that changed between them. Returns the edges and a note for every
+    line not taken as given."""
     by_id = {s.id: s for s in states}
     edges, notes = {}, []
-    for a in read_actions(explore_dir):
+    lines = read_actions(explore_dir)
+    bracketed = bracketing_moves(lines)
+    for a in lines:
         if a.outcome != "ok" or a.to_state is None or a.action not in EDGE_ACTIONS:
             continue
         if a.from_state == a.to_state and not a.change_summary:
@@ -193,9 +255,14 @@ def load_edges(explore_dir: Path, states: list[State]) -> tuple[list[Edge], list
             where = f"the tap at {a.tap_px.x},{a.tap_px.y}" if a.tap_px else "the tap"
             notes.append(f"step {a.step}: {a.mcp_ref} does not hold {where}; "
                          f"bound to {element.id if element else 'no element'}")
+        diffed = "" if a.change_summary or a.step not in bracketed else value_changes(by_id[a.from_state],
+                                                                                        by_id[a.to_state])
+        if diffed:
+            notes.append(f"step {a.step}: what changed is code's diff of the move's two captures: {diffed}")
+        changed = a.change_summary or diffed
         edges.setdefault(edge_id, Edge(
             id=edge_id, from_state=a.from_state, to_state=a.to_state, element_id=element.id if element else None,
-            action=a.action, transition=a.transition, change_summary=a.change_summary))
+            action=a.action, transition=a.transition, change_summary=changed))
     return list(edges.values()), notes
 
 
@@ -215,20 +282,34 @@ def measurements(summary: str) -> list[tuple[str, float, str]]:
 
 
 def pass_measurements(lines: list[ActionLine]) -> list[tuple[str, float, str]]:
-    """One pass's measurements: the timing parts (units s or chars) of the last line of the pass that has any.
-    A pass writes several lines (tap the box, type, send; or open, back) and only one carries the timing."""
+    """One pass's measurements, in whatever units the explorer measured: the parts of the last line of the pass
+    that has any. A pass writes several lines (tap the box, type, send; or open, back) and only one carries the
+    measurement; a line that says what changed on screen ("3 left → 2 left", "+'typed text'") never does."""
     for a in reversed(lines):
-        found = [m for m in measurements(a.change_summary) if m[2] in LOOP_UNITS]
+        found = [] if SCREEN_CHANGE.search(a.change_summary) else measurements(a.change_summary)
         if found:
             return found
     return []
 
 
+def pass_count(n: int) -> str:
+    return f"{n} pass" if n == 1 else f"{n} passes"
+
+
+def measured(what: str, unit: str, values: list[float]) -> str:
+    """One measurement is said as one, not as a median, min, and max that are all the same number."""
+    shown = "" if unit == what else " " + unit
+    if len(values) == 1:
+        return f"{what} {values[0]:g}{shown} (1 measurement)"
+    return (f"{what} median {statistics.median(values):g}{shown} "
+            f"(min {min(values):g}, max {max(values):g}, n={len(values)})")
+
+
 def loop_facts(explore_dir: Path, states: list[State], edges: list[Edge]) -> list[LedgerItem]:
-    """The measured free experience, from the explorer's core-loop passes: one item with each measurement's
-    median, min, max and n, and one saying what stopped the loop, or that nothing did. Passes are counted by
-    distinct loop_pass, not by line. A stop counts from any line, even a denied one; measurements only from
-    lines that ran."""
+    """The measured experience, from the explorer's core-loop passes: one item with each measurement's median, min,
+    max and n (or the one value, when there is one), and one saying what stopped the loop, or that nothing did on an
+    account whose plan explore doesn't record. Passes are counted by distinct loop_pass, not by line. A stop counts
+    from any line, even a denied one; measurements only from lines that ran."""
     loop = [a for a in read_actions(explore_dir) if a.loop_pass is not None]
     if not loop:
         return []
@@ -247,13 +328,13 @@ def loop_facts(explore_dir: Path, states: list[State], edges: list[Edge]) -> lis
             values.setdefault((what, unit), []).append(value)
     items = []
     if values:
-        parts = [f"{what} median {statistics.median(v):g}{'' if unit == what else ' ' + unit} "
-                 f"(min {min(v):g}, max {max(v):g}, n={len(v)})" for (what, unit), v in values.items()]
+        parts = [measured(what, unit, v) for (what, unit), v in values.items()]
         items.append(LedgerItem(id="exp1", kind="experience", evidence_ids=evidence,
-                                verbatim=f"Core action over {len(by_pass)} passes ({steps}): " + "; ".join(parts)))
+                                verbatim=f"Core action over {pass_count(len(by_pass))} ({steps}): " + "; ".join(parts)))
     stop = next((a for a in loop if a.loop_stop), None)
     outcome = (f"{stop.loop_stop} appeared on pass {stop.loop_pass} of the core action" if stop else
-               f"After {len(by_pass)} passes of the core action nothing limited it: no limit, paywall, or ad appeared")
+               f"After {pass_count(len(by_pass))} of the core action nothing limited it: no limit, paywall, or ad "
+               "appeared, on an account whose plan (free or paid) was not recorded")
     items.append(LedgerItem(id=f"exp{len(items) + 1}", kind="experience", evidence_ids=evidence,
                             verbatim=f"{outcome} ({steps})"))
     return items
@@ -418,7 +499,8 @@ def check_meaning(meaning: ModelMeaning, states: list[State], edges: list[Edge])
         "cross_screen_values": keep(meaning.cross_screen_values, lambda v: unknown(v.evidence_ids), "value"),
         "value_ledger": [i.model_copy(update={"verbatim": exact_text(i.evidence_ids, i.verbatim)})
                          for i in keep(meaning.value_ledger, ledger_problem, "ledger")],
-        "open_questions": keep(meaning.open_questions, question_problem, "question")[:QUESTION_CAP],
+        "open_questions": keep(meaning.open_questions, question_problem, "question",
+                               lambda q: repr(q.question))[:QUESTION_CAP],
     })
     uses = {m.id: m.summary for m in cleaned.mechanics} | {i.id: i.verbatim for i in cleaned.value_ledger}
 
@@ -491,6 +573,32 @@ def resolve_terms(meaning: ModelMeaning, states: list[State], edges: list[Edge],
     return terms
 
 
+def folded_bullets(ledger: list[LedgerItem], states: list[State]) -> list[LedgerItem]:
+    """Every paywall bullet gets a ledger item. The model sees two items of a repeated list and one folded line for
+    the rest, so the third benefit of a paywall list goes missing. Code quotes it whole: an item of the same repeated
+    list, at the same left edge, as a kept paywall bullet, with text and no ledger item yet, whose words no paywall
+    bullet, and no item citing such a list, already quotes (a paywall captured twice lists each bullet twice). Ids are
+    pb1, pb2, ..., skipping any the model used."""
+    elements = {e.id: e for s in states for e in s.elements}
+    cited = {i for item in ledger for i in item.evidence_ids}
+    lists = {(elements[i].repeat_group, elements[i].rect_px.x) for item in ledger if item.kind == "paywall_bullet"
+             for i in item.evidence_ids if i in elements and elements[i].repeat_group}
+
+    def on_list(i: str) -> bool:
+        return i in elements and (elements[i].repeat_group, elements[i].rect_px.x) in lists
+    quoted = {tuple(item.verbatim.split()) for item in ledger
+              if item.kind == "paywall_bullet" or any(on_list(i) for i in item.evidence_ids)}
+    found = []
+    for e in elements.values():
+        words = tuple(e.text.split())
+        if on_list(e.id) and words and e.id not in cited and words not in quoted:
+            quoted.add(words)
+            found.append(e)
+    taken = {item.id for item in ledger}
+    ids = (f"pb{n}" for n in count(1) if f"pb{n}" not in taken)
+    return [LedgerItem(id=next(ids), kind="paywall_bullet", verbatim=e.text, evidence_ids=[e.id]) for e in found]
+
+
 def apply_meaning(states: list[State], meaning: ModelMeaning, keywords: list[str]) -> list[State]:
     by_state = {m.state_id: m for m in meaning.states}
     by_element = {m.element_id: m for m in meaning.elements}
@@ -559,21 +667,79 @@ def mock_scope(states: list[State], edges: list[Edge], meaning: ModelMeaning) ->
     return list(dict.fromkeys(s for s in ordered if s in eligible))
 
 
+def edge_overlay(e: Element, device: Device) -> bool:
+    """A wordless container in a bottom corner of the screen, touching one side edge and running past the content
+    area, like an edge-gesture area: not art, since its pixels are only what sits under it. A full-width wordless
+    box touches both sides, and one inside the content area touches no corner: both are still art."""
+    r = e.rect_px
+    in_corner = (r.x <= 0) != (r.x + r.w >= device.w_px) and r.y + r.h > device.content_bottom_px
+    return e.type not in ROLE_BY_CLASS and not (e.text or e.label) and in_corner
+
+
+def flat(crop: Image.Image) -> bool:
+    """One color: a solid fill the mock draws from the element's colors, not a picture worth an asset. Two colors can
+    already be a shape, such as a glyph on a tile, which only its crop keeps."""
+    return crop.getcolors(1) is not None
+
+
 def finish_elements(state: State, scope: set[str], tapped: set[str], image: Image.Image, out: Path,
                     device: Device) -> State:
     """Crops image assets and marks what the mock draws: every in-scope element with words or art, and every
-    element that starts an edge. Tagging only two items of a repeated list is the mock's job."""
+    element that starts an edge. Flat art (one color) is drawn from its colors, with no asset. Tagging
+    only two items of a repeated list is the mock's job."""
     in_scope = state.id in scope
     elements = []
     for e in state.elements:
-        asset = None
-        if in_scope and is_image_like(e, state.elements, device):
-            asset = f"assets/{e.id}.png"
+        asset, art = None, in_scope and is_image_like(e, state.elements, device) and not edge_overlay(e, device)
+        if art:
             r = e.rect_px
-            image.crop((int(r.x), int(r.y), int(r.x + r.w), int(r.y + r.h))).save(out / asset)
-        in_mock = in_scope and (e.id in tapped or bool(e.text or e.label or asset))
+            crop = image.crop((int(r.x), int(r.y), int(r.x + r.w), int(r.y + r.h)))
+            if not flat(crop):
+                asset = f"assets/{e.id}.png"
+                crop.save(out / asset)
+        in_mock = in_scope and (e.id in tapped or bool(e.text or e.label or art))
         elements.append(e.model_copy(update={"asset_png": asset, "in_mock": in_mock}))
     return state.model_copy(update={"elements": elements, "in_mock_scope": in_scope})
+
+
+def hide_parent_copies(states: list[State], tapped: set[str]) -> tuple[list[State], list[str]]:
+    """A modal or sheet's capture still lists its parent's elements, under its box and above it behind the backdrop.
+    The mock shows the parent's layer under the modal's, so a copy of what the parent's layer draws is not drawn
+    again (in_mock false). An element is the parent's when the parent's layer draws one of the same class, words, and
+    box; one that starts an edge stays drawn. Returns the states and the ids no longer drawn."""
+    # ponytail: the runtime shows one parent layer, so a dialog over a dialog still draws the screen under both in its
+    # own layer; hide those too once the runtime shows every layer down the data-parent chain
+    def key(e: Element) -> tuple:
+        return e.type, e.text, e.label, e.rect_px.x, e.rect_px.y, e.rect_px.w, e.rect_px.h
+    by_id = {s.id: s for s in states}
+    copies: set[str] = set()
+    layers: dict[str, set[tuple]] = {}
+
+    def layer(s: State) -> set[tuple]:
+        """What a state's own layer draws: its drawn elements less its copies of its parent's layer."""
+        if s.id not in layers:
+            dialog = s.kind in ("modal", "sheet") and s.parent_id in by_id
+            theirs = layer(by_id[s.parent_id]) if dialog else set()
+            mine = {e.id for e in s.elements if e.in_mock and key(e) in theirs and e.id not in tapped}
+            copies.update(mine)
+            layers[s.id] = {key(e) for e in s.elements if e.in_mock and e.id not in mine}
+        return layers[s.id]
+    for s in states:
+        layer(s)
+    hidden = [s.model_copy(update={"elements": [e.model_copy(update={"in_mock": False}) if e.id in copies else e
+                                                for e in s.elements]}) for s in states]
+    return hidden, sorted(copies)
+
+
+def asset_note(states: list[State], device: Device, copies: list[str]) -> str:
+    """What code decided about drawing the states in scope: crops saved, flat boxes drawn from their colors, wordless
+    corner boxes and a modal's copies of its parent not drawn."""
+    art = [e for s in states if s.in_mock_scope for e in s.elements if is_image_like(e, s.elements, device)]
+    corner = {e.id for e in art if edge_overlay(e, device)}
+    fills = [e.id for e in art if not e.asset_png and e.id not in corner]
+    return (f"crops saved: {sum(bool(e.asset_png) for e in art)}; flat boxes drawn from their colors: {len(fills)}"
+            + (f" ({', '.join(fills)})" if fills else "") + f"; wordless corner boxes not drawn: {len(corner)}; "
+            f"a parent's elements a modal or sheet repeats, not drawn again: {len(copies)}")
 
 
 # ---------- markdown ----------
@@ -591,7 +757,7 @@ def render_md(model: ProductModel) -> str:
         what = mermaid_label((el.text or el.label or el.role) if el else e.action)
         return f"  {e.from_state} -->|{e.transition}: {what}| {e.to_state}"
 
-    lines = [f"# Product model: {model.app} {model.app_version}", "",
+    lines = [f"# Product model: {model.app_name or model.app} {model.app_version}", "",
              f"Category **{model.app_category}** · {len(model.states)} states · {len(model.edges)} edges · "
              f"{len(model.flows)} core flows · run `{model.run_id}` · source `{model.provenance.source}`", "",
              "## Navigation graph", "", "```mermaid", "flowchart TD"]
@@ -621,8 +787,9 @@ def render_md(model: ProductModel) -> str:
     return "\n".join(lines) + "\n"
 
 
-def exhibit(model: ProductModel, rounds: list[list[str]], notes: list[str]) -> str:
+def exhibit(model: ProductModel, rounds: list[list[str]], notes: list[str], assets: str) -> str:
     lines = ["# 02 · model", "",
+             f"- app name (the meaning call, read off the screens): {model.app_name or 'no screen shows it'}",
              f"- {len(model.states)} states, {sum(len(s.elements) for s in model.states)} elements, "
              f"{len(model.edges)} edges (all from explore, code-owned)",
              f"- app category: {model.app_category}; {len(model.flows)} core flows; {len(model.mechanics)} mechanics; "
@@ -633,6 +800,7 @@ def exhibit(model: ProductModel, rounds: list[list[str]], notes: list[str]) -> s
              + (", ".join(t.term + (EVERYDAY if t.everyday else "") for t in model.terms if not t.observed) or "none"),
              f"- open questions for the explorer: {len(model.questions)}",
              f"- mock scope (code, priority order): {', '.join(model.mock_order) or 'none'}",
+             f"- drawing (code): {assets}",
              "- ratings: " + ", ".join(f"{s.id} {s.content_rating}" for s in model.states)]
     for n, rejected in enumerate(rounds, start=1):
         title = "first answer" if n == 1 else "retry"
@@ -726,16 +894,26 @@ def run(ctx: Ctx) -> None:
     mock_order = mock_scope(states, edges, meaning)
     scope = set(mock_order)
     states = [finish_elements(s, scope, tapped, images[s.id], out, device) for s in states]
+    states, copies = hide_parent_copies(states, tapped)
+    assets = asset_note(states, device, copies)
     run_trace(ctx.run_dir, stage="model", step="scope", decider="code", note=", ".join(mock_order))
+    run_trace(ctx.run_dir, stage="model", step="assets", decider="code", note=assets)
+    bullets = folded_bullets(meaning.value_ledger, states)
+    quoted = ", ".join(i.evidence_ids[0] for i in bullets) or "none"
+    run_trace(ctx.run_dir, stage="model", step="bullets", decider="code",
+              note=f"paywall bullets quoted from folded lists: {quoted}")
 
     model = ProductModel(
-        app=ctx.app["name"], app_version=explore.app_version or "unknown", app_category=meaning.app_category,
+        app=ctx.app["name"], app_name=meaning.app_name, app_version=explore.app_version or "unknown",
+        app_category=meaning.app_category,
         run_id=ctx.run_dir.name, device=device, states=states, edges=edges, flows=meaning.flows,
         mechanics=meaning.mechanics, cross_screen_values=meaning.cross_screen_values,
-        value_ledger=meaning.value_ledger + experience, open_questions=[q.question for q in meaning.open_questions],
+        value_ledger=meaning.value_ledger + bullets + experience,
+        open_questions=[q.question for q in meaning.open_questions],
         coverage=explore.coverage, provenance=runfolder.upstream_provenance(ctx.run_dir, ["explore"]),
         terms=resolve_terms(meaning, states, edges, model_labels),
-        questions=[OpenQuestion(**q.model_dump()) for q in meaning.open_questions], mock_order=mock_order)
+        questions=[OpenQuestion(id=f"q{n}", **q.model_dump()) for n, q in enumerate(meaning.open_questions, start=1)],
+        mock_order=mock_order)
     for t in model.terms:
         if t.anchor_taps:
             run_trace(ctx.run_dir, stage="model", step="term_tap", decider="code",
@@ -743,4 +921,4 @@ def run(ctx: Ctx) -> None:
                            f"defined by {', '.join(t.defined_by)}")
     (out / "product_model.json").write_text(model.model_dump_json(indent=1))
     (out / "product_model.md").write_text(render_md(model))
-    write_exhibit(ctx.run_dir, 2, "model", exhibit(model, rounds, notes))
+    write_exhibit(ctx.run_dir, 2, "model", exhibit(model, rounds, notes, assets))

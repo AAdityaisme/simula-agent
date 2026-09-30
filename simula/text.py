@@ -68,6 +68,15 @@ def phrase(words: str) -> re.Pattern[str]:
     return re.compile(head + r"\s+".join(re.escape(p) for p in parts) + tail, re.IGNORECASE)
 
 
+PLACEHOLDERS = re.compile("[\ufffc\ufffd]")
+
+
+def strip_placeholders(app_text: str) -> str:
+    """App text without the replacement characters a tree carries where an inline icon or image sits (U+FFFC) or a
+    character couldn't be read (U+FFFD). They draw as an empty box, and a model never types them back."""
+    return PLACEHOLDERS.sub("", app_text)
+
+
 def same(a: str, b: str) -> bool:
     """Equal once whitespace runs are normalized."""
     return a.split() == b.split()
