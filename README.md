@@ -86,10 +86,11 @@ The rewarded interaction is always a short sponsored game, because that is Simul
 
 ## Replay without keys or a device
 
-Every committed run replays from a clean clone, with no API keys, no emulator and no model calls. You still need Chromium, because mock, qa and flows render pages.
+Every committed run replays from a clean clone, with no API keys, no emulator and no model calls. You still need Chromium, because mock, qa and flows render pages. Each run replays at the tag it's pinned to in [`runs/PINS.toml`](runs/PINS.toml), so check that tag out before the commands.
 
 ```sh
 git clone https://github.com/AAdityaisme/simula-agent && cd simula-agent   # on a Mac, clone outside ~/Desktop (iCloud)
+git checkout submitted-2026-09-30
 uv sync
 uv run playwright install chromium
 uv run simula run janitorai --run 20260929-203310-1f19585 --budget deep --from model --replay
@@ -104,7 +105,7 @@ Replay reproduces on macOS, where these runs were recorded, not yet on Linux (se
 - `--from model --replay` re-runs every stage from model to flows, taking every model reply from `cache/`. Explore drives the device and can't replay, so its capture comes from the run folder. A call that isn't in the cache stops the run with exit code 4 instead of calling an API.
 - Plain `--replay`, with no `--from`, skips every stage whose inputs, prompts, settings, code and outputs still hash the same as when it finished. (A hash fingerprints the contents.) On a finished run at this commit, it reruns nothing.
 - A replay stops at the first stage the run never finished, says so, and exits 0. A run that stopped at explore (an app that refused the emulator) replays explore alone.
-- `tests/test_replay.py` runs both on every committed run, in a fresh clone of the commit with the keys removed and outside requests refused. It checks that plain `--replay` skips every finished stage and that `--from model --replay` writes the same JSON outputs. Renders (PNG, PDF) differ byte by byte across machines, so it doesn't compare them.
+- `tests/test_replay.py` runs both on every committed run, in a fresh clone of the commit it's pinned to in `runs/PINS.toml` (HEAD when it has no pin), with the keys removed and outside requests refused. It checks that plain `--replay` skips every finished stage and that `--from model --replay` writes the same JSON outputs. Renders (PNG, PDF) differ byte by byte across machines, so it doesn't compare them.
 
 ## Run folders
 

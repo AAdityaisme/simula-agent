@@ -1,12 +1,15 @@
-"""Every run committed under runs/ replays from a clean checkout with no keys, no device and no network: its markers
-still describe this commit's code, and the grader's command re-executes model onward from the committed cache and
-writes the same structured outputs. A run replays the stages it finished: one that stopped at explore (an app that
-refused the emulator) replays explore alone. Parametrized over the committed runs, so with none it skips."""
+"""Every run committed under runs/ replays from a clean checkout with no keys, no device and no network, against the
+code it's pinned to in runs/PINS.toml (HEAD when it has no pin): its markers still describe that code, and the grader's
+command re-executes model onward from the committed cache and writes the same structured outputs. A run replays the
+stages it finished: one that stopped at explore (an app that refused the emulator) replays explore alone.
+Parametrized over the committed runs, so with none it skips."""
 
 import itertools
 import os
 import subprocess
 import sys
+import tomllib
+from collections import defaultdict
 from pathlib import Path
 
 import pytest
@@ -19,6 +22,7 @@ DROPPED_ENV = {"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "TYPESAFE_API_KEY", "ANDRO
                "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY"}
 DEAD_PROXY = "http://127.0.0.1:9"  # nothing listens on the discard port, so any outside request fails at once
 MARKERS = {"done.json", "failure.json", "manifest.json"}
+PINS = tomllib.loads((ROOT / "runs" / "PINS.toml").read_text())
 
 
 def git(*args: str, cwd: Path = ROOT) -> str:
@@ -34,18 +38,44 @@ def committed_runs() -> list[Path]:
     return sorted(Path(p).parent for p in tracked if Path(p).name == "manifest.json" and len(Path(p).parts) == 4)
 
 
+def key(run: Path) -> str:
+    return f"{run.parent.name}/{run.name}"
+
+
 RUNS = committed_runs()
-by_run = pytest.mark.parametrize("run", RUNS, ids=[f"{r.parent.name}/{r.name}" for r in RUNS])
+by_run = pytest.mark.parametrize("run", RUNS, ids=[key(r) for r in RUNS])
+
+
+def pin(run: Path) -> str:
+    """The git ref the run replays against: its entry in runs/PINS.toml, or HEAD."""
+    return PINS.get(key(run), "HEAD")
+
+
+def commit(ref: str) -> str:
+    """The commit a pin names. A ref this checkout doesn't have fails the test instead of falling back to HEAD."""
+    try:
+        return git("rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}").strip()
+    except subprocess.CalledProcessError:
+        pytest.fail(f"runs/PINS.toml pins a run to {ref!r}, which this checkout doesn't have (fetch its tags)")
 
 
 @pytest.fixture(scope="module")
-def clone(tmp_path_factory) -> Path:
-    """HEAD, cloned: only what git tracks, so a cache entry or an input that was never committed makes the replay
-    miss here, even when the working checkout has it."""
-    root = tmp_path_factory.mktemp("replay") / "simula-agent"
-    git("clone", "--quiet", "--shared", "--no-checkout", git("rev-parse", "--git-common-dir").strip(), str(root))
-    git("checkout", "--quiet", "--detach", git("rev-parse", "HEAD").strip(), cwd=root)
-    return root
+def clones() -> dict[str, Path]:
+    """One clone per pinned commit, shared by the module's tests."""
+    return {}
+
+
+@pytest.fixture
+def clone(run, clones, tmp_path_factory) -> Path:
+    """The run's pinned commit, cloned: only what git tracks, so a cache entry or an input that was never committed
+    makes the replay miss here, even when the working checkout has it."""
+    sha = commit(pin(run))
+    if sha not in clones:
+        root = tmp_path_factory.mktemp("replay") / "simula-agent"
+        git("clone", "--quiet", "--shared", "--no-checkout", git("rev-parse", "--git-common-dir").strip(), str(root))
+        git("checkout", "--quiet", "--detach", sha, cwd=root)
+        clones[sha] = root
+    return clones[sha]
 
 
 def finished(run: Path) -> set[str]:
@@ -84,15 +114,27 @@ def test_a_committed_run_is_a_real_explorer_run(run):
 
 
 @pytest.mark.skipif(not RUNS, reason="no committed runs")
-def test_every_committed_run_was_made_by_the_same_committed_code():
-    """No code changed between app runs: the out-of-set app ran on exactly what the others did."""
-    assert len({read_manifest(ROOT / run).git_sha for run in RUNS}) == 1
+def test_every_pin_names_a_committed_run_and_a_ref_this_checkout_has():
+    stale = set(PINS) - {key(run) for run in RUNS}
+    assert not stale, f"runs/PINS.toml pins runs that aren't committed: {sorted(stale)}"
+    for ref in set(PINS.values()):
+        commit(ref)
+
+
+@pytest.mark.skipif(not RUNS, reason="no committed runs")
+def test_runs_that_share_a_pin_were_made_by_the_same_code():
+    """No code changed between the app runs one pin replays: the out-of-set app ran on exactly what the others did."""
+    made_by = defaultdict(set)
+    for run in RUNS:
+        made_by[pin(run)].add(read_manifest(ROOT / run).git_sha)
+    assert all(len(shas) == 1 for shas in made_by.values()), dict(made_by)
 
 
 @by_run
-def test_the_committed_markers_still_describe_this_code(clone, run):
+def test_the_committed_markers_still_describe_the_pinned_code(clone, run):
     """A bare --replay re-executes nothing: every stage the run finished hashes its inputs, prompts, params, code and
-    outputs as it did then. A merge that touched a stage's code, a prompt or a param after the run fails here."""
+    outputs as it did then, at the commit the run is pinned to. An unpinned run fails here once a merge touches a
+    stage's code, a prompt or a param; pin it to the commit that added it."""
     before = len(read_trace(clone / run / "trace.jsonl"))
     assert_ok(replay(clone, run))
     skipped = {line.stage for line in read_trace(clone / run / "trace.jsonl")[before:] if line.step == "skip"}

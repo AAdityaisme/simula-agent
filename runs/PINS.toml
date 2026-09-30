@@ -1,0 +1,7 @@
+# The git ref each committed run replays against in tests/test_replay.py, keyed by <app>/<run_id>. A run that isn't
+# listed replays against HEAD, so a run committed with the code that made it needs no entry.
+"aol/20260929-205304-1f19585" = "submitted-2026-09-30"
+"janitorai/20260929-203310-1f19585" = "submitted-2026-09-30"
+"luzia/20260929-204554-1f19585" = "submitted-2026-09-30"
+"ooc/20260929-212755-1f19585" = "submitted-2026-09-30"
+"perplexity/20260929-212810-1f19585" = "submitted-2026-09-30"
