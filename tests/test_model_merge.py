@@ -3,6 +3,7 @@
 The recorded answer for each app is its golden model's meaning, so every assertion runs on all three apps."""
 
 import json
+import re
 
 import pytest
 from anthropic.lib._parse._transform import transform_schema
@@ -583,6 +584,25 @@ def test_product_model_md_and_the_exhibit_show_which_unobserved_terms_are_everyd
     assert "- **Luzia+**: " in md and "**Luzia+** (everyday" not in md
     assert ("app terms: 5, meaning not observed for: Weekly (everyday word, never flagged), Monthly (everyday word, "
             "never flagged), Annual (everyday word, never flagged)") in stage.exhibit(model, [], [], "")
+
+
+@pytest.mark.parametrize("name, short", [
+    ("Home", "Home"),
+    ("line one\nline two", "line one line two"),
+    ("Amber Glenn sobs after giving partner Pasha Pashkov a brutal bloody injury", "Amber Glenn sobs after giving…"),
+    ("シルビア" * 10, "シルビア" * 7 + "シル…"),
+    ("東京 " + "あ" * 40, "東京 " + "あ" * 27 + "…"),
+    ("a" + "कि" * 20, "a" + "कि" * 14 + "…"),
+], ids=["short", "one-line", "at-a-space", "unspaced", "early-space", "letter-and-mark"])
+def test_a_long_name_is_cut_between_words_or_letters(name, short):
+    assert stage.short_name(name) == short
+
+
+@pytest.mark.parametrize("name", APPS)
+def test_every_arrow_on_the_map_is_short(name):
+    """A map arrow named a tap with the element's whole text: AOL's whole headlines, JanitorAI's character sheets."""
+    labels = re.findall(r"-->\|\w+: ([^|]*)\|", stage.render_md(golden(name)))
+    assert labels and max(map(len, labels)) <= stage.LABEL_CHARS + 1
 
 
 # Guesses built from PR 2's real screens (red team D): the model's own meaning and used_in, with these citations.

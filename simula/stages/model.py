@@ -31,6 +31,10 @@ NOT_OBSERVED = "meaning not observed"
 EVERYDAY = " (everyday word, never flagged)"
 # Two or more letters in a row, each with the marks written on it: "मैसेज" is three letters, not three runs of one.
 WORD = re.compile(f"(?:[^\\W\\d_][{text.MARK}]*){{2,}}")
+LETTER_MARK = re.compile(f"[{text.MARK}]")
+# A name the vision pass ends with a picture's noun ("profile picture", "... photo"), not a control's ("photo tab").
+PICTURE = re.compile(r"\b(?:picture|photo|image|avatar|thumbnail|logo)s?\W*$", re.IGNORECASE)
+LABEL_CHARS = 30
 SCREEN_CHANGE = re.compile(r"→|(?:^|;\s*)[+-]['\"]")
 MEASURE = re.compile(r"^(?P<what>.*?)\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>[^\d\s]*)$")
 NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
@@ -88,12 +92,15 @@ def colors(pixels: np.ndarray) -> tuple[str | None, str | None]:
 
 def is_image_like(e: Element, siblings: list[Element], device: Device) -> bool:
     """Art worth cropping: an image (text over it is an overlay, drawn separately), or a wordless box that
-    holds no text (a crop would bake that text in). Under the no-wallpaper limit of the content area, the area the
-    mock and its validator measure; a bigger picture is left to the mock's art search."""
+    holds no text (a crop would bake that text in). A box only the vision pass found is an image when its name says
+    it shows a picture: that name describes the box, where a tree's label can be the words drawn on it. Under the
+    no-wallpaper limit of the content area, the area the mock and its validator measure; a bigger picture is left to
+    the mock's art search."""
     r = e.rect_px
     holds_text = any((s.text or s.label) and s is not e and inside(s.rect_px, r) for s in siblings)
     small_enough = r.w * r.h < render.WALLPAPER_SHARE * device.w_px * (device.content_bottom_px - device.content_top_px)
-    art = e.type == "ImageView" or not (e.text or e.label or holds_text)
+    picture = e.type == "ImageView" or (e.source == "vision" and PICTURE.search(e.label) is not None)
+    art = picture or not (e.text or e.label or holds_text)
     return art and min(r.w, r.h) >= 48 and small_enough
 
 
@@ -748,13 +755,26 @@ def mermaid_label(text: str) -> str:
     return re.sub(r'["\[\](){}|<>]', " ", text).strip() or "?"
 
 
+def short_name(name: str, limit: int = LABEL_CHARS) -> str:
+    """`name` on one line, cut past `limit` characters with "…": at the last space in the cut's second half, else at
+    the limit, as a script written without spaces needs, and never between a letter and a mark written on it."""
+    name = " ".join(name.split())
+    if len(name) <= limit:
+        return name
+    space = name.rfind(" ", limit // 2, limit + 1)
+    cut = space if space > 0 else limit
+    while cut and LETTER_MARK.match(name[cut]):
+        cut -= 1
+    return name[:cut].rstrip() + "…"
+
+
 def render_md(model: ProductModel) -> str:
     elements = {e.id: e for s in model.states for e in s.elements}
     edges = {e.id: e for e in model.edges}
 
     def edge_line(e: Edge) -> str:
         el = elements.get(e.element_id)
-        what = mermaid_label((el.text or el.label or el.role) if el else e.action)
+        what = short_name(mermaid_label((el.text or el.label or el.role) if el else e.action))
         return f"  {e.from_state} -->|{e.transition}: {what}| {e.to_state}"
 
     lines = [f"# Product model: {model.app_name or model.app} {model.app_version}", "",

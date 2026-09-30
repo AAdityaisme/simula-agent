@@ -318,6 +318,27 @@ def test_a_picture_past_the_no_wallpaper_share_of_the_content_area_is_left_to_th
     assert not stage.is_image_like(big, [big], DEVICE) and stage.is_image_like(small, [small], DEVICE)
 
 
+@pytest.mark.parametrize("name, ref, image", [
+    ("profile picture", None, True),
+    ("Audrina Patridge photo", None, True),
+    ("share", None, False),
+    ("upload photo button", None, False),
+    ("photos tab", None, False),
+    ("Photo", "@s01.e01", False),
+], ids=["vision-picture", "vision-photo", "vision-text-button-with-icon", "vision-photo-button", "vision-photos-tab",
+        "tree-text-button-with-icon"])
+def test_a_box_is_a_picture_when_the_vision_pass_named_it_as_one(name, ref, image):
+    """JanitorAI's s05.e28, a profile picture only the vision pass found, went uncropped because it had a name. A text
+    button with an icon stays a box: its name ends in a control, or it is a tree's label, which can be the words the
+    button draws."""
+    pixels = np.zeros((2400, 1080, 3), np.uint8)
+    box = stage.make_element("s01.e01", Rect(x=100, y=400, w=126, h=126), "ViewGroup" if ref else "vision", "", name,
+                             ref, pixels, DEVICE)
+    icon = stage.make_element("s01.e02", Rect(x=110, y=420, w=48, h=48), "ImageView", "", "", "@s01.e02", pixels,
+                              DEVICE)
+    assert stage.is_image_like(box, [box, icon], DEVICE) == image
+
+
 def test_every_tapped_element_is_drawn_and_no_tapped_element_is_a_list_item(app, tmp_path):
     _, states, images, edges, _ = app
     (tmp_path / "assets").mkdir()
