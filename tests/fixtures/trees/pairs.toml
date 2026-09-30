@@ -13,6 +13,7 @@ captures = [
   "luzia/luzia-settings", "luzia/luzia-settings-scrolled", "luzia/luzia-pet-intro",
   "aol/aol-home", "aol/aol-home-repeat", "aol/aol-home-scrolled", "aol/aol-article", "aol/aol-article-external",
   "aol/aol-tab-entertainment", "aol/aol-tab-local", "aol/aol-tab-sports",
+  "janitorai/j11_home_relaunched", "janitorai/j12_home_relaunched_again",
 ]
 
 same = [
@@ -35,4 +36,9 @@ same = [
   ["aol/aol-a", "aol/aol-home-repeat"],
   ["aol/aol-b", "aol/aol-home"],
   ["aol/aol-b", "aol/aol-home-repeat"],
+  # 2026-09-30: JanitorAI home after two relaunches of the deep run (its s13, s15): the same frame around a feed that
+  # reloaded other characters. janitorai-hidden has the same title, tabs and feed tab but the other filter chip.
+  ["janitorai/j04_tab1", "janitorai/j11_home_relaunched"],
+  ["janitorai/j04_tab1", "janitorai/j12_home_relaunched_again"],
+  ["janitorai/j11_home_relaunched", "janitorai/j12_home_relaunched_again"],
 ]

@@ -351,7 +351,9 @@ class Explorer:
         sid = f"s{len(self.states) + 1:02d}"
         shutil.copyfile(self.scratch / "now.png", self.out / "states" / f"{sid}.png")
         (self.out / "states" / f"{sid}.elements.json").write_text(json.dumps(obs.reply, indent=1, ensure_ascii=False))
-        cands = [c for c in obs.cands if box is None or ob.inside(c.rect, box)]
+        # an overlay in the parent's window leaves the parent's controls listed behind it: only the new ones are its own
+        behind = {c.key for c in before.cands} if box and before else set()
+        cands = [c for c in obs.cands if box is None or (ob.inside(c.rect, box) and c.key not in behind)]
         tab_move = move is not None and move.cand is not None and move.cand.key in self.tab_keys()
         seen = Seen(sid=sid, kind=kind, parent=came_from.sid if came_from and kind != "screen" else None,
                     fp=obs.fp, fg=obs.fg, cands=cands, elements=obs.elements,
@@ -514,6 +516,13 @@ class Explorer:
             self.counts["hops arrived by the model"] += self.landing is not None
             return expect
         return self.record(obs, s, move, before)
+
+    def surface(self) -> list[ob.Candidate]:
+        """The live controls of what is in front: on a sheet or modal only its own, re-found, never one behind it."""
+        s = self.current
+        if s.box is None:
+            return self.obs.cands
+        return [live for c in s.cands for live in [ob.find(self.obs.cands, c)] if live]
 
     def shows(self, cand: ob.Candidate, live: ob.Candidate, now: Obs) -> bool:
         """Invariant 3: a recorded control is tapped only when the screen shows it as it was recorded, compared with
@@ -1309,21 +1318,23 @@ class Explorer:
     def walk_into(self, feed: CoreAction, item: ob.Candidate) -> CoreAction | None:
         """Invariant 4: on the item's page, a conversation (text box + send) or a play/generate button ends the walk
         at once. Otherwise the model says whether the control that starts the core action is on screen; the walk taps
-        it (at most WALK_STEPS times) or scrolls on, until the page stops moving or WALK_SCROLLS."""
+        it (at most WALK_STEPS times) or scrolls on, until the page stops moving or WALK_SCROLLS. An item that opens
+        a sheet or modal is walked the same way, on that surface's own controls."""
         if not self.goto(feed.state):
             return None
         self.act(Move("tap", item, why="core loop: look inside an item"), purpose="nav")
         if self.current is feed.state:
             return None
         tapped, scrolls, still = set(), 0, 0
-        while self.current.kind == "screen" and self.obs is not None:
+        while self.current.kind in ("screen", "modal", "sheet") and self.obs is not None:
             here = self.current
-            chat = self.live_composer()
+            # the chat loop finds its text box on the whole screen, so a box on an overlay could be one behind it
+            chat = self.live_composer() if here.kind == "screen" else None
             if chat:
                 return CoreAction("chat", here, list(chat), f"open an item and send messages in its conversation "
                                                             f"({self.chat_title(here)!r}; text box + send inside "
                                                             f"the item, {here.sid})")
-            action = self.input_action(self.obs.cands, here.upsell)
+            action = self.input_action(self.surface(), here.upsell)
             if action:
                 return CoreAction("action", here, [action], f"open an item and tap {action.label[:40]!r} inside it "
                                                             f"again and again ({here.sid})")
@@ -1350,7 +1361,7 @@ class Explorer:
         (invariant 3); anything less keeps the walk going."""
         before, here = self.obs, self.current
         row = self.filter_row(before.cands)
-        cands = [c for c in before.cands if c.key not in tapped and c.key not in self.tab_keys() and c.key not in row
+        cands = [c for c in self.surface() if c.key not in tapped and c.key not in self.tab_keys() and c.key not in row
                  and not ob.denied(c, upsell=here.upsell)]
         if not cands:
             return None
@@ -1606,7 +1617,10 @@ class Explorer:
         if self.core.kind == "chat":
             return self.chat_stop(here, before, move)
         if here is not s and here.kind in ("modal", "sheet"):
-            return self.named(self.within(here)) or f"{here.kind} opened", here.sid
+            named = self.named(self.within(here))
+            # a sheet the action opened shows its result (an item's page) unless it says price or limit
+            if named or here.kind == "modal":
+                return named or "modal opened", here.sid
         if here is not s and here.upsell:
             return ("paywall" if here.priced else "upsell screen"), here.sid
         moved = ob.counters(before.elements, self.obs.elements, self.device, [(0, ob.TOP_CHROME_BOTTOM_PX)])

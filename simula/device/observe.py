@@ -24,6 +24,10 @@ TAB_BAND_PX = 330
 # top <= 1 and content <= 11, different pairs at top >= 10 or content >= 18.
 TOP_BITS = 8
 CONTENT_BITS = 12
+# The 512-bit dHash of what surrounds a list, on the labeled pairs in tests/fixtures/trees/pairs.toml: a feed that
+# reloaded sits at <= 5 (the deep app's home a day apart and after relaunches), the same frame with its filter chip
+# moved and its item count changed at >= 17.
+FRAME_BITS = 10
 PATCH_DP = 24
 LOOK_BITS = 16
 # Arrival's structural threshold, picked once in step 4a on labeled pairs from all three test apps (the deep app's
@@ -180,8 +184,8 @@ def redact(reply: dict, image: Image.Image, secrets: list[str]) -> tuple[dict, l
 
 # ---------- fingerprint ----------
 
-def dhash(image: Image.Image) -> int:
-    pixels = np.asarray(image.convert("L").resize((17, 8), Image.Resampling.BICUBIC), dtype=np.int16)
+def dhash(image: Image.Image, w: int = 16, h: int = 8) -> int:
+    pixels = np.asarray(image.convert("L").resize((w + 1, h), Image.Resampling.BICUBIC), dtype=np.int16)
     bits = (pixels[:, 1:] > pixels[:, :-1]).flatten()
     return int("".join("1" if b else "0" for b in bits), 2)
 
@@ -205,22 +209,47 @@ class Fingerprint:
     top: int
     content: int
     skeleton: str
+    band: tuple[int, int] | None = None  # the list's rows, first row down to the tab bar, in 8 dp buckets
+    frame: int = 0
+    rows: frozenset[str] = frozenset()  # the rows' candidate keys
 
     def __str__(self) -> str:
-        return f"{self.package}|{self.top:032x}|{self.content:032x}|{self.skeleton}"
+        band = f"{self.band[0]}-{self.band[1]}:{self.frame:0128x}" if self.band else "-"
+        return f"{self.package}|{self.top:032x}|{self.content:032x}|{self.skeleton}|{band}"
 
 
 def fingerprint(package: str, elements: list[dict], image: Image.Image, device: Device) -> Fingerprint:
     top = image.crop((0, device.content_top_px, device.w_px, TOP_CHROME_BOTTOM_PX))
     content = image.crop((0, device.content_top_px, device.w_px, device.content_bottom_px))
-    return Fingerprint(package, dhash(top), dhash(content), skeleton(elements, device))
+    return Fingerprint(package, dhash(top), dhash(content), skeleton(elements, device), *frame(elements, image, device))
+
+
+def frame(elements: list[dict], image: Image.Image, device: Device) -> tuple[tuple[int, int] | None, int, frozenset]:
+    """What surrounds the screen's list, which stays put when the list's items reload: the band from its first row
+    down to the tab bar, a fine dHash of the content area with that band blanked, and the rows. A screen with no list
+    has none."""
+    cands = controls(elements, device)
+    rows = feed_items(cands, device)
+    if not rows:
+        return None, 0, frozenset()
+    tabs = tab_bar(cands, device)
+    top = int(min(c.rect.y for c in rows))
+    floor = int(min(t.rect.y for t in tabs)) if tabs else device.content_bottom_px
+    gray = np.asarray(image.convert("L")).copy()
+    gray[top:floor] = 0
+    around = Image.fromarray(gray[device.content_top_px:device.content_bottom_px])
+    return (bucket(top, device), bucket(floor, device)), dhash(around, 32, 16), frozenset(c.key for c in rows)
 
 
 def same_state(a: Fingerprint, b: Fingerprint) -> bool:
-    """Same package, same top chrome, and the same layout or nearly the same pixels (the tree can change
-    on a pixel-identical screen). This names new states when recording; arrival is judged by what a screen shows."""
+    """Same package, same top chrome, and the same layout, nearly the same pixels (the tree can change on a
+    pixel-identical screen), or the same frame around a list whose rows were replaced: a feed that reloaded other
+    items. An overlay in the same window leaves most rows listed where they were, so it stays another state. This
+    names new states when recording; arrival is judged by what a screen shows."""
+    replaced = 2 * len(a.rows & b.rows) < min(len(a.rows), len(b.rows))
     return (a.package == b.package and hamming(a.top, b.top) <= TOP_BITS
-            and (a.skeleton == b.skeleton or hamming(a.content, b.content) <= CONTENT_BITS))
+            and (a.skeleton == b.skeleton or hamming(a.content, b.content) <= CONTENT_BITS
+                 or (a.band is not None and a.band == b.band and replaced and hamming(a.frame, b.frame) <= FRAME_BITS)))
 
 
 def structure(target: list[dict], now: list[dict], device: Device, dynamic: list[Rect] = ()) -> float:

@@ -412,7 +412,8 @@ def test_a_sheet_over_the_tab_bar_is_closed_with_back_not_a_relaunch(tmp_path, m
     assert any("control covered on the live screen" in line.note for line in trace)
 
 
-def test_a_tall_sheet_is_recorded_over_its_parent_with_its_box(tmp_path, monkeypatch):
+def tall_sheet(tmp_path, monkeypatch):
+    """A list row's tall sheet over its parent, whose controls stay listed behind it, recorded from the parent."""
     def screen(name: str) -> Screen:
         fix = Path(__file__).parent / "fixtures" / "invariants"
         image = Image.new("RGB", (1080, 2400), (30, 30, 30))
@@ -424,11 +425,60 @@ def test_a_tall_sheet_is_recorded_over_its_parent_with_its_box(tmp_path, monkeyp
     parent = ex.current = ex.record(ex.observe(), None, None, None)
     before = ex.obs
     phone.screen = "sheet"
-    sheet = ex.record(ex.observe(), parent, stage.Move("tap", before.cands[0]), before)
+    sheet = ex.current = ex.record(ex.observe(), parent, stage.Move("tap", before.cands[0]), before)
+    return ex, parent, sheet, before
+
+
+def test_a_tall_sheet_is_recorded_over_its_parent_with_its_box(tmp_path, monkeypatch):
+    ex, parent, sheet, _ = tall_sheet(tmp_path, monkeypatch)
     assert (sheet.kind, sheet.parent) == ("sheet", parent.sid) and sheet.box
     ex.write(None)
     saved = {s.sid: StateFile.model_validate_json((ex.out / "states" / f"{s.sid}.json").read_text()) for s in ex.states}
     assert saved[sheet.sid].box == sheet.box and saved[parent.sid].box is None
+
+
+def test_a_sheet_offers_only_its_own_controls_never_the_screen_behind_it(tmp_path, monkeypatch):
+    ex, _, sheet, before = tall_sheet(tmp_path, monkeypatch)
+    behind = {c.key for c in before.cands}
+    assert "Start new chat" in {c.label for c in sheet.cands} and not behind & {c.key for c in sheet.cands}
+    assert not any(c.kind == "EditText" for c in [*sheet.cands, *ex.surface()])
+    assert {c.key for c in ex.surface()} == {c.key for c in sheet.cands}
+    assert not [line for line in lines(ex) if line.from_state == sheet.sid and line.outcome == "denied"]
+
+
+def sheet_first(clock):
+    """A feed item opens a sheet in the feed's window (the feed stays listed behind it); the sheet's own New chat
+    control opens the conversation."""
+    phone = janitor_like(clock)
+    feed = phone.screens["limited"]
+    image = feed.image.copy()
+    ImageDraw.Draw(image).rectangle((0, 1250, 1080, 2400), fill=(40, 40, 48))
+    own = [{"ref": "@s1", "type": "android.view.ViewGroup", "text": "Your chats with this character",
+            "coordinates": {"x": 0, "y": 1250, "width": 1080, "height": 110}},
+           {"ref": "@s2", "type": "android.view.ViewGroup", "text": "New chat",
+            "coordinates": {"x": 240, "y": 2150, "width": 600, "height": 120}}]
+    phone.screens["sheet"] = Screen(feed.elements + own, image, PACKAGE)
+    phone.taps[("limited", "JJK - GOJO’S RELATIVE")] = "sheet"
+    phone.taps[("sheet", "New chat")] = "chat"
+    return phone
+
+
+def test_the_walk_follows_a_sheet_an_item_opens_to_the_conversation(tmp_path, monkeypatch):
+    ex, phone = explore(tmp_path, monkeypatch, phone_factory=sheet_first)
+    trace = runlog.read_trace(ex.run_dir / "trace.jsonl")
+    walk = [line for line in trace if "(core loop: the item's main action)" in line.note]
+    assert any(s.kind == "sheet" for s in ex.states) and [line.note.split("'")[1] for line in walk] == ["New chat"]
+    assert ex.core.name.startswith("open an item and send messages") and phone.sent
+
+
+def test_a_sheet_the_feed_pass_opens_is_its_result_not_a_stop(tmp_path, monkeypatch):
+    ex, _ = new_explorer(tmp_path, monkeypatch, sheet_first)
+    monkeypatch.setattr(decide, "ask_choice", functools.partial(fake_jev, core_pick="open and read items"))
+    stage.explore_app(ex)
+    opened = [line for line in lines(ex) if line.loop_pass == 1 and line.to_state
+              and ex.by_id[line.to_state].kind == "sheet"]
+    assert ex.core.kind == "feed" and opened and not opened[0].loop_stop and not ex.core_hit
+    assert sum(r.startswith("pass ") for r in ex.core_results) == ex.core_reps
 
 
 def test_a_stop_that_is_not_a_limit_leaves_the_limit_open(run):
