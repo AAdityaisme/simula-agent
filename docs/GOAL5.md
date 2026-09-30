@@ -107,7 +107,7 @@ What this is: one historical run's traced API spend, with explore at a2a161c and
 ## Device scaling
 
 - **Default = emulator tier**, local AVD or cloud (Genymotion SaaS), since mobile-mcp/adb work unmodified there.
-- **Which apps block emulators, and how, confirmed today:** Google's own **Play Integrity API** lets an app's backend verify requests come from "an unmodified app binary, installed by Google Play, running on a genuine Android device" (`developer.android.com/google/play/integrity`, checked 2026-09-27) — the kind of check that would explain OOC closing itself on the emulator (which check OOC actually runs isn't known from outside). Any newly onboarded app can trip the same pattern.
+- **Which apps block emulators, and how, confirmed today:** Google's own **Play Integrity API** lets an app's backend verify requests come from "an unmodified app binary, installed by Google Play, running on a genuine Android device" (`developer.android.com/google/play/integrity`, checked 2026-09-27) — the kind of check that lets an app refuse to run on an emulator. Which check a given app runs, OOC included, isn't known from outside; any newly onboarded app can trip the same pattern.
 - **Real-device tier** for a flagged app: promote to Firebase Test Lab physical devices, AWS Device Farm real devices, or BrowserStack App Live — pricing above.
 - **Partner-supplied tier** once the app is a signed customer: their own internal-testing/TestFlight build + test accounts + device allowlist, near-zero marginal device cost — but only available post-contract, so it can't be the default for a cold crawl of "hundreds of apps," most of which aren't customers yet.
 

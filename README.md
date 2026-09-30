@@ -34,9 +34,10 @@ Every run below is committed with its cache, ran on the same commit (`<RUN: sha>
 | JanitorAI | the deep run | `deep` | `runs/janitorai/<RUN>/` | <RUN> | <RUN> | `flows/slides.pdf` | <RUN> |
 | Luzia | checks the system transfers | `transfer` | `runs/luzia/<RUN>/` | <RUN> | <RUN> | `flows/slides.pdf` | <RUN> |
 | AOL | checks the system transfers | `transfer` | `runs/aol/<RUN>/` | <RUN> | <RUN> | `flows/slides.pdf` | <RUN> |
-| Perplexity | outside the test set: nothing was built or tuned against it | `transfer` | `runs/perplexity/<RUN>/` | <RUN> | <RUN> | `flows/slides.pdf` | <RUN> |
+| OOC | checks the system transfers | `transfer` | `runs/ooc/<RUN>/` | <RUN> | <RUN> | <RUN> | <RUN> |
+| Perplexity | extra transfer evidence, outside the test set: nothing was built or tuned against it | `transfer` | `runs/perplexity/<RUN>/` | <RUN> | <RUN> | `flows/slides.pdf` | <RUN> |
 
-**OOC isn't run: it doesn't run on the Android emulator.** Getting past an app's emulator detection isn't this system's job; [docs/GOAL5.md](docs/GOAL5.md) says how a service would handle such apps (a real-device tier).
+**OOC** runs with the same command as every other app. If it detects the emulator and closes, the run records that and moves on; the fix is a real device (the device pool in [docs/GOAL5.md](docs/GOAL5.md)), not a workaround in this system.
 
 **Hand fixes.** A person stepping in during a run is a `hand_fix` line, decided by `human`, in that run's `trace.jsonl` (`simula note --run ID`). Tonight's runs: <RUN: each hand fix, or "none">.
 
@@ -46,7 +47,7 @@ You need:
 - macOS or Linux
 - Python 3.12 and [uv](https://docs.astral.sh/uv/)
 - Node 20+
-- For `explore` only: an Android emulator at 1080 × 2400 px and 420 dpi (the `Device` in `simula/contracts.py`), with the apps in `config/apps/` installed (`aol`, `janitorai`, `luzia`, `perplexity`), and `adb` on the path or `ANDROID_HOME` set. `ooc.toml` is there too, but OOC doesn't run on the Android emulator (see Results), so `simula doctor`'s `app ooc installed` check fails unless it's installed; no run needs it.
+- For `explore` only: an Android emulator at 1080 × 2400 px and 420 dpi (the `Device` in `simula/contracts.py`), with the apps in `config/apps/` installed (`aol`, `janitorai`, `luzia`, `ooc`, `perplexity`), and `adb` on the path or `ANDROID_HOME` set.
 
 ```sh
 uv sync
@@ -132,6 +133,7 @@ uv run playwright install chromium
 uv run simula run janitorai --run <RUN> --budget deep --from model --replay
 uv run simula run luzia --run <RUN> --from model --replay
 uv run simula run aol --run <RUN> --from model --replay
+uv run simula run ooc --run <RUN> --from model --replay          # if its run got past explore
 uv run simula run perplexity --run <RUN> --from model --replay
 ```
 
@@ -152,7 +154,7 @@ Each stage has a $ cap in `config/profiles.toml` (`[caps_usd]`); override one wi
 - **Spend outside a run:** `uv run simula note "what I fixed by hand" --usd 0.40` appends a line to `build/trace.jsonl`. With `--run ID`, it goes into that run's trace as a hand fix.
 - **`caps_usd` in `manifest.json`** is a copy of `[caps_usd]` from when the run was created. A stage runs under `--usd-cap` if given, else under `[caps_usd]` as it is when that stage runs, so a stage rerun later can have had a different cap than the manifest shows. Its spend is in its trace lines either way.
 
-**Spend.** The four committed runs cost $<RUN> in API calls, summed from their traces. Everything billed to the APIs while building this came to about $<RUN>: Anthropic $<RUN>, OpenAI $<RUN>. That covers these runs, development runs, PR merge-gate runs on fixtures, and the judge validation. Writing and reviewing the code ran on Claude Max and ChatGPT subscriptions, which aren't billed per call.
+**Spend.** The committed runs cost $<RUN> in API calls, summed from their traces. Everything billed to the APIs while building this came to about $<RUN>: Anthropic $<RUN>, OpenAI $<RUN>. That covers these runs, development runs, PR merge-gate runs on fixtures, and the judge validation. Writing and reviewing the code ran on Claude Max and ChatGPT subscriptions, which aren't billed per call.
 
 ## Safety and privacy
 
@@ -176,7 +178,7 @@ The ten calls that shaped this system, why, and what each one gave up.
 |---|---|---|---|
 | 1 | **Nothing is tuned to one app.** The only per-app config is the package name. Content filters, content rating and budget are run flags that work the same on every app. | The system should be able to open any app, understand it, mock it and propose for it. Tuning to the test apps would make the demo look better and the system worse. | When the general rule costs one app something, we take the loss (a Luzia screen and an AOL screen stay out of their reference mocks). |
 | 2 | **Every deliverable comes from a real explore run.** Fixtures and hand-built reference models are test data; a real run refuses them. | A deck built on hand-made input proves nothing about the explorer. | An app gets deliverables only as fast as a phone can explore it. |
-| 3 | **One app deep, three more to show it transfers.** JanitorAI gets the deep run. Luzia and AOL check transfer. Perplexity is an app nothing was built or tuned against. OOC isn't run: it doesn't run on the Android emulator. | Deep on one app beats shallow on four, but one app alone can't show the system is general. | OOC gets one line here instead of a workaround. Getting past emulator detection isn't this system's job. |
+| 3 | **One app deep, the rest to show it transfers.** JanitorAI gets the deep run. Luzia, AOL and OOC check transfer. Perplexity is extra evidence: an app nothing was built or tuned against. | Deep on one app beats shallow on five, but one app alone can't show the system is general. | An app that detects the emulator and closes gets a recorded run, not a workaround. Getting past emulator detection isn't this system's job. |
 | 4 | **The mock draws the screens the model stage scoped, in parallel batches, and plans its spend before the first call.** Each batch's worst case is checked against the stage's cap before anything is sent. | The mock is half the cost of a run ($10.35 of $19.84 on a development JanitorAI run). A cap checked one call at a time can be blown by batches running at the same time. | Screens outside the scope aren't in the mock. |
 | 5 | **The judge has hard gates, and a split goes to a person.** Five gates (policy, no cash rewards, no chat content, nothing free taken away, brand safety) must all pass. Six judgment checks are scored by the judges. An idea that fails something fixable gets one revision and is judged again from scratch. If the judges disagree, the idea goes to a human queue (`judge/human-queue.md`). | One overall model score lets a good-sounding idea through on charm. Gates make the lines that can't be crossed explicit. | More ideas get rejected or held, and a person has to settle the held ones. |
 | 6 | **An idea that uses an app term we never saw explained is flagged, not dropped, and the judge never sees the flag.** | Dropping it threw away good ideas. Showing the flag to the judge would bias the verdict. The flag is for the person reading the deck. | A flagged idea can reach the slides; its flag is on its appendix card. |
@@ -215,7 +217,7 @@ The sketch is in [docs/GOAL5.md](docs/GOAL5.md). In short:
 | Not built | Why |
 |---|---|
 | Per-app code or config beyond the package name | The system has to work on apps it has never seen (Decision 1). |
-| A way past emulator detection, or an iPhone driver | OOC is the one test app it blocks. Goal 5's answer is a real-device tier. |
+| A way past emulator detection, or an iPhone driver | An app may refuse to run on an emulator; that run is recorded as it happened. Goal 5's answer is a real-device tier. |
 | Automatic loop-back to an earlier stage | People restart earlier stages, by design (Decision 10). |
 | A QA score that blocks flows | Nobody has measured what score is good enough, and blocking would leave an app with no slides. A QA that didn't finish is labeled `qa_incomplete`, and flows still runs. |
 | A vector store or a database | A run folder of JSON files is enough at this scale. |
@@ -226,5 +228,5 @@ The sketch is in [docs/GOAL5.md](docs/GOAL5.md). In short:
 - **Draw the app's character on the ad card.** Simula's unit is a playable with sponsored characters. The proposer already writes how each idea uses a character, but the simulated ad card shows only the app's colors.
 - **Give the judge a human baseline.** About 15 blind human labels (`simula label`), and a measured fix for judge 2's strictness on evidence, tested on the same known-good ideas.
 - **Redraw only what changed.** The mock is half of a run's cost, so an app update should redraw only the screens whose fingerprint changed.
-- **The Goal 5 service.** A versioned store, the re-explore triggers, a review queue in place of `needs-human.md`, and a device pool with a real-device tier for apps like OOC.
+- **The Goal 5 service.** A versioned store, the re-explore triggers, a review queue in place of `needs-human.md`, and a device pool with a real-device tier for apps that refuse an emulator.
 - **Guest accounts.** `--allow-account-create` is recorded with a run, but the explorer doesn't act on it yet, so an app that opens on a sign-up wall stops for a person.
