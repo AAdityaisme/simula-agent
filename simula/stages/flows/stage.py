@@ -1,6 +1,6 @@
 """Goal 4: slide flows. Code picks the ideas that survived the judge and copies the approved mock for each; one model
 call per idea adds the idea's new screens; code draws the simulated ad, taps through every step in Playwright, and
-lays out slides for the app's product team, then prints them to PDF."""
+lays out slides for the app's product team and, apart, Simula's own review, then prints both to PDF."""
 
 import json
 import re
@@ -14,7 +14,7 @@ from simula import llm
 from simula.contracts import Candidate, CandidatesFile, Decision, DecisionsFile, Edits, ProductModel
 from simula.runlog import read_trace, run_trace, write_exhibit
 from simula.stages import Ctx
-from simula.stages.flows.deck import deck, needs_call
+from simula.stages.flows.deck import deck, needs_call, review
 from simula.stages.flows.editor import apply_edits, ask_editor
 from simula.stages.flows.page import ad_palette_css, blur_css, decline_edges, flow_page, strip_runtime, with_flow_css
 from simula.stages.flows.pdf import write_pdf
@@ -33,17 +33,18 @@ def load_candidates(run_dir: Path) -> dict[str, Candidate]:
     return {c.id: c for f in files if f.exists() for c in CandidatesFile.model_validate_json(f.read_text()).candidates}
 
 
-def load_approvals(flows_dir: Path) -> list[str | dict] | None:
+def load_approvals(flows_dir: Path) -> tuple[list[str | dict], list[str]]:
+    """A person's overrides, (promote, hold), from flows/approvals.json: {"promote": [entries], "hold": [ids]}. An
+    older file's "approved" list is read as promote, so it adds to what the judges draw and never drops an idea."""
     path = flows_dir / "approvals.json"
-    return json.loads(path.read_text())["approved"] if path.exists() else None
+    data = json.loads(path.read_text()) if path.exists() else {}
+    return data.get("promote", []) + data.get("approved", []), data.get("hold", [])
 
 
-def honored(approvals: list[str | dict] | None, decisions: list[Decision]) -> tuple[list[str] | None, dict[str, str]]:
-    """The approved ids flows acts on, and why each approval of a split it sets aside doesn't hold. An entry is an
+def honored(approvals: list[str | dict], decisions: list[Decision]) -> tuple[list[str], dict[str, str]]:
+    """The promoted ids flows acts on, and why each approval of a split it sets aside doesn't hold. An entry is an
     id, or {"id": ..., "splits": [checks]}: approving a split holds only while the judges split on exactly the
     checks it names, so a changed disagreement goes back to a person."""
-    if approvals is None:
-        return None, {}
     ids = [e if isinstance(e, str) else e["id"] for e in approvals]
     checks = {e["id"]: set(e["splits"]) for e in approvals if isinstance(e, dict)}
     stale = {d.candidate_id: ("the reviewers' disagreement changed since your approval" if d.candidate_id in checks
@@ -53,21 +54,21 @@ def honored(approvals: list[str | dict] | None, decisions: list[Decision]) -> tu
     return [i for i in ids if i not in stale], stale
 
 
-def survivors(decisions: list[Decision], approvals: list[str] | None) -> list[Decision]:
+def survivors(decisions: list[Decision], promoted: list[str] = (), held: list[str] = ()) -> list[Decision]:
     """Accepted and CONDITIONAL ideas in the judge's order (every accept first, D10), leaving out an idea the judges
     split on (D11) unless nothing was accepted: then the top-ranked split is drawn as the closest idea, so a deck
-    with survivors has a full slide. flows/approvals.json picks among every survivor, a split one included."""
+    with survivors has a full slide. A person promotes a split survivor into the deck and holds any idea out of it
+    (flows/approvals.json); everything else follows the judges."""
     picked = [d for d in ordered(decisions) if d.final in SURVIVED]
-    if approvals is not None:
-        return [d for d in picked if d.candidate_id in approvals]
     splits = [d for d in picked if needs_call(d)]
     closest = splits[:1] if not any(d.final == "accept" for d in decisions) else []
-    return [d for d in picked if not needs_call(d) or d in closest]
+    return [d for d in picked if (not needs_call(d) or d in closest or d.candidate_id in promoted)
+            and d.candidate_id not in held]
 
 
-def select(decisions: list[Decision], approvals: list[str] | None) -> list[Decision]:
+def select(decisions: list[Decision], promoted: list[str] = (), held: list[str] = ()) -> list[Decision]:
     """The survivors the deck draws: the best MAX_IDEAS."""
-    return survivors(decisions, approvals)[:MAX_IDEAS]
+    return survivors(decisions, promoted, held)[:MAX_IDEAS]
 
 
 def mock_source(run_dir: Path) -> Path:
@@ -182,7 +183,8 @@ def exhibit(flows: list[dict], not_built: list[tuple[Decision, str]], chosen_fro
         lines += ["", "## Not built", ""] + [f"- {d.candidate_id}: {why}" for d, why in not_built]
     if layout:
         lines += ["", "## Layout", ""] + [f"- {problem}" for problem in layout]
-    lines += ["", "Deck: `flows/slides.html`, `flows/slides.pdf`."]
+    lines += ["", "The product team's deck: `flows/slides.html`, `flows/slides.pdf`. Simula's review: "
+              "`flows/review.html`, `flows/review.pdf`."]
     return "\n".join(lines) + "\n"
 
 
@@ -255,13 +257,15 @@ def run(ctx: Ctx) -> None:
     decisions = DecisionsFile.model_validate_json((run_dir / "judge" / "decisions.json").read_text()).decisions
     candidates = load_candidates(run_dir)
     out.mkdir(exist_ok=True)
-    approvals, set_aside = honored(load_approvals(out), decisions)
+    promote, held = load_approvals(out)
+    promoted, set_aside = honored(promote, decisions)
     clean(out)
-    chosen = select(decisions, approvals)
-    kept = {d.candidate_id for d in survivors(decisions, approvals)}
-    cut = survivors(decisions, approvals)[MAX_IDEAS:]  # an approved split past the cap is cut, not asked about again
-    waiting = [d for d in ordered(decisions) if needs_call(d) and d.candidate_id not in kept]
-    chosen_from = "narrowed by flows/approvals.json" if approvals is not None else "accepted + conditional"
+    chosen = select(decisions, promoted, held)
+    kept = {d.candidate_id for d in survivors(decisions, promoted, held)}
+    cut = survivors(decisions, promoted, held)[MAX_IDEAS:]  # an approved split past the cap is cut, not asked again
+    waiting = [d for d in ordered(decisions) if needs_call(d) and d.candidate_id not in kept | set(held)]
+    overrides = [f"{verb} {' '.join(ids)}" for verb, ids in (("promoting", promoted), ("holding", held)) if ids]
+    chosen_from = "accepted + conditional" + (f", flows/approvals.json {' and '.join(overrides)}" if overrides else "")
     past_cap = f"; past the cap of {MAX_IDEAS}, not drawn: {' '.join(d.candidate_id for d in cut)}" if cut else ""
     calls = f"; needs your call: {' '.join(d.candidate_id for d in waiting)}" if waiting else ""
     run_trace(run_dir, stage="flows", step="select", decider="code",
@@ -284,10 +288,11 @@ def run(ctx: Ctx) -> None:
         run_trace(run_dir, stage="flows", step=f"build:{d.candidate_id}", decider="code", outcome="error",
                   note=f"not built: {why}"[:300])
     for flow in flows:  # a drawn split is either a person's approval or, with nothing accepted, the closest idea
-        flow["approved"] = approvals is not None and needs_call(flow["decision"])
-    (out / "slides.html").write_text(deck(ctx, model, flows, not_built, decisions, candidates, cap=MAX_IDEAS,
-                                            cut=len(cut), waiting=waiting, set_aside=set_aside))
-    layout = write_pdf(out / "slides.html")
+        flow["approved"] = needs_call(flow["decision"]) and flow["decision"].candidate_id in promoted
+    (out / "slides.html").write_text(deck(ctx, model, flows, decisions))
+    (out / "review.html").write_text(review(ctx, model, flows, not_built, decisions, candidates, cap=MAX_IDEAS,
+                                            cut=len(cut), waiting=waiting, set_aside=set_aside, held=held))
+    layout = write_pdf(out / "slides.html") + [f"review: {p}" for p in write_pdf(out / "review.html")]
     for problem in layout:
         run_trace(run_dir, stage="flows", step="layout", decider="code", outcome="error", note=problem[:300])
     usd = sum(line.usd for line in read_trace(run_dir / "trace.jsonl") if line.stage == "flows")

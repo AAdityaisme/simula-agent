@@ -1,4 +1,5 @@
-"""The slides: the cover, each idea's flow and why slides, and the score pages, filled into the template."""
+"""Two documents filled into the template: the app's product team's deck (the cover, then each idea's flow and why
+slides) and Simula's own review (what the deck left out and why, the score pages, and Needs your call)."""
 
 import base64
 import json
@@ -194,7 +195,7 @@ def condition(decision: Decision, run_dir: Path, none_accepted: bool,
         return "Not every check passed:", f"It didn't pass {names} ({failed[0][1]})."
     if decision.checks_passed < decision.checks_total:
         return ("Not every check passed:", (f"It passed {decision.checks_passed} of {decision.checks_total} checks; "
-                                            "the score pages at the end show which."))
+                                            "Simula's review shows which."))
     return None
 
 
@@ -238,42 +239,53 @@ def idea_slides(flow: dict, model: ProductModel, run_dir: Path, none_accepted: b
     return [slide_html(flow, "flow", body), slide_html(flow, "why", why)]
 
 
-def cover_html(app: str, flows: list[dict], *, cap: int, unbuilt: int = 0, fallbacks: int = 0,
-               unbuilt_fallbacks: int = 0, cut: int = 0, calls: int = 0, approved: int = 0,
-               status: list[str] = ()) -> str:
-    """The overview: every idea in the deck, how to read it, the reward rule every idea follows, whether an idea is
-    only the judge's fallback pick (drawn, or not drawn), how many survivors past the cap of `cap` were left out, and
-    status lines for anything an earlier stage couldn't finish. `unbuilt` counts only ideas that passed the review."""
+def cover_html(app: str, flows: list[dict], *, fallbacks: int = 0) -> str:
+    """The product team's overview: every idea in the deck, how to read it, the reward rule every idea follows, and
+    whether what is drawn is only the closest idea. Notes on the run itself go on the review's cover."""
     items = "".join(f'<li><span class="chip {"existing" if f["candidate"].kind == "existing_anchor" else "change"}">'
                     f'{escape(BUCKETS.get(f["candidate"].kind, ""))}</span>{escape(plain(caption(f["candidate"])))}</li>'
                     for f in flows)
-    notes = []
-    if flows:
-        notes += ["Each idea takes two slides: its whole flow, step by step, then why it works. The score pages at "
-                  "the end score every idea the review saw.", REWARD_RULE]
+    notes = (["Each idea takes two slides: its whole flow, step by step, then why it works.", REWARD_RULE] if flows
+             else ["No idea is drawn in this deck."])
+    if fallbacks:
+        notes.append("No idea passed every check, so the closest is drawn and marked as not a recommendation.")
+    body = (f"<ol>{items}</ol>" if flows else "") + "".join(f"<p class='how'>{escape(n)}</p>" for n in notes)
+    return f'<section class="slide cover"><h1>Rewarded-ad ideas for {escape(app)}</h1>{body}</section>'
+
+
+def review_cover_html(app: str, flows: list[dict], *, cap: int, unbuilt: int = 0, fallbacks: int = 0,
+                      unbuilt_fallbacks: int = 0, cut: int = 0, calls: int = 0, approved: int = 0,
+                      held: list[str] = (), status: list[str] = ()) -> str:
+    """The review's overview: which ideas the product team's deck draws, whether an idea is only the judge's fallback
+    pick (drawn, or not drawn), how many survivors past the cap of `cap` were left out, what a person approved or
+    held, and status lines for anything an earlier stage couldn't finish. `unbuilt` counts only ideas that passed the
+    review."""
+    drawn = ", ".join(f["candidate"].id for f in flows) or "no idea"
+    notes = [f"The product team's deck, flows/slides.pdf, draws {drawn}."]
     if fallbacks and unbuilt_fallbacks:
         notes.append(f"No idea passed every check, so the closest are marked as not a recommendation; "
-                     f"{unbuilt_fallbacks} of them couldn't be drawn, and the score pages at the end say why.")
+                     f"{unbuilt_fallbacks} of them couldn't be drawn, and the score pages say why.")
     elif fallbacks:
         notes.append("No idea passed every check, so the closest is drawn and marked as not a recommendation.")
     elif unbuilt_fallbacks:
-        notes.append("No idea passed every check; the closest couldn't be drawn, and the score pages at the end "
-                     "say why.")
+        notes.append("No idea passed every check; the closest couldn't be drawn, and the score pages say why.")
     if cut:
         notes.append(f"{cut} more idea(s) passed the review; the deck draws only the top {cap} by rank, and the "
-                     "score pages at the end score the rest.")
+                     "score pages score the rest.")
     if unbuilt:
         notes.append(f"{unbuilt} {'more ' if flows else ''}idea(s) passed the review but couldn't be drawn; the score "
-                     "pages at the end say why.")
+                     "pages say why.")
     if approved:
         notes.append(f"{approved} idea(s) the reviewers split on are drawn because a person approved them.")
+    if held:
+        notes.append(f"A person held {', '.join(held)} out of the deck in flows/approvals.json.")
     if calls:
         notes.append(f"{calls} idea(s) split the reviewers, so they aren't drawn; the Needs your call page at the end "
                      "lists them.")
-    if not flows and not unbuilt and not unbuilt_fallbacks and not calls:
-        notes.append("No idea passed the review. The score pages at the end show every idea's score and why.")
-    body = (f"<ol>{items}</ol>" if flows else "") + "".join(f"<p class='how'>{escape(n)}</p>" for n in [*notes, *status])
-    return f'<section class="slide cover"><h1>Rewarded-ad ideas for {escape(app)}</h1>{body}</section>'
+    if not flows and not unbuilt and not unbuilt_fallbacks and not calls and not held:
+        notes.append("No idea passed the review. The score pages show every idea's score and why.")
+    body = "".join(f"<p class='how'>{escape(n)}</p>" for n in [*notes, *status])
+    return f'<section class="slide cover"><h1>Simula\'s review for {escape(app)}</h1>{body}</section>'
 
 
 def score_reason(d: Decision, c: Candidate | None, run_dir: Path) -> str:
@@ -328,7 +340,7 @@ def call_slides(waiting: list[Decision], candidates: dict[str, Candidate], run_d
     return [f'<section class="slide scores"><h2>Needs your call{f" ({n} of {len(pages)})" if len(pages) > 1 else ""}'
             f'</h2><div class="score-body"><ul class="calls">{"".join(page)}</ul></div>'
             "<footer>The reviewers split on these ideas, so none is drawn. To draw one, add its \"To approve\" entry to "
-            "the list in <b>flows/approvals.json</b> and run flows again.</footer></section>"
+            "<b>promote</b> in <b>flows/approvals.json</b> and run flows again.</footer></section>"
             for n, page in enumerate(pages, 1)] if waiting else []
 
 
@@ -369,26 +381,42 @@ def unfinished_stages(run_dir: Path) -> list[str]:
     return lines
 
 
-def deck(ctx: Ctx, model: ProductModel, flows: list[dict], not_built: list[tuple[Decision, str]],
-         decisions: list[Decision], candidates: dict[str, Candidate], *, cap: int, cut: int = 0,
-         waiting: list[Decision] = (), set_aside: dict[str, str] | None = None) -> str:
+def closest(d: Decision, run_dir: Path, none_accepted: bool, approved: bool = False) -> bool:
+    """The judge's fallback pick, or a split drawn for want of an accept (stage.survivors)."""
+    return is_fallback(d, run_dir, none_accepted) or (none_accepted and needs_call(d) and not approved)
+
+
+def watermark(run_dir: Path) -> str:
+    return ('<div class="watermark">FIXTURE TEST DATA · not a deliverable</div>'
+            if run_dir.name.endswith("-fixture") else "")
+
+
+def deck(ctx: Ctx, model: ProductModel, flows: list[dict], decisions: list[Decision]) -> str:
+    """The product team's deck: the cover, then each drawn idea's two slides."""
     app = app_title(model, ctx.app["name"])
     none_accepted = not any(d.final == "accept" for d in decisions)
-    def closest(d: Decision, approved: bool = False) -> bool:  # the fallback pick, or a split drawn for want of an accept
-        return is_fallback(d, ctx.run_dir, none_accepted) or (none_accepted and needs_call(d) and not approved)
-    fallbacks = sum(closest(f["decision"], f.get("approved", False)) for f in flows)
-    unbuilt_fallbacks = sum(closest(d) for d, _ in not_built)
-    slides = [cover_html(app, flows, cap=cap, unbuilt=len(not_built) - unbuilt_fallbacks, fallbacks=fallbacks,
-                         unbuilt_fallbacks=unbuilt_fallbacks, cut=cut, calls=len(waiting),
-                         approved=sum(f.get("approved", False) for f in flows),
-                         status=unfinished_stages(ctx.run_dir))]
+    fallbacks = sum(closest(f["decision"], ctx.run_dir, none_accepted, f.get("approved", False)) for f in flows)
+    slides = [cover_html(app, flows, fallbacks=fallbacks)]
     for flow in flows:
         slides += idea_slides(flow, model, ctx.run_dir, none_accepted)
+    return deck_html(f"Rewarded-ad ideas for {escape(app)}", watermark(ctx.run_dir) + "\n".join(slides))
+
+
+def review(ctx: Ctx, model: ProductModel, flows: list[dict], not_built: list[tuple[Decision, str]],
+           decisions: list[Decision], candidates: dict[str, Candidate], *, cap: int, cut: int = 0,
+           waiting: list[Decision] = (), set_aside: dict[str, str] | None = None, held: list[str] = ()) -> str:
+    """Simula's own review, kept out of the product team's deck: its cover, every idea's score, and Needs your call."""
+    app = app_title(model, ctx.app["name"])
+    none_accepted = not any(d.final == "accept" for d in decisions)
+    fallbacks = sum(closest(f["decision"], ctx.run_dir, none_accepted, f.get("approved", False)) for f in flows)
+    unbuilt_fallbacks = sum(closest(d, ctx.run_dir, none_accepted) for d, _ in not_built)
+    slides = [review_cover_html(app, flows, cap=cap, unbuilt=len(not_built) - unbuilt_fallbacks, fallbacks=fallbacks,
+                                unbuilt_fallbacks=unbuilt_fallbacks, cut=cut, calls=len(waiting),
+                                approved=sum(f.get("approved", False) for f in flows), held=held,
+                                status=unfinished_stages(ctx.run_dir))]
     slides += score_slides(decisions, candidates, not_built, ctx.run_dir)
     slides += call_slides(waiting, candidates, ctx.run_dir, set_aside)
-    watermark = ('<div class="watermark">FIXTURE TEST DATA · not a deliverable</div>'
-                 if ctx.run_dir.name.endswith("-fixture") else "")
-    return deck_html(f"Rewarded-ad ideas for {escape(app)}", watermark + "\n".join(slides))
+    return deck_html(f"Simula's review for {escape(app)}", watermark(ctx.run_dir) + "\n".join(slides))
 
 
 def deck_html(title: str, slides: str) -> str:
