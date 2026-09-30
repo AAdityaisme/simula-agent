@@ -235,11 +235,12 @@ Three calls carry the design:
 - The Needs your call page prints each idea's raw approval snippet, and where code strips element ids from a judge's reason it can leave stray punctuation (",,", "matches's").
 - The score table's reason names the evidence check without quotes, so it reads "didn't pass backed by what was seen in the app".
 - The duplicate check compares the benefit's name and who gets it, so two ideas that name their benefit differently can both be drawn: Luzia's deck draws two ideas that each feature a user's creation on Explore for 24 hours (c06, c08-rev).
+- The judges pass promotion ideas that add a separate row, because nobody else moves down (Luzia's c06 and c08-rev). A new row still spends the same finite attention, and the rubric counts what other creators lose but doesn't price attention, so a product team would likely cut these.
 - No check weighs showing an ad to paying subscribers: JanitorAI's accepted c03-rev is offered only to Janitor Plus subscribers. Its cost mark is CONDITIONAL for a separate reason (at 8k context it pays for itself only above $13 eCPM, against a $10.16 benchmark).
 - A trace line `declared fallback used` means that judge-2 call ran on gpt-6-luna, which the validation never measured.
 - The deck draws at most 4 ideas; any survivor past the cap is scored and listed as not drawn, with no flow.
 - QA's keep score picks the round QA keeps; it is not a fidelity percentage. Fonts and layered drawers are where the mocks visibly miss.
-- A reward the mock can't show working is drawn as a label on the screen, and the caption says so; broken interactions and undrawn screens are flagged on the slide, not hidden.
+- A drawn reward confirms the grant rather than demonstrating the benefit: a confirmation screen ("10× memory is on", "Toki grew 1 step!"), or, where the mock can't show it working, a label on the screen that the caption calls a label. Broken interactions and undrawn screens are flagged on the slide, not hidden.
 - The model stage's evidence check catches ids and quotes that were never captured, not wrong readings of what a screen means.
 - `config/profiles.toml`'s comment beside `judges` still says a split "goes to a person"; it goes to the Needs your call page.
 - A config value the code reads but doesn't hash, such as the adult-keyword list, doesn't trigger a rerun when it changes.
