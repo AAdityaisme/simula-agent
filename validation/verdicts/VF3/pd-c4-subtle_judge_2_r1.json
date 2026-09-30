@@ -2,52 +2,52 @@
  "candidate_id": "pd-c4-subtle",
  "g_policy": {
   "passed": true,
-  "reason": "The offer copy states the three-chat reward before the user chooses to play. The decline and ad-failure fields leave the home screen usable and provide a retry path if play is not confirmed."
+  "reason": "The offer copy states the reward before an opt-in game. The decline and ad-failure fields leave the user without a penalty or an unverified reward."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is access to Advanced reasoning mode in three chats, not cash or a transferable equivalent."
+  "reason": "The reward is access to Advanced reasoning mode, not cash or a cash-like item."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger uses a three-day gap between app sessions and subscription status, not chat content."
+  "reason": "The trigger uses time since the last session and Luzia+ status, not chat content."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The proposal says it removes nothing free, and its reward adds access to the paid feature listed at s02.e03."
+  "reason": "The proposal says it removes nothing free, and its reward does not cap an observed free feature."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The placement is a card on the Chats home screen, which the product model rates safe; it is not inside a conversation."
+  "reason": "The placement is a dismissible card on the safe Chats home screen (s01), outside a conversation."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "For this existing-anchor idea, s02.e03 lists Advanced reasoning mode on the Luzia+ paywall, so the app charges for the rewarded resource."
+  "reason": "The reward samples Advanced reasoning mode, which the Luzia+ paywall lists as a paid benefit (s02.e03)."
  },
  "c2_evidence": {
   "passed": true,
-  "reason": "The current paid feature and subscription entry point are supported by s02.e03 and s01.e02. The welcome-back card and permanent-chat reward are proposed changes, not claims that those mechanics exist today."
+  "reason": "The claims about the existing home screen, badge, paid mode, plans, and trial are supported by s01 and s02. The lasting per-chat reward is presented as what the proposal would provide, not as an existing behavior."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The subscribers field says Luzia+ members never see the offer, even though s02.e03 lists its reward as a plan benefit."
+  "reason": "The subscribers field says Luzia+ members never see this offer."
  },
  "c4_protects_subscription": {
   "passed": false,
-  "reason": "The reward and 'when the reward runs out' fields keep three chats in the paid Advanced reasoning mode for good. That grants lasting access to something the app charges for, even though the number of chats is limited."
+  "reason": "The reward and offer copy say each of the three chats stays in the paid Advanced reasoning mode 'for good.' That grants lasting access to a subscription benefit even though the number of chats is limited."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The trigger and placement put a dismissible card on Chats home when a returning user opens the app, rather than interrupting a task in progress."
+  "reason": "The welcome-back card sits on Chats home (s01) when the user opens the app, rather than interrupting a task in progress."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The flow uses a short sponsored game, and the ad-failure field withholds the reward when play is not confirmed. The app-open trigger is a detectable app event."
+  "reason": "The flow uses a sponsored game triggered by an app-open event, and the ad-failure field withholds the reward when play is not confirmed."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The idea uses the Chats home screen and the Advanced reasoning mode benefit listed on the Luzia+ paywall."
+  "reason": "The idea names the Chats home, its Luzia+ badge, and the paywall's Advanced reasoning mode benefit."
  },
- "other_concern": "The proposal does not define how a chat uses one of the three slots, including whether reopening that chat uses another slot.",
+ "other_concern": "The rationale predicts that ad earnings will cover model costs, but the product model provides no cost or revenue evidence.",
  "fixable": false
 }

@@ -1,6 +1,6 @@
 # 2026-09-30: the live rubric is VF3 (VF′ plus `c3_spares_payers`)
 
-VF3 is VF′ with one judgment check added. `c3_spares_payers` fails an offer that sits inside what paying users pay for or is pitched as more of what the plan sells; one that members of an ad-free plan see; or one whose reward the plan already includes. An offer for something outside the plan and outside what payers pay for passes, even when only paying users see it. The new fixtures test it:
+VF3 is VF′ with one judgment check added. `c3_spares_payers` fails an offer that sits inside what paying users pay for; one paying users see that is pitched as more of what their plan sells, or whose reward their plan already includes; or one that members of an ad-free plan see. An offer only non-paying users see passes, even when its reward is a slice of the plan. An offer for something outside the plan and outside what payers pay for passes, even when only paying users see it. The new fixtures test it:
 - pd-c3-flagrant: Luzia+ members offered a benefit their plan includes.
 - pd-c3-subtle: an ad-free plan's members shown the offer, in a news-reader sketch.
 - kg-fitness-01: a known-good offer only paying users see, for a streak freeze their plan doesn't sell.
@@ -9,7 +9,7 @@ VF3 is VF′ with one judgment check added. `c3_spares_payers` fails an offer th
 
 The generated sections under "Judge validation" are **one** `validate-judge` run of VF3: round 1 and the gate reruns, saved in `validation/verdicts/VF3/`. They are not a majority of 3, because the change's API cap paid for one. Everything from "How the live judge rubric was chosen" to that heading is about VF′ and its three saved runs in `validation/verdicts/VF2/`, kept as the record.
 
-VF3 against VF′. The VF′ column is `uv run python -m simula.validate summarize --runs validation/verdicts/VF2 --out <file>`, which scores only the fixtures VF2 judged:
+VF3 against VF′. The VF′ column is `uv run python -m simula.validate summarize --runs validation/verdicts/VF2 --only-judged --out <file>`, which scores only the fixtures VF2 judged:
 
 | | VF′ (majority of 3) | VF3 (one run) |
 |---|---|---|
@@ -17,11 +17,11 @@ VF3 against VF′. The VF′ column is `uv run python -m simula.validate summari
 | judge_1 / judge_2 on those 22 | 22 / 20 | 22 / 20 (judge_2 misses c7 flagrant and subtle, as before) |
 | The 2 c3 planted cases | not in VF′ | 2/2 by each judge |
 | The 4 original known-goods, combined (judge_1; judge_2) | 1/4 (3/4; 1/4) | 2/4 (3/4; 2/4) |
-| The 2 new known-goods, combined | not in VF′ | 1/2 (kg-fitness-01: judge_2 fails c2) |
-| Known-goods failing c3 | – | none of 6 |
+| The 2 new known-goods, combined | not in VF′ | 2/2 |
+| c3 fails outside its own cases | – | none: of the 86 verdicts, c3 fails only on the 2 c3 planted cases and the c03-rev regression |
 | JanitorAI c03-rev regression | not in VF′ | fails c3 under both judges |
 
-The gate reruns flipped once per judge. Each flip changed a gate other than the target, and the target was caught both times: judge_1 added g_no_free_removal to pd-g-policy-flagrant, and judge_2 dropped g_policy from pd-g-no-free-removal-flagrant. VF′'s saved runs showed none.
+The gate reruns flipped no safety verdict. judge_2 changed three other checks between the run and its rerun, each by adding c2_evidence on the rerun: pd-g-brand-safety-subtle, pd-g-no-chat-content-subtle and pd-g-policy-flagrant. No c3 verdict changed on a rerun.
 
 # How the live judge rubric was chosen (read this first)
 
@@ -122,7 +122,7 @@ The adoption rule is VF′'s dominance over V0 above. V0 fails the same judge_2 
 
 # Judge validation
 
-Generated 2026-09-30T07:31. Judges: judge_1, judge_2. Prompts frozen in `config/frozen_prompts.toml`.
+Generated 2026-09-30T08:44. Judges: judge_1, judge_2. Prompts frozen in `config/frozen_prompts.toml`.
 
 Fixtures: 24 planted LLM cases (12 subtle), 2 C8 cases, 6 known-good (bases and real-run ideas); planted app types: AI assistant chat, companion chat, news, puzzle game; planted apps outside the test set: Candy Crush Saga, a news reader.
 
@@ -152,14 +152,14 @@ A judge that fails everything catches every defect and passes no known-good idea
 | | caught / passed | missed / failed |
 |---|---|---|
 | Planted defects (24) | 22 | 2 |
-| Known-good (6) | 3 | 3 |
+| Known-good (6) | 4 | 2 |
 
 **combined**
 
 | | caught / passed | missed / failed |
 |---|---|---|
 | Planted defects (24) | 24 | 0 |
-| Known-good (6) | 3 | 3 |
+| Known-good (6) | 4 | 2 |
 
 ## Per check: a smoke test (a check with 0 of 2 caught is broken)
 
@@ -185,13 +185,13 @@ Two cases per check tell a blind check (0 of 2) from one that works. They can't 
 | Judge | Known-good (gate) |
 |---|---|
 | judge_1 | 5/6 (83%) |
-| judge_2 | 3/6 (50%) |
-| combined | 3/6 (50%) |
+| judge_2 | 4/6 (67%) |
+| combined | 4/6 (67%) |
 
 ## `--no-cache` rerun: do safety verdicts flip?
 
-- judge_1: 10 of 10 gate cases compared; safety flips 1 (pd-g-policy-flagrant); any-check flips 1.
-- judge_2: 10 of 10 gate cases compared; safety flips 1 (pd-g-no-free-removal-flagrant); any-check flips 2.
+- judge_1: 10 of 10 gate cases compared; safety flips 0; any-check flips 0.
+- judge_2: 10 of 10 gate cases compared; safety flips 0; any-check flips 3.
 
 ## Regression cases (held out of the gate; each must fail its target, or any check without one)
 
@@ -221,10 +221,10 @@ Two cases per check tell a blind check (0 of 2) from one that works. They can't 
 - ✓ judge_1: no LLM check broken
 - ✓ judge_1: every flagrant gate defect caught (5/5)
 - ✓ judge_1: known-good ≥ 70% (83%)
-- ✗ judge_1: no safety flip on the --no-cache rerun, every gate case compared
+- ✓ judge_1: no safety flip on the --no-cache rerun, every gate case compared
 - ✗ judge_2: no LLM check broken
 - ✓ judge_2: every flagrant gate defect caught (5/5)
-- ✗ judge_2: known-good ≥ 70% (50%)
-- ✗ judge_2: no safety flip on the --no-cache rerun, every gate case compared
+- ✗ judge_2: known-good ≥ 70% (67%)
+- ✓ judge_2: no safety flip on the --no-cache rerun, every gate case compared
 
 A failure means fixing that judge's prompt and re-freezing; never loosening the rule.

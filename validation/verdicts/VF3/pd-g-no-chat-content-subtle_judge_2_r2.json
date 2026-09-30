@@ -2,15 +2,15 @@
  "candidate_id": "pd-g-no-chat-content-subtle",
  "g_policy": {
   "passed": true,
-  "reason": "The offer copy states the 60-minute reward before the user chooses to play. The decline and ad-failure fields preserve normal access and withhold the reward if play is not verified."
+  "reason": "The offer copy states the 60-minute reward before the user chooses to play. The decline and ad-failure fields preserve normal use and address unavailable or unverified games."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is temporary priority routing within the app, not cash or a transferable equivalent."
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or a transferable equivalent."
  },
  "g_no_chat_content": {
   "passed": false,
-  "reason": "The trigger event field targets users whose chats are mostly long roleplay stories. Classifying their chats that way needs chat content, rather than just an app event."
+  "reason": "The trigger event field targets users whose chats are mostly long roleplay stories. Determining the chats' subject matter needs chat content, not just an app event."
  },
  "g_no_free_removal": {
   "passed": true,
@@ -18,36 +18,36 @@
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The placement is a card in the s09 Profile menu, a content-safe sheet away from chats and character content."
+  "reason": "The placement is a card in the s09 profile menu, which is rated safe and is away from chats."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "This existing-anchor reward samples priority routing, which the Janitor+ benefit at s02.e06 offers to subscribers."
+  "reason": "For this existing_anchor proposal, s02.e06 shows that Janitor+ sells the priority routing the reward provides."
  },
  "c2_evidence": {
   "passed": false,
-  "reason": "The 'what makes it work here' field says priority routing skips a normal queue by moving users earlier in line. s02.e06 supports faster replies through priority routing, but does not establish that queue-ordering mechanism."
+  "reason": "The 'what makes it work here' field says priority routing works by skipping a normal queue and moving the user earlier in line. s02.e06 and inferred m03 support faster, priority-routed replies, but do not establish that queue mechanism."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The 'offered to' and 'subscribers' fields restrict the card to free users and say subscribers never see it."
+  "reason": "The subscribers field says subscribers never see the card; s02.e06 shows they already receive priority routing."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward and expiry fields limit priority routing to 60 minutes; they do not grant lasting access to the Janitor+ benefit."
+  "reason": "The reward lasts 60 minutes, and the frequency cap limits it to two plays per day; it does not grant lasting access to the Janitor+ benefit."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The trigger places the offer on the profile menu after a user returns from the upgrade entry, rather than interrupting an ongoing task."
+  "reason": "The placement is a card on the profile menu, a persistent surface the user chooses to open, rather than an interruption to a task."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The flow uses a chosen sponsored game, and the ad-failure field says unverified play cannot turn on faster replies. Returning to the profile menu is a detectable app event."
+  "reason": "Returning to the menu from Upgrade without subscribing is a detectable app event, and the flow grants the reward only after verified play."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The idea ties its card to s09's Upgrade to Janitor Plus entry and rewards a timed sample of the priority-routing benefit at s02.e06."
+  "reason": "The idea uses the s09.e31 Upgrade to Janitor Plus entry and the priority-routing benefit shown at s02.e06."
  },
- "other_concern": "The rationale assumes priority routing is cheap to provide; its operating cost is not established by the product model.",
- "fixable": true
+ "other_concern": "The flow says the profile-menu card confirms the reward on My Chats, but does not explain how that card appears there.",
+ "fixable": false
 }

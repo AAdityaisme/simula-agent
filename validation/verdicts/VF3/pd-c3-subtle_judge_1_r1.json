@@ -2,52 +2,52 @@
  "candidate_id": "pd-c3-subtle",
  "g_policy": {
   "passed": true,
-  "reason": "The user taps an optional button, the offer copy states the reward ('save 3 more stories for 7 days'), declining leaves the list at 5 as today, and if no game is ready the button is hidden."
+  "reason": "The user chooses the button. The offer copy states the reward (3 more saved stories for 7 days). Declining leaves the list at 5, and the button is hidden if no game is ready or the game doesn't count."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is 3 temporary saved-story slots, which have no cash value and cannot be withdrawn or transferred."
+  "reason": "The reward is temporary saved-story slots, which have no cash value."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger is an app event: tapping Save with 5 stories saved opens the s02 pop-up. No user-written content is involved."
+  "reason": "The trigger is an app event: tapping Save with 5 stories saved. No chat content is involved."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The free limit of 5 saves stays as it is. The reward adds temporary slots, and when it expires the list returns to today's 5."
+  "reason": "The 5-story limit already exists (m01). The extra 3 slots are new and temporary, and nothing free today is removed or capped."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The offer sits in s02, a modal over s01 that is not a chat screen, and both screens are rated safe."
+  "reason": "The offer is a button in the s02 modal, which opens on an app event over s01. Both screens are rated safe and there is no chat."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "As an existing_anchor, it rewards the resource the app limits: saved stories are capped at 5 (m01, l01 'Saved: 5 of 5')."
+  "reason": "This is an existing_anchor, and the app limits the resource being rewarded: saved stories are capped at 5 (m01, l01)."
  },
  "c2_evidence": {
   "passed": true,
-  "reason": "The claims about the 5-save limit, the pop-up, and Premium selling no ads and listening (s03.e03, s03.e04) match the model. The new slots, copy, and cost remark are proposal content or prediction."
+  "reason": "The claims about the app are supported: the 5-story limit and pop-up (s02.e02), the meter (s01.e02), and Premium's 'No ads' and 'Listen to any story' (s03.e03, s03.e04). The rest (the slots, 'Saved: 6 of 8', the expiry behavior) is what the proposal itself adds."
  },
  "c3_spares_payers": {
   "passed": false,
-  "reason": "Premium (m03, s03.e03 'No ads') removes ads, yet the subscribers field says Premium members see the same button, so members of an ad-removing plan see the offer."
+  "reason": "The 'subscribers' field says Premium members see the same button, and the plan removes ads (m03, s03.e03). Showing the offer to members of an ad-removing plan fails this check."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The slots expire after 7 days, saved space is not what Premium sells, and nothing is taken from other users or creators."
+  "reason": "Premium sells no ads and listening, not saved space. The slots expire after 7 days and take nothing from other users."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The offer appears right when the reader hits the limit by tapping Save on a sixth story, which is a moment of need."
+  "reason": "The offer appears at a moment of need: the user has just hit the saved-list limit and the pop-up opens."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "It is a play-to-earn unit, slots are added only when the game counts ('If the game doesn't count, no slots are added'), and the trigger is a detectable Save tap at the limit."
+  "reason": "This is a play-to-earn game. Slots are granted only when the game counts as played, and the trigger is a detectable Save tap at the limit."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "It names the s02 'Your saved list is full' pop-up, the 5-story limit, and the 'Saved: 5 of 5' meter, which are specific to this app."
+  "reason": "The idea names this app's saved-stories meter, the 5-story limit and the s02 full-list pop-up."
  },
- "other_concern": "The flow says the story is saved and the meter reads 'Saved: 6 of 8' after the game; this is new proposal behavior. The 'cost nothing to serve' line is an unverified prediction.",
+ "other_concern": "The 'if the ad fails' text says 'if the game doesn't count' but doesn't explicitly tie the grant to REWARD_VERIFIED. The claim that the slots cost nothing to serve is an assumption.",
  "fixable": true
 }

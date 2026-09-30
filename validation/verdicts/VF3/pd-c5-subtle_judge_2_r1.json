@@ -2,7 +2,7 @@
  "candidate_id": "pd-c5-subtle",
  "g_policy": {
   "passed": true,
-  "reason": "The offer copy states the three-answer reward before play. The decline and ad-failure fields provide paths that do not take anything away."
+  "reason": "The offer copy states the three-answer reward before play. The decline and ad-failure fields preserve the normal path or allow a retry without using the offer."
  },
  "g_no_cash": {
   "passed": true,
@@ -10,23 +10,23 @@
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger uses an app-opening gap and a New chat tap, not the contents of a conversation."
+  "reason": "The trigger uses time since opening the app, subscription status, and a New chat tap, not chat content."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The proposal's reward samples a paid feature listed at s02.e03 and does not remove an existing free feature."
+  "reason": "The proposal removes nothing free; it offers a limited sample of a benefit listed on the Luzia+ paywall."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The placement is a card over the safe Chats home screen, not inside a conversation or next to unsafe content."
+  "reason": "The card opens over s01 Chats home, which is rated safe and is not a conversation thread."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "As an existing opportunity, it rewards a limited sample of Advanced reasoning mode, which the Luzia+ paywall lists at s02.e03."
+  "reason": "As an existing opportunity, the reward samples Advanced reasoning mode, a paid benefit listed at s02.e03."
  },
  "c2_evidence": {
   "passed": false,
-  "reason": "The placement and decline fields describe picking who to talk to after tapping New chat as the usual flow. s01 shows a New chat label and personas, but does not establish that tapping New chat leads to that selection flow."
+  "reason": "The placement and decline fields treat a list for choosing whom to talk to as an existing step after tapping New chat. s01 shows New chat and persona tiles, but the model does not show that post-tap list or navigation."
  },
  "c3_spares_payers": {
   "passed": true,
@@ -34,20 +34,20 @@
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward is limited to three answers and expires at midnight, so it does not grant lasting access to the paid feature."
+  "reason": "The reward lasts only three answers or until midnight, so it does not grant lasting access to the paid benefit."
  },
  "c5_moment": {
   "passed": false,
-  "reason": "The trigger and placement open the card immediately after the user taps New chat, interrupting the start of that task without a limit hit, locked-item tap, or finished action; it is not a persistent surface the user chooses to open."
+  "reason": "The trigger and placement open the card while the user is starting a new chat, before they can continue. That interrupts the task without a limit hit, locked-item tap, finished action, or persistent offer surface the user chose to open."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The proposal uses a sponsored game triggered by a detectable app event, and the ad-failure field withholds the reward when play is not confirmed."
+  "reason": "The flow uses a sponsored game triggered by a detectable New chat tap, and the ad-failure field says an unconfirmed play does not count."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The idea names the Chats home screen, its Luzia+ badge, and the paywall's Advanced reasoning mode benefit."
+  "reason": "The idea names the Chats home, its Luzia+ badge, and the paywall's Advanced reasoning mode benefit."
  },
- "other_concern": "The rationale suggests reducing the reward to one answer or requiring a second game in some markets, which would need offer copy and terms distinct from the stated three-answer offer.",
+ "other_concern": "The claim that game revenue will cover model-answer costs in higher-earning markets is unvalidated.",
  "fixable": true
 }

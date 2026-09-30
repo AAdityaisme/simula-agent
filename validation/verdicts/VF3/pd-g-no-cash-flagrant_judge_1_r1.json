@@ -2,52 +2,52 @@
  "candidate_id": "pd-g-no-cash-flagrant",
  "g_policy": {
   "passed": true,
-  "reason": "The offer is a button the player chooses to tap, the copy states the reward ($1 to PayPal), declining changes nothing, and the hidden-button and no-payout paths cover an ad that fails to load or verify."
+  "reason": "Opt-in button in the pop-up, copy states the reward ($1 to PayPal), declining changes nothing, and the button is hidden if no game is ready."
  },
  "g_no_cash": {
   "passed": false,
-  "reason": "The reward is '1 US dollars paid to the player's PayPal', which is money, so it is cash."
+  "reason": "The reward is $1 paid to the player's PayPal, which is cash and works like cash."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger is an app event: tapping Play with 0 lives opens the out-of-lives pop-up. No chat content is involved."
+  "reason": "Trigger is the player tapping Play with 0 lives, an app event; no chat content is involved."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The proposal says it removes nothing free, and the only cap is on the new offer itself (3 a day). Lives and their timer are unchanged."
+  "reason": "Proposal removes nothing free; lives and the timer work as today."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The offer is a button in the s02 modal, which is content-safe and sits over the level map (s01, safe). It is not in a conversation and not next to unsafe or unknown content."
+  "reason": "Offer is a button in the s02 modal over s01, both rated safe, not a chat screen."
  },
  "c1_revealed_value": {
   "passed": false,
-  "reason": "For an existing_anchor, the app must charge for or limit the resource the reward gives. The reward is PayPal cash, but the app neither charges for nor limits cash (m01 and m02 concern lives and gold bars), so the reward does not match the anchor."
+  "reason": "The app limits lives (m01) and charges for them (m02), but the reward is $1 cash, not the limited resource. It does not give lives, so it does not give the resource the app charges for or limits."
  },
  "c2_evidence": {
   "passed": true,
-  "reason": "The claims about the app (5 lives, 1 life lost per failed level, 30-minute regeneration, gold bars bought with real money, no subscription) are supported by m01, m02, s02.e02 and s02.e03. The new button, copy and reward are the proposal's own additions."
+  "reason": "Claims about 5 lives, cost of 1 per fail, 30-minute regen, and gold bars bought with real money are supported by m01, m02, s02.e02 and s02.e03; no subscription is supported by m02."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The product model shows no paid plan, only gold bars bought as a currency, so there are no subscribers to spare."
+  "reason": "The product model shows no paid plan (m02: no subscription), so there are no paying subscribers to spare."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward is not access to anything the app charges for, and it takes nothing from other users. No subscription exists, and the cash payout does not give away gold bars or lives."
+  "reason": "The reward is cash rather than access to anything the app sells, and it takes nothing from other users. Lives are not given away."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The offer appears in the out-of-lives pop-up (s02), which is a limit just hit. That is a moment of need."
+  "reason": "Offer appears in the out-of-lives pop-up, a moment of need where a limit was just hit."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "It is a play-to-earn rewarded playable, and the reward is granted only when the game counts ('If the game doesn't count, no money is sent'). The trigger is a detectable app event."
+  "reason": "It is a play-to-earn unit, the reward is granted on the verified play (no money if the game doesn't count), and the trigger is the app-detectable tap on Play at 0 lives."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The idea names the out-of-lives pop-up (s02), the gold-bar button (s02.e03), the 5-life limit and the 30-minute timer, which are specific to this app."
+  "reason": "It names the out-of-lives pop-up (s02), the gold-bar button, the 5-life limit and the 30-minute timer of this app."
  },
- "other_concern": "A $1 payout per short game, up to 3 a day, is likely to cost more than an ad pays and would undercut gold-bar sales. The 'Existing opportunity' title's 'without touching the gold-bar sale' claim is doubtful.",
+ "other_concern": "Paying out real money per play raises payout fraud and cost concerns. The reward should be lives or another in-app resource instead.",
  "fixable": false
 }

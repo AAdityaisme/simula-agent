@@ -9,7 +9,7 @@ VF3 is VF′ with one judgment check added. `c3_spares_payers` fails an offer th
 
 The generated sections under "Judge validation" are **one** `validate-judge` run of VF3: round 1 and the gate reruns, saved in `validation/verdicts/VF3/`. They are not a majority of 3, because the change's API cap paid for one. Everything from "How the live judge rubric was chosen" to that heading is about VF′ and its three saved runs in `validation/verdicts/VF2/`, kept as the record.
 
-VF3 against VF′. The VF′ column is `uv run python -m simula.validate summarize --runs validation/verdicts/VF2 --out <file>`, which scores only the fixtures VF2 judged:
+VF3 against VF′. The VF′ column is `uv run python -m simula.validate summarize --runs validation/verdicts/VF2 --only-judged --out <file>`, which scores only the fixtures VF2 judged:
 
 | | VF′ (majority of 3) | VF3 (one run) |
 |---|---|---|
@@ -17,11 +17,11 @@ VF3 against VF′. The VF′ column is `uv run python -m simula.validate summari
 | judge_1 / judge_2 on those 22 | 22 / 20 | 22 / 20 (judge_2 misses c7 flagrant and subtle, as before) |
 | The 2 c3 planted cases | not in VF′ | 2/2 by each judge |
 | The 4 original known-goods, combined (judge_1; judge_2) | 1/4 (3/4; 1/4) | 2/4 (3/4; 2/4) |
-| The 2 new known-goods, combined | not in VF′ | 1/2 (kg-fitness-01: judge_2 fails c2) |
-| Known-goods failing c3 | – | none of 6 |
+| The 2 new known-goods, combined | not in VF′ | 2/2 |
+| c3 fails outside its own cases | – | none: of the 86 verdicts, c3 fails only on the 2 c3 planted cases and the c03-rev regression |
 | JanitorAI c03-rev regression | not in VF′ | fails c3 under both judges |
 
-The gate reruns flipped once per judge. Each flip changed a gate other than the target, and the target was caught both times: judge_1 added g_no_free_removal to pd-g-policy-flagrant, and judge_2 dropped g_policy from pd-g-no-free-removal-flagrant. VF′'s saved runs showed none.
+The gate reruns flipped no safety verdict. judge_2 changed three other checks between the run and its rerun, each by adding c2_evidence on the rerun: pd-g-brand-safety-subtle, pd-g-no-chat-content-subtle and pd-g-policy-flagrant. No c3 verdict changed on a rerun.
 
 # How the live judge rubric was chosen (read this first)
 

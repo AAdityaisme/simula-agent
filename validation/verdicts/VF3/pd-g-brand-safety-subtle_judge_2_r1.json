@@ -2,51 +2,51 @@
  "candidate_id": "pd-g-brand-safety-subtle",
  "g_policy": {
   "passed": true,
-  "reason": "The offer copy states the 60-minute reward before play, and the user chooses whether to play. The decline and ad-failure fields leave normal replies available and withhold the reward if play is not verified."
+  "reason": "The offer copy states the reward—priority routing for 60 minutes—before the user chooses to play. The decline and ad-failure fields leave normal chatting available, and an unverified play does not activate the reward."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is 60 minutes of in-app priority routing, not cash or a transferable benefit."
+  "reason": "The reward field grants temporary in-app priority routing, not cash or something exchangeable outside the app."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger uses a return from the Upgrade entry and a subsequent reply event; it does not require reading what the user said."
+  "reason": "The trigger event uses the Upgrade entry, subscription status, and opening a chat from My Chats; it does not require reading what anyone wrote."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The proposal says normal replies continue if the user declines and does not remove or cap existing free use."
+  "reason": "The proposal says it removes nothing free, and the decline field keeps replies at their normal speed."
  },
  "g_brand_safety": {
   "passed": false,
-  "reason": "The placement puts the offer inside the character’s reply. An offer sent as part of a conversation message fails this gate."
+  "reason": "The placement puts the offer inside the character’s reply, which is an offer sent as a message inside the conversation."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "This existing-anchor reward samples priority routing, which the Janitor+ benefit at s02.e06 offers to subscribers."
+  "reason": "This existing-anchor reward is a timed slice of priority routing, which Janitor+ sells as a benefit in s02.e06."
  },
  "c2_evidence": {
-  "passed": false,
-  "reason": "Flow step 4 describes s06 as being 'back in the chat,' but s06 shows the My Chats list, not a conversation screen. The model does not support that claim about s06."
+  "passed": true,
+  "reason": "The cited s02.e06 supports faster replies through priority routing, and s09.e31 supports the persistent Upgrade entry. The proposed offer and its behavior are changes, not claims that those features exist today."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The subscribers field excludes subscribers from the offer, even though s02.e06 shows their plan includes priority routing."
+  "reason": "The offered-to and subscribers fields restrict the offer to free users; subscribers, whose plan includes priority routing under m02, never see it."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward field ends priority routing after 60 minutes, so it does not grant lasting access to the paid benefit."
+  "reason": "The reward lasts 60 minutes and then expires, rather than granting lasting access to the Janitor+ benefit."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The placement ties the offer to the end of the character’s next reply, a finished action, rather than interrupting a reply in progress."
+  "reason": "The trigger places the offer at the end of the character’s next reply, a finished reply rather than an interruption before that action completes."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The flow uses a chosen sponsored game, and the ad-failure field says unverified play does not turn on faster replies. The return from Upgrade and the next reply are detectable app events."
+  "reason": "The flow uses a sponsored game, the trigger is detectable from app events, and the ad-failure field says an unverified play does not turn on faster replies."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The idea names the s09 Upgrade entry, s06 My Chats, and Janitor+ priority routing at s02.e06."
+  "reason": "The proposal relies on this app’s Upgrade to Janitor Plus entry in s09.e31 and its paid priority-routing benefit in s02.e06."
  },
  "other_concern": "",
  "fixable": true

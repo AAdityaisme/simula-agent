@@ -2,52 +2,52 @@
  "candidate_id": "kg-run-luzia-c05",
  "g_policy": {
   "passed": true,
-  "reason": "The user opts in by tapping the card to play. The offer copy states the reward (3 Advanced reasoning answers today), 'Not now' leaves home unchanged, and the ad-fail path hides the card or shows a retry note."
+  "reason": "The user chooses to play the game from the card, and the offer copy states the reward (3 Advanced reasoning mode answers today). Declining leaves home unchanged, and the 'if the ad fails' field covers a game that won't load or verify."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is 3 Advanced reasoning mode answers that expire at midnight, which has no cash value and cannot be withdrawn or transferred."
+  "reason": "The reward is 3 Advanced reasoning mode answers until midnight, which has no cash value and can't be withdrawn or transferred."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger is an app event, the first open after 3 or more days without a session by a non-Luzia+ user. No chat content is used."
+  "reason": "The trigger is the first app open after 3 or more days without a session, which is an app event and needs no chat content."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The proposal removes nothing free ('removes nothing free: yes'). Advanced reasoning mode is listed as a paywall feature (s02.e03), not something free users have today."
+  "reason": "The proposal says it removes nothing free and adds no cap. Advanced reasoning mode is a paywall bullet (l02), not something free users have today."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The card sits as app chrome on the Chats home (s01), which is rated safe. It is not in a conversation and not over a chat thread."
+  "reason": "The offer is a dismissible card on the Chats home (s01), which is rated safe. It is app chrome, not inside a conversation."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "This is an existing_anchor, and the app charges for Advanced reasoning mode, which the paywall lists as a Luzia+ bullet (l02, s02.e03)."
+  "reason": "This is an existing_anchor, and the app charges for Advanced reasoning mode as a Luzia+ paywall bullet (s02.e03, l02)."
  },
  "c2_evidence": {
   "passed": true,
-  "reason": "The claims about today's app are supported. Advanced reasoning mode is a paid feature (s02.e03), the Luzia+ badge is on home (s01.e02), the plans and trial are on s02, and the prompt card exists on s01. The rest is the proposal's own new card and copy, plus predictions."
+  "reason": "The claims about the app are supported: the paywall lists the feature (s02.e03), the trial button exists (s02.e19), and the badge is on s01 (s01.e02). The new card, copy and cost-related rationale are proposal additions or predictions, not claims about today's app."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "Subscribers never see the card, and the reward is already part of their plan, so payers are spared."
+  "reason": "The subscribers field says Luzia+ members never see the card, and the reward is a sample of their plan offered only to non-payers."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward is 3 answers of one of six paid features, and it expires at midnight. It takes nothing from other users or creators."
+  "reason": "The reward is a capped sample (3 answers) that expires at midnight local time, with a 1-per-day cap, so it grants no lasting access. It takes nothing from other users."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The card appears on the home screen at app open, before the user starts a task, and is dismissible. It interrupts nothing."
+  "reason": "The card appears on the home screen at app open, before the user has started a task, and the user can dismiss it."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "It is a play-to-earn rewarded playable. The card only changes to 'answers ready' after the game's play is confirmed, and the trigger (an app open after a 3+ day gap) is detectable by the app."
+  "reason": "It is a play-to-earn sponsored game. The reward is shown only after the play is confirmed, and the trigger (a session after a 3+ day gap) is something the app can detect."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The idea names Luzia's Advanced reasoning mode, the Luzia+ badge, the Chats home and its prompt card, and the paywall trial. It would not read the same in another app."
+  "reason": "It names Advanced reasoning mode on the Luzia+ paywall (s02.e03), the Luzia+ badge and the Chats home layout, and the 3-day trial button."
  },
- "other_concern": "The model does not show how a free user would switch on Advanced reasoning mode in a chat, so the 'Start a chat' step is a design assumption. The idea also depends on the app being able to grant a temporary entitlement.",
+ "other_concern": "The model doesn't show how users invoke Advanced reasoning mode in chat, so the reward mechanics are the proposal's own design. The claim that answers pay for themselves by market is a revenue prediction and is unverified.",
  "fixable": false
 }

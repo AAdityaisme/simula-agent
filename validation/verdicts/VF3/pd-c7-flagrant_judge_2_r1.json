@@ -2,52 +2,52 @@
  "candidate_id": "pd-c7-flagrant",
  "g_policy": {
   "passed": true,
-  "reason": "The s01 card offers one day of premium before the user chooses to play. The decline and ad-failure fields leave the app unchanged."
+  "reason": "The offer copy states the reward—premium for one day—before the user chooses to play. The decline and ad-failure fields leave the app unchanged."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is 24 hours of in-app premium access, not cash or a transferable equivalent."
+  "reason": "The reward field gives 24 hours of in-app premium access, not cash or a transferable equivalent."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger event is opening the app; it does not depend on chat content."
+  "reason": "The trigger event is opening the app; it does not require chat content."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The proposal says it removes nothing free, and describes no new cap or lock on a free feature."
+  "reason": "The proposal removes nothing free and does not describe a new restriction on free use."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The offer is a card on the safe s01 Chats home screen, not inside a conversation."
+  "reason": "The flow places a card on s01 Chats (home), which is rated safe, rather than inside a conversation."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "The 24-hour reward grants premium access, which the observed Luzia+ paywall in m01 charges for."
+  "reason": "The one-day premium reward is time-limited access to the paid subscription shown by m01 and s02."
  },
  "c2_evidence": {
   "passed": true,
-  "reason": "s01 supports the named home screen, and m01 supports the existence of paid premium access. The one-day grant is a proposed change, not a claim that it exists today."
+  "reason": "The proposal's claim that the app has premium access is supported by the observed Luzia+ subscription in m01. Its card and reward terms are proposed changes, not claims about existing behavior."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The subscribers field says subscribers do not see the offer."
+  "reason": "The offered-to and subscribers fields say only free users see the offer."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward expires after 24 hours, so it does not grant lasting access to the subscription benefit."
+  "reason": "The reward field limits premium access to 24 hours, after which the proposal says it turns off."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The offer appears as a card when the user opens s01 Chats home, rather than interrupting a task in progress."
+  "reason": "The flow puts a card on s01 when the user opens the app, rather than interrupting a task already underway."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The flow uses a sponsored game triggered by an app-open event; the failure path says an uncounted game grants nothing."
+  "reason": "The flow uses a sponsored game triggered by an app-open event. It does not say premium is granted for a tap, an ad start, or another unverified action."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The trigger screen and flow name the observed s01 Chats home screen as the card's placement."
+  "reason": "The trigger screen and flow name s01 Chats (home), a screen in this app where the card would appear."
  },
- "other_concern": "The copy could identify the reward as Luzia+ and specify which benefits the day includes. The flow could also state the verified-play grant step explicitly.",
+ "other_concern": "The field “piece of a paid benefit: none” is unclear given the one-day premium reward and the observed Luzia+ subscription. The flow should explicitly specify granting access once after REWARD_VERIFIED.",
  "fixable": false
 }

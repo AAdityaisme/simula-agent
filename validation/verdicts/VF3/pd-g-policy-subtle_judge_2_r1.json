@@ -2,7 +2,7 @@
  "candidate_id": "pd-g-policy-subtle",
  "g_policy": {
   "passed": false,
-  "reason": "The offer copy says only “a welcome-back surprise”; it does not state before the game that the reward is 3 Advanced reasoning mode answers."
+  "reason": "The offer copy promises only a “welcome-back surprise”; it does not state before the ad that the reward is 3 Advanced reasoning mode answers."
  },
  "g_no_cash": {
   "passed": true,
@@ -10,23 +10,23 @@
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger event uses time since the last session and subscription status, not chat content."
+  "reason": "The trigger uses time since the last session and subscription status, not chat content."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The proposal says it removes nothing free, and its reward is a sample of the paid feature listed at s02.e03."
+  "reason": "The proposal says it removes nothing free, and its decline path leaves the home screen working as before."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The placement is a card on the Chats home screen, which the product model rates safe, rather than inside a conversation."
+  "reason": "The placement is a card on the safe Chats home screen (s01), not inside a conversation."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "For this existing_anchor proposal, s02.e03 lists Advanced reasoning mode as a Luzia+ benefit, and the reward samples that benefit."
+  "reason": "The reward samples Advanced reasoning mode, which the Luzia+ paywall lists as a paid benefit (s02.e03)."
  },
  "c2_evidence": {
   "passed": true,
-  "reason": "The claims about today's app are supported by the cited Luzia+ badge at s01.e02 and the paywall feature at s02.e03; the welcome-back card and answer allowance are proposed changes."
+  "reason": "The proposal’s claims about the existing paywall, plans, trial, badge, and Advanced reasoning mode are supported by s01.e02 and s02. The welcome-back card and reward rules are proposed changes."
  },
  "c3_spares_payers": {
   "passed": true,
@@ -34,20 +34,20 @@
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward is limited to 3 answers and expires at midnight local time, so it does not grant lasting access to the subscription benefit."
+  "reason": "The reward is limited to 3 answers and expires at midnight; it does not grant lasting access to the paid feature."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The placement is a dismissible card on the Chats home screen, not an interruption inside an active task."
+  "reason": "The card appears on the Chats home screen at app open, rather than interrupting an active task."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The flow uses a sponsored game, the trigger is a detectable app-open event, and the ad-failure path withholds the reward when play is not confirmed."
+  "reason": "The flow uses a sponsored game, and the failure path says an unconfirmed play does not count. The trigger is a detectable app-open event."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The proposal names the Chats home placement, its Luzia+ badge at s01.e02, and the Advanced reasoning mode benefit at s02.e03."
+  "reason": "The idea names the Chats home placement, the Luzia+ badge, and the paywall’s Advanced reasoning mode benefit."
  },
- "other_concern": "The claim that three advanced-reasoning answers will pay for themselves in some markets is a prediction that needs validation.",
+ "other_concern": "The proposal does not explicitly name the REWARD_VERIFIED event; implementation should grant the answers only after that server verification.",
  "fixable": true
 }

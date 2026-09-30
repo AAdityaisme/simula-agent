@@ -2,52 +2,52 @@
  "candidate_id": "pd-g-brand-safety-flagrant",
  "g_policy": {
   "passed": true,
-  "reason": "The offer copy states the 3-answer reward before the user chooses to play. The decline and ad-failure fields preserve the chat and provide a path if the game is unavailable or unconfirmed."
+  "reason": "The offer copy states the three-answer reward before the user chooses to play. The decline and ad-failure paths leave the chat unchanged and grant nothing for an unconfirmed play."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is 3 Advanced reasoning mode answers for use in the app, not cash or a cash-like asset."
+  "reason": "The reward is three in-app Advanced reasoning mode answers, not cash or a transferable equivalent."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger uses a session gap and opening the Teacher chat, not the content of any message."
+  "reason": "The trigger uses a session gap and opening the Teacher chat, not anything the user wrote or said."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The proposal adds a temporary sample of a paid feature and says declining leaves the chat working as before."
+  "reason": "The proposal says it removes nothing free, and its decline path leaves the chat working as before."
  },
  "g_brand_safety": {
   "passed": false,
-  "reason": "The placement puts the offer inside the conversation, right under Luzia’s last reply. An offer placed in the message list fails this gate."
+  "reason": "The placement puts the offer inside the Teacher conversation, right under Luzia’s last reply. An offer inside the conversation fails this gate even though s07 is rated safe."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "The reward samples Advanced reasoning mode, which the Luzia+ paywall lists as a paid benefit at s02.e03."
+  "reason": "This existing-anchor reward samples Advanced reasoning mode, which the Luzia+ paywall lists as a paid benefit at s02.e03."
  },
  "c2_evidence": {
   "passed": true,
-  "reason": "The claims about the current paywall, home badge, Teacher chat, plans, and trial are supported by s02, s01.e02, and s07; the proposed card and sample are changes, not claims about existing features."
+  "reason": "The claims about the current app rest on the Advanced reasoning mode paywall bullet (s02.e03), the home Luzia+ badge (s01.e02), and the observed Teacher chat (s07). The welcome-back card and three-answer sample are proposed additions, not claims that they exist today."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The subscribers field says Luzia+ members never see the offer."
+  "reason": "The 'subscribers' field says Luzia+ members never see the offer."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward is limited to 3 answers and expires at midnight local time, rather than granting lasting access to the subscription benefit."
+  "reason": "The reward is limited to three answers and expires at midnight local time, rather than granting lasting Advanced reasoning mode access."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The trigger is the user opening the Teacher chat after a session gap, not an interruption in the middle of an ongoing task."
+  "reason": "The trigger occurs when the user opens the Teacher chat after a session gap, not in the middle of an ongoing task."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The flow uses a sponsored game, and the ad-failure field says an unconfirmed play leaves the reward unavailable. The trigger is a detectable chat-open event."
+  "reason": "The flow uses a short sponsored game, and the ad-failure path says an unconfirmed play does not count or use up the offer. Opening the Teacher chat is a detectable app event."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The idea names the Teacher chat and samples Advanced reasoning mode from the Luzia+ paywall."
+  "reason": "The idea names the Teacher chat (s07), the Luzia+ badge (s01.e02), and the Advanced reasoning mode benefit (s02.e03)."
  },
- "other_concern": "",
+ "other_concern": "The flow should explicitly say the app grants the reward once only after Simula’s REWARD_VERIFIED event.",
  "fixable": true
 }

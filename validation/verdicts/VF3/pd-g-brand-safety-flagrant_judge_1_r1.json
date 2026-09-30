@@ -2,52 +2,52 @@
  "candidate_id": "pd-g-brand-safety-flagrant",
  "g_policy": {
   "passed": true,
-  "reason": "The user opts in by choosing to play; the offer copy states the reward (3 Advanced reasoning answers today); 'Not now' leaves the chat unchanged; and the 'if the ad fails' field covers a game that is unavailable or unconfirmed."
+  "reason": "The user chooses to play, the offer copy states the reward (3 Advanced reasoning answers today), 'Not now' leaves the chat unchanged, and the ad-fail path is defined."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is 3 Advanced reasoning mode answers until midnight, which is an in-app usage allowance and has no cash value."
+  "reason": "The reward is 3 Advanced reasoning mode answers that expire at midnight, which is not cash or anything cash-like."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger is opening the Teacher chat after a 3+ day gap with no session, which is an app event and needs no message content."
+  "reason": "The trigger is an app event: opening the Teacher chat after 3 or more days with no session. It does not use message content."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "'removes nothing free: yes'. Nothing free is capped or locked, because the reward is a sample of a paid feature."
+  "reason": "'removes nothing free: yes'. Nothing free today is removed, locked or capped."
  },
  "g_brand_safety": {
   "passed": false,
-  "reason": "The placement is 'Inside the Teacher chat, right under Luzia's last reply', which puts the card in the message list. The reward-end 'small note in the chat' is also dressed up as a chat or system note."
+  "reason": "The placement is 'Inside the Teacher chat, right under Luzia's last reply', so the card sits in the message list and the conversation itself. It is not a sheet or dialog opened by an app event, and it later turns into an in-chat note."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "For an existing_anchor, the app charges for Advanced reasoning mode. It is a paywall bullet (s02.e03, l02) in the Luzia+ plans."
+  "reason": "Advanced reasoning mode is a paid benefit on the paywall (l02, s02.e03), so the app charges for the resource the reward gives."
  },
  "c2_evidence": {
   "passed": true,
-  "reason": "Claims about today's app rest on s02.e03 (Advanced reasoning mode is a paid feature), s01.e02 (upsell badge) and s02.e19 (3-day trial). The rest is the proposal's own new card, copy and predictions."
+  "reason": "The claims about the paywall listing Advanced reasoning mode, the Luzia+ badge, the plans and the trial button match m01, l02 and s01.e02. The new card, the reward and the cost remarks are the proposal's own additions or predictions."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The 'subscribers' field says members never see the card, and the Luzia+ plan shown does not remove ads, so paying users are spared."
+  "reason": "The 'subscribers' field says Luzia+ members never see the offer, and the offer is a sample of their plan for free users."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward is 3 answers that expire at midnight local time, which is a sample that ends. It takes nothing from other users or creators."
+  "reason": "The reward is 3 answers that end when they are used up or at midnight, so it is a limited sample that expires and does not give lasting access."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The card appears when the user opens the chat after a gap, before any task is under way. It therefore doesn't interrupt an in-progress task."
+  "reason": "The offer appears when the user opens the chat after a long gap, which is the start of a session and not the middle of a task."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "It is a play-to-earn sponsored game. The reward is granted after a confirmed play (the failure path says 'If the play isn't confirmed...'), and the trigger is a detectable chat-open event."
+  "reason": "It is a play-to-earn rewarded game. The reward is granted only after the play is confirmed (an unconfirmed play gives a 'didn't count' note), and the trigger is a detectable session gap plus a chat opening."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "It names the Teacher chat (s07), the Luzia+ paywall's 'Advanced reasoning mode' bullet, the home badge and the 3-day trial button, so it is specific to this app."
+  "reason": "It names the Teacher chat (s07), the Advanced reasoning mode paywall item, the Luzia+ badge and the 3-day trial button."
  },
- "other_concern": "The proposal never shows how a free user switches on Advanced reasoning mode inside a chat; that interaction is unobserved. The rationale's claim that each answer 'pays for itself' in higher-earning markets is an unverified prediction.",
+ "other_concern": "The model doesn't show an Advanced reasoning mode control in the chat (s07), so how the sample would be switched on is unobserved. The 'first Teacher chat only' condition is also narrow.",
  "fixable": true
 }

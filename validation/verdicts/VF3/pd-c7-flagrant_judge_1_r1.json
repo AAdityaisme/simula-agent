@@ -2,52 +2,52 @@
  "candidate_id": "pd-c7-flagrant",
  "g_policy": {
   "passed": true,
-  "reason": "The user chooses to play the game from a card. The offer copy states the reward ('1 day of premium'), closing the card changes nothing, and a failed load or verify leaves everything as it was with the try not used."
+  "reason": "The user opts in by tapping the card. The offer copy states the reward (premium for a day), declining leaves things unchanged, and the ad-fail path is given."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is 24 hours of premium feature time, which cannot be withdrawn, sold or transferred."
+  "reason": "The reward is 24 hours of premium feature time, which has no cash value and can't be withdrawn."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger is the app opening on s01, which is an app event and needs no chat content."
+  "reason": "The trigger is opening the app, which is an app event and needs no chat content."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The idea adds a temporary premium reward and 'removes nothing free'. It takes nothing free away from anyone."
+  "reason": "The proposal removes nothing free and adds no cap."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The offer is a card on s01 Chats (home), which is rated safe. That is app chrome, not inside a conversation."
+  "reason": "The offer is a card on s01 home, which is rated safe. That is app chrome and not inside a conversation."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "This is an existing_anchor proposal. The app charges for Luzia+ (m01 paywall with Weekly, Monthly and Annual plans), and the reward gives premium, which is that charged resource."
+  "reason": "This is an existing_anchor, and the reward (premium) is something the app charges for. Paywall m01 shows Weekly $1.99, Monthly $4.99 and Annual $39.99."
  },
  "c2_evidence": {
   "passed": true,
-  "reason": "The proposal states no unsupported fact about the app today. The existence of premium rests on the m01 paywall, and 'people like premium features' is a prediction about users, which this check does not cover."
+  "reason": "Nothing is cited, but the proposal states no unsupported fact about the app today. 'People like premium features' is a prediction, and the card and reward are what the proposal adds."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "Subscribers don't see the offer, and it sits on the free home screen rather than inside anything paying users get."
+  "reason": "The 'subscribers' field says subscribers don't see the offer, and the card sits on the home screen, which isn't a paid-only surface."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward is 24 hours of premium that then turns off, which is a sample that ends. Nothing is taken from other users or creators."
+  "reason": "The reward expires after 24 hours and is capped at one per day, so it is a sample that ends and does not give lasting access."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The offer is a card on the home screen, a persistent surface the user can choose to engage with. It does not interrupt a task in progress."
+  "reason": "The card sits on the home screen, a persistent surface the user can choose to engage with, and it doesn't interrupt a task in progress."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The unit is a play-to-earn sponsored game, and the reward is given only after the play counts. The trigger, opening the app, is something the app can detect."
+  "reason": "The unit is a play-to-earn sponsored game, the trigger (opening the app) is detectable, and the reward is given only after the game counts."
  },
  "c7_specific": {
   "passed": false,
-  "reason": "The 'what makes it work here' field ('People like premium features') and the offer copy would read the same in any subscription app. They name no Luzia+ feature from the paywall list (for example the l01 '2× images & longer chats' bullet), and the only app-specific detail is the s01 placement."
+  "reason": "The 'what makes it work here' field, the copy ('premium'), and the placement ('a card in the app') name no Luzia+ feature, plan, or limit. The idea would read the same in any app with a subscription."
  },
- "other_concern": "The 1-per-day cap lets a daily player hold premium continuously, which could cannibalize Luzia+ subscriptions even though each grant expires. Copy doesn't say what 'premium' includes, and voice chat or reasoning mode may have per-use costs.",
+ "other_concern": "The 24-hour reward with a one-per-day cap could amount to continuous free premium for a daily player, which may undercut Luzia+ sales. The proposal also never says which features the day includes.",
  "fixable": true
 }

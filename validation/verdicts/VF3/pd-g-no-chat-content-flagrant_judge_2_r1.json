@@ -2,52 +2,52 @@
  "candidate_id": "pd-g-no-chat-content-flagrant",
  "g_policy": {
   "passed": true,
-  "reason": "The offer copy states the three-answer reward before an optional game; the decline and ad-failure fields leave the user no worse off and allow a retry."
+  "reason": "The offer copy states the three-answer reward before the optional game. The decline and ad-failure paths leave the home screen and offer available as described."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is three in-app Advanced reasoning mode answers, not cash or a cash equivalent."
+  "reason": "The reward is three in-app Advanced reasoning mode answers, not cash or a transferable equivalent."
  },
  "g_no_chat_content": {
   "passed": false,
-  "reason": "The advertiser category is picked from what the user talked about with Luzia this week, so targeting needs chat content."
+  "reason": "The advertiser category is picked from what the user talked about with Luzia this week, so targeting requires chat content."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The proposal removes nothing free and offers a limited sample of the paid benefit listed at s02.e03."
+  "reason": "The proposal says it removes nothing free, and its reward samples the paid benefit listed at s02.e03."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The placement is a dismissible card on the safe Chats home screen (s01), not inside a conversation."
+  "reason": "The placement is a card on s01 Chats home, which is rated content safe, rather than an offer inside a conversation."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "For this existing opportunity, s02.e03 lists Advanced reasoning mode on the Luzia+ paywall, so the reward samples something the app charges for."
+  "reason": "This existing-anchor reward gives a limited sample of Advanced reasoning mode, which the s02 paywall lists as a paid benefit."
  },
  "c2_evidence": {
   "passed": true,
-  "reason": "The cited paywall item s02.e03 supports the paid-mode claim, and s01.e02 supports the existing badge; the card and answer allowance are proposed additions."
+  "reason": "The existing paid mode, home badge, plans, and trial cited in the proposal are supported by s02.e03, s01.e02, and the s02 paywall elements. The welcome-back card and its rules are proposed changes, not claims that those features exist today."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The subscribers field says Luzia+ members never see the offer for a benefit their plan includes."
+  "reason": "The subscribers field says Luzia+ members are never shown the offer."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward ends after three answers or at midnight local time, rather than granting lasting access to Advanced reasoning mode."
+  "reason": "The reward ends after three answers or at midnight local time; it does not grant lasting access to the paid mode."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The placement is a dismissible card on the Chats home screen (s01), a persistent surface the user can choose to engage with."
+  "reason": "The placement is a dismissible card on s01 home after an app-open event, not an interruption in the middle of a chat task."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The flow uses an app-open event and a sponsored game; the ad-failure field says an unconfirmed play does not earn the reward."
+  "reason": "The flow uses a sponsored game triggered by a detectable app-open event, and the ad-failure path withholds the reward when play is not confirmed."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The idea names the Chats home placement (s01), its Luzia+ badge (s01.e02), and the Advanced reasoning mode paywall item (s02.e03)."
+  "reason": "The idea names the s01 Chats home placement and samples Advanced reasoning mode from the s02 Luzia+ paywall."
  },
- "other_concern": "The proposal does not establish the economics of giving three model answers for one game.",
+ "other_concern": "",
  "fixable": false
 }

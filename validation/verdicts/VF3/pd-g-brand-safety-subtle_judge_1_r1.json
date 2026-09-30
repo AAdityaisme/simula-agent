@@ -2,7 +2,7 @@
  "candidate_id": "pd-g-brand-safety-subtle",
  "g_policy": {
   "passed": true,
-  "reason": "The user chooses to play, the offer copy states the reward (priority routing for 60 minutes), declining leaves replies at normal speed, and the ad-fails field covers both no game available and an unverified play."
+  "reason": "The user chooses to play, the offer copy states the reward (priority routing for 60 minutes), declining just means continuing to chat, and the ad-fail path is covered in 'if the ad fails'."
  },
  "g_no_cash": {
   "passed": true,
@@ -10,44 +10,44 @@
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger is an app event: returning from the Upgrade entry without subscribing, then opening a chat and receiving a reply. It does not use what anyone typed or said."
+  "reason": "The trigger is an app event: returning from the Upgrade entry unsubscribed, then opening a chat and receiving the next reply. It does not use what the user typed or wrote."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The proposal removes nothing free; 'removes nothing free: yes' and it only adds a temporary boost."
+  "reason": "The idea adds a temporary boost and removes or caps nothing that free users get today ('removes nothing free: yes')."
  },
  "g_brand_safety": {
   "passed": false,
-  "reason": "The placement is 'Inside the character's reply: toward the end of their message', so the offer is inside the conversation itself. The failure note is also posted 'in the chat' as a system-style note."
+  "reason": "The placement is 'Inside the character's reply', so the offer is delivered as a chat message from the character. That puts it inside the conversation itself, and it is not a sheet or dialog opened by an app event."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "Priority routing is a paid Janitor+ benefit (l02, s02.e06), so the app charges for the resource the reward gives."
+  "reason": "For an existing_anchor, the app charges for priority routing (l02 'Priority routing for faster replies', s02.e06) and m03 infers a limit for free users from s02.e07."
  },
  "c2_evidence": {
   "passed": true,
-  "reason": "The claims about the app are supported: Janitor+ sells priority routing (s02.e06) and the profile menu has a permanent Upgrade entry (s09.e31). The other statements are the proposal's own new offer and its predictions."
+  "reason": "The claims about the app (the permanent Upgrade entry s09.e31, the priority-routing benefit s02.e06, free users on normal routing per m03 citing s02.e07) are all supported by the model. The rest is what the proposal adds or predicts."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The 'subscribers' field says subscribers already have priority routing and never get the offer line, so paying users do not see it."
+  "reason": "The 'subscribers' field says subscribers never see the offer line, and the reward is a slice of their plan (priority routing) for free users only."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward expires after 60 minutes and is capped at 2 per day, so it is a sample and not lasting access. Queue priority is something the app already sells."
+  "reason": "The reward is priority routing for 60 minutes, capped at 2 plays a day, so it ends and does not give lasting access. It does not cover the plan's other benefits (memory, swipes, badge), and the app already sells priority routing."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The offer comes at the end of a finished reply, which is a finished action and so a moment of need, not an interruption of a task in progress."
+  "reason": "The offer appears as the character's reply finishes, which counts as a finished action in the chat, so it is not an interruption mid-task."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The unit is a play-to-earn sponsored game, the reward is tied to verified play (faster replies turn on only after it), and the trigger is an app-detectable sequence of navigation events."
+  "reason": "It is a play-to-earn unit. The reward is granted on the verified play (an unverified play is not counted, per 'if the ad fails'), and the trigger is an app event the app can detect."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The idea names the Janitor+ priority routing benefit, the profile menu's Upgrade entry, and My Chats, so it is specific to this app."
+  "reason": "It names Janitor+ priority routing (s02.e06), the profile menu Upgrade entry (s09.e31), and the My Chats screen (s06), so it would not read the same in any app."
  },
- "other_concern": "The offer is a character line in the reply, so it could read as in-fiction. A sheet or dialog opened by the app event would be safer. The logic that detects 'came back from Upgrade without subscribing' is also an implementation assumption.",
+ "other_concern": "The new sponsored-game screen and the 'note in the chat' on failure also put ad-related messaging into the conversation. The claim that priority costs the app nothing extra is unverified.",
  "fixable": true
 }

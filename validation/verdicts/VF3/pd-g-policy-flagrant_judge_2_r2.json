@@ -2,52 +2,52 @@
  "candidate_id": "pd-g-policy-flagrant",
  "g_policy": {
   "passed": false,
-  "reason": "The 'if the user declines' field says closing the card makes replies slower than normal for the rest of the day, leaving the user worse off."
+  "reason": "The offer copy states the 60-minute reward before an opt-in game, and the ad-failure path is defined. But the decline path makes replies slower than normal, leaving the user worse off for declining."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is 60 minutes of in-app priority routing, not cash or a cash-like asset."
+  "reason": "The reward is 60 minutes of priority routing, not cash or something exchangeable outside the app."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger is returning to the profile menu from the upgrade entry, not anything the user wrote or said."
+  "reason": "The trigger is a return to the profile menu from the upgrade entry, not anything the user wrote in a chat."
  },
  "g_no_free_removal": {
   "passed": false,
-  "reason": "The decline path makes free users' replies slower than their normal routing, taking away their existing baseline; m03 describes normal-priority routing for free users."
+  "reason": "The decline path makes replies slower than normal for the rest of the day, taking away the normal reply speed free users had before the offer."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The placement is a card in the s09 Profile menu, a safe sheet away from chats and character content."
+  "reason": "The placement is a card in the content-safe s09 Profile menu, away from the conversation and character content."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "The reward samples priority routing, a Janitor+ benefit shown in s02.e06."
+  "reason": "For this existing_anchor, the reward gives limited access to priority routing, a Janitor+ benefit shown in s02.e06."
  },
  "c2_evidence": {
-  "passed": true,
-  "reason": "The claims about today's upgrade entry and paid priority routing are supported by s09.e31 and s02.e06; the offer and decline behavior are proposed changes."
+  "passed": false,
+  "reason": "s02.e06 supports priority routing for faster replies, but no cited element establishes the claimed 'normal queue' or that routing works by giving users an 'earlier placement in line.'"
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The 'subscribers' field says subscribers already have priority routing and never see the card."
+  "reason": "The 'offered to' and 'subscribers' fields say only free users see the card; subscribers already have priority routing and never see it."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward expires after 60 minutes, rather than granting lasting access to Janitor+'s priority routing."
+  "reason": "The reward ends after 60 minutes and is capped at two plays per day, rather than granting lasting access to the Janitor+ benefit."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The offer appears in the profile menu after the user returns from the upgrade entry, not during an ongoing chat task."
+  "reason": "The trigger occurs after the user returns from the upgrade entry to the profile menu, a finished action on a surface they chose to open."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The offer requires a sponsored game, and the 'if the ad fails' field says unverified play does not turn on faster replies."
+  "reason": "The flow uses a sponsored game triggered by a detectable menu-return event, and the ad-failure path says unverified play does not turn on the reward."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The idea uses the s09 Upgrade to Janitor Plus entry and its priority-routing benefit."
+  "reason": "The idea uses the s09 Upgrade to Janitor Plus entry and the priority-routing benefit shown in s02.e06."
  },
- "other_concern": "",
+ "other_concern": "Flow step 4 says the card confirms the reward on My Chats (s06), while the stated card placement is the profile menu (s09); clarify where confirmation appears.",
  "fixable": true
 }

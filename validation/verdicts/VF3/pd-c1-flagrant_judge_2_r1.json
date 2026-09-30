@@ -2,11 +2,11 @@
  "candidate_id": "pd-c1-flagrant",
  "g_policy": {
   "passed": true,
-  "reason": "The offer copy states the one-hour reward before the user chooses to play. The decline and ad-failure fields leave the menu usable and provide a path when play cannot be verified."
+  "reason": "The offer copy states the one-hour reward before play. The decline and ad-failure fields leave the menu unchanged or withhold the reward if play is not verified."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward field gives time in Search, not cash or a transferable or externally exchangeable item."
+  "reason": "The reward field grants time in Search, not cash or an exchangeable item."
  },
  "g_no_chat_content": {
   "passed": true,
@@ -14,40 +14,40 @@
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The proposal says it removes nothing free and does not specify locking or capping the existing Search tab."
+  "reason": "The proposal says it removes nothing free and does not state that existing Search access is locked or capped when the reward expires."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The placement is a card in the s09 profile menu, which the product model rates safe, rather than in or over a conversation."
+  "reason": "The placement is a card in the s09 profile-menu drawer, which is rated content safe, not in or beside a conversation."
  },
  "c1_revealed_value": {
   "passed": false,
-  "reason": "For this existing_anchor, an hour of Search fails because the product model shows neither a charge nor a limit on Search."
+  "reason": "This is an existing_anchor, but the model shows a Search tab (s01.e67) and no charge or limit on Search. The paid benefits in m02 do not include Search."
  },
  "c2_evidence": {
   "passed": false,
-  "reason": "The 'what makes it work here' field says Search finds characters by name and trait filters, but the cited s05.e01 establishes only a Search label, not those capabilities."
+  "reason": "The 'what makes it work here' field claims Search supports finding characters by name and trait filters. The cited s05.e01 Search label does not establish those capabilities."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The subscribers field excludes subscribers, and the Janitor+ benefits in m02 do not include Search."
+  "reason": "The subscribers field says subscribers never see the card."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward expires after 60 minutes and does not give away a listed Janitor+ benefit or take an advantage from other users."
+  "reason": "The reward expires after 60 minutes and does not give away any of the subscription benefits listed in m02 or displace other users or creators."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The placement is in the profile menu, a persistent surface the user chooses to open."
+  "reason": "The trigger is a return to the persistent s09 profile menu after visiting Upgrade, rather than an interruption mid-task."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "The flow uses a sponsored game after a detectable menu-return event, and the ad-failure field says unverified play does not turn on the reward."
+  "reason": "The flow uses a sponsored game after a detectable menu-return event, and the ad-failure field says an unverified play does not turn on the reward."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The placement names the s09 Upgrade to Janitor Plus entry, and the reward names this app's Search feature."
+  "reason": "The idea names this app's Search tab and its s09 Upgrade to Janitor Plus entry."
  },
- "other_concern": "The proposal does not explain what an hour of Search adds for a user who can already open Search.",
+ "other_concern": "The flow calls the card a new screen, although the placement puts it inside the menu drawer.",
  "fixable": false
 }

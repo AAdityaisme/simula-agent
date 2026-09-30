@@ -2,52 +2,52 @@
  "candidate_id": "pd-g-no-cash-subtle",
  "g_policy": {
   "passed": false,
-  "reason": "The offer copy promises a voucher after another ad but does not say what the voucher is for or how much it is worth before the user plays. It also gives no failure path for that second ad."
+  "reason": "The offer copy states the 30-minute ad-free period, but also promises a voucher without saying what it is worth or can be used for. It therefore does not state the full reward before the ad."
  },
  "g_no_cash": {
   "passed": false,
-  "reason": "The adds and flow fields promise a voucher as an additional reward; a voucher is a cash-like reward."
+  "reason": "The adds, offer copy, and flow fields promise a voucher, which is a cash-like reward."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger event uses an article-open counter and a return to the home feed, not chat content."
+  "reason": "The trigger event uses an article-open counter and a return to the home feed, not anything the reader wrote or said."
  },
  "g_no_free_removal": {
   "passed": true,
-  "reason": "The reward hides sponsored cards for 30 minutes; the decline path says reading, saving, and sharing remain available as before."
+  "reason": "The adds field hides sponsored cards temporarily; it does not remove, lock, or cap a free reading, saving, or sharing feature."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The placement is a banner in the app chrome of the content-safe s01 home feed, above the first story."
+  "reason": "The placement is a banner on the content-safe s01 home feed, above the first story rather than inside a conversation or next to unsafe content."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "This product_change gives the reader a timed, cleaner reading experience in the observed home-feed-to-article flow f01."
+  "reason": "This product change gives the player 30 minutes of ad-free use while reading stories, their own use of the observed f01 core flow."
  },
  "c2_evidence": {
   "passed": false,
-  "reason": "The product model says no paywall, limit, or currency was seen on the home feed; it does not establish the proposal's app-wide claim that none exists or its claim that every reader is free. The rationale's claim that the app has nothing locked also conflicts with the blocked Inbox sign-in."
+  "reason": "The what-makes-it-work and rationale fields say the app has no paywall or limit and that its native cards are low-value or cheap. The open question only says no paywall or limit was seen on the home feed, and the model provides no ad-value evidence."
  },
  "c3_spares_payers": {
   "passed": true,
-  "reason": "The product model shows no paid plan, and the proposal says an ad-free plan's members would not see the banner."
+  "reason": "The product model shows no paid plan, so there is no observed paying-user benefit for this offer to duplicate."
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The sponsored-card break in the reward expires after 30 minutes, and the model shows no subscription benefit it gives away."
+  "reason": "The reward field limits the ad-free period to 30 minutes; it grants no lasting subscription benefit or advantage taken from other readers or creators."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The trigger and placement put the dismissible banner on the home feed after a return from an article, not during article reading."
+  "reason": "The trigger event places the offer on the home feed after the reader returns from an article, rather than interrupting an article in progress."
  },
  "c6_fits_simula": {
   "passed": false,
-  "reason": "Although the main break follows confirmed game play, the adds and flow fields grant an additional voucher for watching another ad, rather than for a Simula-verified play."
+  "reason": "Although the main reward follows confirmed game play, the flow also awards a voucher for watching another ad. That reward is tied to watching an ad rather than to Simula-verified play."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "The placement uses the s01 home-feed category pills, and the reward concerns sponsored cards observed in s01.e44 and s02.e13."
+  "reason": "The placement names the s01 category pill bar, and the reward addresses sponsored cards observed in the feed and article reader."
  },
- "other_concern": "The proposal assumes the revenue from one game will outweigh the hidden ad impressions; the product model provides no revenue measurements.",
+ "other_concern": "The proposed revenue tradeoff is untested; the model provides no ad-yield data.",
  "fixable": false
 }

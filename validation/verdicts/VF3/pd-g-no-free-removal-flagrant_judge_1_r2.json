@@ -2,31 +2,31 @@
  "candidate_id": "pd-g-no-free-removal-flagrant",
  "g_policy": {
   "passed": true,
-  "reason": "The offer is opt-in (the panel offers a game the reader chooses), the offer copy states the reward (30 minutes of unlocked articles), and the decline and failure paths are both defined. The lock itself is handled under g_no_free_removal."
+  "reason": "The game is opt-in from the lock panel, the offer copy states the reward (30 minutes of reading), the X close path is given, and the 'if the ad fails' field covers both no game ready and a failed or unconfirmed play."
  },
  "g_no_cash": {
   "passed": true,
-  "reason": "The reward is 30 minutes of unlocked reading, which has no cash value and cannot be withdrawn or transferred."
+  "reason": "The reward is 30 minutes of unlocked articles, which is in-app access time and has no cash value."
  },
  "g_no_chat_content": {
   "passed": true,
-  "reason": "The trigger is an app event (the reader opens a fourth article today), and no chat content is involved."
+  "reason": "The trigger is an app event (opening a fourth article in a day) and needs no chat content."
  },
  "g_no_free_removal": {
   "passed": false,
-  "reason": "The 'adds' field introduces a lock on articles after the third each day, which caps reading the model shows as free today (f01 Read a story). Article reading is not a resource that costs the app money per use, so the new cap is not allowed."
+  "reason": "The 'adds' field locks articles after the third each day, but reading articles is free today. The field 'removes nothing free: yes' is wrong, because a new cap on free articles is not a cost-bearing resource like model replies or queue priority."
  },
  "g_brand_safety": {
   "passed": true,
-  "reason": "The offer is a lock panel that an app event (the limit being hit) opens over s02 Article, which is rated safe. It is not placed in a chat or over unsafe content."
+  "reason": "The lock panel sits over the s02 Article screen, which is rated safe and is not a chat screen, and the app event of hitting the limit opens it."
  },
  "c1_revealed_value": {
   "passed": true,
-  "reason": "This is a product change, and the new resource is reading time in the article reader. The reader uses it for themselves in the observed core flow f01, and nothing goes to third parties."
+  "reason": "For a product change, the new resource (30 minutes of article access) is used by the player in the observed core flow f01 'Read a story'."
  },
  "c2_evidence": {
   "passed": false,
-  "reason": "'What makes it work here' says flatly that 'The app has no paywall, limit, or currency.' The model only records that none was seen on the home feed (open question), so this is an unsupported fact about the whole app rather than wording like 'not seen'."
+  "reason": "'The app has no paywall, limit, or currency' is stated as a fact about the whole app. The model only says none was seen on the home feed, which is an open question, so the claim is unsupported."
  },
  "c3_spares_payers": {
   "passed": true,
@@ -34,20 +34,20 @@
  },
  "c4_protects_subscription": {
   "passed": true,
-  "reason": "The reward expires after 30 minutes and is capped at 2 per day. It gives away no paid benefit and takes nothing from other users or creators."
+  "reason": "The reward expires after 30 minutes, is capped at 2 per day, and takes nothing from other users or creators."
  },
  "c5_moment": {
   "passed": true,
-  "reason": "The offer appears at a moment of need, when a locked fourth article has just been tapped."
+  "reason": "The offer appears at a moment of need, when the reader taps a fourth article and hits the limit."
  },
  "c6_fits_simula": {
   "passed": true,
-  "reason": "It is a play-to-earn sponsored game. The flow unlocks reading only once the play is confirmed, and the trigger (opening a fourth article) is an app event the app can detect."
+  "reason": "It is a play-to-earn sponsored game, the reward unlocks only once the play is confirmed, and the trigger (a counted article open) is an app event."
  },
  "c7_specific": {
   "passed": true,
-  "reason": "It names the home feed story card, the s02 Article reader, and the read-a-story core flow, and it builds on the article-open event."
+  "reason": "It names the s01 story card, the s02 article reader, and the read-a-story loop of this news app."
  },
- "other_concern": "The idea rests on a newly invented daily article limit on free reading. Articles also already carry Taboola ads, so the lock adds a hard paywall-like friction to the app's core loop that may drive readers away.",
+ "other_concern": "The idea invents a daily article limit that does not exist today, so the paywall-style lock degrades the free reading experience. The 'declining leaves the app worse' wording is also borderline, since the article stays locked until midnight.",
  "fixable": false
 }
