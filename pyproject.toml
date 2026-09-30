@@ -23,7 +23,7 @@ dependencies = [
 simula = "simula.cli:main"
 
 [dependency-groups]
-dev = ["pytest"]
+dev = ["pytest", "pytest-xdist"]
 
 [build-system]
 requires = ["hatchling"]

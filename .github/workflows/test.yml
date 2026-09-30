@@ -25,7 +25,8 @@ jobs:
           python-version: "3.12"
       - run: uv sync --frozen
       - run: uv run playwright install --with-deps chromium
-      - run: uv run pytest -m "not live" -q --durations=50
+        timeout-minutes: 5  # its apt-get update once sat 56 minutes on a mirror that stopped answering
+      - run: uv run pytest -m "not live" -q -n auto --durations=50
 
   # The gate scripts read the check named pytest; it passes only when every shard did.
   pytest:
