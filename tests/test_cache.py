@@ -51,10 +51,20 @@ def test_same_request_same_key():
     assert key() == key()
 
 
-def png(pixels: bytes, **save) -> bytes:
+def saved(image: Image.Image, **save) -> bytes:
     out = io.BytesIO()
-    Image.frombytes("RGB", (2, 2), pixels).save(out, "PNG", **save)
+    image.save(out, "PNG", **save)
     return out.getvalue()
+
+
+def png(pixels: bytes, **save) -> bytes:
+    return saved(Image.frombytes("RGB", (2, 2), pixels), **save)
+
+
+def red_palette() -> Image.Image:
+    image = Image.new("P", (2, 2))
+    image.putpalette([255, 0, 0] * 256)
+    return image
 
 
 def test_images_key_by_their_pixels_not_their_png_bytes_and_are_not_stored_raw():
@@ -65,13 +75,13 @@ def test_images_key_by_their_pixels_not_their_png_bytes_and_are_not_stored_raw()
     assert "pixels_sha256" in json.dumps(llm.canonical(message(png=stored)))
 
 
-def test_the_same_palette_with_other_transparency_keys_differently():
-    image = Image.new("P", (2, 2))
-    image.putpalette([255, 0, 0] * 256)
-    see_through, opaque = io.BytesIO(), io.BytesIO()
-    image.save(see_through, "PNG", transparency=0)
-    image.save(opaque, "PNG", transparency=255)
-    assert key(messages=message(png=see_through.getvalue())) != key(messages=message(png=opaque.getvalue()))
+@pytest.mark.parametrize("a, b", [
+    (saved(red_palette(), transparency=0), saved(red_palette(), transparency=255)),
+    (saved(Image.new("I;16", (2, 2), 4096)), saved(Image.new("I;16", (2, 2), 32768))),
+    (png(bytes([255, 0, 0] * 4), transparency=(255, 0, 0)), png(bytes([255, 0, 0] * 4))),
+], ids=["palette-transparency", "16-bit-samples", "rgb-colour-key"])
+def test_images_that_decode_differently_key_differently(a, b):
+    assert key(messages=message(png=a)) != key(messages=message(png=b))
 
 
 def test_schema_and_attempt_are_in_the_key():
