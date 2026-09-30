@@ -6,6 +6,7 @@ Messages use one provider-neutral shape:
 
 import base64
 import hashlib
+import io
 import json
 import math
 import re
@@ -14,6 +15,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from PIL import Image
 from pydantic import BaseModel, ValidationError
 
 from simula import config
@@ -124,10 +126,18 @@ class Budget:
 
 # ---------- cache ----------
 
+def pixels_sha256(png: bytes) -> str:
+    """The image's decoded pixels (mode, size, palette, raw bytes), hashed: the same pixels key the same however an
+    encoder wrote them, and Linux and macOS write different PNG bytes for the same pixels."""
+    with Image.open(io.BytesIO(png)) as image:
+        header = json.dumps([image.mode, image.size, image.getpalette()])
+        return hashlib.sha256(header.encode() + image.tobytes()).hexdigest()
+
+
 def canonical(messages: list[dict]) -> list[dict]:
     def part(p: dict) -> dict:
         if p["type"] == "image":
-            return {"type": "image", "sha256": hashlib.sha256(p["png"]).hexdigest()}
+            return {"type": "image", "pixels_sha256": pixels_sha256(p["png"])}
         return p
     return [{"role": m["role"], "content": [part(p) for p in m["content"]]} for m in messages]
 

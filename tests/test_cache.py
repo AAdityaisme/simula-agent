@@ -1,9 +1,11 @@
+import io
 import json
 import re
 from types import SimpleNamespace
 
 import httpx2
 import pytest
+from PIL import Image
 from pydantic import BaseModel
 
 from simula import llm, runfolder
@@ -49,10 +51,18 @@ def test_same_request_same_key():
     assert key() == key()
 
 
-def test_image_bytes_change_the_key_but_are_not_stored_raw():
-    a, b = key(messages=message(png=b"\x89PNG one")), key(messages=message(png=b"\x89PNG two"))
-    assert a != b
-    assert "sha256" in json.dumps(llm.canonical(message(png=b"\x89PNG one")))
+def png(pixels: bytes, **save) -> bytes:
+    out = io.BytesIO()
+    Image.frombytes("RGB", (2, 2), pixels).save(out, "PNG", **save)
+    return out.getvalue()
+
+
+def test_images_key_by_their_pixels_not_their_png_bytes_and_are_not_stored_raw():
+    stored, squeezed = png(bytes(range(12)), compress_level=0), png(bytes(range(12)), compress_level=9)
+    assert stored != squeezed
+    assert key(messages=message(png=stored)) == key(messages=message(png=squeezed))
+    assert key(messages=message(png=png(bytes(range(1, 13))))) != key(messages=message(png=stored))
+    assert "pixels_sha256" in json.dumps(llm.canonical(message(png=stored)))
 
 
 def test_schema_and_attempt_are_in_the_key():
@@ -447,9 +457,10 @@ def test_a_refused_only_screenshot_is_a_traced_refusal_not_a_none_answer(tmp_pat
     def refuses(model, system, messages, effort, schema, max_tokens, total_timeout=None):
         return llm.Reply(text="", model=model, stop_reason="refusal")
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", refuses)
+    screenshot = png(bytes(range(12)))
     with pytest.raises(llm.LLMFailure) as failure:
-        llm.without_refused_images([b"\x89PNG"], lambda kept: call(tmp_path, messages=message(png=kept[0]),
-                                                                    attempts=1)[0])
+        llm.without_refused_images([screenshot], lambda kept: call(tmp_path, messages=message(png=kept[0]),
+                                                                   attempts=1)[0])
     assert failure.value.outcome == "refusal"
     assert [line.outcome for line in read_trace(tmp_path / "trace.jsonl")] == ["refusal"]
 
