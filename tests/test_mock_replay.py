@@ -8,7 +8,7 @@ import anthropic
 import httpx2
 import pytest
 
-from simula import cli, llm, runfolder, runlog
+from simula import cli, config, llm, runfolder, runlog
 from simula.contracts import ContractReport, ProductModel
 from simula.stages import mock
 from simula.stages.flows.deck import unfinished_stages
@@ -186,7 +186,7 @@ def test_batches_the_cap_left_out_are_one_plain_reason_and_resume_with_a_higher_
     left_out = [s for batch in mock.batches(mock.pick_scope(model))[1:] for s in batch]
     outcome = runfolder.read_done(run_dir / "mock").outcome
     assert (outcome.status, outcome.reasons) == ("partial", [mock.not_drawn(left_out, mock.OVER_BUDGET)])
-    assert outcome.resume.endswith("--usd-cap <higher>")
+    assert float(outcome.resume.split(" --usd-cap ")[1]) > config.stage_cap("mock"), "spent plus a whole cap again"
     assert not any(PLAIN.search(line) for line in unfinished_stages(run_dir))
 
 
