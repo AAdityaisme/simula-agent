@@ -56,6 +56,11 @@ class Ctx:
     device: str | None = None
 
 
+
+class NotStarted(Exception):
+    """A stage stopped before it changed anything (no device, a lock another run holds): its last record stands."""
+
+
 def run_options(ctx: Ctx) -> str:
     """The run and the options it was opened with, so a printed resume command reruns it the same way: every option
     a stage hashes, the opt-ins, the device, and an overridden $ cap. --no-cache and --replay are modes of one

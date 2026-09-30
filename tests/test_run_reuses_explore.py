@@ -102,7 +102,20 @@ def test_an_explore_with_no_device_online_leaves_the_last_explore_where_it_was(r
     no_device_online(monkeypatch)
     with pytest.raises(SystemExit, match="0 devices online"):
         cli.main(["run", "janitorai"])
-    assert (run_dir / "explore" / "explore.json").exists()
+    assert (run_dir / "explore" / "explore.json").exists() and runlog.read_marker(run_dir, "explore")
+    assert cli.upstream_problem(run_dir, "model") is None and not (run_dir / "explore" / "failure.json").exists()
+
+
+def test_from_explore_with_no_device_online_leaves_the_explore_and_what_was_built_on_it(runs, monkeypatch):
+    cli.main(["run", "janitorai", "--new"])
+    run_dir = latest(runs)
+    finished_explore(run_dir)
+    model_built_on(run_dir)
+    no_device_online(monkeypatch)
+    with pytest.raises(SystemExit, match="explore did not start: 0 devices online"):
+        cli.main(["run", "janitorai", "--from", "explore"])
+    assert (run_dir / "explore" / "explore.json").exists() and runlog.complete(run_dir, "explore")
+    assert cli.upstream_problem(run_dir, "model") is None and runlog.read_marker(run_dir, "model")
 
 
 def test_from_explore_explores_again(runs):

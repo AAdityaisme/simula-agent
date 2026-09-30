@@ -160,10 +160,19 @@ def test_remove_ads_opens_an_upsell_and_is_a_confirm_on_one():
     assert denied(control("Remove ads"), upsell=True) == "remove"
 
 
+def icon(ident: str) -> Candidate:
+    return Candidate(label=ident, kind="View", rect=Rect(x=37, y=152, w=126, h=126), ref="@e27", tree_label="",
+                     ident=ident)
+
+
 def test_an_icon_only_close_named_by_its_id_is_allowed_and_text_commands_are_not():
-    x = Candidate(label="login-close-button", kind="View", rect=Rect(x=37, y=152, w=126, h=126), ref="@e27",
-                  tree_label="", ident="login-close-button")
-    assert denied(x) is None
+    assert denied(icon("login-close-button")) is None
     assert [denied(control(label)) for label in ("Sign in", "Log in", "Close account")] == \
         ["sign in", "log in", "close account"]
     assert denied(control("Sign-in with Google")) == "sign in" and denied(control("E-mail")) == "e mail"
+
+
+@pytest.mark.parametrize("ident", ["delete-button", "btn_report", "buyButton", "delete-and-close", "confirm-close",
+                                   "skip-and-subscribe", "cancel-subscription-dismiss", "login-button"])
+def test_an_icon_only_control_is_released_only_from_the_sign_in_words_and_only_when_it_dismisses(ident):
+    assert denied(icon(ident))

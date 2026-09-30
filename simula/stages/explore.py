@@ -4,6 +4,7 @@ and full-res screenshots. Then use the app: repeat its core action and measure t
 The only agent in the pipeline: code decides what is possible, Jev what is likely, Sonnet what is hard, and
 code checks every answer."""
 
+import contextlib
 import io
 import json
 import os
@@ -27,7 +28,7 @@ from simula.device import observe as ob
 from simula.device.mcp import McpReplyError, McpTimeout, Phone, Server
 from simula.device.devices import adb, emulator_lock, online, resolve_serial
 from simula.runlog import needs_human, now, run_trace, update_manifest, write_exhibit
-from simula.stages import Ctx, rerun_command
+from simula.stages import Ctx, NotStarted, rerun_command
 
 PROMPTS = config.ROOT / "prompts" / "explore"
 BILLING = {"com.android.vending"}
@@ -1972,17 +1973,21 @@ def run(ctx: Ctx) -> StageOutcome:
                     [".env", ".env.example"], rerun(ctx))
         raise ExploreFailed("SIMULA_REDACT is empty: list the emulator account's handle and names in .env, "
                             "comma-separated, then explore again")
-    # the device and its lock first: a run that can't explore leaves the last explore where it was
-    serial = resolve_serial(ctx.device)
-    signal.signal(signal.SIGTERM, lambda *_: sys.exit("explore stopped by SIGTERM"))
-    with emulator_lock(serial, wait_s=LOCK_WAIT_S):
+    with contextlib.ExitStack() as held:
+        # the device and its lock first: a run that can't explore leaves the last explore, and its record, as they were
+        try:
+            serial = resolve_serial(ctx.device)
+            held.enter_context(emulator_lock(serial, wait_s=LOCK_WAIT_S))
+            avd = adb_shell(serial, ["getprop", "ro.boot.qemu.avd_name"]) or None
+            refuse_twins(serial, avd)
+        except (SystemExit, TimeoutError) as e:
+            raise NotStarted(str(e)) from None
+        signal.signal(signal.SIGTERM, lambda *_: sys.exit("explore stopped by SIGTERM"))
         out = ctx.run_dir / "explore"
         shutil.rmtree(out, ignore_errors=True)
         (out / ".scratch").mkdir(parents=True)
         server = Server(cwd=out)
         try:
-            avd = adb_shell(serial, ["getprop", "ro.boot.qemu.avd_name"]) or None
-            refuse_twins(serial, avd)
             ex = Explorer(ctx, Phone(server, ctx.app["package"], out / ".scratch", serial, avd), out)
             ex.serial = serial
             return explore_app(ex)

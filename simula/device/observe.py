@@ -63,10 +63,12 @@ CONTROL_WORDS = 4
 FILTER_PHRASE = re.compile(r"\b(?:hide|block|allow)\s+(?:all\s+)?(?:nsfw|sfw|explicit|mature|adult|sensitive)\b",
                            re.IGNORECASE)
 ID_WORDS = re.compile(r"(?<=[a-z])(?=[A-Z])|[_-]")  # an id's words ("buttonFavorite", "btn_like", "login-close") for \b
-# an icon-only control (no text beyond an X) whose id names a dismissal closes something and commits nothing, whatever
-# else its id says ("login-close-button"); a text button such as "Close account" still meets every deny word
+# an icon-only control (no text beyond an X) whose id names a dismissal of a sign-in sheet ("login-close-button")
+# commits nothing: only the sign-in words leave its id, and any other deny word there ("delete-and-close") still
+# denies it; a text button such as "Close account" meets every deny word
 ICON_ONLY = re.compile(r"\s*[x×✕✖]?\s*", re.IGNORECASE)
 DISMISS_ID = re.compile(r"\b(?:close|dismiss|skip|not now)\b", re.IGNORECASE)
+SIGN_IN = re.compile(r"\b(?:log ?in|sign ?in|sign ?up|continue with)\b", re.IGNORECASE)
 TOGGLE = re.compile(r"Switch|CheckBox|ToggleButton", re.IGNORECASE)
 DENY_ON_UPSELL = re.compile(r"continue|try|start|get|claim|unlock|join|redeem|activate|\bremove\b", re.IGNORECASE)
 DENY_IN_TOUR = re.compile(r"send|swipe|regenerate", re.IGNORECASE)
@@ -394,10 +396,10 @@ def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bo
     text = ID_WORDS.sub(" ", text)
     shaped = len(c.label.split()) <= CONTROL_WORDS or "Button" in c.kind
     rest = FILTER_PHRASE.sub(" ", text) if toggle_ok else text
-    closes = ICON_ONLY.fullmatch(c.tree_label) and DISMISS_ID.search(ID_WORDS.sub(" ", c.ident or c.label))
-    hit = None if closes else (DENY_ALWAYS if shaped else DENY_COMMAND).search(text) \
-        or (DENY.search(rest) if shaped else None) or (DENY_ON_UPSELL.search(text) if upsell else None) \
-        or (DENY_IN_CORE if core else DENY_IN_TOUR).search(text)
+    if ICON_ONLY.fullmatch(c.tree_label) and DISMISS_ID.search(ID_WORDS.sub(" ", c.ident or c.label)):
+        text = rest = SIGN_IN.sub(" ", text)
+    hit = (DENY_ALWAYS if shaped else DENY_COMMAND).search(text) or (DENY.search(rest) if shaped else None) \
+        or (DENY_ON_UPSELL.search(text) if upsell else None) or (DENY_IN_CORE if core else DENY_IN_TOUR).search(text)
     if hit:
         return hit.group(hit.lastindex or 0).lower()  # a command's word, without the bullet before it
     if TOGGLE.search(c.kind) and not toggle_ok:

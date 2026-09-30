@@ -10,7 +10,7 @@ from simula import checkout, config, runfolder, runlog
 from simula.config import ROOT, STAGES
 from simula.contracts import Manifest, Provenance, StageOutcome
 from simula.llm import CapReached, ProviderUnavailable, ReplayMiss, split_key
-from simula.stages import EXTRA_INPUTS, ROLES, UPSTREAM, Ctx, rerun_command, resume_command
+from simula.stages import EXTRA_INPUTS, ROLES, UPSTREAM, Ctx, NotStarted, rerun_command, resume_command
 
 EXIT_NOT_BUILT, EXIT_CAP, EXIT_PROVIDER = 3, 4, 5
 
@@ -105,23 +105,26 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
     stage_dir.mkdir(exist_ok=True)
     # A live rerun's old marker no longer holds. --replay holds the committed one instead, and every exit that doesn't
     # write a new marker puts it back (failed), so a replay never costs a run its committed record.
+    # A stage that never starts (NotStarted) puts it back too.
     marker, committed = stage_dir / "done.json", None
-    if ctx.replay:
-        try:
-            committed = (marker.read_text(), marker.stat())
-        except (OSError, ValueError):  # none, or one that can't be read: nothing to keep, and the stage writes anew
-            pass
-    else:
+    try:
+        committed = (marker.read_text(), marker.stat())
+    except (OSError, ValueError):  # none, or one that can't be read: nothing to keep, and the stage writes anew
+        pass
+    if not ctx.replay:
         marker.unlink(missing_ok=True)
+
+    def restore() -> None:
+        runfolder.write_json_atomic(marker, committed[0])
+        os.utime(marker, ns=(committed[1].st_atime_ns, committed[1].st_mtime_ns))
 
     def failed(reason: str) -> None:
         """Records why the stage stopped, in a folder the stage may have removed (QA's rmtree). Under --replay the
         committed marker goes back as it was, its time included, before the newer failure.json, so it stays on disk
         and counts as not done, in the manifest too, whose usd_total then counts what the stage spent."""
         stage_dir.mkdir(parents=True, exist_ok=True)
-        if committed:
-            runfolder.write_json_atomic(marker, committed[0])
-            os.utime(marker, ns=(committed[1].st_atime_ns, committed[1].st_mtime_ns))
+        if committed and ctx.replay:
+            restore()
         runfolder.write_failure(stage_dir, reason)
         runlog.sync_manifest(ctx.run_dir)  # the restored marker counts as not done, and the stage's spend counts
     runlog.sync_manifest(ctx.run_dir)
@@ -161,6 +164,13 @@ def run_stage(stage: str, ctx: Ctx, force: bool) -> bool:
         runlog.needs_human(ctx.run_dir, stage, "the model provider is refusing calls", str(e),
                            [f"{stage}/failure.json"], resume_command(ctx, stage, e))
         raise
+    except NotStarted as e:
+        if committed:
+            restore()
+        runlog.sync_manifest(ctx.run_dir)
+        runlog.run_trace(ctx.run_dir, stage=stage, step="run", decider="code", outcome="blocked",
+                         note=f"did not start, so the last {stage} stands: {e}"[:300])
+        raise SystemExit(f"{stage} did not start: {e}") from None
     except BaseException as e:
         # Every other exit, SystemExit, Ctrl-C and a failed record included, still leaves a failure record; then it
         # propagates.
