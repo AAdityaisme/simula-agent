@@ -93,14 +93,16 @@ class Budget:
         spent = sum(line.usd for line in read_trace(trace_path) if line.stage == stage)
         return cls(stage, config.stage_cap(stage) if cap is None else cap, spent, trace_path=trace_path)
 
-    def reserve(self, worst_usd: float, *, step: str = "budget", key: str | None = None) -> None:
-        """Holds a call's worst case, or refuses it with CapReached. A model call passes its step and cache key, so the
+    def reserve(self, worst_usd: float, *, spare: float = 0.0, step: str = "budget", key: str | None = None) -> None:
+        """Holds a call's worst case, or refuses it with CapReached. With a `spare`, it holds only while that much more
+        would still fit, so a later call (a retry) can take it. A model call passes its step and cache key, so the
         run's record of the refusal names the call and --replay stops where the live run did."""
         with self.lock:
-            if self.spent + self.held + worst_usd > self.cap:
-                refused = CapReached(f"{self.stage}: next call could cost ${worst_usd:.2f}, ${self.spent:.2f} of "
+            if self.spent + self.held + worst_usd + spare > self.cap:
+                kept = f" with ${spare:.2f} kept free for a retry" if spare else ""
+                refused = CapReached(f"{self.stage}: next call could cost ${worst_usd:.2f}{kept}, ${self.spent:.2f} of "
                                      f"${self.cap:.2f} already spent, ${self.held:.2f} held by calls in flight; "
-                                     f"raise with --usd-cap {self.rerun_cap(worst_usd):.2f}")
+                                     f"raise with --usd-cap {self.rerun_cap(worst_usd + spare):.2f}")
                 if self.trace_path:  # the run's record that the cap cut this stage short, even if the stage goes on
                     trace(self.trace_path, stage=self.stage, step=step, decider="code", outcome="cap",
                           note=(f"key {key[:12]} " if key else "") + str(refused))
@@ -127,11 +129,13 @@ class Turn:
     """A budget as the rank-th of several calls sees it (llm.call only reserves and charges). Its first hold waits
     until every better-ranked call has taken its own or been settled, since an answer from the cache takes none. So
     when the $ cap can't cover every call, the best-ranked are held first, not whichever thread got there first. A
-    hold the cap turns away settles nothing: the call's owner settles it once it has acted on the refusal."""
+    hold the cap turns away settles nothing: the call's owner settles it once it has acted on the refusal. With
+    `spare`, the first hold is taken only while one more worst case stays free, for the call's own retry."""
     budget: Budget
     rank: int
     settled: set[int]
     moved: threading.Condition
+    spare: bool = False
     held: bool = False
 
     def wait(self) -> None:
@@ -141,7 +145,7 @@ class Turn:
     def reserve(self, worst_usd: float, **where) -> None:
         # ponytail: only first holds queue; a retried attempt's hold takes what is left, in no fixed order
         self.wait()
-        self.budget.reserve(worst_usd, **where)
+        self.budget.reserve(worst_usd, spare=worst_usd if self.spare and not self.held else 0.0, **where)
         self.held = True
         self.settle()
 

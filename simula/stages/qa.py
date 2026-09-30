@@ -104,6 +104,10 @@ def improve(ctx: Ctx, model: ProductModel, scope: list[State], best: Version) ->
             critique = criticize(ctx, budget, best, history, n, missed=loop.missed)
             critiqued[best.round] = critique
             _, to_repair = worklist(model, best, critique)
+            if not to_repair and loop.missed:
+                run_trace(ctx.run_dir, stage="qa", step=f"round{n}", decider="code",
+                          note=f"nothing to repair on the screens reviewed; the critic missed {' '.join(loop.missed)}")
+                continue
             if not to_repair:
                 loop.stop = f"round {n} found nothing to repair"
                 break
@@ -113,7 +117,7 @@ def improve(ctx: Ctx, model: ProductModel, scope: list[State], best: Version) ->
             run_trace(ctx.run_dir, stage="qa", step=f"round{n}", decider="code", outcome="error",
                       note=loop.stop[:300])
             break
-        html, results = apply_edits(without_runtime(best.html), edits.edits)
+        html, results = apply_edits(without_runtime(best.html), edits.edits, sections_sent(to_repair))
         html = rebuild(html, model, screens)
         write_json(ctx.run_dir / "qa" / f"round{n}" / "critique.json", critique.model_dump())
         write_json(ctx.run_dir / "qa" / f"round{n}" / "edits.json", {"edits": results})
@@ -509,12 +513,13 @@ def merge_critiques(critiques: list[Critique]) -> Critique:
 
 def fix(ctx: Ctx, budget: llm.Budget, model: ProductModel, version: Version, critique: Critique, n: int) -> Edits:
     """The fixer gets the round's worklist: the critique's fixes it can act on, the screens they and every failed check
-    are on (and their numbers), and of the page only the style blocks and those screens' sections. Its edits still
-    apply to the whole page, where a find must match once."""
+    are on (and their numbers), and of the page only the style blocks and those screens' sections, or the whole page
+    for a page-wide contract error. Its edits apply to the whole page (apply_edits)."""
     role = config.roles(ctx.profile)["qa_fixer"]
     effort = role.get("effort_last_round", role.get("effort")) if n == MAX_ROUNDS else role.get("effort")
     round_dir = ctx.run_dir / "qa" / f"round{version.round}"
     fixes, screens = worklist(model, version, critique)
+    sections, page = sections_sent(screens), without_runtime(version.html)
     content = []
     for s in (s for s in version.screens if s["metrics"].state_id in screens):
         sid = s["metrics"].state_id
@@ -522,10 +527,12 @@ def fix(ctx: Ctx, budget: llm.Budget, model: ProductModel, version: Version, cri
                     {"type": "image", "png": (round_dir / "real" / f"{sid}.png").read_bytes()}]
     task = {"fixes": [f.model_dump() for f in fixes], **numbers(version, screens | {None}),
             "pictures": pictures(ctx, screens)}
-    content.append({"type": "text", "text": "What to fix:\n" + json.dumps(task, separators=(",", ":"))
-                    + "\n\nThe page's style blocks and the sections of these screens, without the navigation runtime "
-                      "(code adds it back after your edits); the rest of the page is left out:\n```html\n"
-                    + excerpt(without_runtime(version.html), screens - {None}) + "\n```"})
+    shown = ("The page, without the navigation runtime (code adds it back after your edits):\n```html\n" + page
+             if sections is None else
+             "The page's style blocks and the sections of these screens, without the navigation runtime (code adds it "
+             "back after your edits); the rest of the page is left out:\n```html\n" + excerpt(page, sections))
+    content.append({"type": "text", "text": "What to fix:\n" + json.dumps(task, separators=(",", ":")) + "\n\n"
+                    + shown + "\n```"})
     return ask(ctx, budget, version, step=f"fixer r{n}", model=role["model"], effort=effort,
                system=prompt("fixer") + "\n\n" + mock.contract_text(), content=content,
                max_tokens=config.max_tokens(role), schema=Edits)
@@ -542,9 +549,20 @@ def worklist(model: ProductModel, version: Version, critique: Critique) -> tuple
     return fixes, {owner[f.element_id] for f in fixes} | set(failed)
 
 
+def sections_sent(to_repair: set[str | None]) -> set[str] | None:
+    """The screens whose sections the fixer is sent, or None when it gets the whole page: a page-wide contract error
+    can come from markup in any section."""
+    return None if None in to_repair else to_repair
+
+
 def excerpt(html: str, screens: set[str]) -> str:
     """The page's style blocks, then each of these screens' sections whole, in page order."""
-    sections, end = [], 0
+    return "\n".join(STYLE_BLOCK.findall(html) + [html[start:end] for start, end in section_spans(html, screens)])
+
+
+def section_spans(html: str, screens: set[str]) -> list[tuple[int, int]]:
+    """Where each of these screens' sections sits in the page, whole (nested sections included), in page order."""
+    spans, end = [], 0
     for tag in mock.StartTags(html).tags:
         if tag["name"] != "section" or tag["attrs"].get("data-screen") not in screens or tag["start"] < end:
             continue
@@ -554,8 +572,8 @@ def excerpt(html: str, screens: set[str]) -> str:
             if depth == 0:
                 end = m.end()
                 break
-        sections.append(html[tag["start"]:end])
-    return "\n".join(STYLE_BLOCK.findall(html) + sections)
+        spans.append((tag["start"], end))
+    return spans
 
 
 def ask(ctx: Ctx, budget: llm.Budget, version: Version, *, step: str, model: str, effort: str | None, system: str,
@@ -618,16 +636,23 @@ def rebuild(html: str, model: ProductModel, screens: list[str]) -> str:
     return mock.with_runtime(mock.wire_edges(html, model, screens), mock.home_id([states[sid] for sid in screens]))
 
 
-def apply_edits(html: str, edits: list[Edit]) -> tuple[str, list[dict]]:
-    """Applies each edit in order when its find matches the page exactly once; any other edit is rejected and logged."""
+def apply_edits(html: str, edits: list[Edit], sections: set[str] | None = None) -> tuple[str, list[dict]]:
+    """Applies each edit in order when its find matches the page exactly once, or, when the fixer was sent only some
+    screens' `sections`, exactly once inside them: it never saw the other matches. Any other edit is rejected and
+    logged."""
     results = []
     for edit in edits:
-        matches = html.count(edit.find) if edit.find else 0
-        applied = matches == 1
-        if applied:
-            html = html.replace(edit.find, edit.replace, 1)
-        results.append({**edit.model_dump(), "applied": applied,
-                        "why": "" if applied else f"find matches the page {matches} times, not once"})
+        starts = [m.start() for m in re.finditer(re.escape(edit.find), html)] if edit.find else []
+        inside = []
+        if len(starts) > 1 and sections:
+            spans = section_spans(html, sections)
+            inside = [s for s in starts if any(a <= s and s + len(edit.find) <= b for a, b in spans)]
+        at = starts[0] if len(starts) == 1 else inside[0] if len(inside) == 1 else None
+        if at is not None:
+            html = html[:at] + edit.replace + html[at + len(edit.find):]
+        why = f"find matches the page {len(starts)} times, not once" + (
+            f", and {len(inside)} times in the sections it was sent" if len(starts) > 1 and sections else "")
+        results.append({**edit.model_dump(), "applied": at is not None, "why": "" if at is not None else why})
     return html, results
 
 

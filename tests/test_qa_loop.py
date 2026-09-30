@@ -171,6 +171,25 @@ def test_with_nothing_to_repair_the_fixer_is_never_called_and_open_findings_are_
     assert report["open_findings"] == [f.model_dump() for f in finding]
 
 
+def test_a_screen_the_critic_missed_gets_the_next_round_even_with_nothing_to_repair(scripted, monkeypatch):
+    """Red team probe B: round 1's critic times out on s01 and the rest finds nothing. Stopping there left s01
+    unreviewed and QA partial; the next round's critic reviews it, still with no fixer call."""
+    _, calls, play = scripted
+    rounds = []
+
+    def criticize(ctx, budget, version, history, n, missed=None):
+        rounds.append(n)
+        if n == 1:
+            missed["s01"] = (1, llm.LLMFailure("timeout", "stream idle"))
+        else:
+            missed.pop("s01", None)
+        return Critique(fixes=[], summary="s")
+    monkeypatch.setattr(qa, "criticize", criticize)
+    report = play([5.0, 5.0, 5.0, 5.0], edits=lambda n: [])
+    assert rounds == [1, 2] and not [c for c in calls if c["schema"] is Edits]
+    assert (report["outcome"], report["stop_reason"]) == ("complete", "round 2 found nothing to repair")
+
+
 def test_an_empty_critique_still_sends_a_failed_contract_check_to_the_fixer(scripted):
     _, calls, play = scripted
     report = play([5.0, 5.0, 5.0], errors=[1, 0, 0], call=fake_llm(calls, fixes=[]))
@@ -718,12 +737,11 @@ def test_the_fixer_gets_only_the_screens_on_its_worklist_and_of_the_page_only_th
     those screens' sections alone: a finding on one screen sends no other screen's markup."""
     app, run_dir, model, ids = twelve
     with_elements = next(s for s in mock.pick_scope(model) if s.elements)
-    page_wide = ContractError(kind="console_error", detail="page-wide", screen=None)
     on_five = ContractError(kind="unknown_el", detail="on the fifth screen", screen=ids[4])
     critique = Critique(fixes=[Fix(element_id=ids[10], problem="p", fix="f"),
                                Fix(element_id=with_elements.elements[0].id, problem="p", fix="f"),
                                Fix(element_id="not.in.the.model", problem="p", fix="f")], summary="s")
-    version = measured_twelve(run_dir, model, [page_wide, on_five])
+    version = measured_twelve(run_dir, model, [on_five])
     style = '<style data-batch="1">section[data-screen="s01"] p{margin:0}</style>'
     version.html = skeleton_html(model).replace("</head>", style + "</head>")
     calls, pages = [], []
@@ -736,13 +754,30 @@ def test_the_fixer_gets_only_the_screens_on_its_worklist_and_of_the_page_only_th
     named = [sid for sid in ids if sid in {ids[4], ids[10], with_elements.id}]
     assert calls[0]["seen"] == named
     assert [s["screen"] for s in calls[0]["told"]["screens"]] == named
-    assert [e["detail"] for e in calls[0]["told"]["contract_errors"]] == ["page-wide", "on the fifth screen"]
+    assert [e["detail"] for e in calls[0]["told"]["contract_errors"]] == ["on the fifth screen"]
     assert [f["element_id"] for f in calls[0]["told"]["fixes"]] == [ids[10], with_elements.elements[0].id]
     sections = [t["attrs"]["data-screen"] for t in mock.StartTags(pages[0]).tags if "data-screen" in t["attrs"]]
     assert pages[0].startswith(style) and sections == named
     for sid in named:
         whole = re.search(rf'<section data-screen="{sid}".*?</section>', version.html, re.S)[0]
         assert whole in pages[0]
+
+
+@pytest.mark.parametrize("twelve", APPS, indirect=True)
+def test_a_page_wide_contract_error_sends_the_fixer_the_whole_page(twelve, monkeypatch):
+    """Greptile on #30: a console error or a blocked request names no screen, and what causes it can sit in any
+    section, so the fixer gets the whole page."""
+    app, run_dir, model, ids = twelve
+    version = measured_twelve(run_dir, model, [ContractError(kind="console_error", detail="page-wide", screen=None)])
+    version.html = skeleton_html(model)
+    pages = []
+
+    def call(**kwargs):
+        pages.append(kwargs["messages"][0]["content"][-1]["text"].split("```html\n")[1])
+        return Edits(edits=[]), None
+    monkeypatch.setattr(llm, "call", call)
+    qa.fix(ctx_for(run_dir, app), llm.Budget("qa", 12.0), model, version, Critique(fixes=[], summary="s"), 1)
+    assert pages == [qa.without_runtime(version.html) + "\n```"]
 
 
 @pytest.mark.parametrize("twelve", APPS, indirect=True)

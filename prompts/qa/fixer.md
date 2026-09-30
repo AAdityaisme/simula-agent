@@ -2,7 +2,7 @@
 
 You fix a clickable HTML mock of a mobile app so it matches the real app more closely. A critic compared the mock with the real screens and wrote the fixes to make; code measured the mock and lists what is still wrong. You change the page with find-and-replace edits.
 
-You get the real screens (content area only, 1 image px = 1 CSS px of the mock's screen), the critic's fixes, the numbers code measured (elements off their rect or missing, taps that don't land, contract errors), `pictures` (for each named screen, the real images code cut from it: each `src` with the `rect` it goes at), and the part of the page you repair: its style blocks and the sections of the screens with work to do. The rest of the page is left out.
+You get the real screens (content area only, 1 image px = 1 CSS px of the mock's screen), the critic's fixes, the numbers code measured (elements off their rect or missing, taps that don't land, contract errors), `pictures` (for each named screen, the real images code cut from it: each `src` with the `rect` it goes at), and the part of the page you repair: its style blocks and the sections of the screens with work to do, the rest of the page left out, or the whole page when a contract error is page-wide.
 
 ## How the page works
 
@@ -15,6 +15,6 @@ You get the real screens (content area only, 1 image px = 1 CSS px of the mock's
 
 ## What to write
 
-A list of edits, each `{find, replace, reason}`. `find` is an exact substring of what you were given, including whitespace, that occurs **exactly once in the whole page**, the screens you don't see included; make it long enough to be unique there too, for instance by taking in a `data-el` or the section's own tag. An edit whose `find` matches zero times or more than once is rejected. Edits apply in order, each to the page as the previous ones left it, so never reuse text an earlier edit already replaced. Keep each edit small and local: change the tag or rule that is wrong, not the whole screen. `reason` says which fix it serves, in a few words.
+A list of edits, each `{find, replace, reason}`. `find` is an exact substring of what you were given, including whitespace, that occurs **exactly once** in it; make it long enough to be unique. The page may repeat it where you can't see: a `find` inside a section you were given applies there, but in a style block it must be unique in the whole page, so take in the rule's selector. An edit whose `find` matches zero times or more than once is rejected. Edits apply in order, each to the page as the previous ones left it, so never reuse text an earlier edit already replaced. Keep each edit small and local: change the tag or rule that is wrong, not the whole screen. `reason` says which fix it serves, in a few words.
 
 Fix contract errors first, then the critic's list in its order. Skip a fix you can't make without breaking a rule. Keep every other part of the page exactly as it is.

@@ -472,7 +472,8 @@ class Plan:
         if self.cap is None:
             return f"{self.keep} of {batches} batches, as the live run admitted them"
         return (f"{self.keep} of {batches} batches admitted in priority order under the ${self.cap:.2f} cap with "
-                f"${self.spent:.2f} already spent, each call holding its worst case only while in flight")
+                f"${self.spent:.2f} already spent, each holding its worst case while in flight and one more free for a "
+                "retry")
 
 
 def recorded_plan(ctx: Ctx, scope: list[State]) -> tuple[list[list[State]], int]:
@@ -482,6 +483,9 @@ def recorded_plan(ctx: Ctx, scope: list[State]) -> tuple[list[list[State]], int]
     path = ctx.run_dir / "mock" / PLAN_RECORD
     record = json.loads(path.read_text()) if path.exists() else {}
     by_id = {s.id: s for s in scope}
+    if "keep" in record and "batches" not in record:
+        raise llm.ReplayMiss(f"--replay: mock/{PLAN_RECORD} was recorded before batches were recorded, so it can't "
+                             "say which calls the live run made")
     if sorted(sid for batch in record.get("batches", []) for sid in batch) != sorted(by_id):
         raise llm.ReplayMiss(f"--replay: no recorded batch plan for this scope at mock/{PLAN_RECORD}")
     return [[by_id[sid] for sid in batch] for batch in record["batches"]], record["keep"]
@@ -514,10 +518,11 @@ class Drawn:
 def draw_batches(ctx: Ctx, groups: list[list[State]], contents: list[list[dict]], budget: llm.Budget,
                  keep: int | None) -> Drawn:
     """Draws the batches, at most PARALLEL_BATCHES at once. A live run admits them at reserve time, in priority order:
-    each batch's first call takes its worst-case hold in turn (`llm.Turn`) and gives it back at what it cost, and once
-    the cap turns a call away no later batch is asked for, so the batches drawn are a priority prefix. It records the
-    batches and how many it admitted in mock/plan.json; a replay asks for the first `keep`, as recorded. A batch that
-    fails becomes placeholder sections and the rest still ship; the stage fails only if all fail."""
+    each batch's first call takes its worst-case hold in turn (`llm.Turn`), only while one more worst case stays free
+    for its retry, and gives it back at what it cost; once the cap turns a call away no later batch is asked for, so
+    the batches drawn are a priority prefix (but see the ponytail note in draw). It records the batches and how many
+    it admitted in mock/plan.json; a replay asks for the first `keep`, as recorded. A batch that fails becomes
+    placeholder sections and the rest still ship; the stage fails only if all fail."""
     settled, moved, stopped = set(), threading.Condition(), threading.Event()
     spent = budget.spent
 
@@ -531,9 +536,11 @@ def draw_batches(ctx: Ctx, groups: list[list[State]], contents: list[list[dict]]
         """A batch's parts or what stopped it, or None for one the cap left out."""
         if ctx.replay:
             return ask(n, content, budget) if n <= keep else None
-        # ponytail: a batch the cap can't hold beside the calls in flight is left out, not queued until they settle.
-        # Queue it if cap stops leave much of the cap unspent.
-        turn = llm.Turn(budget, n - 1, settled, moved)
+        # ponytail: a batch's first hold keeps one worst case free for a max_tokens retry, so one retry at a time
+        # always fits; two at once near the cap can still turn a better-ranked batch's retry away while a later batch
+        # draws. Upgrade: a refused retry waits for later-ranked holds to settle. A batch the cap can't hold is left
+        # out, not queued until the calls in flight settle; queue it if cap stops leave much of the cap unspent.
+        turn = llm.Turn(budget, n - 1, settled, moved, spare=True)
         try:
             turn.wait()
             if stopped.is_set():

@@ -254,26 +254,26 @@ def kept(run_dir) -> int:
 
 
 def test_a_batch_is_admitted_when_its_hold_fits_beside_the_calls_in_flight(tmp_path, monkeypatch, app):
-    """Planned before any call ran, every batch counted at its worst case: a $3 cap with $1 worst cases kept two batches
-    and a spare, though each answer cost $0.20. Admitted at reserve time, a hold goes back at what its call cost, so
-    with two calls in flight every batch fits."""
+    """Planned before any call ran, every batch counted at its worst case: a $4 cap with $1 worst cases kept three
+    batches and a spare, though each answer cost $0.20. Admitted at reserve time, a hold goes back at what its call
+    cost, so with two calls in flight and one spare every batch fits."""
     monkeypatch.setattr(mock, "BATCH_SCREENS", 1)
     monkeypatch.setattr(mock, "PARALLEL_BATCHES", 2)
     calls = []
     run_dir, n = priced(tmp_path, monkeypatch, app, calls, usd=0.2)
     ctx = ctx_for(run_dir, app)
-    ctx.usd_cap = 3.0
+    ctx.usd_cap = 4.0
     mock.run(ctx)
-    assert n > 2 and len(calls) == n and kept(run_dir) == n
+    assert n > 3 and len(calls) == n and kept(run_dir) == n
     assert "screen not drawn" not in (run_dir / "mock" / "index.html").read_text()
 
 
 def capped_run(tmp_path, monkeypatch, app, calls: list):
-    """Every call holds $1 and costs $1, so a $1 cap admits batch 1 and turns batch 2 away, whichever call ends
-    first."""
+    """Every call holds $1 and costs $1, so a $2 cap admits batch 1 with its retry's $1 spare and turns batch 2 away,
+    whichever call ends first."""
     run_dir, _ = priced(tmp_path, monkeypatch, app, calls, usd=1.0)
     ctx = ctx_for(run_dir, app)
-    ctx.usd_cap = 1.0
+    ctx.usd_cap = 2.0
     mock.run(ctx)
     return run_dir
 
@@ -291,8 +291,8 @@ def test_once_the_cap_turns_a_batch_away_no_later_batch_is_asked_for(tmp_path, m
                                    "were left out") for e in undrawn)
     trace = read_trace(run_dir / "trace.jsonl")
     [plan] = [t for t in trace if t.step == "plan"]
-    assert plan.note == (f"1 of {len(left_out) + 1} batches admitted in priority order under the $1.00 cap with $0.00 "
-                         "already spent, each call holding its worst case only while in flight")
+    assert plan.note == (f"1 of {len(left_out) + 1} batches admitted in priority order under the $2.00 cap with $0.00 "
+                         "already spent, each holding its worst case while in flight and one more free for a retry")
     assert [t.step for t in trace if t.outcome == "cap"] == ["batch2", "over_budget"]
     [over] = [t for t in trace if t.step == "over_budget"]
     assert over.note == mock.not_drawn([s for b in left_out for s in b], mock.OVER_BUDGET)
@@ -316,12 +316,42 @@ def test_batches_are_admitted_in_priority_order_whichever_reaches_the_cap_first(
         return real(ctx, content, budget, step)
     monkeypatch.setattr(mock, "generate", first_comes_late)
     ctx = ctx_for(run_dir, app)
-    ctx.usd_cap = 1.0
+    ctx.usd_cap = 2.0
     mock.run(ctx)
     first, *left_out = mock.batches(mock.pick_scope(golden(app)))
     report = ContractReport.model_validate_json((run_dir / "mock" / "contract_report.json").read_text())
     assert [e.screen for e in report.errors if e.kind == "undrawn_screen"] == [s.id for b in left_out for s in b]
     assert len(calls) == 1 and kept(run_dir) == 1
+
+
+def test_a_batch_whose_first_answer_is_cut_off_keeps_room_for_its_retry(tmp_path, monkeypatch, app):
+    """Red team probe A: batch 1's first answer runs out of tokens while batch 2 would hold. Without a spare, batch 2
+    took the room and batch 1's retry was turned away, so the home screen went undrawn while batch 2 drew. A first
+    hold now leaves one worst case free, so batch 2 is the one left out and batch 1 is redrawn."""
+    monkeypatch.setattr(mock, "BATCH_SCREENS", 1)
+    monkeypatch.setattr(mock, "PARALLEL_BATCHES", 2)
+    run_dir, _ = priced(tmp_path, monkeypatch, app, [])
+    monkeypatch.setattr(llm, "usd", lambda model_id, tokens_in, tokens_out, tokens_cached=0:
+                        0.2 if tokens_out >= 100000 else 0.5)
+    model = golden(app)
+    first, second = [batch[0].id for batch in mock.batches(mock.pick_scope(model))[:2]]
+
+    def provider(model_id, system, messages, effort, schema, max_tokens, total_timeout=None):
+        screens = screens_of(messages)
+        retry = any(p.get("text") == mock.SHORTER for p in messages[0]["content"])
+        if screens[0] == first and not retry:
+            time.sleep(0.1)
+            return drawn(model, model_id, messages, tokens_out=128000, stop="max_tokens")
+        if screens[0] == second:
+            time.sleep(0.5)
+        return drawn(model, model_id, messages)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider)
+    ctx = ctx_for(run_dir, app)
+    ctx.usd_cap = 2.1
+    mock.run(ctx)
+    report = ContractReport.model_validate_json((run_dir / "mock" / "contract_report.json").read_text())
+    undrawn = {e.screen for e in report.errors if e.kind == "undrawn_screen"}
+    assert first not in undrawn and second in undrawn and kept(run_dir) == 1
 
 
 def test_a_capped_run_replays_to_the_same_page_whatever_cap_or_batching_rule_the_replay_has(tmp_path, monkeypatch,
@@ -345,8 +375,10 @@ def test_a_capped_run_replays_to_the_same_page_whatever_cap_or_batching_rule_the
         assert (run_dir / "mock" / "index.html").read_text() == first
 
 
-@pytest.mark.parametrize("record", [None, {"keep": 1}], ids=["no-record", "no-batches"])
-def test_a_replay_with_no_recorded_batches_stops(tmp_path, monkeypatch, app, two_batches, record):
+@pytest.mark.parametrize("record, says", [(None, "no recorded batch plan for this scope"),
+                                          ({"keep": 1}, "recorded before batches were recorded")],
+                         ids=["no-record", "no-batches"])
+def test_a_replay_with_no_recorded_batches_stops(tmp_path, monkeypatch, app, two_batches, record, says):
     run_dir = capped_run(tmp_path, monkeypatch, app, [])
     path = run_dir / "mock" / "plan.json"
     if record is None:
@@ -355,7 +387,7 @@ def test_a_replay_with_no_recorded_batches_stops(tmp_path, monkeypatch, app, two
         path.write_text(json.dumps(record))
     replay = ctx_for(run_dir, app)
     replay.replay = True
-    with pytest.raises(llm.ReplayMiss, match="no recorded batch plan"):
+    with pytest.raises(llm.ReplayMiss, match=says):
         mock.run(replay)
 
 
@@ -390,12 +422,12 @@ def test_a_rerun_whose_answers_are_cached_draws_every_batch_again_for_free(tmp_p
 
 def test_raising_the_cap_after_an_over_budget_run_draws_the_rest(tmp_path, monkeypatch, app, two_batches):
     """needs-human's way out of an over-budget mock: rerun with a higher --usd-cap. Batch 1 is cached and free, so the
-    new cap only has to hold the batches not drawn yet on top of what was spent."""
+    new cap only has to hold the batches not drawn yet and one spare on top of what was spent."""
     calls = []
     run_dir = capped_run(tmp_path, monkeypatch, app, calls)
     n = len(mock.batches(mock.pick_scope(golden(app))))
     ctx = ctx_for(run_dir, app)
-    ctx.usd_cap = 1.0 + (n - 1)
+    ctx.usd_cap = 1.0 + (n - 1) + 1.0
     mock.run(ctx)
     assert len(calls) == n and kept(run_dir) == n
     assert "screen not drawn" not in (run_dir / "mock" / "index.html").read_text()
@@ -472,7 +504,7 @@ def test_a_replay_after_a_rerun_draws_the_reruns_page(tmp_path, monkeypatch, app
 
 def test_a_cap_that_covers_every_batchs_worst_case_never_turns_one_away(tmp_path, monkeypatch, app):
     """One screen per batch, PARALLEL_BATCHES in flight together, and every answer costs its call's full worst case:
-    a cap of exactly every batch's worst case still draws them all."""
+    a cap of exactly every batch's worst case and one spare still draws them all."""
     monkeypatch.setattr(mock, "BATCH_SCREENS", 1)
     run_dir = seed_model(tmp_path / "run", app)
     with_cache_in(tmp_path, monkeypatch)
@@ -487,7 +519,7 @@ def test_a_cap_that_covers_every_batchs_worst_case_never_turns_one_away(tmp_path
     worst = [llm.worst_case_usd(r["model"], llm.estimate_tokens_in(r["system"], r["messages"]), r["max_tokens"])
              for r in requests]
     # sum() rounds differently from the budget's running total (it compensates), so allow a nanodollar either way.
-    ctx.usd_cap = sum(worst) + 1e-9
+    ctx.usd_cap = sum(worst) + max(worst) + 1e-9
     # Fewer slots than batches, whatever the golden's scope size, so some batches wait for a slot.
     monkeypatch.setattr(mock, "PARALLEL_BATCHES", min(mock.PARALLEL_BATCHES, len(worst) - 1))
     together = threading.Barrier(mock.PARALLEL_BATCHES, timeout=1)

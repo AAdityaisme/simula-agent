@@ -4,7 +4,7 @@ import pytest
 
 from simula.contracts import Edit
 from simula.stages import mock, qa
-from tests.conftest import APPS
+from tests.conftest import APPS, ROOT
 from tests.mock_fake import golden, skeleton_html
 
 
@@ -27,6 +27,24 @@ def test_edits_apply_in_order_each_to_the_page_the_last_one_left():
     out, results = qa.apply_edits("<p>a</p>", [edit("a", "b"), edit("b", "c"), edit("a", "z")])
     assert out == "<p>c</p>"
     assert [r["applied"] for r in results] == [True, True, False]
+
+
+def test_a_find_the_page_repeats_applies_where_it_is_unique_in_the_sections_the_fixer_was_sent():
+    """Red team, Perplexity's committed round 0: s01 and s10 draw the same header, so a fixer sent s01 alone sees one
+    match. It applies in s01, and s10 keeps its header; a find twice inside the sections sent, or a fixer that saw the
+    whole page, still needs one match in the page."""
+    page = qa.without_runtime((ROOT / "runs/perplexity/20260929-212810-1f19585/qa/round0/index.html").read_text())
+    header = '<div data-chrome="header" style="left:0;top:0;width:411px;height:60px">'
+    taller = header.replace("height:60px", "height:64px")
+    assert page.count(header) == 2 and qa.excerpt(page, {"s01"}).count(header) == 1
+
+    out, [result] = qa.apply_edits(page, [edit(header, taller)], {"s01"})
+    s01, s10 = (page[a:b] for sid in ("s01", "s10") for a, b in qa.section_spans(page, {sid}))
+    assert result["applied"] and out == page.replace(s01, s01.replace(header, taller))
+    assert s10 in out
+    for sections in ({"s01", "s10"}, None):
+        _, [result] = qa.apply_edits(page, [edit(header, taller)], sections)
+        assert not result["applied"] and result["why"].startswith("find matches the page 2 times, not once")
 
 
 @pytest.mark.parametrize("app", APPS)
