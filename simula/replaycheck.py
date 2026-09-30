@@ -7,6 +7,7 @@ both run it.
 The pinned code runs on this checkout's dependencies, not the pin's uv.lock. uv.lock hasn't changed since
 submitted-2026-09-30, so a venv per clone isn't worth it yet."""
 
+import contextlib
 import itertools
 import json
 import os
@@ -157,9 +158,16 @@ def check_markers(clone: Path, run: Path) -> int:
 
 
 def graders_skip(run: Path) -> str | None:
-    """Why the grader's replay can't run on this machine, or None. Decided by the commit the run replays at, so a
-    full-sha pin of a byte-keyed ref skips too."""
-    if sys.platform != "darwin" and (sha := commit(run)) in {resolve(ref) for ref in BYTE_KEYED}:
+    """Why the grader's replay can't run on this machine, or None. Decided by the commit a pinned run replays at, so a
+    full-sha pin of a byte-keyed ref skips too; a byte-keyed ref this checkout lacks (a fork, a tagless clone) can't be
+    that commit."""
+    if sys.platform == "darwin" or key(run) not in PINS:
+        return None
+    byte_keyed = set()
+    for ref in BYTE_KEYED:
+        with contextlib.suppress(Mismatch):
+            byte_keyed.add(resolve(ref))
+    if (sha := commit(run)) in byte_keyed:
         return (f"it replays at {sha[:12]}, whose code keyed images by PNG bytes, and this platform encodes the same "
                 "pixels to other bytes than the macOS that recorded the cache (known limit, README)")
     return None

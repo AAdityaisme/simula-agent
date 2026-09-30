@@ -127,6 +127,15 @@ def test_a_full_sha_pin_of_a_byte_keyed_ref_skips_the_graders_replay_off_macos(m
     assert replaycheck.graders_skip(run)
 
 
+@pytest.mark.skipif(not RUNS, reason="no committed runs")
+def test_a_byte_keyed_ref_this_checkout_lacks_neither_skips_nor_fails_an_unpinned_run(monkeypatch):
+    run = RUNS[0]
+    monkeypatch.delitem(PINS, key(run), raising=False)
+    monkeypatch.setattr(replaycheck, "BYTE_KEYED", replaycheck.BYTE_KEYED | {"no-such-tag"})
+    monkeypatch.setattr(sys, "platform", "linux")
+    assert replaycheck.graders_skip(run) is None
+
+
 @by_run
 def test_the_graders_replay_reproduces_the_committed_outputs(clone, run):
     if skip := replaycheck.graders_skip(run):
@@ -173,4 +182,5 @@ def test_replay_check_removes_its_clones_when_it_is_stopped(tmp_path):
     result = subprocess.run([sys.executable, "-c", STOPPED], cwd=ROOT, env=os.environ | {"TMPDIR": str(tmp_path)},
                             capture_output=True, text=True)
     under = Path(result.stdout.split()[0])
-    assert result.returncode == 128 + signal.SIGTERM and not under.exists(), (result.returncode, list(tmp_path.iterdir()))
+    assert result.returncode == 128 + signal.SIGTERM and not under.exists(), (result.returncode,
+                                                                              list(tmp_path.iterdir()))
