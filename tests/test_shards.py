@@ -11,11 +11,12 @@ def collect(pytester, monkeypatch, env: dict[str, str]) -> tuple[list[str], int]
     for name, value in env.items():
         monkeypatch.setenv(name, value)
     result = pytester.runpytest("-m", "not live", "--collect-only", "-q")
+    assert result.ret == 0, "\n".join(result.outlines)
     return [line for line in result.outlines if "::" in line], result.parseoutcomes()["deselected"]
 
 
-def test_four_shards_run_every_test_that_is_not_live_exactly_once_and_no_shard_variables_run_them_all(pytester,
-                                                                                                    monkeypatch):
+def test_four_shards_run_every_test_that_is_not_live_exactly_once_and_one_variable_alone_splits_nothing(pytester,
+                                                                                                          monkeypatch):
     """The live test comes first, so a split made before -m 'not live' drops it would give shard 0 other tests."""
     pytester.makeconftest("from tests.conftest import pytest_collection_modifyitems  # noqa: F401")
     pytester.makeini("[pytest]\nmarkers = live: needs API keys\n")
@@ -26,3 +27,5 @@ def test_four_shards_run_every_test_that_is_not_live_exactly_once_and_no_shard_v
     assert sorted(test for shard, _ in shards for test in shard) == sorted(TESTS)
     assert all(len(shard) + deselected == 10 for shard, deselected in shards)
     assert collect(pytester, monkeypatch, {}) == (TESTS, 1)
+    assert collect(pytester, monkeypatch, {"PYTEST_SHARD": "0"}) == (TESTS, 1)
+    assert collect(pytester, monkeypatch, {"PYTEST_SHARDS": "4"}) == (TESTS, 1)
