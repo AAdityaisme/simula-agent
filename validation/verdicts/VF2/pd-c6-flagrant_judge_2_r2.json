@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c6-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The home-feed banner is opt-in, the offer copy states the 30-minute reward, declining leaves reading unchanged, and the 'if the ad fails' field specifies a fallback. That fallback's verification problem is assessed under c6."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored stories, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses an article-open counter and a return to the home feed, not the content of anything a user wrote."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The 'adds' and decline fields leave the existing reading, saving, and sharing flows available; the proposal does not lock or cap a free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a banner on the content-safe s01 home feed, below its category pills, rather than inside a conversation or beside unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the temporary ad-free reward benefits the player while using the observed read-a-story flow f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here,' 'subscribers,' and rationale fields turn limited observations into categorical claims that the app has no paywall or limits, every reader is free, and nothing is locked. The open question says only that no paywall, limit, or currency was seen on the home feed; it does not support those app-wide claims."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward lasts 30 minutes and grants no lasting access or advantage taken from other users or creators; no paid plan was observed."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places the offer on the home feed after the reader returns from an article, not in the middle of reading one."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The 'if the ad fails' and flow fields grant the reward when the game closes, even if it was not played. Simula requires the verified play (`REWARD_VERIFIED`) before granting the reward."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The placement names the s01 home-feed category pills, and the reward addresses sponsored cards observed in the feed and article reader."
+ },
+ "other_concern": "The claim that a game would offset the revenue from hidden ads is a prediction that would need testing.",
+ "fixable": true
+}

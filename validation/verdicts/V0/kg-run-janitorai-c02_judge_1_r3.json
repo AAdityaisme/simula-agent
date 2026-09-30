@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-run-janitorai-c02",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in by choosing to play the card's game. The offer copy states the reward (priority routing, 60 minutes), declining changes nothing, and the 'if the ad fails' field covers both no-fill and unverified plays."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: the user returns to the profile menu from the Upgrade entry. It uses no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed, locked or capped; the 'removes nothing free' field is yes. The 2-per-day cap applies only to the new reward."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the s09 profile menu sheet over s08 (a non-chat screen), and both are rated safe. It is not in the conversation and not next to unknown or unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As an existing_anchor idea, it rewards priority routing, which the app charges for as a Janitor+ benefit (l02, s02.e06). The app therefore does charge for this resource."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal says free users wait in a normal queue and that the reward lets them skip it. The model marks free-tier priority routing as inferred (m03) and lists the free-tier queue limit as not observed. It also never captured what the Upgrade entry opens, so the trigger 'returns from the Upgrade entry without subscribing' rests on an unobserved screen."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The sample is limited to 60 minutes and 2 plays per day, and Janitor+ still adds always-on priority, 5× context and more swipes."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer sits on the profile menu, a persistent surface the user chooses to open, and does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit. The reward is granted only after the play is verified, and the trigger is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Janitor+ priority routing bullet, the Upgrade to Janitor Plus entry in the profile menu (s09.e31), and the Billing neighbour, so it would not read the same in another app."
+ },
+ "other_concern": "The card depends on detecting a return from the Upgrade flow, which was never observed. A simpler trigger, such as opening the profile menu, would be more robust. Whether free users actually queue behind subscribers also needs confirming with the chat probe.",
+ "fixable": false
+}

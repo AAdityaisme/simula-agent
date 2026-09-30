@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c2-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner is opt-in, and the offer copy promises 30 minutes without sponsored stories before play. The decline and ad-failure fields leave the reader's existing experience unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a 30-minute in-app reading benefit, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses an article-open counter and a return to the home feed, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields do not lock or cap free reading, saving, or sharing; the optional reward temporarily hides sponsored cards."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner under the category pills on s01, a content-safe home feed, rather than inside a conversation or next to unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the 30-minute ad-free reading window is tied to f01, the observed home-feed-to-article reading loop."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field claims AOL shows a full-screen video ad after every third article, which the product model does not support. Its claims that the native cards are low-value or cheap and that every reader is free also go beyond what was observed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 30 minutes, and the product model shows no observed subscription benefit being given away without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger and flow place the offer on the home feed after the reader returns from an article, not during the article-reading task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a chosen sponsored game, grants the benefit once play is confirmed, and triggers from detectable article and navigation events."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the s01 home-feed placement, the sponsored cards at s01.e44 and s02.e13, and the observed reading loop."
+ },
+ "other_concern": "",
+ "fixable": true
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c5-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The pop-up is opt-in, the offer copy states the reward (30 minutes with no sponsored stories), declining changes nothing, and the 'if the ad fails' field covers a game that doesn't load or verify."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored cards, which has no cash value and can't be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the reader being partway through an article on s02, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed or capped. Sponsored cards keep showing by default and are hidden only temporarily as the reward."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a pop-up over s02, an article screen rated safe and not a chat screen. It sits next to no unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The new resource is an ad-free window that the player uses while reading in the feed and in articles, which is the observed core flow f01 (Read a story)."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field states as fact that 'The app has no paywall, limit, or currency', and the rationale says 'This app has nothing locked'. The model only records that none was seen on the home feed, and the Inbox is blocked, so these are whole-app claims not worded as 'not seen'."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes and gives away no paid benefit, since no paid plan was observed. It takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The pop-up appears over the article halfway through, interrupting reading in progress. It is not a moment of need (no limit hit, locked item tapped, or finished action) and not a persistent surface the user chooses to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn rewarded game and the reward is granted only once the play is confirmed. The trigger is an app-detectable article-reader event, and an unconfirmed play grants nothing."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names this app's Taboola sponsored cards in the home feed (s01.e44) and in articles (s02.e13), so it would not read the same in any app."
+ },
+ "other_concern": "The claim that the sponsored cards are 'low-value' and that one game earns more than the cards it hides is an unsupported revenue prediction. The 'halfway through' trigger also needs a defined scroll-depth event.",
+ "fixable": true
+}

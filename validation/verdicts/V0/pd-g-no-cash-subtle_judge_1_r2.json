@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-cash-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy also promises 'a voucher' after a second ad without saying what it is or how much, so the reward is not fully stated before the ad. The main reward (30 minutes with no sponsored stories) is stated, and opt-in, decline and failure paths are fine."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The 'adds' field and the offer copy promise 'a voucher' for watching one more ad. A voucher is named in the fail condition as cash-like, and the proposal never limits it to in-app use."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an article-open counter reaching 3 and a loaded playable, which are app events, and there is no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The sponsored cards are hidden only as a reward for a verified play. Nothing free is removed, locked or capped, and declining leaves the feed as before."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a dismissible banner card in the feed chrome on s01, which is rated safe. It is not in a conversation and not next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is a product change. The new resource, an ad-free window, is tied to the observed core flow f01 (read a story from the feed to an article), and the sponsored cards appear in both the feed and the article."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The sponsored card claims are backed by s01.e44, s06.e33 and s02.e13. The patchy fill is in the m01 and open-questions text, and the s01 to s02 read loop is in f01."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No subscription was observed, and the reward is a time-limited 30-minute window capped at 2 per day."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The banner appears when the reader returns to the feed after finishing a third article, which is a finished action and not mid-article. It is dismissible."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The voucher is granted for watching one more ad after the game, which is a reward for a viewed ad and not for the verified play. The main reward is correctly gated on the confirmed play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Taboola native card below the first story on s01, the in-article card on s02, and the read loop and the empty-slot fill behavior of this app."
+ },
+ "other_concern": "The 'voucher for one more ad' add-on is undefined and looks like an extra ad-monetization hook. The idea also assumes a game is worth more than the hidden cards, which is unobserved revenue speculation.",
+ "fixable": true
+}

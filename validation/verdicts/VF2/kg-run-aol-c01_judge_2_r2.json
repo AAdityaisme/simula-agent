@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-run-aol-c01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before play; the banner is opt-in, declining changes nothing, and the failure path leaves the app unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored stories, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses an article-open counter and a return to the home feed, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal hides sponsored cards temporarily; it does not remove, lock, or cap a free reader feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner in the chrome of s01, a content-safe home feed."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product change gives the player an ad-free window for their own use while browsing and reading, which are the observed core flows f01 and f02."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here,' 'subscribers,' and 'rationale' fields make unsupported claims that the app has no paywall or locked content, every reader is free, and the sponsored cards are cheap or low-value. The model only records that no paywall, limit, or currency was seen on the home feed; it gives no ad prices."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes and does not grant lasting access to a charged benefit or take an existing advantage from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger presents the offer after the reader returns from an article, rather than interrupting an article in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game, grants the reward once play is confirmed, and starts from a detectable article-open counter event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the s01 home feed, its category pills, and the sponsored cards observed in s01, s06, and s02."
+ },
+ "other_concern": "Whether the app can suppress its third-party sponsored placements under its ad agreements is unknown.",
+ "fixable": true
+}

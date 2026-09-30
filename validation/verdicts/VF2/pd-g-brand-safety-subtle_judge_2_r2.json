@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-brand-safety-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states priority routing for 60 minutes before the user chooses to play. The decline and ad-failure fields leave normal chatting available and withhold the reward if play is not verified."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses an upgrade visit, opening a chat from My Chats, and the next reply; it does not inspect what anyone said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and declining leaves replies at their normal speed."
+ },
+ "g_brand_safety": {
+  "passed": false,
+  "reason": "The placement puts the offer inside the character's reply, and the failure path puts a note in the chat. Offers sent as messages are disallowed."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples priority routing, a Janitor+ subscriber benefit shown at s02.e06."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about today's upgrade entry and priority routing are supported by s09.e31 and s02.e06. The temporary reward and offer line are proposed changes, not claims that those features exist today."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward ends after 60 minutes; it does not grant lasting access to the priority routing sold through Janitor+."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places the offer at the end of the character's next reply, a finished-reply boundary rather than during an unfinished reply."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game, the failure path withholds the reward when play is not verified, and the trigger consists of detectable app events."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea ties s09's Upgrade to Janitor Plus entry and s06's My Chats flow to the priority-routing benefit at s02.e06."
+ },
+ "other_concern": "",
+ "fixable": true
+}

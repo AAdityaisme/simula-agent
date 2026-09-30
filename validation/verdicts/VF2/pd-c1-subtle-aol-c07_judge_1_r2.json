@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c1-subtle-aol-c07",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in by playing the game. The offer copy states the reward (a second city for 7 days). Declining hides the card and changes nothing else, and the 'if the ad fails' field covers both no game available and an unconfirmed play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a second city in the weather bar for 7 days, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (tapping the weather bar on the third day in a week). The user types a city name, but that is a reward-setup step and is not used for targeting."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea adds an optional extra. The single-city weather bar that exists today stays free, and 'removes nothing free' is consistent with the flow."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a slim card in app chrome on s01, which is rated safe. It is not in a conversation, and it sits apart from the feed ad slot."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "This is a product_change. A second weather city is not a slice of anything the app charges for (no paid plan or limit was observed). The model's core flows are reading a story (f01) and browsing a category (f02), and the weather bar is in neither. The new resource therefore fails the test."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal cites no evidence. It says the weather bar 'shows one place' and that the feature 'uses data the app already fetches'. The model only records the text 's01.e29: Tap here for weather', which supports neither claim."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 7 days. No subscription was observed, and nothing is taken from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer is a slim card on the Home feed, a persistent surface at the top of the feed. It does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "This is a play-to-earn rewarded game. The reward is granted only once the play is confirmed (flow step 4), and the trigger is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea is tied to this app's Home feed weather bar (s01.e29) and its placement relative to the feed ad slot."
+ },
+ "other_concern": "There is a mismatch between the trigger, which is tapping the weather bar on the third day, and flow step 1, which only says the reader opens Home. The offer card also sits above the first story, which may crowd the top of the feed.",
+ "fixable": false
+}

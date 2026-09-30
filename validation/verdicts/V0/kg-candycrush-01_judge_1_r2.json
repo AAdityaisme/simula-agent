@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-candycrush-01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user taps the button to opt in, the offer copy 'Play a short game to get 1 life now' states the reward and amount, and declining leaves the pop-up and timer unchanged. If no game is ready the button is hidden and no life is given for an unverified play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 1 life, an in-app resource that cannot be withdrawn, sold, or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is tapping Play at 0 lives, which opens s02. That is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed or capped. The life timer and the gold-bar option are unchanged, and the 3-a-day cap applies only to the new offer."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The button sits in the s02 modal, which is content safe and is opened by an app event (a limit hit). The app has no chat screen and the offer is not in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The app limits lives (m01: 5 max, 30-minute regen) and charges gold bars for extra lives (m02), so the reward gives a resource the app both limits and charges for."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about 5 lives, the 30-minute regen, and the gold-bar button rest on m01, m02, s02.e02 and s02.e03. The unobserved gold-bar price is never claimed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "There is no subscription. The reward is a single life, capped at 3 a day, which is a limited sample and not a set of lives."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears in the out-of-lives modal right after the player hits the limit, which is a moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn rewarded game. The life is granted only if the game counts as played (the proposal says no life is given if it doesn't count), and the trigger is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the app's out-of-lives modal, the gold-bar button, the heart meter, and the 5-life and 30-minute regen limit."
+ },
+ "other_concern": "The 'if the game doesn't count' wording is loose about the REWARD_VERIFIED event, but it does say no life is given without a counted play. The gold-bar price of a life set is unknown, so the offer's effect on gold-bar sales can't be judged.",
+ "fixable": false
+}

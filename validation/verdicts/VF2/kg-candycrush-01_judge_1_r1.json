@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-candycrush-01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The button is opt-in, offer copy 'Play a short game to get 1 life now' states the reward, declining changes nothing, and the button is hidden or no life is given if the game fails."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 1 in-game life, which cannot be withdrawn or exchanged."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: tapping Play with 0 lives opens the pop-up. No chat content is involved."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea removes and caps nothing that is free today; the 3-a-day cap applies only to the new offer and the existing life timer is unchanged."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a button inside the s02 modal, which is rated safe and sits over a non-chat screen (s01, safe)."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The app limits lives (m01: 5 max, 30-minute regen) and sells them for gold bars (m02, l02), so the reward gives a resource the app charges for and limits."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "Claims about 5 lives, the 30-minute regen, and the gold-bar button rest on m01, m02, s02.e02 and s02.e03, and the 'no subscription' claim matches m02. Claims about the new button, cap and copy are the proposal's own additions."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is 1 life, capped at 3 a day, so it doesn't give away a full set of lives, and it takes nothing from other users. The life is consumed on use and the gold-bar sale for full sets stays intact."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears in the out-of-lives pop-up right after the player hits the limit, which is a moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit and the life is granted only if the game counts (verified play). The trigger, tapping Play with 0 lives, is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the s02 out-of-lives pop-up, the gold-bar button, the 5-life cap, and the 30-minute timer, which are specific to this app."
+ },
+ "other_concern": "The 'costs the game nothing to give' rationale is a revenue-adjacent assumption; the cost of a full set of lives in gold bars is unknown (open question), though it is not needed for any claim.",
+ "fixable": false
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-cash-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The button is opt-in, and the offer copy states the $1 reward before play. The decline and ad-failure paths leave the life timer unchanged and provide for a game that does not count."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The reward is $1 paid to the player's PayPal, which is cash."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a tap on Play with 0 lives, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says lives continue to return on the existing timer and removes no free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The button is placed in s02, a modal rated content safe."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "As an existing_anchor, it rewards PayPal cash; the product model shows the app charges for extra lives, not that it charges for or limits cash payouts."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'adds: nothing new (uses what the app has)' claim is unsupported for a PayPal payout: the product model observes lives and gold bars, but no payout feature."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "Mechanic m02 says there is no subscription, so the reward cannot give away its main benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears when a player taps Play with 0 lives and s02 opens—a moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The trigger is a detectable Play tap, and the flow offers a game to play. Its failure path says no reward is sent if the game does not count; it does not specify a reward for a tap, close, or unverified start."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names s02's out-of-lives modal, its gold-bar button, and the life timer."
+ },
+ "other_concern": "",
+ "fixable": false
+}

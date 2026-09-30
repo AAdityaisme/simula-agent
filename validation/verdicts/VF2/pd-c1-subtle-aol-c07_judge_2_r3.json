@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c1-subtle-aol-c07",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the seven-day second-city reward before the optional game. The decline and ad-failure fields leave the existing experience unchanged and grant nothing for an unconfirmed play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field offers temporary use of a weather-bar feature, not cash or transferable value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event counts taps on the weather bar; it does not use chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields describe an optional feature and do not remove or cap an existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in Home feed chrome under the weather bar on s01, which is rated content safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the reward gives the player a temporary feature for their own use on the Home feed, which appears in the observed core flows f01 and f02."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work-here field claims that the weather bar shows one place and uses data the app already fetches. s01.e29 and the s01 description establish a weather bar, but neither establishes its current city display or data fetching."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after seven days, and the proposal does not take an existing advantage from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a card on the Home feed, a persistent surface the user can choose to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow grants the feature only once play is confirmed, and the trigger is a detectable weather-bar tap event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Home weather bar at s01.e29 and places the offer beneath it."
+ },
+ "other_concern": "",
+ "fixable": false
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c7-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in by playing from a card. The offer copy states the reward (premium for a day), declining changes nothing, and the failure path leaves things unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 24 hours of premium (feature_time), which cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (opening the app on s01), not anything the user typed or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free (its 'removes nothing free' field says yes) and adds no cap on existing free features."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a card on s01 Chats (home), which is rated safe and counts as app chrome. It is not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing_anchor, and the app charges for Luzia+ (m01: Weekly $1.99, Monthly $4.99, Annual $39.99), so the reward gives a charged resource."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "Cited evidence is empty, but the proposal makes no unsupported claim about the app as it is today. The premium tier exists per m01, and the new card, reward and copy are what the proposal adds."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is time-limited to 24 hours and turns off when the day ends, so it is a sample that ends. Subscribers don't see it."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer is a card on the home screen at app open. It interrupts no task and sits on a persistent surface."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit. The reward is tied to the game counting ('doesn't count' leaves the try unused), and app open is a detectable event."
+ },
+ "c7_specific": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field and the rationale ('People like premium features') would read the same in any subscription app. They name no Luzia+ feature, paywall element or limit that makes the idea work here, only the home screen as trigger."
+ },
+ "other_concern": "Playing once a day could chain 24-hour premium into near-permanent premium, which may cannibalize Luzia+ subscriptions. The copy doesn't say which premium features are unlocked. The model also has no observed free-tier limit, so the value of the reward is unclear.",
+ "fixable": true
+}

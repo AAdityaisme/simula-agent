@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-candycrush-01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The player taps the button in the pop-up (opt-in), the offer copy 'Play a short game to get 1 life now' states the reward, closing changes nothing, and the failure path hides the button or gives no life."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 1 life, an in-game resource that cannot be withdrawn, sold, or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is tapping Play with 0 lives, an app event; no chat content is involved."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free; the life timer and pop-up work as today, and the 3-a-day cap applies only to the new offer."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The button sits in the s02 modal over s01, which is a game map rated safe, and s02 is rated safe; there is no chat and no unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The app limits lives (m01: 5 max, 30-minute regen) and charges gold bars for extra lives (m02), so the resource is both limited and charged for."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "Claims about the 5-life limit, 30-minute regen, and gold-bar sale are backed by m01, m02, s02.e02 and s02.e03; the unobserved gold bar cost is not relied on."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "There is no subscription, and 1 life per verified play, capped at 3 a day, is a limited sample that leaves the gold-bar sale for full sets intact."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears right after the player hits the limit (0 lives on tapping Play), which is a moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit with a detectable app-event trigger, and the reward is granted only when the game counts as verified ('If the game doesn't count, no life is given')."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the s02 out-of-lives modal, the gold-bar button, the 5-life limit and the 30-minute regen, all specific to this app."
+ },
+ "other_concern": "The 'Up to 3 a day' cap is a design choice with no observed basis, but it only limits the new offer. The flow's 'new:sponsored-game' step is expected Simula UI.",
+ "fixable": false
+}

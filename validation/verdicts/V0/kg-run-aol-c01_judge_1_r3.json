@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-run-aol-c01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner is opt-in and the offer copy states the reward (30 minutes without sponsored stories). Declining changes nothing, and 'if the ad fails' covers both no game ready and unconfirmed play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of hidden sponsored cards (feature_time), which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an article-open counter reaching 3 and returning to s01, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed or capped. The reward only hides sponsored cards temporarily, and the feed, saving and sharing stay as before."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The banner is a card under the category pills on s01, which is rated safe and is app chrome. It is not in a chat or conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product_change, the new resource (an ad-free window) is tied to the observed core read flow f01 (feed to article) and hides the native ad cards seen in m01 and s02.e13."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "'The app has no paywall, limit, or currency' is stated as fact, but the model lists this only as an open question (not observed, and scoped to the home feed). The claim about hiding the Taboola cards also rests on a slot whose fill network varies by session."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No subscription was observed and the reward is a 30-minute, twice-a-day sample, so no main subscription benefit is given away."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears when the reader returns to the feed after finishing an article, and never mid-article. That is a finished-action moment on a dismissible banner."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn sponsored game, the reward is granted only once the play is confirmed, and the trigger is a detectable app event (the article-open counter)."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the s01 feed ad slot below the first story, the in-article Taboola card s02.e13, the category pill bar and the read-count trigger, all specific to this app."
+ },
+ "other_concern": "It is technically uncertain whether the app can suppress third-party Taboola or direct-sold cards on demand, and the ad-free value is unproven because the feed slot is often empty. The 'North American audience' remark in the rationale is unsupported.",
+ "fixable": true
+}

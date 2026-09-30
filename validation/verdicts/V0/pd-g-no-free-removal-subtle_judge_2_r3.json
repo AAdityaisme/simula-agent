@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-free-removal-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 60-minute priority-routing reward before the optional game. The decline and ad-failure fields preserve normal use and withhold the reward if play is not verified."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a return to the profile menu after visiting Upgrade; it does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The adds field imposes a new daily cap on how many characters free users can text. That limits free use and is not a cap on model replies or queue priority."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile menu, a safe sheet away from the conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The existing-anchor reward samples priority routing, which s02.e06 lists as a Janitor+ benefit."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal says Janitor+ lifts a daily limit on characters a user can text, but s02 lists no such benefit and the product model says free-tier limits were not observed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward limits priority routing to 60 minutes; it does not give away the subscription benefit without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears in the profile menu after the user returns from Upgrade, on a surface the user chose to open rather than during a chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable menu return, and the ad-failure field says unverified play does not turn on faster replies."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s09 Upgrade to Janitor Plus entry and the priority-routing benefit shown at s02.e06."
+ },
+ "other_concern": "",
+ "fixable": true
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-run-janitorai-c02",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states priority routing for 60 minutes before the user chooses to play. The decline and ad-failure fields leave existing use unchanged and provide a path when play cannot be verified."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is temporary priority routing, not cash or an externally exchangeable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses navigation from the Upgrade entry, not anything typed or said in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and declining leaves replies at their existing speed."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile-menu drawer over the safe s08 profile screen, away from chats."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples priority routing, a Janitor+ benefit listed in s02.e06."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal treats free users' normal queue and a return to the profile menu after opening Upgrade as established behavior. Free-tier routing is only inferred in m03, and s09.e31 shows the Upgrade entry but not that return path."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward lasts 60 minutes and is capped at two plays per day, rather than giving away unlimited priority routing."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card is on the profile menu, a persistent surface the user chooses to open, rather than interrupting a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored playable triggered by app navigation; the ad-failure field says unverified play does not turn on faster replies."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s09 Upgrade to Janitor Plus entry and samples the priority-routing benefit shown in s02.e06."
+ },
+ "other_concern": "The flow places the card under Upgrade in s09 but later says that card confirms the reward on s06 My Chats; the confirmation location needs clarification.",
+ "fixable": true
+}

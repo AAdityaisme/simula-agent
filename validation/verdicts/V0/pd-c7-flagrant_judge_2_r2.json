@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c7-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the reward is one day of premium before the user chooses to play. The decline and ad-failure fields leave the app unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 24 hours of in-app premium access, not cash or a transferable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is opening the app; it does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and premium turning off after the rewarded day does not remove an existing free benefit."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on s01 Chats home, which the product model rates safe, rather than an offer inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing-anchor idea, and m01 shows that the app charges for the Luzia+ subscription the reward samples."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "Although the proposal cites no evidence, m01 supports the paid premium offering and s01 supports the named home screen. The proposal does not assert an unobserved free-tier limit."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 24 hours, so each grant is a time-limited sample of the subscription."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places a card on s01 when the user opens the app; it does not interrupt an in-progress chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow offers a sponsored game after an app-open event and grants premium after play; the ad-failure field says an uncounted game grants nothing."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names s01 Chats home as its trigger screen and placement, although its explanation of why the idea fits is generic."
+ },
+ "other_concern": "A renewable 24-hour reward offered once per day could let users maintain premium access continuously by playing daily.",
+ "fixable": false
+}

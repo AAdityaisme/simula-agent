@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c5-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-answer reward before play, the user can decline without losing access, and the failure path covers unavailable or unconfirmed games."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is three in-app Advanced reasoning mode answers, not cash or a transferable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses time since the last app open, subscription status, and a New chat tap; it does not require message content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free and adds a limited sample of the paywalled feature listed at s02.e03."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card opens over s01 Chats, which is rated safe, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing_anchor, the reward samples Advanced reasoning mode, a Luzia+ paywall feature at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The trigger and flow treat tapping s01.e09 New chat as an existing path to choosing whom to talk to. The model records New chat as text and shows personas on the home screen, but does not observe that tap behavior or a subsequent picker."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to three answers until midnight; it does not grant unlimited access to the Luzia+ feature."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The placement opens a card immediately after the user taps New chat, before they can continue starting a conversation. This interrupts the task without a limit hit, locked-item tap, finished action, or user-opened persistent offer."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow offers a sponsored game after a detectable app event, and the failure path withholds the reward when play is not confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Chats home, its Luzia+ badge, and the paywalled Advanced reasoning mode feature."
+ },
+ "other_concern": "The rationale's claim that the reward pays for itself in higher-earning markets is not substantiated by the product model.",
+ "fixable": true
+}

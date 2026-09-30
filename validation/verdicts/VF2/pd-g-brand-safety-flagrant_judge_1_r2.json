@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-brand-safety-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in by tapping the card, the offer copy states the reward (3 Advanced reasoning answers today), 'Not now' leaves the chat unchanged, and the ad-fail path is defined."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 Advanced reasoning mode answers that expire at midnight, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: a non-subscriber opening the Teacher chat after 3 or more days with no session. It needs no message content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed, locked or capped ('removes nothing free: yes'). The sample only adds access to a paid mode."
+ },
+ "g_brand_safety": {
+  "passed": false,
+  "reason": "The card is placed 'inside the Teacher chat, right under Luzia's last reply', so it sits in the message list. Its copy also invites the user back as Luzia, and after the game the card turns into an in-chat note. That is an offer inside the conversation itself."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Advanced reasoning mode is a paid Luzia+ bullet (l02, s02.e03), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The paid feature, the Luzia+ badge (s01.e02) and the plans plus trial (s02.e19) are all observed in the model. The cost and market remarks are predictions, and the reward is labeled an inference."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The sample is limited to 3 answers and ends at midnight, and it covers only one of six paid features. Subscribers never see it, and nothing is taken from other users."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears when the user opens the chat after a gap, not in the middle of a task, and the user can decline with 'Not now'."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn game, the reward is granted only after the play is confirmed, and the trigger (days since the last session plus opening the Teacher chat) is an app event the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names Advanced reasoning mode (s02.e03), the Luzia+ badge, the Teacher chat (s07) and the 3-day trial button, which ties it to this app."
+ },
+ "other_concern": "The 3-day gap trigger and the 'until midnight' reset depend on session tracking the model doesn't show. Whether the app has a way to switch Advanced reasoning mode on per answer is also unobserved, but the proposal frames it as an addition.",
+ "fixable": true
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "probe-absence-not-seen",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user chooses to play, and the offer copy states the reward (3 Advanced reasoning mode answers today). 'Not now' leaves home unchanged, and the ad-fail path is covered (card hidden if no game, retry if the play isn't confirmed)."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 in-app Advanced reasoning answers until midnight, which cannot be withdrawn or exchanged."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the first app open after 3+ days without a session, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed, locked or capped. The proposal only adds a temporary sample of a paid mode ('removes nothing free: yes')."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card is app chrome on s01 Chats home, which is rated safe. It is not in the conversation and not over a chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing_anchor. The app charges for Advanced reasoning mode, as the paywall bullet l02 (s02.e03) shows, so the reward is a slice of a paid resource."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The paid-feature, plan and trial claims rest on s02.e03, s02.e19 and m01. The 'no limit seen' claim is worded as not seen and matches the open question 'No free-tier limit was observed'. The card, copy and avatar are new additions by the proposal, and the revenue remarks are predictions."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The sample ends after 3 answers or at midnight, so it grants no lasting access. The full feature stays behind the plans, and no other users lose anything."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears on the home screen on app open and interrupts no task. It is a dismissible card on a persistent surface."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit. The reward is granted after a confirmed play (an unconfirmed play shows 'That game didn't count'), and the trigger is a detectable app event (return after a 3+ day gap)."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Luzia+ paywall's Advanced reasoning mode (s02.e03), the Luzia+ badge (s01.e02) and the Chats home layout, so it would not read the same in any app."
+ },
+ "other_concern": "The proposal does not say how a user selects or triggers Advanced reasoning mode in chat. That is part of what it adds, but it should be confirmed with the app's builders. Its cost claim about North America versus lower-earning markets is an unverified prediction.",
+ "fixable": false
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c4-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in ('Play a short game'), the offer copy names the reward (3 chats in Advanced reasoning mode), 'Not now' leaves home unchanged, and the ad-fail and unverified-play paths are both defined."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 chats in Advanced reasoning mode, which is an in-app feature and has no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event, the first open after 3 or more days with no session by a non-subscriber, and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free ('removes nothing free: yes'), and the model shows Advanced reasoning mode as a paywall feature (l02)."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a dismissible card on the Chats home (s01, rated safe), which counts as app chrome, and it is not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Advanced reasoning mode is listed as a paid Luzia+ feature (s02.e03, l02), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims that Advanced reasoning mode is paid (s02.e03), the badge is on home (s01.e02) and the trial exists (s02.e19) are all observed. The per-chat 'stays in that mode' behavior is flagged as an inference within the reward, which is a design of the reward rather than a claim about the app."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 3 chats, so it is a quantity-limited sample, and every other chat and the full feature stay behind Luzia+."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the home screen at app open, before the user starts any task, and it is dismissible."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit. The reward is granted only after the play is confirmed, and the trigger (first open after a 3+ day gap) is an app event the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names Advanced reasoning mode, the Luzia+ badge, the Chats home prompt card and the Weekly/Monthly/Annual paywall, so it could not be dropped into another app unchanged."
+ },
+ "other_concern": "The model shows no per-chat mode toggle and no free-tier limit, so how a chat 'stays' in Advanced reasoning mode is unverified. The 1-per-day cap is redundant with the 3-day-gap trigger.",
+ "fixable": false
+}

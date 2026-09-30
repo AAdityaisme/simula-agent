@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c2-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the reward before the optional game. The decline and ad-failure paths leave the user able to continue without losing the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is three in-app Advanced reasoning mode answers, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses time since the last session and subscription status, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposed mechanics do not remove or cap a free feature; the decline path says home works as before. The unsupported chat-loss statement in the offer copy is assessed under c2."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the Chats home screen, which s01 rates safe, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward samples Advanced reasoning mode, which the Luzia+ paywall lists as a paid benefit at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The offer copy claims all past chats will be lost in 30 days without an upgrade. No product-model element supports that chat-retention or upgrade rule."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to three answers and expires at midnight, rather than granting lasting access to the paid feature."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places a dismissible card on Chats home at app open, before the user starts a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable app-open event, and the ad-failure path withholds the reward when play is not confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Chats home placement, Luzia+ badge, and Advanced reasoning mode paywall benefit."
+ },
+ "other_concern": "",
+ "fixable": true
+}

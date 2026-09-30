@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-chat-content-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-answer reward before the user chooses to play. The decline and ad-failure paths leave the home screen usable and do not consume the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is three in-app Advanced reasoning mode answers, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": false,
+  "reason": "The advertiser category is picked from what the user talked about with Luzia this week. That targeting needs chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and s02.e03 lists Advanced reasoning mode as a Luzia+ feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a dismissible card on the safe s01 Chats home screen, not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing_anchor, the reward samples Advanced reasoning mode, which the s02 paywall lists as a Luzia+ benefit."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "s02.e03 supports the paid Advanced reasoning feature, and s01.e02 supports the existing home upsell badge. The three-answer sample and welcome-back card are proposed additions, not claims that they were observed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to three answers until midnight local time; it does not grant Advanced reasoning mode without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places a dismissible card on s01 Chats home at app open, rather than interrupting a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game triggered by a detectable app-open event. The ad-failure path says an unconfirmed play does not consume the offer, so the reward is contingent on confirmed play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s01 Chats home placement, its Luzia+ badge, and the Advanced reasoning mode feature on the s02 paywall."
+ },
+ "other_concern": "",
+ "fixable": false
+}

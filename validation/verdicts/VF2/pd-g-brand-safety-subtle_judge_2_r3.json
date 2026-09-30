@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-brand-safety-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the reward—priority routing for 60 minutes—before the user chooses to play. The decline and ad-failure fields preserve normal access and provide a path when play is not verified."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is temporary in-app priority routing, not cash or a cash-like asset."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses navigation, subscription status, and receipt of a reply; it does not require reading what anyone said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal's reward adds temporary priority routing and does not remove or cap a free feature."
+ },
+ "g_brand_safety": {
+  "passed": false,
+  "reason": "The placement and flow put the offer inside the character's reply. An offer sent as part of a conversation message fails this gate."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples priority routing, which s02.e06 lists as a Janitor+ benefit."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "s02.e06 supports faster replies through priority routing, and m01 and s09.e31 support the persistent upgrade entry. The offer and its timing are proposed additions, not claims that they exist today."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes and is capped at two plays per day, rather than granting lasting subscriber access."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement puts the offer at the end of the character's next reply, after that reply has finished."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game, and the ad-failure field says unverified play does not turn on faster replies."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names Janitor+ priority routing, the profile-menu upgrade entry, and My Chats."
+ },
+ "other_concern": "",
+ "fixable": true
+}

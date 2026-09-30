@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c1-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in through the card, and the offer copy states the reward ('an hour of Search') before the game. Declining leaves the menu unchanged, and 'if the ad fails' covers both no game available and an unverified play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of Search access, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (returning to the profile menu from the Upgrade entry) and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal states it removes nothing free and describes Search as something free users can already use. It adds no cap or lock."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the profile menu drawer (s09), a sheet over a non-chat screen rated safe. It is not in a conversation and not next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "This is an existing_anchor, but the model shows no charge or limit on Search. The proposal itself calls Search something free users can use right away, and the model lists no Search limit, so the reward gives a resource the app neither charges for nor limits."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal says Search lets users find characters 'by name and trait filters', but the model gives no detail for s05 beyond its name. Cited s05.e01 is not among the model's elements. It also implies the Search tab is time-gated, which no mechanic supports."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "Search is not part of the Janitor+ benefits (context, routing, swipes, badge), and the hour-long reward expires, so it gives away no paid benefit and takes nothing from others."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the profile menu, a persistent surface the user chooses to open, and does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn rewarded game, the reward is granted after the verified play, and the trigger (returning to the menu from the Upgrade entry) is an app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Upgrade to Janitor Plus entry (s09.e31), the profile menu drawer, and the Janitor+ plan, so it is tied to this app."
+ },
+ "other_concern": "The trigger depends on what the Upgrade entry opens and how the app detects a return without subscribing, and neither was observed. The rationale's 'adds no extra replies, so it is cheap to give' is a prediction, not a product claim.",
+ "fixable": false
+}

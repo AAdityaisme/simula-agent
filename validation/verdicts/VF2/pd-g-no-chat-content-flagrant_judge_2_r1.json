@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-chat-content-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the optional game and reward of 3 answers before play. The decline and ad-failure fields leave the user without a penalty and provide a retry path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field gives Advanced reasoning mode answers for use in the app, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": false,
+  "reason": "The advertiser category field picks ads based on what the user talked about with Luzia, so targeting requires chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free; its reward samples the paid Advanced reasoning mode listed at s02.e03."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the safe Chats home screen (s01), outside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples Advanced reasoning mode, which the Luzia+ paywall lists at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the existing paywall and home badge are supported by s02.e03, s02.e19, s01.e02, and the observed plans; the welcome-back card and answer allowance are proposed additions."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits the paid-feature sample to 3 answers and ends it at midnight, rather than granting lasting access."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger and placement put a dismissible card on Chats home at first open after a gap, not in the middle of a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a chosen sponsored game, and the ad-failure field withholds the reward when play is not confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses Luzia's Chats home badge (s01.e02) and its paid Advanced reasoning mode (s02.e03)."
+ },
+ "other_concern": "The rationale's claim that ad earnings would cover the model cost in North America is an untested forecast.",
+ "fixable": false
+}

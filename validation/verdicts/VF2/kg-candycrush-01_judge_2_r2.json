@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-candycrush-01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states 1 life before play. The decline and ad-failure fields preserve the existing timer and grant no life if the game does not count."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 1 in-app life, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a Play tap with 0 lives, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free; its daily cap applies only to the new rewarded offer."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The button is placed in the safe-rated s02 Out of lives modal."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward gives a life, and m02 says extra lives cost gold bars bought with real money."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The rationale refers to a gold-bar sale for a 'full set of lives,' but s02.e03 and m02 establish only that gold bars buy more lives. The size of a set is an open question, so that sale description is not supported."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is one life that gets used up, with a three-per-day cap; m02 also records no subscription."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears in s02 after the player tries to play with 0 lives, a moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The trigger is a detectable Play tap, and the proposed short game grants no life if the play does not count."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s02 Out of lives modal, its gold-bar button, and the life timer."
+ },
+ "other_concern": "The rationale's claim that a life costs the game nothing to give is an unverified economic assumption.",
+ "fixable": true
+}

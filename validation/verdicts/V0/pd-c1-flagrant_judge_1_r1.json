@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c1-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is opt-in via a card, the copy 'Play a short sponsored game to get an hour of Search' states what and how much, declining leaves the menu unchanged, and the ad-fail path hides the card or reports the failure."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of Search (feature_time), which has no cash value and can't be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event, returning to the profile menu from the Upgrade entry, and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "A timed hour of Search only has value if Search is gated outside that hour, and 'when the reward runs out' implies this. Search is a free tab today (s05 Search tab), and it is not a costly resource like model replies, so this locks something free."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the s09 profile drawer, a sheet over the non-chat s08 screen rated safe, and it is not in a conversation or next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "For an existing_anchor idea the app must charge for or limit the rewarded resource. Nothing in the model shows Search being charged for or limited, and the paywall bullets (l01-l04) don't mention it."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The claims that Search finds characters 'by name and trait filters' and that Search is limited rest on s05, which is listed only as 'seen, not in scope' with no described contents. The flow of returning from Upgrade without subscribing is also not observed, since the upgrade screen isn't captured."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "Search is not one of the subscription's benefits (m02: context, priority routing, swipes, checkmark), and the reward is time-limited to one hour."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the profile menu, a persistent surface the user opens by choice, so it interrupts no task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit where the hour of Search is granted after the verified play, and the trigger is a detectable menu and navigation event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the profile menu drawer, the Upgrade to Janitor Plus entry (s09.e31), and the Search tab, so it is tied to this app's screens."
+ },
+ "other_concern": "The offer only works if Search is gated, which was never observed. The rationale that it 'adds no extra replies' doesn't fix that, because it concedes no scarce resource is being rewarded.",
+ "fixable": false
+}

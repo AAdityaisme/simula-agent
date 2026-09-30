@@ -1,0 +1,49 @@
+{
+ "candidate_id": "rg-janitorai-c09-empty-evidence",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 24-hour boost and seven-day supporter mention before the game. The ad is optional, declining preserves the like, and the failure path grants nothing if verification fails."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a character-list boost and supporter mention, neither of which is cash or transferable value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a tap on the like button on s07, not anything the user says or writes in chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing users receive free today; its caps apply only to the new boost."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The support card is on s07, a character-detail screen rated safe, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product change adds a boost to the Home character list, which is tied to choosing a character from that list in core flow f1."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The rationale claims fans have no way to help beyond a like, but that is not established by the product model; s07.e03 also shows a comments button. This is an unsupported claim about the app."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward does not give away the Janitor Plus benefits listed at s13.e09–e12."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears after the user taps like on s07, at a completed action rather than in the middle of a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable like tap, and the failure path says an unverified play changes nothing."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names s07’s creator byline and like button, Vac the Kinectic, and the Home Hidden Gems list."
+ },
+ "other_concern": "",
+ "fixable": true
+}

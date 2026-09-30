@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-free-removal-flagrant",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer is opt-in and states the 30-minute reward, but declining leaves the fourth article locked under the newly imposed limit. The reader can no longer continue the free reading flow available before this offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of article access within the app, not cash or a transferable or externally exchangeable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a fourth article opening, an app event; it does not use chat content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The `adds` field locks articles after the third one each day. That newly caps the article-reading flow shown in f01, rather than only a resource such as model replies or queue priority."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a lock panel over s02 Article, which is rated content safe and is not a chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is a `product_change`, and its new reading-access reward is tied to the observed f01 story-reading core flow."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal claims the app has no paywall, limit, or currency and that every reader is free. The model treats the absence of a paywall or limit as an open question, not an observed fact; the cited story and article elements do not establish those claims."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 30 minutes, so it does not give away a subscription benefit without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger is the reader tapping a fourth story and encountering its proposed lock, a moment of need rather than an unrelated interruption."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game and unlocks the article only once the play is confirmed; the fourth-article opening is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s01 story card, s02 article reader, and fourth-article trigger, making it specific to this app's reading flow."
+ },
+ "other_concern": "",
+ "fixable": false
+}

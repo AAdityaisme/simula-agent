@@ -1,0 +1,261 @@
+{
+ "note": "Pinned canary for config/frozen_prompts.toml: the judge message rendered for this candidate is hashed, so a code change to what the judge sees needs a re-freeze and a re-validation. Edit only on purpose.",
+ "model": {
+  "app": "pinned-app",
+  "app_category": "utility",
+  "states": [
+   {
+    "id": "s01",
+    "name": "Today",
+    "purpose": "The day's plan and the free-session meter.",
+    "content_rating": "safe",
+    "elements": [
+     {
+      "id": "s01.e01",
+      "text": "2 of 3 free sessions left this week",
+      "role": "meter"
+     },
+     {
+      "id": "s01.e02",
+      "text": "Start session",
+      "role": "button"
+     }
+    ]
+   },
+   {
+    "id": "s02",
+    "name": "Upgrade",
+    "purpose": "The paid plan and its benefits.",
+    "content_rating": "safe",
+    "elements": [
+     {
+      "id": "s02.e01",
+      "text": "Unlimited sessions",
+      "role": "paywall bullet"
+     },
+     {
+      "id": "s02.e02",
+      "text": "$ 7.99",
+      "role": "price"
+     }
+    ]
+   },
+   {
+    "id": "s03",
+    "name": "Session done",
+    "kind": "modal",
+    "parent_id": "s01",
+    "purpose": "Shown when a session ends.",
+    "content_rating": "safe",
+    "elements": [
+     {
+      "id": "s03.e01",
+      "text": "1 of 3 free sessions left",
+      "role": "meter"
+     }
+    ]
+   },
+   {
+    "id": "s04",
+    "name": "Community",
+    "purpose": "Posts from other users.",
+    "content_rating": "unsafe",
+    "elements": [
+     {
+      "id": "s04.e01",
+      "text": "a user post",
+      "role": "post"
+     }
+    ]
+   },
+   {
+    "id": "s05",
+    "name": "Loading",
+    "purpose": "A spinner while the plan loads.",
+    "content_rating": "unknown",
+    "elements": []
+   },
+   {
+    "id": "s06",
+    "name": "Settings",
+    "purpose": "Account settings.",
+    "content_rating": "safe",
+    "in_mock_scope": false,
+    "elements": [
+     {
+      "id": "s06.e01",
+      "text": "Sign out",
+      "role": "button"
+     }
+    ]
+   }
+  ],
+  "mechanics": [
+   {
+    "id": "m01",
+    "kind": "limit",
+    "evidence_ids": [
+     "s01.e01"
+    ],
+    "summary": "3 free sessions a week.",
+    "observed_numbers": [
+     "3"
+    ],
+    "status": "observed"
+   },
+   {
+    "id": "m02",
+    "kind": "paywall",
+    "evidence_ids": [
+     "s02.e01",
+     "s02.e02"
+    ],
+    "summary": "A paid plan removes the weekly limit.",
+    "observed_numbers": [
+     "7.99"
+    ],
+    "status": "observed"
+   }
+  ],
+  "value_ledger": [
+   {
+    "id": "l01",
+    "kind": "limit",
+    "verbatim": "2 of 3 free sessions left this week",
+    "evidence_ids": [
+     "s01.e01"
+    ]
+   },
+   {
+    "id": "l02",
+    "kind": "paywall_bullet",
+    "verbatim": "Unlimited sessions",
+    "evidence_ids": [
+     "s02.e01"
+    ]
+   },
+   {
+    "id": "l03",
+    "kind": "experience",
+    "verbatim": "Starting a session took 4 seconds each time.",
+    "evidence_ids": [
+     "s01.e02"
+    ]
+   }
+  ],
+  "open_questions": [
+   "What the paid plan costs yearly."
+  ],
+  "terms": [
+   {
+    "term": "Plus",
+    "meaning": "meaning not observed",
+    "defined_by": [],
+    "used_in": [
+     "m02"
+    ],
+    "observed": false
+   }
+  ],
+  "cross_screen_values": [
+   {
+    "id": "v01",
+    "label": "Free sessions left",
+    "value_text": "2 of 3",
+    "evidence_ids": [
+     "s01.e01",
+     "s03.e01"
+    ]
+   }
+  ],
+  "edges": [
+   {
+    "id": "g01",
+    "from_state": "s01",
+    "to_state": "s02",
+    "element_id": "s01.e02",
+    "action": "tap",
+    "transition": "push",
+    "change_summary": "Opens the paid plan."
+   }
+  ],
+  "flows": [
+   {
+    "id": "f01",
+    "name": "See the plan",
+    "purpose": "Open the paid plan from Today.",
+    "edge_ids": [
+     "g01"
+    ],
+    "evidence_ids": [
+     "s01.e02"
+    ]
+   }
+  ]
+ },
+ "candidate": {
+  "kind": "existing_anchor",
+  "title": "One extra session this week after the free ones run out",
+  "anchor_evidence_ids": [
+   "s01.e01",
+   "s04.e01",
+   "s09.e09"
+  ],
+  "bible_mechanic": "none",
+  "what_is_different_here": "The Today screen already counts free sessions down from 3.",
+  "adds": null,
+  "removes_nothing_free": true,
+  "trigger_event": "The free-session meter reaches 0 of 3.",
+  "trigger_state_id": "s01",
+  "placement": "A card under the meter on Today.",
+  "offer_copy": "Play a short game for 1 extra session this week.",
+  "reward": {
+   "kind": "feature_time",
+   "unit": "sessions",
+   "amount": 1,
+   "duration": "this week"
+  },
+  "for_users": "free",
+  "grants_id": "l02",
+  "cost_inputs": {
+   "inference_count": 0,
+   "tokens_in": 0,
+   "tokens_out": 0,
+   "minutes": 20,
+   "currency_amount": 0
+  },
+  "frequency_cap": "1 per week, resets Monday",
+  "decline_path": "The card closes; the meter stays at 0 of 3.",
+  "ad_fail_path": "No session is added and the try isn't used up.",
+  "subscriber_treatment": "Subscribers have no meter and never see the card.",
+  "advertiser_category": "Casual mobile games",
+  "character_use": "None",
+  "flow_steps": [
+   {
+    "state_id": "s01",
+    "caption": "The meter reads 0 of 3."
+   },
+   {
+    "state_id": "new:offer",
+    "caption": "One extra session for a short game."
+   },
+   {
+    "state_id": "new:game",
+    "caption": "The game plays."
+   },
+   {
+    "state_id": "s09",
+    "caption": "A screen the model never saw."
+   },
+   {
+    "state_id": "s01",
+    "caption": "The meter reads 1 left."
+   }
+  ],
+  "after_reward": "Next week the meter resets to 3, and Plus removes it for good.",
+  "rationale": "The weekly limit is where free users stop; one extra session keeps them going without giving the plan away.",
+  "flags": [
+   "uses \"Plus\", whose meaning was never observed"
+  ]
+ }
+}

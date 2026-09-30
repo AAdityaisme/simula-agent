@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c6-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy states the reward and play is optional, but the 'if the ad fails' field only addresses an unfinished game. It gives no path for a completed game whose play fails verification."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a return from the Janitor+ entry to the profile menu; it does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and the decline path leaves normal replies available."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile menu, a safe sheet over the safe s08 profile screen, not in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, s02.e06 establishes that priority routing for faster replies is a Janitor+ benefit."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says users can skip a normal queue through earlier placement in line. The model supports paid priority routing and inferred normal-priority routing, but does not establish a queue or how routing changes users' positions in it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward ends after 60 minutes and is capped at two plays per day; priority routing is already a sold Janitor+ benefit under s02.e06."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears in the profile menu after the user returns from the Upgrade entry, rather than interrupting an ongoing chat task."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The 'if the ad fails' field turns on faster replies when the user taps Play. Simula requires the reward to be granted only after verified play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the s09 Upgrade to Janitor Plus entry and the priority-routing benefit shown in s02.e06."
+ },
+ "other_concern": "The claim that priority routing is cheap to provide is unverified; using no extra replies does not establish its capacity cost.",
+ "fixable": true
+}

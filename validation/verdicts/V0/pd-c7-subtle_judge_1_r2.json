@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c7-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is an opt-in banner, and the offer copy states the reward (30 minutes with no ads) before the game. Declining hides the banner and leaves the app as before, and the 'if the ad fails' field covers a game that fails to load or verify."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of ad-free use (feature_time), which cannot be withdrawn, sold or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is time in the app plus a ready playable, both app events. The app has no chat and the proposal uses no user-typed content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed or capped. Ads stay as they are, and the reward only hides them temporarily."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The banner sits on s01 Home, which is rated safe. It is app chrome, not in a conversation and not near unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The new resource, ad-free time, is tied to the observed Read a story flow (f01) and to the ads seen in the feed (m01). Nothing is charged, but the product_change test is met through the core loop."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The only app claim is that the app shows ads, which m01 supports with its Taboola native ad in the home feed. Cited evidence is empty, but no claim rests on an open question."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No subscription or paid benefit was observed. The reward is a 30-minute sample capped at 2 per day."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The dismissible banner on the Home feed does not block reading, and the user can decline it. It does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn sponsored game. The reward applies only after the play is confirmed, and the trigger (time in the app plus a loaded playable) is detectable."
+ },
+ "c7_specific": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says only that the app shows ads. That reads the same in any ad-supported app and names no specific screen, ad slot or feature, though the model has a Home feed ad slot (m01)."
+ },
+ "other_concern": "Ad fill comes from third-party networks (Taboola or direct cards) and is sometimes empty, so it is unobserved whether the app can hide all ads for a window. The banner trigger 'used the app for a while' is also vague. Ad-free time also displaces existing ad revenue.",
+ "fixable": true
+}

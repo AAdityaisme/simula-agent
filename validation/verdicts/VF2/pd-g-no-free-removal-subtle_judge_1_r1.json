@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-free-removal-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the reward (priority routing, 60 minutes) before the game. Declining leaves the menu unchanged, and the 'if the ad fails' field covers both no game available and an unverified play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (returning to the profile menu from the Upgrade entry) and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The 'adds' field creates a new daily limit on how many characters a free user can text, which caps something free today. It is not a cap on model replies or queue priority, so it fails the free-removal gate, even though the proposal marks 'removes nothing free: yes'."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the profile menu drawer (s09), a sheet over the non-chat Profile screen rated safe, and it is not in or over any conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing_anchor, and the app charges for priority routing (l02, s02.e06), so the reward gives a resource the app charges for."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about today's app rest on s09.e31 (persistent Upgrade entry) and s02.e06 / m03 (free users have normal routing, inferred from the subscriber bullets). The daily limit, the card and the copy are labeled as the proposal's own additions."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The priority routing lasts 60 minutes, is capped at 2 plays per day, and ends afterward, so it is a sample that expires. Subscribers keep the always-on version and longer memory."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer sits on the profile menu, a persistent surface the user chooses to open, and does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn rewarded playable. The reward is granted after the verified play ('if the play isn't verified... couldn't be turned on'), and the trigger (returning to the menu) is an app event the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Janitor+ priority routing benefit, the Upgrade to Janitor Plus entry, and the profile menu drawer, all specific to this app."
+ },
+ "other_concern": "The card is shown only on return from the Upgrade entry, but the Upgrade destination was never observed. The new daily limit on characters texted is a paywall-pressure tactic with no observed basis in the app.",
+ "fixable": true
+}

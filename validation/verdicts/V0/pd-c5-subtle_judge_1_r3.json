@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c5-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card names the reward (3 Advanced reasoning answers today) before the game, the user chooses to play, 'Not now' returns them to the normal flow, and the ad-fails path is defined."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 Advanced reasoning mode answers until midnight, which has no cash value and cannot be moved out of the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: the first New chat tap after 3 or more days away. It does not depend on anything the user wrote."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds a temporary sample and removes nothing free ('removes nothing free: yes'). Advanced reasoning mode is listed as a paid feature at s02.e03."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card opens as a dialog over s01 Chats home, which is rated safe and is not a chat thread. It is not placed in the conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Advanced reasoning mode is a Luzia+ paywall bullet (l02, s02.e03), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The model shows s01.e09 'New chat' only as a text label above the persona list on home. It does not show a New chat tap that opens a separate 'who to talk to' list, so the trigger and placement claims are unsupported. The reward unit of 'answers' is also flagged as an inference."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The sample is limited to 3 answers and ends at midnight local time, so it does not give away the main benefit without a limit."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The card opens right after the user taps to start a chat and blocks the persona choice. That interrupts a task in progress, and it is not a limit hit, a locked item tapped, a finished action, or a persistent surface."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "This is a play-to-earn unit. The reward is tied to a confirmed play ('That game didn't count' otherwise), and the trigger is a detectable app event (3+ day gap plus a tap)."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names Luzia+ paywall feature s02.e03, the s01 home badge, the persona picker and the 3-day trial button, so it is specific to this app."
+ },
+ "other_concern": "Reward size is left to the market ('drop to 1 answer or need a second game'), which is vague. How Advanced reasoning mode is switched on per answer was never observed.",
+ "fixable": true
+}

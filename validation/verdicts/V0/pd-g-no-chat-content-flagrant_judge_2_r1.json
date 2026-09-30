@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-chat-content-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the reward is 3 Advanced reasoning mode answers today. The card is dismissible, declining leaves home unchanged, and the failure path withholds the reward if the play is not confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 in-app Advanced reasoning mode answers, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": false,
+  "reason": "The advertiser category is picked from what the user talked about with Luzia this week, so targeting needs chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds a limited sample of the paid feature listed at s02.e03 and does not remove, lock, or cap a free resource."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a card on the safe s01 Chats home screen, under the header rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, s02.e03 lists Advanced reasoning mode on the Luzia+ paywall; the app charges for the resource being sampled."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The central app claims are supported: s02.e03 lists Advanced reasoning mode, and s01.e02 shows the Luzia+ badge on the proposed home screen. The 3-answer sample and welcome-back card are proposed changes, not claims that they were observed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 3 answers and expires at midnight local time, rather than giving away Advanced reasoning mode without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears on s01 Chats home at the first open after a gap; it does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a short sponsored game triggered by a detectable app-open event. The failure path says an unconfirmed play does not count, so the proposal does not grant the reward for merely starting or closing the game."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the s01 Chats home placement and Luzia+ badge to sample Advanced reasoning mode, a feature named on the s02 paywall."
+ },
+ "other_concern": "The rationale assumes the returning free user has not tried Advanced reasoning mode before and asserts that the reward will pay for itself in some markets; neither is established by the product model.",
+ "fixable": false
+}

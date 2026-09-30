@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-cash-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy promises 'a voucher' after a second ad without saying what it is or how much it gives, so the reward is not fully stated before the ad."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The 'adds' field and offer copy promise a 'voucher' with no defined in-app value, and a voucher is on the cash-like list. The proposal never limits it to use inside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an article-open counter reaching 3 on the home feed, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal only adds a temporary ad-hiding option and removes or caps nothing free ('removes nothing free: yes'; decline leaves everything as before)."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The banner is app chrome on s01, which is rated safe, and it is not in a chat or message list."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The new resource is an ad-free reading window that the player uses in the observed core flow f01 (read a story), and it doesn't go to anyone else."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal states 'The app has no paywall, limit, or currency' and 'This app has nothing locked' as facts about the whole app. The model records only that none were seen on the home feed, and it notes the Inbox is blocked behind sign-in."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a 30-minute ad-free window, which expires, and no paid benefit or other users' placement is affected."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The banner appears on returning to the feed after a finished article, not mid-read, and it is dismissible."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The voucher is granted for watching one more ad on a separate 'voucher-ad' screen, which is not a verified play. This means part of the reward is not tied to REWARD_VERIFIED."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names this app's Taboola native cards in the home feed and in articles (s01.e44, s02.e13), plus the read-then-return feed loop."
+ },
+ "other_concern": "The voucher add-on is vague and adds risk. Also, a 2-per-day cap on hiding low-fill native cards may earn little, though the proposal admits this.",
+ "fixable": true
+}

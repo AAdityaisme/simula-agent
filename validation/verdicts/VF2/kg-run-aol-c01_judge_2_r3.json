@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-run-aol-c01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before an opt-in game. The decline and ad-failure fields leave the app unchanged if the user declines or the play cannot be confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored stories, not cash or a transferable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses an article-open counter and a return to the home feed, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields preserve reading, saving, and sharing; the reward temporarily hides sponsored cards rather than removing free user functionality."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a dismissible banner under the category pills on s01, a content-safe home feed."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the ad-free window benefits the player while reading stories, which is the observed core flow f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what makes it work here, subscribers, and rationale fields claim the app has no paywall or locked content and that every reader is free; the model only says no paywall, limit, or currency was seen on the home feed. Calling the existing sponsored cards 'cheap' or 'low-value' is also unsupported by s01.e44, s06.e33, or s02.e13."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes, and the product model identifies no subscription benefit that it grants without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger and flow place the offer on the home feed after the reader returns from an article, rather than interrupting the article."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow grants the reward once the sponsored-game play is confirmed, and the trigger is a detectable article-open counter and feed return."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The placement names s01's category pills, and the reward targets the sponsored cards shown in s01.e44, s06.e33, and s02.e13."
+ },
+ "other_concern": "The predicted revenue trade-off is unverified; hiding existing third-party ad placements may also require implementation or contractual review.",
+ "fixable": true
+}

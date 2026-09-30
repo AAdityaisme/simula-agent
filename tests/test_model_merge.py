@@ -230,6 +230,8 @@ def test_a_modal_in_scope_brings_its_parent_first():
     assert stage.mock_scope(unsafe_parent, [], meaning) == ["s01"]
     blocked_parent = [states[0], states[1].model_copy(update={"kind": "blocked"}), states[2]]
     assert stage.mock_scope(blocked_parent, [], meaning) == ["s01"]
+    rotated = [states[0], states[1], states[2].model_copy(update={"kind": "rotated", "parent_id": None})]
+    assert stage.mock_scope(rotated, [], meaning) == ["s01"]
 
 
 def test_a_flow_dialog_keeps_its_parent_even_when_the_parent_is_unsafe_and_off_the_flow():

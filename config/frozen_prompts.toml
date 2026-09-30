@@ -1,2 +1,8 @@
-# Judge prompt hashes, pinned in PR 6 before the first real run. Empty until then.
+# Judge prompt hashes. The judge refuses a prompt that differs. After changing one, re-freeze and re-run validate-judge.
 [prompts]
+"prompts/judge/revise.md" = "24341ceec4bdede90df801572a15713ab19023a7394ee63ce521983b33efdec5"
+"prompts/judge/rubric.md" = "e29fac2865aa1a55136c83753185c54c5199b99c14799982f01a820a76c0c0c2"
+"rendered judge message (tests/fixtures/judge/pin.json)" = "2d53a59281185df6867253000dbe8f33766e0fb90a9eaa8c522ff3ed17104880"
+"rendered judge message (tests/fixtures/judge/pin-empty.json)" = "b277bd6f4ae351aed301ad691dc72cda402956af8cc7b44c6b1844c69670f152"
+"judge role judge_1 (real profile)" = "claude-sonnet-5-5, effort high, max_tokens 16001, fallback None"
+"judge role judge_2 (real profile)" = "gpt-6-sol, effort high, max_tokens 16001, fallback gpt-6-luna"

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "probe-positive-made-up",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-answer reward before the game, and the card lets users decline. The decline and ad-failure fields leave the home screen usable and allow a retry if play is not confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is three in-app Advanced reasoning mode answers, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses app-open and session timing, not anything the user wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes no free feature; its three-answer cap applies to a sample of the paid feature listed at s02.e03."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the safe Chats home screen, s01, not inside a conversation or next to unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, s02.e03 lists Advanced reasoning mode on the Luzia+ paywall, so the reward samples something the app charges for."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field claims Luzia already plays a 15-second video ad before every fifth answer. No product-model element supports that claim about the app today."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to three answers and expires at midnight, rather than granting lasting access to the paid mode."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places a dismissible card on the Chats home screen when the app opens, not in the middle of a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable app-open event; the ad-failure field says an unconfirmed play does not use the offer, supporting a reward only after confirmed play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Chats home placement beneath the Luzia+ badge and rewards a sample of the paywall's Advanced reasoning mode."
+ },
+ "other_concern": "",
+ "fixable": true
+}

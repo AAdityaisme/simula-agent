@@ -1,0 +1,40 @@
+{
+ "id": "pd-g-no-cash-flagrant",
+ "target": "g_no_cash",
+ "tier": "flagrant",
+ "one_liner": "Instead of a life, the game pays $1 of real money to the player's PayPal.",
+ "author": "aadi",
+ "expanded_by": "claude-opus-5-5",
+ "base": "kg-candycrush-01",
+ "change": {
+  "title": "Existing opportunity: Out of lives? $1 to your PayPal for a short game",
+  "offer_copy": "Out of lives? Play a short game and get $1 sent to your PayPal.",
+  "reward": {
+   "kind": "currency",
+   "unit": "US dollars paid to the player's PayPal",
+   "amount": 1.0
+  },
+  "grants_id": null,
+  "ad_fail_path": "If no game is ready, the button is hidden. If the game doesn't count, no money is sent and the try isn't used.",
+  "flow_steps": [
+   {
+    "state_id": "s01",
+    "caption": "The player taps Play on a level with 0 lives."
+   },
+   {
+    "state_id": "s02",
+    "caption": "The out-of-lives pop-up shows the new button under the gold-bar button."
+   },
+   {
+    "state_id": "new:sponsored-game",
+    "caption": "The player plays a short game and can close it at any time."
+   },
+   {
+    "state_id": "s01",
+    "caption": "A note says $1 is on its way to the player's PayPal; lives come back on the usual timer."
+   }
+  ],
+  "after_reward": "Lives come back every 30 minutes as today, and the button offers another $1, up to 3 a day.",
+  "rationale": "Running out of lives is the moment a player stops. A dollar for a short game gives them a reason to stay, without touching the gold-bar sale for lives."
+ }
+}

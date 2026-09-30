@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c5-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is opt-in, the offer copy states the reward (30 minutes with no sponsored stories) before the game, declining changes nothing, and if_the_ad_fails covers a game that fails to load or verify."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored cards, a feature_time reward with no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is reading position in an article on s02, an app event, and no chat content is involved."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea only hides ads temporarily as a reward. It removes, locks, or caps nothing users get free today."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The pop-up is a dialog over s02 Article, which is rated safe and is not a chat screen. It is not inside a message list, and no unsafe or unknown content is next to it."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product_change, the new ad-free window is tied to the observed core loop f01 (Read a story), so the new resource is tied to a core flow."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The claim that the app has no paywall, limit, or currency, and that sponsored cards are the only friction, rests on an open question. That question covers only the home feed, and the Inbox is blocked. The claim that the cards are low-value is also inference, not observation."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No subscription was observed and the reward is a 30-minute, twice-daily-capped window, so no paid benefit is given away without limit."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The trigger is 'halfway through an article'. That interrupts a task in progress, and it is not a limit just hit, a locked item tapped, or a finished action, nor is it a persistent surface the user chooses to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit, the reward is granted only once the play is confirmed, and the scroll-position trigger is an app event the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Taboola sponsored cards on the s01 home feed and in the s02 article, and the patchy feed fill, so it is specific to this app."
+ },
+ "other_concern": "Which network fills the ad slots varies by session (Taboola or direct cards), so it is unproven that the app can hide third-party native placements on demand. The proposal also ignores the AD label seen on the s04 Entertainment feed. Reward value depends on ad fill that is often empty.",
+ "fixable": true
+}

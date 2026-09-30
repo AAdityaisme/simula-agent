@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c4-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-chat reward before the optional game; the decline and ad-failure fields preserve the user's prior state and provide a retry path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is access to Advanced reasoning mode in three chats, not cash or an externally exchangeable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses time since the last app session and subscription status, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and its decline path leaves home working as before."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the header area of s01 Chats (home), which is rated safe, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples Advanced reasoning mode, which s02.e03 lists as a Luzia+ paid benefit."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The rationale claims each answer uses real model time, but no product-model element establishes that current resource-use behavior."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The reward and offer copy say each of the three chats stays in the paid Advanced reasoning mode 'for good.' That grants lasting access even though the number of chats is limited."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a dismissible card on s01 Chats (home), not an interruption in the middle of a chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable app open, and the ad-failure field withholds the reward when play is not confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses s01's Chats home and Luzia+ badge together with the Advanced reasoning mode benefit shown at s02.e03."
+ },
+ "other_concern": "",
+ "fixable": false
+}

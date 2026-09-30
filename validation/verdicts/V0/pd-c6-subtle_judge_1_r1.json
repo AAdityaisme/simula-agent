@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c6-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in, the offer copy states the reward (priority routing, 60 minutes), declining leaves the menu unchanged, and the 'if the ad fails' field says the boost turns off if the game isn't finished."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority, which has no cash value and can't be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (returning to the profile menu from the Upgrade entry), not anything the user typed or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea adds a temporary boost and takes nothing away from free users (removes nothing free: yes)."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the profile menu drawer (s09), a sheet over the non-chat Profile screen s08. Both are rated safe, and the offer is not in the conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Priority routing is a paywall bullet (l02, s02.e06) and a Janitor+ benefit (m02), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The trigger depends on the user going to the Upgrade destination and coming back, but no upgrade screen or return behavior was captured (only the entry points in m01). The claim that free users wait in a 'normal queue' rests on m03, which is inferred, and the free-tier limit is listed under open questions."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a 60-minute sample capped at 2 per day, and the proposal keeps memory, swipes and permanent priority behind Janitor+."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The profile menu is a persistent surface the user chooses to open, and the card does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The 'if the ad fails' field says faster replies turn on when the user taps Play, so the reward is granted on a tap rather than on the verified play (REWARD_VERIFIED)."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Upgrade to Janitor Plus entry in the profile menu (s09.e31) and Janitor+'s priority routing bullet (s02.e06), which are specific to this app."
+ },
+ "other_concern": "The reward is only worth something if free users actually wait in a slower queue, and that was not observed. The card could also be confused with the Upgrade button, since it sits directly under it.",
+ "fixable": true
+}

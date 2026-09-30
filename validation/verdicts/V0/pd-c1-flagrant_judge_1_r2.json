@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c1-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in, the offer copy states the reward ('an hour of Search') before the game, declining leaves the menu unchanged, and the ad-failure path is defined."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of a feature, with no cash value and nothing withdrawable or transferable."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (returning to the profile menu from the Upgrade entry), not anything the user typed or said."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "Search is a free tab today and the proposal itself says free users can use it right away. Rewarding 'an hour of Search' and describing 'when the reward runs out' only make sense if Search gets gated, which locks something free today, and Search is not a resource that costs the app money per use."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the profile menu drawer (s09), a sheet over a non-chat screen rated safe, and is not placed in or next to any conversation."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "For an existing_anchor, the app must charge for or limit the resource being rewarded. Nothing in the model shows Search being charged for or limited (the paywall bullets list context, routing, swipes and a badge), so the reward has no revealed value."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The claims that Search finds characters by name and trait filters and that Search access is limited are not supported. s05 is only 'seen, not in scope', the only cited element is the text 'Search', and no Search limit was observed. The model also does not show what happens after the Upgrade entry is tapped, so the 'returns without subscribing' trigger rests on nothing observed."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "Search is not among the subscriber benefits (5x context, priority routing, frontier swipes, golden checkmark), and the reward is time-limited to one hour, so the subscription's main benefit is not given away."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on a persistent surface the user chooses to open (the profile menu), so it interrupts no task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "This is a play-to-earn sponsored game, the reward is granted on the verified play, and the trigger is a detectable menu and navigation event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Upgrade to Janitor Plus entry (s09.e31), the profile menu drawer and the Search tab, all features of this app."
+ },
+ "other_concern": "The 'returns from Upgrade without subscribing' trigger depends on tracking a paywall flow the explorer never captured, and the card's own stated purpose (a reason to keep exploring) is unrelated to Janitor+ benefits.",
+ "fixable": false
+}

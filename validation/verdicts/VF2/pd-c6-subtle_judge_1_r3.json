@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c6-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in by tapping Play, the offer copy states the reward (priority routing, 60 minutes), declining leaves the menu unchanged, and the 'if the ad fails' field gives a path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (returning to the profile menu from the Upgrade entry), and no chat content is used."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free ('removes nothing free: yes'), and replies keep their normal speed for those who decline."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the profile menu drawer (s09), a sheet over the non-chat s08 profile screen, and s09 is rated safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The app charges for priority routing: it is a Janitor+ paywall bullet (l02, s02.e06), so an existing_anchor over a paid resource passes."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "Priority routing as a paid benefit (s02.e06), the persistent Upgrade entry (s09.e31) and free users' normal routing (m03, inferred from the subscriber bullets) are supported. The claim that priority costs no extra replies is a rationale, so any doubt about it belongs in other_concern."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes and is capped at 2 per day, and it covers only one of the four Janitor+ benefits. The app sells priority routing, so the advantage is not taken from others."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer sits on the profile menu, a persistent surface the user chooses to open, and does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The 'if the ad fails' field turns on faster replies when the user taps Play, before the game is finished, so the reward is granted on a started ad rather than on REWARD_VERIFIED."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea depends on Janitor+'s priority routing bullet and on the Upgrade to Janitor Plus entry and Billing in the profile menu."
+ },
+ "other_concern": "The proposal treats a hidden 'return from Upgrade' event as observable, but the model never shows what the Upgrade entry opens. The claim that priority costs nothing extra rests on an unobserved queue mechanism. Free-tier queue behavior is listed among the open questions.",
+ "fixable": true
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "rg-janitorai-c07-fan-boost",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card appears after a like tap and the user chooses to play. The offer copy states the reward (24-hour list boost and a 7-day supporter heart), 'Not now' leaves the page unchanged, and the failure path is defined."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic supporter heart and a temporary list boost. Neither can be withdrawn, sold or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a tap on the like button (s07.e16) for a character created in the last 30 days, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea adds an optional boost and supporter mark and locks or caps nothing users get free today; 'removes nothing free: yes'."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits on the character detail page s07, which is rated safe and is not a chat screen. It is app chrome, not in the conversation, and is not next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the boost reorders the home feed and the character page, which are steps of core flow f1 (pick a card, open its page). It is therefore tied to an observed core loop, although the value to the fan is thin."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The Hidden Gems tab for characters from the last 30 days (s01.e13, s01.e15), the 102 pages (s01.e27), the creator handle (s07.e13) and the like button (s07.e16) are all observed. The plan's benefits (m2) do not include boosting, so the subscribers note is supported. The card and boost are declared as new."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a cosmetic mark and a visibility boost. It does not touch Janitor Plus benefits such as context, priority routing or swipes."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer follows a finished action, the like tap, and appears as a card on the character page rather than interrupting a chat or a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit. The reward is granted only once the play is confirmed ('Once the play is confirmed'), and the trigger is a detectable like tap."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Hidden Gems list over 102 pages, the like button and creator handle on character pages, and this app's creator marketplace."
+ },
+ "other_concern": "The boost benefits the creator more than the fan, whose only reward is cosmetic, and it pushes other small creators down the list. Confirming that the 'created in last 30 days' flag is available on the character page is an engineering dependency.",
+ "fixable": false
+}

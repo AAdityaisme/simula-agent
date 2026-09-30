@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-cash-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy promises a voucher after another ad but does not say what the voucher is worth or provides, so it does not state the full reward before play."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The adds and flow fields include a voucher as a reward; a voucher is cash-like."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses an article-open counter and a return to the home feed, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields leave reading, saving, and sharing available; the change hides sponsored cards temporarily rather than removing a free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner on the content-safe s01 home feed, above the first story, rather than inside a conversation or beside unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product change gives the player 30 minutes without sponsored cards while using the observed story-reading flow f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what makes it work here and subscribers fields assert that the app has no paywall and every reader is free, while the model says only that no paywall was seen on the home feed. Calling the sponsored cards low-value or cheap also asserts economics not supported by s01.e44, s06.e33, or s02.e13."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits the ad-free period to 30 minutes; it grants no lasting paid access or advantage taken from another user or creator."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger event places the offer after the reader returns from an article, on a dismissible home-feed banner rather than during an article."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The adds and flow fields award a voucher for watching a second ad, rather than for a server-verified playable completion."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The placement and reward refer specifically to the s01 home feed and the sponsored cards observed in s01.e44 and s02.e13."
+ },
+ "other_concern": "The 30-minute window starts when the game ends, although access begins only after verification; a verification delay could shorten the usable break.",
+ "fixable": false
+}

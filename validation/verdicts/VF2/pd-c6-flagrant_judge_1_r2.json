@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c6-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner is opt-in, the offer copy states the reward (30 minutes without sponsored stories), declining changes nothing, and an ad-failure path is given."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored cards, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an article-open counter reaching 3, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed or capped. Sponsored cards are hidden temporarily only after the play, and they show as usual otherwise."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The banner is app chrome on s01, which is rated safe, and it is not in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The new resource, a feed and articles without sponsored cards, is for the player's own use in the observed core flow f01 (read a story)."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says 'The app has no paywall, limit, or currency' and the rationale says 'This app has nothing locked' and 'The only friction a free reader meets'. Both are stated as facts about the whole app. The model only records that none was seen on the home feed, and the Inbox is blocked behind sign-in."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes, the app charges for nothing here, and nothing is taken from other users."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The banner appears on the home feed after the reader returns from an article, not in the middle of one, and the feed is a persistent surface."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The 'if the ad fails' field and flow step 4 grant the prize 'when the reader closes the game, played or not'. That grants the reward on a close rather than on a verified play (REWARD_VERIFIED)."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Taboola native cards in the s01 feed and the s02 article, the feed-to-article loop, and the third-article counter."
+ },
+ "other_concern": "The claims that the cards are low-value and that the play out-earns them are revenue predictions, so they do not count for c2. The 'no free removal' field says 'yes', which is fine.",
+ "fixable": true
+}

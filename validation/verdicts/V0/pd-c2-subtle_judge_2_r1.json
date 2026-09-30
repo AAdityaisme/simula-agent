@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c2-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-answer reward before an opt-in game. The decline and ad-failure paths leave the home screen usable without consuming the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is three Advanced reasoning mode answers, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses time since the last app session and subscription status, not what a user said or wrote."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free; it offers a limited sample of the paid feature listed at s02.e03."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the Chats home screen, s01, which is rated safe; it is not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples Advanced reasoning mode, which the Luzia+ paywall lists at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The offer copy claims past chats will be lost in 30 days without an upgrade, but the product model does not support any such deletion rule. A claim about the app is therefore unsupported."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward limits the s02.e03 paid feature to three answers until midnight rather than granting it without a limit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a dismissible card on s01 Chats home, not an interruption inside an ongoing task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game, and the ad-failure path says unconfirmed play does not count or consume the offer. The first-open trigger is an app-detectable event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s01 Chats home placement and samples Advanced reasoning mode from the s02 Luzia+ paywall."
+ },
+ "other_concern": "The unsupported chat-loss warning is also unnecessarily alarming.",
+ "fixable": true
+}

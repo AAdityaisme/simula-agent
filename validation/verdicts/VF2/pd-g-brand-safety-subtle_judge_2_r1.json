@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-brand-safety-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 60-minute priority-routing reward before play. The decline and ad-failure paths leave normal chatting available and withhold an unverified reward."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is in-app priority routing for 60 minutes, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses the Upgrade return, My Chats opening, and a character reply event; it does not require reading what anyone said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and its decline path retains normal-speed replies."
+ },
+ "g_brand_safety": {
+  "passed": false,
+  "reason": "The placement puts the offer inside the character's reply, which is inside the conversation itself."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing-anchor idea, the reward samples priority routing, a Janitor+ benefit shown in s02.e06."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says users skip a normal queue and receive earlier placement in line. s02.e06 supports faster replies through priority routing, but neither it nor m03 establishes that queue mechanism."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward ends after 60 minutes, and the frequency cap limits it to two plays per day rather than lasting subscription access."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger waits for the character's next reply, placing the offer at the end of a completed reply rather than interrupting an unfinished action."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by detectable app events, and the ad-failure path says unverified play does not turn on faster replies."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Janitor+ Upgrade entry in s09, My Chats in s06, and the priority-routing benefit in s02.e06."
+ },
+ "other_concern": "The character-chat screen was not observed; a revised placement there would need a safety review.",
+ "fixable": true
+}

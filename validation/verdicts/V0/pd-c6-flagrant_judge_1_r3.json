@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c6-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner is opt-in with an X and No thanks, and the offer copy states the reward (30 minutes without sponsored stories) before the game. Declining leaves the feed unchanged, and an 'if the ad fails' path exists, even though it is flawed (see c6)."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes with sponsored cards hidden, a feature_time reward that has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an article-open counter reaching 3 plus a loaded playable, which are app events and not user-written content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed, locked, or capped. Sponsored cards keep showing as usual unless the reader chooses the ad-free window, and declining changes nothing."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a dismissible banner card in the app chrome of s01, which is rated content safe, and it is not in the conversation or next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product_change, the new resource (a window without sponsored cards) is tied to the observed read loop f01 (feed to article), where the cards in s01.e44 and s02.e13 appear."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims rest on observed elements: the feed ad slot in s01.e44 and s06.e33, the in-article Taboola card s02.e13, the patchy fill noted in m01, and the s01-to-s02 read flow. The 'no paywall or limit' claim matches the open question."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No paid plan was observed and piece of a paid benefit is none. The reward is also time-limited to 30 minutes and capped at 2 per day."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger is the reader returning to the feed after finishing a third article, a finished-action moment on the home feed, and never in the middle of an article."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The 'if the ad fails' field and flow step 4 grant the reward when the reader closes the game 'played or not'. The reward therefore goes to a close and not to the verified play (REWARD_VERIFIED)."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Taboola card below the first story in the home feed, the in-article card, and the article-open loop of this news app."
+ },
+ "other_concern": "Hiding the app's own Taboola placements may cost real ad revenue. The proposal's own rationale admits the offer pays for itself only under certain assumptions about the hidden cards.",
+ "fixable": true
+}

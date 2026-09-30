@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-brand-safety-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in by choosing to play. The offer copy states the reward (priority routing, 60 minutes), declining leaves replies as they are, and the ad-fail path is defined."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: returning from the Upgrade entry without subscribing, then opening a chat. It does not use anything the user typed or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed or capped. The reward is a temporary boost on top of the free experience."
+ },
+ "g_brand_safety": {
+  "passed": false,
+  "reason": "The placement is 'Inside the character's reply', so the offer is sent as a message in the conversation. The failure path also adds 'a note in the chat', which is a system note in the chat. Both fall under the offer being inside the conversation itself."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Priority routing is sold as a Janitor+ benefit (l02, s02.e06), so the app charges for the resource this reward gives."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal relies on free users waiting in a 'normal queue' and on a chat reply screen. The free-tier limit is an open question, m03 is only inferred, and no chat screen is in the model. The claim that a user 'came back from' the Upgrade entry is also not backed by any observed mechanic."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a 60-minute sample of priority routing, capped at 2 per day. Longer memory, more swipes and the badge stay behind the subscription."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears just after a character reply is finished, which counts as a finished action, and the user can ignore it and keep chatting."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit. The reward is granted only after the verified play, and the trigger is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Janitor+ priority routing benefit, the profile menu Upgrade entry, and My Chats, so it could not be moved to another app unchanged."
+ },
+ "other_concern": "An offer tied to having just visited the Upgrade entry is a confusing trigger, and the app may not be able to detect a user leaving that entry without subscribing. A sheet or dialog opened by an app event, such as a tap on a locked or priority item, would be a safer placement.",
+ "fixable": true
+}

@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c7-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the one-day reward before the game. The flow lets the user choose to play, and the decline and ad-failure fields leave the app unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 24 hours of in-app premium access, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is opening the app, not anything the user wrote in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and no field adds a restriction to an existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on s01 Chats home, which the product model rates safe; it is not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward gives temporary premium access, and m01 shows that the app charges for Luzia+."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "Although the proposal cites no evidence IDs, its claim that premium access exists is supported by the Luzia+ paywall in m01 and s02. The one-day reward is a proposed change, not a claim about current access."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits premium access to 24 hours, and the expiry field says it turns off afterward."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer is a card on s01 Chats home when the app opens, not an interruption in the middle of a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by an app-open event; its failure path says an uncounted game grants nothing. It does not propose granting the reward for a tap, click, close, or started ad."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the app's s01 Chats home screen as the place for the offer and uses its existing paid premium access."
+ },
+ "other_concern": "The flow should explicitly say that the app grants the reward only after Simula's REWARD_VERIFIED event, once.",
+ "fixable": false
+}

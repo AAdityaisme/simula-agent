@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-run-aol-c01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner is opt-in, the offer copy states the reward (30 minutes with no sponsored stories), declining changes nothing, and the 'if the ad fails' field covers load and verify failures."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a 30-minute window without sponsored cards, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an article-open counter reaching 3 on the home feed, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea takes nothing away from free users; sponsored cards show as usual unless the reader chooses to play, and they return after 30 minutes."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The banner is a card under the pill bar on s01, which is rated safe and is app chrome. The story cards next to it are safe, and it is not in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The new resource is an ad-free reading window that the player uses themselves in the observed core flow f01 (read a story), and none of it goes to other people."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "'The app has no paywall, limit, or currency' and 'This app has nothing locked' are stated as facts about the whole app. The model only records that none was seen on the home feed, so the claim should be worded as 'not seen'."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No paid plan was observed, the reward expires after 30 minutes, and it takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears on return to the feed after a finished read and never in the middle of an article, and it is dismissible."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit, the reward is granted only once the play is confirmed, and the trigger (the article-open counter) is an app event the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Taboola sponsored cards in the s01 feed slot and in s02 articles, and the read-and-return loop, so it would not read the same in another app."
+ },
+ "other_concern": "Hiding Taboola or direct cards may conflict with the partners' terms, and the claim that hiding the cards displaces little revenue is an unproven prediction. The proposal also cites s02.e13 but not the in-article ad on s05.",
+ "fixable": true
+}

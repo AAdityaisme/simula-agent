@@ -1,0 +1,83 @@
+{
+ "id": "kg-run-janitorai-c02",
+ "source": "run",
+ "from_run": "PR 5 round 6: runs/janitorai/20260928-042747-6d79ef8-fixture/propose/candidates.json c02",
+ "app": "janitorai",
+ "app_type": "companion chat",
+ "in_test_set": true,
+ "model": "golden/janitorai/product_model.json",
+ "author": "aadi",
+ "filled_by": {},
+ "note": "Approved by Aadi as known-good (2026-09-28). A taste of an existing paid benefit (priority routing for faster replies).",
+ "candidate": {
+  "id": "c02",
+  "lens": "free_at_limit",
+  "kind": "existing_anchor",
+  "title": "Existing opportunity: Faster replies for an hour from the profile menu",
+  "anchor_evidence_ids": [
+   "s09.e31",
+   "s02.e06"
+  ],
+  "bible_mechanic": "M02",
+  "what_is_different_here": "Janitor+ sells priority routing for faster replies (s02.e06). The profile menu (s09) keeps a permanent Upgrade to Janitor Plus entry (s09.e31). A free user who opens it and comes back without subscribing has shown interest but said no. Letting them skip the normal queue for an hour costs no extra replies, only earlier placement in line.",
+  "adds": null,
+  "removes_nothing_free": true,
+  "trigger_event": "User returns to the profile menu from the Upgrade to Janitor Plus entry without subscribing",
+  "trigger_state_id": "s09",
+  "placement": "Card directly under the Upgrade to Janitor Plus button in the profile menu drawer",
+  "offer_copy": "Play a short sponsored game to get priority routing for faster replies for the next 60 minutes.",
+  "reward": {
+   "kind": "queue_priority",
+   "unit": "priority routing",
+   "amount": 1.0,
+   "duration": "60 minutes"
+  },
+  "for_users": "free",
+  "grants_id": "l02",
+  "cost_inputs": {
+   "inference_count": 0,
+   "tokens_in": 0,
+   "tokens_out": 0,
+   "minutes": 0.0,
+   "currency_amount": 0.0
+  },
+  "frequency_cap": "2 per day, resets at midnight local time",
+  "decline_path": "The user can ignore or close the card. The menu, Upgrade, and Billing work exactly as today, and replies keep their normal speed.",
+  "ad_fail_path": "If no game is available, the card is hidden. If the play isn't verified, the card says faster replies couldn't be turned on and the try isn't counted against today's limit.",
+  "subscriber_treatment": "Subscribers already have priority routing and never see the card.",
+  "advertiser_category": "Casual mobile games and entertainment streaming apps",
+  "character_use": "None; the card sits in the menu drawer, away from characters and chats.",
+  "flow_steps": [
+   {
+    "state_id": "s09",
+    "caption": "The user comes back to the profile menu after looking at Janitor+ without subscribing."
+   },
+   {
+    "state_id": "new:priority-card",
+    "caption": "A card under Upgrade offers faster replies for 60 minutes for one short sponsored game."
+   },
+   {
+    "state_id": "new:sponsored-game",
+    "caption": "The user plays the short sponsored game and can quit at any time."
+   },
+   {
+    "state_id": "s06",
+    "caption": "The card confirms faster replies are on for 60 minutes, and the user jumps back into their chats."
+   }
+  ],
+  "after_reward": "When the hour ends, replies return to normal speed and the menu card shows that Janitor+ keeps faster replies on all the time, with one more play available that day.",
+  "rationale": "Faster replies are something free users can feel right away, and this lets them try it for an hour after they looked at the plan but didn't buy. It adds no extra replies, so it is cheap to give. The plan still offers faster replies all the time, plus longer memory and more swipes.",
+  "economics": {
+   "cost_2k": 0.0,
+   "cost_8k": 0.0,
+   "breakeven_ecpm_2k": 0.0,
+   "breakeven_ecpm_8k": 0.0,
+   "benchmark_ecpm": 10.16,
+   "verdict": "PASS",
+   "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost (the peak-capacity cost is real but unknown); one view per reward; a publisher-net eCPM (share 1)."
+  },
+  "reach_score": 1.0,
+  "rank_score": 1.0,
+  "dropped_reason": null
+ }
+}

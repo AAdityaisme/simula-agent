@@ -1,20 +1,17 @@
 """Preflight. Touches the emulator read-only, under the shared lock. --keys makes one tiny call per model."""
 
 import os
-import shutil
 import subprocess
 import sys
 import time
-from contextlib import contextmanager
-from pathlib import Path
 
 from pydantic import BaseModel
 
 from simula import config, decide, llm, runlog
 from simula.checkout import mobile_mcp_version, package_version, untracked_inputs
 from simula.config import ROOT
+from simula.device.devices import adb, emulator_lock, online
 
-LOCK = Path("/tmp/simula-emu.lock")
 EXPECTED = {"mobile-mcp": "1.0.5", "mcp": "2.2.0"}
 results: list[tuple[str, bool, str]] = []
 
@@ -23,29 +20,6 @@ def check(name: str, ok: bool, detail: str = "") -> bool:
     results.append((name, ok, detail))
     print(f"{'ok ' if ok else 'FAIL'}  {name:<60} {detail}")
     return ok
-
-
-def adb() -> str | None:
-    home = os.environ.get("ANDROID_HOME") or str(Path.home() / "Library/Android/sdk")
-    path = Path(home) / "platform-tools" / "adb"
-    return str(path) if path.exists() else shutil.which("adb")
-
-
-@contextmanager
-def emulator_lock(wait_s: int = 120):
-    deadline = time.monotonic() + wait_s
-    while True:
-        try:
-            LOCK.mkdir()
-            break
-        except FileExistsError:
-            if time.monotonic() > deadline:
-                raise TimeoutError(f"{LOCK} held by another process for {wait_s}s")
-            time.sleep(5)
-    try:
-        yield
-    finally:
-        LOCK.rmdir()
 
 
 def check_local() -> None:
@@ -91,14 +65,13 @@ def check_emulator() -> None:
     tool = adb()
     if not check("adb found", tool is not None, tool or "set ANDROID_HOME or `source setup/env.sh`"):
         return
+    devices = online(tool)
+    emulators = [serial for serial in devices if serial.startswith("emulator-")]
+    if not check("emulator online", bool(emulators), ", ".join(devices) or "no device"):
+        return
+    serial = os.environ.get("ANDROID_SERIAL") or emulators[0]
     try:
-        with emulator_lock():
-            devices = subprocess.run([tool, "devices"], capture_output=True, text=True, timeout=20).stdout
-            online = [line.split()[0] for line in devices.splitlines()[1:] if line.endswith("\tdevice")]
-            emulators = [serial for serial in online if serial.startswith("emulator-")]
-            if not check("emulator online", bool(emulators), ", ".join(online) or "no device"):
-                return
-            serial = emulators[0]
+        with emulator_lock(serial):
             for app in sorted(p.stem for p in (config.CONFIG / "apps").glob("*.toml")):
                 package = config.app_config(app)["package"]
                 out = subprocess.run([tool, "-s", serial, "shell", "dumpsys", "package", package],

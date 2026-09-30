@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c5-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-answer reward before play, and the flow lets the user choose whether to play. The decline and ad-failure fields provide paths without using up the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field gives three in-app Advanced reasoning mode answers, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses time since opening the app and a New chat tap, not message content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal's reward samples the paid feature listed at s02.e03; its 'removes nothing free' field proposes no restriction on a free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card over the Chats home screen, s01, which is rated safe; it is not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, the reward is a limited sample of Advanced reasoning mode, a Luzia+ paywall feature at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The trigger event and decline path treat New chat as a tappable entry to picking someone to talk to 'as usual.' s01.e09 shows New chat text and s01 shows personas, but the model does not establish that tap or subsequent selection flow; this is an unsupported claim about how the app works today."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits the paid-feature sample to three answers and ends it at midnight, so it does not grant lasting or unlimited access."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The trigger event and flow put the card in the way just as the user starts a new chat, before they can continue. This interrupts a task without a limit hit, locked-item tap, finished task, or persistent surface the user chose to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game, and the ad-failure field withholds the reward when play is not confirmed. The trigger is an app-detectable open-and-tap event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the Chats home screen, its Luzia+ badge, and the Advanced reasoning mode paywall feature at s02.e03."
+ },
+ "other_concern": "",
+ "fixable": true
+}

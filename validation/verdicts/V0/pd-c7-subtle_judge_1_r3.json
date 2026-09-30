@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-c7-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is an opt-in banner, and the offer copy states the reward (30 minutes with no ads). Declining leaves the app as before, and the 'if the ad fails' field covers a game that isn't ready or a play that isn't confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without ads (feature_time), which is not cash or anything that works like cash."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is time in the app plus a loaded playable, both app events. There is no chat content in a news app."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "'removes nothing free' is yes. Ads stay as they are today, and hiding them is a new temporary benefit rather than a removal or cap on something free."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The banner sits on s01 Home, which is rated safe, as app chrome or a list card. It is not in a conversation and is not next to unknown or unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "For a product_change, the new resource (ad-free time) is not a slice of anything the app charges for ('piece of a paid benefit: none'; the model shows no paywall or limit). It is also not tied to a core flow: reading a story (f01) or browsing a category (f02) does not depend on ad-free time."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claim that the app shows ads is supported by m01, the Taboola native card on the home feed. No app limits, prices or features are asserted beyond that."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No subscription was observed in the product model, and the reward is a time-limited 30-minute window capped at 2 per day."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "A dismissible banner on the Home feed is a persistent surface the user can ignore or choose. It doesn't block reading or interrupt an in-progress task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit, and 'if the play is not confirmed, nothing changes' ties the reward to the verified play. The trigger (time in the app and a ready playable) is detectable by the app."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The trigger screen is s01 Home · Top Stories, and the idea rests on the app's existing ad slots. It is thin and generic, but it does name a screen and the app's ad behaviour."
+ },
+ "other_concern": "No cited evidence. The ad slot fill varies by network and is sometimes empty (open question), so it is unclear which ads the app can actually hide, especially third-party Taboola ones. The idea is close to a generic 'ad-free time' pitch, and the revenue claim ('earns more than the ads it hides') is unsupported.",
+ "fixable": false
+}

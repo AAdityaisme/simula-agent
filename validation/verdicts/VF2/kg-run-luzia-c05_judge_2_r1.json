@@ -1,0 +1,49 @@
+{
+ "candidate_id": "kg-run-luzia-c05",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 3-answer reward before play. The decline and ad-failure fields leave the home screen unchanged or allow a retry without using the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is Advanced reasoning mode answers for use in the app, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses session inactivity and subscription status, not what anyone wrote or said in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free; it offers a sample of Advanced reasoning mode, which appears on the Luzia+ paywall at s02.e03."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card is in the header area of the safe Chats home screen (s01), not in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples Advanced reasoning mode, a benefit listed on the Luzia+ paywall at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the existing badge, paid feature, plans, and trial are supported by s01.e02 and s02. The welcome-back card and answer allowance are proposed changes, not claims that they exist today."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 3 answers and expires at midnight local time; it does not grant lasting access to the paid feature."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a dismissible card on the Chats home screen (s01) that the user can choose to engage with."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable app-open event, and the ad-failure field withholds the reward when play is not confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the Luzia+ badge on Chats home (s01.e02) and samples the paywall's Advanced reasoning mode benefit (s02.e03)."
+ },
+ "other_concern": "The rationale's claim that the sample pays for itself in certain markets is a projection to validate, not an observed product fact.",
+ "fixable": false
+}

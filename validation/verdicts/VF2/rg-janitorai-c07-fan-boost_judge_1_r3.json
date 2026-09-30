@@ -1,0 +1,49 @@
+{
+ "candidate_id": "rg-janitorai-c07-fan-boost",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in, the offer copy states the reward (list boost for 24h plus a 7-day supporter heart), declining leaves the page unchanged, and a failed game shows a retry message."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic list boost and a supporter heart, with nothing withdrawable or transferable."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a tap on the like button (s07.e16) for a character created in the last 30 days, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed, locked or capped for users; the page works as before if the user declines."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a card on the character detail page s07, which is rated safe and is not a chat screen. The 'Boosted by fans' label on the home feed is not the offer itself."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "This is a product_change, and most of the reward (list visibility for 24 hours) goes to the creator @IoakimTumo, not the player. The player gets only a cosmetic heart, and it is not a slice of anything the app charges for or a core-flow resource."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal states that a new character 'sits deep in that list' and that small creators have 'one fixed place to be found'. The product model does not support either: no element shows how Hidden Gems is ordered, and Search, Trending and other tabs exist."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "Boosting one character to the top of the app-ordered Hidden Gems list pushes down other creators' characters and their visibility, and the app does not sell that advantage today."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears right after the user finishes the like action, which is a finished-action moment, and it does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "This is a play-to-earn rewarded playable, the boost and heart are granted only once the play is confirmed, and the trigger is a detectable like tap."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Hidden Gems tab (s01.e13), the 102-page list, the like button on character pages and the creator handle, so it is specific to this app."
+ },
+ "other_concern": "The feature depends on a new ordering mechanism for the Hidden Gems list and on tracking which tab a character page was opened from. Neither was observed, and both need app-side work. Boosts could also be gamed by creators.",
+ "fixable": false
+}

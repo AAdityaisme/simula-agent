@@ -1,0 +1,49 @@
+{
+ "candidate_id": "pd-g-no-free-removal-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 60-minute reward before an optional game. The decline and ad-failure fields provide paths without granting an unverified reward."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field gives in-app priority routing, not cash or a cash-like asset."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is returning to the profile menu from the Upgrade entry; it does not require message content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The adds field imposes a new daily cap on how many characters free users can text. That caps something free users could do today, and the capped resource is neither model replies nor queue priority."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile menu, a safe sheet over the safe s08 profile screen, away from chats."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward is a timed sample of priority routing, which s02.e06 lists as a Janitor+ benefit."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "s09.e31 supports the Upgrade entry, and s02.e06 supports priority routing for faster replies. The daily character cap is described as something the proposal adds, not as an existing app limit."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes and is capped at two plays per day; it does not grant lasting subscription access."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger follows a return from the Upgrade entry, and the offer sits in the profile menu rather than interrupting a chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable menu-return event, and the ad-failure field says unverified play does not turn on the reward."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea ties the s09 Upgrade entry to Janitor+ priority routing shown in s02.e06."
+ },
+ "other_concern": "The flow says the card confirms the reward on s06 My Chats, but the specified card placement is in the s09 profile menu.",
+ "fixable": true
+}

@@ -1,0 +1,38 @@
+{
+ "id": "pd-c4-subtle",
+ "target": "c4_protects_subscription",
+ "tier": "subtle",
+ "one_liner": "The 3 answers become 3 chats in Advanced reasoning mode, and each chat stays in that mode for good.",
+ "author": "aadi",
+ "expanded_by": "claude-opus-5-5",
+ "base": "kg-run-luzia-c05",
+ "change": {
+  "title": "Existing opportunity: Welcome-back card: 3 chats in Advanced reasoning mode, kept for good",
+  "what_is_different_here": "The Luzia+ paywall (s02) lists 'Advanced reasoning mode' (s02.e03) as a paid feature. A returning free user gets 3 chats in it from the Chats home (s01), under the existing Luzia+ badge (s01.e02), and each of those chats stays in that mode for good. Every other chat, and the full feature, stays behind the Weekly / Monthly / Annual plans and the 3-day trial (s02.e19).",
+  "offer_copy": "Welcome back! Play a short game to get 3 chats in Advanced reasoning mode, Luzia+'s deeper-thinking mode. Each one stays in that mode for good.",
+  "reward": {
+   "unit": "chats in Advanced reasoning mode, each staying in that mode for good",
+   "duration": "for good"
+  },
+  "flow_steps": [
+   {
+    "state_id": "s01",
+    "caption": "A user who hasn't opened Luzia in 3+ days lands on Chats as usual."
+   },
+   {
+    "state_id": "s01",
+    "caption": "A welcome-back card offers 3 chats in Advanced reasoning mode, kept for good, for a short game."
+   },
+   {
+    "state_id": "new:sponsored-game",
+    "caption": "The user plays a short sponsored game and can close it at any time."
+   },
+   {
+    "state_id": "s01",
+    "caption": "The card changes to '3 Advanced reasoning chats ready. They stay in that mode for good. Start a chat.'"
+   }
+  ],
+  "after_reward": "The 3 chats stay in Advanced reasoning mode for good. Every other chat uses the normal mode, and a small note on Chats says Luzia+ turns Advanced reasoning mode on in every chat and shows the 3-day free trial button.",
+  "rationale": "A lapsing user needs a reason to ask Luzia something today. Three chats that keep Luzia+'s deeper-thinking mode are a lasting reason to come back, and they double as a preview of Luzia+. Each answer uses real model time, so it pays for itself in higher-earning markets like North America. In lower-earning markets it should drop to 1 chat or need a second game."
+ }
+}
