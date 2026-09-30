@@ -11,6 +11,7 @@ permissions:
 jobs:
   shard:
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # a shard takes 8-19 minutes; a hang fails here instead of at GitHub's 6 hours
     strategy:
       fail-fast: false
       matrix:
@@ -27,7 +28,7 @@ jobs:
           python-version: "3.12"
       - run: uv sync --frozen
       - run: uv run playwright install --with-deps chromium
-        timeout-minutes: 5  # its apt-get update once sat 56 minutes on a mirror that stopped answering
+        timeout-minutes: 5  # takes under a minute; its apt-get update has hung on an unanswering mirror
       - run: uv run pytest -m "not live" -q -n auto --durations=50
 
   # The gate scripts read the check named pytest; it passes only when every shard did.
@@ -35,6 +36,7 @@ jobs:
     needs: shard
     if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - env:
           SHARDS: ${{ needs.shard.result }}
