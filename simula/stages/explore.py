@@ -413,10 +413,14 @@ class Explorer:
             and all(ob.find(obs.cands, t) for t in self.tabs)
 
     def refresh(self, home: Seen, obs: Obs, cands: list[ob.Candidate]) -> Seen:
-        """Home reloaded, read from this later capture from now on; its own capture and file stay. The tabs, filter
-        taps, core action and moves out of home point at the same controls in it (a move whose control is gone is
-        dropped), so each keeps its crop check. Jev ranks the new controls; the icon pass's names for them go with the
-        later capture."""
+        """Home reloaded, read from this later capture from now on; its own capture and file stay. A control the capture
+        before it showed too stays only where it still looks the same (a card the reload drew over a row leaves no row
+        there). The tabs, filter taps, core action and moves out of home point at the same controls in it (a move whose
+        control is gone is dropped), so each keeps its crop check. Jev ranks the new controls; the icon pass's names for
+        them go with the later capture."""
+        then = Image.open(self.out / (home.later[-2].screenshot if len(home.later) > 1 else f"states/{home.sid}.png"))
+        cands = [c for c in cands if (old := ob.find(home.cands, c)) is None
+                 or ob.looks_same(then, old.rect, obs.image, c.rect, self.device)]
         known, moved = {c.key for c in home.cands}, {id(c): ob.find(cands, c) for c in home.cands}
         self.tabs = [t for t in (moved.get(id(t), t) for t in self.tabs) if t]
         self.filter_taps = [moved.get(id(t)) or t for t in self.filter_taps]
@@ -516,29 +520,20 @@ class Explorer:
             reason = ob.denied(move.cand, upsell=s.upsell, core=purpose == "core", toggle_ok=purpose == "filter")
             if reason:
                 self.log(s, None, move, move.cand, "unknown", f"denied: {reason}", "denied")
-                s.tried.add(move.cand.key)
-                return s
+                return self.unrun(s, move, expect)
         live = ob.find(before.cands, move.cand) if move.cand else None
         shown = live is not None and self.shows(move.cand, live, before)
         if move.cand and not shown:
             self.counts["covered controls"] += live is not None
             self.log(s, None, move, move.cand, "unknown",
                      "control covered on the live screen" if live else "control not on the live screen", "error")
-            if expect:
-                self.counts["hops tried"] += 1
-                self.landing = self.judge(expect)
-                return s
-            s.tried.add(move.cand.key)
-            if move.cand.key in self.tab_keys():
-                self.tab_to.setdefault(move.cand.key, "")
-            return s
+            return self.unrun(s, move, expect)
         outcome = "ok"
         try:
             refused = self.perform(move, live, s.upsell, core=purpose == "core", toggle_ok=purpose == "filter")
             if refused:
                 self.log(s, None, move, live, "unknown", f"denied: {refused}", "denied")
-                s.tried.add(move.cand.key)
-                return s
+                return self.unrun(s, move, expect)
         except McpTimeout as e:
             outcome = "timeout"
             self.hang(s, e)
@@ -603,6 +598,18 @@ class Explorer:
         if s.box is None:
             return self.obs.cands
         return [live for c in s.cands for live in [ob.find(self.obs.cands, c)] if live]
+
+    def unrun(self, s: Seen, move: Move, expect: Seen | None) -> Seen:
+        """A move that can't run stays where it is: a route's hop judges the screen it stands on, never the last hop's
+        verdict; anything else marks its control tried, and a tab swept, so the tour moves on."""
+        if expect:
+            self.counts["hops tried"] += 1
+            self.landing = self.judge(expect)
+            return s
+        s.tried.add(move.cand.key)
+        if move.cand.key in self.tab_keys():
+            self.tab_to.setdefault(move.cand.key, "")
+        return s
 
     def shows(self, cand: ob.Candidate, live: ob.Candidate, now: Obs) -> bool:
         """Invariant 3: a recorded control is tapped only when the screen shows it as it was recorded, compared with
@@ -1239,7 +1246,7 @@ class Explorer:
             disagree += f" (it read {answer.identifying_text[:40]!r}, which the element list doesn't show)"
         self.note(f"{step}.{target.sid}", f"{'arrived at' if arrived else 'not at'} {target.sid}: model {answer.verdict} "
                                           f"{answer.confidence:.2f}, structure {structure:.2f}{disagree}; "
-                                          f"target explore/states/{target.sid}.png, now explore/arrival/{shot.name}; "
+                                          f"target explore/{target.png}, now explore/arrival/{shot.name}; "
                                           f"{answer.reason}", decider="model")
         return Landing(arrived, move, answer.verdict, structure)
 

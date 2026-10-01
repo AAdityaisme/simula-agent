@@ -5,13 +5,14 @@ the core-loop pass, and outputs in the frozen explore/ format."""
 import functools
 import json
 import re
+import shutil
 from pathlib import Path
 
 import pytest
 from PIL import Image, ImageDraw
 
 from simula import decide, llm, runlog
-from simula.contracts import ActionLine, ExploreFile, StateFile
+from simula.contracts import ActionLine, Device, ExploreFile, StateFile
 from simula.device import observe as ob
 from simula.device.mcp import parse_elements
 from simula.stages import explore as stage
@@ -490,6 +491,28 @@ def test_a_tap_on_home_resolves_on_the_capture_it_was_taken_on(tmp_path, monkeyp
     assert bound == ["", "", "Trending", "Wavemaker"] and sum("a later capture" in n for n in notes) == 1
 
 
+
+def test_a_state_file_33s_explorer_wrote_reads_with_its_first_capture_its_own(tmp_path):
+    """rt-prP-97e98aa MEDIUM 4, on PR O's run 20261001-050452-19f4ffa, explored on next with #33's explorer: s01
+    names the relaunch's capture canonical and keeps its first one in replaced, last taken on at step 42. Read here,
+    the first capture is s01's own and the relaunch's starts at step 43, so a line from before then (they carry no
+    capture field) resolves on s01's own capture and one after it on the later one."""
+    explore, trees = tmp_path / "explore", Path(__file__).parent / "fixtures" / "trees" / "janitorai"
+    (explore / "states").mkdir(parents=True)
+    for name, fixture in (("s01.r1", "j13_home"), ("s01", "j14_home_reloaded")):
+        for ext in ("png", "elements.json"):
+            shutil.copyfile(trees / f"{fixture}.{ext}", explore / "states" / f"{name}.{ext}")
+    shutil.copyfile(Path(__file__).parent / "fixtures" / "replaced_state.json", explore / "states" / "s01.json")
+    sf = StateFile.model_validate_json((explore / "states" / "s01.json").read_text())
+    assert (sf.screenshot, [(c.from_step, c.screenshot) for c in sf.later]) == ("states/s01.r1.png",
+                                                                                [(43, "states/s01.png")])
+    assert (len(sf.icon_labels), len(sf.later[0].icon_labels)) == (8, 16)
+    [state], _, _ = model_stage.load_states(explore, Device())
+    later = model_stage.load_later(explore, Device())
+    taken = [model_stage.taken_on(later, ActionLine.model_construct(step=n, from_state="s01", capture=None))
+             for n in (42, 43)]
+    assert state.canonical_png == "states/s01.r1.png" and taken[0] is None and taken[1]
+
 def taps_on_reloaded_home(tmp_path, monkeypatch, first: Screen, other: Screen, pick):
     """Home recorded from first, re-recorded by a relaunch from other, and the controls pick(ex, home) names tapped
     on that later capture. Returns the model's edges and its elements by id."""
@@ -873,7 +896,8 @@ def test_a_list_with_other_rows_after_a_swipe_is_a_scrolled_view(tmp_path, monke
 
 def test_a_relaunch_that_lands_on_home_with_its_list_reloaded_re_records_home(tmp_path, monkeypatch):
     """The committed run's s01 and its relaunched home s13 (j04, j11): home again, read from j11's capture saved beside
-    home's own, which stays as it was; the reloaded list is no region that moves on its own."""
+    home's own, which stays as it was; the reloaded list is no region that moves on its own. Every control new in the
+    reload's rows are home's; a control both captures show stays only where it still looks the same."""
     ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
     phone.screens.update(first=capture("janitorai", "j04_tab1"), other=capture("janitorai", "j11_home_relaunched"))
     phone.screen = "first"
@@ -883,7 +907,8 @@ def test_a_relaunch_that_lands_on_home_with_its_list_reloaded_re_records_home(tm
     phone.screen, ex.home = "other", home
     obs = ex.observe()
     assert ex.record(obs, None, None, None) is home and len(ex.states) == 1
-    assert home.fp == obs.fp and {c.key for c in home.cands} == {c.key for c in obs.cands} and len(home.dynamic) == 1
+    kept, rows = {c.key for c in home.cands}, {c.key for c in ob.feed_items(obs.cands, ex.device)}
+    assert home.fp == obs.fp and rows <= kept <= {c.key for c in obs.cands} and len(home.dynamic) == 1
     assert home.png == f"states/{home.sid}.r1.png" and (ex.out / "states" / f"{home.sid}.png").read_bytes() == own
 
 
@@ -1535,6 +1560,129 @@ PROMO = [{"ref": "@promo", "type": "android.view.ViewGroup", "text": "",
           "coordinates": {"x": 320, "y": 1950, "width": 400, "height": 60}}]
 
 
+
+def home_under_a_promo(tmp_path, monkeypatch, before_rows=False):
+    """Home recorded from j11, then re-recorded by a relaunch with the promo over its list. Every tap lands on the
+    promo's own app from then on."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    base = capture("janitorai", "j11_home_relaunched")
+    image = base.image.copy()
+    ImageDraw.Draw(image).rectangle((200, 1100, 900, 2050), fill=(52, 52, 60))
+    elements = PROMO + base.elements if before_rows else base.elements + PROMO
+    phone.screens.update(first=base, covered=Screen(elements, image, base.package),
+                         promo=Screen([], Image.new("RGB", (1080, 2400)), "com.example.promo"))
+    home = home_from(ex, phone)
+    feed = stage.CoreAction("feed", home, ob.feed_items(home.cands, ex.device, ex.tab_keys()), "read items")
+    phone.start = "covered"
+    ex.relaunch()
+    assert ex.current is home and home.later
+    tapped = []
+
+    def trap(x, y):
+        tapped.append((x, y))
+        phone.screen = "promo"
+    phone.tap = trap
+    return ex, feed, tapped
+
+
+def under_the_promo(taps):
+    return [(x, y) for x, y in taps if 200 <= x <= 900 and 1100 <= y <= 2050]
+
+
+@pytest.mark.parametrize("before_rows", [False, True], ids=["card after the rows", "card before the rows"])
+def test_the_walk_never_taps_a_row_through_a_card_after_a_refresh(tmp_path, monkeypatch, before_rows):
+    """rt-pr29-b938d29, deleted with record-time covered() and ported (rt-prP-97e98aa HIGH 1): a relaunch re-records
+    home with a card over its list whose words ask for nothing. A row it shares with home's own capture stays only
+    where it still looks the same, so no row under the card is left to walk into."""
+    ex, feed, tapped = home_under_a_promo(tmp_path, monkeypatch, before_rows)
+    assert not under_the_promo(c.point for c in ex.rows(feed))
+    ex.touring = False
+    ex.walk_into(feed, 0)
+    assert not under_the_promo(tapped)
+
+
+def test_the_feed_pass_never_taps_a_row_through_a_card_after_a_refresh(tmp_path, monkeypatch):
+    ex, feed, tapped = home_under_a_promo(tmp_path, monkeypatch)
+    ex.phone.tap = lambda x, y: tapped.append((x, y))
+    ex.touring = False
+    monkeypatch.setattr(ex, "choose_core", lambda: [feed])
+    monkeypatch.setattr(ex, "at_core", lambda n: True)
+    ex.core_loop()
+    assert not under_the_promo(tapped)
+
+
+def test_a_row_drawn_over_by_a_card_listed_after_it_is_never_tapped(tmp_path, monkeypatch):
+    """The tap-time half of covered(): the same card listed after the rows, on a screen recorded with it, where no
+    crop tells it apart. Its words ask for nothing, but it holds the row's tap point, so the tap is refused."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    base = capture("janitorai", "j11_home_relaunched")
+    phone.screens["covered"] = Screen(base.elements + PROMO, base.image, base.package)
+    phone.screen = "covered"
+    home = ex.current = ex.record(ex.observe(), None, None, None)
+    row = next(c for c in ob.feed_items(home.cands, ex.device) if under_the_promo([c.point]))
+    taps = sum(e[0] == "tap" for e in phone.log)
+    assert ex.act(stage.Move("tap", row)) is home and sum(e[0] == "tap" for e in phone.log) == taps
+    assert "drawn over" in lines(ex)[-1].change_summary
+
+
+def test_a_tab_refused_at_its_tap_point_is_swept_and_the_tour_moves_on(tmp_path, monkeypatch):
+    """rt-prP-97e98aa HIGH 2: a "Sign in to sync your chats" bar listed after the tab bar over every tab's tap point.
+    A refused tab is swept like one not shown, so the tour never picks it again and ends."""
+    bar = {"ref": "@banner", "type": "android.widget.TextView", "text": "Sign in to sync your chats",
+           "coordinates": {"x": 60, "y": 2230, "width": 960, "height": 50}}
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    for name in ("root", "limited", "chats", "notif", "profile", "search"):
+        screen = phone.screens[name]
+        phone.screens[name] = Screen(screen.elements + [bar], screen.image, screen.package)
+    with pytest.raises(stage.Stop, match="nothing left to try"):
+        ex.tour()
+    refused = [line.mcp_ref for line in lines(ex) if "at the tap point" in line.change_summary]
+    assert refused and len(refused) == len(set(refused)), refused
+
+
+def test_a_route_hop_refused_at_tap_time_never_counts_as_arrived(tmp_path, monkeypatch):
+    """rt-prP-97e98aa MEDIUM 2: the last hop's verdict was "arrived"; a hop refused at its tap point judges where it
+    stands, so the route doesn't take it for the screen it never tapped toward."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    phone.screen = "limited"
+    feed = ex.current = ex.record(ex.observe(), None, None, None)
+    row = ob.feed_items(feed.cands, ex.device)[0]
+    phone.screen = "chats"
+    other = ex.record(ex.observe(), feed, stage.Move("tap", row), None)
+    phone.screen, ex.current = "limited", feed
+    ex.edges[(feed.sid, other.sid)] = stage.Move("tap", row)
+    x, y = row.point
+    phone.screens["limited"].elements.append({"ref": "@sign", "type": "android.widget.Button", "text": "Sign in",
+                                              "coordinates": {"x": x - 100, "y": y - 30, "width": 200, "height": 60}})
+    ex.observe()
+    ex.landing = stage.Landing(True, None, "same", 0.9)
+    assert ex.act(stage.Move("tap", row), purpose="nav", expect=other) is feed
+    assert not ex.take_landing(other) and ex.current is feed and phone.screen == "limited"
+
+
+def test_a_deny_word_in_an_upper_window_over_a_row_refuses_the_tap(tmp_path, monkeypatch):
+    """rt-prP-97e98aa MEDIUM 1: the device lists an upper window before the ones under it (an app's popup, systemui's
+    clipboard overlay). E2's card as a popup window, listed before the activity: its "Continue with Google" lies over
+    the row's tap point though it is listed first."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    base = phone.screens["limited"]
+    probe = ob.feed_items(ob.controls(base.elements, ex.device), ex.device)[0]
+    x, y = probe.point
+    popup = [{"ref": "@pop", "type": "android.widget.FrameLayout", "text": "", "identifier": "android:id/content",
+              "coordinates": {"x": 40, "y": y - 300, "width": 1000, "height": 700}},
+             {"ref": "@ptitle", "type": "android.widget.TextView", "text": "Keep your chats",
+              "coordinates": {"x": 90, "y": y - 280, "width": 900, "height": 70}},
+             {"ref": "@google", "type": "android.widget.Button", "text": "Continue with Google",
+              "coordinates": {"x": x - 205, "y": y - 60, "width": 410, "height": 120}}]
+    status = sum("systemui" in (e.get("identifier") or "") for e in base.elements)
+    phone.screens["popup"] = Screen(base.elements[:status] + popup + base.elements[status:], base.image, base.package)
+    phone.screens["google"] = Screen([], Image.new("RGB", (1080, 2400)), "com.google.android.gms")
+    phone.taps[("popup", "Continue with Google")] = "google"
+    phone.screen = "popup"
+    feed = ex.current = ex.record(ex.observe(), None, None, None)
+    ex.act(stage.Move("tap", next(c for c in feed.cands if c.key == probe.key)))
+    assert phone.foreground() != "com.google.android.gms" and "continue with" in lines(ex)[-1].change_summary
+
 def test_a_relaunch_that_lands_on_a_money_card_over_home_keeps_home(tmp_path, monkeypatch):
     ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
     base = capture("janitorai", "j11_home_relaunched")
@@ -1695,9 +1843,12 @@ def test_aol_keeps_its_tab_bar(tmp_path, monkeypatch):
     assert [c.label for c in ex.tabs] == ["Inbox", "Home"] and ex.shows_tabs(ex.root)
 
 
-def test_no_tap_reaches_a_sign_in_button_a_card_draws_over_a_row(tmp_path, monkeypatch):
+def test_a_relaunch_onto_the_feed_under_a_sign_in_card_is_no_home_so_no_row_is_tapped_through_it(tmp_path,
+                                                                                                   monkeypatch):
     """Fable E2: a relaunch lands on the reloaded feed under a card listed after the rows; its body holds a whole row
-    and its "Continue with Google" lies inside the row's box."""
+    and its "Continue with Google" lies inside the row's box. The card's sign-in is a wall, so the landing is no home
+    and the walk never reaches a row under it; the tap-time half is test_a_denied_word_drawn_over_a_rows_tap_point_
+    refuses_the_tap and test_a_row_drawn_over_by_a_card_listed_after_it_is_never_tapped (rt-prP-97e98aa LOW)."""
     ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
     first, base = capture("janitorai", "j04_tab1"), capture("janitorai", "j11_home_relaunched")
     card = [{"ref": "@card", "type": "android.view.ViewGroup", "text": "",

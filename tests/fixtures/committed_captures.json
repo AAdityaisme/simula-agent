@@ -36,12 +36,14 @@
      "toast_container | FrameLayout | 0,2022 1080x231",
      "Inbox | View | 0,2187 540x150",
      "Home | TextView | 775,2287 70x35"
-    ]
+    ],
+    "refused": []
    },
    "s02": {
     "kind": "screen",
     "box": null,
-    "controls": []
+    "controls": [],
+    "refused": []
    },
    "s03": {
     "kind": "modal",
@@ -62,6 +64,10 @@
      "Divider line | View | 0,1246 814x3",
      "Give feedback | ViewGroup | 0,1281 814x148",
      "Call Customer Support | ViewGroup | 0,1429 814x148"
+    ],
+    "refused": [
+     "Tap here for weather | drawn over ('Manage Accounts' at the tap point)",
+     "AD | drawn over ('Manage Accounts' at the tap point)"
     ]
    },
    "s04": {
@@ -70,7 +76,8 @@
     "controls": [
      "Saved articles | FrameLayout | 0,136 1080x158",
      "No Saved Articles | ViewGroup | 0,966 1080x773"
-    ]
+    ],
+    "refused": []
    },
    "s05": {
     "kind": "screen",
@@ -88,7 +95,8 @@
      "Amber Glenn and Pasha Pashkov scored hig | TextView | 101,2051 930x192",
      "Back | ImageView | 21,189 84x84",
      "article_sdk_engagement_bar | ViewGroup | 0,2190 1080x147"
-    ]
+    ],
+    "refused": []
    },
    "s06": {
     "kind": "screen",
@@ -108,7 +116,8 @@
      "and | TextView | 285,2278 89x48",
      "Pasha Pashkov | View | 369,2278 263x48",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s07": {
     "kind": "screen",
@@ -126,6 +135,9 @@
      "didn’t let a gnarly bloody nose keep the | TextView | 52,1901 908x174",
      "A rehearsal clip of the dancing duo show | TextView | 52,2122 863x113",
      "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": [
+     "Sponsored: learn about this recommendati | drawn over ('Ad' at the tap point)"
     ]
    },
    "s08": {
@@ -142,7 +154,8 @@
      "USMNT | ViewGroup | 0,1046 1080x126",
      "Jonathan Mckinsey | ViewGroup | 0,1172 1080x126",
      "Donald Trump | ViewGroup | 0,1298 1080x126"
-    ]
+    ],
+    "refused": []
    },
    "s09": {
     "kind": "modal",
@@ -153,7 +166,8 @@
      "Do you want to allow Location permission | TextView | 123,1397 834x50",
      "Not now | Button | 157,1479 291x95",
      "Allow Location | Button | 524,1479 399x95"
-    ]
+    ],
+    "refused": []
    },
    "s10": {
     "kind": "screen",
@@ -193,6 +207,11 @@
      "iv_articleImage | ImageView | 712,1707 315x315",
      "GOP Sen. Britt's look as gotcha moment a | TextView | 53,2134 646x201",
      "toast_container | FrameLayout | 0,2022 1080x231"
+    ],
+    "refused": [
+     "Sidebar button. Double tap or slide two  | drawn over ('Top Stories' at the tap point)",
+     "toolbar_title_parent | drawn over ('Entertainment' at the tap point)",
+     "Search | drawn over ('Business' at the tap point)"
     ]
    },
    "s11": {
@@ -232,6 +251,11 @@
      "iv_articleImage | ImageView | 712,1707 315x315",
      "GOP Sen. Britt's look as gotcha moment a | TextView | 53,2134 646x201",
      "toast_container | FrameLayout | 0,2022 1080x231"
+    ],
+    "refused": [
+     "Sidebar button. Double tap or slide two  | drawn over ('Top Stories' at the tap point)",
+     "toolbar_title_parent | drawn over ('Entertainment' at the tap point)",
+     "Search | drawn over ('Business' at the tap point)"
     ]
    },
    "s12": {
@@ -251,6 +275,9 @@
      "is stepping into a new chapter. | TextView | 262,2161 543x47",
      "Back | ImageView | 21,189 84x84",
      "article_sdk_engagement_bar | ViewGroup | 0,2190 1080x147"
+    ],
+    "refused": [
+     "E! | drawn over ('Kristi Noem Files for Divorce From Bryon' at the tap point)"
     ]
    },
    "s13": {
@@ -272,6 +299,9 @@
      "ADVERTISEMENT | TextView | 413,2247 255x44",
      "Test Ad | FrameLayout | 147,2312 787x25",
      "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": [
+     "Test Ad | drawn over ('Test Ad' at the tap point)"
     ]
    },
    "s14": {
@@ -294,12 +324,16 @@
      "The #1 prestige mascara in America. | TextView | 188,2112 339x191",
      "Test Ad | TextView | 469,1929 143x53",
      "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": [
+     "Sponsored: learn about this recommendati | drawn over ('Ad' at the tap point)"
     ]
    },
    "s15": {
     "kind": "screen",
     "box": null,
-    "controls": []
+    "controls": [],
+    "refused": []
    },
    "s16": {
     "kind": "screen",
@@ -331,7 +365,8 @@
      "toast_container | FrameLayout | 0,2022 1080x231",
      "Inbox | View | 0,2187 540x150",
      "Home | TextView | 775,2287 70x35"
-    ]
+    ],
+    "refused": []
    },
    "s17": {
     "kind": "screen",
@@ -343,14 +378,16 @@
      "toast_container | FrameLayout | 0,2022 1080x231",
      "Inbox | View | 0,2187 540x150",
      "Home | View | 540,2187 540x150"
-    ]
+    ],
+    "refused": []
    },
    "s18": {
     "kind": "external",
     "box": null,
     "controls": [
      "help.aol.com | FrameLayout | 0,136 1080x150"
-    ]
+    ],
+    "refused": []
    },
    "s19": {
     "kind": "screen",
@@ -370,7 +407,8 @@
      "and | TextView | 285,2273 89x48",
      "Pasha Pashkov | View | 369,2273 263x48",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s20": {
     "kind": "screen",
@@ -388,7 +426,8 @@
      "Test Ad | FrameLayout | 147,2099 787x238",
      "privacy | View | 896,2099 40x36",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s21": {
     "kind": "screen",
@@ -407,7 +446,8 @@
      "HOMEBUDDY.COM | TextView | 152,2204 55x55",
      "Homebuddy.com | TextView | 220,2204 703x55",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s22": {
     "kind": "screen",
@@ -423,12 +463,14 @@
      "Antioch This Is The Cost To Cover 150 Fe | View | 147,1393 789x657",
      "Antioch This Is The Cost To Cover 150 Fe | TextView | 157,1935 789x108",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s23": {
     "kind": "screen",
     "box": null,
-    "controls": []
+    "controls": [],
+    "refused": []
    },
    "s24": {
     "kind": "screen",
@@ -445,7 +487,8 @@
      "Next in More For You: | TextView | 53,2105 347x48",
      "Kristi Noem Files for Divorce From Bryon | TextView | 53,2158 889x126",
      "Right Arrow | ImageView | 953,2163 63x63"
-    ]
+    ],
+    "refused": []
    },
    "s25": {
     "kind": "screen",
@@ -462,7 +505,8 @@
      "Next in More For You: | TextView | 53,2105 347x48",
      "Kristi Noem Files for Divorce From Bryon | TextView | 53,2158 889x126",
      "Right Arrow | ImageView | 953,2163 63x63"
-    ]
+    ],
+    "refused": []
    },
    "s26": {
     "kind": "screen",
@@ -479,7 +523,8 @@
      "Antioch This Is The Cost To Cover 150 Fe | TextView | 157,386 789x108",
      "Back | ImageView | 21,189 84x84",
      "Kristi Noem Files for Divorce From Bryon | TextView | 53,2158 889x126"
-    ]
+    ],
+    "refused": []
    },
    "s27": {
     "kind": "screen",
@@ -495,7 +540,8 @@
      "Back | ImageView | 21,189 84x84",
      "Kristi Noem Files for Divorce From Bryon | TextView | 53,2158 889x126",
      "Right Arrow | ImageView | 953,2163 63x63"
-    ]
+    ],
+    "refused": []
    },
    "s28": {
     "kind": "screen",
@@ -511,7 +557,8 @@
      "Next in More For You: | TextView | 53,2105 347x48",
      "Kristi Noem Files for Divorce From Bryon | TextView | 53,2158 889x126",
      "Right Arrow | ImageView | 953,2163 63x63"
-    ]
+    ],
+    "refused": []
    },
    "s29": {
     "kind": "screen",
@@ -528,6 +575,9 @@
      "Back | ImageView | 21,189 84x84",
      "Kristi Noem Files for Divorce From Bryon | TextView | 53,2158 889x126",
      "Right Arrow | ImageView | 953,2163 63x63"
+    ],
+    "refused": [
+     "Get your daily dose of entertainment new | drawn over ('Next in More For You:' at the tap point)"
     ]
    },
    "s30": {
@@ -547,7 +597,8 @@
      "Next in More For You: | TextView | 53,2105 347x48",
      "Kristi Noem Files for Divorce From Bryon | TextView | 53,2158 889x126",
      "Right Arrow | ImageView | 953,2163 63x63"
-    ]
+    ],
+    "refused": []
    },
    "s31": {
     "kind": "screen",
@@ -563,6 +614,9 @@
      "She noted that Glenn’s goal is to be “so | TextView | 52,1855 979x192",
      "Their performance lived up to the judges | TextView | 52,2076 979x257",
      "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": [
+     "Their performance lived up to the judges | drawn over ('Kristi Noem Files for Divorce From Bryon' at the tap point)"
     ]
    },
    "s32": {
@@ -591,7 +645,8 @@
      "Next in More For You: | TextView | 53,2105 347x48",
      "Kristi Noem Files for Divorce From Bryon | TextView | 53,2158 889x126",
      "Right Arrow | ImageView | 953,2163 63x63"
-    ]
+    ],
+    "refused": []
    },
    "s33": {
     "kind": "screen",
@@ -612,6 +667,9 @@
      "ADVERTISEMENT | TextView | 413,2249 255x44",
      "Test Ad | FrameLayout | 147,2314 787x23",
      "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": [
+     "Test Ad | drawn over ('Test Ad' at the tap point)"
     ]
    },
    "s34": {
@@ -632,6 +690,9 @@
      "ADVERTISEMENT | TextView | 413,1865 255x44",
      "data-centers-ai | View | 147,1930 790x414",
      "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": [
+     "Sponsored: learn about this recommendati | drawn over ('Ad' at the tap point)"
     ]
    },
    "s35": {
@@ -652,7 +713,8 @@
      "Open | View | 700,2123 116x60",
      "data-centers-ai | View | 821,2123 61x63",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s36": {
     "kind": "screen",
@@ -674,7 +736,8 @@
      "Open | View | 700,1736 116x60",
      "data-centers-ai | View | 821,1736 61x63",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s37": {
     "kind": "screen",
@@ -696,7 +759,8 @@
      "Open | View | 700,1341 116x60",
      "data-centers-ai | View | 821,1341 61x63",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s38": {
     "kind": "screen",
@@ -716,7 +780,8 @@
      "Open | View | 700,948 116x60",
      "data-centers-ai | View | 821,948 61x63",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s39": {
     "kind": "screen",
@@ -736,7 +801,8 @@
      "Open | View | 700,557 116x60",
      "data-centers-ai | View | 821,557 61x63",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s40": {
     "kind": "screen",
@@ -758,7 +824,8 @@
      "Open | View | 700,171 116x60",
      "data-centers-ai | View | 821,171 61x63",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s41": {
     "kind": "screen",
@@ -778,7 +845,8 @@
      "And though Bryon did not address the pho | TextView | 52,1859 966x113",
      "'s article, he denied making comments ab | TextView | 52,1922 926x113",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s42": {
     "kind": "screen",
@@ -796,7 +864,8 @@
      "'s article, he denied making comments ab | TextView | 52,1536 926x113",
      "Kristi Noem/Facebook | TextView | 52,2256 979x55",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s43": {
     "kind": "screen",
@@ -815,7 +884,8 @@
      "reported that Bryon hung up the phone af | TextView | 52,2119 942x112",
      "But Kristi—who was | TextView | 52,2276 362x50",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s44": {
     "kind": "screen",
@@ -834,7 +904,8 @@
      "March 5 amid national backlash over her  | TextView | 52,1949 966x239",
      "After all, the former South Dakota gover | TextView | 52,2233 863x112",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s45": {
     "kind": "screen",
@@ -852,7 +923,8 @@
      "during a House Judiciary Committee heari | TextView | 52,1973 850x175",
      "Corey has also denied the rumors. | TextView | 52,2185 979x66",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s46": {
     "kind": "screen",
@@ -867,7 +939,8 @@
      "during a House Judiciary Committee heari | TextView | 52,1589 850x175",
      "Corey has also denied the rumors. | TextView | 52,1801 979x66",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s47": {
     "kind": "screen",
@@ -884,7 +957,8 @@
      "Bryon Noem (R), husband of U.S. Secretar | Image | 52,1509 979x609",
      "Photo by Heather Diehl/Getty Images | TextView | 52,2078 979x58",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s48": {
     "kind": "screen",
@@ -902,7 +976,8 @@
      "“People know me and we are such a transp | TextView | 52,2005 973x113",
      "in 2022. “I don’t know of another electe | TextView | 52,2068 945x176",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s49": {
     "kind": "screen",
@@ -920,7 +995,8 @@
      "Keep reading for more celebrity couples  | TextView | 52,2050 979x132",
      "Audrina Patridge & Michael Ray | TextView | 52,2211 979x65",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s50": {
     "kind": "screen",
@@ -936,7 +1012,8 @@
      "Keep reading for more celebrity couples  | TextView | 52,1659 979x132",
      "Audrina Patridge & Michael Ray | TextView | 52,1820 979x65",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s51": {
     "kind": "screen",
@@ -952,7 +1029,8 @@
      "The Hillsalumconfirmed her romancewith t | TextView | 52,2099 979x113",
      "J Balvin & Valentina Ferrer | TextView | 52,2243 979x66",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s52": {
     "kind": "screen",
@@ -967,7 +1045,8 @@
      "The Hillsalumconfirmed her romancewith t | TextView | 52,1710 979x113",
      "J Balvin & Valentina Ferrer | TextView | 52,1854 979x66",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s53": {
     "kind": "screen",
@@ -980,7 +1059,8 @@
      "J Balvin & Valentina Ferrer | TextView | 52,1470 979x66",
      "The \"Mi Gente\" singer (real nameJosé Álv | TextView | 52,2142 979x166",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s54": {
     "kind": "screen",
@@ -992,7 +1072,8 @@
      "The \"Mi Gente\" singer (real nameJosé Álv | TextView | 52,1756 979x166",
      "Amanda Seyfried & Thomas Sadoski | TextView | 52,1953 979x66",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s55": {
     "kind": "screen",
@@ -1003,7 +1084,8 @@
      "The \"Mi Gente\" singer (real nameJosé Álv | TextView | 52,1373 979x166",
      "Amanda Seyfried & Thomas Sadoski | TextView | 52,1570 979x66",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s56": {
     "kind": "screen",
@@ -1016,7 +1098,8 @@
      "“We have beenseparated for a while, and  | TextView | 52,1857 979x166",
      "Dakota Johnson & Role Model | TextView | 52,2054 979x68",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s57": {
     "kind": "screen",
@@ -1027,7 +1110,8 @@
      "“We have beenseparated for a while, and  | TextView | 52,1471 979x166",
      "Dakota Johnson & Role Model | TextView | 52,1668 979x68",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s58": {
     "kind": "screen",
@@ -1041,7 +1125,8 @@
      "On Aug. 19, multiple outlets reported th | TextView | 52,1955 979x168",
      "Kelly Osbourne & Sid Wilson | TextView | 52,2152 979x68",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s59": {
     "kind": "screen",
@@ -1053,7 +1138,8 @@
      "On Aug. 19, multiple outlets reported th | TextView | 52,1568 979x168",
      "Kelly Osbourne & Sid Wilson | TextView | 52,1765 979x68",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s60": {
     "kind": "screen",
@@ -1067,7 +1153,8 @@
      "TheFashion Policealumconfirmed her split | TextView | 52,2050 979x168",
      "Joey Bada$$ & Serayah | TextView | 52,2247 979x68",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s61": {
     "kind": "screen",
@@ -1079,7 +1166,8 @@
      "TheFashion Policealumconfirmed her split | TextView | 52,1665 979x168",
      "Joey Bada$$ & Serayah | TextView | 52,1862 979x68",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s62": {
     "kind": "screen",
@@ -1091,7 +1179,8 @@
      "Joey Bada$$ & Serayah | TextView | 52,1482 979x68",
      "TheEmpireactress confirmed the former co | TextView | 52,2154 979x168",
      "Back | ImageView | 21,189 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s63": {
     "kind": "screen",
@@ -1108,6 +1197,9 @@
      "season 35 air on Tuesdays at 8 p.m. ET/P | TextView | 101,2230 914x113",
      "Back | ImageView | 21,189 84x84",
      "article_sdk_engagement_bar | ViewGroup | 0,2190 1080x147"
+    ],
+    "refused": [
+     "season 35 air on Tuesdays at 8 p.m. ET/P | drawn over ('View Comments' at the tap point)"
     ]
    },
    "s64": {
@@ -1127,7 +1219,16 @@
      "surfaced, the former Department of Homel | TextView | 52,2048 968x239",
      "Back | ImageView | 21,189 84x84",
      "article_sdk_engagement_bar | ViewGroup | 0,2190 1080x147"
+    ],
+    "refused": [
+     "E! | drawn over ('Kristi Noem Files for Divorce From Bryon' at the tap point)"
     ]
+   },
+   "launcher": {
+    "kind": "external",
+    "box": null,
+    "controls": [],
+    "refused": []
    }
   }
  },
@@ -1174,7 +1275,8 @@
      " | ViewGroup | 457,2170 167x167",
      " | ViewGroup | 649,2170 167x167",
      " | ViewGroup | 841,2170 167x167"
-    ]
+    ],
+    "refused": []
    },
    "s02": {
     "kind": "screen",
@@ -1199,6 +1301,9 @@
      " | ViewGroup | 457,2170 167x167",
      " | ViewGroup | 649,2170 167x167",
      " | ViewGroup | 841,2170 167x167"
+    ],
+    "refused": [
+     "🧑‍🎨 OC | drawn over ('￼' at the tap point)"
     ]
    },
    "s03": {
@@ -1218,7 +1323,8 @@
      " | ViewGroup | 457,2170 167x167",
      " | ViewGroup | 649,2170 167x167",
      " | ViewGroup | 841,2170 167x167"
-    ]
+    ],
+    "refused": []
    },
    "s04": {
     "kind": "screen",
@@ -1233,7 +1339,8 @@
      " | ViewGroup | 457,2170 167x167",
      " | ViewGroup | 649,2170 167x167",
      " | ViewGroup | 841,2170 167x167"
-    ]
+    ],
+    "refused": []
    },
    "s05": {
     "kind": "screen",
@@ -1257,7 +1364,8 @@
      " | ViewGroup | 457,2170 167x167",
      " | ViewGroup | 649,2170 167x167",
      " | ViewGroup | 841,2170 167x167"
-    ]
+    ],
+    "refused": []
    },
    "s06": {
     "kind": "screen",
@@ -1290,12 +1398,17 @@
      "Get Help | ViewGroup | 572,1755 212x87",
      "Logout | Button | 306,1875 743x142",
      "v2.5.0.136.v35 | ViewGroup | 306,2020 743x34"
+    ],
+    "refused": [
+     "Explore All | drawn over ('Explore All' at the tap point)",
+     "Explore All | drawn over ('View public profile' at the tap point)"
     ]
    },
    "s07": {
     "kind": "screen",
     "box": null,
-    "controls": []
+    "controls": [],
+    "refused": []
    },
    "s08": {
     "kind": "screen",
@@ -1325,7 +1438,8 @@
      "Character Definition is hidden, Total 21 | TextView | 37,1935 1006x152",
      "Comments | TextView | 92,2168 840x54",
      "Be the first to comment ❤️ | TextView | 221,2278 769x55"
-    ]
+    ],
+    "refused": []
    },
    "s09": {
     "kind": "screen",
@@ -1355,7 +1469,8 @@
      "👨 Male | ViewGroup | 744,1291 148x57",
      "👭 Multiple | ViewGroup | 750,1360 186x58",
      "#JJK | ViewGroup | 771,1430 112x57"
-    ]
+    ],
+    "refused": []
    },
    "s10": {
     "kind": "screen",
@@ -1385,7 +1500,8 @@
      "👨 Male | ViewGroup | 744,1310 148x57",
      "👭 Multiple | ViewGroup | 750,1379 186x58",
      "#JJK | ViewGroup | 771,1449 112x57"
-    ]
+    ],
+    "refused": []
    },
    "s11": {
     "kind": "screen",
@@ -1424,7 +1540,8 @@
      "722 tokens | TextView | 574,2072 443x27",
      "it's just a hobby | kit vance | TextView | 63,2166 442x42",
      "The Toman Kids | TextView | 574,2166 265x42"
-    ]
+    ],
+    "refused": []
    },
    "s12": {
     "kind": "external",
@@ -1441,7 +1558,8 @@
      "Chrome | TextView | 577,1873 173x195",
      "Perplexity | TextView | 824,1873 173x195",
      "Google search | FrameLayout | 90,2125 900x165"
-    ]
+    ],
+    "refused": []
    },
    "s13": {
     "kind": "screen",
@@ -1475,7 +1593,8 @@
      " | ViewGroup | 457,2170 167x167",
      " | ViewGroup | 649,2170 167x167",
      " | ViewGroup | 841,2170 167x167"
-    ]
+    ],
+    "refused": []
    },
    "s14": {
     "kind": "screen",
@@ -1522,6 +1641,16 @@
      " | EditText | 43,2040 994x145",
      "Proxy | TextView | 43,2269 826x46",
      " | Switch | 915,2256 122x71"
+    ],
+    "refused": [
+     "👨 Male | drawn over ('Sort by' at the tap point)",
+     " | drawn over ('Trending' at the tap point)",
+     "Medieval Fantasy World RP | drawn over ('Messages' at the tap point)",
+     "Real Life World RP | drawn over ('Messages' at the tap point)",
+     "Welcome to Medieval Fantasy World RP! A  | drawn over ('Tokens' at the tap point)",
+     "Have you ever wondered how life would've | drawn over ('Tokens' at the tap point)",
+     "👤 AnyPOV | drawn over ('Proxy' at the tap point)",
+     "#realife | drawn over ('Proxy' at the tap point)"
     ]
    },
    "s15": {
@@ -1558,7 +1687,8 @@
      " | ViewGroup | 457,2170 167x167",
      " | ViewGroup | 649,2170 167x167",
      " | ViewGroup | 841,2170 167x167"
-    ]
+    ],
+    "refused": []
    },
    "s16": {
     "kind": "screen",
@@ -1580,7 +1710,8 @@
      "Privacy Policy | View | 426,2195 198x52",
      "Restore Purchases | Button | 653,2195 270x52",
      "Close paywall | ViewGroup | 953,178 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s17": {
     "kind": "screen",
@@ -1602,7 +1733,8 @@
      "Privacy Policy | View | 426,2173 198x52",
      "Restore Purchases | Button | 653,2173 270x52",
      "Close paywall | ViewGroup | 953,178 84x84"
-    ]
+    ],
+    "refused": []
    },
    "s18": {
     "kind": "sheet",
@@ -1611,7 +1743,8 @@
      "Bottom sheet handle | SeekBar | 0,240 1080x64",
      "☆ Rodrick Heffley!, 1 chat | ViewGroup | 17,304 1046x195",
      "Start new chat | ViewGroup | 43,2169 994x112"
-    ]
+    ],
+    "refused": []
    },
    "s19": {
     "kind": "sheet",
@@ -1630,6 +1763,13 @@
      "Mon | TextView | 964,2155 70x70",
      "The livestream starts out deceptively ca | TextView | 205,2155 755x125",
      "Start new chat | ViewGroup | 43,2169 994x112"
+    ],
+    "refused": [
+     "Kang Jun-Seo (Idol x Idol), 01:59, The l | drawn over ('The Former Husband is the New Employer ,' at the tap point)",
+     "Kang Jun-Seo (Idol x Idol), 01:37, The l | drawn over ('NANAMI KENTO, 01:35, 4 chats' at the tap point)",
+     "Kang Jun-Seo (Idol x Idol), Mon, The liv | drawn over ('Kang Jun-Seo (Idol x Idol)' at the tap point)",
+     "Mon | drawn over ('Start new chat' at the tap point)",
+     "The livestream starts out deceptively ca | drawn over ('Kang Jun-Seo (Idol x Idol)' at the tap point)"
     ]
    },
    "s20": {
@@ -1641,7 +1781,17 @@
      "The Former Husband is the New Employer , | ViewGroup | 17,834 1046x195",
      "The Former Husband is the New Employer , | ViewGroup | 17,1029 1046x194",
      "Start new chat | ViewGroup | 43,2169 994x112"
+    ],
+    "refused": [
+     "The Former Husband is the New Employer , | drawn over ('The Former Husband is the New Employer ,' at the tap point)",
+     "The Former Husband is the New Employer , | drawn over ('NANAMI KENTO, 01:35, 4 chats' at the tap point)"
     ]
+   },
+   "launcher": {
+    "kind": "external",
+    "box": null,
+    "controls": [],
+    "refused": []
    }
   }
  },
@@ -1683,7 +1833,8 @@
      "Chat | View | 11,2169 338x126",
      "Services | View | 370,2169 339x126",
      "Create | View | 730,2169 339x126"
-    ]
+    ],
+    "refused": []
    },
    "s02": {
     "kind": "screen",
@@ -1700,7 +1851,8 @@
      "Chat | View | 11,2169 338x126",
      "Services | View | 370,2169 339x126",
      "Create | View | 730,2169 339x126"
-    ]
+    ],
+    "refused": []
    },
    "s03": {
     "kind": "screen",
@@ -1714,7 +1866,8 @@
      "Chat | View | 11,2169 338x126",
      "Services | View | 370,2169 339x126",
      "Create | View | 730,2169 339x126"
-    ]
+    ],
+    "refused": []
    },
    "s04": {
     "kind": "screen",
@@ -1738,7 +1891,8 @@
      "Adult | View | 381,1681 318x318",
      "Staff | View | 720,1681 318x318",
      "Try something else | TextView | 42,2083 996x66"
-    ]
+    ],
+    "refused": []
    },
    "s05": {
     "kind": "modal",
@@ -1750,7 +1904,8 @@
      "Meet me | View | 162,1552 756x121",
      "Later | View | 162,1673 756x126",
      "You can turn me on & off anytime in Sett | TextView | 220,1808 641x40"
-    ]
+    ],
+    "refused": []
    },
    "s06": {
     "kind": "screen",
@@ -1775,7 +1930,8 @@
      "New | View | 716,147 217x126",
      "buttonSearch | View | 933,147 126x126",
      "Our new chat | View | 42,275 996x126"
-    ]
+    ],
+    "refused": []
    },
    "s07": {
     "kind": "screen",
@@ -1786,7 +1942,8 @@
      "Create your own Bestie | TextView | 222,945 636x73",
      "Personalize your unique friend and disco | TextView | 42,1029 996x92",
      "Let's get started! | View | 42,2185 996x126"
-    ]
+    ],
+    "refused": []
    },
    "s08": {
     "kind": "screen",
@@ -1805,7 +1962,8 @@
      " | View | 933,136 126x126",
      "Ask Luzia | EditText | 42,2085 996x126",
      "sendButton | View | 933,2190 126x126"
-    ]
+    ],
+    "refused": []
    },
    "s09": {
     "kind": "screen",
@@ -1823,7 +1981,8 @@
      "Chat | View | 11,2169 338x126",
      "Services | View | 370,2169 339x126",
      "Create | View | 730,2169 339x126"
-    ]
+    ],
+    "refused": []
    },
    "s10": {
     "kind": "screen",
@@ -1840,7 +1999,8 @@
      "Notifications | TextView | 378,166 324x66",
      " | View | 828,136 105x126",
      " | View | 933,136 126x126"
-    ]
+    ],
+    "refused": []
    },
    "s11": {
     "kind": "screen",
@@ -1856,7 +2016,8 @@
      "Creative | TextView | 84,1147 145x46",
      "Gratitude Journal | TextView | 709,1101 298x46",
      "Lifestyle | TextView | 709,1147 143x46"
-    ]
+    ],
+    "refused": []
    },
    "s12": {
     "kind": "screen",
@@ -1870,7 +2031,8 @@
      "Chat | View | 11,2169 338x126",
      "Services | View | 370,2169 339x126",
      "Create | View | 730,2169 339x126"
-    ]
+    ],
+    "refused": []
    },
    "s13": {
     "kind": "screen",
@@ -1885,7 +2047,8 @@
      "Share | View | 720,1951 318x126",
      " | Button | 42,2077 996x114",
      "Report app | View | 42,2191 996x126"
-    ]
+    ],
+    "refused": []
    },
    "s14": {
     "kind": "screen",
@@ -1910,7 +2073,8 @@
      "Chat | View | 11,2169 338x126",
      "Services | View | 370,2169 339x126",
      "Create | View | 730,2169 339x126"
-    ]
+    ],
+    "refused": []
    },
    "s15": {
     "kind": "screen",
@@ -1927,7 +2091,14 @@
      "Teacher | TextView | 273,177 660x66",
      "buttonSearch | View | 933,147 126x126",
      "Our new chat | View | 42,275 996x126"
-    ]
+    ],
+    "refused": []
+   },
+   "launcher": {
+    "kind": "external",
+    "box": null,
+    "controls": [],
+    "refused": []
    }
   }
  },
@@ -1942,7 +2113,14 @@
      "Emulator Detected | TextView | 43,1210 993x71",
      "Not allowed to launch the App on android | TextView | 43,1281 993x156",
      "OK(2) | TextView | 797,1470 197x105"
-    ]
+    ],
+    "refused": []
+   },
+   "launcher": {
+    "kind": "external",
+    "box": null,
+    "controls": [],
+    "refused": []
    }
   }
  },
@@ -1961,7 +2139,8 @@
      "discover-tab-button | View | 917,152 126x126",
      "Ask anything… | EditText | 85,2007 910x126",
      "Model | View | 32,2147 1016x148"
-    ]
+    ],
+    "refused": []
    },
    "s02": {
     "kind": "screen",
@@ -1973,7 +2152,8 @@
      "discover-tab-button | View | 917,152 126x126",
      "Ask anything… | EditText | 85,2007 910x126",
      "Model | View | 32,2147 1016x148"
-    ]
+    ],
+    "refused": []
    },
    "s03": {
     "kind": "screen",
@@ -1991,7 +2171,8 @@
      "library-settings-button | View | 37,152 126x126",
      "[redacted] | TextView | 200,188 680x55",
      "library-close-button | View | 917,152 126x126"
-    ]
+    ],
+    "refused": []
    },
    "s04": {
     "kind": "screen",
@@ -2005,7 +2186,8 @@
      "Work across all your connected apps and  | TextView | 190,1804 787x42",
      "Automate recurring tasks on any schedule | TextView | 190,1954 713x42",
      "Get started | View | 63,2148 954x126"
-    ]
+    ],
+    "refused": []
    },
    "s05": {
     "kind": "external",
@@ -2014,7 +2196,8 @@
      "Allow Perplexity to send you notificatio | LinearLayout | 70,863 940x375",
      "Allow | Button | 133,1243 814x147",
      "Don’t allow | Button | 133,1400 814x147"
-    ]
+    ],
+    "refused": []
    },
    "s06": {
     "kind": "modal",
@@ -2024,7 +2207,8 @@
      "To discover new threads from Perplexity  | TextView | 183,1113 735x238",
      "Cancel | TextView | 326,1376 217x126",
      "Open settings | TextView | 564,1376 354x126"
-    ]
+    ],
+    "refused": []
    },
    "s07": {
     "kind": "screen",
@@ -2036,7 +2220,8 @@
      "Skip intro | View | 42,2148 996x147",
      " | View | 938,184 126x126",
      "drag handle | View | 493,136 95x52"
-    ]
+    ],
+    "refused": []
    },
    "s08": {
     "kind": "screen",
@@ -2047,7 +2232,8 @@
      "computer-mode-toggle | View | 583,163 259x105",
      "discover-tab-button | View | 917,152 126x126",
      "Do anything… | View | 0,1970 1080x367"
-    ]
+    ],
+    "refused": []
    },
    "s09": {
     "kind": "screen",
@@ -2064,7 +2250,8 @@
      "Connect your apps | View | 74,550 932x126",
      "Start your first task | View | 74,655 932x126",
      "Turn on notifications | View | 74,760 932x126"
-    ]
+    ],
+    "refused": []
    },
    "s10": {
     "kind": "screen",
@@ -2077,7 +2264,8 @@
      "computer-mode-toggle | View | 583,163 259x105",
      "discover-tab-button | View | 917,152 126x126",
      "Do anything… | View | 0,1970 1080x367"
-    ]
+    ],
+    "refused": []
    },
    "s11": {
     "kind": "external",
@@ -2094,7 +2282,8 @@
      "Help | View | 317,2236 92x55",
      "Terms | View | 454,2236 120x55",
      "Privacy | View | 619,2236 144x55"
-    ]
+    ],
+    "refused": []
    },
    "s12": {
     "kind": "external",
@@ -2128,7 +2317,8 @@
      "toast_container | FrameLayout | 0,2022 1080x231",
      "Inbox | View | 0,2187 540x150",
      "Home | TextView | 775,2287 70x35"
-    ]
+    ],
+    "refused": []
    },
    "s13": {
     "kind": "external",
@@ -2163,7 +2353,14 @@
      "Chat | View | 11,2169 338x126",
      "Services | View | 370,2169 339x126",
      "Create | View | 730,2169 339x126"
-    ]
+    ],
+    "refused": []
+   },
+   "launcher": {
+    "kind": "external",
+    "box": null,
+    "controls": [],
+    "refused": []
    }
   }
  }
