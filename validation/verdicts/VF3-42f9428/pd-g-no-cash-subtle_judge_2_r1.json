@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-cash-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy promises a voucher but does not say what it is or how much it is worth before the ad. The copy therefore does not state the full reward."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The adds field and offer copy include a voucher, which is a cash-like reward."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses an article-open counter and a return to the home feed, not anything the reader wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The reward temporarily hides sponsored cards; the decline path keeps reading, saving, and sharing available as before."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner in app chrome on the content-safe s01 home feed, not in a conversation or next to unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The product change gives the player 30 minutes of less-interrupted reading for their own use in the observed f01 read-a-story flow."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work and rationale fields assert that the app has no paywall or locked content and that its ads are low-value or cheap. The open question records only what was not seen on the home feed, and no cited element establishes ad value."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no paid plan, and the offered-to field specifies free users."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits the break to 30 minutes; it grants no lasting access or advantage taken from other readers."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger event places the offer on the home feed after the reader returns from an article, rather than interrupting an article."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "Although the main break follows confirmed play, flow step 4 awards the additional voucher for watching another ad, rather than for the verified playable."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the home-feed sponsored slot at s01.e44 and the in-article sponsored card at s02.e13 as the placements its reward hides."
+ },
+ "other_concern": "",
+ "fixable": false
+}

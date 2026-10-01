@@ -1,0 +1,53 @@
+{
+ "candidate_id": "kg-run-luzia-c05",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-answer reward before the user chooses to play. The decline and ad-failure fields leave home unchanged and withhold the reward if play is not confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field grants Advanced reasoning mode answers for use in the app, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses session timing and subscription status, not anything the user wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free; its reward samples the paid feature listed at s02.e03."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on s01 Chats home, which is rated safe, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples Advanced reasoning mode, a paid feature listed at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The cited s02.e03 supports the paid Advanced reasoning mode claim, and s01.e02 supports the home Luzia+ badge. The proposed welcome-back card and timing are changes, not claims about existing app behavior."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The offered-to and subscribers fields restrict the card to free users; Luzia+ members never see the offer."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to three answers and expires at midnight, rather than granting lasting access to the paid feature at s02.e03."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a dismissible card on s01 Chats home, a surface the user can choose to engage with rather than an interruption mid-task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The trigger is a detectable app-open event, and the flow offers a sponsored game. The ad-failure field says unconfirmed play does not grant or use up the reward."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the s01 Chats home, its Luzia+ badge, and the Advanced reasoning mode feature listed on the s02 paywall."
+ },
+ "other_concern": "",
+ "fixable": false
+}

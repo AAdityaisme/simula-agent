@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c2-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before the opt-in game; the decline and ad-failure fields leave reading unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a 30-minute break from sponsored cards, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses an article-open counter and a return to the home feed, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields leave free reading, saving, and sharing available."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner on the content-safe s01 home feed, above the first story."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the ad-free window benefits the player while reading stories in observed core flow f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work-here field claims AOL shows a full-screen video ad after every third article, which no product-model element supports. It also turns the home-feed observation that no paywall, limit, or currency was seen into an app-wide claim that none exists."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no paid plan, and the subscribers field proposes withholding the banner from members if an ad-free plan is added."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes and does not take a placement or benefit from another user or creator."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places the banner on the home feed after the reader returns from an article, rather than during the read."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow grants the break once play is confirmed, and the failure path grants nothing when confirmation fails; returning to the feed is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses s01’s category pills and the sponsored placements observed at s01.e44, s06.e33, and s02.e13."
+ },
+ "other_concern": "The proposed trade-off between playable revenue and hidden-card revenue needs validation; the model establishes placement and variable fill, not ad value.",
+ "fixable": true
+}

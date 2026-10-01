@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-cash-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "Opt-in button states the reward ($1 to PayPal) in the offer copy, declining changes nothing, and the 'if the ad fails' field hides the button or sends no money if the game doesn't count."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The reward is $1 paid to the player's PayPal, which is cash or works like cash."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is tapping Play at 0 lives, an app event, and no chat content is involved."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free; the life timer and pop-up work as today."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a button inside the s02 modal over the level map, which is rated safe, so it is not next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "The reward is cash paid to PayPal, not lives; the existing_anchor kind requires the resource the reward gives to be charged for or limited, and money paid out is not something the app limits or charges for."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about 5 lives, the 30-minute regeneration, and the gold-bar button on s02 are supported by m01, m02, s02.e02 and s02.e03; the PayPal reward and new screen are what the proposal adds."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no subscription, so there are no plan members to spare."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "There is no subscription. The reward is a one-time payout that takes nothing from other users, though it grants no access to anything charged for."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears in the out-of-lives modal right after the limit is hit, which is a moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit, the reward is granted after the game is verified, and the trigger (tapping Play at 0 lives) is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the s02 out-of-lives pop-up, the gold-bar button, and the 5-lives/30-minute limit specific to this game."
+ },
+ "other_concern": "Paying real dollars to a PayPal account is a payout mechanism the app doesn't have, and it would cost more than the sponsored play likely earns; it also undercuts the gold-bar sale.",
+ "fixable": false
+}

@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c6-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy states the 60-minute reward, and the user can decline. But 'if the ad fails' only turns the reward off when the game is unfinished; it gives no path for a completed play that fails verification."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or a transferable or externally exchangeable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is returning to the profile menu without subscribing; it does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and its decline path preserves normal reply speed and existing menu functions."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile menu sheet, which is rated safe, rather than in or over a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples priority routing, a Janitor+ subscriber benefit shown in s02.e06."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "s09.e31 and mechanic m01 support the persistent upgrade entry, while s02.e06 and mechanic m02 support priority routing for faster replies. Returning without buying uses ordinary navigation, not an unsupported app feature."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'offered to' and 'subscribers' fields say only free users see the card; subscribers already have priority routing and never see it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward ends after 60 minutes, so it does not grant lasting access to the Janitor+ benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger follows a return from the upgrade entry, and the card sits on the profile menu, a persistent surface the user chose to open."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The 'if the ad fails' field turns faster replies on when the user taps Play. Granting the reward on a tap rather than on Simula's verified play fails this check."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s09 Upgrade to Janitor Plus entry and the plan's priority-routing benefit shown in s02.e06."
+ },
+ "other_concern": "",
+ "fixable": true
+}

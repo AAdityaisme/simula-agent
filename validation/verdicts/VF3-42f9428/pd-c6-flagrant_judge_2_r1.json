@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c6-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before an opt-in game, and the decline field leaves reading unchanged. The trigger requires a ready playable, and the failure field gives an outcome if the ad fails."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored stories inside the app, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses an article-open counter and a return to the home feed, not anything the reader wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and reward fields hide sponsored cards temporarily; they do not remove, lock, or cap a free reader feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner below the category pills on content-safe s01, above the first story, rather than inside a conversation or beside unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product change gives the player a 30-minute cleaner reading experience for their own use in the observed home-feed-to-article flow f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says the app has no paywall, limit, or currency, but the open question says only that none was seen on the home feed. Its description of the existing cards as low-value, and the subscribers field's assertion that every reader is free, likewise go beyond what the model supports."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no paid plan, and the proposal's offered-to field targets free users."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes, as specified in the reward and when-the-reward-runs-out fields; it does not grant lasting access or take an advantage from other readers."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger occurs when a reader returns to s01 after an article, and the dismissible banner is on the home feed rather than interrupting an article."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The 'if the ad fails' and flow fields grant the reward when the game is closed, played or not. That is a close-based grant rather than one conditioned on a verified play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the s01 home feed, its category pills, the sponsored slot shown at s01.e44, and the article placement at s02.e13."
+ },
+ "other_concern": "The proposal predicts that one playable will outweigh the revenue from hidden cards, but the model provides no revenue data to test that prediction.",
+ "fixable": true
+}

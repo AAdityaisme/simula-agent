@@ -1,0 +1,53 @@
+{
+ "candidate_id": "kg-run-luzia-c05",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the reward before play, and the card invites the user to choose the game. The decline and ad-failure fields leave the home screen usable and withhold the reward if play is not confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field gives three in-app Advanced reasoning mode answers, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses session inactivity and subscription status, not anything the user wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal's 'removes nothing free' field introduces no lock or cap on an existing free resource."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the safe Chats home screen (s01), not inside a conversation or next to unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward samples Advanced reasoning mode, which the Luzia+ paywall lists as a paid benefit (s02.e03)."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The proposal's claims about today's app are supported by the home badge (s01.e02) and the paywall's Advanced reasoning mode, plans, and trial (s02.e03, s02.e09–e19). The welcome-back card and three-answer allowance are proposed additions."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'offered to' and 'subscribers' fields restrict the offer to free users; Luzia+ members never see it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to three answers and expires at midnight local time, while the full paid benefit remains on the Luzia+ paywall (s02.e03)."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places a dismissible card on the Chats home screen (s01) at first open after a gap, rather than interrupting an ongoing task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game, and the ad-failure field says an unconfirmed play does not count. First open after a session gap is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Chats home placement beneath the Luzia+ badge (s01.e02) and samples the paywall's Advanced reasoning mode (s02.e03)."
+ },
+ "other_concern": "The rationale's claims about per-answer cost and regional ad earnings are unverified forecasts.",
+ "fixable": false
+}

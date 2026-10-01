@@ -1,0 +1,53 @@
+{
+ "candidate_id": "rg-janitorai-c07-fan-boost",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the list boost and supporter heart, including their durations, before the optional game. The decline and ad-failure fields preserve the existing experience and provide a retry path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field gives a temporary list boost and supporter heart, neither of which is cash or exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is a tap on the like button shown at s07.e16; it does not require reading chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and removes-nothing-free fields do not lock or cap an existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on s07, a character-detail screen rated safe, rather than an offer in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "The reward field makes moving the character up the list the principal benefit; most of that benefit goes to the creator, not the player. The player's supporter heart is secondary."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work field says a new character sits deep in the list, but s01.e27 shows only the page count, not that character's position. The rationale's claim that small creators have one fixed place to be found is also unsupported by the model's Home and Search flows."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The subscribers field offers the same optional card to everyone. The Janitor Plus benefits in m2 do not include character boosts or supporter hearts, and no ad-free benefit is shown."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The reward moves one character near the top of the Hidden Gems list, taking relative position and visibility from other creators. The model does not show the app selling that advantage."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger event opens the offer after the user taps like, a finished action, rather than interrupting an ongoing task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable like tap and grants the rewards only once the play is confirmed, not on the tap or game start."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal uses the Hidden Gems tab at s01.e13 and the like button and creator details on s07."
+ },
+ "other_concern": "The rationale predicts that the boost costs nothing to run; the product model does not establish its operational cost.",
+ "fixable": false
+}

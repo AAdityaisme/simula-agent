@@ -1,0 +1,53 @@
+{
+ "candidate_id": "rg-janitorai-c09-empty-evidence",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 24-hour lift and seven-day supporter mention before play. The user chooses whether to play, declining preserves the like, and the ad-failure field provides load and verification paths."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a list boost and supporter mention, not cash or an exchangeable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a tap on the like button on s07, not anything the user wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes or caps no existing free feature; declining leaves the like and page unchanged."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The support card is placed on s07, a character-detail screen rated safe, rather than in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "The proposal's main reward is higher placement for the creator's character. Most of what the reward gives goes to another user, not the player."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The rationale claims fans currently have no way to help beyond a like. The model does not establish that absence, and s07.e03 shows a comments button."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The subscribers field gives payers the same opt-in offer for a boost that is not among the Janitor Plus benefits in m2."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The proposed lift in the Home list takes ordered-feed placement and visibility from other creators; the model does not show the app already selling that advantage."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The support card appears after the user taps like on s07, a finished action rather than an interruption mid-task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game triggered by a detectable like tap, and the ad-failure field says nothing changes if play cannot be verified."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal uses s01's Hidden Gems list and s07's creator byline and like button to define the offer."
+ },
+ "other_concern": "",
+ "fixable": false
+}

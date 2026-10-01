@@ -3,25 +3,20 @@
 VF3 is VF′ with one judgment check added. `c3_spares_payers` fails an offer that sits inside what paying users pay for; one paying users see that is pitched as more of what their plan sells, or whose reward their plan already includes; or one that members of an ad-free plan see. An offer only non-paying users see passes, even when its reward is a slice of the plan. An offer for something outside the plan and outside what payers pay for passes, even when only paying users see it. The new fixtures test it:
 - pd-c3-flagrant: Luzia+ members offered a benefit their plan includes.
 - pd-c3-subtle: an ad-free plan's members shown the offer, in a news-reader sketch.
-- kg-fitness-01: a known-good offer only paying users see, for a streak freeze their plan doesn't sell.
-- kg-newsreader-01: a known-good offer only free readers see, in the ad-free-plan app.
+- kg-fitness-01: a known-good offer only paying users see, for a streak freeze their plan doesn't sell. Agent-written; not yet approved by Aadi.
+- kg-newsreader-01: a known-good offer only free readers see, in the ad-free-plan app. Agent-written; not yet approved by Aadi.
 - rg-janitorai-c03-rev-payers: the committed JanitorAI c03-rev, as a regression case.
 
-The generated sections under "Judge validation" are **one** `validate-judge` run of VF3: round 1 and the gate reruns, saved in `validation/verdicts/VF3/`. They are not a majority of 3, because the change's API cap paid for one. Everything from "How the live judge rubric was chosen" to that heading is about VF′ and its three saved runs in `validation/verdicts/VF2/`, kept as the record.
+**VF3 was paid for three times, and every run is reported.** Three full `validate-judge` runs were committed in turn, each over the last: 42f9428, 9092006 and e56402e. All three are saved: `validation/verdicts/VF3-42f9428/`, `validation/verdicts/VF3-9092006/` and the kept `validation/verdicts/VF3/`, each with a `run.toml` naming its commit and the c3 wording it judged with. Between them only c3's wording and the c3 fixtures changed, so for the five gates they are replicates. The generated sections under "Judge validation" score the kept run, run 3. "Every paid run" scores all three, and the rerun section and the gate count flips over all three: 4 of 60 rerun pairs flipped a safety verdict, and run 3 is the only run with none. One of the four is a planted cash reward, pd-g-no-cash-subtle, that judge_2 caught in run 1's first round and missed on its rerun. A 1–1 split between a round and its rerun is not a catch, so judge_2 is scored as missing it in run 1. Everything from "How the live judge rubric was chosen" to "Judge validation" is about VF′ and its three saved runs in `validation/verdicts/VF2/`, kept as the record. *(Corrected 2026-10-01: this paragraph said the generated sections were "one" run because the API cap paid for one, and that the gate reruns flipped no safety verdict. Both described run 3 alone.)*
 
-VF3 against VF′. The VF′ column is `uv run python -m simula.validate summarize --runs validation/verdicts/VF2 --only-judged --out <file>`, which scores only the fixtures VF2 judged:
+**Edits made after seeing a failure.**
+- kg-fitness-01 was edited after it failed. In run 2, judge_2 failed it on c2: "The what-makes-it-work and subscribers fields claim free users see the Plus trial button instead of this offer, but s02.e04 does not establish who sees that button. The trigger field also says opening the app opens s02, which the model does not establish." a396f94 removed exactly those two claims, and run 3 passed it.
+- c3 was reworded in the same commit after a planted case failed it. In run 2, judge_2 failed c3 on pd-g-brand-safety-flagrant, an offer only free users see whose reward is part of Luzia+. The new wording passes such an offer. The same commit rewrote the pd-c3-flagrant fields that still told its base's free-user story.
+- Both are tuning on the validation set, which the section below declines to do for judge_2. Both new known-goods are also agent-written, so the generated sections keep them out of the known-good rate and show them on their own row.
 
-| | VF′ (majority of 3) | VF3 (one run) |
-|---|---|---|
-| The 22 original planted defects, combined | 22/22 | 22/22 |
-| judge_1 / judge_2 on those 22 | 22 / 20 | 22 / 20 (judge_2 misses c7 flagrant and subtle, as before) |
-| The 2 c3 planted cases | not in VF′ | 2/2 by each judge |
-| The 4 original known-goods, combined (judge_1; judge_2) | 1/4 (3/4; 1/4) | 2/4 (3/4; 2/4) |
-| The 2 new known-goods, combined | not in VF′ | 2/2 |
-| c3 fails outside its own cases | – | none: of the 86 verdicts, c3 fails only on the 2 c3 planted cases and the c03-rev regression |
-| JanitorAI c03-rev regression | not in VF′ | fails c3 under both judges |
+**The 4 original known-goods.** Combined, VF′ passes 1 of 4 (majority of 3) and VF3's three runs pass 1, 2 and 2. The whole difference is one verdict: judge_2's c2 on JanitorAI c02, a check c3 doesn't touch. It failed in 2 of VF′'s 3 runs and in 1 of VF3's 3 (run 1), so it is noise in judge_2's c2, not a gain from c3.
 
-The gate reruns flipped no safety verdict. judge_2 changed three other checks between the run and its rerun, each by adding c2_evidence on the rerun: pd-g-brand-safety-subtle, pd-g-no-chat-content-subtle and pd-g-policy-flagrant. No c3 verdict changed on a rerun.
+For comparison, VF′'s three runs, scored by `uv run python -m simula.validate summarize --runs validation/verdicts/VF2 --only-judged --out <file>` on the fixtures VF2 judged, catch the 22 original planted defects 22/22 combined (judge_1 22, judge_2 20) and pass the 4 original known-goods 1/4 combined (judge_1 3/4, judge_2 1/4).
 
 # How the live judge rubric was chosen (read this first)
 
@@ -47,8 +42,8 @@ What D10 and D11 do, measured on the saved VF′ runs through the stage's own `d
 
 The three clauses written after seeing the failures are the absence clause (C2), the plain-meaning clause (C2), and the C1 clarification of where the player uses the reward. The rest of VF′ came from earlier rounds, which were shaped by earlier failures too (below).
 
-The live rubric (`prompts/judge/rubric.md`) is **VF′**, adopted 2026-09-29 by decision D9, made for Aadi. It is the
-earlier rubric V0 with these changes:
+**VF′** was the live rubric (`prompts/judge/rubric.md`) from 2026-09-29, adopted by decision D9, made for Aadi, until
+VF3 replaced it on 2026-09-30 (top). It is the earlier rubric V0 with these changes:
 - **Product facts.** An open question never supports a claim. A mechanic marked `inferred` supports one when the model
   cites the observed element it was inferred from.
 - **C1.** A product change passes only if its new resource is a slice of something charged for, or something the player
@@ -101,7 +96,7 @@ Whether judge_2's reading of small restatements is too strict is open.
 - The combined verdict still catches both C7 cases through judge_1. "Caught" in this report means failed by any judge: rejected, or held for a person (a split waits on Needs your call, D11). A split still reaches a full slide when a person approves that exact disagreement, or, in a deck with nothing accepted, as the closest idea, labelled with the doubted check. Under D10 alone both C7 defects were drawn as labelled CONDITIONAL ideas (above).
 
 **How the sections below were computed.**
-- `validate.report` ran on VF′'s majority-of-3 verdicts per judge. *(2026-09-30: the sections below are now VF3's one run; see the top.)*
+- `validate.report` ran on VF′'s majority-of-3 verdicts per judge. *(2026-09-30: the sections below now score VF3's kept run, the last of three paid runs; see the top.)*
 - The planted set is 22 cases. pd-c4-subtle counts from here on because VF′'s C4 fails a grant that never expires.
 - 4 known-good ideas; c07 and c09 are held out; the C8 cases are scored by code.
 - In the `--no-cache` rerun section, each gate case is compared with the first of its 3 runs that disagrees with the
@@ -110,21 +105,25 @@ Whether judge_2's reading of small restatements is too strict is open.
   on c2).
 - Every saved verdict is committed: `validation/verdicts/VF2/` for VF′ and `validation/verdicts/V0/` for V0, as
   `<case>_<judge>_r<n>.json`.
-- `uv run python -m simula.validate summarize` rebuilds this file from `validation/verdicts/VF3/` (VF2 until 2026-09-30) and this preface
+- `uv run python -m simula.validate summarize` rebuilds this file from `validation/verdicts/VF3/` (VF2 until 2026-09-30), the runs its `run.toml` says it
+  replaced, and this preface
   (`validation/preface.md`) with no calls.
 - `simula validate-judge` writes a fresh single-run report to `validation/latest/`, never over this file.
 
 **The harness gate below is not the adoption rule.** It judges VF′ alone *(VF3 since 2026-09-30)*, against fixed thresholds. Run on V0's saved runs, the same gate trades lines rather than improving: V0 fails judge_1's known-good line (50%), which VF′ passes (75%), and VF′ fails judge_2's broken-check line (C7 0/2), which V0 passes (1/2).
 - judge_1 passes every item.
 - The gate fails on judge_2 alone: C7 is broken (0/2), and known-good is 25%, under 70%.
+- *(VF3, 2026-10-01: counted over its three paid runs, the rerun item fails for both judges.)*
 
 The adoption rule is VF′'s dominance over V0 above. V0 fails the same judge_2 known-good item, at 25% too.
 
 # Judge validation
 
-Generated 2026-09-30T08:44. Judges: judge_1, judge_2. Prompts frozen in `config/frozen_prompts.toml`.
+Generated 2026-10-01T02:39. Judges: judge_1, judge_2. Prompts frozen in `config/frozen_prompts.toml`.
 
-Fixtures: 24 planted LLM cases (12 subtle), 2 C8 cases, 6 known-good (bases and real-run ideas); planted app types: AI assistant chat, companion chat, news, puzzle game; planted apps outside the test set: Candy Crush Saga, a news reader.
+Fixtures: 24 planted LLM cases (12 subtle), 2 C8 cases, 4 known-good (bases and real-run ideas), and 2 agent-written known-good not yet approved, shown apart and never in the known-good rate; planted app types: AI assistant chat, companion chat, news, puzzle game; planted apps outside the test set: Candy Crush Saga, a news reader.
+
+The sections below score the last of 3 paid runs of this rubric. "Every paid run" scores each one, and the rerun section and the gate count flips over all of them.
 
 ## Headline: recall over every LLM-judged planted defect (C8 excluded)
 
@@ -145,21 +144,24 @@ A judge that fails everything catches every defect and passes no known-good idea
 | | caught / passed | missed / failed |
 |---|---|---|
 | Planted defects (24) | 24 | 0 |
-| Known-good (6) | 5 | 1 |
+| Known-good (4) | 3 | 1 |
+| Agent-written known-good, not counted (2) | 2 | 0 |
 
 **judge_2**
 
 | | caught / passed | missed / failed |
 |---|---|---|
 | Planted defects (24) | 22 | 2 |
-| Known-good (6) | 4 | 2 |
+| Known-good (4) | 2 | 2 |
+| Agent-written known-good, not counted (2) | 2 | 0 |
 
 **combined**
 
 | | caught / passed | missed / failed |
 |---|---|---|
 | Planted defects (24) | 24 | 0 |
-| Known-good (6) | 4 | 2 |
+| Known-good (4) | 2 | 2 |
+| Agent-written known-good, not counted (2) | 2 | 0 |
 
 ## Per check: a smoke test (a check with 0 of 2 caught is broken)
 
@@ -182,16 +184,36 @@ Two cases per check tell a blind check (0 of 2) from one that works. They can't 
 
 ## Known-good pass rate (every one of the 12 checks passed)
 
-| Judge | Known-good (gate) |
-|---|---|
-| judge_1 | 5/6 (83%) |
-| judge_2 | 4/6 (67%) |
-| combined | 4/6 (67%) |
+| Judge | Known-good (gate) | Agent-written, not counted |
+|---|---|---|
+| judge_1 | 3/4 (75%) | 2/2 (100%) |
+| judge_2 | 2/4 (50%) | 2/2 (100%) |
+| combined | 2/4 (50%) | 2/2 (100%) |
 
 ## `--no-cache` rerun: do safety verdicts flip?
 
-- judge_1: 10 of 10 gate cases compared; safety flips 0; any-check flips 0.
-- judge_2: 10 of 10 gate cases compared; safety flips 0; any-check flips 3.
+- judge_1, run 3: 10 of 10 gate cases compared; safety flips 0; any-check flips 0.
+- judge_2, run 3: 10 of 10 gate cases compared; safety flips 0; any-check flips 3.
+
+Over all 3 paid runs, 4 of 60 rerun pairs flipped a safety verdict (judge_1 2 of 30, judge_2 2 of 30):
+- run 1, judge_1, pd-g-no-free-removal-flagrant: g_policy
+- run 1, judge_2, pd-g-no-cash-subtle: g_no_cash, the defect it plants
+- run 2, judge_1, pd-g-policy-flagrant: g_no_free_removal
+- run 2, judge_2, pd-g-no-free-removal-flagrant: g_policy
+
+## Every paid run of this rubric, oldest first
+
+Each earlier run was committed and then replaced by the next; the sections above score the last. A run is scored on the fixtures it judged. Each cell is judge_1; judge_2; combined.
+
+| Run | Fixtures judged | Planted caught | Known-good passed | Agent-written known-good passed | Regressions held | Gate rerun pairs with a safety flip |
+|---|---|---|---|---|---|---|
+| 1 | 30 of 33 | 24/24; 20/24; 24/24 | 3/4; 1/4; 1/4 | not judged | 1/2; 2/2; 2/2 | 2 of 20 |
+| 2 | 33 of 33 | 24/24; 22/24; 24/24 | 3/4; 2/4; 2/4 | 2/2; 1/2; 1/2 | 2/3; 3/3; 3/3 | 2 of 20 |
+| 3 | 33 of 33 | 24/24; 22/24; 24/24 | 3/4; 2/4; 2/4 | 2/2; 2/2; 2/2 | 2/3; 3/3; 3/3 | 0 of 20 |
+
+- Run 1: `VF3-42f9428`, commit 42f9428. The first c3 wording. It judged 30 fixtures: kg-fitness-01, kg-newsreader-01 and rg-janitorai-c03-rev-payers didn't exist yet, and pd-c3-subtle was an earlier version, rewritten in 7b96b9e. Rubric as judged: `c3_spares_payers` concerns users who pay for a plan the product model shows. It fails if: the offer is aimed at them (shown only to paying users, or pitched at what they pay for), so people who already pay are asked to play an ad inside what they pay for; the plan removes ads and its members still see the offer; or it rewards paying users with something their plan already includes, or more of a benefit they already pay for. It passes when the product model shows no paid plan, when paying users never see the offer, or when they see the same opt-in offer as everyone else for something their plan doesn't include.
+- Run 2: `VF3-9092006`, commit 9092006. Before it, 7b96b9e narrowed c3, rewrote pd-c3-subtle, and added kg-fitness-01, kg-newsreader-01 and rg-janitorai-c03-rev-payers. Rubric as judged: `c3_spares_payers` concerns users who pay for a plan the product model shows. It fails if: the offer sits inside what paying users pay for (on a screen or in a feature only paying users get) or is pitched as more of what the plan sells; the plan removes ads and its members see the offer; or the reward is something their plan already includes. Otherwise it passes: when the product model shows no paid plan, when paying users never see the offer, and when the offer is for something outside their plan and sits outside what they pay for, whether it is shown to everyone or only to paying users, unless their plan removes ads.
+- Run 3: `VF3`, commit e56402e. Before it, a396f94 made three edits after run 2's failures. It removed from kg-fitness-01 exactly the two claims judge_2 failed it on (c2), and run 3 passed it. It reworded c3 after judge_2 failed c3 on pd-g-brand-safety-flagrant, an offer only free users see whose reward is part of the paid plan; the new wording passes exactly that. It rewrote the pd-c3-flagrant fields that still told its base's free-user story. Changing a rubric clause and a known-good after seeing them fail is tuning on the validation set. Rubric as judged: `c3_spares_payers` concerns users who pay for a plan the product model shows, and only offers they see. It fails if: the offer sits inside what paying users pay for (on a screen or in a feature only paying users get); paying users see the offer and it is pitched as more of what their plan sells, or its reward is something their plan already includes; or the plan removes ads and its members see the offer. Otherwise it passes: when the product model shows no paid plan; when paying users never see the offer, even if its reward is a slice of the plan (a sample for users who don't pay); and when the offer is for something outside their plan and sits outside what they pay for, whether it is shown to everyone or only to paying users, unless their plan removes ads.
 
 ## Regression cases (held out of the gate; each must fail its target, or any check without one)
 
@@ -220,11 +242,11 @@ Two cases per check tell a blind check (0 of 2) from one that works. They can't 
 - ✓ c8_economics: the economics code gives the expected result (2/2)
 - ✓ judge_1: no LLM check broken
 - ✓ judge_1: every flagrant gate defect caught (5/5)
-- ✓ judge_1: known-good ≥ 70% (83%)
-- ✓ judge_1: no safety flip on the --no-cache rerun, every gate case compared
+- ✓ judge_1: known-good ≥ 70% (75%)
+- ✗ judge_1: no safety flip on the --no-cache rerun, every gate case compared, over all 3 paid runs (2 flipped)
 - ✗ judge_2: no LLM check broken
 - ✓ judge_2: every flagrant gate defect caught (5/5)
-- ✗ judge_2: known-good ≥ 70% (67%)
-- ✓ judge_2: no safety flip on the --no-cache rerun, every gate case compared
+- ✗ judge_2: known-good ≥ 70% (50%)
+- ✗ judge_2: no safety flip on the --no-cache rerun, every gate case compared, over all 3 paid runs (2 flipped)
 
 A failure means fixing that judge's prompt and re-freezing; never loosening the rule.

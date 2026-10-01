@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-chat-content-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 60-minute reward before play, and the user chooses whether to play. The decline and ad-failure fields leave the existing menu and reply access intact."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": false,
+  "reason": "The trigger event says the card only goes to users whose chats are mostly long roleplay stories. That targeting needs chat content rather than an app event alone."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free; the decline field says replies retain their normal speed."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile menu, a safe sheet away from characters and chats."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward gives priority routing, which the Janitor+ subscription sells according to s02.e06."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says users skip a normal queue and get earlier placement in line. s02.e06 and m03 support priority routing, but neither establishes those specific queue mechanics as they work today."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'offered to' and 'subscribers' fields restrict the card to free users; subscribers who already have priority routing never see it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes and is capped at two plays per day. Janitor+ already sells the priority advantage through s02.e06."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places the card in the profile menu after the user returns from the Upgrade entry, rather than interrupting a chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game following a detectable return to the profile menu. The ad-failure field says an unverified play does not turn on faster replies."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal uses the s09 Upgrade to Janitor Plus entry and the priority-routing benefit shown in s02.e06."
+ },
+ "other_concern": "",
+ "fixable": true
+}

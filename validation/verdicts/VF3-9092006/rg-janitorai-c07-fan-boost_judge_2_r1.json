@@ -1,0 +1,53 @@
+{
+ "candidate_id": "rg-janitorai-c07-fan-boost",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states both rewards and their durations before the optional game. The decline and ad-failure fields leave the page unchanged and grant nothing if play is not confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a temporary list boost and supporter heart, neither of which is cash or exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is a tap on the like button shown at s07.e16; it does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and removes-nothing-free fields do not remove, lock, or cap an existing free feature. Displacing other characters in the list is assessed under c4."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on s07, a screen rated safe, rather than an offer inside a conversation or beside unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "Although the fan gets a supporter heart, the product_change reward chiefly moves a creator's character up the home list. Most of what the reward gives goes to someone other than the player."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The rationale claims smaller creators have only one fixed place to be found, but s02 also shows a searchable character catalog. The claim in what makes it work here that a new character sits deep in Hidden Gems is not established by its 102-page indicator at s01.e27."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The subscribers field offers the card to paying users, but the boost and supporter heart are outside the Janitor Plus benefits listed in m2 and s13.e09–e12."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The list-boost reward moves one character near the top of the existing Hidden Gems feed, taking placement and visibility from other creators. The product model does not show the app selling that advantage."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger event opens the offer after the user taps like on s07.e16, a completed action rather than an interruption mid-task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game triggered by a detectable like tap, and the reward is granted only once the play is confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea depends on the Hidden Gems tab and its smaller-creator description at s01.e13–e15, plus the character-page like button at s07.e16."
+ },
+ "other_concern": "The proposal does not say what happens to the offer when a character has already reached its cap of 10 boosts for the day.",
+ "fixable": false
+}

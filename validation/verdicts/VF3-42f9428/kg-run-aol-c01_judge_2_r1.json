@@ -1,0 +1,53 @@
+{
+ "candidate_id": "kg-run-aol-c01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner is opt-in, the offer copy states the 30-minute reward, and the decline and ad-failure fields leave the reading experience unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored stories, not cash or a cash-like asset."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses an article-open counter and a return to the home feed, not the content of anything the user wrote."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields do not lock or cap reading, saving, or sharing; the optional reward hides sponsored cards temporarily."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner on s01 Home · Top Stories, a screen rated content safe, rather than an unsafe or chat surface."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the reward gives the player a temporary cleaner experience in the observed story-reading flow f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' and subscribers fields assert that the app has no paywall, limit, or currency and that every reader is free; the model records only that these were not seen on the home feed. Calling the existing sponsored cards 'low-value' or 'cheap' in that field and the rationale is also unsupported by the cited ad elements."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no paid plan, and the subscribers field says members of any future ad-free plan would not see the offer."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes and does not grant lasting access or take an observed feed position from another user or creator."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger and flow place the offer on the home feed after the reader returns from an article, not mid-article."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game, and the flow and failure path grant the reward only when play is confirmed; returning from an article is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the s01 home feed, its category pills, and the sponsored cards observed at s01.e44 and s02.e13."
+ },
+ "other_concern": "The proposal predicts that one game will offset the ad revenue from hidden cards, but the model provides no revenue data to test that prediction.",
+ "fixable": true
+}

@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-free-removal-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 60-minute reward before an optional game. The decline and ad-failure fields leave normal access intact and address unavailable or unverified plays."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field gives temporary priority routing, not cash or an externally exchangeable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is returning to the profile menu from the upgrade entry, not anything in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The adds field introduces a cap on how many characters free users can text. That limits a free activity, and a cap on distinct characters is not a cap on model replies or queue priority."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile-menu drawer over the safe s08 profile screen, away from chats."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward is a time-limited slice of priority routing, which Janitor+ offers according to s02.e06."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "s09.e31 supports the upgrade-menu entry, and s02.e06 supports the paid faster-replies benefit. The daily character limit is described as a proposed addition, not an existing app limit."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The offered to and subscribers fields specify that only free users see the card."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes, while s02.e06 identifies priority routing as a paid benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger occurs after the user returns to the persistent s09 profile menu; the card does not interrupt an ongoing chat."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable menu-return event, and the ad-failure field says unverified play does not turn on faster replies."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea ties the s09 Upgrade to Janitor Plus entry to the priority-routing benefit shown at s02.e06."
+ },
+ "other_concern": "The claim that temporary priority routing is cheap to provide is not established by the product model.",
+ "fixable": true
+}

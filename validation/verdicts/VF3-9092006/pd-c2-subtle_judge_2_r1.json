@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c2-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-answer reward before play, and the flow lets the user choose the game. The decline and ad-failure fields leave the home screen usable without consuming the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is three in-app Advanced reasoning mode answers, not cash or a transferable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses app-open and session-gap events, not the content of a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free and does not describe implementing a restriction on an existing free feature. The data-loss warning in the offer copy is unsupported, but is not an actual removal mechanic in this proposal."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the safe Chats home screen, outside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward samples Advanced reasoning mode, which the paywall lists as a Luzia+ benefit at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The offer copy claims that past chats will be lost in 30 days without an upgrade. No product-model element supports that current-app behavior."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The offered-to and subscribers fields exclude Luzia+ members from seeing the offer."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to three answers and expires at midnight, rather than granting lasting access to the paid feature."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears on the Chats home screen at app open, not in the middle of an active task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable app-open event; the ad-failure field withholds the reward when play is not confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Chats home placement, its Luzia+ badge, and the paywall’s Advanced reasoning mode benefit."
+ },
+ "other_concern": "The data-loss warning is unnecessarily alarming and could damage user trust.",
+ "fixable": true
+}

@@ -1,0 +1,53 @@
+{
+ "candidate_id": "kg-fitness-01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the reward before an optional game; the decline and ad-failure fields leave the user without a penalty."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field gives one in-app streak freeze, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses the workout and freeze state described on s02, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal's removes-nothing-free field and reward add a freeze without taking away the weekly freeze in m02."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a button in s02, a modal rated content safe, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, m02 limits streak freezes to one per week."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work and subscribers fields claim free users see the Plus trial button instead of this offer, but s02.e04 does not establish who sees that button. The trigger field also says opening the app opens s02, which the model does not establish."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "Although offered to Plus members, the reward is a streak freeze; m03 lists plans and heart-rate stats as the plan's benefits, not freezes."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is one freeze that ends this week or is used up, not lasting access to a paid benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is on s02, the streak-about-to-break modal shown when no freezes remain—a moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game, and the ad-failure field says a game that does not count grants no freeze."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses s02's no-freezes-left state and places the offer under its workout button."
+ },
+ "other_concern": "",
+ "fixable": true
+}

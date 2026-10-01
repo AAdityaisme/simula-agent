@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c3-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy makes the game optional and states the reward as 3 Advanced reasoning mode answers. The decline and ad-failure fields preserve normal use and provide a retry path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field grants answers for use in the app, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses time since the last session, not anything the user said or wrote."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds a sample of the paid feature listed at s02.e03 and does not remove or cap a free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the Chats home screen, s01, which is rated safe; it is not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, the reward samples Advanced reasoning mode, which the Luzia+ paywall lists at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the existing paid feature, subscription plans, trial, and home badge are supported by s02.e03, the s02 plan and trial elements, and s01.e02. The welcome-back card and answer allowance are proposed additions, not claims that they exist today."
+ },
+ "c3_spares_payers": {
+  "passed": false,
+  "reason": "The subscribers field says Luzia+ members see the offer and can play for Advanced reasoning mode answers, a benefit their plan already includes according to s02.e03."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 3 answers and expires at midnight local time, so it does not grant lasting access to the paid feature."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger and placement put a dismissible card on the Chats home screen at app open, rather than interrupting a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by an app-open event. The ad-failure field says an unconfirmed play does not grant or consume the reward."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Chats home badge at s01.e02 and samples Advanced reasoning mode from the Luzia+ paywall at s02.e03."
+ },
+ "other_concern": "The rationale's claim that the sample pays for its model time in higher-earning markets is an unvalidated revenue prediction.",
+ "fixable": true
+}

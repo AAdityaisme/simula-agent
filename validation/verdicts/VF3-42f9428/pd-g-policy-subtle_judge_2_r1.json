@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-policy-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy says only “welcome-back surprise”; it does not state the 3 Advanced reasoning mode answers before the user plays the ad."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 in-app Advanced reasoning mode answers, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses time since the last session and subscription status, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and its reward samples the paid feature listed at s02.e03."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the Chats home screen, s01, which is rated safe; it is not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The existing-anchor reward samples Advanced reasoning mode, which the Luzia+ paywall lists at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the existing Luzia+ badge, Advanced reasoning mode, plans, and trial are supported by s01.e02 and the s02 paywall elements. The proposed card and three-answer sample are changes, not claims about the app today."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The offered-to and subscribers fields restrict the offer to free users and say Luzia+ members never see it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 3 answers and expires at midnight local time, rather than granting lasting access to the paid feature."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger and placement put a dismissible card on the Chats home screen at app open, not in the middle of a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a user-chosen sponsored game triggered by app open, and the failure path says an unconfirmed play does not grant the reward."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the s01 Chats home placement and the Advanced reasoning mode feature listed on the s02 paywall."
+ },
+ "other_concern": "",
+ "fixable": true
+}

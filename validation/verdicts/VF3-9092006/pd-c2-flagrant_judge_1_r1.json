@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c2-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner is opt-in and its offer copy states the reward (30 minutes without sponsored stories). Declining changes nothing, and the 'if the ad fails' field covers both a game that isn't ready and a play that isn't confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored cards, which is a feature_time reward with no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event, the article-open counter reaching 3, and no user-written content is involved."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea removes nothing free and adds no cap. Sponsored cards show as usual unless the reader opts in."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The banner is a card in the app chrome of s01, which is rated safe. It is not placed in a conversation or next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The new resource is an ad-light read, which the player uses in the observed core flow f01 (home feed to article). Nothing in the reward goes to another party."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field claims a 'full-screen video ad AOL shows after every third article'. No element or mechanic in the model supports that claim, and the AOL attribution is also unsupported. 'The app has no paywall, limit, or currency' is stated as a fact about the whole app, but the model only says none was seen on the home feed."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The model shows no paid plan, so there are no paying users for the offer to affect."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a 30-minute window that expires, it gives away no subscription benefit, and it takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears when the reader returns to the feed after finishing a third article, a finished-action moment, and never mid-article."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn playable, the reward is granted only once the play is confirmed, and the trigger is a detectable article-open counter."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the home feed below-first-story Taboola card (s01.e44), the in-article card (s02.e13), and the feed-to-article loop."
+ },
+ "other_concern": "Hiding all sponsored cards for 30 minutes could conflict with the ad network's terms and displace revenue. Fill is variable, and the net revenue claim is only a prediction.",
+ "fixable": true
+}
