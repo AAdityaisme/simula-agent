@@ -15,6 +15,7 @@ from simula.contracts import ActionLine, ExploreFile, StateFile
 from simula.device import observe as ob
 from simula.device.mcp import parse_elements
 from simula.stages import explore as stage
+from simula.stages import model as model_stage
 from tests import fake_device
 from tests.fake_device import PACKAGE, Clock, FakePhone, Screen, blank, capture, fake_jev, new_run
 from tests.fake_device import explore as run_explorer
@@ -193,7 +194,9 @@ def test_a_route_hop_that_lands_in_another_app_returns_by_a_launch_and_goes_on(t
     assert ex.relaunches == 0 and ex.returns == [f"from {phone.screens['web'].package} back to {chats.sid}"]
 
 
-def test_a_system_dialog_over_the_app_that_a_launch_leaves_in_front_gets_back(tmp_path, monkeypatch):
+def test_another_app_still_in_front_after_the_launch_gets_a_relaunch_not_back(tmp_path, monkeypatch):
+    """A launch can leave another package in front (a dialog in the app's own task, or an app the launch sends straight
+    back to): BACK there could walk that app's history, so a counted relaunch follows instead."""
     def dialog_over_chats(clock):
         phone = janitor_like(clock)
         phone.screens["dialog"] = blank("com.google.android.permissioncontroller")
@@ -203,9 +206,119 @@ def test_a_system_dialog_over_the_app_that_a_launch_leaves_in_front_gets_back(tm
     ex, phone, chats = on_chats(tmp_path, monkeypatch, dialog_over_chats)
     ex.act(stage.Move("tap", next(c for c in chats.cands if c.point == (996, 209))), purpose="nav")
     ex.leave()
-    launched = max(n for n, e in enumerate(phone.log) if e == ("launch",))
-    assert ("back", "dialog") in phone.log[launched:]
-    assert ex.current is chats and ex.relaunches == 0 and not ex.returns
+    assert ("back", "dialog") not in phone.log and ex.current is ex.root and not ex.returns
+    assert ex.relaunch_reasons == ["a launch from com.google.android.permissioncontroller left "
+                                   "com.google.android.permissioncontroller in front"]
+
+
+def arrival_model_says_back(monkeypatch):
+    """The arrival model answers what its prompt allows on any screen: one action, BACK."""
+    real = fake_device.fake_sonnet
+
+    def sonnet(model, system, messages, effort, schema, max_tokens, total_timeout=None):
+        if schema.__name__ != "Arrival":
+            return real(model, system, messages, effort, schema, max_tokens, total_timeout)
+        body = {"identifying_text": "", "verdict": "one_action", "confidence": 0.8, "action": "back",
+                "element_id": None, "direction": None, "side_effect": False,
+                "reason": "the app opened a browser; back returns to it"}
+        return llm.Reply(text=json.dumps(body), model=model, tokens_in=1500, tokens_out=60)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", sonnet)
+
+
+def test_a_route_hop_into_another_app_gets_no_arrival_judgment_or_action_there(tmp_path, monkeypatch):
+    """rt-pr33-fc08e1b MEDIUM 1: the hop's link opens another app whose BACK goes deeper into its own history. Its
+    screen is never judged against the target, so the model's BACK never runs there, and the replay path keeps no
+    move into it."""
+    def link_opens_an_app_with_history(clock):
+        phone = janitor_like(clock)
+        phone.screens["article"] = capture("aol", "aol-home")
+        phone.backs["web"] = "article"
+        return phone
+    ex, phone, chats = on_chats(tmp_path, monkeypatch, link_opens_an_app_with_history)
+    arrival_model_says_back(monkeypatch)
+    ex.edges[(chats.sid, ex.root.sid)] = stage.Move("tap", next(c for c in chats.cands if c.point == (996, 209)))
+    ex.goto(ex.root)
+    assert ("back", "web") not in phone.log and ex.counts["arrival shots"] == 0
+    assert not [to for _, _, to in ex.segments[-1] if ex.by_id[to].kind in stage.AWAY]
+
+
+def test_a_launch_that_lands_on_the_launch_screen_is_a_relaunch_not_a_return(tmp_path, monkeypatch):
+    """rt-pr33-fc08e1b LOW 1: BACK from the launch screen ends the task (emulator fact 2), and a fresh start lands on
+    the launch screen too, so a launch that finds the app there counts, whether it restarted or not."""
+    def starts_on_chats(clock):
+        phone = janitor_like(clock)
+        phone.start, phone.splash, phone.screen = "chats", 0, "chats"
+        return phone
+    ex, _ = new_explorer(tmp_path, monkeypatch, starts_on_chats)
+    ex.relaunch(first=True)
+    root = ex.current
+    assert ex.act(stage.Move("back", decider="model"), purpose="tour").kind == "external"
+    ex.leave()
+    assert ex.current is root and (ex.relaunches, ex.returns) == (1, [])
+
+
+def relaunch_restores_an_exit(tmp_path, monkeypatch, way_home: bool):
+    """A relaunch that lands on chats, a recorded screen whose BACK left the app (and no tab bar to stop at), with
+    home's content filter to re-apply. way_home records a tap from chats to the launch screen."""
+    def chats_links_home(clock):
+        phone = janitor_like(clock)
+        phone.taps[("chats", "84,209")] = "root"
+        return phone
+    ex, phone, chats = on_chats(tmp_path, monkeypatch, chats_links_home)
+    assert ex.filter_taps and ex.root is ex.launch_root
+    ex.tabs = []
+    ex.exits.add(chats.sid)
+    if way_home:
+        link = next(c for c in chats.cands if c.point == (84, 209))
+        ex.edges[(chats.sid, ex.launch_root.sid)] = stage.Move("tap", link)
+    phone.start = "chats"
+    return ex, chats
+
+
+def test_a_relaunch_that_restores_an_exit_walks_a_recorded_route_home_before_the_filter(tmp_path, monkeypatch):
+    """Greptile on #33: back_to_root stops on a screen whose BACK left the app; the filter is re-applied only on the
+    launch screen, reached by a recorded route without that BACK."""
+    ex, chats = relaunch_restores_an_exit(tmp_path, monkeypatch, way_home=True)
+    checks = len(ex.filter_checks)
+    ex.relaunch(why="test")
+    assert ex.current is ex.launch_root and ex.relaunches == 1
+    assert len(ex.filter_checks) == checks + 1 and ex.filter_checks[-1][1]
+
+
+def test_a_relaunch_that_restores_an_exit_with_no_way_home_relaunches_again_and_never_filters_off_home(
+        tmp_path, monkeypatch):
+    ex, chats = relaunch_restores_an_exit(tmp_path, monkeypatch, way_home=False)
+    checks = len(ex.filter_checks)
+    with pytest.raises(stage.Stop, match="relaunch cap"):
+        ex.relaunch(why="test")
+    assert ex.relaunches == stage.MAX_RELAUNCHES and len(ex.filter_checks) == checks
+    assert all("no recorded way led there from" in why for why in ex.relaunch_reasons[1:])
+
+
+def test_a_tap_on_home_before_its_list_reloaded_resolves_on_the_capture_it_was_taken_on(tmp_path, monkeypatch):
+    """Greptile on #32: the committed run's home before and after a relaunch reloaded it (j04, j11). The replaced
+    capture stays, and the model binds an earlier tap on a row the reload replaced to no element, never to the row now
+    in its place, and an earlier tap on a chip both captures show to that chip."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    phone.screens.update(first=capture("janitorai", "j04_tab1"), other=capture("janitorai", "j11_home_relaunched"))
+    phone.screen = "first"
+    home = ex.current = ex.record(ex.observe(), None, None, None)
+    row = next(c for c in home.cands if c.label.startswith("Wavemaker Academy: Pokemon"))
+    chip = next(c for c in home.cands if c.label == "Trending")
+    phone.screen = "chat"
+    chat = ex.record(ex.observe(), home, stage.Move("tap", row), ex.obs)
+    for c in (row, chip):
+        ex.log(home, chat, stage.Move("tap", c), c, "push", "", "ok")
+    phone.screen, ex.home = "other", home
+    assert ex.record(ex.observe(), None, None, None) is home and len(home.replaced) == 1
+    ex.write(None)
+    states, _, _ = model_stage.load_states(ex.out, ex.device)
+    edges, notes = model_stage.load_edges(ex.out, states, model_stage.load_replaced(ex.out, ex.device))
+    elements = {e.id: e for s in states for e in s.elements}
+    assert sorted((elements[e.element_id].label if e.element_id else None) or "" for e in edges) == ["", "Trending"]
+    assert any("a relaunch replaced" in n for n in notes)
+    stale, _ = model_stage.load_edges(ex.out, states)
+    assert all(e.element_id for e in stale)  # on the new capture alone, the row's tap binds to the row now in its place
 
 
 def test_billing_screen_gets_back_at_once(run):
@@ -1477,3 +1590,4 @@ def test_an_arrival_that_is_no_relaunch_keeps_the_recorded_state(tmp_path, monke
     phone.screens["reloaded"] = Screen(retitled, first.image, first.package)
     phone.screen = "reloaded"
     assert ex.record(ex.observe(), None, None, None) is home and [c.key for c in home.cands] == kept
+
