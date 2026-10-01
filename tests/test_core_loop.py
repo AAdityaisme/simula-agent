@@ -170,7 +170,7 @@ def test_an_overlay_asks_with_an_upgrade_or_plans_word_a_plus_tier_or_a_decline_
     assert all(asks(label) for label in ("See plans", "Upgrade now", "Not now", "Maybe later", "Unlock Luzia+",
                                          "See janitor+"))
     assert not any(asks(label) for label in ("Close", "Got it", "Skip", "+", "Pro tips", "Add to plan",
-                                             "+18 Discord server", "18+", "18+ only"))
+                                             "+18 Discord server", "18+", "18+ only", "C++", "A+", "Notepad++"))
 
 
 # Fable E7: the explorer's own message carried a price, and any price on a chat made the conversation a paywall.
