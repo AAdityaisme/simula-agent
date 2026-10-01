@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-cash-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the $1 reward before the optional game. The decline and ad-failure fields leave the existing life timer unchanged and specify what happens if the game is unavailable or does not count."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The reward is $1 paid to the player's PayPal, which is cash."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses a Play tap with zero lives, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and the life timer continues as today."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a button in the safe s02 out-of-lives modal, not in conversation content."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "This is an existing_anchor, but its PayPal cash reward is not a resource the app charges for or limits; the observed paid resource is extra lives."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about lives, the timer, gold bars, and the out-of-lives modal are supported by m01, m02, and s02. The proposal's cash offer is described as new, not as an existing app feature."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "Mechanic m02 records no subscription, so there is no shown plan whose payers would see this offer."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The PayPal reward grants no lasting access to a charged app benefit and takes no existing benefit from other players or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger occurs when a player taps Play with zero lives and reaches the s02 out-of-lives modal—a moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game triggered by a detectable Play tap; the ad-failure field says no reward is sent when the game does not count."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal uses this app's s02 out-of-lives modal, life timer, and gold-bar button."
+ },
+ "other_concern": "",
+ "fixable": false
+}

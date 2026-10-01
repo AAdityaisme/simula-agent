@@ -1,0 +1,69 @@
+{
+ "id": "kg-fitness-01",
+ "source": "base",
+ "app": "a fitness tracker",
+ "app_type": "fitness",
+ "in_test_set": false,
+ "model": "judge/known_good/models/fitness.json",
+ "author": "claude-opus-5-5",
+ "filled_by": {},
+ "note": "Written for PR #26, not yet approved by Aadi: an offer shown only to paying users, for something outside their plan (a streak freeze; Plus sells training plans and heart-rate stats) on a screen every user gets. c3 must pass it.",
+ "candidate": {
+  "kind": "existing_anchor",
+  "title": "Out of streak freezes: one more for a short game, for Plus members",
+  "anchor_evidence_ids": [
+   "s01.e02",
+   "s02.e02"
+  ],
+  "bible_mechanic": "none",
+  "what_is_different_here": "Every user gets one streak freeze a week (s01.e02); when it is used, the streak-about-to-break pop-up (s02) says none are left (s02.e02). Fitness Plus sells custom training plans and advanced heart-rate stats (s03.e03, s03.e04), not streak freezes, so the button goes to Plus members for something their plan doesn't include.",
+  "adds": null,
+  "removes_nothing_free": true,
+  "trigger_event": "The streak-about-to-break pop-up opens for a Plus member who has no streak freeze left this week",
+  "trigger_state_id": "s02",
+  "placement": "A button under 'Start a 5-minute workout' in the streak-about-to-break pop-up",
+  "offer_copy": "No freezes left. Play a short game to get 1 extra streak freeze this week.",
+  "reward": {
+   "kind": "streak_protection",
+   "unit": "streak freeze",
+   "amount": 1.0,
+   "duration": "until the end of this week"
+  },
+  "for_users": "paying",
+  "grants_id": null,
+  "cost_inputs": {
+   "inference_count": 0,
+   "tokens_in": 0,
+   "tokens_out": 0,
+   "minutes": 0.0,
+   "currency_amount": 0.0
+  },
+  "frequency_cap": "1 per week, resets Monday",
+  "daily_cap": 0,
+  "decline_path": "Closing the pop-up changes nothing: the workout button and the streak work as today.",
+  "ad_fail_path": "If no game is ready, the button is hidden. If the game doesn't count, no freeze is given and the try isn't used.",
+  "subscriber_treatment": "Only Plus members see this button. Their plan (custom training plans, advanced heart-rate stats) doesn't include streak freezes.",
+  "advertiser_category": "Health and fitness apps, casual mobile games",
+  "character_use": "None",
+  "flow_steps": [
+   {
+    "state_id": "s01",
+    "caption": "A Plus member with a 12-day streak and no freeze left has no workout yet today."
+   },
+   {
+    "state_id": "s02",
+    "caption": "The pop-up shows the new button under the workout button."
+   },
+   {
+    "state_id": "new:sponsored-game",
+    "caption": "The member plays a short game and can close it at any time."
+   },
+   {
+    "state_id": "s01",
+    "caption": "The meter shows 1 streak freeze left, and the streak is safe tonight."
+   }
+  ],
+  "after_reward": "When the freeze is used or the week ends, freezes go back to one a week, and the button can come back next week.",
+  "rationale": "A streak about to break is when a user might give up. Plus members pay for plans and stats, not freezes, so an extra freeze adds something without touching what they bought, and it costs nothing to give."
+ }
+}

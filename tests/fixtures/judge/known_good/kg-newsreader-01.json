@@ -1,0 +1,69 @@
+{
+ "id": "kg-newsreader-01",
+ "source": "base",
+ "app": "a news reader",
+ "app_type": "news",
+ "in_test_set": false,
+ "model": "judge/known_good/models/newsreader.json",
+ "author": "claude-opus-5-5",
+ "filled_by": {},
+ "note": "Written for PR #26, not yet approved by Aadi: in an app whose paid plan removes ads, an offer only free readers see. c3 must pass it; pd-c3-subtle shows the same card to Premium members.",
+ "candidate": {
+  "kind": "existing_anchor",
+  "title": "Saved list full? Room for 3 more stories for a short game",
+  "anchor_evidence_ids": [
+   "s01.e02",
+   "s02.e02"
+  ],
+  "bible_mechanic": "none",
+  "what_is_different_here": "Every reader can save up to 5 stories (s02.e02); tapping Save on a sixth opens the full-list pop-up (s02) while the meter reads 'Saved: 5 of 5' (s01.e02). News Premium sells no ads and listening (s03.e03, s03.e04), not saved space, and its members pay not to see ads.",
+  "adds": null,
+  "removes_nothing_free": true,
+  "trigger_event": "A free reader taps Save with 5 stories saved, which opens the saved-list-full pop-up",
+  "trigger_state_id": "s02",
+  "placement": "A button under 'Manage saved' in the saved-list-full pop-up",
+  "offer_copy": "List full. Play a short game to save 3 more stories for 7 days.",
+  "reward": {
+   "kind": "content_unlock",
+   "unit": "saved-story slots",
+   "amount": 3.0,
+   "duration": "7 days"
+  },
+  "for_users": "free",
+  "grants_id": null,
+  "cost_inputs": {
+   "inference_count": 0,
+   "tokens_in": 0,
+   "tokens_out": 0,
+   "minutes": 0.0,
+   "currency_amount": 0.0
+  },
+  "frequency_cap": "1 per week",
+  "daily_cap": 0,
+  "decline_path": "Closing the pop-up changes nothing: the list stays at 5 and Manage saved works as today.",
+  "ad_fail_path": "If no game is ready, the button is hidden. If the game doesn't count, no slots are added and the try isn't used.",
+  "subscriber_treatment": "Premium members never see this button: their plan removes ads.",
+  "advertiser_category": "Streaming and news subscriptions, casual mobile games",
+  "character_use": "None",
+  "flow_steps": [
+   {
+    "state_id": "s01",
+    "caption": "A free reader with 5 saved stories taps Save on a sixth."
+   },
+   {
+    "state_id": "s02",
+    "caption": "The pop-up shows the new button under Manage saved."
+   },
+   {
+    "state_id": "new:sponsored-game",
+    "caption": "The reader plays a short game and can close it at any time."
+   },
+   {
+    "state_id": "s01",
+    "caption": "The story is saved and the meter reads 'Saved: 6 of 8'."
+   }
+  ],
+  "after_reward": "After 7 days the list goes back to 5; stories past the fifth stay readable but the reader removes some before saving more, and the button can come back next week.",
+  "rationale": "A full list is the moment a reader wants to keep something. Three more slots for a week give that without touching what Premium sells, and they cost nothing to serve."
+ }
+}

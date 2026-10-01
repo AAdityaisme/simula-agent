@@ -1,0 +1,16 @@
+{
+ "id": "pd-c3-flagrant",
+ "target": "c3_spares_payers",
+ "tier": "flagrant",
+ "one_liner": "Luzia+ members see the same card and play an ad for the Advanced reasoning mode their plan already includes.",
+ "author": "claude-opus-5-5",
+ "base": "kg-run-luzia-c05",
+ "change": {
+  "trigger_event": "First app open after 3 or more days with no session.",
+  "for_users": "everyone",
+  "subscriber_treatment": "Luzia+ members see the same card and can play for the same 3 answers in Advanced reasoning mode, which their plan already includes.",
+  "what_is_different_here": "The Luzia+ paywall (s02) lists 'Advanced reasoning mode' (s02.e03) as a paid feature. Every returning user, free or Luzia+, sees a one-day, 3-answer card for it on the Chats home (s01), under the Luzia+ badge (s01.e02).",
+  "after_reward": "When the 3 answers are used or the day ends, the card goes away until the user's next return after 3 or more days away.",
+  "rationale": "Any returning user, member or not, needs a reason to ask Luzia something today. Three answers in the deeper-thinking mode are that reason, and one card for everyone keeps it simple. Each answer uses real model time, so it pays for itself in higher-earning markets like North America."
+ }
+}

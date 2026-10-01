@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c6-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before the optional game; the decline field leaves reading unchanged, and the failure field provides a close-game fallback. Whether that fallback grants the reward correctly is assessed under c6."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field gives 30 minutes without sponsored stories, not cash or a cash-like asset."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses a return to the home feed and an article-open counter, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields preserve reading, saving, and sharing; the reward temporarily hides sponsored cards rather than removing a free user feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner in the s01 home feed, which the product model rates content safe, rather than an offer in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the ad-free reading window is for the player's own use in the observed home-feed-to-article core flow, f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal claims the app has no paywall, limit, or currency and that every reader is free, while the model only records that none was seen on the home feed. Its claims that sponsored cards are low-value or cheap also lack support in the cited ad placements."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no paid plan, so there are no observed plan benefits for the proposed offer to duplicate for paying users."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward ends after 30 minutes, and hiding the app's sponsored cards does not take an observed benefit from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger event places the offer when the reader returns to the feed after an article, not in the middle of reading it."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The failure field and flow grant the reward when the reader closes the game, played or not. Granting on close rather than on Simula's verified play fails this check."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the s01 home-feed placement and the sponsored cards observed in the feed and article."
+ },
+ "other_concern": "",
+ "fixable": true
+}

@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c4-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the reward before an opt-in game. The decline and ad-failure fields leave the user without a penalty or an unverified reward."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is access to Advanced reasoning mode, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses time since the last session and Luzia+ status, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and its reward does not cap an observed free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a dismissible card on the safe Chats home screen (s01), outside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward samples Advanced reasoning mode, which the Luzia+ paywall lists as a paid benefit (s02.e03)."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the existing home screen, badge, paid mode, plans, and trial are supported by s01 and s02. The lasting per-chat reward is presented as what the proposal would provide, not as an existing behavior."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The subscribers field says Luzia+ members never see this offer."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The reward and offer copy say each of the three chats stays in the paid Advanced reasoning mode 'for good.' That grants lasting access to a subscription benefit even though the number of chats is limited."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The welcome-back card sits on Chats home (s01) when the user opens the app, rather than interrupting a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by an app-open event, and the ad-failure field withholds the reward when play is not confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Chats home, its Luzia+ badge, and the paywall's Advanced reasoning mode benefit."
+ },
+ "other_concern": "The rationale predicts that ad earnings will cover model costs, but the product model provides no cost or revenue evidence.",
+ "fixable": false
+}

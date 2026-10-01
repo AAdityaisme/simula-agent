@@ -458,7 +458,7 @@ def finish(drafts: list[Candidate], model: ProductModel, mode: str, name=lambda 
         reason = f"no opportunity: {c.rationale}" if c.kind == "no_opportunity" else check(c, model)
         flags = [] if reason else jargon_flags(c, model)
         checked.append(c.model_copy(update={"dropped_reason": reason, "flags": flags}))
-    ranked = [rank(c, model, mode) for c in economics.apply(checked, model.app_category, mode)]
+    ranked = [rank(c, model, mode) for c in economics.apply(checked, model, mode)]
     passing = sorted((c for c in ranked if not c.dropped_reason), key=lambda c: (bool(c.flags), -c.rank_score))
     names, links = name(passing)
     passing = [c.model_copy(update={"dropped_reason": linked_problem(c, links.get(c.id), model)}) for c in passing]

@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c5-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The pop-up is opt-in, the offer copy states the reward (30 minutes with no sponsored stories), declining changes nothing, and 'if the ad fails' covers both a missing game and an unconfirmed play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored cards, a feature_time reward with no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is reading position in an article (an app event on s02) and needs no user-written content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed or capped. Sponsored cards are hidden only temporarily as a reward, and the 2-per-day cap limits the offer itself, not a free resource."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a pop-up over s02 Article, a non-chat screen rated safe, and it is not placed in or between messages."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the new resource (ad-free time) is used by the player in the observed core flow f01 (read a story), and the reward does not go to anyone else."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "'The app has no paywall, limit, or currency' and 'This app has nothing locked' are stated as facts about the whole app, but the open question only records that none was seen on the home feed. 'The only friction a free reader meets' is also unsupported."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no paid plan, so there are no paying users for the offer to affect."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The 30-minute window expires, no subscription benefit is given away, and nothing is taken from other users or creators."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The trigger 'halfway through an article' pops up over a reader mid-task. It is not a limit hit, locked item tapped, or finished action, and it is not a persistent surface the user chooses to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "This is a play-to-earn unit, the reward is granted only once the play is confirmed (flow step 4), and article scroll position is an app event the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the s02 article reader, the Taboola sponsored cards in the feed (s01.e44) and in articles (s02.e13), and the patchy feed fill."
+ },
+ "other_concern": "Hiding ad cards for 30 minutes may cost Taboola revenue, and the proposal's claim that one game earns more is only a prediction. Its mid-article offer may also annoy readers.",
+ "fixable": true
+}

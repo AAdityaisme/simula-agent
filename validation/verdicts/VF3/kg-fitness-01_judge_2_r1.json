@@ -1,0 +1,53 @@
+{
+ "candidate_id": "kg-fitness-01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the reward before the optional game. The decline and ad-failure fields leave the user without a change or an unearned freeze."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is one in-app streak freeze, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses the streak-about-to-break pop-up, Plus membership, and the freeze count, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds an extra freeze without removing or capping the weekly freeze shown in s01.e02."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a button on the safe s02 modal, not in or next to a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, m02 establishes that the app limits streak freezes to one a week."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The cited s01.e02 and s02.e02 support the freeze count and out-of-freezes moment; s03.e03 and s03.e04 support the stated Plus benefits. The extra freeze and Plus-only button are proposed changes."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "Although only Plus members see the button, it offers streak protection rather than the custom plans or advanced heart-rate stats listed for Plus in s03."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits the extra freeze to one use and the end of the week; it does not grant lasting subscription access or take an advantage from other users."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger is the s02 pop-up warning that the streak is about to break, a moment of need rather than an interruption mid-task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a chosen sponsored game triggered by the detectable s02 pop-up. The ad-failure field says a game that does not count gives no freeze, rather than rewarding a tap or a started ad."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea depends on this app's streak-freeze meter in s01.e02 and the out-of-freezes pop-up in s02."
+ },
+ "other_concern": "The rationale says the extra freeze 'costs nothing to give,' but the product model does not establish its cost.",
+ "fixable": false
+}

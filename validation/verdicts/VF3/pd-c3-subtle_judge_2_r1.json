@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c3-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-slot, seven-day reward before the optional game. The decline and ad-failure fields leave the saved list unchanged if the reader declines or the game does not count."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is three saved-story slots for use in the app, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses the Save tap and the five-story count shown by m01, not anything a user wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The reward temporarily expands the five free slots recorded in m01; the expiry field does not remove those original slots."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a button in s02, a content-safe modal, rather than an offer beside unsafe or unknown-rated content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The saved-story capacity rewarded by this existing opportunity is limited to five in m01."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "m01 and s02 support the full-list trigger, while m03 supports the stated Premium benefits. The temporary extra slots are a proposed change, not an unsupported claim that they exist today."
+ },
+ "c3_spares_payers": {
+  "passed": false,
+  "reason": "The subscribers field says Premium members see the offer, but m03 says their plan includes no ads. This fails the condition that members of an ad-removing plan must not see the offer."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field expires the extra slots after seven days, and saved space is not a benefit listed for Premium in m03."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger event presents the offer when a Save tap reaches the full-list pop-up, an immediate moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a playable game triggered by a detectable Save event, and the ad-failure field withholds slots when the game does not count. It does not specify a tap, close, or started ad as a reward trigger."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses this app's five-story saved limit, Save button, and saved-list-full pop-up."
+ },
+ "other_concern": "The 'adds: nothing new' field understates the new temporary-capacity and expiry behavior, and the claim that extra slots cost nothing to serve is unverified.",
+ "fixable": true
+}

@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c5-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-answer reward before play. The decline and ad-failure fields preserve the normal path or allow a retry without using the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is three in-app Advanced reasoning mode answers, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses time since opening the app, subscription status, and a New chat tap, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free; it offers a limited sample of a benefit listed on the Luzia+ paywall."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card opens over s01 Chats home, which is rated safe and is not a conversation thread."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As an existing opportunity, the reward samples Advanced reasoning mode, a paid benefit listed at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The placement and decline fields treat a list for choosing whom to talk to as an existing step after tapping New chat. s01 shows New chat and persona tiles, but the model does not show that post-tap list or navigation."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The subscribers field says Luzia+ members never see the offer."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward lasts only three answers or until midnight, so it does not grant lasting access to the paid benefit."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The trigger and placement open the card while the user is starting a new chat, before they can continue. That interrupts the task without a limit hit, locked-item tap, finished action, or persistent offer surface the user chose to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable New chat tap, and the ad-failure field says an unconfirmed play does not count."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Chats home, its Luzia+ badge, and the paywall's Advanced reasoning mode benefit."
+ },
+ "other_concern": "The claim that game revenue will cover model-answer costs in higher-earning markets is unvalidated.",
+ "fixable": true
+}
