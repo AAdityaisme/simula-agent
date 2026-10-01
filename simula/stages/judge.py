@@ -221,6 +221,13 @@ def could_fall_back(c: Candidate, d: Decision, verdicts: list[Verdict]) -> bool:
             and not set(NO_FALLBACK) & set(failed_by_all(verdicts)))
 
 
+def earlier(cid: str):
+    """The versions a revision came from, newest first: c01-rev-rev gives c01-rev, then c01."""
+    while cid.endswith("-rev"):
+        cid = cid.removesuffix("-rev")
+        yield cid
+
+
 def superseded(revised: list[Candidate], decisions: dict[str, Decision],
                verdicts: dict[str, dict[str, Verdict]]) -> set[str]:
     """Earlier versions a revision stands in for: one that survived, or a reject the fallback could pick, replaces its
@@ -228,11 +235,6 @@ def superseded(revised: list[Candidate], decisions: dict[str, Decision],
     versions before it in play."""
     def stands_in(r: Candidate, d: Decision) -> bool:
         return d.final in SURVIVORS or (d.final == "reject" and could_fall_back(r, d, [*verdicts[r.id].values()]))
-
-    def earlier(cid: str):
-        while cid.endswith("-rev"):
-            cid = cid.removesuffix("-rev")
-            yield cid
     return {e for r in revised if stands_in(r, decisions[r.id]) for e in earlier(r.id)}
 
 
@@ -433,9 +435,10 @@ def judge_run(ctx: Ctx, work: Path, model: ProductModel, candidates: list[Candid
             verdicts |= v
             decisions |= {r.id: decide(r, [*v[r.id].values()], len(judges), mode, p[r.id],
                                        revision_of=r.id.removesuffix("-rev")) for r in latest}
+            # a revision that clears an evidence fail without new facts clears it for every version before it
             for r in latest:
-                before = r.id.removesuffix("-rev")
-                decisions[before] = proposal_fault(decisions[before], [*v[r.id].values()])
+                for e in earlier(r.id):
+                    decisions[e] = proposal_fault(decisions[e], [*v[r.id].values()])
         revised += latest
 
     everyone = {c.id: c for c in candidates + revised}

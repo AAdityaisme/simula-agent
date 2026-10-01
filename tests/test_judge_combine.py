@@ -677,3 +677,16 @@ def test_a_gate_fail_with_a_lost_judge_call_is_rejected_but_never_revised(tmp_pa
     d = decisions_of(run_dir)[cands[0].id]
     assert (d.final, d.gate_fails, len(d.verdict_paths)) == ("reject", ["g_policy"], 1)
     assert not revise_steps(calls)
+
+
+def test_an_evidence_fail_a_second_revision_fixed_was_the_proposals_for_every_earlier_version(tmp_path, monkeypatch):
+    app = "janitorai"
+    cands = live(app, {"rationale": "OVERCLAIM"})
+    first = f"{cands[0].id}-rev"
+    run_dir, _ = run_rounds(tmp_path, monkeypatch, app, cands, {"OVERCLAIM": ["c2_evidence"]},
+                            {cands[0].id: cands[0].model_copy(update={"rationale": "STILL OVERCLAIM"}),
+                             first: cands[0].model_copy(update={"rationale": "Plain."})})
+    decisions = decisions_of(run_dir)
+    assert decisions[f"{first}-rev"].final == "accept"
+    assert [(decisions[c].failure_type, decisions[c].rerun_stage) for c in (cands[0].id, first)] == [
+        ("proposal", None), ("proposal", None)]
