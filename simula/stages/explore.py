@@ -1917,7 +1917,8 @@ class Explorer:
                             f"fingerprint alone")
 
     def quiet_launch(self) -> None:
-        """A relaunch for the replay check: same launch, dialogs, and filter, nothing recorded."""
+        """A relaunch for the replay check: same launch, dialogs, and filter, nothing recorded. The filter is checked
+        as the explore's is, so a replay never taps on without it."""
         with self.launching(self.launch_root):
             self.wait_for_app(self.launch_root)
         for _ in range(3):
@@ -1933,6 +1934,8 @@ class Explorer:
             live = ob.find(self.obs.cands, tap)
             if live and not self.filter_set(n) and self.safe_tap(live, "replay"):
                 self.observe()
+        if self.filter_taps:
+            self.check_filter()
 
     # ---------- Jev and Sonnet ----------
 

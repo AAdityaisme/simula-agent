@@ -1468,6 +1468,25 @@ def test_a_switch_filter_is_kept_in_its_restrictive_state_never_flipped_blind(tm
         == (0 if shipped_on is restrictive else 2)
 
 
+def test_a_replay_relaunch_that_can_not_verify_the_filter_ends_the_replay_check(tmp_path, monkeypatch):
+    """The explore's rule holds for the replay check too: its relaunch re-applies the filter and checks it. By the
+    replay check the filter chip reads "Limited", so it can't be re-applied or verified, and the check stops before
+    any tap but the launch dialog's."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    replay, start = ex.verify_replay, []
+
+    @functools.wraps(replay)
+    def relabelled():
+        relabel_the_filter(phone)
+        start.append(len(phone.log))
+        replay()
+    monkeypatch.setattr(ex, "verify_replay", relabelled)
+    stage.explore_app(ex)
+    assert start and ex.stop_reason == f"content filter not verified (check {len(ex.filter_checks)}) in verify_replay"
+    assert {entry[1] for entry in phone.log[start[0]:] if entry[0] == "tap"} <= {"launch"}
+    assert stage.outcome(ex).status == "partial"
+
+
 @pytest.mark.parametrize("reset", [False, True])
 def test_a_return_to_home_checks_its_filter_switch_and_ends_the_explore_if_it_reset(tmp_path, monkeypatch, reset):
     """rt-pr43-f6702e7 LOW 2: home holds the filter switch, turned on, and an app opened from home is left with a
@@ -1496,10 +1515,18 @@ def test_a_return_to_home_checks_its_filter_switch_and_ends_the_explore_if_it_re
         assert ex.current is home and len(ex.returns) == 1 and ex.filter_checks[-1][1]
 
 
+def relabel_the_filter(phone: FakePhone) -> None:
+    """The janitor-like app's filter chip reads "Limited" from now on (an app update, a reset): no control matches it."""
+    for name in ("root", "limited"):
+        screen = phone.screens[name]
+        phone.screens[name] = Screen([{**e, **{k: "Limited" for k in ("text", "label") if e.get(k) == "Limited Only"}}
+                                      for e in screen.elements], screen.image, screen.package)
+
+
 def test_a_relaunch_that_shows_the_filter_under_another_label_ends_the_explore(tmp_path, monkeypatch):
-    """Greptile #43: after the first relaunch the filter chip reads "Limited" (an app update, a reset). No control
-    matches it, so the filter is neither re-applied nor verified, and nothing is tapped after the failed check: no
-    more tour, no paywall pass, core loop or replay check."""
+    """Greptile #43: after the first relaunch the filter chip reads "Limited". No control matches it, so the filter
+    is neither re-applied nor verified, and nothing is tapped after the failed check: no more tour, no paywall pass,
+    core loop or replay check."""
     def factory(clock):
         phone, launches = janitor_like(clock), []
         launch = phone.launch
@@ -1508,11 +1535,7 @@ def test_a_relaunch_that_shows_the_filter_under_another_label_ends_the_explore(t
             launch()
             launches.append(len(phone.log))
             if len(launches) == 2:
-                for name in ("root", "limited"):
-                    screen = phone.screens[name]
-                    phone.screens[name] = Screen([{**e, **{k: "Limited" for k in ("text", "label")
-                                                           if e.get(k) == "Limited Only"}} for e in screen.elements],
-                                                 screen.image, screen.package)
+                relabel_the_filter(phone)
         phone.launch, phone.launches = relabelled, launches
         return phone
     ex, phone = explore(tmp_path, monkeypatch, factory)
