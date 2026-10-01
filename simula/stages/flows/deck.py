@@ -24,6 +24,7 @@ SLIDE_W, SLIDE_H = 1280, 720
 PARTS = ("flow", "why")
 WHY_TITLE = "Why this works for your app"
 AFTER_PLAY = "A new screen opens after the verified play."
+OPEN_NOTES = "Review notes: see Simula's review."
 ROW_W, ROW_GAP = SLIDE_W - 2 * 64, 28
 PHONE_MAX_W, COLUMN_MAX_W, RING_PAD = 160, 220, 5
 # the score table's CSS: 12px text on 15px lines, 7px of padding and border a row, the rows' room between the table's
@@ -61,8 +62,9 @@ def labels_text(labels: list[str]) -> str:
 
 def row_phones(flow: dict) -> list[dict]:
     """The flow slide's phones in order: the screen as it is today, then every step the walk took. Each has a label,
-    a caption, what the user taps on it, and a red flag for anything the walks couldn't show. A new screen after the ad
-    has no reward to switch off and check, so its caption says only what the walk saw: the verified play opened it."""
+    a caption, what the user taps on it, and a flag for anything the walks couldn't show, which only Simula's review
+    lists. A new screen after the ad has no reward to switch off and check, so its caption says only what the walk saw:
+    the verified play opened it."""
     c, shots, at = flow["candidate"], flow["shots"], flow["ad_at"]
     phones = [{"label": "Today", "text": shots[0]["caption"], "png": flow["before"], "tap": None,
                "flags": [] if flow["before"] else [NOT_WIRED]}]
@@ -89,11 +91,9 @@ def row_phones(flow: dict) -> list[dict]:
 def step_html(number: int, phone: dict, prefix: str) -> str:
     image = f'<img src="{prefix}/screens/{phone["png"]}" alt="">' if phone["png"] else ""
     ring = ring_html(phone["tap"]) if phone["tap"] else ""
-    badge = f'<span class="notwired">{NOT_WIRED}</span>' if NOT_WIRED in phone["flags"] else ""
-    flags = "".join(f'<span class="flag">{escape(flag)}</span>' for flag in phone["flags"])
     return (f'<div class="step"><div class="shot"><span class="n">{number}</span>'
-            f'<div class="phone">{image}{ring}{badge}</div></div>'
-            f'<div class="cap"><b>{escape(phone["label"])}</b>{flags}<p>{escape(plain(phone["text"]))}</p></div></div>')
+            f'<div class="phone">{image}{ring}</div></div>'
+            f'<div class="cap"><b>{escape(phone["label"])}</b><p>{escape(plain(phone["text"]))}</p></div></div>')
 
 
 def row_html(phones: list[dict], prefix: str) -> str:
@@ -113,9 +113,6 @@ def slide_html(flow: dict, part: str, body: str) -> str:
         labels = f'<span class="chip conditional">{chip}</span>'
     else:
         labels = '<span class="chip conditional">Conditional</span>' if decision.final == "conditional" else ""
-    if cost_question(c):
-        chip = "May lose a sale" if c.economics.verdict == "PASS" else f"Cost check: {c.economics.verdict}"
-        labels += f'<span class="chip conditional">{chip}</span>'
     idea = "" if part == "flow" else escape(plain(caption(c)))  # the flow slide's title already names the idea
     return (f'<section class="slide main" data-part="{part}" data-idea="{c.id}">'
             f'<header><span class="chip {kind}">{escape(BUCKETS.get(c.kind, ""))}</span>'
@@ -173,8 +170,7 @@ def disagreement(k: str, failing: str, judged: list[Verdict]) -> str:
 def condition(decision: Decision, run_dir: Path, none_accepted: bool,
               approved: bool = False) -> tuple[str, str] | None:
     """A CONDITIONAL idea's heading and sentence about the checks it missed, in plain words, with both judges'
-    reasons when they split (D10); None when it missed none (its condition is then its cost line, which the cost box
-    says)."""
+    reasons when they split (D10); None when it missed none (its condition is then its cost line, see review_notes)."""
     if decision.final != "conditional":
         return None
     failed = failed_checks(decision, run_dir)
@@ -204,7 +200,21 @@ def saying_no(flow: dict) -> str:
     return "saying no doesn't bring them back yet" if flow["decline"] else "saying no changes nothing"
 
 
+def review_notes(flow: dict, run_dir: Path, none_accepted: bool) -> list[str]:
+    """What a drawn idea's slides leave to Simula's review: each step's flags, the checks it missed with the judges'
+    reasons, and its cost line."""
+    c = flow["candidate"]
+    notes = [f"Flow slide, step {n} ({phone['label']}): {flag}." for n, phone in enumerate(row_phones(flow), 1)
+             for flag in phone["flags"]]
+    if note := condition(flow["decision"], run_dir, none_accepted, flow.get("approved", False)):
+        notes.append(f"{note[0]} {plain(note[1])}")
+    if cost := cost_question(c):
+        notes.append(f"Cost check ({c.economics.verdict}): {cost}.")
+    return notes
+
+
 def why_html(flow: dict, model: ProductModel, run_dir: Path, none_accepted: bool) -> str:
+    """The why slide's blocks and its reach line, then one neutral line when Simula's review has notes on the idea."""
     c, decision = flow["candidate"], flow["decision"]
     gets = reward_line(c)  # the offer's terms: the flow slide already shows what the screen does after the play
     blocks = [("What the user gets", gets[:1].upper() + gets[1:] + "."),
@@ -214,10 +224,10 @@ def why_html(flow: dict, model: ProductModel, run_dir: Path, none_accepted: bool
     html = "".join(f'<div class="why-block"><b>{escape(label)}</b><p>{escape(plain(text))}</p></div>'
                    for label, text in blocks)
     html += f'<p class="reach">{escape(plain(reach_text(c, model)))}</p>'
-    if note := condition(decision, run_dir, none_accepted, flow.get("approved", False)):
-        html += f'<div class="condition"><b>{note[0]}</b> {escape(plain(note[1]))}</div>'
-    if cost := cost_question(c):
-        html += f'<div class="condition"><b>Cost check ({c.economics.verdict}):</b> {escape(cost)}.</div>'
+    if review_notes(flow, run_dir, none_accepted):
+        lead = ("<b>The closest idea, not a recommendation.</b> "
+                if closest(decision, run_dir, none_accepted, flow.get("approved", False)) else "")
+        html += f'<div class="condition">{lead}{OPEN_NOTES}</div>'
     return f'<div class="why">{html}</div>'
 
 
@@ -328,28 +338,43 @@ def score_pages(rows: list[tuple[str, int]], budget: int) -> tuple[list[list[str
     return pages, used
 
 
+def list_slides(title: str, items: list[list[str]], footer: str) -> list[str]:
+    """Pages of items, each its lines with the first in bold, packed in order onto as few pages as fit."""
+    rows = [(f"<li><b>{escape(lines[0])}</b>" + "".join(f"<br>{escape(line)}" for line in lines[1:]) + "</li>",
+             SCORE_ROW_PAD_PX + SCORE_LINE_PX * sum(math.ceil(len(line) / (SCORE_TITLE_CHARS + SCORE_WHY_CHARS))
+                                                    for line in lines))
+            for lines in items]
+    pages, _ = score_pages(rows, SCORE_PAGE_PX)
+    return [f'<section class="slide scores"><h2>{title}{f" ({n} of {len(pages)})" if len(pages) > 1 else ""}</h2>'
+            f'<div class="score-body"><ul class="calls">{"".join(page)}</ul></div><footer>{footer}</footer></section>'
+            for n, page in enumerate(pages, 1)] if items else []
+
+
+def notes_slides(flows: list[dict], run_dir: Path, none_accepted: bool) -> list[str]:
+    """Each drawn idea's review notes beside it: what its slides leave to this review (review_notes)."""
+    items = [[f"{f['candidate'].id} · {plain(caption(f['candidate']))}", *notes] for f in flows
+             if (notes := review_notes(f, run_dir, none_accepted))]
+    return list_slides("Notes kept off the deck's slides", items,
+                       "The deck's slides say only that these notes are here. Every walk, step by step: "
+                       "<b>exhibits/07-flows.md</b>.")
+
+
 def call_slides(waiting: list[Decision], candidates: dict[str, Candidate], run_dir: Path,
                 set_aside: dict[str, str] | None = None) -> list[str]:
     """The last pages (D11): every idea the judges split on that no one approved, each split check as its open
     question with both sides. None of them is drawn; a person draws one by approving it."""
-    rows = []
+    items = []
     for d in waiting:
         judged = [v for _, v in verdicts(d, run_dir)]
         c = candidates.get(d.candidate_id)
         clauses = [disagreement(k, why, judged) for k, why in failed_checks(d, run_dir) if k in d.judgment_splits]
         # plain() would drop the id, and the id is what a person puts in approvals.json
-        lines = [f"{d.candidate_id} · {plain(caption(c)) if c else ''}", *map(plain, clauses),
-                 *([f"Not drawn: {set_aside[d.candidate_id]}."] if d.candidate_id in (set_aside or {}) else []),
-                 f'To approve: {{"id": "{d.candidate_id}", "splits": {json.dumps(d.judgment_splits)}}}']
-        rows.append((f"<li><b>{escape(lines[0])}</b>" + "".join(f"<br>{escape(line)}" for line in lines[1:]) + "</li>",
-                     SCORE_ROW_PAD_PX + SCORE_LINE_PX * sum(
-                         math.ceil(len(line) / (SCORE_TITLE_CHARS + SCORE_WHY_CHARS)) for line in lines)))
-    pages, _ = score_pages(rows, SCORE_PAGE_PX)
-    return [f'<section class="slide scores"><h2>Needs your call{f" ({n} of {len(pages)})" if len(pages) > 1 else ""}'
-            f'</h2><div class="score-body"><ul class="calls">{"".join(page)}</ul></div>'
-            "<footer>The reviewers split on these ideas, so none is drawn. To draw one, add its \"To approve\" entry to "
-            "<b>promote</b> in <b>flows/approvals.json</b> and run flows again.</footer></section>"
-            for n, page in enumerate(pages, 1)] if waiting else []
+        items.append([f"{d.candidate_id} · {plain(caption(c)) if c else ''}", *map(plain, clauses),
+                      *([f"Not drawn: {set_aside[d.candidate_id]}."] if d.candidate_id in (set_aside or {}) else []),
+                      f'To approve: {{"id": "{d.candidate_id}", "splits": {json.dumps(d.judgment_splits)}}}'])
+    return list_slides("Needs your call", items,
+                       "The reviewers split on these ideas, so none is drawn. To draw one, add its \"To approve\" "
+                       "entry to <b>promote</b> in <b>flows/approvals.json</b> and run flows again.")
 
 
 def score_slides(decisions: list[Decision], candidates: dict[str, Candidate], not_built: list[tuple[Decision, str]],
@@ -414,7 +439,8 @@ def review(ctx: Ctx, model: ProductModel, flows: list[dict], not_built: list[tup
            decisions: list[Decision], candidates: dict[str, Candidate], *, cap: int, cut: int = 0,
            waiting: list[Decision] = (), set_aside: dict[str, str] | None = None, held: list[str] = (),
            held_past_cap: list[str] = (), promoted: list[str] = ()) -> str:
-    """Simula's own review, kept out of the product team's deck: its cover, every idea's score, and Needs your call.
+    """Simula's own review, kept out of the product team's deck: its cover, the notes the deck's slides leave out,
+    every idea's score, and Needs your call.
     `held` names the ideas a person's hold took out of the deck or off Needs your call; `held_past_cap` the ones the
     cap left out anyway."""
     app = app_title(model, ctx.app["name"])
@@ -430,6 +456,7 @@ def review(ctx: Ctx, model: ProductModel, flows: list[dict], not_built: list[tup
                                 held_past_cap=held_past_cap,
                                 set_aside={i: why for i, why in (set_aside or {}).items() if i not in asked},
                                 status=unfinished_stages(ctx.run_dir))]
+    slides += notes_slides(flows, ctx.run_dir, none_accepted)
     slides += score_slides(decisions, candidates, not_built, ctx.run_dir)
     slides += call_slides(waiting, candidates, ctx.run_dir, set_aside)
     return deck_html(f"Simula's review for {escape(app)}", watermark(ctx.run_dir) + "\n".join(slides))
