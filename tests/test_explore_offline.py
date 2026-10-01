@@ -15,6 +15,7 @@ from simula.contracts import ActionLine, ExploreFile, StateFile
 from simula.device import observe as ob
 from simula.device.mcp import parse_elements
 from simula.stages import explore as stage
+from simula.stages import model as model_stage
 from tests import fake_device
 from tests.fake_device import PACKAGE, Clock, FakePhone, Screen, blank, capture, fake_jev, new_run
 from tests.fake_device import explore as run_explorer
@@ -124,6 +125,351 @@ def test_leaving_the_app_records_an_external_state_then_goes_back(run):
     assert external
     by_from = {line.from_state: line for line in lines(ex) if line.outcome == "ok"}
     assert all(by_from[s.sid].action == "back" for s in external)
+
+
+def on_chats(tmp_path, monkeypatch, phone_factory=janitor_like):
+    """An explorer launched and on the chats tab, a screen the tour recorded from home."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, phone_factory)
+    ex.relaunch(first=True)
+    phone.go("chats")
+    chats = ex.current = ex.record(ex.observe(), ex.current, stage.Move("tap"), ex.obs)
+    return ex, phone, chats
+
+
+def back_into_another_app(clock):
+    """BACK from chats leaves the app (its task ends, as Perplexity's did) into another app, whose BACK goes deeper."""
+    phone = janitor_like(clock)
+    phone.screens.update(aol=capture("aol", "aol-home"), article=capture("aol", "aol-article"))
+    phone.backs.update(chats="aol", aol="article")
+    return phone
+
+
+def test_back_out_of_the_app_relaunches_without_walking_the_other_app(tmp_path, monkeypatch):
+    ex, phone, chats = on_chats(tmp_path, monkeypatch, back_into_another_app)
+    away = ex.act(stage.Move("back"), purpose="nav")
+    assert away.kind == "external" and chats.sid in ex.exits
+    ex.leave()
+    assert not [e for e in phone.log if e[0] == "back" and e[1] in ("aol", "article")]
+    assert ex.relaunches == 1 and "did not find the app where it was left" in ex.relaunch_reasons[0]
+    assert ex.current is ex.root and not ex.returns
+
+
+def test_back_that_left_the_app_is_not_taken_from_that_screen_again(tmp_path, monkeypatch):
+    ex, phone, chats = on_chats(tmp_path, monkeypatch, back_into_another_app)
+    home, ex.tabs = ex.root, []  # chats as a screen without the tab bar, so back_to_root would take BACK there
+    ex.edges[(chats.sid, home.sid)] = stage.Move("back")  # BACK from chats once went home
+    ex.act(stage.Move("back"), purpose="nav")
+    ex.leave()
+    phone.go("chats")
+    ex.current = ex.record(ex.observe(), None, None, None)
+    backs = sum(e == ("back", "chats") for e in phone.log)
+    ex.back_to_root()
+    ex.act(stage.Move("back", decider="model"))
+    assert ex.current is chats and sum(e == ("back", "chats") for e in phone.log) == backs
+    assert ex.route(chats, home) is None
+
+
+def test_a_launch_that_finds_the_app_as_it_was_is_a_return_not_a_relaunch(tmp_path, monkeypatch):
+    """A tap opened another app over chats; the app's task lives on, and a launch brings chats back."""
+    ex, phone, chats = on_chats(tmp_path, monkeypatch)
+    link = next(c for c in chats.cands if c.point == (996, 209))
+    web = ex.act(stage.Move("tap", link), purpose="nav")
+    assert web.kind == "external" and ex.left is chats
+    ex.leave()
+    assert ex.current is chats and ex.relaunches == 0 and ex.returns == [f"from {web.fg} back to {chats.sid}"]
+    assert ("back", "web") not in phone.log
+    last = lines(ex)[-1]
+    assert (last.action, last.from_state, last.to_state) == ("launch", web.sid, chats.sid)
+    assert all(to != web.sid for _, _, to in ex.segments[-1])
+    assert "Returns to the app as it was left, by a launch (not relaunches): 1" in stage.exhibit(ex, None)
+
+
+def test_a_route_hop_that_lands_in_another_app_returns_by_a_launch_and_goes_on(tmp_path, monkeypatch):
+    """The recorded tap from chats to home now opens another app over chats: goto takes no BACK inside it (its
+    back_to link), and gets back without a relaunch."""
+    ex, phone, chats = on_chats(tmp_path, monkeypatch)
+    home = ex.root
+    ex.edges[(chats.sid, home.sid)] = stage.Move("tap", next(c for c in chats.cands if c.point == (996, 209)))
+    assert ex.goto(home) and ("back", "web") not in phone.log
+    assert ex.relaunches == 0 and ex.returns == [f"from {phone.screens['web'].package} back to {chats.sid}"]
+
+
+PERMISSION = "com.google.android.permissioncontroller"
+
+
+def with_permission_dialog(clock):
+    """An app with no content filter whose launch screen is chats. A tap there opens a permission dialog in the app's
+    own task (in_task): a launch leaves it in front, and BACK dismisses it to chats, as in the committed Perplexity
+    run (steps 10-13: a tap on s01 opened permissioncontroller's s05, and BACK landed on s06, in the app)."""
+    phone = janitor_like(clock)
+    phone.start, phone.splash, phone.screen = "chats", 0, "chats"
+    phone.screens["perm"] = blank(PERMISSION)
+    phone.in_task = {"perm"}
+    phone.backs["perm"] = "chats"
+    phone.taps[("chats", "996,209")] = "perm"
+    return phone
+
+
+def asks_at_each_start(phone):
+    """The app asks again at each fresh start: a dismissal without an answer isn't a denial."""
+    launch = phone.launch
+
+    def asks():
+        fresh = not phone.alive
+        launch()
+        if fresh:
+            phone.go("perm")
+    phone.launch = asks
+
+
+def test_a_permission_dialog_a_tap_opened_is_dismissed_by_back_not_a_counted_relaunch(tmp_path, monkeypatch):
+    """rt-pr33-a1a9ba5 MEDIUM 1: a launch can't displace a window in the app's own task, so the same foreign screen
+    still in front after it gets BACK, as the spec keeps."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, with_permission_dialog)
+    ex.relaunch(first=True)
+    chats = ex.current
+    dialog = ex.act(stage.Move("tap", next(c for c in chats.cands if c.point == (996, 209))), purpose="tour")
+    assert dialog.kind == "external" and dialog.fg == PERMISSION
+    ex.leave()
+    assert ex.current is chats and ex.relaunches == 0 and ("back", "perm") in phone.log
+
+
+def test_a_permission_prompt_at_each_start_does_not_spend_every_relaunch(tmp_path, monkeypatch):
+    """rt-pr33-a1a9ba5 MEDIUM 1: the tour's next relaunch lands on the prompt, which BACK dismisses."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, with_permission_dialog)
+    ex.relaunch(first=True)
+    asks_at_each_start(phone)
+    ex.relaunch(why="a NeedRelaunch in the tour")
+    for _ in range(4):
+        if ex.current.kind in stage.AWAY:
+            ex.leave()
+    assert ex.current.kind not in stage.AWAY and ex.relaunches == 1
+
+
+def test_another_foreign_screen_after_the_launch_gets_a_relaunch_not_back(tmp_path, monkeypatch):
+    """Greptile on #33: the launch sends the app straight on to another app's screen. BACK there could walk that app's
+    history, so a counted relaunch follows."""
+    def link_and_redirect(clock):
+        phone = janitor_like(clock)
+        phone.screens["article"] = capture("aol", "aol-home")
+        return phone
+    ex, phone, chats = on_chats(tmp_path, monkeypatch, link_and_redirect)
+    web = ex.act(stage.Move("tap", next(c for c in chats.cands if c.point == (996, 209))), purpose="nav")
+    launch, redirected = phone.launch, []
+
+    def redirects_once():
+        launch()
+        if not redirected:
+            redirected.append(phone.go("article"))
+    phone.launch = redirects_once
+    ex.leave()
+    assert not [e for e in phone.log if e[0] == "back"] and ex.current is ex.root and not ex.returns
+    assert ex.relaunch_reasons == [f"a launch from {web.fg} left {phone.screens['article'].package} in front"]
+
+
+def arrival_model_says_back(monkeypatch):
+    """The arrival model answers what its prompt allows on any screen: one action, BACK."""
+    real = fake_device.fake_sonnet
+
+    def sonnet(model, system, messages, effort, schema, max_tokens, total_timeout=None):
+        if schema.__name__ != "Arrival":
+            return real(model, system, messages, effort, schema, max_tokens, total_timeout)
+        body = {"identifying_text": "", "verdict": "one_action", "confidence": 0.8, "action": "back",
+                "element_id": None, "direction": None, "side_effect": False,
+                "reason": "the app opened a browser; back returns to it"}
+        return llm.Reply(text=json.dumps(body), model=model, tokens_in=1500, tokens_out=60)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", sonnet)
+
+
+def test_a_route_hop_into_another_app_gets_no_arrival_judgment_or_action_there(tmp_path, monkeypatch):
+    """rt-pr33-fc08e1b MEDIUM 1: the hop's link opens another app whose BACK goes deeper into its own history. Its
+    screen is never judged against the target, so the model's BACK never runs there, and the replay path keeps no
+    move into it."""
+    def link_opens_an_app_with_history(clock):
+        phone = janitor_like(clock)
+        phone.screens["article"] = capture("aol", "aol-home")
+        phone.backs["web"] = "article"
+        return phone
+    ex, phone, chats = on_chats(tmp_path, monkeypatch, link_opens_an_app_with_history)
+    arrival_model_says_back(monkeypatch)
+    ex.edges[(chats.sid, ex.root.sid)] = stage.Move("tap", next(c for c in chats.cands if c.point == (996, 209)))
+    ex.goto(ex.root)
+    assert ("back", "web") not in phone.log and ex.counts["arrival shots"] == 0
+    assert not [to for _, _, to in ex.segments[-1] if ex.by_id[to].kind in stage.AWAY]
+
+
+def test_a_launch_that_lands_on_the_launch_screen_is_a_relaunch_not_a_return(tmp_path, monkeypatch):
+    """rt-pr33-fc08e1b LOW 1: BACK from the launch screen ends the task (emulator fact 2), and a fresh start lands on
+    the launch screen too, so a launch that finds the app there counts, whether it restarted or not."""
+    def starts_on_chats(clock):
+        phone = janitor_like(clock)
+        phone.start, phone.splash, phone.screen = "chats", 0, "chats"
+        return phone
+    ex, _ = new_explorer(tmp_path, monkeypatch, starts_on_chats)
+    ex.relaunch(first=True)
+    root = ex.current
+    assert ex.act(stage.Move("back", decider="model"), purpose="tour").kind == "external"
+    ex.leave()
+    assert ex.current is root and (ex.relaunches, ex.returns) == (1, [])
+
+
+def test_a_tap_from_the_launch_screen_into_another_app_returns_without_a_relaunch(tmp_path, monkeypatch):
+    """rt-pr33-a1a9ba5 MEDIUM 2: with no content filter the root is the launch screen. A tap there opens another app
+    and the task lives on (emulator fact 1); only a BACK out of the launch screen makes a restart look the same."""
+    def starts_on_chats(clock):
+        phone = janitor_like(clock)
+        phone.start, phone.splash, phone.screen = "chats", 0, "chats"
+        return phone
+    ex, phone = new_explorer(tmp_path, monkeypatch, starts_on_chats)
+    ex.relaunch(first=True)
+    root = ex.current
+    assert root is ex.launch_root and not ex.filter_taps
+    web = ex.act(stage.Move("tap", next(c for c in root.cands if c.point == (996, 209))), purpose="tour")
+    assert web.kind == "external" and phone.alive
+    ex.leave()
+    assert ex.current is root and (ex.relaunches, len(ex.returns)) == (0, 1)
+
+
+def test_an_outbound_ad_on_the_launch_screen_returns_without_a_relaunch(tmp_path, monkeypatch):
+    """w-guard's AOL run on a1a9ba5 (runs/aol/20261001-034507-5bcff37, act008-act009): the tour tapped a Taboola ad on
+    the launch screen, Chrome opened, and the launch brought AOL's home back with its ad slot changed (aol-home, then
+    aol-home-repeat). No BACK left the launch screen, so that is a return, not a relaunch."""
+    words = "PetsDailyHealth in Taboola advertising section · Sponsored"
+
+    def aol(clock):
+        home = capture("aol", "aol-home", package=PACKAGE)
+        ad = next(e for e in home.elements if (e.get("label") or "").startswith(words))
+        return FakePhone(screens={"home": home, "again": capture("aol", "aol-home-repeat", package=PACKAGE),
+                                  "web": capture("aol", "aol-article-external")},
+                         start="home", taps={("home", fake_device.element_key(ad)): "web"}, clock=clock)
+    ex, phone = new_explorer(tmp_path, monkeypatch, aol)
+    ex.relaunch(first=True)
+    root = ex.current
+    assert root is ex.launch_root and not ex.filter_taps
+    ad = next(c for c in root.cands if c.label.startswith(words))
+    assert ex.act(stage.Move("tap", ad), purpose="tour").fg == "com.android.chrome"
+    launch = phone.launch
+
+    def reloads_its_ads():
+        launch()
+        phone.screen = "again"
+    phone.launch = reloads_its_ads
+    ex.leave()
+    assert ex.current is root and (ex.relaunches, len(ex.returns)) == (0, 1)
+
+
+def test_a_relaunch_that_lands_on_an_away_screen_leaves_it_before_walking_home_to_the_filter(tmp_path, monkeypatch):
+    """rt-pr33-a1a9ba5 LOW 1: in an app with a content filter (janitor_like's "Limited Only"), the prompt at each start
+    is left first, by BACK, then the recorded way home leads to the filter, with no second relaunch."""
+    def filtered_app_with_permission_dialog(clock):
+        phone = janitor_like(clock)
+        phone.screens["perm"] = blank(PERMISSION)
+        phone.in_task = {"perm"}
+        return phone
+    ex, phone = new_explorer(tmp_path, monkeypatch, filtered_app_with_permission_dialog)
+    ex.relaunch(first=True)
+    assert ex.filter_taps
+    asks_at_each_start(phone)
+    ex.relaunch(why="a NeedRelaunch in the tour")
+    assert ex.current is ex.root and ex.filter_checks[-1][1] and ex.relaunches == 1
+
+
+def relaunch_restores_an_exit(tmp_path, monkeypatch, way_home: bool):
+    """A relaunch that lands on chats, a recorded screen whose BACK left the app (and no tab bar to stop at), with
+    home's content filter to re-apply. way_home records a tap from chats to the launch screen."""
+    def chats_links_home(clock):
+        phone = janitor_like(clock)
+        phone.taps[("chats", "84,209")] = "root"
+        return phone
+    ex, phone, chats = on_chats(tmp_path, monkeypatch, chats_links_home)
+    assert ex.filter_taps and ex.root is ex.launch_root
+    ex.tabs = []
+    ex.exits.add(chats.sid)
+    if way_home:
+        link = next(c for c in chats.cands if c.point == (84, 209))
+        ex.edges[(chats.sid, ex.launch_root.sid)] = stage.Move("tap", link)
+    phone.start = "chats"
+    return ex, chats
+
+
+def test_a_relaunch_that_restores_an_exit_walks_a_recorded_route_home_before_the_filter(tmp_path, monkeypatch):
+    """Greptile on #33: back_to_root stops on a screen whose BACK left the app; the filter is re-applied only on the
+    launch screen, reached by a recorded route without that BACK."""
+    ex, chats = relaunch_restores_an_exit(tmp_path, monkeypatch, way_home=True)
+    checks = len(ex.filter_checks)
+    ex.relaunch(why="test")
+    assert ex.current is ex.launch_root and ex.relaunches == 1
+    assert len(ex.filter_checks) == checks + 1 and ex.filter_checks[-1][1]
+
+
+def test_a_relaunch_that_restores_an_exit_with_no_way_home_relaunches_again_and_never_filters_off_home(
+        tmp_path, monkeypatch):
+    ex, chats = relaunch_restores_an_exit(tmp_path, monkeypatch, way_home=False)
+    checks = len(ex.filter_checks)
+    with pytest.raises(stage.Stop, match="relaunch cap"):
+        ex.relaunch(why="test")
+    assert ex.relaunches == stage.MAX_RELAUNCHES and len(ex.filter_checks) == checks
+    assert all("no recorded way led there from" in why for why in ex.relaunch_reasons[1:])
+
+
+def reloaded_home(tmp_path, monkeypatch, first: Screen, other: Screen, pick):
+    """Home recorded from first, the controls pick(ex, home) names tapped on it, then a relaunch that re-records home
+    from other. Returns the explorer and the model's states, edges with their notes, and elements by id."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    phone.screens.update(first=first, other=other)
+    phone.screen = "first"
+    home = ex.current = ex.record(ex.observe(), None, None, None)
+    taps = pick(ex, home)
+    phone.screen = "chat"
+    chat = ex.record(ex.observe(), home, stage.Move("tap", taps[0]), ex.obs)
+    for c in taps:
+        ex.log(home, chat, stage.Move("tap", c), c, "push", "", "ok")
+    phone.screen, ex.home = "other", home
+    assert ex.record(ex.observe(), None, None, None) is home and len(home.replaced) == 1
+    ex.write(None)
+    states, _, _ = model_stage.load_states(ex.out, ex.device)
+    edges, notes = model_stage.load_edges(ex.out, states, model_stage.load_replaced(ex.out, ex.device))
+    return ex, states, edges, notes, {e.id: e for s in states for e in s.elements}
+
+
+def test_a_tap_on_home_before_its_list_reloaded_resolves_on_the_capture_it_was_taken_on(tmp_path, monkeypatch):
+    """Greptile on #32: the committed run's home before and after a relaunch reloaded it (j04, j11). The replaced
+    capture stays, and the model binds an earlier tap on a row the reload replaced to no element, never to the row now
+    in its place, and an earlier tap on a chip both captures show to that chip."""
+    ex, states, edges, notes, elements = reloaded_home(
+        tmp_path, monkeypatch, capture("janitorai", "j04_tab1"), capture("janitorai", "j11_home_relaunched"),
+        lambda ex, home: [next(c for c in home.cands if c.label.startswith("Wavemaker Academy: Pokemon")),
+                          next(c for c in home.cands if c.label == "Trending")])
+    assert sorted((elements[e.element_id].label if e.element_id else None) or "" for e in edges) == ["", "Trending"]
+    assert any("a relaunch replaced" in n for n in notes)
+    stale, _ = model_stage.load_edges(ex.out, states)
+    assert all(e.element_id for e in stale)  # on the new capture alone, the row's tap binds to the row now in its place
+
+
+def test_a_wordless_tile_tapped_before_the_reload_binds_to_no_element_when_it_shows_another_picture(tmp_path,
+                                                                                                    monkeypatch):
+    """rt-pr33-a1a9ba5 MEDIUM 3: one image-only tile, as a thumbnail grid has, in the same place on both captures, with
+    another item's picture after the reload: a control without text is the same one only if it also looks the same."""
+    first, other = capture("janitorai", "j04_tab1"), capture("janitorai", "j11_home_relaunched")
+    for screen, color in ((first, (30, 60, 200)), (other, (200, 40, 40))):
+        screen.elements.append({"ref": "@e900", "type": "android.widget.ImageView", "text": "",
+                                "coordinates": {"x": 40, "y": 1600, "width": 120, "height": 120}})
+        ImageDraw.Draw(screen.image).rectangle((40, 1600, 160, 1720), fill=color)
+    _, _, edges, _, _ = reloaded_home(tmp_path, monkeypatch, first, other,
+                                      lambda ex, home: [next(c for c in home.cands if c.ref == "@e900")])
+    assert edges and all(e.element_id is None for e in edges)
+
+
+def test_a_vision_tap_on_home_before_the_reload_never_binds_to_a_tree_container(tmp_path, monkeypatch):
+    """rt-pr33-a1a9ba5 MEDIUM 3: the replaced capture keeps its vision elements (Luzia's committed home has one), so a
+    vision tap resolves to the vision control, never to the wordless container around it."""
+    def play(ex, home):
+        ex.add_vision(home, 29, 2250, "Play")
+        assert home.cands[-1].kind == "vision" and home.cands[-1].ref is None
+        return [home.cands[-1]]
+    _, _, edges, _, elements = reloaded_home(tmp_path, monkeypatch, capture("janitorai", "j04_tab1"),
+                                             capture("janitorai", "j11_home_relaunched"), play)
+    assert all(elements[e.element_id].source == "vision" for e in edges if e.element_id)
 
 
 def test_billing_screen_gets_back_at_once(run):
