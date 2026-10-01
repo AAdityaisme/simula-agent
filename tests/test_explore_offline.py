@@ -1095,7 +1095,8 @@ def feed_pass_sheets(tmp_path, monkeypatch, factory):
     ex, _ = new_explorer(tmp_path, monkeypatch, factory)
     monkeypatch.setattr(decide, "ask_choice", functools.partial(fake_jev, core_pick="open and read items"))
     stage.explore_app(ex)
-    opened = [line for line in lines(ex) if line.loop_pass and line.to_state and ex.by_id[line.to_state].kind == "sheet"]
+    opened = [line for line in lines(ex)
+              if line.loop_pass and line.to_state and ex.by_id[line.to_state].kind == "sheet"]
     assert ex.core.kind == "feed" and opened, ex.core_results
     return ex, opened
 
@@ -1208,7 +1209,8 @@ def test_a_long_control_label_that_starts_with_a_sign_in_or_money_command_is_a_w
         return ob.Candidate(label, "ViewGroup", stage.Rect(x=0, y=0, w=500, h=100), "@c", label)
     assert ob.walled([control("Log in to continue chatting")]) == "account"
     assert ob.walled([control("Subscribe now to unlock conversations")]) == "money"
-    assert not ob.walled([control("Kang Jun-Seo, Mon, He grins: 'Don't forget to subscribe, and check out the merch!'")])
+    greeting = "Kang Jun-Seo, Mon, He grins: 'Don't forget to subscribe, and check out the merch!'"
+    assert not ob.walled([control(greeting)])
 
 
 def test_a_relaunch_that_lands_on_a_sign_in_wall_keeps_home(tmp_path, monkeypatch):
@@ -1272,3 +1274,44 @@ def test_a_guest_home_with_a_log_in_header_is_still_home_after_its_feed_reloads(
     phone.start = "other"
     ex.relaunch()
     assert ex.current is home and len(ex.states) == 1, (ex.current.sid, len(ex.states))
+
+
+def test_a_relaunch_records_a_new_sign_in_wall_even_when_its_button_matches_the_guest_header(tmp_path, monkeypatch):
+    """rt-pr29-00b167c: home's own "Log in" sits in its header; the wall's "Log in" is elsewhere, so it is new."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    base = capture("janitorai", "j04_tab1")
+    base.elements.append(
+        {"ref": "@header-login", "type": "android.widget.Button", "text": "Log in",
+         "coordinates": {"x": 700, "y": 160, "width": 200, "height": 90}})
+    ImageDraw.Draw(base.image).rectangle((700, 160, 900, 250), fill=(70, 70, 70))
+    phone.screens["first"] = base
+    phone.screen = "first"
+    home = ex.current = ex.record(ex.observe(), None, None, None)
+    ex.root = ex.launch_root = home
+    ex.tabs = ob.tab_bar(home.cands, ex.device)
+    assert len(ex.tabs) == 5 and ob.walled(home.cands) == "account"
+    original = {c.key for c in home.cands}
+
+    tab_refs = {c.ref for c in ex.tabs}
+    tabs = [e for e in base.elements if e["ref"] in tab_refs]
+    wall = [
+        {"ref": "@welcome", "type": "android.widget.TextView", "text": "Welcome back",
+         "coordinates": {"x": 0, "y": 350, "width": 1080, "height": 120}},
+        {"ref": "@message", "type": "android.widget.TextView", "text": "Continue to your characters",
+         "coordinates": {"x": 80, "y": 800, "width": 920, "height": 100}},
+        {"ref": "@wall-login", "type": "android.widget.Button", "text": "Log in",
+         "coordinates": {"x": 240, "y": 1200, "width": 600, "height": 120}},
+    ] + tabs
+    image = base.image.copy()
+    ImageDraw.Draw(image).rectangle((0, 300, 1080, 2100), fill=(25, 25, 30))
+    phone.screens["wall"] = Screen(wall, image, base.package)
+    phone.start = "wall"
+    phone.screen = "wall"
+    landed = ex.observe()
+    assert not ob.same_state(home.fp, landed.fp)
+    assert ob.walled(landed.cands) == "account"
+    assert not ex.blocked(landed)
+    assert all(ob.find(landed.cands, t) for t in ex.tabs)
+
+    ex.relaunch()
+    assert {c.key for c in home.cands} == original and ex.current is not home, (home.sid, ex.current.sid)

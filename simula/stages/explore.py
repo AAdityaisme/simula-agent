@@ -386,11 +386,12 @@ class Explorer:
 
     def homelike(self, home: Seen, obs: Obs) -> bool:
         """What a relaunch's landing must show to be home: nothing the first launch's checks would block, no wall (an
-        account or money) that home didn't already show, like a guest home's own "Log in", and the tab bar the first
-        launch recorded, if it recorded one. Any other landing, such as a restored deeper screen, is recorded as its
-        own state and back_to_root goes back from it."""
-        had = {(c.label, c.kind) for c in home.cands}
-        if self.blocked(obs) or ob.walled([c for c in obs.cands if (c.label, c.kind) not in had]):
+        account or money) that home didn't already show in the same place, like a guest home's own "Log in", and the
+        tab bar the first launch recorded, if it recorded one. Any other landing, such as a restored deeper screen, is
+        recorded as its own state and back_to_root goes back from it."""
+        new = [c for c in obs.cands if not any(h.label == c.label and h.kind == c.kind and ob.overlaps(h.rect, c.rect)
+                                               for h in home.cands)]
+        if self.blocked(obs) or ob.walled(new):
             return False
         return all(ob.find(obs.cands, t) for t in self.tabs)
 
