@@ -1,7 +1,7 @@
 """--allow-account-create on a fake phone: off, nothing changes; on, a sign-up wall is passed by a way on without an
 account first, else by an email sign-up typed from SIMULA_TEST_*, and anything it isn't sure of stops it at the wall
 with its reason. The identity never reaches a saved file, a model's input or a screenshot unredacted. The tests named
-for a red-team finding (rt-pr35-8735b45) each failed on 8735b45."""
+for a red-team finding failed on the commit it was found on (rt_f*: 8735b45, rt_r2_*: b568449)."""
 
 import json
 from pathlib import Path
@@ -90,6 +90,16 @@ def sign_up_app(wall: list[dict] = (TITLE, EMAIL_WAY, GOOGLE, LOG_IN), after_way
         app.remember = {"next"} if after_form is HOME else set()
         return app
     return factory
+
+
+@pytest.fixture(autouse=True)
+def keyboard(monkeypatch):
+    """dumpsys as an emulator answers it with its soft keyboard up, over the lower part of the screen; no test here
+    reaches a real adb."""
+    answers = {"input_method": "  mInputShown=true\n",
+               "window": "  Window #3 Window{a1 u0 InputMethod}:\n    mFrame=[0,1500][1080,2400] last=[0,0][0,0]\n"}
+    monkeypatch.setattr(stage, "adb_shell", lambda serial, args: answers[args[1]])
+    return answers
 
 
 @pytest.fixture
@@ -270,7 +280,7 @@ def form_with(*extra: dict, without: str = "") -> list[dict]:
                             el("@go", "Button", "Next", 1700)]),
      "a payment step on s02"),
     (sign_up_app(after_way=form_with(el("@ok", "Button", "Agree and continue", 1800), without="@go")),
-     "it asks to accept terms ('Agree and continue')"),
+     "it asks for a consent or an attestation ('Agree and continue')"),
     (sign_up_app(after_way=form_with(el("@c4", "TextView", "Referral code", 1320, h=60),
                                      el("@f4", "EditText", "", 1400))),
      "s02 has a box that is not the email, the password or the name"),
@@ -346,13 +356,19 @@ GUEST_HOME = [el("@g0", "TextView", "Discover AI characters", 200, w=700),
               el("@go", "Button", "Start chatting", 1900), el("@li", "Button", "Log in", 200, x=820, w=200, h=90)]
 
 
-@pytest.mark.parametrize("extra", [[], [el("@su", "Button", "Sign up", 320, x=820, w=200, h=70)],
-                                   [el("@wl", "Button", "Watch later", 1600, w=400)]],
-                         ids=["log in rt-f5a", "a sign-up link rt-f5b", "a content word rt-f5c"])
-def test_a_usable_guest_home_is_no_wall(tmp_path, monkeypatch, identity, extra):
+SIGN_UP_LINK = el("@su", "Button", "Sign up", 320, x=820, w=200, h=70)
+CTA_HOMES = [[*GUEST_HOME[:2], GUEST_HOME[3], SIGN_UP_LINK, el("@go", kind, "Start chatting", 1900)]
+             for kind in ("View", "ImageView", "FrameLayout")]
+
+
+@pytest.mark.parametrize("home", [GUEST_HOME, [*GUEST_HOME, SIGN_UP_LINK],
+                                  [*GUEST_HOME, el("@wl", "Button", "Watch later", 1600, w=400)], *CTA_HOMES],
+                         ids=["log in rt-f5a", "a sign-up link rt-f5b", "a content word rt-f5c",
+                              "a View CTA rt-r2-3", "an ImageView CTA rt-r2-3", "a FrameLayout CTA rt-r2-3"])
+def test_a_usable_guest_home_is_no_wall(tmp_path, monkeypatch, identity, home):
     def app(clock):
         phone = sign_up_app()(clock)
-        phone.screens["wall"] = screen(7, *GUEST_HOME, *extra)
+        phone.screens["wall"] = screen(7, *home)
         phone.taps.update({("wall", "Sign up"): "form", ("wall", "Watch later"): "home"})
         return phone
     ex, phone = launched(tmp_path, monkeypatch, app)
@@ -384,7 +400,8 @@ def test_the_identity_reaches_no_file_no_model_and_no_screenshot(tmp_path, monke
     phone.screen, phone.values[("form", "@f3")] = "form", NAME
     ex.scratch.mkdir()
     obs = ex.observe()
-    assert ex.secrets == ["offline-test-handle", EMAIL, PASSWORD, NAME, "Quinlan", "Testperson", "tester.q7"]
+    assert ex.secrets == ["offline-test-handle", EMAIL, PASSWORD, NAME]
+    assert ex.parts == ["Quinlan", "Testperson", "tester.q7"]
     assert NAME not in json.dumps(obs.reply) and obs.image.getpixel((500, 1150)) == (0, 0, 0)
 
 
@@ -464,3 +481,123 @@ def test_a_box_is_named_by_its_own_words_or_its_caption():
     assert ob.field_kind(by_id, [by_id]) == "password"
     below = [el("@c", "TextView", "Email", 420, h=60), el("@a", "EditText", "", 500), el("@b", "EditText", "", 700)]
     assert ob.field_kind(below[2], below) == ""
+
+
+ATTESTED = ("I'm 18+, continue", "Yes, I'm over 18 - Next", "I understand, continue", "Acknowledge and continue",
+            "I'm an adult, let's go")
+IMPLIED = ("OK, continue", "Got it, continue")  # under "By continuing you agree": implicit, Aadi's call (README)
+
+
+@pytest.mark.parametrize("label", ATTESTED + IMPLIED)
+def test_an_attestation_is_a_consent_and_an_implied_one_is_aadis_call_rt_r2_1(tmp_path, monkeypatch, identity, label):
+    form = form_with(el("@tos", "TextView", "By continuing you confirm you are 18 or older and accept our Terms", 1550,
+                        h=80), el("@go2", "Button", label, 1700), without="@go")
+
+    def app(clock):
+        phone = sign_up_app(after_way=form)(clock)
+        phone.taps[("form", label)] = "next"
+        return phone
+    ex, phone = launched(tmp_path, monkeypatch, app)
+    if label in ATTESTED:
+        assert ex.account == [f"s01: stopped at the wall, it asks for a consent or an attestation ({label!r})"]
+        assert not phone.typed and label not in taps(phone)
+    else:
+        assert ex.account_state == "made" and taps(phone)[-1] == label
+
+
+@pytest.mark.parametrize("label", ["Continue without registering", "Remind me later", "No thanks"])
+def test_a_guest_way_drawn_as_a_link_is_taken_rt_r2_2(tmp_path, monkeypatch, identity, label):
+    def app(clock):
+        link = el("@g", "TextView", label, 1300, x=340, w=400, h=80)
+        phone = sign_up_app(wall=[TITLE, link, EMAIL_WAY, GOOGLE, LOG_IN])(clock)
+        phone.taps[("wall", label)] = "home"
+        return phone
+    ex, phone = launched(tmp_path, monkeypatch, app)
+    assert taps(phone) == [label] and not phone.typed
+    assert ex.account == [f"s01: went on without an account ({label!r})"]
+
+
+def test_guest_words_from_the_red_team_round_2():
+    ways = ("Continue without registering", "Continue without login", "Remind me later", "No thanks", "Just browsing",
+            "Continue as visitor", "Explore first", "Let's continue as guest", "Browse anonymously")
+    assert all(ob.GUEST.search(w) for w in ways) and not ob.GUEST.search("Sign up first")
+
+
+def test_a_character_name_after_the_sign_up_is_no_name_box_rt_r2_4(tmp_path, monkeypatch, identity):
+    two = [e for e in FORM if e["ref"] not in ("@c3", "@f3")]
+    character = [el("@o0", "TextView", "Create your first character", 200),
+                 el("@o1", "TextView", "Character name", 420, h=60), el("@o2", "EditText", "", 500),
+                 el("@o3", "Button", "Create", 1700)]
+
+    def app(clock):
+        phone = sign_up_app(after_way=two, after_form=character)(clock)
+        phone.taps[("next", "Create")] = "home"
+        return phone
+    ex, phone = launched(tmp_path, monkeypatch, app)
+    assert phone.typed == [EMAIL, PASSWORD] and ("next", "@o2") not in phone.values and "Create" not in taps(phone)
+    assert ex.account[-1].endswith("shows no sign of an account") and ex.account_state == "sent"
+
+
+def test_a_next_step_form_whose_button_creates_is_the_end_rt_r2_4(tmp_path, monkeypatch, identity):
+    two = [e for e in FORM if e["ref"] not in ("@c3", "@f3")]
+    profile = [el("@o0", "TextView", "Set up your profile", 200), el("@o1", "TextView", "Your name", 420, h=60),
+               el("@o2", "EditText", "", 500), el("@o3", "Button", "Create", 1700)]
+    ex, phone = launched(tmp_path, monkeypatch, sign_up_app(after_way=two, after_form=profile))
+    assert phone.typed == [EMAIL, PASSWORD] and "Create" not in taps(phone)
+    assert ex.account[-1].endswith("shows no sign of an account")
+
+
+LOG_IN_FORM = [el("@lt", "TextView", "Log in to your account", 200),
+               el("@c1", "TextView", "Email", 420, h=60), el("@f1", "EditText", "", 500),
+               el("@c2", "TextView", "Password", 720, h=60), el("@f2", "EditText", "", 800),
+               el("@li", "Button", "Log in", 1100), el("@su", "Button", "Sign up", 1700)]
+
+
+def test_a_log_in_form_is_never_filled_and_its_sign_up_link_is_taken_rt_r2_5(tmp_path, monkeypatch, identity):
+    def app(clock):
+        phone = sign_up_app(wall=LOG_IN_FORM)(clock)
+        phone.taps[("wall", "Sign up")] = "form"
+        return phone
+    ex, phone = launched(tmp_path, monkeypatch, app)
+    assert phone.values == {("form", "@f1"): EMAIL, ("form", "@f2"): PASSWORD, ("form", "@f3"): NAME}
+    assert taps(phone)[0] == "Sign up" and "Log in" not in taps(phone)
+    assert ex.account_state == "made" and ex.account[-1].startswith("s01: signed up with the test identity")
+
+
+def test_name_parts_are_redacted_as_whole_words_only_rt_r2_6():
+    parts = stage.identity_parts({"email": "ann.test@example.org", "password": "x", "name": "Ann Lee"})
+    shown = [el("@a", "Button", "Announcements", 300), el("@b", "Button", "Fleet", 500),
+             el("@c", "TextView", "Hi Ann! Your handle is @ann.test", 700)]
+    reply = {"content": [{"type": "text", "text": ob.ELEMENTS_PREFIX + json.dumps(shown)}]}
+    _, elements, hits = ob.redact(reply, Image.new("RGB", (1080, 2400)), [], parts)
+    assert [e["text"] for e in elements] == ["Announcements", "Fleet", "Hi [redacted]! Your handle is @[redacted]"]
+    assert hits == 1
+
+
+def test_the_keyboard_is_painted_over_once_a_value_is_typed_rt_r2_7(tmp_path, monkeypatch, identity):
+    ex, phone = launched(tmp_path, monkeypatch, sign_up_app(after_form=VERIFY))
+
+    def covered(sid: str) -> bool:
+        lower = Image.open(ex.out / "states" / f"{sid}.png").convert("RGB").crop((0, 1500, 1080, 2400))
+        return np.asarray(lower).max() == 0
+    assert [s.sid for s in ex.states] == ["s01", "s02", "s03", "s04"] and phone.typed == [EMAIL, PASSWORD, NAME]
+    assert [covered(s.sid) for s in ex.states] == [False, False, True, True]
+
+
+@pytest.mark.parametrize("input_method, window, box", [
+    ("mInputShown=false", "mFrame=[0,1500][1080,2400]", None),
+    ("mInputShown=true", "frame=[0,1700][1080,2400]", (0, 1700, 1080, 2400)),
+    (None, None, (0, 1200, 1080, 2400)),
+], ids=["hidden", "a frame", "unreadable: the lower half"])
+def test_where_the_keyboard_is_painted(tmp_path, monkeypatch, keyboard, input_method, window, box):
+    keyboard.update(input_method=input_method, window=window)
+    ex, _ = new_explorer(tmp_path, monkeypatch, sign_up_app())
+    image = Image.new("RGB", (1080, 2400), (200, 200, 200))
+    ex.cover_keyboard(image)
+    pixels = np.asarray(image)
+    painted = pixels.max(axis=2) == 0
+    if box is None:
+        assert not painted.any()
+    else:
+        x0, y0, x1, y1 = box
+        assert painted[y0:y1, x0:x1].all() and not painted[:y0].any()

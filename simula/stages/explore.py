@@ -8,6 +8,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import shutil
 import signal
 import subprocess
@@ -64,6 +65,8 @@ COMPOSER_BAND_PX = 150
 LIMIT_STOPS = ("counter", "input disabled", "paywall", "limit")
 SIGN_UP_STEPS = 6
 IDENTITY = {"email": "SIMULA_TEST_EMAIL", "password": "SIMULA_TEST_PASSWORD", "name": "SIMULA_TEST_NAME"}
+KEYBOARD_SHOWN = re.compile(r"\bmInputShown=(true|false)")
+KEYBOARD_FRAME = re.compile(r"\bm?[Ff]rame=\[(\d+),(\d+)\]\[(\d+),(\d+)\]")
 
 RANK_QUESTION = "Which tap most likely reveals a limit, a paywall, a currency, an ad, or a new core screen of the app?"
 FILTER_QUESTION = ("A content or safety filter decides how much adult or unsafe content the app shows (for "
@@ -279,7 +282,9 @@ class Explorer:
         self.replay = (0, 0)
         self.started = clock()
         self.identity = account_identity() if ctx.allow_account_create else {}
-        self.secrets = redact_list() + identity_secrets(self.identity)
+        self.secrets = redact_list() + list(self.identity.values())
+        self.parts = identity_parts(self.identity)
+        self.typing = False  # once an identity value is typed, every capture paints the soft keyboard over
         self.walls: set[str] = set()
         self.account: list[str] = []  # what each account wall came to, for the exhibit
         self.account_state = ""  # "made" once the sign-up made an account, "verify" while its email waits
@@ -304,10 +309,12 @@ class Explorer:
         self.anr_waited = False
         shot = self.phone.screenshot(self.scratch / "now.png", (self.device.w_px, self.device.h_px))
         image = Image.open(shot).convert("RGB")
-        reply, elements, hits = ob.redact(settled.reply, image, self.secrets)
+        reply, elements, hits = ob.redact(settled.reply, image, self.secrets, self.parts)
         if hits or not settled.ok:
-            ob.redact(self.phone.elements()[0], image, self.secrets)  # the screen may have moved since the list
+            ob.redact(self.phone.elements()[0], image, self.secrets, self.parts)  # the screen may have moved since
         self.redacted += hits
+        if self.typing:
+            self.cover_keyboard(image)
         image.save(shot)
         fg = self.phone.foreground()
         if not settled.ok:
@@ -927,12 +934,12 @@ class Explorer:
 
     def account_wall(self, s: Seen) -> bool:
         """With --allow-account-create, a screen or overlay that asks to sign in or up (not one that logs out) and
-        offers nothing else is a wall: no other button the deny-list allows (a form's own button aside), no list, no
-        text box with send, no tab bar. Each is met once."""
+        offers nothing else is a wall: no other short control with words the deny-list allows, whatever its kind (a
+        form's own button aside), no list, no text box with send, no tab bar. Each is met once."""
         if not self.ctx.allow_account_create or s.sid in self.walls or s.kind not in ("screen", "modal", "sheet"):
             return False
         form = any(c.kind == "EditText" for c in s.cands)
-        other = any("Button" in c.kind and not ob.denied(c, upsell=s.upsell) and not ob.account_way(c)
+        other = any(ob.shaped(c) and c.tree_label and not ob.denied(c, upsell=s.upsell) and not ob.account_way(c)
                     and not (form and ob.SUBMIT.search(c.label)) for c in s.cands)
         return (any(ob.shaped(c) and ob.SIGN_IN.search(c.label) for c in s.cands) and not other
                 and not ob.feed_items(s.cands, self.device, self.tab_keys()) and not ob.composer(s.cands, self.device)
@@ -966,7 +973,9 @@ class Explorer:
         (unsure). A screen with text boxes is a form: each box must be one it recognizes, empty, and it gets its
         value; then the form is sent. A screen without one gets the way to an email sign-up. After a send, a
         verification step asks a person (needs-human.md), a form asking only for values not typed yet is the next
-        step, and anything else is the end, an account only when it is the app itself (result)."""
+        step unless its button creates something, and anything else is the end, an account only when it is the app
+        itself (result). A form whose own button logs in is a log-in form: never filled; its way to sign up is
+        taken."""
         sent, typed = False, set()
         for _ in range(SIGN_UP_STEPS):
             s = self.current
@@ -982,10 +991,13 @@ class Explorer:
                            "app on the emulator; then explore again, and the app should open signed in")
                 return self.stopped(wall, f"an email verification step on {s.sid}, for a person (needs-human.md)")
             boxes = self.boxes()
-            if sent and not (boxes and all(kind in self.identity and kind not in typed for _, kind in boxes)):
+            button = self.form_button(boxes) if boxes else None
+            if sent and not (boxes and all(kind in self.identity and kind not in typed for _, kind in boxes)
+                             and button and not ob.CREATES.search(button.label)):
                 return self.result(wall)
-            if boxes:
-                why = self.fill(boxes, typed) or self.send([kind for _, kind in boxes])
+            if boxes and not (button and ob.LOG_IN.search(button.label)):
+                why = self.fill(boxes, typed) if button else "no control sends the form"
+                why = why or self.send([kind for _, kind in boxes])
                 if why:
                     return self.stopped(wall, why)
                 sent, self.account_state = True, "sent"
@@ -1011,7 +1023,7 @@ class Explorer:
         if ob.priced(self.obs.elements, self.device) or any(ob.CARD.search(t) for t in said):
             return f"a payment step on {s.sid}"
         if consent:
-            return f"it asks to accept terms ({consent.label[:40]!r})"
+            return f"it asks for a consent or an attestation ({consent.label[:40]!r})"
         if any(kind == "phone" for _, kind in self.boxes()):
             return f"{s.sid} asks for a phone number"
         return ""
@@ -1038,21 +1050,39 @@ class Explorer:
                     or not focused[0]["type"].endswith("EditText") or ob.words(focused[0])
                     or ob.field_kind(focused[0], self.obs.elements) != kind):
                 return f"the box in focus is not the empty {kind} box"
+            self.typing = True
             self.act(Move("type", text=self.identity[kind], why=f"sign-up: the {kind}"), purpose="account")
             typed.add(kind)
         return ""
 
     def send(self, form: list[str]) -> str:
-        """Taps the lowest short control that names sending the form, while the app is in front and shows the same
-        form."""
-        if self.current.kind in AWAY or [kind for _, kind in self.boxes()] != form:
+        """Taps the form's own button, while the app is in front and shows the same form."""
+        boxes = self.boxes()
+        button = self.form_button(boxes) if boxes else None
+        if self.current.kind in AWAY or [kind for _, kind in boxes] != form or button is None:
             return "the form changed before it was sent"
-        found = [c for c in self.surface() if c.kind != "EditText" and ob.shaped(c) and ob.SUBMIT.search(c.label)
-                 and not ob.denied(c, upsell=self.current.upsell, account=True)]
-        if not found:
-            return "no control sends the form"
-        self.act(Move("tap", max(found, key=lambda c: c.rect.y), why="sign-up: send the form"), purpose="account")
+        if ob.LOG_IN.search(button.label) or ob.denied(button, upsell=self.current.upsell, account=True):
+            return f"the form's button {button.label[:40]!r} sends no sign-up"
+        self.act(Move("tap", button, why="sign-up: send the form"), purpose="account")
         return ""
+
+    def form_button(self, boxes: list[tuple[dict, str]]) -> ob.Candidate | None:
+        """The form's own button: the first short control under its last box that sends it or logs in."""
+        floor = max(ob.rect(e).y + ob.rect(e).h for e, _ in boxes)
+        return min((c for c in self.surface() if c.kind != "EditText" and ob.shaped(c) and c.rect.y >= floor
+                    and (ob.SUBMIT.search(c.label) or ob.LOG_IN.search(c.label))), key=lambda c: c.rect.y,
+                   default=None)
+
+    def cover_keyboard(self, image: Image.Image) -> None:
+        """Paints the soft keyboard over: its suggestion strip is in no element list, so redaction can't see a typed
+        value there. Its place is the input method window's frame while dumpsys says it is shown; when dumpsys can't
+        say, the lower half of the screen, so a reading that fails leaves nothing uncovered."""
+        shown = KEYBOARD_SHOWN.search(adb_shell(self.serial, ["dumpsys", "input_method"]) or "")
+        if shown and shown.group(1) == "false":
+            return
+        frame = KEYBOARD_FRAME.search(adb_shell(self.serial, ["dumpsys", "window", "InputMethod"]) or "")
+        box = tuple(map(int, frame.groups())) if frame else (0, image.height // 2, image.width, image.height)
+        ImageDraw.Draw(image).rectangle(box, fill=(0, 0, 0))
 
     def result(self, wall: Seen) -> bool:
         """The end of a sign-up. An account counts as made only on positive evidence: the screen is the app, in
@@ -1852,7 +1882,9 @@ class Explorer:
         """A full screenshot for the settle check, redacted with the element list read just before it."""
         shot = self.phone.screenshot(self.scratch / "frame.png", (self.device.w_px, self.device.h_px))
         image = Image.open(shot).convert("RGB")
-        ob.redact(reply, image, self.secrets)
+        ob.redact(reply, image, self.secrets, self.parts)
+        if self.typing:
+            self.cover_keyboard(image)
         return image
 
     def progress(self, before: Image.Image, now: Image.Image, waited: float) -> str:
@@ -2246,11 +2278,11 @@ def account_identity() -> dict[str, str]:
     return {kind: value for kind, var in IDENTITY.items() if (value := os.environ.get(var, "")).strip()}
 
 
-def identity_secrets(identity: dict[str, str]) -> list[str]:
-    """The identity's values, and the parts an app echoes back: each word of the name and the email's local part,
-    three letters or more."""
+def identity_parts(identity: dict[str, str]) -> list[str]:
+    """The parts of the identity an app echoes back, redacted as whole words: each word of the name and the email's
+    local part, three letters or more."""
     parts = [*identity.get("name", "").split(), identity.get("email", "").split("@")[0]]
-    return [*identity.values(), *(part for part in parts if len(part) >= 3)]
+    return [part for part in parts if len(part) >= 3]
 
 
 def rerun(ctx: Ctx) -> str:

@@ -95,23 +95,30 @@ LETTER = re.compile(r"[^\W\d_]")
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
 REDACTED = "[redacted]"
 # --allow-account-create's words. A way on without an account is a whole label, so "Watch later" is content.
-GUEST = re.compile(r"^\W*(?:\w+\s+){0,3}?(?:as (?:a )?guest|guest(?: mode)?|without (?:an? )?account|"
-                   r"without (?:signing|logging) (?:up|in))\W*$|^\W*(?:skip(?: for now)?|not now|(?:maybe )?later)\W*$",
-                   re.IGNORECASE)
-# a control that agrees to or accepts something (terms, consent) is never tapped on the way in
-CONSENT = re.compile(r"\bagree|\baccept|\bconsent", re.IGNORECASE)
+GUEST = re.compile(r"^\W*(?:[\w'’]+\s+){0,3}?(?:as (?:a )?(?:guest|visitor)|guest(?: mode)?|without (?:an? )?account|"
+                   r"without (?:signing|logging) (?:up|in)|without (?:registering|registration|log ?in|sign ?in)|"
+                   r"(?:explore|browse|look around) first|browse anonymously|just browsing)\W*$|"
+                   r"^\W*(?:skip(?: for now)?|not now|(?:maybe |remind me )?later|no,? thanks?)\W*$", re.IGNORECASE)
+# a control that agrees, accepts, consents or attests ("I'm 18+", "I understand", "Yes, ...") is never tapped on the
+# way in: a label that speaks for the user in the first person is one, whatever it attests
+CONSENT = re.compile(r"\bagree|\baccept|\bconsent|\backnowledg|\bunderstand\b|\badult\b|\b\d+\s*\+|"
+                     r"\b(?:over|at least|under) \d+|^\W*(?:yes|i|i['’]?m|i am)\b", re.IGNORECASE)
+LOG_IN = re.compile(r"\b(?:log|sign) ?in\b", re.IGNORECASE)
+CREATES = re.compile(r"\bcreate\b", re.IGNORECASE)  # after the account, "Create" makes content
 # a sign-in with another account (Google, Apple, ...) or a phone is a real person's, so it is never a way in
 OTHER_ACCOUNT = re.compile(r"\b(?:continue|sign ?(?:in|up)|log ?in|connect|register)\s+(?:with|using|via)\b"
                            r"(?!.*\be-?mail\b)", re.IGNORECASE)
 PHONE = re.compile(r"\bphone\b|\bmobile\b|\bsms\b", re.IGNORECASE)
 SIGN_UP = re.compile(r"sign ?up|create (?:an |my |your )?account|register|continue with|e-?mails?|passwords?|submit|"
                      r"proceed", re.IGNORECASE)
-EMAIL_WAY = re.compile(r"\be-?mail\b", re.IGNORECASE)
+EMAIL_WAY = re.compile(r"\b(?:sign ?up|continue|register|use|join|start|create)\b.*\be-?mail\b", re.IGNORECASE)
 SIGN_UP_WAY = re.compile(r"\bsign ?up\b|\bcreate (?:an |my |your )?account\b|\bregister\b", re.IGNORECASE)
 SUBMIT = re.compile(r"\b(?:sign ?up|create|register|continue|next|submit|done|join|get started|let'?s go)\b",
                     re.IGNORECASE)
+# a name box is the person's name only when its text starts that way: "Character name" or "Username" is another box
+PERSON_NAME = re.compile(r"^\W*(?:your |full |first |last |display )?name\b|what should we call you", re.IGNORECASE)
 FIELDS = {"email": re.compile(r"e-?mail", re.IGNORECASE), "password": re.compile(r"pass ?word|\bpwd\b", re.IGNORECASE),
-          "phone": PHONE, "name": re.compile(r"(?<!user )\bname\b", re.IGNORECASE)}
+          "phone": PHONE, "name": PERSON_NAME}
 HUMAN_CHECK = re.compile(rf"{BLOCKING.pattern}|not a robot", re.IGNORECASE)
 VERIFY = re.compile(r"\bverif|\bconfirm\w* (?:your )?e-?mail|check your (?:e-?mail|inbox)|\bwe(?:'ve| have)? sent\b|"
                     r"\b(?:enter|type) the code\b|\bone[- ]time\b|\botp\b|magic link", re.IGNORECASE)
@@ -181,11 +188,13 @@ def device_from(elements: list[dict], w_px: int, h_px: int, density: int) -> Dev
 
 # ---------- redaction ----------
 
-def redact(reply: dict, image: Image.Image, secrets: list[str]) -> tuple[dict, list[dict], int]:
-    """Replaces every listed string (any case) and every email address in any of an element's strings with [redacted]
-    and paints a solid box over those elements in the image, before anything reads or saves them. Also returns how
-    many elements were redacted."""
-    listed = [re.escape(s.strip()) for s in secrets if s.strip()]
+def redact(reply: dict, image: Image.Image, secrets: list[str], parts: list[str] = ()) -> tuple[dict, list[dict], int]:
+    """Replaces every listed string (any case), each of parts as a whole word, and every email address in any of an
+    element's strings with [redacted] and paints a solid box over those elements in the image, before anything reads
+    or saves them. Also returns how many elements were redacted."""
+    # the longest part first: "ann" must not take the front of "ann.test" and leave the rest
+    listed = [re.escape(s.strip()) for s in secrets if s.strip()] + [rf"\b{re.escape(p)}\b"
+                                                                      for p in sorted(parts, key=len, reverse=True)]
     pattern = re.compile("|".join([EMAIL.pattern, *listed]), re.IGNORECASE)
     elements = json.loads(reply["content"][0]["text"].removeprefix(ELEMENTS_PREFIX))
     draw = ImageDraw.Draw(image)
@@ -487,8 +496,8 @@ def field_kind(e: dict, elements: list[dict]) -> str:
     nearest = max((o for o in elements if (words(o) or o["type"].endswith("EditText")) and above(o)),
                   key=lambda o: rect(o).y + rect(o).h, default=None)
     caption = words(nearest) if nearest and not nearest["type"].endswith("EditText") else ""
-    said = " ".join([words(e), ID_WORDS.sub(" ", short_id(e.get("identifier"))), caption])
-    return next((kind for kind, rule in FIELDS.items() if rule.search(said)), "")
+    said = [words(e), ID_WORDS.sub(" ", short_id(e.get("identifier"))).strip(), caption]
+    return next((kind for kind, rule in FIELDS.items() for text in said if text and rule.search(text)), "")
 
 
 def walled(cands: list[Candidate]) -> str:
