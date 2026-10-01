@@ -1199,6 +1199,18 @@ def test_a_swap_cut_short_between_its_renames_is_recovered_whole_and_its_approva
     assert not (run_dir / "flows.old").exists() and not (run_dir / "flows.tmp").exists()
 
 
+def test_approvals_written_after_a_cut_short_swap_win_over_the_ones_it_left(tmp_path):
+    """Red team rt-37 and Greptile: after the crash, flows/ is the empty folder the CLI makes, and the person writes a
+    newer approvals.json there, holding nothing now. Recovery must keep it, not put back flows.old's older hold."""
+    run_dir, _ = cut_short_swap(tmp_path)
+    (run_dir / "flows" / "approvals.json").write_text(json.dumps({"hold": []}))
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(llm, "call", fake_editor(run_dir))
+        flows.stage.run(ctx_for(run_dir, "luzia"))
+    assert json.loads((run_dir / "flows" / "approvals.json").read_text()) == {"hold": []}
+    assert "holding c02" not in select_note_last(run_dir)
+
+
 def test_a_recovered_deck_survives_an_install_that_then_fails(tmp_path, monkeypatch):
     """Greptile: recovery moved only approvals.json out of flows.old/, so when the next install failed, swap_in's
     rollback put back a folder holding nothing but approvals.json and the last complete deck was gone."""

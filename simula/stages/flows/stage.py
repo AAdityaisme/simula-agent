@@ -122,14 +122,17 @@ def hold_effects(decisions: list[Decision], promoted: list[str], held: list[str]
 
 def recover(flows_dir: Path) -> None:
     """Finishes a swap of flows/ a crash cut short. Stopped between its two renames, it left the last deck whole in
-    flows.old and none in flows/ (at most the empty folder the CLI makes), so flows.old goes back; stopped after them,
-    flows/ is the new deck and flows.old the one before, which goes."""
+    flows.old and none in flows/ (at most the empty folder the CLI makes), so flows.old goes back, keeping an
+    approvals.json the person wrote into flows/ since, the newest; stopped after them, flows/ is the new deck and
+    flows.old the one before, which goes."""
     old = flows_dir.with_name(flows_dir.name + ".old")
     if not old.exists():
         return
     if (flows_dir / "slides.html").exists():
         shutil.rmtree(old)
     else:
+        if (flows_dir / "approvals.json").exists():
+            (flows_dir / "approvals.json").replace(old / "approvals.json")
         shutil.rmtree(flows_dir, ignore_errors=True)
         old.replace(flows_dir)
 
