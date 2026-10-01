@@ -834,7 +834,8 @@ LIFT_PX = 800
 
 def keyboard_over_the_reply(clock):
     """A docked keyboard lifts the composer over the conversation, and the list slides the end of the last reply under
-    the lifted text box, listed before the box like every message (PR #29's JanitorAI pass 2); a send drops it."""
+    the lifted composer, listed before the box like every message, its bounds around the send (JanitorAI's false
+    "sheet opened" and "input disabled"); a send drops the keyboard."""
     phone = chatty(clock)
     chat = phone.screens["chat"]
     box = next(e for e in chat.elements if e["type"].endswith("EditText"))
@@ -843,7 +844,7 @@ def keyboard_over_the_reply(clock):
               if e["coordinates"]["y"] >= floor else e for e in chat.elements]
     tail = {"ref": "@tail", "type": "android.widget.TextView",
             "text": "He kept counting ships long after the harbour went dark.",
-            "coordinates": {"x": 42, "y": floor - LIFT_PX + 60, "width": 996, "height": 190}}
+            "coordinates": {"x": 21, "y": floor - LIFT_PX + 60, "width": 1038, "height": 260}}
     at = next(n for n, e in enumerate(chat.elements) if e["coordinates"]["y"] >= floor)
     image = chat.image.copy()
     image.paste(chat.image.crop((0, floor, 1080, 2400)), (0, floor - LIFT_PX))

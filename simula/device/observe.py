@@ -324,7 +324,10 @@ def controls(elements: list[dict], device: Device) -> list[Candidate]:
     """Tappable-looking elements in the content area. The list is parent-first, so an element's own texts come
     after it: those (not a nested control's label) merge into it, and content that scrolled under an overlay,
     which comes before it, doesn't. A big element without words that holds two or more different texts is a
-    layout, not a control. Words without a letter ("8", "1 / 102") are counters, not controls."""
+    layout, not a control. Words without a letter ("8", "1 / 102") are counters, not controls. A smaller control
+    inside a bigger one is part of it when listed in its subtree (right after it, everything between inside it too)
+    or under it (listed before it); one listed past its subtree is drawn over it, like a composer's send over a reply
+    the keyboard left under the composer, and stays a control."""
     content = [e for e in elements if in_content(e, device) and area(rect(e)) < LAYOUT_SHARE * content_area(device)
                and rect(e).y + rect(e).h <= device.content_bottom_px + 16]
     found = []
@@ -343,11 +346,13 @@ def controls(elements: list[dict], device: Device) -> list[Candidate]:
         ident = short_id(e.get("identifier"))
         # mobile-mcp writes "checked" only when it is true, so a switch without it is off
         checked = True if e.get("checked") else False if TOGGLE.search(e["type"]) else None
-        found.append(Candidate(label=tree_label or ident, kind=e["type"].split(".")[-1], rect=r, ref=e["ref"],
-                               tree_label=tree_label, ident=ident, enabled=e.get("enabled") is not False,
-                               checked=checked))
-    kept = [c for c in found if not any(o is not c and area(o.rect) > area(c.rect) and inside(c.rect, o.rect)
-                                        for o in found)]
+        found.append((n, Candidate(label=tree_label or ident, kind=e["type"].split(".")[-1], rect=r, ref=e["ref"],
+                                   tree_label=tree_label, ident=ident, enabled=e.get("enabled") is not False,
+                                   checked=checked)))
+    ends = {m: next((k for k in range(m + 1, len(content)) if not inside(rect(content[k]), o.rect)), len(content))
+            for m, o in found}
+    kept = [c for n, c in found if not any(o is not c and area(o.rect) > area(c.rect) and inside(c.rect, o.rect)
+                                           and n < ends[m] for m, o in found)]
     return [c for n, c in enumerate(kept) if all(o.rect != c.rect for o in kept[:n])]
 
 

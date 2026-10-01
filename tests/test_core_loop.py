@@ -115,6 +115,24 @@ def test_a_price_is_what_makes_a_paywall():
         assert not shows(text), text
 
 
+def test_a_send_drawn_over_a_reply_the_keyboard_left_under_the_composer_is_still_its_send():
+    """JanitorAI's pass 3 on 2026-10-01: the keyboard lifted the composer over a reply paragraph, listed before the
+    text box, whose bounds hold the send; the send is listed after the box, so it is drawn over the reply."""
+    def element(ref, kind, x, y, w, h, **words):
+        return {"ref": ref, "type": f"android.widget.{kind}", **words,
+                "coordinates": {"x": x, "y": y, "width": w, "height": h}}
+    lifted = [element("@reply", "TextView", 134, 1227, 902, 261, text="He stopped abruptly, his chest heaving."),
+              element("@box", "EditText", 46, 1215, 988, 123, text="Hi! What can you help me with?"),
+              element("@persona", "Button", 174, 1338, 284, 86, label="Change who you are in this chat"),
+              element("@send", "ViewGroup", 922, 1338, 89, 89, label="Send")]
+    box, send = ob.composer(ob.controls(lifted, DEVICE), DEVICE)
+    assert (box.ref, send.ref) == ("@box", "@send")
+    card = [element("@card", "ViewGroup", 0, 900, 1080, 400, text="A card"),
+            element("@title", "TextView", 40, 940, 600, 60, text="Its title"),
+            element("@open", "Button", 40, 1100, 300, 120, text="Open")]
+    assert [c.ref for c in ob.controls(card, DEVICE)] == ["@card"]
+
+
 # Fable E7: the explorer's own message carried a price, and any price on a chat made the conversation a paywall.
 def test_no_conversation_is_a_paywall_only_a_price_on_a_control_is():
     assert not [m for m in stage.CORE_MESSAGES if ob.PRICE.search(m)]
