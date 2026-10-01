@@ -173,7 +173,7 @@ def load_replaced(explore_dir: Path, device: Device) -> dict[str, list[tuple[int
         for capture in sf.replaced:
             pixels = np.asarray(Image.open(explore_dir / capture.screenshot).convert("RGB"))
             tree = read_tree(explore_dir / capture.elements_reply)
-            elements = build_elements(sf.state_id, tree, [], [], pixels, device)
+            elements = build_elements(sf.state_id, tree, capture.icon_labels, capture.vision_elements, pixels, device)
             replaced.setdefault(sf.state_id, []).append((capture.until_step, elements))
     return replaced
 
@@ -193,10 +193,11 @@ def tapped_element(state: State, line: ActionLine) -> Element | None:
 
 
 def same_control(e: Element, then: Element) -> bool:
-    """The same control in the same place on two captures of one state. A wordless control's label on the later
-    capture may be the icon pass's name for it."""
-    same_place = (e.type, e.text, e.rect_px) == (then.type, then.text, then.rect_px)
-    return same_place and (e.label == then.label or not then.label)
+    """The same control in the same place on two captures of one state: the same kind, words and box, and, for one
+    without text (an icon, a picture, a vision control), the same colors too, since another item's picture can sit
+    in its place."""
+    same_place = (e.type, e.text, e.label, e.rect_px) == (then.type, then.text, then.label, then.rect_px)
+    return same_place and (bool(e.text) or (e.fg_hex, e.bg_hex) == (then.fg_hex, then.bg_hex))
 
 
 def edge_for(state: State, line: ActionLine, then: list[Element] | None = None) -> tuple[Element | None, str]:

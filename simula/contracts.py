@@ -527,6 +527,8 @@ class ReplacedCapture(Strict):
                                         "a step up to here resolves its tap against this capture, not the state's own.")
     screenshot: str
     elements_reply: str
+    icon_labels: list[IconLabel] = []
+    vision_elements: list[VisionElement] = []
 
 
 class StateFile(Strict):
