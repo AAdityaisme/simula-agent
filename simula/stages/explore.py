@@ -412,7 +412,7 @@ class Explorer:
         self.note("state", f"new {kind} {sid}" + (f" over {seen.parent}" if seen.parent else "")
                   + (" (upsell)" if seen.upsell else ""))
         if kind in ("screen", "modal", "sheet"):
-            self.name_icons(seen)
+            self.name_icons(seen, (before.image, obs.image) if box and before else None)
             self.log_denied(seen)
         return seen
 
@@ -667,12 +667,12 @@ class Explorer:
         return True
 
     def denied_at(self, s: Seen, cand: ob.Candidate, **rules) -> str | None:
-        """What blocks a tap on cand: its own deny-list word, or that of any candidate on the state whose box holds its
-        tap point, whatever its kind. A tap lands on what lies there, not on the name it was picked by, so a picture
-        tapped at its center never carries out a denied control drawn there."""
+        """What blocks a tap on cand: its own deny-list word, or that of any control on the state whose box holds its
+        tap point. A tap lands on what lies there, not on the name it was picked by, so a picture tapped at its center
+        never carries out a denied control drawn there. A picture's name says what it shows, so it vetoes nothing."""
         point = Rect(x=cand.point[0], y=cand.point[1], w=0, h=0)
         return ob.denied(cand, **rules) or next(
-            (f"{reason} ({c.label[:30]!r} lies at its tap point)" for c in s.cands
+            (f"{reason} ({c.label[:30]!r} lies at its tap point)" for c in controls_of(s.cands)
              if c is not cand and ob.inside(point, c.rect) for reason in [ob.denied(c, **rules)] if reason), None)
 
     def safe_tap(self, c: ob.Candidate, why: str) -> bool:
@@ -1028,12 +1028,13 @@ class Explorer:
         form's own button aside), no list, no text box with send, no tab bar. Each is met once."""
         if not self.ctx.allow_account_create or s.sid in self.walls or s.kind not in ("screen", "modal", "sheet"):
             return False
-        form = any(c.kind == "EditText" for c in s.cands)
+        cands = controls_of(s.cands)
+        form = any(c.kind == "EditText" for c in cands)
         other = any(ob.shaped(c) and c.tree_label and not ob.denied(c, upsell=s.upsell) and not ob.account_way(c)
-                    and not (form and ob.SUBMIT.search(c.label)) for c in s.cands)
-        return (any(ob.shaped(c) and ob.SIGN_IN.search(c.label) for c in s.cands) and not other
-                and not ob.feed_items(s.cands, self.device, self.tab_keys()) and not ob.composer(s.cands, self.device)
-                and not ob.tab_bar(controls_of(s.cands), self.device))
+                    and not (form and ob.SUBMIT.search(c.label)) for c in cands)
+        return (any(ob.shaped(c) and ob.SIGN_IN.search(c.label) for c in cands) and not other
+                and not ob.feed_items(cands, self.device, self.tab_keys()) and not ob.composer(cands, self.device)
+                and not ob.tab_bar(cands, self.device))
 
     def get_past(self, wall: Seen) -> bool:
         """A way on without an account first ("Continue as guest", "Skip", "Not now"), which counts only when it
@@ -1041,7 +1042,7 @@ class Explorer:
         Whatever stops it leaves the explorer at the wall, as without the flag, with the reason in the trace and the
         exhibit. True when past it."""
         self.walls.add(wall.sid)
-        on = next((c for c in wall.cands if ob.shaped(c) and ob.GUEST.search(c.label)
+        on = next((c for c in controls_of(wall.cands) if ob.shaped(c) and ob.GUEST.search(c.label)
                    and not ob.denied(c, upsell=wall.upsell)), None)
         if on:
             self.act(Move("tap", on, why="account wall: on without an account"), purpose="nav")
@@ -2288,9 +2289,10 @@ class Explorer:
             draw.text((r.x + 4, r.y - top), name, fill=(255, 255, 255), font=font)
         return png_half(image)
 
-    def name_icons(self, s: Seen) -> None:
+    def name_icons(self, s: Seen, looks: tuple[Image.Image, Image.Image] | None = None) -> None:
         """The Sonnet icon pass: names boxes with no words and adds the visible controls and pictures the tree doesn't
-        list, up to 8 of each."""
+        list, up to 8 of each. An overlay's `looks` are the parent's capture from right before it opened, then its
+        own."""
         unnamed = [n for n, c in enumerate(s.cands, start=1) if not c.label]
         png = self.boxed_png(s, s.cands, [str(n) for n in range(1, len(s.cands) + 1)])
         text = (f"Name these boxes: {', '.join(map(str, unnamed)) or 'none'}.\n"
@@ -2307,15 +2309,16 @@ class Explorer:
                 s.icon_labels.append(IconLabel(mcp_ref=c.ref, name=item.name))
         for kind in ("control", "picture"):
             for item in [item for item in result.unlisted if item.kind == kind][:8]:
-                self.add_vision(s, item)
+                self.add_vision(s, item, looks)
 
-    def add_vision(self, s: Seen, item: Unlisted) -> None:
+    def add_vision(self, s: Seen, item: Unlisted, looks: tuple[Image.Image, Image.Image] | None = None) -> None:
         """Keeps an item the tree doesn't list, its box clamped to the content area, when its center is on the
         content area. A control's center lies in no box found before it. A picture's lies in no listed box, and it is
         another picture only when their boxes mostly overlap, so an avatar on a banner keeps both. On a modal or sheet
-        a picture is its own only when its center lies within its own listed controls (record() left the parent's out):
-        one behind the scrim is the parent's, cropped from the parent's own capture. Each is a tap candidate at its
-        box's center; a picture is marked as one, so it is tapped after every control and never as the core action."""
+        a picture is its own when its center lies within its own listed controls (record() left the parent's out), or
+        outside them on the overlay itself (overlay_holds): one behind the scrim is the parent's, cropped from the
+        parent's own capture. Each is a tap candidate at its box's center; a picture is marked as one, so it is tapped
+        after every control or as the state's last tap, and never as the core action."""
         d = self.device
         x0, x1 = sorted((item.left / ICON_SCALE, item.right / ICON_SCALE))
         y0, y1 = sorted((item.top / ICON_SCALE + d.content_top_px, item.bottom / ICON_SCALE + d.content_top_px))
@@ -2328,7 +2331,7 @@ class Explorer:
         held = [c.rect for c in s.cands]
         if item.kind == "picture":
             held = [c.rect for c in s.cands if c.ref]
-            if s.box and not (held and ob.inside(point, ob.bbox(held))):
+            if s.box and not (held and (ob.inside(point, ob.bbox(held)) or self.overlay_holds(s, point, held, looks))):
                 return
             if any(ob.iou(box, v.rect_px) >= SAME_PICTURE_IOU for v in s.vision if v.kind == "picture"):
                 return
@@ -2337,6 +2340,20 @@ class Explorer:
         s.vision.append(VisionElement(name=item.name, rect_px=box, kind=item.kind))
         s.cands.append(ob.Candidate(label=item.name, kind="vision" if item.kind == "control" else "picture", rect=box,
                                     ref=None, tree_label=""))
+
+    def overlay_holds(self, s: Seen, point: Rect, own: list[Rect],
+                      looks: tuple[Image.Image, Image.Image] | None) -> bool:
+        """A point outside an overlay's own listed controls, such as art above its topmost one, is the overlay's when
+        it lies in the smallest listed view that holds them all (its window, as the tree lists it) and looks unlike the
+        parent's capture there. A scrim only dims the parent, and dHash reads edges, not brightness, so the parent's
+        own pixels behind it keep their look; a window as tall as the screen leaves that look the only evidence."""
+        frame = min((r for r in map(ob.rect, s.elements) if all(ob.inside(o, r) for o in own)), key=ob.area,
+                    default=None)
+        if looks is None or frame is None or not ob.inside(point, frame):
+            return False
+        half = ob.PATCH_DP * self.device.scale / 2
+        patch = Rect(x=point.x - half, y=point.y - half, w=2 * half, h=2 * half)
+        return not ob.looks_same(looks[0], patch, looks[1], patch, self.device)
 
     def hard_screen(self, s: Seen, opts: list[ob.Candidate], goal: str) -> Move | None:
         """Sonnet picks one move when Jev is unsure, has failed, or taps keep changing nothing."""

@@ -744,12 +744,13 @@ def priced(elements: list[dict], device: Device, box: Rect | None = None, own: l
 def composer(cands: list[Candidate], device: Device) -> tuple[Candidate, Candidate] | None:
     """A chat: a text box in the lower half of the screen plus its send control in the composer bar, the box's
     row or the toolbar row right under it: one that says "send", or else the first past the box's right edge. A
-    text box near the top is a search; a "send" elsewhere ("Send feedback", "Send gift") is not this box's."""
+    text box near the top is a search; a "send" elsewhere ("Send feedback", "Send gift") is not this box's. A picture
+    the icon pass named is no control."""
     middle = (device.content_top_px + device.content_bottom_px) / 2
     box = next((c for c in cands if c.kind == "EditText" and center(c.rect)[1] > middle), None)
     if box is None:
         return None
-    bar = [c for c in cands if c is not box and c.rect.y < box.rect.y + 2 * box.rect.h
+    bar = [c for c in cands if c is not box and c.kind != "picture" and c.rect.y < box.rect.y + 2 * box.rect.h
            and box.rect.y < c.rect.y + c.rect.h and not denied(c, core=True)]
     send = next((c for c in bar if re.search(r"send", c.label, re.IGNORECASE)), None) or min(
         (c for c in bar if c.rect.x >= box.rect.x + box.rect.w - 24), key=lambda c: c.rect.x, default=None)

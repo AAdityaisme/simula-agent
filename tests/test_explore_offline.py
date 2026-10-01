@@ -12,7 +12,7 @@ import pytest
 from PIL import Image, ImageDraw
 
 from simula import decide, llm, runlog
-from simula.contracts import (ActionLine, ExploreFile, IconLabel, IconName, IconPass, Rect, State, StateFile,
+from simula.contracts import (ActionLine, Device, ExploreFile, IconLabel, IconName, IconPass, Rect, State, StateFile,
                               Unlisted, VisionElement)
 from simula.device import observe as ob
 from simula.device.mcp import parse_elements
@@ -604,6 +604,19 @@ def test_a_dialogs_art_reaching_past_its_listed_controls_is_kept_whole(tmp_path,
     assert "picture" not in {c.kind for c in ex.surface()}, "the walk never takes a picture"
 
 
+def test_a_dialogs_art_above_all_its_listed_controls_is_kept(tmp_path, monkeypatch):
+    """Greptile on 327eeac: art centered outside a dialog's own listed controls was dropped. Luzia's Toki dialog
+    without its close button, the one listed control beside the art: the art is centered above every control left.
+    Its center looks nothing like the parent's there, while the parent's avatar, as tall a window above, still does."""
+    toki = committed(LUZIA, "s05")
+    toki = Screen([e for e in toki.elements if e["ref"] != "@e26"], toki.image, PACKAGE)
+    ex, s = recorded_dialog(tmp_path, monkeypatch, committed(LUZIA, "s01"), toki, lambda ex: [
+        unlisted(ex, 120, 582, 960, 1244, "picture", "header art"),
+        unlisted(ex, 396, 176, 684, 572, "picture", "assistant avatar")])
+    assert ob.bbox([c.rect for c in s.cands if c.ref]).y == 1285
+    assert s.vision == [VisionElement(name="header art", rect_px=Rect(x=120, y=582, w=840, h=662), kind="picture")]
+
+
 def test_a_dialogs_art_is_cropped_whole_by_the_model_stage(tmp_path, monkeypatch):
     ex, s = luzia_toki(tmp_path / "explore", monkeypatch)
     image = Image.open(ex.out / "states" / f"{s.sid}.png").convert("RGB")
@@ -647,6 +660,33 @@ def test_a_picture_is_never_tapped_at_a_denied_control_drawn_at_its_center(tmp_p
     assert ex.act(stage.Move("tap", picture)) is s
     assert len([entry for entry in ex.phone.log if entry[0] == "tap"]) == taps
     assert lines(ex)[-1].change_summary == "denied: delete ('delete' lies at its tap point)"
+
+
+def test_a_pictures_name_never_vetoes_a_control_drawn_on_it(tmp_path, monkeypatch):
+    """Red team on 327eeac: a picture's name says what it shows, so a "cover photo" denies no control drawn on it, in
+    the tour or the core loop. Only a control at a picture's tap point vetoes the picture's tap."""
+    ex, s = icon_pass_screen(tmp_path, monkeypatch)
+    monkeypatch.setattr(ex, "ask", lambda *a: IconPass(names=[], unlisted=[
+        unlisted(ex, 0, 1700, 1080, 2100, "picture", "cover photo")]))
+    ex.name_icons(s)
+    ex.current = s
+    go = next(c for c in s.cands if c.label == "Go")
+    assert ex.denied_at(s, go, upsell=False, core=True) is None
+    taps = len([entry for entry in ex.phone.log if entry[0] == "tap"])
+    ex.act(stage.Move("tap", go))
+    assert len([entry for entry in ex.phone.log if entry[0] == "tap"]) == taps + 1
+
+
+def test_a_picture_in_a_chats_composer_row_is_never_its_send():
+    """With no control that says "send", a chat's send is the first control past its text box: never a picture
+    there, which the icon pass named for what it shows."""
+    box = ob.Candidate(label="Message", kind="EditText", rect=Rect(x=40, y=2150, w=700, h=120), ref="@box",
+                       tree_label="Message")
+    sticker = ob.Candidate(label="cat sticker", kind="picture", rect=Rect(x=760, y=2160, w=100, h=100), ref=None,
+                           tree_label="")
+    plane = ob.Candidate(label="paper plane", kind="vision", rect=Rect(x=900, y=2160, w=100, h=100), ref=None,
+                         tree_label="")
+    assert ob.composer([box, sticker, plane], Device()) == (box, plane)
 
 
 def test_a_states_last_tap_goes_to_a_picture_its_controls_would_use_up(tmp_path, monkeypatch):
