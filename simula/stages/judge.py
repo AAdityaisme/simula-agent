@@ -24,8 +24,10 @@ FROZEN = ROOT / "config" / "frozen_prompts.toml"
 CHECKS = GATES + JUDGMENT
 # An idea resting on something never observed fails one of these; the CONDITIONAL fallback never rescues it.
 PREMISE = ("c1_revealed_value", "c2_evidence")
-# Nor does it draw an offer c3 found aimed at paying users: the closest idea would be the very ad that check stops.
-NO_FALLBACK = PREMISE + ("c3_spares_payers",)
+# Nor does it draw an offer any judge found aimed at paying users: the closest idea would be the very ad that check
+# stops. A person can still approve such a split.
+PAYERS = "c3_spares_payers"
+NO_FALLBACK = PREMISE + (PAYERS,)
 SURVIVORS = ("accept", "conditional")
 ECON_CONDITION = {"CONDITIONAL": "The cost to serve isn't known", "FAIL": "It may cost more to serve than a view earns"}
 
@@ -214,11 +216,15 @@ def revisable(c: Candidate, d: Decision, verdicts: list[Verdict], judges: int) -
             and any(v.fixable for v in verdicts))
 
 
+def barred(verdicts: list[Verdict]) -> bool:
+    """Whether the fallback can't carry an idea: every judge failed a premise check, or any judge failed c3. A premise
+    check only one judge fails is a split, which doesn't bar it (D10)."""
+    return bool(set(PREMISE) & set(failed_by_all(verdicts))) or PAYERS in failed_by_any(verdicts)
+
+
 def could_fall_back(c: Candidate, d: Decision, verdicts: list[Verdict]) -> bool:
-    """An idea code kept that every judge passed on every gate, and whose premise checks and c3 no two judges both
-    failed: a check only one judge fails is a split, which doesn't exclude it (D10)."""
-    return (is_idea(c) and not c.dropped_reason and bool(verdicts) and not d.gate_fails
-            and not set(NO_FALLBACK) & set(failed_by_all(verdicts)))
+    """An idea code kept that every judge passed on every gate, and that nothing `barred` keeps out."""
+    return is_idea(c) and not c.dropped_reason and bool(verdicts) and not d.gate_fails and not barred(verdicts)
 
 
 def earlier(cid: str):
@@ -228,21 +234,27 @@ def earlier(cid: str):
         yield cid
 
 
+def drawable(d: Decision) -> bool:
+    """A survivor flows can draw without a person: any but a split on c3, which waits on the Needs your call page."""
+    return d.final in SURVIVORS and PAYERS not in d.judgment_splits
+
+
 def superseded(revised: list[Candidate], decisions: dict[str, Decision],
                verdicts: dict[str, dict[str, Verdict]]) -> set[str]:
     """Earlier versions a revision stands in for: one that survived, or a reject the fallback could pick, replaces its
     original and every revision before it. A revision that made the idea worse, or that waits on a person, leaves the
     versions before it in play."""
     def stands_in(r: Candidate, d: Decision) -> bool:
-        return d.final in SURVIVORS or (d.final == "reject" and could_fall_back(r, d, [*verdicts[r.id].values()]))
+        return drawable(d) or (d.final == "reject" and could_fall_back(r, d, [*verdicts[r.id].values()]))
     return {e for r in revised if stands_in(r, decisions[r.id]) for e in earlier(r.id)}
 
 
 def fallback_pick(decisions: list[Decision], candidates: dict[str, Candidate],
                   verdicts: dict[str, dict[str, Verdict]], superseded: set[str]) -> str | None:
     """When nothing survives, the best reject the fallback could carry (could_fall_back): fewest checks failed, then
-    rank. None when there is no such candidate."""
-    if any(d.final in SURVIVORS for d in decisions):
+    rank. None when there is no such candidate. A split on c3 doesn't count as surviving: flows never draws it unasked,
+    so it would leave the deck empty."""
+    if any(drawable(d) for d in decisions):
         return None
     eligible = [d for d in decisions if d.final == "reject" and d.candidate_id not in superseded
                 and could_fall_back(candidates[d.candidate_id], d, [*verdicts.get(d.candidate_id, {}).values()])]
@@ -448,8 +460,8 @@ def judge_run(ctx: Ctx, work: Path, model: ProductModel, candidates: list[Candid
         # the pick keeps its reject's failure_type: that is how flows and condition() tell it from a split (D10)
         decisions[pick] = decisions[pick].model_copy(update={"final": "conditional"})
         run_trace(ctx.run_dir, stage="judge", step="fallback", decider="code",
-                  note=f"nothing survived; {pick} passes every gate and no premise check every judge failed "
-                       "-> CONDITIONAL")
+                  note=f"nothing survived (a split on {PAYERS} doesn't count); {pick} passes every gate, no premise "
+                       f"check every judge failed, and no judge failed {PAYERS} -> CONDITIONAL")
     final = ordered(list(decisions.values()))
     for d in final:
         run_trace(ctx.run_dir, stage="judge", step=f"decide:{d.candidate_id}", decider="code",
@@ -459,7 +471,7 @@ def judge_run(ctx: Ctx, work: Path, model: ProductModel, candidates: list[Candid
     write_json_atomic(work / "revisions.json", CandidatesFile(candidates=revised).model_dump_json(indent=1))
     write_json_atomic(work / "decisions.json", DecisionsFile(decisions=final).model_dump_json(indent=1))
     write_queue(ctx, work, final, everyone)
-    if not any(d.final in SURVIVORS for d in final):
+    if not any(drawable(d) for d in final):
         (work / "no-opportunity.md").write_text(no_opportunity(final, everyone, verdicts))
     swap_in(work, ctx.run_dir / "judge")
     write_exhibit(ctx.run_dir, 6, "judge", exhibit(final, everyone, verdicts, judges, ctx.profile, mode))
@@ -497,18 +509,28 @@ def write_queue(ctx: Ctx, work: Path, decisions: list[Decision], candidates: dic
 def no_opportunity(decisions: list[Decision], candidates: dict[str, Candidate],
                    verdicts: dict[str, dict[str, Verdict]]) -> str:
     gate = [d for d in decisions if d.gate_fails]
-    premise = [d for d in decisions if not d.gate_fails
-               and set(NO_FALLBACK) & set(failed_by_all([*verdicts.get(d.candidate_id, {}).values()]))]
+    premise = [d for d in decisions if not d.gate_fails and barred([*verdicts.get(d.candidate_id, {}).values()])]
     waiting = [d for d in decisions if d.final == "needs_human"]
+    payers = [d for d in decisions if d.final in SURVIVORS]
     lines = ["# No opportunity", "", "No candidate reached Goal 4, and none was manufactured.", "",
              f"- {len(decisions)} candidates judged or dropped.",
              f"- {len(gate)} failed a safety gate.",
              f"- {len(premise)} passed the gates but rest on something the product model doesn't show or aim "
              f"the offer at paying users ({', '.join(NO_FALLBACK)}), so the CONDITIONAL fallback can't carry them.",
-             f"- {len(waiting)} wait on a person (`human-queue.md`).", ""]
+             f"- {len(waiting)} wait on a person (`human-queue.md`).",
+             f"- {len(payers)} split the judges on {PAYERS}; each waits on the Needs your call page, where a person "
+             "can approve it.", ""]
     lines += [f"- {d.candidate_id} · {candidates[d.candidate_id].title}: {d.checks_passed}/{d.checks_total}"
               + why(d, candidates[d.candidate_id]) for d in decisions]
     return "\n".join(lines) + "\n"
+
+
+def rank_text(d: Decision, c: Candidate, mode: str) -> str:
+    """The rank as the exhibit prints it: gate mode's floor for an uncounted cost reads as what it means."""
+    if d.rank_score is None:
+        return ""
+    uncounted = mode == "gate" and c.economics and economics.uncounted(c.economics)
+    return "last (cost not counted)" if uncounted else f"{d.rank_score:g}"
 
 
 def exhibit(decisions: list[Decision], candidates: dict[str, Candidate], verdicts: dict[str, dict[str, Verdict]],
@@ -526,8 +548,7 @@ def exhibit(decisions: list[Decision], candidates: dict[str, Candidate], verdict
              f"{sum(not r.endswith('-rev') for r in revised_from)} idea(s).", "",
              "| Candidate | Final | Checks | Rank | Cost mark |", "|---|---|---|---|---|"]
     lines += [f"| {d.candidate_id} · {candidates[d.candidate_id].title} | {d.final} | {d.checks_passed}/{d.checks_total}"
-              f" | {'' if d.rank_score is None else f'{d.rank_score:g}'} | {d.economics_verdict or ''} |"
-              for d in decisions]
+              f" | {rank_text(d, candidates[d.candidate_id], mode)} | {d.economics_verdict or ''} |" for d in decisions]
     for d in decisions:
         c = candidates[d.candidate_id]
         lines += ["", f"## {c.id} · {c.title}", "",

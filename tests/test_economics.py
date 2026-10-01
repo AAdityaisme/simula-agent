@@ -3,9 +3,9 @@ import sys
 
 import pytest
 
-from simula import economics
+from simula import economics, validate
 from simula.config import ROOT
-from simula.contracts import Term
+from simula.contracts import Candidate, ProductModel, Term
 from simula.stages.propose import finish
 from tests.conftest import APPS
 from tests.propose_fixtures import candidate, golden
@@ -153,20 +153,89 @@ def test_the_verdict_is_taken_at_8k_context():
     assert economics.apply([c], golden("janitorai"), "gate")[0].dropped_reason
 
 
-def test_a_zero_cost_reward_that_grants_a_paid_benefit_is_flagged_as_a_possible_lost_sale():
-    model = golden("janitorai")
-    paid = next(i for i in model.value_ledger if i.kind == "paywall_bullet")
-    econ = economics.annotate(candidate(model, reward=reward("queue_priority"), grants_id=paid.id), model)
-    assert paid.id in econ.lost_sale and econ.verdict == "PASS"
-    assert "It may give away something the app could sell" in econ.assumption_line
+def stored(case_id: str) -> tuple[Candidate, ProductModel]:
+    case = next(c for c in validate.load_cases() if c.id == case_id)
+    return case.candidate, case.model
+
+
+@pytest.mark.parametrize("case", ["kg-run-janitorai-c02", "kg-run-luzia-c05"])
+def test_a_sample_of_a_paid_perk_is_a_neutral_note_not_a_lost_sale(case):
+    c, model = stored(case)
+    econ = economics.annotate(c, model)
+    assert econ.lost_sale is None and "It may give away" not in econ.assumption_line
+    assert f"It is a sample of the paid benefit {c.grants_id} " in econ.assumption_line
+    assert econ.assumption_line.count("which stays on sale.") == 1
+
+
+@pytest.mark.parametrize("kind, unit", [("queue_priority", "hours at the top of Explore"), ("currency", "coins")])
+def test_priority_and_currency_are_flagged_where_no_paid_plan_was_seen(kind, unit):
+    model = golden("aol")
+    econ = economics.annotate(candidate(model, reward={**reward(kind), "unit": unit}), model)
+    assert econ.lost_sale and "It may give away something the app could sell" in econ.assumption_line
     assert "any completed view pays for it" not in econ.assumption_line
 
 
-@pytest.mark.parametrize("kind, unit", [("queue_priority", "faster replies"), ("cosmetic", "spot in the featured row"),
-                                        ("cosmetic", "Spotlight placement"), ("currency", "coins")])
-def test_priority_visibility_and_currency_are_flagged_where_no_paid_plan_was_seen(kind, unit):
-    model = golden("aol")
-    assert economics.annotate(candidate(model, reward={**reward(kind), "unit": unit}), model).lost_sale
+def test_placement_is_read_from_the_reward_kind_never_from_the_units_words():
+    """Three wordings of a spot ahead of other users agree: a lost sale when typed as priority, and a note that the
+    check can't tell when typed cosmetic, the kind visibility shares."""
+    model = golden("luzia")
+    priority = "a place ahead of other users, which apps sell as a boost"
+    for kind, lost in [("queue_priority", priority), ("cosmetic", None)]:
+        marks = [economics.annotate(candidate(model, reward={**reward(kind), "unit": unit}), model)
+                 for unit in ("row of stickers", "hours at the top of Explore", "front-page slot")]
+        assert {(e.lost_sale, e.assumption_line) for e in marks} == {(lost, marks[0].assumption_line)}
+    assert "The check can't tell whether it gives a place ahead of other users" in marks[0].assumption_line
+
+
+def with_line(model, kind, verbatim):
+    line = model.value_ledger[0].model_copy(update={"id": "l99", "kind": kind, "verbatim": verbatim})
+    return model.model_copy(update={"value_ledger": [*model.value_ledger, line]})
+
+
+@pytest.mark.parametrize("kind", ["currency", "price"])
+def test_a_reward_from_a_currency_or_price_line_is_flagged_never_a_sample(kind):
+    model = with_line(golden("janitorai"), kind, "Gems")
+    gems = candidate(model, reward={"kind": "currency", "unit": "gems", "amount": 500, "duration": "permanent"},
+                     grants_id="l99")
+    badge = candidate(model, reward={**reward("cosmetic"), "duration": "7 days"}, grants_id="l99")
+    for c in (gems, badge):
+        econ = economics.annotate(c, model)
+        assert econ.lost_sale and "sample" not in econ.assumption_line
+
+
+def test_free_currency_is_flagged_by_its_kind_even_when_it_names_a_paywall_perk():
+    model = golden("janitorai")
+    paid = next(i.id for i in model.value_ledger if i.kind == "paywall_bullet")
+    gems = candidate(model, grants_id=paid, reward={"kind": "currency", "unit": "gems", "amount": 50, "duration": "today"})
+    econ = economics.annotate(gems, model)
+    assert econ.lost_sale == "in-app currency, which apps sell" and "sample" not in econ.assumption_line
+
+
+def test_a_paid_perk_given_for_good_or_to_payers_is_a_lost_sale_not_a_sample():
+    model = golden("janitorai")
+    paid = next(i.id for i in model.value_ledger if i.kind == "paywall_bullet")
+    forever = candidate(model, reward={"kind": "queue_priority", "unit": "priority routing", "amount": 1,
+                                       "duration": "permanent"}, grants_id=paid)
+    more = candidate(model, for_users="paying", grants_id=paid,
+                     reward={"kind": "inference", "unit": "replies", "amount": 5, "duration": "today"},
+                     cost_inputs={**NO_COST, "inference_count": 5, "tokens_in": 8000, "tokens_out": 300})
+    kept = candidate(model, grants_id=paid, reward={"kind": "streak_protection", "unit": "streak shield", "amount": 1,
+                                                     "duration": "for good"})
+    payers, payers_model = stored("rg-janitorai-c03-rev-payers")
+    for c, m in ((forever, model), (more, model), (kept, model), (payers, payers_model)):
+        econ = economics.annotate(c, m)
+        assert econ.lost_sale and "sample" not in econ.assumption_line, c.title
+    assert economics.annotate(more, model).lost_sale.startswith("more of the paid benefit")
+
+
+def test_a_paid_perk_whose_fields_dont_say_it_ends_gets_a_note_that_says_so():
+    model = golden("janitorai")
+    paid = next(i for i in model.value_ledger if i.kind == "paywall_bullet")
+    c = candidate(model, reward={**reward("cosmetic"), "duration": "while the event runs"}, grants_id=paid.id)
+    econ = economics.annotate(c, model)
+    assert econ.lost_sale is None and "sample" not in econ.assumption_line
+    assert (f'It gives part of the paid benefit {paid.id} "{paid.verbatim}"; the check can\'t tell from its fields '
+            "whether that part runs out.") in econ.assumption_line
 
 
 def test_a_plain_cosmetic_and_a_sale_the_line_prices_carry_no_flag():
@@ -181,9 +250,8 @@ def test_a_plain_cosmetic_and_a_sale_the_line_prices_carry_no_flag():
 @pytest.mark.parametrize("mode", ["annotate", "gate"])
 def test_the_lost_sale_flag_never_changes_the_verdict_a_drop_or_the_rank(mode):
     model = golden("janitorai")
-    paid = next(i.id for i in model.value_ledger if i.kind == "paywall_bullet")
-    (plain,), *_ = finish([candidate(model)], model, mode)
-    (flagged,), *_ = finish([candidate(model, grants_id=paid)], model, mode)
+    (plain,), *_ = finish([candidate(model, reward=reward("streak_protection"))], model, mode)
+    (flagged,), *_ = finish([candidate(model, reward=reward("queue_priority"))], model, mode)
     assert plain.economics.lost_sale is None and flagged.economics.lost_sale
     assert (flagged.economics.verdict, flagged.dropped_reason, flagged.rank_score) == \
         (plain.economics.verdict, plain.dropped_reason, plain.rank_score)
@@ -194,14 +262,38 @@ def tasks(model, unit="agent tasks"):
                      cost_inputs={**NO_COST, "inference_count": 10, "tokens_in": 4000, "tokens_out": 300})
 
 
-def test_an_inference_reward_that_isnt_chat_replies_is_not_priced_as_replies():
+@pytest.mark.parametrize("unit", ["chats", "chat turns", "swipes", "questions", "Deep Research answers",
+                                  "agent task responses", "voice messages"])
+def test_a_reply_count_is_priced_whatever_the_unit_is_called_and_none_leaves_it_uncounted(unit):
     model = golden("janitorai")
-    econ = economics.annotate(tasks(model), model)
+    assert economics.annotate(tasks(model, unit), model) == economics.annotate(tasks(model, "replies"), model)
+    bare = candidate(model, reward={**reward("inference"), "unit": unit}, cost_inputs=NO_COST)
+    assert economics.input_problem(bare) is None and economics.uncounted(economics.annotate(bare, model))
+
+
+@pytest.mark.parametrize("unit", ["replies", "Messages", "chat replies", "messages.", "chat-replies"])
+def test_a_unit_that_is_a_reply_word_punctuation_aside_must_carry_its_count(unit):
+    bare = candidate(golden("janitorai"), reward={**reward("inference"), "unit": unit}, cost_inputs=NO_COST)
+    assert "count" in economics.input_problem(bare)
+
+
+@pytest.mark.parametrize("count, tokens_out", [(-5, 300), (5, -300), (5, 0), (0, 300)])
+def test_a_reply_count_that_is_filled_must_be_positive_whatever_the_unit(count, tokens_out):
+    model = golden("janitorai")
+    bad = candidate(model, title="Voice", reward={**reward("inference", 5), "unit": "voice messages"},
+                    cost_inputs={**NO_COST, "inference_count": count, "tokens_in": 2000, "tokens_out": tokens_out})
+    assert economics.input_problem(bad)
+    out, *_ = finish([bad, candidate(model, title="A badge")], model, "gate")
+    assert [c.title.split(": ")[1] for c in out if not c.dropped_reason] == ["A badge"]
+
+
+def test_an_inference_reward_with_no_count_and_a_unit_not_known_as_a_reply_is_uncounted():
+    model = golden("janitorai")
+    econ = economics.annotate(candidate(model, reward={**reward("inference"), "unit": "agent tasks"},
+                                        cost_inputs=NO_COST), model)
     assert econ.assumption_line.startswith("Serving cost not counted: one of its agent tasks isn't known to be a "
                                            "chat reply")
-    assert "replies of" not in econ.assumption_line
-    assert (econ.cost_2k, econ.cost_8k, econ.verdict) == (0, 0, "CONDITIONAL")
-    assert economics.annotate(tasks(model, "replies"), model).cost_2k > 0
+    assert (econ.cost_2k, econ.cost_8k, econ.verdict) == (0, 0, "CONDITIONAL") and economics.uncounted(econ)
 
 
 @pytest.mark.parametrize("meaning", [
@@ -209,16 +301,31 @@ def test_an_inference_reward_that_isnt_chat_replies_is_not_priced_as_replies():
     "An agent that runs multi-step tasks and sends you an answer when done.",
     "An agent that runs multi-step tasks, not a chat reply.",
     "Works for you in the background rather than just giving a quick response."])
-def test_a_unit_is_priced_per_reply_only_when_it_names_one_whatever_its_term_means(meaning):
+def test_what_a_units_term_means_never_makes_it_a_known_chat_reply(meaning):
     model = golden("janitorai")
     agent = Term(term="Computer", meaning=meaning, defined_by=[], used_in=[], everyday=False, observed=True)
     model = model.model_copy(update={"terms": [agent]})
-    econ = economics.annotate(tasks(model, "Computer tasks"), model)
-    assert econ.assumption_line.startswith("Serving cost not counted: one of its Computer tasks isn't known to be")
-    assert econ.cost_2k == 0
+    bare = candidate(model, reward={**reward("inference"), "unit": "Computer tasks"}, cost_inputs=NO_COST)
+    assert economics.input_problem(bare) is None
+    assert economics.annotate(bare, model).assumption_line.startswith(
+        "Serving cost not counted: one of its Computer tasks isn't known to be a chat reply")
 
 
-def test_a_reward_not_priced_per_reply_needs_no_reply_counts():
+def test_gate_mode_ranks_an_uncounted_cost_last_never_as_free():
+    model = golden("janitorai")
+    # 12 replies break even above the benchmark at 2k (a negative margin) and still aren't a FAIL, so gate keeps them
+    dear = candidate(model, title="Twelve more replies", reward=reward("inference", 12),
+                     cost_inputs={**NO_COST, "inference_count": 12, "tokens_in": 4000, "tokens_out": 300})
+    unknown = candidate(model, title="One agent task", reward={**reward("inference"), "unit": "agent tasks"},
+                        cost_inputs=NO_COST)
+    free = candidate(model, title="A badge")
+    out, *_ = finish([unknown, dear, free], model, "gate")
+    live = [c for c in out if not c.dropped_reason]
+    assert [c.title.split(": ")[1] for c in live] == ["A badge", "Twelve more replies", "One agent task"]
+    assert live[1].rank_score < 0 and live[1].economics.verdict == "CONDITIONAL"
+
+
+def test_a_reward_not_known_as_a_reply_needs_no_reply_counts():
     model = golden("janitorai")
     none = {**NO_COST}
     assert economics.input_problem(candidate(model, reward={**reward("inference"), "unit": "agent tasks"},
