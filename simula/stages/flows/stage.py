@@ -19,7 +19,7 @@ from simula.stages.flows.page import ad_palette_css, blur_css, decline_edges, fl
 from simula.stages.flows.pdf import write_pdf
 from simula.stages.flows.walk import screenshot_before, walk, walk_decline, walk_failed_ad
 from simula.stages.flows.wording import NOT_WIRED, REWARD_NOT_SHOWN, VERDICTS, caption
-from simula.stages.judge import ordered
+from simula.stages.judge import PAYERS, ordered
 
 MAX_IDEAS = 4
 SURVIVED = ("accept", "conditional")
@@ -81,11 +81,11 @@ def honored(approvals: list[str | dict], decisions: list[Decision]) -> tuple[lis
 def survivors(decisions: list[Decision], promoted: list[str] = (), held: list[str] = ()) -> list[Decision]:
     """Accepted and CONDITIONAL ideas in the judge's order (every accept first, D10), leaving out an idea the judges
     split on (D11) unless nothing was accepted and no one promoted an idea: then the top-ranked split is drawn as
-    the closest idea, so a deck with survivors has a full slide. A person promotes a split survivor into the deck and
-    holds any idea out of it (flows/approvals.json), and a held closest idea gets no replacement; everything else
-    follows the judges."""
+    the closest idea, so a deck with survivors has a full slide. A split on c3 is never the closest idea: one judge
+    found it aimed at paying users. A person promotes a split survivor into the deck and holds any idea out of it
+    (flows/approvals.json), and a held closest idea gets no replacement; everything else follows the judges."""
     picked = [d for d in ordered(decisions) if d.final in SURVIVED]
-    splits = [d for d in picked if needs_call(d)]
+    splits = [d for d in picked if needs_call(d) and PAYERS not in d.judgment_splits]
     closest = splits[:1] if not promoted and not any(d.final == "accept" for d in decisions) else []
     return [d for d in picked if (not needs_call(d) or d in closest or d.candidate_id in promoted)
             and d.candidate_id not in held]

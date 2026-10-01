@@ -72,6 +72,15 @@ def test_a_premise_only_one_judge_doubts_leaves_the_idea_to_the_fallback():
     assert not judge.could_fall_back(c, judge.decide(c, both_doubt, TWO, "annotate"), both_doubt)
 
 
+def test_an_offer_one_judge_finds_aimed_at_payers_is_never_the_fallback():
+    c = idea(golden("janitorai"))
+    payers = two(["c5_moment", "c3_spares_payers"], ["c5_moment"])
+    d = judge.decide(c, payers, TWO, "annotate")
+    assert d.final == "reject" and not judge.could_fall_back(c, d, payers)
+    text = judge.no_opportunity([d], {c.id: c}, {c.id: dict(zip(validate.JUDGES, payers))})
+    assert "- 1 passed the gates but rest on something" in text
+
+
 def test_a_unanimous_fail_outranks_a_split():
     d = judge.decide(idea(golden("aol")), two(["c5_moment", "c7_specific"], ["c7_specific"]), TWO, "annotate")
     assert (d.final, d.judgment_splits) == ("reject", ["c5_moment"])

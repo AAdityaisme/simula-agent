@@ -23,8 +23,10 @@ FROZEN = ROOT / "config" / "frozen_prompts.toml"
 CHECKS = GATES + JUDGMENT
 # An idea resting on something never observed fails one of these; the CONDITIONAL fallback never rescues it.
 PREMISE = ("c1_revealed_value", "c2_evidence")
-# Nor does it draw an offer c3 found aimed at paying users: the closest idea would be the very ad that check stops.
-NO_FALLBACK = PREMISE + ("c3_spares_payers",)
+# Nor does it draw an offer any judge found aimed at paying users: the closest idea would be the very ad that check
+# stops. A person can still approve such a split.
+PAYERS = "c3_spares_payers"
+NO_FALLBACK = PREMISE + (PAYERS,)
 SURVIVORS = ("accept", "conditional")
 ECON_CONDITION = {"CONDITIONAL": "The cost to serve isn't known", "FAIL": "It may cost more to serve than a view earns"}
 
@@ -210,11 +212,15 @@ def revisable(c: Candidate, d: Decision, verdicts: list[Verdict]) -> bool:
             and any(v.fixable for v in verdicts))
 
 
+def barred(verdicts: list[Verdict]) -> bool:
+    """Whether the fallback can't carry an idea: every judge failed a premise check, or any judge failed c3. A premise
+    check only one judge fails is a split, which doesn't bar it (D10)."""
+    return bool(set(PREMISE) & set(failed_by_all(verdicts))) or PAYERS in failed_by_any(verdicts)
+
+
 def could_fall_back(c: Candidate, d: Decision, verdicts: list[Verdict]) -> bool:
-    """An idea code kept that every judge passed on every gate, and whose premise checks and c3 no two judges both
-    failed: a check only one judge fails is a split, which doesn't exclude it (D10)."""
-    return (is_idea(c) and not c.dropped_reason and bool(verdicts) and not d.gate_fails
-            and not set(NO_FALLBACK) & set(failed_by_all(verdicts)))
+    """An idea code kept that every judge passed on every gate, and that nothing `barred` keeps out."""
+    return is_idea(c) and not c.dropped_reason and bool(verdicts) and not d.gate_fails and not barred(verdicts)
 
 
 def superseded(revised: list[Candidate], decisions: dict[str, Decision],
@@ -475,8 +481,7 @@ def write_queue(ctx: Ctx, work: Path, decisions: list[Decision], candidates: dic
 def no_opportunity(decisions: list[Decision], candidates: dict[str, Candidate],
                    verdicts: dict[str, dict[str, Verdict]]) -> str:
     gate = [d for d in decisions if d.gate_fails]
-    premise = [d for d in decisions if not d.gate_fails
-               and set(NO_FALLBACK) & set(failed_by_all([*verdicts.get(d.candidate_id, {}).values()]))]
+    premise = [d for d in decisions if not d.gate_fails and barred([*verdicts.get(d.candidate_id, {}).values()])]
     waiting = [d for d in decisions if d.final == "needs_human"]
     lines = ["# No opportunity", "", "No candidate reached Goal 4, and none was manufactured.", "",
              f"- {len(decisions)} candidates judged or dropped.",

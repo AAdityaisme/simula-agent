@@ -19,6 +19,9 @@ BIBLE = ROOT / "bible"
 PROMPTS = ROOT / "prompts" / "propose"
 ALLOWED_INPUTS = (BIBLE, PROMPTS)
 MAX_CANDIDATES = 10
+# Gate mode's score for an uncounted cost: last, never as free. ponytail: a floor, not -inf (JSON can't hold it);
+# a counted idea the gate keeps scores this low only at a daily cap in the millions.
+UNCOUNTED_SCORE = -1e6
 MAX_PER_LENS = 2  # the system prompt asks each lens for 1 or 2 ideas
 MIN_DISTINCT = 4
 MAX_LEDGER_LENSES = 2
@@ -360,13 +363,16 @@ def depths(model: ProductModel) -> dict[str, int]:
 def rank(c: Candidate, model: ProductModel, mode: str) -> Candidate:
     """reach = eligible users (by the trigger's depth) x daily views (the typed per-user `daily_cap`, never the
     `frequency_cap` prose): a scenario, not a measured audience. An offer taken less than once a day is typed 0, so
-    it ranks after every daily one and loses a duplicate pair to its daily twin."""
+    it ranks after every daily one and loses a duplicate pair to its daily twin. In gate mode the score is reach x
+    the margin a view leaves; an uncounted cost ranks last, by reach."""
     if c.dropped_reason or c.kind == "no_opportunity":
         return c
     weight = {0: 1.0, 1: 0.5}.get(depths(model)[c.trigger_state_id], 0.25)
     reach = weight * c.daily_cap
     score = reach
-    if mode == "gate":
+    if mode == "gate" and economics.uncounted(c.economics):
+        score = UNCOUNTED_SCORE + reach
+    elif mode == "gate":
         score = reach * (c.economics.benchmark_ecpm - c.economics.breakeven_ecpm_2k) / 1000
     return c.model_copy(update={"reach_score": reach, "rank_score": round(score, 6)})
 

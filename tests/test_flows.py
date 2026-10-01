@@ -1004,6 +1004,17 @@ def test_approvals_add_and_hold_by_id_and_never_draw_a_reject():
     assert flows.stage.select(splits, held=["c05"]) == []
 
 
+def test_with_no_accept_a_split_on_c3_is_never_the_closest_idea_and_a_person_can_still_promote_it(tmp_path):
+    payers = decision("c01", "conditional", 3.0).model_copy(update={"judgment_splits": ["c3_spares_payers"]})
+    evidence = decision("c02", "conditional", 1.0).model_copy(update={"judgment_splits": ["c2_evidence"]})
+    assert [d.candidate_id for d in flows.stage.select([payers, evidence])] == ["c02"]
+    assert flows.stage.select([payers]) == []
+    (tmp_path / "approvals.json").write_text('{"promote": [{"id": "c01", "splits": ["c3_spares_payers"]}]}')
+    promoted, _ = flows.stage.load_approvals(tmp_path, [payers, evidence])
+    ids, _ = flows.stage.honored(promoted, [payers, evidence])
+    assert [d.candidate_id for d in flows.stage.select([payers, evidence], ids)] == ["c01"]
+
+
 def test_approvals_survive_the_cleanup(tmp_path):
     (tmp_path / "c01").mkdir()
     (tmp_path / "slides.html").write_text("old")
