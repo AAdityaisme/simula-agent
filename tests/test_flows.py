@@ -172,12 +172,13 @@ def slides(run_dir) -> list[tuple[str, str, str]]:
 
 
 def flow_phones(run_dir, idea: str) -> list[dict]:
-    """The phones on an idea's flow slide, in order: label, caption, and screenshot."""
+    """The phones on an idea's flow slide, in order: label, caption, screenshot, and whether it is dimmed."""
     deck = (run_dir / "flows" / "slides.html").read_text()
     slide = re.search(rf'data-part="flow" data-idea="{idea}">(.*?)</section>', deck, re.S).group(1)
     return [{"label": re.search(r"<b>(.*?)</b>", step).group(1),
              "text": html.unescape(re.search(r"<p>(.*?)</p>", step, re.S).group(1)),
-             "img": (re.search(r'<img src="([^"]+)"', step) or [None, None])[1]}
+             "img": (re.search(r'<img src="([^"]+)"', step) or [None, None])[1],
+             "dim": '<div class="shot dim">' in step}
             for step in slide.split('<div class="step">')[1:]]
 
 
@@ -286,9 +287,9 @@ def test_main_slides_carry_no_ids_or_cost_math(built):
         assert not re.search(r"\b(?:[sc]\d{2}(?:\.e\d+)?|M\d+)\b|new:|\$|eCPM|REWARD_VERIFIED|judge_1", text), text
 
 
-def test_a_conditional_idea_carries_its_label_and_the_review_names_the_check_it_failed_in_plain_words(built):
+def test_a_conditional_idea_carries_no_verdict_label_and_the_review_names_the_check_it_failed_in_plain_words(built):
     for idea, part, text in slides(built):
-        assert ("Conditional" in text) == (idea == "c02")
+        assert "Conditional" not in text
         assert "didn't pass" not in text and "the right moment" not in text
         assert (flows.deck.OPEN_NOTES in " ".join(text.split())) == (part == "why" and idea == "c02")
     [note] = notes_of(built, "c02")
@@ -423,7 +424,8 @@ def test_a_drawn_and_an_unbuilt_fallback_pick_read_as_one_coherent_line_on_the_c
             "drawn, and the score pages say why.") in cover, cover
     assert "the closest is drawn" not in cover and "the closest couldn't be drawn" not in cover
     product = cover_of((run_dir / "flows" / "slides.html").read_text())
-    assert "the closest is drawn and marked as not a recommendation" in product and "couldn't" not in product
+    assert "the strongest is drawn and marked as the closest idea" in product and "couldn't" not in product
+    assert "check" not in product
 
 
 def test_a_fallback_pick_is_named_on_the_cover_and_its_why_slide_never_says_recommended(tmp_path):
@@ -436,7 +438,7 @@ def test_a_fallback_pick_is_named_on_the_cover_and_its_why_slide_never_says_reco
         flows.stage.run(ctx_for(run_dir, "luzia"))
     deck = (run_dir / "flows" / "slides.html").read_text()
     cover = text_of(deck.split('<section class="slide main"')[0])
-    assert "No idea passed every check, so the closest is drawn and marked as not a recommendation." in cover
+    assert "None of these is a recommendation yet; the strongest is drawn and marked as the closest idea." in cover
     why = {(idea, part): " ".join(text.split()) for idea, part, text in slides(run_dir)}[("c01", "why")]
     assert f"The closest idea, not a recommendation. {flows.deck.OPEN_NOTES}" in why and "Recommended" not in why
     assert "No idea passed every check" not in why
@@ -461,7 +463,7 @@ def test_a_cost_line_that_isnt_pass_is_a_review_note_and_never_the_verdict():
             for text in texts:
                 assert "Cost check" not in text and "May lose a sale" not in text
                 assert not marked or flows.deck.cost_question(c) not in text
-                assert (" Conditional " in text) == (final == "conditional")
+                assert "Conditional" not in text
                 assert not re.search(r"\$|eCPM", text), text
             assert (f"Cost check ({c.economics.verdict}): {flows.deck.cost_question(c)}." in notes) == marked
             assert (flows.deck.OPEN_NOTES in texts[-1]) == bool(notes)
@@ -567,6 +569,8 @@ def test_a_committed_runs_slides_carry_none_of_its_review_notes_and_the_review_h
     decisions = DecisionsFile.model_validate_json((run_dir / "judge" / "decisions.json").read_text()).decisions
     ideas, none_accepted = flows.stage.load_candidates(run_dir), not any(d.final == "accept" for d in decisions)
     ideas_drawn = [drawn(ideas[d.candidate_id], d) for d in flows.stage.select(decisions)]
+    if not ideas_drawn:
+        pytest.skip("the judges passed no idea, so nothing is drawn")
     planted = ideas_drawn[0]
     planted["shots"][2]["wired"], planted["shots"][-1]["reward_shown"] = False, False
     planted.update(copy_shown=False, decline="saying no led elsewhere", ad_fail="no note that nothing was used")
@@ -579,12 +583,12 @@ def test_a_committed_runs_slides_carry_none_of_its_review_notes_and_the_review_h
     for f in ideas_drawn:
         c, notes = f["candidate"], flows.deck.review_notes(f, run_dir, none_accepted)
         missed, cost = flows.deck.condition(f["decision"], run_dir, none_accepted), flows.deck.cost_question(c)
-        said = [flag for phone in flows.deck.row_phones(f) for flag in phone["flags"]]
-        said += ([flows.wording.plain(missed[1])] if missed else []) + ([cost] if cost else [])
+        flags = [flag for phone in flows.deck.row_phones(f) for flag in phone["flags"]]
+        said = flags + ([flows.wording.plain(missed[1])] if missed else []) + ([cost] if cost else [])
         assert len(notes) == len(said) and not [s for s in said if s in product], c.id
         assert notes_beside(review, c.id) == notes
         assert texts[(c.id, "why")].count(flows.deck.OPEN_NOTES) == bool(notes)
-        assert flows.deck.OPEN_NOTES not in texts[(c.id, "flow")]
+        assert texts[(c.id, "flow")].count(flows.deck.STEPS_PENDING) == any(flags)
     assert len(notes_beside(review, planted["candidate"].id)) >= 5
     assert "Cost check" not in product and "May lose a sale" not in product and 'class="flag"' not in deck
 
@@ -625,7 +629,8 @@ def test_the_walk_reaches_every_step_and_grants_the_reward_once(built):
 def test_a_reward_that_changes_nothing_on_screen_is_marked_not_shown(tmp_path, app):
     run_dir = run_flows(tmp_path, app, only="c01", show_reward=False)
     assert flow_phones(run_dir, "c01")[-1]["text"] == "Badge shows"
-    assert notes_of(run_dir, "c01") == [f"Flow slide, step 5 (What they get): {flows.wording.REWARD_NOT_SHOWN}."]
+    assert notes_of(run_dir, "c01") == [
+        f"Flow slide, step 5 (What they get, walk step 4): {flows.wording.REWARD_NOT_SHOWN}."]
     exhibit = (run_dir / "exhibits" / "07-flows.md").read_text()
     root = golden_idea(run_dir).flow_steps[-1].state_id
     assert f"| {flows.wording.REWARD_NOT_SHOWN}: step 4 |" in exhibit
@@ -641,7 +646,8 @@ def test_a_failed_ad_must_bring_the_user_back_with_nothing_granted_and_say_so(tm
     exhibit = (run_dir / "exhibits" / "07-flows.md").read_text()
     assert f"| ok | {flows.wording.NOT_WIRED}: a failed ad shows no note that nothing was used |" in exhibit
     assert "| c02 · A second look | conditional | 2 / 1 | 4 / 4 | 1 | ok | ok |" in exhibit
-    assert notes_of(run_dir, "c01") == [f"Flow slide, step 4 (The ad plays): a failed ad: {flows.wording.NOT_WIRED}."]
+    assert notes_of(run_dir, "c01") == [
+        f"Flow slide, step 4 (The ad plays, walk step 3): a failed ad: {flows.wording.NOT_WIRED}."]
     assert any(line.step == "failed-ad:c01" and line.outcome == "error" for line in read_trace(run_dir / "trace.jsonl"))
 
 
@@ -764,8 +770,9 @@ def test_reward_only_on_verification_and_only_once(built):
 def test_a_step_that_wont_tap_through_shows_the_last_good_screen_marked_not_wired(tmp_path, app):
     run_dir = run_flows(tmp_path, app, wire_accept=False)
     ad = flow_phones(run_dir, "c01")[3]
-    assert notes_of(run_dir, "c01")[0] == f"Flow slide, step 4 (The ad plays): {flows.wording.NOT_WIRED}."
-    assert not any("step 3 (" in note for note in notes_of(run_dir, "c01"))
+    assert notes_of(run_dir, "c01")[0] == \
+        f"Flow slide, step 4 (The ad plays, walk step 3): {flows.wording.NOT_WIRED}."
+    assert not any("(The offer" in note for note in notes_of(run_dir, "c01"))
     assert ad["img"] == "c01/screens/step-1.png"
     assert "| 2 / 4 | 0 | ok | " in (run_dir / "exhibits" / "07-flows.md").read_text()
     assert "| not reached | `flows/c01/index.html` |" in (run_dir / "exhibits" / "07-flows.md").read_text()
@@ -773,6 +780,23 @@ def test_a_step_that_wont_tap_through_shows_the_last_good_screen_marked_not_wire
     broken = [line for line in read_trace(run_dir / "trace.jsonl") if line.step == "walk:c01" and line.outcome == "error"]
     assert broken and "step 3 not wired" in broken[0].note
     assert "## Not wired" in (run_dir / "exhibits" / "07-flows.md").read_text()
+
+
+@pytest.mark.parametrize("options", [{"wire_accept": False}, {"show_reward": False}],
+                         ids=["unwired", "reward-not-shown"])
+def test_a_flow_slide_dims_each_step_the_walk_couldnt_show_and_says_once_that_some_arent_working(tmp_path, options):
+    """Red team on #39: with the flags moved to the review, an unwired step's stale screenshot, and a reward screen the
+    walk found unchanged, read as working steps. The flagged phones are dimmed and one line under the row says so; the
+    other idea's slide is untouched."""
+    run_dir = run_flows(tmp_path, "luzia", only="c01", **options)
+    phones, notes = flow_phones(run_dir, "c01"), notes_of(run_dir, "c01")
+    assert notes and {n for n, phone in enumerate(phones, 1) if phone["dim"]} == \
+        {int(re.match(r"Flow slide, step (\d+) ", note).group(1)) for note in notes}
+    flow = {(idea, part): " ".join(text.split()) for idea, part, text in slides(run_dir) if part == "flow"}
+    assert flow[("c01", "flow")].count(flows.deck.STEPS_PENDING) == 1
+    assert flows.deck.STEPS_PENDING not in flow[("c02", "flow")]
+    assert not any(phone["dim"] for phone in flow_phones(run_dir, "c02"))
+    assert "## Layout" not in (run_dir / "exhibits" / "07-flows.md").read_text()
 
 
 @pytest.mark.parametrize("app", APPS)
@@ -889,7 +913,7 @@ def test_with_no_accept_the_top_split_is_drawn_as_the_closest_idea_and_the_rest_
     review = review_text(run_dir)
     page = text_of(review.split("<h2>Needs your call")[1].split("</section>")[0])
     assert "c01 · " in page and "c03 · " in page and "c02 · " not in page
-    assert "the closest is drawn" in cover_of((run_dir / "flows" / "slides.html").read_text())
+    assert "the strongest is drawn" in cover_of((run_dir / "flows" / "slides.html").read_text())
     assert "the closest is drawn" in cover_of(review) and "2 idea(s) split the reviewers" in cover_of(review)
 
 
@@ -989,13 +1013,15 @@ def test_an_approval_that_doesnt_hold_on_the_closest_idea_is_named_on_the_review
 APPROVED_C02 = {"id": "c02", "splits": ["c5_moment", "c7_specific"]}
 
 
-def test_approving_a_split_idea_draws_it_marked_as_a_persons_call_on_every_slide(tmp_path):
+def test_approving_a_split_idea_draws_it_as_any_idea_and_only_the_review_records_the_persons_call(tmp_path):
     run_dir, calls = split_run(tmp_path, approvals={"promote": [APPROVED_C02]})
     assert sorted(calls) == ["c01", "c02"] and (run_dir / "flows" / "c02").is_dir()
     deck = (run_dir / "flows" / "slides.html").read_text()
     assert "Needs your call" not in deck + review_text(run_dir)
     c02 = re.findall(r'<section class="slide main" data-part="\w+" data-idea="c02">.*?</section>', deck, re.S)
-    assert len(c02) == 2 and all("Approved by a person</span>" in s and ">Conditional<" not in s for s in c02)
+    assert len(c02) == 2 and not any(chip in s for s in c02 for chip in ("Approved by a person", "Conditional",
+                                                                          "Closest idea"))
+    assert "1 idea(s) the reviewers split on are drawn because a person approved them" in cover_of(review_text(run_dir))
     why = {(idea, part): " ".join(text.split()) for idea, part, text in slides(run_dir)}[("c02", "why")]
     assert flows.deck.OPEN_NOTES in why and "reviewers" not in why
     assert notes_of(run_dir, "c02")[0].startswith(
@@ -1203,8 +1229,9 @@ def test_saying_no_must_return_to_the_start_with_nothing_granted_and_the_offer_m
     first = golden_idea(run_dir).flow_steps[0].state_id
     assert f"not wired: saying no led to new:gift, not back to {first}" in exhibit
     assert "| c02 · A second look | conditional | 2 / 1 | 4 / 4 | 1 | ok |" in exhibit
-    assert notes_of(run_dir, "c01") == ["Flow slide, step 3 (The offer): copy not on the screen.",
-                                        f"Flow slide, step 3 (The offer): saying no: {flows.wording.NOT_WIRED}."]
+    assert notes_of(run_dir, "c01") == ["Flow slide, step 3 (The offer, walk step 2): copy not on the screen.",
+                                        "Flow slide, step 3 (The offer, walk step 2): saying no: "
+                                        f"{flows.wording.NOT_WIRED}."]
     texts = {(idea, part): " ".join(text.split()) for idea, part, text in slides(run_dir)}
     assert "Saying no doesn't bring them back yet." in texts[("c01", "flow")]
     assert "Nothing free is taken away, and saying no doesn't bring them back yet." in texts[("c01", "why")]

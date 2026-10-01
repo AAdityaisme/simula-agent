@@ -25,6 +25,7 @@ PARTS = ("flow", "why")
 WHY_TITLE = "Why this works for your app"
 AFTER_PLAY = "A new screen opens after the verified play."
 OPEN_NOTES = "Review notes: see Simula's review."
+STEPS_PENDING = "Some steps aren't shown working yet: see Simula's review."
 ROW_W, ROW_GAP = SLIDE_W - 2 * 64, 28
 PHONE_MAX_W, COLUMN_MAX_W, RING_PAD = 160, 220, 5
 # the score table's CSS: 12px text on 15px lines, 7px of padding and border a row, the rows' room between the table's
@@ -91,28 +92,25 @@ def row_phones(flow: dict) -> list[dict]:
 def step_html(number: int, phone: dict, prefix: str) -> str:
     image = f'<img src="{prefix}/screens/{phone["png"]}" alt="">' if phone["png"] else ""
     ring = ring_html(phone["tap"]) if phone["tap"] else ""
-    return (f'<div class="step"><div class="shot"><span class="n">{number}</span>'
+    return (f'<div class="step"><div class="shot{" dim" if phone["flags"] else ""}"><span class="n">{number}</span>'
             f'<div class="phone">{image}{ring}</div></div>'
             f'<div class="cap"><b>{escape(phone["label"])}</b><p>{escape(plain(phone["text"]))}</p></div></div>')
 
 
 def row_html(phones: list[dict], prefix: str) -> str:
-    """Numbered phones in one row, arrows between them, a caption under each."""
+    """Numbered phones in one row, arrows between them, a caption under each; a flagged phone is dimmed."""
     column, height = row_geometry(len(phones))
     steps = "".join(step_html(n, phone, prefix) for n, phone in enumerate(phones, 1))
     return (f'<div class="row" style="--gap:{ROW_GAP}px;--col:{column:.0f}px;--h:{height:.0f}px;'
             f'--aspect:{VIEW_W}/{VIEW_H}">{steps}</div>')
 
 
-def slide_html(flow: dict, part: str, body: str) -> str:
-    """One of an idea's slides: a header with the idea's labels, then the body (HTML)."""
-    c, decision = flow["candidate"], flow["decision"]
+def slide_html(flow: dict, part: str, body: str, closest_idea: bool) -> str:
+    """One of an idea's slides: a header with its kind, and a label if it is only the closest idea, then the body
+    (HTML). A verdict or a person's approval is Simula's review's to say."""
+    c = flow["candidate"]
     kind = "existing" if c.kind == "existing_anchor" else "change"
-    if needs_call(decision):  # a drawn split: a person approved it, or it is the closest idea (D11)
-        chip = "Approved by a person" if flow.get("approved") else "Closest idea"
-        labels = f'<span class="chip conditional">{chip}</span>'
-    else:
-        labels = '<span class="chip conditional">Conditional</span>' if decision.final == "conditional" else ""
+    labels = '<span class="chip conditional">Closest idea</span>' if closest_idea else ""
     idea = "" if part == "flow" else escape(plain(caption(c)))  # the flow slide's title already names the idea
     return (f'<section class="slide main" data-part="{part}" data-idea="{c.id}">'
             f'<header><span class="chip {kind}">{escape(BUCKETS.get(c.kind, ""))}</span>'
@@ -204,8 +202,8 @@ def review_notes(flow: dict, run_dir: Path, none_accepted: bool) -> list[str]:
     """What a drawn idea's slides leave to Simula's review: each step's flags, the checks it missed with the judges'
     reasons, and its cost line."""
     c = flow["candidate"]
-    notes = [f"Flow slide, step {n} ({phone['label']}): {flag}." for n, phone in enumerate(row_phones(flow), 1)
-             for flag in phone["flags"]]
+    notes = [f"Flow slide, step {n} ({phone['label']}{f', walk step {n - 1}' if n > 1 else ''}): {flag}."
+             for n, phone in enumerate(row_phones(flow), 1) for flag in phone["flags"]]
     if note := condition(flow["decision"], run_dir, none_accepted, flow.get("approved", False)):
         notes.append(f"{note[0]} {plain(note[1])}")
     if cost := cost_question(c):
@@ -213,9 +211,9 @@ def review_notes(flow: dict, run_dir: Path, none_accepted: bool) -> list[str]:
     return notes
 
 
-def why_html(flow: dict, model: ProductModel, run_dir: Path, none_accepted: bool) -> str:
+def why_html(flow: dict, model: ProductModel, run_dir: Path, none_accepted: bool, closest_idea: bool) -> str:
     """The why slide's blocks and its reach line, then one neutral line when Simula's review has notes on the idea."""
-    c, decision = flow["candidate"], flow["decision"]
+    c = flow["candidate"]
     gets = reward_line(c)  # the offer's terms: the flow slide already shows what the screen does after the play
     blocks = [("What the user gets", gets[:1].upper() + gets[1:] + "."),
               ("What the app gets", c.rationale),
@@ -225,27 +223,29 @@ def why_html(flow: dict, model: ProductModel, run_dir: Path, none_accepted: bool
                    for label, text in blocks)
     html += f'<p class="reach">{escape(plain(reach_text(c, model)))}</p>'
     if review_notes(flow, run_dir, none_accepted):
-        lead = ("<b>The closest idea, not a recommendation.</b> "
-                if closest(decision, run_dir, none_accepted, flow.get("approved", False)) else "")
+        lead = "<b>The closest idea, not a recommendation.</b> " if closest_idea else ""
         html += f'<div class="condition">{lead}{OPEN_NOTES}</div>'
     return f'<div class="why">{html}</div>'
 
 
 def idea_slides(flow: dict, model: ProductModel, run_dir: Path, none_accepted: bool) -> list[str]:
     """An idea's two slides: its whole flow in one row of phones, then why the system thinks it's a good idea
-    (none_accepted: the judge accepted no idea, so a CONDITIONAL one may be its fallback pick, see is_fallback)."""
-    c = flow["candidate"]
+    (none_accepted: the judge accepted no idea, so a CONDITIONAL one may be its fallback pick, see is_fallback). A flow
+    with a flagged phone says under its row that some steps aren't shown working; the review says which."""
+    c, phones = flow["candidate"], row_phones(flow)
+    pick = closest(flow["decision"], run_dir, none_accepted, flow.get("approved", False))
+    pending = f'<p class="pending">{escape(STEPS_PENDING)}</p>' if any(p["flags"] for p in phones) else ""
     label, new = (("The new part", c.adds) if c.kind == "product_change" and c.adds
                   else ("Where the offer appears", c.placement))
     gets = f"<b>They get:</b> {escape(plain(reward_line(c)))} · <b>How often:</b> {escape(plain(c.frequency_cap))}"
     body = (f'<div class="flow"><h2>{escape(plain(caption(c)))}</h2><div class="new">'
             f"<p><b>{label}:</b> {escape(plain(new))}</p>"
             f"<p><b>The offer says:</b> “{escape(plain(c.offer_copy))}” {saying_no(flow).capitalize()}.</p></div>"
-            f"{row_html(row_phones(flow), c.id)}<footer>{gets}</footer></div>")
+            f"{row_html(phones, c.id)}{pending}<footer>{gets}</footer></div>")
     runs_out = f"<footer><b>When the reward runs out:</b> {escape(plain(c.after_reward))}</footer>" \
         if c.after_reward else ""
-    why = f"<h2>{WHY_TITLE}</h2>{why_html(flow, model, run_dir, none_accepted)}{runs_out}"
-    return [slide_html(flow, "flow", body), slide_html(flow, "why", why)]
+    why = f"<h2>{WHY_TITLE}</h2>{why_html(flow, model, run_dir, none_accepted, pick)}{runs_out}"
+    return [slide_html(flow, "flow", body, pick), slide_html(flow, "why", why, pick)]
 
 
 def cover_html(app: str, flows: list[dict], *, fallbacks: int = 0) -> str:
@@ -257,7 +257,7 @@ def cover_html(app: str, flows: list[dict], *, fallbacks: int = 0) -> str:
     notes = (["Each idea takes two slides: its whole flow, step by step, then why it works.", REWARD_RULE] if flows
              else ["No idea is drawn in this deck."])
     if fallbacks:
-        notes.append("No idea passed every check, so the closest is drawn and marked as not a recommendation.")
+        notes.append("None of these is a recommendation yet; the strongest is drawn and marked as the closest idea.")
     body = (f"<ol>{items}</ol>" if flows else "") + "".join(f"<p class='how'>{escape(n)}</p>" for n in notes)
     return f'<section class="slide cover"><h1>Rewarded-ad ideas for {escape(app)}</h1>{body}</section>'
 
