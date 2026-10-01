@@ -116,6 +116,12 @@ def overlaps(a: Rect, b: Rect) -> bool:
     return a.x < b.x + b.w and b.x < a.x + a.w and a.y < b.y + b.h and b.y < a.y + a.h
 
 
+def iou(a: Rect, b: Rect) -> float:
+    """How much two boxes are one: their shared area over their joint area."""
+    shared = max(0.0, min(a.x + a.w, b.x + b.w) - max(a.x, b.x)) * max(0.0, min(a.y + a.h, b.y + b.h) - max(a.y, b.y))
+    return shared / (area(a) + area(b) - shared) if shared else 0.0
+
+
 def center(r: Rect) -> tuple[int, int]:
     return int(r.x + r.w / 2), int(r.y + r.h / 2)
 

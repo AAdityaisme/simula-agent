@@ -44,6 +44,7 @@ FEW_LABELED = 4
 FILTER_SURE = 0.5
 LOCK_WAIT_S = 1800
 ICON_SCALE = 0.5
+SAME_PICTURE_IOU = 0.5  # two of the icon pass's pictures are one when their boxes overlap this much
 CORE_REPS = {"deep": 8, "transfer": 3}  # ponytail: belongs in profiles.toml budgets; listed under shared-file needs
 CORE_SECONDS_PER_REP = 75
 SETTLE_GAP_S = 3.0
@@ -552,11 +553,12 @@ class Explorer:
         return self.record(obs, s, move, before)
 
     def surface(self) -> list[ob.Candidate]:
-        """The live controls of what is in front: on a sheet or modal only its own, re-found, never one behind it."""
+        """The live controls of what is in front: on a sheet or modal only its own, re-found, never one behind it nor
+        a picture."""
         s = self.current
         if s.box is None:
             return self.obs.cands
-        return [live for c in s.cands for live in [ob.find(self.obs.cands, c)] if live]
+        return [live for c in s.cands if c.kind != "picture" for live in [ob.find(self.obs.cands, c)] if live]
 
     def shows(self, cand: ob.Candidate, live: ob.Candidate, now: Obs) -> bool:
         """Invariant 3: a recorded control is tapped only when the screen shows it as it was recorded, compared with
@@ -923,9 +925,11 @@ class Explorer:
                      for live in [ob.find(self.obs.cands, t)] if live and self.shows(t, live, self.obs)), None)
 
     def options(self, s: Seen) -> list[ob.Candidate]:
+        """The taps left to try on a state: a picture only once no control is left."""
         filter_row = self.filter_row(s.cands)
-        return [c for c in s.cands if c.key not in s.tried and c.key not in self.tab_keys() and c.key not in filter_row
+        opts = [c for c in s.cands if c.key not in s.tried and c.key not in self.tab_keys() and c.key not in filter_row
                 and not ob.denied(c, upsell=s.upsell) and (c.key not in s.waiting or s.visits > s.waiting[c.key])]
+        return [c for c in opts if c.kind != "picture"] or opts
 
     def filter_row(self, cands: list[ob.Candidate]) -> set[str]:
         """The content filter's controls among a screen's controls: the opener, and every option in the chosen one's
@@ -1242,9 +1246,9 @@ class Explorer:
 
     def entry(self, s: Seen) -> ob.Candidate | None:
         """The screen's best upsell entry: a control over a line of text (a dialog's title says "plus" too), then
-        the shortest."""
-        found = [c for c in s.cands if ob.ENTRY.search(c.label) and not ob.DISMISS.match(c.label.strip())
-                 and not ob.denied(c, upsell=s.upsell)]
+        the shortest. Never a picture: its name says what it shows, not what a tap does."""
+        found = [c for c in s.cands if c.kind != "picture" and ob.ENTRY.search(c.label)
+                 and not ob.DISMISS.match(c.label.strip()) and not ob.denied(c, upsell=s.upsell)]
         return min(found, key=lambda c: (c.kind == "TextView", len(c.label.split())), default=None)
 
     def follow_entry(self, entry: ob.Candidate) -> None:
@@ -1841,29 +1845,32 @@ class Explorer:
 
     def add_vision(self, s: Seen, item: Unlisted) -> None:
         """Keeps an item the tree doesn't list, its box clamped to the content area, when its center is on the
-        content area and in no box found before it: a control's in no box, a picture's in no listed box and no other
-        picture, so a play button on a video keeps both. Only a control is a tap candidate, tapped at its box's
-        center; a picture is only cropped. A modal's or sheet's pictures are those on its box: one behind its scrim
-        is the parent's, cropped from the parent's own capture, where no dialog lies over it."""
+        content area. A control's center lies in no box found before it. A picture's lies in no listed box, and it is
+        another picture only when their boxes mostly overlap, so an avatar on a banner keeps both. On a modal or sheet
+        a picture is its own only when its center lies within its own listed controls (record() left the parent's out):
+        one behind the scrim is the parent's, cropped from the parent's own capture. Each is a tap candidate at its
+        box's center; a picture is marked as one, so it is tapped after every control and never as the core action."""
         d = self.device
         x0, x1 = sorted((item.left / ICON_SCALE, item.right / ICON_SCALE))
         y0, y1 = sorted((item.top / ICON_SCALE + d.content_top_px, item.bottom / ICON_SCALE + d.content_top_px))
-        x, y = (x0 + x1) / 2, (y0 + y1) / 2
-        left, top, right, bottom = 0.0, float(d.content_top_px), float(d.w_px), float(d.content_bottom_px)
-        if item.kind == "picture" and s.box:
-            b = s.box
-            left, top, right, bottom = max(left, b.x), max(top, b.y), min(right, b.x + b.w), min(bottom, b.y + b.h)
-        if not (left <= x < right and top <= y < bottom):
+        point = Rect(x=(x0 + x1) / 2, y=(y0 + y1) / 2, w=0, h=0)
+        if not (0 <= point.x < d.w_px and d.content_top_px <= point.y < d.content_bottom_px):
             return
-        held = [c.rect for c in s.cands] if item.kind == "control" else \
-            [c.rect for c in s.cands if c.kind != "vision"] + [v.rect_px for v in s.vision if v.kind == "picture"]
-        if any(ob.inside(Rect(x=x, y=y, w=0, h=0), r) for r in held):
+        x0, y0 = max(0.0, x0), max(float(d.content_top_px), y0)
+        box = Rect(x=round(x0), y=round(y0), w=round(min(float(d.w_px), x1) - x0),
+                   h=round(min(float(d.content_bottom_px), y1) - y0))
+        held = [c.rect for c in s.cands]
+        if item.kind == "picture":
+            held = [c.rect for c in s.cands if c.ref]
+            if s.box and not (held and ob.inside(point, ob.bbox(held))):
+                return
+            if any(ob.iou(box, v.rect_px) >= SAME_PICTURE_IOU for v in s.vision if v.kind == "picture"):
+                return
+        if any(ob.inside(point, r) for r in held):
             return
-        x0, y0 = max(left, x0), max(top, y0)
-        box = Rect(x=round(x0), y=round(y0), w=round(min(right, x1) - x0), h=round(min(bottom, y1) - y0))
         s.vision.append(VisionElement(name=item.name, rect_px=box, kind=item.kind))
-        if item.kind == "control":
-            s.cands.append(ob.Candidate(label=item.name, kind="vision", rect=box, ref=None, tree_label=""))
+        s.cands.append(ob.Candidate(label=item.name, kind="vision" if item.kind == "control" else "picture", rect=box,
+                                    ref=None, tree_label=""))
 
     def hard_screen(self, s: Seen, opts: list[ob.Candidate], goal: str) -> Move | None:
         """Sonnet picks one move when Jev is unsure, has failed, or taps keep changing nothing."""

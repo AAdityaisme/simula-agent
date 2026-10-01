@@ -7,16 +7,19 @@ import json
 import re
 from pathlib import Path
 
+import numpy as np
 import pytest
 from PIL import Image, ImageDraw
 
 from simula import decide, llm, runlog
-from simula.contracts import (ActionLine, ExploreFile, IconLabel, IconName, IconPass, Rect, StateFile, Unlisted,
-                              VisionElement)
+from simula.contracts import (ActionLine, ExploreFile, IconLabel, IconName, IconPass, Rect, State, StateFile,
+                              Unlisted, VisionElement)
 from simula.device import observe as ob
 from simula.device.mcp import parse_elements
 from simula.stages import explore as stage
+from simula.stages import model as model_stage
 from tests import fake_device
+from tests.conftest import ROOT
 from tests.fake_device import PACKAGE, Clock, FakePhone, Screen, blank, capture, fake_jev, new_run
 from tests.fake_device import explore as run_explorer
 from tests.fake_device import explorer as new_explorer
@@ -177,11 +180,13 @@ def unlisted(ex, x0, y0, x1, y1, kind, name):
 
 def test_the_icon_pass_keeps_each_unlisted_things_box_and_kind(tmp_path, monkeypatch):
     """A box is clamped to the content area; a thing whose center is off it or inside a listed box is dropped. A
-    control on a picture keeps both, even one at its center, and a picture inside another picture is the same one."""
+    control on a picture keeps both, even one at its center, and a picture whose box mostly overlaps an earlier one's
+    is the same one. Each is a candidate at its box's center, marked with its kind."""
     ex, s = icon_pass_screen(tmp_path, monkeypatch)
     top = ex.device.content_top_px
     things = [unlisted(ex, 100, 300, 900, 800, "picture", "photo"), unlisted(ex, 800, 320, 880, 400, "control", "like"),
-              unlisted(ex, 440, 490, 560, 610, "control", "play"), unlisted(ex, 300, 400, 500, 600, "picture", "face"),
+              unlisted(ex, 440, 490, 560, 610, "control", "play"),
+              unlisted(ex, 120, 320, 880, 780, "picture", "the photo again"),
               unlisted(ex, -40, 36, 400, 256, "picture", "banner"), unlisted(ex, 60, 1860, 320, 1940, "picture", "logo"),
               unlisted(ex, 100, 1860, 200, 1940, "control", "in go"),
               unlisted(ex, 100, 2340, 200, 2400, "control", "under the content")]
@@ -191,23 +196,92 @@ def test_the_icon_pass_keeps_each_unlisted_things_box_and_kind(tmp_path, monkeyp
                         VisionElement(name="play", rect_px=Rect(x=440, y=490, w=120, h=120), kind="control"),
                         VisionElement(name="photo", rect_px=Rect(x=100, y=300, w=800, h=500), kind="picture"),
                         VisionElement(name="banner", rect_px=Rect(x=0, y=top, w=400, h=256 - top), kind="picture")]
-    assert [(c.label, c.rect, c.point) for c in s.cands if c.kind == "vision"] == [
-        (v.name, v.rect_px, ob.center(v.rect_px)) for v in s.vision[:2]]
+    assert [(c.label, c.kind, c.rect, c.point) for c in s.cands if not c.ref] == [
+        (v.name, "vision" if v.kind == "control" else "picture", v.rect_px, ob.center(v.rect_px)) for v in s.vision]
 
 
-def test_a_dialogs_pictures_are_those_on_its_box(tmp_path, monkeypatch):
-    """A picture behind the scrim would be cropped dimmed, with the dialog's corner and words over it: it is the
-    parent's. One on the dialog is clamped to the dialog's box. A control behind the scrim is kept as before."""
-    ex, s = icon_pass_screen(tmp_path, monkeypatch)
-    s.kind, s.box = "modal", Rect(x=200, y=900, w=680, h=700)
-    things = [unlisted(ex, 100, 300, 900, 800, "picture", "feed photo"),
-              unlisted(ex, 190, 890, 890, 1010, "picture", "dialog header art"),
-              unlisted(ex, 800, 320, 880, 400, "control", "search")]
-    monkeypatch.setattr(ex, "ask", lambda *a: IconPass(names=[], unlisted=things))
-    ex.name_icons(s)
-    assert s.vision == [VisionElement(name="search", rect_px=Rect(x=800, y=320, w=80, h=80), kind="control"),
-                        VisionElement(name="dialog header art", rect_px=Rect(x=200, y=900, w=680, h=110),
-                                      kind="picture")]
+def test_an_avatar_on_a_banner_keeps_both_whichever_comes_first(tmp_path, monkeypatch):
+    for n, first_banner in enumerate((True, False)):
+        ex, s = icon_pass_screen(tmp_path / str(n), monkeypatch)
+        banner, avatar = (unlisted(ex, 100, 300, 900, 800, "picture", "banner"),
+                          unlisted(ex, 150, 350, 350, 550, "picture", "avatar"))
+        things = [banner, avatar] if first_banner else [avatar, banner]
+        monkeypatch.setattr(ex, "ask", lambda *a, things=things: IconPass(names=[], unlisted=things))
+        ex.name_icons(s)
+        assert [v.name for v in s.vision] == [t.name for t in things], first_banner
+
+
+LUZIA, AOL = "luzia/20260929-204554-1f19585", "aol/20260929-205304-1f19585"
+
+
+def committed(run: str, sid: str) -> Screen:
+    """A committed state's capture, as the fake phone shows it."""
+    states = ROOT / "runs" / run / "explore" / "states"
+    return Screen(parse_elements(json.loads((states / f"{sid}.elements.json").read_text())),
+                  Image.open(states / f"{sid}.png").convert("RGB"), PACKAGE)
+
+
+def recorded_dialog(tmp_path, monkeypatch, parent: Screen, dialog: Screen, things) -> tuple:
+    """An explorer that recorded `dialog` through record(), over `parent`, with the icon pass answering
+    `things(ex)` for the dialog."""
+    def phone(clock):
+        return FakePhone(screens={"parent": parent, "dialog": dialog}, start="parent", taps={}, clock=clock)
+    ex, phone_ = new_explorer(tmp_path, monkeypatch, phone)
+    before = ex.observe()
+    under = ex.record(before, None, None, None)
+    phone_.screen = "dialog"
+    monkeypatch.setattr(ex, "ask", lambda *a: IconPass(names=[], unlisted=things(ex)))
+    s = ex.record(ex.observe(), under, stage.Move("tap", under.cands[0]), before)
+    assert s.kind in ("modal", "sheet") and s.box, (s.kind, s.box)
+    return ex, s
+
+
+def luzia_toki(tmp_path, monkeypatch) -> tuple:
+    """Luzia's Toki dialog: its listed controls start at x=162, while its card and header art start at x=120. The art
+    at its own extent, the parent's avatar behind the scrim, and the parent's notifications control behind it."""
+    return recorded_dialog(tmp_path, monkeypatch, committed(LUZIA, "s01"), committed(LUZIA, "s05"), lambda ex: [
+        unlisted(ex, 120, 582, 960, 1244, "picture", "header art"),
+        unlisted(ex, 396, 176, 684, 572, "picture", "assistant avatar"),
+        unlisted(ex, 860, 160, 944, 242, "control", "notifications")])
+
+
+def test_a_dialogs_art_reaching_past_its_listed_controls_is_kept_whole(tmp_path, monkeypatch):
+    """The red team's repros on 5afd89c: a dialog's box is its listed controls' extent, so art clamped to it was a
+    fragment. Membership is judged by the dialog's own controls; only the content area clamps."""
+    ex, s = luzia_toki(tmp_path, monkeypatch)
+    assert s.box == Rect(x=162, y=581, w=798, h=1267)
+    assert s.vision == [VisionElement(name="notifications", rect_px=Rect(x=860, y=160, w=84, h=82), kind="control"),
+                        VisionElement(name="header art", rect_px=Rect(x=120, y=582, w=840, h=662), kind="picture")]
+    ex.current = s
+    assert "picture" not in {c.kind for c in ex.surface()}, "the walk never takes a picture"
+
+
+def test_a_dialogs_art_is_cropped_whole_by_the_model_stage(tmp_path, monkeypatch):
+    ex, s = luzia_toki(tmp_path / "explore", monkeypatch)
+    image = Image.open(ex.out / "states" / f"{s.sid}.png").convert("RGB")
+    elements = model_stage.build_elements(s.sid, [], [], s.vision, np.asarray(image), ex.device)
+    state = State(id=s.sid, kind=s.kind, parent_id=None, name="", purpose="", fingerprint="", canonical_png="",
+                  elements=elements, in_mock_scope=False, content_rating="safe", dynamic_regions=[],
+                  blocked_reason=None)
+    (tmp_path / "assets").mkdir()
+    art = model_stage.finish_elements(state, {s.sid}, set(), image, tmp_path, ex.device).elements[-1]
+    crop = np.asarray(Image.open(tmp_path / art.asset_png).convert("RGB")).astype(int)
+    green = (np.abs(crop - np.array([166, 227, 170])).sum(axis=2) < 30).any(axis=0)
+    assert crop.shape[:2] == (662, 840) and green.any() and not green[0], "the emoji bubble is whole, not cut"
+
+
+def test_a_dimmed_parent_photo_beside_a_drawer_is_not_the_drawers(tmp_path, monkeypatch):
+    """AOL's drawer ends at x=814, but its box reaches x=972 over the parent's controls left listed behind the scrim.
+    The parent's hero photo right of the drawer is centered in that box, yet outside the drawer's own controls. The
+    parent is the feed as the drawer's capture lists it under the drawer (the drawer's own subtree starts at element
+    136): an ad moved the feed after s01's canonical capture, and from that capture the moved rows would read as new."""
+    drawer = committed(AOL, "s03")
+    parent = Screen(drawer.elements[:136], committed(AOL, "s01").image, PACKAGE)
+    ex, s = recorded_dialog(tmp_path, monkeypatch, parent, drawer, lambda ex: [
+        unlisted(ex, 814, 624, 1080, 1236, "picture", "dimmed article photo")])
+    own = ob.bbox([c.rect for c in s.cands if c.ref])
+    assert s.box == Rect(x=0, y=168, w=972, h=1409) and own.x + own.w == 814
+    assert not s.vision
 
 
 def test_controls_and_pictures_each_keep_eight_slots(tmp_path, monkeypatch):
@@ -220,25 +294,30 @@ def test_controls_and_pictures_each_keep_eight_slots(tmp_path, monkeypatch):
     assert [v.name for v in s.vision] == [f"c{n}" for n in range(8)] + [f"p{n}" for n in range(8)]
 
 
-def test_a_picture_is_cropped_but_never_a_tap_option(tmp_path, monkeypatch):
-    """The red team's repro on PR #32: pictures the deny-list lets through ("ad banner", a long caption) were tour
-    options, and five moves tapped all four. Now none is a candidate, so no tap path sees one."""
+def test_a_picture_is_a_tour_option_only_after_every_control_and_never_the_upsell_entry(tmp_path, monkeypatch):
+    """A tile the tree doesn't list may be the way on (the pass called the tiles that lead to a committed run's s13
+    pictures in 3 of 3 tries), so a picture stays a tap, but only once every control is tried. Its name says what it
+    shows, not what a tap does, so a "premium banner" is never the upsell entry."""
     ex, s = icon_pass_screen(tmp_path, monkeypatch)
-    names = ["ad banner", "profile avatar", "hero illustration", "Kelly Osbourne and Sid Wilson photo"]
-    things = [unlisted(ex, *box, "picture", name) for box, name in zip(
-        [(100, 300, 900, 800), (100, 900, 300, 1100), (400, 900, 1000, 1400), (100, 1450, 1000, 1800)], names)]
+    pictures = ["premium banner", "Kelly Osbourne and Sid Wilson photo"]
+    things = [unlisted(ex, 100, 300, 900, 800, "picture", pictures[0]),
+              unlisted(ex, 100, 900, 1000, 1400, "picture", pictures[1]),
+              unlisted(ex, 800, 1500, 880, 1580, "control", "more")]
     monkeypatch.setattr(ex, "ask", lambda *a: IconPass(names=[], unlisted=things))
     ex.name_icons(s)
-    assert [(v.name, v.kind) for v in s.vision] == [(name, "picture") for name in names]
-    assert all(c.ref for c in s.cands) and all(c.ref for c in ex.options(s))
+    assert [(c.label, c.kind) for c in s.cands if c.kind == "picture"] == [(name, "picture") for name in pictures]
+    assert ex.entry(s) is None
     picked = []
-    for _ in range(5):
+    for _ in range(stage.TAPS_PER_STATE):
+        kinds = {c.kind for c in ex.options(s)}
+        assert kinds == {"picture"} or "picture" not in kinds, kinds
         move = ex.next_move(s)
-        if move and move.cand:
-            picked.append(move.cand.label)
-            s.tried.add(move.cand.key)
-            s.taps += 1
-    assert picked and not set(picked) & set(names), picked
+        if not (move and move.cand):
+            break
+        picked.append(move.cand.kind == "picture")
+        s.tried.add(move.cand.key)
+        s.taps += 1
+    assert True in picked and picked == sorted(picked), "every control is tapped before any picture"
 
 
 def test_a_re_recorded_home_keeps_only_the_icon_pass_of_its_new_capture(tmp_path, monkeypatch):
