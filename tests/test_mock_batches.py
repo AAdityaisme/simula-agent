@@ -425,28 +425,48 @@ def test_two_cut_off_batches_near_the_cap_both_draw_without_hanging(tmp_path, mo
     assert drawn.lost == [] and drawn.plan.keep == 2
 
 
+def batch_rows(tmp_path, plan: mock.Plan, undrawn_from: int) -> str:
+    """The exhibit of three one-screen batches, all but the first `undrawn_from - 1` over budget."""
+    model = golden("janitorai")
+    scope = mock.pick_scope(model)
+    undrawn = {s.id: "$ cap reached: over budget" for s in scope[undrawn_from - 1:3]}
+    report = ContractReport(passed=False, screens=[s.id for s in scope], errors=[])
+    return mock.exhibit(ctx_for(tmp_path, "janitorai"), model, scope, [[s] for s in scope[:3]], undrawn, "", report,
+                        plan)
+
+
+DREW_PAST = {"batch1": [(1.0, 0.5, 0.05, False)], "batch2": [(1.0, 0.9, 0.1, True), (2.0, 0.5, 0, False)],
+             "batch3": [(1.0, 0.9, 0.3, False)]}
+
+
 def test_a_batch_that_drew_but_was_left_out_to_keep_the_prefix_is_reported_with_its_cost(tmp_path, monkeypatch):
     """Red team rt-37: batch 2's retry still doesn't fit once batch 3, drawn for $0.90, has settled, so batch 3 is left
     out to keep the kept batches a prefix. The plan line and its exhibit row say it drew, what it cost, and that a
-    rerun with a raised cap takes it from the cache free; neither calls it never admitted."""
+    rerun with a raised cap takes it from the cache free unless run with --no-cache (Greptile)."""
     ended = []
-    drawn = draw_on_fake_budget(tmp_path, monkeypatch, 4.0, {
-        "batch1": [(1.0, 0.5, 0.05, False)], "batch2": [(1.0, 0.9, 0.1, True), (2.0, 0.5, 0, False)],
-        "batch3": [(1.0, 0.9, 0.3, False)]}, ended)
-    assert ended == ["batch1", "batch2", "batch3"] and drawn.plan.keep == 1 and drawn.plan.dropped == ((3, 0.9),)
+    drawn = draw_on_fake_budget(tmp_path, monkeypatch, 4.0, DREW_PAST, ended)
+    assert ended == ["batch1", "batch2", "batch3"] and drawn.plan.keep == 1 and drawn.plan.dropped == ((3, 0.9, None),)
     note = ("drew ($0.90) and was left out to keep the kept batches top-ranked; a rerun with a raised cap takes it "
-            "from the cache free")
+            "from the cache free unless run with --no-cache")
     assert drawn.plan.line(3) == ("1 of 3 batches kept in priority order under the $4.00 cap with $0.00 already spent, "
                                   "each holding its worst case while in flight and one more free for a retry; batch 3 "
                                   + note)
-    model = golden("janitorai")
-    scope = mock.pick_scope(model)
-    groups = [[s] for s in scope[:3]]
-    undrawn = {s.id: "$ cap reached: over budget" for s in scope[1:3]}
-    report = ContractReport(passed=False, screens=[s.id for s in scope], errors=[])
-    rows = mock.exhibit(ctx_for(tmp_path, "janitorai"), model, scope, groups, undrawn, "", report, drawn.plan)
+    rows = batch_rows(tmp_path, drawn.plan, 2)
+    scope = mock.pick_scope(golden("janitorai"))
     assert f"| 2 | {scope[1].id} | not drawn: $ cap reached: over budget |" in rows
     assert f"| 3 | {scope[2].id} | {note} |" in rows
+
+
+def test_a_batch_that_ran_and_failed_past_the_prefix_keeps_its_cost_and_its_own_error(tmp_path, monkeypatch):
+    """Greptile: batch 3's call ran and was charged $0.90 but was cut off with no retry left, past batch 2, which the
+    cap left out. Its cost and its own error stay in the plan line and its exhibit row, not just the cap's reason."""
+    ended = []
+    drawn = draw_on_fake_budget(tmp_path, monkeypatch, 4.0, {**DREW_PAST, "batch3": [(1.0, 0.9, 0.3, True)]}, ended)
+    error = mock.failure_reason(llm.LLMFailure("max_tokens", "cut off"))
+    assert ended == ["batch1", "batch2", "batch3"] and drawn.plan.dropped == ((3, 0.9, error),)
+    assert drawn.plan.line(3).endswith(f"; batch 3 ran ($0.90) and failed: {error}")
+    scope = mock.pick_scope(golden("janitorai"))
+    assert f"| 3 | {scope[2].id} | ran ($0.90) and failed: {error} |" in batch_rows(tmp_path, drawn.plan, 2)
 
 
 FUZZ_SEEDS = (251, 348, 376, 482, 657, 827, 896, 1376, *range(8))  # rt-37's seven hangs and its float edge

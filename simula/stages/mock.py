@@ -463,25 +463,28 @@ def contains(a: Rect, b: Rect) -> bool:
 @dataclass(frozen=True)
 class Plan:
     """How many batches, in priority order, the run kept (`keep`), and on a live run the cap, the mock spend already in
-    the run when it began, and each batch past `keep` that drew and was paid for, then left out (`dropped`: its number
-    and cost). A replay has only `keep`, the one figure the run records."""
+    the run when it began, and each batch past `keep` whose call ran (`dropped`: its number, its cost, and its own
+    error, None for one that drew). A replay has only `keep`, the one figure the run records."""
     keep: int
     cap: float | None = None
     spent: float | None = None
-    dropped: tuple[tuple[int, float], ...] = ()
+    dropped: tuple[tuple[int, float, str | None], ...] = ()
 
     def line(self, batches: int) -> str:
         if self.cap is None:
             return f"{self.keep} of {batches} batches, as the live run kept them"
         return (f"{self.keep} of {batches} batches kept in priority order under the ${self.cap:.2f} cap with "
                 f"${self.spent:.2f} already spent, each holding its worst case while in flight and one more free for a "
-                "retry" + "".join(f"; batch {n} {dropped_note(usd)}" for n, usd in self.dropped))
+                "retry" + "".join(f"; batch {n} {dropped_note(usd, error)}" for n, usd, error in self.dropped))
 
 
-def dropped_note(usd: float) -> str:
-    """What became of a batch that drew past the first one left out."""
+def dropped_note(usd: float, error: str | None) -> str:
+    """What became of a batch whose call ran past the first one left out: it failed on its own, or it drew and was left
+    out all the same."""
+    if error:
+        return f"ran (${usd:.2f}) and failed: {error}"
     return (f"drew (${usd:.2f}) and was left out to keep the kept batches top-ranked; a rerun with a raised cap takes "
-            "it from the cache free")
+            "it from the cache free unless run with --no-cache")
 
 
 def recorded_plan(ctx: Ctx, scope: list[State]) -> tuple[list[list[State]], int]:
@@ -608,9 +611,12 @@ def draw_batches(ctx: Ctx, groups: list[list[State]], contents: list[list[dict]]
     with ThreadPoolExecutor(PARALLEL_BATCHES) as pool:
         results = list(pool.map(draw, range(1, len(groups) + 1), contents))
     kept = next((n for n, r in enumerate(results) if r is None), len(results))
-    drawn_past = tuple((n, turns[n].cost) for n, r in enumerate(results[kept:], kept + 1) if isinstance(r, tuple))
+    # A batch that ran past the first one left out is named with its cost and its own error, here and in the exhibit;
+    # its placeholder gives the cap's reason, which is all a replay, asking only the first `kept`, can rebuild.
+    ran = tuple((n, turns[n].cost, None if isinstance(r, tuple) else failure_reason(r))
+                for n, r in enumerate(results[kept:], kept + 1) if r is not None)
     results = results[:kept] + [None] * (len(results) - kept)
-    plan = Plan(kept) if ctx.replay else Plan(kept, budget.cap, spent, drawn_past)
+    plan = Plan(kept) if ctx.replay else Plan(kept, budget.cap, spent, ran)
     if not ctx.replay:
         path = ctx.run_dir / "mock" / PLAN_RECORD
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -1081,9 +1087,8 @@ def exhibit(ctx: Ctx, model: ProductModel, scope: list[State], groups: list[list
              f"Batch plan: {plan.line(len(groups))}.", "",
              "| Batch | Screens | Result |", "|---|---|---|"]
     for n, batch in enumerate(groups, 1):
-        reason, cost = undrawn.get(batch[0].id), dict(plan.dropped).get(n)
-        result = (dropped_note(cost) if cost is not None
-                  else f"not drawn: {reason.replace('|', '/')}" if reason else "drawn")
+        reason, ran = undrawn.get(batch[0].id), {n: (usd, error) for n, usd, error in plan.dropped}.get(n)
+        result = (dropped_note(*ran) if ran else f"not drawn: {reason}" if reason else "drawn").replace("|", "/")
         lines.append(f"| {n} | {' '.join(s.id for s in batch)} | {result} |")
     lines += ["", "| Screen | Name | data-el placed / expected | Render |", "|---|---|---|---|"]
     for s in scope:
