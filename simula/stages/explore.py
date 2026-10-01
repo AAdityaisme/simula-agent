@@ -56,6 +56,7 @@ REPLAY_MINUTES = 8
 SPLASH_WAIT_S = 90
 LAUNCH_WAIT_S = 30
 LAUNCH_QUIET_S = 3
+LIST_LAG = 0.75  # a list under this share of its capture's, on the same pixels, is still filling in
 WALK_STEPS = 3
 WALK_SCROLLS = 30
 WALK_ITEMS = 3
@@ -228,6 +229,14 @@ def png_half(image: Image.Image) -> bytes:
     buffer = io.BytesIO()
     image.save(buffer, format="PNG")
     return buffer.getvalue()
+
+
+def lagging(expect: Seen | None, obs: Obs) -> bool:
+    """A look that draws the screen expected but lists far fewer elements than its capture: after a launch the list
+    can lag the pixels by seconds (AOL's reloaded home listed 62 of 103, its feed rows missing, measured 2026-10-01)."""
+    # ponytail: a reload that truly lists under LIST_LAG of the capture waits out LAUNCH_WAIT_S before it's read
+    return bool(expect) and ob.hamming(expect.fp.content, obs.fp.content) <= ob.CONTENT_BITS \
+        and len(obs.elements) < LIST_LAG * len(expect.elements)
 
 
 def content(image: Image.Image, device: Device) -> Image.Image:
@@ -762,9 +771,15 @@ class Explorer:
 
     @contextlib.contextmanager
     def launching(self, home: Seen | None):
-        """A fresh launch; until the caller has set it up, a landing on home's top chrome is home (self.home)."""
+        """A fresh launch; until the caller has set it up, a landing on home's top chrome is home."""
         self.phone.terminate()
         self.phone.launch()
+        with self.homing(home):
+            yield
+
+    @contextlib.contextmanager
+    def homing(self, home: Seen | None):
+        """While a launch lands, a screen with home's top chrome is home (self.home), re-recorded if it reloaded."""
         self.home = home
         try:
             yield
@@ -793,8 +808,9 @@ class Explorer:
         """Observes after a launch, waiting up to SPLASH_WAIT_S for a splash to end (a cold start on a busy
         emulator took over a minute), then up to LAUNCH_WAIT_S for the launch screen seen before, or home reloaded. A
         feed can sit on still loading placeholders for many seconds, so a launch also waits until two looks
-        LAUNCH_QUIET_S apart agree. Until the splash deadline, a dump that times out is only "not yet"; the last good
-        look stands, since nothing has moved on the screen since."""
+        LAUNCH_QUIET_S apart agree, unless it shows the screen expected; either way, until its list has caught up
+        (lagging). Until the splash deadline, a dump that times out is only "not yet"; the last good look stands,
+        since nothing has moved on the screen since."""
         splash_deadline = self.clock() + SPLASH_WAIT_S
         obs = self.look(splash_deadline)
         while obs is None or ((not self.launchable(obs) or obs.fg != self.package) and self.clock() < splash_deadline):
@@ -806,10 +822,11 @@ class Explorer:
                 and not (expect is self.home and self.homelike(expect, obs)))):
             self.sleep(1.5)
             obs = self.look(splash_deadline) or obs
-        while not (expect and ob.same_state(obs.fp, expect.fp)) and obs.fg == self.package and self.clock() < deadline:
+        while (not (expect and ob.same_state(obs.fp, expect.fp)) or lagging(expect, obs)) \
+                and obs.fg == self.package and self.clock() < deadline:
             self.sleep(LAUNCH_QUIET_S)
             again = self.look(splash_deadline)
-            if again and ob.same_state(again.fp, obs.fp):
+            if again and ob.same_state(again.fp, obs.fp) and not lagging(expect, again):
                 return again
             obs = again or obs
         if self.obs is not obs:
@@ -1239,10 +1256,11 @@ class Explorer:
     def leave(self) -> None:
         """Back to the app from an away screen. Another app in front gets a launch, never BACK, which would walk that
         app's own history: a live task comes back as it was left (measured on the emulator), which is a return, not a
-        relaunch. The app anywhere but where it was left is a relaunch, counted, and so is the launch screen after a
-        BACK out of it: that BACK can end the task, and a fresh start lands there too. A launch can't displace a window
-        in the app's own task (a system dialog over it), so the same foreign screen still in front gets BACK, as a
-        screen turned sideways does; any other foreign screen is a relaunch. A relaunch too if BACK doesn't come
+        relaunch. Left from home (or home scrolled), a landing homelike() takes for home is a return too, and home is
+        re-recorded if it reloaded. The app anywhere else is a relaunch, counted, and so is the launch screen after a
+        BACK out of it: that BACK can end the task, and a fresh start lands there too. A launch can't displace a
+        window in the app's own task (a system dialog over it), so the same foreign screen still in front gets BACK, as
+        a screen turned sideways does; any other foreign screen is a relaunch. A relaunch too if BACK doesn't come
         back."""
         if self.obs is None:
             self.resync()
@@ -1254,10 +1272,16 @@ class Explorer:
             obs = self.observe()
             if obs.fg == self.package:
                 restarted = self.left_back and self.left is self.launch_root
-                if self.left and not restarted and ob.same_state(obs.fp, self.left.fp):
-                    self.resume(away)
+                from_home = self.left and self.launch_root.sid in (self.left.sid, self.left.unscroll_to)
+                if from_home and not restarted and self.homelike(self.launch_root, obs):
+                    with self.homing(self.launch_root):
+                        self.left = self.record(self.wait_for_app(self.launch_root), None, None, None)
+                elif self.left and not restarted and ob.same_state(obs.fp, self.left.fp):
+                    self.revisit(self.left, obs)
                 else:
                     self.relaunch(why=f"a launch from {away.fg} did not find the app where it was left")
+                    return
+                self.resume(away)
                 return
             if not ob.same_state(obs.fp, away.fp):
                 self.relaunch(why=f"a launch from {away.fg} left {obs.fg} in front")
@@ -1267,10 +1291,9 @@ class Explorer:
             self.relaunch(why=f"BACK did not return from the {away.kind} screen ({self.obs.fg})")
 
     def resume(self, away: Seen) -> None:
-        """The app is back where it was left: the path goes on from there, without the moves made since it left."""
+        """The app is back where it was left, or home: the path goes on from there, without the moves made since."""
         self.returns.append(f"from {away.fg} back to {self.left.sid}")
         self.log(away, self.left, Move("launch", why="bring the app back"), None, "unknown", "", "ok")
-        self.revisit(self.left, self.obs)
         self.current = self.left
         segment = self.segments[-1] if self.segments else []
         while segment and segment[-1][2] != self.left.sid:

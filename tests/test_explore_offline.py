@@ -358,6 +358,54 @@ def test_an_outbound_ad_on_the_launch_screen_returns_without_a_relaunch(tmp_path
     assert ex.current is root and (ex.relaunches, len(ex.returns)) == (0, 1)
 
 
+
+def aol_home_2(clock):
+    """AOL's run 20261001-062428-97e98aa: home (s01), home scrolled (s06), an ad on it opening Chrome (s07), and
+    home's list as a relaunch first read it, its feed without rows (s01.r2), as a splash's first look."""
+    scrolled = capture("aol", "aol-home-2-scrolled", package=PACKAGE)
+    ad = next(e for e in scrolled.elements if (e.get("label") or "").startswith("Heart Health Journal in Taboola"))
+    return FakePhone(screens={"home": capture("aol", "aol-home-2", package=PACKAGE), "scrolled": scrolled,
+                              "unlisted": capture("aol", "aol-home-2-rows-unlisted", package=PACKAGE),
+                              "web": capture("aol", "aol-ad-in-chrome")},
+                     start="home", taps={("scrolled", fake_device.element_key(ad)): "web"},
+                     swipes={"home": "scrolled"}, splash_screen="unlisted", clock=clock)
+
+
+def test_a_relaunch_reads_home_once_its_list_has_caught_up_with_the_screen(tmp_path, monkeypatch):
+    """AOL's run 20261001-062428-97e98aa: a relaunch's first look at home listed its feed with no rows while the
+    screen showed them, home was re-recorded from it, and the core step found no feed on s01 (the submitted run's
+    was "open and read items from the list on s01"). A landing that draws home but lists far fewer elements is
+    looked at again until its list catches up."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, aol_home_2)
+    ex.relaunch(first=True)
+    root = ex.current
+    rows = ob.feed_items(root.cands, ex.device, ex.tab_keys())
+    phone.splash = 4  # the list lags the screen for several looks, as it did for seconds on the device
+    ex.relaunch(why="test")
+    assert rows and ex.current is root and not root.later
+    assert ob.feed_items(root.cands, ex.device, ex.tab_keys()) == rows
+
+
+def test_a_launch_back_onto_home_after_leaving_from_home_scrolled_is_a_return(tmp_path, monkeypatch):
+    """The same run, act026-027: an ad on home scrolled (s06) opened Chrome, and the launch back landed on home,
+    its list a look behind the screen. It didn't match s06, so it was a relaunch and helped spend the cap. Left from
+    home or home scrolled, with no BACK out of the launch screen, a landing homelike() takes for home is a return."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, aol_home_2)
+    ex.relaunch(first=True)
+    root = ex.current
+    scrolled = ex.act(stage.Move("swipe", direction="up"), purpose="tour")
+    assert scrolled is not root and scrolled.unscroll_to == root.sid
+    ad = next(c for c in scrolled.cands if c.label.startswith("Heart Health Journal in Taboola"))
+    assert ex.act(stage.Move("tap", ad), purpose="tour").fg == "com.android.chrome"
+    launch = phone.launch
+
+    def lands_on_home():
+        launch()
+        phone.screen, phone.splash_left = "home", 4
+    phone.launch = lands_on_home
+    ex.leave()
+    assert ex.current is root and (ex.relaunches, len(ex.returns)) == (0, 1) and not root.later
+
 def test_a_relaunch_that_lands_on_an_away_screen_leaves_it_before_walking_home_to_the_filter(tmp_path, monkeypatch):
     """rt-pr33-a1a9ba5 LOW 1: in an app with a content filter (janitor_like's "Limited Only"), the prompt at each start
     is left first, by BACK, then the recorded way home leads to the filter, with no second relaunch."""
