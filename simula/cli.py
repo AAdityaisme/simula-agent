@@ -37,11 +37,14 @@ def preflight() -> str | None:
 
 def stage_params(stage: str, ctx: Ctx) -> dict:
     roles = config.roles(ctx.profile)
-    return {"app": ctx.app, "profile": ctx.profile, "roles": {r: roles[r] for r in ROLES[stage]},
-            "economics_mode": config.profiles()["economics_mode"] if stage in ("propose", "judge", "flows") else None,
-            "no_send": ctx.no_send if stage == "explore" else None,
-            "budget": config.budget(ctx.budget) if stage == "explore" else None,
-            "allow_account_create": ctx.allow_account_create if stage == "explore" else None}
+    params = {"app": ctx.app, "profile": ctx.profile, "roles": {r: roles[r] for r in ROLES[stage]},
+              "economics_mode": config.profiles()["economics_mode"] if stage in ("propose", "judge", "flows") else None,
+              "no_send": ctx.no_send if stage == "explore" else None,
+              "budget": config.budget(ctx.budget) if stage == "explore" else None,
+              "allow_account_create": ctx.allow_account_create if stage == "explore" else None}
+    if stage == "judge":  # only here, so adding it left every other stage's marker valid
+        params["judge_revision_cap"] = config.judge_revision_cap()
+    return params
 
 
 def stage_inputs(stage: str, ctx: Ctx) -> list[Path]:
@@ -315,7 +318,7 @@ def add_run_flags(p: argparse.ArgumentParser) -> None:
     p.add_argument("--budget", choices=["deep", "transfer"], default="transfer",
                    help="exploration size: deep = 80 actions / 25 min, transfer = 40 / 12")
     p.add_argument("--allow-account-create", action="store_true",
-                   help="let the explorer create a guest account if the app asks for one")
+                   help="at a sign-up wall, go on without an account or sign up by email with SIMULA_TEST_*")
     p.add_argument("--no-send", action="store_true", help="explore without the core-loop pass (sends nothing)")
     p.add_argument("--device", metavar="SERIAL", help="adb serial to explore on (default: ANDROID_SERIAL, "
                                                       "else the only device online)")
