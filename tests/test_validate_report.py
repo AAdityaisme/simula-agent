@@ -660,6 +660,33 @@ def test_a_draw_cleaned_away_before_its_commit_is_never_drawn_again(tmp_path, re
         draw_failing_good(tmp_path, monkeypatch, passes=True)
 
 
+def test_of_two_draws_racing_past_the_checks_the_second_is_refused_at_the_ref_before_any_call(tmp_path, ready,
+                                                                                               monkeypatch):
+    """Greptile 4155341119: the second draw checked for the ref before the first made it."""
+    start_arm(tmp_path)
+    draw_failing_good(tmp_path, monkeypatch)
+    git(tmp_path, "clean", "-qfdx", "--", "experiment-j/treatment")
+    monkeypatch.setattr(validate, "drawn", lambda root, ref: False)
+    monkeypatch.setattr(llm, "call", lambda **kw: pytest.fail("the second draw made a call"))
+    with pytest.raises(SystemExit, match="already drawn or abandoned .*a draw of it began: refs/experiments/j/treatment"):
+        validate.experiment("j", "treatment", tmp_path)
+    assert validate.files_in(tmp_path / "experiment-j" / "treatment") == validate.START
+
+
+def test_an_arm_refuses_while_another_arms_draw_is_missing_from_the_checkout(tmp_path, ready):
+    """The red team's case 4b (rt-pr34-fb421e3): a branch taken after the control's start misses its draw, and with
+    it the control's spend against the shared cap."""
+    start_arm(tmp_path, "control")
+    git(tmp_path, "branch", "treatment-branch")
+    validate.experiment("j", "control", tmp_path)
+    commit(tmp_path, "draw arm control")
+    push(tmp_path)
+    git(tmp_path, "checkout", "-q", "treatment-branch")
+    with pytest.raises(SystemExit, match="arm control's draw isn't in this checkout: merge it first"):
+        validate.experiment("j", "treatment", tmp_path)
+    assert not (tmp_path / "experiment-j" / "treatment").exists()
+
+
 def test_an_arm_refuses_while_another_arm_git_knows_of_is_missing_from_the_checkout(tmp_path, ready, monkeypatch):
     """Greptile 4154471719 and the red team's probe_missing_control: the control drawn on a branch, the treatment run
     from a checkout without it, with a label changed."""

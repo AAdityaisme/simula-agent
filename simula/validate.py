@@ -489,23 +489,27 @@ def experiment(name: str, arm: str, registered: Path = EXPERIMENTS) -> None:
     reg = tomllib.loads(registration.read_text())
     if arm not in reg["arms"]:
         raise SystemExit(f"experiment {name} registers the arms {', '.join(reg['arms'])}, not {arm}")
-    here = {p.relative_to(folder).as_posix() for p in folder.rglob("*") if p.is_file()} if folder.exists() else set()
-    ever = history(folder)
+    ref = f"refs/experiments/{name}/{arm}"
+
+    def abandoned(state: str) -> SystemExit:
+        return SystemExit(f"arm {arm} of experiment {name} was already drawn or abandoned ({state}). An arm draws "
+                          f"once. The visible ways out: commit {folder} as it stands, which leaves the experiment "
+                          "inconclusive, or register a new experiment folder in a commit.")
+    here, ever = files_in(folder), history(folder)
     if here == START and not ever:
         raise SystemExit(f"arm {arm}'s start in {folder} isn't committed: commit and push it, then run again to draw")
-    began = drawn(root, f"refs/experiments/{name}/{arm}")
+    began = drawn(root, ref)
     if began or ((here or ever) and (here, ever) != (START, START)):
-        state = ("its folder is gone, but git history holds it" if not here else
-                 "its folder holds more than its start" if here - START else
-                 "git history holds more than its start" if ever - START else
-                 f"a draw of it began: refs/experiments/{name}/{arm}" if began else "its start is incomplete")
-        raise SystemExit(f"arm {arm} of experiment {name} was already drawn or abandoned ({state}). An arm draws once. "
-                         f"The visible ways out: commit {folder} as it stands, which leaves the experiment "
-                         "inconclusive, or register a new experiment folder in a commit.")
-    for other in reg["arms"]:
-        if other != arm and not (root / other).exists() and (history(root / other)
-                                                             or drawn(root, f"refs/experiments/{name}/{other}")):
+        raise abandoned("its folder is gone, but git history holds it" if not here else
+                        "its folder holds more than its start" if here - START else
+                        "git history holds more than its start" if ever - START else
+                        f"a draw of it began: {ref}" if began else "its start is incomplete")
+    for other in (a for a in reg["arms"] if a != arm):
+        known, there = history(root / other), files_in(root / other)
+        if not there and (known or drawn(root, f"refs/experiments/{name}/{other}")):
             raise SystemExit(f"arm {other}'s record isn't in this checkout: merge it first")
+        if known - there:
+            raise SystemExit(f"arm {other}'s draw isn't in this checkout: merge it first")
     if pending := uncommitted([root, CASES / "labels"]):
         raise SystemExit(f"experiment {name} runs only on committed files; commit these first: {', '.join(pending[:5])}"
                          + (f" and {len(pending) - 5} more" if len(pending) > 5 else ""))
@@ -546,7 +550,10 @@ def experiment(name: str, arm: str, registered: Path = EXPERIMENTS) -> None:
     start = git(root, "log", "-1", "--format=%H", "--", arm).stdout.strip()
     if not git(root, "branch", "-r", "--contains", start).stdout.strip():
         raise SystemExit(f"arm {arm}'s start ({start[:7]}) isn't on any remote branch: push it, then run again to draw")
-    git(root, "update-ref", "--create-reflog", "-m", "draw", f"refs/experiments/{name}/{arm}", "HEAD", check=True)
+    # the all-zero old value makes creating the ref fail if it exists, so of two draws racing past the checks above,
+    # only one gets to make calls
+    if git(root, "update-ref", "--create-reflog", "-m", "draw", ref, "HEAD", "0" * 40).returncode:
+        raise abandoned(f"a draw of it began: {ref}")
     (folder / "verdicts").mkdir()
     budget = llm.Budget("validate", reg["usd_cap"], spent_by(root), trace_path=folder / "trace.jsonl")
     verdicts = run_judges(cases, reg["judges"], roles, budget, folder, 1, reg["no_cache"], rubric=text)
@@ -597,8 +604,12 @@ def uncommitted(paths: list[Path]) -> list[str]:
     return found
 
 
-def git(cwd: Path, *args: str, check: bool = False) -> subprocess.CompletedProcess:
-    return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=check)
+def git(cwd: Path, *args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True)
+
+
+def files_in(folder: Path) -> set[str]:
+    return {p.relative_to(folder).as_posix() for p in folder.rglob("*") if p.is_file()} if folder.exists() else set()
 
 
 def drawn(root: Path, ref: str) -> bool:

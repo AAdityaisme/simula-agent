@@ -40,7 +40,8 @@ Each arm takes two runs into the tracked `validation/experiment-j/<arm>/`:
    - no commit on any ref or in the reflog ever held more under the folder;
    - no draw of the arm began before.
 
-   Before its first call, it marks the draw with the ref `refs/experiments/j/<arm>`, which has a reflog. It writes
+   Before its first call, it creates the ref `refs/experiments/j/<arm>`, with a reflog, to mark the draw. The ref is
+   created only if it doesn't exist, so of two draws started at once, only one makes calls. It writes
    the verdicts, trace and `report.md`. Commit and push them.
 
 Any other state is refused: results on disk or in history, a start that is gone, or a draw ref that exists. So a
@@ -50,7 +51,8 @@ experiment folder in a commit.
 
 Both runs also refuse, before any call or write, when any of these holds:
 
-- another arm git knows of (in its history or by its draw ref) isn't in this checkout: merge it first;
+- another arm git knows of (in its history or by its draw ref) isn't in this checkout, or git holds more of it than
+  the checkout does (its draw): merge it first, so the inputs check and the shared cap see it;
 - `validation/experiment-j/` (the registration and every arm) or the labels aren't committed;
 - there are fewer than 15 labels, or one of the known-good ideas has none;
 - the arm's rubric doesn't hash to its registered sha256;
@@ -111,9 +113,9 @@ No resume and no third arm: each arm draws once.
 
 - Until a draw is committed, it shows in `git status`.
 - Once it has begun, its ref refuses any other draw of the arm, whatever happens to the folder.
-- Redrawing would take rewriting git's own records on purpose: deleting the draw ref (`git update-ref -d`), expiring
-  reflogs, or a fresh clone of a start whose draw was never pushed. So commit and push each draw before reading its
-  report.
+- Redrawing would take rewriting git's own records on purpose. One way is deleting the draw ref
+  (`git update-ref -d`, which drops its reflog) and cleaning the folder. The other is a fresh clone of a start whose
+  draw was never pushed, since the ref stays local. So commit and push each draw before reading its report.
 
 The experiment is **inconclusive** if either arm hits any of these:
 
