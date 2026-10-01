@@ -2,7 +2,7 @@
 account first, else by an email sign-up typed from SIMULA_TEST_*, and anything it isn't sure of stops it at the wall
 with its reason. The identity never reaches a saved file, a model's input or a screenshot unredacted. The tests named
 for a red-team finding failed on the commit it was found on (rt_f*: 8735b45, rt_r2_*: b568449,
-rt_r3_*: 66f6ca8)."""
+rt_r3_*: 66f6ca8, rt_r4_*: 3d48f8d)."""
 
 import json
 from pathlib import Path
@@ -642,10 +642,9 @@ def test_where_the_keyboard_is_painted(tmp_path, monkeypatch, input_method, wind
 ERROR = [el("@e0", "TextView", "Something went wrong", 200), el("@ok", "Button", "OK", 1700)]
 
 
-def test_the_keyboard_is_painted_over_whenever_it_is_up_after_a_value_is_typed_greptile_p1_2(tmp_path, monkeypatch,
-                                                                                            identity):
-    """The sign-up stops with the keyboard still up, its suggestion strip (red here) showing a typed word: every later
-    capture paints it while dumpsys says it is up."""
+def test_the_keyboard_is_painted_over_whenever_it_is_up_after_a_value_is_typed_rt_r4_5(tmp_path, monkeypatch, identity):
+    """Greptile 4156663419. The sign-up stops with the keyboard still up, its suggestion strip (red here) showing a
+    typed word: every later capture paints it while dumpsys says it is up."""
     def app(clock):
         phone = sign_up_app(after_form=ERROR)(clock)
         ImageDraw.Draw(phone.screens["next"].image).rectangle((0, 1500, 1080, 1620), fill=(255, 0, 0))
@@ -662,19 +661,29 @@ def test_the_keyboard_is_painted_over_whenever_it_is_up_after_a_value_is_typed_g
     assert ex.observe().painted is None
 
 
-def test_a_sign_up_tap_never_lands_on_the_keyboard_greptile_p1_1(tmp_path, monkeypatch, identity):
-    """The form's button (y 1700) lies under the keyboard once the name is typed: BACK closes the keyboard first."""
+def test_a_sign_up_tap_never_lands_on_the_keyboard_rt_r4_4(tmp_path, monkeypatch, identity):
+    """Greptile 4156663379. The form's button (y 1700) lies under the keyboard once the name is typed: BACK closes the
+    keyboard first."""
     ex, phone = launched(tmp_path, monkeypatch, sign_up_app())
     assert ex.account_state == "made" and not any(kind == "key" for kind, *_ in phone.log)
     assert phone.log.index(("back", "form")) < phone.log.index(("tap", "form", "Create account"))
 
 
-def test_when_dumpsys_cannot_say_a_control_under_the_lower_half_stops_the_sign_up_greptile_p1_1(tmp_path, monkeypatch,
-                                                                                                identity):
+HIGH_FORM = [FORM[0], el("@c1", "TextView", "Email", 320, h=60), el("@f1", "EditText", "", 400),
+             el("@c2", "TextView", "Password", 620, h=60), el("@f2", "EditText", "", 700),
+             el("@c3", "TextView", "Name", 920, h=60), el("@f3", "EditText", "", 1000),
+             el("@go", "Button", "Create account", 1700)]
+
+
+@pytest.mark.parametrize("form, typed, over", [(FORM, [EMAIL, PASSWORD], "the name box"),
+                                               (HIGH_FORM, [EMAIL, PASSWORD, NAME],
+                                                "the form's button 'Create account'")], ids=["a box", "the button"])
+def test_when_dumpsys_cannot_say_a_control_under_the_lower_half_stops_the_sign_up_rt_r4_4(tmp_path, monkeypatch,
+                                                                                          identity, form, typed, over):
     monkeypatch.setattr(FormPhone, "dumpsys", lambda self, args: "")
-    ex, phone = launched(tmp_path, monkeypatch, sign_up_app())
-    assert ex.account[-1] == "s01: stopped at the wall, the keyboard may lie over the name box"
-    assert phone.typed == [EMAIL, PASSWORD] and ("back", "form") not in phone.log
+    ex, phone = launched(tmp_path, monkeypatch, sign_up_app(after_way=form))
+    assert ex.account[-1] == f"s01: stopped at the wall, the keyboard may lie over {over}"
+    assert phone.typed == typed and ("back", "form") not in phone.log and "Create account" not in taps(phone)
 
 
 def test_a_log_in_link_on_a_form_that_asks_for_a_name_is_not_its_button_greptile_p1_3(tmp_path, monkeypatch,
@@ -757,8 +766,71 @@ def test_a_name_box_is_one_that_says_only_name_rt_r3_2(tmp_path, monkeypatch, id
     assert ex.account[-1].endswith("shows no sign of an account") and ex.account_state == "sent"
 
 
-@pytest.mark.parametrize("label", ["Get started with email", "Email"])
-def test_an_email_way_it_does_not_recognize_is_named_in_the_stop(tmp_path, monkeypatch, identity, label):
-    app = sign_up_app(wall=[TITLE, el("@email", "Button", label, 1500), GOOGLE, LOG_IN])
-    assert stop_reason(tmp_path, monkeypatch, app) == ("s01: stopped at the wall, no way to an email sign-up "
-                                                       f"recognized ({label!r} names email)")
+# an attestation inside the way to the sign-up (RT-R4-1), or a label that names email without a way to it
+WAYS = ("Continue with email, I'm 18 or older", "Sign up with email (18 or over)", "Sign up - I am of legal age")
+
+
+@pytest.mark.parametrize("label", [*WAYS, "Email"], ids=["rt_r4_1 a", "rt_r4_1 b", "rt_r4_1 c", "no verb"])
+def test_a_way_to_the_sign_up_is_taken_by_its_whole_label_only(tmp_path, monkeypatch, identity, label):
+    def app(clock):
+        phone = sign_up_app(wall=[TITLE, el("@email", "Button", label, 1500), GOOGLE, LOG_IN])(clock)
+        phone.taps[("wall", label)] = "form"
+        return phone
+    phones = []
+
+    def factory(clock):
+        phones.append(app(clock))
+        return phones[-1]
+    assert stop_reason(tmp_path, monkeypatch, factory) == ("s01: stopped at the wall, no way to an email sign-up "
+                                                           f"recognized ({label!r} is not one, whole)")
+    assert not phones[0].typed and label not in taps(phones[0])
+
+
+@pytest.mark.parametrize("label", ["Get started with email", "Continue with your email", "Use email", "Register"])
+def test_a_whole_way_to_the_sign_up_is_taken(tmp_path, monkeypatch, identity, label):
+    def app(clock):
+        phone = sign_up_app(wall=[TITLE, el("@email", "Button", label, 1500), GOOGLE, LOG_IN])(clock)
+        phone.taps[("wall", label)] = "form"
+        return phone
+    ex, phone = launched(tmp_path, monkeypatch, app)
+    assert taps(phone)[0] == label and ex.account_state == "made", ex.account
+
+
+def test_a_name_step_after_the_sign_up_is_the_end_rt_r4_2(tmp_path, monkeypatch, identity):
+    """By its box, "Create your character / Name" is a name step; after a send, a form that asks for neither the email
+    nor the password ends the sign-up."""
+    two = [e for e in FORM if e["ref"] not in ("@c3", "@f3")]
+    character = [el("@o0", "TextView", "Create your character", 200, w=600), el("@o1", "TextView", "Name", 420, h=60),
+                 el("@o2", "EditText", "", 500), el("@o3", "Button", "Continue", 1700)]
+
+    def app(clock):
+        phone = sign_up_app(after_way=two, after_form=character)(clock)
+        phone.taps[("next", "Continue")] = "home"
+        return phone
+    ex, phone = launched(tmp_path, monkeypatch, app)
+    assert phone.typed == [EMAIL, PASSWORD] and "Continue" not in taps(phone)
+    assert ex.account[-1].endswith("shows no sign of an account") and ex.account_state == "sent"
+
+
+def test_a_send_that_leaves_the_screen_as_it_was_sent_nothing_rt_r4_4(tmp_path, monkeypatch, identity):
+    def app(clock):
+        phone = sign_up_app()(clock)
+        del phone.taps[("form", "Create account")]
+        return phone
+    ex, phone = launched(tmp_path, monkeypatch, app)
+    assert ex.account[-1] == "s01: stopped at the wall, the form's button 'Create account' changed nothing"
+    assert ex.account_state == "" and taps(phone)[-1] == "Create account"
+
+
+def test_a_sign_up_that_stops_mid_form_keeps_the_keyboard_painted_rt_r4_5(tmp_path, monkeypatch, identity):
+    """The red team's case: the password box takes no focus, so the sign-up stops right after the email, with the
+    keyboard still up."""
+    class NoFocusOnPassword(FormPhone):
+        def tap(self, x, y):
+            super().tap(x, y)
+            if self.focus == ("form", "@f2"):
+                self.focus = ("form", "@f1")
+    ex, phone = launched(tmp_path, monkeypatch, sign_up_app(phone=NoFocusOnPassword))
+    assert phone.typed == [EMAIL] and "the box in focus is not the empty password box" in ex.account[-1]
+    assert ex.typing and ex.observe().painted == Rect(x=0, y=1500, w=1080, h=900)
+    assert Image.open(ex.scratch / "now.png").getpixel((540, 2000)) == (0, 0, 0)

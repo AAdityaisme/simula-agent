@@ -113,6 +113,11 @@ SIGN_UP = re.compile(r"sign ?up|create (?:an |my |your )?account|register|contin
                      r"proceed", re.IGNORECASE)
 EMAIL_WAY = re.compile(r"\b(?:sign ?up|continue|register|use|join|start|create)\b.*\be-?mail\b", re.IGNORECASE)
 SIGN_UP_WAY = re.compile(r"\bsign ?up\b|\bcreate (?:an |my |your )?account\b|\bregister\b", re.IGNORECASE)
+# the only labels a way to an email sign-up may have, whole: anything more ("Sign up with email, I'm 18") isn't taken
+TO_EMAIL = re.compile(r"^\W*(?:(?:sign ?up|continue|register|join|get started|start|create (?:an |my |your )?account)"
+                      r"\s+(?:with|using|by|via)\s+(?:an? |your )?|use (?:an? |your )?)e-?mail(?: address)?\W*$",
+                      re.IGNORECASE)
+TO_SIGN_UP = re.compile(r"^\W*(?:sign ?up|create (?:an |my |your )?account|register)\W*$", re.IGNORECASE)
 SUBMIT = re.compile(r"\b(?:sign ?up|create|register|continue|next|submit|done|join|get started|let'?s go)\b",
                     re.IGNORECASE)
 # the only labels a sign-up form's own button may have: anything more ("Continue, I'm 18", "Create") is not sent

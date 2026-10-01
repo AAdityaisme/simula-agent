@@ -1035,8 +1035,8 @@ class Explorer:
         """Follows the email sign-up from the wall a screen at a time and stops at anything it isn't sure of
         (unsure). A screen with text boxes is a form: each box must be one it recognizes, empty, and it gets its
         value; then the form is sent. A screen without one gets the way to an email sign-up. After a send, a
-        verification step asks a person (needs-human.md), a form asking only for values not typed yet is the next
-        step, and anything else is the end, an account only when it is the app itself (result). A form's own button
+        verification step asks a person (needs-human.md), a form asking only for values not typed yet, the email or
+        the password among them, is the next step, and anything else is the end, an account only when it is the app itself (result). A form's own button
         must say no more than that it sends it (PLAIN_SUBMIT); a form whose own button logs in is a log-in form: never
         filled; its way to sign up is taken."""
         sent, typed = False, set()
@@ -1056,7 +1056,8 @@ class Explorer:
             boxes = self.boxes()
             button = self.form_button(boxes) if boxes else None
             if sent and not (boxes and all(kind in self.identity and kind not in typed for _, kind in boxes)
-                             and button and ob.PLAIN_SUBMIT.search(button.label)):
+                             and any(kind != "name" for _, kind in boxes) and button
+                             and ob.PLAIN_SUBMIT.search(button.label)):
                 return self.result(wall)
             if boxes and not (button and ob.LOG_IN.search(button.label)):
                 why = ("no control sends the form" if button is None else
@@ -1121,7 +1122,8 @@ class Explorer:
         return ""
 
     def send(self, form: list[str]) -> str:
-        """Taps the form's own button, while the app is in front, shows the same form and has the keyboard off it."""
+        """Taps the form's own button, while the app is in front, shows the same form and has the keyboard off it. A
+        tap that leaves the screen as it was sent nothing."""
         button = self.uncovered(lambda: self.form_send(form))
         if button is None:
             return "the form changed before it was sent"
@@ -1129,8 +1131,9 @@ class Explorer:
             return f"the keyboard may lie over the form's button {button.label[:40]!r}"
         if not ob.PLAIN_SUBMIT.search(button.label) or ob.denied(button, upsell=self.current.upsell, account=True):
             return f"the form's button {button.label[:40]!r} sends no sign-up"
+        s = self.current
         self.act(Move("tap", button, why="sign-up: send the form"), purpose="account")
-        return ""
+        return f"the form's button {button.label[:40]!r} changed nothing" if self.current is s else ""
 
     def form_box(self, form: list[str], n: int) -> ob.Candidate | None:
         """The form's nth box on the live screen, while the app is in front and shows the same form."""
@@ -1196,16 +1199,19 @@ class Explorer:
         return self.account_note(f"{wall.sid}: signed up with the test identity, now on {s.sid}", True)
 
     def email_way(self) -> ob.Candidate | None:
-        """The control on the way to an email sign-up: one that names email, else one that names signing up."""
+        """The control on the way to an email sign-up, by its whole label: one that names email, else one that names
+        signing up."""
         ways = [c for c in self.surface() if c.kind != "EditText" and ob.shaped(c)
                 and not ob.denied(c, upsell=self.current.upsell, account=True)]
-        return next((c for rule in (ob.EMAIL_WAY, ob.SIGN_UP_WAY) for c in ways if rule.search(c.label)), None)
+        return next((c for rule in (ob.TO_EMAIL, ob.TO_SIGN_UP) for c in ways if rule.search(c.label)), None)
 
     def no_way(self) -> str:
         """Why nothing leads to an email sign-up, from what the screen offers instead."""
-        email = next((c.label for c in self.surface() if ob.shaped(c) and ob.FIELDS["email"].search(c.label)), None)
-        if email:
-            return f"no way to an email sign-up recognized ({email[:40]!r} names email)"
+        near = next((c.label for c in self.surface() if ob.shaped(c) and not ob.OTHER_ACCOUNT.search(c.label)
+                     and not ob.PHONE.search(c.label)
+                     and (ob.FIELDS["email"].search(c.label) or ob.SIGN_UP_WAY.search(c.label))), None)
+        if near:
+            return f"no way to an email sign-up recognized ({near[:40]!r} is not one, whole)"
         labels = [c.label for c in self.surface()]
         for what, rule in (("a phone number", ob.PHONE), ("a sign-in with another account", ob.OTHER_ACCOUNT)):
             hit = next((label for label in labels if rule.search(label)), None)
