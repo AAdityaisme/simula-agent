@@ -2,6 +2,7 @@
 
 import re
 
+from simula import config
 from simula.contracts import (GATES, JUDGMENT, BenefitName, BenefitNames, Candidate, CandidateDraft, CandidatesFile,
                               Check, Economics, LensOutput, Verdict)
 from simula.stages import Ctx, propose
@@ -43,10 +44,15 @@ def seed(tmp_path, app, candidates):
     return run_dir
 
 
+def with_cap(monkeypatch, cap: int) -> None:
+    profiles = config.profiles()
+    monkeypatch.setattr(config, "profiles", lambda: {**profiles, "judge_revision_cap": cap})
+
+
 def fake_llm(rules, revision=None, benefits=None):
     """A stand-in for llm.call: a judge fails the checks `rules` maps a marker in the proposal text to; the
-    reviser returns `revision`; the benefit-naming call names each idea by `benefits` (idea id -> (benefit,
-    paywall bullet id or None)), or by its own id."""
+    reviser returns `revision`, or `revision[id]` when it maps the id of the idea being revised; the benefit-naming
+    call names each idea by `benefits` (idea id -> (benefit, paywall bullet id or None)), or by its own id."""
     calls = []
 
     def call(**kw):
@@ -60,7 +66,8 @@ def fake_llm(rules, revision=None, benefits=None):
             proposal = text.split("## Proposal", 1)[1]
             fails = [k for marker, checks in rules.items() if marker in proposal for k in checks]
             return verdict(fails, fixable=True), None
-        drafts = [CandidateDraft(**revision.model_dump(include=set(CandidateDraft.model_fields)))] if revision else []
+        made = revision.get(re.search(r'"id": "([^"]+)"', text)[1]) if isinstance(revision, dict) else revision
+        drafts = [CandidateDraft(**made.model_dump(include=set(CandidateDraft.model_fields)))] if made else []
         return LensOutput(candidates=drafts), None
     return call, calls
 
