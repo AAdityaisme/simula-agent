@@ -120,6 +120,20 @@ def hold_effects(decisions: list[Decision], promoted: list[str], held: list[str]
             [i for i in held if i not in passed])
 
 
+def recover(flows_dir: Path) -> None:
+    """Finishes a swap of flows/ a crash cut short. Stopped between its two renames, it left the last deck whole in
+    flows.old and none in flows/ (at most the empty folder the CLI makes), so flows.old goes back; stopped after them,
+    flows/ is the new deck and flows.old the one before, which goes."""
+    old = flows_dir.with_name(flows_dir.name + ".old")
+    if not old.exists():
+        return
+    if (flows_dir / "slides.html").exists():
+        shutil.rmtree(old)
+    else:
+        shutil.rmtree(flows_dir, ignore_errors=True)
+        old.replace(flows_dir)
+
+
 def mock_source(run_dir: Path) -> Path:
     approved = run_dir / "qa" / "approved"
     return approved if (approved / "index.html").exists() else run_dir / "mock"
@@ -272,10 +286,7 @@ def run(ctx: Ctx) -> None:
     model = ProductModel.model_validate_json((run_dir / "model" / "product_model.json").read_text())
     decisions = DecisionsFile.model_validate_json((run_dir / "judge" / "decisions.json").read_text()).decisions
     candidates = load_candidates(run_dir)
-    stranded = run_dir / "flows.old" / "approvals.json"  # a swap a crash cut short between its two renames
-    if stranded.exists() and not approvals.exists():
-        approvals.parent.mkdir(exist_ok=True)
-        stranded.replace(approvals)
+    recover(approvals.parent)
     promote, held = load_approvals(approvals.parent, decisions)
     promoted, set_aside = honored(promote, decisions)
     shutil.rmtree(out, ignore_errors=True)

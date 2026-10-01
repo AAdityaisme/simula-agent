@@ -3,6 +3,7 @@
 import dataclasses
 import html
 import json
+import os
 import re
 import shutil
 import time
@@ -1088,18 +1089,66 @@ def test_a_crash_while_flows_rebuilds_leaves_the_last_deck_and_a_rebuild_keeps_t
             if p.is_file()} == deck
 
 
-def test_approvals_a_swap_cut_short_left_in_flows_old_still_apply(tmp_path):
-    """Greptile: a crash between swap_in's two renames leaves the last deck, approvals.json with it, in flows.old/; the
-    next run must still apply the person's approvals, not rebuild without them and delete them."""
+def deck_files(flows_dir: Path) -> dict[Path, bytes]:
+    return {p.relative_to(flows_dir): p.read_bytes() for p in flows_dir.rglob("*") if p.is_file()}
+
+
+def cut_short_swap(tmp_path) -> tuple[Path, dict[Path, bytes]]:
+    """A deck holding c02, then a crash between swap_in's two renames: the last deck, approvals.json with it, is in
+    flows.old/, a half-built flows.tmp/ beside it, and flows/ is the empty folder the CLI makes before a stage runs."""
     run_dir, _ = split_run(tmp_path, approvals={"hold": ["c02"]})
+    deck = deck_files(run_dir / "flows")
     (run_dir / "flows").rename(run_dir / "flows.old")
-    (run_dir / "flows").mkdir()  # as the CLI makes it before a stage runs
+    (run_dir / "flows.tmp").mkdir()
+    (run_dir / "flows.tmp" / "slides.html").write_text("half built")
+    (run_dir / "flows").mkdir()
+    return run_dir, deck
+
+
+def test_a_swap_cut_short_between_its_renames_is_recovered_whole_and_its_approvals_apply(tmp_path):
+    """Greptile: the next run takes flows.old/ back whole, so the person's approvals still apply."""
+    run_dir, _ = cut_short_swap(tmp_path)
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(llm, "call", fake_editor(run_dir))
         flows.stage.run(ctx_for(run_dir, "luzia"))
     notes = [line.note for line in read_trace(run_dir / "trace.jsonl") if line.step == "select"]
     assert notes == ["accepted + conditional, flows/approvals.json holding c02: c01"] * 2
     assert json.loads((run_dir / "flows" / "approvals.json").read_text()) == {"hold": ["c02"]}
+    assert not (run_dir / "flows.old").exists() and not (run_dir / "flows.tmp").exists()
+
+
+def test_a_recovered_deck_survives_an_install_that_then_fails(tmp_path, monkeypatch):
+    """Greptile: recovery moved only approvals.json out of flows.old/, so when the next install failed, swap_in's
+    rollback put back a folder holding nothing but approvals.json and the last complete deck was gone."""
+    run_dir, deck = cut_short_swap(tmp_path)
+    replace = os.replace
+
+    def install_fails(src, dst):
+        if Path(src).name == "flows.tmp":
+            raise OSError("the disk filled up")
+        replace(src, dst)
+    monkeypatch.setattr(judge.os, "replace", install_fails)
+    with pytest.MonkeyPatch.context() as mp, pytest.raises(OSError, match="the disk filled up"):
+        mp.setattr(llm, "call", fake_editor(run_dir))
+        flows.stage.run(ctx_for(run_dir, "luzia"))
+    assert deck_files(run_dir / "flows") == deck
+
+
+def test_a_leftover_flows_old_beside_a_whole_deck_goes_and_brings_no_approvals_back(tmp_path):
+    """Red team rt-37: a crash after swap_in's second rename leaves the new deck in flows/ and the one before in
+    flows.old/. The person then deletes flows/approvals.json; the next run must not bring it back from flows.old/."""
+    run_dir, _ = split_run(tmp_path, approvals={"hold": ["c02"]})
+    shutil.copytree(run_dir / "flows", run_dir / "flows.old")
+    (run_dir / "flows" / "approvals.json").unlink()
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(llm, "call", fake_editor(run_dir))
+        flows.stage.run(ctx_for(run_dir, "luzia"))
+    assert "holding c02" not in select_note_last(run_dir) and not (run_dir / "flows.old").exists()
+    assert not (run_dir / "flows" / "approvals.json").exists()
+
+
+def select_note_last(run_dir) -> str:
+    return [line.note for line in read_trace(run_dir / "trace.jsonl") if line.step == "select"][-1]
 
 
 @pytest.mark.parametrize("written, error", [
