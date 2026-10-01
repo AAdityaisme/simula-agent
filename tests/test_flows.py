@@ -456,7 +456,7 @@ def test_a_cost_line_that_isnt_pass_is_a_mark_on_every_slide_and_never_the_verdi
 def test_a_pass_that_may_lose_a_sale_says_so_on_every_slide_without_calling_itself_a_cost_problem():
     decisions = DecisionsFile.model_validate_json((ROUND6 / "judge" / "decisions.json").read_text()).decisions
     ideas, model = flows.stage.load_candidates(ROUND6), golden("luzia")
-    d = next(d for d in flows.stage.select(decisions, None) if ideas[d.candidate_id].economics.verdict == "PASS")
+    d = next(d for d in flows.stage.select(decisions) if ideas[d.candidate_id].economics.verdict == "PASS")
     c = ideas[d.candidate_id]
     c = c.model_copy(update={"economics": c.economics.model_copy(update={"lost_sale": "a place ahead of other users"})})
     texts = [text_of(s) for s in flows.deck.idea_slides(drawn(c, d), model, ROUND6, False)]
