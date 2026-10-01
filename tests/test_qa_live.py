@@ -16,8 +16,8 @@ import pytest
 from PIL import Image, ImageDraw
 
 from simula import cli, decide, llm, qa_live, runfolder, runlog
-from simula.contracts import (ActionLine, ContractError, ContractReport, Coverage, Device, Flow, Point, ProductModel,
-                              Provenance, StageOutcome, StateFile)
+from simula.contracts import (ActionLine, ContractError, ContractReport, Coverage, Device, ExploreFile, Flow, Point,
+                              ProductModel, Provenance, StageOutcome, StateFile)
 from simula.device import mcp
 from simula.device import observe as ob
 from simula.stages import model as model_stage
@@ -58,7 +58,7 @@ def line(step: int, src: str, to: str, action: str, cand: ob.Candidate | None = 
 
 
 def source_run(runs: Path, recorded: dict[str, Screen], lines: list[ActionLine],
-               flows: list[list[tuple[str, str, str]]]) -> Path:
+               flows: list[list[tuple[str, str, str]]], content_filter: str | None = None) -> Path:
     """A run folder built the way explore and the model stage build one: explore/states and actions.jsonl from
     captures, the product model's code facts with every state in scope and one flow per list of (from, to, action)
     hops, and an approved mock the offline builder drew."""
@@ -76,6 +76,11 @@ def source_run(runs: Path, recorded: dict[str, Screen], lines: list[ActionLine],
             screenshot=f"states/{sid}.png", elements_reply=f"states/{sid}.elements.json", settled=True,
             settle_seconds=2.0, dynamic_regions=[], captured_at="now").model_dump_json())
     (explore_dir / "actions.jsonl").write_text("".join(a.model_dump_json() + "\n" for a in lines))
+    coverage = Coverage(states_found=len(recorded), actions_taken=len(lines), stop_reason="done", checklist_answered=[],
+                        checklist_open=[])
+    (explore_dir / "explore.json").write_text(ExploreFile(
+        app_package=PACKAGE, app_version="1", budget="transfer", relaunches=0, content_filter=content_filter,
+        blocked_state_ids=[], coverage=coverage).model_dump_json())
     states, images, _ = model_stage.load_states(explore_dir, DEVICE)
     edges, _ = model_stage.load_edges(explore_dir, states)
     ids, tapped = [s.id for s in states], {e.element_id for e in edges if e.element_id}
@@ -170,11 +175,11 @@ def taps(phone: FakePhone) -> list[tuple]:
     return [entry for entry in phone.log if entry[0] == "tap"]
 
 
-def tab_back_run(runs: Path, recorded: dict[str, Screen]) -> Path:
+def tab_back_run(runs: Path, recorded: dict[str, Screen], content_filter: str | None = None) -> Path:
     """One flow: tap s01's second tab to s02, then BACK to s01."""
     return source_run(runs, recorded, [line(1, "s01", "s02", TAP, tab(recorded["s01"], 1), "tab"),
                                        line(2, "s02", "s01", BACK, transition="back")],
-                      [[("s01", "s02", TAP), ("s02", "s01", BACK)]])
+                      [[("s01", "s02", TAP), ("s02", "s01", BACK)]], content_filter)
 
 
 def test_a_tap_and_back_flow_is_walked_on_both_sides_with_a_redacted_paired_checkpoint_per_hop(runs, walk, tmp_path,
@@ -555,6 +560,22 @@ def test_an_approved_mock_older_than_the_files_it_was_made_from_is_refused_befor
     with pytest.raises(SystemExit, match=why):
         walk(phone)
     assert phone.log == [] and walk.held == []
+
+
+@pytest.mark.parametrize("content_filter", ["Limited Only", None], ids=["filter", "none"])
+def test_a_run_whose_explore_applied_a_content_filter_is_refused_before_any_device_work(runs, walk, content_filter):
+    """The walker force-stops and launches the app and can't verify a content filter after a launch, so a run whose
+    explore applied one is refused before the lock, the server or any device call. A run without one walks as before."""
+    recorded = screens()
+    tab_back_run(runs, recorded, content_filter)
+    phone = phone_for(screens(), [("s01", tab(recorded["s01"], 1), "s02")])
+
+    if content_filter:
+        with pytest.raises(SystemExit, match="the run recorded a content filter qa-live can't verify"):
+            walk(phone)
+        assert phone.log == [] and walk.held == [] and walk.servers == []
+    else:
+        assert walk(phone)["flows"][0]["status"] == "matched" and walk.held == ["held", "released"]
 
 
 def test_a_partial_qa_on_current_files_is_walked_and_says_so_and_an_undrawn_screen_is_left_out(runs, walk, tmp_path):

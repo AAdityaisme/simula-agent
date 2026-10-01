@@ -15,7 +15,7 @@ from pathlib import Path
 from PIL import Image
 
 from simula import config, qa_metrics, render, runfolder
-from simula.contracts import SCHEMA_VERSION, Device, Edge, ProductModel, Rect, StageOutcome, StateFile
+from simula.contracts import SCHEMA_VERSION, Device, Edge, ExploreFile, ProductModel, Rect, StageOutcome, StateFile
 from simula.device import observe as ob
 from simula.device.devices import emulator_lock, resolve_serial
 from simula.device.mcp import McpReplyError, McpTimeout, Phone, Server, parse_elements
@@ -87,6 +87,11 @@ def run(app: str, run_id: str | None, out: Path, serial: str | None, clock=time.
     if not (src / "qa" / "approved" / "index.html").exists():
         raise SystemExit(f"{src} has no approved mock: run `simula qa {app}` first")
     approval = approved_outcome(src, app)
+    # every launch can leave the app unfiltered, and no shared check yet tells a filter that holds from one that doesn't
+    applied = ExploreFile.model_validate_json((src / "explore" / "explore.json").read_text()).content_filter
+    if applied:
+        raise SystemExit(f"the run recorded a content filter qa-live can't verify ({applied!r}): it walks no run with "
+                         f"one until a shared filter check lands")
     model = ProductModel.model_validate_json((src / "model" / "product_model.json").read_text())
     if model.device != Device():
         raise SystemExit(f"the run was explored on {model.device}, but the mock renders and compares on {Device()}")
