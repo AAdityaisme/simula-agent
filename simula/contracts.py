@@ -497,7 +497,7 @@ class ActionLine(Strict):
     step: int
     from_state: str
     to_state: str | None
-    action: Literal["tap", "swipe", "back", "type", "relaunch"]
+    action: Literal["tap", "swipe", "back", "type", "relaunch", "launch"]
     mcp_ref: str | None
     tap_px: Point | None
     transition: Transition
@@ -521,6 +521,16 @@ class VisionElement(Strict):
 
 # ---------- file-level wrappers: every JSON file a stage writes carries schema_version ----------
 
+class ReplacedCapture(Strict):
+    """A capture of a state that a relaunch replaced (home with its list reloaded). Paths are relative to explore/."""
+    until_step: int = Field(description="The last action line step taken on this capture: a line from the state with "
+                                        "a step up to here resolves its tap against this capture, not the state's own.")
+    screenshot: str
+    elements_reply: str
+    icon_labels: list[IconLabel] = []
+    vision_elements: list[VisionElement] = []
+
+
 class StateFile(Strict):
     """explore/states/<sid>.json"""
     schema_version: int = SCHEMA_VERSION
@@ -540,6 +550,7 @@ class StateFile(Strict):
     icon_labels: list[IconLabel] = []
     vision_elements: list[VisionElement] = []
     blocked_reason: str | None = None
+    replaced: list[ReplacedCapture] = Field([], description="Earlier captures a relaunch replaced, oldest first.")
 
 
 class ExploreFile(Strict):

@@ -23,7 +23,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from simula import config, decide, llm
 from simula.contracts import (ActionLine, Arrival, Coverage, Device, ExploreFile, HardScreenAction, IconLabel, IconPass,
-                              Point, Progress, Rect, StageOutcome, StateFile, VisionElement, WalkPick)
+                              Point, Progress, Rect, ReplacedCapture, StageOutcome, StateFile, VisionElement, WalkPick)
 from simula.device import observe as ob
 from simula.device.mcp import McpReplyError, McpTimeout, Phone, Server
 from simula.device.devices import adb, emulator_lock, online, resolve_serial
@@ -102,7 +102,7 @@ class ExploreFailed(Exception):
 DEVICE_ERRORS = (McpReplyError, McpTimeout, NeedRelaunch)
 DEVICE_LOST = (McpReplyError, McpTimeout)
 DEVICE_STOPS = ("device error", "second hang")
-AWAY = ("external", "rotated")  # recorded, never explored, left with BACK: another app, or the screen turned sideways
+AWAY = ("external", "rotated")  # recorded, never explored, left by leave(): another app, or the screen turned sideways
 
 
 @dataclass
@@ -162,6 +162,7 @@ class Seen:
     icon_labels: list = field(default_factory=list)
     vision: list = field(default_factory=list)
     blocked_reason: str | None = None
+    replaced: list = field(default_factory=list)  # ReplacedCapture: earlier captures a relaunch replaced
 
 
 @dataclass
@@ -271,6 +272,10 @@ class Explorer:
         self.core_completed = 0  # passes that did the core action and saw its result (a reply, a load, a limit)
         self.paywall: str | None = None
         self.relaunch_reasons: list[str] = []
+        self.returns: list[str] = []  # launches that found the app as it was left: no relaunch, so not counted as one
+        self.left: Seen | None = None  # the app's screen the last move away from the app started from
+        self.left_back = False  # that move was BACK, which can end the app's task (a launch then starts it afresh)
+        self.exits: set[str] = set()  # states BACK left the app from: BACK is never taken from them again
         self.last_summary, self.last_seen = "", False  # the last watch's timing line; whether its result showed
         self.stop_kind = self.stop_evidence = ""
         self.tour_actions = 0
@@ -351,6 +356,8 @@ class Explorer:
         kind, box = self.kind_of(obs, before)
         home = self.home if kind == "screen" and self.home and self.homelike(self.home, obs) else None
         sid = home.sid if home else f"s{len(self.states) + 1:02d}"
+        if home:
+            self.keep_capture(home)
         shutil.copyfile(self.scratch / "now.png", self.out / "states" / f"{sid}.png")
         (self.out / "states" / f"{sid}.elements.json").write_text(json.dumps(obs.reply, indent=1, ensure_ascii=False))
         # an overlay in the parent's window leaves the parent's controls listed behind it, maybe moved: only the new
@@ -384,6 +391,16 @@ class Explorer:
             self.log_denied(seen)
         return seen
 
+    def keep_capture(self, s: Seen) -> None:
+        """The capture a relaunch is about to replace stays, numbered, for the moves logged on it so far: the model
+        resolves their taps against it."""
+        n = len(s.replaced) + 1
+        png, tree = f"states/{s.sid}.r{n}.png", f"states/{s.sid}.r{n}.elements.json"
+        shutil.copyfile(self.out / "states" / f"{s.sid}.png", self.out / png)
+        shutil.copyfile(self.out / "states" / f"{s.sid}.elements.json", self.out / tree)
+        s.replaced.append(ReplacedCapture(until_step=self.step, screenshot=png, elements_reply=tree,
+                                          icon_labels=list(s.icon_labels), vision_elements=list(s.vision)))
+
     def homelike(self, home: Seen, obs: Obs) -> bool:
         """What a relaunch's landing must show to be home: nothing the first launch's checks would block, no wall (an
         account or money) that home didn't already show in the same place, like a guest home's own "Log in", and the
@@ -409,11 +426,16 @@ class Explorer:
         self.log_denied(home, [c for c in cands if c.key not in known])
         return home
 
-    def kind_of(self, obs: Obs, before: Obs | None) -> tuple[str, Rect | None]:
+    def away(self, obs: Obs) -> str | None:
+        """Another app in front, or the screen turned sideways: no screen of the app to judge or act on."""
         if obs.fg != self.package:
-            return "external", None
-        if obs.image.width > obs.image.height:
-            return "rotated", None
+            return "external"
+        return "rotated" if obs.image.width > obs.image.height else None
+
+    def kind_of(self, obs: Obs, before: Obs | None) -> tuple[str, Rect | None]:
+        away = self.away(obs)
+        if away:
+            return away, None
         box = ob.dialog_box(obs.cands, self.device) or (
             ob.overlay_box(before.cands, obs.cands, self.device, frozenset(self.tab_keys()),
                            lambda box: ob.scrim(before.image, obs.image, box, self.device)) if before else None)
@@ -474,6 +496,9 @@ class Explorer:
         s, before = self.current, self.obs
         if self.touring and purpose in ("tour", "nav") and self.actions >= self.limits["actions"]:
             raise Stop(f"action cap ({self.limits['actions']})")
+        if move.action == "back" and s.sid in self.exits:
+            self.note("exit", f"BACK from {s.sid} left the app before: not taken again ({move.why})", outcome="blocked")
+            return s
         if move.cand and move.action == "tap":
             reason = ob.denied(move.cand, upsell=s.upsell, core=purpose == "core", toggle_ok=purpose == "filter")
             if reason:
@@ -528,6 +553,10 @@ class Explorer:
             self.segments[-1].append((move, s.sid, to.sid))
         if to is not s and outcome == "ok" and move.action != "type":
             self.edges.setdefault((s.sid, to.sid), move)
+        if to.kind in AWAY and s.kind not in AWAY:
+            self.left, self.left_back = s, move.action == "back"
+            if self.left_back and to.fg != self.package:
+                self.exits.add(s.sid)
         if move.cand and move.cand.key in self.tab_keys():
             self.tab_to.setdefault(move.cand.key, to.sid)
         self.current = to
@@ -676,7 +705,10 @@ class Explorer:
         """Terminate, launch, settle, record and dismiss launch dialogs, then re-apply the content filter. After the
         first launch, where it lands is home: the launch screen, or the filtered root once the filter is re-applied.
         A screen the tour recorded (the fingerprint matches) is a deeper screen the app restored, and back_to_root
-        goes back from there; any other screen is home with its list reloaded, re-recorded (refresh)."""
+        goes back from there; any other screen is home with its list reloaded, re-recorded (refresh). An away screen
+        is left first (leave), and a relaunch leave() needs replaces the rest of this one. The filter is re-applied
+        from the launch screen only: a relaunch that stops short of it walks a recorded route there, or relaunches
+        once more, counted."""
         if not first:
             self.count_relaunch(why)
         self.phone.terminate()
@@ -699,6 +731,15 @@ class Explorer:
                 self.tabs = [t for t in ob.tab_bar(home.cands, self.device) if not ob.denied(t)]
             else:
                 self.back_to_root()
+                if self.current.kind in AWAY:
+                    count = self.relaunches
+                    self.leave()
+                    if self.relaunches > count:
+                        return
+                if self.filter_taps and not self.walk_home():
+                    self.relaunch(why=f"the content filter is re-applied on the launch screen, and no recorded way "
+                                      f"led there from {self.current.sid}")
+                    return
                 self.home = self.root
             self.apply_filter(first)
         finally:
@@ -793,12 +834,21 @@ class Explorer:
 
     def back_to_root(self) -> None:
         """A relaunch that restored a deeper screen goes back up to 4 times to the launch screen. A screen that
-        shows the bottom tabs is a top screen already, and BACK there would leave the app."""
+        shows the bottom tabs is a top screen already, and BACK there would leave the app; so would BACK from a
+        screen it already left the app from."""
         for _ in range(4):
             here = self.current
-            if here is self.launch_root or here.kind in AWAY or self.shows_tabs(here):
+            if here is self.launch_root or here.kind in AWAY or self.shows_tabs(here) or here.sid in self.exits:
                 return
             self.act(Move("back", why="relaunch landed off the launch screen"), purpose="setup")
+
+    def walk_home(self) -> bool:
+        """A recorded route to the launch screen from where back_to_root stopped (BACK there would leave the app)."""
+        for move, expected in self.route(self.current, self.launch_root) or []:
+            self.act(move, purpose="setup")
+            if self.current is not expected:
+                break
+        return self.current is self.launch_root
 
     # ---------- the content filter ----------
 
@@ -1008,12 +1058,17 @@ class Explorer:
     def goto(self, target: Seen) -> bool:
         """Walks recorded moves to the target. A hop that lands elsewhere, or can't tap a control the screen doesn't
         show, is judged by what the screen shows (invariant 1): one action away takes that action and looks once
-        more; anywhere else re-plans a route from where it is, without the hops that already failed. Only a place with
-        no route on relaunches, once."""
+        more; another app or a sideways screen is left first (leave); anywhere else re-plans a route from where it
+        is, without the hops that already failed. Only a place with no route on relaunches, once."""
         relaunched, failed = False, set()
         for _ in range(GOTO_ROUNDS):
             if self.current is target:
                 return True
+            if self.current.kind in AWAY:
+                count = self.relaunches
+                self.leave()
+                relaunched |= self.relaunches > count
+                continue
             hops = self.route(self.current, target, failed)
             if hops is None:
                 if relaunched:
@@ -1044,14 +1099,17 @@ class Explorer:
         return any(ob.find(s.cands, t) for t in self.tabs)
 
     def route(self, src: Seen, dst: Seen, failed: set = frozenset()) -> list[tuple[Move, Seen]] | None:
+        """Recorded moves from src to dst, never into or out of an away screen (BACK there walks another app) and
+        never a BACK from a screen BACK already left the app from."""
         came = {src.sid: None}
-        queue = deque([src])
+        queue = deque([src] if src.kind not in AWAY else [])
         while queue:
             x = queue.popleft()
             if x is dst:
                 break
             for move, y in self.links(x):
-                if y.sid not in came and y.kind not in (*AWAY, "blocked") and hop_key(x, move) not in failed:
+                if y.sid not in came and y.kind not in (*AWAY, "blocked") and hop_key(x, move) not in failed \
+                        and not (move.action == "back" and x.sid in self.exits):
                     came[y.sid] = (x, move)
                     queue.append(y)
         if dst.sid not in came:
@@ -1096,8 +1154,12 @@ class Explorer:
     def judge(self, target: Seen, step: str = "arrival") -> Landing:
         """What the screen shows, judged against the recorded target by two signals of different kinds: the model
         (both screenshots and the goal in words) and the element lists' overlap. Arrival needs both. When they
-        disagree it is not arrival; the model's one action or a re-plan follows, and the trace says so."""
+        disagree it is not arrival; the model's one action or a re-plan follows, and the trace says so. An away screen
+        is never the target and gets no judgment, so no action of the model's runs in another app: leave() comes
+        first."""
         obs = self.obs
+        if self.away(obs):
+            return Landing(False, None, "away", 0.0)
         structure = ob.structure(target.elements, obs.elements, self.device, target.dynamic)
         row = self.filter_row(obs.cands)
         cands = [c for c in obs.cands if c.key not in row]
@@ -1150,15 +1212,44 @@ class Explorer:
         return None
 
     def leave(self) -> None:
-        """BACK out of another app or a screen turned sideways; a relaunch if BACK doesn't come back."""
+        """Back to the app from an away screen. Another app in front gets a launch, never BACK, which would walk that
+        app's own history: a live task comes back as it was left (measured on the emulator), which is a return, not a
+        relaunch. The app anywhere but where it was left is a relaunch, counted, and so is the launch screen after a
+        BACK out of it: that BACK can end the task, and a fresh start lands there too. A launch can't displace a window
+        in the app's own task (a system dialog over it), so the same foreign screen still in front gets BACK, as a
+        screen turned sideways does; any other foreign screen is a relaunch. A relaunch too if BACK doesn't come
+        back."""
         if self.obs is None:
             self.resync()
             if self.current.kind not in AWAY:
                 return
-        away = self.current.kind
-        self.act(Move("back", why=f"return from the {away} screen"), purpose="nav")
+        away = self.current
+        if self.obs.fg != self.package:
+            self.phone.launch()
+            obs = self.observe()
+            if obs.fg == self.package:
+                restarted = self.left_back and self.left is self.launch_root
+                if self.left and not restarted and ob.same_state(obs.fp, self.left.fp):
+                    self.resume(away)
+                else:
+                    self.relaunch(why=f"a launch from {away.fg} did not find the app where it was left")
+                return
+            if not ob.same_state(obs.fp, away.fp):
+                self.relaunch(why=f"a launch from {away.fg} left {obs.fg} in front")
+                return
+        self.act(Move("back", why=f"return from the {away.kind} screen"), purpose="nav")
         if self.current.kind in AWAY:
-            self.relaunch(why=f"BACK did not return from the {away} screen ({self.obs.fg})")
+            self.relaunch(why=f"BACK did not return from the {away.kind} screen ({self.obs.fg})")
+
+    def resume(self, away: Seen) -> None:
+        """The app is back where it was left: the path goes on from there, without the moves made since it left."""
+        self.returns.append(f"from {away.fg} back to {self.left.sid}")
+        self.log(away, self.left, Move("launch", why="bring the app back"), None, "unknown", "", "ok")
+        self.revisit(self.left, self.obs)
+        self.current = self.left
+        segment = self.segments[-1] if self.segments else []
+        while segment and segment[-1][2] != self.left.sid:
+            segment.pop()
 
     def read_upsell(self) -> None:
         """Scrolls an upsell to its end so every benefit and price is captured verbatim; never taps inside it."""
@@ -1892,7 +1983,8 @@ class Explorer:
                 state_id=s.sid, kind=s.kind, parent_id=s.parent, fingerprint=str(s.fp), foreground_package=s.fg,
                 screenshot=f"states/{s.sid}.png", elements_reply=f"states/{s.sid}.elements.json", settled=s.settled,
                 settle_seconds=s.settle_s, dynamic_regions=s.dynamic, captured_at=s.captured_at, box=s.box,
-                icon_labels=s.icon_labels, vision_elements=s.vision, blocked_reason=s.blocked_reason)
+                icon_labels=s.icon_labels, vision_elements=s.vision, blocked_reason=s.blocked_reason,
+                replaced=s.replaced)
             (self.out / "states" / f"{s.sid}.json").write_text(state_file.model_dump_json(indent=1))
         answered, still_open = self.checklist()
         explore = ExploreFile(
@@ -1938,6 +2030,8 @@ def exhibit(ex: Explorer, app_version: str | None) -> str:
              f"- Bottom tabs: {len(ex.tabs)} found, {sum(bool(ex.tab_to.get(t.key)) for t in ex.tabs)} visited",
              f"- Relaunches: {ex.relaunches} (tour cap {MAX_RELAUNCHES}, then {CORE_RELAUNCHES} for the passes after)",
              *[f"  - {n}: {why}" for n, why in enumerate(ex.relaunch_reasons, start=1)],
+             f"- Returns to the app as it was left, by a launch (not relaunches): {len(ex.returns)}",
+             *[f"  - {n}: {where}" for n, where in enumerate(ex.returns, start=1)],
              f"- Paywall or plans screen captured: {paywall_line(ex)}",
              f"- Content filter: {filter_label(ex.filter_taps, ex.filter_on) or 'none found'}"]
     lines += [f"  - check {n}: {'verified' if ok else 'NOT verified'} by screenshot (`{path}`)"
