@@ -20,7 +20,7 @@ adult_keywords = ["nsfw", "18+", "explicit", "adult", "erotic", "lewd", "sexual"
 [caps_usd]
 explore = 3.0
 model = 4.0
-mock = 25.0   # ~$2.72 worst case per batch (input + 128K output on Opus): 8 batches + one retry
+mock = 25.0   # each batch's call holds its worst case, ~$2.72 (input + 128K output on Opus), only while in flight
 qa = 12.0
 propose = 6.0
 judge = 8.0

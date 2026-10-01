@@ -59,6 +59,9 @@ DENY = re.compile(r"\b(?:report|(?:un)?block|clear|e[- ]?mails?|security|persona
                   r"allow|permissions?|install|open in|submit|proceed|tip|rate|give \d stars?|save changes|publish|"
                   r"post)\b", re.IGNORECASE)
 CONTROL_WORDS = 4
+# the always-denied words that undo something; the rest ask for an account or money
+UNDOING = re.compile(r"delete|remove|cancel|restore|confirm|unsubscribed?", re.IGNORECASE)
+ACCOUNT = re.compile(r"log|sign|account|continue with|password", re.IGNORECASE)
 # a content filter's own phrase: on the filter's row its verb is no deny hit, while a "Block user" or "Report" there is
 FILTER_PHRASE = re.compile(r"\b(?:hide|block|allow)\s+(?:all\s+)?(?:nsfw|sfw|explicit|mature|adult|sensitive)\b",
                            re.IGNORECASE)
@@ -365,6 +368,25 @@ def tab_bar(cands: list[Candidate], device: Device) -> list[Candidate]:
     return tabs if len(tabs) >= 2 and spread >= 0.4 * device.w_px else []
 
 
+def covered(c: Candidate, elements: list[dict], device: Device) -> bool:
+    """A tap at c's point lands elsewhere (invariant 3): on a clickable element there that isn't around all of c (the
+    deepest clickable view takes a tap, even one inside c), or on an element listed after c's (drawn over it) that is
+    neither part of c nor around all of it and shows words, its own or ones it holds: a card, even one whose body is
+    no control, or the tab bar. Words count only after c: the list is in drawing order, and content listed before a
+    floating button lies under it. mobile-mcp reports no clickable, so on a device a wordless overlay, or one an
+    elevation draws over rows listed after it, is unseen; one app lists a wordless empty box over its sheet's main
+    button, which still took the tap."""
+    at = next((n for n, e in enumerate(elements) if e.get("ref") == c.ref), None)
+    if at is None:
+        return False
+    x, y, after = *c.point, elements[at + 1:]
+    over = [e for e in elements if in_content(e, device) and not inside(c.rect, rect(e))
+            and inside(Rect(x=x, y=y, w=0, h=0), rect(e))]
+    return any(e.get("clickable") for e in over) or any(
+        e in after and not inside(rect(e), c.rect)
+        and (words(e) or any(words(o) and inside(rect(o), rect(e)) for o in after)) for e in over)
+
+
 def find(cands: list[Candidate], want: Candidate) -> Candidate | None:
     """Re-finds a control on a fresh list: by its words when it has some (bars recenter, so never by a saved
     coordinate), else by class and size near the same spot."""
@@ -407,6 +429,20 @@ def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bo
     if c.kind == "EditText" and not core:
         return "text input"
     return None
+
+
+def walled(cands: list[Candidate]) -> str:
+    """What a control's own words ask for, read the way denied() reads them (anywhere in a control-shaped label, at
+    the start of a clause in a longer one, so a chat's opening message stays content): "account" (sign in, log in,
+    create account, password) or "money" (subscribe, buy, pay, check out); "" for neither. Words that undo something
+    (delete, cancel, unsubscribe) are neither."""
+    for c in cands:
+        shaped = len(c.label.split()) <= CONTROL_WORDS or "Button" in c.kind
+        for m in (DENY_ALWAYS if shaped else DENY_COMMAND).finditer(c.label):
+            word = m.group(m.lastindex or 0)
+            if not UNDOING.fullmatch(word):
+                return "account" if ACCOUNT.search(word) else "money"
+    return ""
 
 
 def anr(elements: list[dict]) -> bool:
