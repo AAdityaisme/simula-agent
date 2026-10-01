@@ -349,7 +349,7 @@ class Explorer:
                     self.revisit(known, obs)
                 return known
         kind, box = self.kind_of(obs, before)
-        home = self.home if kind == "screen" else None
+        home = self.home if kind == "screen" and self.homelike(obs) else None
         sid = home.sid if home else f"s{len(self.states) + 1:02d}"
         shutil.copyfile(self.scratch / "now.png", self.out / "states" / f"{sid}.png")
         (self.out / "states" / f"{sid}.elements.json").write_text(json.dumps(obs.reply, indent=1, ensure_ascii=False))
@@ -384,6 +384,14 @@ class Explorer:
             self.log_denied(seen)
         return seen
 
+    def homelike(self, obs: Obs) -> bool:
+        """What a relaunch's landing must show to be home: nothing the first launch's checks would block, no wall (an
+        account or money), and the tab bar the first launch recorded, if it recorded one. Any other landing, such as a
+        restored deeper screen, is recorded as its own state and back_to_root goes back from it."""
+        if self.blocked(obs) or ob.walled(obs.cands):
+            return False
+        return all(ob.find(obs.cands, t) for t in self.tabs)
+
     def refresh(self, home: Seen, obs: Obs, cands: list[ob.Candidate]) -> Seen:
         """A relaunch lands on its home screen by definition: one no recorded state matches is home with its list
         reloaded, re-recorded from this capture (the saved capture, its controls and their crops). A reload is no
@@ -392,7 +400,7 @@ class Explorer:
         home.fp, home.fg, home.cands, home.elements = obs.fp, obs.fg, cands, obs.elements
         home.settled, home.settle_s, home.captured_at = obs.settled, obs.settle_s, now()
         home.upsell, home.priced = ob.is_upsell(obs.elements, self.device), ob.priced(obs.elements, self.device)
-        home.visits += 1
+        home.visits, home.dynamic = home.visits + 1, []
         self.note("state", f"{home.sid} re-recorded: the relaunch landed on it with other content")
         self.name_icons(home)
         self.log_denied(home, [c for c in cands if c.key not in known])
@@ -1347,11 +1355,12 @@ class Explorer:
         return None
 
     def rows(self, feed: CoreAction) -> list[ob.Candidate]:
-        """The list's rows its state still holds, or, once a relaunch re-recorded home without them, the rows it holds
-        now: recorded candidates only, crop-checked when tapped (invariant 3)."""
-        keys = {c.key for c in feed.state.cands}
-        return [c for c in feed.controls if c.key in keys] or ob.feed_items(feed.state.cands, self.device,
-                                                                               self.tab_keys()) or feed.controls
+        """The list's rows as its state holds them now: the core action's rows it still holds, or, once a relaunch
+        re-recorded home without them, the rows it holds instead. Only the state's own candidates, so every tap is
+        crop-checked against its capture (invariant 3); none left ends the walk or the feed pass."""
+        held = {c.key: c for c in feed.state.cands}
+        return [held[c.key] for c in feed.controls if c.key in held] or ob.feed_items(feed.state.cands, self.device,
+                                                                                     self.tab_keys())
 
     def walk_into(self, feed: CoreAction, n: int) -> CoreAction | None:
         """Invariant 4: on the n-th item's page, a conversation (text box + send) or a play/generate button ends the
@@ -1362,6 +1371,8 @@ class Explorer:
             return None
         items = self.rows(feed)
         if n >= len(items):
+            if not items:
+                self.note("walk", f"no recorded rows left on {feed.state.sid}: the walk ends")
             return None
         item = items[n]
         self.act(Move("tap", item, why="core loop: look inside an item"), purpose="nav")
@@ -1454,6 +1465,10 @@ class Explorer:
             try:
                 if n > 1 and not self.at_core(n):
                     self.core_results.append(f"pass {n}: could not get back to {self.core.state.sid}")
+                    return
+                if self.core.kind == "feed" and not self.rows(self.core):
+                    self.note("core", f"no recorded rows left on {self.core.state.sid}: the feed pass ends")
+                    self.core_results.append(f"pass {n}: no recorded rows left on {self.core.state.sid}")
                     return
                 result, seen, hit = self.core_once(n)
             except DEVICE_ERRORS as e:
