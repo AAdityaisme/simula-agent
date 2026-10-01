@@ -161,6 +161,8 @@ NOT_BROWSER: dict[tuple[str, str], str] = {
     ("simula/stages/model.py", "sf"): "StateFile.screenshot, the saved file name of an explore capture",
     ("simula/stages/model.py", "capture"): "ReplacedCapture.screenshot, the saved file name of a replaced capture",
     ("simula/stages/explore.py", "self.phone"): "the mobile-mcp device client shooting the phone, not Playwright",
+    ("simula/qa_live.py", "self.phone"): "the mobile-mcp device client shooting the phone, not Playwright",
+    ("simula/qa_live.py", "sf"): "StateFile.screenshot, the saved file name of an explore capture",
 }
 
 
