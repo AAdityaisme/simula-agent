@@ -86,13 +86,21 @@ The rewarded interaction is always a short sponsored game, because that is Simul
 
 ## Replay without keys or a device
 
-Every committed run replays from a clean clone, with no API keys, no emulator and no model calls. You still need Chromium, because mock, qa and flows render pages. Each run replays at the tag it's pinned to in [`runs/PINS.toml`](runs/PINS.toml), so check that tag out before the commands.
+Every committed run replays with no API keys, no emulator and no model calls. You still need Chromium, because mock, qa and flows render pages. One command checks every run and leaves your checkout as it was:
 
 ```sh
 git clone https://github.com/AAdityaisme/simula-agent && cd simula-agent   # on a Mac, clone outside ~/Desktop (iCloud)
-git checkout submitted-2026-09-30
 uv sync
 uv run playwright install chromium
+uv run simula replay-check                     # or one app: uv run simula replay-check janitorai
+```
+
+It replays each run in a throwaway clone of the commit it's pinned to in [`runs/PINS.toml`](runs/PINS.toml) (HEAD when it has no pin), with the keys removed and outside requests refused. It prints one line per run and exits 1 if any run doesn't replay as committed. It checks that plain `--replay` skips every finished stage, that `--from model --replay` writes the same JSON outputs, and that HEAD still holds each run and every cache entry its pin had. `tests/test_replay.py` runs the same checks. Renders (PNG, PDF) differ byte by byte across machines, so it doesn't compare them.
+
+To re-execute a run in place, check out its pin and run the replay yourself. This rewrites timestamps, the trace and the renders in the run folder, so `git status` shows changes afterwards.
+
+```sh
+git checkout submitted-2026-09-30
 uv run simula run janitorai --run 20260929-203310-1f19585 --budget deep --from model --replay
 uv run simula run luzia --run 20260929-204554-1f19585 --from model --replay
 uv run simula run aol --run 20260929-205304-1f19585 --from model --replay
@@ -105,7 +113,6 @@ Replay reproduces on macOS, where these runs were recorded, not yet on Linux (se
 - `--from model --replay` re-runs every stage from model to flows, taking every model reply from `cache/`. Explore drives the device and can't replay, so its capture comes from the run folder. A call that isn't in the cache stops the run with exit code 4 instead of calling an API.
 - Plain `--replay`, with no `--from`, skips every stage whose inputs, prompts, settings, code and outputs still hash the same as when it finished. (A hash fingerprints the contents.) On a finished run at this commit, it reruns nothing.
 - A replay stops at the first stage the run never finished, says so, and exits 0. A run that stopped at explore (an app that refused the emulator) replays explore alone.
-- `tests/test_replay.py` runs both on every committed run, in a fresh clone of the commit it's pinned to in `runs/PINS.toml` (HEAD when it has no pin), with the keys removed and outside requests refused. It checks that plain `--replay` skips every finished stage and that `--from model --replay` writes the same JSON outputs. Renders (PNG, PDF) differ byte by byte across machines, so it doesn't compare them.
 
 ## Run folders
 
@@ -209,7 +216,8 @@ Fixture runs are test data only:
 
 Exit codes:
 - **0:** done, partial stages included; `needs-human.md` says what's missing.
-- **2:** a fixture was refused, or `simula explore` refused to replace the explore that later stages of the latest run were built on (add `--new`, or `--run ID`).
+- **1:** `simula replay-check` found a run that doesn't replay as committed.
+- **2:** a fixture was refused, `simula replay-check` matched no committed run, or `simula explore` refused to replace the explore that later stages of the latest run were built on (add `--new`, or `--run ID`).
 - **3:** a command that isn't built (`compare-rankers`).
 - **4:** a $ cap stopped a stage (`needs-human.md` has the command to continue), or `--replay` missed the cache.
 - **5:** the model provider is refusing calls (a usage limit or an outage).
@@ -302,7 +310,7 @@ The ones that matter most:
 - The judge failed its adoption bar on a small, reused set (4 known-good ideas, 22 planted defects), with no human labels. Its verdicts are two models' unvalidated opinion.
 - The committed runs' decks mix two audiences: the idea slides are for the app's product team, and the cover's run notices ("the mock left screens undrawn: s39, s40…"), the score table and Needs your call are Simula's review. Flows now writes them apart: `flows/slides.pdf` for the product team (the cover and the idea slides) and `flows/review.pdf` for Simula (the run notices, the score table and Needs your call). The committed runs predate that. The idea slides still carry review chips ("Cost check: CONDITIONAL", "Reach scenario").
 - The cost check compares what one ad view earns with what the reward costs to serve. It counts a lost sale only when the reward is something the app was seen selling at a price. It doesn't ask what the app could charge for the same benefit. Luzia's accepted "feature your app for 24 hours" ideas (c06, c08-rev) give away visibility the app could sell as a paid boost or a creator subscription. The check marks them PASS because they cost nothing to serve. The fix is a check that asks whether the reward is something the app sells or could sell, and prices it against that. Aadi overrules the judges on c06 and c08-rev for this reason. *(2026-09-30, on `next`: the cost mark now flags a reward that gives part of a paid benefit, priority or visibility over other users, or currency, with no price counted: "may give away something the app could sell". It flags c06 and c08-rev. It is a flag beside the mark, not a price, and never changes a verdict or the order.)*
-- Replay reproduces only on macOS, where the runs were recorded. The product-model step re-encodes screenshots to PNG, and the cache key includes those bytes. Linux writes different PNG bytes for the same pixels, so every lookup there misses. The fix is to key images by their pixels instead of their file bytes. Until then, `tests/test_replay.py` skips the grader's replay on Linux.
+- The committed runs replay only on macOS, where they were recorded. Their code keyed each image in the cache by its PNG bytes, and Linux writes different PNG bytes for the same pixels, so every lookup there misses. `simula replay-check` and `tests/test_replay.py` skip their grader's replay on Linux. From commit `22dbfac` on, model calls key images by their pixels, so a run recorded after it can hit its cache on Linux. Renders may still differ across machines, and QA sends Chromium renders to the model, so whether such a run replays past QA on Linux isn't shown yet.
 - QA's keep score only picks the round QA keeps; it is not a fidelity percentage. Fonts and layered drawers are where the mocks visibly miss.
 
 <details>
