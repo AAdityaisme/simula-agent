@@ -27,8 +27,9 @@ jobs:
         with:
           python-version: "3.12"
       - run: uv sync --frozen
-      - run: uv run playwright install --with-deps chromium
-        timeout-minutes: 5  # takes under a minute; its apt-get update has hung on an unanswering mirror
+      # Without --with-deps: the runner image ships Chrome's libraries, and apt's mirror has crawled past 12 minutes
+      - run: uv run playwright install chromium
+        timeout-minutes: 5
       - run: uv run pytest -m "not live" -q -n auto --durations=50
 
   # The gate scripts read the check named pytest; it passes only when every shard did.
