@@ -196,7 +196,7 @@ It walks each core flow on the live app and on the run's approved mock side by s
 - **matched:** both sides took every hop.
 - **mock_failed:** the app took the hop and the mock didn't.
 - **real_diverged:** the app went somewhere else (another recorded screen, or another app).
-- **unsupported:** typing, a flow outside the mock, or a control it can't verify (missing, ambiguous, covered, under an overlay the recording didn't have, or unlike its recorded crop). It never taps one of these.
+- **unsupported:** typing, a flow outside the mock or through a screen explore recorded no fingerprint for, or a control it can't verify (missing, ambiguous, covered, under an overlay the recording didn't have, or unlike its recorded crop). It never taps one of these.
 - **blocked:** the deny-list, a route to the flow's start that failed, a device failure, or a cap.
 - **unverified:** the app landed on a screen no recorded state matches, or somewhere else right after a swipe whose direction the walker guessed, so neither side is blamed.
 

@@ -218,7 +218,8 @@ class Audit:
         self.device, self.package, self.scratch = model.device, ctx.app["package"], out / ".scratch"
         self.states = {s.id: s for s in model.states}
         self.edges = {e.id: e for e in model.edges}
-        self.fps = {s.id: fingerprint(s.fingerprint) for s in model.states}
+        # a state converted from #33's format has none (""): the walker can't tell that screen, so never goes there
+        self.fps = {s.id: fingerprint(s.fingerprint) for s in model.states if s.fingerprint}
         self.root = next(s.id for s in model.states if s.kind == "screen")  # the model stage's root
         self.in_scope = {e.id for e in mock.scope_edges(model, qa.mock_screens(ctx, model))}
         self.undrawn = set(qa.undrawn_screens(ctx))
@@ -268,6 +269,8 @@ class Audit:
                 return f"{i} leaves the mock's scope"
             if {edge.from_state, edge.to_state} & self.undrawn:
                 return f"{i} passes a screen the mock didn't draw"
+            if {edge.from_state, edge.to_state} - self.fps.keys():
+                return f"{i} passes a screen explore recorded no fingerprint for"
             if not self.takeable(edge):
                 return f"{i}: no recorded control with a live identity to tap (only the vision pass saw it)"
         return None
@@ -402,13 +405,14 @@ class Audit:
 
     def route(self, src: str, dst: str) -> list[Edge] | None:
         """The shortest path of recorded edges the walker can take, at most ROUTE_HOPS long, never through a state
-        outside the app nor a tap whose recorded control is on the deny-list (the live one is checked again)."""
+        outside the app or one with no fingerprint, nor a tap whose recorded control is on the deny-list (the live one
+        is checked again)."""
         came: dict[str, Edge | None] = {src: None}
         frontier = {src}
         for _ in range(ROUTE_HOPS):
             reached = set()
             for e in self.model.edges:
-                if (e.from_state in frontier and e.to_state not in came and self.takeable(e)
+                if (e.from_state in frontier and e.to_state not in came and e.to_state in self.fps and self.takeable(e)
                         and self.states[e.to_state].kind not in AWAY and (e.action != "tap" or self.allowed(e))):
                     came[e.to_state] = e
                     reached.add(e.to_state)

@@ -242,6 +242,35 @@ def test_a_flow_that_starts_where_the_last_one_stopped_judges_that_look_against_
     assert phone.log.count(("launch",)) == 1
 
 
+def test_a_state_with_no_fingerprint_is_never_walked_to_and_the_rest_of_the_run_still_is(runs, walk):
+    """A state file converted from #33's format has an empty fingerprint: the walker can't tell that screen, so a flow
+    through it is unsupported and no route passes it, and every other flow is still walked."""
+    recorded = screens()
+    lines = [line(1, "s01", "s02", TAP, tab(recorded["s01"], 1), "tab"),
+             line(2, "s02", "s01", BACK, transition="back"),
+             line(3, "s01", "s03", TAP, tab(recorded["s01"], 3), "tab"),
+             line(4, "s03", "s04", TAP, tab(recorded["s03"], 4), "tab"),
+             line(5, "s04", "s01", TAP, tab(recorded["s04"], 0), "tab")]
+    run_dir = source_run(runs, recorded, lines, [[("s01", "s02", TAP), ("s02", "s01", BACK)], [("s04", "s01", TAP)],
+                                                 [("s01", "s03", TAP)]])
+    path = run_dir / "model" / "product_model.json"
+    model = ProductModel.model_validate_json(path.read_text())
+    path.write_text(model.model_copy(update={"states": [s.model_copy(update={"fingerprint": ""}) if s.id == "s03" else s
+                                                        for s in model.states]}).model_dump_json())
+    approve(run_dir)
+    through = next(e.id for e in model.edges if (e.from_state, e.to_state) == ("s01", "s03"))
+    phone = phone_for(screens(), [("s01", tab(recorded["s01"], 1), "s02"), ("s01", tab(recorded["s01"], 3), "s03"),
+                                  ("s03", tab(recorded["s03"], 4), "s04"), ("s04", tab(recorded["s04"], 0), "s01")])
+
+    report = walk(phone)
+
+    assert [(f["status"], f["reason"]) for f in report["flows"]] == [
+        ("matched", None),
+        ("blocked", "setup: no recorded route of at most 4 hops from s01 to s04"),
+        ("unsupported", f"{through} passes a screen explore recorded no fingerprint for")]
+    assert len(taps(phone)) == 1
+
+
 def test_a_mock_that_lost_the_hops_tag_is_the_mock_failing(runs, walk):
     recorded = screens()
     run_dir = tab_back_run(runs, recorded)
