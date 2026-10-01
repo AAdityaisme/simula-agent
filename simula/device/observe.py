@@ -96,6 +96,45 @@ EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
 LEAF = re.compile(r"(?:TextView|ImageView|EditText)$")
 PAGED = re.compile(r"ViewPager|RecyclerView|ListView|ScrollView")
 REDACTED = "[redacted]"
+# --allow-account-create's words. A way on without an account is a whole label, so "Watch later" is content.
+GUEST = re.compile(r"^\W*(?:[\w'’]+\s+){0,3}?(?:as (?:a )?(?:guest|visitor)|guest(?: mode)?|without (?:an? )?account|"
+                   r"without (?:signing|logging) (?:up|in)|without (?:registering|registration|log ?in|sign ?in)|"
+                   r"(?:explore|browse|look around) first|browse anonymously|just browsing)\W*$|"
+                   r"^\W*(?:skip(?: for now)?|not now|(?:maybe |remind me )?later|no,? thanks?)\W*$", re.IGNORECASE)
+# a control that agrees, accepts, consents or attests ("I'm 18+", "I understand", "Yes, ...") is never tapped on the
+# way in: a label that speaks for the user in the first person is one, whatever it attests (ATTESTS); text that is no
+# button or toggle only when it agrees or accepts, since "At least 8 characters" is a password hint
+AGREES = re.compile(r"\bagree|\baccept|\bconsent|\backnowledg|\bunderstand\b|\badult\b", re.IGNORECASE)
+ATTESTS = re.compile(r"\b\d+\s*\+|\b(?:over|at least|under) \d+|^\W*(?:yes|i|i['’]?m|i am)\b", re.IGNORECASE)
+LOG_IN = re.compile(r"\b(?:log|sign) ?in\b", re.IGNORECASE)
+# a sign-in with another account (Google, Apple, ...) or a phone is a real person's, so it is never a way in
+OTHER_ACCOUNT = re.compile(r"\b(?:continue|sign ?(?:in|up)|log ?in|connect|register)\s+(?:with|using|via)\b"
+                           r"(?!.*\be-?mail\b)", re.IGNORECASE)
+PHONE = re.compile(r"\bphone\b|\bmobile\b|\bsms\b", re.IGNORECASE)
+SIGN_UP = re.compile(r"sign ?up|create (?:an |my |your )?account|register|continue with|e-?mails?|passwords?|submit|"
+                     r"proceed", re.IGNORECASE)
+EMAIL_WAY = re.compile(r"\b(?:sign ?up|continue|register|use|join|start|create)\b.*\be-?mail\b", re.IGNORECASE)
+SIGN_UP_WAY = re.compile(r"\bsign ?up\b|\bcreate (?:an |my |your )?account\b|\bregister\b", re.IGNORECASE)
+# the only labels a way to an email sign-up may have, whole: anything more ("Sign up with email, I'm 18") isn't taken
+TO_EMAIL = re.compile(r"^\W*(?:(?:sign ?up|continue|register|join|get started|start|create (?:an |my |your )?account)"
+                      r"\s+(?:with|using|by|via)\s+(?:an? |your )?|use (?:an? |your )?)e-?mail(?: address)?\W*$",
+                      re.IGNORECASE)
+TO_SIGN_UP = re.compile(r"^\W*(?:sign ?up|create (?:an |my |your )?account|register)\W*$", re.IGNORECASE)
+SUBMIT = re.compile(r"\b(?:sign ?up|create|register|continue|next|submit|done|join|get started|let'?s go)\b",
+                    re.IGNORECASE)
+# the only labels a sign-up form's own button may have: anything more ("Continue, I'm 18", "Create") is not sent
+PLAIN_SUBMIT = re.compile(r"^\W*(?:sign ?up|create (?:an |my |your )?account|register|continue|next|submit|done|join|"
+                          r"get started|let'?s go)\W*$", re.IGNORECASE)
+# a name box is the person's name only when that is all its text says: "Character name", "Username" or "Name your
+# companion" is another box
+PERSON_NAME = re.compile(r"^\W*(?:enter )?(?:your )?(?:full |first |last |display )?name\W*$|"
+                         r"^\W*what should we call you\W*$", re.IGNORECASE)
+FIELDS = {"email": re.compile(r"e-?mail", re.IGNORECASE), "password": re.compile(r"pass ?word|\bpwd\b", re.IGNORECASE),
+          "phone": PHONE, "name": PERSON_NAME}
+HUMAN_CHECK = re.compile(rf"{BLOCKING.pattern}|not a robot", re.IGNORECASE)
+VERIFY = re.compile(r"\bverif|\bconfirm\w* (?:your )?e-?mail|check your (?:e-?mail|inbox)|\bwe(?:'ve| have)? sent\b|"
+                    r"\b(?:enter|type) the code\b|\bone[- ]time\b|\botp\b|magic link", re.IGNORECASE)
+CARD = re.compile(r"card number|\bcvv\b|\bcvc\b|expir(?:y|ation) date|billing address", re.IGNORECASE)
 
 
 # ---------- geometry ----------
@@ -169,11 +208,13 @@ def device_from(elements: list[dict], w_px: int, h_px: int, density: int) -> Dev
 
 # ---------- redaction ----------
 
-def redact(reply: dict, image: Image.Image, secrets: list[str]) -> tuple[dict, list[dict], int]:
-    """Replaces every listed string (any case) and every email address in any of an element's strings with [redacted]
-    and paints a solid box over those elements in the image, before anything reads or saves them. Also returns how
-    many elements were redacted."""
-    listed = [re.escape(s.strip()) for s in secrets if s.strip()]
+def redact(reply: dict, image: Image.Image, secrets: list[str], parts: list[str] = ()) -> tuple[dict, list[dict], int]:
+    """Replaces every listed string (any case), each of parts as a whole word, and every email address in any of an
+    element's strings with [redacted] and paints a solid box over those elements in the image, before anything reads
+    or saves them. Also returns how many elements were redacted."""
+    # the longest part first: "ann" must not take the front of "ann.test" and leave the rest
+    listed = [re.escape(s.strip()) for s in secrets if s.strip()] + [rf"\b{re.escape(p)}\b"
+                                                                      for p in sorted(parts, key=len, reverse=True)]
     pattern = re.compile("|".join([EMAIL.pattern, *listed]), re.IGNORECASE)
     elements = json.loads(reply["content"][0]["text"].removeprefix(ELEMENTS_PREFIX))
     draw = ImageDraw.Draw(image)
@@ -527,29 +568,71 @@ def control_shaped(label: str, kind: str) -> bool:
     return len(label.split()) <= CONTROL_WORDS or "Button" in kind
 
 
-def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bool = False) -> str | None:
+def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bool = False,
+           account: bool = False) -> str | None:
     """The deny-list word that blocks this tap, or None. On an upsell screen its call-to-action words are
     denied too. A control that shows the account's own name or email is never tapped: a tap can copy it where no
     redaction reaches, like the keyboard's clipboard chip. Sending and typing belong to the core-loop pass only. A
     switch or checkbox could undo the content filter, so only the filter's own row may flip one (toggle_ok). On that
-    row a filter phrase ("Hide NSFW", "Block explicit content") is no deny hit; every other deny word still is."""
+    row a filter phrase ("Hide NSFW", "Block explicit content") is no deny hit; every other deny word still is. On
+    the sign-up path (account) the words that sign up by email are no deny hit and a text box may be typed into,
+    unless the control names a sign-in with another account or a phone; a consent and every other deny word still
+    are."""
     text = "\n".join(dict.fromkeys(t for t in (c.label, c.tree_label) if t))
     if REDACTED in text:
         return "account text"
+    if account and consents(c):
+        return "consent"
     text = ID_WORDS.sub(" ", text)
     shaped = control_shaped(c.label, c.kind)
     rest = FILTER_PHRASE.sub(" ", text) if toggle_ok else text
     if ICON_ONLY.fullmatch(c.tree_label) and DISMISS_ID.search(ID_WORDS.sub(" ", c.ident or c.label)):
         text = rest = SIGN_IN.sub(" ", text)
+    if account and not (OTHER_ACCOUNT.search(text) or PHONE.search(text)):
+        text = rest = SIGN_UP.sub(" ", text)
     hit = (DENY_ALWAYS if shaped else DENY_COMMAND).search(text) or (DENY.search(rest) if shaped else None) \
         or (DENY_ON_UPSELL.search(text) if upsell else None) or (DENY_IN_CORE if core else DENY_IN_TOUR).search(text)
     if hit:
         return hit.group(hit.lastindex or 0).lower()  # a command's word, without the bullet before it
     if TOGGLE.search(c.kind) and not toggle_ok:
         return "toggle"
-    if c.kind == "EditText" and not core:
+    if c.kind == "EditText" and not (core or account):
         return "text input"
     return None
+
+
+def shaped(c: Candidate) -> bool:
+    """A control's label, not a sentence: a few words, or a button. A picture the icon pass named is no control: its
+    name describes it ("Sign in illustration")."""
+    return c.kind != "picture" and (len(c.label.split()) <= CONTROL_WORDS or "Button" in c.kind)
+
+
+def consents(c: Candidate, tapped: bool = True) -> bool:
+    """A control that agrees to, accepts or attests something: "I agree", "Accept & continue", "I'm 18+", a consent
+    checkbox. One that is not to be tapped and is neither a button nor a toggle only when it agrees or accepts."""
+    toggle = bool(TOGGLE.search(c.kind))
+    attests = (tapped or toggle or "Button" in c.kind) and ATTESTS.search(c.label)
+    return (shaped(c) or toggle) and bool(AGREES.search(c.label) or attests)
+
+
+def account_way(c: Candidate) -> bool:
+    """A control on the way in or past an account wall: sign in or up, email, create an account, go on as a guest."""
+    return any(rule.search(c.label) for rule in (SIGN_IN, EMAIL_WAY, SIGN_UP_WAY, GUEST))
+
+
+def field_kind(e: dict, elements: list[dict]) -> str:
+    """What a text box asks for ("email", "password", "phone", "name", or ""), from its own words and id and its
+    caption: the closest text above it, unless another text box sits between, which owns that text."""
+    r = rect(e)
+
+    def above(o: dict) -> bool:
+        t = rect(o)
+        return t.y + t.h <= r.y + 8 and t.x < r.x + r.w and r.x < t.x + t.w
+    nearest = max((o for o in elements if (words(o) or o["type"].endswith("EditText")) and above(o)),
+                  key=lambda o: rect(o).y + rect(o).h, default=None)
+    caption = words(nearest) if nearest and not nearest["type"].endswith("EditText") else ""
+    said = [words(e), ID_WORDS.sub(" ", short_id(e.get("identifier"))).strip(), caption]
+    return next((kind for kind, rule in FIELDS.items() for text in said if text and rule.search(text)), "")
 
 
 def walled(cands: list[Candidate]) -> str:
