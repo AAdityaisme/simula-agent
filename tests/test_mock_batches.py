@@ -1,6 +1,7 @@
 """Stage 3 draws its scope in parallel batches: batching, stitching, failure isolation, cache replay, the $ cap."""
 
 import json
+import random
 import threading
 import time
 
@@ -291,7 +292,7 @@ def test_once_the_cap_turns_a_batch_away_no_later_batch_is_asked_for(tmp_path, m
                                    "were left out") for e in undrawn)
     trace = read_trace(run_dir / "trace.jsonl")
     [plan] = [t for t in trace if t.step == "plan"]
-    assert plan.note == (f"1 of {len(left_out) + 1} batches admitted in priority order under the $2.00 cap with $0.00 "
+    assert plan.note == (f"1 of {len(left_out) + 1} batches kept in priority order under the $2.00 cap with $0.00 "
                          "already spent, each holding its worst case while in flight and one more free for a retry")
     assert [t.step for t in trace if t.outcome == "cap"] == ["batch2", "over_budget"]
     [over] = [t for t in trace if t.step == "over_budget"]
@@ -354,13 +355,13 @@ def test_a_batch_whose_first_answer_is_cut_off_keeps_room_for_its_retry(tmp_path
     assert first not in undrawn and second in undrawn and kept(run_dir) == 1
 
 
-class Bounded(threading.Condition):
-    """A condition whose waits give up after 5 s, so batches that deadlock fail the test instead of hanging it. A wait
-    only the timeout ends is a deadlock too, even if its condition holds by then: nothing woke it."""
+class Strict(threading.Condition):
+    """A condition whose wait fails once nothing has woken it for 5 s: production waits have no timeout, so a wait only
+    a timeout ends is a batch that would wait for ever, even if its condition holds by then (a lost wakeup)."""
 
     def wait_for(self, predicate, timeout=None):
-        started = time.monotonic()
-        assert super().wait_for(predicate, 5) and time.monotonic() - started < 5, "a batch waited 5 s unwoken: deadlock"
+        while not predicate():
+            assert self.wait(5), "a batch waited 5 s unwoken: in production it waits for ever"
         return True
 
 
@@ -369,7 +370,7 @@ def draw_on_fake_budget(tmp_path, monkeypatch, cap: float, calls: dict, ended: l
     gives each batch's calls in order as (worst case, cost, seconds, cut off at max_tokens); `ended` collects the
     calls in the order they ended."""
     monkeypatch.setattr(mock, "PARALLEL_BATCHES", parallel)
-    monkeypatch.setattr(mock.threading, "Condition", Bounded)
+    monkeypatch.setattr(mock.threading, "Condition", Strict)
 
     def generate(ctx, content, budget, step):
         for n, (worst, cost, seconds, cut_off) in enumerate(calls[step]):
@@ -412,15 +413,82 @@ def test_a_retry_that_still_doesnt_fit_leaves_out_its_batch_and_every_later_one_
     assert json.loads((tmp_path / "mock" / "plan.json").read_text())["keep"] == 0
 
 
-def test_a_batch_that_starts_waiting_wakes_a_better_ranked_one_waiting_on_it(tmp_path, monkeypatch):
-    """Greptile: batch 1's retry waits on batch 2, whose call is in flight; then batch 2's retry waits too, behind
-    batch 1. Nothing is in flight any more, so batch 1 must be woken to go first, or both wait for ever."""
+def test_two_cut_off_batches_near_the_cap_both_draw_without_hanging(tmp_path, monkeypatch):
+    """Red team rt-37 (and Greptile): batch 1's $2 retry waits on batch 2's $1 hold under a $4 cap; then batch 2 is cut
+    off too and its retry waits behind batch 1. Nothing is in flight any more, so batch 1 must be woken to go first;
+    without that both batches wait for ever."""
     ended = []
     drawn = draw_on_fake_budget(tmp_path, monkeypatch, 4.0, {
         "batch1": [(2.0, 1.5, 0.1, True), (2.0, 0.5, 0, False)],
-        "batch2": [(1.0, 0.5, 0.3, True), (1.0, 0.2, 0, False)]}, ended)
+        "batch2": [(1.0, 0.5, 0.4, True), (1.0, 0.3, 0, False)]}, ended)
     assert ended == ["batch1", "batch2", "batch1 retry", "batch2 retry"]
     assert drawn.lost == [] and drawn.plan.keep == 2
+
+
+def test_a_batch_that_drew_but_was_left_out_to_keep_the_prefix_is_reported_with_its_cost(tmp_path, monkeypatch):
+    """Red team rt-37: batch 2's retry still doesn't fit once batch 3, drawn for $0.90, has settled, so batch 3 is left
+    out to keep the kept batches a prefix. The plan line and its exhibit row say it drew, what it cost, and that a
+    rerun with a raised cap takes it from the cache free; neither calls it never admitted."""
+    ended = []
+    drawn = draw_on_fake_budget(tmp_path, monkeypatch, 4.0, {
+        "batch1": [(1.0, 0.5, 0.05, False)], "batch2": [(1.0, 0.9, 0.1, True), (2.0, 0.5, 0, False)],
+        "batch3": [(1.0, 0.9, 0.3, False)]}, ended)
+    assert ended == ["batch1", "batch2", "batch3"] and drawn.plan.keep == 1 and drawn.plan.dropped == ((3, 0.9),)
+    note = ("drew ($0.90) and was left out to keep the kept batches top-ranked; a rerun with a raised cap takes it "
+            "from the cache free")
+    assert drawn.plan.line(3) == ("1 of 3 batches kept in priority order under the $4.00 cap with $0.00 already spent, "
+                                  "each holding its worst case while in flight and one more free for a retry; batch 3 "
+                                  + note)
+    model = golden("janitorai")
+    scope = mock.pick_scope(model)
+    groups = [[s] for s in scope[:3]]
+    undrawn = {s.id: "$ cap reached: over budget" for s in scope[1:3]}
+    report = ContractReport(passed=False, screens=[s.id for s in scope], errors=[])
+    rows = mock.exhibit(ctx_for(tmp_path, "janitorai"), model, scope, groups, undrawn, "", report, drawn.plan)
+    assert f"| 2 | {scope[1].id} | not drawn: $ cap reached: over budget |" in rows
+    assert f"| 3 | {scope[2].id} | {note} |" in rows
+
+
+FUZZ_SEEDS = (251, 348, 376, 482, 657, 827, 896, 1376, *range(8))  # rt-37's seven hangs and its float edge
+
+
+@pytest.mark.parametrize("seed", FUZZ_SEEDS)
+def test_random_schedules_keep_a_prefix_never_hang_and_refuse_only_with_nothing_in_flight(tmp_path, monkeypatch,
+                                                                                          seed):
+    """Red team rt-37's fuzz: 3 to 8 batches, 2 to 4 at once, 60% of first answers cut off, any cap. The kept batches
+    are a priority prefix, no wait is lost (Strict), no later first call is held while an earlier batch waits, and the
+    cap turns a call away only with nothing held."""
+    rnd = random.Random(seed)
+    calls = {}
+    for n in range(1, rnd.randint(3, 8) + 1):
+        worst = round(rnd.uniform(0.5, 2.0), 2)
+        first = (worst, round(worst * rnd.uniform(0.2, 1.0), 2), rnd.uniform(0, 0.04), rnd.random() < 0.6)
+        calls[f"batch{n}"] = [first, (worst, round(worst * rnd.uniform(0.2, 1.0), 2), rnd.uniform(0, 0.04), False)]
+    cap, parallel = round(rnd.uniform(2.0, 9.0), 2), rnd.randint(2, 4)
+    firsts, refused = [], []
+    turn_reserve, budget_reserve = llm.Turn.reserve, llm.Budget.reserve
+
+    def first_hold(self, worst_usd, **where):  # under BatchTurn's lock
+        if not self.held:
+            firsts.append((self.rank, sorted(self.waiting)))
+        return turn_reserve(self, worst_usd, **where)
+
+    def watched(self, worst_usd, **where):
+        try:
+            return budget_reserve(self, worst_usd, **where)
+        except llm.CapReached:
+            refused.append(self.held)
+            raise
+    monkeypatch.setattr(llm.Turn, "reserve", first_hold)
+    monkeypatch.setattr(llm.Budget, "reserve", watched)
+    try:
+        drawn = draw_on_fake_budget(tmp_path, monkeypatch, cap, calls, [], parallel)
+        keep, lost = drawn.plan.keep, [int(batch[0].id[1:]) for batch, _ in drawn.lost]
+    except llm.CapReached:
+        keep, lost = 0, list(range(1, len(calls) + 1))
+    assert lost == list(range(keep + 1, len(calls) + 1))
+    assert [(rank, ahead) for rank, ahead in firsts if any(r < rank for r in ahead)] == []
+    assert all(abs(held) < 1e-9 for held in refused)
 
 
 def test_a_batch_turned_away_while_calls_are_in_flight_is_drawn_once_they_settle(tmp_path, monkeypatch):
@@ -524,7 +592,7 @@ def test_a_rerun_whose_answers_are_cached_draws_every_batch_again_for_free(tmp_p
     run_dir, n, calls = rerun(tmp_path, monkeypatch, app, new_keys=False)
     assert len(calls) == n and kept(run_dir) == n
     plan = [t for t in read_trace(run_dir / "trace.jsonl") if t.step == "plan"][-1]
-    assert plan.note.startswith(f"{n} of {n} batches admitted in priority order under the ${n + 1:.2f} cap with "
+    assert plan.note.startswith(f"{n} of {n} batches kept in priority order under the ${n + 1:.2f} cap with "
                                 f"${0.5 * n:.2f} already spent")
     assert "screen not drawn" not in (run_dir / "mock" / "index.html").read_text()
     lowered = ctx_for(run_dir, app)
