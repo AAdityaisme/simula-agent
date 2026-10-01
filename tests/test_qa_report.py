@@ -8,7 +8,7 @@ from simula.contracts import ContractError, QAMetrics, ScreenMetrics
 from simula.stages import FRESH_CALLS, mock, qa
 from tests.test_mock_isolation import ctx_for
 # records keeps QA's replay records in tmp; scripted plays the loop on scripted scores.
-from tests.test_qa_loop import OPTIONS, approved_html, records, scripted  # noqa: F401
+from tests.test_qa_loop import OPTIONS, SCRIPTED, approved_html, records, scripted  # noqa: F401
 
 # What these runs spent (nothing) plus a whole cap again: the figure --no-cache and a cap that names none get.
 QA_AGAIN, MOCK_AGAIN = (f"--usd-cap {config.stage_cap(stage):.2f}" for stage in ("qa", "mock"))
@@ -93,7 +93,7 @@ def test_a_review_a_model_call_cut_short_is_partial_yet_still_approves_its_best_
     assert report["resume"] == f"simula qa luzia --run {run_dir.name} {OPTIONS} {flag}".rstrip()
     said = f"What stopped it: review: round 1 stopped before any edit: {failure}."
     assert report["resume_note"] == (f"{said} {FRESH_CALLS}" if fresh else said)
-    assert approved_html(run_dir) == "<html><body>v0</body></html>"
+    assert approved_html(run_dir) == SCRIPTED
     exhibit = (run_dir / "exhibits" / "04-qa.md").read_text()
     assert "**qa_incomplete** (outcome partial): the review stopped early" in exhibit
 
