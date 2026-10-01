@@ -76,6 +76,10 @@ TOGGLE = re.compile(r"Switch|CheckBox|ToggleButton", re.IGNORECASE)
 DENY_ON_UPSELL = re.compile(r"continue|try|start|get|claim|unlock|join|redeem|activate|\bremove\b", re.IGNORECASE)
 DENY_IN_TOUR = re.compile(r"send|swipe|regenerate", re.IGNORECASE)
 DENY_IN_CORE = re.compile(r"\b(?:gifts?|coins?|gems?|tips?|donat\w*|credits?)\b", re.IGNORECASE)
+# what an overlay that asks something of the user says on its controls: an upgrade or plans word, a brand's "+"
+# tier ("Brand+"), or a decline
+ASKING = re.compile(r"^(?:not now|later|maybe later|no,? thanks)$|upgrade|premium|membership|subscription|remove ads|"
+                    r"\bad[- ]free\b|\bno ads\b|\bplans\b|(?<![\w+])[^\W\d_]{2,}\+(?![\w+])", re.IGNORECASE)
 DISMISS = re.compile(r"^(close\b.*|not now|later|maybe later|no,? thanks|skip|dismiss|got it|x|×|✕)$", re.IGNORECASE)
 BLOCKING = re.compile(r"emulator|rooted|captcha|verify (that )?you.?re (a )?human|age verification|"
                       r"date of birth|not supported on this device", re.IGNORECASE)
@@ -95,6 +99,7 @@ LETTER = re.compile(r"[^\W\d_]")
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
 LEAF = re.compile(r"(?:TextView|ImageView|EditText)$")
 PAGED = re.compile(r"ViewPager|RecyclerView|ListView|ScrollView")
+TEXT_OR_IMAGE = re.compile(r"(?:TextView|ImageView)$")
 REDACTED = "[redacted]"
 # --allow-account-create's words. A way on without an account is a whole label, so "Watch later" is content.
 GUEST = re.compile(r"^\W*(?:[\w'’]+\s+){0,3}?(?:as (?:a )?(?:guest|visitor)|guest(?: mode)?|without (?:an? )?account|"
@@ -375,7 +380,10 @@ def controls(elements: list[dict], device: Device) -> list[Candidate]:
     """Tappable-looking elements in the content area. The list is parent-first, so an element's own texts come
     after it: those (not a nested control's label) merge into it, and content that scrolled under an overlay,
     which comes before it, doesn't. A big element without words that holds two or more different texts is a
-    layout, not a control. Words without a letter ("8", "1 / 102") are counters, not controls."""
+    layout, not a control. Words without a letter ("8", "1 / 102") are counters, not controls. A smaller element
+    inside a bigger one is part of it, except a control in the composer's row (the row of the text box composer()
+    finds a send for, and the row under it) that the bigger one doesn't absorb: a composer the keyboard lifted is
+    drawn over the reply under it."""
     content = [e for e in elements if in_content(e, device) and area(rect(e)) < LAYOUT_SHARE * content_area(device)
                and rect(e).y + rect(e).h <= device.content_bottom_px + 16]
     found = []
@@ -394,11 +402,17 @@ def controls(elements: list[dict], device: Device) -> list[Candidate]:
         ident = short_id(e.get("identifier"))
         # mobile-mcp writes "checked" only when it is true, so a switch without it is off
         checked = True if e.get("checked") else False if TOGGLE.search(e["type"]) else None
-        found.append(Candidate(label=tree_label or ident, kind=e["type"].split(".")[-1], rect=r, ref=e["ref"],
-                               tree_label=tree_label, ident=ident, enabled=e.get("enabled") is not False,
-                               checked=checked))
-    kept = [c for c in found if not any(o is not c and area(o.rect) > area(c.rect) and inside(c.rect, o.rect)
-                                        for o in found)]
+        found.append((e, Candidate(label=tree_label or ident, kind=e["type"].split(".")[-1], rect=r, ref=e["ref"],
+                                   tree_label=tree_label, ident=ident, enabled=e.get("enabled") is not False,
+                                   checked=checked)))
+    chat = composer([c for _, c in found], device)
+
+    def lifted(e: dict, c: Candidate) -> bool:
+        row, y = chat[0].rect if chat else None, center(c.rect)[1]
+        return row is not None and row.y <= y < row.y + 2 * row.h and (
+            "Button" in c.kind or (control_shaped(c.label, c.kind) and not TEXT_OR_IMAGE.search(e["type"])))
+    kept = [c for e, c in found if not any(o is not c and area(o.rect) > area(c.rect) and inside(c.rect, o.rect)
+                                           and (absorbs(oe, e) or not lifted(e, c)) for oe, o in found)]
     return [c for n, c in enumerate(kept) if all(o.rect != c.rect for o in kept[:n])]
 
 
@@ -649,6 +663,13 @@ def walled(cands: list[Candidate]) -> str:
     return ""
 
 
+def asks(cands: list[Candidate]) -> bool:
+    """Whether an overlay's own controls ask something of the user, the way a prompt does: a control-shaped label with
+    an upgrade or plans word, or a way to decline ("Not now", "Maybe later"). A close control asks nothing: an item's
+    page in a sheet has one too."""
+    return any(control_shaped(c.label, c.kind) and ASKING.search(c.label.strip()) for c in cands)
+
+
 def anr(elements: list[dict]) -> bool:
     """Android's own "isn't responding" dialog, in any language: its buttons carry android:id/aerr_* ids. A reply or
     headline that says "not responding" is not one."""
@@ -793,9 +814,30 @@ def is_upsell(elements: list[dict], device: Device) -> bool:
     return any(PAYWALL.search(t) for t in texts(elements, device))
 
 
-def priced(elements: list[dict], device: Device) -> bool:
-    """Shows a price ($4.99, 9,99 €, ₹199, USD 4.99): what makes an upsell a paywall, not a teaser."""
-    return any(PRICE.search(t) for t in texts(elements, device))
+def wall_texts(elements: list[dict], device: Device, box: Rect | None = None, own: list[Candidate] = (),
+               shown: set[str] | None = None) -> set[str]:
+    """The texts a paywall is read from. On a chat (a screen with a composer) only control-shaped labels, the text
+    from the composer down, and an overlay's own texts: inside its box, the words its parent screen didn't show
+    (shown), wherever the tree lists them. With no parent capture, those listed from the overlay's first own control
+    on (content listed before an overlay lies under it). A conversation, the explorer's messages and the replies, is
+    never a paywall."""
+    cands = controls(elements, device)
+    chat = composer(cands, device)
+    if chat is None:
+        return texts(elements, device)
+    refs = {c.ref for c in own}
+    start = next((n for n, e in enumerate(elements) if e.get("ref") in refs), len(elements))
+    return ({c.label for c in cands if control_shaped(c.label, c.kind)}
+            | {words(e) for n, e in enumerate(elements) if in_content(e, device) and words(e)
+               and (rect(e).y >= chat[0].rect.y or (box is not None and inside(rect(e), box)
+                                                    and (words(e) not in shown if shown is not None else n >= start)))})
+
+
+def priced(elements: list[dict], device: Device, box: Rect | None = None, own: list[Candidate] = (),
+           shown: set[str] | None = None) -> bool:
+    """Shows a price ($4.99, 9,99 €, ₹199, USD 4.99) among its wall_texts: what makes an upsell a paywall, not a
+    teaser."""
+    return any(PRICE.search(t) for t in wall_texts(elements, device, box, own, shown))
 
 
 # ---------- the core loop ----------
