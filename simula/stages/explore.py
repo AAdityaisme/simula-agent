@@ -279,7 +279,7 @@ class Explorer:
         self.replay = (0, 0)
         self.started = clock()
         self.identity = account_identity() if ctx.allow_account_create else {}
-        self.secrets = redact_list() + list(self.identity.values())
+        self.secrets = redact_list() + identity_secrets(self.identity)
         self.walls: set[str] = set()
         self.account: list[str] = []  # what each account wall came to, for the exhibit
         self.account_state = ""  # "made" once the sign-up made an account, "verify" while its email waits
@@ -479,7 +479,7 @@ class Explorer:
                                     f"{move.action} skipped", outcome="error")
                 return self.current
         s, before = self.current, self.obs
-        if self.touring and purpose in ("tour", "nav") and self.actions >= self.limits["actions"]:
+        if self.touring and purpose in ("tour", "nav", "account") and self.actions >= self.limits["actions"]:
             raise Stop(f"action cap ({self.limits['actions']})")
         if move.cand and move.action == "tap":
             reason = ob.denied(move.cand, upsell=s.upsell, core=purpose == "core", toggle_ok=purpose == "filter",
@@ -926,67 +926,70 @@ class Explorer:
     # ---------- account walls (--allow-account-create) ----------
 
     def account_wall(self, s: Seen) -> bool:
-        """With --allow-account-create, a screen or overlay with a control that asks to sign in or up (not one that
-        logs out) and none of the app to use (no list of items, no text box with send) is a wall. Each is met once."""
-        return (self.ctx.allow_account_create and s.sid not in self.walls and s.kind in ("screen", "modal", "sheet")
-                and any(ob.shaped(c) and ob.SIGN_IN.search(c.label) for c in s.cands)
-                and not ob.feed_items(s.cands, self.device, self.tab_keys()) and not ob.composer(s.cands, self.device))
+        """With --allow-account-create, a screen or overlay that asks to sign in or up (not one that logs out) and
+        offers nothing else is a wall: no other button the deny-list allows (a form's own button aside), no list, no
+        text box with send, no tab bar. Each is met once."""
+        if not self.ctx.allow_account_create or s.sid in self.walls or s.kind not in ("screen", "modal", "sheet"):
+            return False
+        form = any(c.kind == "EditText" for c in s.cands)
+        other = any("Button" in c.kind and not ob.denied(c, upsell=s.upsell) and not ob.account_way(c)
+                    and not (form and ob.SUBMIT.search(c.label)) for c in s.cands)
+        return (any(ob.shaped(c) and ob.SIGN_IN.search(c.label) for c in s.cands) and not other
+                and not ob.feed_items(s.cands, self.device, self.tab_keys()) and not ob.composer(s.cands, self.device)
+                and not ob.tab_bar(s.cands, self.device))
 
     def get_past(self, wall: Seen) -> bool:
-        """A way on without an account first (a dismissal only backs out of an overlay, so there it is none), then
-        an email sign-up with the operator's test identity until one makes an account. Whatever stops it leaves the
-        explorer at the wall, as without the flag, with the reason in the trace and the exhibit. True when past it."""
+        """A way on without an account first ("Continue as guest", "Skip", "Not now"), which counts only when it
+        lands in the app; then an email sign-up with the operator's test identity, until one makes an account.
+        Whatever stops it leaves the explorer at the wall, as without the flag, with the reason in the trace and the
+        exhibit. True when past it."""
         self.walls.add(wall.sid)
-        on = next((c for c in wall.cands if ob.shaped(c) and not ob.denied(c, upsell=wall.upsell) and (
-            ob.GUEST.search(c.label) or (wall.kind == "screen" and ob.DISMISS.match(c.label.strip())))), None)
+        on = next((c for c in wall.cands if ob.shaped(c) and ob.GUEST.search(c.label)
+                   and not ob.denied(c, upsell=wall.upsell)), None)
         if on:
             self.act(Move("tap", on, why="account wall: on without an account"), purpose="nav")
             if self.current is not wall:
+                if self.current.kind in AWAY:
+                    return self.stopped(wall, f"{on.label[:40]!r} left the app")
                 return self.account_note(f"{wall.sid}: went on without an account ({on.label[:40]!r})", True)
         missing = [var for kind, var in IDENTITY.items() if kind not in self.identity]
-        why = ("an account was made already" if self.account_state == "made" else
-               "the sign-up waits for its email to be verified" if self.account_state == "verify" else
-               f"{', '.join(missing)} not set" if missing else "")
+        foreign = [var for kind, var in IDENTITY.items() if not self.identity.get(kind, "").isascii()]
+        why = {"made": "an account was made already", "verify": "the sign-up waits for its email to be verified",
+               "sent": "a sign-up form was sent already"}.get(self.account_state, "")
+        why = why or (f"{', '.join(missing)} not set" if missing else
+                      f"{', '.join(foreign)} not ASCII (mobile-mcp would paste it through the clipboard)" if foreign
+                      else "")
         return self.account_note(f"{wall.sid}: no sign-up, {why}", False) if why else self.sign_up(wall)
 
     def sign_up(self, wall: Seen) -> bool:
-        """Follows the email sign-up from the wall a screen at a time: fills the boxes that ask for the email, the
-        password and the name, once per screen, and sends the form; else takes the way to an email sign-up. A check
-        only a person can pass, a phone number, a sign-in with another account or a payment stops it, and an email
-        verification asks a person to verify (needs-human.md)."""
-        sent, typed_on = False, set()
+        """Follows the email sign-up from the wall a screen at a time and stops at anything it isn't sure of
+        (unsure). A screen with text boxes is a form: each box must be one it recognizes, empty, and it gets its
+        value; then the form is sent. A screen without one gets the way to an email sign-up. After a send, a
+        verification step asks a person (needs-human.md), a form asking only for values not typed yet is the next
+        step, and anything else is the end, an account only when it is the app itself (result)."""
+        sent, typed = False, set()
         for _ in range(SIGN_UP_STEPS):
-            s, said = self.current, self.said()
+            s = self.current
             self.walls.add(s.sid)  # a screen on the way is no new wall for the tour to meet
-            check = next((t for t in said if ob.HUMAN_CHECK.search(t)), None)
-            if check:
-                return self.stopped(wall, f"a check only a person can pass ({check[:60]!r})")
-            fields = [(c, kind) for c in s.cands if c.kind == "EditText" for kind in [ob.field_kind(c, s.elements)]
-                      if kind]
-            todo = [(c, kind) for c, kind in fields if kind in self.identity and not self.filled(c)]
-            if todo and s.sid not in typed_on:
-                why = self.fill(todo, typed_on) or self.send()
-                if why:
-                    return self.stopped(wall, why)
-                sent = True
-                continue
-            if any(kind == "phone" for _, kind in fields):
-                return self.stopped(wall, f"{s.sid} asks for a phone number")
-            if sent and any(ob.VERIFY.search(t) for t in said):
+            why = self.unsure()
+            if why:
+                return self.stopped(wall, why)
+            if sent and any(ob.VERIFY.search(t) for t in self.said()):
                 self.account_state = "verify"
                 self.human("the test account's email verified",
                            f"the sign-up from {wall.sid} reached an email verification step ({s.sid}): open the "
                            "message the app sent to SIMULA_TEST_EMAIL and follow its link, or type its code into the "
                            "app on the emulator; then explore again, and the app should open signed in")
                 return self.stopped(wall, f"an email verification step on {s.sid}, for a person (needs-human.md)")
-            if fields:
-                return self.stopped(wall, f"the form on {s.sid} didn't move on (an error, a box it doesn't fill, "
-                                          "or a box to tick)")
-            if sent:
-                self.account_state = "made"
-                return self.account_note(f"{wall.sid}: signed up with the test identity, now on {s.sid}", True)
-            if s.priced or any(ob.CARD.search(t) for t in said):
-                return self.stopped(wall, f"a payment step on {s.sid}")
+            boxes = self.boxes()
+            if sent and not (boxes and all(kind in self.identity and kind not in typed for _, kind in boxes)):
+                return self.result(wall)
+            if boxes:
+                why = self.fill(boxes, typed) or self.send([kind for _, kind in boxes])
+                if why:
+                    return self.stopped(wall, why)
+                sent, self.account_state = True, "sent"
+                continue
             way = self.email_way()
             if way is None:
                 return self.stopped(wall, self.no_way())
@@ -995,29 +998,73 @@ class Explorer:
                 return self.stopped(wall, f"{way.label[:40]!r} led nowhere")
         return self.stopped(wall, f"no account after {SIGN_UP_STEPS} screens")
 
-    def fill(self, todo: list[tuple[ob.Candidate, str]], typed_on: set[str]) -> str:
-        """Types each value into its own box, and only once the tap gave a text box the focus. Every state the form
-        shows meanwhile goes in typed_on, so a form that comes back is never typed into again: a box showing a
-        password's dots isn't listed, and another box could be taken for it. Why it stopped, or ""."""
-        typed_on.add(self.current.sid)
-        for c, kind in todo:
-            taken = self.actions
-            self.act(Move("tap", c, why=f"sign-up: the {kind} box"), purpose="account")
-            if self.actions == taken or not any(e.get("focused") and e["type"].endswith("EditText")
-                                                for e in self.obs.elements):
-                return f"the {kind} box took no focus"
-            self.act(Move("type", text=self.identity[kind], why=f"sign-up: the {kind}"), purpose="account")
-            typed_on.add(self.current.sid)
+    def unsure(self) -> str:
+        """What ends the sign-up on the screen now, "" for nothing: it left the app, a check only a person can pass,
+        a payment, a control that agrees to or accepts something, or a phone box."""
+        s, said = self.current, self.said()
+        if s.kind in AWAY:
+            return f"the way in left the app ({self.obs.fg})"
+        check = next((t for t in said if ob.HUMAN_CHECK.search(t)), None)
+        consent = next((c for c in self.surface() if ob.consents(c)), None)
+        if check:
+            return f"a check only a person can pass ({check[:60]!r})"
+        if ob.priced(self.obs.elements, self.device) or any(ob.CARD.search(t) for t in said):
+            return f"a payment step on {s.sid}"
+        if consent:
+            return f"it asks to accept terms ({consent.label[:40]!r})"
+        if any(kind == "phone" for _, kind in self.boxes()):
+            return f"{s.sid} asks for a phone number"
         return ""
 
-    def send(self) -> str:
-        """Taps the lowest short control that names sending the form ("Sign up", "Continue", "Next")."""
+    def fill(self, boxes: list[tuple[dict, str]], typed: set[str]) -> str:
+        """Types each value into its own box. Every box must be one it recognizes, and empty. Before each type, the
+        app is still in front, the screen shows the same form, and the box the tap focused is that empty box. Why it
+        stopped, or ""."""
+        form = [kind for _, kind in boxes]
+        if any(kind not in self.identity for kind in form):
+            return f"{self.current.sid} has a box that is not the email, the password or the name"
+        if any(ob.words(e) for e, _ in boxes):
+            return f"a box on {self.current.sid} shows a value already"
+        for n, kind in enumerate(form):
+            live = self.boxes()
+            ref = live[n][0]["ref"] if [k for _, k in live] == form and self.current.kind not in AWAY else None
+            box = next((c for c in self.obs.cands if ref and c.ref == ref), None)
+            if box is None:
+                return f"the form changed before its {kind} box"
+            taken = self.actions
+            self.act(Move("tap", box, why=f"sign-up: the {kind} box"), purpose="account")
+            focused = [e for e in self.obs.elements if e.get("focused")] if self.obs else []
+            if (self.actions == taken or self.current.kind in AWAY or len(focused) != 1
+                    or not focused[0]["type"].endswith("EditText") or ob.words(focused[0])
+                    or ob.field_kind(focused[0], self.obs.elements) != kind):
+                return f"the box in focus is not the empty {kind} box"
+            self.act(Move("type", text=self.identity[kind], why=f"sign-up: the {kind}"), purpose="account")
+            typed.add(kind)
+        return ""
+
+    def send(self, form: list[str]) -> str:
+        """Taps the lowest short control that names sending the form, while the app is in front and shows the same
+        form."""
+        if self.current.kind in AWAY or [kind for _, kind in self.boxes()] != form:
+            return "the form changed before it was sent"
         found = [c for c in self.surface() if c.kind != "EditText" and ob.shaped(c) and ob.SUBMIT.search(c.label)
                  and not ob.denied(c, upsell=self.current.upsell, account=True)]
         if not found:
             return "no control sends the form"
         self.act(Move("tap", max(found, key=lambda c: c.rect.y), why="sign-up: send the form"), purpose="account")
         return ""
+
+    def result(self, wall: Seen) -> bool:
+        """The end of a sign-up. An account counts as made only on positive evidence: the screen is the app, in
+        front, with no control that asks to sign in or up, and with a tab bar or a text box with send (two lines of
+        an error look like a list, so a list is none)."""
+        s, cands = self.current, self.surface()
+        app = (s.kind not in AWAY and not any(ob.shaped(c) and ob.SIGN_IN.search(c.label) for c in cands)
+               and bool(ob.tab_bar(cands, self.device) or ob.composer(cands, self.device)))
+        if not app:
+            return self.stopped(wall, f"the form was sent, but {s.sid} shows no sign of an account")
+        self.account_state = "made"
+        return self.account_note(f"{wall.sid}: signed up with the test identity, now on {s.sid}", True)
 
     def email_way(self) -> ob.Candidate | None:
         """The control on the way to an email sign-up: one that names email, else one that names signing up."""
@@ -1034,10 +1081,13 @@ class Explorer:
                 return f"the way in takes {what} ({hit[:40]!r})"
         return f"no way to sign up with an email on {self.current.sid}"
 
-    def filled(self, box: ob.Candidate) -> bool:
-        """A box that shows a value (one of the redacted ones) or that the screen no longer shows needs nothing."""
-        live = ob.find(self.obs.cands, box)
-        return live is None or ob.REDACTED in live.label
+    def boxes(self) -> list[tuple[dict, str]]:
+        """The text boxes on the screen now (on an overlay, its own), top to bottom, each with what it asks for."""
+        box = self.current.box
+        found = [e for e in self.obs.elements if e["type"].endswith("EditText") and ob.in_content(e, self.device)
+                 and (box is None or ob.inside(ob.rect(e), box))]
+        return [(e, ob.field_kind(e, self.obs.elements))
+                for e in sorted(found, key=lambda e: (ob.rect(e).y, ob.rect(e).x))]
 
     def said(self) -> set[str]:
         """The texts the screen shows now; on an overlay, only its own."""
@@ -2194,6 +2244,13 @@ def redact_list() -> list[str]:
 def account_identity() -> dict[str, str]:
     """The operator's throwaway account for --allow-account-create, from the environment; never made up."""
     return {kind: value for kind, var in IDENTITY.items() if (value := os.environ.get(var, "")).strip()}
+
+
+def identity_secrets(identity: dict[str, str]) -> list[str]:
+    """The identity's values, and the parts an app echoes back: each word of the name and the email's local part,
+    three letters or more."""
+    parts = [*identity.get("name", "").split(), identity.get("email", "").split("@")[0]]
+    return [*identity.values(), *(part for part in parts if len(part) >= 3)]
 
 
 def rerun(ctx: Ctx) -> str:

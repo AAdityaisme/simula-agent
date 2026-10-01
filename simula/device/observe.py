@@ -94,9 +94,12 @@ CLOCK = re.compile(r"\b\d{1,2}:\d{2}\b|\bago\b", re.IGNORECASE)
 LETTER = re.compile(r"[^\W\d_]")
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
 REDACTED = "[redacted]"
-# --allow-account-create's words. A way on without an account; on an overlay a dismissal only backs out instead.
-GUEST = re.compile(r"\bguest\b|\bwithout\b.{0,12}\b(?:account|sign|log|regist)|\bskip\b|\bnot now\b|\blater\b",
+# --allow-account-create's words. A way on without an account is a whole label, so "Watch later" is content.
+GUEST = re.compile(r"^\W*(?:\w+\s+){0,3}?(?:as (?:a )?guest|guest(?: mode)?|without (?:an? )?account|"
+                   r"without (?:signing|logging) (?:up|in))\W*$|^\W*(?:skip(?: for now)?|not now|(?:maybe )?later)\W*$",
                    re.IGNORECASE)
+# a control that agrees to or accepts something (terms, consent) is never tapped on the way in
+CONSENT = re.compile(r"\bagree|\baccept|\bconsent", re.IGNORECASE)
 # a sign-in with another account (Google, Apple, ...) or a phone is a real person's, so it is never a way in
 OTHER_ACCOUNT = re.compile(r"\b(?:continue|sign ?(?:in|up)|log ?in|connect|register)\s+(?:with|using|via)\b"
                            r"(?!.*\be-?mail\b)", re.IGNORECASE)
@@ -433,10 +436,13 @@ def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bo
     switch or checkbox could undo the content filter, so only the filter's own row may flip one (toggle_ok). On that
     row a filter phrase ("Hide NSFW", "Block explicit content") is no deny hit; every other deny word still is. On
     the sign-up path (account) the words that sign up by email are no deny hit and a text box may be typed into,
-    unless the control names a sign-in with another account or a phone; every other deny word still is."""
+    unless the control names a sign-in with another account or a phone; a consent and every other deny word still
+    are."""
     text = "\n".join(dict.fromkeys(t for t in (c.label, c.tree_label) if t))
     if REDACTED in text:
         return "account text"
+    if account and consents(c):
+        return "consent"
     text = ID_WORDS.sub(" ", text)
     shaped = len(c.label.split()) <= CONTROL_WORDS or "Button" in c.kind
     rest = FILTER_PHRASE.sub(" ", text) if toggle_ok else text
@@ -460,18 +466,28 @@ def shaped(c: Candidate) -> bool:
     return len(c.label.split()) <= CONTROL_WORDS or "Button" in c.kind
 
 
-def field_kind(c: Candidate, elements: list[dict]) -> str:
-    """What a text box asks for ("email", "password", "phone", "name", or ""): its own words or id, else its caption,
-    the closest text above it, since a box seldom names itself in the tree. A text box in between owns that text."""
-    r = c.rect
+def consents(c: Candidate) -> bool:
+    """A control that agrees to or accepts something: "I agree", "Accept & continue", a consent checkbox."""
+    return (shaped(c) or bool(TOGGLE.search(c.kind))) and bool(CONSENT.search(c.label))
 
-    def above(e: dict) -> bool:
-        t = rect(e)
+
+def account_way(c: Candidate) -> bool:
+    """A control on the way in or past an account wall: sign in or up, email, create an account, go on as a guest."""
+    return any(rule.search(c.label) for rule in (SIGN_IN, EMAIL_WAY, SIGN_UP_WAY, GUEST))
+
+
+def field_kind(e: dict, elements: list[dict]) -> str:
+    """What a text box asks for ("email", "password", "phone", "name", or ""), from its own words and id and its
+    caption: the closest text above it, unless another text box sits between, which owns that text."""
+    r = rect(e)
+
+    def above(o: dict) -> bool:
+        t = rect(o)
         return t.y + t.h <= r.y + 8 and t.x < r.x + r.w and r.x < t.x + t.w
-    nearest = max((e for e in elements if (words(e) or e["type"].endswith("EditText")) and above(e)),
-                  key=lambda e: rect(e).y + rect(e).h, default=None)
+    nearest = max((o for o in elements if (words(o) or o["type"].endswith("EditText")) and above(o)),
+                  key=lambda o: rect(o).y + rect(o).h, default=None)
     caption = words(nearest) if nearest and not nearest["type"].endswith("EditText") else ""
-    said = " ".join([c.label, ID_WORDS.sub(" ", c.ident), caption])
+    said = " ".join([words(e), ID_WORDS.sub(" ", short_id(e.get("identifier"))), caption])
     return next((kind for kind, rule in FIELDS.items() if rule.search(said)), "")
 
 
