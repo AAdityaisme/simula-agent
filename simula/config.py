@@ -53,5 +53,13 @@ def stage_cap(stage: str) -> float:
     return profiles()["caps_usd"][stage]
 
 
+def judge_revision_cap() -> int:
+    """How many times the judge may revise one idea: 1, or 2 for the trial in validation/EXPERIMENT-J.md."""
+    cap = profiles()["judge_revision_cap"]
+    if type(cap) is not int or cap not in (1, 2):
+        raise SystemExit(f"config/profiles.toml: judge_revision_cap must be 1 or 2, not {cap!r}")
+    return cap
+
+
 def jev_backend(profile: str) -> str:
     return os.environ.get("SIMULA_JEV_BACKEND") or roles(profile)["jev"].get("backend") or profiles()["jev_backend"]
