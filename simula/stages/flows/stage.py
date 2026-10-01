@@ -81,12 +81,14 @@ def honored(approvals: list[str | dict], decisions: list[Decision]) -> tuple[lis
 def survivors(decisions: list[Decision], promoted: list[str] = (), held: list[str] = ()) -> list[Decision]:
     """Accepted and CONDITIONAL ideas in the judge's order (every accept first, D10), leaving out an idea the judges
     split on (D11) unless nothing was accepted and no one promoted an idea: then the top-ranked split is drawn as
-    the closest idea, so a deck with survivors has a full slide. A split on c3 is never the closest idea: one judge
-    found it aimed at paying users. A person promotes a split survivor into the deck and holds any idea out of it
-    (flows/approvals.json), and a held closest idea gets no replacement; everything else follows the judges."""
+    the closest idea, so a deck with survivors has a full slide. A split on c3 is never the closest idea, since one
+    judge found it aimed at paying users; the judge's fallback carries a clean reject in its place. A person promotes a
+    split survivor into the deck and holds any idea out of it (flows/approvals.json), and a held closest idea gets no
+    replacement; everything else follows the judges."""
     picked = [d for d in ordered(decisions) if d.final in SURVIVED]
-    splits = [d for d in picked if needs_call(d) and PAYERS not in d.judgment_splits]
-    closest = splits[:1] if not promoted and not any(d.final == "accept" for d in decisions) else []
+    splits = [d for d in picked if needs_call(d)]
+    clean = [d for d in splits if PAYERS not in d.judgment_splits]
+    closest = clean[:1] if not promoted and not any(d.final == "accept" for d in decisions) else []
     return [d for d in picked if (not needs_call(d) or d in closest or d.candidate_id in promoted)
             and d.candidate_id not in held]
 

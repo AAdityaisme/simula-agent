@@ -8,7 +8,7 @@ import importlib.util
 import re
 
 from simula.config import ROOT
-from simula.contracts import Candidate, Economics, LedgerItem, ProductModel
+from simula.contracts import Candidate, Economics, ProductModel, Reward
 
 CONTEXTS = (2000, 8000)
 REGION, PLATFORM = "na", "android"
@@ -27,6 +27,10 @@ PAID_LEDGER = {"paywall_bullet", "price", "currency"}
 PRICED_KINDS = {"content_unlock", "currency"}
 # The bible has no reward kind for visibility, so a cosmetic can be a look or a featured spot ahead of other users.
 VISIBILITY_UNTYPED = {"cosmetic"}
+# Rewards spent as they are used, so their amount bounds them. Any other reward lasts as long as its duration says.
+USED_UP = {"inference", "image", "voice", "feature_time", "streak_protection"}
+NO_END = re.compile(r"\b(permanent(ly)?|forever|for good|lifetime|never (expires|ends))\b", re.I)
+AN_END = re.compile(r"\b(minutes?|hours?|days?|weeks?|months?|until|today|tonight|midnight)\b", re.I)
 # A unit that is a chat reply and nothing more: the reward the bible's per-reply cost describes.
 REPLY = re.compile(r"(chat )?(repl(y|ies)|messages?|answers?|responses?)", re.I)
 
@@ -49,8 +53,8 @@ def input_problem(candidate: Candidate) -> str | None:
         if inputs.inference_count or inputs.tokens_in or inputs.tokens_out:
             return f"reward kind {reward.kind} doesn't match its cost inputs (it carries model replies or tokens)"
         return None
-    if reward.kind == "inference" and not per_reply(reward.unit):
-        return None  # it may leave its count out: the line then says its cost isn't counted
+    if reward.kind == "inference" and not per_reply(reward.unit) and not (inputs.inference_count or inputs.tokens_out):
+        return None  # no count at all: the line says its cost isn't counted
     values = {"inference_count": inputs.inference_count, "minutes": inputs.minutes, "amount": reward.amount}
     missing = [f for f in econ["reward_kinds"][reward.kind]["required_fields"]
                if FIELD_SOURCE[f] and values[FIELD_SOURCE[f]] <= 0]
@@ -71,43 +75,51 @@ def favorable(kind: str, field: str) -> float:
     return econ["reward_kinds"][kind]["defaults"][field]["favorable"]
 
 
-def paid_perk(candidate: Candidate, model: ProductModel) -> LedgerItem | None:
-    """The paid benefit the product model records that the reward is a piece of, or None."""
-    return next((i for i in model.value_ledger if i.id == candidate.grants_id and i.kind in PAID_LEDGER), None)
+def bounded(reward: Reward) -> bool | None:
+    """Whether the reward runs out, as its fields say: an amount it spends, or a duration with an end. None when the
+    duration says neither."""
+    if reward.kind in USED_UP and reward.amount > 0:
+        return True
+    if NO_END.search(reward.duration):
+        return False
+    return True if AN_END.search(reward.duration) else None
 
 
-def lost_sale(candidate: Candidate, model: ProductModel) -> str | None:
-    """What the reward may give away that the app sells or could sell, when the line counts no price for it: currency,
-    or a place ahead of other users (priority, visibility) as its kind says. A piece of a paid perk is a sample, not a
-    lost sale: the perk stays on sale."""
+def sale_marks(candidate: Candidate, model: ProductModel) -> tuple[str | None, str | None]:
+    """(what the reward may give away that the app sells or could sell, when the line counts no price for it; a
+    neutral note). Currency and priority are flagged by kind, and so is a piece of a price or currency line. A piece
+    of a paywall perk is a sample, noted, only when users who don't pay get it and its fields say it runs out; more of
+    it for payers, or a piece that never ends, is flagged."""
     reward = candidate.reward
     if reward.kind in PRICED_KINDS and candidate.cost_inputs.currency_amount:
-        return None
-    if paid_perk(candidate, model):
-        return None
+        return None, None
     if reward.kind == "currency":
-        return "in-app currency, which apps sell"
+        return "in-app currency, which apps sell", None
+    paid = next((i for i in model.value_ledger if i.id == candidate.grants_id and i.kind in PAID_LEDGER), None)
+    if paid and paid.kind != "paywall_bullet":
+        return f'part of what the app sells, {paid.id} "{paid.verbatim}"', None
+    if paid:
+        perk, ends = f'the paid benefit {paid.id} "{paid.verbatim}"', bounded(reward)
+        if candidate.for_users == "paying":
+            return f"more of {perk} to users who pay for it", None
+        if ends is False:
+            return f"{perk}, for good", None
+        if ends is None:
+            return None, f"It gives part of {perk}; the check can't tell from its fields whether that part runs out."
+        return None, f"It is a sample of {perk}, which stays on sale."
     if reward.kind == "queue_priority":
-        return "a place ahead of other users, which apps sell as a boost"
-    return None
-
-
-def sale_note(candidate: Candidate, model: ProductModel) -> str | None:
-    """A neutral note for the line: the reward samples a paid perk, or its kind can't tell a look from a place ahead
-    of other users."""
-    if paid := paid_perk(candidate, model):
-        return f'It is a sample of the paid benefit {paid.id} "{paid.verbatim}", which stays on sale.'
-    if candidate.reward.kind in VISIBILITY_UNTYPED:
-        return ("The check can't tell whether it gives a place ahead of other users, which apps sell as a boost: "
-                "no reward kind types visibility.")
-    return None
+        return "a place ahead of other users, which apps sell as a boost", None
+    if reward.kind in VISIBILITY_UNTYPED:
+        return None, ("The check can't tell whether it gives a place ahead of other users, which apps sell as a "
+                      "boost: no reward kind types visibility.")
+    return None, None
 
 
 def per_reply(unit: str) -> bool:
-    """Whether one unit of an inference reward is known to be one chat reply: the unit is a reply word and nothing
-    more. Any qualifier ("voice messages", "agent task responses") or other word ("swipes") leaves it unknown, and so
-    does what an app term means."""
-    return bool(REPLY.fullmatch(unit.strip()))
+    """Whether one unit of an inference reward is known to be one chat reply: the unit, punctuation aside, is a reply
+    word and nothing more. Any qualifier ("voice messages", "agent task responses") or other word ("swipes") leaves it
+    unknown, and so does what an app term means."""
+    return bool(REPLY.fullmatch(" ".join(re.sub(r"[^\w\s]", " ", unit).split())))
 
 
 def describe(candidate: Candidate, model: ProductModel) -> tuple[dict, str | None, str]:
@@ -116,17 +128,15 @@ def describe(candidate: Candidate, model: ProductModel) -> tuple[dict, str | Non
     reward, inputs = candidate.reward, candidate.cost_inputs
     kind, app_category = reward.kind, model.app_category
     price = inputs.currency_amount
+    if kind == "inference" and min(inputs.inference_count, inputs.tokens_out) <= 0:
+        return {"count": 0}, (f"one of its {reward.unit} isn't known to be a chat reply, and the product model doesn't "
+                              "say what one costs to serve"), f"{reward.amount:g} {reward.unit}"
     if kind == "inference":
-        unknown = f"one of its {reward.unit} isn't known to be a chat reply"
-        if not (inputs.inference_count and inputs.tokens_out):
-            return {"count": 0}, f"{unknown}, and the product model doesn't say what one costs to serve", \
-                f"{reward.amount:g} {reward.unit}"
         p = {"count": inputs.inference_count, "tokens_out": inputs.tokens_out}
         c = central(kind, p)
-        whose = "" if per_reply(reward.unit) else f", the proposer's count ({unknown})"
-        return p, None, (f"{c['count']} replies of {c['tokens_out']} tokens out{whose}, at "
-                         f"${c['usd_per_mtok_in']:.2f} / ${c['usd_per_mtok_out']:.2f} per million tokens in / out "
-                         f"(central prices); the verdict uses the 8k figure")
+        return p, None, (f"{c['count']} replies of {c['tokens_out']} tokens out, at ${c['usd_per_mtok_in']:.2f} / "
+                         f"${c['usd_per_mtok_out']:.2f} per million tokens in / out (central prices); "
+                         f"the verdict uses the 8k figure")
     if kind == "image":
         p = {"count": inputs.inference_count}
         return p, None, f"{p['count']} images at ${central(kind, p)['usd_per_image']:.3f} each (central price)"
@@ -207,7 +217,7 @@ def annotate(candidate: Candidate, model: ProductModel) -> Economics:
     """The cost mark. A possible lost sale is flagged beside it and never changes its verdict."""
     kind = candidate.reward.kind
     params, not_counted, assumptions = describe(candidate, model)
-    lost, note = lost_sale(candidate, model), sale_note(candidate, model)
+    lost, note = sale_marks(candidate, model)
     cost_2k, cost_8k = costs(kind, params)
     result = breakeven.verdict(kind, {**params, "tokens_in": CONTEXTS[1]}, REGION, PLATFORM)
     # A cost the line can't count is never a PASS: it depends on the missing number.

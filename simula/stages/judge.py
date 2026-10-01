@@ -235,8 +235,9 @@ def superseded(revised: list[Candidate], decisions: dict[str, Decision],
 def fallback_pick(decisions: list[Decision], candidates: dict[str, Candidate],
                   verdicts: dict[str, dict[str, Verdict]], superseded: set[str]) -> str | None:
     """When nothing survives, the best reject the fallback could carry (could_fall_back): fewest checks failed, then
-    rank. None when there is no such candidate."""
-    if any(d.final in SURVIVORS for d in decisions):
+    rank. None when there is no such candidate. A split on c3 doesn't count as surviving: flows never draws it unasked,
+    so it would leave the deck empty."""
+    if any(d.final in SURVIVORS and PAYERS not in d.judgment_splits for d in decisions):
         return None
     eligible = [d for d in decisions if d.final == "reject" and d.candidate_id not in superseded
                 and could_fall_back(candidates[d.candidate_id], d, [*verdicts.get(d.candidate_id, {}).values()])]
@@ -432,8 +433,8 @@ def judge_run(ctx: Ctx, work: Path, model: ProductModel, candidates: list[Candid
         # the pick keeps its reject's failure_type: that is how flows and condition() tell it from a split (D10)
         decisions[pick] = decisions[pick].model_copy(update={"final": "conditional"})
         run_trace(ctx.run_dir, stage="judge", step="fallback", decider="code",
-                  note=f"nothing survived; {pick} passes every gate and no premise check every judge failed "
-                       "-> CONDITIONAL")
+                  note=f"nothing survived (a split on {PAYERS} doesn't count); {pick} passes every gate, no premise "
+                       f"check every judge failed, and no judge failed {PAYERS} -> CONDITIONAL")
     final = ordered(list(decisions.values()))
     for d in final:
         run_trace(ctx.run_dir, stage="judge", step=f"decide:{d.candidate_id}", decider="code",
@@ -494,6 +495,14 @@ def no_opportunity(decisions: list[Decision], candidates: dict[str, Candidate],
     return "\n".join(lines) + "\n"
 
 
+def rank_text(d: Decision, c: Candidate, mode: str) -> str:
+    """The rank as the exhibit prints it: gate mode's floor for an uncounted cost reads as what it means."""
+    if d.rank_score is None:
+        return ""
+    uncounted = mode == "gate" and c.economics and economics.uncounted(c.economics)
+    return "last (cost not counted)" if uncounted else f"{d.rank_score:g}"
+
+
 def exhibit(decisions: list[Decision], candidates: dict[str, Candidate], verdicts: dict[str, dict[str, Verdict]],
             judges: list[str], profile: str, mode: str) -> str:
     roles = config.roles(profile)
@@ -507,8 +516,7 @@ def exhibit(decisions: list[Decision], candidates: dict[str, Candidate], verdict
              f"{count['reject']} rejected; {sum(bool(d.revision_of) for d in decisions)} revised once.", "",
              "| Candidate | Final | Checks | Rank | Cost mark |", "|---|---|---|---|---|"]
     lines += [f"| {d.candidate_id} · {candidates[d.candidate_id].title} | {d.final} | {d.checks_passed}/{d.checks_total}"
-              f" | {'' if d.rank_score is None else f'{d.rank_score:g}'} | {d.economics_verdict or ''} |"
-              for d in decisions]
+              f" | {rank_text(d, candidates[d.candidate_id], mode)} | {d.economics_verdict or ''} |" for d in decisions]
     for d in decisions:
         c = candidates[d.candidate_id]
         lines += ["", f"## {c.id} · {c.title}", "",

@@ -81,6 +81,30 @@ def test_an_offer_one_judge_finds_aimed_at_payers_is_never_the_fallback():
     assert "- 1 passed the gates but rest on something" in text
 
 
+def test_when_the_only_survivor_is_a_split_on_c3_the_fallback_carries_the_clean_reject_and_the_deck_draws_it():
+    model = golden("janitorai")
+    split, clean = idea(model, "c01", rank=2.0), idea(model, "c02", rank=1.0)
+    v = {"c01": dict(zip(validate.JUDGES, two(["c3_spares_payers"]))),
+         "c02": dict(zip(validate.JUDGES, two(["c5_moment"], ["c5_moment"])))}
+    decisions = [judge.decide(c, [*v[c.id].values()], TWO, "annotate") for c in (split, clean)]
+    assert [d.final for d in decisions] == ["conditional", "reject"]
+    assert judge.fallback_pick(decisions, {"c01": split, "c02": clean}, v, set()) == "c02"
+    decisions[1] = decisions[1].model_copy(update={"final": "conditional"})
+    assert [d.candidate_id for d in flows.stage.select(decisions)] == ["c02"]
+    assert judge.fallback_pick(decisions[:1] + [judge.decide(clean, [verdict(), verdict()], TWO, "annotate")],
+                               {"c01": split, "c02": clean}, v, set()) is None
+
+
+def test_the_exhibit_prints_an_uncounted_cost_in_gate_mode_as_last_not_as_its_floor():
+    model = golden("janitorai")
+    unknown = idea(model, "c01", econ="CONDITIONAL", rank=propose.UNCOUNTED_SCORE + 1)
+    known = idea(model, "c02", rank=0.5)
+    both = {"judge_1": verdict(), "judge_2": verdict()}
+    decisions = [judge.decide(c, [*both.values()], TWO, "gate") for c in (unknown, known)]
+    gate = judge.exhibit(decisions, {"c01": unknown, "c02": known}, {"c01": both, "c02": both}, [*both], "dev", "gate")
+    assert "| last (cost not counted) |" in gate and "| 0.5 |" in gate and "e+06" not in gate
+
+
 def test_a_unanimous_fail_outranks_a_split():
     d = judge.decide(idea(golden("aol")), two(["c5_moment", "c7_specific"], ["c7_specific"]), TWO, "annotate")
     assert (d.final, d.judgment_splits) == ("reject", ["c5_moment"])
