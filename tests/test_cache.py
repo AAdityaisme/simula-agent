@@ -1,9 +1,12 @@
+import io
 import json
 import re
 from types import SimpleNamespace
 
 import httpx2
 import pytest
+from PIL import Image
+from PIL.PngImagePlugin import PngInfo
 from pydantic import BaseModel
 
 from simula import llm, runfolder
@@ -48,10 +51,51 @@ def test_same_request_same_key():
     assert key() == key()
 
 
-def test_image_bytes_change_the_key_but_are_not_stored_raw():
-    a, b = key(messages=message(png=b"\x89PNG one")), key(messages=message(png=b"\x89PNG two"))
-    assert a != b
-    assert "sha256" in json.dumps(llm.canonical(message(png=b"\x89PNG one")))
+def saved(image: Image.Image, **save) -> bytes:
+    out = io.BytesIO()
+    image.save(out, "PNG", **save)
+    return out.getvalue()
+
+
+def png(pixels: bytes, **save) -> bytes:
+    return saved(Image.frombytes("RGB", (2, 2), pixels), **save)
+
+
+def red_palette() -> Image.Image:
+    image = Image.new("P", (2, 2))
+    image.putpalette([255, 0, 0] * 256)
+    return image
+
+
+def test_images_key_by_their_pixels_not_their_png_bytes_and_are_not_stored_raw():
+    stored, squeezed = png(bytes(range(12)), compress_level=0), png(bytes(range(12)), compress_level=9)
+    assert stored != squeezed
+    assert key(messages=message(png=stored)) == key(messages=message(png=squeezed))
+    assert key(messages=message(png=png(bytes(range(1, 13))))) != key(messages=message(png=stored))
+    assert "pixels_sha256" in json.dumps(llm.canonical(message(png=stored)))
+
+
+@pytest.mark.parametrize("a, b", [
+    (saved(red_palette(), transparency=0), saved(red_palette(), transparency=255)),
+    (saved(Image.new("I;16", (2, 2), 4096)), saved(Image.new("I;16", (2, 2), 32768))),
+    (png(bytes([255, 0, 0] * 4), transparency=(255, 0, 0)), png(bytes([255, 0, 0] * 4))),
+], ids=["palette-transparency", "16-bit-samples", "rgb-colour-key"])
+def test_images_that_decode_differently_key_differently(a, b):
+    assert key(messages=message(png=a)) != key(messages=message(png=b))
+
+
+def software(name: str) -> PngInfo:
+    info = PngInfo()
+    info.add_text("Software", name)
+    return info
+
+
+def test_chunks_that_dont_change_how_it_looks_dont_change_the_key():
+    pixels = bytes(range(12))
+    pngs = [png(pixels), png(pixels, pnginfo=software("a")), png(pixels, pnginfo=software("b")),
+            png(pixels, dpi=(144, 144))]
+    assert len(set(pngs)) == 4
+    assert len({key(messages=message(png=p)) for p in pngs}) == 1
 
 
 def test_schema_and_attempt_are_in_the_key():
@@ -403,9 +447,10 @@ def test_a_refused_only_screenshot_is_a_traced_refusal_not_a_none_answer(tmp_pat
     def refuses(model, system, messages, effort, schema, max_tokens, total_timeout=None):
         return llm.Reply(text="", model=model, stop_reason="refusal")
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", refuses)
+    screenshot = png(bytes(range(12)))
     with pytest.raises(llm.LLMFailure) as failure:
-        llm.without_refused_images([b"\x89PNG"], lambda kept: call(tmp_path, messages=message(png=kept[0]),
-                                                                    attempts=1)[0])
+        llm.without_refused_images([screenshot], lambda kept: call(tmp_path, messages=message(png=kept[0]),
+                                                                   attempts=1)[0])
     assert failure.value.outcome == "refusal"
     assert [line.outcome for line in read_trace(tmp_path / "trace.jsonl")] == ["refusal"]
 

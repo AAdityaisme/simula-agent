@@ -6,6 +6,7 @@ Messages use one provider-neutral shape:
 
 import base64
 import hashlib
+import io
 import json
 import math
 import re
@@ -14,6 +15,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from PIL import Image
 from pydantic import BaseModel, ValidationError
 
 from simula import config
@@ -161,10 +163,24 @@ class Turn:
 
 # ---------- cache ----------
 
+VISUAL_METADATA = ("transparency", "gamma", "icc_profile", "srgb", "chromaticity")  # PNG chunks that change the look
+
+
+def pixels_sha256(png: bytes) -> str:
+    """The image's mode, size, palette, the metadata that changes how it looks (transparency, gamma, colour profile)
+    and its samples at native precision, hashed: two PNGs of the same picture key the same however an encoder
+    compressed them or whatever else it wrote (a Software or dpi chunk), as Linux's and macOS's encoders differ."""
+    with Image.open(io.BytesIO(png)) as image:
+        samples = image.tobytes()  # loads the image, so metadata after the pixel data is in info too
+        palette = (image.palette.mode, image.palette.tobytes()) if image.palette else None
+        looks = sorted((k, image.info[k]) for k in VISUAL_METADATA if k in image.info)
+        return hashlib.sha256(repr((image.mode, image.size, palette, looks)).encode() + samples).hexdigest()
+
+
 def canonical(messages: list[dict]) -> list[dict]:
     def part(p: dict) -> dict:
         if p["type"] == "image":
-            return {"type": "image", "sha256": hashlib.sha256(p["png"]).hexdigest()}
+            return {"type": "image", "pixels_sha256": pixels_sha256(p["png"])}
         return p
     return [{"role": m["role"], "content": [part(p) for p in m["content"]]} for m in messages]
 
