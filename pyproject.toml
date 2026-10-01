@@ -24,7 +24,7 @@ dependencies = [
 simula = "simula.cli:main"
 
 [dependency-groups]
-dev = ["pytest"]
+dev = ["pytest", "pytest-xdist"]
 
 [build-system]
 requires = ["hatchling"]
@@ -40,3 +40,4 @@ packages = ["simula"]
 testpaths = ["tests"]
 addopts = "-m 'not live'"
 markers = ["live: needs API keys or the emulator; skipped in CI"]
+tmp_path_retention_policy = "failed"  # the default keeps every temp folder; 60 sessions once filled the disk
