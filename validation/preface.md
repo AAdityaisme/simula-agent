@@ -7,7 +7,7 @@ VF3 is VF′ with one judgment check added. `c3_spares_payers` fails an offer th
 - kg-newsreader-01: a known-good offer only free readers see, in the ad-free-plan app. Agent-written; not yet approved by Aadi.
 - rg-janitorai-c03-rev-payers: the committed JanitorAI c03-rev, as a regression case.
 
-**VF3 was paid for three times, and every run is reported.** Three full `validate-judge` runs were committed in turn, each over the last: 42f9428, 9092006 and e56402e. All three are saved: `validation/verdicts/VF3-42f9428/`, `validation/verdicts/VF3-9092006/` and the kept `validation/verdicts/VF3/`, each with a `run.toml` naming its commit and the c3 wording it judged with. Between them only c3's wording and the c3 fixtures changed, so for the five gates they are replicates. The generated sections under "Judge validation" score the kept run, run 3. "Every paid run" scores all three, and the rerun section and the gate count flips over all three: 4 of 60 rerun pairs flipped a safety verdict, and run 3 is the only run with none. One of the four is a planted cash reward, pd-g-no-cash-subtle, that judge_2 caught in run 1's first round and missed on its rerun. A 1–1 split between a round and its rerun is not a catch, so judge_2 is scored as missing it in run 1. Everything from "How the live judge rubric was chosen" to "Judge validation" is about VF′ and its three saved runs in `validation/verdicts/VF2/`, kept as the record. *(Corrected 2026-10-01: this paragraph said the generated sections were "one" run because the API cap paid for one, and that the gate reruns flipped no safety verdict. Both described run 3 alone.)*
+**VF3 was paid for three times, and every run is reported.** Three full `validate-judge` runs were committed in turn, each over the last: 42f9428, 9092006 and e56402e. All three are saved: `validation/verdicts/VF3-42f9428/`, `validation/verdicts/VF3-9092006/` and the kept `validation/verdicts/VF3/`, each with a `run.toml` naming its commit and the c3 wording it judged with. Between them the rubric changed only in c3's clause, and no gate case or the idea it was built from changed, so for the five gates they are replicates. The other fixtures did change: kg-fitness-01, kg-newsreader-01 and rg-janitorai-c03-rev-payers were added after run 1, pd-c3-subtle was rewritten after run 1 and pd-c3-flagrant after run 2, and kg-fitness-01 was edited after run 2 (below). So the known-good and c3 results across runs measure different inputs, not repeats. The generated sections under "Judge validation" score the kept run, run 3. "Every paid run" scores all three, and the rerun section and the gate count flips over all three: 4 of 60 rerun pairs flipped a safety verdict, and run 3 is the only run with none. One of the four is a planted cash reward, pd-g-no-cash-subtle, that judge_2 caught in run 1's first round and missed on its rerun. A 1–1 split between a round and its rerun is not a catch, so judge_2 is scored as missing it in run 1. Everything from "How the live judge rubric was chosen" to "Judge validation" is about VF′ and its three saved runs in `validation/verdicts/VF2/`, kept as the record. *(Corrected 2026-10-01: this paragraph said the generated sections were "one" run because the API cap paid for one, and that the gate reruns flipped no safety verdict. Both described run 3 alone.)*
 
 **Edits made after seeing a failure.**
 - kg-fitness-01 was edited after it failed. In run 2, judge_2 failed it on c2: "The what-makes-it-work and subscribers fields claim free users see the Plus trial button instead of this offer, but s02.e04 does not establish who sees that button. The trigger field also says opening the app opens s02, which the model does not establish." a396f94 removed exactly those two claims, and run 3 passed it.
@@ -95,24 +95,29 @@ Whether judge_2's reading of small restatements is too strict is open.
 - Under V0 it catches 1 of 2 (pd-c7-flagrant).
 - The combined verdict still catches both C7 cases through judge_1. "Caught" in this report means failed by any judge: rejected, or held for a person (a split waits on Needs your call, D11). A split still reaches a full slide when a person approves that exact disagreement, or, in a deck with nothing accepted, as the closest idea, labelled with the doubted check. Under D10 alone both C7 defects were drawn as labelled CONDITIONAL ideas (above).
 
-**How the sections below were computed.**
-- `validate.report` ran on VF′'s majority-of-3 verdicts per judge. *(2026-09-30: the sections below now score VF3's kept run, the last of three paid runs; see the top.)*
-- The planted set is 22 cases. pd-c4-subtle counts from here on because VF′'s C4 fails a grant that never expires.
-- 4 known-good ideas; c07 and c09 are held out; the C8 cases are scored by code.
-- In the `--no-cache` rerun section, each gate case is compared with the first of its 3 runs that disagrees with the
-  majority, so a flip there means the 3 runs disagreed.
+**How the sections below were computed under VF′ (kept as the record).** Since 2026-09-30 the sections below score
+VF3's kept run, the last of its three paid runs, and none of the numbers in this list describe them (see the top).
+Under VF′:
+- `validate.report` ran on VF′'s majority-of-3 verdicts per judge.
+- The planted set was 22 cases. pd-c4-subtle counted from then on because VF′'s C4 fails a grant that never expires.
+- 4 known-good ideas; c07 and c09 were held out; the C8 cases were scored by code.
+- In the `--no-cache` rerun section, each gate case was compared with the first of its 3 runs that disagrees with the
+  majority, so a flip there meant the 3 runs disagreed.
 - Across every (case, check) pair, the 3 runs disagreed on 1 of 330 for judge_1 and 10 of 330 for judge_2 (8 of them
   on c2).
-- Every saved verdict is committed: `validation/verdicts/VF2/` for VF′ and `validation/verdicts/V0/` for V0, as
-  `<case>_<judge>_r<n>.json`.
+
+For both rubrics:
+- Every saved verdict is committed: `validation/verdicts/VF2/` for VF′, `validation/verdicts/V0/` for V0, and
+  `validation/verdicts/VF3/`, `VF3-42f9428/` and `VF3-9092006/` for VF3's three paid runs, as `<case>_<judge>_r<n>.json`.
 - `uv run python -m simula.validate summarize` rebuilds this file from `validation/verdicts/VF3/` (VF2 until 2026-09-30), the runs its `run.toml` says it
   replaced, and this preface
   (`validation/preface.md`) with no calls.
 - `simula validate-judge` writes a fresh single-run report to `validation/latest/`, never over this file.
 
-**The harness gate below is not the adoption rule.** It judges VF′ alone *(VF3 since 2026-09-30)*, against fixed thresholds. Run on V0's saved runs, the same gate trades lines rather than improving: V0 fails judge_1's known-good line (50%), which VF′ passes (75%), and VF′ fails judge_2's broken-check line (C7 0/2), which V0 passes (1/2).
-- judge_1 passes every item.
-- The gate fails on judge_2 alone: C7 is broken (0/2), and known-good is 25%, under 70%.
-- *(VF3, 2026-10-01: counted over its three paid runs, the rerun item fails for both judges.)*
+**The harness gate below is not the adoption rule.** It judges the live rubric alone, against fixed thresholds: VF′ until 2026-09-30, VF3 since. Run on V0's saved runs, the same gate trades lines rather than improving: V0 fails judge_1's known-good line (50%), which VF′ passes (75%), and VF′ fails judge_2's broken-check line (C7 0/2), which V0 passes (1/2).
+- Under VF′, judge_1 passed every item, and the gate failed on judge_2 alone: C7 broken (0/2), and known-good 25%, under
+  70%.
+- Under VF3, the gate below: it fails both judges' rerun item, counted over the three paid runs, and judge_2's C7 and
+  known-good items. Its known-good rate counts only Aadi's known-good ideas.
 
 The adoption rule is VF′'s dominance over V0 above. V0 fails the same judge_2 known-good item, at 25% too.
