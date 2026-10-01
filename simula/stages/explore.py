@@ -379,7 +379,8 @@ class Explorer:
                     settled=obs.settled,
                     settle_s=obs.settle_s,
                     captured_at=now(), upsell=ob.is_upsell(obs.elements, self.device),
-                    priced=ob.priced(obs.elements, self.device, box),
+                    priced=ob.priced(obs.elements, self.device, box, cands,
+                                     ob.texts(before.elements, self.device) if before else None),
                     via=move.cand.label if move and move.cand else "", box=box,
                     unscroll_to=came_from.sid if came_from and move.action == "swipe" else None)
         self.states.append(seen)
@@ -1332,7 +1333,7 @@ class Explorer:
             if s.launch:
                 self.relaunch(why="the launch screen again, with the content filter, after the launch dialog")
         priced = self.priced_paywall()
-        shown = {s.sid: sum(bool(ob.PAYWALL.search(t)) for t in ob.wall_texts(s.elements, self.device, s.box))
+        shown = {s.sid: sum(bool(ob.PAYWALL.search(t)) for t in self.wall_texts(s))
                  for s in self.states if s.upsell and not s.launch and s.kind not in AWAY}
         best = priced or max((self.by_id[sid] for sid, n in shown.items() if n), key=lambda s: shown[s.sid], default=None)
         self.paywall = best.sid if best else None
@@ -1353,6 +1354,12 @@ class Explorer:
         elif self.current.upsell and not self.current.launch:
             self.read_upsell()
             self.act(Move("back", why="out of the upsell"), purpose="nav")
+
+    def wall_texts(self, s: Seen) -> set[str]:
+        """s's paywall texts; an overlay's own are the words its parent screen's capture didn't show."""
+        parent = self.by_id[s.parent].elements if s.parent else None
+        return ob.wall_texts(s.elements, self.device, s.box, s.cands,
+                             ob.texts(parent, self.device) if parent is not None else None)
 
     def priced_paywall(self) -> Seen | None:
         return next((s for s in self.states if s.priced and not s.launch and s.kind in ("screen", "modal", "sheet")),
@@ -2172,8 +2179,7 @@ def ended(ex: Explorer, s: Seen) -> str:
 def paywall_line(ex: Explorer) -> str:
     if not ex.paywall:
         return "no"
-    wall = ex.by_id[ex.paywall]
-    prices = [t for t in ob.wall_texts(wall.elements, ex.device, wall.box) if ob.PRICE.search(t)]
+    prices = [t for t in ex.wall_texts(ex.by_id[ex.paywall]) if ob.PRICE.search(t)]
     return f"yes, {ex.paywall}, prices: {'; '.join(repr(p) for p in prices[:6])}" if prices \
         else f"yes, {ex.paywall}, no price seen"
 

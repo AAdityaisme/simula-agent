@@ -172,14 +172,28 @@ def test_no_conversation_is_a_paywall_only_a_price_on_a_control_is():
 
 
 
-def test_an_offer_over_a_chat_is_priced_by_its_own_texts():
-    """A dialog or sheet over a chat may say its price in a sentence: inside the overlay's box it counts, as the
-    conversation around it never does (rt-pr41 L2)."""
+@pytest.mark.parametrize("first", [False, True], ids=["sheet-listed-last", "sheet-listed-first"])
+def test_an_offer_over_a_chat_is_priced_by_its_own_texts(first):
+    """A dialog or sheet over a chat may say its price in a sentence: inside the overlay's box, the words its parent
+    screen didn't show count, wherever the tree lists the overlay (rt-pr41 L2). The conversation never does, a reply
+    under the box included (Greptile on eabb4ae). With no parent capture, the overlay is read from its first own
+    control on."""
     chat = parse_elements(json.loads((TREES / "luzia" / "luzia-chat-thread.elements.json").read_text()))
-    offer = {"ref": "@offer", "type": "android.widget.TextView", "text": "Plus is $4.99 a month, cancel any time.",
-             "coordinates": {"x": 80, "y": 1200, "width": 900, "height": 80}}
-    box = Rect(x=40, y=1000, w=1000, h=600)
-    assert not ob.priced(chat + [offer], DEVICE) and ob.priced(chat + [offer], DEVICE, box)
+    at = next(n for n, e in enumerate(chat) if e["type"].endswith("EditText"))
+    reply = element("@reply", "TextView", 80, 1500, 900, 80,
+                    text="The student plan is $4.99 a month with the first week free.")
+    parent = chat[:at] + [reply] + chat[at:]
+    box = Rect(x=40, y=1200, w=1000, h=800)
+    for words, priced in (("Choose a voice for this chat", False), ("Plus is $4.99 a month, cancel any time.", True)):
+        sheet = [element("@sheet", "ViewGroup", 40, 1200, 1000, 800),
+                 element("@title", "TextView", 80, 1250, 900, 80, text=words),
+                 element("@voice", "Button", 140, 1800, 800, 120, text="Voice one")]
+        elements = parent[:1] + sheet + parent[1:] if first else parent + sheet
+        own = [c for c in ob.controls(elements, DEVICE) if c.ref in ("@title", "@voice")]
+        assert ob.priced(elements, DEVICE, box, own, ob.texts(parent, DEVICE)) is priced, words
+        assert not ob.priced(elements, DEVICE), words
+        if not first:
+            assert ob.priced(elements, DEVICE, box, own) is priced, words
 
 
 def test_a_send_control_in_the_toolbar_under_the_text_box_counts():

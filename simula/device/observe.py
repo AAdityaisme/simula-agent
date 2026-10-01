@@ -621,23 +621,30 @@ def is_upsell(elements: list[dict], device: Device) -> bool:
     return any(PAYWALL.search(t) for t in texts(elements, device))
 
 
-def wall_texts(elements: list[dict], device: Device, box: Rect | None = None) -> set[str]:
+def wall_texts(elements: list[dict], device: Device, box: Rect | None = None, own: list[Candidate] = (),
+               shown: set[str] | None = None) -> set[str]:
     """The texts a paywall is read from. On a chat (a screen with a composer) only control-shaped labels, the text
-    from the composer down, and an overlay's own texts (inside its box): a conversation, the explorer's messages and
-    the replies, is never a paywall."""
+    from the composer down, and an overlay's own texts: inside its box, the words its parent screen didn't show
+    (shown), wherever the tree lists them. With no parent capture, those listed from the overlay's first own control
+    on (content listed before an overlay lies under it). A conversation, the explorer's messages and the replies, is
+    never a paywall."""
     cands = controls(elements, device)
     chat = composer(cands, device)
     if chat is None:
         return texts(elements, device)
+    refs = {c.ref for c in own}
+    start = next((n for n, e in enumerate(elements) if e.get("ref") in refs), len(elements))
     return ({c.label for c in cands if control_shaped(c.label, c.kind)}
-            | {words(e) for e in elements if in_content(e, device) and words(e)
-               and (rect(e).y >= chat[0].rect.y or (box is not None and inside(rect(e), box)))})
+            | {words(e) for n, e in enumerate(elements) if in_content(e, device) and words(e)
+               and (rect(e).y >= chat[0].rect.y or (box is not None and inside(rect(e), box)
+                                                    and (words(e) not in shown if shown is not None else n >= start)))})
 
 
-def priced(elements: list[dict], device: Device, box: Rect | None = None) -> bool:
+def priced(elements: list[dict], device: Device, box: Rect | None = None, own: list[Candidate] = (),
+           shown: set[str] | None = None) -> bool:
     """Shows a price ($4.99, 9,99 €, ₹199, USD 4.99) among its wall_texts: what makes an upsell a paywall, not a
     teaser."""
-    return any(PRICE.search(t) for t in wall_texts(elements, device, box))
+    return any(PRICE.search(t) for t in wall_texts(elements, device, box, own, shown))
 
 
 # ---------- the core loop ----------
