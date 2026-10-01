@@ -224,7 +224,7 @@ def test_every_known_good_idea_judge_1_accepts_reaches_the_deck_with_both_judges
             failed_by_both.append(cid)
             assert d.final == "reject"
         decisions.append(d)
-    drawn = {d.candidate_id for d in flows.stage.select(decisions, None)}
+    drawn = {d.candidate_id for d in flows.stage.select(decisions)}
     splits = [d.candidate_id for d in judge.ordered(decisions) if flows.deck.needs_call(d)]
     waiting = set(splits) - drawn
     assert drawn == ({d.candidate_id for d in decisions if d.final == "accept"} or set(splits[:1]))  # run 3: none
