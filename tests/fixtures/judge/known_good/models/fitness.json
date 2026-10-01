@@ -1,0 +1,175 @@
+{
+ "app": "fitness",
+ "app_category": "utility",
+ "states": [
+  {
+   "id": "s01",
+   "name": "Today",
+   "purpose": "Home: today's streak, the week's streak freezes, and a workout button.",
+   "content_rating": "safe",
+   "elements": [
+    {
+     "id": "s01.e01",
+     "text": "Streak: 12 days",
+     "role": "streak counter"
+    },
+    {
+     "id": "s01.e02",
+     "text": "Streak freezes: 0 of 1 left this week",
+     "role": "freeze meter"
+    },
+    {
+     "id": "s01.e03",
+     "text": "Start workout",
+     "role": "button"
+    },
+    {
+     "id": "s01.e04",
+     "text": "Plus",
+     "role": "upgrade button"
+    }
+   ]
+  },
+  {
+   "id": "s02",
+   "name": "Streak about to break",
+   "kind": "modal",
+   "parent_id": "s01",
+   "purpose": "The pop-up on a day with no workout yet when the week's streak freeze is used.",
+   "content_rating": "safe",
+   "elements": [
+    {
+     "id": "s02.e01",
+     "text": "Your 12-day streak ends at midnight",
+     "role": "title"
+    },
+    {
+     "id": "s02.e02",
+     "text": "No streak freezes left this week",
+     "role": "text"
+    },
+    {
+     "id": "s02.e03",
+     "text": "Start a 5-minute workout",
+     "role": "button"
+    },
+    {
+     "id": "s02.e04",
+     "text": "Try Plus free for 7 days",
+     "role": "trial button"
+    },
+    {
+     "id": "s02.e05",
+     "text": "Close",
+     "role": "button"
+    }
+   ]
+  },
+  {
+   "id": "s03",
+   "name": "Plus paywall",
+   "purpose": "Fitness Plus, sold monthly.",
+   "content_rating": "safe",
+   "elements": [
+    {
+     "id": "s03.e01",
+     "text": "Fitness Plus",
+     "role": "title"
+    },
+    {
+     "id": "s03.e02",
+     "text": "$6.99/month",
+     "role": "price"
+    },
+    {
+     "id": "s03.e03",
+     "text": "Custom training plans",
+     "role": "benefit bullet"
+    },
+    {
+     "id": "s03.e04",
+     "text": "Advanced heart-rate stats",
+     "role": "benefit bullet"
+    }
+   ]
+  }
+ ],
+ "mechanics": [
+  {
+   "id": "m01",
+   "kind": "streak",
+   "evidence_ids": [
+    "s01.e01",
+    "s02.e01"
+   ],
+   "summary": "A daily streak counts days with a workout; a day without one ends it at midnight.",
+   "observed_numbers": [
+    "12"
+   ],
+   "status": "observed"
+  },
+  {
+   "id": "m02",
+   "kind": "limit",
+   "evidence_ids": [
+    "s01.e02",
+    "s02.e02"
+   ],
+   "summary": "One streak freeze a week covers a missed day; with none left, the streak ends.",
+   "observed_numbers": [
+    "1"
+   ],
+   "status": "observed"
+  },
+  {
+   "id": "m03",
+   "kind": "paywall",
+   "evidence_ids": [
+    "s03.e01",
+    "s03.e02",
+    "s03.e03",
+    "s03.e04"
+   ],
+   "summary": "Fitness Plus, $6.99 a month: custom training plans and advanced heart-rate stats. It lists nothing else.",
+   "observed_numbers": [
+    "$6.99"
+   ],
+   "status": "observed"
+  }
+ ],
+ "value_ledger": [
+  {
+   "id": "l01",
+   "kind": "limit",
+   "verbatim": "Streak freezes: 0 of 1 left this week",
+   "evidence_ids": [
+    "s01.e02"
+   ]
+  },
+  {
+   "id": "l02",
+   "kind": "price",
+   "verbatim": "$6.99/month",
+   "evidence_ids": [
+    "s03.e02"
+   ]
+  },
+  {
+   "id": "l03",
+   "kind": "paywall_bullet",
+   "verbatim": "Custom training plans",
+   "evidence_ids": [
+    "s03.e03"
+   ]
+  },
+  {
+   "id": "l04",
+   "kind": "paywall_bullet",
+   "verbatim": "Advanced heart-rate stats",
+   "evidence_ids": [
+    "s03.e04"
+   ]
+  }
+ ],
+ "open_questions": []
+}

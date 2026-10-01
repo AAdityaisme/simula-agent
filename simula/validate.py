@@ -18,7 +18,8 @@ from typing import Literal
 
 from simula import config, economics, llm
 from simula.config import ROOT
-from simula.contracts import GATES, JUDGMENT, Candidate, CandidateDraft, Check, ProductModel, Strict, Verdict
+from simula.contracts import (GATES, JUDGMENT, Candidate, CandidateDraft, Check, ProductModel, SavedVerdict, Strict,
+                              Verdict)
 from simula.runfolder import write_json_atomic
 from simula.runlog import read_trace
 from simula.stages import judge, propose
@@ -216,7 +217,7 @@ def combined(verdicts: dict[str, Verdict | None]) -> tuple[bool, set[str]]:
 def economics_result(c: Candidate, model: ProductModel) -> str:
     if economics.input_problem(c):
         return "dropped"
-    return economics.annotate(c, model.app_category).verdict
+    return economics.annotate(c, model).verdict
 
 
 def wilson_lower(k: int, n: int, z: float = Z95) -> float:
@@ -324,7 +325,7 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
         lines.append(f"| {k} | " + " | ".join(cells) + " |")
 
 
-    lines += ["", "## Known-good pass rate (every one of the 11 checks passed)", "",
+    lines += ["", f"## Known-good pass rate (every one of the {len(LLM_CHECKS)} checks passed)", "",
               "| Judge | Known-good (gate) |", "|---|---|"]
     kg_rate = {}
     for who in columns:
@@ -358,7 +359,8 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
                     continue
                 fails = judge.failed_by_any(ran)
                 held = c.target in fails if c.target else not is_passed(c, who)
-                cells.append(("✓ " if held else "✗ ") + (f"fails {', '.join(fails)}" if fails else "passes all 11"))
+                cells.append(("✓ " if held else "✗ ")
+                             + (f"fails {', '.join(fails)}" if fails else f"passes all {len(LLM_CHECKS)}"))
             lines.append(f"| {c.id} | {c.target or 'any'} | " + " | ".join(cells) + " |")
 
     if c8:
@@ -452,7 +454,7 @@ def load_runs(runs: Path) -> dict[tuple[str, str], list[Verdict]]:
     for p in runs.glob("*_r*.json"):
         stem, n = p.stem.rsplit("_r", 1)
         who = next(j for j in JUDGES if stem.endswith(f"_{j}"))
-        verdict = Verdict.model_validate_json(p.read_text())
+        verdict = SavedVerdict.model_validate_json(p.read_text())
         found.setdefault((stem.removesuffix(f"_{who}"), who), []).append((int(n), verdict))
     return {key: [v for _, v in sorted(pairs, key=lambda x: x[0])] for key, pairs in found.items()}
 
@@ -473,11 +475,14 @@ def disagreeing(runs: list[Verdict], agreed: Verdict) -> Verdict:
     return next((v for v in runs if gates(v) != gates(agreed)), runs[0])
 
 
-def summarize(runs_dir: Path, preface: Path, out: Path = REPORT) -> bool:
-    """validation/report.md from saved runs of every fixture: the preface, then report() on each judge's majority
-    verdicts. Makes no calls, so the committed report can be rebuilt without re-judging."""
-    cases = load_cases()
+def summarize(runs_dir: Path, preface: Path, out: Path = REPORT, only_judged: bool = False) -> bool:
+    """validation/report.md from saved runs: the preface, then report() on each judge's majority verdicts over every
+    fixture, a missing verdict counting as a miss. `only_judged` scores only the fixtures the runs judged (and the C8
+    cases code scores), for runs saved before newer fixtures existed. Makes no calls, so the committed report can be
+    rebuilt without re-judging."""
     runs = load_runs(runs_dir)
+    judged = {cid for cid, _ in runs}
+    cases = [c for c in load_cases() if not only_judged or c.id in judged or c.target == C8]
     agreed = {key: majority(vs) for key, vs in runs.items()}
     gate_cases = {c.id for c in cases if c.source == "planted" and c.target in GATES}
     reruns = {key: disagreeing(runs[key], v) for key, v in agreed.items() if key[0] in gate_cases}
@@ -493,7 +498,7 @@ def load_verdicts(out: Path = OUT) -> dict[tuple[str, str], Verdict]:
     for p in sorted((out / "verdicts").glob("*_r1.json")):
         who = next((j for j in JUDGES if p.stem.endswith(f"_{j}_r1")), None)
         if who:
-            found[(p.stem.removesuffix(f"_{who}_r1"), who)] = Verdict.model_validate_json(p.read_text())
+            found[(p.stem.removesuffix(f"_{who}_r1"), who)] = SavedVerdict.model_validate_json(p.read_text())
     return found
 
 
@@ -531,7 +536,7 @@ def label_cases(cases: list[Case], verdicts: dict[tuple[str, str], Verdict], lab
         for (cid, who), v in sorted(verdicts.items()):
             if cid == case.id:
                 fails = [f"{k}: {getattr(v, k).reason}" for k in LLM_CHECKS if judge.failed(v, k)]
-                say(f"{who}: " + ("passes all 11" if not fails else "fails " + " | ".join(fails)))
+                say(f"{who}: " + (f"passes all {len(LLM_CHECKS)}" if not fails else "fails " + " | ".join(fails)))
         if case.source == "planted":
             say(f"Planted to fail {case.target} ({case.tier}).")
     return labeled
@@ -554,15 +559,18 @@ def main(argv: list[str] | None = None) -> int:
     lab.add_argument("--limit", type=int, default=LABEL_TARGET)
     lab.add_argument("--out", type=Path, default=OUT, help="where validate-judge wrote its verdicts")
     s = sub.add_parser("summarize", help="rebuild validation/report.md from saved runs; makes no calls")
-    s.add_argument("--runs", type=Path, default=VERDICTS / "VF2", help="the live rubric's saved runs")
+    s.add_argument("--runs", type=Path, default=VERDICTS / "VF3", help="the live rubric's saved runs")
     s.add_argument("--preface", type=Path, default=REPORT.parent / "preface.md")
+    s.add_argument("--out", type=Path, default=REPORT)
+    s.add_argument("--only-judged", action="store_true",
+                   help="score only the fixtures the runs judged, for runs saved before newer fixtures existed")
     sub.add_parser("freeze", help="pin the judge prompt hashes in config/frozen_prompts.toml")
     args = p.parse_args(argv)
     if args.command == "validate-judge":
         return 0 if validate_judge(args.profile, args.judges.split(","), args.no_cache, args.out) else 1
     if args.command == "summarize":
-        passed = summarize(args.runs, args.preface)
-        print(f"{REPORT}: harness gate {'PASS' if passed else 'FAIL'} (rebuilt from {args.runs}, no calls)")
+        passed = summarize(args.runs, args.preface, args.out, args.only_judged)
+        print(f"{args.out}: harness gate {'PASS' if passed else 'FAIL'} (rebuilt from {args.runs}, no calls)")
         return 0
     if args.command == "label":
         n = label_cases(load_cases(), load_verdicts(args.out), CASES / "labels", limit=args.limit)

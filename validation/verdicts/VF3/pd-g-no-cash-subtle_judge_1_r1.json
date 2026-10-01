@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-cash-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy promises 'a voucher' without saying what it is or how much it is worth, so the reward is not fully stated before the ad."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The 'voucher' for watching one more ad is listed as cash-like in the fail conditions, and the proposal never says what it can be used for."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an article-open counter reaching 3, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed or capped. Sponsored cards are only hidden for a window and return afterward, and 'removes nothing free: yes' holds."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a banner card on the Home feed (s01), which is rated safe. It is app chrome and not placed in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is a product_change. Ad-free time for reading the feed and articles is for the player's own use in the observed core flow f01 (read a story), and it does not go to anyone else."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "'The app has no paywall, limit, or currency' and 'the only friction a free reader meets is sponsored cards' are stated as facts about the whole app. The model only records that none was seen on the home feed, and it also shows the Inbox behind a sign-in."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no paid plan, so there are no paying users to spare."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The 30-minute window expires, and it takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The banner appears on the persistent Home feed after a finished read, is dismissible, and does not interrupt an article."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The voucher is granted for watching a second ad after the game, which is not the verified play. The 30-minute window itself is tied to the confirmed play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names this app's home feed ad slot below the first story (s01.e44), the in-article Taboola card (s02.e13), and the read-to-feed loop."
+ },
+ "other_concern": "The voucher and the second ad add a confusing extra step, and the idea depends on an unverified assumption that ad fill is low-value. Hiding the article ad slot may also affect ad partner agreements.",
+ "fixable": true
+}

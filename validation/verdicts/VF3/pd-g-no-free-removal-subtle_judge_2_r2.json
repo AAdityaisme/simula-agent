@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-free-removal-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 60-minute priority-routing reward before the user chooses to play. The decline and ad-failure fields leave normal use available without a penalty."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field grants in-app priority routing, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is returning to the profile menu from the upgrade entry without subscribing; it does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The adds field introduces a daily cap on how many characters free users can text. That caps access to chatting, rather than model replies or queue priority, so it is not an allowed new cap."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile menu, a safe app-chrome surface away from chats."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, the reward samples priority routing, a Janitor+ benefit shown by s02.e06."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about Janitor+ priority routing and the profile-menu upgrade entry are supported by s02.e06 and s09.e31. The daily character cap is presented as a proposed addition, not a claim about the app today."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The subscribers field says subscribers already have priority routing and never see the card."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward lasts 60 minutes and is capped at two plays per day. Priority routing is already a sold advantage in s02.e06."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places a card in the profile menu after the user returns from the upgrade entry, rather than interrupting a chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game, and the trigger is a detectable return to the profile menu. The proposal does not specify granting the reward on a tap, click, or unverified play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s09 Upgrade to Janitor Plus entry and samples the priority-routing benefit shown in s02.e06."
+ },
+ "other_concern": "The flow says the menu card confirms activation on My Chats, although its stated placement is only in the profile menu. Clarify where confirmation appears and explicitly tie activation to REWARD_VERIFIED.",
+ "fixable": true
+}

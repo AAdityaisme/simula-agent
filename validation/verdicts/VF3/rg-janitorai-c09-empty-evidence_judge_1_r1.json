@@ -1,0 +1,53 @@
+{
+ "candidate_id": "rg-janitorai-c09-empty-evidence",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card appears after the user taps like and they choose whether to play. The offer copy states the reward (24-hour boost, supporter name for 7 days), declining leaves the page unchanged, and there is a no-ad and unverified-play path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic list boost and a supporter mention, with nothing withdrawable, transferable or exchangeable."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a tap on the like button (s07.e16), which is an app event, and no chat content is used."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea does not remove, lock or cap anything users get free today. The effect on other creators' list positions is handled under c4."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits under the byline on s07, a character page rated safe, as app chrome rather than inside any conversation."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "This is a product_change where the boost and visibility go to the creator (@IoakimTumo), not the player. The player gets only a cosmetic supporter mention, so most of what the reward gives goes to someone other than the player."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the app today are supported: Hidden Gems promotes smaller creators' newer characters (s01.e13, s01.e15), there are 102 pages (s01.e27), and the character page has a creator byline, like and comments buttons (s07). The card, boost and supporter row are new additions, not claims about today's app."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "Subscribers see the same opt-in card, and it is not more of what Janitor Plus sells (memory, priority, swipes, badge). The offer is outside their plan and not on a paid screen."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "Lifting one character in the Home list pushes other creators' characters down, taking their place in a list the app orders. The model shows no existing sale of that advantage."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears right after the user finishes the like action, which is a finished-action moment, and it does not interrupt a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit, the reward is granted after the verified play, and the trigger (tapping like) is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It depends on this app's Hidden Gems smaller-creator list, creator bylines and the like button on character pages."
+ },
+ "other_concern": "The boost mechanic would need a backend ranking change, and it is unclear whether the Hidden Gems order can be influenced. Creators could also game the boost through friends or alt accounts.",
+ "fixable": false
+}

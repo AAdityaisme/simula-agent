@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-brand-safety-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states 60 minutes of priority routing before the user chooses to play. The decline and ad-failure fields leave chatting available without the reward."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is in-app priority routing for 60 minutes, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses the Upgrade entry, a return without subscribing, and opening a chat from My Chats; it does not require reading chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal's 'removes nothing free' and decline fields leave existing access unchanged."
+ },
+ "g_brand_safety": {
+  "passed": false,
+  "reason": "The placement puts the offer inside the character's reply. An offer inside the conversation itself fails this gate."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward gives priority routing, which Janitor+ sells as a benefit in s02.e06."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says users skip a normal queue by getting earlier placement in line. The model supports priority routing for faster replies, but does not establish that queue or how routing works."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'offered to' and 'subscribers' fields say only free users receive the offer; subscribers never see it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward ends after 60 minutes, and Janitor+ already sells the priority-routing advantage in s02.e06."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is at the end of the character's next reply, after that reply is finished."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game triggered by app events, and the ad-failure field says unverified play does not turn on faster replies."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Janitor+ Upgrade entry in s09, priority routing in s02.e06, and opening a chat from s06 My Chats."
+ },
+ "other_concern": "The rationale predicts that an hour of priority routing is cheap to give, but its cost is not established by the model.",
+ "fixable": true
+}

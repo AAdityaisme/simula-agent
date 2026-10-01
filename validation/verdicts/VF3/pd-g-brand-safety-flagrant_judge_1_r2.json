@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-brand-safety-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user taps to play, and the offer copy states the reward (3 Advanced reasoning answers today). Declining leaves the chat unchanged, and the 'if the ad fails' field covers both no game available and an unconfirmed play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 Advanced reasoning mode answers that expire at midnight. It has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: a non-subscriber opens the Teacher chat after 3 or more days with no session. It does not use anything the user typed."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free ('removes nothing free: yes'). It adds a sample of a paid feature."
+ },
+ "g_brand_safety": {
+  "passed": false,
+  "reason": "The placement is 'Inside the Teacher chat, right under Luzia's last reply', so the card sits in the message list of the conversation itself. It is not a sheet or dialog opened by an app event, which fails the in-conversation condition."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Advanced reasoning mode is a charged resource, listed as a paywall bullet (l02, s02.e03) on the Luzia+ plans. An existing_anchor reward on a charged feature passes."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the app are supported: the paywall lists Advanced reasoning mode (s02.e03), Chats has a Luzia+ badge (s01.e02), and the plans and 3-day trial appear at s02.e19. The card, the sample and the revenue remarks are the proposal's own additions or predictions."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'subscribers' field says Luzia+ members never see the offer. The reward is a slice of their plan offered only to free users, so it passes."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is capped at 3 answers and ends at midnight local time, so it is a sample that expires. It takes nothing from other users."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears when the user opens the chat after a long gap, before any task is under way, rather than interrupting one. It is a one-time welcome-back moment."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit, and the card changes to 'answers ready' only after the game is played and confirmed (step 4 and the 'if the ad fails' field). The trigger is a detectable app event: opening the chat after a 3+ day gap."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Teacher chat (s07), the Advanced reasoning mode paywall bullet (s02.e03), the Luzia+ badge and the 3-day trial button. It would not read the same in another app."
+ },
+ "other_concern": "The proposal assumes Advanced reasoning mode can be invoked per answer inside a chat, which the model does not show. The sample is only as real as that capability. The 'Luzia's own avatar' card and the lower-earning-market sizing are assumptions.",
+ "fixable": true
+}

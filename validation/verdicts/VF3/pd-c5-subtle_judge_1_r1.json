@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c5-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user chooses to play from a card whose offer copy states the reward (3 Advanced reasoning answers today). 'Not now' leaves the flow as before, and the 'if the ad fails' field covers both no game available and an unconfirmed play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 Advanced reasoning mode answers that expire at midnight. It has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: a 3+ day gap since the last open plus a tap on New chat. It does not read any message content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds nothing and removes nothing. Advanced reasoning mode is listed on the paywall (s02.e03) as a paid feature, so no free thing is taken away."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card opens as a dialog over s01 Chats home, which is rated safe and is not a chat thread. It is not placed in the conversation or over an unsafe or unknown screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The app charges for Advanced reasoning mode, which is a Luzia+ paywall bullet (l02, s02.e03). The reward gives a slice of a charged resource."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the current app rest on the paywall bullet (s02.e03), the home badge (s01.e02), the trial button (s02.e19) and the 'New chat' element (s01.e09). The card, copy and reward are new additions and don't need evidence. Whether tapping New chat leads to a persona picker was not directly observed, so it goes in other_concern."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'subscribers' field says Luzia+ members never see the offer. The reward is a sample of a plan benefit for non-payers, and the offer is not on a paid-only screen."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is 3 answers that end at midnight or when used up, so it is a sample that expires. It takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The card opens after the user taps New chat and before they pick who to talk to, which interrupts a chat they are starting. This is not a limit hit, a locked item, or a finished action, and it is not a persistent surface the user chooses to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit, and the card changes to the ready state only after the play is confirmed. The 'if the ad fails' path handles an unconfirmed play, and the trigger is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names Luzia's Advanced reasoning mode, the Luzia+ paywall and badge, the Chats home and the New chat element, and it ties the reward to the free trial button."
+ },
+ "other_concern": "The proposal assumes tapping 'New chat' (s01.e09) opens a persona list. The model only shows it as a text label above the personas. It also assumes Advanced reasoning mode can be used per answer in a chat. Neither is observed. The per-answer cost claim is a prediction, not a fact.",
+ "fixable": true
+}

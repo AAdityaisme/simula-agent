@@ -1,0 +1,53 @@
+{
+ "candidate_id": "rg-janitorai-c09-empty-evidence",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 24-hour lift and seven-day supporter mention before the user chooses to play. The decline and ad-failure fields leave the like intact and grant no reward if verification fails."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is an in-app list boost and supporter mention, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is a tap on the like button, with character eligibility for the Home list; it does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and removes-nothing-free fields do not remove, lock, or cap an existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on s07, a character-detail screen rated safe, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "For this product_change, most of the reward is a 24-hour visibility boost for the character's creator, not something the player gets for their own use in an observed core flow."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The rationale claims that fans have no way to help beyond a like, an absolute claim about the app today that the model does not support; s07.e03 also shows a comments button."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "Although subscribers see the card, its reward is outside the Janitor Plus benefits listed in m2, and the offer sits on a character page rather than in a paid-only feature."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The reward lifts a character in the ordered Home list shown at s01.e13–e15, taking list position from other creators; m2 does not show that the app already sells this advantage."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger event opens the card after the user taps the like button on s07.e16, a completed action rather than an interruption mid-task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game triggered by a detectable like-button tap, and the ad-failure field says nothing changes when play cannot be verified."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names s07's character page and s01's Hidden Gems list, including the smaller-creators description at s01.e15."
+ },
+ "other_concern": "",
+ "fixable": false
+}
