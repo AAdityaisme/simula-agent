@@ -314,14 +314,15 @@ def test_a_tap_on_home_resolves_on_the_capture_it_was_taken_on(tmp_path, monkeyp
     chip = next(c for c in home.cands if c.label == "Trending")
     for c in (new_row, chip):
         ex.log(home, chat, stage.Move("tap", c), c, "push", "", "ok")
-    assert [line.capture for line in lines(ex) if line.outcome == "ok"] == [None, home.png, home.png]
+    ex.log(home, chat, stage.Move("swipe"), None, "push", "", "ok")  # a move with no tap binds to no element anyway
+    assert [line.capture for line in lines(ex) if line.outcome == "ok"] == [None, *[home.png] * 3]
     ex.write(None)
     states, _, _ = model_stage.load_states(ex.out, ex.device)
     edges, notes = model_stage.load_edges(ex.out, states, model_stage.load_later(ex.out, ex.device))
     elements = {e.id: e for s in states for e in s.elements}
     bound = sorted((elements[e.element_id].text or elements[e.element_id].label)[:9] if e.element_id else ""
                    for e in edges)
-    assert bound == ["", "Trending", "Wavemaker"] and any("a later capture" in n for n in notes)
+    assert bound == ["", "", "Trending", "Wavemaker"] and sum("a later capture" in n for n in notes) == 1
 
 
 def test_billing_screen_gets_back_at_once(run):

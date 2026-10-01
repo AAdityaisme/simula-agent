@@ -288,7 +288,7 @@ def load_edges(explore_dir: Path, states: list[State],
             continue
         then = taken_on(later or {}, a)
         element, edge_id = edge_for(by_id[a.from_state], a, then)
-        if then is not None and element is None:
+        if then is not None and a.tap_px and element is None:
             notes.append(f"step {a.step}: taken on {a.capture}, a later capture of {a.from_state}, whose tapped "
                          f"control the state's own capture doesn't show in its place; bound to no element")
         elif then is None and a.mcp_ref and (element is None or element.mcp_ref != a.mcp_ref):
