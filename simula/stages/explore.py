@@ -349,7 +349,7 @@ class Explorer:
                     self.revisit(known, obs)
                 return known
         kind, box = self.kind_of(obs, before)
-        home = self.home if kind == "screen" and self.homelike(obs) else None
+        home = self.home if kind == "screen" and self.home and self.homelike(self.home, obs) else None
         sid = home.sid if home else f"s{len(self.states) + 1:02d}"
         shutil.copyfile(self.scratch / "now.png", self.out / "states" / f"{sid}.png")
         (self.out / "states" / f"{sid}.elements.json").write_text(json.dumps(obs.reply, indent=1, ensure_ascii=False))
@@ -384,11 +384,13 @@ class Explorer:
             self.log_denied(seen)
         return seen
 
-    def homelike(self, obs: Obs) -> bool:
+    def homelike(self, home: Seen, obs: Obs) -> bool:
         """What a relaunch's landing must show to be home: nothing the first launch's checks would block, no wall (an
-        account or money), and the tab bar the first launch recorded, if it recorded one. Any other landing, such as a
-        restored deeper screen, is recorded as its own state and back_to_root goes back from it."""
-        if self.blocked(obs) or ob.walled(obs.cands):
+        account or money) that home didn't already show, like a guest home's own "Log in", and the tab bar the first
+        launch recorded, if it recorded one. Any other landing, such as a restored deeper screen, is recorded as its
+        own state and back_to_root goes back from it."""
+        had = {(c.label, c.kind) for c in home.cands}
+        if self.blocked(obs) or ob.walled([c for c in obs.cands if (c.label, c.kind) not in had]):
             return False
         return all(ob.find(obs.cands, t) for t in self.tabs)
 

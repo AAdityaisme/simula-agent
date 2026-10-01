@@ -1252,3 +1252,23 @@ def test_a_clickable_card_listed_before_the_rows_still_covers_them(tmp_path, mon
     assert ex.rows(feed) == []
     ex.walk_into(feed, 0)
     assert not tapped
+
+
+def test_a_guest_home_with_a_log_in_header_is_still_home_after_its_feed_reloads(tmp_path, monkeypatch):
+    """rt-pr29-7ef1473: home's own "Log in" is no wall; a wall home didn't show still is (the sign-in wall test)."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    login = {"ref": "@login", "type": "android.widget.Button", "text": "Log in",
+             "coordinates": {"x": 700, "y": 160, "width": 200, "height": 90}}
+    first, other = capture("janitorai", "j04_tab1"), capture("janitorai", "j11_home_relaunched")
+    for screen in (first, other):
+        screen.elements.append(login)
+        ImageDraw.Draw(screen.image).rectangle((700, 160, 900, 250), fill=(70, 70, 70))
+    phone.screens.update(first=first, other=other)
+    phone.screen = "first"
+    home = ex.current = ex.record(ex.observe(), None, None, None)
+    ex.root = ex.launch_root = home
+    ex.tabs = ob.tab_bar(home.cands, ex.device)
+    assert ex.tabs and ob.walled(home.cands) == "account"
+    phone.start = "other"
+    ex.relaunch()
+    assert ex.current is home and len(ex.states) == 1, (ex.current.sid, len(ex.states))
