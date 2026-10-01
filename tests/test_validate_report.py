@@ -6,10 +6,11 @@ import hashlib
 import json
 import shutil
 import subprocess
+from dataclasses import replace
 
 import pytest
 
-from simula import economics, llm, runfolder, runlog, validate
+from simula import config, economics, llm, runfolder, runlog, validate
 from simula.contracts import GATES
 from simula.stages import judge, propose
 from simula.validate import C8, LLM_CHECKS, Case
@@ -513,13 +514,21 @@ def commit(root, message="x"):
     git(root, "commit", "-qm", message)
 
 
+def push(root):
+    git(root, "push", "-q", "origin", "HEAD")
+
+
 @pytest.fixture
-def ready(tmp_path, monkeypatch):
-    """Experiment j registered and committed in a git repo at tmp_path, with its labels in place; returns the model
-    calls made."""
+def ready(tmp_path, tmp_path_factory, monkeypatch):
+    """Experiment j registered and committed in a git repo at tmp_path, which pushes to a bare remote, with its labels
+    in place; returns the model calls made."""
+    remote = tmp_path_factory.mktemp("remote")
+    git(remote, "init", "-q", "--bare")
     register(tmp_path)
-    git(tmp_path, "init", "-q")
+    git(tmp_path, "init", "-q", "-b", "main")
+    git(tmp_path, "remote", "add", "origin", str(remote))
     commit(tmp_path, "register experiment j")
+    push(tmp_path)
     monkeypatch.setattr(validate, "read_labels", lambda root=validate.CASES: every_good_labeled())
     calls = []
 
@@ -530,11 +539,16 @@ def ready(tmp_path, monkeypatch):
     return calls
 
 
-def run_arm(tmp_path, arm="treatment", name="j"):
-    """Both runs of an arm: its start, committed, then its draw."""
-    validate.experiment(name, arm, tmp_path)
+def start_arm(tmp_path, arm="treatment"):
+    validate.experiment("j", arm, tmp_path)
     commit(tmp_path, f"start arm {arm}")
-    validate.experiment(name, arm, tmp_path)
+    push(tmp_path)
+
+
+def run_arm(tmp_path, arm="treatment"):
+    """Both runs of an arm: its start, committed and pushed, then its draw."""
+    start_arm(tmp_path, arm)
+    validate.experiment("j", arm, tmp_path)
 
 
 def test_an_arm_records_its_start_and_draws_only_once_that_start_is_committed(tmp_path, ready):
@@ -544,8 +558,12 @@ def test_an_arm_records_its_start_and_draws_only_once_that_start_is_committed(tm
     with pytest.raises(SystemExit, match="start in .* isn't committed"):
         validate.experiment("j", "treatment", tmp_path)
     commit(tmp_path, "start arm treatment")
+    with pytest.raises(SystemExit, match="isn't on any remote branch: push it"):
+        validate.experiment("j", "treatment", tmp_path)
+    push(tmp_path)
     validate.experiment("j", "treatment", tmp_path)
     assert ready and (arm / "report.md").exists() and validate.uncommitted([arm])
+    assert git(tmp_path, "reflog", "show", "refs/experiments/j/treatment").strip().endswith("draw")
 
 
 def test_an_experiment_arm_judges_under_its_registered_rubric_and_counts_a_lost_call_against_it(tmp_path, ready,
@@ -619,8 +637,7 @@ def draw_failing_good(tmp_path, monkeypatch, passes=False, crash_after=None):
 def test_a_draw_deleted_before_its_commit_is_never_drawn_again(tmp_path, ready, monkeypatch):
     """The red team's probe A (rt-pr34-0b7e95f): draw, read, delete the uncommitted draw, draw again."""
     arm = tmp_path / "experiment-j" / "treatment"
-    validate.experiment("j", "treatment", tmp_path)
-    commit(tmp_path, "start arm treatment")
+    start_arm(tmp_path)
     draw_failing_good(tmp_path, monkeypatch)
     with pytest.raises(SystemExit, match=r"commit these first: experiment-j/treatment/.* and \d+ more"):
         run_arm(tmp_path, "control")
@@ -633,9 +650,31 @@ def test_a_draw_deleted_before_its_commit_is_never_drawn_again(tmp_path, ready, 
     assert not arm.exists()
 
 
+def test_a_draw_cleaned_away_before_its_commit_is_never_drawn_again(tmp_path, ready, monkeypatch):
+    """The red team's case 3 (rt-pr34-51b579c): git clean leaves exactly the committed start, but the draw's ref stays."""
+    start_arm(tmp_path)
+    draw_failing_good(tmp_path, monkeypatch)
+    git(tmp_path, "clean", "-qfdx", "--", "experiment-j/treatment")
+    assert sorted(p.name for p in (tmp_path / "experiment-j" / "treatment").iterdir()) == sorted(validate.START)
+    with pytest.raises(SystemExit, match="already drawn or abandoned .*a draw of it began: refs/experiments/j/treatment"):
+        draw_failing_good(tmp_path, monkeypatch, passes=True)
+
+
+def test_an_arm_refuses_while_another_arm_git_knows_of_is_missing_from_the_checkout(tmp_path, ready, monkeypatch):
+    """Greptile 4154471719 and the red team's probe_missing_control: the control drawn on a branch, the treatment run
+    from a checkout without it, with a label changed."""
+    git(tmp_path, "checkout", "-q", "-b", "control-branch")
+    run_arm(tmp_path, "control")
+    commit(tmp_path, "draw arm control")
+    git(tmp_path, "checkout", "-q", "main")
+    monkeypatch.setattr(validate, "read_labels", lambda root=validate.CASES: every_good_labeled(16))
+    with pytest.raises(SystemExit, match="arm control's record isn't in this checkout: merge it first"):
+        validate.experiment("j", "treatment", tmp_path)
+    assert not (tmp_path / "experiment-j" / "treatment").exists()
+
+
 def test_a_crashed_draw_points_to_the_visible_ways_out(tmp_path, ready, monkeypatch):
-    validate.experiment("j", "treatment", tmp_path)
-    commit(tmp_path, "start arm treatment")
+    start_arm(tmp_path)
     with pytest.raises(llm.CapReached):
         draw_failing_good(tmp_path, monkeypatch, crash_after=10)
     with pytest.raises(SystemExit, match="commit .*treatment as it stands, which leaves the experiment inconclusive, "
@@ -671,6 +710,18 @@ def test_a_later_arm_runs_only_on_the_inputs_the_first_arm_ran_on(tmp_path, read
     with pytest.raises(SystemExit, match=r"other inputs \(cases\)"):
         validate.experiment("j", "treatment", tmp_path)
     monkeypatch.setattr(validate, "known_good", narrower)
+    loaded = validate.load_cases
+    monkeypatch.setattr(validate, "load_cases", lambda: [replace(c, app_type="other") if c.id == GOOD else c
+                                                          for c in loaded()])
+    with pytest.raises(SystemExit, match=r"other inputs \(cases\)"):
+        validate.experiment("j", "treatment", tmp_path)
+    monkeypatch.setattr(validate, "load_cases", loaded)
+    models = config.models()
+    judge_1 = config.roles("dev")["judge_1"]["model"]
+    monkeypatch.setattr(config, "models", lambda: {**models, judge_1: {**models[judge_1], "stream_above": 1}})
+    with pytest.raises(SystemExit, match=r"other inputs \(judge models\)"):
+        validate.experiment("j", "treatment", tmp_path)
+    monkeypatch.setattr(config, "models", lambda: models)
     register(tmp_path, usd_cap=50.0)
     commit(tmp_path, "raise the cap")
     with pytest.raises(SystemExit, match=r"registration.toml\); an experiment's arms run on the same inputs"):

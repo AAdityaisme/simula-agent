@@ -35,23 +35,30 @@ is never edited.
 Each arm takes two runs into the tracked `validation/experiment-j/<arm>/`:
 
 1. **The start.** The first run writes the arm's start, `settings.json` and `rubric.md`, and stops. Commit and push it.
-2. **The draw.** The second run makes the calls only when exactly that start is committed and no commit on any ref
-   or in the reflog ever held more under the folder. It writes the verdicts, trace and `report.md`. Commit and push
-   them.
+2. **The draw.** The second run makes the calls only when all of these hold:
+   - exactly that start is committed and on a remote branch, since the push is checked, not just asked for;
+   - no commit on any ref or in the reflog ever held more under the folder;
+   - no draw of the arm began before.
 
-Any other state of the arm's folder is refused: results on disk or in history, or a start that is gone. So a draw
-that was deleted, crashed or reset away leaves its start in history and is never drawn again. The refusal names the
+   Before its first call, it marks the draw with the ref `refs/experiments/j/<arm>`, which has a reflog. It writes
+   the verdicts, trace and `report.md`. Commit and push them.
+
+Any other state is refused: results on disk or in history, a start that is gone, or a draw ref that exists. So a
+draw that was deleted, cleaned away (`git clean`), crashed or reset away is never drawn again. The refusal names the
 two visible ways out: commit the folder as it stands, which leaves the experiment inconclusive, or register a new
 experiment folder in a commit.
 
 Both runs also refuse, before any call or write, when any of these holds:
 
+- another arm git knows of (in its history or by its draw ref) isn't in this checkout: merge it first;
 - `validation/experiment-j/` (the registration and every arm) or the labels aren't committed;
 - there are fewer than 15 labels, or one of the known-good ideas has none;
 - the arm's rubric doesn't hash to its registered sha256;
 - an arm started on other inputs. Each start's `settings.json` records them by sha256:
-  - the registration, both rubrics, the frozen judge prompts and the labels;
-  - every case, both as the judges see it and as the reports score it (id, source, target, tier, known-good).
+  - the registration, both rubrics, the frozen judge prompts, the judge models' `config/models.toml` entries and the
+    labels;
+  - every case, both as the judges see it and as the reports score it (id, source, target, tier, known-good, app,
+    app type, in the test set).
 
   A commit that touches none of these, such as a `next` merge, may land between the runs;
 - a frozen judge input differs from `config/frozen_prompts.toml`.
@@ -102,11 +109,13 @@ Each arm's `settings.json` lists the case ids it judged; they must equal this li
 
 No resume and no third arm: each arm draws once.
 
-- Pushing each commit puts it where a local reset can't reach.
 - Until a draw is committed, it shows in `git status`.
-- The one way to redraw that git doesn't see is deliberate: delete an uncommitted draw and restore its committed
-  start by hand. So commit each draw before reading its report. The experiment is **inconclusive** if either arm hits any of
-these:
+- Once it has begun, its ref refuses any other draw of the arm, whatever happens to the folder.
+- Redrawing would take rewriting git's own records on purpose: deleting the draw ref (`git update-ref -d`), expiring
+  reflogs, or a fresh clone of a start whose draw was never pushed. So commit and push each draw before reading its
+  report.
+
+The experiment is **inconclusive** if either arm hits any of these:
 
 - a cap stop;
 - a failed call;

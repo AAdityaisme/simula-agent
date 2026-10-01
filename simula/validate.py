@@ -468,15 +468,17 @@ def experiment(name: str, arm: str, registered: Path = EXPERIMENTS) -> None:
     file (the tracked prompt is never edited), the judges, profile and cache use, and the dollar cap its arms share.
 
     An arm takes two runs. The first records its start (settings.json and rubric.md) in experiment-<name>/<arm>/ and
-    stops, to be committed and pushed. The second makes the calls, once exactly that start is committed and no ref or
-    reflog entry ever held more under the folder: each judge judges every LLM fixture once, a failed call counting as
-    a miss or a fail, and the verdicts, trace and report are written, to be committed and pushed. Any other state of
-    the folder is refused, so a draw that was deleted, crashed or reset away leaves its start in history and is never
-    drawn again.
+    stops, to be committed and pushed. The second makes the calls once exactly that start is committed and on a
+    remote branch, no ref or reflog entry ever held more under the folder, and no draw of the arm began before. Before
+    its first call it marks the draw with the ref refs/experiments/<name>/<arm> (with a reflog). Each judge judges
+    every LLM fixture once, a failed call counting as a miss or a fail, and the verdicts, trace and report are written,
+    to be committed and pushed. Any other state is refused, so a draw that was deleted, cleaned away, crashed or reset
+    away is never drawn again.
 
-    Both runs refuse before any call or write unless: the experiment folder (registration and every arm) and the
-    labels are committed; the labels are enough and include every known-good idea; the rubric has its registered
-    sha256; and every arm's start recorded the same inputs (experiment_inputs)."""
+    Both runs refuse before any call or write unless: every other arm git knows of is in this checkout; the
+    experiment folder (registration and every arm) and the labels are committed; the labels are enough and include
+    every known-good idea; the rubric has its registered sha256; and every arm's start recorded the same inputs
+    (experiment_inputs)."""
     for slug in (name, arm):
         if not SLUG.fullmatch(slug):
             raise SystemExit(f"experiment and arm names are plain slugs ([a-z0-9-]), not {slug!r}")
@@ -491,13 +493,19 @@ def experiment(name: str, arm: str, registered: Path = EXPERIMENTS) -> None:
     ever = history(folder)
     if here == START and not ever:
         raise SystemExit(f"arm {arm}'s start in {folder} isn't committed: commit and push it, then run again to draw")
-    if (here or ever) and (here, ever) != (START, START):
+    began = drawn(root, f"refs/experiments/{name}/{arm}")
+    if began or ((here or ever) and (here, ever) != (START, START)):
         state = ("its folder is gone, but git history holds it" if not here else
                  "its folder holds more than its start" if here - START else
-                 "git history holds more than its start" if ever - START else "its start is incomplete")
+                 "git history holds more than its start" if ever - START else
+                 f"a draw of it began: refs/experiments/{name}/{arm}" if began else "its start is incomplete")
         raise SystemExit(f"arm {arm} of experiment {name} was already drawn or abandoned ({state}). An arm draws once. "
                          f"The visible ways out: commit {folder} as it stands, which leaves the experiment "
                          "inconclusive, or register a new experiment folder in a commit.")
+    for other in reg["arms"]:
+        if other != arm and not (root / other).exists() and (history(root / other)
+                                                             or drawn(root, f"refs/experiments/{name}/{other}")):
+            raise SystemExit(f"arm {other}'s record isn't in this checkout: merge it first")
     if pending := uncommitted([root, CASES / "labels"]):
         raise SystemExit(f"experiment {name} runs only on committed files; commit these first: {', '.join(pending[:5])}"
                          + (f" and {len(pending) - 5} more" if len(pending) > 5 else ""))
@@ -535,6 +543,10 @@ def experiment(name: str, arm: str, registered: Path = EXPERIMENTS) -> None:
         print(f"Recorded the start of arm {arm} in {folder}. Commit and push it, then run the same command again to "
               "draw the arm.")
         return
+    start = git(root, "log", "-1", "--format=%H", "--", arm).stdout.strip()
+    if not git(root, "branch", "-r", "--contains", start).stdout.strip():
+        raise SystemExit(f"arm {arm}'s start ({start[:7]}) isn't on any remote branch: push it, then run again to draw")
+    git(root, "update-ref", "--create-reflog", "-m", "draw", f"refs/experiments/{name}/{arm}", "HEAD", check=True)
     (folder / "verdicts").mkdir()
     budget = llm.Budget("validate", reg["usd_cap"], spent_by(root), trace_path=folder / "trace.jsonl")
     verdicts = run_judges(cases, reg["judges"], roles, budget, folder, 1, reg["no_cache"], rubric=text)
@@ -554,15 +566,19 @@ def experiment(name: str, arm: str, registered: Path = EXPERIMENTS) -> None:
 
 def experiment_inputs(registration: Path, reg: dict, cases: list[Case], labels: dict[str, dict]) -> dict[str, str]:
     """What every arm of an experiment must share, each by sha256: the registration, every arm's rubric, the frozen
-    judge prompts, the labels, and the cases, both as the judges see them and as the report scores them. A commit that
-    touches none of these may land between arms."""
+    judge prompts, the judge models' entries in config/models.toml, the labels, and the cases, both as the judges see
+    them and as the report scores them. A commit that touches none of these may land between arms."""
     def short(p: Path) -> str:
         return str(p.relative_to(ROOT)) if p.is_relative_to(ROOT) else str(p)
     files = [registration, judge.FROZEN, *(ROOT / a["rubric"] for a in reg["arms"].values())]
-    seen = [(c.id, c.source, c.target, c.tier, known_good(c),
+    roles = config.roles(reg["profile"])
+    models = {m: config.models()[m] for j in reg["judges"]
+              for m in (roles[j]["model"], roles[j].get("declared_fallback")) if m}
+    seen = [(c.id, c.source, c.target, c.tier, known_good(c), c.app, c.app_type, c.in_test_set,
              judge.judge_messages(c.candidate, c.model)[0]["content"][0]["text"]) for c in cases]
     return {**{short(p): runfolder.sha256(p) for p in files},
             "labels": hashlib.sha256(json.dumps(labels, sort_keys=True).encode()).hexdigest(),
+            "judge models": hashlib.sha256(json.dumps(models, sort_keys=True).encode()).hexdigest(),
             "cases": hashlib.sha256(json.dumps(seen).encode()).hexdigest()}
 
 
@@ -579,6 +595,16 @@ def uncommitted(paths: list[Path]) -> list[str]:
             continue
         found += [line[3:] for line in listed.splitlines()]
     return found
+
+
+def git(cwd: Path, *args: str, check: bool = False) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=check)
+
+
+def drawn(root: Path, ref: str) -> bool:
+    """Whether a draw began under `ref` in root's git checkout: the ref, or its reflog, exists."""
+    return any(git(root, *args).returncode == 0
+               for args in (("show-ref", "--verify", "--quiet", ref), ("reflog", "exists", ref)))
 
 
 def history(path: Path) -> set[str]:
