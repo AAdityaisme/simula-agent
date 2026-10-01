@@ -161,8 +161,7 @@ class Phone:
         emulator's AVD; the first Android device when neither is given. Two emulators of one AVD look alike to
         mobile-mcp, so more than one match is an error. The list comes back empty now and then while adb is busy."""
         for attempt in range(1, DEVICE_ATTEMPTS + 1):
-            devices = json.loads(reply_text(self.server.call("mobile_list_available_devices", START_TIMEOUT_S)))
-            android = [d for d in devices.get("devices", []) if d.get("platform") == "android"]
+            android = self.android()
             matches = ([d for d in android if d.get("id") == serial]
                        or [d for d in android if avd and avd in (d.get("id"), d.get("name"))]
                        if serial or avd else android[:1])
@@ -175,12 +174,18 @@ class Phone:
                 time.sleep(DEVICE_RETRY_PAUSE_S)
         raise SystemExit(f"no Android device {serial or avd or ''} online: start the emulator first")
 
+    def android(self) -> list[dict]:
+        """The Android devices mobile-mcp lists."""
+        devices = json.loads(reply_text(self.server.call("mobile_list_available_devices", START_TIMEOUT_S)))
+        return [d for d in devices.get("devices", []) if d.get("platform") == "android"]
+
     def call(self, tool: str, timeout: float = ACTION_TIMEOUT_S, retry: bool = False, **args) -> dict:
         """One tool call. A 'Device not found' answer (mobilecli loses the device now and then while the emulator
-        is busy) means nothing ran, so it is asked again, even for an action."""
+        is busy; mobile-mcp sends it as text, without isError) means nothing ran, so it is asked again, even for an
+        action."""
         for attempt in range(1, DEVICE_ATTEMPTS + 1):
             reply = self.call_once(tool, timeout, retry, **args)
-            if not (reply.get("isError") and DEVICE_LOST.search(reply_text(reply))) or attempt == DEVICE_ATTEMPTS:
+            if not DEVICE_LOST.match(reply_text(reply)) or attempt == DEVICE_ATTEMPTS:
                 return reply
             time.sleep(DEVICE_RETRY_PAUSE_S)
 
@@ -188,10 +193,18 @@ class Phone:
         try:
             return self.server.call(tool, timeout, device=self.device, **args)
         except McpTimeout:
-            self.server.respawn()
+            self.respawn()
             if not retry:
                 raise
             return self.server.call(tool, timeout, device=self.device, **args)
+
+    def respawn(self) -> None:
+        """A fresh server, once it lists this device again: its mobilecli can miss it for a while (still at 19 s
+        after a respawn, measured 2026-10-01). Missing after START_TIMEOUT_S, the next call finds it lost."""
+        self.server.respawn()
+        deadline = time.monotonic() + START_TIMEOUT_S
+        while all(d.get("id") != self.device for d in self.android()) and time.monotonic() < deadline:
+            time.sleep(DEVICE_RETRY_PAUSE_S)
 
     def elements(self) -> tuple[dict, list[dict]]:
         """The element list. uiautomator's dump fails now and then mid-animation ("no XML content"); an error

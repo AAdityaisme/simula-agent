@@ -72,8 +72,13 @@ def test_a_failed_dump_is_read_again(tmp_path, monkeypatch):
         mcp.Phone(FlakyServer(3), "com.example.app", tmp_path).elements()
 
 
+LOST = {"content": [{"type": "text", "text": 'Device "simula" not found. Use the mobile_list_available_devices tool '
+                                             'to see available devices.. Please fix the issue and try again.'}]}
+
+
 class LosesTheDevice(FlakyServer):
-    """mobilecli's 'Device not found' answer, a set number of times, then a real reply."""
+    """mobilecli's 'Device not found' answer, a set number of times, then a real reply. mobile-mcp sends it as
+    text, without isError (its ActionableError)."""
 
     def __init__(self, losses: int):
         super().__init__(0)
@@ -82,8 +87,7 @@ class LosesTheDevice(FlakyServer):
     def call(self, tool, timeout, **args):
         if tool == "mobile_get_foreground_app" and self.losses:
             self.losses -= 1
-            return {"content": [{"type": "text", "text": 'Device "simula" not found. Use the '
-                                                         'mobile_list_available_devices tool.'}], "isError": True}
+            return LOST
         if tool == "mobile_get_foreground_app":
             return {"content": [{"type": "text", "text": "Foreground app: Janitor (com.janitor.ai)"}]}
         return super().call(tool, timeout, **args)
@@ -95,6 +99,42 @@ def test_a_lost_device_is_asked_again(tmp_path, monkeypatch):
     with pytest.raises(mcp.McpReplyError):
         mcp.Phone(LosesTheDevice(6), "com.janitor.ai", tmp_path).foreground()
 
+
+class MissesTheDeviceAfterARespawn(FlakyServer):
+    """The first element list hangs; the fresh server then lists no device for a set number of calls, and anything
+    else asked meanwhile gets 'Device not found'."""
+
+    def __init__(self, unlisted: int):
+        super().__init__(0)
+        self.unlisted, self.hung, self.respawns = unlisted, False, 0
+
+    def respawn(self):
+        self.respawns += 1
+
+    def call(self, tool, timeout, **args):
+        if tool == "mobile_list_elements_on_screen" and not self.hung:
+            self.hung = True
+            raise mcp.McpTimeout(f"{tool} took over {timeout:.0f}s")
+        if self.respawns and self.unlisted:
+            if tool == "mobile_list_available_devices":
+                self.unlisted -= 1
+                return {"content": [{"type": "text", "text": '{"devices": []}'}]}
+            return LOST
+        return super().call(tool, timeout, **args)
+
+
+def test_a_respawn_waits_until_the_device_is_listed_again(tmp_path, monkeypatch):
+    """Luzia's run 20261001-052746-71aa5a4: a swipe hung, and 19 s after the respawn the new server still didn't
+    list the device, so the reads after it failed and the run stopped. The read waits for the list instead; a
+    device still missing at START_TIMEOUT_S is lost."""
+    monkeypatch.setattr(mcp, "DEVICE_RETRY_PAUSE_S", 0)
+    monkeypatch.setattr(mcp, "LIST_RETRY_PAUSE_S", 0)
+    server = MissesTheDeviceAfterARespawn(unlisted=20)
+    assert mcp.Phone(server, "com.example.app", tmp_path).elements()[1][0]["ref"] == "@e1"
+    assert server.respawns == 1 and server.unlisted == 0
+    monkeypatch.setattr(mcp, "START_TIMEOUT_S", 0.05)
+    with pytest.raises(mcp.McpReplyError, match="not found"):
+        mcp.Phone(MissesTheDeviceAfterARespawn(unlisted=10 ** 6), "com.example.app", tmp_path).elements()
 
 class RefusesActions(FlakyServer):
     """Answers every device action with an error, the way mobile-mcp reports a tap that didn't happen."""
