@@ -368,6 +368,25 @@ def tab_bar(cands: list[Candidate], device: Device) -> list[Candidate]:
     return tabs if len(tabs) >= 2 and spread >= 0.4 * device.w_px else []
 
 
+def covered(c: Candidate, elements: list[dict], device: Device) -> bool:
+    """A tap at c's point lands elsewhere (invariant 3): on a clickable element there that isn't around all of c (the
+    deepest clickable view takes a tap, even one inside c), or on an element listed after c's (drawn over it) that is
+    neither part of c nor around all of it and shows words, its own or ones it holds: a card, even one whose body is
+    no control, or the tab bar. Words count only after c: the list is in drawing order, and content listed before a
+    floating button lies under it. mobile-mcp reports no clickable, so on a device a wordless overlay, or one an
+    elevation draws over rows listed after it, is unseen; one app lists a wordless empty box over its sheet's main
+    button, which still took the tap."""
+    at = next((n for n, e in enumerate(elements) if e.get("ref") == c.ref), None)
+    if at is None:
+        return False
+    x, y, after = *c.point, elements[at + 1:]
+    over = [e for e in elements if in_content(e, device) and not inside(c.rect, rect(e))
+            and inside(Rect(x=x, y=y, w=0, h=0), rect(e))]
+    return any(e.get("clickable") for e in over) or any(
+        e in after and not inside(rect(e), c.rect)
+        and (words(e) or any(words(o) and inside(rect(o), rect(e)) for o in after)) for e in over)
+
+
 def own_controls(cands: list[Candidate], box: Rect | None, behind: list[Candidate]) -> list[Candidate]:
     """A state's own controls: on a screen all of them; on an overlay in the parent's window, which leaves the
     parent's controls (behind) listed, maybe moved, only the new ones inside its box (a control without words is told
