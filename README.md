@@ -97,7 +97,7 @@ uv run simula replay-check                     # or one app: uv run simula repla
 
 It replays each run in a throwaway clone of the commit it's pinned to in [`runs/PINS.toml`](runs/PINS.toml) (HEAD when it has no pin), with the keys removed and outside requests refused. It prints one line per run and exits 1 if any run doesn't replay as committed. It checks that plain `--replay` skips every finished stage, that `--from model --replay` writes the same JSON outputs, and that HEAD still holds each run and every cache entry its pin had. `tests/test_replay.py` runs the same checks. Renders (PNG, PDF) differ byte by byte across machines, so it doesn't compare them.
 
-To re-execute a run in place, check out its pin and run the replay yourself. This rewrites timestamps, the trace and the renders in the run folder, so `git status` shows changes afterwards.
+To re-execute a run in place, check out its pin and run the replay yourself. This rewrites the run folder in place (timestamps, the trace and the renders), so `git status` shows changes afterwards; `simula replay-check` above is the clean way to check a run.
 
 ```sh
 git checkout submitted-2026-09-30

@@ -28,6 +28,9 @@ from tests.test_mock_isolation import ctx_for, fake_builder
 from tests.test_mock_fonts import live_build_with_fonts, no_network, replay
 from tests.test_spend_limit import USAGE_LIMIT, error_400, fake_anthropic
 
+# The scripted mock: the fixer is sent s01's section, never what's outside it.
+SCRIPTED = '<html><body><section data-screen="s01">v0</section>unsent</body></html>'
+
 # The options ctx_for and this file's CLI calls open a run with, which a printed resume command carries.
 OPTIONS = "--profile dev --budget transfer --allow-fixtures"
 
@@ -52,7 +55,7 @@ def scripted(tmp_path, monkeypatch):
     """A run whose measured scores follow a script, one per version, so the loop's rules can be tested alone."""
     run_dir = seed_model(tmp_path / "run", "luzia")
     (run_dir / "mock" / "assets").mkdir(parents=True)
-    (run_dir / "mock" / "index.html").write_text("<html><body>v0</body></html>")
+    (run_dir / "mock" / "index.html").write_text(SCRIPTED)
     screens = [s.id for s in mock.pick_scope(golden("luzia"))]
     (run_dir / "mock" / "contract_report.json").write_text(
         ContractReport(passed=True, screens=screens, errors=[]).model_dump_json())
@@ -155,7 +158,7 @@ def test_the_fixer_has_room_to_think_and_streams_but_never_gets_the_whole_page(s
     _, calls, play = scripted
     play([5.0, 6.0, 7.0, 8.0], profile=profile)
     fixers = [c for c in calls if c["schema"] is Edits]
-    assert fixers and all("v0" not in c["messages"][0]["content"][-1]["text"] for c in fixers)
+    assert fixers and all("unsent" not in c["messages"][0]["content"][-1]["text"] for c in fixers)
     assert all(c["max_tokens"] == 64000 for c in fixers)
     assert all(c["max_tokens"] > config.models()[c["model"]]["stream_above"] for c in fixers)
     assert all(c["max_tokens"] == 16000 for c in calls if c["schema"] is Critique)
@@ -190,6 +193,27 @@ def test_a_screen_the_critic_missed_gets_the_next_round_even_with_nothing_to_rep
     assert (report["outcome"], report["stop_reason"]) == ("complete", "round 2 found nothing to repair")
 
 
+@pytest.mark.parametrize("missed_in, outcome, stop", [
+    ({1, 2, 3}, "timeout", "all 3 rounds ran, 3 of them only re-asking the critic; it still missed s01"),
+    ({1}, "timeout", "all 3 rounds ran, 1 of them only re-asking the critic"),
+    ({1}, "refusal", "round 1 found nothing to repair on the screens reviewed; the critic missed s01"),
+], ids=["only-re-asked", "re-asked-then-repaired", "known-failure"])
+def test_the_stop_line_says_which_rounds_only_re_asked_the_critic_and_what_it_missed(scripted, monkeypatch,
+                                                                                   missed_in, outcome, stop):
+    """Fable's L11: a loop that only re-asked the critic read "all 3 rounds ran", and one that stopped with s01
+    unreviewed after a known failure read "found nothing to repair"."""
+    _, _, play = scripted
+
+    def criticize(ctx, budget, version, history, n, missed=None):
+        if n in missed_in:
+            missed["s01"] = (n, llm.LLMFailure(outcome, "d"))
+            return Critique(fixes=[], summary="s")
+        missed.pop("s01", None)
+        return Critique(fixes=[Fix(element_id="s01", problem="p", fix="f")], summary="s")
+    monkeypatch.setattr(qa, "criticize", criticize)
+    assert play([5.0, 6.0, 7.0, 8.0])["stop_reason"] == stop
+
+
 @pytest.mark.parametrize("twelve", APPS[:1], indirect=True)
 def test_a_screen_the_critic_missed_with_a_known_failure_ends_the_loop_with_nothing_to_repair(twelve, tmp_path,
                                                                                             monkeypatch):
@@ -208,7 +232,8 @@ def test_a_screen_the_critic_missed_with_a_known_failure_ends_the_loop_with_noth
         return Reply(text=text, model=model_id, tokens_in=10, tokens_out=10)
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider)
     _, loop = qa.improve(ctx_for(run_dir, app), model, mock.pick_scope(model), measured_twelve(run_dir, model))
-    assert loop.stop == "round 1 found nothing to repair" and ids[0] in loop.missed
+    assert loop.stop.startswith("round 1 found nothing to repair on the screens reviewed; the critic missed ")
+    assert ids[0] in loop.missed
     assert not [t for t in read_trace(run_dir / "trace.jsonl") if t.step.startswith("critic r2")]
 
 
@@ -255,7 +280,7 @@ def test_a_failed_model_call_stops_the_loop_but_still_approves_a_version(scripte
     monkeypatch.setattr(qa, "fix", lambda *a, **k: fail())
     report = play([5.0])
     assert report["approved_round"] == 0 and "round 1 stopped before any edit" in report["stop_reason"]
-    assert approved_html(run_dir) == "<html><body>v0</body></html>"
+    assert approved_html(run_dir) == SCRIPTED
     assert read_trace(run_dir / "trace.jsonl")[-1].step == "stop"
 
 
@@ -295,7 +320,8 @@ def test_a_fixer_edit_that_breaks_the_page_is_discarded_and_the_delivered_mock_a
     monkeypatch.setattr(llm, "call", fake_builder([]))
     mock.run(ctx_for(run_dir, app))
     delivered = (run_dir / "mock" / "index.html").read_text()
-    unclosed = Edit(find="<body>", replace="<body><!-- an unclosed comment swallows the runtime", reason="r")
+    s01 = '<section data-screen="s01"'
+    unclosed = Edit(find=s01, replace=f"<!-- an unclosed comment swallows the runtime {s01}", reason="r")
     monkeypatch.setattr(llm, "call", fake_llm([], lambda n: [unclosed]))
     qa.run(ctx_for(run_dir, app))
 
@@ -313,7 +339,8 @@ def test_a_replay_whose_renders_differ_makes_no_model_call_and_ends_where_the_re
     run_dir = seed_model(tmp_path / "run", app)
     monkeypatch.setattr(llm, "call", fake_builder([]))
     mock.run(ctx_for(run_dir, app))
-    answer = fake_llm([], lambda n: [Edit(find="</body>", replace="<!-- round 1 --></body>", reason="r")])
+    s01 = '<section data-screen="s01"'
+    answer = fake_llm([], lambda n: [Edit(find=s01, replace=f"<!-- round 1 -->{s01}", reason="r")])
 
     def refusing(**kwargs):
         if kwargs["step"] in ("critic r1 g2", "critic r2 g2", "fixer r2"):
@@ -323,6 +350,8 @@ def test_a_replay_whose_renders_differ_makes_no_model_call_and_ends_where_the_re
     qa.run(ctx_for(run_dir, app))
     recorded = json.loads((run_dir / "qa" / "qa_report.json").read_text())
     assert recorded["stop_reason"] == "round 2 stopped before any edit: refusal: refused"
+    applied = json.loads((run_dir / "qa" / "round1" / "edits.json").read_text())["edits"]
+    assert [e["applied"] for e in applied] == [True]  # so the replay has to re-apply it to reach round 1's page
     assert any("group skipped" in line.note for line in read_trace(run_dir / "trace.jsonl"))
     second_group = ", ".join(s.id for s in mock.pick_scope(golden(app))[2:4])
     assert recorded["outcome"] == "partial" and recorded["reasons"][:2] == [
