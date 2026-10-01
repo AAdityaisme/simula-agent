@@ -1,0 +1,53 @@
+{
+ "candidate_id": "kg-run-janitorai-c02",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states priority routing for 60 minutes before the user chooses to play. The decline and ad-failure fields preserve normal use and address unavailable or unverified games."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is temporary in-app priority routing, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a return to the profile menu from the Upgrade entry, not anything in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free; its decline path leaves replies at their normal speed."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile-menu drawer, a safe app-chrome surface away from chats."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward samples priority routing, which s02.e06 identifies as a Janitor+ benefit."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "s09.e31 supports the Upgrade entry, and s02.e06 supports priority routing for faster replies. The card and its 60-minute reward are proposed additions, not claims about current behavior."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The offered-to and subscribers fields say Janitor+ subscribers, who already receive priority routing, never see the card."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes and is capped at two plays per day. Priority routing is an advantage the app already sells through Janitor+."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears in the profile menu after the user returns from the Upgrade entry, rather than interrupting a chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable menu return, and the ad-failure field says unverified play does not turn on faster replies."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea ties the s09 Upgrade entry to the priority-routing benefit shown at s02.e06."
+ },
+ "other_concern": "",
+ "fixable": false
+}

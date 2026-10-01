@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-chat-content-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in by tapping the card, the offer copy states the reward (priority routing for 60 minutes), declining leaves the menu unchanged, and 'if the ad fails' covers both no game available and an unverified play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of priority routing, which is an in-app service and has no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": false,
+  "reason": "The trigger event says the card 'only goes to users whose chats are mostly long roleplay stories'. That targeting depends on the content and type of the user's chats, not on an app event."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea adds an optional card and removes or caps nothing free. Queue priority is the one resource a new cap is allowed on."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the profile menu drawer (s09), a sheet over a non-chat screen rated safe, and is not in or beside any conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The app charges for priority routing (m02, l02 'Priority routing for faster replies'), and m03 infers free users get normal-priority routing from s02.e07, so the resource is gated."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the app as it is today rest on s02.e06, s09.e31 and m02/m03: the permanent Upgrade entry, priority routing as a paid benefit, and subscribers already having it. The new card, the 60-minute window and the 'costs no extra replies' line are the proposal's own additions or predictions."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "Subscribers never see the card ('subscribers' field), and the profile menu is not a surface limited to paying users, so the reward is only a sample for non-payers."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes and is capped at 2 per day, so it is a sample and not lasting access. The app already sells queue priority, so it takes nothing from others that the app doesn't sell."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the profile menu, a persistent surface the user chooses to open, and it does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a rewarded playable sponsored game, the reward is granted only on a verified play (an unverified play gives no reward), and the trigger, returning to the menu from the Upgrade entry, is an app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the profile menu drawer, the Upgrade to Janitor Plus button, and the Janitor+ priority-routing benefit, which ties it to this app."
+ },
+ "other_concern": "The targeting clause about long roleplay stories needs chat content. The model also doesn't show what the Upgrade entry opens, so 'returns from the Upgrade entry' depends on navigation that wasn't observed in detail.",
+ "fixable": true
+}

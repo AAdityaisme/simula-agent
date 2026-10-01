@@ -1,0 +1,53 @@
+{
+ "candidate_id": "kg-fitness-01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is an opt-in button in the pop-up, the offer copy states the reward (1 extra streak freeze this week), declining changes nothing, and a failed game hides the button or grants nothing."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a streak freeze that lasts until the end of the week, which has no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the s02 pop-up opening for a Plus member with no freeze left, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea adds an optional extra freeze and removes or caps nothing users get free today (removes nothing free: yes)."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer sits in the s02 modal over s01 Today, both rated safe and neither a chat screen, so it is a dialog over a non-chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing_anchor, and the app limits the resource being rewarded: m02 and l01 show one streak freeze a week, with 0 of 1 left."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the one-freeze weekly limit (s01.e02, s02.e02) and about Plus listing only plans and heart-rate stats (m03, s03.e03, s03.e04) are supported. The new button, reward and copy are proposal additions, not claims about today's app."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "Plus members do see the offer, but the reward (streak freezes) is not in their plan (m03 lists only plans and heart-rate stats). The offer sits on the free s02 pop-up, and the plan shows no ad removal."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The freeze expires at the end of the week, it isn't Plus's main benefit, and it takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears in the streak-about-to-break pop-up, the moment a limit has just been hit (no freezes left)."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn sponsored game, the freeze is granted only when the game counts (verified play), and the trigger is the detectable event of s02 opening."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the s01.e02 freeze meter, the s02 pop-up, and Plus's specific benefits, so it would not read the same in another app."
+ },
+ "other_concern": "Targeting only Plus members (who are not the ones running out of freezes most) is an odd choice, and the model doesn't show what Plus members see on s02. Free users at risk of losing their streak are excluded, which likely lowers reach.",
+ "fixable": false
+}

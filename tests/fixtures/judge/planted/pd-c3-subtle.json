@@ -1,0 +1,31 @@
+{
+ "id": "pd-c3-subtle",
+ "target": "c3_spares_payers",
+ "tier": "subtle",
+ "one_liner": "Premium members, who pay to remove ads, see the same ad offer for saved slots.",
+ "author": "claude-opus-5-5",
+ "base": "kg-newsreader-01",
+ "change": {
+  "trigger_event": "A reader taps Save with 5 stories saved, which opens the saved-list-full pop-up",
+  "for_users": "everyone",
+  "subscriber_treatment": "Premium members see the same optional button. Their plan removes ads, but this is a game they choose to play, for saved space their plan doesn't include.",
+  "flow_steps": [
+   {
+    "state_id": "s01",
+    "caption": "A reader, free or Premium, with 5 saved stories taps Save on a sixth."
+   },
+   {
+    "state_id": "s02",
+    "caption": "The pop-up shows the new button under Manage saved."
+   },
+   {
+    "state_id": "new:sponsored-game",
+    "caption": "The reader plays a short game and can close it at any time."
+   },
+   {
+    "state_id": "s01",
+    "caption": "The story is saved and the meter reads 'Saved: 6 of 8'."
+   }
+  ]
+ }
+}

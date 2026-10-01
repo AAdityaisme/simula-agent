@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-free-removal-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before an optional game. The decline and ad-failure fields provide paths that do not consume a game attempt."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of in-app article access, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an article-open event and a daily count; it does not need chat content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The adds field locks articles after the third read, removing access from the observed article-reading flow f01. Reading an article is not a per-use model-reply or queue-priority resource."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a lock panel over the article on s02, which the product model rates content safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this product change, the reward gives the player temporary access to article reading, their own use of the observed core flow f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work field says the app has no paywall, limit, or currency as a fact about the whole app, while the open question only says none was seen on the home feed. The subscribers field likewise infers that every reader is free from no paid plan being observed."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no paid plan, and the offered-to field limits the proposed offer to free users."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits access to 30 minutes; it grants neither lasting access nor an advantage taken from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger event presents the offer when the reader taps a fourth article and encounters the proposed lock, a moment of need rather than an interruption mid-read."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game triggered by an article-open event and unlocks the article only once the play is confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the s01 home-feed story card, s02 article reader, and a fourth-article trigger."
+ },
+ "other_concern": "",
+ "fixable": false
+}

@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c3-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user chooses the button. The offer copy states the reward (3 more saved stories for 7 days). Declining leaves the list at 5, and the button is hidden if no game is ready or the game doesn't count."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is temporary saved-story slots, which have no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: tapping Save with 5 stories saved. No chat content is involved."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The 5-story limit already exists (m01). The extra 3 slots are new and temporary, and nothing free today is removed or capped."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a button in the s02 modal, which opens on an app event over s01. Both screens are rated safe and there is no chat."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing_anchor, and the app limits the resource being rewarded: saved stories are capped at 5 (m01, l01)."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the app are supported: the 5-story limit and pop-up (s02.e02), the meter (s01.e02), and Premium's 'No ads' and 'Listen to any story' (s03.e03, s03.e04). The rest (the slots, 'Saved: 6 of 8', the expiry behavior) is what the proposal itself adds."
+ },
+ "c3_spares_payers": {
+  "passed": false,
+  "reason": "The 'subscribers' field says Premium members see the same button, and the plan removes ads (m03, s03.e03). Showing the offer to members of an ad-removing plan fails this check."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "Premium sells no ads and listening, not saved space. The slots expire after 7 days and take nothing from other users."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears at a moment of need: the user has just hit the saved-list limit and the pop-up opens."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "This is a play-to-earn game. Slots are granted only when the game counts as played, and the trigger is a detectable Save tap at the limit."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names this app's saved-stories meter, the 5-story limit and the s02 full-list pop-up."
+ },
+ "other_concern": "The 'if the ad fails' text says 'if the game doesn't count' but doesn't explicitly tie the grant to REWARD_VERIFIED. The claim that the slots cost nothing to serve is an assumption.",
+ "fixable": true
+}

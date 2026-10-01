@@ -3,6 +3,7 @@
 import argparse
 import importlib
 import os
+import signal
 import sys
 from pathlib import Path
 
@@ -298,6 +299,12 @@ def cmd_qa_live(args) -> int:
     return 0
 
 
+def cmd_replay_check(args) -> int:
+    from simula import replaycheck
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(128 + signal.SIGTERM))  # a stopped check still removes its clones
+    return replaycheck.main(args.app, args.run)
+
+
 def add_run_flags(p: argparse.ArgumentParser) -> None:
     p.add_argument("app")
     p.add_argument("--run", help="run id under runs/APP (default: latest)")
@@ -338,6 +345,12 @@ def parser() -> argparse.ArgumentParser:
     r.add_argument("--new", action="store_true", help="start a new run folder")
     r.add_argument("--from", dest="from_stage", choices=STAGES, help="rerun from this stage onward")
     r.set_defaults(func=cmd_run)
+
+    rc = sub.add_parser("replay-check", help="replay committed runs in a throwaway clone of the code each is pinned "
+                                            "to; leaves this checkout as it was")
+    rc.add_argument("app", nargs="?", help="only this app's committed runs (default: all)")
+    rc.add_argument("--run", metavar="ID", help="only this run id")
+    rc.set_defaults(func=cmd_replay_check)
 
     for name, text in VALIDATE_COMMANDS.items():
         sub.add_parser(name, help=f"{text}; `simula {name} -h` lists its options")
