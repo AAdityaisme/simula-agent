@@ -195,6 +195,12 @@ def hop_key(s: Seen, move: Move) -> tuple:
     return s.sid, move.action, move.cand.key if move.cand else move.direction
 
 
+def controls_of(cands: list[ob.Candidate]) -> list[ob.Candidate]:
+    """A state's controls: its candidates but the pictures the vision pass found, which no picker takes while a
+    control is left."""
+    return [c for c in cands if c.kind != "picture"]
+
+
 def label_of(c: ob.Candidate, device: Device) -> str:
     state = "" if c.checked is None else "on, " if c.checked else "off, "
     return f"{c.label[:60] or 'unlabeled ' + c.kind} ({state}{where(c, device)})"
@@ -502,7 +508,8 @@ class Explorer:
             self.note("exit", f"BACK from {s.sid} left the app before: not taken again ({move.why})", outcome="blocked")
             return s
         if move.cand and move.action == "tap":
-            reason = ob.denied(move.cand, upsell=s.upsell, core=purpose == "core", toggle_ok=purpose == "filter")
+            reason = self.denied_at(s, move.cand, upsell=s.upsell, core=purpose == "core",
+                                    toggle_ok=purpose == "filter")
             if reason:
                 self.log(s, None, move, move.cand, "unknown", f"denied: {reason}", "denied")
                 s.tried.add(move.cand.key)
@@ -588,7 +595,7 @@ class Explorer:
         s = self.current
         if s.box is None:
             return self.obs.cands
-        return [live for c in s.cands if c.kind != "picture" for live in [ob.find(self.obs.cands, c)] if live]
+        return [live for c in controls_of(s.cands) for live in [ob.find(self.obs.cands, c)] if live]
 
     def shows(self, cand: ob.Candidate, live: ob.Candidate, now: Obs) -> bool:
         """Invariant 3: a recorded control is tapped only when the screen shows it as it was recorded, compared with
@@ -621,6 +628,15 @@ class Explorer:
                   outcome="blocked")
         self.phone.back()
         return True
+
+    def denied_at(self, s: Seen, cand: ob.Candidate, **rules) -> str | None:
+        """What blocks a tap on cand: its own deny-list word, or that of any candidate on the state whose box holds its
+        tap point, whatever its kind. A tap lands on what lies there, not on the name it was picked by, so a picture
+        tapped at its center never carries out a denied control drawn there."""
+        point = Rect(x=cand.point[0], y=cand.point[1], w=0, h=0)
+        return ob.denied(cand, **rules) or next(
+            (f"{reason} ({c.label[:30]!r} lies at its tap point)" for c in s.cands
+             if c is not cand and ob.inside(point, c.rect) for reason in [ob.denied(c, **rules)] if reason), None)
 
     def safe_tap(self, c: ob.Candidate, why: str) -> bool:
         """A tap outside act() (the replay check, a quiet relaunch): the same deny-list, and only while the app
@@ -731,7 +747,7 @@ class Explorer:
                     home.kind, home.blocked_reason = "blocked", reason
                     self.human("the app can't be explored", reason)
                     raise Stop(f"blocked root: {reason}")
-                self.tabs = [t for t in ob.tab_bar(home.cands, self.device) if not ob.denied(t)]
+                self.tabs = [t for t in ob.tab_bar(controls_of(home.cands), self.device) if not ob.denied(t)]
             else:
                 self.back_to_root()
                 if self.current.kind in AWAY:
@@ -819,7 +835,7 @@ class Explorer:
             dialog = self.record(self.obs, None, None, None)
             dialog.done, dialog.depth, dialog.launch = "a launch dialog, dismissed", 0, True
             self.current = dialog
-            close = ob.dismiss_control(dialog.cands)
+            close = ob.dismiss_control(controls_of(dialog.cands))
             self.act(Move("tap", close, why="dismiss a launch dialog") if close else
                      Move("back", why="dismiss a launch dialog"), purpose="setup")
             if self.current is not dialog and self.current.kind == "screen":
@@ -883,7 +899,7 @@ class Explorer:
         if pick.checked is None and not self.stands_out(pick):
             opened = self.act(Move("tap", pick, decider="jev", why="content filter"), purpose="filter")
             if opened is not home and opened.kind in ("modal", "sheet"):
-                option = self.pick(opened, [c for c in opened.cands if not ob.denied(c, toggle_ok=True)],
+                option = self.pick(opened, [c for c in controls_of(opened.cands) if not ob.denied(c, toggle_ok=True)],
                                    FILTER_MENU_QUESTION, "filter.menu")
                 if option:
                     if option.checked is None:
@@ -976,11 +992,13 @@ class Explorer:
                      for live in [ob.find(self.obs.cands, t)] if live and self.shows(t, live, self.obs)), None)
 
     def options(self, s: Seen) -> list[ob.Candidate]:
-        """The taps left to try on a state: a picture only once no control is left."""
+        """The taps left to try on a state: its controls first, then its pictures. The state's last tap goes to an
+        untried picture when one is left, so a tile that leads on is tried even where controls would use every tap."""
         filter_row = self.filter_row(s.cands)
         opts = [c for c in s.cands if c.key not in s.tried and c.key not in self.tab_keys() and c.key not in filter_row
                 and not ob.denied(c, upsell=s.upsell) and (c.key not in s.waiting or s.visits > s.waiting[c.key])]
-        return [c for c in opts if c.kind != "picture"] or opts
+        controls, pictures = controls_of(opts), [c for c in opts if c.kind == "picture"]
+        return pictures if pictures and s.taps >= TAPS_PER_STATE - 1 else controls or pictures
 
     def filter_row(self, cands: list[ob.Candidate]) -> set[str]:
         """The content filter's controls among a screen's controls: the opener, and every option in the chosen one's
@@ -1339,8 +1357,8 @@ class Explorer:
     def entry(self, s: Seen) -> ob.Candidate | None:
         """The screen's best upsell entry: a control over a line of text (a dialog's title says "plus" too), then
         the shortest. Never a picture: its name says what it shows, not what a tap does."""
-        found = [c for c in s.cands if c.kind != "picture" and ob.ENTRY.search(c.label)
-                 and not ob.DISMISS.match(c.label.strip()) and not ob.denied(c, upsell=s.upsell)]
+        found = [c for c in controls_of(s.cands) if ob.ENTRY.search(c.label) and not ob.DISMISS.match(c.label.strip())
+                 and not ob.denied(c, upsell=s.upsell)]
         return min(found, key=lambda c: (c.kind == "TextView", len(c.label.split())), default=None)
 
     def follow_entry(self, entry: ob.Candidate) -> None:

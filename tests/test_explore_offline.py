@@ -500,20 +500,22 @@ def test_jev_and_sonnet_go_through_the_stage_budget(run):
     assert ex.budget.spent > 0
 
 
-def icon_pass_screen(tmp_path, monkeypatch):
-    """An explorer and the screen it recorded: a header "Back" button (so the screen is no dialog), a listed "Go"
-    button and a listed icon with no words."""
+def icon_pass_phone(clock) -> FakePhone:
+    """One screen: a header "Back" button (so the screen is no dialog), a listed "Go" button and a listed icon with
+    no words."""
     listed = [{"ref": "@back", "type": "android.widget.Button", "text": "Back",
                "coordinates": {"x": 42, "y": 150, "width": 200, "height": 100}},
               {"ref": "@go", "type": "android.widget.Button", "text": "Go",
                "coordinates": {"x": 42, "y": 1850, "width": 300, "height": 100}},
               {"ref": "@icon", "type": "android.widget.ImageButton",
                "coordinates": {"x": 900, "y": 1850, "width": 126, "height": 126}}]
+    return FakePhone(screens={"home": Screen(listed, Image.new("RGB", (1080, 2400), (240, 240, 240)), PACKAGE)},
+                     start="home", taps={}, clock=clock)
 
-    def phone(clock):
-        return FakePhone(screens={"home": Screen(listed, Image.new("RGB", (1080, 2400), (240, 240, 240)), PACKAGE)},
-                         start="home", taps={}, clock=clock)
-    ex, _ = new_explorer(tmp_path, monkeypatch, phone)
+
+def icon_pass_screen(tmp_path, monkeypatch):
+    """An explorer and the icon_pass_phone screen it recorded."""
+    ex, _ = new_explorer(tmp_path, monkeypatch, icon_pass_phone)
     return ex, ex.record(ex.observe(), None, None, None)
 
 
@@ -532,7 +534,8 @@ def test_the_icon_pass_keeps_each_unlisted_things_box_and_kind(tmp_path, monkeyp
     things = [unlisted(ex, 100, 300, 900, 800, "picture", "photo"), unlisted(ex, 800, 320, 880, 400, "control", "like"),
               unlisted(ex, 440, 490, 560, 610, "control", "play"),
               unlisted(ex, 120, 320, 880, 780, "picture", "the photo again"),
-              unlisted(ex, -40, 36, 400, 256, "picture", "banner"), unlisted(ex, 60, 1860, 320, 1940, "picture", "logo"),
+              unlisted(ex, -40, 36, 400, 256, "picture", "banner"),
+              unlisted(ex, 60, 1860, 320, 1940, "picture", "logo"),
               unlisted(ex, 100, 1860, 200, 1940, "control", "in go"),
               unlisted(ex, 100, 2340, 200, 2400, "control", "under the content")]
     monkeypatch.setattr(ex, "ask", lambda *a: IconPass(names=[], unlisted=things))
@@ -629,6 +632,108 @@ def test_a_dimmed_parent_photo_beside_a_drawer_is_not_the_drawers(tmp_path, monk
     assert not s.vision
 
 
+def test_a_picture_is_never_tapped_at_a_denied_control_drawn_at_its_center(tmp_path, monkeypatch):
+    """Greptile on 8c9ef5b: a picture's tap lands on what lies at its center, so a denied control drawn there denies
+    the picture's tap too. Neither is tapped, and the refusal names what lies there."""
+    ex, s = icon_pass_screen(tmp_path, monkeypatch)
+    things = [unlisted(ex, 100, 300, 900, 800, "picture", "sunset over a lake"),
+              unlisted(ex, 440, 490, 560, 610, "control", "delete")]
+    monkeypatch.setattr(ex, "ask", lambda *a: IconPass(names=[], unlisted=things))
+    ex.name_icons(s)
+    ex.current = s
+    picture = next(c for c in s.cands if c.kind == "picture")
+    assert all(c.label != "delete" for c in ex.options(s))
+    taps = len([entry for entry in ex.phone.log if entry[0] == "tap"])
+    assert ex.act(stage.Move("tap", picture)) is s
+    assert len([entry for entry in ex.phone.log if entry[0] == "tap"]) == taps
+    assert lines(ex)[-1].change_summary == "denied: delete ('delete' lies at its tap point)"
+
+
+def test_a_states_last_tap_goes_to_a_picture_its_controls_would_use_up(tmp_path, monkeypatch):
+    """Greptile on 8c9ef5b: with more controls than taps a state allows, a tile that leads on was never tried."""
+    ex, s = icon_pass_screen(tmp_path, monkeypatch)
+    controls = [unlisted(ex, 120 * n, 600, 120 * n + 100, 700, "control", f"c{n}") for n in range(5)]
+    things = [*controls, unlisted(ex, 100, 900, 1000, 1400, "picture", "featured tile")]
+    monkeypatch.setattr(ex, "ask", lambda *a: IconPass(names=[], unlisted=things))
+    ex.name_icons(s)
+    assert len(ex.options(s)) > stage.TAPS_PER_STATE and all(c.kind != "picture" for c in ex.options(s))
+    picked = []
+    while s.taps < stage.TAPS_PER_STATE and (move := ex.next_move(s)) and move.cand:
+        picked.append(move.cand.kind)
+        s.tried.add(move.cand.key)
+        s.taps += 1
+    assert len(picked) == stage.TAPS_PER_STATE and picked[-1] == "picture" and "picture" not in picked[:-1], picked
+
+
+def test_a_picture_low_on_home_is_never_a_tab(tmp_path, monkeypatch):
+    """Two pictures side by side at the bottom look like a tab bar; the tab sweep would tap them before any control."""
+    ex, _ = new_explorer(tmp_path, monkeypatch, icon_pass_phone)
+    tiles = [unlisted(ex, 40, 2150, 500, 2330, "picture", "left tile"),
+             unlisted(ex, 580, 2150, 1040, 2330, "picture", "right tile")]
+    monkeypatch.setattr(ex, "ask", lambda *a: IconPass(names=[], unlisted=tiles))
+    ex.relaunch(first=True)
+    assert [c.label for c in ex.root.cands if c.kind == "picture"] == ["left tile", "right tile"]
+    assert ex.tabs == []
+
+
+def test_the_filter_menu_never_hands_jev_a_picture(tmp_path, monkeypatch):
+    """The red team's repro on 8c9ef5b, inverted: the filter menu's options are the sheet's controls, never a
+    picture the icon pass found between them."""
+    def button(ref, text, x, y, w, h):
+        return {"ref": ref, "type": "android.widget.Button", "text": text,
+                "coordinates": {"x": x, "y": y, "width": w, "height": h}}
+    home = [button("@back", "Back", 42, 150, 200, 100), button("@filter", "Content filter", 42, 400, 400, 100),
+            button("@go", "Go", 42, 1850, 300, 100)]
+    sheet = home + [button("@all", "Show everything", 100, 1700, 880, 120),
+                    button("@safe", "Hide mature content", 100, 1900, 880, 120)]
+
+    def phone(clock):
+        ramp = Image.linear_gradient("L").rotate(90).resize((1080, 2400)).convert("RGB")
+        return FakePhone(screens={"home": Screen(home, ramp, PACKAGE),
+                                  "sheet": Screen(sheet, ramp.transpose(Image.FLIP_LEFT_RIGHT), PACKAGE)},
+                         start="home", taps={("home", "Content filter"): "sheet"}, clock=clock)
+    ex, _ = new_explorer(tmp_path, monkeypatch, phone)
+    ex.obs = ex.observe()
+    ex.current = ex.record(ex.obs, None, None, None)
+    monkeypatch.setattr(ex, "ask", lambda *a: IconPass(names=[], unlisted=[
+        unlisted(ex, 300, 1824, 780, 1896, "picture", "mature content badge")]))
+    asked = {}
+
+    def pick(s, opts, question, step, none_label=None):
+        asked[step] = (s, opts)
+        return next(c for c in opts if c.label == "Content filter") if step == "filter" else None
+    monkeypatch.setattr(ex, "pick", pick)
+    monkeypatch.setattr(ex, "stands_out", lambda c: False)
+    ex.find_filter()
+    opened, opts = asked["filter.menu"]
+    assert opened.kind in ("modal", "sheet") and any(c.kind == "picture" for c in opened.cands)
+    assert opts and all(c.kind != "picture" for c in opts)
+
+
+def test_a_launch_dialog_is_never_dismissed_by_a_close_up_picture(tmp_path, monkeypatch):
+    """The red team's repro on 8c9ef5b, inverted: "close-up of a dog" matches the dismiss words, but a picture's name
+    says what it shows. A launch dialog with no dismiss control of its own is left with BACK."""
+    def button(ref, text, y):
+        return {"ref": ref, "type": "android.widget.Button", "text": text,
+                "coordinates": {"x": 100, "y": y, "width": 880, "height": 120}}
+    home = [button("@back", "Back", 150), button("@go", "Go", 1850)]
+
+    def phone(clock):
+        blank_rgb = Image.new("RGB", (1080, 2400), (240, 240, 240))
+        return FakePhone(screens={"home": Screen(home, blank_rgb, PACKAGE),
+                                  "dialog": Screen([button("@c", "Continue", 700), button("@m", "Learn more", 1700)],
+                                                   blank_rgb, PACKAGE)},
+                         start="dialog", taps={}, backs={"dialog": "home"}, clock=clock)
+    ex, phone_ = new_explorer(tmp_path, monkeypatch, phone)
+    monkeypatch.setattr(ex, "ask", lambda *a: IconPass(names=[], unlisted=[
+        unlisted(ex, 100, 900, 980, 1500, "picture", "close-up of a dog")]))
+    ex.obs = ex.observe()
+    ex.normalize()
+    dialog = ex.states[0]
+    assert dialog.launch and [c.label for c in dialog.cands if c.kind == "picture"] == ["close-up of a dog"]
+    assert ("back", "dialog") in phone_.log and not [entry for entry in phone_.log if entry[0] == "tap"]
+
+
 def test_controls_and_pictures_each_keep_eight_slots(tmp_path, monkeypatch):
     """A screen full of pictures never pushes out the controls the tour needs, whichever the model lists first."""
     ex, s = icon_pass_screen(tmp_path, monkeypatch)
@@ -641,8 +746,8 @@ def test_controls_and_pictures_each_keep_eight_slots(tmp_path, monkeypatch):
 
 def test_a_picture_is_a_tour_option_only_after_every_control_and_never_the_upsell_entry(tmp_path, monkeypatch):
     """A tile the tree doesn't list may be the way on (the pass called the tiles that lead to a committed run's s13
-    pictures in 3 of 3 tries), so a picture stays a tap, but only once every control is tried. Its name says what it
-    shows, not what a tap does, so a "premium banner" is never the upsell entry."""
+    pictures in 3 of 3 tries), so a picture stays a tap, after the state's controls (its last tap aside). Its name
+    says what it shows, not what a tap does, so a "premium banner" is never the upsell entry."""
     ex, s = icon_pass_screen(tmp_path, monkeypatch)
     pictures = ["premium banner", "Kelly Osbourne and Sid Wilson photo"]
     things = [unlisted(ex, 100, 300, 900, 800, "picture", pictures[0]),
