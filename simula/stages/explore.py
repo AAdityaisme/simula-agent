@@ -23,7 +23,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from simula import config, decide, llm
 from simula.contracts import (ActionLine, Arrival, Coverage, Device, ExploreFile, HardScreenAction, IconLabel, IconPass,
-                              Point, Progress, Rect, ReplacedCapture, StageOutcome, StateFile, VisionElement, WalkPick)
+                              LaterCapture, Point, Progress, Rect, StageOutcome, StateFile, VisionElement, WalkPick)
 from simula.device import observe as ob
 from simula.device.mcp import McpReplyError, McpTimeout, Phone, Server
 from simula.device.devices import adb, emulator_lock, online, resolve_serial
@@ -129,8 +129,8 @@ class Move:
 
 @dataclass
 class Seen:
-    """One recorded state. Its capture is the first time it was seen, or home's last relaunch landing; the captures a
-    relaunch replaced stay in replaced, each for the moves logged on it."""
+    """One recorded state. Its own capture, which its file describes, is the first time it was seen; a relaunch onto
+    home reloaded adds a later one, read from then on (png, fp, cands)."""
     sid: str
     kind: str
     parent: str | None
@@ -163,7 +163,13 @@ class Seen:
     icon_labels: list = field(default_factory=list)
     vision: list = field(default_factory=list)
     blocked_reason: str | None = None
-    replaced: list = field(default_factory=list)  # ReplacedCapture: earlier captures a relaunch replaced
+    own_fp: str = ""  # the fingerprint of the state's own capture; fp follows the latest
+    later: list = field(default_factory=list)  # LaterCapture: captures a relaunch took after the state's own
+
+    @property
+    def png(self) -> str:
+        """The latest capture's screenshot, relative to explore/."""
+        return self.later[-1].screenshot if self.later else f"states/{self.sid}.png"
 
 
 @dataclass
@@ -357,12 +363,13 @@ class Explorer:
         kind, box = self.kind_of(obs, before)
         home = self.home if kind == "screen" and self.home and self.homelike(self.home, obs) else None
         sid = home.sid if home else f"s{len(self.states) + 1:02d}"
-        if home:
-            self.keep_capture(home)
-        shutil.copyfile(self.scratch / "now.png", self.out / "states" / f"{sid}.png")
-        (self.out / "states" / f"{sid}.elements.json").write_text(json.dumps(obs.reply, indent=1, ensure_ascii=False))
+        png = f"states/{sid}.r{len(home.later) + 1}.png" if home else f"states/{sid}.png"
+        tree = png.removesuffix(".png") + ".elements.json"
+        shutil.copyfile(self.scratch / "now.png", self.out / png)
+        (self.out / tree).write_text(json.dumps(obs.reply, indent=1, ensure_ascii=False))
         cands = ob.own_controls(obs.cands, box, before.cands if before else [])
         if home:
+            home.later.append(LaterCapture(from_step=self.step + 1, screenshot=png, elements_reply=tree))
             return self.refresh(home, obs, cands)
         tab_move = move is not None and move.cand is not None and move.cand.key in self.tab_keys()
         seen = Seen(sid=sid, kind=kind, parent=came_from.sid if came_from and kind != "screen" else None,
@@ -374,7 +381,7 @@ class Explorer:
                     captured_at=now(), upsell=ob.is_upsell(obs.elements, self.device),
                     priced=ob.priced(obs.elements, self.device),
                     via=move.cand.label if move and move.cand else "", box=box,
-                    unscroll_to=came_from.sid if came_from and move.action == "swipe" else None)
+                    unscroll_to=came_from.sid if came_from and move.action == "swipe" else None, own_fp=str(obs.fp))
         self.states.append(seen)
         self.by_id[sid] = seen
         self.last_new_at = self.actions
@@ -384,15 +391,6 @@ class Explorer:
             self.name_icons(seen)
             self.log_denied(seen)
         return seen
-
-    def keep_capture(self, s: Seen) -> None:
-        """The capture a relaunch is about to replace stays, numbered, for the moves logged on it so far: the model
-        resolves their taps against it."""
-        n = len(s.replaced) + 1
-        png, tree = f"states/{s.sid}.r{n}.png", f"states/{s.sid}.r{n}.elements.json"
-        shutil.copyfile(self.out / "states" / f"{s.sid}.png", self.out / png)
-        shutil.copyfile(self.out / "states" / f"{s.sid}.elements.json", self.out / tree)
-        s.replaced.append(ReplacedCapture(until_step=self.step, screenshot=png, elements_reply=tree))
 
     def homelike(self, home: Seen, obs: Obs) -> bool:
         """What a relaunch's landing must show to be home: home's top chrome (another tab shows its own), nothing the
@@ -405,10 +403,10 @@ class Explorer:
             and all(ob.find(obs.cands, t) for t in self.tabs)
 
     def refresh(self, home: Seen, obs: Obs, cands: list[ob.Candidate]) -> Seen:
-        """A landing homelike() takes for home is home with its list reloaded, re-recorded from this capture (its
-        controls and their crops); a reload is no evidence of a region that moves on its own. The tabs, the filter taps,
-        the core action and the moves out of home point at the same controls in it, so each keeps its crop check; a
-        move whose control is gone is dropped. Jev ranks the new controls."""
+        """Home reloaded, read from this later capture from now on; its own capture and file stay. The tabs, filter
+        taps, core action and moves out of home point at the same controls in it (a move whose control is gone is
+        dropped), so each keeps its crop check. Jev ranks the new controls; the icon pass's names for them go with the
+        later capture."""
         known, moved = {c.key for c in home.cands}, {id(c): ob.find(cands, c) for c in home.cands}
         self.tabs = [t for t in (moved.get(id(t), t) for t in self.tabs) if t]
         self.filter_taps = [moved.get(id(t)) or t for t in self.filter_taps]
@@ -421,11 +419,13 @@ class Explorer:
                 else:
                     del self.edges[hop]
         home.fp, home.fg, home.cands, home.elements = obs.fp, obs.fg, cands, obs.elements
-        home.settled, home.settle_s, home.captured_at = obs.settled, obs.settle_s, now()
         home.upsell, home.priced = ob.is_upsell(obs.elements, self.device), ob.priced(obs.elements, self.device)
-        home.visits, home.dynamic, home.order = home.visits + 1, [], None
-        self.note("state", f"{home.sid} re-recorded: the relaunch landed on it with other content")
+        home.visits, home.order = home.visits + 1, None
+        self.note("state", f"{home.sid} re-recorded from {home.png}: the relaunch landed on it with other content")
+        own, home.icon_labels, home.vision = (home.icon_labels, home.vision), home.later[-1].icon_labels, \
+            home.later[-1].vision_elements
         self.name_icons(home)
+        home.icon_labels, home.vision = own
         self.log_denied(home, [c for c in cands if c.key not in known])
         return home
 
@@ -450,7 +450,7 @@ class Explorer:
 
     def note_dynamic(self, s: Seen, image: Image.Image) -> None:
         """What changed since the state's saved capture, with nothing tapped, is a region that moves on its own."""
-        boxes = ob.changed_boxes(Image.open(self.out / "states" / f"{s.sid}.png"), image, self.device)
+        boxes = ob.changed_boxes(Image.open(self.out / s.png), image, self.device)
         for b in boxes or []:
             if not any(ob.inside(b, d) for d in s.dynamic):
                 s.dynamic.append(b)
@@ -469,7 +469,7 @@ class Explorer:
                       mcp_ref=canonical.ref if canonical else None,
                       tap_px=Point(x=point[0], y=point[1]) if move.action == "tap" and point else None,
                       transition=transition, change_summary=summary, outcome=outcome, loop_pass=loop_pass,
-                      loop_stop=loop_stop)
+                      loop_stop=loop_stop, capture=s.png if s.later else None)
         line = ActionLine(**fields)
         with open(self.out / "actions.jsonl", "a") as f:
             f.write(line.model_dump_json() + "\n")
@@ -605,7 +605,7 @@ class Explorer:
         owner = next((st for st in self.states if any(c is cand for c in st.cands)), None)
         if owner is None:
             return False
-        then = Image.open(self.out / "states" / f"{owner.sid}.png")
+        then = Image.open(self.out / owner.png)
         return ob.looks_same(then, cand.rect, now.image, live.rect, self.device)
 
     def under_tab_bar(self, cand: ob.Candidate, live: ob.Candidate, now: Obs) -> bool:
@@ -640,8 +640,8 @@ class Explorer:
 
     def perform(self, move: Move, live: ob.Candidate | None, upsell: bool = False, core: bool = False,
                 toggle_ok: bool = False) -> str:
-        """The one place a move reaches the device; returns why tap() refused it, or "". A tap the deny-list flags is
-        counted here when it still reaches the device, whoever sent it, so the exhibit's count is measured."""
+        """The one place a move reaches the device; returns why tap() refused it, or "". A denied tap that still
+        runs is counted here, whoever sent it, so the exhibit's count is measured."""
         if move.action == "tap":
             refused = self.tap(live, self.obs.elements, upsell=upsell, core=core, toggle_ok=toggle_ok)
             if refused:
@@ -1189,7 +1189,7 @@ class Explorer:
         shot = self.out / "arrival" / f"{self.counts['arrival shots']:03d}.png"
         shot.parent.mkdir(exist_ok=True)
         obs.image.save(shot)
-        pngs = [png_half(content(Image.open(self.out / "states" / f"{target.sid}.png"), self.device)),
+        pngs = [png_half(content(Image.open(self.out / target.png), self.device)),
                 png_half(content(obs.image, self.device))]
         try:
             answer = self.ask("arrival", f"{step}.{target.sid}", text, pngs, Arrival)
@@ -1913,7 +1913,7 @@ class Explorer:
     def boxed_png(self, s: Seen, cands: list[ob.Candidate], names: list[str], image: Image.Image | None = None) -> bytes:
         """The screen with each control outlined and labeled; s's first capture unless another image is given."""
         top = self.device.content_top_px
-        image = content(image or Image.open(self.out / "states" / f"{s.sid}.png"), self.device)
+        image = content(image or Image.open(self.out / s.png), self.device)
         draw, font = ImageDraw.Draw(image), ImageFont.load_default(size=36)
         for c, name in zip(cands, names, strict=True):
             r = c.rect
@@ -1993,11 +1993,11 @@ class Explorer:
     def write(self, app_version: str | None) -> None:
         for s in self.states:
             state_file = StateFile(
-                state_id=s.sid, kind=s.kind, parent_id=s.parent, fingerprint=str(s.fp), foreground_package=s.fg,
+                state_id=s.sid, kind=s.kind, parent_id=s.parent, fingerprint=s.own_fp, foreground_package=s.fg,
                 screenshot=f"states/{s.sid}.png", elements_reply=f"states/{s.sid}.elements.json", settled=s.settled,
                 settle_seconds=s.settle_s, dynamic_regions=s.dynamic, captured_at=s.captured_at, box=s.box,
                 icon_labels=s.icon_labels, vision_elements=s.vision, blocked_reason=s.blocked_reason,
-                replaced=s.replaced)
+                later=s.later)
             (self.out / "states" / f"{s.sid}.json").write_text(state_file.model_dump_json(indent=1))
         answered, still_open = self.checklist()
         explore = ExploreFile(

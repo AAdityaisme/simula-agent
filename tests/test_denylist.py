@@ -5,8 +5,8 @@ import dataclasses
 
 import pytest
 
-from simula.contracts import Rect
-from simula.device.observe import Candidate, denied, dismiss_control
+from simula.contracts import Device, Rect
+from simula.device.observe import Candidate, denied, denied_at, dismiss_control
 
 
 def control(label: str, kind: str = "TextView") -> Candidate:
@@ -46,6 +46,23 @@ def test_dismiss_never_picks_a_denied_control():
 
 def test_a_reason_is_never_its_text_twice():
     assert denied(control("Start free trial")) == "start free trial"
+
+
+def test_words_under_a_tap_point_never_refuse_it_and_words_drawn_over_it_do():
+    """JanitorAI's keyboard-lifted composer (def99ac s27): a reply listed before the text box and not around it lies
+    under the box's tap point. A button listed after a row, inside its box, lies over the row's."""
+    box = Candidate(label="", kind="EditText", rect=Rect(x=46, y=1215, w=988, h=123), ref="@box", tree_label="")
+    def element(ref, kind, text, x, y, w, h):
+        return {"ref": ref, "type": f"android.widget.{kind}", "text": text,
+                "coordinates": {"x": x, "y": y, "width": w, "height": h}}
+    reply = element("@reply", "TextView", "Here are three tips for staying focused", 134, 1103, 902, 300)
+    target = element("@box", "EditText", "", 46, 1215, 988, 123)
+    assert denied_at(box, [reply, target], Device(), core=True) == ""
+    assert "tips" in denied_at(box, [target, reply], Device(), core=True)
+    row = Candidate(label="Read item", kind="ViewGroup", rect=Rect(x=0, y=1100, w=1080, h=200), ref="@row",
+                    tree_label="Read item")
+    sign = element("@sign", "Button", "Sign in", 440, 1170, 200, 60)
+    assert "sign in" in denied_at(row, [element("@row", "ViewGroup", "Read item", 0, 1100, 1080, 200), sign], Device())
 
 
 def test_the_exhibit_counts_denied_taps_that_reached_the_device(tmp_path, monkeypatch):

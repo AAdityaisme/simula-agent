@@ -507,6 +507,9 @@ class ActionLine(Strict):
                                   "null for tour moves.")
     loop_stop: str | None = Field(default=None, description="On the pass where a limit, paywall, or ad appeared: what "
                                   "it was, in a few words. The loop stops there.")
+    capture: str | None = Field(default=None, description="The later capture of from_state the move was taken on (its "
+                                "screenshot, relative to explore/), whose mcp_ref and tap_px these are; null for the "
+                                "state's own capture.")
 
 
 class IconLabel(Strict):
@@ -521,12 +524,15 @@ class VisionElement(Strict):
 
 # ---------- file-level wrappers: every JSON file a stage writes carries schema_version ----------
 
-class ReplacedCapture(Strict):
-    """A capture of a state that a relaunch replaced (home with its list reloaded). Paths are relative to explore/."""
-    until_step: int = Field(description="The last action line step taken on this capture: a line from the state with "
-                                        "a step up to here resolves its tap against this capture, not the state's own.")
+class LaterCapture(Strict):
+    """A capture of a state taken after its own, by a relaunch that landed on it with its list reloaded (home). Paths
+    are relative to explore/."""
+    from_step: int = Field(description="The first action line step that may be taken on this capture; the lines taken "
+                                       "on it name it in their capture field.")
     screenshot: str
     elements_reply: str
+    icon_labels: list[IconLabel] = []
+    vision_elements: list[VisionElement] = []
 
 
 class StateFile(Strict):
@@ -548,7 +554,7 @@ class StateFile(Strict):
     icon_labels: list[IconLabel] = []
     vision_elements: list[VisionElement] = []
     blocked_reason: str | None = None
-    replaced: list[ReplacedCapture] = Field([], description="Earlier captures a relaunch replaced, oldest first.")
+    later: list[LaterCapture] = Field([], description="Captures a relaunch took after the state's own, oldest first.")
 
 
 class ExploreFile(Strict):

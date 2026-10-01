@@ -295,30 +295,33 @@ def test_a_relaunch_that_restores_an_exit_with_no_way_home_relaunches_again_and_
     assert all("no recorded way led there from" in why for why in ex.relaunch_reasons[1:])
 
 
-def test_a_tap_on_home_before_its_list_reloaded_resolves_on_the_capture_it_was_taken_on(tmp_path, monkeypatch):
-    """Greptile on #32: the committed run's home before and after a relaunch reloaded it (j04, j11). The replaced
-    capture stays, and the model binds an earlier tap on a row the reload replaced to no element, never to the row now
-    in its place, and an earlier tap on a chip both captures show to that chip."""
+def test_a_tap_on_home_resolves_on_the_capture_it_was_taken_on(tmp_path, monkeypatch):
+    """Greptile on #32, inverted by M1: the committed run's home before and after a relaunch reloaded it (j04, j11).
+    Home's own capture stays canonical, so a tap from before the reload binds to the row it hit; a tap taken on the
+    later capture names it, and binds to a control home's own capture shows in the same place (the chip), never to
+    the row now in its place."""
     ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
     phone.screens.update(first=capture("janitorai", "j04_tab1"), other=capture("janitorai", "j11_home_relaunched"))
     phone.screen = "first"
     home = ex.current = ex.record(ex.observe(), None, None, None)
     row = next(c for c in home.cands if c.label.startswith("Wavemaker Academy: Pokemon"))
-    chip = next(c for c in home.cands if c.label == "Trending")
     phone.screen = "chat"
     chat = ex.record(ex.observe(), home, stage.Move("tap", row), ex.obs)
-    for c in (row, chip):
-        ex.log(home, chat, stage.Move("tap", c), c, "push", "", "ok")
+    ex.log(home, chat, stage.Move("tap", row), row, "push", "", "ok")
     phone.screen, ex.home = "other", home
-    assert ex.record(ex.observe(), None, None, None) is home and len(home.replaced) == 1
+    assert ex.record(ex.observe(), None, None, None) is home and len(home.later) == 1
+    new_row = ob.feed_items(home.cands, ex.device)[0]
+    chip = next(c for c in home.cands if c.label == "Trending")
+    for c in (new_row, chip):
+        ex.log(home, chat, stage.Move("tap", c), c, "push", "", "ok")
+    assert [line.capture for line in lines(ex) if line.outcome == "ok"] == [None, home.png, home.png]
     ex.write(None)
     states, _, _ = model_stage.load_states(ex.out, ex.device)
-    edges, notes = model_stage.load_edges(ex.out, states, model_stage.load_replaced(ex.out, ex.device))
+    edges, notes = model_stage.load_edges(ex.out, states, model_stage.load_later(ex.out, ex.device))
     elements = {e.id: e for s in states for e in s.elements}
-    assert sorted((elements[e.element_id].label if e.element_id else None) or "" for e in edges) == ["", "Trending"]
-    assert any("a relaunch replaced" in n for n in notes)
-    stale, _ = model_stage.load_edges(ex.out, states)
-    assert all(e.element_id for e in stale)  # on the new capture alone, the row's tap binds to the row now in its place
+    bound = sorted((elements[e.element_id].text or elements[e.element_id].label)[:9] if e.element_id else ""
+                   for e in edges)
+    assert bound == ["", "Trending", "Wavemaker"] and any("a later capture" in n for n in notes)
 
 
 def test_billing_screen_gets_back_at_once(run):
@@ -655,17 +658,19 @@ def test_a_list_with_other_rows_after_a_swipe_is_a_scrolled_view(tmp_path, monke
 
 
 def test_a_relaunch_that_lands_on_home_with_its_list_reloaded_re_records_home(tmp_path, monkeypatch):
-    """The committed run's s01 and its relaunched home s13 (j04, j11): home again, with j11's rows and capture, and
-    the reloaded list is no region that moves on its own."""
+    """The committed run's s01 and its relaunched home s13 (j04, j11): home again, read from j11's capture saved beside
+    home's own, which stays as it was; the reloaded list is no region that moves on its own."""
     ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
     phone.screens.update(first=capture("janitorai", "j04_tab1"), other=capture("janitorai", "j11_home_relaunched"))
     phone.screen = "first"
     home = ex.current = ex.record(ex.observe(), None, None, None)
-    home.dynamic = [stage.Rect(x=0, y=900, w=1080, h=300)]  # an ad the tour saw move, gone with the old capture
+    own = (ex.out / "states" / f"{home.sid}.png").read_bytes()
+    home.dynamic = [stage.Rect(x=0, y=900, w=1080, h=300)]  # an ad the tour saw move on home's own capture
     phone.screen, ex.home = "other", home
     obs = ex.observe()
     assert ex.record(obs, None, None, None) is home and len(ex.states) == 1
-    assert home.fp == obs.fp and {c.key for c in home.cands} == {c.key for c in obs.cands} and not home.dynamic
+    assert home.fp == obs.fp and {c.key for c in home.cands} == {c.key for c in obs.cands} and len(home.dynamic) == 1
+    assert home.png == f"states/{home.sid}.r1.png" and (ex.out / "states" / f"{home.sid}.png").read_bytes() == own
 
 
 def test_back_to_a_scrolled_view_is_the_scrolled_view(tmp_path, monkeypatch):
@@ -1591,3 +1596,47 @@ def test_an_arrival_that_is_no_relaunch_keeps_the_recorded_state(tmp_path, monke
     phone.screen = "reloaded"
     assert ex.record(ex.observe(), None, None, None) is home and [c.key for c in home.cands] == kept
 
+
+
+def test_an_earlier_tap_on_home_stays_bound_to_what_was_tapped_after_a_relaunch_re_records_home(tmp_path, monkeypatch):
+    """Fable E5: the product model resolves a tap logged before the relaunch against the capture it was taken on."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    phone.screens.update(first=capture("janitorai", "j04_tab1"), other=capture("janitorai", "j11_home_relaunched"))
+    phone.taps[("first", "Wavemaker Academy: Pokemon Institute")] = "chat"
+    home = home_from(ex, phone)
+    row = ob.feed_items(home.cands, ex.device, ex.tab_keys())[0]
+    page = ex.act(stage.Move("tap", row, why="tour"))
+    phone.start = "other"
+    ex.relaunch()
+    assert ex.current is home
+    ex.write(None)
+    states, _, _ = model_stage.load_states(ex.out, ex.device)
+    edges, _ = model_stage.load_edges(ex.out, states)
+    by_id = {e.id: e for s in states for e in s.elements}
+    edge = next(e for e in edges if e.from_state == home.sid and e.to_state == page.sid)
+    assert "Wavemaker" in (by_id[edge.element_id].text or by_id[edge.element_id].label)
+
+
+def test_a_relaunch_that_reloads_home_keeps_every_tour_edge_from_home_bound_in_the_product_model(tmp_path, monkeypatch):
+    """JanitorAI reloads its feed on every launch: the tour's moves from home, made before the first relaunch, stay
+    bound to the controls they tapped on home's own capture."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    phone.screens.update(first=capture("janitorai", "j04_tab1"), other=capture("janitorai", "j11_home_relaunched"))
+    home = home_from(ex, phone)
+    tapped = [*ob.feed_items(home.cands, ex.device, ex.tab_keys())[:3], next(c for c in home.cands
+                                                                          if c.label == "Trending")]
+    for c in tapped:
+        phone.taps[("first", c.tree_label)] = "chat"
+        ex.act(stage.Move("tap", c, why="tour"))
+        ex.act(stage.Move("back", why="tour"))
+    phone.start = "other"
+    ex.relaunch()
+    assert ex.current is home and home.later
+    ex.write(None)
+    states, _, _ = model_stage.load_states(ex.out, ex.device)
+    edges, _ = model_stage.load_edges(ex.out, states, model_stage.load_later(ex.out, ex.device))
+    elements = {e.id: e for s in states for e in s.elements}
+    out = [e for e in edges if e.from_state == home.sid]
+    assert len(out) == len(tapped) and all(e.element_id for e in out)
+    assert sorted(elements[e.element_id].text or elements[e.element_id].label for e in out) == sorted(
+        c.tree_label for c in tapped)
