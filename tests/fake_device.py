@@ -85,7 +85,7 @@ class FakePhone:
         self.list_seconds, self.shots, self.reply_polls, self.splash_left = [], {}, 0, 0
         self.chats: dict[str, list[tuple[str, str]]] = {}
         self.draft, self.sent, self.busy_until = "", 0, 0.0
-        self.pngs: dict[bytes, bytes] = {}
+        self.pngs: dict[tuple, bytes] = {}
         self.screens.setdefault("launcher", blank("com.android.launcher"))
 
     def tick(self, seconds: float = 0.3) -> None:
@@ -169,7 +169,7 @@ class FakePhone:
     def png(self, image: Image.Image) -> bytes:
         """The image as PNG, encoded once per picture: an explore captures the same few screens over and over, and
         encoding a full-size capture costs ~30x hashing it."""
-        key = hashlib.sha1(image.tobytes()).digest()
+        key = image.mode, image.size, hashlib.sha1(image.tobytes()).digest()
         if key not in self.pngs:
             buffer = io.BytesIO()
             image.save(buffer, "PNG")
