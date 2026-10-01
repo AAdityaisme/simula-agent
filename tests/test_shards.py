@@ -5,6 +5,7 @@ from tests.conftest import ROOT
 pytest_plugins = ["pytester"]
 
 TESTS = [f"test_shards_fixture.py::test_{i}" for i in range(9)]
+JOB = re.compile(r"""^  ("[^"]+"|'[^']+'|[\w-]+):[ \t]*$""", re.M)
 
 
 def collect(pytester, monkeypatch, env: dict[str, str]) -> tuple[list[str], int]:
@@ -35,8 +36,17 @@ def test_four_shards_run_every_test_that_is_not_live_exactly_once_and_one_variab
     assert collect(pytester, monkeypatch, {"PYTEST_SHARDS": "4"}) == (TESTS, 1)
 
 
+def time_limits(workflow: str) -> dict[str, bool]:
+    """Each job in a workflow's text, bare or quoted, and whether it sets a positive timeout-minutes of its own."""
+    parts = JOB.split(workflow.split("\njobs:\n", 1)[1])
+    return {key.strip("\"'"): bool(re.search(r"^    timeout-minutes: [1-9]\d*", block, re.M))
+            for key, block in zip(parts[1::2], parts[2::2])}
+
+
 def test_every_ci_job_has_a_time_limit():
     """Without one, a job that hangs sits for GitHub's 6 hours, as a Playwright install on a stalled apt mirror did."""
-    workflow = (ROOT / ".github" / "workflows" / "test.yml").read_text().split("\njobs:\n", 1)[1]
-    jobs = re.findall(r"^  [\w-]+:$", workflow, re.M)
-    assert jobs and len(re.findall(r"^    timeout-minutes: \d+", workflow, re.M)) == len(jobs)
+    workflow = (ROOT / ".github" / "workflows" / "test.yml").read_text()
+    limits = time_limits(workflow)
+    assert limits and all(limits.values())
+    unguarded = '  "unguarded":\n    runs-on: ubuntu-latest\n    steps:\n      - run: sleep 3600\n'
+    assert time_limits(workflow + unguarded) == limits | {"unguarded": False}
