@@ -4,8 +4,8 @@ every stage the run finished, and --from model --replay must write the same stru
 what the pin replays, so what replays at the pin is what HEAD ships. `simula replay-check` and tests/test_replay.py
 both run it.
 
-The pinned code runs on this checkout's dependencies, not the pin's uv.lock. uv.lock hasn't changed since
-submitted-2026-09-30, so a venv per clone isn't worth it yet."""
+The pinned code runs on this checkout's dependencies, not the pin's uv.lock, and a run whose pin's uv.lock differs
+from HEAD's says so in its line."""
 
 import itertools
 import json
@@ -157,6 +157,10 @@ def check_markers(clone: Path, run: Path) -> int:
     return len(done)
 
 
+def lock_differs(sha: str) -> bool:
+    return subprocess.run(["git", "diff", "--quiet", sha, "HEAD", "--", "uv.lock"], cwd=ROOT).returncode != 0
+
+
 def graders_skip(run: Path) -> str | None:
     """Why the grader's replay can't run on this machine, or None. Decided by the commit a pinned run replays at,
     however its pin spells it."""
@@ -180,15 +184,19 @@ def check_graders_replay(clone: Path, run: Path) -> None:
         raise Mismatch(f"the replay wrote different structured outputs: {differs}")
 
 
-def check(run: Path, under: Path) -> str:
-    """Every replay check on one run, in a clone under `under`; what passed, or Mismatch."""
+def check(run: Path, under: Path) -> tuple[str, str]:
+    """Every replay check on one run, in a clone under `under`: "ok", or "skip" when the grader's replay can't run on
+    this machine, and what passed; or Mismatch."""
     check_pin_held(run)
-    where = clone(commit(run), under)
+    sha = commit(run)
+    where = clone(sha, under)
     line = f"a bare --replay skipped every finished stage ({check_markers(where, run)})"
     if skip := graders_skip(run):
-        return f"{line}; --from model --replay not run: {skip}"
-    check_graders_replay(where, run)
-    return f"{line}; --from model --replay changed no structured output"
+        status, line = "skip", f"{line}; --from model --replay not run: {skip}"
+    else:
+        check_graders_replay(where, run)
+        status, line = "ok", f"{line}; --from model --replay changed no structured output"
+    return status, line + ("; ran on this checkout's dependencies; the pin's lock differs" if lock_differs(sha) else "")
 
 
 def main(app: str | None = None, run_id: str | None = None) -> int:
@@ -203,7 +211,8 @@ def main(app: str | None = None, run_id: str | None = None) -> int:
         for run in runs:
             label = f"{key(run)} at {PINS.get(key(run), 'HEAD')}"
             try:
-                print(f"ok    {label}: {check(run, Path(tmp))}", flush=True)
+                status, line = check(run, Path(tmp))
+                print(f"{status:<6}{label}: {line}", flush=True)
             except (Mismatch, subprocess.SubprocessError) as e:
                 failed = True
                 print(f"FAIL  {label}: {e}", flush=True)

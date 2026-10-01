@@ -1,6 +1,8 @@
 import io
 import json
 import re
+import struct
+import zlib
 from types import SimpleNamespace
 
 import httpx2
@@ -67,6 +69,18 @@ def red_palette() -> Image.Image:
     return image
 
 
+def rgb16(sample: bytes) -> bytes:
+    """A one-pixel 16-bit RGB PNG, written by hand: Pillow reads these at 8 bits and can't write them."""
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 16, 2, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(b"\0" + sample * 3)) + chunk(b"IEND", b""))
+
+
+def animated(last: tuple[int, int, int]) -> bytes:
+    return saved(Image.new("RGB", (2, 2), "red"), save_all=True, append_images=[Image.new("RGB", (2, 2), last)])
+
+
 def test_images_key_by_their_pixels_not_their_png_bytes_and_are_not_stored_raw():
     stored, squeezed = png(bytes(range(12)), compress_level=0), png(bytes(range(12)), compress_level=9)
     assert stored != squeezed
@@ -79,7 +93,9 @@ def test_images_key_by_their_pixels_not_their_png_bytes_and_are_not_stored_raw()
     (saved(red_palette(), transparency=0), saved(red_palette(), transparency=255)),
     (saved(Image.new("I;16", (2, 2), 4096)), saved(Image.new("I;16", (2, 2), 32768))),
     (png(bytes([255, 0, 0] * 4), transparency=(255, 0, 0)), png(bytes([255, 0, 0] * 4))),
-], ids=["palette-transparency", "16-bit-samples", "rgb-colour-key"])
+    (rgb16(b"\x12\x00"), rgb16(b"\x12\x01")),
+    (animated((0, 0, 255)), animated((0, 255, 0))),
+], ids=["palette-transparency", "16-bit-samples", "rgb-colour-key", "16-bit-rgb-low-byte", "animated-later-frame"])
 def test_images_that_decode_differently_key_differently(a, b):
     assert key(messages=message(png=a)) != key(messages=message(png=b))
 

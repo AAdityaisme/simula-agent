@@ -47,6 +47,20 @@ def test_a_find_the_page_repeats_applies_where_it_is_unique_in_the_sections_the_
         assert not result["applied"] and result["why"].startswith("find matches the page 2 times, not once")
 
 
+def test_a_scoped_edit_never_lands_in_a_section_the_fixer_was_not_sent():
+    """Fable's M9: sent s01, the fixer edits its `<b>Home</b>` twice with the same find. The second find now matches
+    the page once, in s02, which the fixer never saw; it's rejected. A find unique in s01, or in the page's style
+    block, still applies."""
+    page = ('<style>b{color:red}</style><section data-screen="s01"><b>Home</b></section>'
+            '<section data-screen="s02"><b>Home</b></section>')
+    out, results = qa.apply_edits(page, [edit("<b>Home</b>", "<b>Start</b>"), edit("<b>Home</b>", "<b>Home!</b>"),
+                                         edit("<b>Start</b>", "<b>Go</b>"), edit("color:red", "color:blue")], {"s01"})
+    assert [r["applied"] for r in results] == [True, False, True, True]
+    assert results[1]["why"] == "find matches the page once, outside what it was sent"
+    assert out == ('<style>b{color:blue}</style><section data-screen="s01"><b>Go</b></section>'
+                   '<section data-screen="s02"><b>Home</b></section>')
+
+
 STYLED = ('<html><head><style data-batch="1">.card{color:red}</style></head><body>\n'
           '<section data-screen="s01"><p style="color:red">A</p></section>\n'
           '<section data-screen="s02"><p style="color:red">B</p></section>\n</body></html>')
