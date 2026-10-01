@@ -234,7 +234,7 @@ def earlier(cid: str):
         yield cid
 
 
-def drawn_unasked(d: Decision) -> bool:
+def drawable(d: Decision) -> bool:
     """A survivor flows can draw without a person: any but a split on c3, which waits on the Needs your call page."""
     return d.final in SURVIVORS and PAYERS not in d.judgment_splits
 
@@ -245,7 +245,7 @@ def superseded(revised: list[Candidate], decisions: dict[str, Decision],
     original and every revision before it. A revision that made the idea worse, or that waits on a person, leaves the
     versions before it in play."""
     def stands_in(r: Candidate, d: Decision) -> bool:
-        return drawn_unasked(d) or (d.final == "reject" and could_fall_back(r, d, [*verdicts[r.id].values()]))
+        return drawable(d) or (d.final == "reject" and could_fall_back(r, d, [*verdicts[r.id].values()]))
     return {e for r in revised if stands_in(r, decisions[r.id]) for e in earlier(r.id)}
 
 
@@ -254,7 +254,7 @@ def fallback_pick(decisions: list[Decision], candidates: dict[str, Candidate],
     """When nothing survives, the best reject the fallback could carry (could_fall_back): fewest checks failed, then
     rank. None when there is no such candidate. A split on c3 doesn't count as surviving: flows never draws it unasked,
     so it would leave the deck empty."""
-    if any(drawn_unasked(d) for d in decisions):
+    if any(drawable(d) for d in decisions):
         return None
     eligible = [d for d in decisions if d.final == "reject" and d.candidate_id not in superseded
                 and could_fall_back(candidates[d.candidate_id], d, [*verdicts.get(d.candidate_id, {}).values()])]
@@ -471,7 +471,7 @@ def judge_run(ctx: Ctx, work: Path, model: ProductModel, candidates: list[Candid
     write_json_atomic(work / "revisions.json", CandidatesFile(candidates=revised).model_dump_json(indent=1))
     write_json_atomic(work / "decisions.json", DecisionsFile(decisions=final).model_dump_json(indent=1))
     write_queue(ctx, work, final, everyone)
-    if not any(drawn_unasked(d) for d in final):
+    if not any(drawable(d) for d in final):
         (work / "no-opportunity.md").write_text(no_opportunity(final, everyone, verdicts))
     swap_in(work, ctx.run_dir / "judge")
     write_exhibit(ctx.run_dir, 6, "judge", exhibit(final, everyone, verdicts, judges, ctx.profile, mode))

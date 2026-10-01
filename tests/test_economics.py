@@ -203,6 +203,14 @@ def test_a_reward_from_a_currency_or_price_line_is_flagged_never_a_sample(kind):
         assert econ.lost_sale and "sample" not in econ.assumption_line
 
 
+def test_free_currency_is_flagged_by_its_kind_even_when_it_names_a_paywall_perk():
+    model = golden("janitorai")
+    paid = next(i.id for i in model.value_ledger if i.kind == "paywall_bullet")
+    gems = candidate(model, grants_id=paid, reward={"kind": "currency", "unit": "gems", "amount": 50, "duration": "today"})
+    econ = economics.annotate(gems, model)
+    assert econ.lost_sale == "in-app currency, which apps sell" and "sample" not in econ.assumption_line
+
+
 def test_a_paid_perk_given_for_good_or_to_payers_is_a_lost_sale_not_a_sample():
     model = golden("janitorai")
     paid = next(i.id for i in model.value_ledger if i.kind == "paywall_bullet")
@@ -211,9 +219,8 @@ def test_a_paid_perk_given_for_good_or_to_payers_is_a_lost_sale_not_a_sample():
     more = candidate(model, for_users="paying", grants_id=paid,
                      reward={"kind": "inference", "unit": "replies", "amount": 5, "duration": "today"},
                      cost_inputs={**NO_COST, "inference_count": 5, "tokens_in": 8000, "tokens_out": 300})
-    kept = candidate(model, grants_id=paid, reward={"kind": "inference", "unit": "replies", "amount": 1,
-                                                     "duration": "for good"},
-                     cost_inputs={**NO_COST, "inference_count": 1, "tokens_in": 2000, "tokens_out": 300})
+    kept = candidate(model, grants_id=paid, reward={"kind": "streak_protection", "unit": "streak shield", "amount": 1,
+                                                     "duration": "for good"})
     payers, payers_model = stored("rg-janitorai-c03-rev-payers")
     for c, m in ((forever, model), (more, model), (kept, model), (payers, payers_model)):
         econ = economics.annotate(c, m)

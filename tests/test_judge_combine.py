@@ -98,29 +98,37 @@ def test_when_the_only_survivor_is_a_split_on_c3_the_fallback_carries_the_clean_
                                {"c01": split, "c02": clean}, v, set()) is None
 
 
-def test_a_clean_reject_revised_into_a_split_on_c3_stays_in_play_as_the_fallback():
-    model = golden("janitorai")
-    original, rev = idea(model, "c01"), idea(model, "c01-rev")
-    v = {"c01": dict(zip(validate.JUDGES, two(["c5_moment"], ["c5_moment"]))),
-         "c01-rev": dict(zip(validate.JUDGES, two(["c3_spares_payers"])))}
-    d = {c.id: judge.decide(c, [*v[c.id].values()], TWO, "annotate") for c in (original, rev)}
-    assert (d["c01"].final, d["c01-rev"].final) == ("reject", "conditional")
-    assert judge.superseded([rev], d, v) == set()
-    assert judge.fallback_pick([*d.values()], {"c01": original, "c01-rev": rev}, v, set()) == "c01"
+def split_on_payers(call, marker="PAYERS"):
+    """judge_1 alone also fails c3 on a proposal carrying `marker`: a split on c3."""
+    doubter = config.roles("dev")["judge_1"]["model"]
+
+    def one_judge_doubts_payers(**kw):
+        out, usage = call(**kw)
+        proposal = kw["messages"][0]["content"][0]["text"].split("## Proposal", 1)[-1]
+        if kw["schema"] is Verdict and kw["model"] == doubter and marker in proposal:
+            out = out.model_copy(update={"c3_spares_payers": out.c3_spares_payers.model_copy(update={"passed": False})})
+        return out, usage
+    return one_judge_doubts_payers
+
+
+def test_a_clean_reject_revised_into_a_split_on_c3_is_still_drawn_as_the_fallback(tmp_path, monkeypatch):
+    app = "janitorai"
+    (c,) = live(app, {"rationale": "WEAK"})
+    call, _ = fake_llm({"WEAK": ["c5_moment"]}, revision=c.model_copy(update={"rationale": "PAYERS revised"}))
+    monkeypatch.setattr(llm, "call", split_on_payers(call))
+    run_dir = seed(tmp_path, app, [c])
+    judge.run(ctx_for(app, run_dir))
+    decisions = decisions_of(run_dir)
+    assert {i: (d.final, d.judgment_splits) for i, d in decisions.items()} == \
+        {c.id: ("conditional", []), f"{c.id}-rev": ("conditional", ["c3_spares_payers"])}
+    assert [d.candidate_id for d in flows.stage.select([*decisions.values()])] == [c.id]
 
 
 def test_an_unpromoted_split_on_c3_as_the_only_survivor_gets_a_no_opportunity_note(tmp_path, monkeypatch):
     app = "janitorai"
     cands = live(app, {"rationale": "PAYERS"}, {"title": "Second idea", "rationale": "GATEFAIL"})
     call, _ = fake_llm({"GATEFAIL": ["g_policy"]})
-    doubter = config.roles("dev")["judge_1"]["model"]
-
-    def one_judge_doubts_payers(**kw):
-        proposal = kw["messages"][0]["content"][0]["text"].split("## Proposal", 1)[-1]
-        if kw["schema"] is Verdict and kw["model"] == doubter and "PAYERS" in proposal:
-            return verdict(["c3_spares_payers"]), None
-        return call(**kw)
-    monkeypatch.setattr(llm, "call", one_judge_doubts_payers)
+    monkeypatch.setattr(llm, "call", split_on_payers(call))
     run_dir = seed(tmp_path, app, cands)
     judge.run(ctx_for(app, run_dir))
     d = decisions_of(run_dir)[cands[0].id]
@@ -399,12 +407,12 @@ def test_a_fixable_reject_is_revised_once_and_judged_fresh(cap, tmp_path, monkey
     assert sum(c["schema"] is LensOutput for c in calls) == 1
 
 
-# sha256 of decisions.json, a NUL byte, then revisions.json, as judge.run wrote them at e56402e, the commit before the
-# revision loop, except each cosmetic's cost line, which now ends with a note that the check can't tell a look from a
-# featured spot (#40). With e56402e's cost lines the hashes were bd8f917a… and d4236f51…, and the test passed there.
+# sha256 of decisions.json, a NUL byte, then revisions.json without each candidate's economics, as judge.run wrote them
+# at e56402e, the commit before the revision loop. The test passes there too. The cost line is left out: its wording is
+# the economics code's, not the loop's.
 CAP_ONE = {
-    ("mixed", "janitorai"): "018b27ae1f776decd1ebd41a7e5fff8a5179be14f6ef5175240f602a07ccbe0d",
-    ("closest", "aol"): "e6b1f6b46e1c00b81dd9d6a68b56862670190c8f05ebb9ed1fd63a151d988cf5",
+    ("mixed", "janitorai"): "cae8e9b0f6f0b4b7ac19b3b4491bda5814ee31ad1b27443529545424231e73f8",
+    ("closest", "aol"): "54fe9ab95768082695ace560688a5d57663265463e8eee992835dc127cfb49c0",
 }
 
 
@@ -432,7 +440,9 @@ def test_at_cap_one_the_stage_writes_byte_for_byte_what_it_wrote_before_the_loop
     run_dir = seed(tmp_path, app, cands)
     judge.run(ctx_for(app, run_dir))
     out = run_dir / "judge"
-    written = (out / "decisions.json").read_bytes() + b"\0" + (out / "revisions.json").read_bytes()
+    revisions = CandidatesFile.model_validate_json((out / "revisions.json").read_text())
+    loop = revisions.model_dump_json(indent=1, exclude={"candidates": {"__all__": {"economics"}}}).encode()
+    written = (out / "decisions.json").read_bytes() + b"\0" + loop
     assert hashlib.sha256(written).hexdigest() == CAP_ONE[name, app]
 
 

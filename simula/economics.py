@@ -27,9 +27,12 @@ PAID_LEDGER = {"paywall_bullet", "price", "currency"}
 PRICED_KINDS = {"content_unlock", "currency"}
 # The bible has no reward kind for visibility, so a cosmetic can be a look or a featured spot ahead of other users.
 VISIBILITY_UNTYPED = {"cosmetic"}
-# Rewards spent as they are used, so their amount bounds them. Any other reward lasts as long as its duration says.
-USED_UP = {"inference", "image", "voice", "feature_time", "streak_protection"}
+# Rewards spent as they are used, whose bible entry requires the count or minutes that bounds them. Any other reward
+# lasts as long as its duration says.
+USED_UP = {"inference", "image", "voice", "feature_time"}
 NO_END = re.compile(r"\b(permanent(ly)?|forever|for good|lifetime|never (expires|ends))\b", re.I)
+# ponytail: spelled-out ends only ("24 hours", "until midnight"); "24h" or "7d" gets the can't-tell note, and "until you
+# cancel" reads as an end. A typed expiry on the reward would replace both word lists.
 AN_END = re.compile(r"\b(minutes?|hours?|days?|weeks?|months?|until|today|tonight|midnight)\b", re.I)
 # A unit that is a chat reply and nothing more: the reward the bible's per-reply cost describes.
 REPLY = re.compile(r"(chat )?(repl(y|ies)|messages?|answers?|responses?)", re.I)
@@ -76,12 +79,12 @@ def favorable(kind: str, field: str) -> float:
 
 
 def bounded(reward: Reward) -> bool | None:
-    """Whether the reward runs out, as its fields say: not when its duration says it never ends; else an amount it
-    spends, or a duration with an end. None when they say neither."""
-    if NO_END.search(reward.duration):
-        return False
+    """Whether the reward runs out, as its fields say: an amount it spends, or a duration with an end. None when the
+    duration says neither."""
     if reward.kind in USED_UP and reward.amount > 0:
         return True
+    if NO_END.search(reward.duration):
+        return False
     return True if AN_END.search(reward.duration) else None
 
 
