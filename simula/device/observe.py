@@ -412,11 +412,12 @@ def denied_at(target: Candidate, elements: list[dict], device: Device, **deny) -
     point, or "" for none. The list as it is, not the controls, which merge a container's words and drop a button
     nested in a bigger one, so a sign-in button a card draws inside a row's box is read. The list is in drawing order,
     parent first: what it lists right after the target inside its box is the target's own (a send button's icon
-    labelled "Confirm button"), judged with the target; words listed before the target and not around it are content
-    under it, like a reply under a lifted composer. Two limits: with no hierarchy, a deny-worded sibling listed right
-    after the target and inside its box is read as the target's own; and a wordless overlay that draws nothing is
-    unseen: no list the device gives reports clickable (mobile-mcp's, mobilecli's dump), and uiautomator dump is killed
-    on the emulator (measured 2026-10-01)."""
+    labelled "Confirm button"), judged with the target; what it lists before the target is content under it, like a
+    reply under a lifted composer's Send, unless it holds the target and all listed between them, as an ancestor does.
+    Limits: with no hierarchy, a deny-worded sibling listed right after the target inside its box reads as the
+    target's own, and one listed right before it and around it as its ancestor; a wordless overlay that draws nothing
+    is unseen: no list the device gives reports clickable (mobile-mcp's, mobilecli's dump), and uiautomator dump is
+    killed on the emulator (measured 2026-10-01)."""
     x, y = target.point
     order = {e.get("ref"): n for n, e in enumerate(elements)}
     at = end = order.get(target.ref, -1)
@@ -424,7 +425,8 @@ def denied_at(target: Candidate, elements: list[dict], device: Device, **deny) -
         end += 1
     for c in worded(elements, device):
         n = order[c.ref]
-        if inside(Rect(x=x, y=y, w=0, h=0), c.rect) and (n > end or (n < at and inside(target.rect, c.rect))):
+        ancestor = n < at and all(inside(r, c.rect) for r in [target.rect, *map(rect, elements[n + 1:at])])
+        if inside(Rect(x=x, y=y, w=0, h=0), c.rect) and (n > end or ancestor):
             reason = denied(c, **deny)
             if reason:
                 return f"{reason} ({c.label[:40]!r} at the tap point)"

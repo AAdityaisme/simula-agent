@@ -82,6 +82,34 @@ def test_a_controls_own_icon_listed_right_after_it_is_its_own_not_drawn_over_it(
     assert "confirm" in denied_at(send, [target, note, icon], Device(), core=True)
 
 
+
+def test_a_reply_listed_before_a_lifted_composers_send_never_refuses_it_and_an_ancestors_words_do():
+    """JanitorAI's chat with the keyboard up (PR O's run 20261001-035432-69c8c4f, act114; words shortened): the reply
+    and its last paragraph hold Send's box but are no ancestor of it (the text box, listed between, lies outside), so
+    a reply saying "Sign in" doesn't refuse the send. Words on an element that holds the target and all listed between
+    them, an ancestor's, still do."""
+    def element(ref, kind, text, label, x, y, w, h):
+        return {"ref": ref, "type": f"android.widget.{kind}", "text": text, "label": label,
+                "coordinates": {"x": x, "y": y, "width": w, "height": h}}
+    said = "He stopped. Sign in, he said, and he would go."
+    chat = [element("@e26", "FrameLayout", "", "", 0, 0, 1080, 2400),
+            element("@e33", "ViewGroup", "", f"Miro blinked. {said}", 134, 274, 902, 1243),
+            element("@e34", "TextView", "There was once a light.", "", 134, 274, 902, 104),
+            element("@e35", "TextView", "He looked at the boots again.", "", 134, 403, 902, 135),
+            element("@e36", "TextView", "The light stayed awake.", "", 134, 563, 902, 639),
+            element("@e37", "TextView", said, "", 134, 1227, 902, 261),
+            element("@e38", "TextView", "That is all I know.", "", 134, 1513, 902, 4),
+            element("@e39", "EditText", "What's a good phone for a student?", "", 46, 1215, 988, 123),
+            element("@e40", "ViewGroup", "", "AI write for me", 68, 1338, 89, 89),
+            element("@e41", "Button", "", "Change who you are in this chat", 174, 1338, 284, 86),
+            element("@e42", "TextView", "Persona", "", 270, 1361, 108, 39),
+            element("@e43", "ViewGroup", "", "Send", 922, 1338, 89, 89)]
+    send = Candidate(label="Send", kind="ViewGroup", rect=Rect(x=922, y=1338, w=89, h=89), ref="@e43", tree_label="Send")
+    assert denied_at(send, chat, Device(), core=True) == ""
+    card = element("@card", "ViewGroup", "", "Sign in to keep chatting", 900, 1320, 140, 130)
+    icon = element("@icon", "ImageView", "", "", 940, 1330, 40, 40)
+    assert "sign in" in denied_at(send, [*chat[:-1], card, icon, chat[-1]], Device(), core=True)
+
 def test_the_exhibit_counts_denied_taps_that_reached_the_device(tmp_path, monkeypatch):
     from simula.stages import explore as stage
     from tests.fake_device import explorer
