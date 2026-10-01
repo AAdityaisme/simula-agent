@@ -15,12 +15,13 @@ from pathlib import Path
 from PIL import Image
 
 from simula import config, qa_metrics, render, runfolder
-from simula.contracts import SCHEMA_VERSION, Device, Edge, ProductModel, Rect, StateFile
+from simula.contracts import SCHEMA_VERSION, Device, Edge, ProductModel, Rect, StageOutcome, StateFile
 from simula.device import observe as ob
 from simula.device.devices import emulator_lock, resolve_serial
 from simula.device.mcp import McpReplyError, McpTimeout, Phone, Server, parse_elements
-from simula.runlog import now
+from simula.runlog import now, read_trace
 from simula.stages import Ctx, explore, mock, qa
+from simula.stages.model import read_actions
 
 MAX_ACTIONS = 30
 MAX_MINUTES = 10
@@ -34,10 +35,10 @@ ARRIVED = ("same", "structure", "home")
 DIVERGED = ("other", "away")
 INPUTS = ("model/product_model.json", "mock/contract_report.json", "qa/approved/index.html")
 STATE_JS = "() => window.simula.state()"
-NOTE = ("Masked SSIM is descriptive: it has no pass threshold. Explore records no swipe direction: a swipe back to "
-        "where an earlier recorded swipe started is its scroll back, taken down; any other is taken up, flagged as "
-        "assumed, and a landing elsewhere after it is unverified. Setup (launches and routes to a flow's start) is "
-        "never evidence, and a flow not walked here is not certified by it.")
+NOTE = ("Masked SSIM is descriptive: it has no pass threshold. Explore records no swipe direction: a swipe its trace "
+        "calls a scroll back is taken down; any other is taken up, flagged as assumed, and a landing elsewhere after "
+        "it is unverified. Setup (launches and routes to a flow's start) is never evidence, and a flow not walked here "
+        "is not certified by it.")
 
 
 @dataclass
@@ -83,8 +84,7 @@ def run(app: str, run_id: str | None, out: Path, serial: str | None, clock=time.
         raise SystemExit("SIMULA_REDACT is empty: list the emulator account's handle and names in .env first")
     if not (src / "qa" / "approved" / "index.html").exists():
         raise SystemExit(f"{src} has no approved mock: run `simula qa {app}` first")
-    if not approved_current(src):
-        raise SystemExit(f"the approved mock predates the current model/mock: rerun `simula qa {app}`")
+    approval = approved_outcome(src, app)
     model = ProductModel.model_validate_json((src / "model" / "product_model.json").read_text())
     if model.device != Device():
         raise SystemExit(f"the run was explored on {model.device}, but the mock renders and compares on {Device()}")
@@ -104,7 +104,8 @@ def run(app: str, run_id: str | None, out: Path, serial: str | None, clock=time.
                 flows, stop = audit.walk(page)
         report = {"schema_version": SCHEMA_VERSION, "app": app, "run": src.name, "created_at": now(),
                   "inputs": {path: runfolder.sha256(src / path) for path in INPUTS},
-                  "device": model.device.model_dump(), "caps": {"actions": MAX_ACTIONS, "minutes": MAX_MINUTES},
+                  "qa": approval.model_dump(include={"status", "reasons"}), "device": model.device.model_dump(),
+                  "caps": {"actions": MAX_ACTIONS, "minutes": MAX_MINUTES},
                   "actions": {"total": audit.actions, "setup": len(audit.setup)},
                   "minutes": round((clock() - audit.started) / 60, 2), "stop": stop, "summary": summary(flows),
                   "flows": flows, "setup": audit.setup, "note": NOTE}
@@ -117,15 +118,40 @@ def run(app: str, run_id: str | None, out: Path, serial: str | None, clock=time.
             out.rmdir()  # a walk that stopped before any evidence leaves no folder, so the same --out can run again
 
 
-def approved_current(src: Path) -> bool:
-    """QA approved this page from the model and mock on disk now: its marker is complete, and the hashes it recorded
-    for them (inputs) and for the page (an output) are the files' own. A model or mock rerun alone leaves qa/ as it
-    was."""
-    marker = runfolder.read_done(src / "qa")
-    if marker is None or marker.outcome.status != "complete":
-        return False
-    recorded = {h.path: h.sha256 for h in [*marker.input_hashes, *marker.output_hashes]}
-    return all((src / path).exists() and recorded.get(path) == runfolder.sha256(src / path) for path in INPUTS)
+def approved_outcome(src: Path, app: str) -> StageOutcome:
+    """QA's outcome for the approved page, once the stages' own markers show it was approved from the files on disk
+    now: QA's hashes for the model, the mock's contract report and the page, and the model's for the explore captures
+    the walker reads. A model, mock or explore rerun alone leaves qa/ as it was, so any changed hash refuses, naming
+    what changed. A partial QA is walked: its reasons go in the report."""
+    qa_marker, model_marker = runfolder.read_done(src / "qa"), runfolder.read_done(src / "model")
+    if qa_marker is None or model_marker is None:
+        raise SystemExit(f"{'QA' if qa_marker is None else 'the model stage'} never finished on {src.name}: "
+                         f"run `simula run {app} --run {src.name}`")
+    recorded = {h.path: h.sha256 for h in [*qa_marker.input_hashes, *qa_marker.output_hashes]}
+    changed = [path for path in INPUTS
+               if not (src / path).exists() or recorded.get(path) != runfolder.sha256(src / path)]
+    if changed:
+        raise SystemExit(f"{', '.join(changed)} changed since QA approved the mock: rerun `simula qa {app}`")
+    built_on = {h.path: h.sha256 for h in model_marker.input_hashes if h.path.startswith("explore/")}
+    captured = {h.path: h.sha256 for h in runfolder.hashes([src / "explore"], src)}
+    moved = sorted(path for path in built_on.keys() | captured.keys() if built_on.get(path) != captured.get(path))
+    if moved:
+        shown = ", ".join(moved[:3]) + (f" and {len(moved) - 3} more" if len(moved) > 3 else "")
+        raise SystemExit(f"explore changed since the model was built ({shown}): rerun "
+                         f"`simula run {app} --run {src.name} --from model`")
+    return qa_marker.outcome
+
+
+def scroll_backs(run_dir: Path, edges: list[Edge]) -> set[str]:
+    """The swipe edges explore took to scroll back, which it swipes down: the trace line of the move the edge was
+    built from (its first recorded occurrence) says "(scroll back)". Explore records no direction for any other."""
+    notes = {line.step: line.note for line in read_trace(run_dir / "trace.jsonl") if line.stage == "explore"}
+    first: dict[tuple[str, str], int] = {}
+    for a in read_actions(run_dir / "explore"):
+        if a.action == "swipe" and a.outcome == "ok" and a.to_state:
+            first.setdefault((a.from_state, a.to_state), a.step)
+    return {e.id for e in edges if e.action == "swipe" and (e.from_state, e.to_state) in first
+            and notes.get(f"act{first[e.from_state, e.to_state]:03d}", "").endswith("(scroll back)")}
 
 
 def new_out(out: Path, src: Path) -> Path:
@@ -193,10 +219,7 @@ class Audit:
         self.root = next(s.id for s in model.states if s.kind == "screen")  # the model stage's root
         self.in_scope = {e.id for e in mock.scope_edges(model, qa.mock_screens(ctx, model))}
         self.undrawn = set(qa.undrawn_screens(ctx))
-        # explore records no swipe direction: a swipe back to where an earlier recorded swipe started is its scroll
-        # back, which it swipes down; any other is taken up, as an assumption
-        self.scroll_backs = {e.id for n, e in enumerate(model.edges) if e.action == "swipe" and any(
-            o.action == "swipe" and (o.from_state, o.to_state) == (e.to_state, e.from_state) for o in model.edges[:n])}
+        self.scroll_backs = scroll_backs(ctx.run_dir, model.edges)  # taken down; any other swipe is assumed up
         self.recorded_states: dict[str, Recorded] = {}
         self.actions, self.setup, self.flow = 0, [], ""
         self.current: str | None = None
@@ -603,10 +626,12 @@ def write_report(out: Path, report: dict) -> None:
 def markdown(report: dict) -> str:
     s, actions = report["summary"], report["actions"]
     stop = f" The audit stopped: {report['stop']}." if report["stop"] else ""
+    qa = report["qa"]
+    partial = "" if qa["status"] == "complete" else f" QA approved it {qa['status']}: {'; '.join(qa['reasons'])}."
     lines = [f"# Live QA walk: {report['app']}, run {report['run']}", "",
              (f"{s['supported']} of {s['total']} flows supported; {s['completed']} completed (walked to the end or to "
               f"a verified divergence), {s['by_status']['matched']} matched. {actions['total']} device actions "
-              f"({actions['setup']} of them setup) in {report['minutes']} min.{stop}"), "",
+              f"({actions['setup']} of them setup) in {report['minutes']} min.{stop}{partial}"), "",
              "| Flow | Status | Checkpoints | Why |", "|---|---|---|---|"]
     for f in report["flows"]:
         why = "; ".join(r for r in [f["reason"], *f["assumed"]] if r)

@@ -15,9 +15,9 @@ from pathlib import Path
 import pytest
 from PIL import Image, ImageDraw
 
-from simula import cli, decide, llm, qa_live, runfolder
-from simula.contracts import (ActionLine, ContractReport, Coverage, Device, Flow, Point, ProductModel, Provenance,
-                              StateFile)
+from simula import cli, decide, llm, qa_live, runfolder, runlog
+from simula.contracts import (ActionLine, ContractError, ContractReport, Coverage, Device, Flow, Point, ProductModel,
+                              Provenance, StageOutcome, StateFile)
 from simula.device import mcp
 from simula.device import observe as ob
 from simula.stages import model as model_stage
@@ -96,14 +96,21 @@ def source_run(runs: Path, recorded: dict[str, Screen], lines: list[ActionLine],
     (run_dir / "mock").mkdir()
     (run_dir / "mock" / "contract_report.json").write_text(
         ContractReport(passed=True, screens=ids, errors=[]).model_dump_json())
+    runfolder.write_done(model_dir, run_dir, [explore_dir], [], {}, [model_dir], Provenance(source="explorer_run"))
     approve(run_dir)
     return run_dir
 
 
-def approve(run_dir: Path) -> None:
+def approve(run_dir: Path, outcome: StageOutcome | None = None) -> None:
     """QA's marker over the page it approved, as the stage writes one: the model and mock it read, and qa/ it wrote."""
     runfolder.write_done(run_dir / "qa", run_dir, [run_dir / "mock", run_dir / "model"], [], {}, [run_dir / "qa"],
-                         Provenance(source="explorer_run"))
+                         Provenance(source="explorer_run"), outcome=outcome)
+
+
+def scroll_back(run_dir: Path, a: ActionLine) -> None:
+    """The trace line explore writes for a move it made to scroll back (Explorer.log, Move why "scroll back")."""
+    runlog.run_trace(run_dir, stage="explore", step=f"act{a.step:03d}", decider="code",
+                     note=f"swipe {a.from_state}>{a.to_state} [push]  (scroll back)")
 
 
 def key_at(screen: Screen, point: tuple[int, int]) -> str:
@@ -456,10 +463,31 @@ def test_a_device_of_another_size_is_refused_before_any_action(runs, walk, tmp_p
 
 # ---------- the red team's probes on 9d6a8cf, each failing there ----------
 
-@pytest.mark.parametrize("stale", ["model", "contract", "page", "partial", "none"])
-def test_an_approved_mock_older_than_the_model_or_mock_is_refused_before_any_device_work(runs, walk, stale):
-    """A model or mock rerun alone leaves qa/ as it was: walking the old page against the new model would blame the
-    mock for its inputs. QA's own marker says whether the page is current."""
+def swap_captures(run_dir: Path, a: str, b: str) -> None:
+    """An explore rerun that recorded a's screen under b's id and b's under a's."""
+    states = run_dir / "explore" / "states"
+    for suffix in (".json", ".png", ".elements.json"):
+        shutil.move(states / f"{a}{suffix}", states / f"tmp{suffix}")
+        shutil.move(states / f"{b}{suffix}", states / f"{a}{suffix}")
+        shutil.move(states / f"tmp{suffix}", states / f"{b}{suffix}")
+    for sid in (a, b):
+        sf = json.loads((states / f"{sid}.json").read_text())
+        sf.update(state_id=sid, screenshot=f"states/{sid}.png", elements_reply=f"states/{sid}.elements.json")
+        (states / f"{sid}.json").write_text(json.dumps(sf))
+
+
+@pytest.mark.parametrize("stale, why", [
+    ("model", r"model/product_model.json changed since QA approved the mock: rerun `simula qa janitorai`"),
+    ("contract", r"mock/contract_report.json changed since QA approved the mock: rerun `simula qa janitorai`"),
+    ("page", r"qa/approved/index.html changed since QA approved the mock: rerun `simula qa janitorai`"),
+    ("explore", r"explore changed since the model was built \(explore/states/s01.elements.json, .* and 3 more\): "
+                r"rerun `simula run janitorai --run r1 --from model`"),
+    ("no-marker", r"QA never finished on r1: run `simula run janitorai --run r1`"),
+])
+def test_an_approved_mock_older_than_the_files_it_was_made_from_is_refused_before_any_device_work(runs, walk, stale,
+                                                                                                 why):
+    """A model, mock or explore rerun alone leaves qa/ as it was: walking the old page against new inputs would blame
+    the mock, or tap by captures the model wasn't built on. The stages' own markers say what changed."""
     recorded = screens()
     run_dir = tab_back_run(runs, recorded)
     model_path = run_dir / "model" / "product_model.json"
@@ -472,18 +500,41 @@ def test_an_approved_mock_older_than_the_model_or_mock_is_refused_before_any_dev
     elif stale == "page":
         page = run_dir / "qa" / "approved" / "index.html"
         page.write_text(page.read_text() + "<!-- edited after approval -->")
-    elif stale == "partial":
-        marker = runfolder.read_done(run_dir / "qa")
-        runfolder.write_json_atomic(run_dir / "qa" / "done.json", marker.model_copy(
-            update={"outcome": marker.outcome.model_copy(update={"status": "partial"})}).model_dump_json())
+    elif stale == "explore":
+        swap_captures(run_dir, "s01", "s02")
     else:
         (run_dir / "qa" / "done.json").unlink()
     phone = phone_for(screens(), [("s01", tab(recorded["s01"], 1), "s02")])
 
-    with pytest.raises(SystemExit, match="the approved mock predates the current model/mock: rerun `simula qa "
-                                         "janitorai`"):
+    with pytest.raises(SystemExit, match=why):
         walk(phone)
     assert phone.log == [] and walk.held == []
+
+
+def test_a_partial_qa_on_current_files_is_walked_and_says_so_and_an_undrawn_screen_is_left_out(runs, walk, tmp_path):
+    """QA finishes partial on an undrawn screen or a flow that still fails, and its page is still the current one:
+    the walk goes ahead, reports QA's status and reasons, and leaves out a flow through the undrawn screen."""
+    recorded = screens()
+    run_dir = source_run(runs, recorded, [line(1, "s01", "s02", TAP, tab(recorded["s01"], 1), "tab"),
+                                          line(2, "s02", "s01", BACK, transition="back"),
+                                          line(3, "s01", "s03", TAP, tab(recorded["s01"], 3), "tab")],
+                         [[("s01", "s02", TAP), ("s02", "s01", BACK)], [("s01", "s03", TAP)]])
+    (run_dir / "mock" / "contract_report.json").write_text(ContractReport(
+        passed=False, screens=["s01", "s02", "s03", "s04"],
+        errors=[ContractError(kind="undrawn_screen", detail="screen not drawn: $ cap reached", screen="s03")],
+    ).model_dump_json())
+    approve(run_dir, StageOutcome(status="partial", reasons=["1 screen not drawn", "core flows that still fail: f2"]))
+    phone = phone_for(screens(), [("s01", tab(recorded["s01"], 1), "s02")])
+
+    report = walk(phone)
+
+    assert report["qa"] == {"status": "partial", "reasons": ["1 screen not drawn", "core flows that still fail: f2"]}
+    walked, undrawn = report["flows"]
+    assert walked["status"] == "matched"
+    assert (undrawn["status"], undrawn["reason"]) == ("unsupported",
+                                                      f"{undrawn['edges'][0]} passes a screen the mock didn't draw")
+    assert ("QA approved it partial: 1 screen not drawn; core flows that still fail: f2."
+            in (tmp_path / "audit" / "report.md").read_text())
 
 
 def test_a_route_to_the_start_never_counts_on_a_denied_control_when_a_permitted_one_exists(runs, walk):
@@ -600,15 +651,29 @@ class Directional(FakePhone):
         self.go({("s01", "up"): "s02", ("s02", "down"): "s01", ("s02", "up"): "s03"}.get((self.screen, direction)))
 
 
-def test_a_recorded_scroll_back_is_swiped_down_and_not_flagged_as_assumed(runs, walk):
+def test_a_swipe_its_trace_calls_a_scroll_back_is_swiped_down_and_not_flagged_as_assumed(runs, walk):
     recorded = screens()
-    source_run(runs, recorded, [line(1, "s01", "s02", SWIPE), line(2, "s02", "s01", SWIPE)],
-               [[("s01", "s02", SWIPE), ("s02", "s01", SWIPE)]])
+    lines = [line(1, "s01", "s02", SWIPE), line(2, "s02", "s01", SWIPE)]
+    scroll_back(source_run(runs, recorded, lines, [[("s01", "s02", SWIPE), ("s02", "s01", SWIPE)]]), lines[1])
     phone = phone_for(screens(), [], cls=Directional)
 
     flow = walk(phone)["flows"][0]
 
     assert flow["status"] == "matched" and ("swipe", "s02", "down") in phone.log
+    assert flow["assumed"] == [f"{flow['edges'][0]}: swipe direction assumed up"]
+
+
+def test_a_swipe_back_its_trace_doesnt_call_a_scroll_back_stays_an_assumed_swipe_up(runs, walk):
+    """The other order: a model-chosen swipe down first (s02 > s01), then one up back (s01 > s02). The later swipe
+    returns to where the earlier one started, but explore's trace calls neither a scroll back, so its direction is
+    a guess: up, flagged."""
+    recorded = screens()
+    source_run(runs, recorded, [line(1, "s02", "s01", SWIPE), line(2, "s01", "s02", SWIPE)], [[("s01", "s02", SWIPE)]])
+    phone = phone_for(screens(), [], cls=Directional)
+
+    flow = walk(phone)["flows"][0]
+
+    assert ("swipe", "s01", "up") in phone.log and flow["status"] == "matched"
     assert flow["assumed"] == [f"{flow['edges'][0]}: swipe direction assumed up"]
 
 
