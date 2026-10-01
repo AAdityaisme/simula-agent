@@ -1,0 +1,53 @@
+{
+ "candidate_id": "rg-janitorai-c07-fan-boost",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opened by the user's like tap and they choose to play. The offer copy states the reward (24-hour list boost plus a 7-day supporter heart), declining hides the card, and the failure path is given."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic list boost and a supporter heart, with nothing withdrawable or transferable."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a tap on the like button (s07.e16) for a character created in the last 30 days, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing users get free today is removed, locked or capped, and the new once-a-day cap is not on anything the user has free."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits on the character detail page s07, which is rated safe and is not a chat screen. It is not in the conversation and not next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "As a product_change, most of what the reward gives (the list boost and new chats) goes to the creator, not the player. The only player-side piece is a cosmetic heart, which is not a slice of anything the app charges for or something the player uses in a core flow."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The rationale and 'what makes it work' say a new character sits deep in the smaller-creators list and that this is creators' one fixed place to be found. The model shows a character created 'about 1 hour ago' (s20) as a top card in that feed's first page, and nothing in the model shows how the list is ordered. The cited evidence list is also empty."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The model shows the Janitor+ plan (m2) does not include boosting other creators' characters. The offer sits on a normal character page and not inside a paid benefit, and the plan does not remove ads."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "Moving a character near the top of the ordered smaller-creators list takes visibility and place in the list from other creators' characters. The app does not sell that advantage, so this fails the condition on taking from other creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears right after the finished action of tapping like, on a character page the user chose to open, and it does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn playable. The reward is granted only once the play is confirmed, and the trigger is a detectable like tap."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names specific elements of this app: the Hidden Gems smaller-creators tab, the like button on s07, and creator handles."
+ },
+ "other_concern": "The 10-boosts-per-character-per-day cap and the claim that boosting 'costs nothing to run' are proposal-side assumptions. Letting fans buy ranking could be gamed, and it might clash with how the app ranks the feed.",
+ "fixable": false
+}

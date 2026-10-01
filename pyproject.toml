@@ -17,13 +17,14 @@ dependencies = [
     "python-dotenv",
     "typesafe-sdk",
     "system-one-adapter[anthropic] @ git+https://github.com/typesafe-ai/system-one-adapter-python@e1d4cc9",
+    "regex>=2026.9.29",
 ]
 
 [project.scripts]
 simula = "simula.cli:main"
 
 [dependency-groups]
-dev = ["pytest"]
+dev = ["pytest", "pytest-xdist"]
 
 [build-system]
 requires = ["hatchling"]
@@ -39,3 +40,4 @@ packages = ["simula"]
 testpaths = ["tests"]
 addopts = "-m 'not live'"
 markers = ["live: needs API keys or the emulator; skipped in CI"]
+tmp_path_retention_policy = "failed"  # the default keeps every temp folder; 60 sessions once filled the disk

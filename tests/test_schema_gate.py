@@ -9,7 +9,8 @@ from anthropic.lib._parse._transform import transform_schema
 from openai.lib._pydantic import to_strict_json_schema
 from pydantic import BaseModel, ValidationError
 
-from simula.contracts import GATES, JUDGMENT, MODEL_FACING, LensOutput, ModelMeaning, Verdict
+from simula.config import ROOT
+from simula.contracts import GATES, JUDGMENT, MODEL_FACING, LensOutput, ModelMeaning, SavedVerdict, Verdict
 
 
 def objects(schema: dict):
@@ -100,6 +101,15 @@ def test_openai_strict_schema_is_closed(schema):
 def test_verdict_keeps_all_named_checks():
     for transformed in (transform_schema(Verdict), to_strict_json_schema(Verdict)):
         assert set(GATES) | set(JUDGMENT) <= set(transformed["properties"])
+
+
+def test_the_judge_must_answer_c3_but_a_verdict_saved_before_it_still_reads():
+    saved = (ROOT / "validation" / "verdicts" / "VF2" / "kg-run-janitorai-c02_judge_1_r1.json").read_text()
+    with pytest.raises(ValidationError):
+        Verdict.model_validate_json(saved)
+    old = SavedVerdict.model_validate_json(saved).c3_spares_payers
+    assert old.passed and old.reason.startswith("not scored")
+    assert "c3_spares_payers" in transform_schema(Verdict)["required"]
 
 
 def test_empty_verdict_is_rejected():

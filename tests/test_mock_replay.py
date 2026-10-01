@@ -3,6 +3,7 @@ whole, and the stage reports the lost batches as a partial outcome in done.json.
 
 import re
 import shutil
+import time
 
 import anthropic
 import httpx2
@@ -47,11 +48,15 @@ def losing_first_batch(model, kind: str):
 
 
 def running_out_of_tokens_first(model):
-    """A provider whose first answer to every batch runs out of tokens, and whose retry answers."""
+    """A provider whose first answer to every batch runs out of tokens, batch 1's before the others', and whose retry
+    answers at once."""
+    first = mock.batches(mock.pick_scope(model))[0][0].id
+
     def provider(model_id, system, messages, effort, schema, max_tokens, total_timeout=None):
-        retry = any(p.get("text") == mock.SHORTER for p in messages[0]["content"])
-        return drawn(model, model_id, messages, tokens_out=1000 if retry else 128000,
-                     stop="end_turn" if retry else "max_tokens")
+        if any(p.get("text") == mock.SHORTER for p in messages[0]["content"]):
+            return drawn(model, model_id, messages, tokens_out=1000)
+        time.sleep(0.2 if first in screens_of(messages) else 0.4)
+        return drawn(model, model_id, messages, tokens_out=128000, stop="max_tokens")
     return provider
 
 
@@ -64,14 +69,13 @@ def test_a_live_run_that_lost_a_batch_replays_to_the_same_page(tmp_path, monkeyp
     model = golden(APP)
     ctx = ctx_for(run_dir, APP)
     if kind == "retry_turned_away":
-        # A first answer costs $1 and a retry $0.50. The plan keeps every batch with one $1 spare, so, one batch at a
-        # time, the last batch's retry finds no room left and is turned away.
-        monkeypatch.setattr(mock, "worst_usd", lambda ctx, content: 1.0)
+        # Every call holds $1; a first answer costs $1 and a retry $0.50. Two at a time under a $3 cap, batches 1 and 2
+        # hold with one $1 spare, batch 1's retry takes it, and batch 2's retry, the second at once, is turned away.
         monkeypatch.setattr(llm, "worst_case_usd", lambda model_id, tokens_in, tokens_out: 1.0)
         monkeypatch.setattr(llm, "usd", lambda model_id, tokens_in, tokens_out, tokens_cached=0:
                             1.0 if tokens_out >= 100000 else 0.5)
-        monkeypatch.setattr(mock, "PARALLEL_BATCHES", 1)
-        ctx.usd_cap = len(mock.batches(mock.pick_scope(model))) + 1.0
+        monkeypatch.setattr(mock, "PARALLEL_BATCHES", 2)
+        ctx.usd_cap = 3.0
         provider = running_out_of_tokens_first(model)
     else:
         provider = losing_first_batch(model, kind)
@@ -79,6 +83,11 @@ def test_a_live_run_that_lost_a_batch_replays_to_the_same_page(tmp_path, monkeyp
     mock.run(ctx)
     live = (run_dir / "mock" / "index.html").read_text()
     assert "screen not drawn" in live
+    if kind == "retry_turned_away":
+        second = mock.batches(mock.pick_scope(model))[1]
+        report = ContractReport.model_validate_json((run_dir / "mock" / "contract_report.json").read_text())
+        assert next(e.detail for e in report.errors if e.screen == second[0].id).startswith(
+            "screen not drawn: $ cap reached: mock: next call could cost $1.00")
 
     replay = ctx_for(run_dir, APP)
     replay.replay = True
@@ -174,12 +183,12 @@ def test_a_batch_lost_to_a_known_failure_is_a_contract_error_qa_repairs_not_a_pa
 
 
 def test_batches_the_cap_left_out_are_one_plain_reason_and_resume_with_a_higher_cap(runs, tmp_path, monkeypatch):
-    """The cap's own trace line makes the stage partial (run_stage), and the deck cover prints it, so it names the
-    screens and says why in the product team's words."""
+    """The stage's outcome makes it partial, and the deck cover prints it, so it names the screens and says why in the
+    product team's words: the budget's own refusal, with its dollar figures, stays in the trace."""
     with_cache_in(tmp_path, monkeypatch)
     model = golden(APP)
-    monkeypatch.setattr(mock, "worst_usd", lambda ctx, content: 1.0)
     monkeypatch.setattr(llm, "worst_case_usd", lambda model_id, tokens_in, tokens_out: 1.0)
+    monkeypatch.setattr(llm, "usd", lambda model_id, tokens_in, tokens_out, tokens_cached=0: 1.0)
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider_drawing(model, []))
     assert cli.main(["mock", APP, "--allow-fixtures", "--fixture", f"model={GOLDEN}", "--usd-cap", "2"]) == 0
     run_dir = (runs / APP / "latest").resolve()

@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-free-removal-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reading reward before an optional game. The decline and ad-failure fields describe what happens without a verified play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of article access, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a fourth article opening, an app event; it does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The adds field introduces a three-article daily lock on reading, a core flow observed in f01. This newly caps something readers get free today, and article reading is not one of the permitted costly-resource exceptions."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a lock panel on s02 Article, which is rated content safe, rather than an offer inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this product change, the 30-minute reward is for the player's own use in reading articles, the observed core flow f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work field says the app has no paywall, limit, or currency, and the subscribers field concludes every reader is free. The model only records that none was seen on the home feed; it does not support those app-wide claims."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no paid plan, so the proposal does not conflict with an observed payer benefit."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes, and no subscription benefit is shown in the product model."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger and flow place the offer when the proposed article lock is hit, a moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow grants access once the short sponsored game's play is confirmed, and opening a fourth article is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal ties the offer to story selection on s01 Home and reading in s02 Article."
+ },
+ "other_concern": "",
+ "fixable": false
+}

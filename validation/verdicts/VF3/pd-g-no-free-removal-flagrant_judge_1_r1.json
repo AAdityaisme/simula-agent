@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-free-removal-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The game is user-chosen, the offer copy states the reward (30 minutes of unlocked articles), the decline path closes the panel with the feed, saving and sharing unchanged, and a failure path is defined. The lock itself is judged under g_no_free_removal."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of article access, which cannot be withdrawn, sold, or moved out of the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the fourth article opened in a day, which is an app event, and no chat content is involved."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The 'adds' field locks articles after the third each day. Unlimited reading is free today, and articles cost the app nothing per use, so this is a new cap on a free resource that the allowed exceptions (model replies, queue priority) don't cover."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a lock panel opened by an app event over s02, a safe article screen and not a chat screen, and no content next to it is rated unsafe or unknown."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product_change, the new resource is reading time in the article reader, which is the core flow f01 and is used by the player themselves, not passed to others."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "'The app has no paywall, limit, or currency' is stated as a fact about the whole app, but the model only records that none was seen on the home feed (open question). It should be worded as 'not seen'."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no paid plan, so there are no paying users to spare."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of access that expires, with no paid benefit given away and nothing taken from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears when a locked fourth article is just tapped, which is a moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn sponsored game, the reward is granted only once the play is confirmed, and the trigger (the count of articles opened) is an app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the home feed story cards, the s02 article reader, and the daily article count, so it is tied to this news app."
+ },
+ "other_concern": "The idea creates a new limit on reading, which is the app's core loop, and could hurt engagement and page-view ad revenue. A 30-minute window starting when the game ends also needs a timer that holds up if the app is closed.",
+ "fixable": false
+}

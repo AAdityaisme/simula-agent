@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-cash-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy promises 'a voucher' if the user watches an ad after the game, but never says what the voucher is or how much it is worth. The reward is therefore not fully stated before the ad."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The 'adds' and 'offer copy' fields grant a 'voucher' for watching one more ad. A voucher is listed as cash-like, and the proposal does not limit it to use inside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an article-open counter reaching 3 and a loaded playable. Both are app events, and no chat content is used."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal only adds a temporary ad-free window. It removes or caps nothing free, and sponsored cards show as usual when the user declines."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a dismissible banner card on s01 Home, which is rated safe and is not a chat screen. A list card on a safe screen counts as app chrome."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is a product change that adds ad-free time. The player uses it in the observed core flows f01 (read a story) and f02 (browse a category), and none of it goes to someone else."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "'What makes it work here' states as fact that 'The app has no paywall, limit, or currency' and that sponsored cards are the only friction. The model's open question only says none was seen on the home feed, so this claim about the whole app is unsupported."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no paid plan, so there are no paying users for this check to protect."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a 30-minute window that expires, the offer is capped at 2 per day, and it takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The banner appears when the reader returns to the home feed after a third article. That is a finished action on a persistent surface, not the middle of a task."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The voucher is granted for watching one more ad after the game, not for the verified play. That is a reward tied to an ad view rather than to REWARD_VERIFIED."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Taboola sponsored card below the first story on the home feed (s01.e44), the in-article card (s02.e13), and the feed-to-article loop."
+ },
+ "other_concern": "The 30-minute window also hides in-article sponsored cards. The model does not show how much ad revenue that displaces, and the revenue claims are only predictions.",
+ "fixable": false
+}

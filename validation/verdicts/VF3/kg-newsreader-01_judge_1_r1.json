@@ -1,0 +1,53 @@
+{
+ "candidate_id": "kg-newsreader-01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user taps a button in the pop-up to opt in, and the offer copy states the reward (3 more saved stories for 7 days). Declining changes nothing, and the 'if the ad fails' field covers both a game that isn't ready and one that doesn't count."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 temporary saved-story slots, which have no cash value and can't be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: a free reader taps Save with 5 stories saved, which opens the pop-up. No chat content is involved."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "After 7 days the list returns to the 5-story limit the app already has (m01), and stories past the fifth stay readable. Nothing free today is removed or capped."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The button sits in the s02 modal, which is opened by a limit hit, over s01. Both screens are rated safe, and the offer is not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing_anchor, and the app limits saved stories to 5 (m01, l01 'Saved: 5 of 5'), which is the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the 5-story limit, the pop-up, and Premium's 'No ads' and 'Listen to any story' match m01, m03, s02.e02, s03.e03 and s03.e04. The 'Saved: 6 of 8' meter, the new button and the copy are the proposal's own additions, not claims about the app today."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "Premium members never see the button, because their plan removes ads. The reward is saved space, which Premium doesn't sell (s03 lists only no ads and listening)."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 7 days and is capped at 1 per week. It doesn't give away Premium's ad-free or listening benefits, and it takes nothing from other users."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears in the full-list pop-up right after the reader hits the save limit, which is a moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn sponsored game, and the trigger is a detectable Save tap at the limit. Slots are added only when the game counts, and none are added otherwise."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names this app's 5-story saved limit, the 'Saved: 5 of 5' meter, the s02 full-list pop-up and the Manage saved button."
+ },
+ "other_concern": "The proposal never says explicitly that slots are granted only after Simula's verified-play event, though the failure path implies it. After the game the reader lands on s01 with the story saved, which is reasonable but not directly observed.",
+ "fixable": false
+}
