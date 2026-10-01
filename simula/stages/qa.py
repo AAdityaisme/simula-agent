@@ -99,20 +99,23 @@ def improve(ctx: Ctx, model: ProductModel, scope: list[State], best: Version) ->
     screens = [s.id for s in scope]
     budget = llm.Budget.for_stage("qa", ctx.run_dir / "trace.jsonl", ctx.usd_cap)
     loop, history, critiqued = Loop(rounds=[summary(best, kept=True)], stop=f"all {MAX_ROUNDS} rounds ran"), [], {}
+    reasked = 0  # rounds that only asked the critic again about the screens it missed
     for n in range(1, MAX_ROUNDS + 1):
         try:
             critique = criticize(ctx, budget, best, history, n, missed=loop.missed)
             critiqued[best.round] = critique
             _, to_repair = worklist(model, best, critique)
+            nothing = "nothing to repair" + (f" on the screens reviewed; the critic missed {' '.join(loop.missed)}"
+                                             if loop.missed else "")
             # A known failure (a refusal, a bad answer) comes back from the cache next round: only a lost call, or a
             # run asking afresh, can get the missed screens reviewed.
             if not to_repair and loop.missed and (ctx.no_cache or any(e.outcome in llm.TRANSPORT
                                                                       for _, e in loop.missed.values())):
-                run_trace(ctx.run_dir, stage="qa", step=f"round{n}", decider="code",
-                          note=f"nothing to repair on the screens reviewed; the critic missed {' '.join(loop.missed)}")
+                run_trace(ctx.run_dir, stage="qa", step=f"round{n}", decider="code", note=nothing)
+                reasked += 1
                 continue
             if not to_repair:
-                loop.stop = f"round {n} found nothing to repair"
+                loop.stop = f"round {n} found {nothing}"
                 break
             edits = fix(ctx, budget, model, best, critique, n)
         except (llm.LLMFailure, llm.CapReached) as e:
@@ -144,6 +147,10 @@ def improve(ctx: Ctx, model: ProductModel, scope: list[State], best: Version) ->
         if n >= 2 and gain < MIN_GAIN and not repaired:
             loop.stop = f"round {n} gained {gain:.2f} (< {MIN_GAIN})"
             break
+    else:
+        if reasked:
+            loop.stop += f", {reasked} of them only re-asking the critic" + (
+                f"; it still missed {' '.join(loop.missed)}" if loop.missed else "")
     critique = critiqued.get(best.round)
     loop.open_findings = None if critique is None else critique.fixes
     return best, loop
@@ -641,21 +648,24 @@ def rebuild(html: str, model: ProductModel, screens: list[str]) -> str:
 
 def apply_edits(html: str, edits: list[Edit], sections: set[str] | None = None) -> tuple[str, list[dict]]:
     """Applies each edit in order when its find matches the page exactly once, or, when the fixer was sent only some
-    screens' `sections`, exactly once in all it was sent (the style blocks and those sections) and that once inside
-    a section: it never saw the other matches. Any other edit is rejected and logged."""
+    screens' `sections`, exactly once in all it was sent (the style blocks and those sections), and that once inside
+    a section unless it's the page's only match: it never saw the rest of the page. Any other edit is rejected and
+    logged."""
     results = []
     for edit in edits:
         starts = [m.start() for m in re.finditer(re.escape(edit.find), html)] if edit.find else []
         seen, at = [], starts[0] if len(starts) == 1 else None
-        if len(starts) > 1 and sections:
+        if sections:
             spans = section_spans(html, sections)
             seen = [s for s in starts if within(s, edit.find, spans + [m.span() for m in STYLE_BLOCK.finditer(html)])]
-            if len(seen) == 1 and within(seen[0], edit.find, spans):
-                at = seen[0]
+            at = seen[0] if len(seen) == 1 and (len(starts) == 1 or within(seen[0], edit.find, spans)) else None
         if at is not None:
             html = html[:at] + edit.replace + html[at + len(edit.find):]
-        why = f"find matches the page {len(starts)} times, not once" + (
-            f", and {len(seen)} times in what it was sent" if len(starts) > 1 and sections else "")
+        if len(starts) == 1:
+            why = "find matches the page once, not inside a single section or style block it was sent"
+        else:
+            why = f"find matches the page {len(starts)} times, not once" + (
+                f", and {len(seen)} times in what it was sent" if len(starts) > 1 and sections else "")
         results.append({**edit.model_dump(), "applied": at is not None, "why": "" if at is not None else why})
     return html, results
 
