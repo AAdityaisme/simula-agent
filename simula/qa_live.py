@@ -303,9 +303,9 @@ class Audit:
         """Terminate, then launch, neither ever retried (the first call may have landed), then name where the app
         landed: a launch does not imply home."""
         self.current = None
-        for name in ("terminate", "launch"):
+        for name, call in (("terminate", self.phone.terminate), ("launch", self.phone.launch)):
             try:
-                self.mutate(lambda: getattr(self.phone, name)(retry=False))
+                self.mutate(call, retry=False)
             except DEVICE_ERRORS as e:
                 raise Stopped(f"the device failed to {name} the app ({type(e).__name__}); not retried") from None
             self.setup.append({"flow": self.flow, "action": name})
@@ -362,24 +362,24 @@ class Audit:
 
     # ---------- the live side ----------
 
-    def mutate(self, call) -> None:
+    def mutate(self, call, *args, **kwargs) -> None:
         """Every device action goes through here, setup included: none starts past a cap."""
         if self.actions >= MAX_ACTIONS:
             raise Stopped(f"the action cap ({MAX_ACTIONS} device actions) was reached")
         if self.clock() - self.started >= MAX_MINUTES * 60:
             raise Stopped(f"the time cap ({MAX_MINUTES} minutes) was reached")
         self.actions += 1
-        call()
+        call(*args, **kwargs)
 
     def act(self, edge: Edge, target: ob.Candidate | None) -> None:
         if self.live.fg != self.package:
             raise FlowEnd("blocked", f"{self.live.fg} is in front, not the app")
         if edge.action == "tap":
-            self.mutate(lambda: self.phone.tap(*target.point))
+            self.mutate(self.phone.tap, *target.point)
         elif edge.action == "back":
             self.mutate(self.phone.back)
         else:
-            self.mutate(lambda: self.phone.swipe(SWIPE))
+            self.mutate(self.phone.swipe, SWIPE)
 
     def capture(self) -> Live:
         """A settled element list and screenshot, both redacted as explore redacts them before anything reads them."""
@@ -543,11 +543,11 @@ def markdown(report: dict) -> str:
     s, actions = report["summary"], report["actions"]
     stop = f" The audit stopped: {report['stop']}." if report["stop"] else ""
     lines = [f"# Live QA walk: {report['app']}, run {report['run']}", "",
-             f"{s['supported']} of {s['total']} flows supported; {s['completed']} completed (walked to the end or to a "
-             f"verified divergence), {s['by_status']['matched']} matched. {actions['total']} device actions "
-             f"({actions['setup']} of them setup) in {report['minutes']} min.{stop}", "",
+             (f"{s['supported']} of {s['total']} flows supported; {s['completed']} completed (walked to the end or to a "
+              f"verified divergence), {s['by_status']['matched']} matched. {actions['total']} device actions "
+              f"({actions['setup']} of them setup) in {report['minutes']} min.{stop}"), "",
              "| Flow | Status | Checkpoints | Why |", "|---|---|---|---|"]
     for f in report["flows"]:
-        why = "; ".join([f["reason"]] * bool(f["reason"]) + f["assumed"])
+        why = "; ".join(r for r in [f["reason"], *f["assumed"]] if r)
         lines.append(f"| {f['flow']}: {f['name']} | {f['status']} | {len(f['checkpoints'])} | {why} |")
     return "\n".join([*lines, "", report["note"], ""])
