@@ -32,7 +32,7 @@ def test_every_judge_passing_everything_accepts_with_full_score(app):
     c = idea(golden(app), rank=2.5)
     for verdicts in ([verdict()], two()):
         d = judge.decide(c, verdicts, len(verdicts), "annotate")
-        assert (d.final, d.checks_passed, d.checks_total, d.rank_score) == ("accept", 11, 11, 2.5)
+        assert (d.final, d.checks_passed, d.checks_total, d.rank_score) == ("accept", 12, 12, 2.5)
 
 
 @pytest.mark.parametrize("check", [k for k in JUDGMENT if k != "c2_evidence"])
@@ -40,7 +40,7 @@ def test_every_judge_failing_the_same_judgment_check_rejects(check):
     c = idea(golden("janitorai"))
     for verdicts in ([verdict([check])], two([check], [check])):
         d = judge.decide(c, verdicts, len(verdicts), "annotate")
-        assert (d.final, d.failure_type, d.judgment_splits, d.checks_passed) == ("reject", "proposal", [], 10)
+        assert (d.final, d.failure_type, d.judgment_splits, d.checks_passed) == ("reject", "proposal", [], 11)
 
 
 def test_unsupported_evidence_rejects_as_a_model_problem_and_names_a_human_gated_rerun():
@@ -52,7 +52,7 @@ def test_a_split_on_a_judgment_check_is_conditional_and_carries_both_reasons():
     c = idea(golden("aol"))
     verdicts = two(["c5_moment"], [])
     d = judge.decide(c, verdicts, TWO, "annotate")
-    assert (d.final, d.judgment_splits, d.checks_passed, d.rerun_stage) == ("conditional", ["c5_moment"], 10, None)
+    assert (d.final, d.judgment_splits, d.checks_passed, d.rerun_stage) == ("conditional", ["c5_moment"], 11, None)
     text = judge.condition(d, c, verdicts, "annotate")
     assert text == ("The judges split: on c5_moment, one fails it (c5_moment fails here) and another passes it "
                     "(c5_moment passes here).")
@@ -84,19 +84,19 @@ def test_a_judge_call_that_failed_sends_the_candidate_to_a_person():
 
 def test_a_check_counts_only_when_every_judge_passes_it():
     d = judge.decide(idea(golden("janitorai")), two(["g_policy"], ["c7_specific"]), TWO, "annotate")
-    assert (d.checks_passed, d.checks_total) == (9, 11)
+    assert (d.checks_passed, d.checks_total) == (10, 12)
 
 
 def test_a_candidate_propose_dropped_is_rejected_but_keeps_its_scores():
     c = idea(golden("luzia"), dropped_reason="duplicate of c01: same benefit (badge)")
     d = judge.decide(c, [verdict()], ONE, "annotate")
-    assert (d.final, d.failure_type, d.checks_passed) == ("reject", "proposal", 11)
+    assert (d.final, d.failure_type, d.checks_passed) == ("reject", "proposal", 12)
 
 
 def test_no_opportunity_is_rejected_with_zero_checks():
     c = idea(golden("aol"), kind="no_opportunity")
     d = judge.decide(c, [], ONE, "annotate")
-    assert (d.final, d.checks_passed, d.checks_total) == ("reject", 0, 11)
+    assert (d.final, d.checks_passed, d.checks_total) == ("reject", 0, 12)
 
 
 @pytest.mark.parametrize("mode, econ, final", [
@@ -143,8 +143,8 @@ def test_fallback_picks_the_gate_passer_with_fewest_fails_then_rank():
     assert fallback(cands, verdicts) == "c03"
 
 
-@pytest.mark.parametrize("premise", judge.PREMISE)
-def test_fallback_never_rescues_a_false_premise(premise):
+@pytest.mark.parametrize("premise", judge.NO_FALLBACK)
+def test_fallback_never_rescues_a_false_premise_or_an_offer_aimed_at_payers(premise):
     m = golden("luzia")
     cands = [idea(m, "c01", rank=5), idea(m, "c02", rank=1)]
     verdicts = {"c01": [verdict([premise])], "c02": [verdict(["c5_moment", "c7_specific", "c4_protects_subscription"])]}
@@ -303,7 +303,7 @@ def test_every_candidate_gets_a_decision_with_scores_and_reasons(app, tmp_path, 
     judge.run(ctx_for(app, run_dir))
     decisions = DecisionsFile.model_validate_json((run_dir / "judge" / "decisions.json").read_text()).decisions
     assert {d.candidate_id for d in decisions} >= {c.id for c in cands}
-    assert all(d.checks_total == 11 and d.verdict_paths for d in decisions)
+    assert all(d.checks_total == 12 and d.verdict_paths for d in decisions)
     assert all((run_dir / p).exists() for d in decisions for p in d.verdict_paths)
     assert any(d.final == "accept" for d in decisions)
     exhibit = (run_dir / "exhibits" / "06-judge.md").read_text()

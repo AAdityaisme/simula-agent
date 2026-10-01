@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-free-removal-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in, the offer copy states the reward (priority routing for 60 minutes), declining leaves the menu unchanged, and the ad-fail path hides the card or shows a message without counting the try."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of priority routing, which has no cash value and can't be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (returning to the profile menu from the Upgrade entry) and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The `adds` field introduces a new 24-hour cap on how many characters a free user can text. That is a cap on a free feature, not on model replies or queue priority, and the model shows no such limit today."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the s09 profile menu sheet over s08, which is rated safe, and is not in a conversation or next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The app charges for priority routing (m02, l02 'Priority routing for faster replies'), and free users get normal-priority routing (m03, inferred from s02.e07), so the resource is paid and limited."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about today's app (Janitor+ sells priority routing, a permanent Upgrade entry in the menu, free users on normal routing) rest on s02.e06, s09.e31 and m03. The daily character limit is labeled as something the proposal adds."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "Subscribers already have priority routing and never see the card, and the card isn't inside a paid-only area."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a 60-minute sample capped at 2 per day, so it expires and doesn't give away the subscription's main benefit or take anything from other users."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer is on a persistent surface the user chooses to open, the profile menu next to Upgrade, and doesn't interrupt a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit, the reward follows the verified play (the card reports unverified plays as failures), and the trigger (returning from the Upgrade entry) is an app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Janitor+ priority routing benefit, the s09 profile menu and its Upgrade entry, and the My Chats screen."
+ },
+ "other_concern": "The new daily limit on characters textted is unrelated to the reward, since the reward doesn't lift it, and it also raises free-user and policy-fairness concerns. The trigger 'returns from Upgrade entry' depends on what the Upgrade entry opens, which wasn't observed.",
+ "fixable": true
+}

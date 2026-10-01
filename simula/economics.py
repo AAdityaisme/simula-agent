@@ -5,9 +5,10 @@ The reward kind picks the cost term; the app category only picks between the two
 """
 
 import importlib.util
+import re
 
 from simula.config import ROOT
-from simula.contracts import Candidate, Economics
+from simula.contracts import Candidate, Economics, ProductModel
 
 CONTEXTS = (2000, 8000)
 REGION, PLATFORM = "na", "android"
@@ -20,6 +21,16 @@ ZERO_COST_KINDS = {"cosmetic", "streak_protection", "queue_priority"}
 # line then says the cost isn't counted. Every other required field must be filled.
 FIELD_SOURCE = {"count": "inference_count", "minutes": "minutes", "units": "amount", "amount": "amount",
                 "unit_price_usd": None, "usd_per_unit": None}
+# Ledger kinds that show the app selling something: a paid plan's perk, a price, a currency.
+PAID_LEDGER = {"paywall_bullet", "price", "currency"}
+# The kinds whose line counts a lost sale, at the price the proposer observed.
+PRICED_KINDS = {"content_unlock", "currency"}
+# ponytail: a place ahead of other users found by words in the reward's unit; a placement worded otherwise, and not
+# typed queue_priority, goes unflagged. A reward kind for placement would replace the words.
+PLACEMENT = re.compile(r"\b(rows?|spots?|spotlight|placement|boost(ed)?|featured|promoted|pinned|trending|"
+                       r"visibility)\b", re.I)
+# A unit that names a model reply: the only inference reward the bible's per-reply cost prices.
+REPLY = re.compile(r"\b(repl(y|ies)|messages?|answers?|responses?)\b", re.I)
 
 
 def _load_breakeven():
@@ -40,6 +51,8 @@ def input_problem(candidate: Candidate) -> str | None:
         if inputs.inference_count or inputs.tokens_in or inputs.tokens_out:
             return f"reward kind {reward.kind} doesn't match its cost inputs (it carries model replies or tokens)"
         return None
+    if reward.kind == "inference" and not per_reply(reward.unit):
+        return None  # its line isn't priced per reply, so it needs no reply counts
     values = {"inference_count": inputs.inference_count, "minutes": inputs.minutes, "amount": reward.amount}
     missing = [f for f in econ["reward_kinds"][reward.kind]["required_fields"]
                if FIELD_SOURCE[f] and values[FIELD_SOURCE[f]] <= 0]
@@ -60,12 +73,37 @@ def favorable(kind: str, field: str) -> float:
     return econ["reward_kinds"][kind]["defaults"][field]["favorable"]
 
 
-def describe(candidate: Candidate, app_category: str) -> tuple[dict, str | None, str]:
+def lost_sale(candidate: Candidate, model: ProductModel) -> str | None:
+    """What the reward may give away that the app sells or could sell, when the line counts no price for it: part of
+    a paid benefit the product model records, currency, or a place ahead of other users (priority, visibility)."""
+    reward = candidate.reward
+    if reward.kind in PRICED_KINDS and candidate.cost_inputs.currency_amount:
+        return None
+    paid = next((i for i in model.value_ledger if i.id == candidate.grants_id and i.kind in PAID_LEDGER), None)
+    if paid:
+        return f'part of the paid benefit {paid.id} "{paid.verbatim}"'
+    if reward.kind == "currency":
+        return "in-app currency, which apps sell"
+    if reward.kind == "queue_priority" or PLACEMENT.search(reward.unit):
+        return "a place ahead of other users, which apps sell as a boost"
+    return None
+
+
+def per_reply(unit: str) -> bool:
+    """Whether one unit of an inference reward is one model reply, as the unit itself says. What an app term means
+    never counts: a meaning that only mentions replies ("so replies arrive faster") doesn't make a unit one."""
+    return bool(REPLY.search(unit))
+
+
+def describe(candidate: Candidate, model: ProductModel) -> tuple[dict, str | None, str]:
     """Maps the proposer's reward onto breakeven.py's inputs. Returns (params, why the cost isn't counted or
     None, the assumptions behind the number in words)."""
     reward, inputs = candidate.reward, candidate.cost_inputs
-    kind = reward.kind
+    kind, app_category = reward.kind, model.app_category
     price = inputs.currency_amount
+    if kind == "inference" and not per_reply(reward.unit):
+        return {"count": 0}, (f"one of its {reward.unit} isn't known to be a chat reply, and the product model doesn't "
+                              "say what one costs to serve"), f"{reward.amount:g} {reward.unit}"
     if kind == "inference":
         p = {"count": inputs.inference_count, "tokens_out": inputs.tokens_out}
         c = central(kind, p)
@@ -126,26 +164,31 @@ def benchmarks() -> dict:
     return {(b["region"], b["platform"]): b for b in ecpm["benchmarks"]}
 
 
-def cost_line(kind: str, cost_2k: float, cost_8k: float, not_counted: str | None, assumptions: str) -> str:
+def cost_line(kind: str, cost_2k: float, cost_8k: float, not_counted: str | None, assumptions: str,
+              lost: str | None) -> str:
     be_2k, be_8k = breakeven.break_even_ecpm(cost_2k), breakeven.break_even_ecpm(cost_8k)
     if not_counted:
         head = f"Serving cost not counted: {not_counted}."
     elif kind in ZERO_COST_KINDS:
-        head = "Costs nothing extra to serve, so any completed view pays for it."
+        head = "Costs nothing extra to serve" + ("." if lost else ", so any completed view pays for it.")
     elif kind == "inference":
         head = (f"Costs ~${cost_2k:.4f} per reward to serve; pays for itself above ${be_2k:.2f} eCPM "
                 f"at 2k context (${be_8k:.2f} at 8k).")
     else:
         head = f"Costs ~${cost_2k:.4f} per reward to serve; pays for itself above ${be_2k:.2f} eCPM."
+    if lost:
+        head += f" It may give away something the app could sell ({lost}); that lost sale isn't counted."
     na, latam = benchmarks()[(REGION, PLATFORM)], benchmarks()[("latam", PLATFORM)]
     return (f"{head} A rewarded view earns ${na['low']:.2f}-{na['high']:.2f} eCPM in North America on Android, "
             f"${latam['low']:.2f} in LATAM. Assumes {assumptions}; one view per reward; a publisher-net eCPM "
             f"(share 1).")
 
 
-def annotate(candidate: Candidate, app_category: str) -> Economics:
+def annotate(candidate: Candidate, model: ProductModel) -> Economics:
+    """The cost mark. A possible lost sale is flagged beside it and never changes its verdict."""
     kind = candidate.reward.kind
-    params, not_counted, assumptions = describe(candidate, app_category)
+    params, not_counted, assumptions = describe(candidate, model)
+    lost = lost_sale(candidate, model)
     cost_2k, cost_8k = costs(kind, params)
     result = breakeven.verdict(kind, {**params, "tokens_in": CONTEXTS[1]}, REGION, PLATFORM)
     # A cost the line can't count is never a PASS: it depends on the missing number.
@@ -153,18 +196,18 @@ def annotate(candidate: Candidate, app_category: str) -> Economics:
     return Economics(cost_2k=round(cost_2k, 6), cost_8k=round(cost_8k, 6),
                      breakeven_ecpm_2k=round(breakeven.break_even_ecpm(cost_2k), 2),
                      breakeven_ecpm_8k=round(breakeven.break_even_ecpm(cost_8k), 2),
-                     benchmark_ecpm=result["benchmark"]["central"], verdict=verdict,
-                     assumption_line=cost_line(kind, cost_2k, cost_8k, not_counted, assumptions))
+                     benchmark_ecpm=result["benchmark"]["central"], verdict=verdict, lost_sale=lost,
+                     assumption_line=cost_line(kind, cost_2k, cost_8k, not_counted, assumptions, lost))
 
 
-def apply(candidates: list[Candidate], app_category: str, mode: str) -> list[Candidate]:
+def apply(candidates: list[Candidate], model: ProductModel, mode: str) -> list[Candidate]:
     """Adds economics to every live candidate. `annotate` never drops; `gate` drops only a FAIL."""
     out = []
     for c in candidates:
         if c.dropped_reason or c.kind == "no_opportunity":
             out.append(c)
             continue
-        econ = annotate(c, app_category)
+        econ = annotate(c, model)
         dropped = "economics FAIL (gate mode)" if mode == "gate" and econ.verdict == "FAIL" else None
         out.append(c.model_copy(update={"economics": econ, "dropped_reason": dropped}))
     return out

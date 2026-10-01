@@ -16,7 +16,7 @@ from playwright.sync_api import sync_playwright
 
 from simula import llm, render, runfolder, validate
 from simula.contracts import (GATES, JUDGMENT, CandidatesFile, Check, Decision, DecisionsFile, Economics, Edit, Edits,
-                              FlowStep, Provenance, StageOutcome, Verdict)
+                              FlowStep, Provenance, SavedVerdict, StageOutcome, Verdict)
 from simula.runlog import read_trace
 from simula.stages import flows, judge
 from simula.stages.mock import copy_assets, pick_scope, with_runtime
@@ -453,6 +453,17 @@ def test_a_cost_line_that_isnt_pass_is_a_mark_on_every_slide_and_never_the_verdi
                 assert "Recommended with one condition" not in texts[-1]
 
 
+def test_a_pass_that_may_lose_a_sale_says_so_on_every_slide_without_calling_itself_a_cost_problem():
+    decisions = DecisionsFile.model_validate_json((ROUND6 / "judge" / "decisions.json").read_text()).decisions
+    ideas, model = flows.stage.load_candidates(ROUND6), golden("luzia")
+    d = next(d for d in flows.stage.select(decisions, None) if ideas[d.candidate_id].economics.verdict == "PASS")
+    c = ideas[d.candidate_id]
+    c = c.model_copy(update={"economics": c.economics.model_copy(update={"lost_sale": "a place ahead of other users"})})
+    texts = [text_of(s) for s in flows.deck.idea_slides(drawn(c, d), model, ROUND6, False)]
+    assert all("May lose a sale" in t and "Cost check: PASS" not in t for t in texts)
+    assert "Cost check (PASS): it may give away something the app could sell." in texts[-1]
+
+
 def rendered_overflows(slides_html: str) -> list[str]:
     deck = flows.deck.deck_html("t", slides_html)
     with sync_playwright() as p:
@@ -515,7 +526,7 @@ def test_every_slide_fits_on_real_output(tmp_path):
     shutil.copytree(ROUND6, fallback_run)
     reasons = [getattr(v, k).reason for _, v in flows.deck.verdicts(decisions[0], ROUND6) for k in GATES + JUDGMENT]
     for path in (fallback_run / "judge" / "verdicts").iterdir():
-        v = Verdict.model_validate_json(path.read_text())
+        v = SavedVerdict.model_validate_json(path.read_text())
         path.write_text(v.model_copy(update={"c5_moment": Check(passed=False, reason=max(reasons, key=len))})
                         .model_dump_json())
     chosen = flows.stage.select(decisions)
