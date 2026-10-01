@@ -2,14 +2,17 @@
 broken check at 0/2, Wilson over the 24 LLM cases, C8 kept out of LLM recall, rerun flips; the fixture loader;
 and the blind label CLI."""
 
+import hashlib
 import json
 import shutil
+import subprocess
+from dataclasses import replace
 
 import pytest
 
-from simula import economics, validate
+from simula import config, economics, llm, runfolder, runlog, validate
 from simula.contracts import GATES
-from simula.stages import judge
+from simula.stages import judge, propose
 from simula.validate import C8, LLM_CHECKS, Case
 from tests.conftest import APPS
 from tests.judge_helpers import idea, verdict
@@ -402,10 +405,10 @@ def test_label_asks_blind_saves_the_label_and_shows_verdicts_after(tmp_path):
     said = []
     n = validate.label_cases(cases, verdicts, tmp_path, ask=lambda _: next(answers), say=said.append, limit=2)
     assert n == 2
-    first = json.loads((tmp_path / "kg-janitorai.json").read_text())
-    assert (first["overall"], first["deciding_check"]) == ("fail", "c5_moment")
+    labels = [json.loads(p.read_text()) for p in tmp_path.glob("*.json")]
+    assert sorted((x["overall"], x["deciding_check"]) for x in labels) == [("fail", "c5_moment"), ("pass", None)]
     shown = "\n".join(said)
-    assert shown.index("judge_2: fails c5_moment") > shown.index("title: ")
+    assert shown.index("judge_2: ") > shown.index("title: ")
     assert "pd-" not in said[0] and "Planted" not in said[0]
 
 
@@ -414,3 +417,405 @@ def test_label_stops_at_the_target_count_and_skips_labeled_cases(tmp_path):
     (tmp_path / "kg-janitorai.json").write_text("{}")
     n = validate.label_cases(cases, judged(cases), tmp_path, ask=lambda _: "p", say=lambda *_: None, limit=3)
     assert n == 2 and len(list(tmp_path.glob("*.json"))) == 3
+
+
+def test_the_blind_display_shows_the_judges_product_model_and_nothing_that_gives_the_answer_away(tmp_path):
+    cases = [c for c in build_cases() if c.source == "planted"][:1]
+    verdicts = {(cases[0].id, "judge_1"): verdict([cases[0].target]),
+                (cases[0].id, "judge_2"): verdict([], fixable=True)}
+    said, asked = [], []
+    validate.label_cases(cases, verdicts, tmp_path, ask=lambda _: asked.append(len(said)) or "q", say=said.append)
+    blind = "\n".join(said[:asked[0]])
+    assert judge.judge_messages(cases[0].candidate, cases[0].model)[0]["content"][0]["text"] in blind
+    assert propose.model_text(cases[0].model) in blind
+    for leak in ("judge_1", "judge_2", cases[0].id, cases[0].target, cases[0].tier, "fails here", "Planted"):
+        assert leak not in blind
+
+
+def test_label_mixes_every_known_good_into_its_first_cases_in_an_order_that_never_changes():
+    cases = [c for c in validate.load_cases() if c.target != C8]
+    goods = {c.id for c in cases if validate.known_good(c)}
+    order = [c.id for c in validate.label_order(cases, validate.LABEL_TARGET)]
+    assert goods <= set(order[:validate.LABEL_TARGET]) and set(order[:len(goods)]) != goods
+    assert order == [c.id for c in validate.label_order(cases, validate.LABEL_TARGET)]
+    assert sorted(order) == sorted(c.id for c in cases)
+
+
+@pytest.mark.parametrize("limit", [1, 3, 6])
+def test_a_small_label_limit_shows_the_same_mixed_order(limit):
+    cases = [c for c in validate.load_cases() if c.target != C8]
+    assert validate.label_order(cases, limit) == validate.label_order(cases, validate.LABEL_TARGET)
+
+
+def test_saved_verdicts_never_change_the_label_order(tmp_path):
+    """A validation run between labeling sessions can't move a skipped case or change which cases come first."""
+    cases = validate.load_cases()
+
+    def shown(verdicts):
+        said = []
+        validate.label_cases(cases, verdicts, tmp_path, ask=lambda _: "s", say=said.append)
+        return [line for text in said for line in text.splitlines() if line.startswith("id: p")]
+    planted = [c.id for c in cases if c.source == "planted" and c.target != C8]
+    disagreeing = judged(cases, miss=planted[::2]) | judged(cases, "judge_2")
+    assert shown({}) == shown(disagreeing) and len(set(shown({}))) == validate.LABEL_TARGET
+
+
+def test_the_label_header_shows_nothing_that_sets_the_held_out_cases_apart(tmp_path):
+    held_out = next(c for c in validate.load_cases() if c.source == "regression")
+    said = []
+    validate.label_cases([held_out], {}, tmp_path, ask=lambda _: "q", say=said.append)
+    assert said[0].startswith(f"\n=== {held_out.app} ===\n")
+
+
+def test_the_report_counts_known_goods_by_the_one_definition(monkeypatch):
+    cases = build_cases()
+    monkeypatch.setattr(validate, "known_good", lambda c: c.id == "kg-aol")
+    text, _ = run_report(cases, judged(cases))
+    assert "| Known-good (1) | 1 | 0 |" in text
+
+
+# ---------- an experiment arm ----------
+
+GOOD = "kg-candycrush-01"
+
+
+def register(root, usd_cap=1.0, treatment=None):
+    """Experiment j under root: a control arm on the tracked rubric and a treatment arm on a rubric file there."""
+    (root / "experiment-j").mkdir(exist_ok=True)
+    rubric = root / "experiment-j" / "treatment.md"
+    rubric.write_text(treatment or judge.read_prompt("rubric.md") + "\nA TREATMENT CLAUSE.\n")
+    arms = {"control": judge.PROMPTS / "rubric.md", "treatment": rubric}
+    lines = [f"usd_cap = {usd_cap}", "labels = 15", 'profile = "dev"', 'judges = ["judge_1", "judge_2"]',
+             "no_cache = false"]
+    for arm, path in arms.items():
+        lines += [f"[arms.{arm}]", f"rubric = {json.dumps(str(path))}",
+                  f'sha256 = "{hashlib.sha256(path.read_bytes()).hexdigest()}"']
+    (root / "experiment-j" / "registration.toml").write_text("\n".join(lines) + "\n")
+    return rubric
+
+
+def every_good_labeled(n=15):
+    cases = [c for c in validate.load_cases() if c.target != C8]
+    ordered = sorted(cases, key=lambda c: not validate.known_good(c))
+    return {c.id: {"case_id": c.id, "overall": "pass"} for c in ordered[:n]}
+
+
+def files(root):
+    return {p: p.read_bytes() for p in root.rglob("*") if p.is_file() and ".git" not in p.parts}
+
+
+def git(root, *args):
+    return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *args], cwd=root, check=True,
+                          capture_output=True, text=True).stdout
+
+
+def commit(root, message="x"):
+    git(root, "add", "-A")
+    git(root, "commit", "-qm", message)
+
+
+def push(root):
+    git(root, "push", "-q", "origin", "HEAD")
+
+
+@pytest.fixture
+def ready(tmp_path, tmp_path_factory, monkeypatch):
+    """Experiment j registered and committed in a git repo at tmp_path, which pushes to a bare remote, with its labels
+    in place; returns the model calls made."""
+    remote = tmp_path_factory.mktemp("remote")
+    git(remote, "init", "-q", "--bare")
+    register(tmp_path)
+    git(tmp_path, "init", "-q", "-b", "main")
+    git(tmp_path, "remote", "add", "origin", str(remote))
+    commit(tmp_path, "register experiment j")
+    push(tmp_path)
+    monkeypatch.setattr(validate, "read_labels", lambda root=validate.CASES: every_good_labeled())
+    calls = []
+
+    def call(**kw):
+        calls.append(kw)
+        return verdict(), None
+    monkeypatch.setattr(llm, "call", call)
+    return calls
+
+
+def start_arm(tmp_path, arm="treatment"):
+    validate.experiment("j", arm, tmp_path)
+    commit(tmp_path, f"start arm {arm}")
+    push(tmp_path)
+
+
+def run_arm(tmp_path, arm="treatment"):
+    """Both runs of an arm: its start, committed and pushed, then its draw."""
+    start_arm(tmp_path, arm)
+    validate.experiment("j", arm, tmp_path)
+
+
+def test_an_arm_records_its_start_and_draws_only_once_that_start_is_committed(tmp_path, ready):
+    arm = tmp_path / "experiment-j" / "treatment"
+    validate.experiment("j", "treatment", tmp_path)
+    assert sorted(p.name for p in arm.iterdir()) == ["rubric.md", "settings.json"] and not ready
+    with pytest.raises(SystemExit, match="start in .* isn't committed"):
+        validate.experiment("j", "treatment", tmp_path)
+    commit(tmp_path, "start arm treatment")
+    with pytest.raises(SystemExit, match="isn't on any remote branch: push it"):
+        validate.experiment("j", "treatment", tmp_path)
+    push(tmp_path)
+    validate.experiment("j", "treatment", tmp_path)
+    assert ready and (arm / "report.md").exists() and validate.uncommitted([arm])
+    assert git(tmp_path, "reflog", "show", "refs/experiments/j/treatment").strip().endswith("draw")
+
+
+def test_an_experiment_arm_judges_under_its_registered_rubric_and_counts_a_lost_call_against_it(tmp_path, ready,
+                                                                                                  monkeypatch):
+    rubric = (tmp_path / "experiment-j" / "treatment.md").read_text()
+    lost_case = next(c for c in validate.load_cases() if validate.known_good(c))
+    arm = tmp_path / "experiment-j" / "treatment"
+    on_disk = []
+
+    def call(**kw):
+        ready.append(kw)
+        if kw["step"].startswith(f"{lost_case.id}:judge_2:"):
+            raise llm.LLMFailure("error", "Connection error.")
+        return verdict(), None
+    monkeypatch.setattr(llm, "call", call)
+    monkeypatch.setattr(runfolder, "git_dirty", lambda: on_disk.append(sorted(files(arm))) or False)
+    tracked = judge.read_prompt("rubric.md")
+    run_arm(tmp_path)
+    llm_cases = [c for c in validate.load_cases() if c.target != C8]
+    assert on_disk == [[], [arm / "rubric.md", arm / "settings.json"]]
+    assert {c["system"] for c in ready} == {rubric} and len(ready) == 2 * len(llm_cases)
+    assert judge.read_prompt("rubric.md") == tracked and (arm / "rubric.md").read_text() == rubric
+    settings = json.loads((arm / "settings.json").read_text())
+    assert settings["cases"] == [c.id for c in llm_cases] and settings["git_dirty"] is False
+    assert {"labels", "cases", str(judge.FROZEN.relative_to(validate.ROOT))} <= settings["inputs"].keys()
+    assert len(list((arm / "verdicts").glob("*_r1.json"))) == 2 * len(llm_cases) - 1
+    text = (arm / "report.md").read_text()
+    goods = sum(validate.known_good(c) for c in llm_cases)
+    assert f"Failed calls, each counted as a miss or a fail: 1 ({lost_case.id}:judge_2)" in text
+    assert f"| judge_2 | {goods - 1}/{goods} " in text and f"| combined | {goods - 1}/{goods} " in text
+
+
+def test_arms_of_one_experiment_share_its_registered_cap(tmp_path, ready, monkeypatch):
+    (tmp_path / "experiment-j" / "control").mkdir()
+    runlog.run_trace(tmp_path / "experiment-j" / "control", stage="validate", step="x", decider="model", usd=0.9,
+                     note="")
+    commit(tmp_path, "control spent")
+    seen = {}
+
+    def call(**kw):
+        seen["budget"] = (kw["budget"].spent, kw["budget"].cap)
+        return verdict(), None
+    monkeypatch.setattr(llm, "call", call)
+    run_arm(tmp_path)
+    assert seen["budget"] == (pytest.approx(0.9), 1.0)
+
+
+def test_an_arm_draws_once_and_its_first_draw_stays(tmp_path, ready):
+    run_arm(tmp_path)
+    before = files(tmp_path)
+    calls = len(ready)
+    with pytest.raises(SystemExit, match="already drawn or abandoned .*holds more than its start"):
+        validate.experiment("j", "treatment", tmp_path)
+    assert files(tmp_path) == before and len(ready) == calls
+
+
+def draw_failing_good(tmp_path, monkeypatch, passes=False, crash_after=None):
+    """A draw of the treatment in which judge_2 fails the Candy Crush good unless `passes`; `crash_after` calls stop
+    it the way a cap does."""
+    made = []
+
+    def call(**kw):
+        made.append(kw["step"])
+        if crash_after is not None and len(made) > crash_after:
+            raise llm.CapReached("validate: cap")
+        return verdict([] if passes or not kw["step"].startswith(GOOD) else ["c2_evidence"]), None
+    monkeypatch.setattr(llm, "call", call)
+    validate.experiment("j", "treatment", tmp_path)
+
+
+def test_a_draw_deleted_before_its_commit_is_never_drawn_again(tmp_path, ready, monkeypatch):
+    """The red team's probe A (rt-pr34-0b7e95f): draw, read, delete the uncommitted draw, draw again."""
+    arm = tmp_path / "experiment-j" / "treatment"
+    start_arm(tmp_path)
+    draw_failing_good(tmp_path, monkeypatch)
+    with pytest.raises(SystemExit, match=r"commit these first: experiment-j/treatment/.* and \d+ more"):
+        run_arm(tmp_path, "control")
+    shutil.rmtree(arm)
+    with pytest.raises(SystemExit, match="already drawn or abandoned .*gone, but git history holds it"):
+        draw_failing_good(tmp_path, monkeypatch, passes=True)
+    commit(tmp_path, "drop arm treatment")
+    with pytest.raises(SystemExit, match="already drawn or abandoned .*gone, but git history holds it"):
+        draw_failing_good(tmp_path, monkeypatch, passes=True)
+    assert not arm.exists()
+
+
+def test_a_draw_cleaned_away_before_its_commit_is_never_drawn_again(tmp_path, ready, monkeypatch):
+    """The red team's case 3 (rt-pr34-51b579c): git clean leaves exactly the committed start, but the draw's ref stays."""
+    start_arm(tmp_path)
+    draw_failing_good(tmp_path, monkeypatch)
+    git(tmp_path, "clean", "-qfdx", "--", "experiment-j/treatment")
+    assert sorted(p.name for p in (tmp_path / "experiment-j" / "treatment").iterdir()) == sorted(validate.START)
+    with pytest.raises(SystemExit, match="already drawn or abandoned .*a draw of it began: refs/experiments/j/treatment"):
+        draw_failing_good(tmp_path, monkeypatch, passes=True)
+
+
+def test_of_two_draws_racing_past_the_checks_the_second_is_refused_at_the_ref_before_any_call(tmp_path, ready,
+                                                                                               monkeypatch):
+    """Greptile 4155341119: the second draw checked for the ref before the first made it."""
+    start_arm(tmp_path)
+    draw_failing_good(tmp_path, monkeypatch)
+    git(tmp_path, "clean", "-qfdx", "--", "experiment-j/treatment")
+    monkeypatch.setattr(validate, "drawn", lambda root, ref: False)
+    monkeypatch.setattr(llm, "call", lambda **kw: pytest.fail("the second draw made a call"))
+    with pytest.raises(SystemExit, match="already drawn or abandoned .*a draw of it began: refs/experiments/j/treatment"):
+        validate.experiment("j", "treatment", tmp_path)
+    assert validate.files_in(tmp_path / "experiment-j" / "treatment") == validate.START
+
+
+def test_an_arm_refuses_while_another_arms_draw_is_missing_from_the_checkout(tmp_path, ready):
+    """The red team's case 4b (rt-pr34-fb421e3): a branch taken after the control's start misses its draw, and with
+    it the control's spend against the shared cap."""
+    start_arm(tmp_path, "control")
+    git(tmp_path, "branch", "treatment-branch")
+    validate.experiment("j", "control", tmp_path)
+    commit(tmp_path, "draw arm control")
+    push(tmp_path)
+    git(tmp_path, "checkout", "-q", "treatment-branch")
+    with pytest.raises(SystemExit, match="arm control's draw isn't in this checkout: merge it first"):
+        validate.experiment("j", "treatment", tmp_path)
+    assert not (tmp_path / "experiment-j" / "treatment").exists()
+
+
+def test_an_arm_refuses_while_another_arm_git_knows_of_is_missing_from_the_checkout(tmp_path, ready, monkeypatch):
+    """Greptile 4154471719 and the red team's probe_missing_control: the control drawn on a branch, the treatment run
+    from a checkout without it, with a label changed."""
+    git(tmp_path, "checkout", "-q", "-b", "control-branch")
+    run_arm(tmp_path, "control")
+    commit(tmp_path, "draw arm control")
+    git(tmp_path, "checkout", "-q", "main")
+    monkeypatch.setattr(validate, "read_labels", lambda root=validate.CASES: every_good_labeled(16))
+    with pytest.raises(SystemExit, match="arm control's record isn't in this checkout: merge it first"):
+        validate.experiment("j", "treatment", tmp_path)
+    assert not (tmp_path / "experiment-j" / "treatment").exists()
+
+
+def test_a_crashed_draw_points_to_the_visible_ways_out(tmp_path, ready, monkeypatch):
+    start_arm(tmp_path)
+    with pytest.raises(llm.CapReached):
+        draw_failing_good(tmp_path, monkeypatch, crash_after=10)
+    with pytest.raises(SystemExit, match="commit .*treatment as it stands, which leaves the experiment inconclusive, "
+                                         "or register a new experiment folder"):
+        draw_failing_good(tmp_path, monkeypatch)
+    commit(tmp_path, "treatment crashed: inconclusive")
+    with pytest.raises(SystemExit, match="already drawn or abandoned"):
+        draw_failing_good(tmp_path, monkeypatch)
+
+
+@pytest.mark.parametrize("back", [1, 2])
+def test_a_committed_draw_reset_away_is_never_drawn_again(tmp_path, ready, monkeypatch, back):
+    """The red team's probe E (rt-pr34-0b7e95f): a committed draw dropped by git reset, with its start (back=1) or
+    without it (back=2), stays in the reflog."""
+    run_arm(tmp_path)
+    commit(tmp_path, "draw arm treatment")
+    git(tmp_path, "reset", "-q", "--hard", f"HEAD~{back}")
+    with pytest.raises(SystemExit, match="already drawn or abandoned"):
+        draw_failing_good(tmp_path, monkeypatch, passes=True)
+    with pytest.raises(SystemExit):
+        validate.main(["experiment", "j", "treatment", "--out", str(tmp_path / "elsewhere")])
+
+
+def test_a_later_arm_runs_only_on_the_inputs_the_first_arm_ran_on(tmp_path, ready, monkeypatch):
+    run_arm(tmp_path, "control")
+    commit(tmp_path, "draw arm control")
+    monkeypatch.setattr(validate, "read_labels", lambda root=validate.CASES: every_good_labeled(16))
+    with pytest.raises(SystemExit, match=r"other inputs \(labels\)"):
+        validate.experiment("j", "treatment", tmp_path)
+    monkeypatch.setattr(validate, "read_labels", lambda root=validate.CASES: every_good_labeled())
+    narrower = validate.known_good
+    monkeypatch.setattr(validate, "known_good", lambda c: narrower(c) and c.id != "kg-fitness-01")
+    with pytest.raises(SystemExit, match=r"other inputs \(cases\)"):
+        validate.experiment("j", "treatment", tmp_path)
+    monkeypatch.setattr(validate, "known_good", narrower)
+    loaded = validate.load_cases
+    monkeypatch.setattr(validate, "load_cases", lambda: [replace(c, app_type="other") if c.id == GOOD else c
+                                                          for c in loaded()])
+    with pytest.raises(SystemExit, match=r"other inputs \(cases\)"):
+        validate.experiment("j", "treatment", tmp_path)
+    monkeypatch.setattr(validate, "load_cases", loaded)
+    models = config.models()
+    judge_1 = config.roles("dev")["judge_1"]["model"]
+    monkeypatch.setattr(config, "models", lambda: {**models, judge_1: {**models[judge_1], "stream_above": 1}})
+    with pytest.raises(SystemExit, match=r"other inputs \(judge models\)"):
+        validate.experiment("j", "treatment", tmp_path)
+    monkeypatch.setattr(config, "models", lambda: models)
+    register(tmp_path, usd_cap=50.0)
+    commit(tmp_path, "raise the cap")
+    with pytest.raises(SystemExit, match=r"registration.toml\); an experiment's arms run on the same inputs"):
+        validate.experiment("j", "treatment", tmp_path)
+    assert not (tmp_path / "experiment-j" / "treatment").exists()
+    register(tmp_path)
+    commit(tmp_path, "restore the cap; a commit that touches no input")
+    run_arm(tmp_path)
+    assert (tmp_path / "experiment-j" / "treatment" / "report.md").exists()
+
+
+@pytest.mark.parametrize("unmet, refusal", [
+    ("labels", "needs 15 labels"), ("good", "1 known-good idea"), ("commit", "commit these first"),
+    ("rubric", "not the .* registered for arm treatment")])
+def test_the_experiment_refuses_before_any_call_or_write_until_its_prerequisites_hold(tmp_path, ready, monkeypatch,
+                                                                                      unmet, refusal):
+    if unmet == "labels":
+        monkeypatch.setattr(validate, "read_labels", lambda root=validate.CASES: every_good_labeled(14))
+    if unmet == "good":
+        labels = every_good_labeled(16)
+        del labels[next(c.id for c in validate.load_cases() if validate.known_good(c))]
+        monkeypatch.setattr(validate, "read_labels", lambda root=validate.CASES: labels)
+    if unmet == "commit":
+        monkeypatch.setattr(validate, "uncommitted", lambda paths: ["tests/fixtures/judge/labels/kg-x.json"])
+    if unmet == "rubric":
+        (tmp_path / "experiment-j" / "treatment.md").write_text("edited after registration")
+        commit(tmp_path, "edit the treatment rubric")
+    before = files(tmp_path)
+    with pytest.raises(SystemExit, match=refusal):
+        validate.experiment("j", "treatment", tmp_path)
+    assert not ready and files(tmp_path) == before
+
+
+@pytest.mark.parametrize("name, arm", [("..", "control"), ("j", "../../prompts/judge"), ("J", "control"),
+                                       ("j", "Control"), ("j", ""), ("j", "/tmp/x")])
+def test_experiment_and_arm_names_are_plain_slugs(tmp_path, ready, name, arm):
+    before = files(tmp_path)
+    with pytest.raises(SystemExit, match="plain slugs"):
+        validate.experiment(name, arm, tmp_path)
+    assert not ready and files(tmp_path) == before
+
+
+def test_uncommitted_and_history_read_the_checkout_a_path_is_in(tmp_path):
+    repo = tmp_path / "repo"
+    labels = repo / "labels"
+    labels.mkdir(parents=True)
+    git(repo, "init", "-q")
+    for name in ("a.json", "b.json", "gone.json"):
+        (labels / name).write_text("{}")
+    (repo / ".gitignore").write_text("*.tmp\n")
+    commit(repo)
+    assert validate.uncommitted([labels]) == [] and validate.history(labels) == {"a.json", "b.json", "gone.json"}
+    (labels / "a.json").write_text('{"changed": true}')
+    (labels / "c.json").write_text("{}")
+    (labels / "d.tmp").write_text("{}")
+    (labels / "gone.json").unlink()
+    assert sorted(validate.uncommitted([labels])) == ["labels/a.json", "labels/c.json", "labels/gone.json"]
+    commit(repo)
+    git(repo, "reset", "-q", "--hard", "HEAD~1")
+    assert validate.history(labels) == {"a.json", "b.json", "c.json", "gone.json"}
+    (tmp_path / "loose").mkdir()
+    assert validate.uncommitted([tmp_path / "loose"]) == [str(tmp_path / "loose")]
+    assert validate.history(tmp_path / "loose") == set() and validate.history(repo / "never") == set()
+
+
+def test_simula_validate_experiment_takes_only_its_name_and_arm(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(validate, "experiment", lambda *args: seen.update(args=args))
+    assert validate.main(["experiment", "j", "control"]) == 0
+    assert seen["args"] == ("j", "control")

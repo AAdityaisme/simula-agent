@@ -1,5 +1,6 @@
 """Goal 3 review: blind judges score every candidate, code turns their verdicts into a decision, fixable
-rejects get one Opus revision, and code ranks what survives."""
+rejects get an Opus revision (a revision that fails again gets another, up to judge_revision_cap), and code ranks what
+survives."""
 
 import hashlib
 import json
@@ -141,10 +142,11 @@ def judge_messages(c: Candidate, model: ProductModel) -> list[dict]:
 
 
 def ask_judge(role: dict, c: Candidate, model: ProductModel, *, trace_path: Path, stage: str, step: str,
-              budget: llm.Budget, no_cache: bool = False, replay: bool = False) -> Verdict:
-    """One blind judge call on one candidate. Raises llm.LLMFailure when both attempts fail."""
+              budget: llm.Budget, no_cache: bool = False, replay: bool = False, rubric: str | None = None) -> Verdict:
+    """One blind judge call on one candidate, under the tracked rubric unless an experiment passes its own. Raises
+    llm.LLMFailure when both attempts fail."""
     verdict, _ = llm.call(trace_path=trace_path, stage=stage, step=step, model=role["model"],
-                          effort=role.get("effort"), system=read_prompt("rubric.md"),
+                          effort=role.get("effort"), system=read_prompt("rubric.md") if rubric is None else rubric,
                           messages=judge_messages(c, model),
                           max_tokens=config.max_tokens(role), budget=budget,
                           schema=Verdict, no_cache=no_cache, replay=replay, fallback=role.get("declared_fallback"))
@@ -207,8 +209,10 @@ def proposal_fault(original: Decision, revision_verdicts: list[Verdict]) -> Deci
     return original.model_copy(update={"failure_type": "proposal", "rerun_stage": None})
 
 
-def revisable(c: Candidate, d: Decision, verdicts: list[Verdict]) -> bool:
-    return (d.final == "reject" and is_idea(c) and not c.dropped_reason and bool(verdicts)
+def revisable(c: Candidate, d: Decision, verdicts: list[Verdict], judges: int) -> bool:
+    """A fixable reject that every judge returned a verdict on: a lost call leaves the reject as it is, even when
+    another judge failed a gate."""
+    return (d.final == "reject" and is_idea(c) and not c.dropped_reason and len(verdicts) == judges
             and any(v.fixable for v in verdicts))
 
 
@@ -223,13 +227,21 @@ def could_fall_back(c: Candidate, d: Decision, verdicts: list[Verdict]) -> bool:
     return is_idea(c) and not c.dropped_reason and bool(verdicts) and not d.gate_fails and not barred(verdicts)
 
 
+def earlier(cid: str):
+    """The versions a revision came from, newest first: c01-rev-rev gives c01-rev, then c01."""
+    while cid.endswith("-rev"):
+        cid = cid.removesuffix("-rev")
+        yield cid
+
+
 def superseded(revised: list[Candidate], decisions: dict[str, Decision],
                verdicts: dict[str, dict[str, Verdict]]) -> set[str]:
-    """Originals whose revision stands in for them: one that survived, or a reject the fallback could pick. A revision
-    that made the idea worse, or that waits on a person, leaves its original in play."""
+    """Earlier versions a revision stands in for: one that survived, or a reject the fallback could pick, replaces its
+    original and every revision before it. A revision that made the idea worse, or that waits on a person, leaves the
+    versions before it in play."""
     def stands_in(r: Candidate, d: Decision) -> bool:
         return d.final in SURVIVORS or (d.final == "reject" and could_fall_back(r, d, [*verdicts[r.id].values()]))
-    return {r.id.removesuffix("-rev") for r in revised if stands_in(r, decisions[r.id])}
+    return {e for r in revised if stands_in(r, decisions[r.id]) for e in earlier(r.id)}
 
 
 def fallback_pick(decisions: list[Decision], candidates: dict[str, Candidate],
@@ -319,17 +331,20 @@ def revise(ctx: Ctx, c: Candidate, verdicts: list[Verdict], model: ProductModel,
 
 
 def recheck(ctx: Ctx, revisions: list[Candidate], candidates: list[Candidate], decisions: dict[str, Decision],
-            model: ProductModel, budget: llm.Budget) -> list[Candidate]:
-    """Propose's last two checks on the revisions: the benefit-naming call's paywall-bullet link, and dedupe. A
-    revision that gives the same benefit as an idea still standing (not dropped, not rejected, not its own
-    original) or as an earlier revision is dropped as its duplicate. Revisions go unflagged first, then best first,
-    and a flagged idea never evicts a clean one; a flagged idea still counts as live against other flagged ones."""
+            model: ProductModel, budget: llm.Budget, round_: int) -> list[Candidate]:
+    """Propose's last two checks on one round's revisions: the benefit-naming call's paywall-bullet link, and dedupe.
+    A revision that gives the same benefit as an idea still standing (one of `candidates`, the proposals and earlier
+    rounds' revisions, not dropped and not rejected) or as an earlier revision of its round is dropped as its
+    duplicate. Revisions go unflagged first, then best first, and a flagged idea never evicts a clean one; a flagged
+    idea still counts as live against other flagged ones."""
     fresh = sorted((r for r in revisions if is_idea(r) and not r.dropped_reason),
                    key=lambda r: (bool(r.flags), -(r.rank_score or 0)))
     if not fresh:
         return revisions
     standing = [c for c in candidates if is_idea(c) and not c.dropped_reason and decisions[c.id].final != "reject"]
-    names, links = propose.name_benefits(ctx, standing + fresh, budget, "judge:revisions", model)
+    # the first revision round keeps the step name runs had before there was a second
+    step = "judge:revisions" if round_ == 2 else f"judge:revisions:r{round_}"
+    names, links = propose.name_benefits(ctx, standing + fresh, budget, step, model)
     reasons, kept = {}, list(standing)
     for r in fresh:
         rivals = [k for k in kept if r.flags or not k.flags]
@@ -413,19 +428,26 @@ def judge_run(ctx: Ctx, work: Path, model: ProductModel, candidates: list[Candid
 
     verdicts, paths = judge_all(ctx, work, candidates, model, judges, budget, 1)
     decisions = {c.id: decide(c, [*verdicts[c.id].values()], len(judges), mode, paths[c.id]) for c in candidates}
-    to_revise = [c for c in candidates if revisable(c, decisions[c.id], [*verdicts[c.id].values()])]
-    with ThreadPoolExecutor(max_workers=max(1, len(to_revise))) as pool:
-        revised = [r for r in pool.map(lambda c: revise(ctx, c, [*verdicts[c.id].values()], model, mode, budget),
-                                       to_revise) if r]
-    revised = recheck(ctx, revised, candidates, decisions, model, budget)
-    if revised:
-        v2, p2 = judge_all(ctx, work, revised, model, judges, budget, 2)
-        verdicts |= v2
-        decisions |= {r.id: decide(r, [*v2[r.id].values()], len(judges), mode, p2[r.id],
-                                   revision_of=r.id.removesuffix("-rev")) for r in revised}
-        for r in revised:
-            original = r.id.removesuffix("-rev")
-            decisions[original] = proposal_fault(decisions[original], [*v2[r.id].values()])
+    revised, latest = [], candidates
+    # Round 1 judged the proposals. Each later round revises only the newest rejects, so an idea is revised at most
+    # judge_revision_cap times.
+    for round_ in range(2, config.judge_revision_cap() + 2):
+        to_revise = [c for c in latest if revisable(c, decisions[c.id], [*verdicts[c.id].values()], len(judges))]
+        with ThreadPoolExecutor(max_workers=max(1, len(to_revise))) as pool:
+            latest = [r for r in pool.map(lambda c: revise(ctx, c, [*verdicts[c.id].values()], model, mode, budget),
+                                          to_revise) if r]
+        latest = recheck(ctx, latest, candidates + revised, decisions, model, budget, round_)
+        if latest:
+            v, p = judge_all(ctx, work, latest, model, judges, budget, round_)
+            verdicts |= v
+            decisions |= {r.id: decide(r, [*v[r.id].values()], len(judges), mode, p[r.id],
+                                       revision_of=r.id.removesuffix("-rev")) for r in latest}
+            # a revision that clears an evidence fail without new facts clears it for every version before it, once
+            # every judge has said so: a lost call leaves the fail unconfirmed
+            for r in (r for r in latest if len(v[r.id]) == len(judges)):
+                for e in earlier(r.id):
+                    decisions[e] = proposal_fault(decisions[e], [*v[r.id].values()])
+        revised += latest
 
     everyone = {c.id: c for c in candidates + revised}
     pick = fallback_pick(list(decisions.values()), everyone, verdicts, superseded(revised, decisions, verdicts))
@@ -507,13 +529,15 @@ def exhibit(decisions: list[Decision], candidates: dict[str, Candidate], verdict
             judges: list[str], profile: str, mode: str) -> str:
     roles = config.roles(profile)
     count = {f: sum(d.final == f for d in decisions) for f in ("accept", "conditional", "needs_human", "reject")}
+    revised_from = [d.revision_of for d in decisions if d.revision_of]
     who = ", ".join(f"{j} ({roles[j]['model']}{', ' + roles[j]['effort'] if roles[j].get('effort') else ''})"
                     for j in judges)
     lines = ["# 06 · judge", "",
              f"Judges: {who}, blind (opaque ids, no lens or model names, one candidate per call). "
              f"Economics mode: `{mode}`. {len(decisions)} candidates: {count['accept']} accepted, "
              f"{count['conditional']} conditional, {count['needs_human']} waiting on a person, "
-             f"{count['reject']} rejected; {sum(bool(d.revision_of) for d in decisions)} revised once.", "",
+             f"{count['reject']} rejected; {len(revised_from)} revision(s) of "
+             f"{sum(not r.endswith('-rev') for r in revised_from)} idea(s).", "",
              "| Candidate | Final | Checks | Rank | Cost mark |", "|---|---|---|---|---|"]
     lines += [f"| {d.candidate_id} · {candidates[d.candidate_id].title} | {d.final} | {d.checks_passed}/{d.checks_total}"
               f" | {rank_text(d, candidates[d.candidate_id], mode)} | {d.economics_verdict or ''} |" for d in decisions]
