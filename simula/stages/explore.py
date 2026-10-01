@@ -1123,7 +1123,8 @@ class Explorer:
 
     def send(self, form: list[str]) -> str:
         """Taps the form's own button, while the app is in front, shows the same form and has the keyboard off it. A
-        tap that leaves the screen as it was sent nothing."""
+        tap after which the screen shows the same words and values sent nothing; an inline "check your email" on the
+        same recorded screen is a change."""
         button = self.uncovered(lambda: self.form_send(form))
         if button is None:
             return "the form changed before it was sent"
@@ -1131,9 +1132,9 @@ class Explorer:
             return f"the keyboard may lie over the form's button {button.label[:40]!r}"
         if not ob.PLAIN_SUBMIT.search(button.label) or ob.denied(button, upsell=self.current.upsell, account=True):
             return f"the form's button {button.label[:40]!r} sends no sign-up"
-        s = self.current
+        said = self.said()
         self.act(Move("tap", button, why="sign-up: send the form"), purpose="account")
-        return f"the form's button {button.label[:40]!r} changed nothing" if self.current is s else ""
+        return f"the form's button {button.label[:40]!r} changed nothing" if self.said() == said else ""
 
     def form_box(self, form: list[str], n: int) -> ob.Candidate | None:
         """The form's nth box on the live screen, while the app is in front and shows the same form."""

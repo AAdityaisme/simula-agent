@@ -822,6 +822,28 @@ def test_a_send_that_leaves_the_screen_as_it_was_sent_nothing_rt_r4_4(tmp_path, 
     assert ex.account_state == "" and taps(phone)[-1] == "Create account"
 
 
+class InlineVerify(FormPhone):
+    """A form whose send keeps the same screen, typed values and all, and adds a line under it."""
+
+    def tap(self, x: int, y: int) -> None:
+        super().tap(x, y)
+        if self.log[-1] == ("tap", "form", "Create account"):
+            form = self.screens["form"]
+            line = el("@v", "TextView", "Check your email to verify your account", 1880, h=60)
+            self.screens["form"] = Screen([*form.elements, line], form.image, form.package)
+
+
+def test_an_inline_check_your_email_on_the_same_screen_is_a_send_greptile_4157597418(tmp_path, monkeypatch, identity):
+    """The screen after the send matches the form's recorded state; its new words still say the form was sent."""
+    def app(clock):
+        phone = sign_up_app(phone=InlineVerify)(clock)
+        del phone.taps[("form", "Create account")]
+        return phone
+    ex, phone = launched(tmp_path, monkeypatch, app)
+    assert ex.account_state == "verify" and (ex.run_dir / "needs-human.md").exists()
+    assert ex.account[-1].startswith("s01: stopped at the wall, an email verification step on s")
+
+
 def test_a_sign_up_that_stops_mid_form_keeps_the_keyboard_painted_rt_r4_5(tmp_path, monkeypatch, identity):
     """The red team's case: the password box takes no focus, so the sign-up stops right after the email, with the
     keyboard still up."""
