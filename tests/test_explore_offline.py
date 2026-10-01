@@ -431,7 +431,7 @@ def relaunch_restores_an_exit(tmp_path, monkeypatch, way_home: bool):
         phone.taps[("chats", "84,209")] = "root"
         return phone
     ex, phone, chats = on_chats(tmp_path, monkeypatch, chats_links_home)
-    assert ex.filter_taps and ex.root is ex.launch_root
+    assert ex.filter_taps and ex.root is not ex.launch_root  # the filter's tap leads home to the filtered screen
     ex.tabs = []
     ex.exits.add(chats.sid)
     if way_home:
@@ -447,7 +447,7 @@ def test_a_relaunch_that_restores_an_exit_walks_a_recorded_route_home_before_the
     ex, chats = relaunch_restores_an_exit(tmp_path, monkeypatch, way_home=True)
     checks = len(ex.filter_checks)
     ex.relaunch(why="test")
-    assert ex.current is ex.launch_root and ex.relaunches == 1
+    assert ex.current is ex.root and ex.relaunches == 1
     assert len(ex.filter_checks) == checks + 1 and ex.filter_checks[-1][1]
 
 
@@ -1093,6 +1093,7 @@ def test_a_tab_feed_that_reloaded_after_the_tour_is_never_tapped_by_rows_it_did_
     are gone, so the walk and the feed pass tap none of the new ones."""
     for sub, pick in (("walk", None), ("feed", "open and read items")):
         ex, phone = reloaded_after_the_tour(tmp_path / sub, monkeypatch)
+        monkeypatch.setattr(ex, "find_filter", list)  # no filter: the feed the home tab opens stays a tab root
         if pick:
             monkeypatch.setattr(decide, "ask_choice", functools.partial(fake_jev, core_pick=pick))
         stage.explore_app(ex)
@@ -1787,7 +1788,7 @@ def test_a_filter_chip_that_changed_class_is_not_verified_by_its_text(tmp_path, 
         phone.launch, phone.launches = reclassed, launches
         return phone
     ex, phone = explore(tmp_path, monkeypatch, factory)
-    assert ex.stop_reason == f"content filter not verified (check {len(ex.filter_checks)})"
+    assert ex.stop_reason.startswith(f"content filter not verified (check {len(ex.filter_checks)})")
     assert [ok for _, ok, _ in ex.filter_checks][-1] is False
     assert {e[1] for e in phone.log[phone.launches[1]:] if e[0] == "tap"} <= {"launch"}
 
@@ -1857,10 +1858,47 @@ def relabel_the_filter(phone: FakePhone) -> None:
                                       for e in screen.elements], screen.image, screen.package)
 
 
+@pytest.mark.parametrize("fixture, chosen", [("j18_filter_all", "All"), ("j19_filter_limited", "Limited Only")])
+def test_only_the_chip_that_carries_the_accent_is_selected_and_verifies_the_filter(tmp_path, monkeypatch, fixture,
+                                                                                    chosen):
+    """JanitorAI's two-chip control, as the committed run 20260929-203310-1f19585 saw it at its first filter check
+    (j18: "All" selected, 10,000 characters) and run 20260929-194735-1f19585 did (j19: "Limited Only" selected, 3,439).
+    Each chip differs from the other just as much, so "different" picked "Limited Only" in both and verified a filter
+    j18 doesn't have. The selected chip is the one whose fill is clearly more saturated than its row's."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    phone.screens["home"] = capture("janitorai", fixture, package=PACKAGE)
+    phone.screen = "home"
+    ex.observe()
+    chips = {c.label: c for c in ex.obs.cands if c.label in ("All", "Limited Only")}
+    assert {label: ex.selected(c) for label, c in chips.items()} == {"All": chosen == "All",
+                                                                    "Limited Only": chosen == "Limited Only"}
+    ex.filter_taps = [chips["Limited Only"]]
+    if chosen == "Limited Only":
+        ex.check_filter()
+        assert ex.filtered
+    else:
+        with pytest.raises(stage.Unfiltered):
+            ex.check_filter()
+
+
+def test_a_filter_chip_shown_unselected_is_tapped_and_then_verified(tmp_path, monkeypatch):
+    """Run 20260929-203310-1f19585's first launch (j18): Jev picks "Limited Only", which isn't selected, so it is
+    tapped, and the screen it leads to (j19) verifies it. The run never tapped it: "different" took it as selected."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    phone.screens.update(all=capture("janitorai", "j18_filter_all", package=PACKAGE),
+                         limited=capture("janitorai", "j19_filter_limited", package=PACKAGE))
+    phone.taps[("all", "Limited Only")] = "limited"
+    phone.screen = "all"
+    ex.current = ex.root = ex.launch_root = ex.record(ex.observe(), None, None, None)
+    ex.apply_filter(first=True)
+    assert ("tap", "all", "Limited Only") in phone.log and phone.screen == "limited"
+    assert [t.label for t in ex.filter_taps] == ["Limited Only"] and ex.filtered and ex.filter_checks[-1][1]
+
+
 def test_a_relaunch_that_shows_the_filter_under_another_label_ends_the_explore(tmp_path, monkeypatch):
-    """Greptile #43: after the first relaunch the filter chip reads "Limited". No control matches it, so the filter
-    is neither re-applied nor verified, and nothing is tapped after the failed check: no more tour, no paywall pass,
-    core loop or replay check."""
+    """Greptile #43: from the second launch on, the filter chip reads "Limited". No control matches it, so the filter
+    is neither re-applied nor verified, and nothing but the launch dialog is tapped from then on: no more tour,
+    paywall pass, core loop or replay check."""
     def factory(clock):
         phone, launches = janitor_like(clock), []
         launch = phone.launch
@@ -1873,8 +1911,8 @@ def test_a_relaunch_that_shows_the_filter_under_another_label_ends_the_explore(t
         phone.launch, phone.launches = relabelled, launches
         return phone
     ex, phone = explore(tmp_path, monkeypatch, factory)
-    assert ex.stop_reason == f"content filter not verified (check {len(ex.filter_checks)})"
-    assert [ok for _, ok, _ in ex.filter_checks][-2:] == [True, False] and len(phone.launches) == 2
+    assert ex.stop_reason.startswith(f"content filter not verified (check {len(ex.filter_checks)})")
+    assert [ok for _, ok, _ in ex.filter_checks][-2:] == [True, False]
     assert {entry[1] for entry in phone.log[phone.launches[1]:] if entry[0] == "tap"} <= {"launch"}
     assert stage.outcome(ex).status == "partial"
 
@@ -1932,14 +1970,14 @@ def test_a_result_the_model_calls_stalled_is_never_a_completed_pass(tmp_path, mo
 
 
 def sheet_over_feed(own, header=False):
-    """A feed item opens a sheet in the feed's window with these own controls; with header, the guest feed shows its
-    own "Log in" button up in its header."""
+    """A feed item opens a sheet in the feed's window with these own controls; with header, the guest app shows its
+    own "Log in" button up in its header, on the feed before the content filter and after it."""
     def factory(clock):
         phone = janitor_like(clock)
         feed = phone.screens["limited"]
-        if header:
-            feed.elements.append({"ref": "@h1", "type": "android.widget.Button", "text": "Log in",
-                                  "coordinates": {"x": 700, "y": 160, "width": 200, "height": 90}})
+        for screen in (phone.screens["root"], feed) if header else ():
+            screen.elements.append({"ref": "@h1", "type": "android.widget.Button", "text": "Log in",
+                                    "coordinates": {"x": 700, "y": 160, "width": 200, "height": 90}})
         image = feed.image.copy()
         ImageDraw.Draw(image).rectangle((0, 1250, 1080, 2400), fill=(40, 40, 48))
         phone.screens["sheet"] = Screen(feed.elements + own, image, PACKAGE)

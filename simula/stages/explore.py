@@ -44,6 +44,9 @@ NOOPS_BEFORE_SONNET = 3
 UNSURE = 0.35
 FEW_LABELED = 4
 FILTER_SURE = 0.5
+# a selected chip's fill is this much more saturated (HSV S, 0-255) than every other control in its row; a two-chip
+# control's selected chip measured 82, the other 12 (2026-10-01)
+ACCENT_SATURATION = 30
 LOCK_WAIT_S = 1800
 ICON_SCALE = 0.5
 VISION_BOX_DP = 48
@@ -999,7 +1002,7 @@ class Explorer:
             self.note("filter", "no content or safety filter on the root", decider="jev")
             return []
         taps, at = [pick], home
-        if pick.checked is None and not self.stands_out(pick):
+        if pick.checked is None and not self.selected(pick):
             opened = self.act(Move("tap", pick, decider="jev", why="content filter"), purpose="filter")
             if opened is not home and opened.kind in ("modal", "sheet"):
                 option = self.pick(opened, [c for c in opened.cands if not ob.denied(c, toggle_ok=True)],
@@ -1033,13 +1036,13 @@ class Explorer:
 
     def filter_set(self, n: int) -> bool:
         """The filter's n-th control needs no tap now: it is the last one and already shows what the filter wants
-        (a switch in its restrictive state, a chip that stands out as selected), or it is a switch the screen doesn't
+        (a switch in its restrictive state, a chip that is the selected one of its row), or it is a switch the screen doesn't
         show, whose state can't be read, so a tap would be blind."""
         if n != len(self.filter_taps) - 1:
             return False
         tap = self.filter_taps[-1]
         if self.filter_on is None:
-            return self.stands_out(tap)
+            return self.selected(tap)
         live = ob.find(self.obs.cands, tap)
         return live is None or live.checked == self.filter_on
 
@@ -1058,27 +1061,29 @@ class Explorer:
             return None
         return opts[index]
 
-    def stands_out(self, c: ob.Candidate) -> bool:
-        """Selected-looking: the control's pixels differ clearly from the other controls in its row."""
+    def selected(self, c: ob.Candidate) -> bool:
+        """The control is the selected one of its row: checked, when the tree says, else it carries the row's accent,
+        its fill clearly more saturated than every other control's in the row. Differing is not enough: in a two-chip
+        control the unselected chip differs from the selected one just as much."""
         live = ob.find(self.obs.cands, c)
         if live is None:
             return False
+        if live.checked is not None:
+            return live.checked
         cy = ob.center(live.rect)[1]
         row = [o for o in self.obs.cands if o is not live and abs(ob.center(o.rect)[1] - cy) < 24
                and abs(o.rect.h - live.rect.h) < 24]
-        if not row:
-            return False
-        others = np.median([mean_color(self.obs.image, o.rect) for o in row], axis=0)
-        return float(np.abs(mean_color(self.obs.image, live.rect) - others).sum()) > 40
+        own = saturation(self.obs.image, live.rect)
+        return bool(row) and all(own - saturation(self.obs.image, o.rect) > ACCENT_SATURATION for o in row)
 
     def check_filter(self) -> None:
         """The filter's last control, found on the screen, shows what the filter wants (a switch's state, a chip or a
-        sheet's option standing out). An option on a sheet that closed counts where its opener now shows its label.
+        sheet's option selected). An option on a sheet that closed counts where its opener now shows its label.
         A control the screen doesn't show is not verified. A pass marks this launch filtered; a fail ends the
         explore."""
         last, opener = self.filter_taps[-1], self.filter_taps[0]
         live = ob.find(self.obs.cands, last)
-        ok = (live.checked == self.filter_on if self.filter_on is not None else self.stands_out(last)) if live \
+        ok = (live.checked == self.filter_on if self.filter_on is not None else self.selected(last)) if live \
             else last is not opener and bool(last.tree_label) and any(
                 last.tree_label in c.label for c in self.obs.cands if ob.overlaps(c.rect, opener.rect))
         n = len(self.filter_checks) + 1
@@ -2461,9 +2466,9 @@ class Explorer:
         shutil.rmtree(self.scratch, ignore_errors=True)
 
 
-def mean_color(image: Image.Image, r: Rect) -> np.ndarray:
-    crop = image.crop((int(r.x), int(r.y), int(r.x + r.w), int(r.y + r.h)))
-    return np.asarray(crop, dtype=float).reshape(-1, 3).mean(axis=0)
+def saturation(image: Image.Image, r: Rect) -> float:
+    crop = image.crop((int(r.x), int(r.y), int(r.x + r.w), int(r.y + r.h))).convert("HSV")
+    return float(np.asarray(crop, dtype=float)[..., 1].mean())
 
 
 def adb_shell(serial: str, args: list[str]) -> str | None:

@@ -162,7 +162,7 @@ def test_a_tap_the_device_refuses_is_logged_as_an_error_not_done(tmp_path, monke
         tap, armed = phone.tap, [True]
 
         def refusing_tap(x, y):
-            if armed[0] and phone.screen == "root":
+            if armed[0] and phone.screen == "limited":  # the filtered home, where the tour taps
                 armed[0] = False
                 raise McpReplyError("mobile_click_on_screen_at_coordinates failed: 'device offline'")
             tap(x, y)
