@@ -4,7 +4,7 @@ import pytest
 
 from simula.contracts import Edit
 from simula.stages import mock, qa
-from tests.conftest import APPS
+from tests.conftest import APPS, ROOT
 from tests.mock_fake import golden, skeleton_html
 
 
@@ -27,6 +27,40 @@ def test_edits_apply_in_order_each_to_the_page_the_last_one_left():
     out, results = qa.apply_edits("<p>a</p>", [edit("a", "b"), edit("b", "c"), edit("a", "z")])
     assert out == "<p>c</p>"
     assert [r["applied"] for r in results] == [True, True, False]
+
+
+def test_a_find_the_page_repeats_applies_where_it_is_unique_in_the_sections_the_fixer_was_sent():
+    """Red team, Perplexity's committed round 0: s01 and s10 draw the same header, so a fixer sent s01 alone sees one
+    match. It applies in s01, and s10 keeps its header; a find twice inside the sections sent, or a fixer that saw the
+    whole page, still needs one match in the page."""
+    page = qa.without_runtime((ROOT / "runs/perplexity/20260929-212810-1f19585/qa/round0/index.html").read_text())
+    header = '<div data-chrome="header" style="left:0;top:0;width:411px;height:60px">'
+    taller = header.replace("height:60px", "height:64px")
+    assert page.count(header) == 2 and qa.excerpt(page, {"s01"}).count(header) == 1
+
+    out, [result] = qa.apply_edits(page, [edit(header, taller)], {"s01"})
+    s01, s10 = (page[a:b] for sid in ("s01", "s10") for a, b in qa.section_spans(page, {sid}))
+    assert result["applied"] and out == page.replace(s01, s01.replace(header, taller))
+    assert s10 in out
+    for sections in ({"s01", "s10"}, None):
+        _, [result] = qa.apply_edits(page, [edit(header, taller)], sections)
+        assert not result["applied"] and result["why"].startswith("find matches the page 2 times, not once")
+
+
+STYLED = ('<html><head><style data-batch="1">.card{color:red}</style></head><body>\n'
+          '<section data-screen="s01"><p style="color:red">A</p></section>\n'
+          '<section data-screen="s02"><p style="color:red">B</p></section>\n</body></html>')
+
+
+@pytest.mark.parametrize("page", [STYLED, STYLED.replace('<p style="color:red">A', "<p>A")],
+                         ids=["twice-in-what-was-sent", "once-in-the-style-block-only"])
+def test_a_find_the_fixer_saw_in_a_style_block_never_applies_by_the_section_rule(page):
+    """Red team probes E1 and E3: sent s01, the fixer sees `color:red` in the style block (and maybe in s01); the page
+    also has it in s02. Seen twice, it breaks the prompt's once-in-what-you-were-given rule; seen once, but in the style
+    block, it must be unique in the whole page. Both are rejected, and the page is left alone."""
+    out, [result] = qa.apply_edits(page, [edit("color:red", "color:blue")], {"s01"})
+    assert not result["applied"] and out == page
+    assert result["why"].startswith(f"find matches the page {page.count('color:red')} times, not once")
 
 
 @pytest.mark.parametrize("app", APPS)
