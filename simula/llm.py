@@ -95,14 +95,16 @@ class Budget:
         spent = sum(line.usd for line in read_trace(trace_path) if line.stage == stage)
         return cls(stage, config.stage_cap(stage) if cap is None else cap, spent, trace_path=trace_path)
 
-    def reserve(self, worst_usd: float, *, step: str = "budget", key: str | None = None) -> None:
-        """Holds a call's worst case, or refuses it with CapReached. A model call passes its step and cache key, so the
+    def reserve(self, worst_usd: float, *, spare: float = 0.0, step: str = "budget", key: str | None = None) -> None:
+        """Holds a call's worst case, or refuses it with CapReached. With a `spare`, it holds only while that much more
+        would still fit, so a later call (a retry) can take it. A model call passes its step and cache key, so the
         run's record of the refusal names the call and --replay stops where the live run did."""
         with self.lock:
-            if self.spent + self.held + worst_usd > self.cap:
-                refused = CapReached(f"{self.stage}: next call could cost ${worst_usd:.2f}, ${self.spent:.2f} of "
+            if self.spent + self.held + worst_usd + spare > self.cap:
+                kept = f" with ${spare:.2f} kept free for a retry" if spare else ""
+                refused = CapReached(f"{self.stage}: next call could cost ${worst_usd:.2f}{kept}, ${self.spent:.2f} of "
                                      f"${self.cap:.2f} already spent, ${self.held:.2f} held by calls in flight; "
-                                     f"raise with --usd-cap {self.rerun_cap(worst_usd):.2f}")
+                                     f"raise with --usd-cap {self.rerun_cap(worst_usd + spare):.2f}")
                 if self.trace_path:  # the run's record that the cap cut this stage short, even if the stage goes on
                     trace(self.trace_path, stage=self.stage, step=step, decider="code", outcome="cap",
                           note=(f"key {key[:12]} " if key else "") + str(refused))
@@ -122,6 +124,41 @@ class Budget:
         with self.lock:
             self.spent += usd
             self.held -= reserved
+
+
+@dataclass
+class Turn:
+    """A budget as the rank-th of several calls sees it (llm.call only reserves and charges). Its first hold waits
+    until every better-ranked call has taken its own or been settled, since an answer from the cache takes none. So
+    when the $ cap can't cover every call, the best-ranked are held first, not whichever thread got there first. A
+    hold the cap turns away settles nothing: the call's owner settles it once it has acted on the refusal. While
+    `spare` is on, the first hold is taken only while one more worst case stays free, for the call's own retry; the
+    owner turns it off for a request no retry can follow."""
+    budget: Budget
+    rank: int
+    settled: set[int]
+    moved: threading.Condition
+    spare: bool = False
+    held: bool = False
+
+    def wait(self) -> None:
+        with self.moved:
+            self.moved.wait_for(lambda: self.settled.issuperset(range(self.rank)))
+
+    def reserve(self, worst_usd: float, **where) -> None:
+        # ponytail: only first holds queue; a retried attempt's hold takes what is left, in no fixed order
+        self.wait()
+        self.budget.reserve(worst_usd, spare=worst_usd if self.spare and not self.held else 0.0, **where)
+        self.held = True
+        self.settle()
+
+    def charge(self, usd: float, reserved: float) -> None:
+        self.budget.charge(usd, reserved)
+
+    def settle(self) -> None:
+        with self.moved:
+            self.settled.add(self.rank)
+            self.moved.notify_all()
 
 
 # ---------- cache ----------
@@ -202,18 +239,6 @@ def cache_write(key: str, reply: Reply, cache_dir: Path = CACHE) -> None:
     cache_dir.mkdir(exist_ok=True)
     data = {k: v for k, v in reply.__dict__.items() if k != "headers"}
     write_json_atomic(cache_dir / f"{key}.json", json.dumps(data, indent=1))
-
-
-def answered_from_cache(*, model: str, effort: str | None, system: str, messages: list[dict], max_tokens: int,
-                        schema: type[BaseModel] | None = None, cache_dir: Path = CACHE) -> Reply | None:
-    """What a live call with these arguments settles on from the cache, costing nothing and reserving nothing: its
-    first attempt's recorded answer, which may be a known failure the call raises again, or None when it would call
-    the model. A planner asks this so it doesn't price a free call at its worst case. It reads the cache by the call's
-    own rule: every readable try of the attempt, the latest one the model answered."""
-    provider = config.models()[model]["provider"]
-    key = cache_key(provider, model, system, messages, request_params(provider, effort, max_tokens, schema), 0)
-    chosen = latest_answer(cache_tries(key, cache_dir)[0])
-    return chosen[1] if chosen else None
 
 
 def latest_answer(tries: list[tuple[str, Reply]]) -> tuple[str, Reply] | None:
@@ -434,7 +459,7 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
     def recorded(key: str, tries: list[tuple[str, Reply]]) -> tuple[str, Reply] | None:
         """--replay follows the try this run's trace names last, unless the run's last record of the call is its $ cap
         turning it away; a try the run never named is another run's, so it is never taken. A normal run takes
-        latest_answer, the rule a planner asks through answered_from_cache too."""
+        latest_answer."""
         if replay:
             used = [t for t in tries if t[0][:12] in named]
             last = max(used, key=lambda t: named[t[0][:12]]) if used else None

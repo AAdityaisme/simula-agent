@@ -10,7 +10,6 @@ from PIL.PngImagePlugin import PngInfo
 from pydantic import BaseModel
 
 from simula import llm, runfolder
-from simula.llm import answered_from_cache
 from simula.runlog import read_trace
 
 MODEL = "claude-haiku-4-5-20251001"
@@ -112,49 +111,6 @@ def test_second_call_is_a_cache_hit(tmp_path, monkeypatch):
     assert first == second == Answer(word="ready")
     assert len(calls) == 1
     assert [line.cache_hit for line in read_trace(tmp_path / "trace.jsonl")] == [False, True]
-
-
-def test_answered_from_cache_matches_what_a_call_left_in_the_cache(tmp_path, monkeypatch):
-    """A planner's question, answered with the call's own key: what the call settles on once its first attempt is
-    answered, nothing for other arguments, and the failure when that attempt's cached answer is one, since the call
-    raises it again at no cost."""
-    asked = dict(model=MODEL, effort=None, system="", messages=message(), max_tokens=100, schema=Answer,
-                 cache_dir=tmp_path / "cache")
-    assert answered_from_cache(**asked) is None
-    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"word": "ok"}'], []))
-    call(tmp_path)
-    assert answered_from_cache(**asked).text == '{"word": "ok"}'
-    assert answered_from_cache(**{**asked, "effort": "high"}) is None
-    assert answered_from_cache(**{**asked, "schema": None}) is None
-
-    monkeypatch.setitem(llm.PROVIDERS, "anthropic", fake_provider(['{"nope": 1}'], []))
-    with pytest.raises(llm.LLMFailure):
-        call(tmp_path, messages=message("other"), attempts=1)
-    assert answered_from_cache(**{**asked, "messages": message("other")}).failure == "schema_fail"
-
-
-def test_answered_from_cache_reads_every_try_the_way_a_normal_run_does(tmp_path, monkeypatch):
-    """The call's own rule, not the attempt's first file: a lost call (a timeout) is passed over for the answer a
-    later run left after it, and an entry that can't be read is skipped rather than failing the question."""
-    asked = dict(model=MODEL, effort=None, system="", messages=message(), max_tokens=100, schema=Answer,
-                 cache_dir=tmp_path / "cache")
-    replies = [llm.LLMFailure("timeout", "stream idle"), '{"word": "ok"}']
-
-    def provider(model, system, messages, effort, schema, max_tokens, total_timeout=None):
-        reply = replies.pop(0)
-        if isinstance(reply, Exception):
-            raise reply
-        return llm.Reply(text=reply, model=model, tokens_in=100, tokens_out=10)
-    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider)
-    with pytest.raises(llm.LLMFailure):
-        call(tmp_path, attempts=1)
-    assert answered_from_cache(**asked) is None
-    call(tmp_path, attempts=1)
-    assert answered_from_cache(**asked).text == '{"word": "ok"}'
-
-    first = llm.cache_key("anthropic", MODEL, "", message(), llm.request_params("anthropic", None, 100, Answer), 0)
-    (tmp_path / "cache" / f"{first}.json").write_text('{"text": "cut sh')
-    assert answered_from_cache(**asked).text == '{"word": "ok"}'
 
 
 def test_invalid_response_is_cached_only_as_a_failed_attempt_and_retried(tmp_path, monkeypatch):
