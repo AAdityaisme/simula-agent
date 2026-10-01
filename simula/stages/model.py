@@ -16,8 +16,8 @@ import regex
 from PIL import Image
 
 from simula import config, llm, render, runfolder, text
-from simula.contracts import (ActionLine, ContentRating, Device, Edge, Element, ExploreFile, IconLabel, LedgerItem,
-                              ModelMeaning, OpenQuestion, Point, ProductModel, Rect, State, StateFile, Term,
+from simula.contracts import (ActionLine, ContentRating, Device, Edge, Element, ExploreFile, IconLabel, LaterCapture,
+                              LedgerItem, ModelMeaning, OpenQuestion, Point, ProductModel, Rect, State, StateFile, Term,
                               VisionElement)
 from simula.runlog import needs_human, run_trace, write_exhibit
 from simula.stages import Ctx, rerun_command
@@ -158,28 +158,34 @@ def load_states(explore_dir: Path, device: Device) -> tuple[list[State], dict[st
         model_labels |= {e.id for e in elements if e.source == "vision" or e.mcp_ref in named}
         states.append(State(
             id=sf.state_id, kind=sf.kind, parent_id=sf.parent_id, name=sf.state_id, purpose="",
-            fingerprint=sf.fingerprint, canonical_png=f"states/{sf.state_id}.png", elements=elements,
+            fingerprint=sf.fingerprint, canonical_png=sf.screenshot, elements=elements,
             in_mock_scope=False, content_rating="unknown", dynamic_regions=sf.dynamic_regions,
             blocked_reason=sf.blocked_reason))
     return states, images, model_labels
 
 
-def load_later(explore_dir: Path, device: Device) -> dict[str, list[Element]]:
-    """The elements of every capture a relaunch took after a state's own (a reloaded home), by its screenshot."""
+Later = dict[str, list[tuple[LaterCapture, list[Element]]]]
+
+
+def load_later(explore_dir: Path, device: Device) -> Later:
+    """Every capture a relaunch took after a state's own (a reloaded home) with its elements, by state, oldest first."""
     later = {}
     for path in sorted(p for p in (explore_dir / "states").glob("*.json") if "." not in p.stem):
         sf = StateFile.model_validate_json(path.read_text())
         for capture in sf.later:
             pixels = np.asarray(Image.open(explore_dir / capture.screenshot).convert("RGB"))
             tree = read_tree(explore_dir / capture.elements_reply)
-            later[capture.screenshot] = build_elements(sf.state_id, tree, capture.icon_labels, capture.vision_elements,
-                                                       pixels, device)
+            later.setdefault(sf.state_id, []).append((capture, build_elements(
+                sf.state_id, tree, capture.icon_labels, capture.vision_elements, pixels, device)))
     return later
 
 
-def taken_on(later: dict[str, list[Element]], line: ActionLine) -> list[Element] | None:
-    """The elements of the later capture a line's move was taken on (its capture field); None for the state's own."""
-    return later.get(line.capture) if line.capture else None
+def taken_on(later: Later, line: ActionLine) -> list[Element] | None:
+    """The elements of the later capture a line's move was taken on: the one its capture field names, else (a run
+    written before that field) the last one whose from_step it reaches; None for the state's own."""
+    taken = [els for capture, els in later.get(line.from_state, [])
+             if (capture.screenshot == line.capture if line.capture else capture.from_step <= line.step)]
+    return taken[-1] if taken else None
 
 
 def tapped_element(state: State, line: ActionLine) -> Element | None:
@@ -269,7 +275,7 @@ def value_changes(before: State, after: State) -> str:
 
 
 def load_edges(explore_dir: Path, states: list[State],
-               later: dict[str, list[Element]] | None = None) -> tuple[list[Edge], list[str]]:
+               later: Later | None = None) -> tuple[list[Edge], list[str]]:
     """One edge per distinct recorded move that reached a state (or changed something in place). The
     transition is the one explore recorded. What changed is the explorer's summary, or else, for a move its two
     captures sit right around, the values that changed between them. A move taken on a later capture of a state
@@ -347,7 +353,7 @@ def measured(what: str, unit: str, values: list[float]) -> str:
 
 
 def loop_facts(explore_dir: Path, states: list[State], edges: list[Edge],
-               later: dict[str, list[Element]] | None = None) -> list[LedgerItem]:
+               later: Later | None = None) -> list[LedgerItem]:
     """The measured experience, from the explorer's core-loop passes: one item with each measurement's median, min,
     max and n (or the one value, when there is one), and one saying what stopped the loop, or that nothing did on an
     account whose plan explore doesn't record. Passes are counted by distinct loop_pass, not by line. A stop counts

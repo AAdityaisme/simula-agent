@@ -162,6 +162,7 @@ NOT_BROWSER: dict[tuple[str, str], str] = {
     ("simula/stages/model.py", "capture"): "LaterCapture.screenshot, the saved file name of a later capture",
     ("simula/stages/explore.py", "self.phone"): "the mobile-mcp device client shooting the phone, not Playwright",
     ("simula/stages/explore.py", "self.later[-1]"): "LaterCapture.screenshot, the saved file name of a later capture",
+    ("simula/stages/explore.py", "home.later[-2]"): "LaterCapture.screenshot, the saved file name of a later capture",
 }
 
 

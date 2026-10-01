@@ -7,7 +7,7 @@ at most 4 levels of nesting. The Anthropic SDK turns a dict field into an object
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 SCHEMA_VERSION = 1
 OutcomeStatus = Literal["complete", "partial"]  # a stage's done.json and QA's report share it
@@ -555,6 +555,22 @@ class StateFile(Strict):
     vision_elements: list[VisionElement] = []
     blocked_reason: str | None = None
     later: list[LaterCapture] = Field([], description="Captures a relaunch took after the state's own, oldest first.")
+
+    @model_validator(mode="before")
+    @classmethod
+    def read_replaced(cls, data):
+        """A file #33's explorer wrote names its latest capture canonical and keeps the earlier ones in replaced, each
+        with the last step taken on it. Here the first capture is canonical and the rest start at a step, so the first
+        replaced one becomes the file's own and the others, then the file's, become later."""
+        if not isinstance(data, dict) or not data.get("replaced"):
+            return {k: v for k, v in data.items() if k != "replaced"} if isinstance(data, dict) else data
+        own = {k: data.get(k) for k in ("screenshot", "elements_reply", "icon_labels", "vision_elements")}
+        first, *rest = [*data["replaced"], own]
+        later = [{k: c.get(k, []) for k in ("screenshot", "elements_reply", "icon_labels", "vision_elements")}
+                 | {"from_step": before["until_step"] + 1} for before, c in zip([first, *rest], rest)]
+        return {k: v for k, v in data.items() if k != "replaced"} | {
+            k: first.get(k, []) for k in ("screenshot", "elements_reply", "icon_labels", "vision_elements")} | {
+            "later": later}
 
 
 class ExploreFile(Strict):

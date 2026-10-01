@@ -1,0 +1,125 @@
+{
+ "schema_version": 1,
+ "state_id": "s01",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "com.janitor.ai|a442a44288019800eaec2a6cc709c990|844ec85881902f8e1fafd1e95cddd96d|1ed48b672e22",
+ "foreground_package": "com.janitor.ai",
+ "screenshot": "states/s01.png",
+ "elements_reply": "states/s01.elements.json",
+ "settled": true,
+ "settle_seconds": 3.76,
+ "dynamic_regions": [],
+ "captured_at": "2026-10-01T05:09:12",
+ "box": null,
+ "icon_labels": [
+  {
+   "mcp_ref": "@e29",
+   "name": "menu"
+  },
+  {
+   "mcp_ref": "@e55",
+   "name": "previous page"
+  },
+  {
+   "mcp_ref": "@e58",
+   "name": "next page"
+  },
+  {
+   "mcp_ref": "@e117",
+   "name": "home tab"
+  },
+  {
+   "mcp_ref": "@e118",
+   "name": "search tab"
+  },
+  {
+   "mcp_ref": "@e119",
+   "name": "explore tab"
+  },
+  {
+   "mcp_ref": "@e120",
+   "name": "notifications tab"
+  },
+  {
+   "mcp_ref": "@e121",
+   "name": "profile tab"
+  },
+  {
+   "mcp_ref": "@e29",
+   "name": "menu"
+  },
+  {
+   "mcp_ref": "@e55",
+   "name": "previous page"
+  },
+  {
+   "mcp_ref": "@e58",
+   "name": "next page"
+  },
+  {
+   "mcp_ref": "@e115",
+   "name": "home tab"
+  },
+  {
+   "mcp_ref": "@e116",
+   "name": "chats tab"
+  },
+  {
+   "mcp_ref": "@e117",
+   "name": "explore tab"
+  },
+  {
+   "mcp_ref": "@e118",
+   "name": "notifications tab"
+  },
+  {
+   "mcp_ref": "@e119",
+   "name": "profile tab"
+  }
+ ],
+ "vision_elements": [],
+ "blocked_reason": null,
+ "replaced": [
+  {
+   "until_step": 42,
+   "screenshot": "states/s01.r1.png",
+   "elements_reply": "states/s01.r1.elements.json",
+   "icon_labels": [
+    {
+     "mcp_ref": "@e29",
+     "name": "menu"
+    },
+    {
+     "mcp_ref": "@e55",
+     "name": "previous page"
+    },
+    {
+     "mcp_ref": "@e58",
+     "name": "next page"
+    },
+    {
+     "mcp_ref": "@e117",
+     "name": "home tab"
+    },
+    {
+     "mcp_ref": "@e118",
+     "name": "search tab"
+    },
+    {
+     "mcp_ref": "@e119",
+     "name": "explore tab"
+    },
+    {
+     "mcp_ref": "@e120",
+     "name": "notifications tab"
+    },
+    {
+     "mcp_ref": "@e121",
+     "name": "profile tab"
+    }
+   ],
+   "vision_elements": []
+  }
+ ]
+}
