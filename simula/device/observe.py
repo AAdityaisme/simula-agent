@@ -76,9 +76,10 @@ TOGGLE = re.compile(r"Switch|CheckBox|ToggleButton", re.IGNORECASE)
 DENY_ON_UPSELL = re.compile(r"continue|try|start|get|claim|unlock|join|redeem|activate|\bremove\b", re.IGNORECASE)
 DENY_IN_TOUR = re.compile(r"send|swipe|regenerate", re.IGNORECASE)
 DENY_IN_CORE = re.compile(r"\b(?:gifts?|coins?|gems?|tips?|donat\w*|credits?)\b", re.IGNORECASE)
-# what an overlay that asks something of the user says on its controls: an upgrade or plans word, or a decline
+# what an overlay that asks something of the user says on its controls: an upgrade or plans word, a brand's "+"
+# tier ("Luzia+"), or a decline
 ASKING = re.compile(r"^(?:not now|later|maybe later|no,? thanks)$|upgrade|premium|membership|subscription|remove ads|"
-                    r"\bad[- ]free\b|\bno ads\b|\bplans\b", re.IGNORECASE)
+                    r"\bad[- ]free\b|\bno ads\b|\bplans\b|\w\+", re.IGNORECASE)
 DISMISS = re.compile(r"^(close\b.*|not now|later|maybe later|no,? thanks|skip|dismiss|got it|x|×|✕)$", re.IGNORECASE)
 BLOCKING = re.compile(r"emulator|rooted|captcha|verify (that )?you.?re (a )?human|age verification|"
                       r"date of birth|not supported on this device", re.IGNORECASE)

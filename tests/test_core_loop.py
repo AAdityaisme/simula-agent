@@ -164,6 +164,15 @@ def test_a_bigger_control_still_takes_in_what_it_holds():
     assert [c.ref for c in ob.controls(tokens, DEVICE)] == ["@tokens"]
 
 
+def test_an_overlay_asks_with_an_upgrade_or_plans_word_a_plus_tier_or_a_decline_never_a_close():
+    def asks(label, kind="Button"):
+        return ob.asks(ob.controls([element("@c", kind, 100, 1200, 600, 120, text=label)], DEVICE))
+    assert all(asks(label) for label in ("See plans", "Upgrade now", "Not now", "Maybe later", "Unlock Luzia+",
+                                         "See janitor+"))
+    assert not any(asks(label) for label in ("Close", "Got it", "Skip", "+", "Pro tips", "Add to plan",
+                                             "+18 Discord server"))
+
+
 # Fable E7: the explorer's own message carried a price, and any price on a chat made the conversation a paywall.
 def test_no_conversation_is_a_paywall_only_a_price_on_a_control_is():
     assert not [m for m in stage.CORE_MESSAGES if ob.PRICE.search(m)]
