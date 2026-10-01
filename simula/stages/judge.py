@@ -435,8 +435,9 @@ def judge_run(ctx: Ctx, work: Path, model: ProductModel, candidates: list[Candid
             verdicts |= v
             decisions |= {r.id: decide(r, [*v[r.id].values()], len(judges), mode, p[r.id],
                                        revision_of=r.id.removesuffix("-rev")) for r in latest}
-            # a revision that clears an evidence fail without new facts clears it for every version before it
-            for r in latest:
+            # a revision that clears an evidence fail without new facts clears it for every version before it, once
+            # every judge has said so: a lost call leaves the fail unconfirmed
+            for r in (r for r in latest if len(v[r.id]) == len(judges)):
                 for e in earlier(r.id):
                     decisions[e] = proposal_fault(decisions[e], [*v[r.id].values()])
         revised += latest

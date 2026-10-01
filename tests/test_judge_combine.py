@@ -690,3 +690,22 @@ def test_an_evidence_fail_a_second_revision_fixed_was_the_proposals_for_every_ea
     assert decisions[f"{first}-rev"].final == "accept"
     assert [(decisions[c].failure_type, decisions[c].rerun_stage) for c in (cands[0].id, first)] == [
         ("proposal", None), ("proposal", None)]
+
+
+def test_an_evidence_fail_stays_with_explore_while_a_judge_of_its_revision_is_lost(tmp_path, monkeypatch):
+    app = "janitorai"
+    cands = live(app, {"rationale": "OVERCLAIM"})
+    call, _ = fake_llm({"OVERCLAIM": ["c2_evidence"]}, revision=cands[0].model_copy(update={"rationale": "Plain."}))
+    lost = config.roles("dev")["judge_2"]["model"]
+
+    def revision_judge_2_lost(**kw):
+        if kw["schema"] is Verdict and kw["model"] == lost and kw["step"].startswith(f"judge:{cands[0].id}-rev:"):
+            raise llm.LLMFailure("error", "Connection error.")
+        return call(**kw)
+    monkeypatch.setattr(llm, "call", revision_judge_2_lost)
+    monkeypatch.setattr(runlog, "notify", lambda *a: False)
+    run_dir = seed(tmp_path, app, cands)
+    judge.run(ctx_for(app, run_dir))
+    decisions = decisions_of(run_dir)
+    assert decisions[f"{cands[0].id}-rev"].final == "needs_human"
+    assert (decisions[cands[0].id].failure_type, decisions[cands[0].id].rerun_stage) == ("product_model", "explore")
