@@ -369,10 +369,11 @@ def test_a_fixable_reject_is_revised_once_and_judged_fresh(cap, tmp_path, monkey
 
 
 # sha256 of decisions.json, a NUL byte, then revisions.json, as judge.run wrote them at e56402e, the commit before the
-# revision loop. The test passes there too.
+# revision loop, except each cosmetic's cost line, which now ends with a note that the check can't tell a look from a
+# featured spot (#40). With e56402e's cost lines the hashes were bd8f917a… and d4236f51…, and the test passed there.
 CAP_ONE = {
-    ("mixed", "janitorai"): "bd8f917ac409ca733a61a7e9c071c33c706156f26877d04b01f7213950e9f95c",
-    ("closest", "aol"): "d4236f513aaff11f30e6bbb7b657461a62e9e17f16c65b53b7248e3b14ece051",
+    ("mixed", "janitorai"): "018b27ae1f776decd1ebd41a7e5fff8a5179be14f6ef5175240f602a07ccbe0d",
+    ("closest", "aol"): "e6b1f6b46e1c00b81dd9d6a68b56862670190c8f05ebb9ed1fd63a151d988cf5",
 }
 
 
