@@ -1024,7 +1024,7 @@ class Explorer:
                     and not (form and ob.SUBMIT.search(c.label)) for c in s.cands)
         return (any(ob.shaped(c) and ob.SIGN_IN.search(c.label) for c in s.cands) and not other
                 and not ob.feed_items(s.cands, self.device, self.tab_keys()) and not ob.composer(s.cands, self.device)
-                and not ob.tab_bar(s.cands, self.device))
+                and not ob.tab_bar(controls_of(s.cands), self.device))
 
     def get_past(self, wall: Seen) -> bool:
         """A way on without an account first ("Continue as guest", "Skip", "Not now"), which counts only when it
@@ -1256,7 +1256,7 @@ class Explorer:
         every relaunch start there."""
         home = self.root = self.launch_root = self.current
         home.depth, home.back_to = 0, None
-        self.tabs = [t for t in ob.tab_bar(home.cands, self.device) if not ob.denied(t)]
+        self.tabs = [t for t in ob.tab_bar(controls_of(home.cands), self.device) if not ob.denied(t)]
         self.apply_filter(True)
 
     def account_note(self, text: str, past: bool) -> bool:
