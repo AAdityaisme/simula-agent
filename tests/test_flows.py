@@ -757,6 +757,27 @@ def test_default_selection_is_every_accept_first_then_conditional_by_rank_at_mos
     assert [d.candidate_id for d in flows.stage.select(decisions[:5], ["c05"])] == ["c02", "c03", "c05"]
 
 
+def test_promoting_an_idea_the_judges_passed_keeps_the_closest_idea():
+    """Fable L9: with nothing accepted, a promotion of a passed CONDITIONAL (gate mode's cost question) turned the
+    closest idea off; only a person's call on a split replaces it."""
+    split = decision("c02", "conditional", 2.0).model_copy(update={"judgment_splits": ["c2_evidence"]})
+    decisions = [decision("c01", "conditional", 1.0), split]
+    assert [d.candidate_id for d in flows.stage.select(decisions)] == ["c02", "c01"]
+    assert [d.candidate_id for d in flows.stage.select(decisions, ["c01"])] == ["c02", "c01"]
+
+
+def test_a_promotion_takes_the_slot_of_the_lowest_ranked_idea_nobody_promoted():
+    """Four accepts fill the deck; a promoted fifth idea, a split, is drawn in place of the lowest accept."""
+    split = decision("c05", "conditional", 2.0).model_copy(update={"judgment_splits": ["c2_evidence"]})
+    decisions = [*(decision(f"c1{n}", "accept", 1.0 - n / 10) for n in range(4)), split]
+
+    def picked(promoted=()) -> list[str]:
+        return [d.candidate_id for d in flows.stage.select(decisions, promoted)]
+    assert picked() == ["c10", "c11", "c12", "c13"]
+    assert picked(["c05"]) == ["c10", "c11", "c12", "c05"]
+    assert picked(["c05", "c13"]) == ["c10", "c11", "c13", "c05"]
+
+
 
 def split_run(tmp_path, approvals: dict | None = None, changes: dict | None = None):
     """A seeded run whose c02 the judges split on, with pd-c7-subtle's committed r1 verdicts under VF': judge_1 fails
@@ -946,6 +967,14 @@ def test_approving_a_split_idea_draws_it_marked_as_a_persons_call_on_every_slide
     assert 'Approved by a person: The reviewers split on "the right moment" and "specific to this app".' in why
 
 
+def test_an_approval_naming_a_check_that_doesnt_exist_is_set_aside_as_a_typo():
+    """Fable L9: a mistyped check name was reported as the reviewers' disagreement having changed."""
+    split = decision("c02", "conditional", 0.5).model_copy(update={"judgment_splits": ["c5_moment", "c7_specific"]})
+    approval = {"id": "c02", "splits": ["c5_momnet", "c7_specific"]}
+    assert flows.stage.honored([approval], [split]) == (
+        [], {"c02": "your approval names a check that doesn't exist: c5_momnet"})
+
+
 def test_an_approval_holds_only_for_the_disagreement_it_approved(tmp_path):
     """The judges now split on C5 and C7; an approval naming only C7, or naming no checks, isn't honored: the idea
     goes back to Needs your call and says why."""
@@ -957,14 +986,41 @@ def test_an_approval_holds_only_for_the_disagreement_it_approved(tmp_path):
         assert 'To approve: {"id": "c02", "splits": ["c5_moment", "c7_specific"]}' in page
 
 
-def test_an_approved_split_past_the_cap_is_counted_past_the_cap_not_asked_about_again(tmp_path, monkeypatch):
+def test_an_approved_split_at_the_cap_takes_the_slot_of_the_idea_nobody_promoted(tmp_path, monkeypatch):
     monkeypatch.setattr(flows.stage, "MAX_IDEAS", 1)
     run_dir, calls = split_run(tmp_path, approvals={"promote": [APPROVED_C02]})
     review = review_text(run_dir)
-    assert calls == ["c01"] and "Needs your call" not in review
-    note = next(line.note for line in read_trace(run_dir / "trace.jsonl") if line.step == "select")
-    assert note.endswith("past the cap of 1, not drawn: c02")
-    assert "1 more idea(s) passed the review; the deck draws only the top 1 by rank" in cover_of(review)
+    assert calls == ["c02"] and "Needs your call" not in review
+    assert select_note(run_dir).endswith("promoting c02: c02; past the cap of 1, not drawn: c01")
+    assert ("1 more idea(s) passed the review; the deck draws only 1, a person's promotions first and then by rank"
+            in cover_of(review))
+
+
+def test_promoting_a_passed_idea_past_the_cap_draws_it_and_is_reported_as_applied(tmp_path, monkeypatch):
+    """c01 and c02 both pass; with a cap of 1 the deck draws c01 unless a person promotes c02."""
+    monkeypatch.setattr(flows.stage, "MAX_IDEAS", 1)
+    run_dir = seed_run(tmp_path, "luzia")
+    (run_dir / "flows").mkdir()
+    (run_dir / "flows" / "approvals.json").write_text('{"promote": ["c02"]}')
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(llm, "call", fake_editor(run_dir))
+        flows.stage.run(ctx_for(run_dir, "luzia"))
+    assert select_note(run_dir) == ("accepted + conditional, flows/approvals.json promoting c02: c02; past the cap of "
+                                    "1, not drawn: c01")
+
+
+def test_more_promotions_that_hold_than_the_cap_stop_flows_before_it_clears_the_last_deck(tmp_path, monkeypatch):
+    run_dir, _ = split_run(tmp_path)
+    before = sorted(p.name for p in (run_dir / "flows").iterdir())
+    monkeypatch.setattr(flows.stage, "MAX_IDEAS", 1)
+    (run_dir / "flows" / "approvals.json").write_text(json.dumps({"promote": ["c01", "c02"]}))  # c02's doesn't hold
+    assert flows.stage.load_approvals(run_dir / "flows", DecisionsFile.model_validate_json(
+        (run_dir / "judge" / "decisions.json").read_text()).decisions) == (["c01", "c02"], [])
+    (run_dir / "flows" / "approvals.json").write_text(json.dumps({"promote": ["c01", APPROVED_C02]}))
+    with pytest.raises(ValueError, match="2 promotions hold, more than the deck's cap of 1; promote at most 1"):
+        flows.stage.run(ctx_for(run_dir, "luzia"))
+    assert sorted(p.name for p in (run_dir / "flows").iterdir()) == sorted([*before, "approvals.json"])
+    assert (run_dir / "flows" / "slides.pdf").read_bytes().startswith(b"%PDF")
 
 
 def test_a_deck_whose_only_survivors_wait_on_a_person_never_says_no_idea_passed_the_review(tmp_path):
@@ -1004,17 +1060,30 @@ def test_approvals_add_and_hold_by_id_and_never_draw_a_reject():
     assert flows.stage.select(splits, held=["c05"]) == []
 
 
-def test_approvals_survive_the_cleanup(tmp_path):
-    (tmp_path / "c01").mkdir()
-    (tmp_path / "slides.html").write_text("old")
+def test_approvals_are_read_as_promote_and_hold(tmp_path):
     (tmp_path / "approvals.json").write_text('{"promote": [{"id": "c02", "splits": ["c5_moment"]}], "hold": ["c01"]}')
-    flows.stage.clean(tmp_path)
-    assert [p.name for p in tmp_path.iterdir()] == ["approvals.json"]
     known = [decision("c01", "accept", 1.0), decision("c02", "conditional", 0.5)]
     assert flows.stage.load_approvals(tmp_path, known) == ([{"id": "c02", "splits": ["c5_moment"]}], ["c01"])
     (tmp_path / "approvals.json").write_text('{"approved": ["c01"]}')
     assert flows.stage.load_approvals(tmp_path, known) == (["c01"], [])
     assert flows.stage.load_approvals(tmp_path / "nowhere", known) == ([], [])
+
+
+def test_a_crash_while_flows_rebuilds_leaves_the_last_deck_and_a_rebuild_keeps_the_approvals(tmp_path, monkeypatch):
+    """Fable L9: flows/ was cleared before the deck was rebuilt, so a crash in between left no deck."""
+    run_dir, _ = split_run(tmp_path, approvals={"hold": ["c02"]})
+    deck = {p.relative_to(run_dir / "flows"): p.read_bytes() for p in (run_dir / "flows").rglob("*") if p.is_file()}
+    assert {Path("approvals.json"), Path("slides.pdf"), Path("c01/index.html")} <= set(deck)
+
+    def crash(path):
+        raise RuntimeError("the renderer died")
+    monkeypatch.setattr(flows.stage, "write_pdf", crash)
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(llm, "call", fake_editor(run_dir))
+        with pytest.raises(RuntimeError, match="the renderer died"):
+            flows.stage.run(ctx_for(run_dir, "luzia"))
+    assert {p.relative_to(run_dir / "flows"): p.read_bytes() for p in (run_dir / "flows").rglob("*")
+            if p.is_file()} == deck
 
 
 @pytest.mark.parametrize("written, error", [

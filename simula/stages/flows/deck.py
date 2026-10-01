@@ -254,12 +254,14 @@ def cover_html(app: str, flows: list[dict], *, fallbacks: int = 0) -> str:
 
 def review_cover_html(app: str, flows: list[dict], *, cap: int, unbuilt: int = 0, fallbacks: int = 0,
                       unbuilt_fallbacks: int = 0, unbuilt_approved: int = 0, cut: int = 0, calls: int = 0,
-                      approved: int = 0, held: list[str] = (), held_past_cap: list[str] = (),
-                      set_aside: dict[str, str] | None = None, status: list[str] = ()) -> str:
+                      approved: int = 0, promoted: bool = False, held: list[str] = (),
+                      held_past_cap: list[str] = (), set_aside: dict[str, str] | None = None,
+                      status: list[str] = ()) -> str:
     """The review's overview: which ideas the product team's deck draws, whether an idea is only the judge's fallback
     pick (drawn, or not drawn), how many survivors past the cap of `cap` were left out, what a person approved or
     held and which of their approvals don't hold, and status lines for anything an earlier stage couldn't finish.
-    `unbuilt` counts only ideas that passed the review; `unbuilt_approved` the splits a person approved."""
+    `unbuilt` counts only ideas that passed the review; `unbuilt_approved` the splits a person approved; `promoted`
+    says a person's promotions took their slots first."""
     drawn = ", ".join(f["candidate"].id for f in flows) or "no idea"
     notes = [f"The product team's deck, flows/slides.pdf, draws {drawn}."]
     if fallbacks and unbuilt_fallbacks:
@@ -270,8 +272,9 @@ def review_cover_html(app: str, flows: list[dict], *, cap: int, unbuilt: int = 0
     elif unbuilt_fallbacks:
         notes.append("No idea passed every check; the closest couldn't be drawn, and the score pages say why.")
     if cut:
-        notes.append(f"{cut} more idea(s) passed the review; the deck draws only the top {cap} by rank, and the "
-                     "score pages score the rest.")
+        draws = f"{cap}, a person's promotions first and then by rank" if promoted else f"the top {cap} by rank"
+        notes.append(f"{cut} more idea(s) passed the review; the deck draws only {draws}, and the score pages score "
+                     "the rest.")
     if unbuilt:
         notes.append(f"{unbuilt} {'more ' if flows else ''}idea(s) passed the review but couldn't be drawn; the score "
                      "pages say why.")
@@ -426,7 +429,8 @@ def review(ctx: Ctx, model: ProductModel, flows: list[dict], not_built: list[tup
     slides = [review_cover_html(app, flows, cap=cap, unbuilt=len(not_built) - unbuilt_fallbacks - unbuilt_approved,
                                 fallbacks=fallbacks, unbuilt_fallbacks=unbuilt_fallbacks,
                                 unbuilt_approved=unbuilt_approved, cut=cut, calls=len(waiting),
-                                approved=sum(f.get("approved", False) for f in flows), held=held,
+                                approved=sum(f.get("approved", False) for f in flows),
+                                promoted=bool(promoted), held=held,
                                 held_past_cap=held_past_cap,
                                 set_aside={i: why for i, why in (set_aside or {}).items() if i not in asked},
                                 status=unfinished_stages(ctx.run_dir))]
