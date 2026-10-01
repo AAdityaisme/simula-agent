@@ -4,6 +4,7 @@ explorer change that moves any of them fails here until the expected file is rew
 shows in a reviewed diff. Rewrite it with: uv run python -m tests.test_committed_captures"""
 
 import json
+import subprocess
 from pathlib import Path
 
 from PIL import Image
@@ -62,8 +63,10 @@ def explore_rules(explore: Path) -> dict:
 
 
 def committed() -> dict:
-    return {f"{p.parent.parent.name}/{p.parent.name}": explore_rules(p)
-            for p in sorted(ROOT.glob("runs/*/*/explore"))}
+    """Tracked runs only: a measurement run left in a checkout is untracked."""
+    files = subprocess.run(["git", "ls-files", "runs/*/*/explore/explore.json"], cwd=ROOT, capture_output=True,
+                           text=True, check=True).stdout.split()
+    return {"/".join(p.parts[1:3]): explore_rules(ROOT / p.parent) for p in sorted(map(Path, files))}
 
 
 def test_every_committed_capture_reads_as_the_expected_file_says():
