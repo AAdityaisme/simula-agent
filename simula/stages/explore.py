@@ -120,6 +120,7 @@ class Obs:
     cands: list[ob.Candidate]
     settled: bool
     settle_s: float
+    painted: Rect | None = None  # where the soft keyboard was painted over on this capture
 
 
 @dataclass
@@ -167,6 +168,7 @@ class Seen:
     icon_labels: list = field(default_factory=list)
     vision: list = field(default_factory=list)
     blocked_reason: str | None = None
+    painted: Rect | None = None  # where the soft keyboard was painted over on its capture
 
 
 @dataclass
@@ -313,14 +315,13 @@ class Explorer:
         if hits or not settled.ok:
             ob.redact(self.phone.elements()[0], image, self.secrets, self.parts)  # the screen may have moved since
         self.redacted += hits
-        if self.typing:
-            self.cover_keyboard(image)
+        painted = self.cover_keyboard(image) if self.typing else None
         image.save(shot)
         fg = self.phone.foreground()
         if not settled.ok:
             self.note("settle", f"unsettled after {settled.seconds:.1f}s", outcome="timeout")
         self.obs = Obs(reply, elements, image, fg, ob.fingerprint(fg, elements, image, self.device),
-                       ob.controls(elements, self.device), settled.ok, round(settled.seconds, 2))
+                       ob.controls(elements, self.device), settled.ok, round(settled.seconds, 2), painted)
         return self.obs
 
     def answer_anr(self, elements: list[dict]) -> Obs:
@@ -386,7 +387,7 @@ class Explorer:
                     captured_at=now(), upsell=ob.is_upsell(obs.elements, self.device),
                     priced=ob.priced(obs.elements, self.device),
                     via=move.cand.label if move and move.cand else "", box=box,
-                    unscroll_to=came_from.sid if came_from and move.action == "swipe" else None)
+                    unscroll_to=came_from.sid if came_from and move.action == "swipe" else None, painted=obs.painted)
         self.states.append(seen)
         self.by_id[sid] = seen
         self.last_new_at = self.actions
@@ -414,7 +415,7 @@ class Explorer:
         evidence of a region that moves on its own."""
         known = {c.key for c in home.cands}
         home.fp, home.fg, home.cands, home.elements = obs.fp, obs.fg, cands, obs.elements
-        home.settled, home.settle_s, home.captured_at = obs.settled, obs.settle_s, now()
+        home.settled, home.settle_s, home.captured_at, home.painted = obs.settled, obs.settle_s, now(), obs.painted
         home.upsell, home.priced = ob.is_upsell(obs.elements, self.device), ob.priced(obs.elements, self.device)
         home.visits, home.dynamic = home.visits + 1, []
         self.note("state", f"{home.sid} re-recorded: the relaunch landed on it with other content")
@@ -577,7 +578,7 @@ class Explorer:
     def shows(self, cand: ob.Candidate, live: ob.Candidate, now: Obs) -> bool:
         """Invariant 3: a recorded control is tapped only when the screen shows it as it was recorded, compared with
         its crop in the capture it was recorded from. A control read off the live screen is what the screen shows,
-        unless its tap point lies under the tab bar."""
+        unless its tap point lies under the tab bar. A crop the keyboard was painted over shows nothing."""
         if self.under_tab_bar(cand, live, now):
             return False
         if any(c is cand for c in now.cands):
@@ -585,15 +586,27 @@ class Explorer:
         owner = next((st for st in self.states if any(c is cand for c in st.cands)), None)
         if owner is None:
             return True
+        if self.painted_over(cand, live, now):
+            return False
         then = Image.open(self.out / "states" / f"{owner.sid}.png")
         return ob.looks_same(then, cand.rect, now.image, live.rect, self.device)
 
+    def painted_over(self, cand: ob.Candidate, live: ob.Candidate, now: Obs) -> bool:
+        """The soft keyboard was painted over a recorded control's crop, in the capture it was recorded from or in the
+        live one: black matches black whatever lies over the control, so the pictures can't tell what the screen
+        shows there."""
+        owner = next((st for st in self.states if any(c is cand for c in st.cands)), None)
+        return any(box is not None and ob.overlaps(rect, box)
+                   for box, rect in ((owner and owner.painted, cand.rect), (now.painted, live.rect)))
+
     def under_tab_bar(self, cand: ob.Candidate, live: ob.Candidate, now: Obs) -> bool:
         """Content scrolls under the tab bar and stays in the element list: a tap point at or below the top of tabs the
-        screen shows lands on a tab. A sheet over the tab bar hides the tabs, so its own controls there are shown."""
+        screen shows lands on a tab. A sheet over the tab bar hides the tabs, so its own controls there are shown. A
+        tab the keyboard was painted over may be shown, so it counts."""
         if cand.key in self.tab_keys():
             return False
-        shown = [lt.rect.y for tab in self.tabs for lt in [ob.find(now.cands, tab)] if lt and self.shows(tab, lt, now)]
+        shown = [lt.rect.y for tab in self.tabs for lt in [ob.find(now.cands, tab)]
+                 if lt and (self.painted_over(tab, lt, now) or self.shows(tab, lt, now))]
         return bool(shown) and live.point[1] >= min(shown)
 
     def escape_billing(self) -> bool:
@@ -966,16 +979,21 @@ class Explorer:
         why = why or (f"{', '.join(missing)} not set" if missing else
                       f"{', '.join(foreign)} not ASCII (mobile-mcp would paste it through the clipboard)" if foreign
                       else "")
-        return self.account_note(f"{wall.sid}: no sign-up, {why}", False) if why else self.sign_up(wall)
+        if why:
+            return self.account_note(f"{wall.sid}: no sign-up, {why}", False)
+        try:
+            return self.sign_up(wall)
+        finally:
+            self.typing = False  # the keyboard is painted over during the sign-up only
 
     def sign_up(self, wall: Seen) -> bool:
         """Follows the email sign-up from the wall a screen at a time and stops at anything it isn't sure of
         (unsure). A screen with text boxes is a form: each box must be one it recognizes, empty, and it gets its
         value; then the form is sent. A screen without one gets the way to an email sign-up. After a send, a
         verification step asks a person (needs-human.md), a form asking only for values not typed yet is the next
-        step unless its button creates something, and anything else is the end, an account only when it is the app
-        itself (result). A form whose own button logs in is a log-in form: never filled; its way to sign up is
-        taken."""
+        step, and anything else is the end, an account only when it is the app itself (result). A form's own button
+        must say no more than that it sends it (PLAIN_SUBMIT); a form whose own button logs in is a log-in form: never
+        filled; its way to sign up is taken."""
         sent, typed = False, set()
         for _ in range(SIGN_UP_STEPS):
             s = self.current
@@ -993,10 +1011,12 @@ class Explorer:
             boxes = self.boxes()
             button = self.form_button(boxes) if boxes else None
             if sent and not (boxes and all(kind in self.identity and kind not in typed for _, kind in boxes)
-                             and button and not ob.CREATES.search(button.label)):
+                             and button and ob.PLAIN_SUBMIT.search(button.label)):
                 return self.result(wall)
             if boxes and not (button and ob.LOG_IN.search(button.label)):
-                why = self.fill(boxes, typed) if button else "no control sends the form"
+                why = ("no control sends the form" if button is None else
+                       f"the form's button {button.label[:40]!r} says more than that it sends the form"
+                       if not ob.PLAIN_SUBMIT.search(button.label) else self.fill(boxes, typed))
                 why = why or self.send([kind for _, kind in boxes])
                 if why:
                     return self.stopped(wall, why)
@@ -1017,7 +1037,7 @@ class Explorer:
         if s.kind in AWAY:
             return f"the way in left the app ({self.obs.fg})"
         check = next((t for t in said if ob.HUMAN_CHECK.search(t)), None)
-        consent = next((c for c in self.surface() if ob.consents(c)), None)
+        consent = next((c for c in self.surface() if ob.consents(c, tapped=False)), None)
         if check:
             return f"a check only a person can pass ({check[:60]!r})"
         if ob.priced(self.obs.elements, self.device) or any(ob.CARD.search(t) for t in said):
@@ -1061,7 +1081,7 @@ class Explorer:
         button = self.form_button(boxes) if boxes else None
         if self.current.kind in AWAY or [kind for _, kind in boxes] != form or button is None:
             return "the form changed before it was sent"
-        if ob.LOG_IN.search(button.label) or ob.denied(button, upsell=self.current.upsell, account=True):
+        if not ob.PLAIN_SUBMIT.search(button.label) or ob.denied(button, upsell=self.current.upsell, account=True):
             return f"the form's button {button.label[:40]!r} sends no sign-up"
         self.act(Move("tap", button, why="sign-up: send the form"), purpose="account")
         return ""
@@ -1073,16 +1093,18 @@ class Explorer:
                     and (ob.SUBMIT.search(c.label) or ob.LOG_IN.search(c.label))), key=lambda c: c.rect.y,
                    default=None)
 
-    def cover_keyboard(self, image: Image.Image) -> None:
+    def cover_keyboard(self, image: Image.Image) -> Rect | None:
         """Paints the soft keyboard over: its suggestion strip is in no element list, so redaction can't see a typed
         value there. Its place is the input method window's frame while dumpsys says it is shown; when dumpsys can't
-        say, the lower half of the screen, so a reading that fails leaves nothing uncovered."""
+        say, the lower half of the screen, so a reading that fails leaves nothing uncovered. Where it painted, if
+        anywhere."""
         shown = KEYBOARD_SHOWN.search(adb_shell(self.serial, ["dumpsys", "input_method"]) or "")
         if shown and shown.group(1) == "false":
-            return
+            return None
         frame = KEYBOARD_FRAME.search(adb_shell(self.serial, ["dumpsys", "window", "InputMethod"]) or "")
-        box = tuple(map(int, frame.groups())) if frame else (0, image.height // 2, image.width, image.height)
-        ImageDraw.Draw(image).rectangle(box, fill=(0, 0, 0))
+        x0, y0, x1, y1 = map(int, frame.groups()) if frame else (0, image.height // 2, image.width, image.height)
+        ImageDraw.Draw(image).rectangle((x0, y0, x1, y1), fill=(0, 0, 0))
+        return Rect(x=x0, y=y0, w=x1 - x0, h=y1 - y0)
 
     def result(self, wall: Seen) -> bool:
         """The end of a sign-up. An account counts as made only on positive evidence: the screen is the app, in
@@ -1104,6 +1126,9 @@ class Explorer:
 
     def no_way(self) -> str:
         """Why nothing leads to an email sign-up, from what the screen offers instead."""
+        email = next((c.label for c in self.surface() if ob.shaped(c) and ob.FIELDS["email"].search(c.label)), None)
+        if email:
+            return f"no way to an email sign-up recognized ({email[:40]!r} names email)"
         labels = [c.label for c in self.surface()]
         for what, rule in (("a phone number", ob.PHONE), ("a sign-in with another account", ob.OTHER_ACCOUNT)):
             hit = next((label for label in labels if rule.search(label)), None)

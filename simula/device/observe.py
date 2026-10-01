@@ -100,11 +100,11 @@ GUEST = re.compile(r"^\W*(?:[\w'’]+\s+){0,3}?(?:as (?:a )?(?:guest|visitor)|gu
                    r"(?:explore|browse|look around) first|browse anonymously|just browsing)\W*$|"
                    r"^\W*(?:skip(?: for now)?|not now|(?:maybe |remind me )?later|no,? thanks?)\W*$", re.IGNORECASE)
 # a control that agrees, accepts, consents or attests ("I'm 18+", "I understand", "Yes, ...") is never tapped on the
-# way in: a label that speaks for the user in the first person is one, whatever it attests
-CONSENT = re.compile(r"\bagree|\baccept|\bconsent|\backnowledg|\bunderstand\b|\badult\b|\b\d+\s*\+|"
-                     r"\b(?:over|at least|under) \d+|^\W*(?:yes|i|i['’]?m|i am)\b", re.IGNORECASE)
+# way in: a label that speaks for the user in the first person is one, whatever it attests (ATTESTS); text that is no
+# button or toggle only when it agrees or accepts, since "At least 8 characters" is a password hint
+AGREES = re.compile(r"\bagree|\baccept|\bconsent|\backnowledg|\bunderstand\b|\badult\b", re.IGNORECASE)
+ATTESTS = re.compile(r"\b\d+\s*\+|\b(?:over|at least|under) \d+|^\W*(?:yes|i|i['’]?m|i am)\b", re.IGNORECASE)
 LOG_IN = re.compile(r"\b(?:log|sign) ?in\b", re.IGNORECASE)
-CREATES = re.compile(r"\bcreate\b", re.IGNORECASE)  # after the account, "Create" makes content
 # a sign-in with another account (Google, Apple, ...) or a phone is a real person's, so it is never a way in
 OTHER_ACCOUNT = re.compile(r"\b(?:continue|sign ?(?:in|up)|log ?in|connect|register)\s+(?:with|using|via)\b"
                            r"(?!.*\be-?mail\b)", re.IGNORECASE)
@@ -115,8 +115,13 @@ EMAIL_WAY = re.compile(r"\b(?:sign ?up|continue|register|use|join|start|create)\
 SIGN_UP_WAY = re.compile(r"\bsign ?up\b|\bcreate (?:an |my |your )?account\b|\bregister\b", re.IGNORECASE)
 SUBMIT = re.compile(r"\b(?:sign ?up|create|register|continue|next|submit|done|join|get started|let'?s go)\b",
                     re.IGNORECASE)
-# a name box is the person's name only when its text starts that way: "Character name" or "Username" is another box
-PERSON_NAME = re.compile(r"^\W*(?:your |full |first |last |display )?name\b|what should we call you", re.IGNORECASE)
+# the only labels a sign-up form's own button may have: anything more ("Continue, I'm 18", "Create") is not sent
+PLAIN_SUBMIT = re.compile(r"^\W*(?:sign ?up|create (?:an |my |your )?account|register|continue|next|submit|done|join|"
+                          r"get started|let'?s go)\W*$", re.IGNORECASE)
+# a name box is the person's name only when that is all its text says: "Character name", "Username" or "Name your
+# companion" is another box
+PERSON_NAME = re.compile(r"^\W*(?:enter )?(?:your )?(?:full |first |last |display )?name\W*$|"
+                         r"^\W*what should we call you\W*$", re.IGNORECASE)
 FIELDS = {"email": re.compile(r"e-?mail", re.IGNORECASE), "password": re.compile(r"pass ?word|\bpwd\b", re.IGNORECASE),
           "phone": PHONE, "name": PERSON_NAME}
 HUMAN_CHECK = re.compile(rf"{BLOCKING.pattern}|not a robot", re.IGNORECASE)
@@ -475,9 +480,12 @@ def shaped(c: Candidate) -> bool:
     return len(c.label.split()) <= CONTROL_WORDS or "Button" in c.kind
 
 
-def consents(c: Candidate) -> bool:
-    """A control that agrees to or accepts something: "I agree", "Accept & continue", a consent checkbox."""
-    return (shaped(c) or bool(TOGGLE.search(c.kind))) and bool(CONSENT.search(c.label))
+def consents(c: Candidate, tapped: bool = True) -> bool:
+    """A control that agrees to, accepts or attests something: "I agree", "Accept & continue", "I'm 18+", a consent
+    checkbox. One that is not to be tapped and is neither a button nor a toggle only when it agrees or accepts."""
+    toggle = bool(TOGGLE.search(c.kind))
+    attests = (tapped or toggle or "Button" in c.kind) and ATTESTS.search(c.label)
+    return (shaped(c) or toggle) and bool(AGREES.search(c.label) or attests)
 
 
 def account_way(c: Candidate) -> bool:

@@ -1,7 +1,8 @@
 """--allow-account-create on a fake phone: off, nothing changes; on, a sign-up wall is passed by a way on without an
 account first, else by an email sign-up typed from SIMULA_TEST_*, and anything it isn't sure of stops it at the wall
 with its reason. The identity never reaches a saved file, a model's input or a screenshot unredacted. The tests named
-for a red-team finding failed on the commit it was found on (rt_f*: 8735b45, rt_r2_*: b568449)."""
+for a red-team finding failed on the commit it was found on (rt_f*: 8735b45, rt_r2_*: b568449,
+rt_r3_*: 66f6ca8)."""
 
 import json
 from pathlib import Path
@@ -90,16 +91,6 @@ def sign_up_app(wall: list[dict] = (TITLE, EMAIL_WAY, GOOGLE, LOG_IN), after_way
         app.remember = {"next"} if after_form is HOME else set()
         return app
     return factory
-
-
-@pytest.fixture(autouse=True)
-def keyboard(monkeypatch):
-    """dumpsys as an emulator answers it with its soft keyboard up, over the lower part of the screen; no test here
-    reaches a real adb."""
-    answers = {"input_method": "  mInputShown=true\n",
-               "window": "  Window #3 Window{a1 u0 InputMethod}:\n    mFrame=[0,1500][1080,2400] last=[0,0][0,0]\n"}
-    monkeypatch.setattr(stage, "adb_shell", lambda serial, args: answers[args[1]])
-    return answers
 
 
 @pytest.fixture
@@ -485,11 +476,14 @@ def test_a_box_is_named_by_its_own_words_or_its_caption():
 
 ATTESTED = ("I'm 18+, continue", "Yes, I'm over 18 - Next", "I understand, continue", "Acknowledge and continue",
             "I'm an adult, let's go")
-IMPLIED = ("OK, continue", "Got it, continue")  # under "By continuing you agree": implicit, Aadi's call (README)
+# a form's button that says more than that it sends the form: an attestation inside it, or anything else (RT-R3-1)
+MORE = ("OK, continue", "Got it, continue", "Continue, I'm 18 or older", "Create account (I am 18 or older)",
+        "Sign up - 18 and older only", "Let's go, I'm 18", "Continue (18 or over)", "Next, I'm of legal age")
 
 
-@pytest.mark.parametrize("label", ATTESTED + IMPLIED)
-def test_an_attestation_is_a_consent_and_an_implied_one_is_aadis_call_rt_r2_1(tmp_path, monkeypatch, identity, label):
+@pytest.mark.parametrize("label", (*ATTESTED, *MORE, "Continue"))
+def test_an_attestation_is_a_consent_and_the_button_says_only_that_it_sends_rt_r2_1(tmp_path, monkeypatch, identity,
+                                                                                     label):
     form = form_with(el("@tos", "TextView", "By continuing you confirm you are 18 or older and accept our Terms", 1550,
                         h=80), el("@go2", "Button", label, 1700), without="@go")
 
@@ -500,9 +494,13 @@ def test_an_attestation_is_a_consent_and_an_implied_one_is_aadis_call_rt_r2_1(tm
     ex, phone = launched(tmp_path, monkeypatch, app)
     if label in ATTESTED:
         assert ex.account == [f"s01: stopped at the wall, it asks for a consent or an attestation ({label!r})"]
-        assert not phone.typed and label not in taps(phone)
-    else:
+    elif label in MORE:
+        assert ex.account == [f"s01: stopped at the wall, the form's button {label!r} says more than that it sends "
+                              "the form"]
+    else:  # a plain button under "By continuing you agree" is implicit, Aadi's call (README)
         assert ex.account_state == "made" and taps(phone)[-1] == label
+        return
+    assert not phone.typed and label not in taps(phone)
 
 
 @pytest.mark.parametrize("label", ["Continue without registering", "Remind me later", "No thanks"])
@@ -589,8 +587,8 @@ def test_the_keyboard_is_painted_over_once_a_value_is_typed_rt_r2_7(tmp_path, mo
     ("mInputShown=true", "frame=[0,1700][1080,2400]", (0, 1700, 1080, 2400)),
     (None, None, (0, 1200, 1080, 2400)),
 ], ids=["hidden", "a frame", "unreadable: the lower half"])
-def test_where_the_keyboard_is_painted(tmp_path, monkeypatch, keyboard, input_method, window, box):
-    keyboard.update(input_method=input_method, window=window)
+def test_where_the_keyboard_is_painted(tmp_path, monkeypatch, no_device, input_method, window, box):
+    no_device.update(input_method=input_method, window=window)
     ex, _ = new_explorer(tmp_path, monkeypatch, sign_up_app())
     image = Image.new("RGB", (1080, 2400), (200, 200, 200))
     ex.cover_keyboard(image)
@@ -601,3 +599,90 @@ def test_where_the_keyboard_is_painted(tmp_path, monkeypatch, keyboard, input_me
     else:
         x0, y0, x1, y1 = box
         assert painted[y0:y1, x0:x1].all() and not painted[:y0].any()
+
+
+@pytest.mark.parametrize("after", [HOME, [el("@e0", "TextView", "Something went wrong", 200),
+                                          el("@ok", "Button", "OK", 1700)]], ids=["signed up", "stopped"])
+def test_the_keyboard_is_painted_over_during_the_sign_up_only_rt_r3_3(tmp_path, monkeypatch, identity, after):
+    ex, _ = launched(tmp_path, monkeypatch, sign_up_app(after_form=after))
+    assert ex.states[-1].painted == Rect(x=0, y=1500, w=1080, h=900) and not ex.typing, ex.account
+    assert ex.observe().painted is None
+
+
+def test_a_crop_the_keyboard_was_painted_over_shows_nothing_rt_r3_3(tmp_path, monkeypatch):
+    """dumpsys unreadable: the lower half of every capture taken while typing is painted. Painted for a whole run of
+    the JanitorAI-like app, a drawer over the tab bar is as black as the tab bar was, so the tab is not tapped
+    through the drawer."""
+    monkeypatch.setattr(stage, "adb_shell", lambda serial, args: None)
+    init = stage.Explorer.__init__
+
+    def typing(self, *args, **kwargs):
+        init(self, *args, **kwargs)
+        self.typing = True
+    monkeypatch.setattr(stage.Explorer, "__init__", typing)
+    ex, phone = run_explorer(tmp_path, monkeypatch, janitor_like)
+    assert all(Image.open(ex.out / "states" / f"{s.sid}.png").getpixel((540, 2000)) == (0, 0, 0) for s in ex.states)
+    assert ("shot", "drawer") in phone.log and ("tap", "drawer", "118,2253") not in phone.log
+
+
+def test_a_hint_is_no_consent_but_a_button_or_toggle_still_attests_rt_r3_1():
+    def control(label, kind):
+        return ob.Candidate(label, kind, Rect(x=0, y=0, w=500, h=100), "@c", label)
+    hints = ("At least 8 characters", "8+ characters", "I'll never share it")
+    assert not any(ob.consents(control(h, "TextView"), tapped=False) for h in hints)
+    assert all(ob.consents(control(h, "TextView")) for h in hints)  # a control to tap is held to every rule
+    assert ob.consents(control("Yes, send me news", "CheckBox"), tapped=False)  # a toggle may be ticked already
+    assert ob.consents(control("I'm 18+", "Button"), tapped=False)
+    assert ob.consents(control("I accept the Terms", "TextView"), tapped=False)
+    assert not any(ob.PLAIN_SUBMIT.search(label) for label in MORE)
+
+
+@pytest.mark.parametrize("hint", ["At least 8 characters", "8+ characters"])
+def test_a_password_hint_stops_nothing_rt_r3_1(tmp_path, monkeypatch, identity, hint):
+    form = form_with(el("@hint", "TextView", hint, 930, w=500, h=50))
+    ex, phone = launched(tmp_path, monkeypatch, sign_up_app(after_way=form))
+    assert ex.account_state == "made" and phone.typed == [EMAIL, PASSWORD, NAME], ex.account
+
+
+def test_a_sign_up_in_two_steps_goes_through(tmp_path, monkeypatch, identity):
+    """The email first ("Continue"), then the password and the name ("Create account")."""
+    first = [el("@ft", "TextView", "What's your email?", 200, w=600), el("@c1", "TextView", "Email", 420, h=60),
+             el("@f1", "EditText", "", 500), el("@go1", "Button", "Continue", 1700)]
+    second = [el("@ft2", "TextView", "Almost there", 200, w=600), el("@c2", "TextView", "Password", 420, h=60),
+              el("@f2", "EditText", "", 500), el("@c3", "TextView", "Name", 720, h=60), el("@f3", "EditText", "", 800),
+              el("@go", "Button", "Create account", 1700)]
+
+    def app(clock):
+        phone = sign_up_app(after_way=first)(clock)
+        phone.screens["second"] = screen(21, *second)
+        phone.taps.update({("form", "Continue"): "second", ("second", "Create account"): "next"})
+        return phone
+    ex, phone = launched(tmp_path, monkeypatch, app)
+    assert phone.values == {("form", "@f1"): EMAIL, ("second", "@f2"): PASSWORD, ("second", "@f3"): NAME}
+    assert ex.account_state == "made", ex.account
+
+
+def test_a_name_box_is_one_that_says_only_name_rt_r3_2(tmp_path, monkeypatch, identity):
+    names = ("Name", "Your name", "Full name", "Enter your name", "Your full name", "Display name",
+             "What should we call you?")
+    others = ("Name your companion", "Name your AI", "Name of your business", "Username", "Character name")
+    assert all(ob.PERSON_NAME.search(n) for n in names) and not any(ob.PERSON_NAME.search(o) for o in others)
+    two = [e for e in FORM if e["ref"] not in ("@c3", "@f3")]
+    companion = [el("@o0", "TextView", "Meet your AI friend", 200, w=600),
+                 el("@o1", "TextView", "Name your companion", 420, h=60), el("@o2", "EditText", "", 500),
+                 el("@o3", "Button", "Continue", 1700)]
+
+    def app(clock):
+        phone = sign_up_app(after_way=two, after_form=companion)(clock)
+        phone.taps[("next", "Continue")] = "home"
+        return phone
+    ex, phone = launched(tmp_path, monkeypatch, app)
+    assert phone.typed == [EMAIL, PASSWORD] and "Continue" not in taps(phone)
+    assert ex.account[-1].endswith("shows no sign of an account") and ex.account_state == "sent"
+
+
+@pytest.mark.parametrize("label", ["Get started with email", "Email"])
+def test_an_email_way_it_does_not_recognize_is_named_in_the_stop(tmp_path, monkeypatch, identity, label):
+    app = sign_up_app(wall=[TITLE, el("@email", "Button", label, 1500), GOOGLE, LOG_IN])
+    assert stop_reason(tmp_path, monkeypatch, app) == ("s01: stopped at the wall, no way to an email sign-up "
+                                                       f"recognized ({label!r} names email)")
