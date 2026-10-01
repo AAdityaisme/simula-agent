@@ -169,13 +169,17 @@ class Turn:
 # ---------- cache ----------
 
 VISUAL_METADATA = ("transparency", "gamma", "icc_profile", "srgb", "chromaticity")  # PNG chunks that change the look
+IHDR_BIT_DEPTH = 24  # after the signature (8), IHDR's length and type (8), width and height (8)
 
 
 def pixels_sha256(png: bytes) -> str:
     """The image's mode, size, palette, the metadata that changes how it looks (transparency, gamma, colour profile)
-    and its samples at native precision, hashed: two PNGs of the same picture key the same however an encoder
-    compressed them or whatever else it wrote (a Software or dpi chunk), as Linux's and macOS's encoders differ."""
+    and its samples, hashed: two PNGs of the same picture key the same however an encoder compressed them or whatever
+    else it wrote (a Software or dpi chunk), as Linux's and macOS's encoders differ. Pillow decodes 16-bit colour to 8
+    bits and an animated PNG to its first frame, so a 16-bit or animated PNG keys by its bytes."""
     with Image.open(io.BytesIO(png)) as image:
+        if (image.format == "PNG" and png[IHDR_BIT_DEPTH] == 16) or getattr(image, "is_animated", False):
+            return hashlib.sha256(png).hexdigest()
         samples = image.tobytes()  # loads the image, so metadata after the pixel data is in info too
         palette = (image.palette.mode, image.palette.tobytes()) if image.palette else None
         looks = sorted((k, image.info[k]) for k in VISUAL_METADATA if k in image.info)
