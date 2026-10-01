@@ -12,7 +12,7 @@ import shutil
 import threading
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from html import escape, unescape
 from html.parser import HTMLParser
 import urllib.request
@@ -462,22 +462,33 @@ def contains(a: Rect, b: Rect) -> bool:
 
 @dataclass(frozen=True)
 class Plan:
-    """How many batches, in priority order, the $ cap admitted (`keep`), and on a live run the cap and the mock spend
-    already in the run when it began. A replay has only `keep`, the one figure the run records."""
+    """How many batches, in priority order, the run kept (`keep`), and on a live run the cap, the mock spend already in
+    the run when it began, and each batch past `keep` whose call ran (`dropped`: its number, its cost, and its own
+    error, None for one that drew). A replay has only `keep`, the one figure the run records."""
     keep: int
     cap: float | None = None
     spent: float | None = None
+    dropped: tuple[tuple[int, float, str | None], ...] = ()
 
     def line(self, batches: int) -> str:
         if self.cap is None:
-            return f"{self.keep} of {batches} batches, as the live run admitted them"
-        return (f"{self.keep} of {batches} batches admitted in priority order under the ${self.cap:.2f} cap with "
+            return f"{self.keep} of {batches} batches, as the live run kept them"
+        return (f"{self.keep} of {batches} batches kept in priority order under the ${self.cap:.2f} cap with "
                 f"${self.spent:.2f} already spent, each holding its worst case while in flight and one more free for a "
-                "retry")
+                "retry" + "".join(f"; batch {n} {dropped_note(usd, error)}" for n, usd, error in self.dropped))
+
+
+def dropped_note(usd: float, error: str | None) -> str:
+    """What became of a batch whose call ran past the first one left out: it failed on its own, or it drew and was left
+    out all the same."""
+    if error:
+        return f"ran (${usd:.2f}) and failed: {error}"
+    return (f"drew (${usd:.2f}) and was left out to keep the kept batches top-ranked; a rerun with a raised cap takes "
+            "it from the cache free unless run with --no-cache")
 
 
 def recorded_plan(ctx: Ctx, scope: list[State]) -> tuple[list[list[State]], int]:
-    """--replay's batches and how many of them the live run admitted, from its mock/plan.json: a replay asks for
+    """--replay's batches and how many of them the live run kept, from its mock/plan.json: a replay asks for
     exactly the calls the live run made, whatever the batching rule or the cap is now. With no record of this scope
     it stops, like a model call's replay miss."""
     path = ctx.run_dir / "mock" / PLAN_RECORD
@@ -504,11 +515,54 @@ def builder_requests(ctx: Ctx, content: list[dict]) -> tuple[dict, dict]:
             request(content + [{"type": "text", "text": SHORTER}], RETRY_EFFORT.get(effort, effort)))
 
 
+@dataclass
+class BatchTurn(llm.Turn):
+    """A batch's `llm.Turn` that draws the batches in priority order. A call the cap can't hold yet waits (`waiting`)
+    until no other batch has a call in flight (`flying`) and no better-ranked batch waits, then reserves once more;
+    while a batch waits, no later batch starts. Once a batch is left out (`stopped`), every later one is too. `cost` is
+    what the batch's calls cost."""
+    flying: set[int] = field(default_factory=set)
+    waiting: set[int] = field(default_factory=set)
+    stopped: threading.Event = field(default_factory=threading.Event)
+    cost: float = 0.0
+
+    def start(self) -> None:
+        """Waits until every better-ranked batch holds or has finished and none waits."""
+        with self.moved:
+            self.moved.wait_for(lambda: self.settled.issuperset(range(self.rank))
+                                and not any(r < self.rank for r in self.waiting))
+            self.flying.add(self.rank)
+
+    def reserve(self, worst_usd: float, **where) -> None:
+        spare = worst_usd if self.spare and not self.held else 0.0
+        with self.moved:
+            if any(r < self.rank for r in self.waiting) or not self.budget.fits(worst_usd, spare):
+                self.waiting.add(self.rank)
+                self.moved.notify_all()  # with this batch waiting, a better-ranked one may now go first
+                self.moved.wait_for(lambda: self.stopped.is_set()
+                                    or self.flying <= self.waiting and min(self.waiting) == self.rank)
+            if self.stopped.is_set():
+                raise llm.CapReached(f"{self.budget.stage}: a better-ranked batch was left out")
+            super().reserve(worst_usd, **where)  # turned away still: draw leaves this batch out, and every later one
+            self.waiting.discard(self.rank)
+            self.moved.notify_all()
+
+    def charge(self, usd: float, reserved: float) -> None:
+        self.cost += usd
+        super().charge(usd, reserved)
+
+    def finish(self) -> None:
+        with self.moved:
+            self.flying.discard(self.rank)
+            self.waiting.discard(self.rank)
+        self.settle()
+
+
 @dataclass(frozen=True)
 class Drawn:
     """What the batches came back as: each batch's (CSS, sections) in order, a placeholder for one not drawn; each
-    batch not drawn with what stopped it; the contract errors of batches that reach outside their own screens; and how
-    many batches the $ cap admitted."""
+    batch not drawn with what stopped it; the contract errors of batches that reach outside their own screens; and the
+    plan: how many batches were kept, and which drew but were left out."""
     parts: list[tuple[str, str]]
     lost: list[tuple[list[State], BaseException]]
     errors: list[ContractError]
@@ -518,12 +572,16 @@ class Drawn:
 def draw_batches(ctx: Ctx, groups: list[list[State]], contents: list[list[dict]], budget: llm.Budget,
                  keep: int | None) -> Drawn:
     """Draws the batches, at most PARALLEL_BATCHES at once. A live run admits them at reserve time, in priority order:
-    each batch's first call takes its worst-case hold in turn (`llm.Turn`), only while one more worst case stays free
-    for its retry, and gives it back at what it cost; once the cap turns a call away no later batch is asked for, so
-    the batches drawn are a priority prefix (but see the ponytail note in draw). It records the batches and how many
-    it admitted in mock/plan.json; a replay asks for the first `keep`, as recorded. A batch that fails becomes
-    placeholder sections and the rest still ship; the stage fails only if all fail."""
+    each batch's first call takes its worst-case hold in turn (`BatchTurn`), only while one more worst case stays free
+    for its retry, and gives it back at what it cost. A call that doesn't fit, a first call or a retry, waits until
+    the calls in flight settle and better-ranked waiting batches have gone, with no later batch starting meanwhile,
+    then is held if the room it freed is enough. Once the cap still turns a call away, that batch and every later one
+    are left out, even one already drawn (the plan says what each such batch cost), so the batches kept are a priority
+    prefix. It records the batches and how many it kept in mock/plan.json; a replay asks for the first `keep`, as
+    recorded. A batch that fails becomes placeholder sections and the rest still ship; the stage fails only if all
+    fail."""
     settled, moved, stopped = set(), threading.Condition(), threading.Event()
+    flying, waiting, turns = set(), set(), {}
     spent = budget.spent
 
     def ask(n: int, content: list[dict], budget) -> tuple[str, str] | BaseException:
@@ -536,34 +594,35 @@ def draw_batches(ctx: Ctx, groups: list[list[State]], contents: list[list[dict]]
         """A batch's parts or what stopped it, or None for one the cap left out."""
         if ctx.replay:
             return ask(n, content, budget) if n <= keep else None
-        # ponytail: a batch's first request keeps its own worst case free for a max_tokens retry. A retry fits unless,
-        # near the cap, another retry took that spare first or a later batch in flight holds less than the retrying
-        # one (its smaller worst case is all the spare it kept); then a better-ranked batch can go undrawn while a
-        # later one draws. Upgrade: a refused retry waits for later-ranked holds to settle. A batch the cap can't hold
-        # is left out, not queued until the calls in flight settle; queue it if cap stops leave much of the cap unspent.
-        turn = llm.Turn(budget, n - 1, settled, moved, spare=True)
+        turn = turns[n] = BatchTurn(budget, n - 1, settled, moved, spare=True, flying=flying, waiting=waiting,
+                                    stopped=stopped)
         try:
-            turn.wait()
+            turn.start()
             if stopped.is_set():
                 return None
             result = ask(n, content, turn)
             if isinstance(result, llm.CapReached):
                 stopped.set()
-                return result if turn.held else None  # turned away before holding anything: left out, not drawn
+                return None
             return result
         finally:
-            turn.settle()
+            turn.finish()
 
     with ThreadPoolExecutor(PARALLEL_BATCHES) as pool:
         results = list(pool.map(draw, range(1, len(groups) + 1), contents))
-    admitted = sum(r is not None for r in results)
-    plan = Plan(admitted) if ctx.replay else Plan(admitted, budget.cap, spent)
+    kept = next((n for n, r in enumerate(results) if r is None), len(results))
+    # A batch that ran past the first one left out is named with its cost and its own error, here and in the exhibit;
+    # its placeholder gives the cap's reason, which is all a replay, asking only the first `kept`, can rebuild.
+    ran = tuple((n, turns[n].cost, None if isinstance(r, tuple) else failure_reason(r))
+                for n, r in enumerate(results[kept:], kept + 1) if r is not None)
+    results = results[:kept] + [None] * (len(results) - kept)
+    plan = Plan(kept) if ctx.replay else Plan(kept, budget.cap, spent, ran)
     if not ctx.replay:
         path = ctx.run_dir / "mock" / PLAN_RECORD
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({"batches": [[s.id for s in batch] for batch in groups], "keep": admitted}))
+        path.write_text(json.dumps({"batches": [[s.id for s in batch] for batch in groups], "keep": kept}))
     run_trace(ctx.run_dir, stage="mock", step="plan", decider="code", note=plan.line(len(groups)))
-    over = llm.CapReached(f"over budget: batches {admitted + 1}-{len(groups)} were left out once the mock's $ cap "
+    over = llm.CapReached(f"over budget: batches {kept + 1}-{len(groups)} were left out once the mock's $ cap "
                           "turned a call away; raise with --usd-cap")
     results = [over if r is None else r for r in results]
     failures = [r for r in results if isinstance(r, BaseException)]
@@ -1028,8 +1087,9 @@ def exhibit(ctx: Ctx, model: ProductModel, scope: list[State], groups: list[list
              f"Batch plan: {plan.line(len(groups))}.", "",
              "| Batch | Screens | Result |", "|---|---|---|"]
     for n, batch in enumerate(groups, 1):
-        reason = undrawn.get(batch[0].id)
-        result = f"not drawn: {reason.replace('|', '/')}" if reason else "drawn"
+        reason, ran = undrawn.get(batch[0].id), {n: (usd, error) for n, usd, error in plan.dropped}.get(n)
+        result = dropped_note(*ran) if ran else f"not drawn: {reason}" if reason else "drawn"
+        result = " ".join(result.split()).replace("|", "/")  # a provider's error can span lines
         lines.append(f"| {n} | {' '.join(s.id for s in batch)} | {result} |")
     lines += ["", "| Screen | Name | data-el placed / expected | Render |", "|---|---|---|---|"]
     for s in scope:
