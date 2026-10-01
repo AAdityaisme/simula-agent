@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-cash-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The button is opt-in on the s02 pop-up, the offer copy states the reward ($1 to PayPal), declining changes nothing, and the failure path hides the button or sends no money."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The reward is 1 US dollar paid to the player's PayPal, which is cash and fails the no-cash gate."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (tapping Play at 0 lives, which opens s02); no chat content is involved."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed or capped; the proposal adds a button and leaves the lives timer and gold-bar sale as they are (removes nothing free: yes)."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a button in a modal over s01, a non-chat screen, and both s01 and s02 are rated content safe."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "The kind is existing_anchor and the app does limit lives (m01), but the reward is $1 cash, not lives, so it gives no limited or charged resource. The reward doesn't touch the resource the app limits."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "Claims about 5 lives, 1 lost per failed level, a 30-minute regen, and the pop-up selling lives for gold bars rest on m01, m02, s02.e02 and s02.e03. The proposal's new button, copy and reward are additions, not claims about today's app."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no subscription or paid plan (m02: No subscription), so there are no plan members to spare."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "There is no subscription, and the reward doesn't grant lasting access to anything the app charges for or take anything from other users."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears in s02 right after the player hits the limit of 0 lives, which is a moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It's a play-to-earn unit granted after the game is played and counted, triggered by an app event the app can detect (Play tapped with 0 lives)."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the s02 out-of-lives pop-up, the gold-bar button, the 5-lives limit and the 30-minute timer, so it is tied to this app."
+ },
+ "other_concern": "A $1 payout per short game, up to 3 a day, is likely far above the ad revenue per play, and PayPal payouts raise fraud and compliance issues. The idea also may encourage farming.",
+ "fixable": false
+}

@@ -1,0 +1,172 @@
+{
+ "app": "newsreader",
+ "app_category": "content",
+ "states": [
+  {
+   "id": "s01",
+   "name": "Top stories",
+   "purpose": "Home feed of stories, with sponsored cards, a saved-stories meter and a Premium button.",
+   "content_rating": "safe",
+   "elements": [
+    {
+     "id": "s01.e01",
+     "text": "Top stories",
+     "role": "title"
+    },
+    {
+     "id": "s01.e02",
+     "text": "Saved: 5 of 5",
+     "role": "saved meter"
+    },
+    {
+     "id": "s01.e03",
+     "text": "Sponsored",
+     "role": "ad label on a feed card"
+    },
+    {
+     "id": "s01.e04",
+     "text": "Save",
+     "role": "save button on a story"
+    },
+    {
+     "id": "s01.e05",
+     "text": "Go Premium",
+     "role": "upgrade button"
+    }
+   ]
+  },
+  {
+   "id": "s02",
+   "name": "Saved list full",
+   "kind": "modal",
+   "parent_id": "s01",
+   "purpose": "The pop-up when a reader taps Save with 5 stories saved.",
+   "content_rating": "safe",
+   "elements": [
+    {
+     "id": "s02.e01",
+     "text": "Your saved list is full",
+     "role": "title"
+    },
+    {
+     "id": "s02.e02",
+     "text": "You can save up to 5 stories. Remove one to save this.",
+     "role": "text"
+    },
+    {
+     "id": "s02.e03",
+     "text": "Manage saved",
+     "role": "button"
+    },
+    {
+     "id": "s02.e04",
+     "text": "Close",
+     "role": "button"
+    }
+   ]
+  },
+  {
+   "id": "s03",
+   "name": "Premium paywall",
+   "purpose": "News Premium, sold monthly.",
+   "content_rating": "safe",
+   "elements": [
+    {
+     "id": "s03.e01",
+     "text": "News Premium",
+     "role": "title"
+    },
+    {
+     "id": "s03.e02",
+     "text": "$3.99/month",
+     "role": "price"
+    },
+    {
+     "id": "s03.e03",
+     "text": "No ads",
+     "role": "benefit bullet"
+    },
+    {
+     "id": "s03.e04",
+     "text": "Listen to any story",
+     "role": "benefit bullet"
+    }
+   ]
+  }
+ ],
+ "mechanics": [
+  {
+   "id": "m01",
+   "kind": "limit",
+   "evidence_ids": [
+    "s01.e02",
+    "s02.e02"
+   ],
+   "summary": "Every reader can save up to 5 stories; saving a sixth opens the full-list pop-up.",
+   "observed_numbers": [
+    "5"
+   ],
+   "status": "observed"
+  },
+  {
+   "id": "m02",
+   "kind": "ad",
+   "evidence_ids": [
+    "s01.e03"
+   ],
+   "summary": "Sponsored cards in the Top stories feed.",
+   "observed_numbers": [],
+   "status": "observed"
+  },
+  {
+   "id": "m03",
+   "kind": "paywall",
+   "evidence_ids": [
+    "s03.e01",
+    "s03.e02",
+    "s03.e03",
+    "s03.e04"
+   ],
+   "summary": "News Premium, $3.99 a month: no ads, and listening to any story. It lists nothing else.",
+   "observed_numbers": [
+    "$3.99"
+   ],
+   "status": "observed"
+  }
+ ],
+ "value_ledger": [
+  {
+   "id": "l01",
+   "kind": "limit",
+   "verbatim": "Saved: 5 of 5",
+   "evidence_ids": [
+    "s01.e02"
+   ]
+  },
+  {
+   "id": "l02",
+   "kind": "price",
+   "verbatim": "$3.99/month",
+   "evidence_ids": [
+    "s03.e02"
+   ]
+  },
+  {
+   "id": "l03",
+   "kind": "paywall_bullet",
+   "verbatim": "No ads",
+   "evidence_ids": [
+    "s03.e03"
+   ]
+  },
+  {
+   "id": "l04",
+   "kind": "paywall_bullet",
+   "verbatim": "Listen to any story",
+   "evidence_ids": [
+    "s03.e04"
+   ]
+  }
+ ],
+ "open_questions": []
+}

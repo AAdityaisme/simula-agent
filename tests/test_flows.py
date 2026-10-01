@@ -16,7 +16,7 @@ from playwright.sync_api import sync_playwright
 
 from simula import llm, render, runfolder, validate
 from simula.contracts import (GATES, JUDGMENT, CandidatesFile, Check, Decision, DecisionsFile, Economics, Edit, Edits,
-                              FlowStep, Provenance, StageOutcome, Verdict)
+                              FlowStep, Provenance, SavedVerdict, StageOutcome, Verdict)
 from simula.runlog import read_trace
 from simula.stages import flows, judge
 from simula.stages.mock import copy_assets, pick_scope, with_runtime
@@ -182,26 +182,39 @@ def flow_phones(run_dir, idea: str) -> list[dict]:
             for step in slide.split('<div class="step">')[1:]]
 
 
+def review_text(run_dir) -> str:
+    return (run_dir / "flows" / "review.html").read_text()
+
+
+def cover_of(document: str) -> str:
+    return text_of(document.split('<section class="slide cover">')[1].split("</section>")[0])
+
+
 def scores_text(run_dir) -> str:
-    deck = (run_dir / "flows" / "slides.html").read_text()
+    deck = review_text(run_dir)
     return text_of(deck[deck.index('<section class="slide scores">'):])
 
 
-def test_each_idea_gets_a_flow_slide_and_a_why_slide_and_every_idea_is_scored_on_the_last_page(built):
+def test_each_idea_gets_a_flow_slide_and_a_why_slide_and_every_idea_is_scored_in_the_review(built):
+    """The product team's deck is the cover and the idea slides; Simula's review is its own cover and the score
+    pages, and draws no idea."""
     parts = {}
     for idea, part, _ in slides(built):
         parts.setdefault(idea, []).append(part)
     assert parts == {"c01": list(flows.deck.PARTS), "c02": list(flows.deck.PARTS)}
-    deck = (built / "flows" / "slides.html").read_text()
+    deck, review = (built / "flows" / "slides.html").read_text(), review_text(built)
+    assert deck.count('<section class="slide') == 1 + 2 * len(parts) and "slide scores" not in deck
+    assert re.findall(r'<section class="slide (\w+)', review) == ["cover", "scores"]
+    assert "The product team's deck, flows/slides.pdf, draws c01, c02." in cover_of(review)
     scores = scores_text(built)
     for cid, verdict, checks in (("c01", "accepted", "11/11"), ("c02", "conditional", "10/11"),
                                  ("c03", "rejected", "9/11"), ("c04", "rejected", "11/11")):
         assert f"{cid} " in scores and f"{verdict} {checks}" in scores
     assert "didn't pass the right moment" in scores and "didn't pass a brand-safe place for the offer" in scores
-    assert "exhibits/06-judge.md" in scores and "appendix" not in deck
-    assert deck.count('<section class="slide scores">') == 1
-    assert "FIXTURE TEST DATA" in deck
+    assert "exhibits/06-judge.md" in scores and "appendix" not in deck + review
+    assert "FIXTURE TEST DATA" in deck and "FIXTURE TEST DATA" in review
     assert (built / "flows" / "slides.pdf").read_bytes().startswith(b"%PDF")
+    assert (built / "flows" / "review.pdf").read_bytes().startswith(b"%PDF")
     exhibit = (built / "exhibits" / "07-flows.md").read_text()
     assert "## Not wired" not in exhibit and "## Layout" not in exhibit
 
@@ -236,7 +249,8 @@ def test_the_cover_names_the_app_as_the_model_reads_it_else_the_config_key_title
     assert flows.wording.app_title(named, app) == "Janitor AI" and flows.wording.app_title(unnamed, app) == app.title()
 
 
-def test_the_cover_carries_a_line_for_each_earlier_stage_that_finished_only_part_of_its_work(tmp_path):
+def test_the_reviews_cover_carries_a_line_for_each_earlier_stage_that_finished_only_part_of_its_work(tmp_path):
+    """Never the product team's cover: a run's notes on itself are Simula's, whatever the app."""
     run_dir = seed_run(tmp_path, "luzia")
     for stage, outcome in (("qa", StageOutcome(status="partial", reasons=["round 1 stopped on the $ cap"],
                                                 resume="simula run luzia --from qa")),
@@ -246,9 +260,11 @@ def test_the_cover_carries_a_line_for_each_earlier_stage_that_finished_only_part
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(llm, "call", fake_editor(run_dir))
         flows.stage.run(ctx_for(run_dir, "luzia"))
-    cover = text_of((run_dir / "flows" / "slides.html").read_text().split('<section class="slide main"')[0])
+    cover = cover_of(review_text(run_dir))
     assert cover.endswith("The qa step finished only part of its work: round 1 stopped on the $ cap.")
     assert "judge step" not in cover
+    product = cover_of((run_dir / "flows" / "slides.html").read_text())
+    assert "step finished only part" not in product and "round 1" not in product
 
 
 def test_main_slides_carry_no_ids_or_cost_math(built):
@@ -268,7 +284,7 @@ def test_a_conditional_idea_names_the_check_it_failed_in_plain_words_and_carries
 def test_why_slides_on_real_output_never_claim_a_failed_check_that_passed():
     decisions = DecisionsFile.model_validate_json((ROUND6 / "judge" / "decisions.json").read_text()).decisions
     candidates = flows.stage.load_candidates(ROUND6)
-    chosen = flows.stage.select(decisions, None)
+    chosen = flows.stage.select(decisions)
     assert len(chosen) == 4
     for d in chosen:
         c = candidates[d.candidate_id]
@@ -337,27 +353,28 @@ def test_the_judges_fallback_pick_reads_as_the_closest_idea_not_a_recommendation
     assert flows.deck.condition(judged(tmp_path, "c02", "g_policy"), tmp_path, none_accepted=True)[0] == \
         "Not every check passed:"
     assert flows.deck.condition(decision("c03", "conditional", 1.0, passed=10), ROUND6.parent / "nowhere", True) == (
-        "Not every check passed:", "It passed 10 of 11 checks; the score pages at the end show which.")
+        "Not every check passed:", "It passed 10 of 11 checks.")
     assert flows.deck.condition(judged(tmp_path, "c04", None), tmp_path, True) is None
     assert flows.deck.condition(decision("c05", "accept", 1.0), tmp_path, True) is None
 
 
-def test_the_cover_takes_its_counts_by_name_so_two_can_never_swap():
+def test_the_reviews_cover_takes_its_counts_by_name_so_two_can_never_swap():
     with pytest.raises(TypeError):
-        flows.deck.cover_html("App", [], 4, 1, 0, 0, 2)
-    cover = text_of(flows.deck.cover_html("App", [], cap=4, cut=2, unbuilt_fallbacks=1))
+        flows.deck.review_cover_html("App", [], 4, 1, 0, 0, 2)
+    cover = text_of(flows.deck.review_cover_html("App", [], cap=4, cut=2, unbuilt_fallbacks=1))
     assert "2 more idea(s) passed the review; the deck draws only the top 4 by rank" in cover
     assert "the closest couldn't be drawn" in cover and "passed the review but couldn't be drawn" not in cover
 
 
-def test_a_survivor_past_the_cap_is_named_in_the_trace_and_counted_on_the_cover(tmp_path, monkeypatch):
+def test_a_survivor_past_the_cap_is_named_in_the_trace_and_counted_on_the_reviews_cover(tmp_path, monkeypatch):
     monkeypatch.setattr(flows.stage, "MAX_IDEAS", 1)
     run_dir = run_flows(tmp_path, "luzia")
     note = next(line.note for line in read_trace(run_dir / "trace.jsonl") if line.step == "select")
     assert note == "accepted + conditional: c01; past the cap of 1, not drawn: c02"
-    cover = text_of((run_dir / "flows" / "slides.html").read_text().split('<section class="slide main"')[0])
-    assert ("1 more idea(s) passed the review; the deck draws only the top 1 by rank, and the score pages at the end "
-            "score the rest.") in cover
+    cover = cover_of(review_text(run_dir))
+    assert ("1 more idea(s) passed the review; the deck draws only the top 1 by rank, and the score pages score the "
+            "rest.") in cover
+    assert "passed the review" not in cover_of((run_dir / "flows" / "slides.html").read_text())
     assert {idea for idea, _, _ in slides(run_dir)} == {"c01"}
 
 
@@ -370,10 +387,11 @@ def test_an_unbuilt_fallback_pick_is_named_as_the_closest_idea_not_as_one_that_p
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(llm, "call", fake_editor(run_dir))
         flows.stage.run(ctx_for(run_dir, "luzia"))
-    deck = (run_dir / "flows" / "slides.html").read_text()
-    cover = text_of(deck.split('<section class="slide cover">')[1].split("</section>")[0])
-    assert "No idea passed every check; the closest couldn't be drawn, and the score pages at the end say why." in cover
+    cover = cover_of(review_text(run_dir))
+    assert "No idea passed every check; the closest couldn't be drawn, and the score pages say why." in cover
     assert "passed the review" not in cover, cover
+    assert cover_of((run_dir / "flows" / "slides.html").read_text()) == \
+        "Rewarded-ad ideas for Luzia No idea is drawn in this deck."
 
 
 def test_a_drawn_and_an_unbuilt_fallback_pick_read_as_one_coherent_line_on_the_cover(tmp_path):
@@ -388,11 +406,12 @@ def test_a_drawn_and_an_unbuilt_fallback_pick_read_as_one_coherent_line_on_the_c
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(llm, "call", fake_editor(run_dir))
         flows.stage.run(ctx_for(run_dir, "luzia"))
-    deck = (run_dir / "flows" / "slides.html").read_text()
-    cover = text_of(deck.split('<section class="slide cover">')[1].split("</section>")[0])
+    cover = cover_of(review_text(run_dir))
     assert ("No idea passed every check, so the closest are marked as not a recommendation; 1 of them couldn't be "
-            "drawn, and the score pages at the end say why.") in cover, cover
+            "drawn, and the score pages say why.") in cover, cover
     assert "the closest is drawn" not in cover and "the closest couldn't be drawn" not in cover
+    product = cover_of((run_dir / "flows" / "slides.html").read_text())
+    assert "the closest is drawn and marked as not a recommendation" in product and "couldn't" not in product
 
 
 def test_a_fallback_pick_is_named_on_the_cover_and_its_why_slide_never_says_recommended(tmp_path):
@@ -415,7 +434,7 @@ def test_a_cost_line_that_isnt_pass_is_a_mark_on_every_slide_and_never_the_verdi
     now decides them in annotate mode (accepted, cost carried as a mark)."""
     decisions = DecisionsFile.model_validate_json((ROUND6 / "judge" / "decisions.json").read_text()).decisions
     ideas, model = flows.stage.load_candidates(ROUND6), golden("luzia")
-    chosen = flows.stage.select(decisions, None)
+    chosen = flows.stage.select(decisions)
     assert sorted(ideas[d.candidate_id].economics.verdict for d in chosen) == ["CONDITIONAL", "CONDITIONAL", "FAIL",
                                                                                "PASS"]
     for d in chosen:
@@ -432,6 +451,17 @@ def test_a_cost_line_that_isnt_pass_is_a_mark_on_every_slide_and_never_the_verdi
             if marked and final == "accept":
                 assert f"Cost check ({c.economics.verdict}): {flows.deck.cost_question(c)}." in texts[-1]
                 assert "Recommended with one condition" not in texts[-1]
+
+
+def test_a_pass_that_may_lose_a_sale_says_so_on_every_slide_without_calling_itself_a_cost_problem():
+    decisions = DecisionsFile.model_validate_json((ROUND6 / "judge" / "decisions.json").read_text()).decisions
+    ideas, model = flows.stage.load_candidates(ROUND6), golden("luzia")
+    d = next(d for d in flows.stage.select(decisions, None) if ideas[d.candidate_id].economics.verdict == "PASS")
+    c = ideas[d.candidate_id]
+    c = c.model_copy(update={"economics": c.economics.model_copy(update={"lost_sale": "a place ahead of other users"})})
+    texts = [text_of(s) for s in flows.deck.idea_slides(drawn(c, d), model, ROUND6, False)]
+    assert all("May lose a sale" in t and "Cost check: PASS" not in t for t in texts)
+    assert "Cost check (PASS): it may give away something the app could sell." in texts[-1]
 
 
 def rendered_overflows(slides_html: str) -> list[str]:
@@ -496,10 +526,10 @@ def test_every_slide_fits_on_real_output(tmp_path):
     shutil.copytree(ROUND6, fallback_run)
     reasons = [getattr(v, k).reason for _, v in flows.deck.verdicts(decisions[0], ROUND6) for k in GATES + JUDGMENT]
     for path in (fallback_run / "judge" / "verdicts").iterdir():
-        v = Verdict.model_validate_json(path.read_text())
+        v = SavedVerdict.model_validate_json(path.read_text())
         path.write_text(v.model_copy(update={"c5_moment": Check(passed=False, reason=max(reasons, key=len))})
                         .model_dump_json())
-    chosen = flows.stage.select(decisions, None)
+    chosen = flows.stage.select(decisions)
     deck = [slide for d in chosen
             for slide in flows.deck.idea_slides(drawn(ideas[d.candidate_id], d), model, ROUND6, False)]
     deck += [slide for d in chosen for slide in flows.deck.idea_slides(
@@ -718,20 +748,20 @@ def test_the_walk_taps_play_so_a_covered_play_button_is_not_wired(tmp_path, app)
 
 def test_default_selection_is_every_accept_first_then_conditional_by_rank_at_most_four():
     """D10: a CONDITIONAL never takes an accept's slot, whatever its rank. D11: an idea the judges split on isn't
-    drawn unless flows/approvals.json names it."""
+    drawn unless flows/approvals.json promotes it."""
     split = decision("c05", "conditional", 2.0).model_copy(update={"judgment_splits": ["c2_evidence"]})
     decisions = [decision("c01", "reject", 9.0), decision("c02", "accept", 1.0), decision("c03", "conditional", 3.0),
                  decision("c04", "needs_human", 5.0), split, *(decision(f"c1{n}", "accept", 0.5) for n in range(4))]
-    assert [d.candidate_id for d in flows.stage.select(decisions, None)] == ["c02", "c10", "c11", "c12"]
-    assert [d.candidate_id for d in flows.stage.select(decisions[:5], None)] == ["c02", "c03"]
-    assert [d.candidate_id for d in flows.stage.select(decisions, ["c05", "c12"])] == ["c12", "c05"]
+    assert [d.candidate_id for d in flows.stage.select(decisions)] == ["c02", "c10", "c11", "c12"]
+    assert [d.candidate_id for d in flows.stage.select(decisions[:5])] == ["c02", "c03"]
+    assert [d.candidate_id for d in flows.stage.select(decisions[:5], ["c05"])] == ["c02", "c03", "c05"]
 
 
 
-def split_run(tmp_path, approvals: list | None = None):
+def split_run(tmp_path, approvals: dict | None = None, changes: dict | None = None):
     """A seeded run whose c02 the judges split on, with pd-c7-subtle's committed r1 verdicts under VF': judge_1 fails
     C7 and passes C5, judge_2 the reverse. c01 is accepted."""
-    run_dir = seed_run(tmp_path, "luzia")
+    run_dir = seed_run(tmp_path, "luzia", changes)
     saved = validate.load_runs(validate.VERDICTS / "VF2")
     paths = [f"judge/verdicts/c02_{who}_r1.json" for who in validate.JUDGES]
     for path, who in zip(paths, validate.JUDGES):
@@ -742,7 +772,7 @@ def split_run(tmp_path, approvals: list | None = None):
     (run_dir / "judge" / "decisions.json").write_text(DecisionsFile(decisions=decisions).model_dump_json())
     if approvals is not None:
         (run_dir / "flows").mkdir(exist_ok=True)
-        (run_dir / "flows" / "approvals.json").write_text(json.dumps({"approved": approvals}))
+        (run_dir / "flows" / "approvals.json").write_text(json.dumps(approvals))
     calls = []
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(llm, "call", fake_editor(run_dir, calls))
@@ -754,7 +784,8 @@ def test_an_idea_the_judges_split_on_isnt_drawn_and_waits_on_the_needs_your_call
     run_dir, calls = split_run(tmp_path)
     assert calls == ["c01"] and (run_dir / "flows" / "c01").is_dir() and not (run_dir / "flows" / "c02").exists()
     assert {idea for idea, _, _ in slides(run_dir)} == {"c01"}
-    deck = (run_dir / "flows" / "slides.html").read_text()
+    deck = review_text(run_dir)
+    assert "Needs your call" not in (run_dir / "flows" / "slides.html").read_text()
     page = text_of(deck.split("<h2>Needs your call")[1].split("</section>")[0])
     saved = validate.load_runs(validate.VERDICTS / "VF2")
     j1, j2 = (saved[("pd-c7-subtle", who)][0] for who in validate.JUDGES)
@@ -763,13 +794,12 @@ def test_an_idea_the_judges_split_on_isnt_drawn_and_waits_on_the_needs_your_call
                   f'another: yes ({getattr(yes, k).reason.rstrip(".")}).')
         assert text_of(html.escape(flows.wording.plain(clause))) in page
     assert page.index("the right moment") < page.index("specific to this app") and "c02 · " in page
-    assert "flows/approvals.json" in page
-    cover = text_of(deck.split('<section class="slide cover">')[1].split("</section>")[0])
-    assert "1 idea(s) split the reviewers, so they aren't drawn" in cover
+    assert "flows/approvals.json" in page and "add its \"To approve\" entry to promote" in page
+    assert "1 idea(s) split the reviewers, so they aren't drawn" in cover_of(deck)
 
 
 
-def run3(tmp_path, approvals: list | None = None):
+def run3(tmp_path, approvals: dict | None = None):
     """Run 3 of the saved VF' runs as a seeded deck: nothing accepted, and three known-good ideas split on c2
     (judge_2 fails it, judge_1 passes it), ranked c02, c03, c01."""
     run_dir = seed_run(tmp_path, "luzia")
@@ -788,7 +818,7 @@ def run3(tmp_path, approvals: list | None = None):
     (run_dir / "judge" / "decisions.json").write_text(DecisionsFile(decisions=decisions).model_dump_json())
     if approvals is not None:
         (run_dir / "flows").mkdir(exist_ok=True)
-        (run_dir / "flows" / "approvals.json").write_text(json.dumps({"approved": approvals}))
+        (run_dir / "flows" / "approvals.json").write_text(json.dumps(approvals))
     calls = []
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(llm, "call", fake_editor(run_dir, calls))
@@ -805,32 +835,111 @@ def test_with_no_accept_the_top_split_is_drawn_as_the_closest_idea_and_the_rest_
     why = {(idea, part): " ".join(text.split()) for idea, part, text in slides(run_dir)}[("c02", "why")]
     assert ('Closest idea: The reviewers split on "backed by what was seen in the app"; confirm it before building. '
             '"backed by what was seen in the app": one reviewer: no (') in why
-    deck = (run_dir / "flows" / "slides.html").read_text()
-    page = text_of(deck.split("<h2>Needs your call")[1].split("</section>")[0])
+    review = review_text(run_dir)
+    page = text_of(review.split("<h2>Needs your call")[1].split("</section>")[0])
     assert "c01 · " in page and "c03 · " in page and "c02 · " not in page
-    cover = text_of(deck.split('<section class="slide cover">')[1].split("</section>")[0])
-    assert "the closest is drawn" in cover and "2 idea(s) split the reviewers" in cover
+    assert "the closest is drawn" in cover_of((run_dir / "flows" / "slides.html").read_text())
+    assert "the closest is drawn" in cover_of(review) and "2 idea(s) split the reviewers" in cover_of(review)
 
 
 def test_with_no_accept_splits_a_person_approved_are_labelled_as_approved_never_as_the_closest(tmp_path):
-    run_dir, calls = run3(tmp_path, [{"id": cid, "splits": ["c2_evidence"]} for cid in ("c02", "c03")])
+    run_dir, calls = run3(tmp_path, {"promote": [{"id": cid, "splits": ["c2_evidence"]} for cid in ("c02", "c03")]})
     assert sorted(calls) == ["c02", "c03"]
     whys = {idea: " ".join(text.split()) for idea, part, text in slides(run_dir) if part == "why"}
     assert all(w.count("Approved by a person: The reviewers split on") == 1 and "Closest idea" not in w
                for w in whys.values())
-    deck = (run_dir / "flows" / "slides.html").read_text()
-    cover = text_of(deck.split('<section class="slide cover">')[1].split("</section>")[0])
-    assert "2 idea(s) the reviewers split on are drawn because a person approved them" in cover
-    assert "the closest" not in cover and "c01 · " in text_of(deck.split("<h2>Needs your call")[1])
+    review = review_text(run_dir)
+    assert "2 idea(s) the reviewers split on are drawn because a person approved them" in cover_of(review)
+    assert "the closest" not in cover_of(review) + cover_of((run_dir / "flows" / "slides.html").read_text())
+    assert "c01 · " in text_of(review.split("<h2>Needs your call")[1])
+
+def test_with_no_accept_a_promotion_replaces_the_closest_idea_and_the_deck_is_just_the_persons_pick(tmp_path):
+    run_dir, calls = run3(tmp_path, {"promote": [{"id": "c03", "splits": ["c2_evidence"]}]})
+    assert calls == ["c03"] and {idea for idea, _, _ in slides(run_dir)} == {"c03"}
+    assert "closest" not in cover_of((run_dir / "flows" / "slides.html").read_text())
+    review = cover_of(review_text(run_dir))
+    assert "closest" not in review and "1 idea(s) the reviewers split on are drawn because a person approved" in review
+    assert "2 idea(s) split the reviewers" in review
+
+
+def test_with_no_accept_holding_the_closest_idea_draws_no_replacement(tmp_path):
+    run_dir, calls = run3(tmp_path, {"hold": ["c02"]})
+    assert calls == [] and not slides(run_dir)
+    assert cover_of((run_dir / "flows" / "slides.html").read_text()).endswith("No idea is drawn in this deck.")
+    review = cover_of(review_text(run_dir))
+    assert "draws no idea." in review and "A person held c02 out of the deck" in review
+    assert "2 idea(s) split the reviewers" in review and "No idea passed the review" not in review
+
+
+def select_note(run_dir) -> str:
+    return next(line.note for line in read_trace(run_dir / "trace.jsonl") if line.step == "select")
+
+
+def test_the_reviews_cover_names_a_persons_hold_of_a_split_waiting_on_them_but_not_of_a_reject(tmp_path):
+    run_dir, calls = split_run(tmp_path / "split", approvals={"hold": ["c02"]})
+    review = review_text(run_dir)
+    assert calls == ["c01"] and "Needs your call" not in review
+    assert "A person held c02 out of the deck in flows/approvals.json." in cover_of(review)
+    assert "split the reviewers" not in cover_of(review)
+    assert select_note(run_dir) == "accepted + conditional, flows/approvals.json holding c02: c01"
+
+
+@pytest.mark.parametrize("approvals, effect", [
+    ({"hold": ["c03"]}, "holding c03, which the judges didn't pass"),  # c03 was rejected, so never drawn
+    ({"promote": ["c01"]}, "promoting c01, which the judges passed already"),
+])
+def test_an_override_that_changes_nothing_is_reported_as_no_effect_never_as_applied(tmp_path, approvals, effect):
+    run_dir, calls = split_run(tmp_path, approvals=approvals)
+    assert calls == ["c01"] and "held" not in cover_of(review_text(run_dir))
+    assert select_note(run_dir) == f"accepted + conditional: c01; needs your call: c02; no effect: {effect}"
+    assert f"no effect: {effect}" in (run_dir / "exhibits" / "07-flows.md").read_text()
+
+
+def test_a_hold_past_the_cap_is_reported_as_past_the_cap_not_as_taking_an_idea_out(tmp_path, monkeypatch):
+    """c01 and c02 both pass; with a cap of 1 the deck draws c01 only, so holding c02 changes nothing."""
+    monkeypatch.setattr(flows.stage, "MAX_IDEAS", 1)
+    run_dir = seed_run(tmp_path, "luzia")
+    (run_dir / "flows").mkdir()
+    (run_dir / "flows" / "approvals.json").write_text('{"hold": ["c02"]}')
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(llm, "call", fake_editor(run_dir))
+        flows.stage.run(ctx_for(run_dir, "luzia"))
+    cover = cover_of(review_text(run_dir))
+    assert ("A person held c02 in flows/approvals.json, past the deck's cap of 1, so the deck would have left it out "
+            "anyway.") in cover and "out of the deck in" not in cover
+    assert select_note(run_dir) == ("accepted + conditional: c01; no effect: holding c02, which the cap of 1 leaves "
+                                    "out anyway")
+
+
+def test_a_promoted_split_that_cant_be_drawn_is_named_as_a_persons_approval_not_as_one_that_passed(tmp_path):
+    one_step = candidate(golden("luzia")).flow_steps[:1]
+    run_dir, calls = split_run(tmp_path, approvals={"promote": [APPROVED_C02]},
+                               changes={"c02": {"flow_steps": one_step}})
+    cover = cover_of(review_text(run_dir))
+    assert calls == ["c01"] and "passed the review but couldn't be drawn" not in cover
+    assert "1 idea(s) the reviewers split on were approved by a person but couldn't be drawn" in cover
+
+
+def test_an_approval_that_doesnt_hold_on_the_closest_idea_is_named_on_the_reviews_cover(tmp_path):
+    """run3's top split c02 is drawn as the closest idea; an approval naming a check the reviewers no longer split on
+    is set aside, and since c02 isn't on Needs your call, the review's cover says so."""
+    run_dir, calls = run3(tmp_path, {"promote": [{"id": "c02", "splits": ["c1_revealed_value"]}]})
+    assert calls == ["c02"]
+    assert ("The approval of c02 in flows/approvals.json doesn't hold (the reviewers' disagreement changed since your "
+            "approval), so it is treated as the closest idea, not as a person's approval.") in \
+        cover_of(review_text(run_dir))
+    why = {(idea, part): " ".join(text.split()) for idea, part, text in slides(run_dir)}[("c02", "why")]
+    assert "Closest idea:" in why and "Approved by a person" not in why
+
 
 APPROVED_C02 = {"id": "c02", "splits": ["c5_moment", "c7_specific"]}
 
 
 def test_approving_a_split_idea_draws_it_marked_as_a_persons_call_on_every_slide(tmp_path):
-    run_dir, calls = split_run(tmp_path, approvals=["c01", APPROVED_C02])
+    run_dir, calls = split_run(tmp_path, approvals={"promote": [APPROVED_C02]})
     assert sorted(calls) == ["c01", "c02"] and (run_dir / "flows" / "c02").is_dir()
     deck = (run_dir / "flows" / "slides.html").read_text()
-    assert "Needs your call" not in deck
+    assert "Needs your call" not in deck + review_text(run_dir)
     c02 = re.findall(r'<section class="slide main" data-part="\w+" data-idea="c02">.*?</section>', deck, re.S)
     assert len(c02) == 2 and all("Approved by a person</span>" in s and ">Conditional<" not in s for s in c02)
     why = {(idea, part): " ".join(text.split()) for idea, part, text in slides(run_dir)}[("c02", "why")]
@@ -842,44 +951,91 @@ def test_an_approval_holds_only_for_the_disagreement_it_approved(tmp_path):
     goes back to Needs your call and says why."""
     for entry, why in [({"id": "c02", "splits": ["c7_specific"]}, "the reviewers' disagreement changed since your "
                         "approval"), ("c02", "approved without the checks the reviewers split on")]:
-        run_dir, calls = split_run(tmp_path / why[:12].replace(" ", "-"), approvals=["c01", entry])
-        page = text_of((run_dir / "flows" / "slides.html").read_text().split("<h2>Needs your call")[1]
-                       .split("</section>")[0])
+        run_dir, calls = split_run(tmp_path / why[:12].replace(" ", "-"), approvals={"promote": [entry]})
+        page = text_of(review_text(run_dir).split("<h2>Needs your call")[1].split("</section>")[0])
         assert calls == ["c01"] and f"Not drawn: {why}." in page
         assert 'To approve: {"id": "c02", "splits": ["c5_moment", "c7_specific"]}' in page
 
 
 def test_an_approved_split_past_the_cap_is_counted_past_the_cap_not_asked_about_again(tmp_path, monkeypatch):
     monkeypatch.setattr(flows.stage, "MAX_IDEAS", 1)
-    run_dir, calls = split_run(tmp_path, approvals=["c01", APPROVED_C02])
-    deck = (run_dir / "flows" / "slides.html").read_text()
-    assert calls == ["c01"] and "Needs your call" not in deck
+    run_dir, calls = split_run(tmp_path, approvals={"promote": [APPROVED_C02]})
+    review = review_text(run_dir)
+    assert calls == ["c01"] and "Needs your call" not in review
     note = next(line.note for line in read_trace(run_dir / "trace.jsonl") if line.step == "select")
     assert note.endswith("past the cap of 1, not drawn: c02")
-    cover = text_of(deck.split('<section class="slide cover">')[1].split("</section>")[0])
-    assert "1 more idea(s) passed the review; the deck draws only the top 1 by rank" in cover
+    assert "1 more idea(s) passed the review; the deck draws only the top 1 by rank" in cover_of(review)
 
 
 def test_a_deck_whose_only_survivors_wait_on_a_person_never_says_no_idea_passed_the_review(tmp_path):
-    run_dir, calls = split_run(tmp_path, approvals=[])
-    cover = text_of((run_dir / "flows" / "slides.html").read_text().split('<section class="slide cover">')[1]
-                    .split("</section>")[0])
+    run_dir, calls = split_run(tmp_path, approvals={"hold": ["c01"]})
+    cover = cover_of(review_text(run_dir))
     assert calls == [] and "No idea passed the review" not in cover and "1 idea(s) split the reviewers" in cover
+    assert "A person held c01 out of the deck in flows/approvals.json." in cover
 
 
-def test_approvals_only_narrow():
-    decisions = [decision("c01", "accept", 1.0), decision("c02", "conditional", 0.5), decision("c03", "reject", 2.0)]
-    assert [d.candidate_id for d in flows.stage.select(decisions, ["c03", "c02", "zz"])] == ["c02"]
-    assert flows.stage.select(decisions, []) == []
+def test_promoting_a_split_adds_it_to_the_accepted_ideas_and_holding_leaves_just_that_idea_out(tmp_path):
+    """A person's approvals change only the ideas they name: promoting c02 keeps the accepted c01 drawn; holding c01
+    draws everything else the judges would; an older file's "approved" list adds the same way."""
+    for name, approvals, drawn in [("promote", {"promote": [APPROVED_C02]}, ["c01", "c02"]),
+                                   ("both", {"promote": [APPROVED_C02], "hold": ["c01"]}, ["c02"]),
+                                   ("older", {"approved": [APPROVED_C02]}, ["c01", "c02"])]:
+        run_dir, calls = split_run(tmp_path / name, approvals=approvals)
+        assert sorted(calls) == drawn and sorted({idea for idea, _, _ in slides(run_dir)}) == drawn, name
+    note = next(line.note for line in read_trace(run_dir / "trace.jsonl") if line.step == "select")
+    assert note == "accepted + conditional, flows/approvals.json promoting c02: c01 c02"
+
+
+def test_approvals_add_and_hold_by_id_and_never_draw_a_reject():
+    split = decision("c04", "conditional", 3.0).model_copy(update={"judgment_splits": ["c2_evidence"]})
+    decisions = [decision("c01", "accept", 1.0), decision("c02", "conditional", 0.5), decision("c03", "reject", 2.0),
+                 split]
+
+    def picked(promoted=(), held=()) -> list[str]:
+        return [d.candidate_id for d in flows.stage.select(decisions, promoted, held)]
+    assert picked() == ["c01", "c02"]
+    assert picked(["c04", "c03", "zz"]) == ["c01", "c04", "c02"]
+    assert picked(held=["c01", "c04"]) == ["c02"]
+    assert picked(["c04"], ["c04"]) == ["c01", "c02"]
+    splits = [decision(cid, "conditional", rank).model_copy(update={"judgment_splits": ["c2_evidence"]})
+              for cid, rank in (("c05", 2.0), ("c06", 1.0))]
+    assert [d.candidate_id for d in flows.stage.select(splits)] == ["c05"]
+    assert [d.candidate_id for d in flows.stage.select(splits, ["c06"])] == ["c06"]
+    assert flows.stage.select(splits, held=["c05"]) == []
 
 
 def test_approvals_survive_the_cleanup(tmp_path):
     (tmp_path / "c01").mkdir()
     (tmp_path / "slides.html").write_text("old")
-    (tmp_path / "approvals.json").write_text('{"approved": ["c01"]}')
+    (tmp_path / "approvals.json").write_text('{"promote": [{"id": "c02", "splits": ["c5_moment"]}], "hold": ["c01"]}')
     flows.stage.clean(tmp_path)
     assert [p.name for p in tmp_path.iterdir()] == ["approvals.json"]
-    assert flows.stage.load_approvals(tmp_path) == ["c01"]
+    known = [decision("c01", "accept", 1.0), decision("c02", "conditional", 0.5)]
+    assert flows.stage.load_approvals(tmp_path, known) == ([{"id": "c02", "splits": ["c5_moment"]}], ["c01"])
+    (tmp_path / "approvals.json").write_text('{"approved": ["c01"]}')
+    assert flows.stage.load_approvals(tmp_path, known) == (["c01"], [])
+    assert flows.stage.load_approvals(tmp_path / "nowhere", known) == ([], [])
+
+
+@pytest.mark.parametrize("written, error", [
+    ('{"held": ["c01"]}', "expected"),
+    ('{"hold": "c01"}', "expected"),  # a string would hold every id it contains
+    ('[{"id": "c01"}]', "expected"),
+    ('{"hold": [{"id": "c02", "splits": ["c5_moment"]}]}', "a hold entry is an id"),  # Needs your call's entry
+    ('{"promote": [{"id": "c02"}]}', "a hold entry is an id"),
+    ('{"promote": ["c01"], "hold": ["c03rev", "c9"]}', "has the id 'c03rev', 'c9'"),
+    ('{"promote": ["c03"]}', "c03 was rejected; promote draws an accepted or split idea"),
+    ('{"promote": [{"id": "c02", "splits": ["c5_moment", "c7_specific"]}], "hold": ["c02"]}',
+     "c02 is both promoted and held"),
+])
+def test_a_malformed_approvals_file_stops_flows_before_it_clears_the_last_deck(tmp_path, written, error):
+    run_dir, _ = split_run(tmp_path)
+    before = sorted(p.name for p in (run_dir / "flows").iterdir())
+    (run_dir / "flows" / "approvals.json").write_text(written)
+    with pytest.raises(ValueError, match=re.escape(error)):
+        flows.stage.run(ctx_for(run_dir, "luzia"))
+    assert sorted(p.name for p in (run_dir / "flows").iterdir()) == sorted([*before, "approvals.json"])
+    assert (run_dir / "flows" / "slides.pdf").read_bytes().startswith(b"%PDF")
 
 
 @pytest.mark.parametrize("app", APPS)
@@ -911,13 +1067,14 @@ def test_art_from_a_risky_screen_is_blurred_wherever_it_is_drawn(tmp_path, app):
 
 
 def assert_contained(run_dir, reason: str):
-    """c02 failed to build: c01 still gets its slides, and the deck, the PDF, and the exhibit still get written, with
-    c02 listed as not built."""
+    """c02 failed to build: c01 still gets its slides, and the deck, the review, both PDFs, and the exhibit still get
+    written, with c02 listed as not built in the review."""
     assert {idea for idea, _, _ in slides(run_dir)} == {"c01"}
-    deck = (run_dir / "flows" / "slides.html").read_text()
+    deck = review_text(run_dir)
     not_built = re.search(r'<ul class="not-built">(.*?)</ul>', deck, re.S).group(1)
     assert "c02 · " in not_built and reason in html.unescape(not_built)
     assert (run_dir / "flows" / "slides.pdf").read_bytes().startswith(b"%PDF")
+    assert (run_dir / "flows" / "review.pdf").read_bytes().startswith(b"%PDF")
     assert not (run_dir / "flows" / "c02").exists()
     exhibit = (run_dir / "exhibits" / "07-flows.md").read_text()
     assert "## Not built" in exhibit and f"- c02: " in exhibit and reason in exhibit
@@ -946,7 +1103,7 @@ def test_an_idea_the_cap_turns_away_is_not_built_and_the_rest_still_make_the_dec
     [capped] = set(ideas) - drawn_ideas
     assert capped == "c04", "the lowest-ranked idea is the one the cap turns away"
     assert not (run_dir / "flows" / capped).exists()
-    deck = (run_dir / "flows" / "slides.html").read_text()
+    deck = review_text(run_dir)
     not_built = html.unescape(re.search(r'<ul class="not-built">(.*?)</ul>', deck, re.S).group(1))
     assert f"{capped} · " in not_built and flows.stage.OVER_BUDGET in not_built
     assert "1 more idea(s) passed the review but couldn't be drawn" in html.unescape(deck)

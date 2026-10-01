@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-policy-flagrant",
+ "g_policy": {
+  "passed": false,
+  "reason": "The 'if the user declines' field makes replies slower than normal for the rest of the day, leaving the user worse off for declining."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a return to the profile menu after opening the upgrade entry; it does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The 'if the user declines' field slows replies below normal, taking away the normal-priority routing inferred for free users in m03."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the content-safe s09 profile menu drawer, away from chats and character content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The existing-anchor reward samples priority routing, a Janitor+ benefit shown in s02.e06."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the persistent upgrade entry and paid priority routing are supported by m01 and s02.e06; the proposed card and its effects are changes, not claims about the app today."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'offered to' and 'subscribers' fields restrict the card to free users, so subscribers do not see an offer for a benefit they already have."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes, while s02.e06 shows the app already sells the priority-routing advantage."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger follows a return from the upgrade entry, and the card sits in the profile menu rather than interrupting a chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The proposal uses a sponsored game triggered by a detectable menu-return event, and its failure path says unverified play does not turn on faster replies."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s09 Upgrade to Janitor Plus entry and the priority-routing benefit in s02.e06."
+ },
+ "other_concern": "",
+ "fixable": true
+}

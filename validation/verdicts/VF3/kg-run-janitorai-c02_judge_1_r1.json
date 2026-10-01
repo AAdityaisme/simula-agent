@@ -1,0 +1,53 @@
+{
+ "candidate_id": "kg-run-janitorai-c02",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in, the offer copy states the reward (priority routing for 60 minutes), declining leaves the menu unchanged, and the 'if the ad fails' field covers both no-game and unverified-play cases."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app navigation event (returning to the profile menu from the Upgrade entry), not anything the user typed or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing ('removes nothing free: yes') and adds no cap on anything free users have today."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the profile menu drawer (s09, rated safe), which is app chrome over a non-chat screen and is not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing_anchor, and the app charges for priority routing (l02 'Priority routing for faster replies', m02), so the reward gives a resource the app charges for."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "Claims about current behavior are supported: l02 and s02.e06 show the plan sells faster replies, m03 (inferred from s02.e07) supports free users having normal routing, and s09.e31 shows the permanent Upgrade entry. The cost remarks are rationale and prediction, not claims about the app's current state."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "Subscribers never see the card ('Subscribers already have priority routing and never see the card'), so the offer is a sample for non-payers."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is one of four plan benefits, is time-limited to 60 minutes and 2 plays a day, and expires. The app already sells priority routing, so the queue advantage is not taken from anyone in a way the check forbids."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the profile menu, a persistent surface the user chooses to open, and it appears next to the upgrade entry rather than interrupting a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn rewarded game, the reward is granted only after the verified play (an unverified play gets no reward), and the trigger is a detectable navigation event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Janitor+ priority routing bullet, the Upgrade to Janitor Plus entry in the profile menu, and the Billing neighbor, all specific to this app."
+ },
+ "other_concern": "The claim that priority routing 'costs no extra replies' is the proposer's assumption about server cost and was not observed. The trigger also assumes the Upgrade entry opens a screen the user can leave and return from, which was not captured.",
+ "fixable": false
+}

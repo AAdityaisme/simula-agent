@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-brand-safety-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-answer reward before play, and the user chooses whether to play. The decline and ad-failure fields leave the chat unchanged or allow a retry without using up the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is three Advanced reasoning mode answers for use in Luzia, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses account status, a session gap, and opening the Teacher chat; it does not require message content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds a temporary sample of the paid feature listed at s02.e03 and does not remove or cap a free feature."
+ },
+ "g_brand_safety": {
+  "passed": false,
+  "reason": "The placement puts the rewarded-offer card inside the Teacher conversation, directly under Luzia's last reply. Offers inside the conversation fail this gate."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward samples Advanced reasoning mode, which s02.e03 lists on the Luzia+ paywall."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The current-app claims about the paid feature, home badge, plans, and trial are supported by s02.e03, s01.e02, and the paywall elements. The welcome-back card and answer allowance are proposed additions, not claims that those mechanics exist today."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'offered to' and 'subscribers' fields restrict the offer to free users; Luzia+ members never see it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward ends after three answers or at midnight local time, rather than granting lasting access to the feature sold on the paywall."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger occurs when the user chooses to open the Teacher chat after a session gap, not in the middle of an ongoing action."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by opening the chat, and the ad-failure field withholds the reward when play is not confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Teacher chat, the Luzia+ badge, and the paywall's Advanced reasoning mode feature."
+ },
+ "other_concern": "The rationale suggests requiring a second game in some markets, while the offer copy promises three answers for a short game. Any market-specific requirement should match the copy users see.",
+ "fixable": true
+}

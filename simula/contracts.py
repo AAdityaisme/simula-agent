@@ -411,6 +411,9 @@ class Economics(Strict):
     benchmark_ecpm: float
     verdict: Literal["PASS", "CONDITIONAL", "FAIL"]
     assumption_line: str
+    lost_sale: str | None = Field(default=None, description="What the reward may give away that the app sells or "
+                                  "could sell, when the line counts no price for it; a flag beside the verdict, "
+                                  "which it never changes.")
 
 
 class Candidate(CandidateDraft):
@@ -442,6 +445,7 @@ class Verdict(Strict):
     g_brand_safety: Check
     c1_revealed_value: Check
     c2_evidence: Check
+    c3_spares_payers: Check
     c4_protects_subscription: Check
     c5_moment: Check
     c6_fits_simula: Check
@@ -450,8 +454,14 @@ class Verdict(Strict):
     fixable: bool
 
 
+class SavedVerdict(Verdict):
+    """A verdict read back from its file. The judge must answer every check (Verdict); one saved before c3 existed
+    still parses, as a pass that was never scored."""
+    c3_spares_payers: Check = Check(passed=True, reason="not scored: judged before this check existed")
+
+
 GATES = ("g_policy", "g_no_cash", "g_no_chat_content", "g_no_free_removal", "g_brand_safety")
-JUDGMENT = ("c1_revealed_value", "c2_evidence", "c4_protects_subscription", "c5_moment",
+JUDGMENT = ("c1_revealed_value", "c2_evidence", "c3_spares_payers", "c4_protects_subscription", "c5_moment",
             "c6_fits_simula", "c7_specific")
 
 
@@ -463,8 +473,8 @@ class PairwisePick(Strict):
 class Decision(Strict):
     candidate_id: str
     final: Literal["accept", "conditional", "reject", "needs_human"]
-    checks_passed: int = Field(description="Of the 11 LLM-judged checks, those every judge that ran passed.")
-    checks_total: int = Field(description="11: the 5 gates plus the 6 judgment checks.")
+    checks_passed: int = Field(description="Of the 12 LLM-judged checks, those every judge that ran passed.")
+    checks_total: int = Field(description="12: the 5 gates plus the 7 judgment checks.")
     rank_score: float | None
     gate_fails: list[str]
     judgment_splits: list[str]

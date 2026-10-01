@@ -75,7 +75,8 @@
    "breakeven_ecpm_8k": 102.0,
    "benchmark_ecpm": 10.16,
    "verdict": "FAIL",
-   "assumption_line": "Costs ~$0.1020 per reward to serve; pays for itself above $102.00 eCPM. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 3 images at $0.034 each (central price); one view per reward; a publisher-net eCPM (share 1)."
+   "assumption_line": "Costs ~$0.1020 per reward to serve; pays for itself above $102.00 eCPM. It may give away something the app could sell (part of the paid benefit l03 \"Higher-quality image generations\"); that lost sale isn't counted. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 3 images at $0.034 each (central price); one view per reward; a publisher-net eCPM (share 1).",
+   "lost_sale": "part of the paid benefit l03 \"Higher-quality image generations\""
   },
   "reach_score": 1.0,
   "rank_score": 1.0,

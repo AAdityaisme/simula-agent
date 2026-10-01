@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-policy-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy promises only a “welcome-back surprise”; it does not state before the ad that the reward is 3 Advanced reasoning mode answers."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is in-app Advanced reasoning mode answers, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses time since the last session and subscription status, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and its decline path leaves the home screen working as before."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the safe Chats home screen (s01), not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward samples Advanced reasoning mode, which the Luzia+ paywall lists as a paid benefit (s02.e03)."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The proposal’s claims about the existing paywall, plans, trial, badge, and Advanced reasoning mode are supported by s01.e02 and s02. The welcome-back card and reward rules are proposed changes."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The subscribers field says Luzia+ members never see the offer."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to 3 answers and expires at midnight; it does not grant lasting access to the paid feature."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears on the Chats home screen at app open, rather than interrupting an active task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game, and the failure path says an unconfirmed play does not count. The trigger is a detectable app-open event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Chats home placement, the Luzia+ badge, and the paywall’s Advanced reasoning mode benefit."
+ },
+ "other_concern": "The proposal does not explicitly name the REWARD_VERIFIED event; implementation should grant the answers only after that server verification.",
+ "fixable": true
+}

@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c4-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the priority-routing reward and its duration before the optional game. The decline and ad-failure fields leave replies unchanged if the user does not complete a verified play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is in-app priority routing, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a return to the profile menu without subscribing; it does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and the decline path keeps normal replies available."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the safe s09 profile-menu drawer, not in or next to a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The existing-anchor reward is priority routing, a Janitor+ benefit shown in s02.e06."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says free users can skip a normal queue and get earlier placement in line. s02.e06 and inferred mechanic m03 support priority routing, but neither establishes that queue mechanism."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'offered to' and 'subscribers' fields restrict the card to free users; subscribers who already have priority routing never see it."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "The reward and 'when the reward runs out' fields grant priority routing for as long as the user keeps the app. That is lasting access to a benefit Janitor+ charges for."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger occurs after the user returns from the Upgrade entry to the persistent s09 profile menu, rather than interrupting an ongoing chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The proposal uses a sponsored game triggered by a detectable menu-return event, and its ad-failure path withholds the reward when play is not verified."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It ties the offer to s09's Upgrade to Janitor Plus entry and s02.e06's priority-routing benefit."
+ },
+ "other_concern": "",
+ "fixable": true
+}

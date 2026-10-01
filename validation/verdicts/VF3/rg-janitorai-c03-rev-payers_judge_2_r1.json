@@ -1,0 +1,53 @@
+{
+ "candidate_id": "rg-janitorai-c03-rev-payers",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 10× memory reward and its five-reply limit before play. The decline and ad-failure fields preserve normal chat access and withhold the boost if play cannot be confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is temporary chat context, not cash or an exchangeable credit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is opening a chat history sheet with a saved chat; it does not require reading messages or other chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal's removal and decline fields leave existing access unchanged."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on s18, a sheet rated safe, rather than an offer inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, the reward extends context, which Janitor Plus sells as a benefit in s16.e09."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The proposal's present-day claims about the Plus price and memory benefit, saved sessions, and displayed counts are supported by s16, s18.e13, and s03.e12. Its statements about unseen ads and add-ons are qualified as not seen in the explored screens."
+ },
+ "c3_spares_payers": {
+  "passed": false,
+  "reason": "The 'offered to' field shows this to paying subscribers, and the offer copy explicitly pitches it as double the memory their plan sells in s16.e09."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward ends after five replies or at local midnight, so it does not grant lasting access to the paid memory benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger follows the user's choice to open the s18 chat history sheet, where the placement is a card below Start new chat rather than an interruption."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game triggered by opening a saved-chat sheet, and the ad-failure field says an unconfirmed play adds no boost."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses Janitor Plus's 5× context benefit and the Start new chat area of this app's chat history sheet."
+ },
+ "other_concern": "The proposed 10× context and 8k-token input have unverified serving feasibility and economics; the claim that typical ad rates cover the cost is a prediction.",
+ "fixable": true
+}

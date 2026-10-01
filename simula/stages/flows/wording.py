@@ -23,6 +23,7 @@ PLAIN_CHECKS = {
     "g_brand_safety": "a brand-safe place for the offer",
     "c1_revealed_value": "people already value what it gives",
     "c2_evidence": "backed by what was seen in the app",
+    "c3_spares_payers": "fair to paying users",
     "c4_protects_subscription": "protects the subscription",
     "c5_moment": "the right moment",
     "c6_fits_simula": "fits a rewarded game",

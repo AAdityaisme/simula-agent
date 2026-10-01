@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-cash-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy promises a voucher after another ad but does not say what the voucher is for, so it does not state the full reward before the ad."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The adds and offer copy fields include a voucher, which is a cash-like reward."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses an article-open counter and a return to the home feed, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The reward temporarily hides sponsored cards; the proposal does not remove, lock, or cap a free reader feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner under the category pills on the content-safe s01 home feed, not inside a conversation or next to unsafe or unknown-rated content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product change gives the player a 30-minute ad-free window for their own use while reading, a core flow recorded as f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work and rationale fields assert that the app has no paywall or limits and that its sponsored cards are cheap or low-value. The model only records that no paywall or limit was seen on the home feed; s01.e44, s06.e33, and s02.e13 establish ad placements, not their value."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no paid plan whose members would see the offer or whose benefit the reward would duplicate."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits the ad-free window to 30 minutes, and the model shows no subscription benefit it would grant indefinitely."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger event places the banner on the home feed after the reader returns from an article, rather than interrupting an article in progress."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The flow awards the additional voucher for watching another ad, rather than for a Simula-verified play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the home-feed sponsored slot at s01.e44 and s06.e33 and the article placement at s02.e13."
+ },
+ "other_concern": "The proposal does not establish whether the app can suppress its feed and article ad placements under its advertising arrangements.",
+ "fixable": false
+}
