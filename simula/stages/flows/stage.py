@@ -10,7 +10,8 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from simula import llm
-from simula.contracts import Candidate, CandidatesFile, Decision, DecisionsFile, Edits, ProductModel
+from simula.contracts import (GATES, JUDGMENT, Candidate, CandidatesFile, Decision, DecisionsFile, Edits,
+                              ProductModel)
 from simula.runlog import read_trace, run_trace, write_exhibit
 from simula.stages import Ctx
 from simula.stages.flows.deck import deck, needs_call, review
@@ -19,7 +20,7 @@ from simula.stages.flows.page import ad_palette_css, blur_css, decline_edges, fl
 from simula.stages.flows.pdf import write_pdf
 from simula.stages.flows.walk import screenshot_before, walk, walk_decline, walk_failed_ad
 from simula.stages.flows.wording import NOT_WIRED, REWARD_NOT_SHOWN, VERDICTS, caption
-from simula.stages.judge import PAYERS, ordered
+from simula.stages.judge import PAYERS, ordered, swap_in
 
 MAX_IDEAS = 4
 SURVIVED = ("accept", "conditional")
@@ -42,8 +43,9 @@ def is_approval(entry) -> bool:
 def load_approvals(flows_dir: Path, decisions: list[Decision]) -> tuple[list[str | dict], list[str]]:
     """A person's overrides, (promote, hold), from flows/approvals.json: {"promote": [entries], "hold": [ids]}. An
     older file's "approved" list is read as promote, so it adds to what the judges draw and never drops an idea. A
-    malformed file, an id no decision has, a promote of an idea the judges didn't pass, or an id both promoted and held
-    raises here, before anything of the last run is cleared, so every promotion that holds is drawn."""
+    malformed file, an id no decision has, a promote of an idea the judges didn't pass, an id both promoted and held, or
+    more promotions that hold than the deck's MAX_IDEAS raises here, before anything of the last run is cleared, so
+    every promotion that holds is drawn."""
     path = flows_dir / "approvals.json"
     data = json.loads(path.read_text()) if path.exists() else {}
     if (not isinstance(data, dict) or set(data) - {"promote", "hold", "approved"}
@@ -62,6 +64,9 @@ def load_approvals(flows_dir: Path, decisions: list[Decision]) -> tuple[list[str
                          "split idea")
     if both := [i for i in ids if i in hold]:
         raise ValueError(f"{path}: {', '.join(both)} is both promoted and held")
+    if len(holding := set(honored(promote, decisions)[0])) > MAX_IDEAS:
+        raise ValueError(f"{path}: {len(holding)} promotions hold, more than the deck's cap of {MAX_IDEAS}; promote at "
+                         f"most {MAX_IDEAS}")
     return promote, hold
 
 
@@ -71,40 +76,67 @@ def honored(approvals: list[str | dict], decisions: list[Decision]) -> tuple[lis
     checks it names, so a changed disagreement goes back to a person."""
     ids = [e if isinstance(e, str) else e["id"] for e in approvals]
     checks = {e["id"]: set(e["splits"]) for e in approvals if isinstance(e, dict)}
-    stale = {d.candidate_id: ("the reviewers' disagreement changed since your approval" if d.candidate_id in checks
-                              else "approved without the checks the reviewers split on")
-             for d in decisions if needs_call(d) and d.candidate_id in ids
+
+    def why(i: str) -> str:
+        if i not in checks:
+            return "approved without the checks the reviewers split on"
+        if unknown := sorted(checks[i] - {*GATES, *JUDGMENT}):
+            return f"your approval names a check that doesn't exist: {', '.join(unknown)}"
+        return "the reviewers' disagreement changed since your approval"
+    stale = {d.candidate_id: why(d.candidate_id) for d in decisions if needs_call(d) and d.candidate_id in ids
              and checks.get(d.candidate_id) != set(d.judgment_splits)}
     return [i for i in ids if i not in stale], stale
 
 
 def survivors(decisions: list[Decision], promoted: list[str] = (), held: list[str] = ()) -> list[Decision]:
     """Accepted and CONDITIONAL ideas in the judge's order (every accept first, D10), leaving out an idea the judges
-    split on (D11) unless nothing was accepted and no one promoted an idea: then the top-ranked split is drawn as
+    split on (D11) unless nothing was accepted and no one promoted a split: then the top-ranked split is drawn as
     the closest idea, so a deck with survivors has a full slide. A split on c3 is never the closest idea, since one
     judge found it aimed at paying users; the judge's fallback carries a clean reject in its place. A person promotes a
     split survivor into the deck and holds any idea out of it (flows/approvals.json), and a held closest idea gets no
     replacement; everything else follows the judges."""
     picked = [d for d in ordered(decisions) if d.final in SURVIVED]
     splits = [d for d in picked if needs_call(d)]
+    chosen = any(d.candidate_id in promoted for d in splits) or any(d.final == "accept" for d in decisions)
     clean = [d for d in splits if PAYERS not in d.judgment_splits]
-    closest = clean[:1] if not promoted and not any(d.final == "accept" for d in decisions) else []
+    closest = [] if chosen else clean[:1]
     return [d for d in picked if (not needs_call(d) or d in closest or d.candidate_id in promoted)
             and d.candidate_id not in held]
 
 
 def select(decisions: list[Decision], promoted: list[str] = (), held: list[str] = ()) -> list[Decision]:
-    """The survivors the deck draws: the best MAX_IDEAS."""
-    return survivors(decisions, promoted, held)[:MAX_IDEAS]
+    """The survivors the deck draws, in the judge's order: at most MAX_IDEAS, a person's promotions first, so the idea
+    that loses its slot is the lowest-ranked one nobody promoted."""
+    ranked = survivors(decisions, promoted, held)
+    first = sorted(ranked, key=lambda d: d.candidate_id not in promoted)[:MAX_IDEAS]
+    return [d for d in ranked if d in first]
 
 
 def hold_effects(decisions: list[Decision], promoted: list[str], held: list[str]) -> tuple[list[str], ...]:
     """The held ids three ways: taken out of the deck or off Needs your call; past the cap of MAX_IDEAS, so the deck
     would have left them out anyway; and never passed by the judges, so never drawn."""
-    past = [d.candidate_id for d in survivors(decisions, promoted)][MAX_IDEAS:]
+    drawn = select(decisions, promoted)
+    past = [d.candidate_id for d in survivors(decisions, promoted) if d not in drawn]
     passed = {d.candidate_id for d in decisions if d.final in SURVIVED}
     return ([i for i in held if i in passed and i not in past], [i for i in held if i in past],
             [i for i in held if i not in passed])
+
+
+def recover(flows_dir: Path) -> None:
+    """Finishes a swap of flows/ a crash cut short. Stopped between its two renames, it left the last deck whole in
+    flows.old and none in flows/ (at most the empty folder the CLI makes), so flows.old goes back, keeping an
+    approvals.json the person wrote into flows/ since, the newest; stopped after them, flows/ is the new deck and
+    flows.old the one before, which goes."""
+    old = flows_dir.with_name(flows_dir.name + ".old")
+    if not old.exists():
+        return
+    if (flows_dir / "slides.html").exists():
+        shutil.rmtree(old)
+    else:
+        if (flows_dir / "approvals.json").exists():
+            (flows_dir / "approvals.json").replace(old / "approvals.json")
+        shutil.rmtree(flows_dir, ignore_errors=True)
+        old.replace(flows_dir)
 
 
 def mock_source(run_dir: Path) -> Path:
@@ -112,16 +144,9 @@ def mock_source(run_dir: Path) -> Path:
     return approved if (approved / "index.html").exists() else run_dir / "mock"
 
 
-def clean(flows_dir: Path) -> None:
-    """Clears the last run's output but keeps the human's approvals.json."""
-    for child in flows_dir.iterdir():
-        if child.name != "approvals.json":
-            shutil.rmtree(child) if child.is_dir() else child.unlink()
-
-
 def build_flow(ctx: Ctx, model: ProductModel, source: Path, c: Candidate, decision: Decision,
-               edits: Edits | None) -> dict:
-    flow_dir = ctx.run_dir / "flows" / c.id
+               edits: Edits | None, out: Path) -> dict:
+    flow_dir = out / c.id
     (flow_dir / "screens").mkdir(parents=True)
     if (source / "assets").exists():
         shutil.copytree(source / "assets", flow_dir / "assets")
@@ -260,23 +285,30 @@ def edit_all(ctx: Ctx, model: ProductModel, page: str, budget: llm.Budget, chose
 
 
 def run(ctx: Ctx) -> None:
-    run_dir, out = ctx.run_dir, ctx.run_dir / "flows"
+    # flows/ is built aside and swapped in whole at the end, keeping the person's approvals.json: a stop or a crash
+    # before then leaves the last deck.
+    run_dir, out, approvals = ctx.run_dir, ctx.run_dir / "flows.tmp", ctx.run_dir / "flows" / "approvals.json"
     model = ProductModel.model_validate_json((run_dir / "model" / "product_model.json").read_text())
     decisions = DecisionsFile.model_validate_json((run_dir / "judge" / "decisions.json").read_text()).decisions
     candidates = load_candidates(run_dir)
-    out.mkdir(exist_ok=True)
-    promote, held = load_approvals(out, decisions)
+    recover(approvals.parent)
+    promote, held = load_approvals(approvals.parent, decisions)
     promoted, set_aside = honored(promote, decisions)
-    clean(out)
+    shutil.rmtree(out, ignore_errors=True)
+    out.mkdir()
+    if approvals.exists():
+        shutil.copy2(approvals, out)
     chosen = select(decisions, promoted, held)
     kept = {d.candidate_id for d in survivors(decisions, promoted, held)}
-    cut = survivors(decisions, promoted, held)[MAX_IDEAS:]  # an approved split past the cap is cut, not asked again
+    cut = [d for d in survivors(decisions, promoted, held) if d not in chosen]
     waiting = [d for d in ordered(decisions) if needs_call(d) and d.candidate_id not in kept | set(held)]
     held_out, held_past_cap, held_idle = hold_effects(decisions, promoted, held)
     splits = {d.candidate_id for d in decisions if needs_call(d)}
-    applied = [f"{verb} {' '.join(ids)}" for verb, ids in (("promoting", [i for i in promoted if i in splits]),
+    anyway = [i for i in promoted if i not in splits  # a passed idea the deck draws without its promotion too
+              and i in {d.candidate_id for d in select(decisions, [p for p in promoted if p != i], held)}]
+    applied = [f"{verb} {' '.join(ids)}" for verb, ids in (("promoting", [i for i in promoted if i not in anyway]),
                                                            ("holding", held_out)) if ids]
-    idle = ([f"promoting {i}, which the judges passed already" for i in promoted if i not in splits]
+    idle = ([f"promoting {i}, which the judges passed already" for i in anyway]
             + [f"holding {i}, which the cap of {MAX_IDEAS} leaves out anyway" for i in held_past_cap]
             + [f"holding {i}, which the judges didn't pass" for i in held_idle])
     chosen_from = "accepted + conditional" + (f", flows/approvals.json {' and '.join(applied)}" if applied else "")
@@ -295,7 +327,7 @@ def run(ctx: Ctx) -> None:
     flows = []
     for d, e in edited:
         try:
-            flows.append(build_flow(ctx, model, source, candidates[d.candidate_id], d, e))
+            flows.append(build_flow(ctx, model, source, candidates[d.candidate_id], d, e, out))
         except Exception as error:  # one idea's failure (a hung page, a broken edit) must not cost the whole deck
             shutil.rmtree(out / d.candidate_id, ignore_errors=True)
             not_built.append((d, f"{type(error).__name__}: {str(error).splitlines()[0] if str(error) else ''}"[:300]))
@@ -311,5 +343,6 @@ def run(ctx: Ctx) -> None:
     layout = write_pdf(out / "slides.html") + [f"review: {p}" for p in write_pdf(out / "review.html")]
     for problem in layout:
         run_trace(run_dir, stage="flows", step="layout", decider="code", outcome="error", note=problem[:300])
+    swap_in(out, run_dir / "flows")
     usd = sum(line.usd for line in read_trace(run_dir / "trace.jsonl") if line.stage == "flows")
     write_exhibit(run_dir, 7, "flows", exhibit(flows, not_built, chosen_from + no_effect, source, run_dir, usd, layout))

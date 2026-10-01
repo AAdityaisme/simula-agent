@@ -70,7 +70,8 @@ def test_a_live_run_that_lost_a_batch_replays_to_the_same_page(tmp_path, monkeyp
     ctx = ctx_for(run_dir, APP)
     if kind == "retry_turned_away":
         # Every call holds $1; a first answer costs $1 and a retry $0.50. Two at a time under a $3 cap, batches 1 and 2
-        # hold with one $1 spare, batch 1's retry takes it, and batch 2's retry, the second at once, is turned away.
+        # hold with one $1 spare, batch 1's retry takes it, and batch 2's retry, even once the calls in flight settle,
+        # is turned away: batch 2 is left out, and every later one.
         monkeypatch.setattr(llm, "worst_case_usd", lambda model_id, tokens_in, tokens_out: 1.0)
         monkeypatch.setattr(llm, "usd", lambda model_id, tokens_in, tokens_out, tokens_cached=0:
                             1.0 if tokens_out >= 100000 else 0.5)
@@ -87,7 +88,7 @@ def test_a_live_run_that_lost_a_batch_replays_to_the_same_page(tmp_path, monkeyp
         second = mock.batches(mock.pick_scope(model))[1]
         report = ContractReport.model_validate_json((run_dir / "mock" / "contract_report.json").read_text())
         assert next(e.detail for e in report.errors if e.screen == second[0].id).startswith(
-            "screen not drawn: $ cap reached: mock: next call could cost $1.00")
+            "screen not drawn: $ cap reached: over budget: batches 2-")
 
     replay = ctx_for(run_dir, APP)
     replay.replay = True
