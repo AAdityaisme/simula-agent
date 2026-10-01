@@ -87,7 +87,7 @@ class Budget:
     cap: float
     spent: float = 0.0
     held: float = 0.0
-    lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
+    lock: threading.RLock = field(default_factory=threading.RLock, repr=False, compare=False)  # reserve() asks fits()
     trace_path: Path | None = None
 
     @classmethod
@@ -100,7 +100,7 @@ class Budget:
         would still fit, so a later call (a retry) can take it. A model call passes its step and cache key, so the
         run's record of the refusal names the call and --replay stops where the live run did."""
         with self.lock:
-            if self.spent + self.held + worst_usd + spare > self.cap:
+            if not self.fits(worst_usd, spare):
                 kept = f" with ${spare:.2f} kept free for a retry" if spare else ""
                 refused = CapReached(f"{self.stage}: next call could cost ${worst_usd:.2f}{kept}, ${self.spent:.2f} of "
                                      f"${self.cap:.2f} already spent, ${self.held:.2f} held by calls in flight; "
@@ -110,6 +110,11 @@ class Budget:
                           note=(f"key {key[:12]} " if key else "") + str(refused))
                 raise refused
             self.held += worst_usd
+
+    def fits(self, worst_usd: float, spare: float = 0.0) -> bool:
+        """Whether reserve() would hold `worst_usd` with `spare` kept free, now; it refuses and records nothing."""
+        with self.lock:
+            return self.spent + self.held + worst_usd + spare <= self.cap
 
     def rerun_cap(self, worst_usd: float) -> float:
         """A cap that gets a rerun past this stop even when nothing it did comes back from the cache (a render that
