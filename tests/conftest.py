@@ -30,10 +30,9 @@ def pytest_collection_modifyitems(config, items):
 @pytest.fixture(autouse=True)
 def no_device(request, monkeypatch):
     """Offline tests never reach the emulator: a chained run stops where explore would start mobile-mcp, and adb
-    answers only dumpsys, as an emulator does with its soft keyboard up over the lower part of the screen. A test
-    changes those answers through the dict this returns."""
+    answers only dumpsys, as an emulator does with its soft keyboard up over the lower part of the screen."""
     if request.node.get_closest_marker("live"):
-        return None
+        return
 
     monkeypatch.setenv("SIMULA_REDACT", "offline-test-handle")
 
@@ -46,7 +45,6 @@ def no_device(request, monkeypatch):
                "window": "  Window #3 Window{a1 u0 InputMethod}:\n    mFrame=[0,1500][1080,2400] last=[0,0][0,0]\n"}
     monkeypatch.setattr(explore, "adb_shell", lambda serial, args: dumpsys.get(args[1]) if args[0] == "dumpsys"
                         else None)
-    return dumpsys
 
 
 @pytest.fixture

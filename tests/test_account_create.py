@@ -50,15 +50,33 @@ HOME = [el("@h0", "TextView", "Welcome back", 200), el("@h1", "Button", "Charact
         *(el(f"@tab{n}", "Button", label, 2200, x=360 * n, w=360) for n, label in enumerate(("Home", "Chats", "Me")))]
 
 
+PHONES: list = []  # the FormPhones a test made, newest last
+KEYS = 1500  # the top of a FormPhone's soft keyboard
+
+
 class FormPhone(FakePhone):
     """A fake phone whose text boxes take the focus on a tap and keep what is typed into them, and that opens on a
-    screen it reached once it remembers one (a signed-in app)."""
+    screen it reached once it remembers one (a signed-in app). Its soft keyboard is up while a box has the focus, over
+    the lower part of the screen (KEYS): a tap there presses a key, and BACK closes the keyboard and nothing else."""
 
     def __post_init__(self):
         super().__post_init__()
         self.values: dict[tuple[str, str], str] = {}
         self.focus: tuple[str, str] | None = None
         self.remember: set[str] = set()
+        PHONES.append(self)
+
+    def dumpsys(self, args: list[str]) -> str:
+        if args[1] == "input_method":
+            return f"  mInputShown={'true' if self.focus else 'false'}\n"
+        return f"  Window #3 Window{{a1 u0 InputMethod}}:\n    mFrame=[0,{KEYS}][1080,2400] last=[0,0][0,0]\n"
+
+    def back(self) -> None:
+        if self.focus is None:
+            return super().back()
+        self.tick()
+        self.log.append(("back", self.screen))
+        self.focus = None
 
     def current_elements(self) -> list[dict]:
         return [{**e, "text": self.values.get((self.screen, e["ref"]), e["text"]),
@@ -66,6 +84,10 @@ class FormPhone(FakePhone):
                 for e in super().current_elements()]
 
     def tap(self, x: int, y: int) -> None:
+        if self.focus and y >= KEYS:
+            self.tick()
+            self.log.append(("key", self.screen))
+            return
         box = next((e for e in self.current_elements() if e["type"].endswith("EditText")
                     and ob.inside(Rect(x=x, y=y, w=0, h=0), ob.rect(e))), None)
         self.focus = (self.screen, box["ref"]) if box else None
@@ -91,6 +113,15 @@ def sign_up_app(wall: list[dict] = (TITLE, EMAIL_WAY, GOOGLE, LOG_IN), after_way
         app.remember = {"next"} if after_form is HOME else set()
         return app
     return factory
+
+
+@pytest.fixture(autouse=True)
+def keyboard(monkeypatch):
+    """dumpsys answers from the newest FormPhone; without one, as conftest's no_device answers."""
+    PHONES.clear()
+    fallback = stage.adb_shell
+    monkeypatch.setattr(stage, "adb_shell", lambda serial, args: PHONES[-1].dumpsys(args) if PHONES
+                        else fallback(serial, args))
 
 
 @pytest.fixture
@@ -585,7 +616,7 @@ def test_the_keyboard_is_painted_over_once_a_value_is_typed_rt_r2_7(tmp_path, mo
         lower = Image.open(ex.out / "states" / f"{sid}.png").convert("RGB").crop((0, 1500, 1080, 2400))
         return np.asarray(lower).max() == 0
     assert [s.sid for s in ex.states] == ["s01", "s02", "s03", "s04"] and phone.typed == [EMAIL, PASSWORD, NAME]
-    assert [covered(s.sid) for s in ex.states] == [False, False, True, True]
+    assert [covered(s.sid) for s in ex.states] == [False, False, True, False]  # closed before the send
 
 
 @pytest.mark.parametrize("input_method, window, box", [
@@ -593,9 +624,10 @@ def test_the_keyboard_is_painted_over_once_a_value_is_typed_rt_r2_7(tmp_path, mo
     ("mInputShown=true", "frame=[0,1700][1080,2400]", (0, 1700, 1080, 2400)),
     (None, None, (0, 1200, 1080, 2400)),
 ], ids=["hidden", "a frame", "unreadable: the lower half"])
-def test_where_the_keyboard_is_painted(tmp_path, monkeypatch, no_device, input_method, window, box):
-    no_device.update(input_method=input_method, window=window)
+def test_where_the_keyboard_is_painted(tmp_path, monkeypatch, input_method, window, box):
     ex, _ = new_explorer(tmp_path, monkeypatch, sign_up_app())
+    answers = {"input_method": input_method, "window": window}
+    monkeypatch.setattr(stage, "adb_shell", lambda serial, args: answers[args[1]])
     image = Image.new("RGB", (1080, 2400), (200, 200, 200))
     ex.cover_keyboard(image)
     pixels = np.asarray(image)
@@ -607,12 +639,50 @@ def test_where_the_keyboard_is_painted(tmp_path, monkeypatch, no_device, input_m
         assert painted[y0:y1, x0:x1].all() and not painted[:y0].any()
 
 
-@pytest.mark.parametrize("after", [HOME, [el("@e0", "TextView", "Something went wrong", 200),
-                                          el("@ok", "Button", "OK", 1700)]], ids=["signed up", "stopped"])
-def test_the_keyboard_is_painted_over_during_the_sign_up_only_rt_r3_3(tmp_path, monkeypatch, identity, after):
-    ex, _ = launched(tmp_path, monkeypatch, sign_up_app(after_form=after))
-    assert ex.states[-1].painted == Rect(x=0, y=1500, w=1080, h=900) and not ex.typing, ex.account
+ERROR = [el("@e0", "TextView", "Something went wrong", 200), el("@ok", "Button", "OK", 1700)]
+
+
+def test_the_keyboard_is_painted_over_whenever_it_is_up_after_a_value_is_typed_greptile_p1_2(tmp_path, monkeypatch,
+                                                                                            identity):
+    """The sign-up stops with the keyboard still up, its suggestion strip (red here) showing a typed word: every later
+    capture paints it while dumpsys says it is up."""
+    def app(clock):
+        phone = sign_up_app(after_form=ERROR)(clock)
+        ImageDraw.Draw(phone.screens["next"].image).rectangle((0, 1500, 1080, 1620), fill=(255, 0, 0))
+        return phone
+    ex, phone = launched(tmp_path, monkeypatch, app)
+    assert ex.account[-1].endswith("shows no sign of an account") and ex.typing
+    phone.focus = ("next", "@e0")
+    up = ex.observe()
+    assert up.painted == Rect(x=0, y=1500, w=1080, h=900) and up.image.getpixel((540, 1560)) == (0, 0, 0)
+    assert Image.open(ex.scratch / "now.png").getpixel((540, 1560)) == (0, 0, 0)
+    ok = next(c for c in up.cands if c.label == "OK")
+    assert not ex.shows(ok, ok, up)  # a tap there would land on a key
+    phone.focus = None
     assert ex.observe().painted is None
+
+
+def test_a_sign_up_tap_never_lands_on_the_keyboard_greptile_p1_1(tmp_path, monkeypatch, identity):
+    """The form's button (y 1700) lies under the keyboard once the name is typed: BACK closes the keyboard first."""
+    ex, phone = launched(tmp_path, monkeypatch, sign_up_app())
+    assert ex.account_state == "made" and not any(kind == "key" for kind, *_ in phone.log)
+    assert phone.log.index(("back", "form")) < phone.log.index(("tap", "form", "Create account"))
+
+
+def test_when_dumpsys_cannot_say_a_control_under_the_lower_half_stops_the_sign_up_greptile_p1_1(tmp_path, monkeypatch,
+                                                                                                identity):
+    monkeypatch.setattr(FormPhone, "dumpsys", lambda self, args: "")
+    ex, phone = launched(tmp_path, monkeypatch, sign_up_app())
+    assert ex.account[-1] == "s01: stopped at the wall, the keyboard may lie over the name box"
+    assert phone.typed == [EMAIL, PASSWORD] and ("back", "form") not in phone.log
+
+
+def test_a_log_in_link_on_a_form_that_asks_for_a_name_is_not_its_button_greptile_p1_3(tmp_path, monkeypatch,
+                                                                                         identity):
+    form = form_with(el("@li", "Button", "Log in", 1400, w=300, h=80), without="@have")
+    ex, phone = launched(tmp_path, monkeypatch, sign_up_app(after_way=form))
+    assert phone.values == {("form", "@f1"): EMAIL, ("form", "@f2"): PASSWORD, ("form", "@f3"): NAME}
+    assert ex.account_state == "made" and "Log in" not in taps(phone)
 
 
 def test_a_crop_the_keyboard_was_painted_over_shows_nothing_rt_r3_3(tmp_path, monkeypatch):
