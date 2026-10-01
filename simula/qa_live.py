@@ -225,6 +225,7 @@ class Audit:
         self.current: str | None = None
         self.live: Live | None = None
         self.verdict: dict = {}
+        self.launched = False  # whether self.live is a launch's landing
 
     # ---------- the flows ----------
 
@@ -349,6 +350,8 @@ class Audit:
             self.setup.append({"flow": self.flow, "action": edge.action, "edge": edge.id, **self.verdict})
             if self.current != edge.to_state:
                 raise FlowEnd("blocked", f"the route to {start} went wrong at {edge.id} ({self.verdict['verdict']})")
+        if self.verdict["expected"] != start:  # the last flow stopped here: its look was judged against its own target
+            self.verdict = self.match_state(self.live, start, launched=self.launched)
 
     def launch(self, want: str) -> None:
         """Terminate, then launch, neither ever retried (the first call may have landed), then name where the app
@@ -365,7 +368,7 @@ class Audit:
         except DEVICE_ERRORS as e:
             raise Stopped(f"the device failed after the launch ({type(e).__name__}); not launched again") from None
         self.verdict = self.match_state(self.live, want, launched=True)
-        self.current = self.verdict["landed"]
+        self.current, self.launched = self.verdict["landed"], True
         self.setup[-1].update(self.verdict)
 
     def wait_for_launch(self, want: str) -> Live:
@@ -457,7 +460,7 @@ class Audit:
     def look(self, sid: str) -> None:
         self.live = self.capture()
         self.verdict = self.match_state(self.live, sid)
-        self.current = self.verdict["landed"]
+        self.current, self.launched = self.verdict["landed"], False
 
     def safe_target(self, edge: Edge) -> ob.Candidate:
         """The one live control a tap edge's recorded element is now (invariant 3, as explore applies it): found the way

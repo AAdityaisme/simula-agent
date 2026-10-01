@@ -225,6 +225,23 @@ def test_a_live_tap_that_lands_elsewhere_is_the_app_diverging_even_though_the_ca
     assert ("back", "s03") not in phone.log
 
 
+def test_a_flow_that_starts_where_the_last_one_stopped_judges_that_look_against_its_own_start(runs, walk):
+    """f1 diverges onto s03, where f2 starts: f2 starts there with no launch, and its start checkpoint is judged
+    against s03, not against the s02 f1 wanted."""
+    recorded = screens()
+    lines = [line(1, "s01", "s02", TAP, tab(recorded["s01"], 1), "tab"),
+             line(2, "s03", "s01", TAP, tab(recorded["s03"], 0), "tab")]
+    source_run(runs, recorded, lines, [[("s01", "s02", TAP)], [("s03", "s01", TAP)]])
+    phone = phone_for(screens(), [("s01", tab(recorded["s01"], 1), "s03"), ("s03", tab(recorded["s03"], 0), "s01")])
+
+    report = walk(phone)
+
+    assert [f["status"] for f in report["flows"]] == ["real_diverged", "matched"]
+    start = report["flows"][1]["checkpoints"][0]
+    assert (start["expected"], start["live"]["expected"], start["live"]["verdict"]) == ("s03", "s03", "same")
+    assert phone.log.count(("launch",)) == 1
+
+
 def test_a_mock_that_lost_the_hops_tag_is_the_mock_failing(runs, walk):
     recorded = screens()
     run_dir = tab_back_run(runs, recorded)
