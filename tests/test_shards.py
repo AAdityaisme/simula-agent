@@ -5,7 +5,7 @@ from tests.conftest import ROOT
 pytest_plugins = ["pytester"]
 
 TESTS = [f"test_shards_fixture.py::test_{i}" for i in range(9)]
-JOB = re.compile(r"""^  ("[^"]+"|'[^']+'|[\w-]+):[ \t]*$""", re.M)
+JOB = re.compile(r"""^  ("[^"]+"|'[^']+'|[\w-]+):[ \t]*(?:#.*)?$""", re.M)
 
 
 def collect(pytester, monkeypatch, env: dict[str, str]) -> tuple[list[str], int]:
@@ -48,5 +48,6 @@ def test_every_ci_job_has_a_time_limit():
     workflow = (ROOT / ".github" / "workflows" / "test.yml").read_text()
     limits = time_limits(workflow)
     assert limits and all(limits.values())
-    unguarded = '  "unguarded":\n    runs-on: ubuntu-latest\n    steps:\n      - run: sleep 3600\n'
-    assert time_limits(workflow + unguarded) == limits | {"unguarded": False}
+    body = "\n    runs-on: ubuntu-latest\n    steps:\n      - run: sleep 3600\n"
+    for unguarded in ('  "unguarded":', "  unguarded: # slow check"):
+        assert time_limits(workflow + unguarded + body) == limits | {"unguarded": False}
