@@ -79,13 +79,14 @@ class FakePhone:
     generating: float = 0.0
     busy_label: str = "Cancel"
     chat_top: int = 401
+    send_ready_s: float = 0.0  # how long send stays disabled after text is typed
     in_task: set[str] = field(default_factory=set)  # other packages' screens the app's own task holds (a system dialog)
 
     def __post_init__(self):
         self.screen, self.history, self.log, self.typed = self.start, [], [], []
         self.list_seconds, self.shots, self.reply_polls, self.splash_left = [], {}, 0, 0
         self.chats: dict[str, list[tuple[str, str]]] = {}
-        self.draft, self.sent, self.busy_until = "", 0, 0.0
+        self.draft, self.sent, self.busy_until, self.typed_at = "", 0, 0.0, 0.0
         self.alive = False  # the app's task: a launch brings a live one back as it was
         self.pngs: dict[tuple, bytes] = {}
         self.screens.setdefault("launcher", blank("com.android.launcher"))
@@ -103,6 +104,8 @@ class FakePhone:
         box = next(e for e in elements if e["type"].endswith("EditText"))
         if self.draft:
             elements = [{**e, "text": self.draft} if e is box else e for e in elements]
+            if self.clock.t < self.typed_at + self.send_ready_s:
+                elements = [{**e, "enabled": False} if "send" in element_key(e).lower() else e for e in elements]
         if self.clock.t < self.busy_until:
             busy = {"text": self.busy_label, "label": "", "enabled": False}
             elements = [{**e, **busy} if "send" in words(e).lower() else e for e in elements]
@@ -237,6 +240,7 @@ class FakePhone:
         self.log.append(("type", self.screen, text))
         self.typed.append(text)
         self.draft += text
+        self.typed_at = self.clock.t
 
     def launch(self) -> None:
         """A live task comes to the front as it was, over whatever another app opened on it; else a fresh start."""
