@@ -1713,6 +1713,28 @@ def test_a_tab_painted_over_is_not_shown_after_a_relaunch_re_recorded_home(tmp_p
     assert not any(tabs_shown_under_paint(tmp_path / "after", monkeypatch, refresh=True))
 
 
+
+def test_a_sheets_own_button_over_the_tab_bar_is_tapped_after_a_relaunch_re_recorded_home(tmp_path, monkeypatch):
+    """PR O's JanitorAI run (20261001-050452-19f4ffa, on #33's refresh): the relaunch at 05:09 re-recorded home and
+    left the tabs on home's old controls, which shows() let through, so under_tab_bar refused the chat sheet's own
+    "Start new chat" (y 2225, over the tab bar) as covered on every walk item (act142, 145, 151, 156)."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    phone.screens.update(first=capture("janitorai", "j13_home"), other=capture("janitorai", "j14_home_reloaded"),
+                         chats=capture("janitorai", "j15_my_chats"), sheet=capture("janitorai", "j16_chat_sheet"))
+    home = home_from(ex, phone)
+    phone.start = "other"
+    ex.relaunch()
+    assert ex.current is home and len(ex.states) == 1
+    phone.screen = "chats"
+    chats = ex.current = ex.record(ex.observe(), home, stage.Move("tap"), None)
+    before = ex.obs
+    phone.screen = "sheet"
+    sheet = ex.current = ex.record(ex.observe(), chats, stage.Move("tap"), before)
+    start = next(c for c in sheet.cands if c.label == "Start new chat")
+    assert start.point[1] >= min(t.rect.y for t in ex.tabs)
+    ex.act(stage.Move("tap", start))
+    assert [e for e in phone.log if e[:2] == ("tap", "sheet")] and "covered" not in lines(ex)[-1].change_summary
+
 def test_a_relaunch_that_lands_on_another_tab_records_it_apart_from_home(tmp_path, monkeypatch):
     """Fable E4: the profile tab shows the same tab bar, not home's top chrome."""
     ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
