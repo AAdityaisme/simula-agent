@@ -140,10 +140,11 @@ def judge_messages(c: Candidate, model: ProductModel) -> list[dict]:
 
 
 def ask_judge(role: dict, c: Candidate, model: ProductModel, *, trace_path: Path, stage: str, step: str,
-              budget: llm.Budget, no_cache: bool = False, replay: bool = False) -> Verdict:
-    """One blind judge call on one candidate. Raises llm.LLMFailure when both attempts fail."""
+              budget: llm.Budget, no_cache: bool = False, replay: bool = False, rubric: str | None = None) -> Verdict:
+    """One blind judge call on one candidate, under the tracked rubric unless an experiment passes its own. Raises
+    llm.LLMFailure when both attempts fail."""
     verdict, _ = llm.call(trace_path=trace_path, stage=stage, step=step, model=role["model"],
-                          effort=role.get("effort"), system=read_prompt("rubric.md"),
+                          effort=role.get("effort"), system=read_prompt("rubric.md") if rubric is None else rubric,
                           messages=judge_messages(c, model),
                           max_tokens=config.max_tokens(role), budget=budget,
                           schema=Verdict, no_cache=no_cache, replay=replay, fallback=role.get("declared_fallback"))

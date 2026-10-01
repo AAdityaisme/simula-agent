@@ -4,12 +4,13 @@ and the blind label CLI."""
 
 import json
 import shutil
+from pathlib import Path
 
 import pytest
 
-from simula import economics, validate
+from simula import economics, llm, runlog, validate
 from simula.contracts import GATES
-from simula.stages import judge
+from simula.stages import judge, propose
 from simula.validate import C8, LLM_CHECKS, Case
 from tests.conftest import APPS
 from tests.judge_helpers import idea, verdict
@@ -414,3 +415,68 @@ def test_label_stops_at_the_target_count_and_skips_labeled_cases(tmp_path):
     (tmp_path / "kg-janitorai.json").write_text("{}")
     n = validate.label_cases(cases, judged(cases), tmp_path, ask=lambda _: "p", say=lambda *_: None, limit=3)
     assert n == 2 and len(list(tmp_path.glob("*.json"))) == 3
+
+
+def test_the_blind_display_shows_the_judges_product_model_and_nothing_that_gives_the_answer_away(tmp_path):
+    cases = [c for c in build_cases() if c.source == "planted"][:1]
+    verdicts = {(cases[0].id, "judge_1"): verdict([cases[0].target]),
+                (cases[0].id, "judge_2"): verdict([], fixable=True)}
+    said, asked = [], []
+    validate.label_cases(cases, verdicts, tmp_path, ask=lambda _: asked.append(len(said)) or "q", say=said.append)
+    blind = "\n".join(said[:asked[0]])
+    assert judge.judge_messages(cases[0].candidate, cases[0].model)[0]["content"][0]["text"] in blind
+    assert propose.model_text(cases[0].model) in blind
+    for leak in ("judge_1", "judge_2", cases[0].id, cases[0].target, cases[0].tier, "fails here", "Planted"):
+        assert leak not in blind
+
+
+# ---------- an experiment arm ----------
+
+def test_an_experiment_arm_judges_under_its_rubric_and_counts_a_lost_call_against_it(tmp_path, monkeypatch):
+    tracked = judge.read_prompt("rubric.md")
+    rubric = tmp_path / "treatment.md"
+    rubric.write_text(tracked + "\nA TREATMENT CLAUSE.\n")
+    lost_case = next(c for c in validate.load_cases() if c.source in ("base", "run"))
+    systems = []
+
+    def call(**kw):
+        systems.append(kw["system"])
+        if kw["step"].startswith(f"{lost_case.id}:judge_2:"):
+            raise llm.LLMFailure("error", "Connection error.")
+        return verdict(), None
+    monkeypatch.setattr(llm, "call", call)
+    validate.experiment("J", "treatment", rubric, "dev", ["judge_1", "judge_2"], 1.0, False, tmp_path)
+    arm = tmp_path / "J" / "treatment"
+    llm_cases = [c for c in validate.load_cases() if c.target != C8]
+    assert set(systems) == {rubric.read_text()} and len(systems) == 2 * len(llm_cases)
+    assert judge.read_prompt("rubric.md") == tracked and (arm / "rubric.md").read_text() == rubric.read_text()
+    settings = json.loads((arm / "settings.json").read_text())
+    assert settings["cases"] == [c.id for c in llm_cases] and settings["arm"] == "treatment"
+    assert len(list((arm / "verdicts").glob("*_r1.json"))) == 2 * len(llm_cases) - 1
+    text = (arm / "report.md").read_text()
+    goods = sum(c.source in ("base", "run") for c in llm_cases)
+    assert f"Failed calls, each counted as a miss or a fail: 1 ({lost_case.id}:judge_2)" in text
+    assert f"| judge_2 | {goods - 1}/{goods} " in text and f"| combined | {goods - 1}/{goods} " in text
+
+
+def test_arms_of_one_experiment_share_its_dollar_cap(tmp_path, monkeypatch):
+    rubric = tmp_path / "rubric.md"
+    rubric.write_text(judge.read_prompt("rubric.md"))
+    (tmp_path / "J" / "control").mkdir(parents=True)
+    runlog.run_trace(tmp_path / "J" / "control", stage="validate", step="x", decider="model", usd=0.9, note="")
+    seen = {}
+
+    def call(**kw):
+        seen["spent"] = kw["budget"].spent
+        return verdict(), None
+    monkeypatch.setattr(llm, "call", call)
+    validate.experiment("J", "treatment", rubric, "dev", ["judge_1"], 1.0, False, tmp_path)
+    assert seen["spent"] == pytest.approx(0.9)
+
+
+def test_simula_validate_experiment_parses_its_arm(monkeypatch, tmp_path):
+    seen = {}
+    monkeypatch.setattr(validate, "experiment", lambda *args: seen.update(args=args))
+    assert validate.main(["experiment", "J", "control", "--rubric", "r.md", "--usd-cap", "9.5", "--no-cache",
+                          "--out", str(tmp_path)]) == 0
+    assert seen["args"] == ("J", "control", Path("r.md"), "real", ["judge_1", "judge_2"], 9.5, True, tmp_path)
