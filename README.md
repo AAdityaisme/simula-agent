@@ -192,7 +192,7 @@ uv run simula run janitorai --from qa           # rerun qa and everything after 
 uv run simula qa-live janitorai --run ID --out DIR   # DIR: a new folder outside the run; add --device SERIAL
 ```
 
-It walks each core flow on the live app and on the run's approved mock side by side, one recorded tap, BACK or swipe at a time. It never teleports between checkpoints, and it stops a flow at the first hop where either side goes wrong. Each checkpoint saves the live capture and element list (redacted as explore redacts them), the mock's render, a masked-SSIM heatmap, and the live control's bounds against its `data-el`. `DIR/report.md` gives each flow one status:
+It walks each core flow on the live app and on the run's approved mock side by side, one recorded tap, BACK or swipe at a time. It never teleports between checkpoints, and it stops a flow at the first hop where either side goes wrong. Each checkpoint saves the live capture and element list (redacted as explore redacts them, with the `SIMULA_TEST_*` account whenever it is set, since an app explore signed up in stays signed in), the mock's render, a masked-SSIM heatmap, and the live control's bounds against its `data-el`. `DIR/report.md` gives each flow one status:
 - **matched:** both sides took every hop.
 - **mock_failed:** the app took the hop and the mock didn't.
 - **real_diverged:** the app went somewhere else (another recorded screen, or another app).

@@ -82,6 +82,8 @@ def run(app: str, run_id: str | None, out: Path, serial: str | None, clock=time.
     secrets = explore.redact_list()
     if not secrets:
         raise SystemExit("SIMULA_REDACT is empty: list the emulator account's handle and names in .env first")
+    identity = explore.account_identity()  # an explore that made the account leaves the app showing it
+    secrets, parts = secrets + list(identity.values()), explore.identity_parts(identity)
     if not (src / "qa" / "approved" / "index.html").exists():
         raise SystemExit(f"{src} has no approved mock: run `simula qa {app}` first")
     approval = approved_outcome(src, app)
@@ -99,7 +101,7 @@ def run(app: str, run_id: str | None, out: Path, serial: str | None, clock=time.
             found = live_device(phone, resolved)
             if found != model.device:
                 raise SystemExit(f"the device is {found}, but the run was explored on {model.device}")
-            audit = Audit(ctx, model, phone, out, secrets, clock, sleep)
+            audit = Audit(ctx, model, phone, out, secrets, parts, clock, sleep)
             with render.open_mock(src / "qa" / "approved") as (page, _):
                 flows, stop = audit.walk(page)
         report = {"schema_version": SCHEMA_VERSION, "app": app, "run": src.name, "created_at": now(),
@@ -209,8 +211,9 @@ def launchable(live: Live, device: Device) -> bool:
 class Audit:
     """One walk over a run's flows. `current` is the recorded state the live app is known to show, or None."""
 
-    def __init__(self, ctx: Ctx, model: ProductModel, phone, out: Path, secrets: list[str], clock, sleep):
-        self.ctx, self.model, self.phone, self.out, self.secrets = ctx, model, phone, out, secrets
+    def __init__(self, ctx: Ctx, model: ProductModel, phone, out: Path, secrets: list[str], parts: list[str], clock,
+                 sleep):
+        self.ctx, self.model, self.phone, self.out, self.secrets, self.parts = ctx, model, phone, out, secrets, parts
         self.clock, self.sleep, self.started = clock, sleep, clock()
         self.device, self.package, self.scratch = model.device, ctx.app["package"], out / ".scratch"
         self.states = {s.id: s for s in model.states}
@@ -449,9 +452,10 @@ class Audit:
         settled = ob.settle(self.phone.elements, self.phone.small_hash, self.device, self.clock, self.sleep)
         path = self.phone.screenshot(self.scratch / "now.png", (self.device.w_px, self.device.h_px))
         image = Image.open(path).convert("RGB")
-        reply, elements, hits = ob.redact(settled.reply, image, self.secrets)
+        reply, elements, hits = ob.redact(settled.reply, image, self.secrets, self.parts)
         if hits or not settled.ok:
-            ob.redact(self.phone.elements()[0], image, self.secrets)  # the screen may have moved since the list
+            # the screen may have moved since the list
+            ob.redact(self.phone.elements()[0], image, self.secrets, self.parts)
         image.save(path)  # no raw capture stays on disk, even when the walk is stopped
         fg = self.phone.foreground()
         return Live(reply, elements, image, fg, ob.fingerprint(fg, elements, image, self.device),

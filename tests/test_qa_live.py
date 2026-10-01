@@ -732,6 +732,22 @@ def test_the_capture_on_disk_is_the_redacted_one(runs, walk, monkeypatch):
                           for r in hidden)
 
 
+def test_the_account_explore_signs_up_with_is_redacted_as_explore_redacts_it(runs, walk, monkeypatch, tmp_path):
+    """After an explore that made an account, the app shows it: its name, word by word, never reaches the disk."""
+    monkeypatch.setenv("SIMULA_TEST_NAME", "Trending Tester")
+    recorded = screens()
+    tab_back_run(runs, recorded)
+    phone = phone_for(screens(), [("s01", tab(recorded["s01"], 1), "s02")], cls=KeepsScratch)
+
+    flow = walk(phone)["flows"][0]
+
+    tree = (tmp_path / "audit" / flow["checkpoints"][0]["files"]["tree"]).read_text()
+    assert "Trending" not in tree and ob.REDACTED in tree
+    hidden = [ob.rect(e) for e in recorded["s01"].elements if "Trending" in ob.words(e)]
+    assert hidden and all(phone.on_disk.crop((r.x, r.y, r.x + r.w, r.y + r.h)).getextrema() == ((0, 0),) * 3
+                          for r in hidden)
+
+
 SIGTERM_WALK = '''
 import contextlib, os, signal, sys
 from pathlib import Path
