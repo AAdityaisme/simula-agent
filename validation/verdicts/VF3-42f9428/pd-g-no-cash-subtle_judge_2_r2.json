@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-cash-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy states the 30-minute benefit, but also promises a voucher without saying what it is worth or can be used for. It therefore does not state the full reward before the ad."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The proposal does not say that its voucher can be withdrawn, transferred, sold, or exchanged outside the app. Its unspecified use is a concern, but does not establish this fail condition."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses an article-open counter and a return to the home feed, not anything the reader wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The reward temporarily hides sponsored cards; the decline path leaves reading, saving, and sharing unchanged. The proposal does not remove or cap a free reader feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner on the content-safe s01 home feed, above the first story, rather than inside a conversation or next to unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the 30-minute break gives the player a benefit in the observed read-a-story flow f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The proposal says the app has no paywall, limit, or currency and has nothing locked, while the model only records that no paywall, limit, or currency was seen on the home feed. Calling the sponsored cards low-value or cheap also asserts a present fact that s01.e44, s06.e33, and s02.e13 do not establish."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no paid plan, and the 'offered to' field specifies free users."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The stated ad-free window ends after 30 minutes, and the model establishes no subscription benefit that it would grant permanently."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places the offer on the home feed after the reader returns from an article, rather than interrupting an article in progress."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The flow grants the additional voucher for watching another ad after the game, not for a Simula-verified play. That part of the promised reward is contingent on something other than `REWARD_VERIFIED`."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the observed home-feed sponsored slot at s01.e44 and the article ad at s02.e13, and names the home-to-article reading flow."
+ },
+ "other_concern": "The voucher has no stated redemption use or expiry, and the predicted revenue effect of hiding sponsored cards is unverified.",
+ "fixable": true
+}

@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-free-removal-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states priority routing for 60 minutes before play; the card is optional, and the decline and ad-failure fields preserve a usable path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is returning to the profile menu from the Upgrade entry, not anything the user wrote in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The adds field introduces a daily cap on how many characters free users can text. A new cap on this resource is not within the exception for model replies or queue priority."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile-menu drawer, a content-safe sheet over the content-safe s08 profile."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward samples priority routing, which the Janitor+ benefit at s02.e06 offers."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The current-app claims about priority routing and the persistent Upgrade entry are supported by m02 and m01; the character-texting cap is explicitly a proposed addition."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The offered to and subscribers fields restrict the card to free users; subscribers, who already receive priority routing under m02, never see it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes, and m02 shows that the app already sells the routing advantage."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears in the persistent s09 profile menu after the user returns from the Upgrade entry, rather than interrupting a chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses an app-detectable return to the menu and a sponsored game to earn the reward; it does not specify granting the reward for a tap, click, close, or unverified start."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the s09 Upgrade to Janitor Plus entry and the priority-routing benefit shown at s02.e06."
+ },
+ "other_concern": "The flow should explicitly say that REWARD_VERIFIED gates the one-time grant.",
+ "fixable": true
+}

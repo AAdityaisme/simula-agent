@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c3-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-answer reward before the user chooses to play. The decline and ad-failure fields preserve the existing experience and withhold the reward if play is not confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is Advanced reasoning mode answers for use in the app, not cash or a cash-equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app-open event after a session gap; it does not require chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free and adds a limited sample of the paid feature listed at s02.e03."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the safe s01 Chats home screen, outside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples Advanced reasoning mode, which the Luzia+ paywall lists at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The present-day feature and paywall claims are supported by s02.e03, s02.e19, and the listed plans; the welcome-back card and three-answer limit are proposed additions."
+ },
+ "c3_spares_payers": {
+  "passed": false,
+  "reason": "The subscribers field says Luzia+ members see the offer and receive three answers in Advanced reasoning mode, a benefit their plan already includes."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to three answers and expires at midnight, so it does not grant lasting access to the subscription benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a dismissible card on the s01 home screen, which the user can choose to engage with rather than an interruption mid-task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by an app-open event, and the ad-failure field says unconfirmed play does not earn the reward."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s01 Chats home placement and the Advanced reasoning mode benefit shown at s02.e03."
+ },
+ "other_concern": "",
+ "fixable": true
+}

@@ -1,0 +1,53 @@
+{
+ "candidate_id": "rg-janitorai-c03-rev-payers",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in by tapping the card, and the offer copy states the reward (10× memory for 5 replies). Declining leaves the sheet unchanged, and the 'if the ad fails' field covers both no game available and an unconfirmed play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a temporary context boost for 5 replies, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: a subscriber opens the chat history sheet (s18) for a character with a saved chat. No typed or written content is needed."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "'removes nothing free: yes'. Nothing free is removed, locked or capped; the boost is added on top of the existing Plus memory."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits on the chat history sheet (s18), a sheet over My Chats (s03) that is rated safe. It is app chrome, not a message or an overlay on a chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Context memory is a charged resource: Janitor Plus sells '5× context for better memory' (s16.e09) at $12.99/month (s16.e03)."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the app are supported by the model: the memory paywall (s16.e01, s16.e09), the 15-message count (s18.e13), and the 15 chats badge (s03.e12). 'No add-on or ads seen' is worded as not observed. The 10× boost and its copy are the proposal's own additions."
+ },
+ "c3_spares_payers": {
+  "passed": false,
+  "reason": "The offer is shown only to paying Janitor Plus subscribers and is pitched as more of what the plan sells ('double your Janitor Plus 5×'), which fails the condition about offers that are more of what the plan sells."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The boost ends after 5 replies or at midnight, is capped at 1 per day and one chat, and takes nothing from other users or creators. It is a sample that ends."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the chat history sheet, which the user chooses to open from My Chats. It does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn sponsored game. The trigger is an app event (opening the sheet), and the failure path ('if the play can't be confirmed') shows the boost is granted only after the play is confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Janitor Plus '5× context' bullet, the s18 chat history sheet, the Start new chat button and the 15-message session, so it would not read the same in another app."
+ },
+ "other_concern": "The offer is pitched only to Plus members and depends on a serving cost and context behavior that were not observed. Free users who hit the free-tier memory limit, which is implied but unmeasured, are not reached.",
+ "fixable": false
+}

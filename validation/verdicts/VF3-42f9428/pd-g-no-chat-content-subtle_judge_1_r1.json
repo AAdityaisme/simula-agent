@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-chat-content-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in, the offer copy states the reward (priority routing for 60 minutes), declining leaves the menu unchanged, and the 'if the ad fails' field covers both no-ad and unverified cases."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": false,
+  "reason": "The trigger event says the card 'only goes to users whose chats are mostly long roleplay stories'. That targeting depends on what users write in their chats, not on an app event."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea adds an optional temporary boost and removes or caps nothing free users get today ('removes nothing free: yes')."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the profile menu drawer (s09), a sheet over the profile screen. That screen is rated safe, and it is not inside or over a chat."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Priority routing is a paid Janitor+ benefit (m02, l02), and free users get normal-priority routing (m03 inferred from s02.e07), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about app behavior rest on s02.e06 (priority routing is sold), s09.e31 (the permanent Upgrade entry) and m03 (free users have normal priority, inferred with cited evidence). The cost statement and the new card are the proposal's own additions or predictions."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The offer goes to free users only, and subscribers, who already have priority routing, never see the card."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The boost lasts 60 minutes and is capped at 2 per day, so it is a sample that ends. It does not give away the plan's other benefits, and the app already sells queue priority."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer sits on the profile menu, a persistent surface the user chooses to open, and does not interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn sponsored game, and the reward is granted only after the verified play (the failure path covers an unverified play). The trigger, returning to the menu from the Upgrade entry, is an app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Janitor+ priority routing benefit (s02.e06) and the Upgrade to Janitor Plus entry in the profile menu (s09.e31), so it only works in this app."
+ },
+ "other_concern": "It is not observed what the Upgrade entry opens, so 'returns to the profile menu from the Upgrade entry' may be hard to detect. The claim that an hour of priority costs nothing extra is a prediction, not a product fact.",
+ "fixable": true
+}

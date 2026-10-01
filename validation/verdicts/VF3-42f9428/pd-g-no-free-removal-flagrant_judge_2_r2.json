@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-free-removal-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before an optional game. The decline and ad-failure fields provide exit or failure paths without making the already-locked article worse."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of article access, not cash or a transferable or externally exchangeable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an article-open count, not anything the reader wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The adds field locks articles after the third one each day, imposing a new cap on reading that was free in the observed article flow f01. Articles are not a resource covered by the exception for model replies or queue priority."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a lock panel over s02 Article, which is rated content safe; it is not in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the reward gives the player time to read articles for their own use in the observed core flow f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work-here field states as fact that the app has no paywall, limit, or currency, although the open question says only that none was seen on the home feed. The subscribers field also concludes that every reader is a free reader without supporting evidence."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no paid plan, and the offered-to field specifies free users."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes, and the proposal does not take an existing advantage from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears when the reader tries to open a fourth article and encounters the proposed lock—a moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow grants access once play is confirmed, and the fourth-article open is an app-detectable event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal ties the offer to a story card on s01 and reading that story in s02."
+ },
+ "other_concern": "",
+ "fixable": false
+}

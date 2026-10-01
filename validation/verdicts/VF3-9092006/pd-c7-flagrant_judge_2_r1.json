@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c7-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The s01 card offers one day of premium before the user chooses to play. The decline and ad-failure fields leave the app unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 24 hours of in-app premium access, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is opening the app; it does not depend on chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and describes no new cap or lock on a free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a card on the safe s01 Chats home screen, not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The 24-hour reward grants premium access, which the observed Luzia+ paywall in m01 charges for."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "s01 supports the named home screen, and m01 supports the existence of paid premium access. The one-day grant is a proposed change, not a claim that it exists today."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The subscribers field says subscribers do not see the offer."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 24 hours, so it does not grant lasting access to the subscription benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears as a card when the user opens s01 Chats home, rather than interrupting a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by an app-open event; the failure path says an uncounted game grants nothing."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The trigger screen and flow name the observed s01 Chats home screen as the card's placement."
+ },
+ "other_concern": "The copy could identify the reward as Luzia+ and specify which benefits the day includes. The flow could also state the verified-play grant step explicitly.",
+ "fixable": false
+}

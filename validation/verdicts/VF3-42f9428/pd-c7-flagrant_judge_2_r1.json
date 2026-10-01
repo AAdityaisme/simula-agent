@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c7-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the one-day premium reward before play; the decline and ad-failure fields leave the app unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 24 hours of in-app premium access, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is opening the app, not reading chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal's 'removes nothing free' field introduces no restriction on an existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The flow places a card on the safe s01 Chats home screen, not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward gives temporary access to premium, which the observed Luzia+ paywall in m01 charges for."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The existing premium offer is supported by m01, and s01 supports the named Chats home screen; the one-day reward is a proposed addition."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'offered to' and 'subscribers' fields restrict the offer to free users."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward and expiry fields limit each grant of premium to 24 hours."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger and placement put a card on the Chats home screen when the app opens, rather than interrupting a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow grants the reward after the sponsored game is played, while the ad-failure field grants nothing if the game does not count; opening the app is a detectable trigger."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The trigger screen and flow name this app's s01 Chats home screen and its premium offer."
+ },
+ "other_concern": "A one-day premium reward available once per day could let frequent players maintain premium access instead of subscribing.",
+ "fixable": false
+}

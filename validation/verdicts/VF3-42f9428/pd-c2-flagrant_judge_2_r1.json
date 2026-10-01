@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c2-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 30-minute reward before the reader opts in. The decline and ad-failure fields leave the feed unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored story cards, not money or a transferable value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses an article-open counter and a return to the home feed, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields leave ordinary reading, saving, and sharing available; the optional reward hides sponsored cards for the participating reader."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a dismissible card on the content-safe s01 home feed, outside any conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the ad-free interval gives the player something to use while reading stories in observed core flow f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what makes it work here field claims an AOL full-screen video ad appears after every third article, which no product-model element supports. Its absolute claim that the app has no paywall, limit, or currency also exceeds the open question, which says only that none was seen on the home feed."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no paid plan, so the offer does not target users of an observed plan or duplicate an observed paid benefit."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes and does not take an ordered position or limited share from another user or creator."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger places the banner on the home feed after the reader returns from an article, rather than interrupting an article in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow grants the break once play is confirmed, and the ad-failure field says an unconfirmed play changes nothing. Returning from an article and counting opens are detectable app events."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s01 home feed, its category pills, and sponsored cards observed in the feed and s02 article."
+ },
+ "other_concern": "The reward clock starts when the game ends, which could shorten the usable break if verification takes time.",
+ "fixable": true
+}

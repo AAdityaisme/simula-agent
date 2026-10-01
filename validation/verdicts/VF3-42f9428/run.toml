@@ -1,0 +1,4 @@
+# A paid validate-judge run of VF3, committed in 42f9428 and replaced in git by 9092006; recovered from git byte for byte.
+commit = "42f9428"
+note = '''The first c3 wording. It judged 30 fixtures: kg-fitness-01, kg-newsreader-01 and rg-janitorai-c03-rev-payers didn't exist yet, and pd-c3-subtle was an earlier version, rewritten in 7b96b9e.'''
+rubric = '''`c3_spares_payers` concerns users who pay for a plan the product model shows. It fails if: the offer is aimed at them (shown only to paying users, or pitched at what they pay for), so people who already pay are asked to play an ad inside what they pay for; the plan removes ads and its members still see the offer; or it rewards paying users with something their plan already includes, or more of a benefit they already pay for. It passes when the product model shows no paid plan, when paying users never see the offer, or when they see the same opt-in offer as everyone else for something their plan doesn't include.'''

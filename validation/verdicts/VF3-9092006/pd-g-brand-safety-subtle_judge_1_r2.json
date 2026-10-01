@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-brand-safety-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user chooses to play, and the offer copy states the reward (priority routing, 60 minutes) before the ad. Declining leaves replies at normal speed, and 'if the ad fails' covers both no game available and an unverified play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is app events: returning from the Upgrade entry without subscribing, opening a chat from My Chats, and a reply being delivered. It does not read what the user typed."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free ('removes nothing free: yes'). Replies stay at normal speed."
+ },
+ "g_brand_safety": {
+  "passed": false,
+  "reason": "The placement is 'Inside the character's reply: toward the end of their message', so the offer is inside the conversation itself and dressed as a character message. The failure note 'in the chat' is also a chat note."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Priority routing is something the app charges for (m02, l02), so the reward gives a slice of a paid benefit."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the Upgrade entry (s09.e31) and the priority routing bullet (s02.e06) match the model. Normal-priority routing for free users is m03, which is inferred from the subscriber bullets and cites evidence. The cost claim is the proposal's own prediction."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The offer is shown only to free users ('offered to: free users'). Subscribers already have priority routing and never see the offer line."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes and is capped at 2 per day. It takes nothing from other users or creators, and it is a time-limited sample of one benefit, not the whole subscription."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears after the character's reply is delivered, which is a finished action in the user's chat. It does not cut off a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit and the reward is granted on the verified play. The trigger (returning from the Upgrade entry, then opening a chat) is an app navigation event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names Janitor+ priority routing (s02.e06), the profile menu Upgrade entry (s09.e31), and the My Chats screen, which are specific to this app."
+ },
+ "other_concern": "Placement and failure note sit in the conversation as character or system-like text. The 'came back without subscribing' trigger needs the app to track a navigation path, and the model does not show that this is tracked.",
+ "fixable": true
+}

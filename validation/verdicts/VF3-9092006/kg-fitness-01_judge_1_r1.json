@@ -1,0 +1,53 @@
+{
+ "candidate_id": "kg-fitness-01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user taps a button to opt in, the offer copy states the reward (1 extra streak freeze this week), declining changes nothing, and the button is hidden if no game is ready."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is one streak freeze that lasts until the end of the week. It has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: a Plus member with no freeze left opens the app on a day without a workout, which opens the s02 pop-up. No chat content is involved."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and nothing in the flow caps or locks anything users get today. The weekly freeze stays as it is."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The button sits in the s02 modal over s01 Today, a non-chat screen. Both screens are rated safe, and the offer is not inside any conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing_anchor proposal, and the app limits streak freezes to one a week (m02, l01 'Streak freezes: 0 of 1 left this week'). The reward gives exactly that limited resource."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the weekly freeze, the 'No streak freezes left this week' text, the Plus benefits (plans and heart-rate stats only) and the trial button are backed by s01.e02, s02.e02, s03.e03, s03.e04 and s02.e04. The new button, copy and reward are the proposal's own changes."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "Plus members are shown an offer for streak freezes, which the plan does not include (m03 lists only plans and heart-rate stats). The plan does not remove ads, and the offer is not in a paid-only feature or pitched as more of what the plan sells."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is one freeze that expires at the end of the week. It gives away none of the plan's main benefit and takes nothing from other users."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears in the streak-about-to-break pop-up, which is a moment of need because the freeze is used up and the streak ends at midnight."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn game. The freeze is granted only when the game counts (no freeze if it doesn't), and the trigger is a detectable app event that opens s02."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the streak freeze meter (s01.e02), the streak-about-to-break pop-up (s02), and Fitness Plus's benefits. It would not read the same in another app."
+ },
+ "other_concern": "Offering this only to Plus members is an odd choice: free users, who are more likely to lose the streak, see no such offer. The model also doesn't say whether Plus members see the s02 pop-up.",
+ "fixable": false
+}

@@ -1,0 +1,53 @@
+{
+ "candidate_id": "rg-janitorai-c09-empty-evidence",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opened after a like tap and the fan chooses to play. The offer copy states the reward (24-hour lift plus 7-day supporter mention), declining leaves the page unchanged, and the ad-fail path hides the card or shows a retry note."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic list boost and a supporter mention, with no cash or withdrawable value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a tap on the like button (s07.e16), which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing users get free today is removed, locked or capped by the proposal itself."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits on the character detail page s07, which is rated safe and is not a chat screen, and it is not placed in any conversation."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "This is a product_change and most of the reward, the list boost, goes to the creator (@IoakimTumo), not the player. The new resource is also not a slice of anything the app charges for and not something the player uses in a core flow."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about today's app are supported: the smaller-creators list (s01.e13, s01.e15), 102 pages (s01.e27), and the creator byline, like and comments buttons on the character page (s07). The card, boost and supporters row are labelled as additions."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "Subscribers see the same opt-in offer as everyone else, for something the Janitor Plus benefits (context, routing, swipes, badge) don't include."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "Lifting one character higher in the Hidden Gems list takes list position and visibility from other smaller creators, who hold that place today. The app does not sell that advantage, since the paid benefits cover memory, routing, swipes and a badge."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer follows a finished action, tapping like, on a character page, so it doesn't interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn sponsored game, the reward is granted after the verified play, and the trigger (a like tap) is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names this app's Hidden Gems list, the character detail page, the creator byline and the like button."
+ },
+ "other_concern": "The proposal cites no evidence ids. How the Home list is ordered, and whether a character is currently eligible for it, were not observed, so a boost may not be implementable as described.",
+ "fixable": false
+}

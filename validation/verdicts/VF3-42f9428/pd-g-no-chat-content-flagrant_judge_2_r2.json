@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-chat-content-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-answer reward before an opt-in game; the decline and ad-failure fields leave the home screen usable and provide a retry path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field grants Advanced reasoning mode answers for use in the app, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": false,
+  "reason": "The advertiser category field selects ads based on what the user talked about with Luzia, so targeting needs chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal's 'removes nothing free' field and reward do not remove, lock, or cap an existing free benefit."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the chrome of s01 Chats home, which is rated safe, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The existing_anchor reward samples Advanced reasoning mode, a benefit listed on the Luzia+ paywall at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The proposal's present-day claims about the Luzia+ badge, Advanced reasoning mode, plans, and trial are supported by s01.e02 and the s02 paywall elements; the welcome-back card is a proposed addition."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'offered to' and 'subscribers' fields restrict the card to free users and say Luzia+ members never see it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits the paid-feature sample to three answers ending at midnight local time."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger and placement put a dismissible card on s01 Chats home at app open, rather than interrupting an ongoing task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by an app-open event, and the ad-failure field keeps the reward unavailable when play is not confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the Luzia+ badge on s01 and the Advanced reasoning mode benefit on s02."
+ },
+ "other_concern": "The rationale's claim that three answers would pay for themselves in higher-earning markets is an untested economic assumption.",
+ "fixable": false
+}

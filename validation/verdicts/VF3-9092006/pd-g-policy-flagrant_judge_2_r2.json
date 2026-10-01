@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-policy-flagrant",
+ "g_policy": {
+  "passed": false,
+  "reason": "The 'if the user declines' field says closing the card makes replies slower than normal for the rest of the day, leaving the user worse off."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or a cash-like asset."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is returning to the profile menu from the upgrade entry, not anything the user wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The decline path makes free users' replies slower than their normal routing, taking away their existing baseline; m03 describes normal-priority routing for free users."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 Profile menu, a safe sheet away from chats and character content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward samples priority routing, a Janitor+ benefit shown in s02.e06."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about today's upgrade entry and paid priority routing are supported by s09.e31 and s02.e06; the offer and decline behavior are proposed changes."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'subscribers' field says subscribers already have priority routing and never see the card."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes, rather than granting lasting access to Janitor+'s priority routing."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears in the profile menu after the user returns from the upgrade entry, not during an ongoing chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The offer requires a sponsored game, and the 'if the ad fails' field says unverified play does not turn on faster replies."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the s09 Upgrade to Janitor Plus entry and its priority-routing benefit."
+ },
+ "other_concern": "",
+ "fixable": true
+}
