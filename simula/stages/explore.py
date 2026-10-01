@@ -23,7 +23,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from simula import config, decide, llm
 from simula.contracts import (ActionLine, Arrival, Coverage, Device, ExploreFile, HardScreenAction, IconLabel, IconPass,
-                              Point, Progress, Rect, StageOutcome, StateFile, VisionElement, WalkPick)
+                              Point, Progress, Rect, StageOutcome, StateFile, Unlisted, VisionElement, WalkPick)
 from simula.device import observe as ob
 from simula.device.mcp import McpReplyError, McpTimeout, Phone, Server
 from simula.device.devices import adb, emulator_lock, online, resolve_serial
@@ -44,7 +44,6 @@ FEW_LABELED = 4
 FILTER_SURE = 0.5
 LOCK_WAIT_S = 1800
 ICON_SCALE = 0.5
-VISION_BOX_DP = 48
 CORE_REPS = {"deep": 8, "transfer": 3}  # ponytail: belongs in profiles.toml budgets; listed under shared-file needs
 CORE_SECONDS_PER_REP = 75
 SETTLE_GAP_S = 3.0
@@ -1834,21 +1833,26 @@ class Explorer:
                 c = s.cands[item.box_id - 1]
                 c.label = item.name
                 s.icon_labels.append(IconLabel(mcp_ref=c.ref, name=item.name))
-        for point in result.extra_points[:8]:
-            self.add_vision(s, point.x / ICON_SCALE, point.y / ICON_SCALE + self.device.content_top_px, point.name)
+        # Controls first, so a control drawn on a picture isn't dropped as inside the picture's box.
+        for item in sorted(result.unlisted[:8], key=lambda item: item.kind == "picture"):
+            self.add_vision(s, item)
 
-    def add_vision(self, s: Seen, x: float, y: float, name: str) -> None:
+    def add_vision(self, s: Seen, item: Unlisted) -> None:
+        """Keeps an item the tree doesn't list, its box clamped to the content area, when its center is on the
+        content area and inside no box already found. A tap on it lands on its box's center."""
         d = self.device
+        x0, x1 = sorted((item.left / ICON_SCALE, item.right / ICON_SCALE))
+        y0, y1 = sorted((item.top / ICON_SCALE + d.content_top_px, item.bottom / ICON_SCALE + d.content_top_px))
+        x, y = (x0 + x1) / 2, (y0 + y1) / 2
         if not (0 <= x < d.w_px and d.content_top_px <= y < d.content_bottom_px):
             return
         if any(ob.inside(Rect(x=x, y=y, w=0, h=0), c.rect) for c in s.cands):
             return
-        half = VISION_BOX_DP * d.scale / 2
-        x0, y0 = max(0.0, x - half), max(float(d.content_top_px), y - half)
-        box = Rect(x=round(x0), y=round(y0), w=round(min(float(d.w_px), x + half) - x0),
-                   h=round(min(float(d.content_bottom_px), y + half) - y0))
-        s.vision.append(VisionElement(name=name, rect_px=box))
-        s.cands.append(ob.Candidate(label=name, kind="vision", rect=box, ref=None, tree_label=""))
+        x0, y0 = max(0.0, x0), max(float(d.content_top_px), y0)
+        box = Rect(x=round(x0), y=round(y0), w=round(min(float(d.w_px), x1) - x0),
+                   h=round(min(float(d.content_bottom_px), y1) - y0))
+        s.vision.append(VisionElement(name=item.name, rect_px=box, kind=item.kind))
+        s.cands.append(ob.Candidate(label=item.name, kind="vision", rect=box, ref=None, tree_label=""))
 
     def hard_screen(self, s: Seen, opts: list[ob.Candidate], goal: str) -> Move | None:
         """Sonnet picks one move when Jev is unsure, has failed, or taps keep changing nothing."""

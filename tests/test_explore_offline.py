@@ -11,7 +11,7 @@ import pytest
 from PIL import Image, ImageDraw
 
 from simula import decide, llm, runlog
-from simula.contracts import ActionLine, ExploreFile, StateFile
+from simula.contracts import ActionLine, ExploreFile, IconPass, Rect, StateFile, Unlisted, VisionElement
 from simula.device import observe as ob
 from simula.device.mcp import parse_elements
 from simula.stages import explore as stage
@@ -149,6 +149,33 @@ def test_jev_and_sonnet_go_through_the_stage_budget(run):
     assert any(line.decider == "jev" and line.usd > 0 for line in trace)
     assert any(line.decider == "model" and line.step.startswith("icons.") for line in trace)
     assert ex.budget.spent > 0
+
+
+def test_the_icon_pass_keeps_each_unlisted_things_box_and_kind(tmp_path, monkeypatch):
+    """Image px are half device px, from the content area's top. A box is clamped to the content area; a thing whose
+    center is off it or inside a listed box is dropped; a control drawn on a picture is kept, whichever comes first."""
+    button = {"ref": "@go", "type": "android.widget.Button", "text": "Go",
+              "coordinates": {"x": 42, "y": 1850, "width": 300, "height": 100}}
+
+    def one_button(clock):
+        return FakePhone(screens={"home": Screen([button], Image.new("RGB", (1080, 2400), (240, 240, 240)), PACKAGE)},
+                         start="home", taps={}, clock=clock)
+    ex, _ = new_explorer(tmp_path, monkeypatch, one_button)
+    s = ex.record(ex.observe(), None, None, None)
+    top = ex.device.content_top_px
+
+    def unlisted(x0, y0, x1, y1, kind, name):
+        return Unlisted(left=x0 // 2, top=(y0 - top) // 2, right=x1 // 2, bottom=(y1 - top) // 2, kind=kind, name=name)
+    things = [unlisted(100, 300, 900, 800, "picture", "photo"), unlisted(800, 320, 880, 400, "control", "like"),
+              unlisted(-40, 36, 400, 256, "picture", "banner"), unlisted(100, 1860, 200, 1940, "control", "in go"),
+              unlisted(100, 2340, 200, 2400, "control", "under the content")]
+    monkeypatch.setattr(ex, "ask", lambda *a: IconPass(names=[], unlisted=things))
+    ex.name_icons(s)
+    assert s.vision == [VisionElement(name="like", rect_px=Rect(x=800, y=320, w=80, h=80), kind="control"),
+                        VisionElement(name="photo", rect_px=Rect(x=100, y=300, w=800, h=500), kind="picture"),
+                        VisionElement(name="banner", rect_px=Rect(x=0, y=top, w=400, h=256 - top), kind="picture")]
+    assert [(c.label, c.rect, c.point) for c in s.cands if c.kind == "vision"] == [
+        (v.name, v.rect_px, ob.center(v.rect_px)) for v in s.vision]
 
 
 def test_core_loop_sends_and_measures_the_reply(run):

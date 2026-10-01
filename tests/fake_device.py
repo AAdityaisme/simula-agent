@@ -260,7 +260,7 @@ def fake_sonnet(model, system, messages, effort, schema, max_tokens, total_timeo
     if schema.__name__ == "IconPass":
         wanted = text.split("Name these boxes: ", 1)[1].split(".", 1)[0]
         ids = [int(n) for n in wanted.split(", ") if n.isdigit()]
-        body = {"names": [{"box_id": n, "name": f"icon {n}"} for n in ids], "extra_points": []}
+        body = {"names": [{"box_id": n, "name": f"icon {n}"} for n in ids], "unlisted": []}
     elif schema.__name__ == "Arrival":
         same = hamming(header_hash(parts[0]["png"]), header_hash(parts[1]["png"])) <= 6
         body = {"identifying_text": "", "verdict": "same" if same else "elsewhere", "confidence": 0.9, "action": None,

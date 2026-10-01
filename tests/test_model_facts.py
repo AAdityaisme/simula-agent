@@ -226,6 +226,34 @@ def test_icon_names_and_vision_elements_become_elements(tmp_path):
     assert on_s01 == {vision.id} | {e.id for e in listed if e.mcp_ref in named}, "labels a model wrote are marked"
 
 
+def test_a_picture_the_vision_pass_found_is_cropped_over_its_box_and_a_control_never_is(tmp_path):
+    rng = np.random.default_rng(0)
+    pixels = rng.integers(0, 256, (DEVICE.h_px, DEVICE.w_px, 3), dtype=np.uint8)
+    vision = [VisionElement(name="photo", rect_px=Rect(x=100, y=300, w=800, h=500), kind="picture"),
+              VisionElement(name="add photo", rect_px=Rect(x=100, y=1000, w=300, h=300), kind="control"),
+              VisionElement(name="", rect_px=Rect(x=500, y=1000, w=300, h=300), kind="control")]
+    elements = stage.build_elements("s01", [], [], vision, pixels, DEVICE)
+    state = State(id="s01", kind="screen", parent_id=None, name="", purpose="", fingerprint="", canonical_png="",
+                  elements=elements, in_mock_scope=False, content_rating="safe", dynamic_regions=[],
+                  blocked_reason=None)
+    (tmp_path / "assets").mkdir()
+    photo, *controls = stage.finish_elements(state, {"s01"}, set(), Image.fromarray(pixels), tmp_path,
+                                             DEVICE).elements
+    assert (photo.source, photo.label, photo.asset_png) == ("vision", "photo", "assets/s01.e01.png")
+    assert np.array_equal(np.asarray(Image.open(tmp_path / photo.asset_png)), pixels[300:800, 100:900])
+    assert [(e.asset_png, stage.is_image_like(e, elements, DEVICE)) for e in controls] == [(None, False)] * 2
+
+
+def test_a_vision_element_saved_before_kinds_parses_as_a_control_and_is_not_cropped():
+    """The submitted JanitorAI run's s05 entry: a 48 dp square around the point, with no kind."""
+    old = VisionElement.model_validate_json(
+        '{"name": "profile picture", "rect_px": {"x": 89.0, "y": 321.0, "w": 126.0, "h": 126.0}}')
+    pixels = np.random.default_rng(0).integers(0, 256, (DEVICE.h_px, DEVICE.w_px, 3), dtype=np.uint8)
+    element, = stage.build_elements("s05", [], [], [old], pixels, DEVICE)
+    assert old.kind == "control" and element.type == "vision"
+    assert not stage.is_image_like(element, [element], DEVICE)
+
+
 def test_a_missing_tree_file_fails_loudly(tmp_path):
     explore = build(APPS[0], tmp_path / "explore")
     (explore / "states" / "s01.elements.json").unlink()

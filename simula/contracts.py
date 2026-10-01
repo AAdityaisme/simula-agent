@@ -238,15 +238,19 @@ class IconName(Strict):
     name: str
 
 
-class TapPoint(Strict):
-    x: int
-    y: int
+class Unlisted(Strict):
+    """Something visible that has no box, by its edges in the image's pixels."""
+    left: int
+    top: int
+    right: int
+    bottom: int
+    kind: Literal["control", "picture"]
     name: str
 
 
 class IconPass(Strict):
     names: list[IconName]
-    extra_points: list[TapPoint]
+    unlisted: list[Unlisted]
 
 
 class HardScreenAction(Strict):
@@ -507,6 +511,7 @@ class IconLabel(Strict):
 class VisionElement(Strict):
     name: str
     rect_px: Rect
+    kind: Literal["control", "picture"] = "control"
 
 
 # ---------- file-level wrappers: every JSON file a stage writes carries schema_version ----------
