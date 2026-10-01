@@ -76,6 +76,9 @@ TOGGLE = re.compile(r"Switch|CheckBox|ToggleButton", re.IGNORECASE)
 DENY_ON_UPSELL = re.compile(r"continue|try|start|get|claim|unlock|join|redeem|activate|\bremove\b", re.IGNORECASE)
 DENY_IN_TOUR = re.compile(r"send|swipe|regenerate", re.IGNORECASE)
 DENY_IN_CORE = re.compile(r"\b(?:gifts?|coins?|gems?|tips?|donat\w*|credits?)\b", re.IGNORECASE)
+# what an overlay that asks something of the user says on its controls: an upgrade or plans word, or a decline
+ASKING = re.compile(r"^(?:not now|later|maybe later|no,? thanks)$|upgrade|premium|membership|subscription|remove ads|"
+                    r"\bad[- ]free\b|\bno ads\b|\bplans\b", re.IGNORECASE)
 DISMISS = re.compile(r"^(close\b.*|not now|later|maybe later|no,? thanks|skip|dismiss|got it|x|×|✕)$", re.IGNORECASE)
 BLOCKING = re.compile(r"emulator|rooted|captcha|verify (that )?you.?re (a )?human|age verification|"
                       r"date of birth|not supported on this device", re.IGNORECASE)
@@ -335,9 +338,9 @@ def controls(elements: list[dict], device: Device) -> list[Candidate]:
     after it: those (not a nested control's label) merge into it, and content that scrolled under an overlay,
     which comes before it, doesn't. A big element without words that holds two or more different texts is a
     layout, not a control. Words without a letter ("8", "1 / 102") are counters, not controls. A smaller element
-    inside a bigger one is part of it, except a control in a composer's row (a lower-half text box's row and the one
-    under it, as composer() reads it) that the bigger one doesn't absorb: a composer the keyboard lifted is drawn
-    over the reply under it."""
+    inside a bigger one is part of it, except a control in the composer's row (the row of the text box composer()
+    finds a send for, and the row under it) that the bigger one doesn't absorb: a composer the keyboard lifted is
+    drawn over the reply under it."""
     content = [e for e in elements if in_content(e, device) and area(rect(e)) < LAYOUT_SHARE * content_area(device)
                and rect(e).y + rect(e).h <= device.content_bottom_px + 16]
     found = []
@@ -359,12 +362,11 @@ def controls(elements: list[dict], device: Device) -> list[Candidate]:
         found.append((e, Candidate(label=tree_label or ident, kind=e["type"].split(".")[-1], rect=r, ref=e["ref"],
                                    tree_label=tree_label, ident=ident, enabled=e.get("enabled") is not False,
                                    checked=checked)))
-    middle = (device.content_top_px + device.content_bottom_px) / 2
-    boxes = [r for r in (rect(e) for e in content if e["type"].endswith("EditText")) if center(r)[1] > middle]
+    chat = composer([c for _, c in found], device)
 
     def lifted(e: dict, c: Candidate) -> bool:
-        y = center(c.rect)[1]
-        return any(b.y <= y < b.y + 2 * b.h for b in boxes) and (
+        row, y = chat[0].rect if chat else None, center(c.rect)[1]
+        return row is not None and row.y <= y < row.y + 2 * row.h and (
             "Button" in c.kind or (control_shaped(c.label, c.kind) and not TEXT_OR_IMAGE.search(e["type"])))
     kept = [c for e, c in found if not any(o is not c and area(o.rect) > area(c.rect) and inside(c.rect, o.rect)
                                            and (absorbs(oe, e) or not lifted(e, c)) for oe, o in found)]
@@ -472,9 +474,9 @@ def walled(cands: list[Candidate]) -> str:
 
 def asks(cands: list[Candidate]) -> bool:
     """Whether an overlay's own controls ask something of the user, the way a prompt does: a control-shaped label with
-    an upgrade or plans word (ENTRY), or a way to decline ("Not now", "Maybe later")."""
-    return any((control_shaped(c.label, c.kind) and ENTRY.search(c.label))
-               or DISMISS.match(c.label.strip()) for c in cands)
+    an upgrade or plans word, or a way to decline ("Not now", "Maybe later"). A close control asks nothing: an item's
+    page in a sheet has one too."""
+    return any(control_shaped(c.label, c.kind) and ASKING.search(c.label.strip()) for c in cands)
 
 
 def anr(elements: list[dict]) -> bool:

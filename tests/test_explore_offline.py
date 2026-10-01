@@ -1057,8 +1057,19 @@ def test_a_sign_in_sheet_in_the_feed_pass_stops_it(tmp_path, monkeypatch):
     assert ex.core.kind == "feed" and opened and opened[0].loop_stop == "sign-in wall"
 
 
-def test_a_sheet_the_feed_pass_opens_is_its_result_not_a_stop(tmp_path, monkeypatch):
-    ex, _ = new_explorer(tmp_path, monkeypatch, sheet_first)
+# rt-pr41 M2: an item's page in a sheet often has a close control; closing asks nothing of the user.
+@pytest.mark.parametrize("close", [None, ("ImageButton", "Close"), ("ImageView", "Dismiss")],
+                         ids=["plain", "close", "dismiss"])
+def test_a_sheet_the_feed_pass_opens_is_its_result_not_a_stop(tmp_path, monkeypatch, close):
+    def with_close(clock):
+        phone = sheet_first(clock)
+        if close:
+            sheet = phone.screens["sheet"]
+            control = {"ref": "@close", "type": f"android.widget.{close[0]}", "label": close[1],
+                       "coordinates": {"x": 960, "y": 2168, "width": 84, "height": 84}}
+            phone.screens["sheet"] = type(sheet)(sheet.elements + [control], sheet.image, sheet.package)
+        return phone
+    ex, _ = new_explorer(tmp_path, monkeypatch, with_close)
     monkeypatch.setattr(decide, "ask_choice", functools.partial(fake_jev, core_pick="open and read items"))
     stage.explore_app(ex)
     opened = [line for line in lines(ex) if line.loop_pass == 1 and line.to_state

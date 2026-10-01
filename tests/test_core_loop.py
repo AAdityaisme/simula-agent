@@ -144,8 +144,9 @@ def test_a_send_drawn_over_a_reply_the_keyboard_left_under_the_composer_is_still
 
 
 def test_a_bigger_control_still_takes_in_what_it_holds():
-    """A card keeps its button, a composer its hint, and a sheet listed before the page it covers (s09's "Block
-    character") the page's texts under it."""
+    """A card keeps its button, a composer its hint, a sheet listed before the page it covers (s09's "Block
+    character", the page listed between them) the page's texts under it, and a text box with no send in its bar (a
+    Filters sheet's "Enter tokens count", s14) the feed tags under it: a tap there lands on the sheet or the box."""
     card = [element("@card", "ViewGroup", 0, 900, 1080, 400, text="A card"),
             element("@title", "TextView", 40, 940, 600, 60, text="Its title"),
             element("@open", "Button", 40, 1100, 300, 120, text="Open")]
@@ -154,9 +155,13 @@ def test_a_bigger_control_still_takes_in_what_it_holds():
            element("@hint", "TextView", 80, 2080, 236, 53, text="Ask Luzia")]
     assert [c.ref for c in ob.controls(box, DEVICE)] == ["@box"]
     sheet = [element("@block", "ViewGroup", 0, 2120, 1080, 130, text="❌ Block character"),
+             element("@name", "TextView", 126, 174, 600, 60, text="Kang Jun-Seo"),
              element("@when", "TextView", 120, 2170, 204, 44, text="about 4 hours ago")]
-    assert [c.ref for c in ob.controls(sheet, DEVICE)] == ["@block"]
-    assert ob.absorbs(sheet[0], sheet[1]) and not ob.absorbs(sheet[1], sheet[0])
+    assert [c.ref for c in ob.controls(sheet, DEVICE)] == ["@block", "@name"]
+    assert ob.absorbs(sheet[0], sheet[2]) and not ob.absorbs(sheet[2], sheet[0])
+    tokens = [element("@tag", "ViewGroup", 63, 2096, 160, 58, label="📺 Anime"),
+              element("@tokens", "EditText", 43, 2040, 994, 145, text="Enter tokens count")]
+    assert [c.ref for c in ob.controls(tokens, DEVICE)] == ["@tokens"]
 
 
 # Fable E7: the explorer's own message carried a price, and any price on a chat made the conversation a paywall.
