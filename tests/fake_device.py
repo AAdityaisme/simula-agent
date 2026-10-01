@@ -242,7 +242,7 @@ class FakePhone:
         self.draft += text
         self.typed_at = self.clock.t
 
-    def launch(self) -> None:
+    def launch(self, retry: bool = True) -> None:
         """A live task comes to the front as it was, over whatever another app opened on it; else a fresh start."""
         self.tick(2.0)
         self.log.append(("launch",))
@@ -251,7 +251,7 @@ class FakePhone:
         while not self.ours(self.screen):
             self.screen = self.history.pop()
 
-    def terminate(self) -> None:
+    def terminate(self, retry: bool = True) -> None:
         self.tick()
         self.alive = False
 

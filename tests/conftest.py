@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from simula import runfolder
+from simula import qa_live, runfolder
 from simula.stages import explore
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -29,9 +29,9 @@ def pytest_collection_modifyitems(config, items):
 
 @pytest.fixture(autouse=True)
 def no_device(request, monkeypatch):
-    """Offline tests never reach the emulator: a chained run stops where explore would start mobile-mcp, and adb
-    answers only dumpsys, as an emulator does with its soft keyboard up over the lower part of the screen. A test
-    changes those answers through the dict this returns."""
+    """Offline tests never reach the emulator: a chained run stops where explore would start mobile-mcp, the live
+    walk where it would, and adb answers only dumpsys, as an emulator does with its soft keyboard up over the lower
+    part of the screen. A test changes those answers through the dict this returns."""
     if request.node.get_closest_marker("live"):
         return None
 
@@ -39,9 +39,10 @@ def no_device(request, monkeypatch):
 
     def refuse(*args, **kwargs):
         raise NotImplementedError("PR 1: offline tests never start mobile-mcp")
-    monkeypatch.setattr(explore, "Server", refuse)
-    monkeypatch.setattr(explore, "emulator_lock", lambda *args, **kwargs: contextlib.nullcontext())
-    monkeypatch.setattr(explore, "resolve_serial", lambda flag: flag or "offline-test")
+    for module in (explore, qa_live):
+        monkeypatch.setattr(module, "Server", refuse)
+        monkeypatch.setattr(module, "emulator_lock", lambda *args, **kwargs: contextlib.nullcontext())
+        monkeypatch.setattr(module, "resolve_serial", lambda flag: flag or "offline-test")
     dumpsys = {"input_method": "  mInputShown=true\n",
                "window": "  Window #3 Window{a1 u0 InputMethod}:\n    mFrame=[0,1500][1080,2400] last=[0,0][0,0]\n"}
     monkeypatch.setattr(explore, "adb_shell", lambda serial, args: dumpsys.get(args[1]) if args[0] == "dumpsys"

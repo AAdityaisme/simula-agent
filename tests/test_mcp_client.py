@@ -180,6 +180,33 @@ def test_an_action_that_errors_raises(tmp_path, action):
         action(mcp.Phone(RefusesActions(0), "com.example.app", tmp_path))
 
 
+class HangsOnSetup(FlakyServer):
+    """Times out on launching and terminating the app, the way a hung server does: the client kills it and respawns."""
+
+    def __init__(self):
+        super().__init__(0)
+        self.sent, self.respawns = [], 0
+
+    def call(self, tool, timeout, **args):
+        if tool == "mobile_list_available_devices":
+            return super().call(tool, timeout, **args)
+        self.sent.append(tool)
+        raise mcp.McpTimeout(f"{tool} took over {timeout:.0f}s")
+
+    def respawn(self):
+        self.respawns += 1
+
+
+@pytest.mark.parametrize("retry, sent", [(True, 2), (False, 1)])
+@pytest.mark.parametrize("setup", ["launch", "terminate"])
+def test_a_setup_call_that_times_out_is_sent_again_only_when_its_caller_allows_it(tmp_path, setup, retry, sent):
+    """Explore launches with a retry; the live walk takes none, since the first launch may have landed."""
+    server = HangsOnSetup()
+    with pytest.raises(mcp.McpTimeout):
+        getattr(mcp.Phone(server, "com.example.app", tmp_path), setup)(retry=retry)
+    assert server.sent == [f"mobile_{setup}_app"] * sent and server.respawns == 1
+
+
 class Lists(FlakyServer):
     def __init__(self, devices):
         super().__init__(0)

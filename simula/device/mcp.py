@@ -266,8 +266,8 @@ class Phone:
         except McpReplyError:
             raise McpReplyError("mobile_type_keys failed (its reply is withheld: it repeats the typed text)") from None
 
-    def launch(self) -> None:
-        self.act("mobile_launch_app", LAUNCH_TIMEOUT_S, retry=True, packageName=self.package)
+    def launch(self, retry: bool = True) -> None:
+        self.act("mobile_launch_app", LAUNCH_TIMEOUT_S, retry=retry, packageName=self.package)
 
-    def terminate(self) -> None:
-        self.act("mobile_terminate_app", LAUNCH_TIMEOUT_S, retry=True, packageName=self.package)
+    def terminate(self, retry: bool = True) -> None:
+        self.act("mobile_terminate_app", LAUNCH_TIMEOUT_S, retry=retry, packageName=self.package)
