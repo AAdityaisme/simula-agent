@@ -354,6 +354,72 @@ def test_a_batch_whose_first_answer_is_cut_off_keeps_room_for_its_retry(tmp_path
     assert first not in undrawn and second in undrawn and kept(run_dir) == 1
 
 
+class Bounded(threading.Condition):
+    """A condition whose waits give up after 5 s, so batches that deadlock fail the test instead of hanging it."""
+
+    def wait_for(self, predicate, timeout=None):
+        assert super().wait_for(predicate, 5 if timeout is None else timeout), "a batch waited 5 s: deadlock"
+        return True
+
+
+def draw_on_fake_budget(tmp_path, monkeypatch, cap: float, calls: dict, ended: list, parallel: int = 2):
+    """draw_batches over one-screen batches whose generate holds and charges the budget as llm.call does. `calls`
+    gives each batch's calls in order as (worst case, cost, seconds, cut off at max_tokens); `ended` collects the
+    calls in the order they ended."""
+    monkeypatch.setattr(mock, "PARALLEL_BATCHES", parallel)
+    monkeypatch.setattr(mock.threading, "Condition", Bounded)
+
+    def generate(ctx, content, budget, step):
+        for n, (worst, cost, seconds, cut_off) in enumerate(calls[step]):
+            if n:
+                budget.spare = False
+            budget.reserve(worst, step=step)
+            time.sleep(seconds)
+            budget.charge(cost, worst)
+            ended.append(step + (" retry" if n else ""))
+            if not cut_off:
+                return f'<section data-screen="{content[0]["text"]}"></section>'
+        raise llm.LLMFailure("max_tokens", "cut off")
+    monkeypatch.setattr(mock, "generate", generate)
+    groups = [[state(f"s{n:02d}")] for n in range(1, len(calls) + 1)]
+    contents = [[{"type": "text", "text": batch[0].id}] for batch in groups]
+    return mock.draw_batches(ctx_for(tmp_path, "janitorai"), groups, contents, llm.Budget("mock", cap), None)
+
+
+SOL_6 = {"batch1": [(2.0, 1.5, 0.1, True), (2.0, 0.5, 0, False)], "batch2": [(1.0, 0.5, 0.4, False)],
+         "batch3": [(1.0, 0.5, 0, False)]}
+
+
+def test_a_cut_off_batchs_retry_waits_for_a_later_batch_to_settle_and_is_drawn(tmp_path, monkeypatch):
+    """Sol 6: batch 1's answer is cut off, and its $2 retry doesn't fit beside batch 2's $1 hold under a $4 cap. It
+    used to be left undrawn while batch 2 drew; now it waits for batch 2 to settle, and what batch 2 gave back holds
+    it. Batch 3 can't start meanwhile, so it doesn't take that room."""
+    ended = []
+    drawn = draw_on_fake_budget(tmp_path, monkeypatch, 4.0, SOL_6, ended)
+    assert ended == ["batch1", "batch2", "batch1 retry"]
+    assert [batch[0].id for batch, _ in drawn.lost] == ["s03"] and drawn.plan.keep == 2
+
+
+def test_a_retry_that_still_doesnt_fit_leaves_out_its_batch_and_every_later_one_already_drawn(tmp_path, monkeypatch):
+    """Sol 6 again, with batch 2 costing $1: the room it gives back can't hold batch 1's retry, so batch 1 is left out,
+    and batch 2 with it though it drew, so the batches drawn stay the top-ranked ones."""
+    ended = []
+    with pytest.raises(llm.CapReached, match="over budget: batches 1-3 were left out"):
+        draw_on_fake_budget(tmp_path, monkeypatch, 4.0, {**SOL_6, "batch2": [(1.0, 1.0, 0.4, False)]}, ended)
+    assert ended == ["batch1", "batch2"]
+    assert json.loads((tmp_path / "mock" / "plan.json").read_text())["keep"] == 0
+
+
+def test_a_batch_turned_away_while_calls_are_in_flight_is_drawn_once_they_settle(tmp_path, monkeypatch):
+    """Fable M10: batch 3's $1 hold and its spare don't fit beside batches 1 and 2 in flight under a $3.50 cap. It used
+    to be left out, and every batch after it; now it waits for them to settle, and what they gave back holds it."""
+    ended = []
+    calls = {f"batch{n}": [(1.0, 0.2, 0.3 if n < 3 else 0, False)] for n in range(1, 5)}
+    drawn = draw_on_fake_budget(tmp_path, monkeypatch, 3.5, calls, ended, parallel=3)
+    assert sorted(ended[:2]) == ["batch1", "batch2"] and ended[2:] == ["batch3", "batch4"]
+    assert drawn.lost == [] and drawn.plan.keep == 4
+
+
 def test_a_retry_keeps_no_spare_even_as_its_batchs_first_hold(tmp_path, monkeypatch, app):
     """Red team probe R: run 1 cuts batch 1's first answer off (a known failure, cached) and loses its retry to a
     timeout. On the rerun the retry is the batch's first hold; it kept a spare for a retry that can't follow, so with

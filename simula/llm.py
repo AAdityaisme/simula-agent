@@ -111,6 +111,11 @@ class Budget:
                 raise refused
             self.held += worst_usd
 
+    def fits(self, worst_usd: float) -> bool:
+        """Whether reserve() would hold `worst_usd` (a spare included) now, refusing nothing and recording nothing."""
+        with self.lock:
+            return self.spent + self.held + worst_usd <= self.cap
+
     def rerun_cap(self, worst_usd: float) -> float:
         """A cap that gets a rerun past this stop even when nothing it did comes back from the cache (a render that
         changed misses it): what is spent and held, a whole cap again (the configured one, if this run's was lower),
