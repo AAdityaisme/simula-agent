@@ -242,7 +242,11 @@ class Phone:
         self.act("mobile_swipe_on_screen", direction=direction)
 
     def type_text(self, text: str) -> None:
-        self.act("mobile_type_keys", text=text, submit=False)
+        """A failed type's reply is withheld: mobile-mcp's error repeats the adb command, typed text and all."""
+        try:
+            self.act("mobile_type_keys", text=text, submit=False)
+        except McpReplyError:
+            raise McpReplyError("mobile_type_keys failed (its reply is withheld: it repeats the typed text)") from None
 
     def launch(self) -> None:
         self.act("mobile_launch_app", LAUNCH_TIMEOUT_S, retry=True, packageName=self.package)
