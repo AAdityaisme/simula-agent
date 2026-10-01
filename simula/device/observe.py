@@ -79,7 +79,7 @@ DENY_IN_CORE = re.compile(r"\b(?:gifts?|coins?|gems?|tips?|donat\w*|credits?)\b"
 # what an overlay that asks something of the user says on its controls: an upgrade or plans word, a brand's "+"
 # tier ("Brand+"), or a decline
 ASKING = re.compile(r"^(?:not now|later|maybe later|no,? thanks)$|upgrade|premium|membership|subscription|remove ads|"
-                    r"\bad[- ]free\b|\bno ads\b|\bplans\b|\w\+", re.IGNORECASE)
+                    r"\bad[- ]free\b|\bno ads\b|\bplans\b|[^\W\d_]\+", re.IGNORECASE)
 DISMISS = re.compile(r"^(close\b.*|not now|later|maybe later|no,? thanks|skip|dismiss|got it|x|×|✕)$", re.IGNORECASE)
 BLOCKING = re.compile(r"emulator|rooted|captcha|verify (that )?you.?re (a )?human|age verification|"
                       r"date of birth|not supported on this device", re.IGNORECASE)
