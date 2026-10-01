@@ -160,6 +160,8 @@ def test_a_refused_capture_is_tried_once_more_logged_and_nothing_else_is(caplog)
 NOT_BROWSER: dict[tuple[str, str], str] = {
     ("simula/stages/model.py", "sf"): "StateFile.screenshot, the saved file name of an explore capture",
     ("simula/stages/explore.py", "self.phone"): "the mobile-mcp device client shooting the phone, not Playwright",
+    ("simula/qa_live.py", "self.phone"): "the mobile-mcp device client shooting the phone, not Playwright",
+    ("simula/qa_live.py", "sf"): "StateFile.screenshot, the saved file name of an explore capture",
 }
 
 
