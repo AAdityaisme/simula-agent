@@ -653,7 +653,7 @@ def experiment_inputs(registration: Path, reg: dict, cases: list[Case], labels: 
     roles = config.roles(reg["profile"])
     models = {m: config.models()[m] for j in reg["judges"]
               for m in (roles[j]["model"], roles[j].get("declared_fallback")) if m}
-    seen = [(c.id, c.source, c.target, c.tier, known_good(c), c.app, c.app_type, c.in_test_set,
+    seen = [(c.id, c.source, c.target, c.tier, known_good(c), c.agent_written, c.app, c.app_type, c.in_test_set,
              judge.judge_messages(c.candidate, c.model)[0]["content"][0]["text"]) for c in cases]
     return {**{short(p): runfolder.sha256(p) for p in files},
             "labels": hashlib.sha256(json.dumps(labels, sort_keys=True).encode()).hexdigest(),

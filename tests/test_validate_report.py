@@ -6,6 +6,7 @@ import hashlib
 import json
 import shutil
 import subprocess
+import tomllib
 from dataclasses import replace
 
 import pytest
@@ -825,6 +826,18 @@ def test_a_later_arm_runs_only_on_the_inputs_the_first_arm_ran_on(tmp_path, read
     commit(tmp_path, "restore the cap; a commit that touches no input")
     run_arm(tmp_path)
     assert (tmp_path / "experiment-j" / "treatment" / "report.md").exists()
+
+
+def test_approving_an_agent_written_known_good_changes_an_arms_inputs():
+    """It moves the idea into the known-good rate, so arms drawn on either side of it score different populations."""
+    registration = validate.EXPERIMENTS / "experiment-j" / "registration.toml"
+    reg = tomllib.loads(registration.read_text())
+    cases = validate.load_cases()
+    draft = next(c for c in cases if c.agent_written)
+    approved = [replace(c, agent_written=False) if c is draft else c for c in cases]
+    def inputs(cs):
+        return validate.experiment_inputs(registration, reg, cs, {})
+    assert inputs(approved)["cases"] != inputs(cases)["cases"]
 
 
 @pytest.mark.parametrize("unmet, refusal", [
