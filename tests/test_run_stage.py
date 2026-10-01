@@ -595,3 +595,11 @@ def test_parallel_cap_stops_replay_to_the_same_reasons_in_either_order(runs, mon
     assert stops == ["a", "b", "b", "a"], "the replay reached the cap in the other order"
     assert runfolder.read_done(run_dir / "mock").outcome.reasons == live.reasons
 
+
+def test_a_new_judge_revision_cap_reruns_the_judge_and_no_other_stage(runs, monkeypatch):
+    ctx = cli.open_run(cli.parser().parse_args(["run", "janitorai", "--allow-fixtures"]))
+    before = {s: runfolder.params_hash(cli.stage_params(s, ctx)) for s in STAGES}
+    profiles = config.profiles()
+    monkeypatch.setattr(config, "profiles", lambda: {**profiles, "judge_revision_cap": 2})
+    after = {s: runfolder.params_hash(cli.stage_params(s, ctx)) for s in STAGES}
+    assert [s for s in STAGES if before[s] != after[s]] == ["judge"]
