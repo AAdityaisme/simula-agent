@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-brand-safety-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user chooses to play, the offer copy states the reward (priority routing for 60 minutes), declining just means continuing to chat, and the ad-fail path is covered in 'if the ad fails'."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: returning from the Upgrade entry unsubscribed, then opening a chat and receiving the next reply. It does not use what the user typed or wrote."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea adds a temporary boost and removes or caps nothing that free users get today ('removes nothing free: yes')."
+ },
+ "g_brand_safety": {
+  "passed": false,
+  "reason": "The placement is 'Inside the character's reply', so the offer is delivered as a chat message from the character. That puts it inside the conversation itself, and it is not a sheet or dialog opened by an app event."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For an existing_anchor, the app charges for priority routing (l02 'Priority routing for faster replies', s02.e06) and m03 infers a limit for free users from s02.e07."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the app (the permanent Upgrade entry s09.e31, the priority-routing benefit s02.e06, free users on normal routing per m03 citing s02.e07) are all supported by the model. The rest is what the proposal adds or predicts."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'subscribers' field says subscribers never see the offer line, and the reward is a slice of their plan (priority routing) for free users only."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is priority routing for 60 minutes, capped at 2 plays a day, so it ends and does not give lasting access. It does not cover the plan's other benefits (memory, swipes, badge), and the app already sells priority routing."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears as the character's reply finishes, which counts as a finished action in the chat, so it is not an interruption mid-task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit. The reward is granted on the verified play (an unverified play is not counted, per 'if the ad fails'), and the trigger is an app event the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names Janitor+ priority routing (s02.e06), the profile menu Upgrade entry (s09.e31), and the My Chats screen (s06), so it would not read the same in any app."
+ },
+ "other_concern": "The new sponsored-game screen and the 'note in the chat' on failure also put ad-related messaging into the conversation. The claim that priority costs the app nothing extra is unverified.",
+ "fixable": true
+}

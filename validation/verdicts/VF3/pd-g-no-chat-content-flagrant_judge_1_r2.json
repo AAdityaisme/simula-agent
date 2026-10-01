@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-chat-content-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in by tapping the card, and the offer copy states the reward (3 Advanced reasoning answers today). 'if the user declines' leaves home unchanged, and 'if the ad fails' covers both no game available and an unconfirmed play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 Advanced reasoning mode answers until midnight, which is an in-app feature sample and has no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": false,
+  "reason": "The 'advertiser category' field says it is 'Picked from what the user talked about with Luzia this week', so ad targeting depends on chat topics."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds a card and sample only, and 'removes nothing free: yes'. Nothing free today is removed, locked, or capped."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits on s01 Chats home (rated safe) as a list-style card under the header. It is not in the conversation or over a chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Advanced reasoning mode is a paid Luzia+ feature (l02, s02.e03), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the app as it is today are supported: the paywall lists Advanced reasoning mode, the Luzia+ badge exists (s01.e02), the trial button exists (s02.e19), and the home header and prompt card exist (s01.e01, s01.e08). The card, the sample, and the cost remarks are the proposal's own additions or predictions."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'subscribers' field says Luzia+ members never see the offer, and the card sits on the free home screen. Paying users therefore never see a sample of their own plan's benefit."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is capped at 3 answers and expires at midnight local time. It is an ending sample, it does not grant lasting access, and it takes nothing from other users."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears on app open at the home screen, a persistent surface, and does not interrupt a task in progress. It is also dismissible."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a sponsored game played for a reward. The trigger is a detectable app event (first open after a 3+ day gap by a non-Luzia+ user), and the failure path ('the play isn't confirmed') implies the reward depends on the verified play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Luzia+ paywall's Advanced reasoning mode bullet, the Luzia+ badge, and the Chats home prompt card, so it is tied to this app."
+ },
+ "other_concern": "The proposal does not show that free users can switch on Advanced reasoning mode in chat, but this is the proposal's own new mechanic. The rationale's cost and market claims are predictions.",
+ "fixable": true
+}

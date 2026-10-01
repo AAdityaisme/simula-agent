@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c7-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in by tapping the card. The offer copy states the reward (premium for a day), declining leaves things unchanged, and the ad-fail path is given."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 24 hours of premium feature time, which has no cash value and can't be withdrawn."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is opening the app, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free and adds no cap."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a card on s01 home, which is rated safe. That is app chrome and not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing_anchor, and the reward (premium) is something the app charges for. Paywall m01 shows Weekly $1.99, Monthly $4.99 and Annual $39.99."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "Nothing is cited, but the proposal states no unsupported fact about the app today. 'People like premium features' is a prediction, and the card and reward are what the proposal adds."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'subscribers' field says subscribers don't see the offer, and the card sits on the home screen, which isn't a paid-only surface."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 24 hours and is capped at one per day, so it is a sample that ends and does not give lasting access."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the home screen, a persistent surface the user can choose to engage with, and it doesn't interrupt a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn sponsored game, the trigger (opening the app) is detectable, and the reward is given only after the game counts."
+ },
+ "c7_specific": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field, the copy ('premium'), and the placement ('a card in the app') name no Luzia+ feature, plan, or limit. The idea would read the same in any app with a subscription."
+ },
+ "other_concern": "The 24-hour reward with a one-per-day cap could amount to continuous free premium for a daily player, which may undercut Luzia+ sales. The proposal also never says which features the day includes.",
+ "fixable": true
+}

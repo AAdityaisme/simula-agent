@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-chat-content-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 60-minute reward before the user chooses to play. The decline and ad-failure fields preserve normal use and address unavailable or unverified games."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": false,
+  "reason": "The trigger event field targets users whose chats are mostly long roleplay stories. Determining the chats' subject matter needs chat content, not just an app event."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and its decline path leaves replies at their normal speed."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile menu, which is rated safe and is away from chats."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing_anchor proposal, s02.e06 shows that Janitor+ sells the priority routing the reward provides."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says priority routing works by skipping a normal queue and moving the user earlier in line. s02.e06 and inferred m03 support faster, priority-routed replies, but do not establish that queue mechanism."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The subscribers field says subscribers never see the card; s02.e06 shows they already receive priority routing."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward lasts 60 minutes, and the frequency cap limits it to two plays per day; it does not grant lasting access to the Janitor+ benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a card on the profile menu, a persistent surface the user chooses to open, rather than an interruption to a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "Returning to the menu from Upgrade without subscribing is a detectable app event, and the flow grants the reward only after verified play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the s09.e31 Upgrade to Janitor Plus entry and the priority-routing benefit shown at s02.e06."
+ },
+ "other_concern": "The flow says the profile-menu card confirms the reward on My Chats, but does not explain how that card appears there.",
+ "fixable": false
+}

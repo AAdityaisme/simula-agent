@@ -67,7 +67,8 @@
    "breakeven_ecpm_8k": 0.0,
    "benchmark_ecpm": 10.16,
    "verdict": "PASS",
-   "assumption_line": "Costs nothing extra to serve, so any completed view pays for it. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1)."
+   "assumption_line": "Costs nothing extra to serve. It may give away something the app could sell (a place ahead of other users, which apps sell as a boost); that lost sale isn't counted. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1).",
+   "lost_sale": "a place ahead of other users, which apps sell as a boost"
   },
   "reach_score": 0.5,
   "rank_score": 0.5,

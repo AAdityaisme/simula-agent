@@ -1397,3 +1397,24 @@ def test_a_relaunch_records_a_new_sign_in_wall_even_when_its_button_matches_the_
 
     ex.relaunch()
     assert {c.key for c in home.cands} == original and ex.current is not home, (home.sid, ex.current.sid)
+
+
+def test_the_fake_phone_encodes_each_picture_once_and_writes_what_a_plain_save_would(tmp_path, monkeypatch):
+    """An explore captures the same few screens ~150 times; encoding every full-size capture again was most of what
+    an offline explore cost."""
+    square, tall = (Screen([], Image.new("RGB", size, "red"), PACKAGE) for size in ((2, 2), (1, 4)))  # same bytes
+    phone = FakePhone(screens={"home": capture("janitorai", "j02_home"), "tab": capture("janitorai", "j04_tab1"),
+                               "square": square, "tall": tall}, start="home", taps={}, clock=Clock())
+    encodes, save = [], Image.Image.save
+    monkeypatch.setattr(Image.Image, "save", lambda image, *args, **kwargs: encodes.append(image.size)
+                        or save(image, *args, **kwargs))
+    homes = [phone.screenshot(tmp_path / f"home-{n}.png") for n in range(3)]
+    phone.go("tab")
+    tab = phone.screenshot(tmp_path / "tab.png")
+    assert len(encodes) == 2
+    for shape in ("square", "tall"):
+        phone.go(shape)
+        assert Image.open(phone.screenshot(tmp_path / f"{shape}.png")).size == phone.screens[shape].image.size
+    assert len(encodes) == 4
+    save(phone.screens["tab"].image, tmp_path / "plain.png")
+    assert {path.read_bytes() for path in homes} != {tab.read_bytes()} == {(tmp_path / "plain.png").read_bytes()}

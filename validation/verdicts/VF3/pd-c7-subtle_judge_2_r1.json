@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c7-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner is opt-in, the offer copy states 30 minutes without ads, and the decline and ad-failure fields leave the app unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is an in-app ad-free window, not cash or transferable value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses time in the app and playable readiness, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and removes-nothing-free fields do not remove or cap an existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner on s01 Home · Top Stories, which the product model rates content safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The product-change reward gives the player an ad-free window for their own use while reading or browsing, the observed core flows f01 and f02."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claim that the app shows ads is supported by observed mechanic m01 and the ad placement on s01. The revenue statement is a prediction, not a claim about the app today."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no paid plan, so the subscribers field does not establish a conflict with a paid benefit."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes and does not take an existing benefit from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The banner is placed on s01 Home · Top Stories, a persistent screen users can choose to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game, the failure path withholds the reward if play is not confirmed, and the trigger is detectable in-app."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names s01 Home · Top Stories and bases the ad-free reward on the app's observed ads."
+ },
+ "other_concern": "",
+ "fixable": false
+}

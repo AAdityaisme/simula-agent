@@ -5,12 +5,14 @@ import json
 import re
 import shutil
 import statistics
+import unicodedata
 from collections import Counter
 from itertools import count
 from io import BytesIO
 from pathlib import Path
 
 import numpy as np
+import regex
 from PIL import Image
 
 from simula import config, llm, render, runfolder, text
@@ -31,6 +33,8 @@ NOT_OBSERVED = "meaning not observed"
 EVERYDAY = " (everyday word, never flagged)"
 # Two or more letters in a row, each with the marks written on it: "मैसेज" is three letters, not three runs of one.
 WORD = re.compile(f"(?:[^\\W\\d_][{text.MARK}]*){{2,}}")
+LABEL_CHARS = 30
+SEPARATORS = ",;:、，；："
 SCREEN_CHANGE = re.compile(r"→|(?:^|;\s*)[+-]['\"]")
 MEASURE = re.compile(r"^(?P<what>.*?)\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>[^\d\s]*)$")
 NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
@@ -748,13 +752,27 @@ def mermaid_label(text: str) -> str:
     return re.sub(r'["\[\](){}|<>]', " ", text).strip() or "?"
 
 
+def short_name(name: str, limit: int = LABEL_CHARS) -> str:
+    """`name` on one line, cut past `limit` drawn characters (Unicode grapheme clusters) with "…": at the last space
+    in the cut's second half, else at the limit, as a script written without spaces needs. A space, dash, opening
+    bracket or quote, or comma-like separator left before the "…" goes; "%", "?", "!", "." and closing quotes stay."""
+    chars = regex.findall(r"\X", " ".join(name.split()))
+    if len(chars) <= limit:
+        return "".join(chars)
+    cut = next((i for i in range(limit, limit // 2 - 1, -1) if chars[i] == " "), limit)
+    kept = chars[:cut]
+    while kept and (kept[-1] in SEPARATORS or unicodedata.category(kept[-1][0]) in ("Zs", "Pd", "Ps", "Pi")):
+        kept.pop()
+    return "".join(kept) + "…"
+
+
 def render_md(model: ProductModel) -> str:
     elements = {e.id: e for s in model.states for e in s.elements}
     edges = {e.id: e for e in model.edges}
 
     def edge_line(e: Edge) -> str:
         el = elements.get(e.element_id)
-        what = mermaid_label((el.text or el.label or el.role) if el else e.action)
+        what = short_name(mermaid_label((el.text or el.label or el.role) if el else e.action))
         return f"  {e.from_state} -->|{e.transition}: {what}| {e.to_state}"
 
     lines = [f"# Product model: {model.app_name or model.app} {model.app_version}", "",
