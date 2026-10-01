@@ -1487,6 +1487,127 @@ def test_a_replay_relaunch_that_can_not_verify_the_filter_ends_the_replay_check(
     assert stage.outcome(ex).status == "partial"
 
 
+def log_filter_checks(ex, phone, monkeypatch) -> None:
+    """Each filter check's outcome goes into the phone's log, beside the launches and taps."""
+    check = ex.check_filter
+
+    def logged():
+        try:
+            check()
+        finally:
+            phone.log.append(("check", ex.filtered))
+    monkeypatch.setattr(ex, "check_filter", logged)
+
+
+def unfiltered_taps(log: list[tuple]) -> list[tuple]:
+    """The janitor-like app's taps between a launch and a passing filter check, other than on the launch dialog
+    (closing it, or the paywall pass following its upsell) and on the filter chip."""
+    return [e for n, e in enumerate(log) if e[0] == "tap" and e[1] != "launch" and "Limited Only" not in e[2]
+            and next((x for x in reversed(log[:n]) if x[0] in ("launch", "check")), None) in (("launch",),
+                                                                                             ("check", False))]
+
+
+def test_with_one_relaunch_left_the_paywall_pass_never_reopens_the_launch_dialog_unfiltered(tmp_path, monkeypatch):
+    """rt-pr43-3b1fb8c HIGH 1 (F1): the paywall pass reopens the launch dialog, a launch without the filter, and puts
+    the filter back with the relaunch after it. With one relaunch left that relaunch hit the cap, and the core loop
+    and the replay check tapped on in the unfiltered launch. Now a launch dialog is reopened only with two left, and
+    no tap but the launch dialog's and the filter's runs between a launch and a passing filter check."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    log_filter_checks(ex, phone, monkeypatch)
+    paywall = ex.paywall_pass
+
+    @functools.wraps(paywall)
+    def at_the_cap():
+        ex.relaunches = stage.MAX_RELAUNCHES + stage.CORE_RELAUNCHES - 1
+        paywall()
+    monkeypatch.setattr(ex, "paywall_pass", at_the_cap)
+    stage.explore_app(ex)
+    assert any("not reopened" in t.note for t in runlog.read_trace(ex.run_dir / "trace.jsonl"))
+    assert ("check", True) in phone.log and unfiltered_taps(phone.log) == []
+
+
+@pytest.mark.parametrize("launch", ["reopen", "launching", "quiet_launch", "relaunch"])
+def test_a_tap_after_a_launch_that_did_not_verify_the_filter_ends_the_explore(tmp_path, monkeypatch, launch):
+    """rt-pr43-3b1fb8c's general fix: every launch starts unfiltered, and only a passing filter check marks it
+    filtered. After the paywall pass's reopen() of the launch dialog, or any bare terminate and launch, a tap on the
+    app ends the explore before it reaches the device; after a launch that verified the filter (the replay check's,
+    a relaunch), it runs."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    ex.relaunch(first=True)
+    dialog = next(s for s in ex.states if s.launch)
+    if launch == "reopen":
+        assert ex.reopen(dialog)
+    elif launch == "launching":
+        with ex.launching(ex.launch_root):
+            ex.current = ex.record(ex.wait_for_app(ex.launch_root), None, None, None)
+    else:
+        getattr(ex, launch)()
+        ex.current = ex.record(ex.observe(), None, None, None)
+    tab = next(c for c in ex.obs.cands if c.key in ex.tab_keys() or c.label == "Close subscription announcement")
+    taps = sum(e[0] == "tap" for e in phone.log)
+    if launch in ("reopen", "launching"):
+        with pytest.raises(stage.Unfiltered):
+            ex.act(stage.Move("tap", tab))
+        assert sum(e[0] == "tap" for e in phone.log) == taps
+    else:
+        ex.act(stage.Move("tap", tab))
+        assert sum(e[0] == "tap" for e in phone.log) == taps + 1
+
+
+def test_a_filter_chip_that_changed_class_is_not_verified_by_its_text(tmp_path, monkeypatch):
+    """rt-pr43-3b1fb8c MEDIUM 1 (F2): after the first relaunch the chip's label stays and its class changes, so no
+    control matches it and it isn't tapped. Its label is still among the screen's texts, which verified the filter
+    before; a control the screen doesn't show is no longer verified, so the explore ends there."""
+    def factory(clock):
+        phone, launches = janitor_like(clock), []
+        launch = phone.launch
+
+        def reclassed():
+            launch()
+            launches.append(len(phone.log))
+            if len(launches) == 2:
+                for name in ("root", "limited"):
+                    screen = phone.screens[name]
+                    phone.screens[name] = Screen([{**e, "type": "android.widget.Button"}
+                                                  if e.get("label") == "Limited Only" else e for e in screen.elements],
+                                                 screen.image, screen.package)
+        phone.launch, phone.launches = reclassed, launches
+        return phone
+    ex, phone = explore(tmp_path, monkeypatch, factory)
+    assert ex.stop_reason == f"content filter not verified (check {len(ex.filter_checks)})"
+    assert [ok for _, ok, _ in ex.filter_checks][-1] is False
+    assert {e[1] for e in phone.log[phone.launches[1]:] if e[0] == "tap"} <= {"launch"}
+
+
+@pytest.mark.parametrize("opener_says, verified", [("Safe mode: SFW only", True), ("Safe mode", False)])
+def test_an_option_on_a_sheet_that_closed_is_verified_only_where_its_opener_shows_it(tmp_path, monkeypatch,
+                                                                                     opener_says, verified):
+    """rt-pr43-3b1fb8c MEDIUM 1: a filter set by an option on a sheet ("SFW only"), and the sheet closed. The option
+    isn't on the screen, so it counts only where its opener now shows its label; its text elsewhere, or an opener
+    that doesn't show it, is not verified."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    root = phone.screens["root"]
+    chip = next(e for e in root.elements if e.get("label") == "Limited Only")
+    phone.screens["home"] = Screen([{**e, "label": opener_says} if e is chip else e for e in root.elements]
+                                   + [{"ref": "@note", "type": "android.widget.TextView", "text": "SFW only",
+                                       "coordinates": {"x": 40, "y": 1900, "width": 300, "height": 40}}],
+                                   root.image, root.package)
+    phone.screen = "home"
+    ex.observe()
+    opener = ob.Candidate(label="Safe mode", kind="ViewGroup", rect=ob.rect(chip), ref="@opener",
+                          tree_label="Safe mode")
+    option = ob.Candidate(label="SFW only", kind="Button", rect=stage.Rect(x=60, y=1500, w=960, h=120), ref="@option",
+                          tree_label="SFW only")
+    ex.filter_taps = [opener, option]
+    if verified:
+        ex.check_filter()
+        assert ex.filtered and ex.filter_checks[-1][1]
+    else:
+        with pytest.raises(stage.Unfiltered):
+            ex.check_filter()
+        assert not ex.filtered
+
+
 @pytest.mark.parametrize("reset", [False, True])
 def test_a_return_to_home_checks_its_filter_switch_and_ends_the_explore_if_it_reset(tmp_path, monkeypatch, reset):
     """rt-pr43-f6702e7 LOW 2: home holds the filter switch, turned on, and an app opened from home is left with a

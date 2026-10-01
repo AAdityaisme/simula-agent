@@ -290,6 +290,8 @@ class Explorer:
         self.filter_taps: list[ob.Candidate] = []
         self.filter_on: bool | None = None  # the state a switch filter is kept in; None when the filter is a tap
         self.filter_checks: list[tuple[int, bool, str]] = []
+        self.filtered = False  # this launch of the app passed check_filter(); every launch clears it
+        self.setup = False  # a launch's own taps run (setting_up), before the filter is verified
         self.segments: list[list[tuple[Move, str, str]]] = []
         self.touring = True
         self.step = self.actions = self.relaunches = self.last_new_at = 0
@@ -644,7 +646,8 @@ class Explorer:
         """Invariant 3: a recorded control is tapped only when the screen shows it as it was recorded, compared with
         its crop in the capture it was recorded from; one no state holds has none, and is never shown. A control read
         off the live screen is what the screen shows, unless its tap point lies under the tab bar. One the keyboard was
-        painted over, live or in its recorded crop, is not shown: a tap there lands on a key, and black matches black."""
+        painted over, live or in its recorded crop, is not shown: a tap there lands on a key, and black matches
+        black."""
         if self.under_tab_bar(cand, live, now) or self.painted_over(cand, live, now):
             return False
         if any(c is cand for c in now.cands):
@@ -716,7 +719,12 @@ class Explorer:
 
     def tap(self, live: ob.Candidate, elements: list[dict], **deny) -> str:
         """Every tap reaches the device here, unless the deny-list hits what the live list shows at its point
-        (ob.denied_at). Returns why it refused, or "" once tapped."""
+        (ob.denied_at). Returns why it refused, or "" once tapped. An app with a content filter is tapped only once
+        this launch of it passed check_filter(), or by setting_up(): any other tap ends the explore (Unfiltered)."""
+        if self.filter_taps and not (self.filtered or self.setup):
+            why = f"content filter not verified since the app was launched (a tap on {live.label[:30]!r})"
+            self.human("the content filter isn't verified", why)
+            raise Unfiltered(why)
         refused = ob.denied_at(live, elements, self.device, **deny)
         if not refused:
             self.phone.tap(*live.point)
@@ -821,11 +829,24 @@ class Explorer:
 
     @contextlib.contextmanager
     def launching(self, home: Seen | None):
-        """A fresh launch; until the caller has set it up, a landing on home's top chrome is home."""
+        """A fresh launch, unfiltered until check_filter() passes on it. Until the caller has set it up, its taps are
+        the launch's own (setting_up), and a landing on home's top chrome is home."""
         self.phone.terminate()
         self.phone.launch()
-        with self.homing(home):
+        self.filtered = False
+        with self.homing(home), self.setting_up():
             yield
+
+    @contextlib.contextmanager
+    def setting_up(self):
+        """Taps that tap() lets through before the content filter is verified: a launch's own (its dialogs, the
+        recorded route to the launch screen, the filter's controls, a way past a launch wall) and the paywall pass's
+        tap on a reopened launch dialog's upsell entry."""
+        before, self.setup = self.setup, True
+        try:
+            yield
+        finally:
+            self.setup = before
 
     @contextlib.contextmanager
     def homing(self, home: Seen | None):
@@ -1042,10 +1063,15 @@ class Explorer:
         return float(np.abs(mean_color(self.obs.image, live.rect) - others).sum()) > 40
 
     def check_filter(self) -> None:
-        last = self.filter_taps[-1]
+        """The filter's last control, found on the screen, shows what the filter wants (a switch's state, a chip or a
+        sheet's option standing out). An option on a sheet that closed counts where its opener now shows its label.
+        A control the screen doesn't show is not verified. A pass marks this launch filtered; a fail ends the
+        explore."""
+        last, opener = self.filter_taps[-1], self.filter_taps[0]
         live = ob.find(self.obs.cands, last)
         ok = (live.checked == self.filter_on if self.filter_on is not None else self.stands_out(last)) if live \
-            else last.tree_label in ob.texts(self.obs.elements, self.device)
+            else last is not opener and bool(last.tree_label) and any(
+                last.tree_label in c.label for c in self.obs.cands if ob.overlaps(c.rect, opener.rect))
         n = len(self.filter_checks) + 1
         evidence = self.out / "filter" / f"check-{n:02d}.png"
         evidence.parent.mkdir(exist_ok=True)
@@ -1056,6 +1082,7 @@ class Explorer:
         if not ok:
             self.human("the content filter can't be verified", f"{last.label!r} not verified by screenshot (check {n})")
             raise Unfiltered(f"content filter not verified (check {n})")
+        self.filtered = True
 
     # ---------- account walls (--allow-account-create) ----------
 
@@ -1682,8 +1709,12 @@ class Explorer:
         for s, entry in entries[:2]:
             if self.priced_paywall():
                 break
+            if s.launch and MAX_RELAUNCHES + CORE_RELAUNCHES - self.relaunches < 2:
+                self.note("paywall", f"launch dialog {s.sid} not reopened: that takes two relaunches, fewer are left")
+                continue
             if self.reopen(s) if s.launch else self.goto(s):
-                self.follow_entry(entry)
+                with self.setting_up() if s.launch else contextlib.nullcontext():
+                    self.follow_entry(entry)
             if s.launch:
                 self.relaunch(why="the launch screen again, with the content filter, after the launch dialog")
         priced = self.priced_paywall()
@@ -2216,21 +2247,21 @@ class Explorer:
         as the explore's is, so a replay never taps on without it."""
         with self.launching(self.launch_root):
             self.wait_for_app(self.launch_root)
-        for _ in range(3):
-            if not ob.dialog_box(self.obs.cands, self.device):
-                break
-            close = ob.dismiss_control(self.obs.cands)
-            if close is None:
-                self.perform(Move("back"), None)
-            elif not self.safe_tap(close, "replay"):
-                break
-            self.observe()
-        for n, tap in enumerate(self.filter_taps):
-            live = ob.find(self.obs.cands, tap)
-            if live and not self.filter_set(n) and self.safe_tap(live, "replay"):
+            for _ in range(3):
+                if not ob.dialog_box(self.obs.cands, self.device):
+                    break
+                close = ob.dismiss_control(self.obs.cands)
+                if close is None:
+                    self.perform(Move("back"), None)
+                elif not self.safe_tap(close, "replay"):
+                    break
                 self.observe()
-        if self.filter_taps:
-            self.check_filter()
+            for n, tap in enumerate(self.filter_taps):
+                live = ob.find(self.obs.cands, tap)
+                if live and not self.filter_set(n) and self.safe_tap(live, "replay"):
+                    self.observe()
+            if self.filter_taps:
+                self.check_filter()
 
     # ---------- Jev and Sonnet ----------
 
