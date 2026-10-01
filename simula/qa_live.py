@@ -23,7 +23,6 @@ from simula.stages import Ctx, explore, mock, qa
 MAX_ACTIONS = 30
 MAX_MINUTES = 10
 ROUTE_HOPS = 4
-LAUNCH_WAIT_S = 60
 SWIPE = "up"  # explore records no swipe direction; its tour only ever swipes up
 TAKEN = ("tap", "back", "swipe")
 AWAY = ("external", "rotated", "blocked")
@@ -310,23 +309,35 @@ class Audit:
             except DEVICE_ERRORS as e:
                 raise Stopped(f"the device failed to {name} the app ({type(e).__name__}); not retried") from None
             self.setup.append({"flow": self.flow, "action": name})
-        self.live = self.wait_for_launch()
+        self.live = self.wait_for_launch(want)
         self.verdict = self.match_state(self.live, want, launched=True)
         self.current = self.verdict["landed"]
         self.setup[-1].update(self.verdict)
 
-    def wait_for_launch(self) -> Live:
-        """Looks until a launch screen shows or LAUNCH_WAIT_S passes; until then a dump that fails is only "not yet"."""
-        deadline = self.clock() + LAUNCH_WAIT_S
-        while True:
-            try:
-                live = self.capture()
-                if (live.fg == self.package and launchable(live, self.device)) or self.clock() >= deadline:
-                    return live
-            except DEVICE_ERRORS:
-                if self.clock() >= deadline:
-                    raise
+    def wait_for_launch(self, want: str) -> Live:
+        """Looks as explore waits for a relaunch (Explorer.wait_for_app): up to SPLASH_WAIT_S for a launch screen, then
+        up to LAUNCH_WAIT_S for want's fingerprint or a dialog, since a feed can sit on loading placeholders for many
+        seconds. Before the splash deadline, a dump that fails is only "not yet"."""
+        splash = self.clock() + explore.SPLASH_WAIT_S
+        live = self.look_once(splash)
+        while live is None or not (live.fg == self.package and launchable(live, self.device)) \
+                and self.clock() < splash:
             self.sleep(1.5)
+            live = self.look_once(splash)
+        deadline = self.clock() + explore.LAUNCH_WAIT_S
+        while (live.fg == self.package and not ob.same_state(self.fps[want], live.fp)
+               and not ob.dialog_box(live.cands, self.device) and self.clock() < deadline):
+            self.sleep(1.5)
+            live = self.look_once(splash) or live
+        return live
+
+    def look_once(self, deadline: float) -> Live | None:
+        try:
+            return self.capture()
+        except DEVICE_ERRORS:
+            if self.clock() >= deadline:
+                raise
+            return None
 
     def route(self, src: str, dst: str) -> list[Edge] | None:
         """The shortest path of recorded edges the walker can take, at most ROUTE_HOPS long and never through a state

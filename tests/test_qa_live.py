@@ -335,6 +335,31 @@ def test_a_cap_ends_the_audit_and_every_flow_left_says_why(runs, walk, monkeypat
     assert walk.held == ["held", "released"]
 
 
+class LoadsSlowly(FakePhone):
+    """Opens on the feed's loading placeholders, which give way to the feed six seconds later."""
+
+    def launch(self, retry: bool = True) -> None:
+        super().launch(retry)
+        self.screen, self.loaded_at = "loading", self.clock.t + 6
+
+    def tick(self, seconds: float = 0.3) -> None:
+        super().tick(seconds)
+        if self.screen == "loading" and self.clock.t >= self.loaded_at:
+            self.screen = "s01"
+
+
+def test_a_launch_is_looked_at_once_the_feed_has_loaded_not_on_its_placeholders(runs, walk):
+    recorded = screens()
+    tab_back_run(runs, recorded)
+    phone = phone_for(screens() | {"loading": capture("janitorai", "j02_home")},
+                      [("s01", tab(recorded["s01"], 1), "s02")], cls=LoadsSlowly)
+
+    report = walk(phone)
+
+    assert report["setup"][1]["verdict"] == "same"
+    assert report["flows"][0]["checkpoints"][0]["live"]["verdict"] == "same"
+
+
 class HangingLaunch(FakePhone):
     def launch(self, retry: bool = True) -> None:
         self.log.append(("launch attempt", retry))
