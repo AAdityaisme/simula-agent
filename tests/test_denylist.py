@@ -6,7 +6,7 @@ import dataclasses
 import pytest
 
 from simula.contracts import Device, Rect
-from simula.device.observe import Candidate, denied, denied_at, dismiss_control, worded
+from simula.device.observe import Candidate, denied, denied_at, dismiss_control, is_upsell, worded
 from tests.fake_device import capture
 
 
@@ -130,7 +130,42 @@ def test_a_reply_container_under_a_lifted_composer_never_refuses_send_or_the_tex
                 listed("@e52", "ViewGroup", "", "Send", 922, 1338, 89, 89)]
     send = Candidate(label="Send", kind="ViewGroup", rect=Rect(x=922, y=1338, w=89, h=89), ref="@e52", tree_label="Send")
     box = Candidate(label="", kind="EditText", rect=Rect(x=46, y=1215, w=988, h=123), ref="@e48", tree_label="")
-    assert denied_at(send, elements, Device(), core=True) == "" and denied_at(box, elements, Device(), core=True) == ""
+    for upsell in (False, True):  # the container is no ancestor of Send: the text box listed between lies outside it
+        assert denied_at(send, elements, Device(), core=True, upsell=upsell) == ""
+        assert denied_at(box, elements, Device(), core=True, upsell=upsell) == ""
+
+
+def test_a_wordless_call_to_action_inside_a_paywall_card_is_refused_and_its_not_now_runs():
+    """A paywall card labelled with all its text is no control, so it absorbs nothing; on an upsell screen its words
+    still count over a control it is the ancestor of, so a wordless button inside it is refused. Its "Not now" runs."""
+    card = listed("@card", "ViewGroup", "",
+                  "Unlock Premium. Unlimited chats and memory. $9.99/month, cancel anytime. Continue. Not now",
+                  40, 900, 1000, 900)
+    elements = [card, listed("@t", "TextView", "Unlock Premium", "", 80, 930, 900, 70),
+                listed("@p", "TextView", "$9.99/month, cancel anytime", "", 80, 1100, 900, 60),
+                listed("@c", "Button", "Continue", "", 140, 1500, 700, 120),
+                listed("@i", "ImageView", "", "", 880, 1500, 100, 100),
+                listed("@n", "Button", "Not now", "", 140, 1650, 800, 100)]
+    arrow = Candidate(label="", kind="ImageView", rect=Rect(x=880, y=1500, w=100, h=100), ref="@i", tree_label="")
+    not_now = Candidate(label="Not now", kind="Button", rect=Rect(x=140, y=1650, w=800, h=100), ref="@n",
+                        tree_label="Not now")
+    assert is_upsell(elements, Device()) and denied(arrow, upsell=True) is None
+    assert denied_at(arrow, elements, Device(), upsell=True) and denied_at(not_now, elements, Device(), upsell=True) == ""
+
+
+def test_another_page_of_a_pager_in_the_same_box_is_beside_a_row_and_a_card_after_it_is_over_it():
+    """AOL's feed (committed run, s10): two ViewPagers of one box list two pages of rows over each other. What the
+    second page lists is beside a row of the first, not over it; a card listed after that page still is."""
+    elements = [listed("@p1", "ViewPager", "", "", 0, 283, 1080, 2117),
+                listed("@row", "ViewGroup", "", "Read item", 0, 800, 1080, 300),
+                listed("@p2", "ViewPager", "", "", 0, 283, 1080, 2117),
+                listed("@next", "TextView", "Entertainment Weekly", "", 300, 900, 500, 100),
+                listed("@bar", "FrameLayout", "", "", 0, 0, 1080, 220),
+                listed("@card", "TextView", "What's new", "", 300, 900, 500, 100)]
+    row = Candidate(label="Read item", kind="ViewGroup", rect=Rect(x=0, y=800, w=1080, h=300), ref="@row",
+                    tree_label="Read item")
+    assert denied_at(row, elements[:4], Device()) == ""
+    assert "drawn over" in denied_at(row, elements, Device())
 
 def test_a_sheet_row_listed_before_the_page_under_it_refuses_a_tap_on_the_page():
     """rt-pr41-b7dc068 H3, on PR O's capture (20261001-035432-69c8c4f, s09): a bottom sheet is listed before the

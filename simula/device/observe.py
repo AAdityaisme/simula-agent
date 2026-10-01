@@ -94,6 +94,7 @@ CLOCK = re.compile(r"\b\d{1,2}:\d{2}\b|\bago\b", re.IGNORECASE)
 LETTER = re.compile(r"[^\W\d_]")
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
 LEAF = re.compile(r"(?:TextView|ImageView|EditText)$")
+PAGED = re.compile(r"ViewPager|RecyclerView|ListView|ScrollView")
 REDACTED = "[redacted]"
 
 
@@ -416,30 +417,71 @@ def worded(elements: list[dict], device: Device) -> list[Candidate]:
             for e in elements if words(e) and in_content(e, device)]
 
 
+def windows(elements: list[dict]) -> list[int]:
+    """Each element's window, numbered in list order. The device lists an upper window before the ones under it (an
+    app's popup, systemui's clipboard overlay, then the status bar and the activity, measured 2026-10-01), each from
+    its root: an activity's action_bar_root, or an android:id/content that isn't right under one."""
+    found, n = [], 0
+    for k, e in enumerate(elements):
+        ident = e.get("identifier") or ""
+        under_root = k and (elements[k - 1].get("identifier") or "").endswith(":id/action_bar_root")
+        n += bool(k) and (ident.endswith(":id/action_bar_root") or ident == "android:id/content" and not under_root)
+        found.append(n)
+    return found
+
+
 def denied_at(target: Candidate, elements: list[dict], device: Device, **deny) -> str:
-    """Why a tap on target must not run: the deny-list's hit on a worded element of the live list that holds the tap
-    point, or "" for none. The list as it is, not the controls, which merge a container's words and drop a button
-    nested in a bigger one, so a sign-in button a card draws inside a row's box is read. The list is in drawing order,
-    parent first: what it lists right after the target inside its box is the target's own (a send button's icon
-    labelled "Confirm button"), judged with the target. What it lists before the target is content under it, like a
-    reply under a lifted composer's Send, unless it absorbs the target: a sheet's "Block character" row, listed
-    before the page it covers, over a timestamp. Limits: with no hierarchy, a deny-worded
-    sibling listed right after the target inside its box reads as the target's own, and a control-shaped container
-    listed before the target and around it reads as over it; a wordless overlay that draws nothing is unseen: no list
+    """Why a tap on target must not run, or "" for none: the deny-list's hit on an element of the live list over the
+    tap point, else something drawn over the target there. The list as it is, not the controls, which merge a
+    container's words and drop a button nested in a bigger one, so a sign-in button a card draws inside a row's box is
+    read. Within a window the list is in drawing order, parent first. The run it lists right after the target inside
+    its box is the target's own (a send button's icon labelled "Confirm button") and is not read. What it lists after
+    that run is over the target: a deny word there refuses the tap, and so does an element that isn't around the
+    whole target and shows words, its own or ones listed after it inside it (a card over a row, even one whose words
+    ask for nothing). What it lists before the target is content under it, like a reply under a lifted composer's
+    Send, unless it absorbs the target (a sheet's "Block character" row, listed before the page it covers, over a
+    timestamp) or, on an upsell screen, is the target's ancestor (everything listed between them lies inside it): a
+    paywall card labelled with all its text over a wordless call to action, though not over its own "Not now". An
+    upper window's elements are over the target wherever they lie. A pager or list can list another of its pages in
+    the same box, in a second container of the same kind (AOL's feed): the run listed right after it inside its box
+    is that page, beside the target. Limits: with no hierarchy, a
+    deny-worded sibling listed right after the target inside its box reads as the target's own, a control-shaped
+    container listed before the target and around it reads as over it, and a sibling an elevation draws over the
+    target while it is listed before it reads as under it; a wordless overlay that holds no words is unseen: no list
     the device gives reports clickable (mobile-mcp's, mobilecli's dump), and uiautomator dump is killed on the emulator
     (measured 2026-10-01)."""
     x, y = target.point
+    point = Rect(x=x, y=y, w=0, h=0)
     order = {e.get("ref"): n for n, e in enumerate(elements)}
     at = end = order.get(target.ref, -1)
     while 0 <= at and end + 1 < len(elements) and inside(rect(elements[end + 1]), target.rect):
         end += 1
-    for c in worded(elements, device):
-        n = order[c.ref]
-        over = n < at and absorbs(elements[n], elements[at])
-        if inside(Rect(x=x, y=y, w=0, h=0), c.rect) and (n > end or over):
-            reason = denied(c, **deny)
-            if reason:
-                return f"{reason} ({c.label[:40]!r} at the tap point)"
+    window = windows(elements)
+    def place(e: dict) -> tuple:
+        return *e["coordinates"].values(), e.get("type")
+    mine = {place(e) for e in elements[:max(at, 0)] if PAGED.search(e.get("type", "")) and inside(target.rect, rect(e))}
+    beside = set()
+    for k in (k for k in range(end + 1, len(elements)) if place(elements[k]) in mine):
+        run = next((j for j in range(k + 1, len(elements)) if not inside(rect(elements[j]), rect(elements[k]))),
+                   len(elements))
+        beside.update(range(k + 1, run))
+    held = [n for n, e in enumerate(elements) if in_content(e, device) and inside(point, rect(e)) and n not in beside]
+    over = [n for n in held if at < 0 or window[n] < window[at] or n > end and window[n] == window[at]]
+    dismisses = DISMISS.match(target.label.strip()) or ICON_ONLY.fullmatch(target.tree_label) and DISMISS_ID.search(
+        ID_WORDS.sub(" ", target.ident or target.label))
+    absorbing = [n for n in held if 0 <= n < at and window[n] == window[at] and (
+        absorbs(elements[n], elements[at]) or deny.get("upsell") and not dismisses
+        and all(inside(r, rect(elements[n])) for r in [target.rect, *map(rect, elements[n + 1:at])]))]
+    for n in sorted(over + absorbing):
+        reason = words(elements[n]) and denied(worded([elements[n]], device)[0], **deny)
+        if reason:
+            return f"{reason} ({words(elements[n])[:40]!r} at the tap point)"
+    for n in over if at >= 0 else []:
+        e = elements[n]
+        said = [words(o) for k, o in enumerate(elements[n + 1:], n + 1)
+                if window[k] == window[n] and words(o) and inside(rect(o), rect(e))]
+        if (window[n] < window[at] or not inside(target.rect, rect(e))) and (words(e) or said):
+            return f"drawn over ({(words(e) or said[0])[:40]!r} at the tap point)"
     return ""
 
 
