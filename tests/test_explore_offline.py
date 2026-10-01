@@ -1378,24 +1378,37 @@ def test_a_sign_in_sheet_in_the_feed_pass_stops_it(tmp_path, monkeypatch):
 
 
 # rt-pr41 M2: an item's page in a sheet often has a close control; closing asks nothing of the user.
-@pytest.mark.parametrize("close", [None, ("ImageButton", "Close"), ("ImageView", "Dismiss")],
-                         ids=["plain", "close", "dismiss"])
+@pytest.mark.parametrize("close", [None, ("ImageButton", "Close"), ("ImageView", "Dismiss"),
+                                   ("picture", "Upgrade banner")],
+                         ids=["plain", "close", "dismiss", "a picture with an upgrade word"])
 def test_a_sheet_the_feed_pass_opens_is_its_result_not_a_stop(tmp_path, monkeypatch, close):
+    """A picture the icon pass finds on the sheet is no control of it, so its name asks nothing."""
     def with_close(clock):
         phone = sheet_first(clock)
-        if close:
+        if close and close[0] != "picture":
             sheet = phone.screens["sheet"]
             control = {"ref": "@close", "type": f"android.widget.{close[0]}", "label": close[1],
                        "coordinates": {"x": 960, "y": 2168, "width": 84, "height": 84}}
             phone.screens["sheet"] = type(sheet)(sheet.elements + [control], sheet.image, sheet.package)
         return phone
-    ex, _ = new_explorer(tmp_path, monkeypatch, with_close)
+    ex, phone = new_explorer(tmp_path, monkeypatch, with_close)
+    if close and close[0] == "picture":
+        real = ex.ask
+
+        def ask(prompt, step, *args):
+            answer = real(prompt, step, *args)
+            if prompt == "icons" and phone.screen == "sheet":
+                answer = answer.model_copy(update={"unlisted": [unlisted(ex, 880, 2160, 1060, 2260, *close)]})
+            return answer
+        monkeypatch.setattr(ex, "ask", ask)
     monkeypatch.setattr(decide, "ask_choice", functools.partial(fake_jev, core_pick="open and read items"))
     stage.explore_app(ex)
     opened = [line for line in lines(ex) if line.loop_pass == 1 and line.to_state
               and ex.by_id[line.to_state].kind == "sheet"]
     assert ex.core.kind == "feed" and opened and not opened[0].loop_stop and not ex.core_hit
     assert sum(r.startswith("pass ") for r in ex.core_results) == ex.core_reps
+    if close and close[0] == "picture":
+        assert [c.label for c in ex.by_id[opened[0].to_state].cands if c.kind == "picture"] == [close[1]]
 
 
 def test_a_stop_that_is_not_a_limit_leaves_the_limit_open(run):

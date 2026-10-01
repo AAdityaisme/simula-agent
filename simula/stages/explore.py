@@ -2108,7 +2108,7 @@ class Explorer:
             # a sheet the action opened is its result only when it holds an item's page of new text, asks nothing (an
             # upgrade word, a way to decline) and names no price, limit, account or money; when unsure, it stops
             page = sum(map(len, ob.texts(own, self.device) - ob.texts(before.elements, self.device))) >= PAGE_CHARS
-            if named or here.kind == "modal" or ob.asks(here.cands) or not page:
+            if named or here.kind == "modal" or ob.asks(controls_of(here.cands)) or not page:
                 return named or f"{here.kind} opened", here.sid
         if here is not s and here.upsell:
             return ("paywall" if here.priced else "upsell screen"), here.sid
