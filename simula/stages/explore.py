@@ -233,7 +233,7 @@ def png_half(image: Image.Image) -> bytes:
 
 def lagging(expect: Seen | None, obs: Obs) -> bool:
     """A look that draws the screen expected but lists far fewer elements than its capture: after a launch the list
-    can lag the pixels by seconds (AOL's reloaded home listed 62 of 103, its feed rows missing, measured 2026-10-01)."""
+    can lag the pixels by seconds (a news app's reloaded home listed 62 of 103, its feed rows missing, measured 2026-10-01)."""
     # ponytail: a reload that truly lists under LIST_LAG of the capture waits out LAUNCH_WAIT_S before it's read
     return bool(expect) and ob.hamming(expect.fp.content, obs.fp.content) <= ob.CONTENT_BITS \
         and len(obs.elements) < LIST_LAG * len(expect.elements)

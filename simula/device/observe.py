@@ -443,7 +443,7 @@ def denied_at(target: Candidate, elements: list[dict], device: Device, **deny) -
     timestamp) or, on an upsell screen, is the target's ancestor (everything listed between them lies inside it): a
     paywall card labelled with all its text over a wordless call to action, though not over its own "Not now". An
     upper window's elements are over the target wherever they lie. A pager or list can list another of its pages in
-    the same box, in a second container of the same kind (AOL's feed): the run listed right after it inside its box
+    the same box, in a second container of the same kind (a news feed): the run listed right after it inside its box
     is that page, beside the target. Limits: with no hierarchy, a
     deny-worded sibling listed right after the target inside its box reads as the target's own, a control-shaped
     container listed before the target and around it reads as over it, and a sibling an elevation draws over the
