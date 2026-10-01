@@ -561,7 +561,9 @@ class StateFile(Strict):
     def read_replaced(cls, data):
         """A file #33's explorer wrote names its latest capture canonical and keeps the earlier ones in replaced, each
         with the last step taken on it. Here the first capture is canonical and the rest start at a step, so the first
-        replaced one becomes the file's own and the others, then the file's, become later."""
+        replaced one becomes the file's own and the others, then the file's, become later. The file's fingerprint and
+        moving regions are its latest capture's, and #33 kept no others, so the first's are unknown: none, and QA masks
+        nothing on it (its capture time and settle are the latest's too)."""
         if not isinstance(data, dict) or not data.get("replaced"):
             return {k: v for k, v in data.items() if k != "replaced"} if isinstance(data, dict) else data
         own = {k: data.get(k) for k in ("screenshot", "elements_reply", "icon_labels", "vision_elements")}
@@ -570,7 +572,7 @@ class StateFile(Strict):
                  | {"from_step": before["until_step"] + 1} for before, c in zip([first, *rest], rest)]
         return {k: v for k, v in data.items() if k != "replaced"} | {
             k: first.get(k, []) for k in ("screenshot", "elements_reply", "icon_labels", "vision_elements")} | {
-            "later": later}
+            "later": later, "fingerprint": "", "dynamic_regions": []}
 
 
 class ExploreFile(Strict):

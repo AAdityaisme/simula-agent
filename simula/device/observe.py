@@ -435,17 +435,20 @@ def denied_at(target: Candidate, elements: list[dict], device: Device, **deny) -
     tap point, else something drawn over the target there. The list as it is, not the controls, which merge a
     container's words and drop a button nested in a bigger one, so a sign-in button a card draws inside a row's box is
     read. Within a window the list is in drawing order, parent first. The run it lists right after the target inside
-    its box is the target's own (a send button's icon labelled "Confirm button") and is not read. What it lists after
+    its box is the target's own, never drawn over it. A wordless target's run is its look (a send button's icon
+    labelled "Confirm button") and is not read; in a worded one's, a deny word at the tap point still refuses (a
+    "Sign in" button inside a row's box, listed right after it). What it lists after
     that run is over the target: a deny word there refuses the tap, and so does an element that isn't around the
     whole target and shows words, its own or ones listed after it inside it (a card over a row, even one whose words
     ask for nothing). What it lists before the target is content under it, like a reply under a lifted composer's
     Send, unless it absorbs the target (a sheet's "Block character" row, listed before the page it covers, over a
-    timestamp) or, on an upsell screen, is the target's ancestor (everything listed between them lies inside it): a
-    paywall card labelled with all its text over a wordless call to action, though not over its own "Not now". An
+    timestamp) or is the target's ancestor (everything listed between them lies inside it): a paywall card or a
+    sign-in sheet labelled with all its text over a wordless call to action. Neither holds over a control that
+    dismisses ("Not now" in a "Get Premium" container). An
     upper window's elements are over the target wherever they lie. A pager or list can list another of its pages in
     the same box, in a second container of the same kind (a news feed): the run listed right after it inside its box
     is that page, beside the target. Limits: with no hierarchy, a
-    deny-worded sibling listed right after the target inside its box reads as the target's own, a control-shaped
+    deny-worded sibling listed right after a wordless target inside its box reads as the target's own, a control-shaped
     container listed before the target and around it reads as over it, and a sibling an elevation draws over the
     target while it is listed before it reads as under it; a wordless overlay that holds no words is unseen: no list
     the device gives reports clickable (mobile-mcp's, mobilecli's dump), and uiautomator dump is killed on the emulator
@@ -469,10 +472,11 @@ def denied_at(target: Candidate, elements: list[dict], device: Device, **deny) -
     over = [n for n in held if at < 0 or window[n] < window[at] or n > end and window[n] == window[at]]
     dismisses = DISMISS.match(target.label.strip()) or ICON_ONLY.fullmatch(target.tree_label) and DISMISS_ID.search(
         ID_WORDS.sub(" ", target.ident or target.label))
-    absorbing = [n for n in held if 0 <= n < at and window[n] == window[at] and (
-        absorbs(elements[n], elements[at]) or deny.get("upsell") and not dismisses
-        and all(inside(r, rect(elements[n])) for r in [target.rect, *map(rect, elements[n + 1:at])]))]
-    for n in sorted(over + absorbing):
+    absorbing = [n for n in held if 0 <= n < at and window[n] == window[at] and not dismisses and (
+        absorbs(elements[n], elements[at])
+        or all(inside(r, rect(elements[n])) for r in [target.rect, *map(rect, elements[n + 1:at])]))]
+    own = [n for n in held if at < n <= end and words(elements[at])]
+    for n in sorted(over + absorbing + own):
         reason = words(elements[n]) and denied(worded([elements[n]], device)[0], **deny)
         if reason:
             return f"{reason} ({words(elements[n])[:40]!r} at the tap point)"

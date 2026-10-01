@@ -95,6 +95,11 @@ class NeedRelaunch(Exception):
     pass
 
 
+class Unfiltered(Exception):
+    """The content filter wasn't verified on the screen: the explore ends there, before any phase after the tour, so
+    nothing is explored without it. Not a Stop, which a phase or a walk can outlive."""
+
+
 class ExploreFailed(Exception):
     """A device error ended the tour, or nothing was recorded: the CLI writes failure.json, never done.json, so
     `simula run` can't reuse it. A blocked root seen after the full splash wait is a result, not a failure."""
@@ -233,7 +238,8 @@ def png_half(image: Image.Image) -> bytes:
 
 def lagging(expect: Seen | None, obs: Obs) -> bool:
     """A look that draws the screen expected but lists far fewer elements than its capture: after a launch the list
-    can lag the pixels by seconds (a news app's reloaded home listed 62 of 103, its feed rows missing, measured 2026-10-01)."""
+    can lag the pixels by seconds (a news app's reloaded home listed 62 of 103, its feed rows missing, measured
+    2026-10-01)."""
     # ponytail: a reload that truly lists under LIST_LAG of the capture waits out LAUNCH_WAIT_S before it's read
     return bool(expect) and ob.hamming(expect.fp.content, obs.fp.content) <= ob.CONTENT_BITS \
         and len(obs.elements) < LIST_LAG * len(expect.elements)
@@ -416,12 +422,15 @@ class Explorer:
         """Home reloaded, read from this later capture from now on; its own capture and file stay. A control the capture
         before it showed too stays only where it still looks the same (a card the reload drew over a row leaves no row
         there). The tabs, filter taps, core action and moves out of home point at the same controls in it (a move whose
-        control is gone is dropped), so each keeps its crop check. Jev ranks the new controls; the icon pass's names for
-        them go with the later capture."""
+        control is gone is dropped), so each keeps its crop check, and a tab's visit or a control's try goes with it.
+        Jev ranks the new controls; the icon pass's names for them go with the later capture."""
         then = Image.open(self.out / (home.later[-2].screenshot if len(home.later) > 1 else f"states/{home.sid}.png"))
         cands = [c for c in cands if (old := ob.find(home.cands, c)) is None
                  or ob.looks_same(then, old.rect, obs.image, c.rect, self.device)]
         known, moved = {c.key for c in home.cands}, {id(c): ob.find(cands, c) for c in home.cands}
+        keys = {c.key: m.key for c in home.cands if (m := moved[id(c)])}
+        self.tab_to, home.waiting = ({keys.get(k, k): v for k, v in d.items()} for d in (self.tab_to, home.waiting))
+        home.tried = {keys.get(k, k) for k in home.tried}
         self.tabs = [t for t in (moved.get(id(t), t) for t in self.tabs) if t]
         self.filter_taps = [moved.get(id(t)) or t for t in self.filter_taps]
         if self.core and self.core.state is home:
@@ -1010,6 +1019,9 @@ class Explorer:
         self.filter_checks.append((n, ok, f"explore/filter/{evidence.name}"))
         self.note("filter.check", f"{last.label!r} {'verified' if ok else 'NOT verified'} by screenshot "
                                   f"(check {n})", outcome="ok" if ok else "error")
+        if not ok:
+            self.human("the content filter can't be verified", f"{last.label!r} not verified by screenshot (check {n})")
+            raise Unfiltered(f"content filter not verified (check {n})")
 
     # ---------- the tour ----------
 
@@ -1264,8 +1276,9 @@ class Explorer:
         """Back to the app from an away screen. Another app in front gets a launch, never BACK, which would walk that
         app's own history: a live task comes back as it was left (measured on the emulator), which is a return, not a
         relaunch. Left from home (or home scrolled), a landing homelike() takes for home is a return too, and home is
-        re-recorded if it reloaded. The app anywhere else is a relaunch, counted, and so is the launch screen after a
-        BACK out of it: that BACK can end the task, and a fresh start lands there too. A launch can't displace a
+        re-recorded if it reloaded. A return to home checks the content filter, since a killed app starts again
+        without it. The app anywhere else is a relaunch, counted, and so is the launch screen after a BACK out of it:
+        that BACK can end the task, and a fresh start lands there too. A launch can't displace a
         window in the app's own task (a system dialog over it), so the same foreign screen still in front gets BACK, as
         a screen turned sideways does; any other foreign screen is a relaunch. A relaunch too if BACK doesn't come
         back."""
@@ -1288,6 +1301,8 @@ class Explorer:
                 else:
                     self.relaunch(why=f"a launch from {away.fg} did not find the app where it was left")
                     return
+                if self.filter_taps and self.left is self.launch_root:
+                    self.check_filter()
                 self.resume(away)
                 return
             if not ob.same_state(obs.fp, away.fp):
@@ -2240,12 +2255,15 @@ def explore_app(ex: Explorer) -> StageOutcome:
         run_trace(ex.ctx.run_dir, stage="explore", step="device", decider="code",
                   note=f"serial {ex.serial}, mobile-mcp device {ex.phone.device}")
         run_tour(ex)
-        if ex.root and not ex.stop_reason.startswith(("blocked root", *DEVICE_STOPS)):
+        if ex.root and not ex.stop_reason.startswith(("blocked root", "content filter", *DEVICE_STOPS)):
             for phase in (ex.paywall_pass, ex.core_loop, ex.verify_replay):
                 try:
                     phase()
                 except DEVICE_LOST as e:
                     ex.lost(phase.__name__, e)
+                    break
+                except Unfiltered as e:
+                    ex.stop_reason = f"{e} in {phase.__name__}"
                     break
                 except (Stop, llm.CapReached, NeedRelaunch) as e:
                     ex.core_results.append(f"{phase.__name__} stopped: {type(e).__name__}: {e}"[:200])
@@ -2273,6 +2291,8 @@ def outcome(ex: Explorer) -> StageOutcome:
     after it, the paywall pass or the replay check stopped early, or the core loop finished fewer passes than planned
     and the app didn't stop it (--no-send turns the loop off on purpose). Complete otherwise."""
     reasons = []
+    if ex.stop_reason.startswith("content filter"):
+        reasons.append(f"it stopped: {ex.stop_reason}")
     if ex.stop_reason == "relaunch cap" or any("relaunch cap" in r for r in ex.core_results):
         reasons.append(f"it used all {ex.relaunches} relaunches allowed ({MAX_RELAUNCHES} in the tour, "
                        f"{CORE_RELAUNCHES} after it), so it stopped before seeing everything it planned to")
@@ -2288,7 +2308,7 @@ def outcome(ex: Explorer) -> StageOutcome:
 def run_tour(ex: Explorer) -> None:
     try:
         ex.tour()
-    except Stop as e:
+    except (Stop, Unfiltered) as e:
         ex.stop_reason = str(e)
     except llm.CapReached as e:
         ex.stop_reason = f"$ cap: {e}"

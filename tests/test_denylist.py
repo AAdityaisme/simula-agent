@@ -59,7 +59,8 @@ def test_a_reason_is_never_its_text_twice():
 
 def test_words_under_a_tap_point_never_refuse_it_and_words_drawn_over_it_do():
     """JanitorAI's keyboard-lifted composer (def99ac s27): a reply listed before the text box and not around it lies
-    under the box's tap point. A button listed after a row, inside its box, lies over the row's."""
+    under the box's tap point. A button listed after a row, inside its box, lies over the row's; listed right after
+    it, it is the row's own, and its deny word still refuses (Greptile #43)."""
     box = Candidate(label="", kind="EditText", rect=Rect(x=46, y=1215, w=988, h=123), ref="@box", tree_label="")
     def element(ref, kind, text, x, y, w, h):
         return {"ref": ref, "type": f"android.widget.{kind}", "text": text,
@@ -74,6 +75,7 @@ def test_words_under_a_tap_point_never_refuse_it_and_words_drawn_over_it_do():
             element("@next", "ViewGroup", "Next item", 0, 1300, 1080, 200)]
     sign = element("@sign", "Button", "Sign in", 440, 1170, 200, 60)
     assert "sign in" in denied_at(row, [*rows, sign], Device())
+    assert "sign in" in denied_at(row, [rows[0], sign, rows[1]], Device())
 
 
 def test_a_controls_own_icon_listed_right_after_it_is_its_own_not_drawn_over_it():
@@ -120,9 +122,10 @@ def test_a_reply_listed_before_a_lifted_composers_send_never_refuses_it_and_a_co
 
 def test_a_reply_container_under_a_lifted_composer_never_refuses_send_or_the_text_box():
     """#29's JanitorAI run def99ac, s27 (words shortened): a reply container (a ViewGroup labelled with the whole
-    reply, 710 chars) and its paragraph hold Send's box, listed before the text box. Send sits under the text box, not
-    level with it, so the container absorbs it; its words are content, so a reply saying "Sign in" refuses neither
-    Send nor the tap that focuses the text box."""
+    reply, 710 chars) and its paragraph hold Send's box, listed before the text box. The container's words are
+    content, not a control's, so it absorbs neither. It is no ancestor of either: the text box lies outside it, and
+    is listed between it and Send. So a reply saying "Sign in" refuses neither Send nor the tap that focuses the text
+    box."""
     elements = [listed("@e26", "FrameLayout", "", "", 0, 0, 1080, 2400),
                 listed("@e41", "ViewGroup", "", f"Miro froze. {SAID}", 134, 468, 902, 1049),
                 listed("@e45", "TextView", f"Miro didn't move. {SAID}", "", 134, 1326, 902, 191),
@@ -136,8 +139,8 @@ def test_a_reply_container_under_a_lifted_composer_never_refuses_send_or_the_tex
 
 
 def test_a_wordless_call_to_action_inside_a_paywall_card_is_refused_and_its_not_now_runs():
-    """A paywall card labelled with all its text is no control, so it absorbs nothing; on an upsell screen its words
-    still count over a control it is the ancestor of, so a wordless button inside it is refused. Its "Not now" runs."""
+    """A paywall card labelled with all its text is no control, so it absorbs nothing; its words still count over a
+    control it is the ancestor of, so a wordless button inside it is refused. Its "Not now" runs."""
     card = listed("@card", "ViewGroup", "",
                   "Unlock Premium. Unlimited chats and memory. $9.99/month, cancel anytime. Continue. Not now",
                   40, 900, 1000, 900)
@@ -151,6 +154,27 @@ def test_a_wordless_call_to_action_inside_a_paywall_card_is_refused_and_its_not_
                         tree_label="Not now")
     assert is_upsell(elements, Device()) and denied(arrow, upsell=True) is None
     assert denied_at(arrow, elements, Device(), upsell=True) and denied_at(not_now, elements, Device(), upsell=True) == ""
+
+
+def test_a_wordless_button_inside_a_sign_in_sheet_is_refused_on_any_screen_and_not_now_in_a_short_container_runs():
+    """rt-pr43-f6702e7 MEDIUM 1, D1: a sign-in sheet labelled with all its text, on a screen with no price, over a
+    wordless Google button: the sheet is the button's ancestor, so its "sign in" refuses the tap. LOW 1, D2: "Not
+    now" inside a container labelled "Get Premium" dismisses, so the container's "get" doesn't hold over it."""
+    sheet = [listed("@sheet", "FrameLayout", "", "Sign in to keep your chats on every device. Continue with Google. "
+                    "Not now", 0, 1150, 1080, 1187),
+             listed("@title", "TextView", "Sign in to keep your chats on every device", "", 60, 1200, 960, 80),
+             listed("@g", "ImageButton", "", "", 440, 1650, 200, 140),
+             listed("@later", "Button", "Not now", "", 240, 2050, 600, 110)]
+    google = Candidate(label="", kind="ImageButton", rect=Rect(x=440, y=1650, w=200, h=140), ref="@g", tree_label="")
+    later = Candidate(label="Not now", kind="Button", rect=Rect(x=240, y=2050, w=600, h=110), ref="@later",
+                      tree_label="Not now")
+    assert not is_upsell(sheet, Device()) and "sign in" in denied_at(google, sheet, Device())
+    assert denied_at(later, sheet, Device()) == ""
+    paywall = [listed("@pay", "FrameLayout", "", "Get Premium", 0, 1150, 1080, 1187),
+               listed("@price", "TextView", "Unlimited chats for $4.99/month", "", 60, 1250, 960, 80),
+               listed("@cta", "Button", "Continue", "", 240, 1850, 600, 110),
+               listed("@later", "Button", "Not now", "", 240, 2050, 600, 110)]
+    assert denied_at(later, paywall, Device(), upsell=is_upsell(paywall, Device())) == ""
 
 
 def test_another_page_of_a_pager_in_the_same_box_is_beside_a_row_and_a_card_after_it_is_over_it():

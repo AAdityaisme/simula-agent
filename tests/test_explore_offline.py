@@ -496,14 +496,18 @@ def test_a_state_file_33s_explorer_wrote_reads_with_its_first_capture_its_own(tm
     """rt-prP-97e98aa MEDIUM 4, on PR O's run 20261001-050452-19f4ffa, explored on next with #33's explorer: s01
     names the relaunch's capture canonical and keeps its first one in replaced, last taken on at step 42. Read here,
     the first capture is s01's own and the relaunch's starts at step 43, so a line from before then (they carry no
-    capture field) resolves on s01's own capture and one after it on the later one."""
+    capture field) resolves on s01's own capture and one after it on the later one. Its fingerprint and moving
+    regions were the relaunch's, so it has none (Greptile #43)."""
     explore, trees = tmp_path / "explore", Path(__file__).parent / "fixtures" / "trees" / "janitorai"
     (explore / "states").mkdir(parents=True)
     for name, fixture in (("s01.r1", "j13_home"), ("s01", "j14_home_reloaded")):
         for ext in ("png", "elements.json"):
             shutil.copyfile(trees / f"{fixture}.{ext}", explore / "states" / f"{name}.{ext}")
-    shutil.copyfile(Path(__file__).parent / "fixtures" / "replaced_state.json", explore / "states" / "s01.json")
+    old = json.loads((Path(__file__).parent / "fixtures" / "replaced_state.json").read_text())
+    old["dynamic_regions"] = [{"x": 0, "y": 900, "w": 1080, "h": 300}]  # the latest capture's (Greptile #43)
+    (explore / "states" / "s01.json").write_text(json.dumps(old))
     sf = StateFile.model_validate_json((explore / "states" / "s01.json").read_text())
+    assert (sf.fingerprint, sf.dynamic_regions) == ("", [])
     assert (sf.screenshot, [(c.from_step, c.screenshot) for c in sf.later]) == ("states/s01.r1.png",
                                                                                 [(43, "states/s01.png")])
     assert (len(sf.icon_labels), len(sf.later[0].icon_labels)) == (8, 16)
@@ -910,6 +914,27 @@ def test_a_relaunch_that_lands_on_home_with_its_list_reloaded_re_records_home(tm
     kept, rows = {c.key for c in home.cands}, {c.key for c in ob.feed_items(obs.cands, ex.device)}
     assert home.fp == obs.fp and rows <= kept <= {c.key for c in obs.cands} and len(home.dynamic) == 1
     assert home.png == f"states/{home.sid}.r1.png" and (ex.out / "states" / f"{home.sid}.png").read_bytes() == own
+
+
+def test_a_tab_that_moved_in_the_reload_keeps_its_visit(tmp_path, monkeypatch):
+    """Greptile #43: home reloads with its tab bar 30 px higher (j04, then j11 with the bar raised), so every tab's
+    key changes. refresh() points the tabs at the reload's controls, and their visits go with them: no tab is swept
+    again."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    other = capture("janitorai", "j11_home_relaunched")
+    image = other.image.copy()
+    image.paste(other.image.crop((0, 2160, 1080, 2400)), (0, 2130))
+    raised = [{**e, "coordinates": {**e["coordinates"], "y": e["coordinates"]["y"] - 30}}
+              if e["coordinates"]["y"] >= 2160 else e for e in other.elements]
+    phone.screens.update(first=capture("janitorai", "j04_tab1"), other=Screen(raised, image, other.package))
+    phone.screen = "first"
+    home = ex.current = ex.record(ex.observe(), None, None, None)
+    ex.tabs = ob.tab_bar(home.cands, ex.device)
+    ex.tab_to = {t.key: home.sid for t in ex.tabs}
+    before = set(ex.tab_to)
+    phone.screen, ex.home = "other", home
+    assert ex.record(ex.observe(), None, None, None) is home
+    assert len(ex.tabs) == 5 and not {t.key for t in ex.tabs} & before and ex.next_tab() is None
 
 
 def test_back_to_a_scrolled_view_is_the_scrolled_view(tmp_path, monkeypatch):
@@ -1441,6 +1466,60 @@ def test_a_switch_filter_is_kept_in_its_restrictive_state_never_flipped_blind(tm
     assert [ok for _, ok, _ in ex.filter_checks] == [True, True, True]
     assert sum(entry == ("tap", "root", label) or entry == ("tap", "root_flipped", label) for entry in phone.log) \
         == (0 if shipped_on is restrictive else 2)
+
+
+@pytest.mark.parametrize("reset", [False, True])
+def test_a_return_to_home_checks_its_filter_switch_and_ends_the_explore_if_it_reset(tmp_path, monkeypatch, reset):
+    """rt-pr43-f6702e7 LOW 2: home holds the filter switch, turned on, and an app opened from home is left with a
+    launch that lands on home: a return, not a relaunch, so the filter isn't re-applied. A killed app starts again
+    with its switch off, so the filter is checked: if it is off, the explore ends."""
+    monkeypatch.setattr(fake_device, "RESTRICTIVE", re.compile(r"\bnsfw\b", re.IGNORECASE))
+    ex, phone = new_explorer(tmp_path, monkeypatch, switch_filter("Hide NSFW", False))
+    phone.screen = "root"
+    home = ex.current = ex.root = ex.launch_root = ex.record(ex.observe(), None, None, None)
+    ex.filter_taps = ex.find_filter()
+    assert ex.filter_on and phone.screen == "root_flipped"
+    before = ex.observe()
+    phone.screen = "web"
+    ex.left, ex.current = home, ex.record(ex.observe(), home, stage.Move("tap", before.cands[0]), before)
+    launch = phone.launch
+
+    def lands_on_home():
+        launch()
+        phone.screen, phone.splash_left = "root" if reset else "root_flipped", 0
+    phone.launch = lands_on_home
+    if reset:
+        with pytest.raises(stage.Unfiltered):
+            ex.leave()
+    else:
+        ex.leave()
+        assert ex.current is home and len(ex.returns) == 1 and ex.filter_checks[-1][1]
+
+
+def test_a_relaunch_that_shows_the_filter_under_another_label_ends_the_explore(tmp_path, monkeypatch):
+    """Greptile #43: after the first relaunch the filter chip reads "Limited" (an app update, a reset). No control
+    matches it, so the filter is neither re-applied nor verified, and nothing is tapped after the failed check: no
+    more tour, no paywall pass, core loop or replay check."""
+    def factory(clock):
+        phone, launches = janitor_like(clock), []
+        launch = phone.launch
+
+        def relabelled():
+            launch()
+            launches.append(len(phone.log))
+            if len(launches) == 2:
+                for name in ("root", "limited"):
+                    screen = phone.screens[name]
+                    phone.screens[name] = Screen([{**e, **{k: "Limited" for k in ("text", "label")
+                                                           if e.get(k) == "Limited Only"}} for e in screen.elements],
+                                                 screen.image, screen.package)
+        phone.launch, phone.launches = relabelled, launches
+        return phone
+    ex, phone = explore(tmp_path, monkeypatch, factory)
+    assert ex.stop_reason == f"content filter not verified (check {len(ex.filter_checks)})"
+    assert [ok for _, ok, _ in ex.filter_checks][-2:] == [True, False] and len(phone.launches) == 2
+    assert {entry[1] for entry in phone.log[phone.launches[1]:] if entry[0] == "tap"} <= {"launch"}
+    assert stage.outcome(ex).status == "partial"
 
 
 def playing_ad(loads: bool):
