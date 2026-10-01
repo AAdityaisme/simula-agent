@@ -661,9 +661,11 @@ def apply_edits(html: str, edits: list[Edit], sections: set[str] | None = None) 
             at = seen[0] if len(seen) == 1 and (len(starts) == 1 or within(seen[0], edit.find, spans)) else None
         if at is not None:
             html = html[:at] + edit.replace + html[at + len(edit.find):]
-        why = "find matches the page once, outside what it was sent" if len(starts) == 1 else (
-            f"find matches the page {len(starts)} times, not once"
-            + (f", and {len(seen)} times in what it was sent" if len(starts) > 1 and sections else ""))
+        if len(starts) == 1:
+            why = "find matches the page once, not inside a single section or style block it was sent"
+        else:
+            why = f"find matches the page {len(starts)} times, not once" + (
+                f", and {len(seen)} times in what it was sent" if len(starts) > 1 and sections else "")
         results.append({**edit.model_dump(), "applied": at is not None, "why": "" if at is not None else why})
     return html, results
 

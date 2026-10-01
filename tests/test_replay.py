@@ -180,13 +180,25 @@ def checked(monkeypatch, capsys):
 
 
 @pytest.mark.skipif(not RUNS, reason="no committed runs")
-def test_replay_check_says_when_the_pins_lock_differs_from_the_checkouts(checked, stray_objects):
-    """The pinned code runs on this checkout's packages, not its pin's uv.lock (Sol's 10, Fable's L8)."""
+def test_replay_check_says_when_the_pins_lock_differs_from_the_checkouts(checked, stray_objects, monkeypatch,
+                                                                        capsys):
+    """The pinned code runs on this checkout's packages, not its pin's uv.lock (Sol's 10, Fable's L8), and a failing
+    run says so too, where a package difference is the likeliest cause."""
+    note = "(ran on this checkout's dependencies; the pin's lock differs)"
     git("read-tree", "HEAD")
     git("update-index", "--cacheinfo", f"100644,{git('rev-parse', 'HEAD:README.md').strip()},uv.lock")
     other_lock = git("commit-tree", git("write-tree").strip(), "-m", "another uv.lock").strip()
-    assert "ran on this checkout's dependencies; the pin's lock differs" in checked(other_lock)
+    git("read-tree", "HEAD")
+    assert note in checked(other_lock)
     assert "lock" not in checked(git("rev-parse", "HEAD").strip())
+
+    def mismatch(run, under):
+        raise replaycheck.Mismatch("the replay wrote different structured outputs")
+    monkeypatch.setattr(replaycheck, "commit", lambda _: other_lock)
+    monkeypatch.setattr(replaycheck, "check", mismatch)
+    assert replaycheck.main(RUNS[0].parent.name, RUNS[0].name) == 1
+    out = capsys.readouterr().out
+    assert out.startswith("FAIL") and note in out
 
 
 @pytest.mark.skipif(not RUNS, reason="no committed runs")

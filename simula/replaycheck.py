@@ -5,7 +5,7 @@ what the pin replays, so what replays at the pin is what HEAD ships. `simula rep
 both run it.
 
 The pinned code runs on this checkout's dependencies, not the pin's uv.lock, and a run whose pin's uv.lock differs
-from HEAD's says so in its line."""
+from this checkout's says so in its line."""
 
 import itertools
 import json
@@ -158,7 +158,8 @@ def check_markers(clone: Path, run: Path) -> int:
 
 
 def lock_differs(sha: str) -> bool:
-    return subprocess.run(["git", "diff", "--quiet", sha, "HEAD", "--", "uv.lock"], cwd=ROOT).returncode != 0
+    """Whether the commit's uv.lock differs from this checkout's, committed or not."""
+    return subprocess.run(["git", "diff", "--quiet", sha, "--", "uv.lock"], cwd=ROOT).returncode != 0
 
 
 def graders_skip(run: Path) -> str | None:
@@ -188,15 +189,12 @@ def check(run: Path, under: Path) -> tuple[str, str]:
     """Every replay check on one run, in a clone under `under`: "ok", or "skip" when the grader's replay can't run on
     this machine, and what passed; or Mismatch."""
     check_pin_held(run)
-    sha = commit(run)
-    where = clone(sha, under)
+    where = clone(commit(run), under)
     line = f"a bare --replay skipped every finished stage ({check_markers(where, run)})"
     if skip := graders_skip(run):
-        status, line = "skip", f"{line}; --from model --replay not run: {skip}"
-    else:
-        check_graders_replay(where, run)
-        status, line = "ok", f"{line}; --from model --replay changed no structured output"
-    return status, line + ("; ran on this checkout's dependencies; the pin's lock differs" if lock_differs(sha) else "")
+        return "skip", f"{line}; --from model --replay not run: {skip}"
+    check_graders_replay(where, run)
+    return "ok", f"{line}; --from model --replay changed no structured output"
 
 
 def main(app: str | None = None, run_id: str | None = None) -> int:
@@ -211,9 +209,10 @@ def main(app: str | None = None, run_id: str | None = None) -> int:
         for run in runs:
             label = f"{key(run)} at {PINS.get(key(run), 'HEAD')}"
             try:
+                if lock_differs(commit(run)):
+                    label += " (ran on this checkout's dependencies; the pin's lock differs)"
                 status, line = check(run, Path(tmp))
-                print(f"{status:<6}{label}: {line}", flush=True)
             except (Mismatch, subprocess.SubprocessError) as e:
-                failed = True
-                print(f"FAIL  {label}: {e}", flush=True)
+                failed, status, line = True, "FAIL", e
+            print(f"{status:<6}{label}: {line}", flush=True)
     return 1 if failed else 0

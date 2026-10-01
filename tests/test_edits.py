@@ -56,9 +56,17 @@ def test_a_scoped_edit_never_lands_in_a_section_the_fixer_was_not_sent():
     out, results = qa.apply_edits(page, [edit("<b>Home</b>", "<b>Start</b>"), edit("<b>Home</b>", "<b>Home!</b>"),
                                          edit("<b>Start</b>", "<b>Go</b>"), edit("color:red", "color:blue")], {"s01"})
     assert [r["applied"] for r in results] == [True, False, True, True]
-    assert results[1]["why"] == "find matches the page once, outside what it was sent"
+    assert results[1]["why"] == "find matches the page once, not inside a single section or style block it was sent"
     assert out == ('<style>b{color:blue}</style><section data-screen="s01"><b>Go</b></section>'
                    '<section data-screen="s02"><b>Home</b></section>')
+
+
+def test_a_find_spanning_two_sent_sections_is_refused_and_says_why():
+    page = '<section data-screen="s01"><b>A</b></section><section data-screen="s02"><b>B</b></section>'
+    find = '</section><section data-screen="s02">'
+    out, [result] = qa.apply_edits(page, [edit(find, find.replace("><", "><hr><", 1))], {"s01", "s02"})
+    assert not result["applied"] and out == page
+    assert result["why"] == "find matches the page once, not inside a single section or style block it was sent"
 
 
 STYLED = ('<html><head><style data-batch="1">.card{color:red}</style></head><body>\n'

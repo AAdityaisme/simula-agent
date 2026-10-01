@@ -339,7 +339,8 @@ def test_a_replay_whose_renders_differ_makes_no_model_call_and_ends_where_the_re
     run_dir = seed_model(tmp_path / "run", app)
     monkeypatch.setattr(llm, "call", fake_builder([]))
     mock.run(ctx_for(run_dir, app))
-    answer = fake_llm([], lambda n: [Edit(find="</body>", replace="<!-- round 1 --></body>", reason="r")])
+    s01 = '<section data-screen="s01"'
+    answer = fake_llm([], lambda n: [Edit(find=s01, replace=f"<!-- round 1 -->{s01}", reason="r")])
 
     def refusing(**kwargs):
         if kwargs["step"] in ("critic r1 g2", "critic r2 g2", "fixer r2"):
@@ -349,6 +350,8 @@ def test_a_replay_whose_renders_differ_makes_no_model_call_and_ends_where_the_re
     qa.run(ctx_for(run_dir, app))
     recorded = json.loads((run_dir / "qa" / "qa_report.json").read_text())
     assert recorded["stop_reason"] == "round 2 stopped before any edit: refusal: refused"
+    applied = json.loads((run_dir / "qa" / "round1" / "edits.json").read_text())["edits"]
+    assert [e["applied"] for e in applied] == [True]  # so the replay has to re-apply it to reach round 1's page
     assert any("group skipped" in line.note for line in read_trace(run_dir / "trace.jsonl"))
     second_group = ", ".join(s.id for s in mock.pick_scope(golden(app))[2:4])
     assert recorded["outcome"] == "partial" and recorded["reasons"][:2] == [

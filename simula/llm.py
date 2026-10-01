@@ -173,7 +173,7 @@ def pixels_sha256(png: bytes) -> str:
     else it wrote (a Software or dpi chunk), as Linux's and macOS's encoders differ. Pillow decodes 16-bit colour to 8
     bits and an animated PNG to its first frame, so a 16-bit or animated PNG keys by its bytes."""
     with Image.open(io.BytesIO(png)) as image:
-        if png[IHDR_BIT_DEPTH] == 16 or image.is_animated:
+        if (image.format == "PNG" and png[IHDR_BIT_DEPTH] == 16) or getattr(image, "is_animated", False):
             return hashlib.sha256(png).hexdigest()
         samples = image.tobytes()  # loads the image, so metadata after the pixel data is in info too
         palette = (image.palette.mode, image.palette.tobytes()) if image.palette else None

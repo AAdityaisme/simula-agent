@@ -1,3 +1,4 @@
+import hashlib
 import io
 import json
 import re
@@ -98,6 +99,12 @@ def test_images_key_by_their_pixels_not_their_png_bytes_and_are_not_stored_raw()
 ], ids=["palette-transparency", "16-bit-samples", "rgb-colour-key", "16-bit-rgb-low-byte", "animated-later-frame"])
 def test_images_that_decode_differently_key_differently(a, b):
     assert key(messages=message(png=a)) != key(messages=message(png=b))
+
+
+def test_a_jpeg_still_keys_by_its_pixels():
+    out = io.BytesIO()
+    Image.new("RGB", (2, 2), "red").save(out, "JPEG")
+    assert llm.pixels_sha256(out.getvalue()) != hashlib.sha256(out.getvalue()).hexdigest()
 
 
 def software(name: str) -> PngInfo:
