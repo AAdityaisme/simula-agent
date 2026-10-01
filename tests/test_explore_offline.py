@@ -418,7 +418,7 @@ def test_a_tap_on_home_resolves_on_the_capture_it_was_taken_on(tmp_path, monkeyp
     later capture names it, and binds to a control home's own capture shows in the same place (the chip), never to
     the row now in its place."""
     ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
-    phone.screens.update(first=first, other=other)
+    phone.screens.update(first=capture("janitorai", "j04_tab1"), other=capture("janitorai", "j11_home_relaunched"))
     phone.screen = "first"
     home = ex.current = ex.record(ex.observe(), None, None, None)
     row = next(c for c in home.cands if c.label.startswith("Wavemaker Academy: Pokemon"))
@@ -479,15 +479,16 @@ def test_a_wordless_tile_tapped_after_the_reload_binds_to_no_element_when_home_s
 
 def test_a_vision_tap_on_home_after_the_reload_never_binds_to_a_tree_container(tmp_path, monkeypatch):
     """rt-pr33-a1a9ba5 MEDIUM 3, mirrored: the later capture keeps its own vision elements (Luzia's committed home
-    has one), so a vision tap on it resolves to the vision control, never to the wordless container around it."""
+    has one), so a vision tap on it resolves to the vision control, never to the wordless container around it (here
+    the app's root, the smallest list element at that point on both captures)."""
     def play(ex, home):
-        ex.add_vision(home, 29, 2250, "Play")  # on home's own capture
+        ex.add_vision(home, 500, 300, "Play")  # on home's own capture
         home.later[-1].vision_elements.append(home.vision[-1])  # and on the later one, where the tap is taken
         assert home.cands[-1].kind == "vision" and home.cands[-1].ref is None
         return [home.cands[-1]]
     edges, elements = taps_on_reloaded_home(tmp_path, monkeypatch, capture("janitorai", "j04_tab1"),
                                             capture("janitorai", "j11_home_relaunched"), play)
-    assert edges and all(elements[e.element_id].source == "vision" for e in edges if e.element_id)
+    assert edges and all(e.element_id and elements[e.element_id].source == "vision" for e in edges)
 
 def test_billing_screen_gets_back_at_once(run):
     ex, phone = run
