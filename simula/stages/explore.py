@@ -1019,12 +1019,17 @@ class Explorer:
     def goto(self, target: Seen) -> bool:
         """Walks recorded moves to the target. A hop that lands elsewhere, or can't tap a control the screen doesn't
         show, is judged by what the screen shows (invariant 1): one action away takes that action and looks once
-        more; anywhere else re-plans a route from where it is, without the hops that already failed. Only a place with
-        no route on relaunches, once."""
+        more; another app or a sideways screen is left first (leave); anywhere else re-plans a route from where it
+        is, without the hops that already failed. Only a place with no route on relaunches, once."""
         relaunched, failed = False, set()
         for _ in range(GOTO_ROUNDS):
             if self.current is target:
                 return True
+            if self.current.kind in AWAY:
+                count = self.relaunches
+                self.leave()
+                relaunched |= self.relaunches > count
+                continue
             hops = self.route(self.current, target, failed)
             if hops is None:
                 if relaunched:

@@ -183,6 +183,16 @@ def test_a_launch_that_finds_the_app_as_it_was_is_a_return_not_a_relaunch(tmp_pa
     assert "Returns to the app as it was left, by a launch (not relaunches): 1" in stage.exhibit(ex, None)
 
 
+def test_a_route_hop_that_lands_in_another_app_returns_by_a_launch_and_goes_on(tmp_path, monkeypatch):
+    """The recorded tap from chats to home now opens another app over chats: goto takes no BACK inside it (its
+    back_to link), and gets back without a relaunch."""
+    ex, phone, chats = on_chats(tmp_path, monkeypatch)
+    home = ex.root
+    ex.edges[(chats.sid, home.sid)] = stage.Move("tap", next(c for c in chats.cands if c.point == (996, 209)))
+    assert ex.goto(home) and ("back", "web") not in phone.log
+    assert ex.relaunches == 0 and ex.returns == [f"from {phone.screens['web'].package} back to {chats.sid}"]
+
+
 def test_a_system_dialog_over_the_app_that_a_launch_leaves_in_front_gets_back(tmp_path, monkeypatch):
     def dialog_over_chats(clock):
         phone = janitor_like(clock)
