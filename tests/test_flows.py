@@ -1017,7 +1017,9 @@ def test_more_promotions_that_hold_than_the_cap_stop_flows_before_it_clears_the_
     assert flows.stage.load_approvals(run_dir / "flows", DecisionsFile.model_validate_json(
         (run_dir / "judge" / "decisions.json").read_text()).decisions) == (["c01", "c02"], [])
     (run_dir / "flows" / "approvals.json").write_text(json.dumps({"promote": ["c01", APPROVED_C02]}))
-    with pytest.raises(ValueError, match="2 promotions hold, more than the deck's cap of 1; promote at most 1"):
+    with pytest.MonkeyPatch.context() as mp, \
+            pytest.raises(ValueError, match="2 promotions hold, more than the deck's cap of 1; promote at most 1"):
+        mp.setattr(llm, "call", fake_editor(run_dir))
         flows.stage.run(ctx_for(run_dir, "luzia"))
     assert sorted(p.name for p in (run_dir / "flows").iterdir()) == sorted([*before, "approvals.json"])
     assert (run_dir / "flows" / "slides.pdf").read_bytes().startswith(b"%PDF")
