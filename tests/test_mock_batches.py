@@ -355,10 +355,12 @@ def test_a_batch_whose_first_answer_is_cut_off_keeps_room_for_its_retry(tmp_path
 
 
 class Bounded(threading.Condition):
-    """A condition whose waits give up after 5 s, so batches that deadlock fail the test instead of hanging it."""
+    """A condition whose waits give up after 5 s, so batches that deadlock fail the test instead of hanging it. A wait
+    only the timeout ends is a deadlock too, even if its condition holds by then: nothing woke it."""
 
     def wait_for(self, predicate, timeout=None):
-        assert super().wait_for(predicate, 5 if timeout is None else timeout), "a batch waited 5 s: deadlock"
+        started = time.monotonic()
+        assert super().wait_for(predicate, 5) and time.monotonic() - started < 5, "a batch waited 5 s unwoken: deadlock"
         return True
 
 
@@ -410,13 +412,24 @@ def test_a_retry_that_still_doesnt_fit_leaves_out_its_batch_and_every_later_one_
     assert json.loads((tmp_path / "mock" / "plan.json").read_text())["keep"] == 0
 
 
+def test_a_batch_that_starts_waiting_wakes_a_better_ranked_one_waiting_on_it(tmp_path, monkeypatch):
+    """Greptile: batch 1's retry waits on batch 2, whose call is in flight; then batch 2's retry waits too, behind
+    batch 1. Nothing is in flight any more, so batch 1 must be woken to go first, or both wait for ever."""
+    ended = []
+    drawn = draw_on_fake_budget(tmp_path, monkeypatch, 4.0, {
+        "batch1": [(2.0, 1.5, 0.1, True), (2.0, 0.5, 0, False)],
+        "batch2": [(1.0, 0.5, 0.3, True), (1.0, 0.2, 0, False)]}, ended)
+    assert ended == ["batch1", "batch2", "batch1 retry", "batch2 retry"]
+    assert drawn.lost == [] and drawn.plan.keep == 2
+
+
 def test_a_batch_turned_away_while_calls_are_in_flight_is_drawn_once_they_settle(tmp_path, monkeypatch):
     """Fable M10: batch 3's $1 hold and its spare don't fit beside batches 1 and 2 in flight under a $3.50 cap. It used
     to be left out, and every batch after it; now it waits for them to settle, and what they gave back holds it."""
     ended = []
     calls = {f"batch{n}": [(1.0, 0.2, 0.3 if n < 3 else 0, False)] for n in range(1, 5)}
     drawn = draw_on_fake_budget(tmp_path, monkeypatch, 3.5, calls, ended, parallel=3)
-    assert sorted(ended[:2]) == ["batch1", "batch2"] and ended[2:] == ["batch3", "batch4"]
+    assert sorted(ended[:2]) == ["batch1", "batch2"] and sorted(ended[2:]) == ["batch3", "batch4"]
     assert drawn.lost == [] and drawn.plan.keep == 4
 
 

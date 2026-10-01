@@ -525,6 +525,7 @@ class BatchTurn(llm.Turn):
         with self.moved:
             if any(r < self.rank for r in self.waiting) or not self.budget.fits(worst_usd + spare):
                 self.waiting.add(self.rank)
+                self.moved.notify_all()  # with this batch waiting, a better-ranked one may now go first
                 self.moved.wait_for(lambda: self.stopped.is_set()
                                     or self.flying <= self.waiting and min(self.waiting) == self.rank)
             if self.stopped.is_set():
