@@ -30,17 +30,30 @@ those fails without costing any planted catch, any safety verdict or any held-ou
 Both arms run through `python -m simula.validate experiment j <arm>`, which takes everything else from the committed
 `validation/experiment-j/registration.toml`: each arm's rubric file and its sha256, the judges, the profile, `--no-cache`,
 and the cap both arms share. It passes the arm's rubric file to every judge call; the tracked `prompts/judge/rubric.md`
-is never edited. Each arm writes its `settings.json`, verdicts, trace and `report.md` to the tracked
-`validation/experiment-j/<arm>/`. Before any call or write, it refuses to start when any of these holds:
+is never edited.
 
-- the arm's folder is on disk, or anywhere in git history: an arm runs once, and a re-run can only happen visibly, as
-  a new registered arm in a commit;
-- `validation/experiment-j/` (the registration and every earlier arm) or the labels aren't committed;
+Each arm takes two runs into the tracked `validation/experiment-j/<arm>/`:
+
+1. **The start.** The first run writes the arm's start, `settings.json` and `rubric.md`, and stops. Commit and push it.
+2. **The draw.** The second run makes the calls only when exactly that start is committed and no commit on any ref
+   or in the reflog ever held more under the folder. It writes the verdicts, trace and `report.md`. Commit and push
+   them.
+
+Any other state of the arm's folder is refused: results on disk or in history, or a start that is gone. So a draw
+that was deleted, crashed or reset away leaves its start in history and is never drawn again. The refusal names the
+two visible ways out: commit the folder as it stands, which leaves the experiment inconclusive, or register a new
+experiment folder in a commit.
+
+Both runs also refuse, before any call or write, when any of these holds:
+
+- `validation/experiment-j/` (the registration and every arm) or the labels aren't committed;
 - there are fewer than 15 labels, or one of the known-good ideas has none;
 - the arm's rubric doesn't hash to its registered sha256;
-- an earlier arm ran on other inputs. Each arm's `settings.json` records them by sha256: the registration, both
-  rubrics, the frozen judge prompts, the labels, and every case as the judges see it. A commit that touches none of
-  these, such as a `next` merge, may land between the arms;
+- an arm started on other inputs. Each start's `settings.json` records them by sha256:
+  - the registration, both rubrics, the frozen judge prompts and the labels;
+  - every case, both as the judges see it and as the reports score it (id, source, target, tier, known-good).
+
+  A commit that touches none of these, such as a `next` merge, may land between the runs;
 - a frozen judge input differs from `config/frozen_prompts.toml`.
 
 So the arms differ only in the rubric.
@@ -81,14 +94,18 @@ Each arm's `settings.json` lists the case ids it judged; they must equal this li
 ## Procedure
 
 1. **Labels**, as the first section says: no spend.
-2. **Control:** `uv run python -m simula.validate experiment j control`, then commit `validation/experiment-j/control/`
-   at once. The treatment refuses to start until it is committed.
-3. **Treatment:** `uv run python -m simula.validate experiment j treatment`, then commit
-   `validation/experiment-j/treatment/`.
+2. **Control:** run `uv run python -m simula.validate experiment j control`, then commit and push the start. Run it
+   again to draw, then commit and push `validation/experiment-j/control/` at once. Nothing else runs until it is
+   committed.
+3. **Treatment:** the same two runs, each followed by a commit and push, with `experiment j treatment`.
 4. Read both arms' `report.md` and verdict files, and apply the rule below.
 
-No resume and no third arm: the command runs each arm once. Between an arm's run and its commit, its draw shows in
-`git status`; commit it before doing anything else. The experiment is **inconclusive** if either arm hits any of
+No resume and no third arm: each arm draws once.
+
+- Pushing each commit puts it where a local reset can't reach.
+- Until a draw is committed, it shows in `git status`.
+- The one way to redraw that git doesn't see is deliberate: delete an uncommitted draw and restore its committed
+  start by hand. So commit each draw before reading its report. The experiment is **inconclusive** if either arm hits any of
 these:
 
 - a cap stop;
