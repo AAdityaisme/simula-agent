@@ -218,12 +218,12 @@ class FakePhone:
         self.typed.append(text)
         self.draft += text
 
-    def launch(self) -> None:
+    def launch(self, retry: bool = True) -> None:
         self.tick(2.0)
         self.log.append(("launch",))
         self.screen, self.history, self.splash_left = self.start, [], self.splash
 
-    def terminate(self) -> None:
+    def terminate(self, retry: bool = True) -> None:
         self.tick()
 
 

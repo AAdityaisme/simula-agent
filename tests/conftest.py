@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from simula import runfolder
+from simula import qa_live, runfolder
 from simula.stages import explore
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -29,7 +29,8 @@ def pytest_collection_modifyitems(config, items):
 
 @pytest.fixture(autouse=True)
 def no_device(request, monkeypatch):
-    """Offline tests never reach the emulator: a chained run stops where explore would start mobile-mcp."""
+    """Offline tests never reach the emulator: a chained run stops where explore would start mobile-mcp, the live
+    walk where it would, and no adb fact is read."""
     if request.node.get_closest_marker("live"):
         return
 
@@ -37,9 +38,11 @@ def no_device(request, monkeypatch):
 
     def refuse(*args, **kwargs):
         raise NotImplementedError("PR 1: offline tests never start mobile-mcp")
-    monkeypatch.setattr(explore, "Server", refuse)
-    monkeypatch.setattr(explore, "emulator_lock", lambda *args, **kwargs: contextlib.nullcontext())
-    monkeypatch.setattr(explore, "resolve_serial", lambda flag: flag or "offline-test")
+    for module in (explore, qa_live):
+        monkeypatch.setattr(module, "Server", refuse)
+        monkeypatch.setattr(module, "emulator_lock", lambda *args, **kwargs: contextlib.nullcontext())
+        monkeypatch.setattr(module, "resolve_serial", lambda flag: flag or "offline-test")
+    monkeypatch.setattr(explore, "adb_shell", lambda *args: None)
 
 
 @pytest.fixture

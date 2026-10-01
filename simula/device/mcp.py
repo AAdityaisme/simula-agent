@@ -244,8 +244,8 @@ class Phone:
     def type_text(self, text: str) -> None:
         self.act("mobile_type_keys", text=text, submit=False)
 
-    def launch(self) -> None:
-        self.act("mobile_launch_app", LAUNCH_TIMEOUT_S, retry=True, packageName=self.package)
+    def launch(self, retry: bool = True) -> None:
+        self.act("mobile_launch_app", LAUNCH_TIMEOUT_S, retry=retry, packageName=self.package)
 
-    def terminate(self) -> None:
-        self.act("mobile_terminate_app", LAUNCH_TIMEOUT_S, retry=True, packageName=self.package)
+    def terminate(self, retry: bool = True) -> None:
+        self.act("mobile_terminate_app", LAUNCH_TIMEOUT_S, retry=retry, packageName=self.package)
