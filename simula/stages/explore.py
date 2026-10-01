@@ -23,7 +23,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from simula import config, decide, llm
 from simula.contracts import (ActionLine, Arrival, Coverage, Device, ExploreFile, HardScreenAction, IconLabel, IconPass,
-                              Point, Progress, Rect, StageOutcome, StateFile, VisionElement, WalkPick)
+                              Point, Progress, Rect, ReplacedCapture, StageOutcome, StateFile, VisionElement, WalkPick)
 from simula.device import observe as ob
 from simula.device.mcp import McpReplyError, McpTimeout, Phone, Server
 from simula.device.devices import adb, emulator_lock, online, resolve_serial
@@ -162,6 +162,7 @@ class Seen:
     icon_labels: list = field(default_factory=list)
     vision: list = field(default_factory=list)
     blocked_reason: str | None = None
+    replaced: list = field(default_factory=list)  # ReplacedCapture: earlier captures a relaunch replaced
 
 
 @dataclass
@@ -354,6 +355,8 @@ class Explorer:
         kind, box = self.kind_of(obs, before)
         home = self.home if kind == "screen" and self.home and self.homelike(self.home, obs) else None
         sid = home.sid if home else f"s{len(self.states) + 1:02d}"
+        if home:
+            self.keep_capture(home)
         shutil.copyfile(self.scratch / "now.png", self.out / "states" / f"{sid}.png")
         (self.out / "states" / f"{sid}.elements.json").write_text(json.dumps(obs.reply, indent=1, ensure_ascii=False))
         # an overlay in the parent's window leaves the parent's controls listed behind it, maybe moved: only the new
@@ -387,6 +390,15 @@ class Explorer:
             self.log_denied(seen)
         return seen
 
+    def keep_capture(self, s: Seen) -> None:
+        """The capture a relaunch is about to replace stays, numbered, for the moves logged on it so far: the model
+        resolves their taps against it."""
+        n = len(s.replaced) + 1
+        png, tree = f"states/{s.sid}.r{n}.png", f"states/{s.sid}.r{n}.elements.json"
+        shutil.copyfile(self.out / "states" / f"{s.sid}.png", self.out / png)
+        shutil.copyfile(self.out / "states" / f"{s.sid}.elements.json", self.out / tree)
+        s.replaced.append(ReplacedCapture(until_step=self.step, screenshot=png, elements_reply=tree))
+
     def homelike(self, home: Seen, obs: Obs) -> bool:
         """What a relaunch's landing must show to be home: nothing the first launch's checks would block, no wall (an
         account or money) that home didn't already show in the same place, like a guest home's own "Log in", and the
@@ -412,11 +424,16 @@ class Explorer:
         self.log_denied(home, [c for c in cands if c.key not in known])
         return home
 
-    def kind_of(self, obs: Obs, before: Obs | None) -> tuple[str, Rect | None]:
+    def away(self, obs: Obs) -> str | None:
+        """Another app in front, or the screen turned sideways: no screen of the app to judge or act on."""
         if obs.fg != self.package:
-            return "external", None
-        if obs.image.width > obs.image.height:
-            return "rotated", None
+            return "external"
+        return "rotated" if obs.image.width > obs.image.height else None
+
+    def kind_of(self, obs: Obs, before: Obs | None) -> tuple[str, Rect | None]:
+        away = self.away(obs)
+        if away:
+            return away, None
         box = ob.dialog_box(obs.cands, self.device) or (
             ob.overlay_box(before.cands, obs.cands, self.device, frozenset(self.tab_keys()),
                            lambda box: ob.scrim(before.image, obs.image, box, self.device)) if before else None)
@@ -686,7 +703,9 @@ class Explorer:
         """Terminate, launch, settle, record and dismiss launch dialogs, then re-apply the content filter. After the
         first launch, where it lands is home: the launch screen, or the filtered root once the filter is re-applied.
         A screen the tour recorded (the fingerprint matches) is a deeper screen the app restored, and back_to_root
-        goes back from there; any other screen is home with its list reloaded, re-recorded (refresh)."""
+        goes back from there; any other screen is home with its list reloaded, re-recorded (refresh). The filter is
+        re-applied from the launch screen only: a relaunch that stops short of it walks a recorded route there, or
+        relaunches once more, counted."""
         if not first:
             self.count_relaunch(why)
         self.phone.terminate()
@@ -709,6 +728,10 @@ class Explorer:
                 self.tabs = [t for t in ob.tab_bar(home.cands, self.device) if not ob.denied(t)]
             else:
                 self.back_to_root()
+                if self.filter_taps and not self.walk_home():
+                    self.relaunch(why=f"the content filter is re-applied on the launch screen, and no recorded way "
+                                      f"led there from {self.current.sid}")
+                    return
                 self.home = self.root
             self.apply_filter(first)
         finally:
@@ -810,6 +833,14 @@ class Explorer:
             if here is self.launch_root or here.kind in AWAY or self.shows_tabs(here) or here.sid in self.exits:
                 return
             self.act(Move("back", why="relaunch landed off the launch screen"), purpose="setup")
+
+    def walk_home(self) -> bool:
+        """A recorded route to the launch screen from where back_to_root stopped (BACK there would leave the app)."""
+        for move, expected in self.route(self.current, self.launch_root) or []:
+            self.act(move, purpose="setup")
+            if self.current is not expected:
+                break
+        return self.current is self.launch_root
 
     # ---------- the content filter ----------
 
@@ -1060,8 +1091,10 @@ class Explorer:
         return any(ob.find(s.cands, t) for t in self.tabs)
 
     def route(self, src: Seen, dst: Seen, failed: set = frozenset()) -> list[tuple[Move, Seen]] | None:
+        """Recorded moves from src to dst, never into or out of an away screen (BACK there walks another app) and
+        never a BACK from a screen BACK already left the app from."""
         came = {src.sid: None}
-        queue = deque([src])
+        queue = deque([src] if src.kind not in AWAY else [])
         while queue:
             x = queue.popleft()
             if x is dst:
@@ -1113,8 +1146,12 @@ class Explorer:
     def judge(self, target: Seen, step: str = "arrival") -> Landing:
         """What the screen shows, judged against the recorded target by two signals of different kinds: the model
         (both screenshots and the goal in words) and the element lists' overlap. Arrival needs both. When they
-        disagree it is not arrival; the model's one action or a re-plan follows, and the trace says so."""
+        disagree it is not arrival; the model's one action or a re-plan follows, and the trace says so. An away screen
+        is never the target and gets no judgment, so no action of the model's runs in another app: leave() comes
+        first."""
         obs = self.obs
+        if self.away(obs):
+            return Landing(False, None, "away", 0.0)
         structure = ob.structure(target.elements, obs.elements, self.device, target.dynamic)
         row = self.filter_row(obs.cands)
         cands = [c for c in obs.cands if c.key not in row]
@@ -1169,9 +1206,10 @@ class Explorer:
     def leave(self) -> None:
         """Back to the app from an away screen. Another app in front gets a launch, never BACK, which would walk that
         app's own history: a live task comes back as it was left (measured on the emulator), which is a return, not a
-        relaunch; a launch that finds the app anywhere else is followed by a relaunch, counted. A system dialog over
-        the app sits in the app's own task, so a launch leaves it in front: it gets BACK, like a screen turned
-        sideways, and a relaunch if BACK doesn't come back."""
+        relaunch. Anything else after the launch is a relaunch, counted: another package still in front, the app
+        anywhere but where it was left, or the launch screen, where a fresh start lands too (the app's process
+        outlives a restarted task, so it can't tell them apart). A screen turned sideways gets BACK, and a relaunch if
+        BACK doesn't come back."""
         if self.obs is None:
             self.resync()
             if self.current.kind not in AWAY:
@@ -1179,24 +1217,27 @@ class Explorer:
         away = self.current
         if self.obs.fg != self.package:
             self.phone.launch()
-            if self.observe().fg == self.package:
-                if self.left and ob.same_state(self.obs.fp, self.left.fp):
-                    self.resume(away)
-                else:
-                    self.relaunch(why=f"a launch from {away.fg} did not find the app where it was left")
-                return
+            fg = self.observe().fg
+            if fg != self.package:
+                self.relaunch(why=f"a launch from {away.fg} left {fg} in front")
+            elif self.left and self.left is not self.launch_root and ob.same_state(self.obs.fp, self.left.fp):
+                self.resume(away)
+            else:
+                self.relaunch(why=f"a launch from {away.fg} did not find the app where it was left")
+            return
         self.act(Move("back", why=f"return from the {away.kind} screen"), purpose="nav")
         if self.current.kind in AWAY:
             self.relaunch(why=f"BACK did not return from the {away.kind} screen ({self.obs.fg})")
 
     def resume(self, away: Seen) -> None:
-        """The app is back where it was left: the path goes on from there, without the move that left it."""
+        """The app is back where it was left: the path goes on from there, without the moves made since it left."""
         self.returns.append(f"from {away.fg} back to {self.left.sid}")
         self.log(away, self.left, Move("launch", why="bring the app back"), None, "unknown", "", "ok")
         self.revisit(self.left, self.obs)
         self.current = self.left
-        if self.segments and self.segments[-1] and self.segments[-1][-1][2] == away.sid:
-            self.segments[-1].pop()
+        segment = self.segments[-1] if self.segments else []
+        while segment and segment[-1][2] != self.left.sid:
+            segment.pop()
 
     def read_upsell(self) -> None:
         """Scrolls an upsell to its end so every benefit and price is captured verbatim; never taps inside it."""
@@ -1930,7 +1971,8 @@ class Explorer:
                 state_id=s.sid, kind=s.kind, parent_id=s.parent, fingerprint=str(s.fp), foreground_package=s.fg,
                 screenshot=f"states/{s.sid}.png", elements_reply=f"states/{s.sid}.elements.json", settled=s.settled,
                 settle_seconds=s.settle_s, dynamic_regions=s.dynamic, captured_at=s.captured_at, box=s.box,
-                icon_labels=s.icon_labels, vision_elements=s.vision, blocked_reason=s.blocked_reason)
+                icon_labels=s.icon_labels, vision_elements=s.vision, blocked_reason=s.blocked_reason,
+                replaced=s.replaced)
             (self.out / "states" / f"{s.sid}.json").write_text(state_file.model_dump_json(indent=1))
         answered, still_open = self.checklist()
         explore = ExploreFile(
