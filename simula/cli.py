@@ -299,7 +299,7 @@ def add_run_flags(p: argparse.ArgumentParser) -> None:
     p.add_argument("--budget", choices=["deep", "transfer"], default="transfer",
                    help="exploration size: deep = 80 actions / 25 min, transfer = 40 / 12")
     p.add_argument("--allow-account-create", action="store_true",
-                   help="let the explorer create a guest account if the app asks for one")
+                   help="at a sign-up wall, go on without an account or sign up by email with SIMULA_TEST_*")
     p.add_argument("--no-send", action="store_true", help="explore without the core-loop pass (sends nothing)")
     p.add_argument("--device", metavar="SERIAL", help="adb serial to explore on (default: ANDROID_SERIAL, "
                                                       "else the only device online)")

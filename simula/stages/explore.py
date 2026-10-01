@@ -62,6 +62,8 @@ WALK_ITEMS = 3
 WALK_SURE = 0.5
 COMPOSER_BAND_PX = 150
 LIMIT_STOPS = ("counter", "input disabled", "paywall", "limit")
+SIGN_UP_STEPS = 6
+IDENTITY = {"email": "SIMULA_TEST_EMAIL", "password": "SIMULA_TEST_PASSWORD", "name": "SIMULA_TEST_NAME"}
 
 RANK_QUESTION = "Which tap most likely reveals a limit, a paywall, a currency, an ad, or a new core screen of the app?"
 FILTER_QUESTION = ("A content or safety filter decides how much adult or unsafe content the app shows (for "
@@ -276,7 +278,11 @@ class Explorer:
         self.tour_actions = 0
         self.replay = (0, 0)
         self.started = clock()
-        self.secrets = redact_list()
+        self.identity = account_identity() if ctx.allow_account_create else {}
+        self.secrets = redact_list() + list(self.identity.values())
+        self.walls: set[str] = set()
+        self.account: list[str] = []  # what each account wall came to, for the exhibit
+        self.account_state = ""  # "made" once the sign-up made an account, "verify" while its email waits
         self.redacted = 0
         self.denied_executed = 0
         self.counts: Counter = Counter()
@@ -448,7 +454,8 @@ class Explorer:
         line = ActionLine(**fields)
         with open(self.out / "actions.jsonl", "a") as f:
             f.write(line.model_dump_json() + "\n")
-        label = f" {move.cand.label[:40]!r}" if move.cand else (f" {move.text[:40]!r}" if move.text else "")
+        typed = ob.REDACTED if move.text in self.secrets else move.text
+        label = f" {move.cand.label[:40]!r}" if move.cand else (f" {typed[:40]!r}" if typed else "")
         run_trace(self.ctx.run_dir, stage="explore", step=f"act{self.step:03d}", decider=move.decider,
                   outcome=outcome, note=f"{move.action}{label} {s.sid}>{to.sid if to else '-'} "
                                         f"[{transition}] {summary[:120]} ({move.why})"[:300])
@@ -475,7 +482,8 @@ class Explorer:
         if self.touring and purpose in ("tour", "nav") and self.actions >= self.limits["actions"]:
             raise Stop(f"action cap ({self.limits['actions']})")
         if move.cand and move.action == "tap":
-            reason = ob.denied(move.cand, upsell=s.upsell, core=purpose == "core", toggle_ok=purpose == "filter")
+            reason = ob.denied(move.cand, upsell=s.upsell, core=purpose == "core", toggle_ok=purpose == "filter",
+                               account=purpose == "account")
             if reason:
                 self.log(s, None, move, move.cand, "unknown", f"denied: {reason}", "denied")
                 s.tried.add(move.cand.key)
@@ -496,7 +504,8 @@ class Explorer:
             return s
         outcome = "ok"
         try:
-            self.perform(move, live, s.upsell, core=purpose == "core", toggle_ok=purpose == "filter")
+            self.perform(move, live, s.upsell, core=purpose == "core", toggle_ok=purpose == "filter",
+                         account=purpose == "account")
         except McpTimeout as e:
             outcome = "timeout"
             self.hang(s, e)
@@ -603,11 +612,11 @@ class Explorer:
         return True
 
     def perform(self, move: Move, live: ob.Candidate | None, upsell: bool = False, core: bool = False,
-                toggle_ok: bool = False) -> None:
+                toggle_ok: bool = False, account: bool = False) -> None:
         """The one place a move reaches the device. A tap the deny-list flags is counted here, whoever sent it,
         so the exhibit's count is measured, not assumed."""
         if move.action == "tap":
-            if ob.denied(live, upsell=upsell, core=core, toggle_ok=toggle_ok):
+            if ob.denied(live, upsell=upsell, core=core, toggle_ok=toggle_ok, account=account):
                 self.denied_executed += 1
             self.phone.tap(*live.point)
         elif move.action == "back":
@@ -701,6 +710,8 @@ class Explorer:
                 self.back_to_root()
                 self.home = self.root
             self.apply_filter(first)
+            if first and self.account_wall(home) and self.get_past(home):
+                self.rehome()
         finally:
             self.home = None
         self.segments.append([])
@@ -911,6 +922,143 @@ class Explorer:
         self.filter_checks.append((n, ok, f"explore/filter/{evidence.name}"))
         self.note("filter.check", f"{last.label!r} {'verified' if ok else 'NOT verified'} by screenshot "
                                   f"(check {n})", outcome="ok" if ok else "error")
+
+    # ---------- account walls (--allow-account-create) ----------
+
+    def account_wall(self, s: Seen) -> bool:
+        """With --allow-account-create, a screen or overlay with a control that asks to sign in or up (not one that
+        logs out) and none of the app to use (no list of items, no text box with send) is a wall. Each is met once."""
+        return (self.ctx.allow_account_create and s.sid not in self.walls and s.kind in ("screen", "modal", "sheet")
+                and any(ob.shaped(c) and ob.SIGN_IN.search(c.label) for c in s.cands)
+                and not ob.feed_items(s.cands, self.device, self.tab_keys()) and not ob.composer(s.cands, self.device))
+
+    def get_past(self, wall: Seen) -> bool:
+        """A way on without an account first (a dismissal only backs out of an overlay, so there it is none), then
+        an email sign-up with the operator's test identity until one makes an account. Whatever stops it leaves the
+        explorer at the wall, as without the flag, with the reason in the trace and the exhibit. True when past it."""
+        self.walls.add(wall.sid)
+        on = next((c for c in wall.cands if ob.shaped(c) and not ob.denied(c, upsell=wall.upsell) and (
+            ob.GUEST.search(c.label) or (wall.kind == "screen" and ob.DISMISS.match(c.label.strip())))), None)
+        if on:
+            self.act(Move("tap", on, why="account wall: on without an account"), purpose="nav")
+            if self.current is not wall:
+                return self.account_note(f"{wall.sid}: went on without an account ({on.label[:40]!r})", True)
+        missing = [var for kind, var in IDENTITY.items() if kind not in self.identity]
+        why = ("an account was made already" if self.account_state == "made" else
+               "the sign-up waits for its email to be verified" if self.account_state == "verify" else
+               f"{', '.join(missing)} not set" if missing else "")
+        return self.account_note(f"{wall.sid}: no sign-up, {why}", False) if why else self.sign_up(wall)
+
+    def sign_up(self, wall: Seen) -> bool:
+        """Follows the email sign-up from the wall a screen at a time: fills the boxes that ask for the email, the
+        password and the name, once per screen, and sends the form; else takes the way to an email sign-up. A check
+        only a person can pass, a phone number, a sign-in with another account or a payment stops it, and an email
+        verification asks a person to verify (needs-human.md)."""
+        sent, typed_on = False, set()
+        for _ in range(SIGN_UP_STEPS):
+            s, said = self.current, self.said()
+            self.walls.add(s.sid)  # a screen on the way is no new wall for the tour to meet
+            check = next((t for t in said if ob.HUMAN_CHECK.search(t)), None)
+            if check:
+                return self.stopped(wall, f"a check only a person can pass ({check[:60]!r})")
+            fields = [(c, kind) for c in s.cands if c.kind == "EditText" for kind in [ob.field_kind(c, s.elements)]
+                      if kind]
+            todo = [(c, kind) for c, kind in fields if kind in self.identity and not self.filled(c)]
+            if todo and s.sid not in typed_on:
+                why = self.fill(todo, typed_on) or self.send()
+                if why:
+                    return self.stopped(wall, why)
+                sent = True
+                continue
+            if any(kind == "phone" for _, kind in fields):
+                return self.stopped(wall, f"{s.sid} asks for a phone number")
+            if sent and any(ob.VERIFY.search(t) for t in said):
+                self.account_state = "verify"
+                self.human("the test account's email verified",
+                           f"the sign-up from {wall.sid} reached an email verification step ({s.sid}): open the "
+                           "message the app sent to SIMULA_TEST_EMAIL and follow its link, or type its code into the "
+                           "app on the emulator; then explore again, and the app should open signed in")
+                return self.stopped(wall, f"an email verification step on {s.sid}, for a person (needs-human.md)")
+            if fields:
+                return self.stopped(wall, f"the form on {s.sid} didn't move on (an error, a box it doesn't fill, "
+                                          "or a box to tick)")
+            if sent:
+                self.account_state = "made"
+                return self.account_note(f"{wall.sid}: signed up with the test identity, now on {s.sid}", True)
+            if s.priced or any(ob.CARD.search(t) for t in said):
+                return self.stopped(wall, f"a payment step on {s.sid}")
+            way = self.email_way()
+            if way is None:
+                return self.stopped(wall, self.no_way())
+            self.act(Move("tap", way, why="sign-up: the way to an email sign-up"), purpose="account")
+            if self.current is s:
+                return self.stopped(wall, f"{way.label[:40]!r} led nowhere")
+        return self.stopped(wall, f"no account after {SIGN_UP_STEPS} screens")
+
+    def fill(self, todo: list[tuple[ob.Candidate, str]], typed_on: set[str]) -> str:
+        """Types each value into its own box, and only once the tap gave a text box the focus. Every state the form
+        shows meanwhile goes in typed_on, so a form that comes back is never typed into again: a box showing a
+        password's dots isn't listed, and another box could be taken for it. Why it stopped, or ""."""
+        typed_on.add(self.current.sid)
+        for c, kind in todo:
+            taken = self.actions
+            self.act(Move("tap", c, why=f"sign-up: the {kind} box"), purpose="account")
+            if self.actions == taken or not any(e.get("focused") and e["type"].endswith("EditText")
+                                                for e in self.obs.elements):
+                return f"the {kind} box took no focus"
+            self.act(Move("type", text=self.identity[kind], why=f"sign-up: the {kind}"), purpose="account")
+            typed_on.add(self.current.sid)
+        return ""
+
+    def send(self) -> str:
+        """Taps the lowest short control that names sending the form ("Sign up", "Continue", "Next")."""
+        found = [c for c in self.surface() if c.kind != "EditText" and ob.shaped(c) and ob.SUBMIT.search(c.label)
+                 and not ob.denied(c, upsell=self.current.upsell, account=True)]
+        if not found:
+            return "no control sends the form"
+        self.act(Move("tap", max(found, key=lambda c: c.rect.y), why="sign-up: send the form"), purpose="account")
+        return ""
+
+    def email_way(self) -> ob.Candidate | None:
+        """The control on the way to an email sign-up: one that names email, else one that names signing up."""
+        ways = [c for c in self.surface() if c.kind != "EditText" and ob.shaped(c)
+                and not ob.denied(c, upsell=self.current.upsell, account=True)]
+        return next((c for rule in (ob.EMAIL_WAY, ob.SIGN_UP_WAY) for c in ways if rule.search(c.label)), None)
+
+    def no_way(self) -> str:
+        """Why nothing leads to an email sign-up, from what the screen offers instead."""
+        labels = [c.label for c in self.surface()]
+        for what, rule in (("a phone number", ob.PHONE), ("a sign-in with another account", ob.OTHER_ACCOUNT)):
+            hit = next((label for label in labels if rule.search(label)), None)
+            if hit:
+                return f"the way in takes {what} ({hit[:40]!r})"
+        return f"no way to sign up with an email on {self.current.sid}"
+
+    def filled(self, box: ob.Candidate) -> bool:
+        """A box that shows a value (one of the redacted ones) or that the screen no longer shows needs nothing."""
+        live = ob.find(self.obs.cands, box)
+        return live is None or ob.REDACTED in live.label
+
+    def said(self) -> set[str]:
+        """The texts the screen shows now; on an overlay, only its own."""
+        box = self.current.box
+        return ob.texts([e for e in self.obs.elements if box is None or ob.inside(ob.rect(e), box)], self.device)
+
+    def rehome(self) -> None:
+        """Past a launch wall, where the way past it landed is the launch screen: the tabs, the content filter and
+        every relaunch start there."""
+        home = self.root = self.launch_root = self.current
+        home.depth, home.back_to = 0, None
+        self.tabs = [t for t in ob.tab_bar(home.cands, self.device) if not ob.denied(t)]
+        self.apply_filter(True)
+
+    def account_note(self, text: str, past: bool) -> bool:
+        self.account.append(text)
+        self.note("account", text, outcome="ok" if past else "blocked")
+        return past
+
+    def stopped(self, wall: Seen, why: str) -> bool:
+        return self.account_note(f"{wall.sid}: stopped at the wall, {why}", False)
 
     # ---------- the tour ----------
 
@@ -1190,6 +1338,9 @@ class Explorer:
                     self.resync()
                 if self.current.kind in AWAY:
                     self.leave()
+                    continue
+                if self.account_wall(self.current):
+                    self.get_past(self.current)
                     continue
                 target = self.next_target()
                 if target is None:
@@ -1942,8 +2093,11 @@ def exhibit(ex: Explorer, app_version: str | None) -> str:
              f"- Content filter: {filter_label(ex.filter_taps, ex.filter_on) or 'none found'}"]
     lines += [f"  - check {n}: {'verified' if ok else 'NOT verified'} by screenshot (`{path}`)"
               for n, ok, path in ex.filter_checks]
-    lines += [f"- Redaction: {len(ex.secrets)} strings listed in SIMULA_REDACT; {ex.redacted} element texts "
+    listed = "SIMULA_REDACT and SIMULA_TEST_*" if ex.identity else "SIMULA_REDACT"
+    lines += [f"- Redaction: {len(ex.secrets)} strings listed in {listed}; {ex.redacted} element texts "
               "redacted at capture"]
+    if ex.ctx.allow_account_create:
+        lines += [f"- Account walls (--allow-account-create): {'; '.join(ex.account) or 'none met'}"]
     lines += [f"- Checklist answered: {', '.join(answered) or 'none'}; open: {', '.join(still_open) or 'none'}",
               f"- Denied taps: {sum(1 for _ in denied_lines(ex))} logged, {ex.denied_executed} executed. The deny-list "
              "is English only: a confirm button in another language isn't caught, and the store's billing screen "
@@ -2035,6 +2189,11 @@ def denied_lines(ex: Explorer):
 
 def redact_list() -> list[str]:
     return [s.strip() for s in os.environ.get("SIMULA_REDACT", "").split(",") if s.strip()]
+
+
+def account_identity() -> dict[str, str]:
+    """The operator's throwaway account for --allow-account-create, from the environment; never made up."""
+    return {kind: value for kind, var in IDENTITY.items() if (value := os.environ.get(var, "")).strip()}
 
 
 def rerun(ctx: Ctx) -> str:
@@ -2131,6 +2290,8 @@ def outcome(ex: Explorer) -> StageOutcome:
     for phase, name in (("paywall_pass", "the paywall pass"), ("verify_replay", "the replay check")):
         reasons += [f"{name} stopped early ({r.split(': ', 1)[1]})" for r in ex.core_results
                     if r.startswith(f"{phase} stopped: ") and "relaunch cap" not in r]
+    if ex.account_state == "verify":
+        reasons.append("its sign-up waits for a person to verify the test account's email (needs-human.md)")
     if ex.may_send and not ex.core_hit and ex.core_completed < ex.core_reps:
         last = ex.core_results[-1] if ex.core_results else f"the tour ended: {ex.stop_reason}"
         reasons.append(f"the core loop completed {ex.core_completed} of {ex.core_reps} passes (last: {last})")

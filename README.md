@@ -151,6 +151,7 @@ Set these in `.env`, by name:
 | `OPENAI_API_KEY` | Judge #2: gpt-6-sol. If a call errors or times out on both tries, it moves to gpt-6-luna, and its trace line says `declared fallback used`. Both judges score every idea (`judges` in `config/profiles.toml`). |
 | `TYPESAFE_API_KEY` | Jev (`jev-latest`), which ranks the explorer's next tap in the `real` profile. |
 | `SIMULA_REDACT` | Explore. A comma-separated list of the emulator account's handle and names. See Safety and privacy. |
+| `SIMULA_TEST_EMAIL`, `SIMULA_TEST_PASSWORD`, `SIMULA_TEST_NAME` | Explore with `--allow-account-create` only: a throwaway test account's email, password and name. Explore adds them to its redaction. |
 
 `SIMULA_REDACT` works at capture time. Explore replaces each listed string (in any case), and every email address, with `[redacted]` in the element trees it captures. It also paints over those elements in its screenshots before anything is saved. Explore refuses to start while `SIMULA_REDACT` is empty.
 
@@ -194,7 +195,7 @@ Reruns:
 | `--replay` | Cache only: no model calls, no device. A cache miss stops with exit code 4. |
 | `--no-cache` | Skip cache reads; replies are still written. |
 | `--usd-cap USD` | Override this stage's $ cap. |
-| `--allow-account-create` | Saved with the run's settings, but nothing uses it yet. The explorer never creates an account, and its deny-list blocks sign-up taps. |
+| `--allow-account-create` | Off by default. At a sign-up or login wall, explore goes on without an account if it can, else signs up by email with `SIMULA_TEST_*`. See Safety and privacy. |
 
 **Fixtures** (saved test inputs). `--allow-fixtures --fixture STAGE=PATH` fills one stage folder of a new run from a fixture, so later stages can run without the earlier ones:
 
@@ -238,6 +239,7 @@ Each stage has a $ cap in `config/profiles.toml` (`[caps_usd]`). Override one wi
   - on an upsell screen, its call-to-action words too (continue, try, start, get, claim, unlock, …)
 - **Play billing BACK.** If Google Play's billing screen (`com.android.vending`) comes to the front, explore presses BACK before anything else runs.
 - **Sending.** The core-loop pass sends a few neutral chat messages (3 on `transfer`, 8 on `deep`) to measure the free experience. Gifts, coins, gems, tips and credits stay blocked. `--no-send` skips the pass.
+- **Account creation** (`--allow-account-create`, off by default). We have not run it against a real app yet. A wall is a screen or overlay that asks the user to sign in or up and shows none of the app (no list of items, no text box with send). There, explore first takes a way on without an account ("Continue as guest", or "Skip" on a full screen). Otherwise, it follows the email sign-up: it types `SIMULA_TEST_EMAIL`, `SIMULA_TEST_PASSWORD` and `SIMULA_TEST_NAME` only into the boxes that ask for them, then sends the form. It never makes up an identity. It stops at the wall, with the reason in the trace and the explore exhibit, when a value is missing or the way in takes a phone number, a payment, a CAPTCHA, or a sign-in with Google, Apple or another account. An email verification step stops with `needs-human.md`: verify, then explore again. The rest of the deny-list still applies. The keyboard isn't in the element list, so a word its suggestion strip shows while explore types isn't painted over; check the run's screenshots. Signing up with a script can break an app's terms of service (Goal 5, "Failure modes at scale"), so use it only on apps you may test this way.
 - **Content filter.** Explore looks for the app's content or safety filter (for example "SFW only" or "Hide NSFW") and picks its most restrictive option.
 - **`content_rating`.** The model stage rates every screen safe, mixed or unsafe. A generic adult-keyword list (`[content]` in `config/profiles.toml`) can only raise a rating to unsafe. The proposer and the judges see an unsafe screen's id, name and rating, but none of its text. An idea may only trigger on a screen rated safe or mixed.
 - **Redaction at capture.** `SIMULA_REDACT` (see Setup) hides the account's handle, names and email addresses before anything is saved.
@@ -356,7 +358,7 @@ The ones that matter most:
 
 ## What I'd build next
 
-- **An automated sign-in and sign-up phase.** Account creation was optional for this take-home, so the explorer never signs up. `--allow-account-create` is saved with a run but not acted on, and an app that opens on a sign-up wall stops for a person. Next is an opt-in phase, run before explore, that signs up or signs in with a test identity and hands explore a logged-in app.
+- **Sign-in, and a real run of sign-up.** `--allow-account-create` signs up by email at a wall (see Safety and privacy), but it has only run on the fake phone in the tests, and it doesn't choose to log in to an account that already exists. Next: run it on an app with a sign-up wall, and add a log-in path for the same test identity.
 - **Partner test accounts.** For an app that's a signed customer, its own test build and accounts (Goal 5's partner tier) reach the screens behind a login without creating anything.
 - **Additive approvals.** `flows/approvals.json` should add a split idea to the accepted ones instead of replacing the draw list.
 - **A more realistic mock.**

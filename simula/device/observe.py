@@ -94,6 +94,25 @@ CLOCK = re.compile(r"\b\d{1,2}:\d{2}\b|\bago\b", re.IGNORECASE)
 LETTER = re.compile(r"[^\W\d_]")
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
 REDACTED = "[redacted]"
+# --allow-account-create's words. A way on without an account; on an overlay a dismissal only backs out instead.
+GUEST = re.compile(r"\bguest\b|\bwithout\b.{0,12}\b(?:account|sign|log|regist)|\bskip\b|\bnot now\b|\blater\b",
+                   re.IGNORECASE)
+# a sign-in with another account (Google, Apple, ...) or a phone is a real person's, so it is never a way in
+OTHER_ACCOUNT = re.compile(r"\b(?:continue|sign ?(?:in|up)|log ?in|connect|register)\s+(?:with|using|via)\b"
+                           r"(?!.*\be-?mail\b)", re.IGNORECASE)
+PHONE = re.compile(r"\bphone\b|\bmobile\b|\bsms\b", re.IGNORECASE)
+SIGN_UP = re.compile(r"sign ?up|create (?:an |my |your )?account|register|continue with|e-?mails?|passwords?|submit|"
+                     r"proceed", re.IGNORECASE)
+EMAIL_WAY = re.compile(r"\be-?mail\b", re.IGNORECASE)
+SIGN_UP_WAY = re.compile(r"\bsign ?up\b|\bcreate (?:an |my |your )?account\b|\bregister\b", re.IGNORECASE)
+SUBMIT = re.compile(r"\b(?:sign ?up|create|register|continue|next|submit|done|join|get started|let'?s go)\b",
+                    re.IGNORECASE)
+FIELDS = {"email": re.compile(r"e-?mail", re.IGNORECASE), "password": re.compile(r"pass ?word|\bpwd\b", re.IGNORECASE),
+          "phone": PHONE, "name": re.compile(r"(?<!user )\bname\b", re.IGNORECASE)}
+HUMAN_CHECK = re.compile(rf"{BLOCKING.pattern}|not a robot", re.IGNORECASE)
+VERIFY = re.compile(r"\bverif|\bconfirm\w* (?:your )?e-?mail|check your (?:e-?mail|inbox)|\bwe(?:'ve| have)? sent\b|"
+                    r"\b(?:enter|type) the code\b|\bone[- ]time\b|\botp\b|magic link", re.IGNORECASE)
+CARD = re.compile(r"card number|\bcvv\b|\bcvc\b|expir(?:y|ation) date|billing address", re.IGNORECASE)
 
 
 # ---------- geometry ----------
@@ -406,12 +425,15 @@ def find(cands: list[Candidate], want: Candidate) -> Candidate | None:
     return min(same, key=lambda c: abs(center(c.rect)[0] - wx) + abs(center(c.rect)[1] - wy), default=None)
 
 
-def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bool = False) -> str | None:
+def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bool = False,
+           account: bool = False) -> str | None:
     """The deny-list word that blocks this tap, or None. On an upsell screen its call-to-action words are
     denied too. A control that shows the account's own name or email is never tapped: a tap can copy it where no
     redaction reaches, like the keyboard's clipboard chip. Sending and typing belong to the core-loop pass only. A
     switch or checkbox could undo the content filter, so only the filter's own row may flip one (toggle_ok). On that
-    row a filter phrase ("Hide NSFW", "Block explicit content") is no deny hit; every other deny word still is."""
+    row a filter phrase ("Hide NSFW", "Block explicit content") is no deny hit; every other deny word still is. On
+    the sign-up path (account) the words that sign up by email are no deny hit and a text box may be typed into,
+    unless the control names a sign-in with another account or a phone; every other deny word still is."""
     text = "\n".join(dict.fromkeys(t for t in (c.label, c.tree_label) if t))
     if REDACTED in text:
         return "account text"
@@ -420,15 +442,37 @@ def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bo
     rest = FILTER_PHRASE.sub(" ", text) if toggle_ok else text
     if ICON_ONLY.fullmatch(c.tree_label) and DISMISS_ID.search(ID_WORDS.sub(" ", c.ident or c.label)):
         text = rest = SIGN_IN.sub(" ", text)
+    if account and not (OTHER_ACCOUNT.search(text) or PHONE.search(text)):
+        text = rest = SIGN_UP.sub(" ", text)
     hit = (DENY_ALWAYS if shaped else DENY_COMMAND).search(text) or (DENY.search(rest) if shaped else None) \
         or (DENY_ON_UPSELL.search(text) if upsell else None) or (DENY_IN_CORE if core else DENY_IN_TOUR).search(text)
     if hit:
         return hit.group(hit.lastindex or 0).lower()  # a command's word, without the bullet before it
     if TOGGLE.search(c.kind) and not toggle_ok:
         return "toggle"
-    if c.kind == "EditText" and not core:
+    if c.kind == "EditText" and not (core or account):
         return "text input"
     return None
+
+
+def shaped(c: Candidate) -> bool:
+    """A control's label, not a sentence: a few words, or a button."""
+    return len(c.label.split()) <= CONTROL_WORDS or "Button" in c.kind
+
+
+def field_kind(c: Candidate, elements: list[dict]) -> str:
+    """What a text box asks for ("email", "password", "phone", "name", or ""): its own words or id, else its caption,
+    the closest text above it, since a box seldom names itself in the tree. A text box in between owns that text."""
+    r = c.rect
+
+    def above(e: dict) -> bool:
+        t = rect(e)
+        return t.y + t.h <= r.y + 8 and t.x < r.x + r.w and r.x < t.x + t.w
+    nearest = max((e for e in elements if (words(e) or e["type"].endswith("EditText")) and above(e)),
+                  key=lambda e: rect(e).y + rect(e).h, default=None)
+    caption = words(nearest) if nearest and not nearest["type"].endswith("EditText") else ""
+    said = " ".join([c.label, ID_WORDS.sub(" ", c.ident), caption])
+    return next((kind for kind, rule in FIELDS.items() if rule.search(said)), "")
 
 
 def walled(cands: list[Candidate]) -> str:
