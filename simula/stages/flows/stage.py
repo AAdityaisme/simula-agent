@@ -268,16 +268,20 @@ def edit_all(ctx: Ctx, model: ProductModel, page: str, budget: llm.Budget, chose
 def run(ctx: Ctx) -> None:
     # flows/ is built aside and swapped in whole at the end, keeping the person's approvals.json: a stop or a crash
     # before then leaves the last deck.
-    run_dir, out = ctx.run_dir, ctx.run_dir / "flows.tmp"
+    run_dir, out, approvals = ctx.run_dir, ctx.run_dir / "flows.tmp", ctx.run_dir / "flows" / "approvals.json"
     model = ProductModel.model_validate_json((run_dir / "model" / "product_model.json").read_text())
     decisions = DecisionsFile.model_validate_json((run_dir / "judge" / "decisions.json").read_text()).decisions
     candidates = load_candidates(run_dir)
-    promote, held = load_approvals(run_dir / "flows", decisions)
+    stranded = run_dir / "flows.old" / "approvals.json"  # a swap a crash cut short between its two renames
+    if stranded.exists() and not approvals.exists():
+        approvals.parent.mkdir(exist_ok=True)
+        stranded.replace(approvals)
+    promote, held = load_approvals(approvals.parent, decisions)
     promoted, set_aside = honored(promote, decisions)
     shutil.rmtree(out, ignore_errors=True)
     out.mkdir()
-    if (run_dir / "flows" / "approvals.json").exists():
-        shutil.copy2(run_dir / "flows" / "approvals.json", out)
+    if approvals.exists():
+        shutil.copy2(approvals, out)
     chosen = select(decisions, promoted, held)
     kept = {d.candidate_id for d in survivors(decisions, promoted, held)}
     cut = [d for d in survivors(decisions, promoted, held) if d not in chosen]

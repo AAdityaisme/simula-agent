@@ -1086,6 +1086,20 @@ def test_a_crash_while_flows_rebuilds_leaves_the_last_deck_and_a_rebuild_keeps_t
             if p.is_file()} == deck
 
 
+def test_approvals_a_swap_cut_short_left_in_flows_old_still_apply(tmp_path):
+    """Greptile: a crash between swap_in's two renames leaves the last deck, approvals.json with it, in flows.old/; the
+    next run must still apply the person's approvals, not rebuild without them and delete them."""
+    run_dir, _ = split_run(tmp_path, approvals={"hold": ["c02"]})
+    (run_dir / "flows").rename(run_dir / "flows.old")
+    (run_dir / "flows").mkdir()  # as the CLI makes it before a stage runs
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(llm, "call", fake_editor(run_dir))
+        flows.stage.run(ctx_for(run_dir, "luzia"))
+    notes = [line.note for line in read_trace(run_dir / "trace.jsonl") if line.step == "select"]
+    assert notes == ["accepted + conditional, flows/approvals.json holding c02: c01"] * 2
+    assert json.loads((run_dir / "flows" / "approvals.json").read_text()) == {"hold": ["c02"]}
+
+
 @pytest.mark.parametrize("written, error", [
     ('{"held": ["c01"]}', "expected"),
     ('{"hold": "c01"}', "expected"),  # a string would hold every id it contains
