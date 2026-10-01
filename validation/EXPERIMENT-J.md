@@ -30,14 +30,18 @@ those fails without costing any planted catch, any safety verdict or any held-ou
 Both arms run through `python -m simula.validate experiment j <arm>`, which takes everything else from the committed
 `validation/experiment-j/registration.toml`: each arm's rubric file and its sha256, the judges, the profile, `--no-cache`,
 and the cap both arms share. It passes the arm's rubric file to every judge call; the tracked `prompts/judge/rubric.md`
-is never edited. Before any call or write, it refuses to start when any of these holds:
+is never edited. Each arm writes its `settings.json`, verdicts, trace and `report.md` to the tracked
+`validation/experiment-j/<arm>/`. Before any call or write, it refuses to start when any of these holds:
 
-- a frozen judge input differs from `config/frozen_prompts.toml`;
-- the registration or the labels aren't committed;
+- the arm's folder is on disk, or anywhere in git history: an arm runs once, and a re-run can only happen visibly, as
+  a new registered arm in a commit;
+- `validation/experiment-j/` (the registration and every earlier arm) or the labels aren't committed;
 - there are fewer than 15 labels, or one of the known-good ideas has none;
 - the arm's rubric doesn't hash to its registered sha256;
-- the arm already ran;
-- an earlier arm ran from another commit or under another cap.
+- an earlier arm ran on other inputs. Each arm's `settings.json` records them by sha256: the registration, both
+  rubrics, the frozen judge prompts, the labels, and every case as the judges see it. A commit that touches none of
+  these, such as a `next` merge, may land between the arms;
+- a frozen judge input differs from `config/frozen_prompts.toml`.
 
 So the arms differ only in the rubric.
 
@@ -77,12 +81,14 @@ Each arm's `settings.json` lists the case ids it judged; they must equal this li
 ## Procedure
 
 1. **Labels**, as the first section says: no spend.
-2. **Control:** `uv run python -m simula.validate experiment j control`
-3. **Treatment:** `uv run python -m simula.validate experiment j treatment`
-4. Read `validation/latest/j/{control,treatment}/report.md` and the verdict files, and apply the rule below. The folders
-   stay untracked: `validation/latest/` is gitignored.
+2. **Control:** `uv run python -m simula.validate experiment j control`, then commit `validation/experiment-j/control/`
+   at once. The treatment refuses to start until it is committed.
+3. **Treatment:** `uv run python -m simula.validate experiment j treatment`, then commit
+   `validation/experiment-j/treatment/`.
+4. Read both arms' `report.md` and verdict files, and apply the rule below.
 
-No resume and no third arm: the command runs each arm once. The experiment is **inconclusive** if either arm hits any of
+No resume and no third arm: the command runs each arm once. Between an arm's run and its commit, its draw shows in
+`git status`; commit it before doing anything else. The experiment is **inconclusive** if either arm hits any of
 these:
 
 - a cap stop;
@@ -93,7 +99,9 @@ Inconclusive means no adoption and no extra spend to rescue it.
 
 ## The adoption rule (all must hold)
 
-Definitions. *Valid goods*: the 6 known-good ideas Aadi labeled pass. *A judge passes a case*: it passes all 12 checks;
+Definitions. *Valid goods*: the known-good ideas that each arm's `report.md` counts in its known-good rate and that
+Aadi labeled pass. Every known-good idea needs a label, but the denominator is whatever `report.md` counts: all 6 today,
+or only the human-written ones if a later change narrows the rate to those. *A judge passes a case*: it passes all 12 checks;
 *combined* passes only when both judges do. *Second control draw*: VF3's committed run in `validation/verdicts/VF3/`,
 saved at e56402e under the prompts `config/frozen_prompts.toml` pins there. It counts only while that file is unchanged
 since e56402e. A *promotion* is a valid good that the treatment passes and that both control draws fail, for the same judge.
@@ -130,9 +138,15 @@ judge_2's results on them across the 4 saved runs (VF′ ×3, VF3 ×1):
 | Luzia c05 | passes 3 of 4 | None needed. VF3 passed it. |
 
 Candy Crush is the only countable promotion, and the treatment shouldn't produce it. With 4 original goods, one repeat
-per arm can't tell a real effect on c02 from noise, and the 70% bar in item 2 doesn't help decide either. If Aadi labels
-AOL c01 fail, the control already passes 4 of 5 valid goods for judge_2 and combined (80%) in VF3. If it is labeled
-pass, the control sits at 4 of 6 (67%), and only a Candy Crush flip lifts it.
+per arm can't tell a real effect on c02 from noise. The 70% bar in item 2 doesn't decide it either; where VF3 sits on
+it depends on how AOL c01 is labeled and which goods `report.md` counts:
+
+| AOL c01 labeled | All 6 counted (today) | Only the 4 human-written counted |
+|---|---|---|
+| fail | 4 of 5 (80%), bar met | 2 of 3 (67%); only a Candy Crush flip lifts it, to 3 of 3 |
+| pass | 4 of 6 (67%); only a Candy Crush flip lifts it, to 5 of 6 | 2 of 4 (50%); a Candy Crush flip lifts it to 3 of 4 |
+
+Each cell is VF3's control for judge_2 and for combined.
 
 So the money buys three things, not an adoption: Aadi's labels on the goods; evidence that the sentence costs nothing on
 planted catches, safety and held-out cases; and a look at whether judge_2's c2 reasons take the three-part form. Whether
@@ -146,8 +160,7 @@ that is worth $7.40 is Aadi's call.
 - **Calls in flight:** the budget holds each call's worst case until it settles: about $0.20 (the largest case's ~18K
   input tokens at $2/M plus 16,001 output tokens at $10/M). Up to 8 run at once, so ≤ $1.60 is held.
 - **Hard cap: `usd_cap = 10` in the registration, for the whole experiment.** Both arms share it: the cap counts spend
-  in every `validation/latest/j/*/trace.jsonl`, and the first arm records it in `validation/latest/j/experiment.json`
-  for the second to match. A cap stop is inconclusive (see Procedure).
+  in every committed `validation/experiment-j/*/trace.jsonl`. A cap stop is inconclusive (see Procedure).
 
 For scale: the first plan's three repeats per arm cost about $9.42 an arm (VERIFY-astra: 28 cases × 3 × $0.1121).
 

@@ -206,6 +206,10 @@ def load_cases(root: Path = CASES) -> list[Case]:
 
 # ---------- scoring ----------
 
+def known_good(case: Case) -> bool:
+    return case.source in ("base", "run")
+
+
 def passes_all(v: Verdict | None) -> bool:
     return v is not None and not any(judge.failed(v, k) for k in LLM_CHECKS)
 
@@ -263,7 +267,7 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
     (case id, judge); a None is a call that failed twice and counts against the judge."""
     planted = [c for c in cases if c.source == "planted" and c.target != C8]
     subtle = [c for c in planted if c.tier == "subtle"]
-    goods = [c for c in cases if c.source in ("base", "run")]
+    goods = [c for c in cases if known_good(c)]
     c8 = [c for c in cases if c.target == C8]
     columns = [*judges, "combined"] if len(judges) > 1 else judges
 
@@ -432,10 +436,6 @@ def run_judges(cases: list[Case], judges: list[str], roles: dict, budget: llm.Bu
         return {(case.id, who): v for (case, who), v in pool.map(one, jobs)}
 
 
-def known_good(case: Case) -> bool:
-    return case.source in ("base", "run")
-
-
 def read_labels(root: Path = CASES) -> dict[str, dict]:
     return {p.stem: json.loads(p.read_text()) for p in sorted((root / "labels").glob("*.json"))}
 
@@ -462,24 +462,34 @@ def validate_judge(profile: str, judges: list[str], no_cache: bool, out: Path = 
 
 # ---------- a pre-registered experiment (validation/EXPERIMENT-J.md) ----------
 
-def experiment(name: str, arm: str, out: Path = OUT, registered: Path = EXPERIMENTS) -> None:
+def experiment(name: str, arm: str, registered: Path = EXPERIMENTS) -> None:
     """One arm of a pre-registered experiment, run only as experiment-<name>/registration.toml says: the arm's rubric
     file (the tracked prompt is never edited), the judges, profile and cache use, and the dollar cap its arms share.
-    Before any call or write it refuses unless the registration and the labels are committed, the labels are enough
-    and include every known-good idea, the rubric has its registered sha256, the arm never ran, and any arm before it
-    ran from this commit under this cap. Each judge judges every LLM fixture once; a failed call counts as a miss or a
-    fail. Writes out/<name>/<arm>/."""
+    Each judge judges every LLM fixture once; a failed call counts as a miss or a fail. The arm's settings, verdicts,
+    trace and report go to the tracked experiment-<name>/<arm>/, to be committed before the next arm runs.
+
+    Before any call or write it refuses unless: the experiment folder (registration and earlier arms) and the labels
+    are committed; the labels are enough and include every known-good idea; the rubric has its registered sha256; the
+    arm's folder is neither on disk nor anywhere in git history, so a re-run shows in git; and every earlier arm ran
+    on the same inputs (experiment_inputs)."""
     for slug in (name, arm):
         if not SLUG.fullmatch(slug):
             raise SystemExit(f"experiment and arm names are plain slugs ([a-z0-9-]), not {slug!r}")
-    registration = registered / f"experiment-{name}" / "registration.toml"
+    root = registered / f"experiment-{name}"
+    registration, folder = root / "registration.toml", root / arm
     if not registration.exists():
         raise SystemExit(f"experiment {name} isn't registered: there is no {registration}")
     reg = tomllib.loads(registration.read_text())
     if arm not in reg["arms"]:
         raise SystemExit(f"experiment {name} registers the arms {', '.join(reg['arms'])}, not {arm}")
-    if pending := uncommitted([registration, CASES / "labels"]):
-        raise SystemExit(f"experiment {name} runs only on committed files; commit these first: {', '.join(pending)}")
+    if folder.exists():
+        raise SystemExit(f"arm {arm} of experiment {name} already ran ({folder}); an arm runs once")
+    if ran := last_commit(folder):
+        raise SystemExit(f"arm {arm} of experiment {name} already ran: its folder is in git history at {ran}. An arm "
+                         "runs once; a new draw needs a new registered arm")
+    if pending := uncommitted([root, CASES / "labels"]):
+        raise SystemExit(f"experiment {name} runs only on committed files; commit these first: {', '.join(pending[:5])}"
+                         + (f" and {len(pending) - 5} more" if len(pending) > 5 else ""))
     rubric = ROOT / reg["arms"][arm]["rubric"]
     text = rubric.read_text()
     digest = hashlib.sha256(text.encode()).hexdigest()
@@ -493,27 +503,24 @@ def experiment(name: str, arm: str, out: Path = OUT, registered: Path = EXPERIME
                          f"{len(labels)}, and {len(unlabeled)} known-good idea(s) have none. Run `simula label` until "
                          "it has nothing left to show (then with a higher --limit if any are still missing), and "
                          "commit the labels.")
+    inputs = experiment_inputs(registration, reg, cases, labels)
+    for before in sorted(root.glob("*/settings.json")):
+        earlier = json.loads(before.read_text())
+        if changed := sorted(k for k in inputs.keys() | earlier["inputs"].keys()
+                             if inputs.get(k) != earlier["inputs"].get(k)):
+            raise SystemExit(f"arm {earlier['arm']} ran at {earlier['git_sha']} on other inputs ({', '.join(changed)}); "
+                             "an experiment's arms run on the same inputs")
     judge.check_frozen()
-    record = {"git_sha": runfolder.git_sha(), "usd_cap": reg["usd_cap"]}
     dirty = runfolder.git_dirty()
-    started, folder = out / name / "experiment.json", out / name / arm
-    if started.exists() and json.loads(started.read_text()) != record:
-        raise SystemExit(f"experiment {name}'s first arm ran as {started.read_text().strip()}, not {record}: its "
-                         "arms run from one commit under one cap")
-    if folder.exists():
-        raise SystemExit(f"arm {arm} of experiment {name} already ran ({folder}); an arm runs once")
-    folder.mkdir(parents=True)
-    (folder / "verdicts").mkdir()
-    if not started.exists():
-        write_json_atomic(started, json.dumps(record, indent=1))
+    (folder / "verdicts").mkdir(parents=True)
     (folder / "rubric.md").write_text(text)
     roles = config.roles(reg["profile"])
-    settings = {"experiment": name, "arm": arm, "registration": str(registration), "rubric": reg["arms"][arm]["rubric"],
-                "rubric_sha256": digest, **record, "git_dirty": dirty, "profile": reg["profile"],
-                "roles": {j: roles[j] for j in reg["judges"]}, "no_cache": reg["no_cache"],
-                "cases": [c.id for c in cases]}
+    settings = {"experiment": name, "arm": arm, "rubric": reg["arms"][arm]["rubric"], "rubric_sha256": digest,
+                "git_sha": runfolder.git_sha(), "git_dirty": dirty, "profile": reg["profile"],
+                "roles": {j: roles[j] for j in reg["judges"]}, "no_cache": reg["no_cache"], "usd_cap": reg["usd_cap"],
+                "cases": [c.id for c in cases], "inputs": inputs}
     write_json_atomic(folder / "settings.json", json.dumps(settings, indent=1))
-    budget = llm.Budget("validate", reg["usd_cap"], spent_by(out / name), trace_path=folder / "trace.jsonl")
+    budget = llm.Budget("validate", reg["usd_cap"], spent_by(root), trace_path=folder / "trace.jsonl")
     verdicts = run_judges(cases, reg["judges"], roles, budget, folder, 1, reg["no_cache"], rubric=text)
     lost = sorted(f"{cid}:{who}" for (cid, who), v in verdicts.items() if v is None)
     fallbacks = [line.note for line in read_trace(folder / "trace.jsonl") if "declared fallback" in line.note]
@@ -525,19 +532,45 @@ def experiment(name: str, arm: str, out: Path = OUT, registered: Path = EXPERIME
             "compare nothing and the harness gate can't pass; arms are compared as validation/EXPERIMENT-J.md says.",
             ""]
     (folder / "report.md").write_text("\n".join(head) + body)
-    print(f"{folder / 'report.md'}: {len(lost)} failed calls; ${spent_by(out / name):.2f} spent by experiment {name} "
-          f"under its ${reg['usd_cap']:.2f} cap")
+    print(f"{folder / 'report.md'}: {len(lost)} failed calls; ${spent_by(root):.2f} spent by experiment {name} under "
+          f"its ${reg['usd_cap']:.2f} cap. Commit {folder} before the next arm.")
+
+
+def experiment_inputs(registration: Path, reg: dict, cases: list[Case], labels: dict[str, dict]) -> dict[str, str]:
+    """What every arm of an experiment must share, each by sha256: the registration, every arm's rubric, the frozen
+    judge prompts, the labels, and the cases as the judges see them. A commit that touches none of these may land
+    between arms."""
+    def short(p: Path) -> str:
+        return str(p.relative_to(ROOT)) if p.is_relative_to(ROOT) else str(p)
+    files = [registration, judge.FROZEN, *(ROOT / a["rubric"] for a in reg["arms"].values())]
+    seen = [(c.id, judge.judge_messages(c.candidate, c.model)[0]["content"][0]["text"]) for c in cases]
+    return {**{short(p): runfolder.sha256(p) for p in files},
+            "labels": hashlib.sha256(json.dumps(labels, sort_keys=True).encode()).hexdigest(),
+            "cases": hashlib.sha256(json.dumps(seen).encode()).hexdigest()}
 
 
 def uncommitted(paths: list[Path]) -> list[str]:
-    """The files at or under `paths` that the git checkout doesn't hold as committed (new or changed), or all the paths
-    when there's no checkout to ask."""
+    """The files at or under `paths` that their git checkout doesn't hold as committed (new, changed or deleted); a
+    path with no checkout to ask counts whole."""
+    found = []
+    for path in paths:
+        try:
+            listed = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all", "--", path.name],
+                                    cwd=path.parent, capture_output=True, text=True, check=True).stdout
+        except (subprocess.CalledProcessError, FileNotFoundError, NotADirectoryError):
+            found.append(str(path))
+            continue
+        found += [line[3:] for line in listed.splitlines()]
+    return found
+
+
+def last_commit(path: Path) -> str:
+    """The last commit that touched `path` in its git checkout, or "" when none did."""
     try:
-        listed = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all", "--",
-                                 *map(str, paths)], cwd=ROOT, capture_output=True, text=True, check=True).stdout
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return [str(p) for p in paths]
-    return [line[3:] for line in listed.splitlines()]
+        return subprocess.run(["git", "log", "-1", "--format=%h", "--", path.name], cwd=path.parent,
+                              capture_output=True, text=True, check=True).stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError, NotADirectoryError):
+        return ""
 
 
 def spent_by(experiment_dir: Path) -> float:
@@ -610,15 +643,15 @@ def disagree(case: Case, verdicts: dict[tuple[str, str], Verdict]) -> bool:
 
 
 def label_order(cases: list[Case], verdicts: dict[tuple[str, str], Verdict], limit: int) -> list[Case]:
-    """The order `label` shows cases in: every known-good idea and, to fill `limit`, the cases the judges disagree
-    on and then others at random, all shuffled together; then the rest. The seed is fixed, so a skipped case comes
-    back in its place, and the order never says which case is which."""
+    """The order `label` shows cases in: every known-good idea and, to fill at least LABEL_TARGET, the cases the
+    judges disagree on and then others at random, all shuffled together; then the rest. The seed is fixed, so a
+    skipped case comes back in its place, and the order never says which case is which, whatever `limit` is."""
     rng = random.Random(LABEL_SEED)
     goods = [c for c in cases if known_good(c)]
     others = [c for c in cases if not known_good(c)]
     rng.shuffle(others)
     others.sort(key=lambda c: not disagree(c, verdicts))
-    fill = max(0, limit - len(goods))
+    fill = max(0, max(limit, LABEL_TARGET) - len(goods))
     first = goods + others[:fill]
     rng.shuffle(first)
     return first + others[fill:]
@@ -636,7 +669,7 @@ def label_cases(cases: list[Case], verdicts: dict[tuple[str, str], Verdict], lab
     labeled = 0
     for case in todo[:max(0, limit - len(done))]:
         shown = judge.judge_messages(case.candidate, case.model)[0]["content"][0]["text"]
-        say(f"\n=== {case.app} ({case.app_type}) ===\n{shown}\n")
+        say(f"\n=== {case.app} ===\n{shown}\n")
         answer = ask("Overall: [p]ass, [f]ail, [s]kip, [q]uit? ").strip().lower()[:1]
         if answer == "q":
             break
@@ -682,10 +715,10 @@ def main(argv: list[str] | None = None) -> int:
                    help="score only the fixtures the runs judged, for runs saved before newer fixtures existed")
     sub.add_parser("freeze", help="pin the judge prompt hashes in config/frozen_prompts.toml")
     e = sub.add_parser("experiment", help="one arm of a pre-registered judge experiment, run as "
-                       "validation/experiment-<name>/registration.toml says, into <out>/<name>/<arm>/")
+                       "validation/experiment-<name>/registration.toml says, into the tracked "
+                       "validation/experiment-<name>/<arm>/")
     e.add_argument("name")
     e.add_argument("arm")
-    e.add_argument("--out", type=Path, default=OUT)
     args = p.parse_args(argv)
     if args.command == "validate-judge":
         return 0 if validate_judge(args.profile, args.judges.split(","), args.no_cache, args.out) else 1
@@ -694,7 +727,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{args.out}: harness gate {'PASS' if passed else 'FAIL'} (rebuilt from {args.runs}, no calls)")
         return 0
     if args.command == "experiment":
-        experiment(args.name, args.arm, args.out)
+        experiment(args.name, args.arm)
         return 0
     if args.command == "label":
         n = label_cases(load_cases(), load_verdicts(args.out), CASES / "labels", limit=args.limit)

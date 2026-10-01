@@ -1,5 +1,5 @@
 # Experiment j, pre-registered in validation/EXPERIMENT-J.md. `python -m simula.validate experiment j ARM` runs an arm
-# only as this file says, once, and only while this file and tests/fixtures/judge/labels/ are committed.
+# only as this file says, once, into validation/experiment-j/ARM/, which is committed before the next arm runs.
 usd_cap = 10.0                    # shared by both arms; a cap stop leaves the experiment inconclusive
 labels = 15                       # committed labels needed first, every known-good idea among them
 profile = "real"
