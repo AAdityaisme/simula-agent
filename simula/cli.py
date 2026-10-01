@@ -293,6 +293,15 @@ def cmd_doctor(args) -> int:
     return doctor.main(keys=args.keys)
 
 
+def cmd_qa_live(args) -> int:
+    from simula import qa_live
+    report = qa_live.run(args.app, args.run, Path(args.out), args.device)
+    s = report["summary"]
+    print(f"qa-live: {s['completed']} of {s['supported']} supported flows completed, {s['by_status']['matched']} "
+          f"matched, of {s['total']}; see {Path(args.out).resolve() / 'report.md'}")
+    return 0
+
+
 def cmd_replay_check(args) -> int:
     from simula import replaycheck
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(128 + signal.SIGTERM))  # a stopped check still removes its clones
@@ -351,6 +360,15 @@ def parser() -> argparse.ArgumentParser:
     c = sub.add_parser("compare-rankers", help="Jev vs Haiku vs Sonnet on labeled screens")
     c.add_argument("app", nargs="?")
     c.set_defaults(func=cmd_later(1))
+
+    q = sub.add_parser("qa-live", help="audit: walk the core flows on the live app and the approved mock side by side "
+                                       "(no model calls; never part of QA's approval)")
+    q.add_argument("app")
+    q.add_argument("--run", help="run id under runs/APP (default: latest); read, never written")
+    q.add_argument("--out", required=True, metavar="DIR", help="a new folder outside the run for the evidence")
+    q.add_argument("--device", metavar="SERIAL", help="adb serial (default: ANDROID_SERIAL, else the only device "
+                                                      "online)")
+    q.set_defaults(func=cmd_qa_live)
 
     n = sub.add_parser("note", help="log a hand fix or build spend")
     n.add_argument("text")
