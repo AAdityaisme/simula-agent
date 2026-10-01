@@ -11,7 +11,7 @@ permissions:
 jobs:
   shard:
     runs-on: ubuntu-latest
-    timeout-minutes: 40  # a shard takes 8-19 minutes plus up to 12 for the browser's packages; a hang fails here, not at GitHub's 6 hours
+    timeout-minutes: 30  # a shard takes 8-19 minutes; a hang fails here instead of at GitHub's 6 hours
     strategy:
       fail-fast: false
       matrix:
@@ -27,8 +27,9 @@ jobs:
         with:
           python-version: "3.12"
       - run: uv sync --frozen
-      - run: uv run playwright install --with-deps chromium
-        timeout-minutes: 12  # under a minute usually; a crawling apt mirror (~100 KB/s) needs ~6, and a hung one fails here
+      # Without --with-deps: the runner image ships Chrome's libraries, and apt's mirror has crawled past 12 minutes
+      - run: uv run playwright install chromium
+        timeout-minutes: 5
       - run: uv run pytest -m "not live" -q -n auto --durations=50
 
   # The gate scripts read the check named pytest; it passes only when every shard did.
