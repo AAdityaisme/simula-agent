@@ -61,6 +61,7 @@ WALK_SCROLLS = 30
 WALK_ITEMS = 3
 WALK_SURE = 0.5
 COMPOSER_BAND_PX = 150
+PAGE_CHARS = 400  # new text an item's page holds; the prompt sheets and dialogs in the committed runs hold 115-340
 LIMIT_STOPS = ("counter", "input disabled", "paywall", "limit")
 
 RANK_QUESTION = "Which tap most likely reveals a limit, a paywall, a currency, an ad, or a new core screen of the app?"
@@ -77,7 +78,7 @@ NO_CORE = "none of these is what users come to the app to do"
 CORE_MESSAGES = [
     "Hi! What can you help me with?",
     "Tell me a short story about a lighthouse.",
-    "What's the best phone under $300?",
+    "What's a good phone for a student on a budget?",
     "Give me three tips for staying focused while studying.",
     "What's a good name for a friendly golden retriever?",
     "Where can I buy comfortable running shoes on sale?",
@@ -519,7 +520,7 @@ class Explorer:
         if to is s and not summary:
             summary = ob.change_summary(before.elements, obs.elements, self.device)
         canonical = ob.find(s.cands, move.cand) if move.cand else None
-        self.stop_kind, self.stop_evidence = self.hit(s, to, before, move) if loop else ("", "")
+        self.stop_kind, self.stop_evidence = self.keep_stop(self.hit(s, to, before, move), before) if loop else ("", "")
         self.log(s, to, move, canonical or live, self.transition(s, to, move), summary, outcome, loop,
                  self.stop_kind or None)
         if purpose == "tour":
@@ -1550,16 +1551,19 @@ class Explorer:
 
     def covering(self, before: Obs) -> list[ob.Candidate]:
         """A sheet in the chat's own window leaves the composer in the tree: it shows as a second text box in the
-        lower half, or as new controls lying over the text box (bubbles and hints never do, nor a send control
-        relabeled in place while a reply is written)."""
+        lower half, or as new controls in front of the text box: listed after it (drawn later) and lying over it.
+        The conversation is listed before the box, so a reply the keyboard left under a lifted composer is no sheet;
+        bubbles and hints never are, nor a send control relabeled in place while a reply is written."""
         box, middle = self.live_box(), (self.device.content_top_px + self.device.content_bottom_px) / 2
         if box is None:
             return []
         old, spots = {(c.label, c.kind) for c in before.cands}, [c.rect for c in before.cands]
+        refs = [e["ref"] for e in self.obs.elements]
+        later = set(refs[refs.index(box.ref) + 1:])
         return [c for c in self.obs.cands if c is not box and (
             (c.kind == "EditText" and ob.center(c.rect)[1] > middle)
-            or ((c.label, c.kind) not in old and c.rect not in spots and ob.overlaps(c.rect, box.rect)
-                and not ob.inside(c.rect, box.rect)))]
+            or (c.ref in later and (c.label, c.kind) not in old and c.rect not in spots
+                and ob.overlaps(c.rect, box.rect) and not ob.inside(c.rect, box.rect)))]
 
     def within(self, s: Seen) -> list[dict]:
         return [e for e in s.elements if s.box is None or ob.inside(ob.rect(e), s.box)]
@@ -1678,13 +1682,15 @@ class Explorer:
         if self.core.kind == "chat":
             return self.chat_stop(here, before, move)
         if here is not s and here.kind in ("modal", "sheet"):
-            wall = ob.walled(ob.controls(self.within(here), self.device))
-            named = self.named(self.within(here)) or {"account": "sign-in wall",
-                                                      "money": "paywall" if here.priced else "upsell"}.get(wall, "")
-            # a sheet the action opened shows its result (an item's page) unless it names a price, a limit, an account
-            # or money
-            if named or here.kind == "modal":
-                return named or "modal opened", here.sid
+            own = self.within(here)
+            wall = ob.walled(ob.controls(own, self.device))
+            named = self.named(own) or {"account": "sign-in wall",
+                                        "money": "paywall" if here.priced else "upsell"}.get(wall, "")
+            # a sheet the action opened is its result only when it holds an item's page of new text and names no
+            # price, limit, account or money; when unsure, it stops the loop
+            page = sum(map(len, ob.texts(own, self.device) - ob.texts(before.elements, self.device))) >= PAGE_CHARS
+            if named or here.kind == "modal" or not page:
+                return named or f"{here.kind} opened", here.sid
         if here is not s and here.upsell:
             return ("paywall" if here.priced else "upsell screen"), here.sid
         moved = ob.counters(before.elements, self.obs.elements, self.device, [(0, ob.TOP_CHROME_BOTTOM_PX)])
@@ -1699,15 +1705,50 @@ class Explorer:
             return self.named(self.within(here) if window else self.sheet_words(before)) or "dialog opened", here.sid
         if self.covering(before):
             return self.sheet_words(before) or "sheet opened", here.sid
-        box = next((c for c in self.obs.cands if c.kind == "EditText"), None)
-        if box is None:
-            return self.sheet_words(before) or "input gone", here.sid
-        live = self.live_composer()
-        if not box.enabled or (move.action == "type" and (live is None or not live[1].enabled)):
-            return "input disabled", here.sid
+        stop = self.settled_input(move)
+        if stop:
+            return (self.sheet_words(before) if stop == "input gone" else "") or stop, here.sid
+        box = next(c for c in self.obs.cands if c.kind == "EditText")
         band = (int(box.rect.y) - COMPOSER_BAND_PX, int(box.rect.y + box.rect.h) + COMPOSER_BAND_PX)
         moved = ob.counters(before.elements, self.obs.elements, self.device, [band])
         return ("counter", moved[0]) if moved else ("", "")
+
+    def input_stop(self, move: Move) -> str:
+        """What the composer on the screen as it is now says: "input gone" with no text box, "input disabled" with
+        the box disabled or, once a message is typed, no enabled send."""
+        box = next((c for c in self.obs.cands if c.kind == "EditText"), None)
+        if box is None:
+            return "input gone"
+        live = self.live_composer()
+        typed = move.action == "type" and (live is None or not live[1].enabled)
+        return "input disabled" if not box.enabled or typed else ""
+
+    def settled_input(self, move: Move) -> str:
+        """input_stop once the keyboard settles: a stop is read again SETTLE_GAP_S later until two reads agree (up to
+        SETTLE_ASK_S), so a composer the keyboard is still moving, or send enabled a moment after the text lands,
+        stops nothing."""
+        stop, deadline = self.input_stop(move), self.clock() + SETTLE_ASK_S
+        while stop:
+            self.sleep(SETTLE_GAP_S)
+            self.observe()
+            again = self.input_stop(move)
+            if again == stop or self.clock() >= deadline:
+                return again
+            stop = again
+        return ""
+
+    def keep_stop(self, stop: tuple[str, str], before: Obs) -> tuple[str, str]:
+        """A core-loop stop, kept so it can be explained: the capture and element list it was read from, and the
+        element list before the move, under stops/ and named for the action line."""
+        if stop[0]:
+            name, folder = f"act{self.step + 1:03d}", self.out / "stops"
+            folder.mkdir(exist_ok=True)
+            self.obs.image.save(folder / f"{name}.png")
+            for kept, obs in ((f"{name}.elements.json", self.obs), (f"{name}.before.elements.json", before)):
+                (folder / kept).write_text(json.dumps(obs.reply, indent=1, ensure_ascii=False))
+            self.note("stop", f"{stop[0]} ({stop[1]}): explore/stops/{name}.png, {name}.elements.json and the list "
+                              f"before the move, {name}.before.elements.json")
+        return stop
 
     # ---------- the replay check ----------
 

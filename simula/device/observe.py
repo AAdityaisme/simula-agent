@@ -590,8 +590,15 @@ def is_upsell(elements: list[dict], device: Device) -> bool:
 
 
 def priced(elements: list[dict], device: Device) -> bool:
-    """Shows a price ($4.99, 9,99 €, ₹199, USD 4.99): what makes an upsell a paywall, not a teaser."""
-    return any(PRICE.search(t) for t in texts(elements, device))
+    """Shows a price ($4.99, 9,99 €, ₹199, USD 4.99): what makes an upsell a paywall, not a teaser. On a chat (a
+    screen with a composer) only control-shaped labels and the text from the composer down count, so no conversation,
+    the explorer's messages and the replies, makes a paywall."""
+    cands = controls(elements, device)
+    chat = composer(cands, device)
+    shown = texts(elements, device) if chat is None else (
+        {c.label for c in cands if len(c.label.split()) <= CONTROL_WORDS or "Button" in c.kind}
+        | {words(e) for e in elements if in_content(e, device) and words(e) and rect(e).y >= chat[0].rect.y})
+    return any(PRICE.search(t) for t in shown)
 
 
 # ---------- the core loop ----------

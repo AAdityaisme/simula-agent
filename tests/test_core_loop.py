@@ -7,6 +7,7 @@ from pathlib import Path
 from simula.contracts import Device, Rect
 from simula.device import observe as ob
 from simula.device.mcp import parse_elements
+from simula.stages import explore as stage
 
 TREES = Path(__file__).parent / "fixtures" / "trees"
 DEVICE = Device()
@@ -112,6 +113,18 @@ def test_a_price_is_what_makes_a_paywall():
         assert shows(text), text
     for text in ("18+", "v2.5.0.136", "1,000 members", "Top 10", "Subscription"):
         assert not shows(text), text
+
+
+# Fable E7: the explorer's own message carried a price, and any price on a chat made the conversation a paywall.
+def test_no_conversation_is_a_paywall_only_a_price_on_a_control_is():
+    assert not [m for m in stage.CORE_MESSAGES if ob.PRICE.search(m)]
+    chat = parse_elements(json.loads((TREES / "luzia" / "luzia-chat-thread.elements.json").read_text()))
+    reply = {"ref": "@reply", "type": "android.widget.TextView", "text": "The Pixel 8a at $299 is a solid pick.",
+             "coordinates": {"x": 42, "y": 900, "width": 900, "height": 80}}
+    plan = {"ref": "@plan", "type": "android.widget.Button", "text": "Get Plus for $4.99/month",
+            "coordinates": {"x": 240, "y": 1500, "width": 600, "height": 120}}
+    assert ob.priced([reply], DEVICE) and not ob.priced(chat + [reply], DEVICE)
+    assert ob.priced(chat + [reply, plan], DEVICE)
 
 
 def test_a_send_control_in_the_toolbar_under_the_text_box_counts():
