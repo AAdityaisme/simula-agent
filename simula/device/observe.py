@@ -387,6 +387,18 @@ def covered(c: Candidate, elements: list[dict], device: Device) -> bool:
         and (words(e) or any(words(o) and inside(rect(o), rect(e)) for o in after)) for e in over)
 
 
+def own_controls(cands: list[Candidate], elements: list[dict], box: Rect | None, behind: list[Candidate],
+                 device: Device) -> list[Candidate]:
+    """A state's own controls: on a screen all of them; on an overlay in the parent's window, which leaves the
+    parent's controls (behind) listed, maybe moved, only the new ones inside its box (a control without words is told
+    by its place too). A control something lies over is none."""
+    keys = {c.key for c in behind} if box else set()
+    named = {(c.tree_label, c.kind) for c in behind if c.tree_label and overlaps(c.rect, box)} if box else set()
+    return [c for c in cands if (box is None or (inside(c.rect, box) and c.key not in keys
+                                                 and (c.tree_label, c.kind) not in named))
+            and not covered(c, elements, device)]
+
+
 def find(cands: list[Candidate], want: Candidate) -> Candidate | None:
     """Re-finds a control on a fresh list: by its words when it has some (bars recenter, so never by a saved
     coordinate), else by class and size near the same spot."""

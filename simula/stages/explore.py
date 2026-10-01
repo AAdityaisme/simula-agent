@@ -356,14 +356,7 @@ class Explorer:
         sid = home.sid if home else f"s{len(self.states) + 1:02d}"
         shutil.copyfile(self.scratch / "now.png", self.out / "states" / f"{sid}.png")
         (self.out / "states" / f"{sid}.elements.json").write_text(json.dumps(obs.reply, indent=1, ensure_ascii=False))
-        # an overlay in the parent's window leaves the parent's controls listed behind it, maybe moved: only the new
-        # ones are its own (a control without words is told by its place too); a control something lies over is none
-        keys = {c.key for c in before.cands} if box and before else set()
-        named = {(c.tree_label, c.kind) for c in before.cands if c.tree_label and ob.overlaps(c.rect, box)} \
-            if box and before else set()
-        cands = [c for c in obs.cands if (box is None or (ob.inside(c.rect, box) and c.key not in keys
-                                                          and (c.tree_label, c.kind) not in named))
-                 and not ob.covered(c, obs.elements, self.device)]
+        cands = ob.own_controls(obs.cands, obs.elements, box, before.cands if before else [], self.device)
         if home:
             return self.refresh(home, obs, cands)
         tab_move = move is not None and move.cand is not None and move.cand.key in self.tab_keys()
