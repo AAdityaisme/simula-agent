@@ -61,8 +61,25 @@ def test_words_under_a_tap_point_never_refuse_it_and_words_drawn_over_it_do():
     assert "tips" in denied_at(box, [target, reply], Device(), core=True)
     row = Candidate(label="Read item", kind="ViewGroup", rect=Rect(x=0, y=1100, w=1080, h=200), ref="@row",
                     tree_label="Read item")
+    rows = [element("@row", "ViewGroup", "Read item", 0, 1100, 1080, 200),
+            element("@next", "ViewGroup", "Next item", 0, 1300, 1080, 200)]
     sign = element("@sign", "Button", "Sign in", 440, 1170, 200, 60)
-    assert "sign in" in denied_at(row, [element("@row", "ViewGroup", "Read item", 0, 1100, 1080, 200), sign], Device())
+    assert "sign in" in denied_at(row, [*rows, sign], Device())
+
+
+def test_a_controls_own_icon_listed_right_after_it_is_its_own_not_drawn_over_it():
+    """Luzia's send control (a wordless View) lists its icon, labelled "Confirm button", right after it inside its
+    box: the target's own, so sending isn't refused; the same words drawn later in the list would be."""
+    send = Candidate(label="sendButton", kind="View", rect=Rect(x=933, y=1313, w=126, h=126), ref="@send",
+                     tree_label="", ident="sendButton")
+    target = {"ref": "@send", "type": "android.view.View", "text": "", "identifier": "app:id/sendButton",
+              "coordinates": {"x": 933, "y": 1313, "width": 126, "height": 126}}
+    icon = {"ref": "@icon", "type": "android.view.View", "text": "", "label": "Confirm button",
+            "coordinates": {"x": 970, "y": 1350, "width": 52, "height": 52}}
+    note = {"ref": "@note", "type": "android.widget.TextView", "text": "Luzia is AI and can make mistakes.",
+            "coordinates": {"x": 21, "y": 1460, "width": 1038, "height": 36}}
+    assert denied_at(send, [target, icon, note], Device(), core=True) == ""
+    assert "confirm" in denied_at(send, [target, note, icon], Device(), core=True)
 
 
 def test_the_exhibit_counts_denied_taps_that_reached_the_device(tmp_path, monkeypatch):

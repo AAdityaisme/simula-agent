@@ -410,15 +410,21 @@ def worded(elements: list[dict], device: Device) -> list[Candidate]:
 def denied_at(target: Candidate, elements: list[dict], device: Device, **deny) -> str:
     """Why a tap on target must not run: the deny-list's hit on a worded element of the live list that holds the tap
     point, or "" for none. The list as it is, not the controls, which merge a container's words and drop a button
-    nested in a bigger one, so a sign-in button a card draws inside a row's box is read. Words listed before the target
-    and not around it are content drawn under it, like a reply under a lifted composer, and don't count. A wordless
-    overlay that draws nothing is unseen: no list the device gives reports clickable (mobile-mcp's, mobilecli's dump),
-    and uiautomator dump is killed on the emulator (measured 2026-10-01)."""
+    nested in a bigger one, so a sign-in button a card draws inside a row's box is read. The list is in drawing order,
+    parent first: what it lists right after the target inside its box is the target's own (a send button's icon
+    labelled "Confirm button"), judged with the target; words listed before the target and not around it are content
+    under it, like a reply under a lifted composer. Two limits: with no hierarchy, a deny-worded sibling listed right
+    after the target and inside its box is read as the target's own; and a wordless overlay that draws nothing is
+    unseen: no list the device gives reports clickable (mobile-mcp's, mobilecli's dump), and uiautomator dump is killed
+    on the emulator (measured 2026-10-01)."""
     x, y = target.point
     order = {e.get("ref"): n for n, e in enumerate(elements)}
-    at = order.get(target.ref, -1)
+    at = end = order.get(target.ref, -1)
+    while 0 <= at and end + 1 < len(elements) and inside(rect(elements[end + 1]), target.rect):
+        end += 1
     for c in worded(elements, device):
-        if inside(Rect(x=x, y=y, w=0, h=0), c.rect) and (order[c.ref] >= at or inside(target.rect, c.rect)):
+        n = order[c.ref]
+        if inside(Rect(x=x, y=y, w=0, h=0), c.rect) and (n > end or (n < at and inside(target.rect, c.rect))):
             reason = denied(c, **deny)
             if reason:
                 return f"{reason} ({c.label[:40]!r} at the tap point)"
