@@ -1073,7 +1073,9 @@ def test_a_stop_that_is_not_a_limit_leaves_the_limit_open(run):
     assert stage.LIMIT_STOPS == ("counter", "input disabled", "paywall", "limit")
 
 
-def test_a_sheet_over_the_chat_in_its_own_window_stops_the_loop(tmp_path, monkeypatch):
+# rt-pr41 H1: a tree may list a bottom sheet before the screen it covers, right after the status bar.
+@pytest.mark.parametrize("first", [False, True], ids=["listed-after", "listed-first"])
+def test_a_sheet_over_the_chat_in_its_own_window_stops_the_loop(tmp_path, monkeypatch, first):
     def sheet_after_two(clock):
         phone = chatty(clock)
         chat = phone.screens["chat"]
@@ -1081,7 +1083,10 @@ def test_a_sheet_over_the_chat_in_its_own_window_stops_the_loop(tmp_path, monkey
                   "coordinates": {"x": 0, "y": 1700, "width": 1080, "height": 637}},
                  {"ref": "@more", "type": "android.widget.Button", "text": "Get more messages",
                   "coordinates": {"x": 100, "y": 2150, "width": 880, "height": 120}}]
-        phone.screens["chat_sheet"] = type(chat)(chat.elements + sheet, chat.image, chat.package)
+        at = next(n for n, e in enumerate(chat.elements) if "systemui" not in (e.get("identifier") or "")) \
+            if first else len(chat.elements)
+        phone.screens["chat_sheet"] = type(chat)(chat.elements[:at] + sheet + chat.elements[at:], chat.image,
+                                                 chat.package)
         phone.after_sends = {2: "chat_sheet"}
         return phone
     ex, phone = explore(tmp_path, monkeypatch, phone_factory=sheet_after_two, budget="deep")
@@ -1185,30 +1190,32 @@ def test_the_new_reply_never_names_what_stopped_the_chat(tmp_path, monkeypatch):
         return phone
     ex, phone = explore(tmp_path, monkeypatch, phone_factory=voice_sheet_after_two, budget="deep")
     stops = [(line.loop_pass, line.loop_stop) for line in lines(ex) if line.loop_stop]
-    assert phone.sent == 2 and stops == [(2, "input gone")] and "limit" not in ex.checklist()[0]
+    assert phone.sent == 2 and stops == [(2, "sheet opened")] and "limit" not in ex.checklist()[0]
 
 
 LIFT_PX = 800
 
 
 def keyboard_over_the_reply(clock):
-    """A docked keyboard lifts the composer over the conversation, and the list slides the end of the last reply under
-    the lifted composer, listed before the box like every message, its bounds around the send (JanitorAI's false
-    "sheet opened" and "input disabled"); a send drops the keyboard."""
+    """A docked keyboard lifts the composer over the conversation, which keeps its place: the last reply, a message
+    container listed before the box like every message, now lies under the lifted composer, its bounds around the
+    send (JanitorAI's false "sheet opened" and "input disabled"); a send drops the keyboard."""
     phone = chatty(clock)
     chat = phone.screens["chat"]
     box = next(e for e in chat.elements if e["type"].endswith("EditText"))
     floor = box["coordinates"]["y"] - 32
     lifted = [{**e, "coordinates": {**e["coordinates"], "y": e["coordinates"]["y"] - LIFT_PX}}
               if e["coordinates"]["y"] >= floor else e for e in chat.elements]
-    tail = {"ref": "@tail", "type": "android.widget.TextView",
-            "text": "He kept counting ships long after the harbour went dark.",
-            "coordinates": {"x": 21, "y": floor - LIFT_PX + 60, "width": 1038, "height": 260}}
+    reply = {"ref": "@reply", "type": "android.view.ViewGroup",
+             "text": "He kept counting ships long after the harbour went dark.",
+             "coordinates": {"x": 21, "y": floor - 300, "width": 1038, "height": 260}}
+    under = {**reply, "coordinates": {**reply["coordinates"], "y": floor - LIFT_PX + 60}}
     at = next(n for n, e in enumerate(chat.elements) if e["coordinates"]["y"] >= floor)
     image = chat.image.copy()
     image.paste(chat.image.crop((0, floor, 1080, 2400)), (0, floor - LIFT_PX))
     ImageDraw.Draw(image).rectangle((0, 2400 - LIFT_PX, 1080, 2400), fill=(60, 60, 70))
-    phone.screens["keyboard"] = Screen(lifted[:at] + [tail] + lifted[at:], image, chat.package)
+    phone.screens["chat"] = Screen(chat.elements[:at] + [reply] + chat.elements[at:], chat.image, chat.package)
+    phone.screens["keyboard"] = Screen(lifted[:at] + [under] + lifted[at:], image, chat.package)
     phone.replies["keyboard"] = phone.replies["chat"]
     phone.chats["keyboard"] = phone.chats.setdefault("chat", [])
     phone.taps[("chat", "inputBar")] = "keyboard"
@@ -1246,6 +1253,81 @@ def test_a_send_that_stays_disabled_stops_the_loop_with_its_capture(tmp_path, mo
     assert Path(f"{name}.png").exists() and Path(f"{name}.before.elements.json").exists()
     trace = runlog.read_trace(ex.run_dir / "trace.jsonl")
     assert any(line.step == "stop" and f"explore/stops/{name.name}.png" in line.note for line in trace)
+
+
+LIMIT_SHEET_S = 4.0
+
+
+def sheet_while_send_waits(clock):
+    """Pass 2: right after typing send is disabled; a few seconds later a limit sheet is up over the composer and send
+    under it is enabled again in the tree (rt-pr41 H2)."""
+    phone = chatty(clock)
+    plain = phone.current_elements
+    sheet = [{"ref": "@sheet", "type": "android.view.ViewGroup", "text": "You're out of free messages",
+              "coordinates": {"x": 0, "y": 1600, "width": 1080, "height": 420}},
+             {"ref": "@more", "type": "android.widget.Button", "text": "Get more messages",
+              "coordinates": {"x": 100, "y": 1990, "width": 880, "height": 140}}]
+
+    def current_elements():
+        elements = plain()
+        if phone.screen != "chat" or phone.sent < 1 or len(phone.typed) < 2:
+            return elements
+        if phone.clock.t - phone.typed_at < LIMIT_SHEET_S and phone.draft:
+            return [{**e, "enabled": False} if "send" in (e.get("identifier") or "").lower() + ob.words(e).lower()
+                    else e for e in elements]
+        return elements + sheet
+    phone.current_elements = current_elements
+    return phone
+
+
+def test_a_sheet_that_comes_up_while_send_settles_stops_the_chat(tmp_path, monkeypatch):
+    ex, phone = explore(tmp_path, monkeypatch, phone_factory=sheet_while_send_waits, budget="deep")
+    stops = [(line.loop_pass, line.loop_stop) for line in lines(ex) if line.loop_stop]
+    assert [stop[0] for stop in stops] == [2] and phone.sent == 1, (stops, phone.sent)
+
+
+def log_in_after_the_box_tap(clock):
+    """Pass 2: the tap on the text box shows a "one moment" screen, then the app's log-in screen with its email
+    field focused (rt-pr41 H2)."""
+    phone = chatty(clock)
+    plain, tap, typed = phone.current_elements, phone.tap, phone.type_text
+    phone.wall_at, phone.typed_on_wall = None, []
+    header = [e for e in phone.screens["chat"].elements if "systemui" in (e.get("identifier") or "")]
+    bar = [{"ref": "@bar", "type": "android.widget.TextView", "text": "Chats",
+            "coordinates": {"x": 0, "y": 150, "width": 1080, "height": 120}},
+           {"ref": "@nav", "type": "android.widget.TextView", "text": "Home",
+            "coordinates": {"x": 0, "y": 2150, "width": 1080, "height": 150}}]
+    loading = header + bar + [{"ref": "@wait", "type": "android.widget.TextView", "text": "One moment",
+                               "coordinates": {"x": 340, "y": 1150, "width": 400, "height": 60}}]
+    log_in = header + bar + [{"ref": "@title", "type": "android.widget.TextView", "text": "Log in to keep chatting",
+                              "coordinates": {"x": 60, "y": 300, "width": 960, "height": 80}},
+                             {"ref": "@email", "type": "android.widget.EditText", "text": "Email", "focused": True,
+                              "coordinates": {"x": 60, "y": 520, "width": 960, "height": 130}},
+                             {"ref": "@go", "type": "android.widget.Button", "text": "Continue",
+                              "coordinates": {"x": 60, "y": 720, "width": 960, "height": 130}}]
+
+    def on_tap(x, y):
+        tap(x, y)
+        if phone.log[-1] == ("tap", "chat", "inputBar") and phone.sent >= 1 and phone.wall_at is None:
+            phone.wall_at = phone.clock.t
+
+    def on_type(text):
+        typed(text)
+        if phone.wall_at is not None:
+            phone.typed_on_wall.append(text)
+
+    def current_elements():
+        if phone.wall_at is None:
+            return plain()
+        return loading if phone.clock.t - phone.wall_at < LIMIT_SHEET_S else log_in
+    phone.tap, phone.type_text, phone.current_elements = on_tap, on_type, current_elements
+    return phone
+
+
+def test_the_chat_message_is_never_typed_into_a_log_in_screen(tmp_path, monkeypatch):
+    ex, phone = explore(tmp_path, monkeypatch, phone_factory=log_in_after_the_box_tap, budget="deep")
+    stops = [(line.loop_pass, line.loop_stop) for line in lines(ex) if line.loop_stop]
+    assert not phone.typed_on_wall and [stop[0] for stop in stops] == [2], (phone.typed_on_wall, stops)
 
 
 def test_the_walk_tries_the_next_item_when_the_first_has_no_main_action(tmp_path, monkeypatch):
@@ -1574,6 +1656,29 @@ def test_a_sheet_that_asks_for_an_upgrade_or_a_registration_stops_the_feed_pass(
         ex, opened = feed_pass_sheets(tmp_path / button.replace(" ", "-"), monkeypatch, sheet_over_feed(own))
         assert opened[0].loop_stop == "sheet opened" and ex.core_hit.startswith("sheet opened"), ex.core_results
         assert stage.loop_end(ex, 1).startswith("Stopped by the app: sheet opened")
+
+
+# rt-pr41 M1: an upgrade sheet's feature list makes it as long as an item's page; its controls still ask.
+def test_an_upgrade_sheet_with_a_long_feature_list_stops_the_feed_pass(tmp_path, monkeypatch):
+    features = ("Unlimited conversations with every character, any time of day",
+                "Faster and longer replies from our most capable model",
+                "Characters remember four times more of your story",
+                "Skip the queue when the servers are busy at night",
+                "Early access to new features before anyone else gets them",
+                "Custom chat themes and an ad-free experience on all your devices",
+                "Priority support from our team whenever something goes wrong")
+    own = [{"ref": "@s1", "type": "android.view.ViewGroup", "text": "Upgrade to keep chatting",
+            "coordinates": {"x": 0, "y": 1250, "width": 1080, "height": 110}},
+           *({"ref": f"@f{n}", "type": "android.widget.TextView", "text": text,
+              "coordinates": {"x": 60, "y": 1380 + 70 * n, "width": 960, "height": 60}}
+             for n, text in enumerate(features)),
+           {"ref": "@s2", "type": "android.widget.Button", "text": "See plans",
+            "coordinates": {"x": 240, "y": 1950, "width": 600, "height": 120}},
+           {"ref": "@s3", "type": "android.widget.Button", "text": "Not now",
+            "coordinates": {"x": 240, "y": 2150, "width": 600, "height": 120}}]
+    assert sum(len(ob.words(e)) for e in own) >= stage.PAGE_CHARS
+    ex, opened = feed_pass_sheets(tmp_path, monkeypatch, sheet_over_feed(own))
+    assert opened[0].loop_stop == "sheet opened", (opened[0].loop_stop, ex.core_results[:2])
 
 
 # rt-pr29-b938d29: a card over home after a refresh, every row under it; the card's body is a clickable wordless box.

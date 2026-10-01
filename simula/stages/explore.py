@@ -379,7 +379,7 @@ class Explorer:
                     settled=obs.settled,
                     settle_s=obs.settle_s,
                     captured_at=now(), upsell=ob.is_upsell(obs.elements, self.device),
-                    priced=ob.priced(obs.elements, self.device),
+                    priced=ob.priced(obs.elements, self.device, box),
                     via=move.cand.label if move and move.cand else "", box=box,
                     unscroll_to=came_from.sid if came_from and move.action == "swipe" else None)
         self.states.append(seen)
@@ -545,7 +545,13 @@ class Explorer:
         if to is s and not summary:
             summary = ob.change_summary(before.elements, obs.elements, self.device)
         canonical = ob.find(s.cands, move.cand) if move.cand else None
-        self.stop_kind, self.stop_evidence = self.keep_stop(self.hit(s, to, before, move), before) if loop else ("", "")
+        try:
+            stop = self.keep_stop(self.hit(s, to, before, move), before) if loop else ("", "")
+        except DEVICE_ERRORS as e:
+            self.log(s, to, move, canonical or live, self.transition(s, to, move),
+                     f"{summary}; reading the screen again failed: {type(e).__name__}"[:160], "error", loop)
+            raise
+        self.stop_kind, self.stop_evidence = stop
         self.log(s, to, move, canonical or live, self.transition(s, to, move), summary, outcome, loop,
                  self.stop_kind or None)
         if purpose == "tour":
@@ -1326,7 +1332,7 @@ class Explorer:
             if s.launch:
                 self.relaunch(why="the launch screen again, with the content filter, after the launch dialog")
         priced = self.priced_paywall()
-        shown = {s.sid: sum(bool(ob.PAYWALL.search(t)) for t in ob.wall_texts(s.elements, self.device))
+        shown = {s.sid: sum(bool(ob.PAYWALL.search(t)) for t in ob.wall_texts(s.elements, self.device, s.box))
                  for s in self.states if s.upsell and not s.launch and s.kind not in AWAY}
         best = priced or max((self.by_id[sid] for sid, n in shown.items() if n), key=lambda s: shown[s.sid], default=None)
         self.paywall = best.sid if best else None
@@ -1643,18 +1649,18 @@ class Explorer:
 
     def covering(self, before: Obs) -> list[ob.Candidate]:
         """A sheet in the chat's own window leaves the composer in the tree: it shows as a second text box in the
-        lower half, or as new controls in front of the text box: listed after it (drawn later) and lying over it.
-        The conversation is listed before the box, so a reply the keyboard left under a lifted composer is no sheet;
-        bubbles and hints never are, nor a send control relabeled in place while a reply is written."""
+        lower half, or as new words lying over the text box. Words the screen showed before the move are the
+        conversation, moved (a reply the keyboard left under a lifted composer), wherever the tree lists them: an app
+        may list a sheet before the screen it covers. Bubbles and hints never count, nor a send control relabeled in
+        place while a reply is written."""
         box, middle = self.live_box(), (self.device.content_top_px + self.device.content_bottom_px) / 2
         if box is None:
             return []
         old, spots = {(c.label, c.kind) for c in before.cands}, [c.rect for c in before.cands]
-        refs = [e["ref"] for e in self.obs.elements]
-        later = set(refs[refs.index(box.ref) + 1:])
+        shown = ob.texts(before.elements, self.device)
         return [c for c in self.obs.cands if c is not box and (
             (c.kind == "EditText" and ob.center(c.rect)[1] > middle)
-            or (c.ref in later and (c.label, c.kind) not in old and c.rect not in spots
+            or ((c.label, c.kind) not in old and c.tree_label not in shown and c.rect not in spots
                 and ob.overlaps(c.rect, box.rect) and not ob.inside(c.rect, box.rect)))]
 
     def within(self, s: Seen) -> list[dict]:
@@ -1778,10 +1784,10 @@ class Explorer:
             wall = ob.walled(ob.controls(own, self.device))
             named = self.named(own) or {"account": "sign-in wall",
                                         "money": "paywall" if here.priced else "upsell"}.get(wall, "")
-            # a sheet the action opened is its result only when it holds an item's page of new text and names no
-            # price, limit, account or money; when unsure, it stops the loop
+            # a sheet the action opened is its result only when it holds an item's page of new text, asks nothing (an
+            # upgrade word, a way to decline) and names no price, limit, account or money; when unsure, it stops
             page = sum(map(len, ob.texts(own, self.device) - ob.texts(before.elements, self.device))) >= PAGE_CHARS
-            if named or here.kind == "modal" or not page:
+            if named or here.kind == "modal" or ob.asks(here.cands) or not page:
                 return named or f"{here.kind} opened", here.sid
         if here is not s and here.upsell:
             return ("paywall" if here.priced else "upsell screen"), here.sid
@@ -1789,45 +1795,55 @@ class Explorer:
         return ("counter", moved[0]) if moved else ("", "")
 
     def chat_stop(self, here: Seen, before: Obs, move: Move) -> tuple[str, str]:
-        """In a chat only the window can stop the loop: a dialog over it, the text box disabled or gone, send still
-        disabled once a message is typed, or a counter moving beside the composer. The conversation's own text,
-        prices and timestamps included, never does."""
-        if here.kind in ("modal", "sheet"):
+        """In a chat only the window can stop the loop: a dialog over it, a sheet's new words over the text box, the
+        text box disabled or gone, send still disabled once a message is typed, or a counter moving beside the
+        composer. The conversation's own text, prices and timestamps included, never does. A composer that reads as a
+        stop is read again until it settles, then the whole screen is judged as it settled; one that isn't the chat
+        any more is a stop."""
+        first = self.obs
+        self.settle_input(move)
+        kind, own = here.kind, self.within(here)
+        if self.obs is not first:
+            kind, box = self.kind_of(self.obs, before)
+            own = [e for e in self.obs.elements if box is None or ob.inside(ob.rect(e), box)]
+        if kind in ("modal", "sheet"):
             window = ob.dialog_box(self.obs.cands, self.device)
-            return self.named(self.within(here) if window else self.sheet_words(before)) or "dialog opened", here.sid
+            return self.named(own if window else self.sheet_words(before)) or "dialog opened", here.sid
         if self.covering(before):
             return self.sheet_words(before) or "sheet opened", here.sid
-        stop = self.settled_input(move)
+        stop = self.input_stop(move) or ("input gone" if self.obs is not first and not self.arrived(self.core.state)
+                                         else "")
         if stop:
             return (self.sheet_words(before) if stop == "input gone" else "") or stop, here.sid
-        box = next(c for c in self.obs.cands if c.kind == "EditText")
+        box = self.live_box()
         band = (int(box.rect.y) - COMPOSER_BAND_PX, int(box.rect.y + box.rect.h) + COMPOSER_BAND_PX)
         moved = ob.counters(before.elements, self.obs.elements, self.device, [band])
         return ("counter", moved[0]) if moved else ("", "")
 
     def input_stop(self, move: Move) -> str:
-        """What the composer on the screen as it is now says: "input gone" with no text box, "input disabled" with
-        the box disabled or, once a message is typed, no enabled send."""
-        box = next((c for c in self.obs.cands if c.kind == "EditText"), None)
+        """What the chat's composer on the screen as it is now says: "input gone" with no live text box (the app in
+        front, no dialog over it, a box in the lower half), "input disabled" with the box disabled or, once a message
+        is typed, no enabled send."""
+        box = self.live_box()
         if box is None:
             return "input gone"
         live = self.live_composer()
         typed = move.action == "type" and (live is None or not live[1].enabled)
         return "input disabled" if not box.enabled or typed else ""
 
-    def settled_input(self, move: Move) -> str:
-        """input_stop once the keyboard settles: a stop is read again SETTLE_GAP_S later until two reads agree (up to
-        SETTLE_ASK_S), so a composer the keyboard is still moving, or send enabled a moment after the text lands,
-        stops nothing."""
+    def settle_input(self, move: Move) -> None:
+        """When the composer reads as a stop, the screen is read again SETTLE_GAP_S later until two reads of the
+        composer agree (up to SETTLE_ASK_S): a composer the keyboard is still moving, or send enabled a moment after
+        the text lands, stops nothing."""
         stop, deadline = self.input_stop(move), self.clock() + SETTLE_ASK_S
         while stop:
             self.sleep(SETTLE_GAP_S)
             self.observe()
+            self.escape_billing()
             again = self.input_stop(move)
             if again == stop or self.clock() >= deadline:
-                return again
+                return
             stop = again
-        return ""
 
     def keep_stop(self, stop: tuple[str, str], before: Obs) -> tuple[str, str]:
         """A core-loop stop, kept so it can be explained: the capture and element list it was read from, and the
@@ -2156,7 +2172,8 @@ def ended(ex: Explorer, s: Seen) -> str:
 def paywall_line(ex: Explorer) -> str:
     if not ex.paywall:
         return "no"
-    prices = [t for t in ob.wall_texts(ex.by_id[ex.paywall].elements, ex.device) if ob.PRICE.search(t)]
+    wall = ex.by_id[ex.paywall]
+    prices = [t for t in ob.wall_texts(wall.elements, ex.device, wall.box) if ob.PRICE.search(t)]
     return f"yes, {ex.paywall}, prices: {'; '.join(repr(p) for p in prices[:6])}" if prices \
         else f"yes, {ex.paywall}, no price seen"
 

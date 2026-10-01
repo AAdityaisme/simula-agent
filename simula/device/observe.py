@@ -93,6 +93,8 @@ NUMBER = re.compile(r"\d+")
 CLOCK = re.compile(r"\b\d{1,2}:\d{2}\b|\bago\b", re.IGNORECASE)
 LETTER = re.compile(r"[^\W\d_]")
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
+LEAF = re.compile(r"(?:TextView|ImageView|EditText)$")
+TEXT_OR_IMAGE = re.compile(r"(?:TextView|ImageView)$")
 REDACTED = "[redacted]"
 
 
@@ -110,6 +112,14 @@ def area(r: Rect) -> float:
 def inside(inner: Rect, outer: Rect) -> bool:
     return (outer.x <= inner.x and outer.y <= inner.y
             and inner.x + inner.w <= outer.x + outer.w and inner.y + inner.h <= outer.y + outer.h)
+
+
+def absorbs(outer: dict, inner: dict) -> bool:
+    """Whether outer takes inner in as its own: it holds inner's box, its words are a control's, and it is no leaf
+    view (a text, a picture, a text box), which holds nothing. A reply container labelled with the whole reply is
+    content: it holds a lifted composer's Send without taking it in."""
+    kind = outer.get("type", "")
+    return inside(rect(inner), rect(outer)) and control_shaped(words(outer), kind) and not LEAF.search(kind)
 
 
 def overlaps(a: Rect, b: Rect) -> bool:
@@ -324,10 +334,10 @@ def controls(elements: list[dict], device: Device) -> list[Candidate]:
     """Tappable-looking elements in the content area. The list is parent-first, so an element's own texts come
     after it: those (not a nested control's label) merge into it, and content that scrolled under an overlay,
     which comes before it, doesn't. A big element without words that holds two or more different texts is a
-    layout, not a control. Words without a letter ("8", "1 / 102") are counters, not controls. A smaller control
-    inside a bigger one is part of it when listed in its subtree (right after it, everything between inside it too)
-    or under it (listed before it); one listed past its subtree is drawn over it, like a composer's send over a reply
-    the keyboard left under the composer, and stays a control."""
+    layout, not a control. Words without a letter ("8", "1 / 102") are counters, not controls. A smaller element
+    inside a bigger one is part of it, except a control in a composer's row (a lower-half text box's row and the one
+    under it, as composer() reads it) that the bigger one doesn't absorb: a composer the keyboard lifted is drawn
+    over the reply under it."""
     content = [e for e in elements if in_content(e, device) and area(rect(e)) < LAYOUT_SHARE * content_area(device)
                and rect(e).y + rect(e).h <= device.content_bottom_px + 16]
     found = []
@@ -346,13 +356,18 @@ def controls(elements: list[dict], device: Device) -> list[Candidate]:
         ident = short_id(e.get("identifier"))
         # mobile-mcp writes "checked" only when it is true, so a switch without it is off
         checked = True if e.get("checked") else False if TOGGLE.search(e["type"]) else None
-        found.append((n, Candidate(label=tree_label or ident, kind=e["type"].split(".")[-1], rect=r, ref=e["ref"],
+        found.append((e, Candidate(label=tree_label or ident, kind=e["type"].split(".")[-1], rect=r, ref=e["ref"],
                                    tree_label=tree_label, ident=ident, enabled=e.get("enabled") is not False,
                                    checked=checked)))
-    ends = {m: next((k for k in range(m + 1, len(content)) if not inside(rect(content[k]), o.rect)), len(content))
-            for m, o in found}
-    kept = [c for n, c in found if not any(o is not c and area(o.rect) > area(c.rect) and inside(c.rect, o.rect)
-                                           and n < ends[m] for m, o in found)]
+    middle = (device.content_top_px + device.content_bottom_px) / 2
+    boxes = [r for r in (rect(e) for e in content if e["type"].endswith("EditText")) if center(r)[1] > middle]
+
+    def lifted(e: dict, c: Candidate) -> bool:
+        y = center(c.rect)[1]
+        return any(b.y <= y < b.y + 2 * b.h for b in boxes) and (
+            "Button" in c.kind or (control_shaped(c.label, c.kind) and not TEXT_OR_IMAGE.search(e["type"])))
+    kept = [c for e, c in found if not any(o is not c and area(o.rect) > area(c.rect) and inside(c.rect, o.rect)
+                                           and (absorbs(oe, e) or not lifted(e, c)) for oe, o in found)]
     return [c for n, c in enumerate(kept) if all(o.rect != c.rect for o in kept[:n])]
 
 
@@ -411,6 +426,11 @@ def find(cands: list[Candidate], want: Candidate) -> Candidate | None:
     return min(same, key=lambda c: abs(center(c.rect)[0] - wx) + abs(center(c.rect)[1] - wy), default=None)
 
 
+def control_shaped(label: str, kind: str) -> bool:
+    """A control's label rather than content: a few words, or a button's."""
+    return len(label.split()) <= CONTROL_WORDS or "Button" in kind
+
+
 def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bool = False) -> str | None:
     """The deny-list word that blocks this tap, or None. On an upsell screen its call-to-action words are
     denied too. A control that shows the account's own name or email is never tapped: a tap can copy it where no
@@ -421,7 +441,7 @@ def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bo
     if REDACTED in text:
         return "account text"
     text = ID_WORDS.sub(" ", text)
-    shaped = len(c.label.split()) <= CONTROL_WORDS or "Button" in c.kind
+    shaped = control_shaped(c.label, c.kind)
     rest = FILTER_PHRASE.sub(" ", text) if toggle_ok else text
     if ICON_ONLY.fullmatch(c.tree_label) and DISMISS_ID.search(ID_WORDS.sub(" ", c.ident or c.label)):
         text = rest = SIGN_IN.sub(" ", text)
@@ -442,12 +462,19 @@ def walled(cands: list[Candidate]) -> str:
     create account, password) or "money" (subscribe, buy, pay, check out); "" for neither. Words that undo something
     (delete, cancel, unsubscribe) are neither."""
     for c in cands:
-        shaped = len(c.label.split()) <= CONTROL_WORDS or "Button" in c.kind
+        shaped = control_shaped(c.label, c.kind)
         for m in (DENY_ALWAYS if shaped else DENY_COMMAND).finditer(c.label):
             word = m.group(m.lastindex or 0)
             if not UNDOING.fullmatch(word):
                 return "account" if ACCOUNT.search(word) else "money"
     return ""
+
+
+def asks(cands: list[Candidate]) -> bool:
+    """Whether an overlay's own controls ask something of the user, the way a prompt does: a control-shaped label with
+    an upgrade or plans word (ENTRY), or a way to decline ("Not now", "Maybe later")."""
+    return any((control_shaped(c.label, c.kind) and ENTRY.search(c.label))
+               or DISMISS.match(c.label.strip()) for c in cands)
 
 
 def anr(elements: list[dict]) -> bool:
@@ -594,21 +621,23 @@ def is_upsell(elements: list[dict], device: Device) -> bool:
     return any(PAYWALL.search(t) for t in texts(elements, device))
 
 
-def wall_texts(elements: list[dict], device: Device) -> set[str]:
-    """The texts a paywall is read from. On a chat (a screen with a composer) only control-shaped labels and the text
-    from the composer down: a conversation, the explorer's messages and the replies, is never a paywall."""
+def wall_texts(elements: list[dict], device: Device, box: Rect | None = None) -> set[str]:
+    """The texts a paywall is read from. On a chat (a screen with a composer) only control-shaped labels, the text
+    from the composer down, and an overlay's own texts (inside its box): a conversation, the explorer's messages and
+    the replies, is never a paywall."""
     cands = controls(elements, device)
     chat = composer(cands, device)
     if chat is None:
         return texts(elements, device)
-    return ({c.label for c in cands if len(c.label.split()) <= CONTROL_WORDS or "Button" in c.kind}
-            | {words(e) for e in elements if in_content(e, device) and words(e) and rect(e).y >= chat[0].rect.y})
+    return ({c.label for c in cands if control_shaped(c.label, c.kind)}
+            | {words(e) for e in elements if in_content(e, device) and words(e)
+               and (rect(e).y >= chat[0].rect.y or (box is not None and inside(rect(e), box)))})
 
 
-def priced(elements: list[dict], device: Device) -> bool:
+def priced(elements: list[dict], device: Device, box: Rect | None = None) -> bool:
     """Shows a price ($4.99, 9,99 €, ₹199, USD 4.99) among its wall_texts: what makes an upsell a paywall, not a
     teaser."""
-    return any(PRICE.search(t) for t in wall_texts(elements, device))
+    return any(PRICE.search(t) for t in wall_texts(elements, device, box))
 
 
 # ---------- the core loop ----------
