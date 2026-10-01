@@ -18,12 +18,12 @@ header .count{color:#9aa0ab;font-variant-numeric:tabular-nums}
 .chip.conditional{background:#fff1d6;color:#8a5200;text-transform:uppercase;letter-spacing:.06em}
 h2{position:absolute;left:64px;top:70px;margin:0;font-size:40px;line-height:1.1;letter-spacing:-.01em;display:flex;align-items:center;gap:16px}
 .num{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;background:#3b5bfd;color:#fff;font-size:22px}
-.flag{display:inline-block;margin:2px 6px 0 0;background:#d92d20;color:#fff;border-radius:6px;padding:1px 8px;font-size:11px;letter-spacing:.04em;text-transform:none}
 .flow{position:absolute;left:64px;right:64px;top:64px;bottom:22px;display:flex;flex-direction:column}
 .flow h2{position:static;display:block;flex:none;font-size:28px;line-height:1.15;letter-spacing:-.01em}
 .flow .new{flex:none;margin:8px 0 20px;font-size:15px;line-height:1.35;color:#4b5160}
 .flow .new p{margin:0 0 2px}
 .flow footer{position:static;flex:none;margin-top:14px}
+.flow .pending{flex:none;margin:12px 0 0;padding:6px 14px;background:#fff1d6;border-radius:10px;font-size:14px}
 .row{flex:1 1 0;min-height:0;display:grid;grid-auto-flow:column;grid-template-rows:minmax(0,1fr) auto;grid-auto-columns:var(--col);column-gap:var(--gap);justify-content:center}
 .step{display:contents}
 .shot{position:relative;justify-self:center;height:min(100%,var(--h));aspect-ratio:var(--aspect)}
@@ -31,8 +31,8 @@ h2{position:absolute;left:64px;top:70px;margin:0;font-size:40px;line-height:1.1;
 .n{position:absolute;left:-10px;top:-10px;z-index:2;width:28px;height:28px;border-radius:50%;background:#3b5bfd;color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 3px #fff}
 .phone{position:absolute;inset:0;border-radius:22px;border:5px solid #16181d;background:#16181d;overflow:hidden;box-shadow:0 10px 26px rgba(22,24,29,.22)}
 .phone img{display:block;width:100%;height:100%;object-fit:cover}
+.shot.dim .phone{opacity:.35}
 .ring{position:absolute;border:3px solid #3b5bfd;border-radius:8px}
-.notwired{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) rotate(-8deg);background:#d92d20;color:#fff;font-weight:800;text-transform:uppercase;letter-spacing:.08em;padding:6px 10px;border-radius:8px;font-size:13px;white-space:nowrap}
 .cap{margin-top:12px}
 .cap b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280}
 .cap p{margin:3px 0 0;font-size:13px;line-height:1.3}
