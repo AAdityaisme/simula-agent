@@ -104,3 +104,15 @@ def test_every_role_belongs_to_a_stage_so_changing_it_reruns_that_stage():
     staged = {role for roles in ROLES.values() for role in roles}
     for profile in ("real", "dev"):
         assert set(config.roles(profile)) == staged
+
+
+@pytest.mark.parametrize("cap", [0, 3, 1.0, True, "2"])
+def test_a_judge_revision_cap_other_than_1_or_2_is_refused(monkeypatch, cap):
+    profiles = config.profiles()
+    monkeypatch.setattr(config, "profiles", lambda: {**profiles, "judge_revision_cap": cap})
+    with pytest.raises(SystemExit, match="judge_revision_cap must be 1 or 2"):
+        config.judge_revision_cap()
+
+
+def test_the_judge_revises_once_by_default():
+    assert config.judge_revision_cap() == 1
