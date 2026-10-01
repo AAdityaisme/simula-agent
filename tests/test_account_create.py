@@ -521,6 +521,12 @@ def test_guest_words_from_the_red_team_round_2():
     assert all(ob.GUEST.search(w) for w in ways) and not ob.GUEST.search("Sign up first")
 
 
+def test_a_picture_the_icon_pass_named_is_no_control_on_the_way_in():
+    def picture(label):
+        return ob.Candidate(label, "picture", Rect(x=0, y=0, w=500, h=500), "@p", label)
+    assert not any(ob.shaped(picture(label)) for label in ("Sign in illustration", "Guest", "Sign up with email"))
+
+
 def test_a_character_name_after_the_sign_up_is_no_name_box_rt_r2_4(tmp_path, monkeypatch, identity):
     two = [e for e in FORM if e["ref"] not in ("@c3", "@f3")]
     character = [el("@o0", "TextView", "Create your first character", 200),

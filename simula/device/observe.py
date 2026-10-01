@@ -476,8 +476,9 @@ def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bo
 
 
 def shaped(c: Candidate) -> bool:
-    """A control's label, not a sentence: a few words, or a button."""
-    return len(c.label.split()) <= CONTROL_WORDS or "Button" in c.kind
+    """A control's label, not a sentence: a few words, or a button. A picture the icon pass named is no control: its
+    name describes it ("Sign in illustration")."""
+    return c.kind != "picture" and (len(c.label.split()) <= CONTROL_WORDS or "Button" in c.kind)
 
 
 def consents(c: Candidate, tapped: bool = True) -> bool:
