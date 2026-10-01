@@ -126,6 +126,78 @@ def test_leaving_the_app_records_an_external_state_then_goes_back(run):
     assert all(by_from[s.sid].action == "back" for s in external)
 
 
+def on_chats(tmp_path, monkeypatch, phone_factory=janitor_like):
+    """An explorer launched and on the chats tab, a screen the tour recorded from home."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, phone_factory)
+    ex.relaunch(first=True)
+    phone.go("chats")
+    chats = ex.current = ex.record(ex.observe(), ex.current, stage.Move("tap"), ex.obs)
+    return ex, phone, chats
+
+
+def back_into_another_app(clock):
+    """BACK from chats leaves the app (its task ends, as Perplexity's did) into another app, whose BACK goes deeper."""
+    phone = janitor_like(clock)
+    phone.screens.update(aol=capture("aol", "aol-home"), article=capture("aol", "aol-article"))
+    phone.backs.update(chats="aol", aol="article")
+    return phone
+
+
+def test_back_out_of_the_app_relaunches_without_walking_the_other_app(tmp_path, monkeypatch):
+    ex, phone, chats = on_chats(tmp_path, monkeypatch, back_into_another_app)
+    away = ex.act(stage.Move("back"), purpose="nav")
+    assert away.kind == "external" and chats.sid in ex.exits
+    ex.leave()
+    assert not [e for e in phone.log if e[0] == "back" and e[1] in ("aol", "article")]
+    assert ex.relaunches == 1 and "did not find the app where it was left" in ex.relaunch_reasons[0]
+    assert ex.current is ex.root and not ex.returns
+
+
+def test_back_that_left_the_app_is_not_taken_from_that_screen_again(tmp_path, monkeypatch):
+    ex, phone, chats = on_chats(tmp_path, monkeypatch, back_into_another_app)
+    home, ex.tabs = ex.root, []  # chats as a screen without the tab bar, so back_to_root would take BACK there
+    ex.edges[(chats.sid, home.sid)] = stage.Move("back")  # BACK from chats once went home
+    ex.act(stage.Move("back"), purpose="nav")
+    ex.leave()
+    phone.go("chats")
+    ex.current = ex.record(ex.observe(), None, None, None)
+    backs = sum(e == ("back", "chats") for e in phone.log)
+    ex.back_to_root()
+    ex.act(stage.Move("back", decider="model"))
+    assert ex.current is chats and sum(e == ("back", "chats") for e in phone.log) == backs
+    assert ex.route(chats, home) is None
+
+
+def test_a_launch_that_finds_the_app_as_it_was_is_a_return_not_a_relaunch(tmp_path, monkeypatch):
+    """A tap opened another app over chats; the app's task lives on, and a launch brings chats back."""
+    ex, phone, chats = on_chats(tmp_path, monkeypatch)
+    link = next(c for c in chats.cands if c.point == (996, 209))
+    web = ex.act(stage.Move("tap", link), purpose="nav")
+    assert web.kind == "external" and ex.left is chats
+    ex.leave()
+    assert ex.current is chats and ex.relaunches == 0 and ex.returns == [f"from {web.fg} back to {chats.sid}"]
+    assert ("back", "web") not in phone.log
+    last = lines(ex)[-1]
+    assert (last.action, last.from_state, last.to_state) == ("launch", web.sid, chats.sid)
+    assert all(to != web.sid for _, _, to in ex.segments[-1])
+    assert "Returns to the app as it was left, by a launch (not relaunches): 1" in stage.exhibit(ex, None)
+
+
+def test_a_system_dialog_over_the_app_that_a_launch_leaves_in_front_gets_back(tmp_path, monkeypatch):
+    def dialog_over_chats(clock):
+        phone = janitor_like(clock)
+        phone.screens["dialog"] = blank("com.google.android.permissioncontroller")
+        phone.taps[("chats", "996,209")] = "dialog"
+        phone.in_task = {"dialog"}
+        return phone
+    ex, phone, chats = on_chats(tmp_path, monkeypatch, dialog_over_chats)
+    ex.act(stage.Move("tap", next(c for c in chats.cands if c.point == (996, 209))), purpose="nav")
+    ex.leave()
+    launched = max(n for n, e in enumerate(phone.log) if e == ("launch",))
+    assert ("back", "dialog") in phone.log[launched:]
+    assert ex.current is chats and ex.relaunches == 0 and not ex.returns
+
+
 def test_billing_screen_gets_back_at_once(run):
     ex, phone = run
     trace = runlog.read_trace(ex.run_dir / "trace.jsonl")

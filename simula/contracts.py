@@ -487,7 +487,7 @@ class ActionLine(Strict):
     step: int
     from_state: str
     to_state: str | None
-    action: Literal["tap", "swipe", "back", "type", "relaunch"]
+    action: Literal["tap", "swipe", "back", "type", "relaunch", "launch"]
     mcp_ref: str | None
     tap_px: Point | None
     transition: Transition

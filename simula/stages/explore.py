@@ -102,7 +102,7 @@ class ExploreFailed(Exception):
 DEVICE_ERRORS = (McpReplyError, McpTimeout, NeedRelaunch)
 DEVICE_LOST = (McpReplyError, McpTimeout)
 DEVICE_STOPS = ("device error", "second hang")
-AWAY = ("external", "rotated")  # recorded, never explored, left with BACK: another app, or the screen turned sideways
+AWAY = ("external", "rotated")  # recorded, never explored, left by leave(): another app, or the screen turned sideways
 
 
 @dataclass
@@ -271,6 +271,9 @@ class Explorer:
         self.core_completed = 0  # passes that did the core action and saw its result (a reply, a load, a limit)
         self.paywall: str | None = None
         self.relaunch_reasons: list[str] = []
+        self.returns: list[str] = []  # launches that found the app as it was left: no relaunch, so not counted as one
+        self.left: Seen | None = None  # the app's screen the last move away from the app started from
+        self.exits: set[str] = set()  # states BACK left the app from: BACK is never taken from them again
         self.last_summary, self.last_seen = "", False  # the last watch's timing line; whether its result showed
         self.stop_kind = self.stop_evidence = ""
         self.tour_actions = 0
@@ -474,6 +477,9 @@ class Explorer:
         s, before = self.current, self.obs
         if self.touring and purpose in ("tour", "nav") and self.actions >= self.limits["actions"]:
             raise Stop(f"action cap ({self.limits['actions']})")
+        if move.action == "back" and s.sid in self.exits:
+            self.note("exit", f"BACK from {s.sid} left the app before: not taken again ({move.why})", outcome="blocked")
+            return s
         if move.cand and move.action == "tap":
             reason = ob.denied(move.cand, upsell=s.upsell, core=purpose == "core", toggle_ok=purpose == "filter")
             if reason:
@@ -528,6 +534,10 @@ class Explorer:
             self.segments[-1].append((move, s.sid, to.sid))
         if to is not s and outcome == "ok" and move.action != "type":
             self.edges.setdefault((s.sid, to.sid), move)
+        if to.kind in AWAY and s.kind not in AWAY:
+            self.left = s
+            if move.action == "back" and to.fg != self.package:
+                self.exits.add(s.sid)
         if move.cand and move.cand.key in self.tab_keys():
             self.tab_to.setdefault(move.cand.key, to.sid)
         self.current = to
@@ -793,10 +803,11 @@ class Explorer:
 
     def back_to_root(self) -> None:
         """A relaunch that restored a deeper screen goes back up to 4 times to the launch screen. A screen that
-        shows the bottom tabs is a top screen already, and BACK there would leave the app."""
+        shows the bottom tabs is a top screen already, and BACK there would leave the app; so would BACK from a
+        screen it already left the app from."""
         for _ in range(4):
             here = self.current
-            if here is self.launch_root or here.kind in AWAY or self.shows_tabs(here):
+            if here is self.launch_root or here.kind in AWAY or self.shows_tabs(here) or here.sid in self.exits:
                 return
             self.act(Move("back", why="relaunch landed off the launch screen"), purpose="setup")
 
@@ -1051,7 +1062,8 @@ class Explorer:
             if x is dst:
                 break
             for move, y in self.links(x):
-                if y.sid not in came and y.kind not in (*AWAY, "blocked") and hop_key(x, move) not in failed:
+                if y.sid not in came and y.kind not in (*AWAY, "blocked") and hop_key(x, move) not in failed \
+                        and not (move.action == "back" and x.sid in self.exits):
                     came[y.sid] = (x, move)
                     queue.append(y)
         if dst.sid not in came:
@@ -1150,15 +1162,36 @@ class Explorer:
         return None
 
     def leave(self) -> None:
-        """BACK out of another app or a screen turned sideways; a relaunch if BACK doesn't come back."""
+        """Back to the app from an away screen. Another app in front gets a launch, never BACK, which would walk that
+        app's own history: a live task comes back as it was left (measured on the emulator), which is a return, not a
+        relaunch; a launch that finds the app anywhere else is followed by a relaunch, counted. A system dialog over
+        the app sits in the app's own task, so a launch leaves it in front: it gets BACK, like a screen turned
+        sideways, and a relaunch if BACK doesn't come back."""
         if self.obs is None:
             self.resync()
             if self.current.kind not in AWAY:
                 return
-        away = self.current.kind
-        self.act(Move("back", why=f"return from the {away} screen"), purpose="nav")
+        away = self.current
+        if self.obs.fg != self.package:
+            self.phone.launch()
+            if self.observe().fg == self.package:
+                if self.left and ob.same_state(self.obs.fp, self.left.fp):
+                    self.resume(away)
+                else:
+                    self.relaunch(why=f"a launch from {away.fg} did not find the app where it was left")
+                return
+        self.act(Move("back", why=f"return from the {away.kind} screen"), purpose="nav")
         if self.current.kind in AWAY:
-            self.relaunch(why=f"BACK did not return from the {away} screen ({self.obs.fg})")
+            self.relaunch(why=f"BACK did not return from the {away.kind} screen ({self.obs.fg})")
+
+    def resume(self, away: Seen) -> None:
+        """The app is back where it was left: the path goes on from there, without the move that left it."""
+        self.returns.append(f"from {away.fg} back to {self.left.sid}")
+        self.log(away, self.left, Move("launch", why="bring the app back"), None, "unknown", "", "ok")
+        self.revisit(self.left, self.obs)
+        self.current = self.left
+        if self.segments and self.segments[-1] and self.segments[-1][-1][2] == away.sid:
+            self.segments[-1].pop()
 
     def read_upsell(self) -> None:
         """Scrolls an upsell to its end so every benefit and price is captured verbatim; never taps inside it."""
@@ -1938,6 +1971,8 @@ def exhibit(ex: Explorer, app_version: str | None) -> str:
              f"- Bottom tabs: {len(ex.tabs)} found, {sum(bool(ex.tab_to.get(t.key)) for t in ex.tabs)} visited",
              f"- Relaunches: {ex.relaunches} (tour cap {MAX_RELAUNCHES}, then {CORE_RELAUNCHES} for the passes after)",
              *[f"  - {n}: {why}" for n, why in enumerate(ex.relaunch_reasons, start=1)],
+             f"- Returns to the app as it was left, by a launch (not relaunches): {len(ex.returns)}",
+             *[f"  - {n}: {where}" for n, where in enumerate(ex.returns, start=1)],
              f"- Paywall or plans screen captured: {paywall_line(ex)}",
              f"- Content filter: {filter_label(ex.filter_taps, ex.filter_on) or 'none found'}"]
     lines += [f"  - check {n}: {'verified' if ok else 'NOT verified'} by screenshot (`{path}`)"
