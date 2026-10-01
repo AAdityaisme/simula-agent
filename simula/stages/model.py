@@ -192,10 +192,11 @@ def tapped_element(state: State, line: ActionLine) -> Element | None:
 
 
 def same_control(e: Element, then: Element) -> bool:
-    """The same control in the same place on a state's own capture (e) and a later one (then), with the same label
-    unless then has none."""
-    same_place = (e.type, e.text, e.rect_px) == (then.type, then.text, then.rect_px)
-    return same_place and (e.label == then.label or not then.label)
+    """The same control in the same place on two captures of one state: the same kind, words and box, and, for one
+    without text (an icon, a picture, a vision control), the same colors too, since another item's picture can sit
+    in its place."""
+    same_place = (e.type, e.text, e.label, e.rect_px) == (then.type, then.text, then.label, then.rect_px)
+    return same_place and (bool(e.text) or (e.fg_hex, e.bg_hex) == (then.fg_hex, then.bg_hex))
 
 
 def edge_for(state: State, line: ActionLine, then: list[Element] | None = None) -> tuple[Element | None, str]:

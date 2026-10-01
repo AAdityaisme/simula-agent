@@ -281,6 +281,7 @@ class Explorer:
         self.relaunch_reasons: list[str] = []
         self.returns: list[str] = []  # launches that found the app as it was left: no relaunch, so not counted as one
         self.left: Seen | None = None  # the app's screen the last move away from the app started from
+        self.left_back = False  # that move was BACK, which can end the app's task (a launch then starts it afresh)
         self.exits: set[str] = set()  # states BACK left the app from: BACK is never taken from them again
         self.last_summary, self.last_seen = "", False  # the last watch's timing line; whether its result showed
         self.stop_kind = self.stop_evidence = ""
@@ -561,8 +562,8 @@ class Explorer:
         if to is not s and outcome == "ok" and move.action != "type":
             self.edges.setdefault((s.sid, to.sid), move)
         if to.kind in AWAY and s.kind not in AWAY:
-            self.left = s
-            if move.action == "back" and to.fg != self.package:
+            self.left, self.left_back = s, move.action == "back"
+            if self.left_back and to.fg != self.package:
                 self.exits.add(s.sid)
         if move.cand and move.cand.key in self.tab_keys():
             self.tab_to.setdefault(move.cand.key, to.sid)
@@ -723,8 +724,9 @@ class Explorer:
         """Terminate, launch, settle, record and dismiss launch dialogs, then re-apply the content filter. After the
         first launch, where it lands is home: the launch screen, or the filtered root once the filter is re-applied.
         A screen the tour recorded (for home, with the same controls) is a deeper screen the app restored, and
-        back_to_root goes back from there; a landing homelike() takes for home is home reloaded (refresh). The filter
-        is re-applied from the launch screen only: a relaunch that stops short of it walks a recorded route there, or
+        back_to_root goes back from there; a landing homelike() takes for home is home reloaded (refresh). An away
+        screen is left first (leave), and a relaunch leave() needs replaces the rest of this one. The filter is
+        re-applied from the launch screen only: a relaunch that stops short of it walks a recorded route there, or
         relaunches once more, counted."""
         if not first:
             self.count_relaunch(why)
@@ -745,6 +747,11 @@ class Explorer:
                 self.tabs = [t for t in ob.tab_bar(home.cands, self.device) if not ob.denied(t)]
             else:
                 self.back_to_root()
+                if self.current.kind in AWAY:
+                    count = self.relaunches
+                    self.leave()
+                    if self.relaunches > count:
+                        return
                 if self.filter_taps and not self.walk_home():
                     self.relaunch(why=f"the content filter is re-applied on the launch screen, and no recorded way "
                                       f"led there from {self.current.sid}")
@@ -1232,10 +1239,11 @@ class Explorer:
     def leave(self) -> None:
         """Back to the app from an away screen. Another app in front gets a launch, never BACK, which would walk that
         app's own history: a live task comes back as it was left (measured on the emulator), which is a return, not a
-        relaunch. Anything else after the launch is a relaunch, counted: another package still in front, the app
-        anywhere but where it was left, or the launch screen, where a fresh start lands too (the app's process
-        outlives a restarted task, so it can't tell them apart). A screen turned sideways gets BACK, and a relaunch if
-        BACK doesn't come back."""
+        relaunch. The app anywhere but where it was left is a relaunch, counted, and so is the launch screen after a
+        BACK out of it: that BACK can end the task, and a fresh start lands there too. A launch can't displace a window
+        in the app's own task (a system dialog over it), so the same foreign screen still in front gets BACK, as a
+        screen turned sideways does; any other foreign screen is a relaunch. A relaunch too if BACK doesn't come
+        back."""
         if self.obs is None:
             self.resync()
             if self.current.kind not in AWAY:
@@ -1243,14 +1251,17 @@ class Explorer:
         away = self.current
         if self.obs.fg != self.package:
             self.phone.launch()
-            fg = self.observe().fg
-            if fg != self.package:
-                self.relaunch(why=f"a launch from {away.fg} left {fg} in front")
-            elif self.left and self.left is not self.launch_root and ob.same_state(self.obs.fp, self.left.fp):
-                self.resume(away)
-            else:
-                self.relaunch(why=f"a launch from {away.fg} did not find the app where it was left")
-            return
+            obs = self.observe()
+            if obs.fg == self.package:
+                restarted = self.left_back and self.left is self.launch_root
+                if self.left and not restarted and ob.same_state(obs.fp, self.left.fp):
+                    self.resume(away)
+                else:
+                    self.relaunch(why=f"a launch from {away.fg} did not find the app where it was left")
+                return
+            if not ob.same_state(obs.fp, away.fp):
+                self.relaunch(why=f"a launch from {away.fg} left {obs.fg} in front")
+                return
         self.act(Move("back", why=f"return from the {away.kind} screen"), purpose="nav")
         if self.current.kind in AWAY:
             self.relaunch(why=f"BACK did not return from the {away.kind} screen ({self.obs.fg})")
