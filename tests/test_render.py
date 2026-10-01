@@ -159,6 +159,7 @@ def test_a_refused_capture_is_tried_once_more_logged_and_nothing_else_is(caplog)
 # data field or a device client from a browser page, so each one is named here.
 NOT_BROWSER: dict[tuple[str, str], str] = {
     ("simula/stages/model.py", "sf"): "StateFile.screenshot, the saved file name of an explore capture",
+    ("simula/stages/model.py", "capture"): "ReplacedCapture.screenshot, the saved file name of a replaced capture",
     ("simula/stages/explore.py", "self.phone"): "the mobile-mcp device client shooting the phone, not Playwright",
 }
 
