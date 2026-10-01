@@ -6,7 +6,16 @@ import dataclasses
 import pytest
 
 from simula.contracts import Device, Rect
-from simula.device.observe import Candidate, denied, denied_at, dismiss_control
+from simula.device.observe import Candidate, denied, denied_at, dismiss_control, worded
+from tests.fake_device import capture
+
+
+SAID = "He stopped. Sign in, he said, and he would go."  # a reply that says a deny word
+
+
+def listed(ref, kind, text, label, x, y, w, h) -> dict:
+    return {"ref": ref, "type": f"android.widget.{kind}", "text": text, "label": label,
+            "coordinates": {"x": x, "y": y, "width": w, "height": h}}
 
 
 def control(label: str, kind: str = "TextView") -> Candidate:
@@ -83,21 +92,18 @@ def test_a_controls_own_icon_listed_right_after_it_is_its_own_not_drawn_over_it(
 
 
 
-def test_a_reply_listed_before_a_lifted_composers_send_never_refuses_it_and_an_ancestors_words_do():
+def test_a_reply_listed_before_a_lifted_composers_send_never_refuses_it_and_a_control_absorbing_it_does():
     """JanitorAI's chat with the keyboard up (PR O's run 20261001-035432-69c8c4f, act114; words shortened): the reply
-    and its last paragraph hold Send's box but are no ancestor of it (the text box, listed between, lies outside), so
-    a reply saying "Sign in" doesn't refuse the send. Words on an element that holds the target and all listed between
-    them, an ancestor's, still do."""
-    def element(ref, kind, text, label, x, y, w, h):
-        return {"ref": ref, "type": f"android.widget.{kind}", "text": text, "label": label,
-                "coordinates": {"x": x, "y": y, "width": w, "height": h}}
-    said = "He stopped. Sign in, he said, and he would go."
+    container (its label the whole reply) and its last paragraph hold Send's box, listed before it. The paragraph is a
+    leaf and the container's label is content, so a reply saying "Sign in" doesn't refuse the send. A control listed
+    before Send that absorbs it, with a control's words, still does."""
+    element = listed
     chat = [element("@e26", "FrameLayout", "", "", 0, 0, 1080, 2400),
-            element("@e33", "ViewGroup", "", f"Miro blinked. {said}", 134, 274, 902, 1243),
+            element("@e33", "ViewGroup", "", f"Miro blinked. {SAID}", 134, 274, 902, 1243),
             element("@e34", "TextView", "There was once a light.", "", 134, 274, 902, 104),
             element("@e35", "TextView", "He looked at the boots again.", "", 134, 403, 902, 135),
             element("@e36", "TextView", "The light stayed awake.", "", 134, 563, 902, 639),
-            element("@e37", "TextView", said, "", 134, 1227, 902, 261),
+            element("@e37", "TextView", SAID, "", 134, 1227, 902, 261),
             element("@e38", "TextView", "That is all I know.", "", 134, 1513, 902, 4),
             element("@e39", "EditText", "What's a good phone for a student?", "", 46, 1215, 988, 123),
             element("@e40", "ViewGroup", "", "AI write for me", 68, 1338, 89, 89),
@@ -106,9 +112,33 @@ def test_a_reply_listed_before_a_lifted_composers_send_never_refuses_it_and_an_a
             element("@e43", "ViewGroup", "", "Send", 922, 1338, 89, 89)]
     send = Candidate(label="Send", kind="ViewGroup", rect=Rect(x=922, y=1338, w=89, h=89), ref="@e43", tree_label="Send")
     assert denied_at(send, chat, Device(), core=True) == ""
-    card = element("@card", "ViewGroup", "", "Sign in to keep chatting", 900, 1320, 140, 130)
+    card = element("@card", "ViewGroup", "", "Sign in", 900, 1320, 140, 130)
     icon = element("@icon", "ImageView", "", "", 940, 1330, 40, 40)
     assert "sign in" in denied_at(send, [*chat[:-1], card, icon, chat[-1]], Device(), core=True)
+
+
+
+def test_a_reply_container_under_a_lifted_composer_never_refuses_send_or_the_text_box():
+    """#29's JanitorAI run def99ac, s27 (words shortened): a reply container (a ViewGroup labelled with the whole
+    reply, 710 chars) and its paragraph hold Send's box, listed before the text box. Send sits under the text box, not
+    level with it, so the container absorbs it; its words are content, so a reply saying "Sign in" refuses neither
+    Send nor the tap that focuses the text box."""
+    elements = [listed("@e26", "FrameLayout", "", "", 0, 0, 1080, 2400),
+                listed("@e41", "ViewGroup", "", f"Miro froze. {SAID}", 134, 468, 902, 1049),
+                listed("@e45", "TextView", f"Miro didn't move. {SAID}", "", 134, 1326, 902, 191),
+                listed("@e48", "EditText", "", "", 46, 1215, 988, 123),
+                listed("@e52", "ViewGroup", "", "Send", 922, 1338, 89, 89)]
+    send = Candidate(label="Send", kind="ViewGroup", rect=Rect(x=922, y=1338, w=89, h=89), ref="@e52", tree_label="Send")
+    box = Candidate(label="", kind="EditText", rect=Rect(x=46, y=1215, w=988, h=123), ref="@e48", tree_label="")
+    assert denied_at(send, elements, Device(), core=True) == "" and denied_at(box, elements, Device(), core=True) == ""
+
+def test_a_sheet_row_listed_before_the_page_under_it_refuses_a_tap_on_the_page():
+    """rt-pr41-b7dc068 H3, on PR O's capture (20261001-035432-69c8c4f, s09): a bottom sheet is listed before the
+    character page it covers, and its "Block character" row holds three of the page's timestamps. A tap on one lands
+    on Block character, so it is refused; the timestamps listed after Block don't make it theirs."""
+    screen = capture("janitorai", "j17_character_sheet")
+    stamps = [c for c in worded(screen.elements, Device()) if c.label in ("about 4 hours ago", "14 minutes ago")]
+    assert len(stamps) == 3 and all("block" in denied_at(t, screen.elements, Device()) for t in stamps)
 
 def test_the_exhibit_counts_denied_taps_that_reached_the_device(tmp_path, monkeypatch):
     from simula.stages import explore as stage

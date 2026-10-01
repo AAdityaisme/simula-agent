@@ -93,6 +93,7 @@ NUMBER = re.compile(r"\d+")
 CLOCK = re.compile(r"\b\d{1,2}:\d{2}\b|\bago\b", re.IGNORECASE)
 LETTER = re.compile(r"[^\W\d_]")
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
+LEAF = re.compile(r"(?:TextView|ImageView|EditText)$")
 REDACTED = "[redacted]"
 
 
@@ -110,6 +111,14 @@ def area(r: Rect) -> float:
 def inside(inner: Rect, outer: Rect) -> bool:
     return (outer.x <= inner.x and outer.y <= inner.y
             and inner.x + inner.w <= outer.x + outer.w and inner.y + inner.h <= outer.y + outer.h)
+
+
+def absorbs(outer: dict, inner: dict) -> bool:
+    """Whether outer takes inner in as its own: it holds inner's box, its words are a control's, and it is no leaf
+    view (a text, a picture, a text box), which holds nothing. A reply container labelled with the whole reply is
+    content: it holds a lifted composer's Send without taking it in."""
+    kind = outer.get("type", "")
+    return inside(rect(inner), rect(outer)) and control_shaped(words(outer), kind) and not LEAF.search(kind)
 
 
 def overlaps(a: Rect, b: Rect) -> bool:
@@ -412,12 +421,13 @@ def denied_at(target: Candidate, elements: list[dict], device: Device, **deny) -
     point, or "" for none. The list as it is, not the controls, which merge a container's words and drop a button
     nested in a bigger one, so a sign-in button a card draws inside a row's box is read. The list is in drawing order,
     parent first: what it lists right after the target inside its box is the target's own (a send button's icon
-    labelled "Confirm button"), judged with the target; what it lists before the target is content under it, like a
-    reply under a lifted composer's Send, unless it holds the target and all listed between them, as an ancestor does.
-    Limits: with no hierarchy, a deny-worded sibling listed right after the target inside its box reads as the
-    target's own, and one listed right before it and around it as its ancestor; a wordless overlay that draws nothing
-    is unseen: no list the device gives reports clickable (mobile-mcp's, mobilecli's dump), and uiautomator dump is
-    killed on the emulator (measured 2026-10-01)."""
+    labelled "Confirm button"), judged with the target. What it lists before the target is content under it, like a
+    reply under a lifted composer's Send, unless it absorbs the target: a sheet's "Block character" row, listed
+    before the page it covers, over a timestamp. Limits: with no hierarchy, a deny-worded
+    sibling listed right after the target inside its box reads as the target's own, and a control-shaped container
+    listed before the target and around it reads as over it; a wordless overlay that draws nothing is unseen: no list
+    the device gives reports clickable (mobile-mcp's, mobilecli's dump), and uiautomator dump is killed on the emulator
+    (measured 2026-10-01)."""
     x, y = target.point
     order = {e.get("ref"): n for n, e in enumerate(elements)}
     at = end = order.get(target.ref, -1)
@@ -425,8 +435,8 @@ def denied_at(target: Candidate, elements: list[dict], device: Device, **deny) -
         end += 1
     for c in worded(elements, device):
         n = order[c.ref]
-        ancestor = n < at and all(inside(r, c.rect) for r in [target.rect, *map(rect, elements[n + 1:at])])
-        if inside(Rect(x=x, y=y, w=0, h=0), c.rect) and (n > end or ancestor):
+        over = n < at and absorbs(elements[n], elements[at])
+        if inside(Rect(x=x, y=y, w=0, h=0), c.rect) and (n > end or over):
             reason = denied(c, **deny)
             if reason:
                 return f"{reason} ({c.label[:40]!r} at the tap point)"
@@ -466,6 +476,11 @@ def find(cands: list[Candidate], want: Candidate) -> Candidate | None:
     return min(same, key=lambda c: abs(center(c.rect)[0] - wx) + abs(center(c.rect)[1] - wy), default=None)
 
 
+def control_shaped(label: str, kind: str) -> bool:
+    """A control's label rather than content: a few words, or a button's."""
+    return len(label.split()) <= CONTROL_WORDS or "Button" in kind
+
+
 def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bool = False) -> str | None:
     """The deny-list word that blocks this tap, or None. On an upsell screen its call-to-action words are
     denied too. A control that shows the account's own name or email is never tapped: a tap can copy it where no
@@ -476,7 +491,7 @@ def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bo
     if REDACTED in text:
         return "account text"
     text = ID_WORDS.sub(" ", text)
-    shaped = len(c.label.split()) <= CONTROL_WORDS or "Button" in c.kind
+    shaped = control_shaped(c.label, c.kind)
     rest = FILTER_PHRASE.sub(" ", text) if toggle_ok else text
     if ICON_ONLY.fullmatch(c.tree_label) and DISMISS_ID.search(ID_WORDS.sub(" ", c.ident or c.label)):
         text = rest = SIGN_IN.sub(" ", text)
@@ -497,7 +512,7 @@ def walled(cands: list[Candidate]) -> str:
     create account, password) or "money" (subscribe, buy, pay, check out); "" for neither. Words that undo something
     (delete, cancel, unsubscribe) are neither."""
     for c in cands:
-        shaped = len(c.label.split()) <= CONTROL_WORDS or "Button" in c.kind
+        shaped = control_shaped(c.label, c.kind)
         for m in (DENY_ALWAYS if shaped else DENY_COMMAND).finditer(c.label):
             word = m.group(m.lastindex or 0)
             if not UNDOING.fullmatch(word):
