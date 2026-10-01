@@ -5,14 +5,17 @@ and the caps, the lock and the source run hold. No model call and no real device
 import contextlib
 import hashlib
 import json
+import os
 import shutil
+import subprocess
+import sys
 from functools import partial
 from pathlib import Path
 
 import pytest
-from PIL import ImageDraw
+from PIL import Image, ImageDraw
 
-from simula import cli, decide, llm, qa_live
+from simula import cli, decide, llm, qa_live, runfolder
 from simula.contracts import (ActionLine, ContractReport, Coverage, Device, Flow, Point, ProductModel, Provenance,
                               StateFile)
 from simula.device import mcp
@@ -93,7 +96,14 @@ def source_run(runs: Path, recorded: dict[str, Screen], lines: list[ActionLine],
     (run_dir / "mock").mkdir()
     (run_dir / "mock" / "contract_report.json").write_text(
         ContractReport(passed=True, screens=ids, errors=[]).model_dump_json())
+    approve(run_dir)
     return run_dir
+
+
+def approve(run_dir: Path) -> None:
+    """QA's marker over the page it approved, as the stage writes one: the model and mock it read, and qa/ it wrote."""
+    runfolder.write_done(run_dir / "qa", run_dir, [run_dir / "mock", run_dir / "model"], [], {}, [run_dir / "qa"],
+                         Provenance(source="explorer_run"))
 
 
 def key_at(screen: Screen, point: tuple[int, int]) -> str:
@@ -173,7 +183,8 @@ def test_a_tap_and_back_flow_is_walked_on_both_sides_with_a_redacted_paired_chec
     flow = report["flows"][0]
     assert (flow["status"], flow["reason"]) == ("matched", None)
     assert [(c["action"], c["expected"], c["live"]["verdict"], c["mock"]["landed"], c["mock"]["problem"])
-            for c in flow["checkpoints"]] == [("start", "s01", "same", "s01", None), ("tap", "s02", "same", "s02", None),
+            for c in flow["checkpoints"]] == [("start", "s01", "same", "s01", None),
+                                              ("tap", "s02", "same", "s02", None),
                                               ("back", "s01", "same", "s01", None)]
     out = tmp_path / "audit"
     for c in flow["checkpoints"]:
@@ -214,6 +225,7 @@ def test_a_mock_that_lost_the_hops_tag_is_the_mock_failing(runs, walk):
     edge = ProductModel.model_validate_json((run_dir / "model" / "product_model.json").read_text()).flows[0].edge_ids[0]
     assert f'data-edge="{edge}"' in page.read_text()
     page.write_text(page.read_text().replace(f'data-edge="{edge}"', ""))
+    approve(run_dir)  # QA approved the page as it is
     phone = phone_for(screens(), [("s01", tab(recorded["s01"], 1), "s02")])
 
     flow = walk(phone)["flows"][0]
@@ -262,18 +274,21 @@ def test_a_target_the_walker_cant_verify_is_never_tapped(runs, walk, change, why
     assert [c["action"] for c in flow["checkpoints"]] == ["start"] and taps(phone) == []
 
 
+def with_send() -> dict[str, Screen]:
+    """The captures with s01's "Trending" chip relabeled "Send", as a send recorded in explore's core loop."""
+    found = screens()
+    s01 = found["s01"]
+    found["s01"] = Screen([{k: "Send" if v == "Trending" else v for k, v in e.items()} for e in s01.elements],
+                          s01.image, s01.package)
+    return found
+
+
 def test_a_control_on_the_deny_list_is_never_tapped(runs, walk):
     """A send recorded in explore's core loop is denied outside it, as on every tour tap."""
-    def renamed() -> dict[str, Screen]:
-        found = screens()
-        s01 = found["s01"]
-        found["s01"] = Screen([{k: "Send" if v == "Trending" else v for k, v in e.items()} for e in s01.elements],
-                              s01.image, s01.package)
-        return found
-    recorded = renamed()
+    recorded = with_send()
     send = labeled(recorded["s01"], "Send")
     source_run(runs, recorded, [line(1, "s01", "s02", TAP, send)], [[("s01", "s02", TAP)]])
-    phone = phone_for(renamed(), [("s01", send, "s02")])
+    phone = phone_for(with_send(), [("s01", send, "s02")])
 
     flow = walk(phone)["flows"][0]
 
@@ -290,7 +305,8 @@ def test_a_swipe_is_taken_up_and_flagged_as_assumed_and_typing_is_unsupported(ru
 
     assert swiped["status"] == "matched" and swiped["assumed"] == [f"{swiped['edges'][0]}: swipe direction assumed up"]
     assert swiped["checkpoints"][-1]["mock"]["gesture"] and ("swipe", "s01", "up") in phone.log
-    assert (typed["status"], typed["supported"]) == ("unsupported", False) and "typing is not supported" in typed["reason"]
+    assert (typed["status"], typed["supported"]) == ("unsupported", False)
+    assert "typing is not supported" in typed["reason"]
     assert phone.typed == []
 
 
@@ -436,3 +452,249 @@ def test_a_device_of_another_size_is_refused_before_any_action(runs, walk, tmp_p
     with pytest.raises(SystemExit, match="the device is .*w_px=1440"):
         walk(phone)
     assert phone.log == [] and walk.held == ["held", "released"] and not (tmp_path / "audit").exists()
+
+
+# ---------- the red team's probes on 9d6a8cf, each failing there ----------
+
+@pytest.mark.parametrize("stale", ["model", "contract", "page", "partial", "none"])
+def test_an_approved_mock_older_than_the_model_or_mock_is_refused_before_any_device_work(runs, walk, stale):
+    """A model or mock rerun alone leaves qa/ as it was: walking the old page against the new model would blame the
+    mock for its inputs. QA's own marker says whether the page is current."""
+    recorded = screens()
+    run_dir = tab_back_run(runs, recorded)
+    model_path = run_dir / "model" / "product_model.json"
+    if stale == "model":
+        old = json.loads(model_path.read_text())["flows"][0]["edge_ids"][0]
+        model_path.write_text(model_path.read_text().replace(old, old + "x"))  # the rerun model names the hop anew
+    elif stale == "contract":
+        (run_dir / "mock" / "contract_report.json").write_text(
+            ContractReport(passed=True, screens=["s01", "s02"], errors=[]).model_dump_json())
+    elif stale == "page":
+        page = run_dir / "qa" / "approved" / "index.html"
+        page.write_text(page.read_text() + "<!-- edited after approval -->")
+    elif stale == "partial":
+        marker = runfolder.read_done(run_dir / "qa")
+        runfolder.write_json_atomic(run_dir / "qa" / "done.json", marker.model_copy(
+            update={"outcome": marker.outcome.model_copy(update={"status": "partial"})}).model_dump_json())
+    else:
+        (run_dir / "qa" / "done.json").unlink()
+    phone = phone_for(screens(), [("s01", tab(recorded["s01"], 1), "s02")])
+
+    with pytest.raises(SystemExit, match="the approved mock predates the current model/mock: rerun `simula qa "
+                                         "janitorai`"):
+        walk(phone)
+    assert phone.log == [] and walk.held == []
+
+
+def test_a_route_to_the_start_never_counts_on_a_denied_control_when_a_permitted_one_exists(runs, walk):
+    recorded = with_send()
+    send = labeled(recorded["s01"], "Send")
+    source_run(runs, recorded, [line(1, "s01", "s03", TAP, send),
+                                line(2, "s01", "s02", TAP, tab(recorded["s01"], 1), "tab"),
+                                line(3, "s02", "s03", TAP, tab(recorded["s02"], 3), "tab"),
+                                line(4, "s03", "s01", TAP, tab(recorded["s03"], 0), "tab")],
+               [[("s03", "s01", TAP)]])
+    phone = phone_for(with_send(), [("s01", tab(recorded["s01"], 1), "s02"), ("s02", tab(recorded["s02"], 3), "s03"),
+                                    ("s03", tab(recorded["s03"], 0), "s01")])
+
+    report = walk(phone)
+
+    assert report["flows"][0]["status"] == "matched"
+    assert [s.get("edge", "").split(">")[-1] for s in report["setup"][2:]] == ["s02", "s03"]
+    assert all(key != "Send" for _, _, key in taps(phone))
+
+
+def timed_starts(monkeypatch) -> list[float]:
+    """The second, since the audit started, of every device action's start."""
+    starts, real = [], qa_live.Audit.mutate
+
+    def timed(self, call, *args, **kwargs):
+        starts.append(self.clock() - self.started)
+        return real(self, call, *args, **kwargs)
+    monkeypatch.setattr(qa_live.Audit, "mutate", timed)
+    return starts
+
+
+def test_a_time_cap_that_falls_after_the_last_action_still_cuts_the_flow_and_says_so(runs, walk, tmp_path, monkeypatch):
+    recorded = screens()
+    tab_back_run(runs, recorded)
+    starts = timed_starts(monkeypatch)
+    walk(phone_for(screens(), [("s01", tab(recorded["s01"], 1), "s02")]), tmp_path / "probe")
+    monkeypatch.setattr(qa_live, "MAX_MINUTES", (starts[-1] + 0.5) / 60)  # the last BACK starts just before the cap
+
+    report = walk(phone_for(screens(), [("s01", tab(recorded["s01"], 1), "s02")]), tmp_path / "capped")
+
+    flow = report["flows"][0]
+    assert flow["status"] == "blocked" and "time cap" in report["stop"] and flow["reason"] == report["stop"]
+    assert [c["action"] for c in flow["checkpoints"]] == ["start", "tap"]
+
+
+class HangsAfterLaunch(FakePhone):
+    """Every element dump times out once the app is launched, as a hung uiautomator does."""
+
+    def launch(self, retry: bool = True) -> None:
+        super().launch(retry)
+        self.hung_lists = 10 ** 6
+
+
+def test_a_time_cap_inside_a_launch_wait_ends_the_wait(runs, walk, tmp_path, monkeypatch):
+    recorded = screens()
+    hop = ("s01", "s02", TAP)
+    source_run(runs, recorded, [line(1, "s01", "s02", TAP, tab(recorded["s01"], 1), "tab")], [[hop], [hop]])
+    starts = timed_starts(monkeypatch)
+    walk(phone_for(screens(), [], cls=HangsAfterLaunch), tmp_path / "probe")
+    cap_s = starts[-1] + 0.5  # the cap falls just after the launch, inside its wait for a screen
+    monkeypatch.setattr(qa_live, "MAX_MINUTES", cap_s / 60)
+
+    report = walk(phone_for(screens(), [], cls=HangsAfterLaunch), tmp_path / "capped")
+
+    assert "time cap" in report["stop"] and [f["status"] for f in report["flows"]] == ["blocked", "blocked"]
+    assert report["minutes"] * 60 < cap_s + 45  # past the cap by one look at most, not the whole launch wait
+
+
+def test_a_device_that_fails_after_a_launch_is_not_launched_again_for_the_next_flow(runs, walk):
+    recorded = screens()
+    hop = ("s01", "s02", TAP)
+    source_run(runs, recorded, [line(1, "s01", "s02", TAP, tab(recorded["s01"], 1), "tab")], [[hop], [hop], [hop]])
+    phone = phone_for(screens(), [], cls=HangsAfterLaunch)
+
+    report = walk(phone)
+
+    assert phone.log.count(("launch",)) == 1 and report["stop"].startswith("the device failed after the launch")
+    assert [f["reason"].startswith("not visited: ") for f in report["flows"]] == [False, True, True]
+
+
+def with_popup(screen: Screen, dim: float) -> Screen:
+    """A same-window popup over the screen (a coach mark, a promo): two new labeled controls in one box in the middle,
+    drawn after everything else, over an optional scrim that mobile-mcp doesn't list."""
+    image = Image.eval(screen.image, lambda v: int(v * dim))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((140, 900, 940, 1400), fill=(250, 250, 250))
+    draw.rectangle((300, 1260, 780, 1360), fill=(80, 60, 200))
+    popup = [{"ref": "@p1", "type": "android.widget.TextView", "text": "New: group chats are here", "label": "",
+              "coordinates": {"x": 180, "y": 940, "width": 720, "height": 120}},
+             {"ref": "@p2", "type": "android.widget.Button", "text": "Got it", "label": "",
+              "coordinates": {"x": 300, "y": 1260, "width": 480, "height": 100}}]
+    return Screen([*screen.elements, *popup], image, screen.package)
+
+
+@pytest.mark.parametrize("dim", [1.0, 0.6], ids=["no-scrim", "scrim"])
+def test_a_tap_is_never_sent_behind_an_overlay_the_recording_didnt_have(runs, walk, dim):
+    recorded = screens()
+    tab_back_run(runs, recorded)
+    target = tab(recorded["s01"], 1)
+    phone = phone_for(screens() | {"s01": with_popup(screens()["s01"], dim)}, [("s01", target, "s02")])
+
+    flow = walk(phone)["flows"][0]
+
+    assert flow["status"] == "unsupported" and flow["reason"].endswith(": an overlay the recording didn't have is up")
+    assert taps(phone) == []
+
+
+class Directional(FakePhone):
+    """A feed that scrolls both ways: up goes further down the feed, down goes back."""
+
+    def swipe(self, direction: str) -> None:
+        self.tick()
+        self.log.append(("swipe", self.screen, direction))
+        self.go({("s01", "up"): "s02", ("s02", "down"): "s01", ("s02", "up"): "s03"}.get((self.screen, direction)))
+
+
+def test_a_recorded_scroll_back_is_swiped_down_and_not_flagged_as_assumed(runs, walk):
+    recorded = screens()
+    source_run(runs, recorded, [line(1, "s01", "s02", SWIPE), line(2, "s02", "s01", SWIPE)],
+               [[("s01", "s02", SWIPE), ("s02", "s01", SWIPE)]])
+    phone = phone_for(screens(), [], cls=Directional)
+
+    flow = walk(phone)["flows"][0]
+
+    assert flow["status"] == "matched" and ("swipe", "s02", "down") in phone.log
+    assert flow["assumed"] == [f"{flow['edges'][0]}: swipe direction assumed up"]
+
+
+def test_a_landing_elsewhere_after_an_assumed_swipe_blames_neither_side(runs, walk):
+    recorded = screens()
+    source_run(runs, recorded, [line(1, "s02", "s01", SWIPE)], [[("s02", "s01", SWIPE)]])
+    phone = phone_for(screens(), [("s01", tab(recorded["s01"], 1), "s02")], cls=Directional)
+    phone.start = "s02"  # a recorded swipe from s02 that no scroll explains: the walker guesses up, the feed goes on
+
+    flow = walk(phone)["flows"][0]
+
+    assert flow["status"] == "unverified" and "after a swipe whose direction is assumed up" in flow["reason"]
+    assert flow["checkpoints"][-1]["live"]["landed"] == "s03"
+
+
+class KeepsScratch(FakePhone):
+    """Keeps what the scratch capture holds once capture() has redacted it and goes on to read the foreground."""
+
+    def screenshot(self, path: Path, size=None) -> Path:
+        self.scratch_path = path
+        return super().screenshot(path, size)
+
+    def foreground(self) -> str:
+        if getattr(self, "scratch_path", None):
+            self.on_disk = Image.open(self.scratch_path).convert("RGB")
+        return super().foreground()
+
+
+def test_the_capture_on_disk_is_the_redacted_one(runs, walk, monkeypatch):
+    monkeypatch.setenv("SIMULA_REDACT", "Trending")
+    recorded = screens()
+    tab_back_run(runs, recorded)
+    phone = phone_for(screens(), [("s01", tab(recorded["s01"], 1), "s02")], cls=KeepsScratch)
+
+    walk(phone)
+
+    hidden = [ob.rect(e) for e in recorded["s01"].elements if "Trending" in ob.words(e)]
+    assert hidden and all(phone.on_disk.crop((r.x, r.y, r.x + r.w, r.y + r.h)).getextrema() == ((0, 0),) * 3
+                          for r in hidden)
+
+
+SIGTERM_WALK = '''
+import contextlib, os, signal, sys
+from pathlib import Path
+from simula import qa_live, runfolder
+from tests import test_qa_live as t
+from tests.fake_device import FakePhone
+
+work = Path(sys.argv[1])
+runfolder.RUNS = work / "runs"
+recorded = t.screens()
+t.tab_back_run(runfolder.RUNS, recorded)
+
+
+class Killed(FakePhone):
+    def screenshot(self, path, size=None):
+        out = super().screenshot(path, size)
+        if path.name == "now.png" and ("launch",) in self.log:
+            os.kill(os.getpid(), signal.SIGTERM)  # an operator or a timeout stops the walk mid-capture
+        return out
+
+
+@contextlib.contextmanager
+def lock(*args, **kwargs):
+    try:
+        yield
+    finally:
+        print("lock released", flush=True)
+
+
+phone = t.phone_for(t.screens(), [("s01", t.tab(recorded["s01"], 1), "s02")], cls=Killed)
+qa_live.emulator_lock, qa_live.resolve_serial = lock, lambda flag: "offline"
+qa_live.explore.adb_shell = lambda *args: None
+qa_live.Server = lambda cwd: type("S", (), {"close": lambda self: print("server closed", flush=True)})()
+qa_live.Phone = lambda *args, **kwargs: phone
+qa_live.run("janitorai", "r1", work / "audit", None, clock=phone.clock, sleep=phone.clock.sleep)
+'''
+
+
+def test_a_sigterm_mid_walk_releases_the_device_and_leaves_no_raw_capture(tmp_path):
+    root = Path(__file__).resolve().parent.parent
+    (tmp_path / "walk.py").write_text(SIGTERM_WALK)
+    done = subprocess.run([sys.executable, str(tmp_path / "walk.py"), str(tmp_path)], cwd=root, capture_output=True,
+                          text=True, timeout=120,
+                          env={**os.environ, "PYTHONPATH": str(root), "SIMULA_REDACT": "Trending"})
+
+    assert done.returncode == 1 and "qa-live stopped by SIGTERM" in done.stderr, done.stderr[-2000:]
+    assert done.stdout.split() == ["server", "closed", "lock", "released"]
+    assert not (tmp_path / "audit").exists()

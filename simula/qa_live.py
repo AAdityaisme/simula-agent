@@ -1,9 +1,11 @@
-"""`simula qa-live`: an opt-in audit, outside QA's rounds and never part of approval. It walks each core flow of a run on
-the live app and on the approved mock side by side, one recorded action at a time, and saves fresh paired evidence at
-every checkpoint, so a mock that breaks is told apart from an app that changed since explore. No model calls."""
+"""`simula qa-live`: an opt-in audit, outside QA's rounds and never part of approval. It walks each core flow of a run
+on the live app and on the approved mock side by side, one recorded action at a time, and saves fresh paired evidence
+at every checkpoint, so a mock that breaks is told apart from an app that changed since explore. No model calls."""
 
 import json
 import shutil
+import signal
+import sys
 import time
 from collections import Counter
 from contextlib import contextmanager
@@ -13,7 +15,7 @@ from pathlib import Path
 from PIL import Image
 
 from simula import config, qa_metrics, render, runfolder
-from simula.contracts import SCHEMA_VERSION, Device, Edge, ProductModel, StateFile
+from simula.contracts import SCHEMA_VERSION, Device, Edge, ProductModel, Rect, StateFile
 from simula.device import observe as ob
 from simula.device.devices import emulator_lock, resolve_serial
 from simula.device.mcp import McpReplyError, McpTimeout, Phone, Server, parse_elements
@@ -23,7 +25,6 @@ from simula.stages import Ctx, explore, mock, qa
 MAX_ACTIONS = 30
 MAX_MINUTES = 10
 ROUTE_HOPS = 4
-SWIPE = "up"  # explore records no swipe direction; its tour only ever swipes up
 TAKEN = ("tap", "back", "swipe")
 AWAY = ("external", "rotated", "blocked")
 DEVICE_ERRORS = (McpTimeout, McpReplyError)
@@ -33,9 +34,10 @@ ARRIVED = ("same", "structure", "home")
 DIVERGED = ("other", "away")
 INPUTS = ("model/product_model.json", "mock/contract_report.json", "qa/approved/index.html")
 STATE_JS = "() => window.simula.state()"
-NOTE = ("Masked SSIM is descriptive: it has no pass threshold. Swipes are taken upward, since explore recorded no "
-        "direction. Setup (launches and routes to a flow's start) is never evidence, and a flow not walked here is not "
-        "certified by it.")
+NOTE = ("Masked SSIM is descriptive: it has no pass threshold. Explore records no swipe direction: a swipe back to "
+        "where an earlier recorded swipe started is its scroll back, taken down; any other is taken up, flagged as "
+        "assumed, and a landing elsewhere after it is unverified. Setup (launches and routes to a flow's start) is "
+        "never evidence, and a flow not walked here is not certified by it.")
 
 
 @dataclass
@@ -52,10 +54,11 @@ class Live:
 
 @dataclass
 class Recorded:
-    """A state as explore captured it."""
+    """A state as explore captured it, with the box of its own overlay when it is a modal or sheet."""
     elements: list[dict]
     image: Image.Image
     cands: list[ob.Candidate]
+    box: Rect | None
 
 
 class FlowEnd(Exception):
@@ -80,6 +83,8 @@ def run(app: str, run_id: str | None, out: Path, serial: str | None, clock=time.
         raise SystemExit("SIMULA_REDACT is empty: list the emulator account's handle and names in .env first")
     if not (src / "qa" / "approved" / "index.html").exists():
         raise SystemExit(f"{src} has no approved mock: run `simula qa {app}` first")
+    if not approved_current(src):
+        raise SystemExit(f"the approved mock predates the current model/mock: rerun `simula qa {app}`")
     model = ProductModel.model_validate_json((src / "model" / "product_model.json").read_text())
     if model.device != Device():
         raise SystemExit(f"the run was explored on {model.device}, but the mock renders and compares on {Device()}")
@@ -88,6 +93,7 @@ def run(app: str, run_id: str | None, out: Path, serial: str | None, clock=time.
               allow_fixtures=False)
     scratch = out / ".scratch"
     scratch.mkdir()
+    previous = signal.signal(signal.SIGTERM, lambda *_: sys.exit("qa-live stopped by SIGTERM"))
     try:
         with held_device(serial, ctx.app["package"], scratch) as (phone, resolved):
             found = live_device(phone, resolved)
@@ -105,9 +111,21 @@ def run(app: str, run_id: str | None, out: Path, serial: str | None, clock=time.
         write_report(out, report)
         return report
     finally:
+        signal.signal(signal.SIGTERM, previous)  # a stop runs this cleanup and releases the device first
         shutil.rmtree(scratch, ignore_errors=True)
         if not any(out.iterdir()):
             out.rmdir()  # a walk that stopped before any evidence leaves no folder, so the same --out can run again
+
+
+def approved_current(src: Path) -> bool:
+    """QA approved this page from the model and mock on disk now: its marker is complete, and the hashes it recorded
+    for them (inputs) and for the page (an output) are the files' own. A model or mock rerun alone leaves qa/ as it
+    was."""
+    marker = runfolder.read_done(src / "qa")
+    if marker is None or marker.outcome.status != "complete":
+        return False
+    recorded = {h.path: h.sha256 for h in [*marker.input_hashes, *marker.output_hashes]}
+    return all((src / path).exists() and recorded.get(path) == runfolder.sha256(src / path) for path in INPUTS)
 
 
 def new_out(out: Path, src: Path) -> Path:
@@ -175,6 +193,10 @@ class Audit:
         self.root = next(s.id for s in model.states if s.kind == "screen")  # the model stage's root
         self.in_scope = {e.id for e in mock.scope_edges(model, qa.mock_screens(ctx, model))}
         self.undrawn = set(qa.undrawn_screens(ctx))
+        # explore records no swipe direction: a swipe back to where an earlier recorded swipe started is its scroll
+        # back, which it swipes down; any other is taken up, as an assumption
+        self.scroll_backs = {e.id for n, e in enumerate(model.edges) if e.action == "swipe" and any(
+            o.action == "swipe" and (o.from_state, o.to_state) == (e.to_state, e.from_state) for o in model.edges[:n])}
         self.recorded_states: dict[str, Recorded] = {}
         self.actions, self.setup, self.flow = 0, [], ""
         self.current: str | None = None
@@ -192,8 +214,8 @@ class Audit:
             problem = self.problem(flow.edge_ids)
             result = {"flow": flow.id, "name": flow.name, "edges": flow.edge_ids, "supported": problem is None,
                       "status": "unsupported", "reason": problem, "checkpoints": [],
-                      "assumed": [f"{i}: swipe direction assumed {SWIPE}" for i in flow.edge_ids
-                                  if i in self.edges and self.edges[i].action == "swipe"]}
+                      "assumed": [f"{i}: swipe direction assumed up" for i in flow.edge_ids
+                                  if i in self.edges and self.assumed(self.edges[i])]}
             if problem is None and stop:
                 result.update(status="blocked", reason=f"not visited: {stop}")
             elif problem is None:
@@ -229,6 +251,9 @@ class Audit:
         element = next((e for e in self.states[edge.from_state].elements if e.id == edge.element_id), None)
         return element is not None and element.mcp_ref is not None
 
+    def assumed(self, edge: Edge) -> bool:
+        return edge.action == "swipe" and edge.id not in self.scroll_backs
+
     def walk_flow(self, hops: list[Edge], page, gestures: dict, result: dict) -> None:
         """Puts both sides on the flow's verified start, then takes each hop on the live app and on the mock, captures
         both and pairs them, and stops at the first hop where either side goes wrong."""
@@ -261,21 +286,24 @@ class Audit:
             problem, gesture = qa.take(page, edge, gestures)
             mock_side = {"landed": page.evaluate(STATE_JS), "problem": problem, "gesture": gesture}
             self.checkpoint(result, edge, edge.to_state, page, mock_side, control)
-            ended = self.hop_end(problem)
+            ended = self.hop_end(edge, problem)
             if ended:
                 result.update(status=ended[0], reason=f"{edge.id}: {ended[1]}")
                 return
         result.update(status="matched", reason=None)
 
-    def hop_end(self, problem: str | None) -> tuple[str, str] | None:
+    def hop_end(self, edge: Edge, problem: str | None) -> tuple[str, str] | None:
         """A hop's verdict from both sides: the live app's landing decides first, since a mock can't be judged against
-        a path the app no longer takes, and an unknown landing is attributed to neither side."""
+        a path the app no longer takes. An unknown landing is attributed to neither side, nor is one after a swipe
+        whose direction the walker assumed: the app can't be blamed for the walker's guess."""
         v = self.verdict
         if v["verdict"] in ARRIVED:
             return ("mock_failed", f"mock: {problem}") if problem else None
         if v["verdict"] in DIVERGED:
             where = v["landed"] or f"another app ({v['foreground']})"
-            return "real_diverged", f"the app went to {where}, not {v['expected']} (structure {v['structure']:.2f})"
+            went = f"the app went to {where}, not {v['expected']} (structure {v['structure']:.2f})"
+            return ("unverified", f"{went}, after a swipe whose direction is assumed up") if self.assumed(edge) \
+                else ("real_diverged", went)
         why = "the screen never settled" if v["verdict"] == "unsettled" else "the screen matches no recorded state"
         return "unverified", f"{why} (structure {v['structure']:.2f} against {v['expected']})"
 
@@ -309,7 +337,10 @@ class Audit:
             except DEVICE_ERRORS as e:
                 raise Stopped(f"the device failed to {name} the app ({type(e).__name__}); not retried") from None
             self.setup.append({"flow": self.flow, "action": name})
-        self.live = self.wait_for_launch(want)
+        try:
+            self.live = self.wait_for_launch(want)
+        except DEVICE_ERRORS as e:
+            raise Stopped(f"the device failed after the launch ({type(e).__name__}); not launched again") from None
         self.verdict = self.match_state(self.live, want, launched=True)
         self.current = self.verdict["landed"]
         self.setup[-1].update(self.verdict)
@@ -332,6 +363,7 @@ class Audit:
         return live
 
     def look_once(self, deadline: float) -> Live | None:
+        self.in_time()
         try:
             return self.capture()
         except DEVICE_ERRORS:
@@ -340,15 +372,15 @@ class Audit:
             return None
 
     def route(self, src: str, dst: str) -> list[Edge] | None:
-        """The shortest path of recorded edges the walker can take, at most ROUTE_HOPS long and never through a state
-        outside the app."""
+        """The shortest path of recorded edges the walker can take, at most ROUTE_HOPS long, never through a state
+        outside the app nor a tap whose recorded control is on the deny-list (the live one is checked again)."""
         came: dict[str, Edge | None] = {src: None}
         frontier = {src}
         for _ in range(ROUTE_HOPS):
             reached = set()
             for e in self.model.edges:
                 if (e.from_state in frontier and e.to_state not in came and self.takeable(e)
-                        and self.states[e.to_state].kind not in AWAY):
+                        and self.states[e.to_state].kind not in AWAY and (e.action != "tap" or self.allowed(e))):
                     came[e.to_state] = e
                     reached.add(e.to_state)
             frontier = reached
@@ -366,10 +398,15 @@ class Audit:
         """Every device action goes through here, setup included: none starts past a cap."""
         if self.actions >= MAX_ACTIONS:
             raise Stopped(f"the action cap ({MAX_ACTIONS} device actions) was reached")
-        if self.clock() - self.started >= MAX_MINUTES * 60:
-            raise Stopped(f"the time cap ({MAX_MINUTES} minutes) was reached")
+        self.in_time()
         self.actions += 1
         call(*args, **kwargs)
+
+    def in_time(self) -> None:
+        """Checked before every action, every look and every checkpoint, so no wait or capture runs on past the cap
+        unreported."""
+        if self.clock() - self.started >= MAX_MINUTES * 60:
+            raise Stopped(f"the time cap ({MAX_MINUTES} minutes) was reached")
 
     def act(self, edge: Edge, target: ob.Candidate | None) -> None:
         if self.live.fg != self.package:
@@ -379,7 +416,7 @@ class Audit:
         elif edge.action == "back":
             self.mutate(self.phone.back)
         else:
-            self.mutate(self.phone.swipe, SWIPE)
+            self.mutate(self.phone.swipe, "down" if edge.id in self.scroll_backs else "up")
 
     def capture(self) -> Live:
         """A settled element list and screenshot, both redacted as explore redacts them before anything reads them."""
@@ -389,6 +426,7 @@ class Audit:
         reply, elements, hits = ob.redact(settled.reply, image, self.secrets)
         if hits or not settled.ok:
             ob.redact(self.phone.elements()[0], image, self.secrets)  # the screen may have moved since the list
+        image.save(path)  # no raw capture stays on disk, even when the walk is stopped
         fg = self.phone.foreground()
         return Live(reply, elements, image, fg, ob.fingerprint(fg, elements, image, self.device),
                     ob.controls(elements, self.device), settled.ok)
@@ -401,27 +439,48 @@ class Audit:
     def safe_target(self, edge: Edge) -> ob.Candidate:
         """The one live control a tap edge's recorded element is now (invariant 3, as explore applies it): found the way
         explore re-finds a control and alone, on no deny-list, enabled, under nothing, and looking as its recorded
-        crop does."""
-        element = next(e for e in self.states[edge.from_state].elements if e.id == edge.element_id)
-        rec = self.recorded(edge.from_state)
-        want = next((c for c in rec.cands if c.ref == element.mcp_ref), None)
+        crop does, not behind an overlay the recording didn't have."""
+        rec, want = self.recorded(edge.from_state), self.recorded_control(edge)
         if want is None:
-            raise FlowEnd("unsupported", f"no recorded control is {element.id}")
+            raise FlowEnd("unsupported", f"no recorded control is {edge.element_id}")
         found = matches(self.live.cands, want)
         if len(found) != 1:
-            raise FlowEnd("unsupported", f"{len(found)} live controls fit {element.id}" if found
-                          else f"{element.id} is not on the live screen")
+            raise FlowEnd("unsupported", f"{len(found)} live controls fit {edge.element_id}" if found
+                          else f"{edge.element_id} is not on the live screen")
         live = found[0]
         reason = ob.denied(live, upsell=ob.is_upsell(self.live.elements, self.device))
         if reason:
             raise FlowEnd("blocked", f"denied: {reason}")
         if not live.enabled:
-            raise FlowEnd("blocked", f"{element.id} is disabled on the live screen")
+            raise FlowEnd("blocked", f"{edge.element_id} is disabled on the live screen")
+        box = self.new_overlay(rec)
+        if box and not ob.inside(live.rect, box):
+            raise FlowEnd("unsupported", "an overlay the recording didn't have is up")
         if ob.covered(live, self.live.elements, self.device):
-            raise FlowEnd("unsupported", f"something lies over {element.id} on the live screen")
+            raise FlowEnd("unsupported", f"something lies over {edge.element_id} on the live screen")
         if not ob.looks_same(rec.image, want.rect, self.live.image, live.rect, self.device):
-            raise FlowEnd("unsupported", f"{element.id} looks different from its recorded crop")
+            raise FlowEnd("unsupported", f"{edge.element_id} looks different from its recorded crop")
         return live
+
+    def recorded_control(self, edge: Edge) -> ob.Candidate | None:
+        """The control a tap edge's element is in its recorded capture."""
+        element = next(e for e in self.states[edge.from_state].elements if e.id == edge.element_id)
+        return next((c for c in self.recorded(edge.from_state).cands if c.ref == element.mcp_ref), None)
+
+    def allowed(self, edge: Edge) -> bool:
+        want = self.recorded_control(edge)
+        upsell = ob.is_upsell(self.recorded(edge.from_state).elements, self.device)
+        return want is not None and not ob.denied(want, upsell=upsell)
+
+    def new_overlay(self, rec: Recorded) -> Rect | None:
+        """A dialog or same-window overlay on the live screen, found as explore finds one (Explorer.kind_of, the scrim
+        check included), when the recorded capture had none: a popup or coach mark that a tap behind it would hit."""
+        if rec.box is not None:
+            return None
+        tabs = frozenset(t.key for t in ob.tab_bar(self.recorded(self.root).cands, self.device))
+        return ob.dialog_box(self.live.cands, self.device) or ob.overlay_box(
+            rec.cands, self.live.cands, self.device, tabs,
+            lambda box: ob.scrim(rec.image, self.live.image, box, self.device))
 
     # ---------- where the live app is ----------
 
@@ -467,7 +526,8 @@ class Audit:
         home = self.recorded(self.root).cands
         new = [c for c in live.cands if not any(h.label == c.label and h.kind == c.kind and ob.overlaps(h.rect, c.rect)
                                                 for h in home)]
-        blocked = (live.fg != self.package or ob.dialog_box(live.cands, self.device) or not launchable(live, self.device)
+        blocked = (live.fg != self.package or not launchable(live, self.device)
+                   or ob.dialog_box(live.cands, self.device)
                    or any(ob.BLOCKING.search(t) for t in ob.texts(live.elements, self.device)))
         tabs = [t for t in ob.tab_bar(home, self.device) if not ob.denied(t)]
         return not blocked and not ob.walled(new) and all(ob.find(live.cands, t) for t in tabs)
@@ -479,7 +539,7 @@ class Audit:
             elements = parse_elements(json.loads((explore_dir / sf.elements_reply).read_text())) \
                 if sf.elements_reply else []
             self.recorded_states[sid] = Recorded(elements, Image.open(explore_dir / sf.screenshot).convert("RGB"),
-                                                 ob.controls(elements, self.device))
+                                                 ob.controls(elements, self.device), sf.box)
         return self.recorded_states[sid]
 
     # ---------- evidence ----------
@@ -497,6 +557,7 @@ class Audit:
                    control: dict | None) -> None:
         """Saves both sides as they are now: the live capture and its element list (both redacted), the mock's render,
         and the heatmap of their masked SSIM."""
+        self.in_time()
         stem = f"flows/{result['flow']}/{len(result['checkpoints']):02d}"
         files = {"real": f"{stem}-real.png", "mock": f"{stem}-mock.png", "heatmap": f"{stem}-heatmap.png",
                  "tree": f"{stem}-tree.json"}
@@ -543,8 +604,8 @@ def markdown(report: dict) -> str:
     s, actions = report["summary"], report["actions"]
     stop = f" The audit stopped: {report['stop']}." if report["stop"] else ""
     lines = [f"# Live QA walk: {report['app']}, run {report['run']}", "",
-             (f"{s['supported']} of {s['total']} flows supported; {s['completed']} completed (walked to the end or to a "
-              f"verified divergence), {s['by_status']['matched']} matched. {actions['total']} device actions "
+             (f"{s['supported']} of {s['total']} flows supported; {s['completed']} completed (walked to the end or to "
+              f"a verified divergence), {s['by_status']['matched']} matched. {actions['total']} device actions "
               f"({actions['setup']} of them setup) in {report['minutes']} min.{stop}"), "",
              "| Flow | Status | Checkpoints | Why |", "|---|---|---|---|"]
     for f in report["flows"]:

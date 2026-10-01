@@ -195,11 +195,11 @@ It walks each core flow on the live app and on the run's approved mock side by s
 - **matched:** both sides took every hop.
 - **mock_failed:** the app took the hop and the mock didn't.
 - **real_diverged:** the app went somewhere else (another recorded screen, or another app).
-- **unsupported:** typing, a flow outside the mock, or a control it can't verify (missing, ambiguous, covered, or unlike its recorded crop). It never taps one of these.
+- **unsupported:** typing, a flow outside the mock, or a control it can't verify (missing, ambiguous, covered, under an overlay the recording didn't have, or unlike its recorded crop). It never taps one of these.
 - **blocked:** the deny-list, a route to the flow's start that failed, a device failure, or a cap.
-- **unverified:** the app landed on a screen no recorded state matches, so neither side is blamed.
+- **unverified:** the app landed on a screen no recorded state matches, or somewhere else right after a swipe whose direction the walker guessed, so neither side is blamed.
 
-The walker holds the device lock and stops at 30 device actions or 10 minutes, setup included. A launch and the route to a flow's start are setup, never evidence. Swipes go up: explore records no direction. The SSIM score is descriptive and has no pass threshold.
+It refuses to start unless QA's `done.json` shows the approved mock was made from the model and mock now on disk: after a standalone `simula model` or `simula mock`, run `simula qa` first. The walker holds the device lock and stops at 30 device actions or 10 minutes, setup, waits and captures included. A launch and the route to a flow's start are setup, never evidence. Explore records no swipe direction: a swipe back to where an earlier recorded swipe started is its scroll back and goes down; any other goes up and is flagged as assumed. The SSIM score is descriptive and has no pass threshold.
 
 Reruns:
 - A stage command always reruns its stage.
