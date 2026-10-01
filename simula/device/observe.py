@@ -76,6 +76,10 @@ TOGGLE = re.compile(r"Switch|CheckBox|ToggleButton", re.IGNORECASE)
 DENY_ON_UPSELL = re.compile(r"continue|try|start|get|claim|unlock|join|redeem|activate|\bremove\b", re.IGNORECASE)
 DENY_IN_TOUR = re.compile(r"send|swipe|regenerate", re.IGNORECASE)
 DENY_IN_CORE = re.compile(r"\b(?:gifts?|coins?|gems?|tips?|donat\w*|credits?)\b", re.IGNORECASE)
+# what an overlay that asks something of the user says on its controls: an upgrade or plans word, a brand's "+"
+# tier ("Brand+"), or a decline
+ASKING = re.compile(r"^(?:not now|later|maybe later|no,? thanks)$|upgrade|premium|membership|subscription|remove ads|"
+                    r"\bad[- ]free\b|\bno ads\b|\bplans\b|(?<![\w+])[^\W\d_]{2,}\+(?![\w+])", re.IGNORECASE)
 DISMISS = re.compile(r"^(close\b.*|not now|later|maybe later|no,? thanks|skip|dismiss|got it|x|×|✕)$", re.IGNORECASE)
 BLOCKING = re.compile(r"emulator|rooted|captcha|verify (that )?you.?re (a )?human|age verification|"
                       r"date of birth|not supported on this device", re.IGNORECASE)
@@ -93,7 +97,48 @@ NUMBER = re.compile(r"\d+")
 CLOCK = re.compile(r"\b\d{1,2}:\d{2}\b|\bago\b", re.IGNORECASE)
 LETTER = re.compile(r"[^\W\d_]")
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
+LEAF = re.compile(r"(?:TextView|ImageView|EditText)$")
+TEXT_OR_IMAGE = re.compile(r"(?:TextView|ImageView)$")
 REDACTED = "[redacted]"
+# --allow-account-create's words. A way on without an account is a whole label, so "Watch later" is content.
+GUEST = re.compile(r"^\W*(?:[\w'’]+\s+){0,3}?(?:as (?:a )?(?:guest|visitor)|guest(?: mode)?|without (?:an? )?account|"
+                   r"without (?:signing|logging) (?:up|in)|without (?:registering|registration|log ?in|sign ?in)|"
+                   r"(?:explore|browse|look around) first|browse anonymously|just browsing)\W*$|"
+                   r"^\W*(?:skip(?: for now)?|not now|(?:maybe |remind me )?later|no,? thanks?)\W*$", re.IGNORECASE)
+# a control that agrees, accepts, consents or attests ("I'm 18+", "I understand", "Yes, ...") is never tapped on the
+# way in: a label that speaks for the user in the first person is one, whatever it attests (ATTESTS); text that is no
+# button or toggle only when it agrees or accepts, since "At least 8 characters" is a password hint
+AGREES = re.compile(r"\bagree|\baccept|\bconsent|\backnowledg|\bunderstand\b|\badult\b", re.IGNORECASE)
+ATTESTS = re.compile(r"\b\d+\s*\+|\b(?:over|at least|under) \d+|^\W*(?:yes|i|i['’]?m|i am)\b", re.IGNORECASE)
+LOG_IN = re.compile(r"\b(?:log|sign) ?in\b", re.IGNORECASE)
+# a sign-in with another account (Google, Apple, ...) or a phone is a real person's, so it is never a way in
+OTHER_ACCOUNT = re.compile(r"\b(?:continue|sign ?(?:in|up)|log ?in|connect|register)\s+(?:with|using|via)\b"
+                           r"(?!.*\be-?mail\b)", re.IGNORECASE)
+PHONE = re.compile(r"\bphone\b|\bmobile\b|\bsms\b", re.IGNORECASE)
+SIGN_UP = re.compile(r"sign ?up|create (?:an |my |your )?account|register|continue with|e-?mails?|passwords?|submit|"
+                     r"proceed", re.IGNORECASE)
+EMAIL_WAY = re.compile(r"\b(?:sign ?up|continue|register|use|join|start|create)\b.*\be-?mail\b", re.IGNORECASE)
+SIGN_UP_WAY = re.compile(r"\bsign ?up\b|\bcreate (?:an |my |your )?account\b|\bregister\b", re.IGNORECASE)
+# the only labels a way to an email sign-up may have, whole: anything more ("Sign up with email, I'm 18") isn't taken
+TO_EMAIL = re.compile(r"^\W*(?:(?:sign ?up|continue|register|join|get started|start|create (?:an |my |your )?account)"
+                      r"\s+(?:with|using|by|via)\s+(?:an? |your )?|use (?:an? |your )?)e-?mail(?: address)?\W*$",
+                      re.IGNORECASE)
+TO_SIGN_UP = re.compile(r"^\W*(?:sign ?up|create (?:an |my |your )?account|register)\W*$", re.IGNORECASE)
+SUBMIT = re.compile(r"\b(?:sign ?up|create|register|continue|next|submit|done|join|get started|let'?s go)\b",
+                    re.IGNORECASE)
+# the only labels a sign-up form's own button may have: anything more ("Continue, I'm 18", "Create") is not sent
+PLAIN_SUBMIT = re.compile(r"^\W*(?:sign ?up|create (?:an |my |your )?account|register|continue|next|submit|done|join|"
+                          r"get started|let'?s go)\W*$", re.IGNORECASE)
+# a name box is the person's name only when that is all its text says: "Character name", "Username" or "Name your
+# companion" is another box
+PERSON_NAME = re.compile(r"^\W*(?:enter )?(?:your )?(?:full |first |last |display )?name\W*$|"
+                         r"^\W*what should we call you\W*$", re.IGNORECASE)
+FIELDS = {"email": re.compile(r"e-?mail", re.IGNORECASE), "password": re.compile(r"pass ?word|\bpwd\b", re.IGNORECASE),
+          "phone": PHONE, "name": PERSON_NAME}
+HUMAN_CHECK = re.compile(rf"{BLOCKING.pattern}|not a robot", re.IGNORECASE)
+VERIFY = re.compile(r"\bverif|\bconfirm\w* (?:your )?e-?mail|check your (?:e-?mail|inbox)|\bwe(?:'ve| have)? sent\b|"
+                    r"\b(?:enter|type) the code\b|\bone[- ]time\b|\botp\b|magic link", re.IGNORECASE)
+CARD = re.compile(r"card number|\bcvv\b|\bcvc\b|expir(?:y|ation) date|billing address", re.IGNORECASE)
 
 
 # ---------- geometry ----------
@@ -110,6 +155,14 @@ def area(r: Rect) -> float:
 def inside(inner: Rect, outer: Rect) -> bool:
     return (outer.x <= inner.x and outer.y <= inner.y
             and inner.x + inner.w <= outer.x + outer.w and inner.y + inner.h <= outer.y + outer.h)
+
+
+def absorbs(outer: dict, inner: dict) -> bool:
+    """Whether outer takes inner in as its own: it holds inner's box, its words are a control's, and it is no leaf
+    view (a text, a picture, a text box), which holds nothing. A reply container labelled with the whole reply is
+    content: it holds a lifted composer's Send without taking it in."""
+    kind = outer.get("type", "")
+    return inside(rect(inner), rect(outer)) and control_shaped(words(outer), kind) and not LEAF.search(kind)
 
 
 def overlaps(a: Rect, b: Rect) -> bool:
@@ -159,11 +212,13 @@ def device_from(elements: list[dict], w_px: int, h_px: int, density: int) -> Dev
 
 # ---------- redaction ----------
 
-def redact(reply: dict, image: Image.Image, secrets: list[str]) -> tuple[dict, list[dict], int]:
-    """Replaces every listed string (any case) and every email address in any of an element's strings with [redacted]
-    and paints a solid box over those elements in the image, before anything reads or saves them. Also returns how
-    many elements were redacted."""
-    listed = [re.escape(s.strip()) for s in secrets if s.strip()]
+def redact(reply: dict, image: Image.Image, secrets: list[str], parts: list[str] = ()) -> tuple[dict, list[dict], int]:
+    """Replaces every listed string (any case), each of parts as a whole word, and every email address in any of an
+    element's strings with [redacted] and paints a solid box over those elements in the image, before anything reads
+    or saves them. Also returns how many elements were redacted."""
+    # the longest part first: "ann" must not take the front of "ann.test" and leave the rest
+    listed = [re.escape(s.strip()) for s in secrets if s.strip()] + [rf"\b{re.escape(p)}\b"
+                                                                      for p in sorted(parts, key=len, reverse=True)]
     pattern = re.compile("|".join([EMAIL.pattern, *listed]), re.IGNORECASE)
     elements = json.loads(reply["content"][0]["text"].removeprefix(ELEMENTS_PREFIX))
     draw = ImageDraw.Draw(image)
@@ -324,7 +379,10 @@ def controls(elements: list[dict], device: Device) -> list[Candidate]:
     """Tappable-looking elements in the content area. The list is parent-first, so an element's own texts come
     after it: those (not a nested control's label) merge into it, and content that scrolled under an overlay,
     which comes before it, doesn't. A big element without words that holds two or more different texts is a
-    layout, not a control. Words without a letter ("8", "1 / 102") are counters, not controls."""
+    layout, not a control. Words without a letter ("8", "1 / 102") are counters, not controls. A smaller element
+    inside a bigger one is part of it, except a control in the composer's row (the row of the text box composer()
+    finds a send for, and the row under it) that the bigger one doesn't absorb: a composer the keyboard lifted is
+    drawn over the reply under it."""
     content = [e for e in elements if in_content(e, device) and area(rect(e)) < LAYOUT_SHARE * content_area(device)
                and rect(e).y + rect(e).h <= device.content_bottom_px + 16]
     found = []
@@ -343,11 +401,17 @@ def controls(elements: list[dict], device: Device) -> list[Candidate]:
         ident = short_id(e.get("identifier"))
         # mobile-mcp writes "checked" only when it is true, so a switch without it is off
         checked = True if e.get("checked") else False if TOGGLE.search(e["type"]) else None
-        found.append(Candidate(label=tree_label or ident, kind=e["type"].split(".")[-1], rect=r, ref=e["ref"],
-                               tree_label=tree_label, ident=ident, enabled=e.get("enabled") is not False,
-                               checked=checked))
-    kept = [c for c in found if not any(o is not c and area(o.rect) > area(c.rect) and inside(c.rect, o.rect)
-                                        for o in found)]
+        found.append((e, Candidate(label=tree_label or ident, kind=e["type"].split(".")[-1], rect=r, ref=e["ref"],
+                                   tree_label=tree_label, ident=ident, enabled=e.get("enabled") is not False,
+                                   checked=checked)))
+    chat = composer([c for _, c in found], device)
+
+    def lifted(e: dict, c: Candidate) -> bool:
+        row, y = chat[0].rect if chat else None, center(c.rect)[1]
+        return row is not None and row.y <= y < row.y + 2 * row.h and (
+            "Button" in c.kind or (control_shaped(c.label, c.kind) and not TEXT_OR_IMAGE.search(e["type"])))
+    kept = [c for e, c in found if not any(o is not c and area(o.rect) > area(c.rect) and inside(c.rect, o.rect)
+                                           and (absorbs(oe, e) or not lifted(e, c)) for oe, o in found)]
     return [c for n, c in enumerate(kept) if all(o.rect != c.rect for o in kept[:n])]
 
 
@@ -406,29 +470,76 @@ def find(cands: list[Candidate], want: Candidate) -> Candidate | None:
     return min(same, key=lambda c: abs(center(c.rect)[0] - wx) + abs(center(c.rect)[1] - wy), default=None)
 
 
-def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bool = False) -> str | None:
+def control_shaped(label: str, kind: str) -> bool:
+    """A control's label rather than content: a few words, or a button's."""
+    return len(label.split()) <= CONTROL_WORDS or "Button" in kind
+
+
+def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bool = False,
+           account: bool = False) -> str | None:
     """The deny-list word that blocks this tap, or None. On an upsell screen its call-to-action words are
     denied too. A control that shows the account's own name or email is never tapped: a tap can copy it where no
     redaction reaches, like the keyboard's clipboard chip. Sending and typing belong to the core-loop pass only. A
     switch or checkbox could undo the content filter, so only the filter's own row may flip one (toggle_ok). On that
-    row a filter phrase ("Hide NSFW", "Block explicit content") is no deny hit; every other deny word still is."""
+    row a filter phrase ("Hide NSFW", "Block explicit content") is no deny hit; every other deny word still is. On
+    the sign-up path (account) the words that sign up by email are no deny hit and a text box may be typed into,
+    unless the control names a sign-in with another account or a phone; a consent and every other deny word still
+    are."""
     text = "\n".join(dict.fromkeys(t for t in (c.label, c.tree_label) if t))
     if REDACTED in text:
         return "account text"
+    if account and consents(c):
+        return "consent"
     text = ID_WORDS.sub(" ", text)
-    shaped = len(c.label.split()) <= CONTROL_WORDS or "Button" in c.kind
+    shaped = control_shaped(c.label, c.kind)
     rest = FILTER_PHRASE.sub(" ", text) if toggle_ok else text
     if ICON_ONLY.fullmatch(c.tree_label) and DISMISS_ID.search(ID_WORDS.sub(" ", c.ident or c.label)):
         text = rest = SIGN_IN.sub(" ", text)
+    if account and not (OTHER_ACCOUNT.search(text) or PHONE.search(text)):
+        text = rest = SIGN_UP.sub(" ", text)
     hit = (DENY_ALWAYS if shaped else DENY_COMMAND).search(text) or (DENY.search(rest) if shaped else None) \
         or (DENY_ON_UPSELL.search(text) if upsell else None) or (DENY_IN_CORE if core else DENY_IN_TOUR).search(text)
     if hit:
         return hit.group(hit.lastindex or 0).lower()  # a command's word, without the bullet before it
     if TOGGLE.search(c.kind) and not toggle_ok:
         return "toggle"
-    if c.kind == "EditText" and not core:
+    if c.kind == "EditText" and not (core or account):
         return "text input"
     return None
+
+
+def shaped(c: Candidate) -> bool:
+    """A control's label, not a sentence: a few words, or a button. A picture the icon pass named is no control: its
+    name describes it ("Sign in illustration")."""
+    return c.kind != "picture" and (len(c.label.split()) <= CONTROL_WORDS or "Button" in c.kind)
+
+
+def consents(c: Candidate, tapped: bool = True) -> bool:
+    """A control that agrees to, accepts or attests something: "I agree", "Accept & continue", "I'm 18+", a consent
+    checkbox. One that is not to be tapped and is neither a button nor a toggle only when it agrees or accepts."""
+    toggle = bool(TOGGLE.search(c.kind))
+    attests = (tapped or toggle or "Button" in c.kind) and ATTESTS.search(c.label)
+    return (shaped(c) or toggle) and bool(AGREES.search(c.label) or attests)
+
+
+def account_way(c: Candidate) -> bool:
+    """A control on the way in or past an account wall: sign in or up, email, create an account, go on as a guest."""
+    return any(rule.search(c.label) for rule in (SIGN_IN, EMAIL_WAY, SIGN_UP_WAY, GUEST))
+
+
+def field_kind(e: dict, elements: list[dict]) -> str:
+    """What a text box asks for ("email", "password", "phone", "name", or ""), from its own words and id and its
+    caption: the closest text above it, unless another text box sits between, which owns that text."""
+    r = rect(e)
+
+    def above(o: dict) -> bool:
+        t = rect(o)
+        return t.y + t.h <= r.y + 8 and t.x < r.x + r.w and r.x < t.x + t.w
+    nearest = max((o for o in elements if (words(o) or o["type"].endswith("EditText")) and above(o)),
+                  key=lambda o: rect(o).y + rect(o).h, default=None)
+    caption = words(nearest) if nearest and not nearest["type"].endswith("EditText") else ""
+    said = [words(e), ID_WORDS.sub(" ", short_id(e.get("identifier"))).strip(), caption]
+    return next((kind for kind, rule in FIELDS.items() for text in said if text and rule.search(text)), "")
 
 
 def walled(cands: list[Candidate]) -> str:
@@ -437,12 +548,19 @@ def walled(cands: list[Candidate]) -> str:
     create account, password) or "money" (subscribe, buy, pay, check out); "" for neither. Words that undo something
     (delete, cancel, unsubscribe) are neither."""
     for c in cands:
-        shaped = len(c.label.split()) <= CONTROL_WORDS or "Button" in c.kind
+        shaped = control_shaped(c.label, c.kind)
         for m in (DENY_ALWAYS if shaped else DENY_COMMAND).finditer(c.label):
             word = m.group(m.lastindex or 0)
             if not UNDOING.fullmatch(word):
                 return "account" if ACCOUNT.search(word) else "money"
     return ""
+
+
+def asks(cands: list[Candidate]) -> bool:
+    """Whether an overlay's own controls ask something of the user, the way a prompt does: a control-shaped label with
+    an upgrade or plans word, or a way to decline ("Not now", "Maybe later"). A close control asks nothing: an item's
+    page in a sheet has one too."""
+    return any(control_shaped(c.label, c.kind) and ASKING.search(c.label.strip()) for c in cands)
 
 
 def anr(elements: list[dict]) -> bool:
@@ -589,9 +707,30 @@ def is_upsell(elements: list[dict], device: Device) -> bool:
     return any(PAYWALL.search(t) for t in texts(elements, device))
 
 
-def priced(elements: list[dict], device: Device) -> bool:
-    """Shows a price ($4.99, 9,99 €, ₹199, USD 4.99): what makes an upsell a paywall, not a teaser."""
-    return any(PRICE.search(t) for t in texts(elements, device))
+def wall_texts(elements: list[dict], device: Device, box: Rect | None = None, own: list[Candidate] = (),
+               shown: set[str] | None = None) -> set[str]:
+    """The texts a paywall is read from. On a chat (a screen with a composer) only control-shaped labels, the text
+    from the composer down, and an overlay's own texts: inside its box, the words its parent screen didn't show
+    (shown), wherever the tree lists them. With no parent capture, those listed from the overlay's first own control
+    on (content listed before an overlay lies under it). A conversation, the explorer's messages and the replies, is
+    never a paywall."""
+    cands = controls(elements, device)
+    chat = composer(cands, device)
+    if chat is None:
+        return texts(elements, device)
+    refs = {c.ref for c in own}
+    start = next((n for n, e in enumerate(elements) if e.get("ref") in refs), len(elements))
+    return ({c.label for c in cands if control_shaped(c.label, c.kind)}
+            | {words(e) for n, e in enumerate(elements) if in_content(e, device) and words(e)
+               and (rect(e).y >= chat[0].rect.y or (box is not None and inside(rect(e), box)
+                                                    and (words(e) not in shown if shown is not None else n >= start)))})
+
+
+def priced(elements: list[dict], device: Device, box: Rect | None = None, own: list[Candidate] = (),
+           shown: set[str] | None = None) -> bool:
+    """Shows a price ($4.99, 9,99 €, ₹199, USD 4.99) among its wall_texts: what makes an upsell a paywall, not a
+    teaser."""
+    return any(PRICE.search(t) for t in wall_texts(elements, device, box, own, shown))
 
 
 # ---------- the core loop ----------
