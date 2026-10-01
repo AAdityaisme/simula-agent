@@ -759,6 +759,39 @@ def test_a_conversation_that_talks_prices_and_plans_is_never_the_paywall(tmp_pat
     assert "paywall_or_membership" in ex.checklist()[1]
 
 
+def voice_sheet_over_chat(clock):
+    phone = janitor_like(clock)
+    chat = phone.screens["chat"]
+    sheet = [{"ref": "@sheet", "type": "android.view.ViewGroup", "text": "",
+              "coordinates": {"x": 0, "y": 1500, "width": 1080, "height": 837}},
+             {"ref": "@title", "type": "android.widget.TextView", "text": "Choose a voice for this character",
+              "coordinates": {"x": 20, "y": 1540, "width": 1040, "height": 80}},
+             {"ref": "@voice", "type": "android.widget.Button", "text": "Voice one",
+              "coordinates": {"x": 100, "y": 2150, "width": 880, "height": 120}}]
+    phone.screens["chat_sheet"] = Screen(chat.elements + sheet, chat.image, chat.package)
+    phone.replies["chat_sheet"] = phone.replies["chat"]
+    phone.chats["chat_sheet"] = phone.chats.setdefault("chat", [])
+    phone.screen, phone.splash_left = "chat", 0
+    return phone
+
+
+def test_a_reply_that_arrived_after_the_chat_was_recorded_never_prices_a_sheet_over_it(tmp_path, monkeypatch):
+    """Greptile on 459b030: the chat is recorded, a reply quoting a price arrives, then an unpriced sheet opens over
+    it. The paywall pass's fallback and the exhibit read the sheet against the screen it opened over right before,
+    as record() does, not against the chat's first capture."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, voice_sheet_over_chat)
+    chat = ex.record(ex.observe(), None, None, None)
+    reply = "The student plan is $4.99 a month with the first week free."
+    phone.chats["chat"].append(("Which plan is best for students?", reply))
+    before = ex.observe()
+    phone.go("chat_sheet")
+    sheet = ex.record(ex.observe(), chat, stage.Move("tap", why="a voice for the chat"), before)
+    assert sheet.box and sheet.upsell and not sheet.priced
+    ex.paywall_pass()
+    assert ex.paywall != sheet.sid and "$4.99" not in stage.paywall_line(ex), stage.paywall_line(ex)
+    assert reply not in ex.wall_texts(sheet)
+
+
 def test_a_sheet_over_the_tab_bar_is_closed_with_back_not_a_relaunch(tmp_path, monkeypatch):
     def sheet_over_tabs(clock):
         phone = janitor_like(clock)

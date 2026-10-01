@@ -147,6 +147,7 @@ class Seen:
     priced: bool = False
     via: str = ""
     box: Rect | None = None
+    under: set[str] | None = None  # an overlay's: the texts the screen it opened over showed right before
     unscroll_to: str | None = None
     launch: bool = False
     tried: set = field(default_factory=set)
@@ -355,6 +356,7 @@ class Explorer:
                     self.revisit(known, obs)
                 return known
         kind, box = self.kind_of(obs, before)
+        under = ob.texts(before.elements, self.device) if box and before else None
         home = self.home if kind == "screen" and self.home and self.homelike(self.home, obs) else None
         sid = home.sid if home else f"s{len(self.states) + 1:02d}"
         if home:
@@ -379,9 +381,8 @@ class Explorer:
                     settled=obs.settled,
                     settle_s=obs.settle_s,
                     captured_at=now(), upsell=ob.is_upsell(obs.elements, self.device),
-                    priced=ob.priced(obs.elements, self.device, box, cands,
-                                     ob.texts(before.elements, self.device) if before else None),
-                    via=move.cand.label if move and move.cand else "", box=box,
+                    priced=ob.priced(obs.elements, self.device, box, cands, under),
+                    via=move.cand.label if move and move.cand else "", box=box, under=under,
                     unscroll_to=came_from.sid if came_from and move.action == "swipe" else None)
         self.states.append(seen)
         self.by_id[sid] = seen
@@ -1356,10 +1357,9 @@ class Explorer:
             self.act(Move("back", why="out of the upsell"), purpose="nav")
 
     def wall_texts(self, s: Seen) -> set[str]:
-        """s's paywall texts; an overlay's own are the words its parent screen's capture didn't show."""
-        parent = self.by_id[s.parent].elements if s.parent else None
-        return ob.wall_texts(s.elements, self.device, s.box, s.cands,
-                             ob.texts(parent, self.device) if parent is not None else None)
+        """s's paywall texts, as record() read them: an overlay's own are the words the screen it opened over didn't
+        show right before."""
+        return ob.wall_texts(s.elements, self.device, s.box, s.cands, s.under)
 
     def priced_paywall(self) -> Seen | None:
         return next((s for s in self.states if s.priced and not s.launch and s.kind in ("screen", "modal", "sheet")),
