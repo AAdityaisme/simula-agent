@@ -425,11 +425,11 @@ def test_two_cut_off_batches_near_the_cap_both_draw_without_hanging(tmp_path, mo
     assert drawn.lost == [] and drawn.plan.keep == 2
 
 
-def batch_rows(tmp_path, plan: mock.Plan, undrawn_from: int) -> str:
-    """The exhibit of three one-screen batches, all but the first `undrawn_from - 1` over budget."""
+def batch_rows(tmp_path, plan: mock.Plan, undrawn_from: int, reason: str = "$ cap reached: over budget") -> str:
+    """The exhibit of three one-screen batches, all but the first `undrawn_from - 1` not drawn for `reason`."""
     model = golden("janitorai")
     scope = mock.pick_scope(model)
-    undrawn = {s.id: "$ cap reached: over budget" for s in scope[undrawn_from - 1:3]}
+    undrawn = {s.id: reason for s in scope[undrawn_from - 1:3]}
     report = ContractReport(passed=False, screens=[s.id for s in scope], errors=[])
     return mock.exhibit(ctx_for(tmp_path, "janitorai"), model, scope, [[s] for s in scope[:3]], undrawn, "", report,
                         plan)
@@ -467,6 +467,15 @@ def test_a_batch_that_ran_and_failed_past_the_prefix_keeps_its_cost_and_its_own_
     assert drawn.plan.line(3).endswith(f"; batch 3 ran ($0.90) and failed: {error}")
     scope = mock.pick_scope(golden("janitorai"))
     assert f"| 3 | {scope[2].id} | ran ($0.90) and failed: {error} |" in batch_rows(tmp_path, drawn.plan, 2)
+
+
+def test_a_failure_that_spans_lines_stays_on_its_row_of_the_batch_table(tmp_path):
+    """Greptile: a provider's error with a newline (or a |) split the exhibit's markdown row."""
+    plan = mock.Plan(1, 4.0, 0.0, ((3, 0.9, "overloaded\nretry | later"),))
+    rows = batch_rows(tmp_path, plan, 2, reason="overloaded\nretry | later")
+    scope = mock.pick_scope(golden("janitorai"))
+    assert f"| 2 | {scope[1].id} | not drawn: overloaded retry / later |" in rows
+    assert f"| 3 | {scope[2].id} | ran ($0.90) and failed: overloaded retry / later |" in rows
 
 
 FUZZ_SEEDS = (251, 348, 376, 482, 657, 827, 896, 1376, *range(8))  # rt-37's seven hangs and its float edge

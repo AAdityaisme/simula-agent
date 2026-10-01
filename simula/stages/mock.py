@@ -1088,7 +1088,8 @@ def exhibit(ctx: Ctx, model: ProductModel, scope: list[State], groups: list[list
              "| Batch | Screens | Result |", "|---|---|---|"]
     for n, batch in enumerate(groups, 1):
         reason, ran = undrawn.get(batch[0].id), {n: (usd, error) for n, usd, error in plan.dropped}.get(n)
-        result = (dropped_note(*ran) if ran else f"not drawn: {reason}" if reason else "drawn").replace("|", "/")
+        result = dropped_note(*ran) if ran else f"not drawn: {reason}" if reason else "drawn"
+        result = " ".join(result.split()).replace("|", "/")  # a provider's error can span lines
         lines.append(f"| {n} | {' '.join(s.id for s in batch)} | {result} |")
     lines += ["", "| Screen | Name | data-el placed / expected | Render |", "|---|---|---|---|"]
     for s in scope:
