@@ -1313,7 +1313,8 @@ class Explorer:
     def paywall_pass(self) -> None:
         """A paywall counts once a screen that isn't the launch teaser shows a price. Until then, follows an entry
         control (upgrade, plans, premium, plus, the teaser's own call to action) at most twice, reads what opens to
-        the end, and goes back. Confirm words stay denied. With no price anywhere, the best upsell seen stands."""
+        the end, and goes back. Confirm words stay denied. With no price anywhere, the best upsell seen stands, read from
+        its wall_texts, so never a conversation."""
         self.touring = False
         entries = sorted(((s, c) for s in self.states if s.kind in ("screen", "modal", "sheet")
                           for c in [self.entry(s)] if c), key=lambda sc: (sc[0].launch, sc[0].depth))
@@ -1325,9 +1326,9 @@ class Explorer:
             if s.launch:
                 self.relaunch(why="the launch screen again, with the content filter, after the launch dialog")
         priced = self.priced_paywall()
-        best = priced or max((s for s in self.states if s.upsell and not s.launch and s.kind not in AWAY),
-                             key=lambda s: sum(bool(ob.PAYWALL.search(t)) for t in ob.texts(s.elements, self.device)),
-                             default=None)
+        shown = {s.sid: sum(bool(ob.PAYWALL.search(t)) for t in ob.wall_texts(s.elements, self.device))
+                 for s in self.states if s.upsell and not s.launch and s.kind not in AWAY}
+        best = priced or max((self.by_id[sid] for sid, n in shown.items() if n), key=lambda s: shown[s.sid], default=None)
         self.paywall = best.sid if best else None
         if not priced:
             self.note("paywall", f"no price seen ({len(entries)} entry controls)")
@@ -2155,7 +2156,7 @@ def ended(ex: Explorer, s: Seen) -> str:
 def paywall_line(ex: Explorer) -> str:
     if not ex.paywall:
         return "no"
-    prices = [t for t in ob.texts(ex.by_id[ex.paywall].elements, ex.device) if ob.PRICE.search(t)]
+    prices = [t for t in ob.wall_texts(ex.by_id[ex.paywall].elements, ex.device) if ob.PRICE.search(t)]
     return f"yes, {ex.paywall}, prices: {'; '.join(repr(p) for p in prices[:6])}" if prices \
         else f"yes, {ex.paywall}, no price seen"
 

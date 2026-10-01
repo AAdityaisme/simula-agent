@@ -746,6 +746,19 @@ def test_with_no_price_anywhere_the_best_upsell_stands_marked_no_price_seen(tmp_
     assert "paywall_or_membership" in ex.checklist()[1]
 
 
+def test_a_conversation_that_talks_prices_and_plans_is_never_the_paywall(tmp_path, monkeypatch):
+    """Fable E7: a chat holding an earlier run's talk of prices and plans was that run's paywall."""
+    def talked(clock):
+        phone = janitor_like(clock)
+        phone.chats["chat"] = [("What's the best phone under $300?",
+                                "The Pixel 8a at $299, or a subscription at $15 per month.")]
+        return phone
+    ex, _ = explore(tmp_path, monkeypatch, phone_factory=talked, no_send=True)
+    chats = {s.sid for s in ex.states if any("$299" in t for t in ob.texts(s.elements, ex.device))}
+    assert chats and ex.paywall not in chats and not ex.priced_paywall(), (chats, ex.paywall)
+    assert "paywall_or_membership" in ex.checklist()[1]
+
+
 def test_a_sheet_over_the_tab_bar_is_closed_with_back_not_a_relaunch(tmp_path, monkeypatch):
     def sheet_over_tabs(clock):
         phone = janitor_like(clock)
