@@ -571,23 +571,6 @@ def test_arrival_at_the_scrolled_view_is_not_claimed_from_the_top_of_the_feed(tm
     assert not ex.arrived(scrolled)
 
 
-def test_a_row_something_lies_over_is_no_candidate(tmp_path, monkeypatch):
-    """A card across the list: its body is no control (a wordless layout holding texts), yet it lies over the first
-    row's tap point."""
-    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
-    phone.screen = "limited"
-    rows = ob.feed_items(ob.controls(phone.screens["limited"].elements, ex.device), ex.device)
-    x, y = rows[0].point
-    phone.screens["limited"].elements.extend(
-        {"ref": f"@card{n}", "type": kind, "text": text, "coordinates": {"x": 40 + 50 * bool(n), "y": y - 60 + dy,
-                                                                         "width": 1000 - 100 * bool(n),
-                                                                         "height": 200 if n == 0 else 40}}
-        for n, (kind, text, dy) in enumerate([("android.view.ViewGroup", "", 0), ("android.widget.TextView", "Plus", 0),
-                                              ("android.widget.TextView", "$4.99/month", 80)]))
-    labels = {c.tree_label for c in ex.record(ex.observe(), None, None, None).cands}
-    assert rows[0].tree_label not in labels and rows[1].tree_label in labels
-
-
 def test_a_parent_row_that_moved_is_still_behind_the_sheet_not_its_own(tmp_path, monkeypatch):
     _, _, sheet, _ = tall_sheet(tmp_path, monkeypatch, moved="The Former Husband")
     assert sheet.kind == "sheet" and not [c for c in sheet.cands if c.tree_label.startswith("The Former Husband")]
@@ -1209,9 +1192,8 @@ def test_a_chat_list_sheet_whose_greeting_mentions_money_is_the_feed_pass_result
     assert not opened[0].loop_stop and not ex.core_hit, (opened[0].loop_stop, ex.core_hit)
 
 
-# rt-pr29-b938d29: a card over home after a refresh, every row under it; the card's body is a clickable wordless box.
-# Its words ask for nothing, so the landing is home (a card asking for money is a wall, not home: see below).
-PROMO = [{"ref": "@promo", "type": "android.view.ViewGroup", "text": "", "clickable": True,
+# rt-pr29-b938d29: a card over home after a relaunch, every row under it, its body a wordless box.
+PROMO = [{"ref": "@promo", "type": "android.view.ViewGroup", "text": "",
           "coordinates": {"x": 200, "y": 1100, "width": 700, "height": 950}},
          {"ref": "@title", "type": "android.widget.TextView", "text": "What's new",
           "coordinates": {"x": 250, "y": 1120, "width": 600, "height": 50}},
@@ -1219,46 +1201,6 @@ PROMO = [{"ref": "@promo", "type": "android.view.ViewGroup", "text": "", "clicka
           "coordinates": {"x": 250, "y": 1410, "width": 600, "height": 50}},
          {"ref": "@ok", "type": "android.widget.Button", "text": "Got it",
           "coordinates": {"x": 320, "y": 1950, "width": 400, "height": 60}}]
-
-
-def home_under_a_promo(tmp_path, monkeypatch, overlay=PROMO, before_rows=False):
-    """Home recorded from j11, then re-recorded by a relaunch with the promo over its list. Every tap lands on the
-    promo's own app from then on."""
-    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
-    base = capture("janitorai", "j11_home_relaunched")
-    image = base.image.copy()
-    ImageDraw.Draw(image).rectangle((200, 1100, 900, 2050), fill=(52, 52, 60))
-    elements = overlay + base.elements if before_rows else base.elements + overlay
-    phone.screens.update(first=base, covered=Screen(elements, image, base.package),
-                         promo=Screen([], Image.new("RGB", (1080, 2400)), "com.example.promo"))
-    phone.screen = "first"
-    home = ex.current = ex.record(ex.observe(), None, None, None)
-    feed = stage.CoreAction("feed", home, ob.feed_items(home.cands, ex.device, ex.tab_keys()), "read items")
-    phone.screen, ex.home = "covered", home
-    assert ex.record(ex.observe(), None, None, None) is home
-    ex.home, tapped = None, []
-
-    def trap(x, y):
-        tapped.append((x, y))
-        phone.screen = "promo"
-    phone.tap = trap
-    return ex, feed, tapped
-
-
-def test_the_walk_never_taps_a_stale_row_through_a_card_after_a_refresh(tmp_path, monkeypatch):
-    ex, feed, tapped = home_under_a_promo(tmp_path, monkeypatch)
-    assert feed.controls and ex.rows(feed) == []
-    ex.walk_into(feed, 0)
-    assert not tapped and any("the walk ends" in t.note for t in runlog.read_trace(ex.run_dir / "trace.jsonl"))
-
-
-def test_the_feed_pass_never_taps_a_stale_row_through_a_card_after_a_refresh(tmp_path, monkeypatch):
-    ex, feed, tapped = home_under_a_promo(tmp_path, monkeypatch)
-    ex.touring = False
-    monkeypatch.setattr(ex, "choose_core", lambda: [feed])
-    monkeypatch.setattr(ex, "at_core", lambda n: True)
-    ex.core_loop()
-    assert not tapped and ex.core_results == [f"pass 1: no recorded rows left on {feed.state.sid}"]
 
 
 def test_a_relaunch_that_lands_on_a_money_card_over_home_keeps_home(tmp_path, monkeypatch):
@@ -1273,17 +1215,6 @@ def test_a_relaunch_that_lands_on_a_money_card_over_home_keeps_home(tmp_path, mo
     kept = [c.key for c in home.cands]
     phone.screen, ex.home = "covered", home
     assert ex.record(ex.observe(), None, None, None) is not home and [c.key for c in home.cands] == kept
-
-
-def test_a_clickable_wordless_overlay_leaves_no_covered_row_a_candidate(tmp_path, monkeypatch):
-    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
-    row = {"ref": "@row", "type": "android.view.ViewGroup", "text": "Read item",
-           "coordinates": {"x": 50, "y": 1100, "width": 800, "height": 200}}
-    box = {"ref": "@blank", "type": "android.view.ViewGroup", "text": "", "clickable": True,
-           "coordinates": {"x": 300, "y": 1130, "width": 400, "height": 150}}
-    phone.screens["wordless"] = Screen([row, box], Image.new("RGB", (1080, 2400)), PACKAGE)
-    phone.screen = "wordless"
-    assert "Read item" not in {c.label for c in ex.record(ex.observe(), None, None, None).cands}
 
 
 def test_a_long_control_label_that_starts_with_a_sign_in_or_money_command_is_a_wall():
@@ -1329,13 +1260,6 @@ def test_a_relaunch_that_restores_a_changed_deeper_screen_goes_back_and_keeps_ho
     phone.screens["chat"].image, phone.start = image, "chat"
     ex.relaunch()
     assert ex.tabs and detail is not home and [c.key for c in home.cands] == kept
-
-
-def test_a_clickable_card_listed_before_the_rows_still_covers_them(tmp_path, monkeypatch):
-    ex, feed, tapped = home_under_a_promo(tmp_path, monkeypatch, before_rows=True)
-    assert ex.rows(feed) == []
-    ex.walk_into(feed, 0)
-    assert not tapped
 
 
 def test_a_guest_home_with_a_log_in_header_is_still_home_after_its_feed_reloads(tmp_path, monkeypatch):
@@ -1418,3 +1342,138 @@ def test_the_fake_phone_encodes_each_picture_once_and_writes_what_a_plain_save_w
     assert len(encodes) == 4
     save(phone.screens["tab"].image, tmp_path / "plain.png")
     assert {path.read_bytes() for path in homes} != {tab.read_bytes()} == {(tmp_path / "plain.png").read_bytes()}
+
+
+def home_from(ex, phone, name="first"):
+    """The explorer's first launch recorded on the named screen: home, the launch root and its tab bar."""
+    phone.screen = name
+    home = ex.current = ex.record(ex.observe(), None, None, None)
+    ex.root = ex.launch_root = home
+    ex.tabs = ob.tab_bar(home.cands, ex.device)
+    return home
+
+
+def test_aol_keeps_its_tab_bar(tmp_path, monkeypatch):
+    """Fable E1: the bottom bar's container starts below the Inbox tab's box, and once dropped the whole bar."""
+    def aol(clock):
+        return FakePhone(screens={"home": capture("aol", "aol-home", package=PACKAGE)}, start="home", taps={},
+                         clock=clock)
+    ex, _ = new_explorer(tmp_path, monkeypatch, aol)
+    ex.relaunch(first=True)
+    assert [c.label for c in ex.tabs] == ["Inbox", "Home"] and ex.shows_tabs(ex.root)
+
+
+def test_no_tap_reaches_a_sign_in_button_a_card_draws_over_a_row(tmp_path, monkeypatch):
+    """Fable E2: a relaunch lands on the reloaded feed under a card listed after the rows; its body holds a whole row
+    and its "Continue with Google" lies inside the row's box."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    first, base = capture("janitorai", "j04_tab1"), capture("janitorai", "j11_home_relaunched")
+    card = [{"ref": "@card", "type": "android.view.ViewGroup", "text": "",
+             "coordinates": {"x": 40, "y": 1300, "width": 1000, "height": 800}},
+            {"ref": "@title", "type": "android.widget.TextView", "text": "Keep your chats",
+             "coordinates": {"x": 90, "y": 1320, "width": 900, "height": 70}},
+            {"ref": "@google", "type": "android.widget.Button", "text": "Continue with Google",
+             "coordinates": {"x": 80, "y": 1640, "width": 410, "height": 120}}]
+    image = base.image.copy()
+    ImageDraw.Draw(image).rectangle((40, 1300, 1040, 2100), fill=(52, 52, 60))
+    phone.screens.update(first=first, covered=Screen(base.elements + card, image, base.package),
+                         google=Screen([], Image.new("RGB", (1080, 2400)), "com.google.android.gms"))
+    phone.taps[("covered", "Continue with Google")] = "google"
+    home = home_from(ex, phone)
+    feed = stage.CoreAction("feed", home, ob.feed_items(home.cands, ex.device, ex.tab_keys()), "read items")
+    phone.start = "covered"
+    ex.relaunch()
+    assert ex.current is not home
+    ex.touring = False
+    ex.walk_into(feed, 1)
+    assert phone.foreground() != "com.google.android.gms"
+
+
+def test_a_denied_word_drawn_over_a_rows_tap_point_refuses_the_tap(tmp_path, monkeypatch):
+    """The row was recorded with nothing over it; a sign-in button listed after it now sits at its tap point and draws
+    nothing the crop check sees. The tap is refused and logged as denied, and never counted as executed."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    phone.screen = "limited"
+    feed = ex.current = ex.record(ex.observe(), None, None, None)
+    row = ob.feed_items(feed.cands, ex.device)[0]
+    x, y = row.point
+    phone.screens["limited"].elements.append({"ref": "@sign", "type": "android.widget.Button", "text": "Sign in",
+                                              "coordinates": {"x": x - 100, "y": y - 30, "width": 200, "height": 60}})
+    ex.observe()
+    taps = len([e for e in phone.log if e[0] == "tap"])
+    assert ex.act(stage.Move("tap", row)) is feed and len([e for e in phone.log if e[0] == "tap"]) == taps
+    last = lines(ex)[-1]
+    assert last.outcome == "denied" and "sign in" in last.change_summary and ex.denied_executed == 0
+
+
+def tabs_shown_under_paint(tmp_path, monkeypatch, refresh):
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    first, other = capture("janitorai", "j04_tab1"), capture("janitorai", "j11_home_relaunched")
+    phone.screens.update(first=first, other=other)
+    home = home_from(ex, phone, "first" if refresh else "other")
+    if refresh:
+        phone.start = "other"
+        ex.relaunch()
+        assert ex.current is home and len(ex.states) == 1
+    image = other.image.copy()
+    ImageDraw.Draw(image).rectangle((0, 2000, 1080, 2337), fill=(200, 40, 40))  # something opaque over the tab bar
+    phone.screens["painted"] = Screen(other.elements, image, other.package)  # the tabs stay listed behind it
+    phone.screen = "painted"
+    obs = ex.observe()
+    return [ex.shows(tab, ob.find(obs.cands, tab), obs) for tab in ex.tabs]
+
+
+def test_a_tab_painted_over_is_not_shown_after_a_relaunch_re_recorded_home(tmp_path, monkeypatch):
+    """Fable E3: the tabs, the filter taps and home's moves point at home's new capture, so none is waved through."""
+    assert not any(tabs_shown_under_paint(tmp_path / "never", monkeypatch, refresh=False))
+    assert not any(tabs_shown_under_paint(tmp_path / "after", monkeypatch, refresh=True))
+
+
+def test_a_relaunch_that_lands_on_another_tab_records_it_apart_from_home(tmp_path, monkeypatch):
+    """Fable E4: the profile tab shows the same tab bar, not home's top chrome."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    phone.screens["first"] = capture("janitorai", "j04_tab1")
+    home = home_from(ex, phone)
+    kept = [c.key for c in home.cands]
+    phone.start = "profile"
+    ex.relaunch()
+    assert ex.current is not home and [c.key for c in home.cands] == kept
+
+
+def test_a_relaunch_onto_home_reloaded_in_the_same_shapes_refreshes_its_rows_and_the_feed_pass_taps_a_new_one(
+        tmp_path, monkeypatch):
+    """Sol 1: the same cards with new titles keep home's fingerprint (pixels and layout); home is re-recorded with
+    the new rows rather than kept with rows the screen no longer has."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    first = capture("janitorai", "j04_tab1")
+    phone.screens["first"] = first
+    home = home_from(ex, phone)
+    feed = stage.CoreAction("feed", home, ob.feed_items(home.cands, ex.device, ex.tab_keys()), "read items")
+    today = {c.tree_label: f"Today: {c.tree_label}" for c in feed.controls}
+    phone.screens["reloaded"] = Screen([{**e, **{k: today[e[k]] for k in ("text", "label") if e.get(k) in today}}
+                                        for e in first.elements], first.image, first.package)
+    phone.taps.update({("reloaded", title): "chats" for title in today.values()})
+    phone.start = "reloaded"
+    assert ob.same_state(home.fp, ob.fingerprint(PACKAGE, phone.screens["reloaded"].elements, first.image, ex.device))
+    ex.relaunch()
+    assert ex.current is home and len(ex.states) == 1 and set(today.values()) <= {c.tree_label for c in home.cands}
+    ex.touring = False
+    monkeypatch.setattr(ex, "choose_core", lambda: [feed])
+    monkeypatch.setattr(ex, "at_core", lambda n: True)
+    ex.core_loop()
+    taps = [t.note for t in runlog.read_trace(ex.run_dir / "trace.jsonl") if t.note.startswith("tap 'Today: ")]
+    assert taps and all("(core loop: feed)" in note for note in taps), ex.core_results
+
+
+def test_an_arrival_that_is_no_relaunch_keeps_the_recorded_state(tmp_path, monkeypatch):
+    """Only a relaunch's landing is decided anew: a revisit of the same layout with other titles is the state as
+    recorded, with nothing re-recorded."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    first = phone.screens["first"] = capture("janitorai", "j04_tab1")
+    home = home_from(ex, phone)
+    kept = [c.key for c in home.cands]
+    retitled = [{**e, "text": f"Today: {e['text']}"} if e.get("text") and len(e["text"]) > 20 else e
+                for e in first.elements]
+    phone.screens["reloaded"] = Screen(retitled, first.image, first.package)
+    phone.screen = "reloaded"
+    assert ex.record(ex.observe(), None, None, None) is home and [c.key for c in home.cands] == kept

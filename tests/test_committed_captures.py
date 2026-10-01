@@ -54,7 +54,7 @@ def explore_rules(explore: Path) -> dict:
                 before[1], cands, device, frozenset(t.key for t in tabs),
                 lambda b: ob.scrim(Image.open(before[2]), Image.open(png), b, device)) if before else None)
             kind = ob.box_kind(box, device) if box else "screen"
-        own = ob.own_controls(cands, elements, box, before[1] if before else [], device)
+        own = ob.own_controls(cands, box, before[1] if before else [])
         if kind == "screen" and root is None:
             root, tabs = state.state_id, [t for t in ob.tab_bar(own, device) if not ob.denied(t)]
         out[state.state_id] = {"kind": kind, "box": place(box) if box else None, "controls": [control(c) for c in own]}

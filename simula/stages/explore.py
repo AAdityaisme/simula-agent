@@ -317,9 +317,9 @@ class Explorer:
         wait = next((c for c in ob.controls(elements, self.device) if c.ident == "aerr_wait"), None)
         if wait and not self.anr_waited:
             self.anr_waited = True
-            self.note("anr", "app not responding: tapped Wait once")
-            self.phone.tap(*wait.point)
-            return self.observe()
+            if not self.tap(wait, elements):
+                self.note("anr", "app not responding: tapped Wait once")
+                return self.observe()
         raise NeedRelaunch("the app is not responding")
 
     def resync(self) -> None:
@@ -347,7 +347,8 @@ class Explorer:
 
     def record(self, obs: Obs, came_from: Seen | None, move: Move | None, before: Obs | None) -> Seen:
         for known in self.states:
-            if ob.same_state(known.fp, obs.fp):
+            reloaded = known is self.home and ob.other_controls(known.cands, obs.cands)  # decided below, never stale
+            if ob.same_state(known.fp, obs.fp) and not reloaded:
                 if known is not came_from:
                     self.revisit(known, obs)
                 return known
@@ -356,7 +357,7 @@ class Explorer:
         sid = home.sid if home else f"s{len(self.states) + 1:02d}"
         shutil.copyfile(self.scratch / "now.png", self.out / "states" / f"{sid}.png")
         (self.out / "states" / f"{sid}.elements.json").write_text(json.dumps(obs.reply, indent=1, ensure_ascii=False))
-        cands = ob.own_controls(obs.cands, obs.elements, box, before.cands if before else [], self.device)
+        cands = ob.own_controls(obs.cands, box, before.cands if before else [])
         if home:
             return self.refresh(home, obs, cands)
         tab_move = move is not None and move.cand is not None and move.cand.key in self.tab_keys()
@@ -381,25 +382,35 @@ class Explorer:
         return seen
 
     def homelike(self, home: Seen, obs: Obs) -> bool:
-        """What a relaunch's landing must show to be home: nothing the first launch's checks would block, no wall (an
-        account or money) that home didn't already show in the same place, like a guest home's own "Log in", and the
-        tab bar the first launch recorded, if it recorded one. Any other landing, such as a restored deeper screen, is
-        recorded as its own state and back_to_root goes back from it."""
-        new = [c for c in obs.cands if not any(h.label == c.label and h.kind == c.kind and ob.overlaps(h.rect, c.rect)
-                                               for h in home.cands)]
-        if self.blocked(obs) or ob.walled(new):
+        """What a relaunch's landing must show to be home: home's top chrome (another tab shows its own), nothing the
+        first launch's checks would block, no wall (an account or money) in the list's words that home didn't show in
+        the same place, like a guest home's own "Log in", and the first launch's tab bar, if it had one. Any other
+        landing is recorded as its own state and back_to_root goes back from it."""
+        if ob.hamming(home.fp.top, obs.fp.top) > ob.TOP_BITS or self.blocked(obs):
             return False
-        return all(ob.find(obs.cands, t) for t in self.tabs)
+        return not ob.walled(ob.new_words(home.elements, obs.elements, self.device)) \
+            and all(ob.find(obs.cands, t) for t in self.tabs)
 
     def refresh(self, home: Seen, obs: Obs, cands: list[ob.Candidate]) -> Seen:
-        """A relaunch lands on its home screen by definition: one no recorded state matches is home with its list
-        reloaded, re-recorded from this capture (the saved capture, its controls and their crops). A reload is no
-        evidence of a region that moves on its own."""
-        known = {c.key for c in home.cands}
+        """A landing homelike() takes for home is home with its list reloaded, re-recorded from this capture (its
+        controls and their crops); a reload is no evidence of a region that moves on its own. The tabs, the filter taps,
+        the core action and the moves out of home point at the same controls in it, so each keeps its crop check; a
+        move whose control is gone is dropped. Jev ranks the new controls."""
+        known, moved = {c.key for c in home.cands}, {id(c): ob.find(cands, c) for c in home.cands}
+        self.tabs = [t for t in (moved.get(id(t), t) for t in self.tabs) if t]
+        self.filter_taps = [moved.get(id(t)) or t for t in self.filter_taps]
+        if self.core and self.core.state is home:
+            self.core.controls = [c for c in (moved.get(id(c), c) for c in self.core.controls) if c]
+        for hop, move in list(self.edges.items()):
+            if hop[0] == home.sid and id(move.cand) in moved:
+                if moved[id(move.cand)]:
+                    move.cand = moved[id(move.cand)]
+                else:
+                    del self.edges[hop]
         home.fp, home.fg, home.cands, home.elements = obs.fp, obs.fg, cands, obs.elements
         home.settled, home.settle_s, home.captured_at = obs.settled, obs.settle_s, now()
         home.upsell, home.priced = ob.is_upsell(obs.elements, self.device), ob.priced(obs.elements, self.device)
-        home.visits, home.dynamic = home.visits + 1, []
+        home.visits, home.dynamic, home.order = home.visits + 1, [], None
         self.note("state", f"{home.sid} re-recorded: the relaunch landed on it with other content")
         self.name_icons(home)
         self.log_denied(home, [c for c in cands if c.key not in known])
@@ -495,7 +506,11 @@ class Explorer:
             return s
         outcome = "ok"
         try:
-            self.perform(move, live, s.upsell, core=purpose == "core", toggle_ok=purpose == "filter")
+            refused = self.perform(move, live, s.upsell, core=purpose == "core", toggle_ok=purpose == "filter")
+            if refused:
+                self.log(s, None, move, live, "unknown", f"denied: {refused}", "denied")
+                s.tried.add(move.cand.key)
+                return s
         except McpTimeout as e:
             outcome = "timeout"
             self.hang(s, e)
@@ -563,15 +578,15 @@ class Explorer:
 
     def shows(self, cand: ob.Candidate, live: ob.Candidate, now: Obs) -> bool:
         """Invariant 3: a recorded control is tapped only when the screen shows it as it was recorded, compared with
-        its crop in the capture it was recorded from. A control read off the live screen is what the screen shows,
-        unless its tap point lies under the tab bar."""
+        its crop in the capture it was recorded from; one no state holds has none, and is never shown. A control read
+        off the live screen is what the screen shows, unless its tap point lies under the tab bar."""
         if self.under_tab_bar(cand, live, now):
             return False
         if any(c is cand for c in now.cands):
             return True
         owner = next((st for st in self.states if any(c is cand for c in st.cands)), None)
         if owner is None:
-            return True
+            return False
         then = Image.open(self.out / "states" / f"{owner.sid}.png")
         return ob.looks_same(then, cand.rect, now.image, live.rect, self.device)
 
@@ -596,29 +611,40 @@ class Explorer:
     def safe_tap(self, c: ob.Candidate, why: str) -> bool:
         """A tap outside act() (the replay check, a quiet relaunch): the same deny-list, and only while the app
         itself is in front."""
-        upsell = ob.is_upsell(self.obs.elements, self.device)
+        upsell, toggle_ok = ob.is_upsell(self.obs.elements, self.device), c.key in {t.key for t in self.filter_taps}
         reason = (f"{self.obs.fg} is in front" if self.obs.fg != self.package else
-                  ob.denied(c, upsell=upsell, toggle_ok=c.key in {t.key for t in self.filter_taps}))
+                  ob.denied(c, upsell=upsell, toggle_ok=toggle_ok))
+        reason = reason or self.perform(Move("tap", c), c, upsell, toggle_ok=toggle_ok)
         if reason:
             self.note(why, f"{c.label[:30]!r} not tapped: {reason}", outcome="blocked")
             return False
-        self.perform(Move("tap", c), c, upsell, toggle_ok=True)
         return True
 
     def perform(self, move: Move, live: ob.Candidate | None, upsell: bool = False, core: bool = False,
-                toggle_ok: bool = False) -> None:
-        """The one place a move reaches the device. A tap the deny-list flags is counted here, whoever sent it,
-        so the exhibit's count is measured, not assumed."""
+                toggle_ok: bool = False) -> str:
+        """The one place a move reaches the device; returns why tap() refused it, or "". A tap the deny-list flags is
+        counted here when it still reaches the device, whoever sent it, so the exhibit's count is measured."""
         if move.action == "tap":
+            refused = self.tap(live, self.obs.elements, upsell=upsell, core=core, toggle_ok=toggle_ok)
+            if refused:
+                return refused
             if ob.denied(live, upsell=upsell, core=core, toggle_ok=toggle_ok):
                 self.denied_executed += 1
-            self.phone.tap(*live.point)
         elif move.action == "back":
             self.phone.back()
         elif move.action == "swipe":
             self.phone.swipe(move.direction)
         elif move.action == "type":
             self.phone.type_text(move.text)
+        return ""
+
+    def tap(self, live: ob.Candidate, elements: list[dict], **deny) -> str:
+        """Every tap reaches the device here, unless the deny-list hits what the live list shows at its point
+        (ob.denied_at). Returns why it refused, or "" once tapped."""
+        refused = ob.denied_at(live, elements, self.device, **deny)
+        if not refused:
+            self.phone.tap(*live.point)
+        return refused
 
     def after_tour_move(self, s: Seen, move: Move, to: Seen, summary: str) -> None:
         if move.action == "swipe":
@@ -678,14 +704,11 @@ class Explorer:
     def relaunch(self, first: bool = False, why: str = "") -> None:
         """Terminate, launch, settle, record and dismiss launch dialogs, then re-apply the content filter. After the
         first launch, where it lands is home: the launch screen, or the filtered root once the filter is re-applied.
-        A screen the tour recorded (the fingerprint matches) is a deeper screen the app restored, and back_to_root
-        goes back from there; any other screen is home with its list reloaded, re-recorded (refresh)."""
+        A screen the tour recorded (for home, with the same controls) is a deeper screen the app restored, and
+        back_to_root goes back from there; a landing homelike() takes for home is home reloaded (refresh)."""
         if not first:
             self.count_relaunch(why)
-        self.phone.terminate()
-        self.phone.launch()
-        self.home = None if first else self.launch_root
-        try:
+        with self.launching(None if first else self.launch_root):
             self.wait_for_app(self.home)
             self.current = None
             self.normalize()
@@ -704,9 +727,18 @@ class Explorer:
                 self.back_to_root()
                 self.home = self.root
             self.apply_filter(first)
+        self.segments.append([])
+
+    @contextlib.contextmanager
+    def launching(self, home: Seen | None):
+        """A fresh launch; until the caller has set it up, a landing on home's top chrome is home (self.home)."""
+        self.phone.terminate()
+        self.phone.launch()
+        self.home = home
+        try:
+            yield
         finally:
             self.home = None
-        self.segments.append([])
 
     def count_relaunch(self, why: str) -> None:
         cap = MAX_RELAUNCHES + (0 if self.touring else CORE_RELAUNCHES)
@@ -721,18 +753,17 @@ class Explorer:
     def reopen(self, dialog: Seen) -> bool:
         """A relaunch that stops at a launch dialog instead of dismissing it, to follow its call to action."""
         self.count_relaunch(f"reopen the launch dialog {dialog.sid}")
-        self.phone.terminate()
-        self.phone.launch()
-        self.wait_for_app(dialog)
-        self.current = self.record(self.obs, None, None, None)
+        with self.launching(self.launch_root):
+            self.wait_for_app(dialog)
+            self.current = self.record(self.obs, None, None, None)
         return self.current is dialog
 
     def wait_for_app(self, expect: Seen | None = None) -> Obs:
         """Observes after a launch, waiting up to SPLASH_WAIT_S for a splash to end (a cold start on a busy
-        emulator took over a minute), then up to LAUNCH_WAIT_S for the launch screen seen before. A feed can sit on
-        still loading placeholders for many seconds, so a launch also waits until two looks LAUNCH_QUIET_S apart
-        agree. Until the splash deadline, a dump that times out is only "not yet"; the last good look stands, since
-        nothing has moved on the screen since."""
+        emulator took over a minute), then up to LAUNCH_WAIT_S for the launch screen seen before, or home reloaded. A
+        feed can sit on still loading placeholders for many seconds, so a launch also waits until two looks
+        LAUNCH_QUIET_S apart agree. Until the splash deadline, a dump that times out is only "not yet"; the last good
+        look stands, since nothing has moved on the screen since."""
         splash_deadline = self.clock() + SPLASH_WAIT_S
         obs = self.look(splash_deadline)
         while obs is None or ((not self.launchable(obs) or obs.fg != self.package) and self.clock() < splash_deadline):
@@ -740,7 +771,8 @@ class Explorer:
             obs = self.look(splash_deadline)
         deadline = self.clock() + LAUNCH_WAIT_S
         while obs.fg == self.package and self.clock() < deadline and (not self.launchable(obs) or (
-                expect and not ob.same_state(obs.fp, expect.fp) and not ob.dialog_box(obs.cands, self.device))):
+                expect and not ob.same_state(obs.fp, expect.fp) and not ob.dialog_box(obs.cands, self.device)
+                and not (expect is self.home and self.homelike(expect, obs)))):
             self.sleep(1.5)
             obs = self.look(splash_deadline) or obs
         while not (expect and ob.same_state(obs.fp, expect.fp)) and obs.fg == self.package and self.clock() < deadline:
@@ -1788,9 +1820,8 @@ class Explorer:
 
     def quiet_launch(self) -> None:
         """A relaunch for the replay check: same launch, dialogs, and filter, nothing recorded."""
-        self.phone.terminate()
-        self.phone.launch()
-        self.wait_for_app(self.launch_root)
+        with self.launching(self.launch_root):
+            self.wait_for_app(self.launch_root)
         for _ in range(3):
             if not ob.dialog_box(self.obs.cands, self.device):
                 break

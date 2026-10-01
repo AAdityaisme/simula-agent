@@ -1,7 +1,10 @@
 {
  "aol/20260929-205304-1f19585": {
   "root": "s01",
-  "tabs": [],
+  "tabs": [
+   "Inbox | View | 0,2187 540x150",
+   "Home | TextView | 775,2287 70x35"
+  ],
   "states": {
    "s01": {
     "kind": "screen",
@@ -31,6 +34,7 @@
      "Former DHS chief Kristi Noem files for d | TextView | 53,1914 646x201",
      "iv_articleImage | ImageView | 712,1854 315x315",
      "toast_container | FrameLayout | 0,2022 1080x231",
+     "Inbox | View | 0,2187 540x150",
      "Home | TextView | 775,2287 70x35"
     ]
    },
@@ -43,6 +47,9 @@
     "kind": "modal",
     "box": "0,168 1080x1975",
     "controls": [
+     "Tap here for weather | TextView | 133,496 713x63",
+     " | View | 846,465 126x126",
+     "AD | ComposeView | 0,1508 1080x294",
      "iv_articleImage | ImageView | 712,1828 315x315",
      "Close side bar | ImageView | 21,168 116x116",
      "Accounts | TextView | 158,168 284x116",
@@ -108,6 +115,7 @@
     "box": null,
     "controls": [
      "TEMU | TextView | 335,256 89x42",
+     "Sponsored: learn about this recommendati | View | 267,264 44x39",
      "Ad | TextView | 267,256 44x42",
      " | View | 884,207 126x125",
      "Amber Glenn and Pasha Pashkov on ‘Dancin | TextView | 52,1048 979x113",
@@ -151,13 +159,26 @@
     "kind": "screen",
     "box": null,
     "controls": [
+     "Sidebar button. Double tap or slide two  | ImageView | 29,152 126x126",
+     "toolbar_title_parent | LinearLayout | 155,152 333x126",
+     "Search | ImageButton | 954,157 105x105",
      "Top Stories | View | 53,147 239x126",
      "Entertainment | View | 313,147 284x126",
      "Local | View | 618,147 159x126",
      "Sports | View | 798,147 176x126",
      "Business | View | 995,147 85x126",
+     "Tap here for weather | ViewGroup | 0,283 1080x578",
+     "2h ago | TextView | 53,1084 99x38",
+     "Save this article | ImageView | 194,1082 42x42",
+     "Share this news article | ImageView | 278,1082 42x42",
+     "AD | TextView | 522,1266 35x36",
+     "Former DHS chief Kristi Noem files for d | TextView | 53,1517 646x201",
+     "9h ago | TextView | 53,1720 100x38",
      "Save this article | ImageView | 195,1718 42x42",
      "Share this news article | ImageView | 279,1718 42x42",
+     "iv_articleImage | ImageView | 712,1457 315x315",
+     "GOP Sen. Britt's look as gotcha moment a | TextView | 53,1884 646x201",
+     "iv_articleImage | ImageView | 712,1824 315x315",
      "custom_poster_view_container | ViewGroup | 0,477 1080x608",
      "Entertainment Weekly | TextView | 100,1103 347x43",
      "Amber Glenn sobs after giving partner Pa | TextView | 0,1153 1080x140",
@@ -170,6 +191,7 @@
      "E! | TextView | 100,1709 52x43",
      "Former DHS chief Kristi Noem files for d | TextView | 53,1767 646x201",
      "iv_articleImage | ImageView | 712,1707 315x315",
+     "GOP Sen. Britt's look as gotcha moment a | TextView | 53,2134 646x201",
      "toast_container | FrameLayout | 0,2022 1080x231"
     ]
    },
@@ -177,16 +199,25 @@
     "kind": "screen",
     "box": null,
     "controls": [
+     "Sidebar button. Double tap or slide two  | ImageView | 29,152 126x126",
+     "toolbar_title_parent | LinearLayout | 155,152 333x126",
+     "Search | ImageButton | 954,157 105x105",
      "Top Stories | View | 53,147 239x126",
      "Entertainment | View | 313,147 284x126",
      "Local | View | 618,147 159x126",
      "Sports | View | 798,147 176x126",
      "Business | View | 995,147 85x126",
+     "Tap here for weather | ViewGroup | 0,283 1080x557",
      "2h ago | TextView | 53,1063 99x38",
      "Save this article | ImageView | 194,1061 42x42",
      "Share this news article | ImageView | 278,1061 42x42",
+     "Former DHS chief Kristi Noem files for d | TextView | 53,1496 646x201",
+     "9h ago | TextView | 53,1699 100x38",
      "Save this article | ImageView | 195,1697 42x42",
      "Share this news article | ImageView | 279,1697 42x42",
+     "iv_articleImage | ImageView | 712,1436 315x315",
+     "GOP Sen. Britt's look as gotcha moment a | TextView | 53,1863 646x201",
+     "iv_articleImage | ImageView | 712,1803 315x315",
      "custom_poster_view_container | ViewGroup | 0,477 1080x608",
      "Entertainment Weekly | TextView | 100,1103 347x43",
      "Amber Glenn sobs after giving partner Pa | TextView | 0,1153 1080x140",
@@ -199,6 +230,7 @@
      "E! | TextView | 100,1709 52x43",
      "Former DHS chief Kristi Noem files for d | TextView | 53,1767 646x201",
      "iv_articleImage | ImageView | 712,1707 315x315",
+     "GOP Sen. Britt's look as gotcha moment a | TextView | 53,2134 646x201",
      "toast_container | FrameLayout | 0,2022 1080x231"
     ]
    },
@@ -206,6 +238,7 @@
     "kind": "screen",
     "box": null,
     "controls": [
+     "E! | TextView | 4,317 126x82",
      "Kristi Noem Files for Divorce From Bryon | TextView | 53,355 974x246",
      "Sasha Wayman | TextView | 53,602 255x96",
      "Updated Sep. 29, 2026 1:31 PM PT | TextView | 53,698 481x38",
@@ -246,6 +279,7 @@
     "box": null,
     "controls": [
      "TEMU | TextView | 335,161 89x42",
+     "Sponsored: learn about this recommendati | View | 267,169 44x39",
      "Ad | TextView | 267,161 44x42",
      "More options | View | 920,148 53x53",
      "Originally appeared on | TextView | 52,1297 412x50",
@@ -295,6 +329,7 @@
      "Former DHS chief Kristi Noem files for d | TextView | 53,1919 646x201",
      "iv_articleImage | ImageView | 712,1859 315x315",
      "toast_container | FrameLayout | 0,2022 1080x231",
+     "Inbox | View | 0,2187 540x150",
      "Home | TextView | 775,2287 70x35"
     ]
    },
@@ -305,7 +340,9 @@
      "image | ImageView | 304,738 473x473",
      "There isn't any spending activity yet | TextView | 53,1232 974x65",
      "View transactions based on your inbox he | TextView | 53,1318 974x50",
-     "toast_container | FrameLayout | 0,2022 1080x231"
+     "toast_container | FrameLayout | 0,2022 1080x231",
+     "Inbox | View | 0,2187 540x150",
+     "Home | View | 540,2187 540x150"
     ]
    },
    "s18": {
@@ -486,6 +523,7 @@
      "“I had never been the cause of physical  | TextView | 52,1172 979x320",
      "When they hit the dance floor for show n | TextView | 52,1518 979x192",
      "Derek Hough praised the “ice queen,” poi | TextView | 52,1739 979x257",
+     "Get your daily dose of entertainment new | View | 52,2030 937x113",
      "EW Dispatch newsletter | View | 52,2093 892x113",
      "Back | ImageView | 21,189 84x84",
      "Kristi Noem Files for Divorce From Bryon | TextView | 53,2158 889x126",
@@ -581,6 +619,7 @@
     "box": null,
     "controls": [
      "Yahoo Search | Secure Business It Networ | TextView | 335,162 756x42",
+     "Sponsored: learn about this recommendati | View | 267,170 44x39",
      "Ad | TextView | 267,162 44x42",
      "More options | View | 920,149 53x53",
      "Originally appeared on | TextView | 52,1298 412x50",
@@ -1066,6 +1105,7 @@
      "Key Points | TextView | 52,1676 979x68",
      "Amber Glenn and Pasha Pashkov scored hig | TextView | 101,1781 930x192",
      "“The hardest part of the Foxtrot for me  | TextView | 101,2001 930x192",
+     "season 35 air on Tuesdays at 8 p.m. ET/P | TextView | 101,2230 914x113",
      "Back | ImageView | 21,189 84x84",
      "article_sdk_engagement_bar | ViewGroup | 0,2190 1080x147"
     ]
@@ -1074,6 +1114,7 @@
     "kind": "screen",
     "box": null,
     "controls": [
+     "E! | TextView | 4,317 126x82",
      "Kristi Noem Files for Divorce From Bryon | TextView | 53,355 974x246",
      "Sasha Wayman | TextView | 53,602 255x96",
      "Updated Sep. 29, 2026 1:31 PM PT | TextView | 53,698 481x38",
@@ -1147,6 +1188,7 @@
      "⛓️ Dominant | ViewGroup | 216,443 232x84",
      "👩‍🦰 Female | ViewGroup | 462,443 197x84",
      "📚 Fictional | ViewGroup | 673,443 213x84",
+     "🧑‍🎨 OC | ViewGroup | 900,443 133x84",
      "All | ViewGroup | 50,564 145x75",
      "Limited Only | ViewGroup | 201,564 300x75",
      "All | ViewGroup | 50,689 145x75",
@@ -1223,6 +1265,8 @@
     "controls": [
      " | Button | 148,167 84x84",
      "Hidden Gems | ViewGroup | 6,434 224x75",
+     "Explore All | ViewGroup | 230,434 100x75",
+     "Explore All | TextView | 230,451 176x41",
      "￼Hidden Gems show characters from smalle | TextView | 0,551 233x211",
      " | ViewGroup | 138,795 95x95",
      "Hot Day | ViewGroup | 0,932 211x536",
@@ -1441,10 +1485,22 @@
      " | Button | 954,167 84x84",
      " | EditText | 41,300 854x112",
      " | ViewGroup | 924,300 115x115",
+     "👨 Male | ViewGroup | 41,443 161x84",
+     " | ViewGroup | 944,811 95x95",
+     "Medieval Fantasy World RP | ViewGroup | 63,948 443x536",
+     "Real Life World RP | ViewGroup | 574,948 443x536",
      "@Mayu0910 | ViewGroup | 63,1501 166x34",
+     "Welcome to Medieval Fantasy World RP! A  | ViewGroup | 63,1552 443x360",
+     "Limitless | ViewGroup | 63,2027 158x57",
+     "📚 Fictional | ViewGroup | 233,2027 191x57",
+     "🪢 Scenario | ViewGroup | 63,2166 192x57",
+     "🎲 RPG | ViewGroup | 267,2166 141x57",
      "@Mayu0910 | ViewGroup | 574,1501 166x34",
+     "Have you ever wondered how life would've | ViewGroup | 574,1552 443x438",
      "🪢 Scenario | ViewGroup | 574,2174 192x57",
      "🎲 RPG | ViewGroup | 778,2174 141x57",
+     "👤 AnyPOV | ViewGroup | 574,2244 185x58",
+     "#realife | ViewGroup | 771,2244 142x58",
      " | ViewGroup | 72,2170 167x167",
      " | ViewGroup | 264,2170 167x167",
      " | ViewGroup | 457,2170 167x167",
@@ -1553,6 +1609,7 @@
     "box": "0,240 1080x2041",
     "controls": [
      "Bottom sheet handle | SeekBar | 0,240 1080x64",
+     "☆ Rodrick Heffley!, 1 chat | ViewGroup | 17,304 1046x195",
      "Start new chat | ViewGroup | 43,2169 994x112"
     ]
    },
@@ -1561,11 +1618,17 @@
     "box": "0,240 1080x2041",
     "controls": [
      "Bottom sheet handle | SeekBar | 0,240 1080x64",
+     "Kang Jun-Seo (Idol x Idol), 15 chats | ViewGroup | 17,304 1046x195",
+     "Kang Jun-Seo (Idol x Idol), 01:59, The l | ViewGroup | 17,834 1046x195",
+     "Kang Jun-Seo (Idol x Idol), 01:37, The l | ViewGroup | 17,1029 1046x195",
      "Kang Jun-Seo (Idol x Idol), 01:34, The l | ViewGroup | 17,1224 1046x195",
      "Kang Jun-Seo (Idol x Idol), Mon, The liv | ViewGroup | 17,1419 1046x195",
      "Kang Jun-Seo (Idol x Idol), Mon, The liv | ViewGroup | 17,1614 1046x195",
      "Kang Jun-Seo (Idol x Idol), Mon, The liv | ViewGroup | 17,1808 1046x195",
      "Kang Jun-Seo (Idol x Idol), Mon, The liv | ViewGroup | 17,2003 1046x152",
+     "Kang Jun-Seo (Idol x Idol), Mon, The liv | ViewGroup | 17,2155 1046x43",
+     "Mon | TextView | 964,2155 70x70",
+     "The livestream starts out deceptively ca | TextView | 205,2155 755x125",
      "Start new chat | ViewGroup | 43,2169 994x112"
     ]
    },
@@ -1574,6 +1637,9 @@
     "box": "0,240 1080x2041",
     "controls": [
      "Bottom sheet handle | SeekBar | 0,240 1080x64",
+     "The Former Husband is the New Employer , | ViewGroup | 17,304 1046x195",
+     "The Former Husband is the New Employer , | ViewGroup | 17,834 1046x195",
+     "The Former Husband is the New Employer , | ViewGroup | 17,1029 1046x194",
      "Start new chat | ViewGroup | 43,2169 994x112"
     ]
    }
@@ -2050,13 +2116,17 @@
      "3h ago | TextView | 53,1455 100x38",
      "Save this article | ImageView | 195,1453 42x42",
      "Share this news article | ImageView | 279,1453 42x42",
+     "TEMU in Taboola advertising section · Sp | View | 49,1523 699x289",
+     "Image for Taboola Advertising Unit | View | 742,1523 289x289",
      "E! | TextView | 100,1856 52x43",
+     "Former DHS chief Kristi Noem files for d | TextView | 53,1914 646x201",
      "iv_articleImage | ImageView | 712,1854 315x315",
      "AD | ComposeView | 0,1508 1080x294",
      "E! | TextView | 100,1830 52x43",
      "Former DHS chief Kristi Noem files for d | TextView | 53,1888 646x201",
      "iv_articleImage | ImageView | 712,1828 315x315",
      "toast_container | FrameLayout | 0,2022 1080x231",
+     "Inbox | View | 0,2187 540x150",
      "Home | TextView | 775,2287 70x35"
     ]
    },

@@ -368,35 +368,56 @@ def tab_bar(cands: list[Candidate], device: Device) -> list[Candidate]:
     return tabs if len(tabs) >= 2 and spread >= 0.4 * device.w_px else []
 
 
-def covered(c: Candidate, elements: list[dict], device: Device) -> bool:
-    """A tap at c's point lands elsewhere (invariant 3): on a clickable element there that isn't around all of c (the
-    deepest clickable view takes a tap, even one inside c), or on an element listed after c's (drawn over it) that is
-    neither part of c nor around all of it and shows words, its own or ones it holds: a card, even one whose body is
-    no control, or the tab bar. Words count only after c: the list is in drawing order, and content listed before a
-    floating button lies under it. mobile-mcp reports no clickable, so on a device a wordless overlay, or one an
-    elevation draws over rows listed after it, is unseen; one app lists a wordless empty box over its sheet's main
-    button, which still took the tap."""
-    at = next((n for n, e in enumerate(elements) if e.get("ref") == c.ref), None)
-    if at is None:
-        return False
-    x, y, after = *c.point, elements[at + 1:]
-    over = [e for e in elements if in_content(e, device) and not inside(c.rect, rect(e))
-            and inside(Rect(x=x, y=y, w=0, h=0), rect(e))]
-    return any(e.get("clickable") for e in over) or any(
-        e in after and not inside(rect(e), c.rect)
-        and (words(e) or any(words(o) and inside(rect(o), rect(e)) for o in after)) for e in over)
-
-
-def own_controls(cands: list[Candidate], elements: list[dict], box: Rect | None, behind: list[Candidate],
-                 device: Device) -> list[Candidate]:
+def own_controls(cands: list[Candidate], box: Rect | None, behind: list[Candidate]) -> list[Candidate]:
     """A state's own controls: on a screen all of them; on an overlay in the parent's window, which leaves the
     parent's controls (behind) listed, maybe moved, only the new ones inside its box (a control without words is told
-    by its place too). A control something lies over is none."""
-    keys = {c.key for c in behind} if box else set()
-    named = {(c.tree_label, c.kind) for c in behind if c.tree_label and overlaps(c.rect, box)} if box else set()
-    return [c for c in cands if (box is None or (inside(c.rect, box) and c.key not in keys
-                                                 and (c.tree_label, c.kind) not in named))
-            and not covered(c, elements, device)]
+    by its place too)."""
+    if box is None:
+        return cands
+    keys = {c.key for c in behind}
+    named = {(c.tree_label, c.kind) for c in behind if c.tree_label and overlaps(c.rect, box)}
+    return [c for c in cands if inside(c.rect, box) and c.key not in keys and (c.tree_label, c.kind) not in named]
+
+
+def worded(elements: list[dict], device: Device) -> list[Candidate]:
+    """Every element with words in the content area, each as the list has it: controls() merges a container's texts
+    into one control and drops a control nested in a bigger one, so a button drawn inside a row's box is no control of
+    its own there. What the deny-list reads at a tap point, and what a wall is read from."""
+    return [Candidate(label=words(e), kind=e["type"].split(".")[-1], rect=rect(e), ref=e.get("ref"),
+                      tree_label=words(e), ident=short_id(e.get("identifier")))
+            for e in elements if words(e) and in_content(e, device)]
+
+
+def denied_at(target: Candidate, elements: list[dict], device: Device, **deny) -> str:
+    """Why a tap on target must not run: the deny-list's hit on a worded element of the live list that holds the tap
+    point, or "" for none. The list as it is, not the controls, which merge a container's words and drop a button
+    nested in a bigger one, so a sign-in button a card draws inside a row's box is read. Words listed before the target
+    and not around it are content drawn under it, like a reply under a lifted composer, and don't count. A wordless
+    overlay that draws nothing is unseen: no list the device gives reports clickable (mobile-mcp's, mobilecli's dump),
+    and uiautomator dump is killed on the emulator (measured 2026-10-01)."""
+    x, y = target.point
+    order = {e.get("ref"): n for n, e in enumerate(elements)}
+    at = order.get(target.ref, -1)
+    for c in worded(elements, device):
+        if inside(Rect(x=x, y=y, w=0, h=0), c.rect) and (order[c.ref] >= at or inside(target.rect, c.rect)):
+            reason = denied(c, **deny)
+            if reason:
+                return f"{reason} ({c.label[:40]!r} at the tap point)"
+    return ""
+
+
+def new_words(then: list[dict], now: list[dict], device: Device) -> list[Candidate]:
+    """The worded elements now shows that then didn't show in the same place (same words and class, overlapping)."""
+    shown = worded(then, device)
+    return [c for c in worded(now, device)
+            if not any(h.label == c.label and h.kind == c.kind and overlaps(h.rect, c.rect) for h in shown)]
+
+
+def other_controls(then: list[Candidate], now: list[Candidate]) -> bool:
+    """Whether now lacks a control then has or shows one it doesn't, by find()'s identity: a feed reloaded with the
+    same card shapes and new titles keeps its fingerprint all the same."""
+    then = [c for c in then if c.ref is not None]
+    return any(find(now, c) is None for c in then) or any(find(then, c) is None for c in now)
 
 
 def find(cands: list[Candidate], want: Candidate) -> Candidate | None:

@@ -53,6 +53,7 @@ def test_the_exhibit_counts_denied_taps_that_reached_the_device(tmp_path, monkey
     from tests.fake_device import explorer
     from tests.test_explore_offline import janitor_like
     ex, phone = explorer(tmp_path, monkeypatch, janitor_like)
+    ex.observe()  # the live list a tap is checked against; neither control is in it
     ex.perform(stage.Move("tap", control("Subscribe now")), control("Subscribe now"))
     ex.perform(stage.Move("tap", control("Settings")), control("Settings"))
     assert ex.denied_executed == 1
