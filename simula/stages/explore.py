@@ -63,6 +63,7 @@ WALK_SCROLLS = 30
 WALK_ITEMS = 3
 WALK_SURE = 0.5
 COMPOSER_BAND_PX = 150
+PAGE_CHARS = 400  # new text an item's page holds; the prompt sheets and dialogs in the committed runs hold 115-340
 LIMIT_STOPS = ("counter", "input disabled", "paywall", "limit")
 SIGN_UP_STEPS = 6
 IDENTITY = {"email": "SIMULA_TEST_EMAIL", "password": "SIMULA_TEST_PASSWORD", "name": "SIMULA_TEST_NAME"}
@@ -83,7 +84,7 @@ NO_CORE = "none of these is what users come to the app to do"
 CORE_MESSAGES = [
     "Hi! What can you help me with?",
     "Tell me a short story about a lighthouse.",
-    "What's the best phone under $300?",
+    "What's a good phone for a student on a budget?",
     "Give me three tips for staying focused while studying.",
     "What's a good name for a friendly golden retriever?",
     "Where can I buy comfortable running shoes on sale?",
@@ -153,6 +154,7 @@ class Seen:
     priced: bool = False
     via: str = ""
     box: Rect | None = None
+    under: set[str] | None = None  # an overlay's: the texts the screen it opened over showed right before
     unscroll_to: str | None = None
     launch: bool = False
     tried: set = field(default_factory=set)
@@ -369,6 +371,7 @@ class Explorer:
                     self.revisit(known, obs)
                 return known
         kind, box = self.kind_of(obs, before)
+        under = ob.texts(before.elements, self.device) if box and before else None
         home = self.home if kind == "screen" and self.home and self.homelike(self.home, obs) else None
         sid = home.sid if home else f"s{len(self.states) + 1:02d}"
         if home:
@@ -393,8 +396,8 @@ class Explorer:
                     settled=obs.settled,
                     settle_s=obs.settle_s,
                     captured_at=now(), upsell=ob.is_upsell(obs.elements, self.device),
-                    priced=ob.priced(obs.elements, self.device),
-                    via=move.cand.label if move and move.cand else "", box=box,
+                    priced=ob.priced(obs.elements, self.device, box, cands, under),
+                    via=move.cand.label if move and move.cand else "", box=box, under=under,
                     unscroll_to=came_from.sid if came_from and move.action == "swipe" else None, painted=obs.painted)
         self.states.append(seen)
         self.by_id[sid] = seen
@@ -562,7 +565,13 @@ class Explorer:
         if to is s and not summary:
             summary = ob.change_summary(before.elements, obs.elements, self.device)
         canonical = ob.find(s.cands, move.cand) if move.cand else None
-        self.stop_kind, self.stop_evidence = self.hit(s, to, before, move) if loop else ("", "")
+        try:
+            stop = self.keep_stop(self.hit(s, to, before, move), before) if loop else ("", "")
+        except DEVICE_ERRORS as e:
+            self.log(s, to, move, canonical or live, self.transition(s, to, move),
+                     f"{summary}; reading the screen again failed: {type(e).__name__}"[:160], "error", loop)
+            raise
+        self.stop_kind, self.stop_evidence = stop
         self.log(s, to, move, canonical or live, self.transition(s, to, move), summary, outcome, loop,
                  self.stop_kind or None)
         if purpose == "tour":
@@ -1602,7 +1611,8 @@ class Explorer:
     def paywall_pass(self) -> None:
         """A paywall counts once a screen that isn't the launch teaser shows a price. Until then, follows an entry
         control (upgrade, plans, premium, plus, the teaser's own call to action) at most twice, reads what opens to
-        the end, and goes back. Confirm words stay denied. With no price anywhere, the best upsell seen stands."""
+        the end, and goes back. Confirm words stay denied. With no price anywhere, the best upsell seen stands, read from
+        its wall_texts, so never a conversation."""
         self.touring = False
         entries = sorted(((s, c) for s in self.states if s.kind in ("screen", "modal", "sheet")
                           for c in [self.entry(s)] if c), key=lambda sc: (sc[0].launch, sc[0].depth))
@@ -1614,9 +1624,9 @@ class Explorer:
             if s.launch:
                 self.relaunch(why="the launch screen again, with the content filter, after the launch dialog")
         priced = self.priced_paywall()
-        best = priced or max((s for s in self.states if s.upsell and not s.launch and s.kind not in AWAY),
-                             key=lambda s: sum(bool(ob.PAYWALL.search(t)) for t in ob.texts(s.elements, self.device)),
-                             default=None)
+        shown = {s.sid: sum(bool(ob.PAYWALL.search(t)) for t in self.wall_texts(s))
+                 for s in self.states if s.upsell and not s.launch and s.kind not in AWAY}
+        best = priced or max((self.by_id[sid] for sid, n in shown.items() if n), key=lambda s: shown[s.sid], default=None)
         self.paywall = best.sid if best else None
         if not priced:
             self.note("paywall", f"no price seen ({len(entries)} entry controls)")
@@ -1635,6 +1645,11 @@ class Explorer:
         elif self.current.upsell and not self.current.launch:
             self.read_upsell()
             self.act(Move("back", why="out of the upsell"), purpose="nav")
+
+    def wall_texts(self, s: Seen) -> set[str]:
+        """s's paywall texts, as record() read them: an overlay's own are the words the screen it opened over didn't
+        show right before."""
+        return ob.wall_texts(s.elements, self.device, s.box, s.cands, s.under)
 
     def priced_paywall(self) -> Seen | None:
         return next((s for s in self.states if s.priced and not s.launch and s.kind in ("screen", "modal", "sheet")),
@@ -1931,16 +1946,19 @@ class Explorer:
 
     def covering(self, before: Obs) -> list[ob.Candidate]:
         """A sheet in the chat's own window leaves the composer in the tree: it shows as a second text box in the
-        lower half, or as new controls lying over the text box (bubbles and hints never do, nor a send control
-        relabeled in place while a reply is written)."""
+        lower half, or as new words lying over the text box. Words the screen showed before the move are the
+        conversation, moved (a reply the keyboard left under a lifted composer), wherever the tree lists them: an app
+        may list a sheet before the screen it covers. Bubbles and hints never count, nor a send control relabeled in
+        place while a reply is written."""
         box, middle = self.live_box(), (self.device.content_top_px + self.device.content_bottom_px) / 2
         if box is None:
             return []
         old, spots = {(c.label, c.kind) for c in before.cands}, [c.rect for c in before.cands]
+        shown = ob.texts(before.elements, self.device)
         return [c for c in self.obs.cands if c is not box and (
             (c.kind == "EditText" and ob.center(c.rect)[1] > middle)
-            or ((c.label, c.kind) not in old and c.rect not in spots and ob.overlaps(c.rect, box.rect)
-                and not ob.inside(c.rect, box.rect)))]
+            or ((c.label, c.kind) not in old and c.tree_label not in shown and c.rect not in spots
+                and ob.overlaps(c.rect, box.rect) and not ob.inside(c.rect, box.rect)))]
 
     def within(self, s: Seen) -> list[dict]:
         return [e for e in s.elements if s.box is None or ob.inside(ob.rect(e), s.box)]
@@ -2061,36 +2079,83 @@ class Explorer:
         if self.core.kind == "chat":
             return self.chat_stop(here, before, move)
         if here is not s and here.kind in ("modal", "sheet"):
-            wall = ob.walled(ob.controls(self.within(here), self.device))
-            named = self.named(self.within(here)) or {"account": "sign-in wall",
-                                                      "money": "paywall" if here.priced else "upsell"}.get(wall, "")
-            # a sheet the action opened shows its result (an item's page) unless it names a price, a limit, an account
-            # or money
-            if named or here.kind == "modal":
-                return named or "modal opened", here.sid
+            own = self.within(here)
+            wall = ob.walled(ob.controls(own, self.device))
+            named = self.named(own) or {"account": "sign-in wall",
+                                        "money": "paywall" if here.priced else "upsell"}.get(wall, "")
+            # a sheet the action opened is its result only when it holds an item's page of new text, asks nothing (an
+            # upgrade word, a way to decline) and names no price, limit, account or money; when unsure, it stops
+            page = sum(map(len, ob.texts(own, self.device) - ob.texts(before.elements, self.device))) >= PAGE_CHARS
+            if named or here.kind == "modal" or ob.asks(here.cands) or not page:
+                return named or f"{here.kind} opened", here.sid
         if here is not s and here.upsell:
             return ("paywall" if here.priced else "upsell screen"), here.sid
         moved = ob.counters(before.elements, self.obs.elements, self.device, [(0, ob.TOP_CHROME_BOTTOM_PX)])
         return ("counter", moved[0]) if moved else ("", "")
 
     def chat_stop(self, here: Seen, before: Obs, move: Move) -> tuple[str, str]:
-        """In a chat only the window can stop the loop: a dialog over it, the text box disabled or gone, send still
-        disabled once a message is typed, or a counter moving beside the composer. The conversation's own text,
-        prices and timestamps included, never does."""
-        if here.kind in ("modal", "sheet"):
+        """In a chat only the window can stop the loop: a dialog over it, a sheet's new words over the text box, the
+        text box disabled or gone, send still disabled once a message is typed, or a counter moving beside the
+        composer. The conversation's own text, prices and timestamps included, never does. A composer that reads as a
+        stop is read again until it settles, then the whole screen is judged as it settled; one that isn't the chat
+        any more is a stop."""
+        first = self.obs
+        self.settle_input(move)
+        kind, own = here.kind, self.within(here)
+        if self.obs is not first:
+            kind, box = self.kind_of(self.obs, before)
+            own = [e for e in self.obs.elements if box is None or ob.inside(ob.rect(e), box)]
+        if kind in ("modal", "sheet"):
             window = ob.dialog_box(self.obs.cands, self.device)
-            return self.named(self.within(here) if window else self.sheet_words(before)) or "dialog opened", here.sid
+            return self.named(own if window else self.sheet_words(before)) or "dialog opened", here.sid
         if self.covering(before):
             return self.sheet_words(before) or "sheet opened", here.sid
-        box = next((c for c in self.obs.cands if c.kind == "EditText"), None)
-        if box is None:
-            return self.sheet_words(before) or "input gone", here.sid
-        live = self.live_composer()
-        if not box.enabled or (move.action == "type" and (live is None or not live[1].enabled)):
-            return "input disabled", here.sid
+        stop = self.input_stop(move) or ("input gone" if self.obs is not first and not self.arrived(self.core.state)
+                                         else "")
+        if stop:
+            return (self.sheet_words(before) if stop == "input gone" else "") or stop, here.sid
+        box = self.live_box()
         band = (int(box.rect.y) - COMPOSER_BAND_PX, int(box.rect.y + box.rect.h) + COMPOSER_BAND_PX)
         moved = ob.counters(before.elements, self.obs.elements, self.device, [band])
         return ("counter", moved[0]) if moved else ("", "")
+
+    def input_stop(self, move: Move) -> str:
+        """What the chat's composer on the screen as it is now says: "input gone" with no live text box (the app in
+        front, no dialog over it, a box in the lower half), "input disabled" with the box disabled or, once a message
+        is typed, no enabled send."""
+        box = self.live_box()
+        if box is None:
+            return "input gone"
+        live = self.live_composer()
+        typed = move.action == "type" and (live is None or not live[1].enabled)
+        return "input disabled" if not box.enabled or typed else ""
+
+    def settle_input(self, move: Move) -> None:
+        """When the composer reads as a stop, the screen is read again SETTLE_GAP_S later until two reads of the
+        composer agree (up to SETTLE_ASK_S): a composer the keyboard is still moving, or send enabled a moment after
+        the text lands, stops nothing."""
+        stop, deadline = self.input_stop(move), self.clock() + SETTLE_ASK_S
+        while stop:
+            self.sleep(SETTLE_GAP_S)
+            self.observe()
+            self.escape_billing()
+            again = self.input_stop(move)
+            if again == stop or self.clock() >= deadline:
+                return
+            stop = again
+
+    def keep_stop(self, stop: tuple[str, str], before: Obs) -> tuple[str, str]:
+        """A core-loop stop, kept so it can be explained: the capture and element list it was read from, and the
+        element list before the move, under stops/ and named for the action line."""
+        if stop[0]:
+            name, folder = f"act{self.step + 1:03d}", self.out / "stops"
+            folder.mkdir(exist_ok=True)
+            self.obs.image.save(folder / f"{name}.png")
+            for kept, obs in ((f"{name}.elements.json", self.obs), (f"{name}.before.elements.json", before)):
+                (folder / kept).write_text(json.dumps(obs.reply, indent=1, ensure_ascii=False))
+            self.note("stop", f"{stop[0]} ({stop[1]}): explore/stops/{name}.png, {name}.elements.json and the list "
+                              f"before the move, {name}.before.elements.json")
+        return stop
 
     # ---------- the replay check ----------
 
@@ -2409,7 +2474,7 @@ def ended(ex: Explorer, s: Seen) -> str:
 def paywall_line(ex: Explorer) -> str:
     if not ex.paywall:
         return "no"
-    prices = [t for t in ob.texts(ex.by_id[ex.paywall].elements, ex.device) if ob.PRICE.search(t)]
+    prices = [t for t in ex.wall_texts(ex.by_id[ex.paywall]) if ob.PRICE.search(t)]
     return f"yes, {ex.paywall}, prices: {'; '.join(repr(p) for p in prices[:6])}" if prices \
         else f"yes, {ex.paywall}, no price seen"
 
