@@ -211,8 +211,11 @@ def test_a_paid_perk_given_for_good_or_to_payers_is_a_lost_sale_not_a_sample():
     more = candidate(model, for_users="paying", grants_id=paid,
                      reward={"kind": "inference", "unit": "replies", "amount": 5, "duration": "today"},
                      cost_inputs={**NO_COST, "inference_count": 5, "tokens_in": 8000, "tokens_out": 300})
+    kept = candidate(model, grants_id=paid, reward={"kind": "inference", "unit": "replies", "amount": 1,
+                                                     "duration": "for good"},
+                     cost_inputs={**NO_COST, "inference_count": 1, "tokens_in": 2000, "tokens_out": 300})
     payers, payers_model = stored("rg-janitorai-c03-rev-payers")
-    for c, m in ((forever, model), (more, model), (payers, payers_model)):
+    for c, m in ((forever, model), (more, model), (kept, model), (payers, payers_model)):
         econ = economics.annotate(c, m)
         assert econ.lost_sale and "sample" not in econ.assumption_line, c.title
     assert economics.annotate(more, model).lost_sale.startswith("more of the paid benefit")

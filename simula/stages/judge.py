@@ -234,13 +234,18 @@ def earlier(cid: str):
         yield cid
 
 
+def drawn_unasked(d: Decision) -> bool:
+    """A survivor flows can draw without a person: any but a split on c3, which waits on the Needs your call page."""
+    return d.final in SURVIVORS and PAYERS not in d.judgment_splits
+
+
 def superseded(revised: list[Candidate], decisions: dict[str, Decision],
                verdicts: dict[str, dict[str, Verdict]]) -> set[str]:
     """Earlier versions a revision stands in for: one that survived, or a reject the fallback could pick, replaces its
     original and every revision before it. A revision that made the idea worse, or that waits on a person, leaves the
     versions before it in play."""
     def stands_in(r: Candidate, d: Decision) -> bool:
-        return d.final in SURVIVORS or (d.final == "reject" and could_fall_back(r, d, [*verdicts[r.id].values()]))
+        return drawn_unasked(d) or (d.final == "reject" and could_fall_back(r, d, [*verdicts[r.id].values()]))
     return {e for r in revised if stands_in(r, decisions[r.id]) for e in earlier(r.id)}
 
 
@@ -249,7 +254,7 @@ def fallback_pick(decisions: list[Decision], candidates: dict[str, Candidate],
     """When nothing survives, the best reject the fallback could carry (could_fall_back): fewest checks failed, then
     rank. None when there is no such candidate. A split on c3 doesn't count as surviving: flows never draws it unasked,
     so it would leave the deck empty."""
-    if any(d.final in SURVIVORS and PAYERS not in d.judgment_splits for d in decisions):
+    if any(drawn_unasked(d) for d in decisions):
         return None
     eligible = [d for d in decisions if d.final == "reject" and d.candidate_id not in superseded
                 and could_fall_back(candidates[d.candidate_id], d, [*verdicts.get(d.candidate_id, {}).values()])]
@@ -466,7 +471,7 @@ def judge_run(ctx: Ctx, work: Path, model: ProductModel, candidates: list[Candid
     write_json_atomic(work / "revisions.json", CandidatesFile(candidates=revised).model_dump_json(indent=1))
     write_json_atomic(work / "decisions.json", DecisionsFile(decisions=final).model_dump_json(indent=1))
     write_queue(ctx, work, final, everyone)
-    if not any(d.final in SURVIVORS for d in final):
+    if not any(drawn_unasked(d) for d in final):
         (work / "no-opportunity.md").write_text(no_opportunity(final, everyone, verdicts))
     swap_in(work, ctx.run_dir / "judge")
     write_exhibit(ctx.run_dir, 6, "judge", exhibit(final, everyone, verdicts, judges, ctx.profile, mode))
@@ -506,12 +511,15 @@ def no_opportunity(decisions: list[Decision], candidates: dict[str, Candidate],
     gate = [d for d in decisions if d.gate_fails]
     premise = [d for d in decisions if not d.gate_fails and barred([*verdicts.get(d.candidate_id, {}).values()])]
     waiting = [d for d in decisions if d.final == "needs_human"]
+    payers = [d for d in decisions if d.final in SURVIVORS]
     lines = ["# No opportunity", "", "No candidate reached Goal 4, and none was manufactured.", "",
              f"- {len(decisions)} candidates judged or dropped.",
              f"- {len(gate)} failed a safety gate.",
              f"- {len(premise)} passed the gates but rest on something the product model doesn't show or aim "
              f"the offer at paying users ({', '.join(NO_FALLBACK)}), so the CONDITIONAL fallback can't carry them.",
-             f"- {len(waiting)} wait on a person (`human-queue.md`).", ""]
+             f"- {len(waiting)} wait on a person (`human-queue.md`).",
+             f"- {len(payers)} split the judges on {PAYERS}; each waits on the Needs your call page, where a person "
+             "can approve it.", ""]
     lines += [f"- {d.candidate_id} · {candidates[d.candidate_id].title}: {d.checks_passed}/{d.checks_total}"
               + why(d, candidates[d.candidate_id]) for d in decisions]
     return "\n".join(lines) + "\n"

@@ -76,12 +76,12 @@ def favorable(kind: str, field: str) -> float:
 
 
 def bounded(reward: Reward) -> bool | None:
-    """Whether the reward runs out, as its fields say: an amount it spends, or a duration with an end. None when the
-    duration says neither."""
-    if reward.kind in USED_UP and reward.amount > 0:
-        return True
+    """Whether the reward runs out, as its fields say: not when its duration says it never ends; else an amount it
+    spends, or a duration with an end. None when they say neither."""
     if NO_END.search(reward.duration):
         return False
+    if reward.kind in USED_UP and reward.amount > 0:
+        return True
     return True if AN_END.search(reward.duration) else None
 
 

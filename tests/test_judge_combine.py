@@ -98,6 +98,37 @@ def test_when_the_only_survivor_is_a_split_on_c3_the_fallback_carries_the_clean_
                                {"c01": split, "c02": clean}, v, set()) is None
 
 
+def test_a_clean_reject_revised_into_a_split_on_c3_stays_in_play_as_the_fallback():
+    model = golden("janitorai")
+    original, rev = idea(model, "c01"), idea(model, "c01-rev")
+    v = {"c01": dict(zip(validate.JUDGES, two(["c5_moment"], ["c5_moment"]))),
+         "c01-rev": dict(zip(validate.JUDGES, two(["c3_spares_payers"])))}
+    d = {c.id: judge.decide(c, [*v[c.id].values()], TWO, "annotate") for c in (original, rev)}
+    assert (d["c01"].final, d["c01-rev"].final) == ("reject", "conditional")
+    assert judge.superseded([rev], d, v) == set()
+    assert judge.fallback_pick([*d.values()], {"c01": original, "c01-rev": rev}, v, set()) == "c01"
+
+
+def test_an_unpromoted_split_on_c3_as_the_only_survivor_gets_a_no_opportunity_note(tmp_path, monkeypatch):
+    app = "janitorai"
+    cands = live(app, {"rationale": "PAYERS"}, {"title": "Second idea", "rationale": "GATEFAIL"})
+    call, _ = fake_llm({"GATEFAIL": ["g_policy"]})
+    doubter = config.roles("dev")["judge_1"]["model"]
+
+    def one_judge_doubts_payers(**kw):
+        proposal = kw["messages"][0]["content"][0]["text"].split("## Proposal", 1)[-1]
+        if kw["schema"] is Verdict and kw["model"] == doubter and "PAYERS" in proposal:
+            return verdict(["c3_spares_payers"]), None
+        return call(**kw)
+    monkeypatch.setattr(llm, "call", one_judge_doubts_payers)
+    run_dir = seed(tmp_path, app, cands)
+    judge.run(ctx_for(app, run_dir))
+    d = decisions_of(run_dir)[cands[0].id]
+    assert (d.final, d.judgment_splits) == ("conditional", ["c3_spares_payers"])
+    text = (run_dir / "judge" / "no-opportunity.md").read_text()
+    assert "- 1 split the judges on c3_spares_payers; each waits on the Needs your call page" in text
+
+
 def test_the_exhibit_prints_an_uncounted_cost_in_gate_mode_as_last_not_as_its_floor():
     model = golden("janitorai")
     unknown = idea(model, "c01", econ="CONDITIONAL", rank=propose.UNCOUNTED_SCORE + 1)
