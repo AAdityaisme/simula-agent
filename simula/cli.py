@@ -36,11 +36,14 @@ def preflight() -> str | None:
 
 def stage_params(stage: str, ctx: Ctx) -> dict:
     roles = config.roles(ctx.profile)
-    return {"app": ctx.app, "profile": ctx.profile, "roles": {r: roles[r] for r in ROLES[stage]},
-            "economics_mode": config.profiles()["economics_mode"] if stage in ("propose", "judge", "flows") else None,
-            "no_send": ctx.no_send if stage == "explore" else None,
-            "budget": config.budget(ctx.budget) if stage == "explore" else None,
-            "allow_account_create": ctx.allow_account_create if stage == "explore" else None}
+    params = {"app": ctx.app, "profile": ctx.profile, "roles": {r: roles[r] for r in ROLES[stage]},
+              "economics_mode": config.profiles()["economics_mode"] if stage in ("propose", "judge", "flows") else None,
+              "no_send": ctx.no_send if stage == "explore" else None,
+              "budget": config.budget(ctx.budget) if stage == "explore" else None,
+              "allow_account_create": ctx.allow_account_create if stage == "explore" else None}
+    if stage == "judge":  # only here, so adding it left every other stage's marker valid
+        params["judge_revision_cap"] = config.judge_revision_cap()
+    return params
 
 
 def stage_inputs(stage: str, ctx: Ctx) -> list[Path]:

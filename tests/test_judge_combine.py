@@ -1,13 +1,16 @@
 """The judge's decision table, with one judge and with two fake judges; both economics modes; the CONDITIONAL
 fallback; no-opportunity; checks_passed/total; and the whole stage with a fake model on every golden."""
 
+import hashlib
+
 import pytest
 
-from simula import llm, runlog, validate
-from simula.contracts import GATES, JUDGMENT, CandidatesFile, Decision, DecisionsFile, LensOutput, Term
+from simula import config, llm, runlog, validate
+from simula.contracts import (GATES, JUDGMENT, BenefitNames, CandidatesFile, Decision, DecisionsFile, LensOutput, Term,
+                              Verdict)
 from simula.stages import flows, judge, propose
 from tests.conftest import APPS
-from tests.judge_helpers import ctx_for, fake_llm, idea, live, seed, verdict
+from tests.judge_helpers import ctx_for, fake_llm, idea, live, seed, verdict, with_cap
 from tests.propose_fixtures import golden
 
 ONE, TWO = 1, 2
@@ -310,12 +313,14 @@ def test_every_candidate_gets_a_decision_with_scores_and_reasons(app, tmp_path, 
     assert all(c.id in exhibit for c in cands) and "g_policy fails here" in exhibit
 
 
-def test_a_fixable_reject_is_revised_once_and_judged_fresh(tmp_path, monkeypatch):
+@pytest.mark.parametrize("cap", [1, 2])
+def test_a_fixable_reject_is_revised_once_and_judged_fresh(cap, tmp_path, monkeypatch):
     app = "janitorai"
     cands = live(app, {"rationale": "WEAK"})
     fixed = cands[0].model_copy(update={"rationale": "Better now.", "title": "Idea 1, better"})
     run_dir = seed(tmp_path, app, cands)
     call, calls = fake_llm({"WEAK": ["c7_specific"]}, revision=fixed)
+    with_cap(monkeypatch, cap)
     monkeypatch.setattr(llm, "call", call)
     judge.run(ctx_for(app, run_dir))
     decisions = {d.candidate_id: d for d in
@@ -328,6 +333,42 @@ def test_a_fixable_reject_is_revised_once_and_judged_fresh(tmp_path, monkeypatch
     revisions = CandidatesFile.model_validate_json((run_dir / "judge" / "revisions.json").read_text()).candidates
     assert [r.id for r in revisions] == [revised] and revisions[0].economics and revisions[0].title.startswith("Product change: ")
     assert sum(c["schema"] is LensOutput for c in calls) == 1
+
+
+# sha256 of decisions.json, a NUL byte, then revisions.json, as judge.run wrote them at e56402e, the commit before the
+# revision loop. The test passes there too.
+CAP_ONE = {
+    ("mixed", "janitorai"): "bd8f917ac409ca733a61a7e9c071c33c706156f26877d04b01f7213950e9f95c",
+    ("closest", "aol"): "d4236f513aaff11f30e6bbb7b657461a62e9e17f16c65b53b7248e3b14ece051",
+}
+
+
+def cap_one_scenario(name, app):
+    """mixed: an accept, a revision dropped as the accept's duplicate, and a revision accepted. closest: two rejects
+    whose revisions fail a gate, so the fallback draws an original."""
+    if name == "mixed":
+        cands = live(app, {}, {"title": "Second idea", "rationale": "WEAK"},
+                     {"title": "Third idea", "rationale": "SLOW"})
+        fake = fake_llm({"WEAK": ["c7_specific"], "SLOW": ["c5_moment"]},
+                        revision=cands[1].model_copy(update={"rationale": "Better."}),
+                        benefits={cands[0].id: ("a badge", None), f"{cands[1].id}-rev": ("A badge", None)})
+        return cands, fake
+    cands = live(app, {"rationale": "SLOW"}, {"title": "Second idea", "rationale": "GATEFAIL"})
+    fake = fake_llm({"SLOW": ["c5_moment"], "GATEFAIL": ["g_policy"], "CHATTY": ["g_brand_safety"]},
+                    revision=cands[0].model_copy(update={"rationale": "CHATTY"}))
+    return cands, fake
+
+
+@pytest.mark.parametrize("name, app", list(CAP_ONE))
+def test_at_cap_one_the_stage_writes_byte_for_byte_what_it_wrote_before_the_loop(name, app, tmp_path, monkeypatch):
+    cands, (call, _) = cap_one_scenario(name, app)
+    with_cap(monkeypatch, 1)
+    monkeypatch.setattr(llm, "call", call)
+    run_dir = seed(tmp_path, app, cands)
+    judge.run(ctx_for(app, run_dir))
+    out = run_dir / "judge"
+    written = (out / "decisions.json").read_bytes() + b"\0" + (out / "revisions.json").read_bytes()
+    assert hashlib.sha256(written).hexdigest() == CAP_ONE[name, app]
 
 
 def test_a_revision_that_returns_no_idea_says_so_and_the_reject_stands(tmp_path, monkeypatch):
@@ -502,7 +543,7 @@ def test_recheck_never_lets_a_flagged_idea_evict_its_clean_twin(tmp_path, monkey
     def recheck(revisions, standing=()):
         decisions = {c.id: judge.decide(c, [verdict()], ONE, "annotate") for c in standing}
         out = judge.recheck(ctx_for("janitorai", tmp_path), revisions, list(standing), decisions, m,
-                            llm.Budget("judge", 1.0))
+                            llm.Budget("judge", 1.0), 2)
         return [(r.id, r.dropped_reason) for r in out]
 
     standing = idea(m, "c01", flags=[FLAG])
@@ -537,3 +578,102 @@ def test_a_revision_waiting_on_a_person_leaves_its_original_in_play():
     assert judge.superseded([revision], {"c01-rev": waiting}, {"c01-rev": {"judge_1": verdict()}}) == set()
     accepted = judge.decide(revision, [verdict()], ONE, "annotate")
     assert judge.superseded([revision], {"c01-rev": accepted}, {"c01-rev": {"judge_1": verdict()}}) == {"c01"}
+
+
+# ---------- a second revision (judge_revision_cap = 2) ----------
+
+def revise_steps(calls):
+    return [c["step"] for c in calls if c["schema"] is LensOutput]
+
+
+def run_rounds(tmp_path, monkeypatch, app, cands, rules, revisions, cap=2, benefits=None):
+    call, calls = fake_llm(rules, revision=revisions, benefits=benefits)
+    with_cap(monkeypatch, cap)
+    monkeypatch.setattr(llm, "call", call)
+    run_dir = seed(tmp_path, app, cands)
+    judge.run(ctx_for(app, run_dir))
+    return run_dir, calls
+
+
+@pytest.mark.parametrize("cap", [1, 2])
+def test_only_cap_two_revises_a_revision_and_only_the_latest_reject(cap, tmp_path, monkeypatch):
+    app = "janitorai"
+    cands = live(app, {"rationale": "WEAK"})
+    first, second = f"{cands[0].id}-rev", f"{cands[0].id}-rev-rev"
+    run_dir, calls = run_rounds(tmp_path, monkeypatch, app, cands, {"WEAK": ["c7_specific"]},
+                                {cands[0].id: cands[0].model_copy(update={"rationale": "STILL WEAK"}),
+                                 first: cands[0].model_copy(update={"rationale": "Better."})}, cap)
+    decisions = decisions_of(run_dir)
+    revisions = CandidatesFile.model_validate_json((run_dir / "judge" / "revisions.json").read_text()).candidates
+    exhibit = (run_dir / "exhibits" / "06-judge.md").read_text()
+    if cap == 1:
+        assert revise_steps(calls) == [f"revise:{cands[0].id}"] and second not in decisions
+        assert [r.id for r in revisions] == [first] and "1 revision(s) of 1 idea(s)" in exhibit
+        return
+    assert revise_steps(calls) == [f"revise:{cands[0].id}", f"revise:{first}"]
+    assert (decisions[second].final, decisions[second].revision_of) == ("accept", first)
+    assert [p.split("/")[-1] for p in decisions[second].verdict_paths] == [f"{second}_judge_1_r3.json",
+                                                                            f"{second}_judge_2_r3.json"]
+    assert [r.id for r in revisions] == [first, second] and "2 revision(s) of 1 idea(s)" in exhibit
+    assert (decisions[cands[0].id].final, decisions[first].final) == ("reject", "reject")
+
+
+def test_a_second_revision_giving_a_standing_revisions_benefit_is_dropped_as_its_duplicate(tmp_path, monkeypatch):
+    app = "luzia"
+    slow, weak = live(app, {"rationale": "SLOW"}, {"title": "Second idea", "rationale": "WEAK"})
+    rules = {"SLOW": ["c5_moment"], "WEAK": ["c7_specific"]}
+    revisions = {slow.id: slow.model_copy(update={"rationale": "Better."}),
+                 weak.id: weak.model_copy(update={"rationale": "STILL WEAK"}),
+                 f"{weak.id}-rev": weak.model_copy(update={"rationale": "Better too."})}
+    benefits = {f"{slow.id}-rev": ("a badge", None), f"{weak.id}-rev-rev": ("A badge", None)}
+    run_dir, calls = run_rounds(tmp_path, monkeypatch, app, [slow, weak], rules, revisions, benefits=benefits)
+    revised = {r.id: r for r in
+               CandidatesFile.model_validate_json((run_dir / "judge" / "revisions.json").read_text()).candidates}
+    assert revised[f"{weak.id}-rev-rev"].dropped_reason == f"duplicate of {slow.id}-rev: same benefit (a badge)"
+    assert decisions_of(run_dir)[f"{slow.id}-rev"].final == "accept"
+    assert [c["step"] for c in calls if c["schema"] is BenefitNames] == ["judge:revisions", "judge:revisions:r3"]
+
+
+def test_a_second_revision_that_made_the_idea_worse_leaves_the_first_as_the_fallback(tmp_path, monkeypatch):
+    app = "aol"
+    cands = live(app, {"rationale": "SLOW"})
+    first = f"{cands[0].id}-rev"
+    run_dir, _ = run_rounds(tmp_path, monkeypatch, app, cands, {"SLOW": ["c5_moment"], "CHATTY": ["g_brand_safety"]},
+                            {cands[0].id: cands[0].model_copy(update={"rationale": "STILL SLOW"}),
+                             first: cands[0].model_copy(update={"rationale": "CHATTY"})})
+    decisions = decisions_of(run_dir)
+    assert decisions[f"{first}-rev"].gate_fails == ["g_brand_safety"]
+    assert [d for d in decisions if decisions[d].final == "conditional"] == [first]
+
+
+def test_a_usable_second_revision_stands_in_for_every_earlier_version(tmp_path, monkeypatch):
+    """The original passes more checks than the second revision, but the revision replaces it: the first revision,
+    which failed a gate, doesn't put the original back in play."""
+    app = "janitorai"
+    cands = live(app, {"rationale": "SLOW"})
+    first = f"{cands[0].id}-rev"
+    rules = {"SLOW": ["c5_moment"], "WEAK": ["c7_specific"], "CHATTY": ["g_brand_safety"]}
+    run_dir, _ = run_rounds(tmp_path, monkeypatch, app, cands, rules,
+                            {cands[0].id: cands[0].model_copy(update={"rationale": "CHATTY"}),
+                             first: cands[0].model_copy(update={"rationale": "SLOW and WEAK"})})
+    decisions = decisions_of(run_dir)
+    assert decisions[cands[0].id].checks_passed > decisions[f"{first}-rev"].checks_passed
+    assert [d for d in decisions if decisions[d].final == "conditional"] == [f"{first}-rev"]
+
+
+def test_a_gate_fail_with_a_lost_judge_call_is_rejected_but_never_revised(tmp_path, monkeypatch):
+    app = "aol"
+    cands = live(app, {"rationale": "GATEFAIL"})
+    call, calls = fake_llm({"GATEFAIL": ["g_policy"]}, revision=cands[0].model_copy(update={"rationale": "Better."}))
+    lost = config.roles("dev")["judge_2"]["model"]
+
+    def judge_2_lost(**kw):
+        if kw["schema"] is Verdict and kw["model"] == lost:
+            raise llm.LLMFailure("error", "Connection error.")
+        return call(**kw)
+    monkeypatch.setattr(llm, "call", judge_2_lost)
+    run_dir = seed(tmp_path, app, cands)
+    judge.run(ctx_for(app, run_dir))
+    d = decisions_of(run_dir)[cands[0].id]
+    assert (d.final, d.gate_fails, len(d.verdict_paths)) == ("reject", ["g_policy"], 1)
+    assert not revise_steps(calls)
