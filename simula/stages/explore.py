@@ -404,6 +404,7 @@ class Explorer:
         home.upsell, home.priced = ob.is_upsell(obs.elements, self.device), ob.priced(obs.elements, self.device)
         home.visits, home.dynamic = home.visits + 1, []
         self.note("state", f"{home.sid} re-recorded: the relaunch landed on it with other content")
+        home.icon_labels, home.vision = [], []
         self.name_icons(home)
         self.log_denied(home, [c for c in cands if c.key not in known])
         return home
@@ -1818,7 +1819,8 @@ class Explorer:
         return png_half(image)
 
     def name_icons(self, s: Seen) -> None:
-        """The Sonnet icon pass: names boxes with no words and adds visible controls the tree doesn't list."""
+        """The Sonnet icon pass: names boxes with no words and adds the visible controls and pictures the tree doesn't
+        list, up to 8 of each."""
         unnamed = [n for n, c in enumerate(s.cands, start=1) if not c.label]
         png = self.boxed_png(s, s.cands, [str(n) for n in range(1, len(s.cands) + 1)])
         text = (f"Name these boxes: {', '.join(map(str, unnamed)) or 'none'}.\n"
@@ -1833,26 +1835,35 @@ class Explorer:
                 c = s.cands[item.box_id - 1]
                 c.label = item.name
                 s.icon_labels.append(IconLabel(mcp_ref=c.ref, name=item.name))
-        # Controls first, so a control drawn on a picture isn't dropped as inside the picture's box.
-        for item in sorted(result.unlisted[:8], key=lambda item: item.kind == "picture"):
-            self.add_vision(s, item)
+        for kind in ("control", "picture"):
+            for item in [item for item in result.unlisted if item.kind == kind][:8]:
+                self.add_vision(s, item)
 
     def add_vision(self, s: Seen, item: Unlisted) -> None:
         """Keeps an item the tree doesn't list, its box clamped to the content area, when its center is on the
-        content area and inside no box already found. A tap on it lands on its box's center."""
+        content area and in no box found before it: a control's in no box, a picture's in no listed box and no other
+        picture, so a play button on a video keeps both. Only a control is a tap candidate, tapped at its box's
+        center; a picture is only cropped. A modal's or sheet's pictures are those on its box: one behind its scrim
+        is the parent's, cropped from the parent's own capture, where no dialog lies over it."""
         d = self.device
         x0, x1 = sorted((item.left / ICON_SCALE, item.right / ICON_SCALE))
         y0, y1 = sorted((item.top / ICON_SCALE + d.content_top_px, item.bottom / ICON_SCALE + d.content_top_px))
         x, y = (x0 + x1) / 2, (y0 + y1) / 2
-        if not (0 <= x < d.w_px and d.content_top_px <= y < d.content_bottom_px):
+        left, top, right, bottom = 0.0, float(d.content_top_px), float(d.w_px), float(d.content_bottom_px)
+        if item.kind == "picture" and s.box:
+            b = s.box
+            left, top, right, bottom = max(left, b.x), max(top, b.y), min(right, b.x + b.w), min(bottom, b.y + b.h)
+        if not (left <= x < right and top <= y < bottom):
             return
-        if any(ob.inside(Rect(x=x, y=y, w=0, h=0), c.rect) for c in s.cands):
+        held = [c.rect for c in s.cands] if item.kind == "control" else \
+            [c.rect for c in s.cands if c.kind != "vision"] + [v.rect_px for v in s.vision if v.kind == "picture"]
+        if any(ob.inside(Rect(x=x, y=y, w=0, h=0), r) for r in held):
             return
-        x0, y0 = max(0.0, x0), max(float(d.content_top_px), y0)
-        box = Rect(x=round(x0), y=round(y0), w=round(min(float(d.w_px), x1) - x0),
-                   h=round(min(float(d.content_bottom_px), y1) - y0))
+        x0, y0 = max(left, x0), max(top, y0)
+        box = Rect(x=round(x0), y=round(y0), w=round(min(right, x1) - x0), h=round(min(bottom, y1) - y0))
         s.vision.append(VisionElement(name=item.name, rect_px=box, kind=item.kind))
-        s.cands.append(ob.Candidate(label=item.name, kind="vision", rect=box, ref=None, tree_label=""))
+        if item.kind == "control":
+            s.cands.append(ob.Candidate(label=item.name, kind="vision", rect=box, ref=None, tree_label=""))
 
     def hard_screen(self, s: Seen, opts: list[ob.Candidate], goal: str) -> Move | None:
         """Sonnet picks one move when Jev is unsure, has failed, or taps keep changing nothing."""

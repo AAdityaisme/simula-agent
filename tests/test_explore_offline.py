@@ -11,7 +11,8 @@ import pytest
 from PIL import Image, ImageDraw
 
 from simula import decide, llm, runlog
-from simula.contracts import ActionLine, ExploreFile, IconPass, Rect, StateFile, Unlisted, VisionElement
+from simula.contracts import (ActionLine, ExploreFile, IconLabel, IconName, IconPass, Rect, StateFile, Unlisted,
+                              VisionElement)
 from simula.device import observe as ob
 from simula.device.mcp import parse_elements
 from simula.stages import explore as stage
@@ -151,31 +152,107 @@ def test_jev_and_sonnet_go_through_the_stage_budget(run):
     assert ex.budget.spent > 0
 
 
-def test_the_icon_pass_keeps_each_unlisted_things_box_and_kind(tmp_path, monkeypatch):
-    """Image px are half device px, from the content area's top. A box is clamped to the content area; a thing whose
-    center is off it or inside a listed box is dropped; a control drawn on a picture is kept, whichever comes first."""
-    button = {"ref": "@go", "type": "android.widget.Button", "text": "Go",
-              "coordinates": {"x": 42, "y": 1850, "width": 300, "height": 100}}
+def icon_pass_screen(tmp_path, monkeypatch):
+    """An explorer and the screen it recorded: a header "Back" button (so the screen is no dialog), a listed "Go"
+    button and a listed icon with no words."""
+    listed = [{"ref": "@back", "type": "android.widget.Button", "text": "Back",
+               "coordinates": {"x": 42, "y": 150, "width": 200, "height": 100}},
+              {"ref": "@go", "type": "android.widget.Button", "text": "Go",
+               "coordinates": {"x": 42, "y": 1850, "width": 300, "height": 100}},
+              {"ref": "@icon", "type": "android.widget.ImageButton",
+               "coordinates": {"x": 900, "y": 1850, "width": 126, "height": 126}}]
 
-    def one_button(clock):
-        return FakePhone(screens={"home": Screen([button], Image.new("RGB", (1080, 2400), (240, 240, 240)), PACKAGE)},
+    def phone(clock):
+        return FakePhone(screens={"home": Screen(listed, Image.new("RGB", (1080, 2400), (240, 240, 240)), PACKAGE)},
                          start="home", taps={}, clock=clock)
-    ex, _ = new_explorer(tmp_path, monkeypatch, one_button)
-    s = ex.record(ex.observe(), None, None, None)
-    top = ex.device.content_top_px
+    ex, _ = new_explorer(tmp_path, monkeypatch, phone)
+    return ex, ex.record(ex.observe(), None, None, None)
 
-    def unlisted(x0, y0, x1, y1, kind, name):
-        return Unlisted(left=x0 // 2, top=(y0 - top) // 2, right=x1 // 2, bottom=(y1 - top) // 2, kind=kind, name=name)
-    things = [unlisted(100, 300, 900, 800, "picture", "photo"), unlisted(800, 320, 880, 400, "control", "like"),
-              unlisted(-40, 36, 400, 256, "picture", "banner"), unlisted(100, 1860, 200, 1940, "control", "in go"),
-              unlisted(100, 2340, 200, 2400, "control", "under the content")]
+
+def unlisted(ex, x0, y0, x1, y1, kind, name):
+    """An icon-pass item from device px: the pass sees the content area at half size."""
+    top = ex.device.content_top_px
+    return Unlisted(left=x0 // 2, top=(y0 - top) // 2, right=x1 // 2, bottom=(y1 - top) // 2, kind=kind, name=name)
+
+
+def test_the_icon_pass_keeps_each_unlisted_things_box_and_kind(tmp_path, monkeypatch):
+    """A box is clamped to the content area; a thing whose center is off it or inside a listed box is dropped. A
+    control on a picture keeps both, even one at its center, and a picture inside another picture is the same one."""
+    ex, s = icon_pass_screen(tmp_path, monkeypatch)
+    top = ex.device.content_top_px
+    things = [unlisted(ex, 100, 300, 900, 800, "picture", "photo"), unlisted(ex, 800, 320, 880, 400, "control", "like"),
+              unlisted(ex, 440, 490, 560, 610, "control", "play"), unlisted(ex, 300, 400, 500, 600, "picture", "face"),
+              unlisted(ex, -40, 36, 400, 256, "picture", "banner"), unlisted(ex, 60, 1860, 320, 1940, "picture", "logo"),
+              unlisted(ex, 100, 1860, 200, 1940, "control", "in go"),
+              unlisted(ex, 100, 2340, 200, 2400, "control", "under the content")]
     monkeypatch.setattr(ex, "ask", lambda *a: IconPass(names=[], unlisted=things))
     ex.name_icons(s)
     assert s.vision == [VisionElement(name="like", rect_px=Rect(x=800, y=320, w=80, h=80), kind="control"),
+                        VisionElement(name="play", rect_px=Rect(x=440, y=490, w=120, h=120), kind="control"),
                         VisionElement(name="photo", rect_px=Rect(x=100, y=300, w=800, h=500), kind="picture"),
                         VisionElement(name="banner", rect_px=Rect(x=0, y=top, w=400, h=256 - top), kind="picture")]
     assert [(c.label, c.rect, c.point) for c in s.cands if c.kind == "vision"] == [
-        (v.name, v.rect_px, ob.center(v.rect_px)) for v in s.vision]
+        (v.name, v.rect_px, ob.center(v.rect_px)) for v in s.vision[:2]]
+
+
+def test_a_dialogs_pictures_are_those_on_its_box(tmp_path, monkeypatch):
+    """A picture behind the scrim would be cropped dimmed, with the dialog's corner and words over it: it is the
+    parent's. One on the dialog is clamped to the dialog's box. A control behind the scrim is kept as before."""
+    ex, s = icon_pass_screen(tmp_path, monkeypatch)
+    s.kind, s.box = "modal", Rect(x=200, y=900, w=680, h=700)
+    things = [unlisted(ex, 100, 300, 900, 800, "picture", "feed photo"),
+              unlisted(ex, 190, 890, 890, 1010, "picture", "dialog header art"),
+              unlisted(ex, 800, 320, 880, 400, "control", "search")]
+    monkeypatch.setattr(ex, "ask", lambda *a: IconPass(names=[], unlisted=things))
+    ex.name_icons(s)
+    assert s.vision == [VisionElement(name="search", rect_px=Rect(x=800, y=320, w=80, h=80), kind="control"),
+                        VisionElement(name="dialog header art", rect_px=Rect(x=200, y=900, w=680, h=110),
+                                      kind="picture")]
+
+
+def test_controls_and_pictures_each_keep_eight_slots(tmp_path, monkeypatch):
+    """A screen full of pictures never pushes out the controls the tour needs, whichever the model lists first."""
+    ex, s = icon_pass_screen(tmp_path, monkeypatch)
+    pictures = [unlisted(ex, 120 * n, 300, 120 * n + 100, 400, "picture", f"p{n}") for n in range(9)]
+    controls = [unlisted(ex, 120 * n, 600, 120 * n + 100, 700, "control", f"c{n}") for n in range(9)]
+    monkeypatch.setattr(ex, "ask", lambda *a: IconPass(names=[], unlisted=pictures + controls))
+    ex.name_icons(s)
+    assert [v.name for v in s.vision] == [f"c{n}" for n in range(8)] + [f"p{n}" for n in range(8)]
+
+
+def test_a_picture_is_cropped_but_never_a_tap_option(tmp_path, monkeypatch):
+    """The red team's repro on PR #32: pictures the deny-list lets through ("ad banner", a long caption) were tour
+    options, and five moves tapped all four. Now none is a candidate, so no tap path sees one."""
+    ex, s = icon_pass_screen(tmp_path, monkeypatch)
+    names = ["ad banner", "profile avatar", "hero illustration", "Kelly Osbourne and Sid Wilson photo"]
+    things = [unlisted(ex, *box, "picture", name) for box, name in zip(
+        [(100, 300, 900, 800), (100, 900, 300, 1100), (400, 900, 1000, 1400), (100, 1450, 1000, 1800)], names)]
+    monkeypatch.setattr(ex, "ask", lambda *a: IconPass(names=[], unlisted=things))
+    ex.name_icons(s)
+    assert [(v.name, v.kind) for v in s.vision] == [(name, "picture") for name in names]
+    assert all(c.ref for c in s.cands) and all(c.ref for c in ex.options(s))
+    picked = []
+    for _ in range(5):
+        move = ex.next_move(s)
+        if move and move.cand:
+            picked.append(move.cand.label)
+            s.tried.add(move.cand.key)
+            s.taps += 1
+    assert picked and not set(picked) & set(names), picked
+
+
+def test_a_re_recorded_home_keeps_only_the_icon_pass_of_its_new_capture(tmp_path, monkeypatch):
+    ex, s = icon_pass_screen(tmp_path, monkeypatch)
+    old = [unlisted(ex, 100, 300, 900, 800, "picture", "old photo"), unlisted(ex, 800, 900, 880, 980, "control", "old")]
+    monkeypatch.setattr(ex, "ask", lambda *a: IconPass(names=[], unlisted=old))
+    ex.name_icons(s)
+    assert [v.name for v in s.vision] == ["old", "old photo"] and s.icon_labels
+    new = [unlisted(ex, 100, 1000, 900, 1500, "picture", "new photo")]
+    monkeypatch.setattr(ex, "ask", lambda *a: IconPass(names=[IconName(box_id=3, name="new name")], unlisted=new))
+    obs = ex.observe()
+    ex.refresh(s, obs, obs.cands)
+    assert [(v.name, v.kind) for v in s.vision] == [("new photo", "picture")]
+    assert s.icon_labels == [IconLabel(mcp_ref="@icon", name="new name")]
 
 
 def test_core_loop_sends_and_measures_the_reply(run):
