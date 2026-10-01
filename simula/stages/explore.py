@@ -283,6 +283,7 @@ class Explorer:
         self.settles: list[tuple[float, str]] = []
         self.landing: Landing | None = None
         self.replay_fingerprint = (0, 0)
+        self.home: Seen | None = None  # while a relaunch is set up: the screen it lands on, maybe reloaded
         (out / "states").mkdir(parents=True, exist_ok=True)
         self.scratch = out / ".scratch"
         self.scratch.mkdir(exist_ok=True)
@@ -348,10 +349,20 @@ class Explorer:
                     self.revisit(known, obs)
                 return known
         kind, box = self.kind_of(obs, before)
-        sid = f"s{len(self.states) + 1:02d}"
+        home = self.home if kind == "screen" and self.home and self.homelike(self.home, obs) else None
+        sid = home.sid if home else f"s{len(self.states) + 1:02d}"
         shutil.copyfile(self.scratch / "now.png", self.out / "states" / f"{sid}.png")
         (self.out / "states" / f"{sid}.elements.json").write_text(json.dumps(obs.reply, indent=1, ensure_ascii=False))
-        cands = [c for c in obs.cands if box is None or ob.inside(c.rect, box)]
+        # an overlay in the parent's window leaves the parent's controls listed behind it, maybe moved: only the new
+        # ones are its own (a control without words is told by its place too); a control something lies over is none
+        keys = {c.key for c in before.cands} if box and before else set()
+        named = {(c.tree_label, c.kind) for c in before.cands if c.tree_label and ob.overlaps(c.rect, box)} \
+            if box and before else set()
+        cands = [c for c in obs.cands if (box is None or (ob.inside(c.rect, box) and c.key not in keys
+                                                          and (c.tree_label, c.kind) not in named))
+                 and not ob.covered(c, obs.elements, self.device)]
+        if home:
+            return self.refresh(home, obs, cands)
         tab_move = move is not None and move.cand is not None and move.cand.key in self.tab_keys()
         seen = Seen(sid=sid, kind=kind, parent=came_from.sid if came_from and kind != "screen" else None,
                     fp=obs.fp, fg=obs.fg, cands=cands, elements=obs.elements,
@@ -372,6 +383,31 @@ class Explorer:
             self.name_icons(seen)
             self.log_denied(seen)
         return seen
+
+    def homelike(self, home: Seen, obs: Obs) -> bool:
+        """What a relaunch's landing must show to be home: nothing the first launch's checks would block, no wall (an
+        account or money) that home didn't already show in the same place, like a guest home's own "Log in", and the
+        tab bar the first launch recorded, if it recorded one. Any other landing, such as a restored deeper screen, is
+        recorded as its own state and back_to_root goes back from it."""
+        new = [c for c in obs.cands if not any(h.label == c.label and h.kind == c.kind and ob.overlaps(h.rect, c.rect)
+                                               for h in home.cands)]
+        if self.blocked(obs) or ob.walled(new):
+            return False
+        return all(ob.find(obs.cands, t) for t in self.tabs)
+
+    def refresh(self, home: Seen, obs: Obs, cands: list[ob.Candidate]) -> Seen:
+        """A relaunch lands on its home screen by definition: one no recorded state matches is home with its list
+        reloaded, re-recorded from this capture (the saved capture, its controls and their crops). A reload is no
+        evidence of a region that moves on its own."""
+        known = {c.key for c in home.cands}
+        home.fp, home.fg, home.cands, home.elements = obs.fp, obs.fg, cands, obs.elements
+        home.settled, home.settle_s, home.captured_at = obs.settled, obs.settle_s, now()
+        home.upsell, home.priced = ob.is_upsell(obs.elements, self.device), ob.priced(obs.elements, self.device)
+        home.visits, home.dynamic = home.visits + 1, []
+        self.note("state", f"{home.sid} re-recorded: the relaunch landed on it with other content")
+        self.name_icons(home)
+        self.log_denied(home, [c for c in cands if c.key not in known])
+        return home
 
     def kind_of(self, obs: Obs, before: Obs | None) -> tuple[str, Rect | None]:
         if obs.fg != self.package:
@@ -394,8 +430,8 @@ class Explorer:
             if not any(ob.inside(b, d) for d in s.dynamic):
                 s.dynamic.append(b)
 
-    def log_denied(self, s: Seen) -> None:
-        for c in s.cands:
+    def log_denied(self, s: Seen, cands: list[ob.Candidate] | None = None) -> None:
+        for c in s.cands if cands is None else cands:
             reason = ob.denied(c, upsell=s.upsell)
             if reason and c.key not in self.tab_keys():
                 self.log(s, None, Move("tap", c, why=f"denied: {reason}"), c, "unknown", f"denied: {reason}", "denied")
@@ -515,6 +551,13 @@ class Explorer:
             return expect
         return self.record(obs, s, move, before)
 
+    def surface(self) -> list[ob.Candidate]:
+        """The live controls of what is in front: on a sheet or modal only its own, re-found, never one behind it."""
+        s = self.current
+        if s.box is None:
+            return self.obs.cands
+        return [live for c in s.cands for live in [ob.find(self.obs.cands, c)] if live]
+
     def shows(self, cand: ob.Candidate, live: ob.Candidate, now: Obs) -> bool:
         """Invariant 3: a recorded control is tapped only when the screen shows it as it was recorded, compared with
         its crop in the capture it was recorded from. A control read off the live screen is what the screen shows,
@@ -630,28 +673,36 @@ class Explorer:
     # ---------- launching ----------
 
     def relaunch(self, first: bool = False, why: str = "") -> None:
-        """Terminate, launch, settle, record and dismiss launch dialogs, then re-apply the content filter."""
+        """Terminate, launch, settle, record and dismiss launch dialogs, then re-apply the content filter. After the
+        first launch, where it lands is home: the launch screen, or the filtered root once the filter is re-applied.
+        A screen the tour recorded (the fingerprint matches) is a deeper screen the app restored, and back_to_root
+        goes back from there; any other screen is home with its list reloaded, re-recorded (refresh)."""
         if not first:
             self.count_relaunch(why)
         self.phone.terminate()
         self.phone.launch()
-        self.wait_for_app(None if first else self.launch_root)
-        self.current = None
-        self.normalize()
-        home = self.record(self.obs, None, None, None)
-        self.current = home
-        if first:
-            self.root = self.launch_root = home
-            home.depth, home.back_to = 0, None
-            reason = self.blocked(self.obs)
-            if reason:
-                home.kind, home.blocked_reason = "blocked", reason
-                self.human("the app can't be explored", reason)
-                raise Stop(f"blocked root: {reason}")
-            self.tabs = [t for t in ob.tab_bar(home.cands, self.device) if not ob.denied(t)]
-        else:
-            self.back_to_root()
-        self.apply_filter(first)
+        self.home = None if first else self.launch_root
+        try:
+            self.wait_for_app(self.home)
+            self.current = None
+            self.normalize()
+            home = self.record(self.obs, None, None, None)
+            self.current = home
+            if first:
+                self.root = self.launch_root = home
+                home.depth, home.back_to = 0, None
+                reason = self.blocked(self.obs)
+                if reason:
+                    home.kind, home.blocked_reason = "blocked", reason
+                    self.human("the app can't be explored", reason)
+                    raise Stop(f"blocked root: {reason}")
+                self.tabs = [t for t in ob.tab_bar(home.cands, self.device) if not ob.denied(t)]
+            else:
+                self.back_to_root()
+                self.home = self.root
+            self.apply_filter(first)
+        finally:
+            self.home = None
         self.segments.append([])
 
     def count_relaunch(self, why: str) -> None:
@@ -1298,32 +1349,48 @@ class Explorer:
         finds is one more option for Jev, never a replacement for Jev's answer: a text box inside an item may be a
         comment box or a message to another person. One item's page can lack the action the others have, so up to
         WALK_ITEMS items are tried."""
-        for n, item in enumerate(feed.controls[:WALK_ITEMS]):
+        for n in range(WALK_ITEMS):
             if n and self.current.kind == "screen" and self.current is not feed.state:
                 self.act(Move("back", why="core loop: back to the list for the next item"), purpose="nav")
-            found = self.walk_into(feed, item)
+            found = self.walk_into(feed, n)
             if found:
                 return found
         return None
 
-    def walk_into(self, feed: CoreAction, item: ob.Candidate) -> CoreAction | None:
-        """Invariant 4: on the item's page, a conversation (text box + send) or a play/generate button ends the walk
-        at once. Otherwise the model says whether the control that starts the core action is on screen; the walk taps
-        it (at most WALK_STEPS times) or scrolls on, until the page stops moving or WALK_SCROLLS."""
+    def rows(self, feed: CoreAction) -> list[ob.Candidate]:
+        """The list's rows as its state holds them now: the core action's rows it still holds, or, once a relaunch
+        re-recorded home without them, the rows it holds instead. Only the state's own candidates, so every tap is
+        crop-checked against its capture (invariant 3); none left ends the walk or the feed pass."""
+        held = {c.key: c for c in feed.state.cands}
+        return [held[c.key] for c in feed.controls if c.key in held] or ob.feed_items(feed.state.cands, self.device,
+                                                                                     self.tab_keys())
+
+    def walk_into(self, feed: CoreAction, n: int) -> CoreAction | None:
+        """Invariant 4: on the n-th item's page, a conversation (text box + send) or a play/generate button ends the
+        walk at once. Otherwise the model says whether the control that starts the core action is on screen; the walk
+        taps it (at most WALK_STEPS times) or scrolls on, until the page stops moving or WALK_SCROLLS. An item that
+        opens a sheet or modal is walked the same way, on that surface's own controls."""
         if not self.goto(feed.state):
             return None
+        items = self.rows(feed)
+        if n >= len(items):
+            if not items:
+                self.note("walk", f"no recorded rows left on {feed.state.sid}: the walk ends")
+            return None
+        item = items[n]
         self.act(Move("tap", item, why="core loop: look inside an item"), purpose="nav")
         if self.current is feed.state:
             return None
         tapped, scrolls, still = set(), 0, 0
-        while self.current.kind == "screen" and self.obs is not None:
+        while self.current.kind in ("screen", "modal", "sheet") and self.obs is not None:
             here = self.current
-            chat = self.live_composer()
+            # the chat loop finds its text box on the whole screen, so a box on an overlay could be one behind it
+            chat = self.live_composer() if here.kind == "screen" else None
             if chat:
                 return CoreAction("chat", here, list(chat), f"open an item and send messages in its conversation "
                                                             f"({self.chat_title(here)!r}; text box + send inside "
                                                             f"the item, {here.sid})")
-            action = self.input_action(self.obs.cands, here.upsell)
+            action = self.input_action(self.surface(), here.upsell)
             if action:
                 return CoreAction("action", here, [action], f"open an item and tap {action.label[:40]!r} inside it "
                                                             f"again and again ({here.sid})")
@@ -1350,7 +1417,7 @@ class Explorer:
         (invariant 3); anything less keeps the walk going."""
         before, here = self.obs, self.current
         row = self.filter_row(before.cands)
-        cands = [c for c in before.cands if c.key not in tapped and c.key not in self.tab_keys() and c.key not in row
+        cands = [c for c in self.surface() if c.key not in tapped and c.key not in self.tab_keys() and c.key not in row
                  and not ob.denied(c, upsell=here.upsell)]
         if not cands:
             return None
@@ -1402,6 +1469,10 @@ class Explorer:
                 if n > 1 and not self.at_core(n):
                     self.core_results.append(f"pass {n}: could not get back to {self.core.state.sid}")
                     return
+                if self.core.kind == "feed" and not self.rows(self.core):
+                    self.note("core", f"no recorded rows left on {self.core.state.sid}: the feed pass ends")
+                    self.core_results.append(f"pass {n}: no recorded rows left on {self.core.state.sid}")
+                    return
                 result, seen, hit = self.core_once(n)
             except DEVICE_ERRORS as e:
                 self.core_results.append(f"pass {n}: {type(e).__name__}: {e}"[:200])
@@ -1446,7 +1517,8 @@ class Explorer:
                 self.act(Move("tap", send, why="core loop: send"), purpose="core", loop=n,
                          watch=lambda: self.watch(before | {message}, "reply", idle))
             return self.last_summary, self.last_seen, self.stop_text()
-        control = core.controls[(n - 1) % len(core.controls)]
+        controls = self.rows(core) if core.kind == "feed" else core.controls
+        control = controls[(n - 1) % len(controls)]
         verb = "load" if core.kind == "feed" else "result"
         self.note_dynamic(core.state, self.obs.image)  # an ad that moved since the state was saved isn't a result
         self.act(Move("tap", control, why=f"core loop: {core.kind}"), purpose="core", loop=n,
@@ -1606,7 +1678,13 @@ class Explorer:
         if self.core.kind == "chat":
             return self.chat_stop(here, before, move)
         if here is not s and here.kind in ("modal", "sheet"):
-            return self.named(self.within(here)) or f"{here.kind} opened", here.sid
+            wall = ob.walled(ob.controls(self.within(here), self.device))
+            named = self.named(self.within(here)) or {"account": "sign-in wall",
+                                                      "money": "paywall" if here.priced else "upsell"}.get(wall, "")
+            # a sheet the action opened shows its result (an item's page) unless it names a price, a limit, an account
+            # or money
+            if named or here.kind == "modal":
+                return named or "modal opened", here.sid
         if here is not s and here.upsell:
             return ("paywall" if here.priced else "upsell screen"), here.sid
         moved = ob.counters(before.elements, self.obs.elements, self.device, [(0, ob.TOP_CHROME_BOTTOM_PX)])

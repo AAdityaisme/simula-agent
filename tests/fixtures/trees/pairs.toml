@@ -13,6 +13,7 @@ captures = [
   "luzia/luzia-settings", "luzia/luzia-settings-scrolled", "luzia/luzia-pet-intro",
   "aol/aol-home", "aol/aol-home-repeat", "aol/aol-home-scrolled", "aol/aol-article", "aol/aol-article-external",
   "aol/aol-tab-entertainment", "aol/aol-tab-local", "aol/aol-tab-sports",
+  "janitorai/j11_home_relaunched", "janitorai/j12_home_relaunched_again", "janitorai/jr5",
 ]
 
 same = [
@@ -36,3 +37,7 @@ same = [
   ["aol/aol-b", "aol/aol-home"],
   ["aol/aol-b", "aol/aol-home-repeat"],
 ]
+
+# 2026-09-30: j11/j12 are JanitorAI's home after two relaunches of the deep run (its s13, s15), a feed that reloaded
+# other characters: the fingerprint keeps them apart from j04 and from each other, and the explorer knows them as
+# home because a relaunch lands there. jr5 (All + Trending) is a hard negative for janitorai-limited (Limited Only).

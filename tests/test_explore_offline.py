@@ -412,7 +412,9 @@ def test_a_sheet_over_the_tab_bar_is_closed_with_back_not_a_relaunch(tmp_path, m
     assert any("control covered on the live screen" in line.note for line in trace)
 
 
-def test_a_tall_sheet_is_recorded_over_its_parent_with_its_box(tmp_path, monkeypatch):
+def tall_sheet(tmp_path, monkeypatch, moved: str = ""):
+    """A list row's tall sheet over its parent, whose controls stay listed behind it, recorded from the parent. The
+    parent control whose words start with moved sat 3 cells lower in the parent's capture (a list still loading)."""
     def screen(name: str) -> Screen:
         fix = Path(__file__).parent / "fixtures" / "invariants"
         image = Image.new("RGB", (1080, 2400), (30, 30, 30))
@@ -423,12 +425,273 @@ def test_a_tall_sheet_is_recorded_over_its_parent_with_its_box(tmp_path, monkeyp
     phone.screen = "parent"
     parent = ex.current = ex.record(ex.observe(), None, None, None)
     before = ex.obs
+    for c in before.cands:
+        if moved and c.tree_label.startswith(moved):
+            c.rect = c.rect.model_copy(update={"y": c.rect.y + 63})
     phone.screen = "sheet"
-    sheet = ex.record(ex.observe(), parent, stage.Move("tap", before.cands[0]), before)
+    sheet = ex.current = ex.record(ex.observe(), parent, stage.Move("tap", before.cands[0]), before)
+    return ex, parent, sheet, before
+
+
+def test_a_tall_sheet_is_recorded_over_its_parent_with_its_box(tmp_path, monkeypatch):
+    ex, parent, sheet, _ = tall_sheet(tmp_path, monkeypatch)
     assert (sheet.kind, sheet.parent) == ("sheet", parent.sid) and sheet.box
     ex.write(None)
     saved = {s.sid: StateFile.model_validate_json((ex.out / "states" / f"{s.sid}.json").read_text()) for s in ex.states}
     assert saved[sheet.sid].box == sheet.box and saved[parent.sid].box is None
+
+
+def scrolled_feed(tmp_path, monkeypatch):
+    """A feed (j04) and the view a swipe brought (j11): the same frame around other rows."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    phone.screens.update(first=capture("janitorai", "j04_tab1"), other=capture("janitorai", "j11_home_relaunched"))
+    phone.screen = "first"
+    feed = ex.current = ex.record(ex.observe(), None, None, None)
+    before = ex.obs
+    phone.screen = "other"
+    scrolled = ex.current = ex.record(ex.observe(), feed, stage.Move("swipe"), before)
+    return ex, phone, feed, scrolled
+
+
+def test_a_list_with_other_rows_after_a_swipe_is_a_scrolled_view(tmp_path, monkeypatch):
+    ex, _, feed, scrolled = scrolled_feed(tmp_path, monkeypatch)
+    assert scrolled is not feed and scrolled.unscroll_to == feed.sid
+    assert ex.record(ex.observe(), None, None, None) is scrolled
+
+
+def test_a_relaunch_that_lands_on_home_with_its_list_reloaded_re_records_home(tmp_path, monkeypatch):
+    """The committed run's s01 and its relaunched home s13 (j04, j11): home again, with j11's rows and capture, and
+    the reloaded list is no region that moves on its own."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    phone.screens.update(first=capture("janitorai", "j04_tab1"), other=capture("janitorai", "j11_home_relaunched"))
+    phone.screen = "first"
+    home = ex.current = ex.record(ex.observe(), None, None, None)
+    home.dynamic = [stage.Rect(x=0, y=900, w=1080, h=300)]  # an ad the tour saw move, gone with the old capture
+    phone.screen, ex.home = "other", home
+    obs = ex.observe()
+    assert ex.record(obs, None, None, None) is home and len(ex.states) == 1
+    assert home.fp == obs.fp and {c.key for c in home.cands} == {c.key for c in obs.cands} and not home.dynamic
+
+
+def test_back_to_a_scrolled_view_is_the_scrolled_view(tmp_path, monkeypatch):
+    ex, phone, _, scrolled = scrolled_feed(tmp_path, monkeypatch)
+    phone.screen = "chats"
+    child = ex.current = ex.record(ex.observe(), scrolled, stage.Move("tap", ex.obs.cands[0]), ex.obs)
+    phone.screen = "other"
+    assert ex.record(ex.observe(), child, stage.Move("back"), None) is scrolled
+
+
+def test_arrival_at_the_scrolled_view_is_not_claimed_from_the_top_of_the_feed(tmp_path, monkeypatch):
+    ex, phone, _, scrolled = scrolled_feed(tmp_path, monkeypatch)
+    phone.screen = "first"
+    ex.observe()
+    monkeypatch.setattr(ex, "judge", lambda *a, **k: stage.Landing(False, None, "", 0.0))
+    assert not ex.arrived(scrolled)
+
+
+def test_a_row_something_lies_over_is_no_candidate(tmp_path, monkeypatch):
+    """A card across the list: its body is no control (a wordless layout holding texts), yet it lies over the first
+    row's tap point."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    phone.screen = "limited"
+    rows = ob.feed_items(ob.controls(phone.screens["limited"].elements, ex.device), ex.device)
+    x, y = rows[0].point
+    phone.screens["limited"].elements.extend(
+        {"ref": f"@card{n}", "type": kind, "text": text, "coordinates": {"x": 40 + 50 * bool(n), "y": y - 60 + dy,
+                                                                         "width": 1000 - 100 * bool(n),
+                                                                         "height": 200 if n == 0 else 40}}
+        for n, (kind, text, dy) in enumerate([("android.view.ViewGroup", "", 0), ("android.widget.TextView", "Plus", 0),
+                                              ("android.widget.TextView", "$4.99/month", 80)]))
+    labels = {c.tree_label for c in ex.record(ex.observe(), None, None, None).cands}
+    assert rows[0].tree_label not in labels and rows[1].tree_label in labels
+
+
+def test_a_parent_row_that_moved_is_still_behind_the_sheet_not_its_own(tmp_path, monkeypatch):
+    _, _, sheet, _ = tall_sheet(tmp_path, monkeypatch, moved="The Former Husband")
+    assert sheet.kind == "sheet" and not [c for c in sheet.cands if c.tree_label.startswith("The Former Husband")]
+
+
+def test_a_sheet_offers_only_its_own_controls_never_the_screen_behind_it(tmp_path, monkeypatch):
+    ex, _, sheet, before = tall_sheet(tmp_path, monkeypatch)
+    behind = {c.key for c in before.cands}
+    assert "Start new chat" in {c.label for c in sheet.cands} and not behind & {c.key for c in sheet.cands}
+    assert not any(c.kind == "EditText" for c in [*sheet.cands, *ex.surface()])
+    assert {c.key for c in ex.surface()} == {c.key for c in sheet.cands}
+    assert not [line for line in lines(ex) if line.from_state == sheet.sid and line.outcome == "denied"]
+
+
+def sheet_first(clock):
+    """A feed item opens a sheet in the feed's window (the feed stays listed behind it); the sheet's own New chat
+    control opens the conversation."""
+    phone = janitor_like(clock)
+    feed = phone.screens["limited"]
+    image = feed.image.copy()
+    ImageDraw.Draw(image).rectangle((0, 1250, 1080, 2400), fill=(40, 40, 48))
+    own = [{"ref": "@s1", "type": "android.view.ViewGroup", "text": "Your chats with this character",
+            "coordinates": {"x": 0, "y": 1250, "width": 1080, "height": 110}},
+           {"ref": "@s2", "type": "android.view.ViewGroup", "text": "New chat",
+            "coordinates": {"x": 240, "y": 2150, "width": 600, "height": 120}}]
+    phone.screens["sheet"] = Screen(feed.elements + own, image, PACKAGE)
+    phone.taps[("limited", "JJK - GOJO’S RELATIVE")] = "sheet"
+    phone.taps[("sheet", "New chat")] = "chat"
+    return phone
+
+
+def test_the_walk_follows_a_sheet_an_item_opens_to_the_conversation(tmp_path, monkeypatch):
+    ex, phone = explore(tmp_path, monkeypatch, phone_factory=sheet_first)
+    trace = runlog.read_trace(ex.run_dir / "trace.jsonl")
+    walk = [line for line in trace if "(core loop: the item's main action)" in line.note]
+    assert any(s.kind == "sheet" for s in ex.states) and [line.note.split("'")[1] for line in walk] == ["New chat"]
+    assert ex.core.name.startswith("open an item and send messages") and phone.sent
+
+
+def reloaded_after_the_tour(tmp_path, monkeypatch, phone_factory=janitor_like):
+    """The first launch after the tour shows the feed with every item replaced, as a feed that reloads does; the new
+    first item opens the chat."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, phone_factory)
+    paywall_pass, launch = ex.paywall_pass, phone.launch
+
+    def reload():
+        launch()
+        phone.launch = launch
+        feed = phone.screens["limited"]
+        items = [c.tree_label for c in ob.feed_items(ob.controls(feed.elements, ex.device), ex.device)]
+        today = {item: f"Today: {item}" for item in items}
+        feed.elements[:] = [{**e, **{k: today[e[k]] for k in ("text", "label") if e.get(k) in today}}
+                            for e in feed.elements]
+        phone.taps[("limited", today[items[0]])] = "chat"
+
+    def after_the_tour():
+        phone.launch = reload
+        paywall_pass()
+    monkeypatch.setattr(ex, "paywall_pass", after_the_tour)
+    return ex, phone
+
+
+def test_the_walk_and_the_feed_pass_take_the_rows_home_was_re_recorded_with(tmp_path, monkeypatch):
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    phone.screens.update(first=capture("janitorai", "j04_tab1"), other=capture("janitorai", "j11_home_relaunched"))
+    phone.screen = "first"
+    home = ex.current = ex.record(ex.observe(), None, None, None)
+    feed = stage.CoreAction("feed", home, ob.feed_items(home.cands, ex.device, ex.tab_keys())[:2], "read items")
+    assert ex.rows(feed) == feed.controls
+    phone.screen, ex.home = "other", home
+    ex.record(ex.observe(), None, None, None)
+    now = ex.rows(feed)
+    assert now and not {c.key for c in now} & {c.key for c in feed.controls} and all(c in home.cands for c in now)
+
+
+def test_a_tab_feed_that_reloaded_after_the_tour_is_never_tapped_by_rows_it_did_not_record(tmp_path, monkeypatch):
+    """Only a relaunch's landing is home by definition: a tab root whose list reloaded keeps its recorded rows, which
+    are gone, so the walk and the feed pass tap none of the new ones."""
+    for sub, pick in (("walk", None), ("feed", "open and read items")):
+        ex, phone = reloaded_after_the_tour(tmp_path / sub, monkeypatch)
+        if pick:
+            monkeypatch.setattr(decide, "ask_choice", functools.partial(fake_jev, core_pick=pick))
+        stage.explore_app(ex)
+        taps = [t.note for t in runlog.read_trace(ex.run_dir / "trace.jsonl") if t.note.startswith("tap 'Today: ")]
+        assert "reload" not in phone.launch.__name__ and not taps, (taps, ex.core_results)
+
+
+# The red team's card over the reloaded feed (rt-pr29-90a0839): one clickable container (no words of its own, so
+# controls() drops it as a layout), its title, its price line and its button. None of them sits on a row's tap point,
+# yet the card's body lies over four rows.
+CARD_BOX = (40, 1100, 1040, 2000)
+CARD = [{"ref": "@c0", "type": "android.view.ViewGroup", "text": "", "clickable": True,
+         "coordinates": {"x": 40, "y": 1100, "width": 1000, "height": 900}},
+        {"ref": "@c1", "type": "android.widget.TextView", "text": "Janitor Plus",
+         "coordinates": {"x": 90, "y": 1110, "width": 900, "height": 70}},
+        {"ref": "@c2", "type": "android.widget.TextView", "text": "Unlimited chats for $4.99/month",
+         "coordinates": {"x": 90, "y": 1400, "width": 900, "height": 70}},
+        {"ref": "@c3", "type": "android.widget.Button", "text": "Subscribe",
+         "coordinates": {"x": 330, "y": 1880, "width": 420, "height": 100}}]
+
+
+def under_a_card(tmp_path, monkeypatch, core_pick=None):
+    """The first launch after the tour: the feed reloaded other items and the card lies over the list. Records every
+    tap point from then on."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    if core_pick:
+        monkeypatch.setattr(decide, "ask_choice", functools.partial(fake_jev, core_pick=core_pick))
+    paywall_pass, launch, tap = ex.paywall_pass, phone.launch, phone.tap
+    points = []
+
+    def reload():
+        launch()
+        phone.launch = launch
+        feed = phone.screens["limited"]
+        items = [c.tree_label for c in ob.feed_items(ob.controls(feed.elements, ex.device), ex.device)]
+        today = {item: f"Today: {item}" for item in items}
+        feed.elements[:] = [{**e, **{k: today[e[k]] for k in ("text", "label") if e.get(k) in today}}
+                            for e in feed.elements] + CARD
+        ImageDraw.Draw(feed.image).rectangle(CARD_BOX, fill=(52, 52, 60))
+        phone.taps[("limited", today[items[0]])] = "chat"
+        points.append("reload")
+
+    def tapped(x, y):
+        points.append((phone.screen, x, y))
+        tap(x, y)
+
+    def after_the_tour():
+        phone.launch, phone.tap = reload, tapped
+        paywall_pass()
+    monkeypatch.setattr(ex, "paywall_pass", after_the_tour)
+    return ex, points
+
+
+def under(points):
+    x0, y0, x1, y1 = CARD_BOX
+    after = points[points.index("reload") + 1:] if "reload" in points else []
+    return [p for p in after if p[0] == "limited" and x0 <= p[1] <= x1 and y0 <= p[2] <= y1]
+
+
+def test_the_walk_never_taps_a_row_under_the_card_body(tmp_path, monkeypatch):
+    ex, points = under_a_card(tmp_path, monkeypatch)
+    stage.explore_app(ex)
+    assert "reload" in points and not under(points), (under(points), [s.sid for s in ex.states])
+
+
+def test_the_feed_pass_never_taps_a_row_under_the_card_body(tmp_path, monkeypatch):
+    ex, points = under_a_card(tmp_path, monkeypatch, core_pick="open and read items")
+    stage.explore_app(ex)
+    assert "reload" in points and ex.core.kind == "feed" and not under(points), (under(points), ex.core_results)
+
+
+def sign_in_sheet(clock):
+    """A feed item opens a sheet in the feed's window that asks the guest to sign in."""
+    phone = janitor_like(clock)
+    feed = phone.screens["limited"]
+    image = feed.image.copy()
+    ImageDraw.Draw(image).rectangle((0, 1250, 1080, 2400), fill=(40, 40, 48))
+    own = [{"ref": "@s1", "type": "android.view.ViewGroup", "text": "Sign in to read this character",
+            "coordinates": {"x": 0, "y": 1250, "width": 1080, "height": 110}},
+           {"ref": "@s2", "type": "android.widget.Button", "text": "Sign in with Google",
+            "coordinates": {"x": 240, "y": 1950, "width": 600, "height": 120}},
+           {"ref": "@s3", "type": "android.widget.Button", "text": "Not now",
+            "coordinates": {"x": 240, "y": 2150, "width": 600, "height": 120}}]
+    phone.screens["sheet"] = Screen(feed.elements + own, image, PACKAGE)
+    phone.taps[("limited", "JJK - GOJO’S RELATIVE")] = "sheet"
+    phone.taps[("limited", "Adrian & Eleanor || Your Dad & Stepmom's Hometown Fling")] = "sheet"
+    return phone
+
+
+def test_a_sign_in_sheet_in_the_feed_pass_stops_it(tmp_path, monkeypatch):
+    ex, _ = new_explorer(tmp_path, monkeypatch, sign_in_sheet)
+    monkeypatch.setattr(decide, "ask_choice", functools.partial(fake_jev, core_pick="open and read items"))
+    stage.explore_app(ex)
+    opened = [line for line in lines(ex)
+              if line.loop_pass and line.to_state and ex.by_id[line.to_state].kind == "sheet"]
+    assert ex.core.kind == "feed" and opened and opened[0].loop_stop == "sign-in wall"
+
+
+def test_a_sheet_the_feed_pass_opens_is_its_result_not_a_stop(tmp_path, monkeypatch):
+    ex, _ = new_explorer(tmp_path, monkeypatch, sheet_first)
+    monkeypatch.setattr(decide, "ask_choice", functools.partial(fake_jev, core_pick="open and read items"))
+    stage.explore_app(ex)
+    opened = [line for line in lines(ex) if line.loop_pass == 1 and line.to_state
+              and ex.by_id[line.to_state].kind == "sheet"]
+    assert ex.core.kind == "feed" and opened and not opened[0].loop_stop and not ex.core_hit
+    assert sum(r.startswith("pass ") for r in ex.core_results) == ex.core_reps
 
 
 def test_a_stop_that_is_not_a_limit_leaves_the_limit_open(run):
@@ -808,6 +1071,250 @@ def test_a_result_the_model_calls_stalled_is_never_a_completed_pass(tmp_path, mo
     phone.screen = "chats"  # the tap loaded a page
     ex.watch(before, "load")
     assert ex.settles[-1][1] == how and ex.last_seen is seen
+
+
+def sheet_over_feed(own, header=False):
+    """A feed item opens a sheet in the feed's window with these own controls; with header, the guest feed shows its
+    own "Log in" button up in its header."""
+    def factory(clock):
+        phone = janitor_like(clock)
+        feed = phone.screens["limited"]
+        if header:
+            feed.elements.append({"ref": "@h1", "type": "android.widget.Button", "text": "Log in",
+                                  "coordinates": {"x": 700, "y": 160, "width": 200, "height": 90}})
+        image = feed.image.copy()
+        ImageDraw.Draw(image).rectangle((0, 1250, 1080, 2400), fill=(40, 40, 48))
+        phone.screens["sheet"] = Screen(feed.elements + own, image, PACKAGE)
+        phone.taps[("limited", "JJK - GOJO’S RELATIVE")] = "sheet"
+        phone.taps[("limited", "Adrian & Eleanor || Your Dad & Stepmom's Hometown Fling")] = "sheet"
+        return phone
+    return factory
+
+
+def feed_pass_sheets(tmp_path, monkeypatch, factory):
+    ex, _ = new_explorer(tmp_path, monkeypatch, factory)
+    monkeypatch.setattr(decide, "ask_choice", functools.partial(fake_jev, core_pick="open and read items"))
+    stage.explore_app(ex)
+    opened = [line for line in lines(ex)
+              if line.loop_pass and line.to_state and ex.by_id[line.to_state].kind == "sheet"]
+    assert ex.core.kind == "feed" and opened, ex.core_results
+    return ex, opened
+
+
+def test_a_sign_in_sheet_whose_log_in_matches_the_guest_headers_stops_the_feed_pass(tmp_path, monkeypatch):
+    own = [{"ref": "@s1", "type": "android.view.ViewGroup", "text": "Want to chat with this character?",
+            "coordinates": {"x": 0, "y": 1250, "width": 1080, "height": 110}},
+           {"ref": "@s2", "type": "android.widget.Button", "text": "Log in",
+            "coordinates": {"x": 240, "y": 1950, "width": 600, "height": 120}},
+           {"ref": "@s3", "type": "android.widget.Button", "text": "Not now",
+            "coordinates": {"x": 240, "y": 2150, "width": 600, "height": 120}}]
+    ex, opened = feed_pass_sheets(tmp_path, monkeypatch, sheet_over_feed(own, header=True))
+    assert opened[0].loop_stop == "sign-in wall", ([c.label for c in ex.by_id[opened[0].to_state].cands],
+                                                   ex.core_results)
+
+
+def test_a_chat_list_sheet_whose_greeting_mentions_money_is_the_feed_pass_result(tmp_path, monkeypatch):
+    """The committed JanitorAI sheets s19/s20 list chats labelled with the character's opening message."""
+    own = [{"ref": "@s1", "type": "android.view.ViewGroup", "text": "Kang Jun-Seo (Idol x Idol), 2 chats",
+            "coordinates": {"x": 0, "y": 1250, "width": 1080, "height": 110}},
+           {"ref": "@s2", "type": "android.view.ViewGroup",
+            "text": "Kang Jun-Seo (Idol x Idol), Mon, The livestream starts out casual. He grins at the camera: "
+                    "'Don't forget to subscribe, and check out the merch!'",
+            "coordinates": {"x": 0, "y": 1400, "width": 1080, "height": 300}},
+           {"ref": "@s3", "type": "android.view.ViewGroup", "text": "Start new chat",
+            "coordinates": {"x": 240, "y": 2150, "width": 600, "height": 120}}]
+    ex, opened = feed_pass_sheets(tmp_path, monkeypatch, sheet_over_feed(own))
+    assert not opened[0].loop_stop and not ex.core_hit, (opened[0].loop_stop, ex.core_hit)
+
+
+# rt-pr29-b938d29: a card over home after a refresh, every row under it; the card's body is a clickable wordless box.
+# Its words ask for nothing, so the landing is home (a card asking for money is a wall, not home: see below).
+PROMO = [{"ref": "@promo", "type": "android.view.ViewGroup", "text": "", "clickable": True,
+          "coordinates": {"x": 200, "y": 1100, "width": 700, "height": 950}},
+         {"ref": "@title", "type": "android.widget.TextView", "text": "What's new",
+          "coordinates": {"x": 250, "y": 1120, "width": 600, "height": 50}},
+         {"ref": "@more", "type": "android.widget.TextView", "text": "Characters now remember more",
+          "coordinates": {"x": 250, "y": 1410, "width": 600, "height": 50}},
+         {"ref": "@ok", "type": "android.widget.Button", "text": "Got it",
+          "coordinates": {"x": 320, "y": 1950, "width": 400, "height": 60}}]
+
+
+def home_under_a_promo(tmp_path, monkeypatch, overlay=PROMO, before_rows=False):
+    """Home recorded from j11, then re-recorded by a relaunch with the promo over its list. Every tap lands on the
+    promo's own app from then on."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    base = capture("janitorai", "j11_home_relaunched")
+    image = base.image.copy()
+    ImageDraw.Draw(image).rectangle((200, 1100, 900, 2050), fill=(52, 52, 60))
+    elements = overlay + base.elements if before_rows else base.elements + overlay
+    phone.screens.update(first=base, covered=Screen(elements, image, base.package),
+                         promo=Screen([], Image.new("RGB", (1080, 2400)), "com.example.promo"))
+    phone.screen = "first"
+    home = ex.current = ex.record(ex.observe(), None, None, None)
+    feed = stage.CoreAction("feed", home, ob.feed_items(home.cands, ex.device, ex.tab_keys()), "read items")
+    phone.screen, ex.home = "covered", home
+    assert ex.record(ex.observe(), None, None, None) is home
+    ex.home, tapped = None, []
+
+    def trap(x, y):
+        tapped.append((x, y))
+        phone.screen = "promo"
+    phone.tap = trap
+    return ex, feed, tapped
+
+
+def test_the_walk_never_taps_a_stale_row_through_a_card_after_a_refresh(tmp_path, monkeypatch):
+    ex, feed, tapped = home_under_a_promo(tmp_path, monkeypatch)
+    assert feed.controls and ex.rows(feed) == []
+    ex.walk_into(feed, 0)
+    assert not tapped and any("the walk ends" in t.note for t in runlog.read_trace(ex.run_dir / "trace.jsonl"))
+
+
+def test_the_feed_pass_never_taps_a_stale_row_through_a_card_after_a_refresh(tmp_path, monkeypatch):
+    ex, feed, tapped = home_under_a_promo(tmp_path, monkeypatch)
+    ex.touring = False
+    monkeypatch.setattr(ex, "choose_core", lambda: [feed])
+    monkeypatch.setattr(ex, "at_core", lambda n: True)
+    ex.core_loop()
+    assert not tapped and ex.core_results == [f"pass 1: no recorded rows left on {feed.state.sid}"]
+
+
+def test_a_relaunch_that_lands_on_a_money_card_over_home_keeps_home(tmp_path, monkeypatch):
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    base = capture("janitorai", "j11_home_relaunched")
+    money = [dict(e, text={"What's new": "Plus", "Got it": "Subscribe"}.get(e["text"], e["text"])) for e in PROMO]
+    image = base.image.copy()
+    ImageDraw.Draw(image).rectangle((200, 1100, 900, 2050), fill=(52, 52, 60))
+    phone.screens.update(first=base, covered=Screen(base.elements + money, image, base.package))
+    phone.screen = "first"
+    home = ex.current = ex.record(ex.observe(), None, None, None)
+    kept = [c.key for c in home.cands]
+    phone.screen, ex.home = "covered", home
+    assert ex.record(ex.observe(), None, None, None) is not home and [c.key for c in home.cands] == kept
+
+
+def test_a_clickable_wordless_overlay_leaves_no_covered_row_a_candidate(tmp_path, monkeypatch):
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    row = {"ref": "@row", "type": "android.view.ViewGroup", "text": "Read item",
+           "coordinates": {"x": 50, "y": 1100, "width": 800, "height": 200}}
+    box = {"ref": "@blank", "type": "android.view.ViewGroup", "text": "", "clickable": True,
+           "coordinates": {"x": 300, "y": 1130, "width": 400, "height": 150}}
+    phone.screens["wordless"] = Screen([row, box], Image.new("RGB", (1080, 2400)), PACKAGE)
+    phone.screen = "wordless"
+    assert "Read item" not in {c.label for c in ex.record(ex.observe(), None, None, None).cands}
+
+
+def test_a_long_control_label_that_starts_with_a_sign_in_or_money_command_is_a_wall():
+    def control(label):
+        return ob.Candidate(label, "ViewGroup", stage.Rect(x=0, y=0, w=500, h=100), "@c", label)
+    assert ob.walled([control("Log in to continue chatting")]) == "account"
+    assert ob.walled([control("Subscribe now to unlock conversations")]) == "money"
+    greeting = "Kang Jun-Seo, Mon, He grins: 'Don't forget to subscribe, and check out the merch!'"
+    assert not ob.walled([control(greeting)])
+
+
+def test_a_relaunch_that_lands_on_a_sign_in_wall_keeps_home(tmp_path, monkeypatch):
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    phone.screen = "limited"
+    home = ex.current = ex.record(ex.observe(), None, None, None)
+    ex.root = ex.launch_root = home
+    kept = [c.key for c in home.cands]
+    phone.screens["wall"] = Screen([
+        {"ref": "@title", "type": "android.widget.TextView", "text": "Sign in to continue",
+         "coordinates": {"x": 0, "y": 200, "width": 1080, "height": 100}},
+        {"ref": "@sign", "type": "android.widget.Button", "text": "Sign in",
+         "coordinates": {"x": 180, "y": 950, "width": 720, "height": 100}},
+        {"ref": "@more", "type": "android.widget.Button", "text": "Learn more",
+         "coordinates": {"x": 0, "y": 2200, "width": 1080, "height": 100}}],
+        Image.new("RGB", (1080, 2400), (15, 15, 15)), PACKAGE)
+    phone.start = "wall"
+    ex.relaunch()
+    assert [c.key for c in home.cands] == kept and any(s.kind == "screen" and s is not home for s in ex.states)
+
+
+def test_a_relaunch_that_restores_a_changed_deeper_screen_goes_back_and_keeps_home(tmp_path, monkeypatch):
+    """Home has the tab bar the first launch recorded; the restored chat changed since the tour and shows none."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    phone.screen = "limited"
+    home = ex.current = ex.record(ex.observe(), None, None, None)
+    ex.root = ex.launch_root = home
+    ex.tabs = ob.tab_bar(home.cands, ex.device)
+    kept = [c.key for c in home.cands]
+    phone.screen = "chat"
+    detail = ex.current = ex.record(ex.observe(), home, stage.Move("tap", home.cands[0]), ex.obs)
+    image = phone.screens["chat"].image.copy()
+    ImageDraw.Draw(image).rectangle((40, 450, 1040, 2100), fill=(160, 80, 80))
+    phone.screens["chat"].image, phone.start = image, "chat"
+    ex.relaunch()
+    assert ex.tabs and detail is not home and [c.key for c in home.cands] == kept
+
+
+def test_a_clickable_card_listed_before_the_rows_still_covers_them(tmp_path, monkeypatch):
+    ex, feed, tapped = home_under_a_promo(tmp_path, monkeypatch, before_rows=True)
+    assert ex.rows(feed) == []
+    ex.walk_into(feed, 0)
+    assert not tapped
+
+
+def test_a_guest_home_with_a_log_in_header_is_still_home_after_its_feed_reloads(tmp_path, monkeypatch):
+    """rt-pr29-7ef1473: home's own "Log in" is no wall; a wall home didn't show still is (the sign-in wall test)."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    login = {"ref": "@login", "type": "android.widget.Button", "text": "Log in",
+             "coordinates": {"x": 700, "y": 160, "width": 200, "height": 90}}
+    first, other = capture("janitorai", "j04_tab1"), capture("janitorai", "j11_home_relaunched")
+    for screen in (first, other):
+        screen.elements.append(login)
+        ImageDraw.Draw(screen.image).rectangle((700, 160, 900, 250), fill=(70, 70, 70))
+    phone.screens.update(first=first, other=other)
+    phone.screen = "first"
+    home = ex.current = ex.record(ex.observe(), None, None, None)
+    ex.root = ex.launch_root = home
+    ex.tabs = ob.tab_bar(home.cands, ex.device)
+    assert ex.tabs and ob.walled(home.cands) == "account"
+    phone.start = "other"
+    ex.relaunch()
+    assert ex.current is home and len(ex.states) == 1, (ex.current.sid, len(ex.states))
+
+
+def test_a_relaunch_records_a_new_sign_in_wall_even_when_its_button_matches_the_guest_header(tmp_path, monkeypatch):
+    """rt-pr29-00b167c: home's own "Log in" sits in its header; the wall's "Log in" is elsewhere, so it is new."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    base = capture("janitorai", "j04_tab1")
+    base.elements.append(
+        {"ref": "@header-login", "type": "android.widget.Button", "text": "Log in",
+         "coordinates": {"x": 700, "y": 160, "width": 200, "height": 90}})
+    ImageDraw.Draw(base.image).rectangle((700, 160, 900, 250), fill=(70, 70, 70))
+    phone.screens["first"] = base
+    phone.screen = "first"
+    home = ex.current = ex.record(ex.observe(), None, None, None)
+    ex.root = ex.launch_root = home
+    ex.tabs = ob.tab_bar(home.cands, ex.device)
+    assert len(ex.tabs) == 5 and ob.walled(home.cands) == "account"
+    original = {c.key for c in home.cands}
+
+    tab_refs = {c.ref for c in ex.tabs}
+    tabs = [e for e in base.elements if e["ref"] in tab_refs]
+    wall = [
+        {"ref": "@welcome", "type": "android.widget.TextView", "text": "Welcome back",
+         "coordinates": {"x": 0, "y": 350, "width": 1080, "height": 120}},
+        {"ref": "@message", "type": "android.widget.TextView", "text": "Continue to your characters",
+         "coordinates": {"x": 80, "y": 800, "width": 920, "height": 100}},
+        {"ref": "@wall-login", "type": "android.widget.Button", "text": "Log in",
+         "coordinates": {"x": 240, "y": 1200, "width": 600, "height": 120}},
+    ] + tabs
+    image = base.image.copy()
+    ImageDraw.Draw(image).rectangle((0, 300, 1080, 2100), fill=(25, 25, 30))
+    phone.screens["wall"] = Screen(wall, image, base.package)
+    phone.start = "wall"
+    phone.screen = "wall"
+    landed = ex.observe()
+    assert not ob.same_state(home.fp, landed.fp)
+    assert ob.walled(landed.cands) == "account"
+    assert not ex.blocked(landed)
+    assert all(ob.find(landed.cands, t) for t in ex.tabs)
+
+    ex.relaunch()
+    assert {c.key for c in home.cands} == original and ex.current is not home, (home.sid, ex.current.sid)
 
 
 def test_the_fake_phone_encodes_each_picture_once_and_writes_what_a_plain_save_would(tmp_path, monkeypatch):
