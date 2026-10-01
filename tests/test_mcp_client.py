@@ -136,6 +136,33 @@ def test_a_respawn_waits_until_the_device_is_listed_again(tmp_path, monkeypatch)
     with pytest.raises(mcp.McpReplyError, match="not found"):
         mcp.Phone(MissesTheDeviceAfterARespawn(unlisted=10 ** 6), "com.example.app", tmp_path).elements()
 
+class ListFailsAfterARespawn(MissesTheDeviceAfterARespawn):
+    """rt-prP-97e98aa R5: after the respawn, mobile-mcp answers the device list with mobilecli's failure."""
+
+    def call(self, tool, timeout, **args):
+        if tool == "mobile_list_available_devices" and self.respawns:
+            return {"content": [{"type": "text", "text": "Error: Command failed: mobilecli devices"}], "isError": True}
+        return super().call(tool, timeout, **args)
+
+
+def test_a_failed_device_list_after_a_respawn_is_the_device_not_listed_yet(tmp_path, monkeypatch):
+    monkeypatch.setattr(mcp, "DEVICE_RETRY_PAUSE_S", 0)
+    monkeypatch.setattr(mcp, "START_TIMEOUT_S", 0.05)
+    server = ListFailsAfterARespawn(unlisted=0)
+    assert mcp.Phone(server, "com.example.app", tmp_path).elements()[1][0]["ref"] == "@e1" and server.respawns == 1
+
+
+class AlwaysLost(FlakyServer):
+    def call(self, tool, timeout, **args):
+        return LOST if tool == "mobile_click_on_screen_at_coordinates" else super().call(tool, timeout, **args)
+
+
+def test_an_action_the_device_never_got_is_an_error(tmp_path, monkeypatch):
+    """rt-prP-97e98aa R6: every attempt answered 'Device not found', so the tap never ran."""
+    monkeypatch.setattr(mcp, "DEVICE_RETRY_PAUSE_S", 0)
+    with pytest.raises(mcp.McpReplyError, match="not found"):
+        mcp.Phone(AlwaysLost(0), "com.example.app", tmp_path).tap(100, 200)
+
 class RefusesActions(FlakyServer):
     """Answers every device action with an error, the way mobile-mcp reports a tap that didn't happen."""
 

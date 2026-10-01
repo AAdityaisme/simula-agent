@@ -175,19 +175,24 @@ class Phone:
         raise SystemExit(f"no Android device {serial or avd or ''} online: start the emulator first")
 
     def android(self) -> list[dict]:
-        """The Android devices mobile-mcp lists."""
-        devices = json.loads(reply_text(self.server.call("mobile_list_available_devices", START_TIMEOUT_S)))
+        """The Android devices mobile-mcp lists; none while mobilecli can't list them (an error reply, not JSON)."""
+        try:
+            devices = json.loads(reply_text(self.server.call("mobile_list_available_devices", START_TIMEOUT_S)))
+        except ValueError:
+            return []
         return [d for d in devices.get("devices", []) if d.get("platform") == "android"]
 
     def call(self, tool: str, timeout: float = ACTION_TIMEOUT_S, retry: bool = False, **args) -> dict:
         """One tool call. A 'Device not found' answer (mobilecli loses the device now and then while the emulator
         is busy; mobile-mcp sends it as text, without isError) means nothing ran, so it is asked again, even for an
-        action."""
+        action, and still lost after DEVICE_ATTEMPTS it is an error."""
         for attempt in range(1, DEVICE_ATTEMPTS + 1):
             reply = self.call_once(tool, timeout, retry, **args)
-            if not DEVICE_LOST.match(reply_text(reply)) or attempt == DEVICE_ATTEMPTS:
+            if not DEVICE_LOST.match(reply_text(reply)):
                 return reply
-            time.sleep(DEVICE_RETRY_PAUSE_S)
+            if attempt < DEVICE_ATTEMPTS:
+                time.sleep(DEVICE_RETRY_PAUSE_S)
+        raise McpReplyError(f"{tool}: {reply_text(reply)[:120]!r}")
 
     def call_once(self, tool: str, timeout: float, retry: bool, **args) -> dict:
         try:
