@@ -166,6 +166,25 @@ def load_states(explore_dir: Path, device: Device) -> tuple[list[State], dict[st
     return states, images, model_labels
 
 
+def load_replaced(explore_dir: Path, device: Device) -> dict[str, list[tuple[int, list[Element]]]]:
+    """Per state, the captures a relaunch replaced (a reloaded home), oldest first: the last step taken on each, and
+    its elements."""
+    replaced = {}
+    for path in sorted(p for p in (explore_dir / "states").glob("*.json") if "." not in p.stem):
+        sf = StateFile.model_validate_json(path.read_text())
+        for capture in sf.replaced:
+            pixels = np.asarray(Image.open(explore_dir / capture.screenshot).convert("RGB"))
+            tree = read_tree(explore_dir / capture.elements_reply)
+            elements = build_elements(sf.state_id, tree, capture.icon_labels, capture.vision_elements, pixels, device)
+            replaced.setdefault(sf.state_id, []).append((capture.until_step, elements))
+    return replaced
+
+
+def taken_on(replaced: dict[str, list[tuple[int, list[Element]]]], line: ActionLine) -> list[Element] | None:
+    """The elements of the capture a line's move was taken on, when a relaunch later replaced it; else None."""
+    return next((elements for until, elements in replaced.get(line.from_state, []) if line.step <= until), None)
+
+
 def tapped_element(state: State, line: ActionLine) -> Element | None:
     """The contract's rule: the mcp_ref element if its box holds the tap, else the smallest box that does."""
     by_ref = next((e for e in state.elements if line.mcp_ref and e.mcp_ref == line.mcp_ref), None)
@@ -175,8 +194,21 @@ def tapped_element(state: State, line: ActionLine) -> Element | None:
     return min(holding, key=lambda e: e.rect_px.w * e.rect_px.h) if holding else None
 
 
-def edge_for(state: State, line: ActionLine) -> tuple[Element | None, str]:
+def same_control(e: Element, then: Element) -> bool:
+    """The same control in the same place on two captures of one state: the same kind, words and box, and, for one
+    without text (an icon, a picture, a vision control), the same colors too, since another item's picture can sit
+    in its place."""
+    same_place = (e.type, e.text, e.label, e.rect_px) == (then.type, then.text, then.label, then.rect_px)
+    return same_place and (bool(e.text) or (e.fg_hex, e.bg_hex) == (then.fg_hex, then.bg_hex))
+
+
+def edge_for(state: State, line: ActionLine, then: list[Element] | None = None) -> tuple[Element | None, str]:
+    """The tapped element and the edge's id. A move taken on a capture a relaunch later replaced (then) resolves its
+    tap on that capture, and keeps only the state's element that is the same control in the same place, if any."""
     element = tapped_element(state, line)
+    if then is not None:
+        tapped = tapped_element(state.model_copy(update={"elements": then}), line)
+        element = next((e for e in state.elements if tapped and same_control(e, tapped)), None)
     return element, f"{element.id if element else f'{line.from_state}.{line.action}'}>{line.to_state}"
 
 
@@ -239,11 +271,13 @@ def value_changes(before: State, after: State) -> str:
                      and WORD.search(NUMBER.sub("", old[k])) and not CLOCK.search(old[k]))
 
 
-def load_edges(explore_dir: Path, states: list[State]) -> tuple[list[Edge], list[str]]:
+def load_edges(explore_dir: Path, states: list[State],
+               replaced: dict[str, list[tuple[int, list[Element]]]] | None = None) -> tuple[list[Edge], list[str]]:
     """One edge per distinct recorded move that reached a state (or changed something in place). The
     transition is the one explore recorded. What changed is the explorer's summary, or else, for a move its two
-    captures sit right around, the values that changed between them. Returns the edges and a note for every
-    line not taken as given."""
+    captures sit right around, the values that changed between them. A move taken on a capture a relaunch later
+    replaced (load_replaced) resolves its tap there. Returns the edges and a note for every line not taken as
+    given."""
     by_id = {s.id: s for s in states}
     edges, notes = {}, []
     lines = read_actions(explore_dir)
@@ -256,13 +290,17 @@ def load_edges(explore_dir: Path, states: list[State]) -> tuple[list[Edge], list
         if {a.from_state, a.to_state} - by_id.keys():
             notes.append(f"step {a.step}: unknown state in {a.from_state}>{a.to_state}")
             continue
-        element, edge_id = edge_for(by_id[a.from_state], a)
-        if a.mcp_ref and (element is None or element.mcp_ref != a.mcp_ref):
+        then = taken_on(replaced or {}, a)
+        element, edge_id = edge_for(by_id[a.from_state], a, then)
+        if then is not None and element is None:
+            notes.append(f"step {a.step}: taken on a capture of {a.from_state} a relaunch replaced, whose tapped "
+                         f"control the state's capture no longer shows in its place; bound to no element")
+        elif then is None and a.mcp_ref and (element is None or element.mcp_ref != a.mcp_ref):
             where = f"the tap at {a.tap_px.x},{a.tap_px.y}" if a.tap_px else "the tap"
             notes.append(f"step {a.step}: {a.mcp_ref} does not hold {where}; "
                          f"bound to {element.id if element else 'no element'}")
-        diffed = "" if a.change_summary or a.step not in bracketed else value_changes(by_id[a.from_state],
-                                                                                        by_id[a.to_state])
+        diffed = "" if a.change_summary or a.step not in bracketed or then is not None else value_changes(
+            by_id[a.from_state], by_id[a.to_state])
         if diffed:
             notes.append(f"step {a.step}: what changed is code's diff of the move's two captures: {diffed}")
         changed = a.change_summary or diffed
@@ -311,7 +349,8 @@ def measured(what: str, unit: str, values: list[float]) -> str:
             f"(min {min(values):g}, max {max(values):g}, n={len(values)})")
 
 
-def loop_facts(explore_dir: Path, states: list[State], edges: list[Edge]) -> list[LedgerItem]:
+def loop_facts(explore_dir: Path, states: list[State], edges: list[Edge],
+               replaced: dict[str, list[tuple[int, list[Element]]]] | None = None) -> list[LedgerItem]:
     """The measured experience, from the explorer's core-loop passes: one item with each measurement's median, min,
     max and n (or the one value, when there is one), and one saying what stopped the loop, or that nothing did on an
     account whose plan explore doesn't record. Passes are counted by distinct loop_pass, not by line. A stop counts
@@ -325,7 +364,8 @@ def loop_facts(explore_dir: Path, states: list[State], edges: list[Edge]) -> lis
         by_pass.setdefault(a.loop_pass, []).append(a)
     by_state, known = {s.id: s for s in states}, {e.id for e in edges}
     # A pass that recorded no edge still ran on its state; the step range in the text points at its action line.
-    evidence = sorted({edge_for(by_state[a.from_state], a)[1] for a in passes if a.from_state in by_state} & known) \
+    evidence = sorted({edge_for(by_state[a.from_state], a, taken_on(replaced or {}, a))[1] for a in passes
+                       if a.from_state in by_state} & known) \
         or sorted({a.from_state for a in loop} & by_state.keys())
     steps = f"explore steps {loop[0].step}-{loop[-1].step}"
     values: dict[tuple[str, str], list[float]] = {}
@@ -891,10 +931,11 @@ def run(ctx: Ctx) -> None:
         (out / sub).mkdir(parents=True)
 
     states, images, model_labels = load_states(explore_dir, device)
-    edges, notes = load_edges(explore_dir, states)
+    replaced = load_replaced(explore_dir, device)
+    edges, notes = load_edges(explore_dir, states, replaced)
     tapped = {e.element_id for e in edges if e.element_id}
     states = [group_repeats(s, tapped) for s in states]
-    experience = loop_facts(explore_dir, states, edges)
+    experience = loop_facts(explore_dir, states, edges, replaced)
     for s in states:
         content_png(images[s.id], device).save(out / s.canonical_png)
     run_trace(ctx.run_dir, stage="model", step="facts", decider="code",
