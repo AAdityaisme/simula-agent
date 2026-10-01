@@ -97,16 +97,18 @@ def run(app: str, run_id: str | None, out: Path, serial: str | None, clock=time.
             audit = Audit(ctx, model, phone, out, secrets, clock, sleep)
             with render.open_mock(src / "qa" / "approved") as (page, _):
                 flows, stop = audit.walk(page)
+        report = {"schema_version": SCHEMA_VERSION, "app": app, "run": src.name, "created_at": now(),
+                  "inputs": {path: runfolder.sha256(src / path) for path in INPUTS},
+                  "device": model.device.model_dump(), "caps": {"actions": MAX_ACTIONS, "minutes": MAX_MINUTES},
+                  "actions": {"total": audit.actions, "setup": len(audit.setup)},
+                  "minutes": round((clock() - audit.started) / 60, 2), "stop": stop, "summary": summary(flows),
+                  "flows": flows, "setup": audit.setup, "note": NOTE}
+        write_report(out, report)
+        return report
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
-    report = {"schema_version": SCHEMA_VERSION, "app": app, "run": src.name, "created_at": now(),
-              "inputs": {path: runfolder.sha256(src / path) for path in INPUTS}, "device": model.device.model_dump(),
-              "caps": {"actions": MAX_ACTIONS, "minutes": MAX_MINUTES},
-              "actions": {"total": audit.actions, "setup": len(audit.setup)},
-              "minutes": round((clock() - audit.started) / 60, 2), "stop": stop, "summary": summary(flows),
-              "flows": flows, "setup": audit.setup, "note": NOTE}
-    write_report(out, report)
-    return report
+        if not any(out.iterdir()):
+            out.rmdir()  # a walk that stopped before any evidence leaves no folder, so the same --out can run again
 
 
 def new_out(out: Path, src: Path) -> Path:

@@ -382,7 +382,7 @@ def test_the_offline_suite_keeps_the_walk_off_any_device(runs, tmp_path):
 
     with pytest.raises(NotImplementedError, match="never start mobile-mcp"):
         qa_live.run("janitorai", "r1", tmp_path / "audit", None)
-    assert not (tmp_path / "audit" / "report.json").exists()
+    assert not (tmp_path / "audit").exists()
 
 
 @pytest.mark.parametrize("where", ["inside", "through-a-symlink", "existing"])
@@ -410,4 +410,4 @@ def test_a_device_of_another_size_is_refused_before_any_action(runs, walk, tmp_p
 
     with pytest.raises(SystemExit, match="the device is .*w_px=1440"):
         walk(phone)
-    assert phone.log == [] and walk.held == ["held", "released"] and not (tmp_path / "audit" / ".scratch").exists()
+    assert phone.log == [] and walk.held == ["held", "released"] and not (tmp_path / "audit").exists()

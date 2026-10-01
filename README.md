@@ -178,6 +178,22 @@ uv run simula run janitorai --new               # all seven stages in a new run
 uv run simula run janitorai --from qa           # rerun qa and everything after it, in the latest run
 ```
 
+**Live QA walk** (opt-in, no model calls, never part of QA's approval):
+
+```sh
+uv run simula qa-live janitorai --run ID --out DIR   # DIR: a new folder outside the run; add --device SERIAL
+```
+
+It walks each core flow on the live app and on the run's approved mock side by side, one recorded tap, BACK or swipe at a time. It never teleports between checkpoints, and it stops a flow at the first hop where either side goes wrong. Each checkpoint saves the live capture and element list (redacted as explore redacts them), the mock's render, a masked-SSIM heatmap, and the live control's bounds against its `data-el`. `DIR/report.md` gives each flow one status:
+- **matched:** both sides took every hop.
+- **mock_failed:** the app took the hop and the mock didn't.
+- **real_diverged:** the app went somewhere else (another recorded screen, or another app).
+- **unsupported:** typing, a flow outside the mock, or a control it can't verify (missing, ambiguous, covered, or unlike its recorded crop). It never taps one of these.
+- **blocked:** the deny-list, a route to the flow's start that failed, a device failure, or a cap.
+- **unverified:** the app landed on a screen no recorded state matches, so neither side is blamed.
+
+The walker holds the device lock and stops at 30 device actions or 10 minutes, setup included. A launch and the route to a flow's start are setup, never evidence. Swipes go up: explore records no direction. The SSIM score is descriptive and has no pass threshold.
+
 Reruns:
 - A stage command always reruns its stage.
 - `simula run` skips a stage whose inputs, prompts and settings still hash the same as when it finished. With `--from`, it reruns that stage and every one after it.
