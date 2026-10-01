@@ -72,8 +72,8 @@
    "breakeven_ecpm_8k": 13.0,
    "benchmark_ecpm": 10.16,
    "verdict": "CONDITIONAL",
-   "assumption_line": "Costs ~$0.0055 per reward to serve; pays for itself above $5.50 eCPM at 2k context ($13.00 at 8k). It may give away something the app could sell (part of the paid benefit l4 \"5× context for better memory\"); that lost sale isn't counted. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 5 replies of 300 tokens out, at $0.25 / $2.00 per million tokens in / out (central prices); the verdict uses the 8k figure; one view per reward; a publisher-net eCPM (share 1).",
-   "lost_sale": "part of the paid benefit l4 \"5× context for better memory\""
+   "assumption_line": "Costs ~$0.0055 per reward to serve; pays for itself above $5.50 eCPM at 2k context ($13.00 at 8k). It is a sample of the paid benefit l4 \"5× context for better memory\", which stays on sale. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 5 replies of 300 tokens out, the proposer's count (one of its replies with 10× context isn't known to be a chat reply), at $0.25 / $2.00 per million tokens in / out (central prices); the verdict uses the 8k figure; one view per reward; a publisher-net eCPM (share 1).",
+   "lost_sale": null
   },
   "reach_score": 0.5,
   "rank_score": 0.5,

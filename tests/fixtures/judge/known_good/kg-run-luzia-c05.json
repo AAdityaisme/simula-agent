@@ -74,8 +74,8 @@
    "breakeven_ecpm_8k": 10.8,
    "benchmark_ecpm": 10.16,
    "verdict": "CONDITIONAL",
-   "assumption_line": "Costs ~$0.0063 per reward to serve; pays for itself above $6.30 eCPM at 2k context ($10.80 at 8k). It may give away something the app could sell (part of the paid benefit l02 \"Advanced reasoning mode\"); that lost sale isn't counted. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 3 replies of 800 tokens out, at $0.25 / $2.00 per million tokens in / out (central prices); the verdict uses the 8k figure; one view per reward; a publisher-net eCPM (share 1).",
-   "lost_sale": "part of the paid benefit l02 \"Advanced reasoning mode\""
+   "assumption_line": "Costs ~$0.0063 per reward to serve; pays for itself above $6.30 eCPM at 2k context ($10.80 at 8k). It is a sample of the paid benefit l02 \"Advanced reasoning mode\", which stays on sale. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 3 replies of 800 tokens out, the proposer's count (one of its Advanced reasoning mode answers isn't known to be a chat reply), at $0.25 / $2.00 per million tokens in / out (central prices); the verdict uses the 8k figure; one view per reward; a publisher-net eCPM (share 1).",
+   "lost_sale": null
   },
   "reach_score": 1.0,
   "rank_score": 1.0,
