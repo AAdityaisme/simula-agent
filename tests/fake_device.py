@@ -79,12 +79,14 @@ class FakePhone:
     generating: float = 0.0
     busy_label: str = "Cancel"
     chat_top: int = 401
+    in_task: set[str] = field(default_factory=set)  # other packages' screens the app's own task holds (a system dialog)
 
     def __post_init__(self):
         self.screen, self.history, self.log, self.typed = self.start, [], [], []
         self.list_seconds, self.shots, self.reply_polls, self.splash_left = [], {}, 0, 0
         self.chats: dict[str, list[tuple[str, str]]] = {}
         self.draft, self.sent, self.busy_until = "", 0, 0.0
+        self.alive = False  # the app's task: a launch brings a live one back as it was
         self.pngs: dict[tuple, bytes] = {}
         self.screens.setdefault("launcher", blank("com.android.launcher"))
 
@@ -211,13 +213,19 @@ class FakePhone:
         self.sent += 1
         self.go(self.after_sends.get(self.sent))
 
+    def ours(self, screen: str) -> bool:
+        return self.screens[screen].package == self.screens[self.start].package or screen in self.in_task
+
     def back(self) -> None:
+        """BACK out of the app ends its task, as BACK from Perplexity's last screen did on the emulator."""
         self.tick()
         self.log.append(("back", self.screen))
+        was_ours = self.ours(self.screen)
         if self.screen in self.backs:
             self.screen = self.backs[self.screen]
         else:
             self.screen = self.history.pop() if self.history else "launcher"
+        self.alive = self.alive and not (was_ours and not self.ours(self.screen))
 
     def swipe(self, direction: str) -> None:
         self.tick()
@@ -231,12 +239,17 @@ class FakePhone:
         self.draft += text
 
     def launch(self) -> None:
+        """A live task comes to the front as it was, over whatever another app opened on it; else a fresh start."""
         self.tick(2.0)
         self.log.append(("launch",))
-        self.screen, self.history, self.splash_left = self.start, [], self.splash
+        if not self.alive:
+            self.screen, self.history, self.splash_left, self.alive = self.start, [], self.splash, True
+        while not self.ours(self.screen):
+            self.screen = self.history.pop()
 
     def terminate(self) -> None:
         self.tick()
+        self.alive = False
 
 
 # ---------- a run with fake Jev and a fake Sonnet ----------
