@@ -9,3 +9,5 @@ config/models.local.toml
 # Real replay runs and their cache get force-added in PR 8; stub and scratch runs stay local.
 runs/
 cache/
+# validate-judge and experiment output; never committed
+validation/latest/

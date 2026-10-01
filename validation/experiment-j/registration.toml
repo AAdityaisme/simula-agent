@@ -1,0 +1,15 @@
+# Experiment j, pre-registered in validation/EXPERIMENT-J.md. `python -m simula.validate experiment j ARM` runs an arm
+# only as this file says, once, and only while this file and tests/fixtures/judge/labels/ are committed.
+usd_cap = 10.0                    # shared by both arms; a cap stop leaves the experiment inconclusive
+labels = 15                       # committed labels needed first, every known-good idea among them
+profile = "real"
+judges = ["judge_1", "judge_2"]
+no_cache = true
+
+[arms.control]
+rubric = "prompts/judge/rubric.md"
+sha256 = "0fd96e23a4549066d222043a6feeae5d125fe76867706197fdf3fefeced5f01c"
+
+[arms.treatment]
+rubric = "validation/experiment-j/treatment-rubric.md"
+sha256 = "9517fde0bf72363b60a381df847929d7b41c65b71f12f9c644d82f6a4562623a"

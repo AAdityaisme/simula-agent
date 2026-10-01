@@ -4,14 +4,18 @@
     uv run python -m simula.validate validate-judge [--profile dev] [--judges judge_1,judge_2] [--no-cache]
     uv run python -m simula.validate label [--limit 15] [--out validation/latest]
     uv run python -m simula.validate freeze
-    uv run python -m simula.validate experiment NAME ARM --rubric FILE --usd-cap USD [--no-cache]
+    uv run python -m simula.validate experiment NAME ARM
 """
 
 import argparse
 import hashlib
 import json
 import math
+import random
+import re
+import subprocess
 import sys
+import tomllib
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
@@ -31,6 +35,8 @@ CASES = FIXTURES / "judge"
 REPORT = ROOT / "validation" / "report.md"
 VERDICTS = ROOT / "validation" / "verdicts"
 OUT = ROOT / "validation" / "latest"
+EXPERIMENTS = ROOT / "validation"  # experiment-<name>/registration.toml
+SLUG = re.compile(r"[a-z0-9-]+")
 PIN = CASES / "pin.json"
 # pin.json fills every optional part of the judge's message; pin-empty.json takes each empty branch.
 PINS = [PIN, CASES / "pin-empty.json"]
@@ -40,6 +46,7 @@ JUDGES = ["judge_1", "judge_2"]
 KNOWN_GOOD_BAR = 0.70
 MIN_APP_TYPES = 3
 LABEL_TARGET = 15
+LABEL_SEED = 20260930  # fixed, so `label` shows cases in the same order on every run
 Z95 = 1.96
 
 
@@ -425,6 +432,10 @@ def run_judges(cases: list[Case], judges: list[str], roles: dict, budget: llm.Bu
         return {(case.id, who): v for (case, who), v in pool.map(one, jobs)}
 
 
+def known_good(case: Case) -> bool:
+    return case.source in ("base", "run")
+
+
 def read_labels(root: Path = CASES) -> dict[str, dict]:
     return {p.stem: json.loads(p.read_text()) for p in sorted((root / "labels").glob("*.json"))}
 
@@ -451,38 +462,82 @@ def validate_judge(profile: str, judges: list[str], no_cache: bool, out: Path = 
 
 # ---------- a pre-registered experiment (validation/EXPERIMENT-J.md) ----------
 
-def experiment(name: str, arm: str, rubric: Path, profile: str, judges: list[str], usd_cap: float, no_cache: bool,
-               out: Path = OUT) -> None:
-    """One arm: each judge judges every LLM fixture once under `rubric`, a file the arm names rather than the tracked
-    prompt, so arms differ in nothing else. Writes out/<name>/<arm>/: the rubric as judged, the settings, the verdicts
-    and the report, where a failed call counts as a miss or a fail. All of an experiment's arms share `usd_cap`.
-    Nothing runs it but this command."""
-    judge.check_frozen()
-    folder = out / name / arm
-    (folder / "verdicts").mkdir(parents=True, exist_ok=True)
+def experiment(name: str, arm: str, out: Path = OUT, registered: Path = EXPERIMENTS) -> None:
+    """One arm of a pre-registered experiment, run only as experiment-<name>/registration.toml says: the arm's rubric
+    file (the tracked prompt is never edited), the judges, profile and cache use, and the dollar cap its arms share.
+    Before any call or write it refuses unless the registration and the labels are committed, the labels are enough
+    and include every known-good idea, the rubric has its registered sha256, the arm never ran, and any arm before it
+    ran from this commit under this cap. Each judge judges every LLM fixture once; a failed call counts as a miss or a
+    fail. Writes out/<name>/<arm>/."""
+    for slug in (name, arm):
+        if not SLUG.fullmatch(slug):
+            raise SystemExit(f"experiment and arm names are plain slugs ([a-z0-9-]), not {slug!r}")
+    registration = registered / f"experiment-{name}" / "registration.toml"
+    if not registration.exists():
+        raise SystemExit(f"experiment {name} isn't registered: there is no {registration}")
+    reg = tomllib.loads(registration.read_text())
+    if arm not in reg["arms"]:
+        raise SystemExit(f"experiment {name} registers the arms {', '.join(reg['arms'])}, not {arm}")
+    if pending := uncommitted([registration, CASES / "labels"]):
+        raise SystemExit(f"experiment {name} runs only on committed files; commit these first: {', '.join(pending)}")
+    rubric = ROOT / reg["arms"][arm]["rubric"]
     text = rubric.read_text()
-    (folder / "rubric.md").write_text(text)
+    digest = hashlib.sha256(text.encode()).hexdigest()
+    if digest != reg["arms"][arm]["sha256"]:
+        raise SystemExit(f"{rubric} hashes to {digest}, not the {reg['arms'][arm]['sha256']} registered for arm {arm}")
     cases = [c for c in load_cases() if c.target != C8]
-    roles = config.roles(profile)
-    settings = {"experiment": name, "arm": arm, "rubric": str(rubric),
-                "rubric_sha256": hashlib.sha256(text.encode()).hexdigest(), "git_sha": runfolder.git_sha(),
-                "git_dirty": runfolder.git_dirty(), "profile": profile, "roles": {j: roles[j] for j in judges},
-                "no_cache": no_cache, "usd_cap": usd_cap, "cases": [c.id for c in cases]}
+    labels = read_labels()
+    unlabeled = [c for c in cases if known_good(c) and c.id not in labels]
+    if len(labels) < reg["labels"] or unlabeled:
+        raise SystemExit(f"experiment {name} needs {reg['labels']} labels, every known-good idea among them; there are "
+                         f"{len(labels)}, and {len(unlabeled)} known-good idea(s) have none. Run `simula label` until "
+                         "it has nothing left to show (then with a higher --limit if any are still missing), and "
+                         "commit the labels.")
+    judge.check_frozen()
+    record = {"git_sha": runfolder.git_sha(), "usd_cap": reg["usd_cap"]}
+    dirty = runfolder.git_dirty()
+    started, folder = out / name / "experiment.json", out / name / arm
+    if started.exists() and json.loads(started.read_text()) != record:
+        raise SystemExit(f"experiment {name}'s first arm ran as {started.read_text().strip()}, not {record}: its "
+                         "arms run from one commit under one cap")
+    if folder.exists():
+        raise SystemExit(f"arm {arm} of experiment {name} already ran ({folder}); an arm runs once")
+    folder.mkdir(parents=True)
+    (folder / "verdicts").mkdir()
+    if not started.exists():
+        write_json_atomic(started, json.dumps(record, indent=1))
+    (folder / "rubric.md").write_text(text)
+    roles = config.roles(reg["profile"])
+    settings = {"experiment": name, "arm": arm, "registration": str(registration), "rubric": reg["arms"][arm]["rubric"],
+                "rubric_sha256": digest, **record, "git_dirty": dirty, "profile": reg["profile"],
+                "roles": {j: roles[j] for j in reg["judges"]}, "no_cache": reg["no_cache"],
+                "cases": [c.id for c in cases]}
     write_json_atomic(folder / "settings.json", json.dumps(settings, indent=1))
-    budget = llm.Budget("validate", usd_cap, spent_by(out / name), trace_path=folder / "trace.jsonl")
-    verdicts = run_judges(cases, judges, roles, budget, folder, 1, no_cache, rubric=text)
+    budget = llm.Budget("validate", reg["usd_cap"], spent_by(out / name), trace_path=folder / "trace.jsonl")
+    verdicts = run_judges(cases, reg["judges"], roles, budget, folder, 1, reg["no_cache"], rubric=text)
     lost = sorted(f"{cid}:{who}" for (cid, who), v in verdicts.items() if v is None)
     fallbacks = [line.note for line in read_trace(folder / "trace.jsonl") if "declared fallback" in line.note]
-    body, _ = report(cases, verdicts, {}, read_labels(), judges, list(dict.fromkeys(fallbacks)))
+    body, _ = report(cases, verdicts, {}, labels, reg["judges"], list(dict.fromkeys(fallbacks)))
     failed = f"{len(lost)} ({', '.join(lost)})" if lost else "0"
     head = [f"# Experiment {name}, arm {arm}", "",
-            f"Rubric `{rubric}` (sha256 {settings['rubric_sha256'][:12]}), one verdict per judge per case. Failed "
-            f"calls, each counted as a miss or a fail: {failed}. No `--no-cache` rerun was made, so the rerun lines "
-            "below compare nothing and the harness gate can't pass; arms are compared as validation/EXPERIMENT-J.md "
-            "says.", ""]
+            f"Rubric `{settings['rubric']}` (sha256 {digest[:12]}), one verdict per judge per case. Failed calls, "
+            f"each counted as a miss or a fail: {failed}. No `--no-cache` rerun was made, so the rerun lines below "
+            "compare nothing and the harness gate can't pass; arms are compared as validation/EXPERIMENT-J.md says.",
+            ""]
     (folder / "report.md").write_text("\n".join(head) + body)
     print(f"{folder / 'report.md'}: {len(lost)} failed calls; ${spent_by(out / name):.2f} spent by experiment {name} "
-          f"under its ${usd_cap:.2f} cap")
+          f"under its ${reg['usd_cap']:.2f} cap")
+
+
+def uncommitted(paths: list[Path]) -> list[str]:
+    """The files at or under `paths` that the git checkout doesn't hold as committed (new or changed), or all the paths
+    when there's no checkout to ask."""
+    try:
+        listed = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all", "--",
+                                 *map(str, paths)], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return [str(p) for p in paths]
+    return [line[3:] for line in listed.splitlines()]
 
 
 def spent_by(experiment_dir: Path) -> float:
@@ -554,14 +609,30 @@ def disagree(case: Case, verdicts: dict[tuple[str, str], Verdict]) -> bool:
     return len(overall) > 1 or False in overall
 
 
+def label_order(cases: list[Case], verdicts: dict[tuple[str, str], Verdict], limit: int) -> list[Case]:
+    """The order `label` shows cases in: every known-good idea and, to fill `limit`, the cases the judges disagree
+    on and then others at random, all shuffled together; then the rest. The seed is fixed, so a skipped case comes
+    back in its place, and the order never says which case is which."""
+    rng = random.Random(LABEL_SEED)
+    goods = [c for c in cases if known_good(c)]
+    others = [c for c in cases if not known_good(c)]
+    rng.shuffle(others)
+    others.sort(key=lambda c: not disagree(c, verdicts))
+    fill = max(0, limit - len(goods))
+    first = goods + others[:fill]
+    rng.shuffle(first)
+    return first + others[fill:]
+
+
 def label_cases(cases: list[Case], verdicts: dict[tuple[str, str], Verdict], labels_dir: Path, ask=input,
                 say=print, limit: int = LABEL_TARGET) -> int:
     """Shows each proposal blind, with the product model the judges get (no expected answer, no verdicts, no judge
-    or arm) and asks for an overall pass/fail and the deciding check; the verdicts are shown after. Disagreements
-    come first. Returns how many were labeled."""
+    or arm), in label_order, and asks for an overall pass/fail and the deciding check; the verdicts are shown after.
+    Returns how many were labeled."""
     labels_dir.mkdir(parents=True, exist_ok=True)
     done = {p.stem for p in labels_dir.glob("*.json")}
-    todo = sorted((c for c in cases if c.id not in done and c.target != C8), key=lambda c: not disagree(c, verdicts))
+    order = label_order([c for c in cases if c.target != C8], verdicts, limit)
+    todo = [c for c in order if c.id not in done]
     labeled = 0
     for case in todo[:max(0, limit - len(done))]:
         shown = judge.judge_messages(case.candidate, case.model)[0]["content"][0]["text"]
@@ -600,7 +671,7 @@ def main(argv: list[str] | None = None) -> int:
     v.add_argument("--judges", default=",".join(JUDGES), help="comma-separated judge roles")
     v.add_argument("--no-cache", action="store_true")
     v.add_argument("--out", type=Path, default=OUT)
-    lab = sub.add_parser("label", help="blind human labels, disagreements first")
+    lab = sub.add_parser("label", help="blind human labels, in a fixed shuffled order")
     lab.add_argument("--limit", type=int, default=LABEL_TARGET)
     lab.add_argument("--out", type=Path, default=OUT, help="where validate-judge wrote its verdicts")
     s = sub.add_parser("summarize", help="rebuild validation/report.md from saved runs; makes no calls")
@@ -610,15 +681,10 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--only-judged", action="store_true",
                    help="score only the fixtures the runs judged, for runs saved before newer fixtures existed")
     sub.add_parser("freeze", help="pin the judge prompt hashes in config/frozen_prompts.toml")
-    e = sub.add_parser("experiment", help="one arm of a pre-registered judge experiment under a rubric file, into "
-                       "<out>/<name>/<arm>/ (validation/EXPERIMENT-J.md)")
+    e = sub.add_parser("experiment", help="one arm of a pre-registered judge experiment, run as "
+                       "validation/experiment-<name>/registration.toml says, into <out>/<name>/<arm>/")
     e.add_argument("name")
     e.add_argument("arm")
-    e.add_argument("--rubric", type=Path, required=True, help="the arm's rubric; the tracked prompt is never edited")
-    e.add_argument("--usd-cap", type=float, required=True, help="the experiment's dollar bound, shared by its arms")
-    e.add_argument("--profile", choices=["real", "dev"], default="real")
-    e.add_argument("--judges", default=",".join(JUDGES), help="comma-separated judge roles")
-    e.add_argument("--no-cache", action="store_true")
     e.add_argument("--out", type=Path, default=OUT)
     args = p.parse_args(argv)
     if args.command == "validate-judge":
@@ -628,8 +694,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{args.out}: harness gate {'PASS' if passed else 'FAIL'} (rebuilt from {args.runs}, no calls)")
         return 0
     if args.command == "experiment":
-        experiment(args.name, args.arm, args.rubric, args.profile, args.judges.split(","), args.usd_cap,
-                   args.no_cache, args.out)
+        experiment(args.name, args.arm, args.out)
         return 0
     if args.command == "label":
         n = label_cases(load_cases(), load_verdicts(args.out), CASES / "labels", limit=args.limit)

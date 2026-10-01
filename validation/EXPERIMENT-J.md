@@ -1,7 +1,23 @@
-# Experiment J: a three-part C2 reason (pre-registered 2026-09-30, not run)
+# Experiment j: a three-part C2 reason (pre-registered 2026-09-30, not run)
 
-Status: registered, $0 spent. Nothing here runs until Aadi's labels exist (step 1 below). The live rubric stays VF3, and
-`judge_revision_cap` stays 1, unless this experiment adopts the treatment.
+Status: registered, $0 spent. The live rubric stays VF3, and `judge_revision_cap` stays 1, unless this experiment adopts
+the treatment.
+
+## Label first, before reading on
+
+**Aadi:** run `uv run simula label` and label every case it shows until it reports 15 labeled, then commit
+`tests/fixtures/judge/labels/`. Do this before reading the rest of this file, which names the cases and what the judges
+are expected to do with them.
+
+- Each case appears as the judges see it, product model included. No verdict, judge, arm or expected answer appears
+  until you have answered that case.
+- The order is a fixed shuffle, so it says nothing about any case. A skipped case comes back in the same place on the
+  next run.
+- The commit freezes the labels: none may change after the experiment's first call. The experiment refuses to start
+  until 15 committed labels exist and include the ones it needs.
+
+What can't be blind: these fixtures include ideas Aadi chose, and `validation/report.md` already discusses three of them
+by name. The labels are blind to the judges' verdicts and to each case's expected answer, not to memory.
 
 ## Question
 
@@ -11,17 +27,28 @@ those fails without costing any planted catch, any safety verdict or any held-ou
 
 ## Arms
 
-Both arms run through `simula.validate experiment`, which passes the arm's rubric file to every judge call. The tracked
-`prompts/judge/rubric.md` is never edited, and the command refuses to start if any frozen judge input differs from
-`config/frozen_prompts.toml`, so the arms differ only in the rubric.
+Both arms run through `python -m simula.validate experiment j <arm>`, which takes everything else from the committed
+`validation/experiment-j/registration.toml`: each arm's rubric file and its sha256, the judges, the profile, `--no-cache`,
+and the cap both arms share. It passes the arm's rubric file to every judge call; the tracked `prompts/judge/rubric.md`
+is never edited. Before any call or write, it refuses to start when any of these holds:
+
+- a frozen judge input differs from `config/frozen_prompts.toml`;
+- the registration or the labels aren't committed;
+- there are fewer than 15 labels, or one of the known-good ideas has none;
+- the arm's rubric doesn't hash to its registered sha256;
+- the arm already ran;
+- an earlier arm ran from another commit or under another cap.
+
+So the arms differ only in the rubric.
 
 | Arm | Rubric file | sha256 |
 |---|---|---|
 | control | `prompts/judge/rubric.md` (VF3) | `0fd96e23a4549066d222043a6feeae5d125fe76867706197fdf3fefeced5f01c` |
 | treatment | `validation/experiment-j/treatment-rubric.md` | `9517fde0bf72363b60a381df847929d7b41c65b71f12f9c644d82f6a4562623a` |
 
-If either hash differs when the experiment starts, stop: rebuild the treatment from the current rubric with the same
-sentence, and amend this file before any call.
+If the live rubric changes before the experiment runs, the control's hash no longer matches and the command refuses.
+Rebuild the treatment from the new rubric with the same sentence, and amend this file and the registration before any
+call.
 
 ### The treatment
 
@@ -49,19 +76,20 @@ Each arm's `settings.json` lists the case ids it judged; they must equal this li
 
 ## Procedure
 
-1. **Aadi labels, before any call** (no spend). Run `uv run simula label` and answer until it reports 15 labeled. With no
-   validation run in `validation/latest/`, it shows the 6 known-good ideas first, then the 3 held-out cases, then planted
-   cases in file order. It shows each idea with the same product model the judges get, and no verdict, judge, arm or
-   expected answer until after the answer. Label all 6 known-good ideas; a skip doesn't count, so rerun until 15. Then
-   commit `tests/fixtures/judge/labels/`. That commit freezes the labels: none may change after the first call.
-2. **Control:** `uv run python -m simula.validate experiment J control --rubric prompts/judge/rubric.md --usd-cap 10 --no-cache`
-3. **Treatment:** `uv run python -m simula.validate experiment J treatment --rubric validation/experiment-j/treatment-rubric.md --usd-cap 10 --no-cache`
-4. Read `validation/latest/J/{control,treatment}/report.md` and the verdict files, and apply the rule below. The folders
-   stay untracked.
+1. **Labels**, as the first section says: no spend.
+2. **Control:** `uv run python -m simula.validate experiment j control`
+3. **Treatment:** `uv run python -m simula.validate experiment j treatment`
+4. Read `validation/latest/j/{control,treatment}/report.md` and the verdict files, and apply the rule below. The folders
+   stay untracked: `validation/latest/` is gitignored.
 
-No resume and no third arm. A run the cap stops, a failed call, or a declared model fallback in either arm (each report's
-header and its "Declared model fallback used" lines) makes the experiment **inconclusive**: no adoption, and no
-extra spend to rescue it.
+No resume and no third arm: the command runs each arm once. The experiment is **inconclusive** if either arm hits any of
+these:
+
+- a cap stop;
+- a failed call;
+- a declared model fallback (each report's header and its "Declared model fallback used" lines).
+
+Inconclusive means no adoption and no extra spend to rescue it.
 
 ## The adoption rule (all must hold)
 
@@ -117,17 +145,17 @@ that is worth $7.40 is Aadi's call.
 - **Expected:** 33 cases × 2 arms × $0.1121 = **$7.40**.
 - **Calls in flight:** the budget holds each call's worst case until it settles: about $0.20 (the largest case's ~18K
   input tokens at $2/M plus 16,001 output tokens at $10/M). Up to 8 run at once, so ≤ $1.60 is held.
-- **Hard cap: `--usd-cap 10` for the whole experiment.** Both arms share it, because the cap counts spend in every
-  `validation/latest/J/*/trace.jsonl`. A cap stop is inconclusive (see Procedure).
+- **Hard cap: `usd_cap = 10` in the registration, for the whole experiment.** Both arms share it: the cap counts spend
+  in every `validation/latest/j/*/trace.jsonl`, and the first arm records it in `validation/latest/j/experiment.json`
+  for the second to match. A cap stop is inconclusive (see Procedure).
 
 For scale: the first plan's three repeats per arm cost about $9.42 an arm (VERIFY-astra: 28 cases × 3 × $0.1121).
 
 ## What Aadi must do
 
-1. Run `uv run simula label` until it reports **15 labeled**, answering all 6 known-good ideas (the first 6 shown).
-   Expect the 3 held-out cases to be long: they carry a full JanitorAI product model.
-2. Commit the labels.
-3. Decide whether the expected-outcome section above is worth $7.40 (cap $10), and if so run steps 2 and 3 of the
+1. Label and commit, as the first section says (15 labels). Some cases are long: they carry a full JanitorAI product
+   model.
+2. Decide whether the expected-outcome section above is worth $7.40 (cap $10). If so, run steps 2 and 3 of the
    Procedure, or say so and a worker runs them.
 
 ## Not part of this experiment: a second revision

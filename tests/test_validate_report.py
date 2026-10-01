@@ -2,13 +2,14 @@
 broken check at 0/2, Wilson over the 24 LLM cases, C8 kept out of LLM recall, rerun flips; the fixture loader;
 and the blind label CLI."""
 
+import hashlib
 import json
 import shutil
-from pathlib import Path
+import subprocess
 
 import pytest
 
-from simula import economics, llm, runlog, validate
+from simula import economics, llm, runfolder, runlog, validate
 from simula.contracts import GATES
 from simula.stages import judge, propose
 from simula.validate import C8, LLM_CHECKS, Case
@@ -403,8 +404,8 @@ def test_label_asks_blind_saves_the_label_and_shows_verdicts_after(tmp_path):
     said = []
     n = validate.label_cases(cases, verdicts, tmp_path, ask=lambda _: next(answers), say=said.append, limit=2)
     assert n == 2
-    first = json.loads((tmp_path / "kg-janitorai.json").read_text())
-    assert (first["overall"], first["deciding_check"]) == ("fail", "c5_moment")
+    labels = [json.loads(p.read_text()) for p in tmp_path.glob("*.json")]
+    assert sorted((x["overall"], x["deciding_check"]) for x in labels) == [("fail", "c5_moment"), ("pass", None)]
     shown = "\n".join(said)
     assert shown.index("judge_2: fails c5_moment") > shown.index("title: ")
     assert "pd-" not in said[0] and "Planted" not in said[0]
@@ -430,53 +431,171 @@ def test_the_blind_display_shows_the_judges_product_model_and_nothing_that_gives
         assert leak not in blind
 
 
+def test_label_mixes_every_known_good_into_its_first_cases_in_an_order_that_never_changes():
+    cases = [c for c in validate.load_cases() if c.target != C8]
+    goods = {c.id for c in cases if validate.known_good(c)}
+    order = [c.id for c in validate.label_order(cases, {}, validate.LABEL_TARGET)]
+    assert goods <= set(order[:validate.LABEL_TARGET]) and set(order[:len(goods)]) != goods
+    assert order == [c.id for c in validate.label_order(cases, {}, validate.LABEL_TARGET)]
+    assert sorted(order) == sorted(c.id for c in cases)
+
+
 # ---------- an experiment arm ----------
 
-def test_an_experiment_arm_judges_under_its_rubric_and_counts_a_lost_call_against_it(tmp_path, monkeypatch):
-    tracked = judge.read_prompt("rubric.md")
-    rubric = tmp_path / "treatment.md"
-    rubric.write_text(tracked + "\nA TREATMENT CLAUSE.\n")
-    lost_case = next(c for c in validate.load_cases() if c.source in ("base", "run"))
-    systems = []
+def register(root, usd_cap=1.0, treatment=None):
+    """Experiment j under root: a control arm on the tracked rubric and a treatment arm on a rubric file there."""
+    rubric = root / "treatment.md"
+    rubric.write_text(treatment or judge.read_prompt("rubric.md") + "\nA TREATMENT CLAUSE.\n")
+    arms = {"control": judge.PROMPTS / "rubric.md", "treatment": rubric}
+    lines = [f"usd_cap = {usd_cap}", "labels = 15", 'profile = "dev"', 'judges = ["judge_1", "judge_2"]',
+             "no_cache = false"]
+    for arm, path in arms.items():
+        lines += [f"[arms.{arm}]", f"rubric = {json.dumps(str(path))}",
+                  f'sha256 = "{hashlib.sha256(path.read_bytes()).hexdigest()}"']
+    (root / "experiment-j").mkdir(exist_ok=True)
+    (root / "experiment-j" / "registration.toml").write_text("\n".join(lines) + "\n")
+    return rubric
+
+
+def every_good_labeled(n=15):
+    cases = [c for c in validate.load_cases() if c.target != C8]
+    ordered = sorted(cases, key=lambda c: not validate.known_good(c))
+    return {c.id: {"case_id": c.id, "overall": "pass"} for c in ordered[:n]}
+
+
+@pytest.fixture
+def ready(tmp_path, monkeypatch):
+    """Experiment j registered under tmp_path with its labels in place and committed; returns the model calls made."""
+    register(tmp_path)
+    monkeypatch.setattr(validate, "uncommitted", lambda paths: [])
+    monkeypatch.setattr(validate, "read_labels", lambda root=validate.CASES: every_good_labeled())
+    calls = []
 
     def call(**kw):
-        systems.append(kw["system"])
+        calls.append(kw)
+        return verdict(), None
+    monkeypatch.setattr(llm, "call", call)
+    return calls
+
+
+def run_arm(tmp_path, arm="treatment", name="j"):
+    validate.experiment(name, arm, tmp_path / "out", tmp_path)
+
+
+def test_an_experiment_arm_judges_under_its_registered_rubric_and_counts_a_lost_call_against_it(tmp_path, ready,
+                                                                                                  monkeypatch):
+    rubric = (tmp_path / "treatment.md").read_text()
+    lost_case = next(c for c in validate.load_cases() if validate.known_good(c))
+    seen = {}
+
+    def call(**kw):
+        ready.append(kw)
         if kw["step"].startswith(f"{lost_case.id}:judge_2:"):
             raise llm.LLMFailure("error", "Connection error.")
         return verdict(), None
     monkeypatch.setattr(llm, "call", call)
-    validate.experiment("J", "treatment", rubric, "dev", ["judge_1", "judge_2"], 1.0, False, tmp_path)
-    arm = tmp_path / "J" / "treatment"
+    monkeypatch.setattr(runfolder, "git_dirty", lambda: seen.update(wrote=(tmp_path / "out").exists()) or False)
+    tracked = judge.read_prompt("rubric.md")
+    run_arm(tmp_path)
+    arm = tmp_path / "out" / "j" / "treatment"
     llm_cases = [c for c in validate.load_cases() if c.target != C8]
-    assert set(systems) == {rubric.read_text()} and len(systems) == 2 * len(llm_cases)
-    assert judge.read_prompt("rubric.md") == tracked and (arm / "rubric.md").read_text() == rubric.read_text()
+    assert {c["system"] for c in ready} == {rubric} and len(ready) == 2 * len(llm_cases)
+    assert judge.read_prompt("rubric.md") == tracked and (arm / "rubric.md").read_text() == rubric
     settings = json.loads((arm / "settings.json").read_text())
-    assert settings["cases"] == [c.id for c in llm_cases] and settings["arm"] == "treatment"
+    assert settings["cases"] == [c.id for c in llm_cases] and settings["git_dirty"] is False and not seen["wrote"]
     assert len(list((arm / "verdicts").glob("*_r1.json"))) == 2 * len(llm_cases) - 1
     text = (arm / "report.md").read_text()
-    goods = sum(c.source in ("base", "run") for c in llm_cases)
+    goods = sum(validate.known_good(c) for c in llm_cases)
     assert f"Failed calls, each counted as a miss or a fail: 1 ({lost_case.id}:judge_2)" in text
     assert f"| judge_2 | {goods - 1}/{goods} " in text and f"| combined | {goods - 1}/{goods} " in text
 
 
-def test_arms_of_one_experiment_share_its_dollar_cap(tmp_path, monkeypatch):
-    rubric = tmp_path / "rubric.md"
-    rubric.write_text(judge.read_prompt("rubric.md"))
-    (tmp_path / "J" / "control").mkdir(parents=True)
-    runlog.run_trace(tmp_path / "J" / "control", stage="validate", step="x", decider="model", usd=0.9, note="")
+def test_arms_of_one_experiment_share_its_registered_cap(tmp_path, ready, monkeypatch):
+    (tmp_path / "out" / "j" / "control").mkdir(parents=True)
+    runlog.run_trace(tmp_path / "out" / "j" / "control", stage="validate", step="x", decider="model", usd=0.9, note="")
     seen = {}
 
     def call(**kw):
-        seen["spent"] = kw["budget"].spent
+        seen["budget"] = (kw["budget"].spent, kw["budget"].cap)
         return verdict(), None
     monkeypatch.setattr(llm, "call", call)
-    validate.experiment("J", "treatment", rubric, "dev", ["judge_1"], 1.0, False, tmp_path)
-    assert seen["spent"] == pytest.approx(0.9)
+    run_arm(tmp_path)
+    assert seen["budget"] == (pytest.approx(0.9), 1.0)
 
 
-def test_simula_validate_experiment_parses_its_arm(monkeypatch, tmp_path):
+def test_an_arm_runs_once_and_its_first_draw_stays(tmp_path, ready):
+    run_arm(tmp_path)
+    arm = tmp_path / "out" / "j" / "treatment"
+    before = {p: p.read_bytes() for p in arm.rglob("*") if p.is_file()}
+    calls = len(ready)
+    with pytest.raises(SystemExit, match="already ran"):
+        run_arm(tmp_path)
+    assert {p: p.read_bytes() for p in arm.rglob("*") if p.is_file()} == before and len(ready) == calls
+
+
+def test_a_later_arm_runs_only_from_the_first_arms_commit_under_its_cap(tmp_path, ready, monkeypatch):
+    run_arm(tmp_path, "control")
+    register(tmp_path, usd_cap=50.0)
+    with pytest.raises(SystemExit, match="one commit under one cap"):
+        run_arm(tmp_path)
+    register(tmp_path)
+    monkeypatch.setattr(runfolder, "git_sha", lambda: "0000000")
+    with pytest.raises(SystemExit, match="one commit under one cap"):
+        run_arm(tmp_path)
+    assert not (tmp_path / "out" / "j" / "treatment").exists()
+
+
+@pytest.mark.parametrize("unmet, refusal", [
+    ("labels", "needs 15 labels"), ("good", "1 known-good idea"), ("commit", "commit these first"),
+    ("rubric", "not the .* registered for arm treatment")])
+def test_the_experiment_refuses_before_any_call_or_write_until_its_prerequisites_hold(tmp_path, ready, monkeypatch,
+                                                                                      unmet, refusal):
+    if unmet == "labels":
+        monkeypatch.setattr(validate, "read_labels", lambda root=validate.CASES: every_good_labeled(14))
+    if unmet == "good":
+        labels = every_good_labeled(16)
+        del labels[next(c.id for c in validate.load_cases() if validate.known_good(c))]
+        monkeypatch.setattr(validate, "read_labels", lambda root=validate.CASES: labels)
+    if unmet == "commit":
+        monkeypatch.setattr(validate, "uncommitted", lambda paths: ["tests/fixtures/judge/labels/kg-x.json"])
+    if unmet == "rubric":
+        (tmp_path / "treatment.md").write_text("edited after registration")
+    with pytest.raises(SystemExit, match=refusal):
+        run_arm(tmp_path)
+    assert not ready and not (tmp_path / "out").exists()
+
+
+@pytest.mark.parametrize("name, arm", [("..", "control"), ("j", "../../prompts/judge"), ("J", "control"),
+                                       ("j", "Control"), ("j", ""), ("j", "/tmp/x")])
+def test_experiment_and_arm_names_are_plain_slugs(tmp_path, ready, name, arm):
+    with pytest.raises(SystemExit, match="plain slugs"):
+        run_arm(tmp_path, arm, name)
+    assert not ready and not (tmp_path / "out").exists()
+
+
+def test_uncommitted_names_every_new_or_changed_file_under_a_path(tmp_path, monkeypatch):
+    def git(*args):
+        subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *args], cwd=tmp_path, check=True,
+                       capture_output=True)
+    git("init", "-q")
+    (tmp_path / "labels").mkdir()
+    for name in ("a.json", "b.json"):
+        (tmp_path / "labels" / name).write_text("{}")
+    (tmp_path / ".gitignore").write_text("*.tmp\n")
+    git("add", ".")
+    git("commit", "-qm", "x")
+    monkeypatch.setattr(validate, "ROOT", tmp_path)
+    assert validate.uncommitted([tmp_path / "labels"]) == []
+    (tmp_path / "labels" / "a.json").write_text('{"changed": true}')
+    (tmp_path / "labels" / "c.json").write_text("{}")
+    (tmp_path / "labels" / "d.tmp").write_text("{}")
+    assert sorted(validate.uncommitted([tmp_path / "labels"])) == ["labels/a.json", "labels/c.json"]
+    monkeypatch.setattr(validate, "ROOT", tmp_path / "labels" / "not-a-checkout")
+    assert validate.uncommitted([tmp_path / "labels"]) == [str(tmp_path / "labels")]
+
+
+def test_simula_validate_experiment_takes_only_its_name_and_arm(monkeypatch, tmp_path):
     seen = {}
     monkeypatch.setattr(validate, "experiment", lambda *args: seen.update(args=args))
-    assert validate.main(["experiment", "J", "control", "--rubric", "r.md", "--usd-cap", "9.5", "--no-cache",
-                          "--out", str(tmp_path)]) == 0
-    assert seen["args"] == ("J", "control", Path("r.md"), "real", ["judge_1", "judge_2"], 9.5, True, tmp_path)
+    assert validate.main(["experiment", "j", "control", "--out", str(tmp_path)]) == 0
+    assert seen["args"] == ("j", "control", tmp_path)
