@@ -14,6 +14,7 @@ LAUNCH_STATES = {
     "janitorai": ("j01_launch", "janitorai-a", "Close subscription announcement"),
     "luzia": ("luzia-pet-intro", "luzia-home", "Later"),
 }
+FILTERED = {"janitorai": ("Limited Only", "janitorai-limited")}  # the content filter's chip and the screen it selects
 
 
 def launch_explorer(tmp_path, monkeypatch, app: str, strip_dismiss: bool = False):
@@ -26,6 +27,10 @@ def launch_explorer(tmp_path, monkeypatch, app: str, strip_dismiss: bool = False
         screens["dialog"].elements = [e for e in screens["dialog"].elements
                                       if not re.match(r"close|not now", words(e), re.IGNORECASE)]
     taps = {("dialog", close): "home"}
+    if app in FILTERED:
+        chip, filtered = FILTERED[app]
+        screens["filtered"] = capture(app, filtered, package=PACKAGE)
+        taps[("home", chip)] = "filtered"
     phone = FakePhone(screens=screens, start="dialog", taps=taps, clock=clock, backs={"dialog": "home"})
     ctx = new_run(tmp_path)
     ex = stage.Explorer(ctx, phone, ctx.run_dir / "explore", clock=clock, sleep=clock.sleep)
@@ -37,7 +42,7 @@ def launch_explorer(tmp_path, monkeypatch, app: str, strip_dismiss: bool = False
 def test_the_dialog_is_recorded_before_it_is_dismissed(tmp_path, monkeypatch):
     for app in LAUNCH_STATES:
         ex, phone = launch_explorer(tmp_path / app, monkeypatch, app)
-        dialog, home = ex.states[0], ex.root
+        dialog, home = ex.states[0], ex.launch_root  # the screen it covered; the root is the filtered one
         assert dialog.kind == "modal" and dialog.done and dialog.parent == home.sid
         saved = (ex.out / "states" / f"{dialog.sid}.png")
         assert not ImageChops.difference(stage.Image.open(saved).convert("RGB"),
