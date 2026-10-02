@@ -2161,12 +2161,16 @@ def test_a_filter_chip_that_changed_class_is_not_verified_by_its_text(tmp_path, 
     assert {e[1] for e in phone.log[phone.launches[1]:] if e[0] == "tap"} <= {"launch"}
 
 
-@pytest.mark.parametrize("opener_says, verified", [("Safe mode: SFW only", True), ("Safe mode", False)])
-def test_an_option_on_a_sheet_that_closed_is_verified_only_where_its_opener_shows_it(tmp_path, monkeypatch,
+@pytest.mark.parametrize("option, opener_says, verified", [("SFW only", "Safe mode: SFW only", True),
+                                                            ("SFW only", "Safe mode", False),
+                                                            ("SFW", "Content: NSFW", False),
+                                                            ("SFW only", "Rating: NSFW only", False)])
+def test_an_option_on_a_sheet_that_closed_is_verified_only_where_its_opener_shows_it(tmp_path, monkeypatch, option,
                                                                                      opener_says, verified):
     """rt-pr43-3b1fb8c MEDIUM 1: a filter set by an option on a sheet ("SFW only"), and the sheet closed. The option
-    isn't on the screen, so it counts only where its opener now shows its label; its text elsewhere, or an opener
-    that doesn't show it, is not verified."""
+    isn't on the screen, so it counts only where its opener now shows its label, as a whole token; its text
+    elsewhere, an opener that doesn't show it, or one that shows it inside another word (rt-pr43-60db74b MEDIUM 1:
+    "SFW" in "NSFW") is not verified."""
     ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
     root = phone.screens["root"]
     chip = next(e for e in root.elements if e.get("label") == "Limited Only")
@@ -2178,9 +2182,9 @@ def test_an_option_on_a_sheet_that_closed_is_verified_only_where_its_opener_show
     ex.observe()
     opener = ob.Candidate(label="Safe mode", kind="ViewGroup", rect=ob.rect(chip), ref="@opener",
                           tree_label="Safe mode")
-    option = ob.Candidate(label="SFW only", kind="Button", rect=stage.Rect(x=60, y=1500, w=960, h=120), ref="@option",
-                          tree_label="SFW only")
-    ex.filter_taps = [opener, option]
+    pick = ob.Candidate(label=option, kind="Button", rect=stage.Rect(x=60, y=1500, w=960, h=120), ref="@option",
+                        tree_label=option)
+    ex.filter_taps = [opener, pick]
     if verified:
         ex.check_filter()
         assert ex.filtered and ex.filter_checks[-1][1]
@@ -2211,6 +2215,60 @@ def test_a_return_from_another_app_onto_a_deeper_screen_taps_nothing_until_a_rel
     ex.leave()
     ex.act(stage.Move("tap", next(c for c in ex.obs.cands if c.key in ex.tab_keys())), purpose="tour")
     assert ("check", True) in phone.log[away:] and unfiltered_taps(phone.log[away:]) == []
+
+
+def tour_until(ex, monkeypatch, first):
+    """Runs tour() on an explorer with a content filter: first() runs inside its first round, and the round after it
+    records whether the filter was verified and how many relaunches were spent, then stops the tour."""
+    seen, target = [], ex.next_target
+
+    def next_target():
+        if not seen:
+            seen.append(None)
+            first()
+            return target()
+        seen.append((ex.filtered, ex.relaunches))
+        raise stage.Stop("test")
+    monkeypatch.setattr(ex, "next_target", next_target)
+    with pytest.raises(stage.Stop, match="test"):
+        ex.tour()
+    return seen[1:]
+
+
+def test_a_device_error_inside_a_tour_relaunch_relaunches_with_the_filter_instead_of_ending_the_explore(
+        tmp_path, monkeypatch):
+    """rt-pr43-60db74b LOW 1 (H1): a relaunch the tour runs (as goto() does) loses the device on the filter chip, so
+    the launch is never verified; tour()'s device handler logs it and goes on. The next round relaunches with the
+    filter first, rather than ending the explore on its next tap as an unverified filter."""
+    from simula.device.mcp import McpReplyError
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    tap, refused = phone.tap, []
+
+    def refuses_once(x, y):
+        if not refused and phone.screen == "root":
+            refused.append((x, y))
+            raise McpReplyError("the device lost the answer")
+        tap(x, y)
+
+    def relaunch_cut_short():
+        monkeypatch.setattr(phone, "tap", refuses_once)
+        ex.relaunch(why="no recorded way (as goto() relaunches)")
+    assert tour_until(ex, monkeypatch, relaunch_cut_short) == [(True, 2)] and refused
+
+
+def test_an_account_made_on_the_tour_is_relaunched_with_the_filter_before_another_tap(tmp_path, monkeypatch):
+    """rt-pr43-60db74b LOW 3: a sign-up that makes an account mid-tour switches the app to the new account's settings
+    without a launch, so its filter is unchecked: result() clears the verified filter, and the tour relaunches with
+    it before another tap."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    walls = []
+    monkeypatch.setattr(ex, "account_wall", lambda s: not walls and len(ex.segments) == 1)  # once the tour runs
+
+    def get_past(wall):
+        walls.append(wall.sid)
+        return ex.result(wall)  # the form was sent and the app, with its tab bar, is in front: an account is made
+    monkeypatch.setattr(ex, "get_past", get_past)
+    assert tour_until(ex, monkeypatch, lambda: None) == [(True, 1)] and walls and ex.account_state == "made"
 
 
 @pytest.mark.parametrize("reset", [False, True])

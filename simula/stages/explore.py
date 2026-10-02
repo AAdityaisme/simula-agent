@@ -1101,14 +1101,16 @@ class Explorer:
 
     def check_filter(self) -> None:
         """The filter's last control, found on the screen, shows what the filter wants (a switch's state, a chip or a
-        sheet's option selected). An option on a sheet that closed counts where its opener now shows its label.
+        sheet's option selected). An option on a sheet that closed counts where its opener now shows its label as a
+        whole token ("SFW" is no part of "NSFW").
         A control the screen doesn't show is not verified. A pass marks this launch filtered; a fail ends the
         explore."""
         last, opener = self.filter_taps[-1], self.filter_taps[0]
         live = ob.find(self.obs.cands, last)
         ok = (live.checked == self.filter_on if self.filter_on is not None else self.selected(last)) if live \
             else last is not opener and bool(last.tree_label) and any(
-                last.tree_label in c.label for c in self.obs.cands if ob.overlaps(c.rect, opener.rect))
+                re.search(rf"(?<![\w+]){re.escape(last.tree_label)}(?![\w+])", c.label)
+                for c in self.obs.cands if ob.overlaps(c.rect, opener.rect))
         n = len(self.filter_checks) + 1
         evidence = self.out / "filter" / f"check-{n:02d}.png"
         evidence.parent.mkdir(exist_ok=True)
@@ -1325,7 +1327,7 @@ class Explorer:
                and bool(ob.tab_bar(cands, self.device) or ob.composer(cands, self.device)))
         if not app:
             return self.stopped(wall, f"the form was sent, but {s.sid} shows no sign of an account")
-        self.account_state = "made"
+        self.account_state, self.filtered = "made", False  # a new account's settings: its filter is unchecked
         return self.account_note(f"{wall.sid}: signed up with the test identity, now on {s.sid}", True)
 
     def email_way(self) -> ob.Candidate | None:
@@ -1704,12 +1706,17 @@ class Explorer:
         return "" if self.checklist()[1] else "checklist answered"
 
     def tour(self) -> None:
+        """Explores until a cap or nothing is left. An app with a content filter is toured only while it is verified:
+        a launch a device error cut short, or an account made on the way, is relaunched with the filter first."""
         self.relaunch(first=True)
         while True:
             reason = self.check_caps()
             if reason:
                 raise Stop(reason)
             try:
+                if self.filter_taps and not self.filtered:
+                    self.relaunch(why="the content filter isn't verified since a device error or a new account")
+                    continue
                 if self.obs is None:
                     self.resync()
                 if self.current.kind in AWAY:
