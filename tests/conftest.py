@@ -27,8 +27,18 @@ def pytest_collection_modifyitems(config, items):
     items[:] = [item for item, keep in zip(items, mine) if keep]
 
 
+@pytest.fixture(scope="session")
+def quiet_osascript(tmp_path_factory) -> Path:
+    """A directory holding an osascript that does nothing, for PATH: a run a test starts as its own process (the
+    graders' replay of the pinned code) reaches macOS banners only through osascript."""
+    folder = tmp_path_factory.mktemp("bin")
+    (folder / "osascript").write_text("#!/bin/sh\nexit 0\n")
+    (folder / "osascript").chmod(0o755)
+    return folder
+
+
 @pytest.fixture(autouse=True)
-def no_device(request, monkeypatch):
+def no_device(request, monkeypatch, quiet_osascript):
     """Offline tests never reach the emulator: a chained run stops where explore would start mobile-mcp, the live
     walk where it would, and adb answers only dumpsys, as an emulator does with its soft keyboard up over the lower
     part of the screen. A test changes those answers through the dict this returns. Nor do they show a macOS banner
@@ -38,6 +48,7 @@ def no_device(request, monkeypatch):
 
     monkeypatch.setenv("SIMULA_REDACT", "offline-test-handle")
     monkeypatch.setattr(runlog, "notify", lambda title, message: False)
+    monkeypatch.setenv("PATH", f"{quiet_osascript}{os.pathsep}{os.environ['PATH']}")
 
     def refuse(*args, **kwargs):
         raise NotImplementedError("PR 1: offline tests never start mobile-mcp")
