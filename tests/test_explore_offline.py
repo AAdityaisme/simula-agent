@@ -569,12 +569,14 @@ def committed(run: str, sid: str) -> Screen:
                   Image.open(states / f"{sid}.png").convert("RGB"), PACKAGE)
 
 
-def recorded_dialog(tmp_path, monkeypatch, parent: Screen, dialog: Screen, things) -> tuple:
+def recorded_dialog(tmp_path, monkeypatch, parent: Screen, dialog: Screen, things, parent_things=None) -> tuple:
     """An explorer that recorded `dialog` through record(), over `parent`, with the icon pass answering
-    `things(ex)` for the dialog."""
+    `things(ex)` for the dialog and `parent_things(ex)`, if given, for the parent."""
     def phone(clock):
         return FakePhone(screens={"parent": parent, "dialog": dialog}, start="parent", taps={}, clock=clock)
     ex, phone_ = new_explorer(tmp_path, monkeypatch, phone)
+    if parent_things:
+        monkeypatch.setattr(ex, "ask", lambda *a: IconPass(names=[], unlisted=parent_things(ex)))
     before = ex.observe()
     under = ex.record(before, None, None, None)
     phone_.screen = "dialog"
@@ -615,6 +617,22 @@ def test_a_dialogs_art_above_all_its_listed_controls_is_kept(tmp_path, monkeypat
         unlisted(ex, 396, 176, 684, 572, "picture", "assistant avatar")])
     assert ob.bbox([c.rect for c in s.cands if c.ref]).y == 1285
     assert s.vision == [VisionElement(name="header art", rect_px=Rect(x=120, y=582, w=840, h=662), kind="picture")]
+
+
+def test_a_parent_picture_that_changed_behind_a_dialog_is_still_the_parents(tmp_path, monkeypatch):
+    """Greptile on 57053a9: a parent's carousel or video can move on between the capture before the tap and the
+    dialog's, so its picture behind the scrim no longer looks as it did. A picture at the spot of one the parent's own
+    icon pass found is the parent's, whatever its look; the dialog's art beside it is still the dialog's."""
+    toki = committed(LUZIA, "s05")
+    image, slide = toki.image.copy(), (396, 176, 684, 572)
+    image.paste(image.crop(slide).transpose(Image.Transpose.ROTATE_90).resize((slide[2] - slide[0],
+                                                                               slide[3] - slide[1])), slide[:2])
+    toki = Screen([e for e in toki.elements if e["ref"] != "@e26"], image, PACKAGE)
+    ex, s = recorded_dialog(tmp_path, monkeypatch, committed(LUZIA, "s01"), toki, lambda ex: [
+        unlisted(ex, 120, 582, 960, 1244, "picture", "header art"), unlisted(ex, *slide, "picture", "next slide")],
+        parent_things=lambda ex: [unlisted(ex, *slide, "picture", "assistant avatar")])
+    assert [v.name for v in ex.by_id[s.parent].vision] == ["assistant avatar"]
+    assert [v.name for v in s.vision] == ["header art"]
 
 
 def test_a_dialogs_art_is_cropped_whole_by_the_model_stage(tmp_path, monkeypatch):

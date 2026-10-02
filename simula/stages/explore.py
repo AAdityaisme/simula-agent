@@ -2331,7 +2331,8 @@ class Explorer:
         held = [c.rect for c in s.cands]
         if item.kind == "picture":
             held = [c.rect for c in s.cands if c.ref]
-            if s.box and not (held and (ob.inside(point, ob.bbox(held)) or self.overlay_holds(s, point, held, looks))):
+            if s.box and not (held and (ob.inside(point, ob.bbox(held))
+                                        or self.overlay_holds(s, point, box, held, looks))):
                 return
             if any(ob.iou(box, v.rect_px) >= SAME_PICTURE_IOU for v in s.vision if v.kind == "picture"):
                 return
@@ -2341,15 +2342,21 @@ class Explorer:
         s.cands.append(ob.Candidate(label=item.name, kind="vision" if item.kind == "control" else "picture", rect=box,
                                     ref=None, tree_label=""))
 
-    def overlay_holds(self, s: Seen, point: Rect, own: list[Rect],
+    def overlay_holds(self, s: Seen, point: Rect, box: Rect, own: list[Rect],
                       looks: tuple[Image.Image, Image.Image] | None) -> bool:
-        """A point outside an overlay's own listed controls, such as art above its topmost one, is the overlay's when
-        it lies in the smallest listed view that holds them all (its window, as the tree lists it) and looks unlike the
+        """A picture centered outside an overlay's own listed controls, such as art above its topmost one, is the
+        overlay's when its center lies in the smallest listed view that holds them all (its window, as the tree lists
+        it), it is at no spot where the parent's own icon pass found a picture, and its center looks unlike the
         parent's capture there. A scrim only dims the parent, and dHash reads edges, not brightness, so the parent's
-        own pixels behind it keep their look; a window as tall as the screen leaves that look the only evidence."""
+        own pixels behind it keep their look; a window as tall as the screen leaves that look the only evidence. A
+        parent's carousel or video can change between the two captures, so a parent picture's spot settles it first.
+        Art whose center has no edges, over a parent with none there, looks the same and is left out: no crop."""
         frame = min((r for r in map(ob.rect, s.elements) if all(ob.inside(o, r) for o in own)), key=ob.area,
                     default=None)
         if looks is None or frame is None or not ob.inside(point, frame):
+            return False
+        parent = self.by_id.get(s.parent)
+        if parent and any(ob.iou(box, v.rect_px) >= SAME_PICTURE_IOU for v in parent.vision if v.kind == "picture"):
             return False
         half = ob.PATCH_DP * self.device.scale / 2
         patch = Rect(x=point.x - half, y=point.y - half, w=2 * half, h=2 * half)
