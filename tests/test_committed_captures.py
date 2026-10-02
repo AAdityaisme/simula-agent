@@ -51,7 +51,7 @@ def explore_rules(explore: Path, monkeypatch, tmp: Path) -> dict:
                                      app={"name": explore.parent.parent.name, "package": run.app_package})
     ex.device = run.device
     monkeypatch.setattr(ex, "apply_filter", lambda first: None)  # its taps would lead nowhere on still captures
-    monkeypatch.setattr(ex, "name_icons", lambda s: None)  # a model's names, not the explorer's rules
+    monkeypatch.setattr(ex, "name_icons", lambda s, looks=None: None)  # a model's names, not the explorer's rules
     try:
         ex.relaunch(first=True)
     except stage.Stop:

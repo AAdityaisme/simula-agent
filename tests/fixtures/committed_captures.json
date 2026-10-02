@@ -49,8 +49,6 @@
     "kind": "modal",
     "box": "0,168 1080x1975",
     "controls": [
-     "Tap here for weather | TextView | 133,496 713x63",
-     " | View | 846,465 126x126",
      "AD | ComposeView | 0,1508 1080x294",
      "iv_articleImage | ImageView | 712,1828 315x315",
      "Close side bar | ImageView | 21,168 116x116",
@@ -66,7 +64,6 @@
      "Call Customer Support | ViewGroup | 0,1429 814x148"
     ],
     "refused": [
-     "Tap here for weather | drawn over ('Manage Accounts' at the tap point)",
      "AD | drawn over ('Manage Accounts' at the tap point)"
     ]
    },

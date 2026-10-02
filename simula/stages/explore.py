@@ -25,7 +25,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 from simula import config, decide, llm
 from simula.contracts import (ActionLine, Arrival, Coverage, Device, ExploreFile, HardScreenAction, IconLabel, IconPass,
-                              LaterCapture, Point, Progress, Rect, StageOutcome, StateFile, VisionElement, WalkPick)
+                              LaterCapture, Point, Progress, Rect, StageOutcome, StateFile, Unlisted, VisionElement,
+                              WalkPick)
 from simula.device import observe as ob
 from simula.device.mcp import McpReplyError, McpTimeout, Phone, Server
 from simula.device.devices import adb, emulator_lock, online, resolve_serial
@@ -49,7 +50,7 @@ FILTER_SURE = 0.5
 ACCENT_SATURATION = 30
 LOCK_WAIT_S = 1800
 ICON_SCALE = 0.5
-VISION_BOX_DP = 48
+SAME_PICTURE_IOU = 0.5  # two of the icon pass's pictures are one when their boxes overlap this much
 CORE_REPS = {"deep": 8, "transfer": 3}  # ponytail: belongs in profiles.toml budgets; listed under shared-file needs
 CORE_SECONDS_PER_REP = 75
 SETTLE_GAP_S = 3.0
@@ -218,6 +219,12 @@ def where(c: ob.Candidate, device: Device) -> str:
 
 def hop_key(s: Seen, move: Move) -> tuple:
     return s.sid, move.action, move.cand.key if move.cand else move.direction
+
+
+def controls_of(cands: list[ob.Candidate]) -> list[ob.Candidate]:
+    """A state's controls: its candidates but the pictures the vision pass found, which no picker takes while a
+    control is left."""
+    return [c for c in cands if c.kind != "picture"]
 
 
 def label_of(c: ob.Candidate, device: Device) -> str:
@@ -406,7 +413,8 @@ class Explorer:
         tree = png.removesuffix(".png") + ".elements.json"
         shutil.copyfile(self.scratch / "now.png", self.out / png)
         (self.out / tree).write_text(json.dumps(obs.reply, indent=1, ensure_ascii=False))
-        cands = ob.own_controls(obs.cands, box, before.cands if before else [])
+        cands = ob.own_controls(obs.cands, box, before.cands if before else [], obs.elements,
+                                before.elements if before else [])
         if home:
             home.later.append(LaterCapture(from_step=self.step + 1, screenshot=png, elements_reply=tree))
             return self.refresh(home, obs, cands)
@@ -428,7 +436,7 @@ class Explorer:
         self.note("state", f"new {kind} {sid}" + (f" over {seen.parent}" if seen.parent else "")
                   + (" (upsell)" if seen.upsell else ""))
         if kind in ("screen", "modal", "sheet"):
-            self.name_icons(seen)
+            self.name_icons(seen, (before.image, obs.image) if box and before else None)
             self.log_denied(seen)
         return seen
 
@@ -552,8 +560,8 @@ class Explorer:
             self.note("exit", f"BACK from {s.sid} left the app before: not taken again ({move.why})", outcome="blocked")
             return s
         if move.cand and move.action == "tap":
-            reason = ob.denied(move.cand, upsell=s.upsell, core=purpose == "core", toggle_ok=purpose == "filter",
-                               account=purpose == "account")
+            reason = self.denied_at(s, move.cand, upsell=s.upsell, core=purpose == "core",
+                                    toggle_ok=purpose == "filter", account=purpose == "account")
             if reason:
                 self.log(s, None, move, move.cand, "unknown", f"denied: {reason}", "denied")
                 return self.unrun(s, move, expect)
@@ -636,11 +644,12 @@ class Explorer:
         return self.record(obs, s, move, before)
 
     def surface(self) -> list[ob.Candidate]:
-        """The live controls of what is in front: on a sheet or modal only its own, re-found, never one behind it."""
+        """The live controls of what is in front: on a sheet or modal only its own, re-found, never one behind it nor
+        a picture."""
         s = self.current
         if s.box is None:
             return self.obs.cands
-        return [live for c in s.cands for live in [ob.find(self.obs.cands, c)] if live]
+        return [live for c in controls_of(s.cands) for live in [ob.find(self.obs.cands, c)] if live]
 
     def unrun(self, s: Seen, move: Move, expect: Seen | None) -> Seen:
         """A move that can't run stays where it is: a route's hop judges the screen it stands on, never the last hop's
@@ -697,6 +706,15 @@ class Explorer:
                   outcome="blocked")
         self.phone.back()
         return True
+
+    def denied_at(self, s: Seen, cand: ob.Candidate, **rules) -> str | None:
+        """What blocks a tap on cand: its own deny-list word, or that of any control on the state whose box holds its
+        tap point. A tap lands on what lies there, not on the name it was picked by, so a picture tapped at its center
+        never carries out a denied control drawn there. A picture's name says what it shows, so it vetoes nothing."""
+        point = Rect(x=cand.point[0], y=cand.point[1], w=0, h=0)
+        return ob.denied(cand, **rules) or next(
+            (f"{reason} ({c.label[:30]!r} lies at its tap point)" for c in controls_of(s.cands)
+             if c is not cand and ob.inside(point, c.rect) for reason in [ob.denied(c, **rules)] if reason), None)
 
     def safe_tap(self, c: ob.Candidate, why: str) -> bool:
         """A tap outside act() (the replay check, a quiet relaunch): the same deny-list, and only while the app
@@ -821,7 +839,7 @@ class Explorer:
                     home.kind, home.blocked_reason = "blocked", reason
                     self.human("the app can't be explored", reason)
                     raise Stop(f"blocked root: {reason}")
-                self.tabs = [t for t in ob.tab_bar(home.cands, self.device) if not ob.denied(t)]
+                self.tabs = [t for t in ob.tab_bar(controls_of(home.cands), self.device) if not ob.denied(t)]
             else:
                 self.back_to_root()
                 if self.current.kind in AWAY:
@@ -941,7 +959,7 @@ class Explorer:
             dialog = self.record(self.obs, None, None, None)
             dialog.done, dialog.depth, dialog.launch = "a launch dialog, dismissed", 0, True
             self.current = dialog
-            close = ob.dismiss_control(dialog.cands)
+            close = ob.dismiss_control(controls_of(dialog.cands))
             self.act(Move("tap", close, why="dismiss a launch dialog") if close else
                      Move("back", why="dismiss a launch dialog"), purpose="setup")
             if self.current is not dialog and self.current.kind == "screen":
@@ -1005,7 +1023,7 @@ class Explorer:
         if pick.checked is None and not self.selected(pick):
             opened = self.act(Move("tap", pick, decider="jev", why="content filter"), purpose="filter")
             if opened is not home and opened.kind in ("modal", "sheet"):
-                option = self.pick(opened, [c for c in opened.cands if not ob.denied(c, toggle_ok=True)],
+                option = self.pick(opened, [c for c in controls_of(opened.cands) if not ob.denied(c, toggle_ok=True)],
                                    FILTER_MENU_QUESTION, "filter.menu")
                 if option:
                     if option.checked is None:
@@ -1106,12 +1124,13 @@ class Explorer:
         form's own button aside), no list, no text box with send, no tab bar. Each is met once."""
         if not self.ctx.allow_account_create or s.sid in self.walls or s.kind not in ("screen", "modal", "sheet"):
             return False
-        form = any(c.kind == "EditText" for c in s.cands)
+        cands = controls_of(s.cands)
+        form = any(c.kind == "EditText" for c in cands)
         other = any(ob.shaped(c) and c.tree_label and not ob.denied(c, upsell=s.upsell) and not ob.account_way(c)
-                    and not (form and ob.SUBMIT.search(c.label)) for c in s.cands)
-        return (any(ob.shaped(c) and ob.SIGN_IN.search(c.label) for c in s.cands) and not other
-                and not ob.feed_items(s.cands, self.device, self.tab_keys()) and not ob.composer(s.cands, self.device)
-                and not ob.tab_bar(s.cands, self.device))
+                    and not (form and ob.SUBMIT.search(c.label)) for c in cands)
+        return (any(ob.shaped(c) and ob.SIGN_IN.search(c.label) for c in cands) and not other
+                and not ob.feed_items(cands, self.device, self.tab_keys()) and not ob.composer(cands, self.device)
+                and not ob.tab_bar(cands, self.device))
 
     def get_past(self, wall: Seen) -> bool:
         """A way on without an account first ("Continue as guest", "Skip", "Not now"), which counts only when it
@@ -1119,7 +1138,7 @@ class Explorer:
         Whatever stops it leaves the explorer at the wall, as without the flag, with the reason in the trace and the
         exhibit. True when past it."""
         self.walls.add(wall.sid)
-        on = next((c for c in wall.cands if ob.shaped(c) and ob.GUEST.search(c.label)
+        on = next((c for c in controls_of(wall.cands) if ob.shaped(c) and ob.GUEST.search(c.label)
                    and not ob.denied(c, upsell=wall.upsell)), None)
         if on:
             self.act(Move("tap", on, why="account wall: on without an account"), purpose="nav")
@@ -1343,7 +1362,7 @@ class Explorer:
         every relaunch start there."""
         home = self.root = self.launch_root = self.current
         home.depth, home.back_to = 0, None
-        self.tabs = [t for t in ob.tab_bar(home.cands, self.device) if not ob.denied(t)]
+        self.tabs = [t for t in ob.tab_bar(controls_of(home.cands), self.device) if not ob.denied(t)]
         self.apply_filter(True)
 
     def account_note(self, text: str, past: bool) -> bool:
@@ -1365,9 +1384,13 @@ class Explorer:
                      for live in [ob.find(self.obs.cands, t)] if live and self.shows(t, live, self.obs)), None)
 
     def options(self, s: Seen) -> list[ob.Candidate]:
+        """The taps left to try on a state: its controls first, then its pictures. The state's last tap goes to an
+        untried picture when one is left, so a tile that leads on is tried even where controls would use every tap."""
         filter_row = self.filter_row(s.cands)
-        return [c for c in s.cands if c.key not in s.tried and c.key not in self.tab_keys() and c.key not in filter_row
+        opts = [c for c in s.cands if c.key not in s.tried and c.key not in self.tab_keys() and c.key not in filter_row
                 and not ob.denied(c, upsell=s.upsell) and (c.key not in s.waiting or s.visits > s.waiting[c.key])]
+        controls, pictures = controls_of(opts), [c for c in opts if c.kind == "picture"]
+        return pictures if pictures and s.taps >= TAPS_PER_STATE - 1 else controls or pictures
 
     def filter_row(self, cands: list[ob.Candidate]) -> set[str]:
         """The content filter's controls among a screen's controls: the opener, and every option in the chosen one's
@@ -1742,8 +1765,8 @@ class Explorer:
 
     def entry(self, s: Seen) -> ob.Candidate | None:
         """The screen's best upsell entry: a control over a line of text (a dialog's title says "plus" too), then
-        the shortest."""
-        found = [c for c in s.cands if ob.ENTRY.search(c.label) and not ob.DISMISS.match(c.label.strip())
+        the shortest. Never a picture: its name says what it shows, not what a tap does."""
+        found = [c for c in controls_of(s.cands) if ob.ENTRY.search(c.label) and not ob.DISMISS.match(c.label.strip())
                  and not ob.denied(c, upsell=s.upsell)]
         return min(found, key=lambda c: (c.kind == "TextView", len(c.label.split())), default=None)
 
@@ -2195,7 +2218,7 @@ class Explorer:
             # a sheet the action opened is its result only when it holds an item's page of new text, asks nothing (an
             # upgrade word, a way to decline) and names no price, limit, account or money; when unsure, it stops
             page = sum(map(len, ob.texts(own, self.device) - ob.texts(before.elements, self.device))) >= PAGE_CHARS
-            if named or here.kind == "modal" or ob.asks(here.cands) or not page:
+            if named or here.kind == "modal" or ob.asks(controls_of(here.cands)) or not page:
                 return named or f"{here.kind} opened", here.sid
         if here is not s and here.upsell:
             return ("paywall" if here.priced else "upsell screen"), here.sid
@@ -2377,8 +2400,10 @@ class Explorer:
             draw.text((r.x + 4, r.y - top), name, fill=(255, 255, 255), font=font)
         return png_half(image)
 
-    def name_icons(self, s: Seen) -> None:
-        """The Sonnet icon pass: names boxes with no words and adds visible controls the tree doesn't list."""
+    def name_icons(self, s: Seen, looks: tuple[Image.Image, Image.Image] | None = None) -> None:
+        """The Sonnet icon pass: names boxes with no words and adds the visible controls and pictures the tree doesn't
+        list, up to 8 of each. An overlay's `looks` are the parent's capture from right before it opened, then its
+        own."""
         unnamed = [n for n, c in enumerate(s.cands, start=1) if not c.label]
         png = self.boxed_png(s, s.cands, [str(n) for n in range(1, len(s.cands) + 1)])
         text = (f"Name these boxes: {', '.join(map(str, unnamed)) or 'none'}.\n"
@@ -2393,21 +2418,60 @@ class Explorer:
                 c = s.cands[item.box_id - 1]
                 c.label = item.name
                 s.icon_labels.append(IconLabel(mcp_ref=c.ref, name=item.name))
-        for point in result.extra_points[:8]:
-            self.add_vision(s, point.x / ICON_SCALE, point.y / ICON_SCALE + self.device.content_top_px, point.name)
+        for kind in ("control", "picture"):
+            for item in [item for item in result.unlisted if item.kind == kind][:8]:
+                self.add_vision(s, item, looks)
 
-    def add_vision(self, s: Seen, x: float, y: float, name: str) -> None:
+    def add_vision(self, s: Seen, item: Unlisted, looks: tuple[Image.Image, Image.Image] | None = None) -> None:
+        """Keeps an item the tree doesn't list, its box clamped to the content area, when its center is on the
+        content area. A control's center lies in no box found before it. A picture's lies in no listed box, and it is
+        another picture only when their boxes mostly overlap, so an avatar on a banner keeps both. On a modal or sheet
+        a picture is its own when its center lies within its own listed controls (record() left the parent's out), or
+        outside them on the overlay itself (overlay_holds): one behind the scrim is the parent's, cropped from the
+        parent's own capture. Each is a tap candidate at its box's center; a picture is marked as one, so it is tapped
+        after every control or as the state's last tap, and never as the core action."""
         d = self.device
-        if not (0 <= x < d.w_px and d.content_top_px <= y < d.content_bottom_px):
+        x0, x1 = sorted((item.left / ICON_SCALE, item.right / ICON_SCALE))
+        y0, y1 = sorted((item.top / ICON_SCALE + d.content_top_px, item.bottom / ICON_SCALE + d.content_top_px))
+        point = Rect(x=(x0 + x1) / 2, y=(y0 + y1) / 2, w=0, h=0)
+        if not (0 <= point.x < d.w_px and d.content_top_px <= point.y < d.content_bottom_px):
             return
-        if any(ob.inside(Rect(x=x, y=y, w=0, h=0), c.rect) for c in s.cands):
+        x0, y0 = max(0.0, x0), max(float(d.content_top_px), y0)
+        box = Rect(x=round(x0), y=round(y0), w=round(min(float(d.w_px), x1) - x0),
+                   h=round(min(float(d.content_bottom_px), y1) - y0))
+        held = [c.rect for c in s.cands]
+        if item.kind == "picture":
+            held = [c.rect for c in s.cands if c.ref]
+            if s.box and not (held and (ob.inside(point, ob.bbox(held))
+                                        or self.overlay_holds(s, point, box, held, looks))):
+                return
+            if any(ob.iou(box, v.rect_px) >= SAME_PICTURE_IOU for v in s.vision if v.kind == "picture"):
+                return
+        if any(ob.inside(point, r) for r in held):
             return
-        half = VISION_BOX_DP * d.scale / 2
-        x0, y0 = max(0.0, x - half), max(float(d.content_top_px), y - half)
-        box = Rect(x=round(x0), y=round(y0), w=round(min(float(d.w_px), x + half) - x0),
-                   h=round(min(float(d.content_bottom_px), y + half) - y0))
-        s.vision.append(VisionElement(name=name, rect_px=box))
-        s.cands.append(ob.Candidate(label=name, kind="vision", rect=box, ref=None, tree_label=""))
+        s.vision.append(VisionElement(name=item.name, rect_px=box, kind=item.kind))
+        s.cands.append(ob.Candidate(label=item.name, kind="vision" if item.kind == "control" else "picture", rect=box,
+                                    ref=None, tree_label=""))
+
+    def overlay_holds(self, s: Seen, point: Rect, box: Rect, own: list[Rect],
+                      looks: tuple[Image.Image, Image.Image] | None) -> bool:
+        """A picture centered outside an overlay's own listed controls, such as art above its topmost one, is the
+        overlay's when its center lies in the smallest listed view that holds them all (its window, as the tree lists
+        it), it is at no spot where the parent's own icon pass found a picture, and its center looks unlike the
+        parent's capture there. A scrim only dims the parent, and dHash reads edges, not brightness, so the parent's
+        own pixels behind it keep their look; a window as tall as the screen leaves that look the only evidence. A
+        parent's carousel or video can change between the two captures, so a parent picture's spot settles it first.
+        Art whose center has no edges, over a parent with none there, looks the same and is left out: no crop."""
+        frame = min((r for r in map(ob.rect, s.elements) if all(ob.inside(o, r) for o in own)), key=ob.area,
+                    default=None)
+        if looks is None or frame is None or not ob.inside(point, frame):
+            return False
+        parent = self.by_id.get(s.parent)
+        if parent and any(ob.iou(box, v.rect_px) >= SAME_PICTURE_IOU for v in parent.vision if v.kind == "picture"):
+            return False
+        half = ob.PATCH_DP * self.device.scale / 2
+        patch = Rect(x=point.x - half, y=point.y - half, w=2 * half, h=2 * half)
+        return not ob.looks_same(looks[0], patch, looks[1], patch, self.device)
 
     def hard_screen(self, s: Seen, opts: list[ob.Candidate], goal: str) -> Move | None:
         """Sonnet picks one move when Jev is unsure, has failed, or taps keep changing nothing."""

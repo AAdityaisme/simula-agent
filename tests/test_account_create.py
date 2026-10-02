@@ -12,14 +12,14 @@ import pytest
 from PIL import Image, ImageDraw
 
 from simula import decide, llm, runlog
-from simula.contracts import Rect
+from simula.contracts import IconPass, Rect
 from simula.device import mcp
 from simula.device import observe as ob
 from simula.stages import explore as stage
 from tests.fake_device import PACKAGE, FakePhone, Screen, fake_jev, fake_sonnet
 from tests.fake_device import explore as run_explorer
 from tests.fake_device import explorer as new_explorer
-from tests.test_explore_offline import janitor_like
+from tests.test_explore_offline import janitor_like, unlisted
 
 EMAIL, PASSWORD, NAME = "tester.q7@example.org", "Pw-7f3Kq9-unique", "Quinlan Testperson"
 
@@ -856,3 +856,36 @@ def test_a_sign_up_that_stops_mid_form_keeps_the_keyboard_painted_rt_r4_5(tmp_pa
     assert phone.typed == [EMAIL] and "the box in focus is not the empty password box" in ex.account[-1]
     assert ex.typing and ex.observe().painted == Rect(x=0, y=1500, w=1080, h=900)
     assert Image.open(ex.scratch / "now.png").getpixel((540, 2000)) == (0, 0, 0)
+
+
+def test_pictures_side_by_side_at_its_foot_never_pass_a_wall_off_as_a_tab_bar(tmp_path, monkeypatch, identity):
+    """A picture the icon pass found is no control: two at the foot of a sign-up wall are no tab bar, so the wall
+    stays a wall."""
+    ex, _ = new_explorer(tmp_path, monkeypatch, sign_up_app(), allow_account_create=True)
+    tiles = [unlisted(ex, 40, 2150, 500, 2330, "picture", "left tile"),
+             unlisted(ex, 580, 2150, 1040, 2330, "picture", "right tile")]
+    monkeypatch.setattr(ex, "ask", lambda *a: IconPass(names=[], unlisted=tiles))
+    wall = ex.current = ex.record(ex.observe(), None, None, None)
+    assert [c.label for c in wall.cands if c.kind == "picture"] == ["left tile", "right tile"]
+    assert ex.account_wall(wall)
+
+
+def test_the_tabs_set_past_a_launch_wall_are_never_pictures(tmp_path, monkeypatch, identity):
+    """Past a wall, home's tabs are set again (rehome): a picture between two tabs is never one of them."""
+    guest = el("@guest", "Button", "Continue as guest", 1300)
+
+    def app(clock):
+        phone = sign_up_app(wall=[TITLE, guest, EMAIL_WAY, GOOGLE, LOG_IN])(clock)
+        phone.screens["home"] = screen(4, el("@h0", "TextView", "Welcome back", 200),
+                                       el("@h1", "Button", "Characters", 700),
+                                       el("@home", "Button", "Home", 2200, x=0, w=360),
+                                       el("@me", "Button", "Me", 2200, x=720, w=360))
+        return phone
+    ex, phone = new_explorer(tmp_path, monkeypatch, app, allow_account_create=True)
+    tile = unlisted(ex, 380, 2210, 700, 2310, "picture", "promo tile")
+    real = ex.ask
+    monkeypatch.setattr(ex, "ask", lambda prompt, step, *a: IconPass(names=[], unlisted=[tile])
+                        if prompt == "icons" and phone.screen == "home" else real(prompt, step, *a))
+    ex.relaunch(first=True)
+    assert ex.root.sid != "s01" and [c.label for c in ex.root.cands if c.kind == "picture"] == ["promo tile"]
+    assert [t.label for t in ex.tabs] == ["Home", "Me"]
