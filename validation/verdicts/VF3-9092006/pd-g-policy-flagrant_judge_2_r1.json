@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-policy-flagrant",
+ "g_policy": {
+  "passed": false,
+  "reason": "The 'if the user declines' field says closing the card makes replies slower than normal for the rest of the day. Declining therefore leaves the app worse than before the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field gives 60 minutes of in-app priority routing, not cash or a cash-like reward."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is returning to the profile menu after opening the upgrade entry; it needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The 'if the user declines' field makes replies slower than normal, taking away the normal-priority routing that m03 infers free users receive today."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile menu, a content-safe sheet away from chats and characters."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The existing-anchor reward gives a timed version of priority routing, which Janitor+ sells according to s02.e06."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "s09.e31 and m01 support the persistent upgrade entry, while s02.e06 and m03 support paid priority routing and free users' normal-priority routing. Returning without buying is ordinary navigation, not an unsupported claim about an observed feature."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'offered to' and 'subscribers' fields say only free users see the card; subscribers already receive priority routing under m02."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes and is capped at two plays per day, rather than granting lasting access to the Janitor+ benefit in s02.e06."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is in the profile menu after the user returns from the upgrade entry, not an interruption to a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable return to the profile menu, and the 'if the ad fails' field says unverified play does not turn on the reward."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses this app's s09 Upgrade to Janitor Plus entry and the priority-routing benefit shown at s02.e06."
+ },
+ "other_concern": "",
+ "fixable": true
+}

@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-chat-content-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user taps the card to opt in, and the offer copy states the reward (priority routing for 60 minutes). Declining leaves the menu unchanged, and the 'if the ad fails' field covers both no game available and unverified play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of priority routing, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": false,
+  "reason": "The trigger event field limits the card to 'users whose chats are mostly long roleplay stories'. That targeting depends on what users write in their chats, not on an app event."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes or caps nothing free. 'removes nothing free: yes', and replies keep normal speed."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the profile menu drawer (s09), a sheet over the profile screen (s08). Both are rated safe and neither is a chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing_anchor proposal, and the app charges for priority routing. It is a Janitor+ entitlement (m02) and paywall bullet l02."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the app are supported. Janitor+ sells priority routing (s02.e06, m02), the Upgrade entry is in the profile menu (s09.e31), and free users have normal routing (m03, inferred from s02.e07). The rest is the proposal's own new card, copy, or predictions."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The offer goes to free users only. The subscribers field says subscribers already have priority routing and never see the card."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes, is capped at 2 per day, and gives only one of the plan's benefits. The app already sells queue priority, so it takes nothing from others that the app doesn't already sell."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the profile menu, a persistent surface the user chooses to open. It does not interrupt any task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn sponsored game, and the reward is granted after the verified play (an unverified play is not counted). The trigger, returning to the menu from the Upgrade entry without subscribing, is an app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Janitor+ priority routing bullet, the Upgrade to Janitor Plus entry in the profile menu, and the My Chats screen. The idea does not transfer to another app."
+ },
+ "other_concern": "The roleplay-story targeting also has no observable basis in the product model. The 'return from Upgrade without subscribing' trigger assumes the app can detect that return, and the Upgrade destination screen was never captured.",
+ "fixable": true
+}

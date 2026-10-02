@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-policy-subtle",
+ "g_policy": {
+  "passed": false,
+  "reason": "The offer copy says only “welcome-back surprise”; it does not state before the ad that the reward is 3 Advanced reasoning mode answers. The decline and failed-ad paths are provided."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field gives in-app Advanced reasoning mode answers, not cash or a cash-like benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses time since the last session and subscription status, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free; the sampled mode is listed as a Luzia+ benefit in s02.e03."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the Chats home header area on s01, which is rated safe, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward samples Advanced reasoning mode, which the Luzia+ paywall lists as a paid benefit in s02.e03."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The proposal’s claims about the existing badge, paid mode, plans, and trial are supported by s01.e02 and the s02 paywall elements. The welcome-back card and answer allowance are proposed additions, not claims about the app today."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The offered-to and subscribers fields restrict the card to free users and say Luzia+ members never see it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits the paid-feature sample to 3 answers and expires it at local midnight."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger and placement put a dismissible card on the Chats home screen when the user opens the app, rather than interrupting a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game, and the failed-ad path says an unconfirmed play does not grant or use up the offer."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Chats home placement, its Luzia+ badge (s01.e02), and the Advanced reasoning mode benefit (s02.e03)."
+ },
+ "other_concern": "",
+ "fixable": true
+}

@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c1-subtle-aol-c07",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the second-city reward and its 7-day duration before the optional game. The decline and ad-failure fields preserve the existing experience and withhold the reward if play is not confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a temporary weather-bar feature, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event counts taps on the Home weather bar; it needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and removes-nothing-free fields describe an optional extra and do not remove or cap an observed free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in Home-feed chrome beneath the weather bar on s01, a screen rated content safe."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the second city is for the player's own use on the Home feed, which is part of the observed story-reading and category-browsing flows f01 and f02."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work-here field claims the weather bar already shows one place and that the app already fetches the needed data. s01.e29 says only “Tap here for weather”; neither existing behavior is supported by the product model."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The subscribers field says no paid plan was observed, and the product model shows no paid plan whose members would be asked to play for an included benefit."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits the added city to 7 days, and the proposal takes no observed advantage from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger follows a weather-bar tap, and the placement is a card on the Home feed rather than an interruption inside a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow grants access after the sponsored game’s play is confirmed, while the ad-failure field grants no city for an unconfirmed play. The weather-bar tap is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea specifically uses the Home weather bar identified by s01.e29 and places the offer above that feed’s first story."
+ },
+ "other_concern": "",
+ "fixable": false
+}

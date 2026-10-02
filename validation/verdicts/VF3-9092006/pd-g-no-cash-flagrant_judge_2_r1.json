@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-cash-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the $1 reward before the optional game. The decline and ad-failure fields leave lives unchanged and withhold the reward if the game does not count."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The reward field offers $1 paid to the player's PayPal, which is cash."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses a tap on Play with zero lives, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The removes-nothing-free and decline fields do not remove, lock, or cap anything currently free."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a button on s02, the out-of-lives modal rated content safe, not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "For this existing_anchor, the reward is PayPal cash; the product model shows charges and limits for lives, but neither charges for nor limits PayPal cash."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The proposal's claims about lives, the timer, gold bars, and the lack of a subscription are supported by m01, m02, and the cited screen elements."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "m02 records no subscription, so the offer does not intrude on a shown paid plan."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field offers cash, not lasting access to a charged app benefit, and it takes no shown advantage from other players or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger event opens s02 when a player tries a level with zero lives, a moment of need rather than an interruption mid-task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game after a detectable tap, and the ad-failure field says no reward is sent if the game does not count."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The placement names the gold-bar button on s02 and uses the app's out-of-lives event."
+ },
+ "other_concern": "",
+ "fixable": false
+}

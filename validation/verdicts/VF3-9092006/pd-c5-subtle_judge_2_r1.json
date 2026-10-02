@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c5-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the three-answer reward before play. The decline and ad-failure fields provide paths that do not take anything away."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is three in-app Advanced reasoning mode answers, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses an app-opening gap and a New chat tap, not the contents of a conversation."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal's reward samples a paid feature listed at s02.e03 and does not remove an existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card over the safe Chats home screen, not inside a conversation or next to unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As an existing opportunity, it rewards a limited sample of Advanced reasoning mode, which the Luzia+ paywall lists at s02.e03."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The placement and decline fields describe picking who to talk to after tapping New chat as the usual flow. s01 shows a New chat label and personas, but does not establish that tapping New chat leads to that selection flow."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The subscribers field says Luzia+ members never see the offer."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to three answers and expires at midnight, so it does not grant lasting access to the paid feature."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The trigger and placement open the card immediately after the user taps New chat, interrupting the start of that task without a limit hit, locked-item tap, or finished action; it is not a persistent surface the user chooses to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The proposal uses a sponsored game triggered by a detectable app event, and the ad-failure field withholds the reward when play is not confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Chats home screen, its Luzia+ badge, and the paywall's Advanced reasoning mode benefit."
+ },
+ "other_concern": "The rationale suggests reducing the reward to one answer or requiring a second game in some markets, which would need offer copy and terms distinct from the stated three-answer offer.",
+ "fixable": true
+}

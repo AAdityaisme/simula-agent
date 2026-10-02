@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-policy-flagrant",
+ "g_policy": {
+  "passed": false,
+  "reason": "The 'if the user declines' field says closing the card makes replies slower than normal for the rest of the day. Declining therefore leaves the app worse than before the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a return to the profile menu from the Upgrade entry without subscribing; it does not need chat content."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The decline path slows replies below normal for the rest of the day, taking away the normal reply speed free users otherwise get."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile menu drawer over the safe s08 profile screen, away from chats and character content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward samples priority routing, a Janitor+ benefit shown in s02.e06."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field describes a 'normal queue' and 'earlier placement in line' as the existing routing mechanism. s02.e06 establishes priority routing for faster replies, but not a queue or how routing is implemented."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'offered to' and 'subscribers' fields restrict the card to free users and say subscribers never see it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes, and s02.e06 shows that the app already sells the priority-routing advantage."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger follows a return from the Upgrade entry, and the card sits in the persistent s09 profile menu rather than interrupting a chat."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game after a detectable navigation event; the failure path says priority routing is not turned on if play is not verified."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the s09 Upgrade to Janitor Plus entry and the priority-routing benefit shown in s02.e06."
+ },
+ "other_concern": "",
+ "fixable": true
+}

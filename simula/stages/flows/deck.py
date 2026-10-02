@@ -8,6 +8,7 @@ from html import escape
 from pathlib import Path
 from string import Template
 
+from simula import economics
 from simula.config import ROOT, STAGES
 from simula.contracts import GATES, JUDGMENT, Candidate, Decision, ProductModel, SavedVerdict, Verdict
 from simula.runlog import read_marker
@@ -134,13 +135,12 @@ def failed_checks(decision: Decision, run_dir: Path) -> list[tuple[str, str]]:
 
 
 def cost_question(c: Candidate) -> str | None:
-    """The cost line's verdict and its lost-sale flag in plain words, with no numbers (the judge's exhibit has them).
-    A CONDITIONAL cost of zero is one the line couldn't count."""
+    """The cost line's verdict and its lost-sale flag in plain words, with no numbers (the judge's exhibit has them)."""
     e = c.economics
     if e is None:
         return None
     serving = {"FAIL": "it may cost more to serve than a view earns",
-               "CONDITIONAL": "what it costs to serve wasn't observed" if e.cost_2k == 0
+               "CONDITIONAL": "what it costs to serve wasn't observed" if economics.uncounted(e)
                else "a view pays for what it costs to serve only where ad prices are high"}.get(e.verdict)
     sale = e.lost_sale and "it may give away something the app could sell"
     return "; ".join(p for p in (serving, sale) if p) or None

@@ -113,6 +113,7 @@ class Case:
     target: str | None = None
     tier: str | None = None
     expect_economics: str | None = None
+    agent_written: bool = False
 
 
 ZERO = {"x": 0, "y": 0, "w": 0, "h": 0}
@@ -177,7 +178,7 @@ def load_cases(root: Path = CASES) -> list[Case]:
     refs = {g.model for g in goods.values()} | {p.model for _, p in planted if p.model}
     models = {ref: load_model(ref) for ref in refs}
     cases = [Case(g.id, g.source, as_candidate(g.candidate, g.id), models[g.model], g.app, g.app_type,
-                  g.in_test_set) for g in goods.values()]
+                  g.in_test_set, agent_written=g.author != "aadi") for g in goods.values()]
     regressions = [Regression.model_validate_json(p.read_text()) for p in sorted((root / "regression").glob("*.json"))]
     cases += [Case(r.id, "regression", as_candidate(r.candidate, r.id), load_model(r.model), r.app, "", True, r.target)
               for r in regressions]
@@ -259,31 +260,61 @@ def rate(k: int, n: int) -> str:
     return f"{k}/{n}" + (f" ({k / n:.0%})" if n else "")
 
 
+@dataclass
+class SavedRun:
+    """One validate-judge run as the report reads it: a label, and verdicts and gate reruns by (case id, judge)."""
+    label: str
+    verdicts: dict[tuple[str, str], Verdict | None]
+    reruns: dict[tuple[str, str], Verdict | None]
+
+
+def rerun_pairs(run: SavedRun, case_ids: list[str], who: str) -> tuple[list[tuple[str, Verdict, Verdict]], list[str]]:
+    """The (case id, verdict, rerun) triples `run` has for `who`, and the case ids it has no second verdict for."""
+    pairs = [(cid, run.verdicts.get((cid, who)), run.reruns.get((cid, who))) for cid in case_ids]
+    return [(cid, a, b) for cid, a, b in pairs if a and b], [cid for cid, a, b in pairs if not (a and b)]
+
+
+def changed(a: Verdict, b: Verdict, checks: tuple[str, ...]) -> list[str]:
+    return [k for k in checks if judge.failed(a, k) != judge.failed(b, k)]
+
+
 # ---------- the report ----------
 
 def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
            reruns: dict[tuple[str, str], Verdict | None], labels: dict[str, dict], judges: list[str],
-           fallbacks: list[str] = ()) -> tuple[str, bool]:
+           fallbacks: list[str] = (), earlier: list[SavedRun] = (), label: str = "") -> tuple[str, bool]:
     """validation/report.md and whether the merge gate passes. `verdicts` and `reruns` are keyed by
-    (case id, judge); a None is a call that failed twice and counts against the judge."""
+    (case id, judge); a None is a call that failed twice and counts against the judge. `earlier` holds the paid runs
+    of the same rubric that this one, `label`, replaced, oldest first: each is scored in its own section, and the
+    gate counts rerun flips over all of them. Agent-written known-good ideas are shown apart from the known-good
+    rate, never in it."""
     planted = [c for c in cases if c.source == "planted" and c.target != C8]
     subtle = [c for c in planted if c.tier == "subtle"]
-    goods = [c for c in cases if known_good(c)]
+    goods = [c for c in cases if known_good(c) and not c.agent_written]
+    drafts = [c for c in cases if known_good(c) and c.agent_written]
+    regressions = [c for c in cases if c.source == "regression"]
     c8 = [c for c in cases if c.target == C8]
     columns = [*judges, "combined"] if len(judges) > 1 else judges
+    runs = [*earlier, SavedRun(label, verdicts, reruns)]
 
-    def got(case: Case, who: str) -> Verdict | None:
-        return verdicts.get((case.id, who))
+    def got(case: Case, who: str, vs=verdicts) -> Verdict | None:
+        return vs.get((case.id, who))
 
-    def is_caught(case: Case, who: str) -> bool:
+    def is_caught(case: Case, who: str, vs=verdicts) -> bool:
         if who == "combined":
-            return case.target in combined({j: got(case, j) for j in judges})[1]
-        return caught(case, got(case, who))
+            return case.target in combined({j: got(case, j, vs) for j in judges})[1]
+        return caught(case, got(case, who, vs))
 
-    def is_passed(case: Case, who: str) -> bool:
+    def is_passed(case: Case, who: str, vs=verdicts) -> bool:
         if who == "combined":
-            return combined({j: got(case, j) for j in judges})[0]
-        return passes_all(got(case, who))
+            return combined({j: got(case, j, vs) for j in judges})[0]
+        return passes_all(got(case, who, vs))
+
+    def held(case: Case, who: str, vs=verdicts) -> bool:
+        """A regression case every judge asked fails: on its target, or on any check when it has none."""
+        ran = [got(case, j, vs) for j in judges] if who == "combined" else [got(case, who, vs)]
+        fails = judge.failed_by_any([v for v in ran if v])
+        return None not in ran and (case.target in fails if case.target else bool(fails))
 
     per_check = {k: [c for c in planted if c.target == k] for k in LLM_CHECKS}
     complete = all(pair_complete(v) for v in [*per_check.values(), c8])
@@ -295,9 +326,14 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
     lines = ["# Judge validation", "", f"Generated {datetime.now().isoformat(timespec='minutes')}. Judges: "
              + ", ".join(judges) + ". Prompts frozen in `config/frozen_prompts.toml`.", "",
              f"Fixtures: {len(planted)} planted LLM cases ({len(subtle)} subtle), {len(c8)} C8 cases, "
-             f"{len(goods)} known-good (bases and real-run ideas); "
-             f"planted app types: {', '.join(types) or 'none'}; planted apps outside the test set: "
+             f"{len(goods)} known-good (bases and real-run ideas)"
+             + (f", and {len(drafts)} agent-written known-good not yet approved, shown apart and never in the "
+                "known-good rate" if drafts else "")
+             + f"; planted app types: {', '.join(types) or 'none'}; planted apps outside the test set: "
              f"{', '.join(outside) or 'none'}."]
+    if earlier:
+        lines += ["", f"The sections below score the last of {len(runs)} paid runs of this rubric. \"Every paid run\" "
+                  "scores each one, and the rerun section and the gate count flips over all of them."]
     if not complete:
         lines += ["", f"**Fixtures incomplete:** the gate needs 1 flagrant + 1 subtle planted case for each of the "
                   f"{len(LLM_CHECKS)} LLM-judged checks and for {C8} ({2 * len(LLM_CHECKS) + 2} cases); "
@@ -320,7 +356,11 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
         ok = sum(is_passed(c, who) for c in goods)
         lines += [f"**{who}**", "", "| | caught / passed | missed / failed |", "|---|---|---|",
                   f"| Planted defects ({len(planted)}) | {hit} | {len(planted) - hit} |",
-                  f"| Known-good ({len(goods)}) | {ok} | {len(goods) - ok} |", ""]
+                  f"| Known-good ({len(goods)}) | {ok} | {len(goods) - ok} |"]
+        if drafts:
+            ok = sum(is_passed(c, who) for c in drafts)
+            lines.append(f"| Agent-written known-good, not counted ({len(drafts)}) | {ok} | {len(drafts) - ok} |")
+        lines.append("")
 
     lines += ["## Per check: a smoke test (a check with 0 of 2 caught is broken)", "",
               "Two cases per check tell a blind check (0 of 2) from one that works. They can't tell a 50% catch rate "
@@ -340,27 +380,59 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
 
 
     lines += ["", f"## Known-good pass rate (every one of the {len(LLM_CHECKS)} checks passed)", "",
-              "| Judge | Known-good (gate) |", "|---|---|"]
+              "| Judge | Known-good (gate) |" + (" Agent-written, not counted |" if drafts else ""),
+              "|---|---|" + ("---|" if drafts else "")]
     kg_rate = {}
     for who in columns:
         ok = sum(is_passed(c, who) for c in goods)
         kg_rate[who] = ok / len(goods) if goods else 0.0
-        lines.append(f"| {who} | {rate(ok, len(goods))} |")
+        lines.append(f"| {who} | {rate(ok, len(goods))} |"
+                     + (f" {rate(sum(is_passed(c, who) for c in drafts), len(drafts))} |" if drafts else ""))
 
     flips, unverified = {}, {}
     rerun_set = [c.id for c in planted if c.target in GATES]
     lines += ["", "## `--no-cache` rerun: do safety verdicts flip?", ""]
     for who in judges:
-        pairs = [(cid, verdicts.get((cid, who)), reruns.get((cid, who))) for cid in rerun_set]
-        both = [(cid, a, b) for cid, a, b in pairs if a and b]
-        flips[who] = [cid for cid, a, b in both if any(judge.failed(a, g) != judge.failed(b, g) for g in GATES)]
-        any_flips = [cid for cid, a, b in both if any(judge.failed(a, k) != judge.failed(b, k) for k in LLM_CHECKS)]
-        unverified[who] = [cid for cid, a, b in pairs if not (a and b)]
-        lines.append(f"- {who}: {len(both)} of {len(pairs)} gate cases compared; safety flips {len(flips[who])}"
-                     + (f" ({', '.join(flips[who])})" if flips[who] else "") + f"; any-check flips {len(any_flips)}"
-                     + (f"; no second verdict for {', '.join(unverified[who])}" if unverified[who] else "") + ".")
+        both, missing = rerun_pairs(runs[-1], rerun_set, who)
+        safety = [cid for cid, a, b in both if changed(a, b, GATES)]
+        any_flips = [cid for cid, a, b in both if changed(a, b, LLM_CHECKS)]
+        lines.append(f"- {who}" + (f", run {len(runs)}" if earlier else "") + f": {len(both)} of {len(rerun_set)} "
+                     f"gate cases compared; safety flips {len(safety)}"
+                     + (f" ({', '.join(safety)})" if safety else "") + f"; any-check flips {len(any_flips)}"
+                     + (f"; no second verdict for {', '.join(missing)}" if missing else "") + ".")
+        flips[who] = [(n, cid, changed(a, b, GATES)) for n, run in enumerate(runs, 1)
+                      for cid, a, b in rerun_pairs(run, rerun_set, who)[0] if changed(a, b, GATES)]
+        unverified[who] = [cid for run in runs for cid in rerun_pairs(run, rerun_set, who)[1]]
+    if earlier:
+        compared = {who: sum(len(rerun_pairs(run, rerun_set, who)[0]) for run in runs) for who in judges}
+        target = {c.id: c.target for c in planted}
+        lines += ["", f"Over all {len(runs)} paid runs, {sum(len(f) for f in flips.values())} of "
+                  f"{sum(compared.values())} rerun pairs flipped a safety verdict ("
+                  + ", ".join(f"{who} {len(flips[who])} of {compared[who]}" for who in judges) + "):"]
+        lines += [f"- run {n}, {who}, {cid}: {', '.join(gates)}"
+                  + (", the defect it plants" if target[cid] in gates else "")
+                  for n, who, cid, gates in sorted((n, who, cid, g) for who in judges for n, cid, g in flips[who])]
 
-    regressions = [c for c in cases if c.source == "regression"]
+        def tally(group: list[Case], ok, vs: dict) -> str:
+            seen = [c for c in group if any((c.id, who) in vs for who in judges)]
+            if not seen:
+                return "not judged" if group else "none"
+            return "; ".join(f"{sum(ok(c, who, vs) for c in seen)}/{len(seen)}" for who in columns)
+        lines += ["", "## Every paid run of this rubric, oldest first", "",
+                  "Each earlier run was committed and then replaced by the next; the sections above score the last. "
+                  "A run is scored on the fixtures it judged. Each cell is " + "; ".join(columns) + ".", "",
+                  "| Run | Fixtures judged | Planted caught | Known-good passed | Agent-written known-good passed "
+                  "| Regressions held | Gate rerun pairs with a safety flip |", "|---|---|---|---|---|---|---|"]
+        llm_cases = [c for c in cases if c.target != C8]
+        for n, run in enumerate(runs, 1):
+            pairs = [(a, b) for who in judges for _, a, b in rerun_pairs(run, rerun_set, who)[0]]
+            judged_here = sum(any((c.id, who) in run.verdicts for who in judges) for c in llm_cases)
+            lines.append(f"| {n} | {judged_here} of {len(llm_cases)} | {tally(planted, is_caught, run.verdicts)} | "
+                         f"{tally(goods, is_passed, run.verdicts)} | {tally(drafts, is_passed, run.verdicts)} | "
+                         f"{tally(regressions, held, run.verdicts)} | "
+                         f"{sum(bool(changed(a, b, GATES)) for a, b in pairs)} of {len(pairs)} |")
+        lines += [""] + [f"- Run {n}: {run.label}" for n, run in enumerate(runs, 1)]
+
     if regressions:
         lines += ["", "## Regression cases (held out of the gate; each must fail its target, or any check without one)",
                   "", "| Case | Target | " + " | ".join(columns) + " |", "|---|---|" + "---|" * len(columns)]
@@ -372,8 +444,7 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
                     cells.append("? no verdict: a judge call failed")
                     continue
                 fails = judge.failed_by_any(ran)
-                held = c.target in fails if c.target else not is_passed(c, who)
-                cells.append(("✓ " if held else "✗ ")
+                cells.append(("✓ " if held(c, who) else "✗ ")
                              + (f"fails {', '.join(fails)}" if fails else f"passes all {len(LLM_CHECKS)}"))
             lines.append(f"| {c.id} | {c.target or 'any'} | " + " | ".join(cells) + " |")
 
@@ -404,7 +475,8 @@ def report(cases: list[Case], verdicts: dict[tuple[str, str], Verdict | None],
                   len(flagrant_gates) == len(GATES) and all(is_caught(c, who) for c in flagrant_gates)),
                  (f"{who}: known-good ≥ {KNOWN_GOOD_BAR:.0%} ({kg_rate[who]:.0%})",
                   bool(goods) and kg_rate[who] >= KNOWN_GOOD_BAR),
-                 (f"{who}: no safety flip on the --no-cache rerun, every gate case compared",
+                 (f"{who}: no safety flip on the --no-cache rerun, every gate case compared"
+                  + (f", over all {len(runs)} paid runs ({len(flips[who])} flipped)" if earlier else ""),
                   bool(rerun_set) and not flips[who] and not unverified[who])]
     passed = all(ok for _, ok in gate)
     lines += ["", f"## Gate: {'PASS' if passed else 'FAIL'}", ""] + [f"- {'✓' if ok else '✗'} {what}" for what, ok in gate]
@@ -581,7 +653,7 @@ def experiment_inputs(registration: Path, reg: dict, cases: list[Case], labels: 
     roles = config.roles(reg["profile"])
     models = {m: config.models()[m] for j in reg["judges"]
               for m in (roles[j]["model"], roles[j].get("declared_fallback")) if m}
-    seen = [(c.id, c.source, c.target, c.tier, known_good(c), c.app, c.app_type, c.in_test_set,
+    seen = [(c.id, c.source, c.target, c.tier, known_good(c), c.agent_written, c.app, c.app_type, c.in_test_set,
              judge.judge_messages(c.candidate, c.model)[0]["content"][0]["text"]) for c in cases]
     return {**{short(p): runfolder.sha256(p) for p in files},
             "labels": hashlib.sha256(json.dumps(labels, sort_keys=True).encode()).hexdigest(),
@@ -647,33 +719,56 @@ def load_runs(runs: Path) -> dict[tuple[str, str], list[Verdict]]:
 
 
 def majority(runs: list[Verdict]) -> Verdict:
-    """Each check by majority of the runs (a tie fails), carrying the reason of a run that agrees."""
+    """Each check by majority of the runs, carrying the reason of a run that agrees. A tie passes: a check fails, and a
+    planted defect counts as caught, only when most runs fail it."""
     def agreed(k: str) -> Check:
-        fail = 2 * sum(judge.failed(v, k) for v in runs) >= len(runs)
+        fail = 2 * sum(judge.failed(v, k) for v in runs) > len(runs)
         return next(getattr(v, k) for v in runs if judge.failed(v, k) == fail)
     return runs[0].model_copy(update={k: agreed(k) for k in LLM_CHECKS})
 
 
 def disagreeing(runs: list[Verdict], agreed: Verdict) -> Verdict:
-    """The harness compares a verdict with one --no-cache rerun. From saved runs, the stand-in rerun is the first run
-    whose gate verdicts differ from the majority's (else the first run), so a flip means the runs disagreed."""
-    def gates(v: Verdict) -> set[str]:
-        return {g for g in GATES if judge.failed(v, g)}
-    return next((v for v in runs if gates(v) != gates(agreed)), runs[0])
+    """The harness compares a verdict with one --no-cache rerun. From two or more saved runs, the stand-in rerun is the
+    first run whose gate verdicts differ from the majority's, else the first whose verdict on any check does (else the
+    first run), so a flip means the runs disagreed."""
+    def fails(v: Verdict, checks: tuple[str, ...]) -> set[str]:
+        return {k for k in checks if judge.failed(v, k)}
+    return next((v for checks in (GATES, LLM_CHECKS) for v in runs if fails(v, checks) != fails(agreed, checks)),
+                runs[0])
+
+
+def run_label(runs_dir: Path) -> dict:
+    """A run folder's run.toml: the commit that saved it, what changed before it, the rubric clause it judged with,
+    and, on a kept run, `replaced`: the folders (from the repo root) of the paid runs it replaced, oldest first."""
+    path = runs_dir / "run.toml"
+    return tomllib.loads(path.read_text()) if path.exists() else {}
+
+
+def saved_run(runs_dir: Path, gate_cases: set[str]) -> SavedRun:
+    """A saved run as report() reads it: each judge's majority verdicts and, for a gate case judged two or more times,
+    a run that disagrees with them as its rerun. A gate case judged once gets no rerun, so it stays unverified."""
+    runs = load_runs(runs_dir)
+    agreed = {key: majority(vs) for key, vs in runs.items()}
+    reruns = {key: disagreeing(runs[key], v) for key, v in agreed.items()
+              if key[0] in gate_cases and len(runs[key]) > 1}
+    meta = run_label(runs_dir)
+    label = f"`{runs_dir.name}`" + (f", commit {meta['commit']}. {meta['note']} Rubric as judged: {meta['rubric']}"
+                                    if meta else ".")
+    return SavedRun(label, agreed, reruns)
 
 
 def summarize(runs_dir: Path, preface: Path, out: Path = REPORT, only_judged: bool = False) -> bool:
     """validation/report.md from saved runs: the preface, then report() on each judge's majority verdicts over every
-    fixture, a missing verdict counting as a miss. `only_judged` scores only the fixtures the runs judged (and the C8
-    cases code scores), for runs saved before newer fixtures existed. Makes no calls, so the committed report can be
-    rebuilt without re-judging."""
-    runs = load_runs(runs_dir)
-    judged = {cid for cid, _ in runs}
-    cases = [c for c in load_cases() if not only_judged or c.id in judged or c.target == C8]
-    agreed = {key: majority(vs) for key, vs in runs.items()}
-    gate_cases = {c.id for c in cases if c.source == "planted" and c.target in GATES}
-    reruns = {key: disagreeing(runs[key], v) for key, v in agreed.items() if key[0] in gate_cases}
-    text, passed = report(cases, agreed, reruns, read_labels(), JUDGES)
+    fixture, a missing verdict counting as a miss, beside the paid runs this one replaced (its run.toml's `replaced`).
+    `only_judged` scores only the fixtures the runs judged (and the C8 cases code scores), for runs saved before newer
+    fixtures existed. Makes no calls, so the committed report can be rebuilt without re-judging."""
+    every = load_cases()
+    gate_cases = {c.id for c in every if c.source == "planted" and c.target in GATES}
+    kept = saved_run(runs_dir, gate_cases)
+    judged = {cid for cid, _ in kept.verdicts}
+    cases = [c for c in every if not only_judged or c.id in judged or c.target == C8]
+    earlier = [saved_run(ROOT / d, gate_cases) for d in run_label(runs_dir).get("replaced", [])]
+    text, passed = report(cases, kept.verdicts, kept.reruns, read_labels(), JUDGES, earlier=earlier, label=kept.label)
     out.write_text(preface.read_text() + "\n" + text)
     return passed
 

@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-cash-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is an opt-in button, the copy states the reward ($1 to PayPal), declining changes nothing, and the 'if the ad fails' field hides the button and sends no money when no game is ready."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The reward is '1 US dollars paid to the player's PayPal', which is money, so it is cash."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the player tapping Play with 0 lives, which is an app event, and no chat content is involved."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free; lives, the timer, and the gold-bar button all work as today."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The button sits in the s02 out-of-lives modal, which is rated safe and opened by an app event, over a non-chat screen (s01, safe)."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "As an existing_anchor, the reward must be a resource the app charges for or limits. The reward is a PayPal dollar, which the app neither sells nor limits (it limits lives, m01), so the check fails."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about 5 lives, the 30-minute regeneration, and gold bars bought with real money are supported by m01, m02, s02.e02, and s02.e03. The proposal adds the dollar reward and the new screen itself."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no subscription (m02), so there are no paying plan members to spare."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is not a lasting grant of a charged item and takes nothing from other users, so it does not hit any c4 fail condition."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears in the out-of-lives modal right after the limit is hit, which is a moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn rewarded playable, the reward is paid only when the game counts as verified ('If the game doesn't count, no money is sent'), and the trigger is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the out-of-lives pop-up (s02), the gold-bar button, the 5-life limit, and the 30-minute timer, which are specific to this app."
+ },
+ "other_concern": "The reward is $1 of real cash paid per game, up to 3 per day, which is a cost for the app and does not fit a lives-based monetization. The reward would be better as lives. The pitch also says it does not touch gold-bar sales, but paying cash competes with them.",
+ "fixable": false
+}

@@ -1,0 +1,53 @@
+{
+ "candidate_id": "kg-candycrush-01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user taps an opt-in button, the offer copy says 'get 1 life now', declining changes nothing, and the failure path hides the button or gives no life."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 1 life, an in-game resource that cannot be withdrawn, sold or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: tapping Play with 0 lives opens s02. No chat content is involved."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal 'removes nothing free'. Lives and the 30-minute regeneration stay as they are, and the new 3-a-day cap applies only to the new offer."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The button sits inside the s02 modal, which is opened by a limit hit and sits over the level map. Both s02 and s01 are rated content safe, and it is not a chat app."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing_anchor proposal and the app both limits lives (m01, 5 max, 1 per 30 min) and sells them for gold bars (m02, s02.e03)."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about 5 lives, the cost of 1 per failed level, the 30-minute regeneration, and gold-bar lives bought with real money are supported by m01, m02, s02.e02 and s02.e03. The new button, copy and cap are what the proposal adds."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no subscription, only gold bars bought with real money. The proposal states that every player sees the same offer."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is one life that is used up, capped at 3 a day, and the pop-up still sells full sets of lives for gold bars. It gives away no unlimited benefit and takes nothing from other users."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears at a moment of need: the player has just hit 0 lives and the out-of-lives modal opens."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn sponsored game. The life is granted only when the game counts as played ('If the game doesn't count, no life is given'), and the trigger is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the s02 Out of lives modal, the gold-bar button, the 5-life limit and the 30-minute timer, so it is tied to this app."
+ },
+ "other_concern": "The claim that giving a life 'costs the game nothing' is an unstated assumption. The offer may also reduce gold-bar sales of small life sets.",
+ "fixable": false
+}

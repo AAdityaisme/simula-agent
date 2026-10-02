@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c7-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner is opt-in, the offer copy states 30 minutes without ads, and the decline and ad-failure paths leave the app unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without ads, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses time in the app and playable readiness, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds field introduces an optional ad-free window; it does not remove, lock, or cap a free user feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The banner is placed on s01 Home · Top Stories, which the product model rates content safe, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the ad-free window gives the player something for their own use while reading stories or browsing categories, the observed core flows f01 and f02."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claim that the app shows ads is supported by the observed home-feed ad placement m01; the ad-free window is a proposed change, not a claim about an existing feature."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no paid plan, so the subscribers field does not establish a conflict with an observed plan benefit."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes and does not take an observed advantage from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The dismissible banner is on the s01 home feed, a persistent screen the user can choose to open; it does not require stopping an in-progress article."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game, and the ad-failure field says an unconfirmed play changes nothing. Time in the app and playable readiness are detectable trigger conditions."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names s01 Home · Top Stories and relies on the app's observed ads, including the home-feed placement in m01."
+ },
+ "other_concern": "The proposal does not explain how the 30-minute window would suppress ads across both the home feed and article reader.",
+ "fixable": false
+}

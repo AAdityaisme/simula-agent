@@ -75,6 +75,78 @@ def test_a_premise_only_one_judge_doubts_leaves_the_idea_to_the_fallback():
     assert not judge.could_fall_back(c, judge.decide(c, both_doubt, TWO, "annotate"), both_doubt)
 
 
+def test_an_offer_one_judge_finds_aimed_at_payers_is_never_the_fallback():
+    c = idea(golden("janitorai"))
+    payers = two(["c5_moment", "c3_spares_payers"], ["c5_moment"])
+    d = judge.decide(c, payers, TWO, "annotate")
+    assert d.final == "reject" and not judge.could_fall_back(c, d, payers)
+    text = judge.no_opportunity([d], {c.id: c}, {c.id: dict(zip(validate.JUDGES, payers))})
+    assert "- 1 passed the gates but rest on something" in text
+
+
+def test_when_the_only_survivor_is_a_split_on_c3_the_fallback_carries_the_clean_reject_and_the_deck_draws_it():
+    model = golden("janitorai")
+    split, clean = idea(model, "c01", rank=2.0), idea(model, "c02", rank=1.0)
+    v = {"c01": dict(zip(validate.JUDGES, two(["c3_spares_payers"]))),
+         "c02": dict(zip(validate.JUDGES, two(["c5_moment"], ["c5_moment"])))}
+    decisions = [judge.decide(c, [*v[c.id].values()], TWO, "annotate") for c in (split, clean)]
+    assert [d.final for d in decisions] == ["conditional", "reject"]
+    assert judge.fallback_pick(decisions, {"c01": split, "c02": clean}, v, set()) == "c02"
+    decisions[1] = decisions[1].model_copy(update={"final": "conditional"})
+    assert [d.candidate_id for d in flows.stage.select(decisions)] == ["c02"]
+    assert judge.fallback_pick(decisions[:1] + [judge.decide(clean, [verdict(), verdict()], TWO, "annotate")],
+                               {"c01": split, "c02": clean}, v, set()) is None
+
+
+def split_on_payers(call, marker="PAYERS"):
+    """judge_1 alone also fails c3 on a proposal carrying `marker`: a split on c3."""
+    doubter = config.roles("dev")["judge_1"]["model"]
+
+    def one_judge_doubts_payers(**kw):
+        out, usage = call(**kw)
+        proposal = kw["messages"][0]["content"][0]["text"].split("## Proposal", 1)[-1]
+        if kw["schema"] is Verdict and kw["model"] == doubter and marker in proposal:
+            out = out.model_copy(update={"c3_spares_payers": out.c3_spares_payers.model_copy(update={"passed": False})})
+        return out, usage
+    return one_judge_doubts_payers
+
+
+def test_a_clean_reject_revised_into_a_split_on_c3_is_still_drawn_as_the_fallback(tmp_path, monkeypatch):
+    app = "janitorai"
+    (c,) = live(app, {"rationale": "WEAK"})
+    call, _ = fake_llm({"WEAK": ["c5_moment"]}, revision=c.model_copy(update={"rationale": "PAYERS revised"}))
+    monkeypatch.setattr(llm, "call", split_on_payers(call))
+    run_dir = seed(tmp_path, app, [c])
+    judge.run(ctx_for(app, run_dir))
+    decisions = decisions_of(run_dir)
+    assert {i: (d.final, d.judgment_splits) for i, d in decisions.items()} == \
+        {c.id: ("conditional", []), f"{c.id}-rev": ("conditional", ["c3_spares_payers"])}
+    assert [d.candidate_id for d in flows.stage.select([*decisions.values()])] == [c.id]
+
+
+def test_an_unpromoted_split_on_c3_as_the_only_survivor_gets_a_no_opportunity_note(tmp_path, monkeypatch):
+    app = "janitorai"
+    cands = live(app, {"rationale": "PAYERS"}, {"title": "Second idea", "rationale": "GATEFAIL"})
+    call, _ = fake_llm({"GATEFAIL": ["g_policy"]})
+    monkeypatch.setattr(llm, "call", split_on_payers(call))
+    run_dir = seed(tmp_path, app, cands)
+    judge.run(ctx_for(app, run_dir))
+    d = decisions_of(run_dir)[cands[0].id]
+    assert (d.final, d.judgment_splits) == ("conditional", ["c3_spares_payers"])
+    text = (run_dir / "judge" / "no-opportunity.md").read_text()
+    assert "- 1 split the judges on c3_spares_payers; each waits on the Needs your call page" in text
+
+
+def test_the_exhibit_prints_an_uncounted_cost_in_gate_mode_as_last_not_as_its_floor():
+    model = golden("janitorai")
+    unknown = idea(model, "c01", econ="CONDITIONAL", rank=propose.UNCOUNTED_SCORE + 1)
+    known = idea(model, "c02", rank=0.5)
+    both = {"judge_1": verdict(), "judge_2": verdict()}
+    decisions = [judge.decide(c, [*both.values()], TWO, "gate") for c in (unknown, known)]
+    gate = judge.exhibit(decisions, {"c01": unknown, "c02": known}, {"c01": both, "c02": both}, [*both], "dev", "gate")
+    assert "| last (cost not counted) |" in gate and "| 0.5 |" in gate and "e+06" not in gate
+
+
 def test_a_unanimous_fail_outranks_a_split():
     d = judge.decide(idea(golden("aol")), two(["c5_moment", "c7_specific"], ["c7_specific"]), TWO, "annotate")
     assert (d.final, d.judgment_splits) == ("reject", ["c5_moment"])
@@ -335,11 +407,12 @@ def test_a_fixable_reject_is_revised_once_and_judged_fresh(cap, tmp_path, monkey
     assert sum(c["schema"] is LensOutput for c in calls) == 1
 
 
-# sha256 of decisions.json, a NUL byte, then revisions.json, as judge.run wrote them at e56402e, the commit before the
-# revision loop. The test passes there too.
+# sha256 of decisions.json, a NUL byte, then revisions.json without each candidate's economics, as judge.run wrote them
+# at e56402e, the commit before the revision loop. The test passes there too. The cost line is left out: its wording is
+# the economics code's, not the loop's.
 CAP_ONE = {
-    ("mixed", "janitorai"): "bd8f917ac409ca733a61a7e9c071c33c706156f26877d04b01f7213950e9f95c",
-    ("closest", "aol"): "d4236f513aaff11f30e6bbb7b657461a62e9e17f16c65b53b7248e3b14ece051",
+    ("mixed", "janitorai"): "cae8e9b0f6f0b4b7ac19b3b4491bda5814ee31ad1b27443529545424231e73f8",
+    ("closest", "aol"): "54fe9ab95768082695ace560688a5d57663265463e8eee992835dc127cfb49c0",
 }
 
 
@@ -367,7 +440,9 @@ def test_at_cap_one_the_stage_writes_byte_for_byte_what_it_wrote_before_the_loop
     run_dir = seed(tmp_path, app, cands)
     judge.run(ctx_for(app, run_dir))
     out = run_dir / "judge"
-    written = (out / "decisions.json").read_bytes() + b"\0" + (out / "revisions.json").read_bytes()
+    revisions = CandidatesFile.model_validate_json((out / "revisions.json").read_text())
+    loop = revisions.model_dump_json(indent=1, exclude={"candidates": {"__all__": {"economics"}}}).encode()
+    written = (out / "decisions.json").read_bytes() + b"\0" + loop
     assert hashlib.sha256(written).hexdigest() == CAP_ONE[name, app]
 
 

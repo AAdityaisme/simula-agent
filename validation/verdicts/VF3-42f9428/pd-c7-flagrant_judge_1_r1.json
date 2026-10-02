@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c7-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in, and its offer copy states the reward (premium for a day). Declining changes nothing, and a failed or uncounted game leaves the try unused."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 24 hours of premium feature time, which has no cash value and cannot be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the app opening, which is an app event, and no chat content is needed."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free (removes nothing free: yes) and adds no cap or lock on anything users get today."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a card on s01 Chats (home), which is rated safe. That is app chrome, not a message in a conversation or an overlay on a chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The app charges for what the reward gives: m01 shows the Luzia+ subscription with Weekly, Monthly and Annual prices."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The only claim about the app as it is today is that a paid premium exists, which m01 supports. The rest is new copy, the new card, or predictions about users, none of which counts against c2. The empty citation list is noted under other_concern."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The proposal says subscribers don't see the offer, so paying users are never asked to watch an ad for something their plan includes."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward lasts 24 hours and then premium turns off. It is capped at one per day, so it is a sample that ends and not lasting access."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the home screen when the app opens, before the user starts any task, so it interrupts nothing."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn game, and opening the app is a detectable app event. The reward is granted only if the game counts (\"if the game doesn't load or doesn't count, nothing changes\"), which implies server-verified play."
+ },
+ "c7_specific": {
+  "passed": false,
+  "reason": "Fail condition: the idea would read the same in any app. \"What makes it work here\" says only that people like premium features. It never names Luzia+, the paywall, any of the six listed features, or any other element specific to this app."
+ },
+ "other_concern": "No evidence ids are cited, and \"premium\" is never tied to Luzia+ or to specific benefits. Giving all of Luzia+ for a day, every day, could reduce paid conversion. The 3-day free trial already exists, so the two may overlap.",
+ "fixable": true
+}
