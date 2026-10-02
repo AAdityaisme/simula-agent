@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c2-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in and the offer copy states the reward (3 Advanced reasoning answers today). 'Not now' leaves home unchanged, and the 'if the ad fails' field covers both no ad available and an unconfirmed play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 Advanced reasoning mode answers, which cannot be withdrawn, sold, or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the first app open after 3 or more days with no session, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free and adds no cap, lock, or removal of anything users get free today."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a dismissible card on the Chats home (s01, rated safe), which counts as app chrome. It is not in a conversation or over a chat screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward is a slice of 'Advanced reasoning mode' (l02), which the Luzia+ paywall lists as a paid benefit, so the app charges for this resource."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The offer copy says 'All your past chats will be lost in 30 days if you do not upgrade to Luzia+.' No element or mechanic in the product model shows a chat-retention limit, and this is a claim about how the app behaves today, not a proposal addition."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'subscribers' field says Luzia+ members never see the card, so paying users are not asked to play for something their plan already includes."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The sample is limited to 3 answers and expires at midnight local time, so it does not give lasting or unlimited access to the paid feature."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears on the home screen at app open, not during a task, and the user can dismiss it."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit, and the card only changes to 'answers ready' after the play is confirmed; an unconfirmed play gets a retry note. The trigger is a detectable app open after a 3+ day gap."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names Luzia+, 'Advanced reasoning mode' (s02.e03), the Luzia+ badge (s01.e02), and the Chats home prompt card."
+ },
+ "other_concern": "The 'chats will be lost' line also looks like a deceptive pressure tactic. The rationale's claim about higher-earning markets is a prediction, not evidence.",
+ "fixable": true
+}

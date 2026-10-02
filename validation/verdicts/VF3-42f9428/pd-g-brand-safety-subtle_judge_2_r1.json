@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-brand-safety-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 60-minute priority-routing reward before play. The decline and ad-failure fields leave normal chatting available and withhold the reward if play is not verified."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is in-app priority routing, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses the Upgrade entry, a return without subscribing, and opening a chat from My Chats; it does not require reading chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and its decline path keeps replies at their normal speed."
+ },
+ "g_brand_safety": {
+  "passed": false,
+  "reason": "The placement puts the offer inside the character's reply. An offer inside a conversation message fails this gate."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward samples priority routing, a Janitor+ benefit shown in s02.e06."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work field describes skipping a normal queue and getting earlier placement in line. s02.e06 and m03 support priority versus normal-priority routing, but do not establish that queue mechanism."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The subscribers field excludes subscribers from the offer; m02 shows they already receive priority routing."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward ends after 60 minutes and is capped at two plays per day, rather than granting lasting access to the Janitor+ benefit."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The placement inserts the offer toward the end of the character's reply, interrupting an ongoing chat rather than presenting it after a finished action or at a moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by detectable app events, and the ad-failure field says unverified play does not turn on faster replies."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea relies on the Janitor+ Upgrade entry in s09.e31, the priority-routing benefit in s02.e06, and opening a chat from My Chats."
+ },
+ "other_concern": "The claim that this costs no extra replies does not establish the capacity cost of faster routing.",
+ "fixable": true
+}

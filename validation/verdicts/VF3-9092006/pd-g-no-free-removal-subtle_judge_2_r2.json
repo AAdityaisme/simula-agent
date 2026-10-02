@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-free-removal-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 60-minute reward before the user chooses to play. The decline and ad-failure paths leave the card optional and grant no unverified reward."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is temporary priority routing within the app, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a return to the profile menu from the Upgrade entry, not anything in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The adds field introduces a daily cap on how many characters a free user can text. That caps a free action rather than model replies or queue priority, the only resources for which a new cap is allowed."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 Profile menu, a safe sheet outside the conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing_anchor idea, s02.e06 establishes that Janitor+ sells the priority routing given by the reward."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work field says users can skip a normal queue for earlier placement in line. s02.e06 and inferred mechanic m03 support priority versus normal routing, but do not establish an existing queue or its ordering."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The offered-to and subscribers fields restrict the card to free users; subscribers already have priority routing and never see it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes, while s02.e06 identifies priority routing as a paid benefit. The model already sells that advantage."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger returns the user to the persistent s09 Profile menu, where they can choose whether to use the card."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable return to the menu, and the ad-failure field says priority routing is not turned on if play is unverified."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the s09.e31 Upgrade entry and the priority-routing benefit shown at s02.e06."
+ },
+ "other_concern": "",
+ "fixable": true
+}

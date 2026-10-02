@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c7-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner offers a choice and states the 30-minute ad-free reward before play. The decline and ad-failure fields leave the app unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without ads, not cash or a transferable or externally exchangeable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses time in the app and playable readiness, not anything a user wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal temporarily hides ads; it does not remove, lock, or cap a free user feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a banner on the content-safe s01 home screen, outside any conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This product-change reward gives the player an ad-free window for their own use while reading stories or browsing categories, the observed core flows f01 and f02."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claim that the app shows ads is supported by the observed home-feed placement m01. The proposed ad-free window is a change, not a claim about an existing feature."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no paid plan whose benefit the proposed reward duplicates."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes and does not take an observed benefit from other users or creators."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The trigger and flow show a banner after the user has been in the app for a while, interrupting ongoing browsing without a moment of need or a persistent surface the user chose to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game, and the ad-failure field says nothing changes if play is not confirmed. Session duration and playable readiness are detectable app events."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the s01 home screen and relies on ads observed in its feed."
+ },
+ "other_concern": "",
+ "fixable": true
+}

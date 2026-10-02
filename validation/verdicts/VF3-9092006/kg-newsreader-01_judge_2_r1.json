@@ -1,0 +1,53 @@
+{
+ "candidate_id": "kg-newsreader-01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states three extra saved-story slots for seven days before an optional game. The decline and ad-failure fields leave the existing saved list unchanged."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is saved-story slots, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a Save tap when the five-story limit is reached, as described in m01; it needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal preserves the five free saved-story slots shown in m01 and s02.e02."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a button in s02, a content-safe saved-list-full pop-up, not in or next to unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing-anchor idea, m01 establishes that saved-story capacity is limited to five."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "m01 and s02.e02 support the stated save limit and full-list pop-up; s03.e03–e04 support the stated Premium benefits. The extra capacity and expiry behavior are proposed changes, not claims about current behavior."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The offered-to and subscribers fields exclude Premium members, whose plan includes no ads according to s03.e03."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after seven days and does not give away either Premium benefit listed in s03.e03–e04."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger occurs when a reader hits the observed save limit and s02 opens, a moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short game triggered by a detectable Save tap, and the ad-failure field says no slots are added if the game does not count. It specifies no reward for a tap, close, or started game."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses this app’s five-story saved limit, s02 full-list pop-up, and Manage saved button."
+ },
+ "other_concern": "The rationale's claim that extra saved slots cost nothing to serve is unverified.",
+ "fixable": false
+}

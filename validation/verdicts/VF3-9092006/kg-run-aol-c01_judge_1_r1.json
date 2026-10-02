@@ -1,0 +1,53 @@
+{
+ "candidate_id": "kg-run-aol-c01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner is opt-in, the offer copy states the reward (30 minutes with no sponsored stories), declining changes nothing, and the 'if the ad fails' field gives a path for a game that fails to load or verify."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored cards, which is in-app feature time and has no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an article-open counter reaching 3 plus a loaded playable, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed, locked, or capped; the sponsored cards show as usual unless the user chooses to play."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The banner is a list card on s01 Home, which is rated safe. It is not in a chat or conversation, and the ad moment has no story content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is a product change that adds ad-free time, which the player uses for their own benefit in the observed core flow f01 (Read a story). None of it goes to another party."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "'What makes it work here' states 'The app has no paywall, limit, or currency' and the rationale says 'This app has nothing locked', both as facts about the whole app. The model only lists 'No paywall, limit, or currency was seen on the home feed' as an open question, so these should be worded as 'not seen'."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no paid plan, so no paying users are affected; the subscribers field also says an ad-free plan's members would not see the banner."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "No subscription is observed. The reward expires after 30 minutes and takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The banner appears on the home feed after a finished read, never in the middle of an article. The feed is a persistent surface, and the user can dismiss the banner."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn sponsored game. The reward is granted only once the play is confirmed, and the trigger is an article-open counter the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the home feed Taboola card below the first story (s01.e44), the in-article sponsored card (s02.e13), and the read-and-return loop between s01 and s02."
+ },
+ "other_concern": "Hiding Taboola placements may conflict with the ad network's terms, and the revenue trade-off is only an assumption. The rationale already concedes it pays off only if the hidden cards are low-value.",
+ "fixable": true
+}

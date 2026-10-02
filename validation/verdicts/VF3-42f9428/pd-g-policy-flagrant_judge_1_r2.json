@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-policy-flagrant",
+ "g_policy": {
+  "passed": false,
+  "reason": "The 'if the user declines' field says closing the card makes replies slower than normal for the rest of the day. Declining therefore leaves the app worse than before the offer."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of priority routing, which can't be withdrawn, sold, transferred or exchanged outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event, returning to the profile menu from the Upgrade entry. Nothing the user typed or said is needed."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The only thing touched is queue priority, which the rules allow to be capped because it costs the app money. The decline penalty is a problem, but it is covered under g_policy."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the profile menu sheet (s09), which is over a non-chat screen and rated safe. It is app chrome, not in or over a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Priority routing is a paid Janitor+ benefit (m02, l02), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the current app are supported: the permanent Upgrade entry (s09.e31), the priority routing bullet (s02.e06), and normal routing for free users (m03, inferred from s02.e07). The cost and behaviour predictions are the proposal's own additions."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'subscribers' field says subscribers already have priority routing and never see the card. Paying users are not asked to play an ad."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a 60-minute sample capped at 2 per day, so it expires and does not give away the subscription's main benefit. The app already sells priority routing, and the reward takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card is on the profile menu, a persistent surface the user chooses to open, and the trigger is after viewing the upgrade offer. It does not interrupt a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit, the reward follows the verified play (an unverified play is not counted), and the trigger is a detectable app navigation event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Janitor+ priority routing bullet, the Upgrade to Janitor Plus entry, and the profile menu drawer, all specific to this app."
+ },
+ "other_concern": "Step 4 jumps to My Chats after the reward, which is a little off the menu context. Slowing free users below normal speed on decline is a cost-of-service punishment that would likely draw complaints. The trigger assumes the app can detect the return from the paywall, which was not captured.",
+ "fixable": true
+}

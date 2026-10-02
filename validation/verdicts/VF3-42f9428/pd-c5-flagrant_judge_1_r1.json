@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c5-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The pop-up is opt-in, the offer copy states the reward (30 minutes with no sponsored stories), declining changes nothing, and the 'if the ad fails' field covers both no game ready and failed verification."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes without sponsored cards, which is not cash or anything that works like cash."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is the reader reaching the halfway point of an article, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed or capped. The 'if the user declines' field keeps the feed, articles, saving and sharing as they are, and the sponsored cards keep showing."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a pop-up over s02 Article, which is not a chat screen and is rated safe, and it is not placed inside or next to any unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is a product_change. The new resource, a cleaner read, is used by the player themselves in the observed core flow f01 (Read a story), and none of it goes to a third party."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "'The app has no paywall, limit, or currency' and 'This app has nothing locked' are stated as facts about the whole app, but the open question only says none was seen on the home feed. The claim that the in-article card 'sits further down' is also unsupported, because s02.e13 is listed before the body text in s02."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no paid plan, so no paying users exist to be targeted or given something they already pay for."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes, gives away no paid benefit (none is observed), and takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The pop-up appears halfway through an article, interrupting reading. That is not a moment of need (no limit hit, locked item tapped, or finished action) and not a persistent surface the user chooses to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn rewarded playable, the reward is granted once the play is confirmed, and the trigger (scroll position in the article) is something the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Taboola sponsored cards in the home feed (s01.e44, s06.e33) and in articles (s02.e13), and the article reader, so it works because of how this app is built."
+ },
+ "other_concern": "The claims about low ad value and revenue displacement are predictions and do not count against c2, but they are uncertain. The 'halfway through' trigger also needs reliable scroll detection.",
+ "fixable": true
+}

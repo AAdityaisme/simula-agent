@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c1-subtle-aol-c07",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the reward before the optional game. The decline and ad-failure fields leave the existing feed unchanged and grant no city for an unconfirmed play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a second city in the app’s weather bar for seven days, not cash or an externally exchangeable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a count of taps on the weather bar, not anything a user wrote or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and decline fields retain the existing weather bar and feed; the proposal does not remove, lock, or cap a free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in app chrome on s01 Home, which is rated content safe, rather than inside a conversation or next to unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "As a product change, the extra weather city is not a slice of a paid benefit or something used to read a story or browse a category—the model’s observed core flows. Being displayed on their Home screen does not make weather a resource used in those flows."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The what-makes-it-work field says the weather bar already shows one place and uses data the app already fetches. s01.e29 establishes only a 'Tap here for weather' control, not either of those current behaviors."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no paid plan, and the proposed card sits on s01 Home rather than in a paid-only feature."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field expires the extra city after seven days, and the proposal does not take an existing advantage from other readers or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger follows a weather-bar tap, and the placement is an optional card on Home rather than an interruption that starts the game."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow grants the reward after the sponsored game’s play is confirmed, and the weather-bar tap count is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names the s01 weather bar and places the offer directly beneath it."
+ },
+ "other_concern": "",
+ "fixable": false
+}

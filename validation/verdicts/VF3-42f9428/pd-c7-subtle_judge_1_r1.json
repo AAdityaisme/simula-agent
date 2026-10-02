@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c7-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The banner is opt-in, the offer copy states the reward (30 minutes with no ads), declining hides it with no change, and the 'if the ad fails' field covers both no game ready and unconfirmed play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of ad-free use, a feature_time that cannot be withdrawn or exchanged."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is time in the app plus a loaded playable, which are app events. This is a news app with no chat content involved."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "'Removes nothing free: yes'. Nothing free today is removed or capped, and ads only get hidden as a bonus."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The dismissible banner sits on s01, which is rated safe, as app chrome. It is not in a conversation and not next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For a product_change, ad-free time is something the player uses for their own benefit in the observed core flows f01 and f02 (reading stories and browsing the feed, where the ad slot m01 appears)."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The only claim about the app as it is today is that it shows ads, and m01 supports it. The revenue-displacement line is a prediction and the banner and window are the proposal's own additions."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no paid plan, so there are no paying users to spare."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is ad-free time that expires after 30 minutes. No paid benefit is shown and nothing is taken from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "A dismissible banner on the home feed does not block the user's task, so it does not interrupt anything."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit, the reward is granted only on confirmed play ('if the play is not confirmed, nothing changes'), and the trigger is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": false,
+  "reason": "Fail condition: the idea would read the same in any app. 'What makes it work here' says only 'the app shows ads' and never names the feed ad slot (m01) or any other feature specific to this app."
+ },
+ "other_concern": "The app's native ad slots are filled by third-party Taboola or direct cards and are sometimes empty, so it is unverified that the app can hide them on demand. The reward may also feel empty when a slot is unfilled. No evidence was cited.",
+ "fixable": true
+}

@@ -6,6 +6,7 @@ import hashlib
 import json
 import shutil
 import subprocess
+import tomllib
 from dataclasses import replace
 
 import pytest
@@ -376,7 +377,74 @@ def test_by_default_a_fixture_with_no_verdict_counts_as_a_miss(tmp_path):
         p.unlink()
     preface.write_text("")
     validate.summarize(runs, preface, out)
-    assert "| Known-good (6) |" in out.read_text()
+    assert "| Known-good (4) |" in out.read_text()
+
+
+def copy_of_the_kept_run(tmp_path, *, alone=False):
+    """The committed VF3 run in tmp_path/runs, with an empty preface; `alone` drops its run.toml, so no earlier run
+    is scored beside it."""
+    runs, preface = tmp_path / "runs", tmp_path / "preface.md"
+    shutil.copytree(validate.VERDICTS / "VF3", runs)
+    if alone:
+        (runs / "run.toml").unlink()
+    preface.write_text("")
+    return runs, preface, tmp_path / "report.md"
+
+
+def test_a_gate_case_with_one_saved_run_is_unverified_not_unflipped(tmp_path):
+    runs, preface, out = copy_of_the_kept_run(tmp_path, alone=True)
+    for p in runs.glob("*_r2.json"):
+        p.unlink()
+    validate.summarize(runs, preface, out)
+    text = out.read_text()
+    assert "- judge_1: 0 of 10 gate cases compared; safety flips 0; any-check flips 0; no second verdict for" in text
+    assert "- ✗ judge_1: no safety flip on the --no-cache rerun, every gate case compared" in text
+
+
+def test_a_one_one_tie_between_a_round_and_its_rerun_is_not_a_catch(tmp_path):
+    runs, preface, out = copy_of_the_kept_run(tmp_path, alone=True)
+    path = runs / "pd-g-no-cash-flagrant_judge_1_r2.json"
+    saved = json.loads(path.read_text())
+    saved["g_no_cash"]["passed"] = True
+    path.write_text(json.dumps(saved))
+    validate.summarize(runs, preface, out)
+    text = out.read_text()
+    assert "| g_no_cash | 1/2  (flagrant ✗, subtle ✓) |" in text
+    assert "- ✗ judge_1: every flagrant gate defect caught (4/5)" in text
+    assert "- judge_1: 10 of 10 gate cases compared; safety flips 1 (pd-g-no-cash-flagrant)" in text
+    assert not judge.failed(validate.majority([verdict(["g_no_cash"]), verdict()]), "g_no_cash")
+
+
+def test_every_paid_run_is_scored_and_its_rerun_flips_count_toward_the_gate():
+    cases = build_cases()
+    verdicts = judged(cases)
+    earlier = validate.SavedRun("`old`, commit abc.", verdicts, rerun(verdicts, cases, flip="pd-g_policy-subtle"))
+    text, passed = validate.report(cases, verdicts, rerun(verdicts, cases), {}, ["judge_1"], earlier=[earlier],
+                                   label="`kept`, commit def.")
+    assert not passed and "- judge_1, run 2: 10 of 10 gate cases compared; safety flips 0" in text
+    assert "Over all 2 paid runs, 1 of 20 rerun pairs flipped a safety verdict (judge_1 1 of 20):" in text
+    assert "- run 1, judge_1, pd-g_policy-subtle: g_policy, the defect it plants" in text
+    assert "| 1 | 27 of 27 | 24/24 | 3/3 | none | none | 1 of 10 |" in text
+    assert "- Run 1: `old`, commit abc." in text and "- Run 2: `kept`, commit def." in text
+    assert "- ✗ judge_1: no safety flip on the --no-cache rerun, every gate case compared, over all 2 paid runs " \
+           "(1 flipped)" in text
+
+
+def test_an_agent_written_known_good_is_shown_apart_and_never_in_the_rate():
+    cases = build_cases()
+    m = golden("luzia")
+    cases += [Case("kg-draft", "base", idea(m, "kg-draft"), m, "luzia", "AI assistant", True, agent_written=True)]
+    text, passed = run_report(cases, judged(cases) | {("kg-draft", "judge_1"): verdict(["c5_moment"])})
+    assert passed and "| Known-good (3) | 3 | 0 |" in text
+    assert "| Agent-written known-good, not counted (1) | 0 | 1 |" in text
+    assert "| judge_1 | 3/3 (100%) | 0/1 (0%) |" in text and "known-good ≥ 70% (100%)" in text
+
+
+def test_the_committed_report_shows_every_paid_vf3_run():
+    text = validate.REPORT.read_text()
+    assert "Over all 3 paid runs, 4 of 60 rerun pairs flipped a safety verdict" in text
+    assert "- run 1, judge_2, pd-g-no-cash-subtle: g_no_cash, the defect it plants" in text
+    assert [c.id for c in validate.load_cases() if c.agent_written] == ["kg-fitness-01", "kg-newsreader-01"]
 
 
 def test_the_committed_fixtures_load():
@@ -569,7 +637,7 @@ def test_an_arm_records_its_start_and_draws_only_once_that_start_is_committed(tm
 def test_an_experiment_arm_judges_under_its_registered_rubric_and_counts_a_lost_call_against_it(tmp_path, ready,
                                                                                                   monkeypatch):
     rubric = (tmp_path / "experiment-j" / "treatment.md").read_text()
-    lost_case = next(c for c in validate.load_cases() if validate.known_good(c))
+    lost_case = next(c for c in validate.load_cases() if validate.known_good(c) and not c.agent_written)
     arm = tmp_path / "experiment-j" / "treatment"
     on_disk = []
 
@@ -591,7 +659,7 @@ def test_an_experiment_arm_judges_under_its_registered_rubric_and_counts_a_lost_
     assert {"labels", "cases", str(judge.FROZEN.relative_to(validate.ROOT))} <= settings["inputs"].keys()
     assert len(list((arm / "verdicts").glob("*_r1.json"))) == 2 * len(llm_cases) - 1
     text = (arm / "report.md").read_text()
-    goods = sum(validate.known_good(c) for c in llm_cases)
+    goods = sum(validate.known_good(c) and not c.agent_written for c in llm_cases)
     assert f"Failed calls, each counted as a miss or a fail: 1 ({lost_case.id}:judge_2)" in text
     assert f"| judge_2 | {goods - 1}/{goods} " in text and f"| combined | {goods - 1}/{goods} " in text
 
@@ -758,6 +826,18 @@ def test_a_later_arm_runs_only_on_the_inputs_the_first_arm_ran_on(tmp_path, read
     commit(tmp_path, "restore the cap; a commit that touches no input")
     run_arm(tmp_path)
     assert (tmp_path / "experiment-j" / "treatment" / "report.md").exists()
+
+
+def test_approving_an_agent_written_known_good_changes_an_arms_inputs():
+    """It moves the idea into the known-good rate, so arms drawn on either side of it score different populations."""
+    registration = validate.EXPERIMENTS / "experiment-j" / "registration.toml"
+    reg = tomllib.loads(registration.read_text())
+    cases = validate.load_cases()
+    draft = next(c for c in cases if c.agent_written)
+    approved = [replace(c, agent_written=False) if c is draft else c for c in cases]
+    def inputs(cs):
+        return validate.experiment_inputs(registration, reg, cs, {})
+    assert inputs(approved)["cases"] != inputs(cases)["cases"]
 
 
 @pytest.mark.parametrize("unmet, refusal", [

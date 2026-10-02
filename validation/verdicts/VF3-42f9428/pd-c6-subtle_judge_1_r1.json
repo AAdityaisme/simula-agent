@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c6-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer is opt-in (a card the user taps Play on), the offer copy states the reward (priority routing for 60 minutes), declining leaves the menu unchanged, and the 'if the ad fails' field gives a path (priority turns off if the game isn't finished)."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of queue priority, which has no cash value and can't be withdrawn or transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event (returning to the profile menu from the Upgrade entry without subscribing) and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea adds an optional temporary boost and removes or caps nothing free; 'removes nothing free: yes' and the decline path keeps replies at normal speed."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the profile menu drawer (s09, content safe), which is app chrome over a non-chat screen and not in the conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "Priority routing is a paid Janitor+ benefit (m02, l02 at s02.e06), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about today's app (Upgrade entry in the profile menu s09.e31, priority routing as a paid benefit s02.e06, free users on normal routing via m03 inferred from s02.e07) are supported. The cost claim and the new card and copy are the proposal's own additions, and the return-from-Upgrade flow is ordinary navigation."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'subscribers' field says subscribers already have priority routing and never see the card, and the offer is shown to free users only."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a 60-minute sample that expires, with a cap of 2 per day, so it grants no lasting access. Priority placement is already something the app sells."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on a persistent surface the user chooses to open (the profile menu), directly after they viewed the upgrade entry, so it interrupts no task."
+ },
+ "c6_fits_simula": {
+  "passed": false,
+  "reason": "The 'if the ad fails' field says faster replies turn on when the user taps Play, which grants the reward on a tap or started ad rather than on the REWARD_VERIFIED event after a verified play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea relies on Janitor+'s priority routing bullet and the Upgrade entry in the profile menu, which are specific to this app."
+ },
+ "other_concern": "The model doesn't show what tapping Upgrade does (the price and upgrade screen weren't captured), so 'returns to the profile menu from the Upgrade entry' is a loosely defined trigger. The claim that an hour of priority costs no extra replies is a prediction and is unverified, since the free-tier limit was not observed.",
+ "fixable": true
+}

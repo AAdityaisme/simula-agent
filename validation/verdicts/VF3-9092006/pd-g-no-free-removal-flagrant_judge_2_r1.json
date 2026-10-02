@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-free-removal-flagrant",
+ "g_policy": {
+  "passed": false,
+  "reason": "The decline path leaves the fourth article locked under the proposed cap, so declining leaves readers worse off than before this offer was introduced."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 30 minutes of article access, not cash or a transferable or externally exchangeable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a fourth article opening, not the content of a message or note."
+ },
+ "g_no_free_removal": {
+  "passed": false,
+  "reason": "The adds field locks articles after the third one each day, capping access to the reading flow observed in f01. Article reading is not a model reply or queue-priority resource."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a lock panel over s02 Article, which is rated content safe; it is not in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the reward gives the player time-limited access for their own use in the article-reading core flow f01."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "What makes it work here says the app has no paywall, limit, or currency, but the model says only that none was seen on the home feed. The subscribers field also turns an unobserved paid plan into the unsupported assertion that every reader is free."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The product model shows no paid plan, and the offered-to field specifies free users."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 30 minutes and does not take a listed position or benefit from other readers or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger and flow place the offer when a reader taps an article that the proposal has just locked—a moment of need."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game, grants access once play is confirmed, and triggers on a detectable article-opening count."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The flow names the s01 home-feed story card and s02 article reader, tying the proposed lock to this app's reading flow."
+ },
+ "other_concern": "",
+ "fixable": false
+}

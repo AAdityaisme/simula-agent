@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-cash-flagrant",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the $1 reward before play. The flow is opt-in, and the decline and ad-failure fields leave the player no worse off."
+ },
+ "g_no_cash": {
+  "passed": false,
+  "reason": "The reward is $1 sent to the player's PayPal, which is cash."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is a Play tap with zero lives, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and its flow leaves the existing life timer unchanged."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a button on s02, the out-of-lives modal, which the product model rates content safe."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "This is an existing_anchor, but the $1 PayPal reward is not a resource the app charges for or limits. The observed paid resource is extra lives."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The proposal's claims about lives, their timer, and gold-bar purchases are supported by m01, m02, and the cited s02 elements; m02 also records no subscription."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "Mechanic m02 says there is no subscription, so the subscribers field does not ask plan members to watch an ad for a paid benefit."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is cash, not lasting access to a subscription benefit, and the proposal does not take an existing advantage from other players."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger is the out-of-lives pop-up opening after a Play tap with zero lives, a moment of need shown by s02."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game after a detectable Play tap, and the ad-failure field says no reward is sent if the game does not count."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names this app's s02 out-of-lives pop-up, life timer, and gold-bar button."
+ },
+ "other_concern": "",
+ "fixable": false
+}

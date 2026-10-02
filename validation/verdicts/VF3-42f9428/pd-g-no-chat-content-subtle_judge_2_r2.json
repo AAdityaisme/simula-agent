@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-g-no-chat-content-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 60-minute reward before an optional game. The decline and ad-failure fields leave normal replies available and grant nothing after an unverified play."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or a cash-like item."
+ },
+ "g_no_chat_content": {
+  "passed": false,
+  "reason": "The trigger event field limits the card to users whose chats are mostly long roleplay stories; that targeting needs chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free, and its decline path keeps replies at their normal speed."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the s09 profile-menu drawer, which is rated safe, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing-anchor proposal, s02.e06 shows that Janitor+ includes the priority routing the reward samples."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "s09.e31 supports the Upgrade entry, and s02.e06 supports priority routing for faster replies. The 60-minute card and its targeting are proposed additions, not claims that those features exist today."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The offered-to and subscribers fields restrict the card to free users; subscribers who already have priority routing never see it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward ends after 60 minutes, while priority routing is a benefit Janitor+ already sells in s02.e06."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger and placement put the optional card in the profile menu after a user returns from the Upgrade entry, not in the middle of a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game after a detectable menu-return event, and the ad-failure field says unverified play does not turn on the reward."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s09 Upgrade to Janitor Plus entry and the priority-routing benefit shown at s02.e06."
+ },
+ "other_concern": "",
+ "fixable": true
+}

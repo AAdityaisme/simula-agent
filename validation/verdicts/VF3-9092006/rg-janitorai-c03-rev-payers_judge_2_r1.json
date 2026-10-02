@@ -1,0 +1,53 @@
+{
+ "candidate_id": "rg-janitorai-c03-rev-payers",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 10× memory reward and its five-reply duration before the optional game. The decline and ad-failure fields leave the existing chat unchanged and grant no boost if play cannot be confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field gives temporary chat context, not cash or a transferable or externally redeemable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses opening the chat history sheet with a saved chat; showing the character name from the sheet header does not require reading what the user wrote."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and the decline and reward-expiry fields preserve the user's existing memory entitlement."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the safe s18 chat history sheet over the safe s03 My Chats screen, not inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, s16.e09 shows that Janitor Plus charges for increased chat context, the resource the reward boosts."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The proposal's current-app claims about Plus memory and price match s16.e09 and s16.e03; its chat-session counts match s18.e13 and s03.e12. The 10× boost and 8k-token input are proposed terms, not claims about today's app."
+ },
+ "c3_spares_payers": {
+  "passed": false,
+  "reason": "The subscribers and offer-copy fields pitch paying Janitor Plus users more of the memory benefit their plan sells, as shown by s16.e09."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward ends after five replies or at local midnight, rather than granting lasting access to the Plus memory benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a card on the s18 history sheet that the user chooses to open by tapping a My Chats row; it does not interrupt an ongoing conversation."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The trigger is a detectable sheet-opening event, and the flow uses a sponsored game. The ad-failure field withholds the boost when play cannot be confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea ties the s18 chat history sheet to Janitor Plus's specific 5× context benefit in s16.e09."
+ },
+ "other_concern": "The trigger opens a character's history, which may contain multiple sessions; the proposal does not specify how the user chooses the one chat that receives the boost. The 8k-token cost and ad-revenue assumptions are unverified.",
+ "fixable": false
+}

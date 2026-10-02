@@ -1,0 +1,53 @@
+{
+ "candidate_id": "rg-janitorai-c09-empty-evidence",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card opens only after the user taps like, and the offer copy states the reward (24-hour Home list lift and a 7-day supporter mention). Declining leaves the page unchanged, and the ad-failure path hides the card or shows a retry note."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic list boost and a supporter mention, with nothing that can be withdrawn or exchanged."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a tap on the like button (s07.e16) on a character page, which is an app event, and no chat content is used."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed, locked or capped; the idea adds an optional card and a supporters row."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits on the s07 character detail page, which is rated safe, and is not in a chat or between messages."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "This is a product_change whose new resource is list visibility for a creator. Most of what the reward gives goes to the creator (@IoakimTumo's character gets lifted), and the fan only gets a name mention, so the 'most of the reward goes to someone other than the player' condition holds."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the app as it is today rest on observed elements: the Hidden Gems list of smaller creators (s01.e13/e15), 102 pages (s01.e27), and the creator byline, like and comments buttons on s07. The new card, supporters row and boost are what the proposal adds, not claims about today's app."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "Janitor Plus (m2) offers memory, routing, swipes and a badge. The boost is outside the plan, the offer is not inside a paid area, and the plan does not remove ads."
+ },
+ "c4_protects_subscription": {
+  "passed": false,
+  "reason": "Lifting one character higher in the ordered Hidden Gems list takes position and visibility from other smaller creators' characters, and the app does not sell that advantage today."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card appears right after the user finishes a like action on a character page, which is a finished-action moment."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit. The reward is granted only after the verified play, and the trigger is a detectable like tap on an eligible character."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the Hidden Gems list, the creator byline and like button on s07, and smaller creators, which are specific to this app."
+ },
+ "other_concern": "Surfacing a visibility boost that other creators cannot match could be seen as unfair and might be gamed by coordinated fans; the 20 plays per character per day cap only partly limits this.",
+ "fixable": false
+}

@@ -1,0 +1,53 @@
+{
+ "candidate_id": "pd-c5-subtle",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card states the reward before the game (3 Advanced reasoning answers until midnight). 'Not now' closes it and the user picks who to talk to as usual, and the failure path is covered (no game means no card, an unconfirmed play means retry)."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 3 answers in Advanced reasoning mode, which has no cash value and can't be transferred."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a 3+ day gap plus a New chat tap, both app events. No message content is used."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free ('removes nothing free: yes'). It only adds a temporary sample of a paid feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card opens over s01 Chats home, which is rated safe. It is a card opened by an app event (a New chat tap), not a message in a conversation, and it is not over an unsafe or unknown screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This is an existing_anchor. Advanced reasoning mode is a paid paywall bullet (l02, s02.e03), so the app charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The paid-feature claims rest on s02.e03 and l02 (the paywall lists Advanced reasoning mode), and on the plans and trial (s02.e09-e19). The wording 'New chat leads to picking who to talk to' is loosely supported by s01.e09 and the persona containers, so it goes in other_concern."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "Subscribers are never shown the offer, and the reward is a feature their plan already includes, so it is withheld from them. The offer sits on the free home screen, not inside a paid area."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The sample is 3 answers and ends at midnight local time. It is capped and time-limited, and it takes nothing from other users."
+ },
+ "c5_moment": {
+  "passed": false,
+  "reason": "The card opens when the user taps New chat, interrupting a chat they are starting. That is not a limit just hit, a locked item tapped, or a finished action, and it is not a persistent surface the user chose to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn rewarded game. The reward is given after the game step, with a 'didn't count, try again' path when play isn't verified, and the trigger (return after 3+ days plus a New chat tap) is an app-detectable event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Luzia+ paywall's 'Advanced reasoning mode' bullet, the New chat element and Luzia+ badge on Chats home, and the 3-day trial, so it is specific to this app."
+ },
+ "other_concern": "The New chat tap may not open a 'list of who to talk to' as described, since that behavior wasn't observed. The offer also rests on an unobserved 3+ day gap, and whether Advanced reasoning mode is a mode the app can meter per answer is unobserved. The rationale's revenue and market claims are predictions.",
+ "fixable": true
+}
