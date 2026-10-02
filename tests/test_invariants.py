@@ -3,6 +3,7 @@ what a screen shows (with the element lists' overlap as the second signal), sett
 screen shows, and the walk done by the model. Also: no app's name or content anywhere in the explorer's code or
 prompts."""
 
+import ast
 import json
 import tomllib
 from pathlib import Path
@@ -363,3 +364,14 @@ def test_the_exhibit_reports_the_invariants_counters(tmp_path, monkeypatch):
     assert "## Invariants" in exhibit and "hops:" in exhibit and "settle waits:" in exhibit
     assert "replayed moves reached the recorded screen" in exhibit and "Fingerprint alone:" in exhibit
     assert any(line.step == "counters" for line in runlog.read_trace(ex.run_dir / "trace.jsonl"))
+
+
+def test_every_launch_of_the_app_goes_through_the_one_helper_that_clears_the_verified_filter():
+    """Greptile on 60db74b: leave() launched the app itself, so a launch back into a killed app kept the previous
+    launch's verified filter. Explorer.launch() is the only caller of the phone's launch, so no path can forget."""
+    tree = ast.parse((ROOT / "simula" / "stages" / "explore.py").read_text())
+    callers = [fn.name for fn in ast.walk(tree) if isinstance(fn, ast.FunctionDef) for node in ast.walk(fn)
+               if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "launch"
+               and isinstance(node.func.value, ast.Attribute) and node.func.value.attr == "phone"]
+    assert callers == ["launch"]
+

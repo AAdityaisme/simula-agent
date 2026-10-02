@@ -174,7 +174,9 @@ def test_back_that_left_the_app_is_not_taken_from_that_screen_again(tmp_path, mo
 
 
 def test_a_launch_that_finds_the_app_as_it_was_is_a_return_not_a_relaunch(tmp_path, monkeypatch):
-    """A tap opened another app over chats; the app's task lives on, and a launch brings chats back."""
+    """A tap opened another app over chats; the app's task lives on, and a launch brings chats back. With no content
+    filter: an app with one is relaunched from there, since chats can't show it (item 13's test)."""
+    monkeypatch.setattr(stage.Explorer, "find_filter", lambda self: [])
     ex, phone, chats = on_chats(tmp_path, monkeypatch)
     link = next(c for c in chats.cands if c.point == (996, 209))
     web = ex.act(stage.Move("tap", link), purpose="nav")
@@ -190,7 +192,8 @@ def test_a_launch_that_finds_the_app_as_it_was_is_a_return_not_a_relaunch(tmp_pa
 
 def test_a_route_hop_that_lands_in_another_app_returns_by_a_launch_and_goes_on(tmp_path, monkeypatch):
     """The recorded tap from chats to home now opens another app over chats: goto takes no BACK inside it (its
-    back_to link), and gets back without a relaunch."""
+    back_to link), and gets back without a relaunch, in an app with no content filter."""
+    monkeypatch.setattr(stage.Explorer, "find_filter", lambda self: [])
     ex, phone, chats = on_chats(tmp_path, monkeypatch)
     home = ex.root
     ex.edges[(chats.sid, home.sid)] = stage.Move("tap", next(c for c in chats.cands if c.point == (996, 209)))
@@ -2187,11 +2190,35 @@ def test_an_option_on_a_sheet_that_closed_is_verified_only_where_its_opener_show
         assert not ex.filtered
 
 
+def test_a_return_from_another_app_onto_a_deeper_screen_taps_nothing_until_a_relaunch_verifies_the_filter(
+        tmp_path, monkeypatch):
+    """Greptile on 60db74b: a feed row on chats opens the web, and the app, killed while away, is launched back onto
+    chats with its content filter reset, which chats can't show. A launch clears the session's verified filter, so
+    the explorer relaunches: nothing is tapped on the app until the launch screen has the filter again and checked."""
+    ex, phone, chats = on_chats(tmp_path, monkeypatch)
+    log_filter_checks(ex, phone, monkeypatch)
+    assert ex.filtered and ex.filter_taps
+    row = next(c for c in chats.cands if c.point == (996, 209))
+    ex.act(stage.Move("tap", row), purpose="tour")
+    assert ex.current.kind == "external" and ex.left is chats
+    launch, away = phone.launch, len(phone.log)
+
+    def killed_and_restored():
+        phone.launch = launch
+        launch()
+        phone.alive, phone.screen = True, "chats"  # a fresh process, restored where it was: its filter is off again
+    phone.launch = killed_and_restored
+    ex.leave()
+    ex.act(stage.Move("tap", next(c for c in ex.obs.cands if c.key in ex.tab_keys())), purpose="tour")
+    assert ("check", True) in phone.log[away:] and unfiltered_taps(phone.log[away:]) == []
+
+
 @pytest.mark.parametrize("reset", [False, True])
-def test_a_return_to_home_checks_its_filter_switch_and_ends_the_explore_if_it_reset(tmp_path, monkeypatch, reset):
+def test_a_return_to_home_re_applies_its_filter_switch_if_it_reset_and_checks_it(tmp_path, monkeypatch, reset):
     """rt-pr43-f6702e7 LOW 2: home holds the filter switch, turned on, and an app opened from home is left with a
-    launch that lands on home: a return, not a relaunch, so the filter isn't re-applied. A killed app starts again
-    with its switch off, so the filter is checked: if it is off, the explore ends."""
+    launch that lands on home: a return, not a relaunch. A killed app starts again with its switch off, so the
+    return re-applies the filter (Greptile on 60db74b: a launch clears the verified filter) and checks it; a switch
+    still on is left as it is."""
     monkeypatch.setattr(fake_device, "RESTRICTIVE", re.compile(r"\bnsfw\b", re.IGNORECASE))
     ex, phone = new_explorer(tmp_path, monkeypatch, switch_filter("Hide NSFW", False))
     phone.screen = "root"
@@ -2207,12 +2234,10 @@ def test_a_return_to_home_checks_its_filter_switch_and_ends_the_explore_if_it_re
         launch()
         phone.screen, phone.splash_left = "root" if reset else "root_flipped", 0
     phone.launch = lands_on_home
-    if reset:
-        with pytest.raises(stage.Unfiltered):
-            ex.leave()
-    else:
-        ex.leave()
-        assert ex.current is home and len(ex.returns) == 1 and ex.filter_checks[-1][1]
+    taps = sum(e[0] == "tap" for e in phone.log)
+    ex.leave()
+    assert len(ex.returns) == 1 and ex.relaunches == 0 and ex.filtered and ex.filter_checks[-1][1]
+    assert phone.screen == "root_flipped" and sum(e[0] == "tap" for e in phone.log) == taps + reset
 
 
 def relabel_the_filter(phone: FakePhone) -> None:
