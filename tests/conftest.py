@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from simula import qa_live, runfolder
+from simula import qa_live, runfolder, runlog
 from simula.stages import explore
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -31,11 +31,13 @@ def pytest_collection_modifyitems(config, items):
 def no_device(request, monkeypatch):
     """Offline tests never reach the emulator: a chained run stops where explore would start mobile-mcp, the live
     walk where it would, and adb answers only dumpsys, as an emulator does with its soft keyboard up over the lower
-    part of the screen. A test changes those answers through the dict this returns."""
+    part of the screen. A test changes those answers through the dict this returns. Nor do they show a macOS banner
+    when a run asks for a person, as CI's Linux runners never do; a test that checks the banner sets its own."""
     if request.node.get_closest_marker("live"):
         return None
 
     monkeypatch.setenv("SIMULA_REDACT", "offline-test-handle")
+    monkeypatch.setattr(runlog, "notify", lambda title, message: False)
 
     def refuse(*args, **kwargs):
         raise NotImplementedError("PR 1: offline tests never start mobile-mcp")
