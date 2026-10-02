@@ -92,12 +92,13 @@ def colors(pixels: np.ndarray) -> tuple[str | None, str | None]:
 
 def is_image_like(e: Element, siblings: list[Element], device: Device) -> bool:
     """Art worth cropping: an image (text over it is an overlay, drawn separately), or a wordless box that
-    holds no text (a crop would bake that text in). Under the no-wallpaper limit of the content area, the area the
-    mock and its validator measure; a bigger picture is left to the mock's art search."""
+    holds no text (a crop would bake that text in). A control only the vision pass saw never is: no tree lists the
+    words its pixels may hold. Under the no-wallpaper limit of the content area, the area the mock and its validator
+    measure; a bigger picture is left to the mock's art search."""
     r = e.rect_px
     holds_text = any((s.text or s.label) and s is not e and inside(s.rect_px, r) for s in siblings)
     small_enough = r.w * r.h < render.WALLPAPER_SHARE * device.w_px * (device.content_bottom_px - device.content_top_px)
-    art = e.type == "ImageView" or not (e.text or e.label or holds_text)
+    art = e.type == "ImageView" or (e.type != "vision" and not (e.text or e.label or holds_text))
     return art and min(r.w, r.h) >= 48 and small_enough
 
 
@@ -114,8 +115,9 @@ def make_element(eid: str, rect: Rect, kind: str, text: str, label: str, mcp_ref
 
 def build_elements(sid: str, tree: list[dict], icon_labels: list[IconLabel], vision: list[VisionElement],
                    pixels: np.ndarray, device: Device) -> list[Element]:
-    """Listed elements first, in tree order, then the controls only the vision pass saw. Tree text loses its
-    placeholder characters here, so every later stage quotes the text a person sees."""
+    """Listed elements first, in tree order, then what only the vision pass saw: a picture it found is an ImageView,
+    so it is cropped over its box like a listed image, and a control is never art. Tree text loses its placeholder
+    characters here, so every later stage quotes the text a person sees."""
     names = {i.mcp_ref: i.name for i in icon_labels}
     elements = []
     for e in (e for e in tree if in_content(e, device)):
@@ -125,8 +127,8 @@ def build_elements(sid: str, tree: list[dict], icon_labels: list[IconLabel], vis
             e["type"].split(".")[-1], text.strip_placeholders(e.get("text") or ""),
             text.strip_placeholders(names.get(e["ref"]) or e.get("label") or ""), e["ref"], pixels, device))
     for v in vision:
-        elements.append(make_element(f"{sid}.e{len(elements) + 1:02d}", v.rect_px, "vision", "", v.name, None,
-                                     pixels, device))
+        elements.append(make_element(f"{sid}.e{len(elements) + 1:02d}", v.rect_px,
+                                     "ImageView" if v.kind == "picture" else "vision", "", v.name, None, pixels, device))
     return elements
 
 
