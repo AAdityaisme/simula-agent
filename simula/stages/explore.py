@@ -303,6 +303,7 @@ class Explorer:
         self.filter_on: bool | None = None  # the state a switch filter is kept in; None when the filter is a tap
         self.filter_checks: list[tuple[int, bool, str]] = []
         self.filtered = False  # this launch of the app passed check_filter(); every launch clears it
+        self.opener_says = ""  # what a closed filter sheet's opener showed at the first check that passed on it
         self.setup = False  # a launch's own taps run (setting_up), before the filter is verified
         self.segments: list[list[tuple[Move, str, str]]] = []
         self.touring = True
@@ -860,13 +861,14 @@ class Explorer:
     def launch(self) -> None:
         """Every launch of the app goes through here. It may start the app afresh, its content filter off, wherever it
         lands, so the session is unfiltered until check_filter() passes again."""
+        self.filtered = False  # first: a launch that lands and then times out has still started the app afresh
         self.phone.launch()
-        self.filtered = False
 
     @contextlib.contextmanager
     def launching(self, home: Seen | None):
         """A fresh launch. Until the caller has set it up, its taps are the launch's own (setting_up), and a landing on
         home's top chrome is home."""
+        self.filtered = False
         self.phone.terminate()
         self.launch()
         with self.homing(home), self.setting_up():
@@ -1101,16 +1103,13 @@ class Explorer:
 
     def check_filter(self) -> None:
         """The filter's last control, found on the screen, shows what the filter wants (a switch's state, a chip or a
-        sheet's option selected). An option on a sheet that closed counts where its opener now shows its label as a
-        whole token ("SFW" is no part of "NSFW").
+        sheet's option selected). An option on a sheet that closed is read off its opener (opener_shows).
         A control the screen doesn't show is not verified. A pass marks this launch filtered; a fail ends the
         explore."""
         last, opener = self.filter_taps[-1], self.filter_taps[0]
         live = ob.find(self.obs.cands, last)
         ok = (live.checked == self.filter_on if self.filter_on is not None else self.selected(last)) if live \
-            else last is not opener and bool(last.tree_label) and any(
-                re.search(rf"(?<![\w+]){re.escape(last.tree_label)}(?![\w+])", c.label)
-                for c in self.obs.cands if ob.overlaps(c.rect, opener.rect))
+            else last is not opener and self.filter_on is None and self.opener_shows(last, opener)
         n = len(self.filter_checks) + 1
         evidence = self.out / "filter" / f"check-{n:02d}.png"
         evidence.parent.mkdir(exist_ok=True)
@@ -1122,6 +1121,19 @@ class Explorer:
             self.human("the content filter can't be verified", f"{last.label!r} not verified by screenshot (check {n})")
             raise Unfiltered(f"content filter not verified (check {n})")
         self.filtered = True
+
+    def opener_shows(self, option: ob.Candidate, opener: ob.Candidate) -> bool:
+        """An option on a sheet that closed, read off its opener. The first time, a control over the opener's box must
+        show a label it didn't show before the filter's taps, with the option in it as a whole token ("SFW" is no
+        part of "NSFW"); that label is kept, and from then on a control there must show exactly it. A label alone
+        can't say a switch's state, so a switch the screen doesn't show is never verified here."""
+        says = [c.label for c in self.obs.cands if ob.overlaps(c.rect, opener.rect)]
+        if self.opener_says:
+            return self.opener_says in says
+        token = re.compile(rf"(?<![\w+]){re.escape(option.tree_label)}(?![\w+])")
+        self.opener_says = next((label for label in says if label != opener.label and token.search(label)), "") \
+            if option.tree_label else ""
+        return bool(self.opener_says)
 
     # ---------- account walls (--allow-account-create) ----------
 
@@ -1662,13 +1674,13 @@ class Explorer:
                 else:
                     self.relaunch(why=f"a launch from {away.fg} did not find the app where it was left")
                     return
+                if self.filter_taps and not self.setup and self.left is not self.launch_root:
+                    self.relaunch(why=f"back from {away.fg} on {self.left.sid}, where the filter can't be checked")
+                    return
+                self.resume(away)
                 if self.filter_taps and not self.setup:  # a launch's own leave() is set up by that launch
-                    if self.left is not self.launch_root:
-                        self.relaunch(why=f"back from {away.fg} on {self.left.sid}, where the filter can't be checked")
-                        return
                     with self.setting_up():
                         self.apply_filter(False)
-                self.resume(away)
                 return
             if not ob.same_state(obs.fp, away.fp):
                 self.relaunch(why=f"a launch from {away.fg} left {obs.fg} in front")

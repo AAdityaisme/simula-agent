@@ -2161,37 +2161,81 @@ def test_a_filter_chip_that_changed_class_is_not_verified_by_its_text(tmp_path, 
     assert {e[1] for e in phone.log[phone.launches[1]:] if e[0] == "tap"} <= {"launch"}
 
 
-@pytest.mark.parametrize("option, opener_says, verified", [("SFW only", "Safe mode: SFW only", True),
-                                                            ("SFW only", "Safe mode", False),
-                                                            ("SFW", "Content: NSFW", False),
-                                                            ("SFW only", "Rating: NSFW only", False)])
-def test_an_option_on_a_sheet_that_closed_is_verified_only_where_its_opener_shows_it(tmp_path, monkeypatch, option,
-                                                                                     opener_says, verified):
-    """rt-pr43-3b1fb8c MEDIUM 1: a filter set by an option on a sheet ("SFW only"), and the sheet closed. The option
-    isn't on the screen, so it counts only where its opener now shows its label, as a whole token; its text
-    elsewhere, an opener that doesn't show it, or one that shows it inside another word (rt-pr43-60db74b MEDIUM 1:
-    "SFW" in "NSFW") is not verified."""
+def sheet_opener(tmp_path, monkeypatch, before: str, says: str):
+    """Home with the janitor-like filter chip as a closed filter sheet's opener, labelled `before` when the filter was
+    picked and showing `says` now, and an unrelated "SFW only" text elsewhere."""
     ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
     root = phone.screens["root"]
     chip = next(e for e in root.elements if e.get("label") == "Limited Only")
-    phone.screens["home"] = Screen([{**e, "label": opener_says} if e is chip else e for e in root.elements]
-                                   + [{"ref": "@note", "type": "android.widget.TextView", "text": "SFW only",
-                                       "coordinates": {"x": 40, "y": 1900, "width": 300, "height": 40}}],
-                                   root.image, root.package)
+
+    def showing(label):
+        return Screen([{**e, "label": label} if e is chip else e for e in root.elements]
+                      + [{"ref": "@note", "type": "android.widget.TextView", "text": "SFW only",
+                          "coordinates": {"x": 40, "y": 1900, "width": 300, "height": 40}}], root.image, root.package)
+    phone.screens.update(home=showing(says), other=showing("Content: SFW, mature topics off"))
     phone.screen = "home"
     ex.observe()
-    opener = ob.Candidate(label="Safe mode", kind="ViewGroup", rect=ob.rect(chip), ref="@opener",
-                          tree_label="Safe mode")
+    opener = ob.Candidate(label=before, kind="ViewGroup", rect=ob.rect(chip), ref="@opener", tree_label=before)
+    return ex, phone, opener
+
+
+@pytest.mark.parametrize("option, before, says, verified", [
+    ("SFW only", "Safe mode", "Safe mode: SFW only", True),
+    ("SFW only", "Safe mode", "Safe mode", False),
+    ("SFW", "Safe mode", "Content: NSFW", False),
+    ("SFW only", "Safe mode", "Rating: NSFW only", False),
+    *((option, says, says, False) for option, says in (("SFW", "Not SFW"), ("SFW", "Non-SFW"), ("SFW", "SFW: off"),
+                                                       ("SFW", "SFW ✕"), ("Safe mode", "Safe mode: Off"),
+                                                       ("SFW", "SFW | NSFW")))])
+def test_an_option_on_a_sheet_that_closed_is_verified_only_where_its_opener_shows_it(tmp_path, monkeypatch, option,
+                                                                                     before, says, verified):
+    """rt-pr43-3b1fb8c MEDIUM 1: a filter set by an option on a sheet ("SFW only"), and the sheet closed. The option
+    isn't on the screen, so it counts only where its opener now shows a label it didn't show before the filter's
+    taps, with the option in it as a whole token. Its text elsewhere, an opener that doesn't show it, one that shows
+    it inside another word (rt-pr43-60db74b MEDIUM 1: "SFW" in "NSFW"), and one still showing what it showed before
+    the taps, even with the option in it (rt-pr43-15170d2 W1: "Not SFW", "SFW: off"), are not verified."""
+    ex, phone, opener = sheet_opener(tmp_path, monkeypatch, before, says)
     pick = ob.Candidate(label=option, kind="Button", rect=stage.Rect(x=60, y=1500, w=960, h=120), ref="@option",
                         tree_label=option)
     ex.filter_taps = [opener, pick]
     if verified:
         ex.check_filter()
-        assert ex.filtered and ex.filter_checks[-1][1]
+        assert ex.filtered and ex.filter_checks[-1][1] and ex.opener_says == says
     else:
         with pytest.raises(stage.Unfiltered):
             ex.check_filter()
         assert not ex.filtered
+
+
+def test_a_later_check_of_a_closed_sheets_option_needs_the_opener_label_the_first_one_verified(tmp_path, monkeypatch):
+    """rt-pr43-15170d2 MEDIUM 2: the first check keeps the opener's label it verified ("Safe mode: SFW only"); a
+    later one passes only on exactly that label, not on another one that has the option in it."""
+    ex, phone, opener = sheet_opener(tmp_path, monkeypatch, "Safe mode", "Safe mode: SFW only")
+    ex.filter_taps = [opener, ob.Candidate(label="SFW", kind="Button", rect=stage.Rect(x=60, y=1500, w=960, h=120),
+                                           ref="@option", tree_label="SFW")]
+    ex.check_filter()
+    ex.observe()
+    ex.check_filter()
+    phone.screen = "other"
+    ex.observe()
+    with pytest.raises(stage.Unfiltered):
+        ex.check_filter()
+    assert [ok for _, ok, _ in ex.filter_checks] == [True, True, False]
+
+
+@pytest.mark.parametrize("says", ["Safe mode, Off", "Safe mode"])
+def test_a_switch_filter_the_screen_does_not_show_is_never_verified_by_its_openers_label(tmp_path, monkeypatch, says):
+    """rt-pr43-15170d2 MEDIUM 2 (W3): a "Safe mode" switch on a sheet, kept on, and the sheet didn't come up on the
+    re-apply, so nothing was tapped (a tap would be blind). A label can't say a switch's state, so the opener's
+    "Safe mode, Off" or "Safe mode" verifies nothing, and the explore ends."""
+    ex, phone, opener = sheet_opener(tmp_path, monkeypatch, "Safe mode", says)
+    switch = ob.Candidate(label="Safe mode", kind="Switch", rect=stage.Rect(x=60, y=1500, w=960, h=120),
+                          ref="@switch", tree_label="Safe mode", checked=False)
+    ex.filter_taps, ex.filter_on = [opener, switch], True
+    assert ex.filter_set(1)
+    with pytest.raises(stage.Unfiltered):
+        ex.check_filter()
+    assert not ex.filtered
 
 
 def test_a_return_from_another_app_onto_a_deeper_screen_taps_nothing_until_a_relaunch_verifies_the_filter(
@@ -2254,6 +2298,25 @@ def test_a_device_error_inside_a_tour_relaunch_relaunches_with_the_filter_instea
         monkeypatch.setattr(phone, "tap", refuses_once)
         ex.relaunch(why="no recorded way (as goto() relaunches)")
     assert tour_until(ex, monkeypatch, relaunch_cut_short) == [(True, 2)] and refused
+
+
+def test_a_tour_relaunch_whose_launch_lands_and_then_times_out_is_relaunched_with_the_filter(tmp_path, monkeypatch):
+    """rt-pr43-15170d2 MEDIUM 1 (D1): a relaunch's launch starts the app afresh and then its answer times out, so
+    the launch raises. The verified filter is cleared before the launch, so the next round relaunches with it rather
+    than tapping the fresh, unfiltered app."""
+    from simula.device.mcp import McpTimeout
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    launch = phone.launch
+
+    def lands_then_times_out():
+        phone.launch = launch
+        launch()
+        raise McpTimeout("mobile_launch_app took over 30s")
+
+    def relaunch_whose_launch_times_out():
+        phone.launch = lands_then_times_out
+        ex.relaunch(why="no recorded way (as goto() relaunches)")
+    assert tour_until(ex, monkeypatch, relaunch_whose_launch_times_out) == [(True, 2)]
 
 
 def test_an_account_made_on_the_tour_is_relaunched_with_the_filter_before_another_tap(tmp_path, monkeypatch):
@@ -2326,6 +2389,36 @@ def test_a_return_to_home_re_applies_its_filter_switch_if_it_reset_and_checks_it
     ex.leave()
     assert len(ex.returns) == 1 and ex.relaunches == 0 and ex.filtered and ex.filter_checks[-1][1]
     assert phone.screen == "root_flipped" and sum(e[0] == "tap" for e in phone.log) == taps + reset
+
+
+@pytest.mark.parametrize("sign_in_on_the_web", [False, True])
+def test_a_return_to_home_re_applies_the_filter_as_a_move_of_home(tmp_path, monkeypatch, sign_in_on_the_web):
+    """rt-pr43-15170d2 LOW 1 (L1, L1b): a return to home with its filter switch reset re-applies it from home, not
+    from the other app it came back from. The tap is logged from home, and a "Sign in" button that app showed at the
+    switch's point refuses nothing."""
+    monkeypatch.setattr(fake_device, "RESTRICTIVE", re.compile(r"\bnsfw\b", re.IGNORECASE))
+    ex, phone = new_explorer(tmp_path, monkeypatch, switch_filter("Hide NSFW", False))
+    if sign_in_on_the_web:
+        web = phone.screens["web"]
+        phone.screens["web"] = Screen(web.elements + [{"ref": "@signin", "type": "android.widget.Button",
+                                                       "text": "Sign in", "coordinates": {"x": 0, "y": 1250,
+                                                                                          "width": 1080, "height": 230}}],
+                                      web.image, web.package)
+    phone.screen = "root"
+    home = ex.current = ex.root = ex.launch_root = ex.record(ex.observe(), None, None, None)
+    ex.filter_taps = ex.find_filter()
+    before = ex.observe()
+    phone.screen = "web"
+    ex.left, ex.current = home, ex.record(ex.observe(), home, stage.Move("tap", before.cands[0]), before)
+    launch = phone.launch
+
+    def lands_on_home_reset():
+        launch()
+        phone.screen, phone.splash_left = "root", 0
+    phone.launch = lands_on_home_reset
+    ex.leave()
+    tap = [line for line in lines(ex) if line.action == "tap" and line.mcp_ref == "@sw" and line.outcome == "ok"][-1]
+    assert tap.from_state == home.sid and ex.current.sid == home.sid and ex.filtered and phone.screen == "root_flipped"
 
 
 def relabel_the_filter(phone: FakePhone) -> None:
