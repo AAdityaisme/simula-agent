@@ -21,10 +21,12 @@ from simula.stages.explore import (AWAY, CORE_SECONDS_PER_REP, DEVICE_LOST, FILT
 
 AGENT_MINUTES = 60  # one wall clock for everything the agent does: the tour, the core loop and the replay check
 STALE_TURNS = 10  # planner turns in a row that found no new state end the run
+PLANNER_FAILURES = 3  # planner turns in a row whose answer failed end the run
 BANNER_PASSES = 3  # a dismissible banner over the core action on this many passes in a row is a wall: the loop stops
 # a core-loop stop a banner's own dismiss control may clear; a paywall or a limit is what the loop measures
 BANNER_STOPS = ("sheet opened", "dialog opened", "modal opened", "upsell", "upsell screen")
-DISMISS_PHRASE = re.compile(r"^\W*(?:dismiss|close|not now|no,? thanks|maybe later|later|x|×|✕)\W*$", re.IGNORECASE)
+DISMISS_PHRASE = re.compile(r"^\W*(?:dismiss|close|not now|no,? thanks|maybe later|later|got it|x|×|✕)\W*$",
+                            re.IGNORECASE)
 # a label led by one of these dismisses at any length and on any element ("Dismiss long chat upgrade prompt"), naming
 # the offer it closes, unless a joining word ties an offer to it ("Close or Upgrade")
 DISMISS_START = re.compile(r"^\W*(?:dismiss|close|not now|no,? thanks|maybe later)\b", re.IGNORECASE)
@@ -115,6 +117,7 @@ class AgentExplorer(Explorer):
     deny-list, and the content filter is the planner's goal, verified by code but never a gate."""
 
     core_ran = False  # the passes ran during the tour, when start_core marked the core action
+    failed = 0  # planner turns in a row whose answer failed
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -294,14 +297,22 @@ class AgentExplorer(Explorer):
             self.stale, self.known = 0, len(self.states)
         elif self.stale >= STALE_TURNS:
             raise Stop(f"no new state in {STALE_TURNS} planner turns")
-        self.stale += 1
         s = self.current
         try:
             turn = self.plan(s)
         except llm.LLMFailure as e:
+            # a failed answer is cached, and the same prompt would replay it: the next one says it failed (so it is a
+            # real call), it is no stale turn, and a few in a row end the run under their own name
             self.counts["model call failures"] += 1
-            self.note("agent.turn", self.scrub(f"planner call failed: {e}"), outcome="error")
+            self.failed += 1
+            why = self.scrub(str(e))[:160]
+            self.note("agent.turn", f"planner call failed: {why}", outcome="error")
+            if self.failed >= PLANNER_FAILURES:
+                raise Stop(f"the planner's answer failed {self.failed} turns in a row (last: {why})") from e
+            self.news.append(f"Your last answer failed ({why}; {self.failed} in a row): answer again, in the schema.")
             return
+        self.failed = 0
+        self.stale += 1
         self.turn, self.names[s.sid], self.found = turn, turn.screen, turn.notes
         self.counts["planner turns"] += 1
         self.record_ads(s, turn)
