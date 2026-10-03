@@ -279,7 +279,8 @@ def usd(model: str, tokens_in: int, tokens_out: int, tokens_cached: int = 0, tok
 
 
 def worst_case_usd(model: str, tokens_in: int, max_tokens: int) -> float:
-    return usd(model, tokens_in, max_tokens)
+    """A cold call: every input token written to the prompt cache, its dearest price, and max_tokens of output."""
+    return usd(model, tokens_in, max_tokens, tokens_cache_write=tokens_in)
 
 
 # ---------- providers ----------

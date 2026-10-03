@@ -622,12 +622,12 @@ CONVERSATION = [{"role": "user", "content": [{"type": "text", "text": "shared"},
                 {"role": "user", "content": [{"type": "text", "text": "again"}]}]
 
 
-def serve_message(monkeypatch, usage) -> list[dict]:
+def serve_message(monkeypatch, usage, stop_reason="end_turn") -> list[dict]:
     """An Anthropic client whose one non-streamed answer has this usage; returns the requests it was sent."""
     import anthropic
     sent = []
     answer = SimpleNamespace(content=[SimpleNamespace(type="text", text='{"word": "hi"}')], model=MODEL,
-                             stop_reason="end_turn", usage=usage)
+                             stop_reason=stop_reason, usage=usage)
 
     def create(**kwargs):
         sent.append(kwargs)
@@ -703,3 +703,22 @@ def test_a_stalled_stream_charges_its_cache_reads_and_writes_at_their_rates(tmp_
     assert (last.tokens_in, last.tokens_cached, last.tokens_cache_write, last.usd) == (1000, 600, 300, round(worst, 6))
     entry = json.loads(next((tmp_path / "cache").glob("*.json")).read_text())
     assert (entry["tokens_in"], entry["tokens_cached"], entry["tokens_cache_write"]) == (1000, 600, 300)
+
+
+@pytest.mark.parametrize("aborted", [False, True])
+def test_the_hold_covers_a_call_that_writes_its_whole_input_to_the_cache(tmp_path, monkeypatch, aborted):
+    system, prompt = "s" * 3000, message("abc")
+    estimated = llm.estimate_tokens_in(system, prompt)  # the API reports exactly this, 1 fresh and the rest written
+    usage = SimpleNamespace(input_tokens=1, output_tokens=1, cache_read_input_tokens=0,
+                            cache_creation_input_tokens=estimated - 1)
+    if aborted:  # one token streamed, charged its whole max_tokens
+        max_tokens, stream = 20_000, StalledStream()
+        stream.current_message_snapshot = SimpleNamespace(content=[], usage=usage)
+        serve_stream(monkeypatch, stream)
+    else:  # an answer that used its whole output allowance
+        max_tokens, usage.output_tokens = 16_000, 16_000
+        serve_message(monkeypatch, usage, stop_reason="max_tokens")
+    budget = llm.Budget("model", llm.worst_case_usd(MODEL, estimated, max_tokens))
+    with pytest.raises(llm.LLMFailure):
+        call(tmp_path, system=system, messages=prompt, max_tokens=max_tokens, budget=budget, attempts=1)
+    assert budget.held == pytest.approx(0) and budget.spent <= budget.cap
