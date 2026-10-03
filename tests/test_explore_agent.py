@@ -258,6 +258,16 @@ def test_a_failed_filter_check_tells_the_planner_and_the_run_goes_on(tmp_path, m
     assert not (ex.run_dir / "needs-human.md").exists()
 
 
+def test_a_filter_already_set_is_verified_by_the_element_the_planner_names(tmp_path, monkeypatch):
+    """The strictest option shows selected already, so the planner taps nothing and names it instead."""
+    script = scripted(lambda text: turn(tap(oid(text, "Limited Only"), "the list narrows")),
+                      lambda text: turn({"action": "swipe", "direction": "down", "expect": "the top"}),
+                      lambda text: turn(DONE, filter_set=True, filter_element=oid(text, "Limited Only")))
+    ex, _, _ = run(tmp_path, monkeypatch, script)
+    assert [t.label for t in ex.filter_taps] == ["Limited Only"] and ex.filter_checks[0][1]
+    assert [t.outcome for t in trace(ex) if t.step == "filter.check"][0] == "ok"
+
+
 def counting_jev(asked):
     def jev(state, instructions, labels, backend):
         if instructions.startswith("Which control does this"):

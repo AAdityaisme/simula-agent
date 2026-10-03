@@ -537,6 +537,8 @@ class AgentTurn(Strict):
     notes: list[str] = Field(default=[], max_length=12, description="What the run has found so far: tabs, paywall, "
                              "settings, a limit, the core action, the content filter.")
     filter_set: bool = Field(default=False, description="True once the strictest content filter is set on this screen.")
+    filter_element: str | None = Field(default=None, description="The element id of the strictest content-filter "
+                                       "control as it shows now, when filter_set.")
     done_reason: str = Field(default="", description="Why the app is covered, when a step is done.")
 
 

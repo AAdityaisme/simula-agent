@@ -436,16 +436,19 @@ class AgentExplorer(Explorer):
             self.recheck()
 
     def filter_reported(self) -> None:
-        """The planner says the filter is set: the taps since its last turn are the filter's controls, checked here."""
-        if self.tapped:
-            self.filter_taps, self.opener_says = list(self.tapped), ""
+        """The planner says the filter is set: the taps since its last turn are the filter's controls, or, with none
+        (it was set already), the element it names; checked here."""
+        named = self.ids.get(self.turn.filter_element or "")
+        if self.tapped or named:
+            self.filter_taps, self.opener_says = list(self.tapped) or [ob.find(self.current.cands, named) or named], ""
             live = ob.find(self.obs.cands, self.filter_taps[-1])
             self.filter_on = live.checked if live else None
             self.note("filter", f"content filter: {filter_label(self.filter_taps, self.filter_on)}", decider="model")
         if self.filter_taps:
             self.recheck()
         else:
-            self.filter_news = "you said it is set, but none of your taps set it: tap its control, then say so"
+            self.filter_news = ("you said it is set, but none of your taps set it and filter_element names nothing on "
+                                "this screen: name its control")
 
     def recheck(self) -> None:
         """The filter is checked only where its control shows: elsewhere the planner is told to go back to it."""
