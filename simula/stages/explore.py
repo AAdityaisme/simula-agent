@@ -1017,10 +1017,8 @@ class Explorer:
                 self.root.done = "the unfiltered launch screen"
                 self.root, self.current.depth, self.current.back_to = self.current, 0, None
         else:
-            for n, tap in enumerate(self.filter_taps):
-                if self.filter_set(n):
-                    break
-                self.act(Move("tap", tap, decider="code", why="re-apply the content filter"), purpose="filter")
+            put_back(self.filter_taps, self.filter_on, lambda: self.obs, lambda c: self.act(
+                Move("tap", c, decider="code", why="re-apply the content filter"), purpose="filter"))
         if self.filter_taps:
             self.check_filter()
 
@@ -2369,10 +2367,11 @@ class Explorer:
                 elif not self.safe_tap(close, "replay"):
                     break
                 self.observe()
-            for n, tap in enumerate(self.filter_taps):
-                live = ob.find(self.obs.cands, tap)
-                if live and not self.filter_set(n) and self.safe_tap(live, "replay"):
+            def replay_tap(c: ob.Candidate) -> None:
+                live = ob.find(self.obs.cands, c)
+                if live and self.safe_tap(live, "replay"):
                     self.observe()
+            put_back(self.filter_taps, self.filter_on, lambda: self.obs, replay_tap)
             if self.filter_taps:
                 self.check_filter()
 
@@ -2543,7 +2542,9 @@ class Explorer:
             app_package=self.package, app_version=app_version, budget=self.ctx.budget, relaunches=self.relaunches,
             content_filter=filter_label(self.filter_taps, self.filter_on) or None,
             filter_controls=[FilterControl(label=c.label, kind=c.kind, rect=c.rect, tree_label=c.tree_label,
-                                           ident=c.ident) for c in self.filter_taps], filter_on=self.filter_on,
+                                           ident=c.ident,
+                                           state=next((s.sid for s in self.states if any(o is c for o in s.cands)), ""))
+                             for c in self.filter_taps], filter_on=self.filter_on,
             blocked_state_ids=[s.sid for s in self.states if s.kind == "blocked"],
             coverage=Coverage(states_found=len(self.states), actions_taken=self.actions, stop_reason=self.stop_reason,
                               checklist_answered=answered, checklist_open=still_open),
@@ -2584,6 +2585,19 @@ def filter_set(n: int, taps: list[ob.Candidate], on: bool | None, cands: list[ob
         return selected(taps[-1], cands, image)
     live = ob.find(cands, taps[-1])
     return live is None or live.checked == on
+
+
+def put_back(taps: list[ob.Candidate], on: bool | None, look: Callable[[], Obs], tap: Callable[[ob.Candidate], object]
+             ) -> None:
+    """Puts a content filter back, as every launch needs: its controls in order, each through tap (the caller's own
+    guarded tap, which may refuse it and go on), until the last one needs no tap on the screen look() returns
+    (filter_set). Explore's re-apply, its replay launch and qa-live share it; each judges the result with
+    filter_holds."""
+    for n, control in enumerate(taps):
+        now = look()
+        if filter_set(n, taps, on, now.cands, now.image):
+            break
+        tap(control)
 
 
 def filter_holds(taps: list[ob.Candidate], on: bool | None, cands: list[ob.Candidate], image: Image.Image,

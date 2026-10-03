@@ -106,6 +106,8 @@ def test_content_filter_is_chosen_and_verified(run):
     saved = ExploreFile.model_validate_json((ex.out / "explore.json").read_text())  # what qa-live puts back
     assert [(c.label, c.kind) for c in saved.filter_controls] == [("Limited Only", ex.filter_taps[0].kind)]
     assert saved.filter_on is None and saved.content_filter == "Limited Only"
+    on = ex.by_id[saved.filter_controls[0].state]  # the capture qa-live checks its filter tap against
+    assert "Limited Only" in [c.label for c in ob.controls(on.elements, ex.device)]
 
 
 def test_caps_hold_and_no_denied_tap_runs(run):

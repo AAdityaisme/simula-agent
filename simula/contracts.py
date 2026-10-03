@@ -581,13 +581,15 @@ class StateFile(Strict):
 
 
 class FilterControl(Strict):
-    """One control of the content filter explore applied, as it found it on screen. qa-live re-finds it by its words
-    (observe.find) after every launch and judges the filter as explore does (explore.filter_holds)."""
+    """One control of the content filter explore applied, as it found it on screen, and the state it was recorded on.
+    qa-live re-finds it by its words (observe.find) after every launch, taps it only where it looks as in that state's
+    capture, and judges the filter as explore does (explore.filter_holds)."""
     label: str
     kind: str
     rect: Rect
     tree_label: str
     ident: str = ""
+    state: str = ""  # empty in a run explored before it was recorded: qa-live refuses that run
 
 
 class ExploreFile(Strict):

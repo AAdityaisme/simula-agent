@@ -576,7 +576,7 @@ def test_an_approved_mock_older_than_the_files_it_was_made_from_is_refused_befor
 SAFE = {"ref": "@safe", "type": "android.widget.Switch", "text": "Safe mode",
         "coordinates": {"x": 700, "y": 1400, "width": 300, "height": 100}}
 SAFE_CONTROL = FilterControl(label="Safe mode", kind="Switch", rect=Rect(x=700, y=1400, w=300, h=100),
-                             tree_label="Safe mode")
+                             tree_label="Safe mode", state="s01")
 
 
 def safe_mode(screen: Screen, on: bool) -> Screen:
@@ -747,10 +747,40 @@ def test_no_walk_step_runs_while_the_filter_is_unverified_since_the_launch_rt_s_
     assert taps(phone) == [] and report["flows"][0]["status"] == "blocked"
 
 
-def test_a_run_that_recorded_a_filter_but_not_its_controls_is_refused_before_any_device_work(runs, walk):
-    """A run explored before explore.json recorded the filter's controls can't have its filter put back."""
+def test_a_filter_chip_under_a_wordless_picture_is_never_tapped_rt_s_r4_m1(runs, walk):
+    """rt-s on #46 (MEDIUM 1): qa-live's filter taps checked only the deny words at the tap point, so a wordless
+    picture drawn over JanitorAI's "Limited Only" chip (j18_filter_all, the launch screen explore recorded) took the
+    tap. A filter tap now passes the walk's own checks against the capture of the state the chip was recorded on."""
+    chips = capture("janitorai", "j18_filter_all")
+    chip = next(c for c in ob.controls(chips.elements, DEVICE) if c.label == "Limited Only")
+    control = FilterControl(label=chip.label, kind=chip.kind, rect=chip.rect, tree_label=chip.tree_label,
+                            ident=chip.ident, state="s01")
+    recorded = screens() | {"s01": chips}
+    source_run(runs, recorded, [line(1, "s01", "s02", TAP, tab(chips, 1), "tab"),
+                                line(2, "s02", "s01", BACK, transition="back")],
+               [[("s01", "s02", TAP), ("s02", "s01", BACK)]], "Limited Only", filter_controls=[control])
+    r = chip.rect
+    picture = {"ref": "@ad", "type": "android.widget.ImageView", "text": "", "label": "",
+               "coordinates": {"x": int(r.x + r.w / 2 - 60), "y": int(r.y + r.h / 2 - 40), "width": 120, "height": 80}}
+    image = chips.image.copy()
+    c = picture["coordinates"]
+    ImageDraw.Draw(image).rectangle((c["x"], c["y"], c["x"] + c["width"], c["y"] + c["height"]), fill=(250, 0, 200))
+    live = screens() | {"s01": Screen([*chips.elements, picture], image, chips.package)}
+    phone = phone_for(live, [("s01", chip, "s02")])
+
+    report = walk(phone)
+    refusal = next(s for s in report["setup"] if s["action"] == "filter")
+    assert "looks different from its recorded crop" in refusal["refused"], report["setup"]
+    assert taps(phone) == [] and "isn't verified after the launch" in report["stop"]
+
+
+@pytest.mark.parametrize("controls", [[], [SAFE_CONTROL.model_copy(update={"state": ""})]],
+                         ids=["no controls", "no screen they were on"])
+def test_a_run_that_recorded_a_filter_but_not_its_controls_is_refused_before_any_device_work(runs, walk, controls):
+    """A run explored before explore.json recorded the filter's controls, or the state each was recorded on (round
+    4), can't have its filter put back as explore puts it."""
     recorded = screens()
-    tab_back_run(runs, recorded, "Limited Only")
+    tab_back_run(runs, recorded, "Limited Only", filter_controls=controls)
     phone = phone_for(screens(), [("s01", tab(recorded["s01"], 1), "s02")])
 
     with pytest.raises(SystemExit, match=r"the run recorded a content filter \('Limited Only'\) but not its controls"):
