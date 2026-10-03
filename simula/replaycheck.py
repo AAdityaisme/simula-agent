@@ -96,7 +96,6 @@ m = read_manifest(run)
 print(json.dumps({"stages": STAGES, "trace": [[line.stage, line.step] for line in read_trace(run / "trace.jsonl")],
                   "source": m.provenance.source, "git_sha": m.git_sha,
                   "options": ["--run", m.run_id, "--profile", m.profile, "--budget", m.budget,
-                              *(["--allow-account-create"] if m.allow_account_create else []),
                               *(["--no-send"] if m.no_send else [])]}))"""
 
 

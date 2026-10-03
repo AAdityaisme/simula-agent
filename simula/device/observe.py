@@ -101,7 +101,7 @@ LEAF = re.compile(r"(?:TextView|ImageView|EditText)$")
 PAGED = re.compile(r"ViewPager|RecyclerView|ListView|ScrollView")
 TEXT_OR_IMAGE = re.compile(r"(?:TextView|ImageView)$")
 REDACTED = "[redacted]"
-# --allow-account-create's words. A way on without an account is a whole label, so "Watch later" is content.
+# Account walls' words. A way on without an account is a whole label, so "Watch later" is content.
 GUEST = re.compile(r"^\W*(?:[\w'’]+\s+){0,3}?(?:as (?:a )?(?:guest|visitor)|guest(?: mode)?|without (?:an? )?account|"
                    r"without (?:signing|logging) (?:up|in)|without (?:registering|registration|log ?in|sign ?in)|"
                    r"(?:explore|browse|look around) first|browse anonymously|just browsing)\W*$|"

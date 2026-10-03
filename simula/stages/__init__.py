@@ -1,8 +1,10 @@
 """The seven stages. Each reads its upstream stage folders and writes only its own folder."""
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from pathlib import Path
+from typing import Literal
 
+from simula import config
 from simula.llm import TRANSPORT, Budget, CapReached, ProviderUnavailable
 
 UPSTREAM = {
@@ -31,7 +33,7 @@ FRESH_CALLS = ("--no-cache asks every model call of the stage again, not only th
                "input may be answered the same way.")
 
 ROLES = {
-    "explore": ["jev", "explore_vision"],
+    "explore": ["jev", "explore_vision", "explore_agent"],
     "model": ["model_meaning"],
     "mock": ["mock_builder"],
     "qa": ["qa_critic", "qa_fixer"],
@@ -51,9 +53,10 @@ class Ctx:
     usd_cap: float | None
     allow_fixtures: bool
     budget: str = "transfer"
-    allow_account_create: bool = False
     no_send: bool = False
     device: str | None = None
+    explorer: Literal["agent", "scripted"] = field(default_factory=lambda: config.choice("explorer"))
+    explore_jev: Literal["on", "shadow", "off"] = field(default_factory=lambda: config.choice("explore_jev"))
 
 
 
@@ -66,8 +69,7 @@ def run_options(ctx: Ctx) -> str:
     a stage hashes, the opt-ins, the device, and an overridden $ cap. --no-cache and --replay are modes of one
     command, not of the run. A line that raises the cap passes a ctx with usd_cap=None and adds its own --usd-cap."""
     return " ".join([f"--run {ctx.run_dir.name}", f"--profile {ctx.profile}", f"--budget {ctx.budget}",
-                     *(["--allow-fixtures"] if ctx.allow_fixtures else []),
-                     *(["--allow-account-create"] if ctx.allow_account_create else []),
+                     f"--explorer {ctx.explorer}", *(["--allow-fixtures"] if ctx.allow_fixtures else []),
                      *(["--no-send"] if ctx.no_send else []),
                      *([f"--device {ctx.device}"] if ctx.device else []),
                      *([f"--usd-cap {ctx.usd_cap}"] if ctx.usd_cap is not None else [])])

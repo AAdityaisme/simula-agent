@@ -516,6 +516,41 @@ class ActionLine(Strict):
                                 "state's own capture.")
 
 
+class AgentStep(Strict):
+    action: Literal["tap", "type", "swipe", "back", "launch", "start_core", "done"]
+    element: str | None = Field(default=None, description="An element id from this screen's list, or null.")
+    intent: str | None = Field(default=None, description="What to tap in words when no id fits (Jev grounds it).")
+    text: str | None = Field(default=None, description="For type: one of the allowed texts the prompt lists.")
+    direction: Literal["up", "down", "left", "right"] | None = None
+    recipient: Literal["ai", "person", "none"] = Field(default="none",
+                                                       description="For start_core: who receives what is sent.")
+    expect: str = Field(description="What should change on screen after this step, in a few words.")
+
+
+class AgentTurn(Strict):
+    """What this screen is, the goal, and the next 1-5 steps toward it."""
+    screen: str = Field(description="A short name for what this screen is.")
+    goal: str = Field(description="The goal these steps serve.")
+    steps: list[AgentStep] = Field(min_length=1, max_length=5)
+    ads: list[str] = Field(default=[], description="Element ids of ads on this screen.")
+    ad_notes: str = Field(default="", description="Advertiser, category and format of those ads, if shown.")
+    notes: list[str] = Field(default=[], max_length=12, description="What the run has found so far: tabs, paywall, "
+                             "settings, a limit, the core action, the content filter.")
+    filter_set: bool = Field(default=False, description="True once the strictest content filter is set on this screen.")
+    done_reason: str = Field(default="", description="Why the app is covered, when a step is done.")
+
+
+class AdLine(Strict):
+    """one line of explore/ads.jsonl"""
+    step: int
+    state: str
+    format: Literal["banner", "interstitial", "rewarded", "native", "other"]
+    advertiser: str | None = None
+    category: str | None = None
+    tapped: bool = False
+    landing: str | None = Field(default=None, description="The app package or URL a tap landed on.")
+
+
 class IconLabel(Strict):
     mcp_ref: str
     name: str
@@ -853,4 +888,4 @@ class Manifest(Strict):
 
 
 MODEL_FACING = [ModelMeaning, IconPass, HardScreenAction, Arrival, WalkPick, Progress, Critique, Edits, LensOutput,
-                BenefitNames, Verdict, PairwisePick]
+                BenefitNames, Verdict, PairwisePick, AgentTurn]
