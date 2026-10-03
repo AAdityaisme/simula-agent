@@ -100,9 +100,14 @@ def survivors(decisions: list[Decision], promoted: list[str] = (), held: list[st
     chosen = any(d.candidate_id in promoted for d in splits) or any(d.final == "accept" for d in decisions)
     clean = [d for d in splits if PAYERS not in d.judgment_splits]
     closest = [] if chosen else clean[:1]
-    replaced = {e for i in promoted for e in earlier(i)}
+    replaced = replacements(promoted)
     return [d for d in picked if (not needs_call(d) or d in closest or d.candidate_id in promoted)
             and d.candidate_id not in held and d.candidate_id not in replaced]
+
+
+def replacements(promoted: list[str]) -> dict[str, str]:
+    """Each version a promoted revision came from, with the revision drawn in its place."""
+    return {e: i for i in promoted for e in earlier(i)}
 
 
 def select(decisions: list[Decision], promoted: list[str] = (), held: list[str] = ()) -> list[Decision]:
@@ -114,13 +119,32 @@ def select(decisions: list[Decision], promoted: list[str] = (), held: list[str] 
 
 
 def hold_effects(decisions: list[Decision], promoted: list[str], held: list[str]) -> tuple[list[str], ...]:
-    """The held ids three ways: taken out of the deck or off Needs your call; past the cap of MAX_IDEAS, so the deck
-    would have left them out anyway; and never passed by the judges, so never drawn."""
+    """The held ids four ways: taken out of the deck or off Needs your call; past the cap of MAX_IDEAS, so the deck
+    would have left them out anyway; never passed by the judges, so never drawn; and replaced by a promoted revision,
+    so never drawn either."""
     drawn = select(decisions, promoted)
     past = [d.candidate_id for d in survivors(decisions, promoted) if d not in drawn]
     passed = {d.candidate_id for d in decisions if d.final in SURVIVED}
-    return ([i for i in held if i in passed and i not in past], [i for i in held if i in past],
-            [i for i in held if i not in passed])
+    replaced = replacements(promoted)
+    return ([i for i in held if i in passed and i not in past and i not in replaced], [i for i in held if i in past],
+            [i for i in held if i not in passed], [i for i in held if i in passed and i in replaced])
+
+
+def override_notes(decisions: list[Decision], promoted: list[str], held: list[str]) -> tuple[list[str], list[str]]:
+    """What a person's overrides did, as the select trace says it: those applied ("promoting c02", "holding c03") and
+    those that changed nothing, each with why."""
+    held_out, held_past_cap, held_idle, held_replaced = hold_effects(decisions, promoted, held)
+    splits, replaced = {d.candidate_id for d in decisions if needs_call(d)}, replacements(promoted)
+    anyway = [i for i in promoted if i not in splits and i not in replaced  # a passed idea drawn without its promotion
+              and i in {d.candidate_id for d in select(decisions, [p for p in promoted if p != i], held)}]
+    applied = [f"{verb} {' '.join(ids)}" for verb, ids in (
+        ("promoting", [i for i in promoted if i not in anyway and i not in replaced]), ("holding", held_out)) if ids]
+    idle = ([f"promoting {i}, which the judges passed already" for i in anyway]
+            + [f"promoting {i}, which its promoted revision {replaced[i]} replaces" for i in promoted if i in replaced]
+            + [f"holding {i}, which the cap of {MAX_IDEAS} leaves out anyway" for i in held_past_cap]
+            + [f"holding {i}, which its promoted revision {replaced[i]} replaces" for i in held_replaced]
+            + [f"holding {i}, which the judges didn't pass" for i in held_idle])
+    return applied, idle
 
 
 def recover(flows_dir: Path) -> None:
@@ -303,15 +327,8 @@ def run(ctx: Ctx) -> None:
     kept = {d.candidate_id for d in survivors(decisions, promoted, held)}
     cut = [d for d in survivors(decisions, promoted, held) if d not in chosen]
     waiting = [d for d in ordered(decisions) if needs_call(d) and d.candidate_id not in kept | set(held)]
-    held_out, held_past_cap, held_idle = hold_effects(decisions, promoted, held)
-    splits = {d.candidate_id for d in decisions if needs_call(d)}
-    anyway = [i for i in promoted if i not in splits  # a passed idea the deck draws without its promotion too
-              and i in {d.candidate_id for d in select(decisions, [p for p in promoted if p != i], held)}]
-    applied = [f"{verb} {' '.join(ids)}" for verb, ids in (("promoting", [i for i in promoted if i not in anyway]),
-                                                           ("holding", held_out)) if ids]
-    idle = ([f"promoting {i}, which the judges passed already" for i in anyway]
-            + [f"holding {i}, which the cap of {MAX_IDEAS} leaves out anyway" for i in held_past_cap]
-            + [f"holding {i}, which the judges didn't pass" for i in held_idle])
+    held_out, held_past_cap, _, _ = hold_effects(decisions, promoted, held)
+    applied, idle = override_notes(decisions, promoted, held)
     chosen_from = "accepted + conditional" + (f", flows/approvals.json {' and '.join(applied)}" if applied else "")
     no_effect = f"; no effect: {'; '.join(idle)}" if idle else ""
     past_cap = f"; past the cap of {MAX_IDEAS}, not drawn: {' '.join(d.candidate_id for d in cut)}" if cut else ""
