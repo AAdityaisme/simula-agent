@@ -84,7 +84,7 @@ class AgentExplorer(Explorer):
         self.picked_core: CoreAction | None = None
         self.ads_seen: set[tuple[str, str]] = set()
         self.ad_leave = False  # leaving an ad's landing: a relaunch for it isn't counted
-        self.core_box: ob.Candidate | None = None  # the text box the core loop's last tap focused
+        self.text_box: ob.Candidate | None = None  # the text box the last tap focused (none after any other tap)
         self.raw_of: tuple[object, list[dict]] = (None, [])  # a Google screen's look and its unredacted list
         self.pause, self.sleep = self.sleep, self.bounded_sleep
         self.stale = self.known = self.noops = 0
@@ -109,6 +109,8 @@ class AgentExplorer(Explorer):
                     else:
                         self.run_step(self.steps.pop(0))
                 except ScreenMoved as e:
+                    if self.current and self.current.kind not in AWAY:  # leave() finds the app where it was: a return
+                        self.left, self.left_back = self.current, False
                     self.note("agent.moved", f"{e}: nothing was done, the plan ended")
                     self.news.append(f"The screen changed before a step could run ({e}): nothing was done.")
                     self.steps.clear()
@@ -497,8 +499,8 @@ class AgentExplorer(Explorer):
         if guard.in_billing(fg) or (guard.signing_in(fg) and self.priced(elements)):
             self.back_out(fg)
             raise ScreenMoved(f"a purchase screen ({fg}) came to the front")
-        if guard.signing_in(fg) and not emails(raw):
-            raise ScreenMoved(f"{fg} came to the front, and it isn't the account chooser")
+        if guard.signing_in(fg) and not self.signing(raw, elements):
+            raise ScreenMoved(f"{fg} came to the front, and it isn't Google's sign-in")
         if fg != self.package and not guard.signing_in(fg):
             raise ScreenMoved(f"{fg} came to the front")
         return fg
@@ -520,7 +522,7 @@ class AgentExplorer(Explorer):
         target = self.resolve(live, ob.controls(elements, self.device))
         reason = self.refusal(target, fg, elements, raw, core)
         if not reason:
-            self.core_box = target if core and target.kind == "EditText" else self.core_box
+            self.text_box = target if target.kind == "EditText" else None
             self.phone.tap(*target.point)
         return reason
 
@@ -607,19 +609,35 @@ class AgentExplorer(Explorer):
         return s if move.cand is None and expect is None else super().unrun(s, move, expect)
 
     def field(self, core: bool, elements: list[dict]) -> str:
-        """What a type goes into, on this list: the focused text box. In the core loop it must be the composer the
-        loop's own tap focused (its id, or its words and width: the keyboard lifts it, so not its height); outside it,
-        a search box (its words or id say search); anything else is "other"."""
-        focused = [e for e in elements if e.get("focused") and e["type"].endswith("EditText")]
-        box = focused[0] if len(focused) == 1 else None
+        """What a type goes into, on this list: the focused text box, or, when the device reports focus on no element,
+        the box the last tap focused, still on screen. In the core loop it must be that tapped box, the composer;
+        outside it, a search box (its words or id say search); anything else is "other"."""
+        boxes = [e for e in elements if e["type"].endswith("EditText")]
+        focused = [e for e in boxes if e.get("focused")]
+        mine = self.text_box
+        if focused:
+            box = focused[0] if len(focused) == 1 else None
+            if core and not (box and mine and self.same_box(box, mine, lifted=True)):
+                box = None
+        else:
+            box = next((e for e in boxes if mine and self.same_box(e, mine, lifted=False)), None)
+        if box is None:
+            return "other"
         if core:
-            mine, r = self.core_box, ob.rect(box) if box else None
-            same = box is not None and mine is not None and (
-                ob.short_id(box.get("identifier")) == ob.short_id(mine.ident) if mine.ident else
-                ob.words(box) == mine.tree_label and abs(r.x - mine.rect.x) <= 21 and abs(r.w - mine.rect.w) <= 21)
-            return "composer" if same else "other"
+            return "composer"
         said = " ".join(str(box.get(k) or "") for k in ("text", "label", "identifier")) if box else ""
         return "search" if SEARCH.search(ob.ID_WORDS.sub(" ", said)) else "other"
+
+    def same_box(self, e: dict, c: ob.Candidate, lifted: bool) -> bool:
+        """The element is the tapped box: its id, or its words and place. A box the device says is focused may sit where
+        the keyboard lifted it, so its width and left edge; one it says nothing of, within a tenth of the screen's
+        height."""
+        if c.ident:
+            return ob.short_id(e.get("identifier")) == ob.short_id(c.ident)
+        r = ob.rect(e)
+        near = (abs(r.x - c.rect.x) <= 21 and abs(r.w - c.rect.w) <= 21) if lifted else \
+            abs(ob.center(r)[1] - c.point[1]) <= self.device.h_px / 10
+        return ob.words(e) == c.tree_label and near
 
     def log_denied(self, s: Seen, cands: list[ob.Candidate] | None = None) -> None:
         for c in s.cands if cands is None else cands:
@@ -642,6 +660,14 @@ class AgentExplorer(Explorer):
         self.observe()  # act() reads the store's sheet again itself, never a Google one: one BACK per sheet
         return True
 
+    def signing(self, raw: list[dict], elements: list[dict]) -> bool:
+        """A Google screen is part of signing in when it shows no price and an account row, or else a flow button and
+        no account-management word (a consent step names no account; a chooser lists "Add another account")."""
+        said = [t for e in elements for t in (e.get("text") or "", e.get("label") or "") if t.strip()]
+        flow = any(t.strip().lower() in CHOOSER_STEPS for t in said)
+        managing = any(GOOGLE_ACCOUNT.search(t) for t in said)
+        return not self.priced(elements) and (bool(emails(raw)) or (flow and not managing))
+
     def priced(self, elements: list[dict]) -> bool:
         return any(ob.PRICE.search(t) for t in ob.texts(elements, self.device))
 
@@ -653,12 +679,11 @@ class AgentExplorer(Explorer):
         self.news.append("A purchase screen opened and code pressed back at once.")
 
     def away(self, obs) -> str | None:
-        """Google's account chooser (an account row, no price) is part of signing in, not another app; any other
-        Google screen is away."""
+        """Google's sign-in (signing) is part of signing in, not another app; any other Google screen is away."""
         if guard.signing_in(obs.fg):
             if self.raw_of[0] is not obs:
                 self.raw_of = (obs, self.phone.elements()[1])
-            return None if emails(self.raw_of[1]) and not self.priced(obs.elements) else "external"
+            return None if self.signing(self.raw_of[1], obs.elements) else "external"
         return super().away(obs)
 
     def account_wall(self, s: Seen) -> bool:

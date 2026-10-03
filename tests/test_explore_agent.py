@@ -16,7 +16,7 @@ from simula.stages import model as model_stage
 from simula.contracts import Rect
 from simula.device.mcp import McpTimeout
 from simula.stages.explore_agent import STALE_TURNS, AgentExplorer, Halt, ScreenMoved
-from tests.fake_device import PACKAGE, Clock, FakePhone, Screen, fake_jev, fake_sonnet, new_run
+from tests.fake_device import PACKAGE, Clock, FakePhone, Screen, capture, fake_jev, fake_sonnet, new_run
 from tests.test_explore_offline import janitor_like
 
 CHATS_TAB = (540, 2253)
@@ -56,23 +56,6 @@ def drawn(*elements: dict, package: str = PACKAGE) -> Screen:
 def phone_of(screens: dict, taps: dict | None = None, **fields):
     """A phone factory over drawn screens, starting on "root"."""
     return lambda clock: FakePhone(dict(screens), "root", dict(taps or {}), clock, **fields)
-
-
-def focusing(phone: FakePhone) -> FakePhone:
-    """A phone whose tapped text box reports focus, as a real one does: the core loop types only into it."""
-    focus, tap, elements = {}, phone.tap, phone.current_elements
-
-    def tapped(x: int, y: int) -> None:
-        box = next((e for e in elements() if e["type"].endswith("EditText") and e["coordinates"]["x"] <= x
-                    < e["coordinates"]["x"] + e["coordinates"]["width"] and e["coordinates"]["y"] <= y
-                    < e["coordinates"]["y"] + e["coordinates"]["height"]), None)
-        focus["at"] = (phone.screen, box["ref"]) if box else None
-        tap(x, y)
-
-    phone.tap = tapped
-    phone.current_elements = lambda: [{**e, "focused": focus.get("at") == (phone.screen, e.get("ref"))}
-                                      if e["type"].endswith("EditText") else e for e in elements()]
-    return phone
 
 
 def turn(*steps, **fields) -> dict:
@@ -301,7 +284,7 @@ def test_start_core_is_refused_for_a_person_and_measured_for_an_ai(tmp_path, mon
     def chats(clock):
         phone = janitor_like(clock)
         phone.taps[("chats", "Kang Jun-Seo (Idol x Idol), Sat, 1 chat")] = "chat"  # the card's center
-        return focusing(phone)
+        return phone
     ex, phone, planner = run(tmp_path, monkeypatch, chat_script("person"), phone_factory=chats)
     assert "start_core was refused" in planner.texts[3]
     assert ex.core and ex.core.kind == "chat" and phone.sent >= 1
@@ -798,7 +781,7 @@ def test_the_core_loop_types_only_into_the_composer_it_focused(tmp_path, monkeyp
                 "coordinates": {"x": 100, "y": 1800, "width": 800, "height": 100}}
     ex, phone = one_screen(tmp_path, monkeypatch, control("Name", 1, "EditText", focused=True), composer)
     assert ex.perform(stage.Move("type", text=stage.CORE_MESSAGES[0]), None, core=True)
-    ex.core_box = next(c for c in ex.obs.cands if c.tree_label == "Message")
+    ex.text_box = next(c for c in ex.obs.cands if c.tree_label == "Message")
     assert ex.perform(stage.Move("type", text=stage.CORE_MESSAGES[0]), None, core=True) and not phone.typed
 
 
@@ -876,3 +859,65 @@ def test_an_ad_tap_whose_landing_cant_be_read_is_still_recorded(tmp_path, monkey
     ads = [AdLine.model_validate_json(line) for line in (ex.out / "ads.jsonl").read_text().splitlines()]
     assert ("root", "Sponsored deal") in taps(phone) and any("an ad" in line["change_summary"] for line in lines)
     assert ads[-1].tapped and ads[-1].landing is None
+
+
+
+# ---------- Greptile on 837dd26 ----------
+
+def test_with_no_focus_reported_the_core_loop_types_into_the_composer_it_tapped(tmp_path, monkeypatch):
+    """The real chat capture reports focus on no element: the composer the core pass tapped takes the message, and a
+    box the device does say is focused, above it, refuses it."""
+    ex, phone, _ = agent(tmp_path, monkeypatch, scripted(), no_send=True,
+                         phone_factory=phone_of({"root": capture("luzia", "luzia-chat-thread", package=PACKAGE)}))
+    ex.relaunch(first=True)
+    composer = next(c for c in ex.obs.cands if c.kind == "EditText")
+    assert not ex.tap(composer, ex.obs.elements, core=True)
+    assert not ex.perform(stage.Move("type", text=stage.CORE_MESSAGES[0]), None, core=True)
+    assert phone.typed == [stage.CORE_MESSAGES[0]]
+    phone.screens["root"].elements.append({**control("Name", 1, "EditText", focused=True), "identifier": ""})
+    assert ex.perform(stage.Move("type", text=stage.CORE_MESSAGES[1]), None, core=True)
+    assert phone.typed == [stage.CORE_MESSAGES[0]]
+
+
+def test_with_no_focus_reported_a_query_goes_into_the_search_box_the_plan_tapped(tmp_path, monkeypatch):
+    phone_factory = phone_of({"root": drawn(control("Search", 1, "EditText"), control("Explore", 2))})
+    script = scripted(lambda text: turn(tap(oid(text, "Search"), "the keyboard")),
+                      lambda text: turn({"action": "type", "text": "popular", "expect": "popular"}))
+    _, phone, _ = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
+    assert phone.typed and set(phone.typed) == {"popular"}  # the replay check types it again
+
+
+def test_a_google_consent_step_with_no_account_row_is_signed_through(tmp_path, monkeypatch):
+    """Chooser, then a consent screen that names no account: its Continue is tapped and the app comes back."""
+    chooser = drawn(control("someone@example.com", 1), control("Add another account", 2),
+                    package=guard.ACCOUNT_CHOOSER)
+    consent = drawn(control("Allow the app to see your name", 1, "TextView"), control("Cancel", 2),
+                    control("Continue", 3), package=guard.ACCOUNT_CHOOSER)
+    phone_factory = phone_of({"root": drawn(control("Continue with Google", 1)), "chooser": chooser,
+                              "consent": consent, "home": drawn(control("Inside", 1))},
+                             {("root", "Continue with Google"): "chooser",
+                              ("chooser", "someone@example.com"): "consent", ("consent", "Continue"): "home"})
+    script = scripted(lambda text: turn(tap(oid(text, "Continue with Google"), "the chooser")),
+                      lambda text: turn(tap(oid(text, "[redacted]"), "the consent")),
+                      lambda text: turn(tap(oid(text, "Continue"), "signed in")))
+    ex, phone, planner = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
+    assert ("consent", "Continue") in taps(phone) and ("back", "consent") not in phone.log
+    assert planner.texts[3].startswith(f"App in front: {PACKAGE}")
+
+
+def test_another_app_before_an_action_is_a_return_not_a_relaunch(tmp_path, monkeypatch):
+    """Greptile on 837dd26: the app resumes where it was left, so leaving the other app counts no relaunch."""
+    held = {}
+
+    def factory(clock):
+        held["phone"] = phone_of({"root": drawn(control("Explore", 1)),
+                                  "other": drawn(control("A notice", 1), package="com.example.other")})(clock)
+        return held["phone"]
+
+    def script(n, text):
+        if n == 1:
+            held["phone"].go("other")
+            return turn(tap(oid(text, "Explore"), "explore opens"))
+        return None
+    ex, phone, _ = run(tmp_path, monkeypatch, script, phone_factory=factory, no_send=True)
+    assert not [t for t in taps(phone) if t[0] == "other"] and ex.relaunches == 0 and ex.returns
