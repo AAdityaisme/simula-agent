@@ -661,6 +661,59 @@ def test_a_launch_whose_feed_loads_after_its_placeholders_puts_the_filter_back_o
     assert report["flows"][0]["status"] == "matched", report["flows"][0]
 
 
+class SecondLaunchOff(FakePhone):
+    """The filter switch takes a tap on the first launch only."""
+    switch = (0, 0)
+
+    def tap(self, x: int, y: int) -> None:
+        if self.screen == "s01" and self.log.count(("launch",)) >= 2 and (x, y) == self.switch:
+            self.tick()
+            self.log.append(("tap", self.screen, "dead switch"))
+            return
+        super().tap(x, y)
+
+
+@pytest.mark.parametrize("second", ["comes on", "won't come on"])
+def test_every_launch_puts_the_filter_back_before_any_tap_of_the_walk_rt_s_r3_ql2(runs, walk, second):
+    """rt-s on #46 (MEDIUM 2, QL2): flow 1 lands where no recorded state matches, so flow 2 starts from a second
+    launch, which puts the filter back and checks it before any tap of the walk; one that won't come on the second
+    time stops the walk there."""
+    filtered_tab_back_run(runs, flows=[[("s01", "s03", TAP)], [("s01", "s02", TAP), ("s02", "s01", BACK)]])
+    live = live_with_the_switch_off(weird=capture("janitorai", "j09_drawer"))
+    switch = labeled(live["s01"], "Safe mode")
+    phone = phone_for(live, [("s01", switch, "on"), ("on", tab(live["on"], 3), "weird"),
+                             ("on", tab(live["on"], 1), "s02")], cls=SecondLaunchOff)
+    phone.switch = switch.point if second == "won't come on" else (-1, -1)
+
+    report = walk(phone)
+    setup = [s["action"] + (f"={s['verified']}" if "verified" in s else "") for s in report["setup"]]
+    launches = [n for n, action in enumerate(setup) if action == "launch"]
+    assert len(launches) == 2, setup
+    assert setup[launches[1] + 1:launches[1] + 3] == ["filter", f"filter check={second == 'comes on'}"], setup
+    if second == "comes on":
+        assert report["flows"][1]["status"] == "matched", report["flows"][1]
+    else:
+        assert "isn't verified after the launch" in report["stop"] and report["flows"][1]["status"] == "blocked"
+        assert not [e for e in phone.log[phone.log.index(("launch",), phone.log.index(("launch",)) + 1):]
+                    if e[0] == "tap" and e[2] != "dead switch"], phone.log
+
+
+def test_a_filter_control_under_a_deny_worded_overlay_is_never_tapped_rt_s_r3_m2(runs, walk):
+    """rt-s on #46 (MEDIUM 2): nothing tested the deny check before a filter tap. A "Subscribe" banner lies over the
+    switch's tap point: the walker refuses the tap, the filter stays off, and nothing is walked."""
+    filtered_tab_back_run(runs)
+    live = live_with_the_switch_off()
+    banner = {"ref": "@promo", "type": "android.widget.Button", "text": "Subscribe",
+              "coordinates": {"x": 800, "y": 1350, "width": 280, "height": 200}}
+    live["s01"] = with_extra(live["s01"], banner)
+    phone = phone_for(live, [("s01", labeled(live["s01"], "Safe mode"), "on"), ("on", tab(live["on"], 1), "s02")])
+
+    report = walk(phone)
+    refusal = next(s for s in report["setup"] if s["action"] == "filter")
+    assert "subscribe" in refusal["refused"].lower() and report["flows"][0]["status"] == "blocked", report["setup"]
+    assert taps(phone) == [] and "isn't verified after the launch" in report["stop"]
+
+
 def test_a_run_that_recorded_a_filter_but_not_its_controls_is_refused_before_any_device_work(runs, walk):
     """A run explored before explore.json recorded the filter's controls can't have its filter put back."""
     recorded = screens()
