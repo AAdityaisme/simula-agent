@@ -1716,6 +1716,7 @@ def test_a_billing_screen_a_chat_pass_brought_up_stops_it_greptile_46(tmp_path, 
     stops = [(line.loop_pass, line.loop_stop) for line in lines(ex) if line.loop_stop]
     assert stops == [(2, "billing")] and ("back", "billing") in phone.log, (stops, phone.sent)
     assert phone.sent == (1 if during_settle else 2) and ex.core_hit.startswith("billing")
+    assert "Stopped by the app: billing (com.android.vending) on pass 2." in stage.loop_end(ex, 1)
 
 
 def test_a_chat_stop_read_after_settling_names_the_screen_it_settled_on_greptile_44(tmp_path, monkeypatch):
