@@ -71,7 +71,8 @@ ID_WORDS = re.compile(r"(?<=[a-z])(?=[A-Z])|[_-]")  # an id's words ("buttonFavo
 # denies it; a text button such as "Close account" meets every deny word
 ICON_ONLY = re.compile(r"\s*[x×✕✖]?\s*", re.IGNORECASE)
 DISMISS_ID = re.compile(r"\b(?:close|dismiss|skip|not now)\b", re.IGNORECASE)
-SIGN_IN = re.compile(r"\b(?:log ?in|sign ?in|sign ?up|continue with)\b", re.IGNORECASE)
+SIGN_IN = re.compile(r"\b(?:log ?in|sign ?in|sign ?up|continue with|create (?:an |my |your )?account|register)\b",
+                     re.IGNORECASE)
 TOGGLE = re.compile(r"Switch|CheckBox|ToggleButton", re.IGNORECASE)
 DENY_ON_UPSELL = re.compile(r"continue|try|start|get|claim|unlock|join|redeem|activate|\bremove\b", re.IGNORECASE)
 DENY_IN_TOUR = re.compile(r"send|swipe|regenerate", re.IGNORECASE)
@@ -111,6 +112,8 @@ GUEST = re.compile(r"^\W*(?:[\w'’]+\s+){0,3}?(?:as (?:a )?(?:guest|visitor)|gu
 AGREES = re.compile(r"\bagree|\baccept|\bconsent|\backnowledg|\bunderstand\b|\badult\b", re.IGNORECASE)
 ATTESTS = re.compile(r"\b\d+\s*\+|\b(?:over|at least|under) \d+|^\W*(?:yes|i|i['’]?m|i am)\b", re.IGNORECASE)
 LOG_IN = re.compile(r"\b(?:log|sign) ?in\b", re.IGNORECASE)
+# a log-in form offers to reset a forgotten password; a sign-up form has none to forget
+FORGOT = re.compile(r"\bforgot(?:ten)?\b.*\bpass ?word|\breset (?:your |my )?pass ?word", re.IGNORECASE)
 # a sign-in with another account (Google, Apple, ...) or a phone is a real person's, so it is never a way in
 OTHER_ACCOUNT = re.compile(r"\b(?:continue|sign ?(?:in|up)|log ?in|connect|register)\s+(?:with|using|via)\b"
                            r"(?!.*\be-?mail\b)", re.IGNORECASE)

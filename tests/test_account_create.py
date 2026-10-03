@@ -626,6 +626,33 @@ def test_a_log_in_form_is_never_filled_and_its_sign_up_link_is_taken_rt_r2_5(tmp
     assert ex.account_state == "made" and ex.account[-1].startswith("s01: signed up with the test identity")
 
 
+def test_a_log_in_form_whose_button_only_continues_is_never_filled_greptile_43(tmp_path, monkeypatch, identity):
+    """Greptile on #37 (item 43): only a log-in button told a log-in form apart, so one whose button says "Continue"
+    got the test identity. Offering to reset a forgotten password makes it a log-in form too."""
+    log_in = [*LOG_IN_FORM[:5], el("@go", "Button", "Continue", 1100),
+              el("@fp", "Button", "Forgot password?", 1300, w=400, h=80), el("@su", "Button", "Sign up", 1700)]
+
+    def app(clock):
+        phone = sign_up_app(wall=log_in)(clock)
+        phone.taps[("wall", "Sign up")] = "form"
+        return phone
+    ex, phone = launched(tmp_path, monkeypatch, app)
+    assert phone.values == {("form", "@f1"): EMAIL, ("form", "@f2"): PASSWORD, ("form", "@f3"): NAME}
+    assert taps(phone)[0] == "Sign up" and "Continue" not in taps(phone) and ex.account_state == "made"
+
+
+@pytest.mark.parametrize("label", ["Create account", "Register"])
+def test_a_wall_that_only_asks_to_create_an_account_is_a_wall_greptile_43(tmp_path, monkeypatch, identity, label):
+    """Greptile on #37 (item 43): a wall was recognized by sign-in words only, so one offering nothing but "Create
+    account" or "Register" was explored as a screen."""
+    def app(clock):
+        phone = sign_up_app(wall=[TITLE, el("@ca", "Button", label, 1500)])(clock)
+        phone.taps[("wall", label)] = "form"
+        return phone
+    ex, phone = launched(tmp_path, monkeypatch, app)
+    assert taps(phone)[0] == label and phone.typed == [EMAIL, PASSWORD, NAME] and ex.account_state == "made"
+
+
 def test_name_parts_are_redacted_as_whole_words_only_rt_r2_6():
     parts = stage.identity_parts({"email": "ann.test@example.org", "password": "x", "name": "Ann Lee"})
     shown = [el("@a", "Button", "Announcements", 300), el("@b", "Button", "Fleet", 500),

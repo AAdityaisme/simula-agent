@@ -1065,8 +1065,8 @@ class Explorer:
         value; then the form is sent. A screen without one gets the way to an email sign-up. After a send, a
         verification step asks a person (needs-human.md), a form asking only for values not typed yet, the email or
         the password among them, is the next step, and anything else is the end, an account only when it is the app itself (result). A form's own button
-        must say no more than that it sends it (PLAIN_SUBMIT); a form whose own button logs in is a log-in form: never
-        filled; its way to sign up is taken."""
+        must say no more than that it sends it (PLAIN_SUBMIT); a form whose own button logs in, or that offers to
+        reset a forgotten password, is a log-in form: never filled; its way to sign up is taken."""
         sent, typed = False, set()
         for _ in range(SIGN_UP_STEPS):
             s = self.current
@@ -1087,7 +1087,8 @@ class Explorer:
                              and any(kind != "name" for _, kind in boxes) and button
                              and ob.PLAIN_SUBMIT.search(button.label)):
                 return self.result(wall)
-            if boxes and not (button and ob.LOG_IN.search(button.label)):
+            log_in = bool(button and ob.LOG_IN.search(button.label)) or any(ob.FORGOT.search(t) for t in self.said())
+            if boxes and not log_in:
                 why = ("no control sends the form" if button is None else
                        f"the form's button {button.label[:40]!r} says more than that it sends the form"
                        if not ob.PLAIN_SUBMIT.search(button.label) else self.fill(boxes, typed))
