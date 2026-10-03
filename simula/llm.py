@@ -483,6 +483,28 @@ def call(*, trace_path: Path, stage: str, step: str, model: str, effort: str | N
                            total_timeout=total_timeout, scrub=scrub)
 
 
+def scrub_values(value, scrub: Callable[[str], str]):
+    """Every string in a decoded JSON value, scrubbed: the decoded text, so an escaped character can't hide one."""
+    if isinstance(value, str):
+        return scrub(value)
+    if isinstance(value, list):
+        return [scrub_values(v, scrub) for v in value]
+    if isinstance(value, dict):
+        return {k: scrub_values(v, scrub) for k, v in value.items()}
+    return value
+
+
+def scrub_text(text: str | None, scrub: Callable[[str], str]) -> str | None:
+    """A model's text scrubbed: a JSON answer value by value, anything else as it reads."""
+    if not text:
+        return text
+    try:
+        decoded = json.loads(text)
+    except ValueError:
+        return scrub(text)
+    return scrub(json.dumps(scrub_values(decoded, scrub), ensure_ascii=False))
+
+
 def _call_model(*, trace_path, stage, step, model, effort, system, messages, max_tokens, budget, schema,
                 no_cache, replay, cache_dir, attempts, total_timeout, scrub=None):
     scrub = scrub or (lambda text: text)
@@ -531,7 +553,7 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
             pending.append(key)
             continue
         file_key, cached = chosen[key]
-        cached.text, cached.stop_reason = scrub(cached.text), scrub(cached.stop_reason or "") or cached.stop_reason
+        cached.text, cached.stop_reason = scrub_text(cached.text, scrub), scrub_text(cached.stop_reason, scrub)
         if cached.failure:
             last = LLMFailure(cached.failure, cached.stop_reason, raw=cached.text)
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
@@ -565,7 +587,7 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
             failure = e if isinstance(e, LLMFailure) else _failure(
                 "blocked" if isinstance(e, ProviderUnavailable) else "error", e)
             spent = {k: getattr(failure, k) for k in SPENT}
-            failure = LLMFailure(failure.outcome, scrub(failure.detail), raw=scrub(failure.raw), **spent)
+            failure = LLMFailure(failure.outcome, scrub(failure.detail), raw=scrub_text(failure.raw, scrub), **spent)
             cost = usd(model, **spent)
             budget.charge(cost, worst)
             note = scrub(str(e) if retry or not isinstance(e, Exception) else
@@ -576,14 +598,16 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
                   **spent, usd=round(cost, 6), outcome=failure.outcome,
                   note=(f"key {fresh[key][:12]} " if retry else "") + note[:200])
             if not retry:
-                raise
+                if (clean := _scrubbed(e, scrub)) is e:
+                    raise
+                raise clean from None
             cache_write(fresh[key], Reply(text=failure.raw, model=model, **spent, stop_reason=failure.detail,
                                           failure=failure.outcome), cache_dir)
             last = failure
             continue
         cost = usd(model, reply.tokens_in, reply.tokens_out, reply.tokens_cached, reply.tokens_cache_write)
         budget.charge(cost, worst)
-        reply.text, reply.stop_reason = scrub(reply.text), scrub(reply.stop_reason or "") or reply.stop_reason
+        reply.text, reply.stop_reason = scrub_text(reply.text, scrub), scrub_text(reply.stop_reason, scrub)
         outcome, result = _check(reply, schema)
         trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
               tokens_in=reply.tokens_in, tokens_out=reply.tokens_out, tokens_cached=reply.tokens_cached,
@@ -598,6 +622,17 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
         cache_write(fresh[key], reply, cache_dir)
         last = LLMFailure(outcome, reply.stop_reason, raw=reply.text)
     raise last
+
+
+def _scrubbed(e: BaseException, scrub: Callable[[str], str]) -> BaseException:
+    """A stop that must propagate, as itself, with its message scrubbed: whoever catches it may write it down."""
+    said = str(e)
+    if scrub(said) == said:
+        return e
+    try:
+        return type(e)(scrub(said))
+    except Exception:  # noqa: BLE001 - an exception that can't be rebuilt from a message is raised as a plain one
+        return RuntimeError(f"{type(e).__name__}: {scrub(said)}")
 
 
 def provider_error(e: Exception) -> bool:

@@ -13,7 +13,9 @@ from simula.contracts import AdLine, ExploreFile
 from simula.device import guard
 from simula.stages import explore as stage
 from simula.stages import model as model_stage
-from simula.stages.explore_agent import STALE_TURNS, AgentExplorer, Halt
+from simula.contracts import Rect
+from simula.device.mcp import McpTimeout
+from simula.stages.explore_agent import STALE_TURNS, AgentExplorer, Halt, ScreenMoved
 from tests.fake_device import PACKAGE, Clock, FakePhone, Screen, fake_jev, fake_sonnet, new_run
 from tests.test_explore_offline import janitor_like
 
@@ -54,6 +56,23 @@ def drawn(*elements: dict, package: str = PACKAGE) -> Screen:
 def phone_of(screens: dict, taps: dict | None = None, **fields):
     """A phone factory over drawn screens, starting on "root"."""
     return lambda clock: FakePhone(dict(screens), "root", dict(taps or {}), clock, **fields)
+
+
+def focusing(phone: FakePhone) -> FakePhone:
+    """A phone whose tapped text box reports focus, as a real one does: the core loop types only into it."""
+    focus, tap, elements = {}, phone.tap, phone.current_elements
+
+    def tapped(x: int, y: int) -> None:
+        box = next((e for e in elements() if e["type"].endswith("EditText") and e["coordinates"]["x"] <= x
+                    < e["coordinates"]["x"] + e["coordinates"]["width"] and e["coordinates"]["y"] <= y
+                    < e["coordinates"]["y"] + e["coordinates"]["height"]), None)
+        focus["at"] = (phone.screen, box["ref"]) if box else None
+        tap(x, y)
+
+    phone.tap = tapped
+    phone.current_elements = lambda: [{**e, "focused": focus.get("at") == (phone.screen, e.get("ref"))}
+                                      if e["type"].endswith("EditText") else e for e in elements()]
+    return phone
 
 
 def turn(*steps, **fields) -> dict:
@@ -282,7 +301,7 @@ def test_start_core_is_refused_for_a_person_and_measured_for_an_ai(tmp_path, mon
     def chats(clock):
         phone = janitor_like(clock)
         phone.taps[("chats", "Kang Jun-Seo (Idol x Idol), Sat, 1 chat")] = "chat"  # the card's center
-        return phone
+        return focusing(phone)
     ex, phone, planner = run(tmp_path, monkeypatch, chat_script("person"), phone_factory=chats)
     assert "start_core was refused" in planner.texts[3]
     assert ex.core and ex.core.kind == "chat" and phone.sent >= 1
@@ -619,7 +638,7 @@ def test_a_flow_button_on_a_google_dialog_that_names_a_deletion_stays_refused(tm
     dialog = [control("someone@example.com", 1, "TextView"), control("Remove this account", 2, "TextView"),
               control("OK", 3)]
     ok = next(c for c in stage.ob.controls(dialog, ex.device) if c.tree_label == "OK")
-    assert "hard block" in ex.refusal(ok, guard.ACCOUNT_CHOOSER, dialog, False)
+    assert "hard block" in ex.refusal(ok, guard.ACCOUNT_CHOOSER, dialog, dialog, False)
 
 
 def test_a_google_screen_with_a_price_is_a_purchase_and_gets_back(tmp_path, monkeypatch):
@@ -667,3 +686,193 @@ def test_the_scrub_takes_the_identity_parts_as_whole_words(tmp_path, monkeypatch
     monkeypatch.setenv("SIMULA_TEST_NAME", "Quillon Varga")
     ex, _, _ = agent(tmp_path, monkeypatch, scripted(), phone_factory=phone_of({"root": drawn(control("Explore", 1))}))
     assert ex.scrub("hello Quillon, Quillonx") == "hello [redacted], Quillonx"
+
+
+# ---------- Codex's review on 2e43d0e ----------
+
+def one_screen(tmp_path, monkeypatch, *elements, **screens):
+    """An agent on a drawn root of these elements, launched, its planner done at once."""
+    ex, phone, _ = agent(tmp_path, monkeypatch, scripted(),
+                         phone_factory=phone_of({"root": drawn(*elements), **screens}), no_send=True)
+    ex.relaunch(first=True)
+    return ex, phone
+
+
+def test_a_redacted_name_is_no_account_row_and_account_words_are_refused_on_google(tmp_path, monkeypatch):
+    """Item 1: only an email in the unredacted list makes an account row; manage, privacy and the like never pass."""
+    monkeypatch.setenv("SIMULA_REDACT", "Jamie")
+    page = drawn(control("Manage account for Jamie", 1), control("Privacy", 2), package=guard.ACCOUNT_CHOOSER)
+    phone_factory = phone_of({"root": drawn(control("Continue with Google", 1)), "page": page},
+                             {("root", "Continue with Google"): "page"}, backs={"page": "root"})
+    script = scripted(lambda text: turn(tap(oid(text, "Continue with Google"), "the chooser")))
+    ex, phone, _ = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
+    assert ("back", "page") in phone.log and not [t for t in taps(phone) if t[0] == "page"]
+    ex2, _ = one_screen(tmp_path / "unit", monkeypatch, control("Explore", 1))
+    row = [control("someone@example.com", 1, "TextView"), control("Manage your account", 2)]
+    manage = next(c for c in stage.ob.controls(row, ex2.device) if c.tree_label == "Manage your account")
+    assert "account chooser" in ex2.refusal(manage, guard.ACCOUNT_CHOOSER, row, row, False)
+
+
+def test_a_json_escaped_handle_and_a_propagated_stop_are_scrubbed(tmp_path, monkeypatch):
+    """Item 2: the decoded values are scrubbed, and a stop that leaves llm.call carries a scrubbed message."""
+    name = "José"
+    ask = dict(trace_path=tmp_path / "trace.jsonl", stage="explore", step="s", model="claude-sonnet-5-5", effort=None,
+               system="sys", messages=[{"role": "user", "content": [{"type": "text", "text": "hi"}]}], max_tokens=50,
+               budget=llm.Budget.for_stage("explore", tmp_path / "trace.jsonl", 1.0), cache_dir=tmp_path / "cache")
+
+    def answering(model, *args):
+        return llm.Reply(text=json.dumps({"said": f"hello {name}"}), model=model, tokens_in=10, tokens_out=5)
+
+    def stopping(model, *args):
+        raise llm.ProviderUnavailable(f"quota for {name}")
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", answering)
+    said, reply = llm.call(**ask, scrub=lambda text: text.replace(name, "[redacted]"))
+    assert json.loads(said) == {"said": "hello [redacted]"} and name not in json.loads(reply.text)["said"]
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", stopping)
+    with pytest.raises(llm.ProviderUnavailable) as stopped:
+        llm.call(**{**ask, "system": "other"}, scrub=lambda text: text.replace(name, "[redacted]"))
+    assert name not in str(stopped.value) and name not in (tmp_path / "trace.jsonl").read_text()
+
+
+def test_a_lone_filter_control_must_show_a_strict_value(tmp_path, monkeypatch):
+    """Item 3: an opener reading "Show all" is the filter, but not set strict; Jev is asked about its value."""
+    asked = []
+
+    def jev(state, instructions, labels, backend):
+        asked.append(instructions)
+        if "content or safety filter" in instructions:  # the opener is the filter control
+            pick = next(i for i, label in enumerate(labels) if label.startswith("Content filter"))
+            return decide.ChoiceResult(option_id=f"o{pick + 1:02d}", confidence=0.9, probabilities={}, model="fake",
+                                       tokens_in=10, tokens_out=0, usd=0.000001, seconds=0.1)
+        return fake_jev(state, instructions, labels, backend)
+    phone_factory = phone_of({"root": drawn(control("Content filter: Show all", 1), control("Sort", 2))})
+    script = scripted(lambda text: turn(DONE, filter_set=True, filter_element=oid(text, "Content filter")))
+    ex, _, _ = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True, jev=jev)
+    assert not ex.filtered and not ex.filter_checks and "doesn't show a strict setting" in ex.filter_news
+    assert any(q == stage.FILTER_MENU_QUESTION for q in asked)
+
+
+def test_after_the_limit_back_only_leaves_another_app_and_nothing_launches(tmp_path, monkeypatch):
+    """Item 4: past the clock, BACK in the app, a terminate, a replay step and a wait all stop."""
+    ex, phone = one_screen(tmp_path, monkeypatch, control("Explore", 1))
+    ex.clock.t = ex.deadline
+    with pytest.raises(Halt):
+        ex.perform(stage.Move("back"), None)
+    with pytest.raises(Halt):
+        ex.relaunch(why="after the clock")
+    with pytest.raises(Halt):
+        ex.sleep(1.0)
+    assert not [e for e in phone.log if e[0] == "back"]
+    ex.obs.fg = "com.example.other"  # another app in front: BACK is how the agent leaves it
+    ex.perform(stage.Move("back"), None)
+    assert phone.log[-1][0] == "back"
+
+
+def test_a_wait_never_runs_past_the_deadline(tmp_path, monkeypatch):
+    ex, _ = one_screen(tmp_path, monkeypatch, control("Explore", 1))
+    ex.clock.t = ex.deadline - 2
+    ex.sleep(10)
+    assert ex.clock.t == ex.deadline
+
+
+def test_the_play_store_arriving_during_the_element_read_gets_back_not_the_tap(tmp_path, monkeypatch):
+    """Item 5: the foreground is read again after the slow element read."""
+    ex, phone = one_screen(tmp_path, monkeypatch, control("Continue", 1),
+                           billing=drawn(control("Continue", 1), package=guard.BILLING))
+    phone.backs["billing"] = "root"
+    target = next(c for c in ex.obs.cands if c.tree_label == "Continue")
+    read = phone.elements
+
+    def slow():
+        phone.go("billing")
+        return read()
+    monkeypatch.setattr(phone, "elements", slow)
+    with pytest.raises(ScreenMoved):
+        ex.tap(target, ex.obs.elements)
+    assert ("back", "billing") in phone.log and not [t for t in taps(phone) if t[0] == "billing"]
+
+
+def test_the_core_loop_types_only_into_the_composer_it_focused(tmp_path, monkeypatch):
+    """Item 6: focus elsewhere (or no focus) refuses the core loop's text."""
+    composer = {**control("Message", 2, "EditText", focused=False),
+                "coordinates": {"x": 100, "y": 1800, "width": 800, "height": 100}}
+    ex, phone = one_screen(tmp_path, monkeypatch, control("Name", 1, "EditText", focused=True), composer)
+    assert ex.perform(stage.Move("type", text=stage.CORE_MESSAGES[0]), None, core=True)
+    ex.core_box = next(c for c in ex.obs.cands if c.tree_label == "Message")
+    assert ex.perform(stage.Move("type", text=stage.CORE_MESSAGES[0]), None, core=True) and not phone.typed
+
+
+def test_a_planned_control_is_found_again_only_as_itself(tmp_path, monkeypatch):
+    """Item 7: another id under the same words, the same words far away, or a picture no longer drawn: not tapped."""
+    first, second = control("Open", 1), control("Open", 2)
+    first["identifier"], second["identifier"] = "app:id/open_draft", "app:id/open_saved"
+    ex, phone = one_screen(tmp_path, monkeypatch, first, control("Explore", 3))
+    planned = next(c for c in ex.obs.cands if c.tree_label == "Open")
+    with pytest.raises(ScreenMoved):
+        ex.resolve(planned, stage.ob.controls([second], ex.device))
+    worded = next(c for c in ex.obs.cands if c.tree_label == "Explore")
+    far = {**control("Explore", 3), "identifier": "", "coordinates": {"x": 100, "y": 2000, "width": 800,
+                                                                       "height": 100}}
+    worded.ident = ""
+    with pytest.raises(ScreenMoved):
+        ex.resolve(worded, stage.ob.controls([far], ex.device))
+    picture = stage.ob.Candidate("a picture", "picture", Rect(x=100, y=1400, w=300, h=300), None, "")
+    with pytest.raises(ScreenMoved):
+        ex.resolve(picture, [])
+
+
+def test_the_filters_opener_is_the_tap_code_reads_as_it_not_the_first_hop(tmp_path, monkeypatch):
+    """Item 8: Settings, then the filter's opener, then its option."""
+    options = drawn(control("Safe only", 1), control("Show all", 2))
+    ImageDraw.Draw(options.image).rectangle((0, 900, 300, 1900), fill="black")
+    phone_factory = phone_of({"root": drawn(control("Settings", 1), control("Explore", 2)),
+                              "settings": drawn(control("Settings page", 1), control("Content filter", 2)),
+                              "options": options,
+                              "safe": drawn(control("Settings page", 1), control("Content filter: Safe only", 2))},
+                             {("root", "Settings"): "settings", ("settings", "Content filter"): "options",
+                              ("options", "Safe only"): "safe"})
+    script = scripted(lambda text: turn(tap(oid(text, "Settings"))),
+                      lambda text: turn(tap(oid(text, "Content filter"))),
+                      lambda text: turn(tap(oid(text, "Safe only"))),
+                      lambda text: turn(DONE, filter_set=True, filter_element=oid(text, "Content filter: Safe only")))
+    ex, _, _ = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
+    assert [c.label for c in ex.filter_taps] == ["Content filter", "Safe only"] and ex.filter_checks[0][1]
+
+
+def ad_phone(**more):
+    return phone_of({"root": drawn(control("Sponsored deal", 1), control("Explore", 2)), **more},
+                    {("root", "Sponsored deal"): "landing"})
+
+
+def ad_turn(text):
+    ad = oid(text, "Sponsored deal")
+    return turn(tap(ad, "the advertiser"), ads=[ad])
+
+
+def test_an_ads_return_exempts_only_itself_from_the_relaunch_count(tmp_path, monkeypatch):
+    """Item 9."""
+    script = scripted(ad_turn, lambda text: turn({"action": "launch", "expect": "a fresh launch"}))
+    ex, _, _ = run(tmp_path, monkeypatch, script, no_send=True,
+                   phone_factory=ad_phone(landing=drawn(control("Advertiser", 1), package="com.example.web")))
+    assert ex.relaunches == 1 and not ex.ad_leave
+
+
+def test_an_ad_tap_whose_landing_cant_be_read_is_still_recorded(tmp_path, monkeypatch):
+    """Item 10: the tap ran, so its action line and its tapped ad line are written whatever the capture does."""
+    held = {}
+
+    def script(n, text):
+        if n == 1:
+            def broken():
+                raise McpTimeout("the landing capture timed out")
+            monkeypatch.setattr(held["ex"], "observe", broken)
+            return ad_turn(text)
+        return None
+    ex, phone, _ = agent(tmp_path, monkeypatch, script, no_send=True,
+                         phone_factory=ad_phone(landing=drawn(control("Advertiser", 1))))
+    held["ex"] = ex
+    stage.explore_app(ex)
+    lines = [json.loads(line) for line in (ex.out / "actions.jsonl").read_text().splitlines()]
+    ads = [AdLine.model_validate_json(line) for line in (ex.out / "ads.jsonl").read_text().splitlines()]
+    assert ("root", "Sponsored deal") in taps(phone) and any("an ad" in line["change_summary"] for line in lines)
+    assert ads[-1].tapped and ads[-1].landing is None
