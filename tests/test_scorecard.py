@@ -309,6 +309,22 @@ def test_tabs_are_visited_only_through_the_bars_own_controls():
     assert scorecard.all_tabs(product(states, [walked[0], walked[2], tap("search", "dialog", "search.help")])) is False
 
 
+def test_a_parent_named_like_the_tab_it_holds_visits_that_tab():
+    """A tab's tap target that carries the tab's own name (a content description over its label) is that tab's
+    control; a box named otherwise is not."""
+    def parent(sid: str, words: str) -> Element:
+        return element(sid, "frame", 700, words, "FrameLayout").model_copy(
+            update={"rect_px": Rect(x=700, y=2150, w=360, h=180)})
+    states = [screen("home", elements=tabs("home")),
+              screen("search", elements=[*tabs("search"), parent("search", "Profile")]),
+              screen("profile", elements=tabs("profile"))]
+    walked = [tap("home", "search", "home.tab1"), tap("search", "profile", "search.frame"),
+              tap("profile", "home", "profile.tab0")]
+    assert scorecard.all_tabs(product(states, walked))
+    states[1] = screen("search", elements=[*tabs("search"), parent("search", "More")])
+    assert scorecard.all_tabs(product(states, walked)) is False
+
+
 def test_returning_to_the_first_tab_does_not_stand_in_for_an_unopened_one():
     """Search's tab then Home's: Home, Search and a reloaded Home were reached, Profile never was."""
     states = [screen("home", elements=tabs("home")), screen("search", elements=tabs("search")),

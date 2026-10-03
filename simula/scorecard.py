@@ -158,7 +158,8 @@ def tab_bar(pm: ProductModel) -> tuple[list[Element], bool]:
 
 def tab_of(state: State, element_id: str | None, bar: list[Element], device: Device) -> str | None:
     """The tab a tapped element is: one of the bar's own elements on that state (the bar's class and size, a tab's
-    name), or a wordless box holding exactly one of them, as a tab's tap target holds its label."""
+    name), or a box holding exactly one of them, as a tab's tap target holds its label, that is wordless or carries
+    that tab's own name."""
     names, kind = {name(e) for e in bar}, size(bar[0], device)
     members = [e for e in band_named(state, device) if size(e, device) == kind and name(e) in names]
     tapped = next((e for e in state.elements if e.id == element_id), None)
@@ -167,7 +168,7 @@ def tab_of(state: State, element_id: str | None, bar: list[Element], device: Dev
     if any(m.id == tapped.id for m in members):
         return name(tapped)
     held = [m for m in members if ob.inside(m.rect_px, tapped.rect_px)]
-    return name(held[0]) if len(held) == 1 and not name(tapped) else None
+    return name(held[0]) if len(held) == 1 and name(tapped) in ("", name(held[0])) else None
 
 
 def all_tabs(pm: ProductModel) -> bool | None:
