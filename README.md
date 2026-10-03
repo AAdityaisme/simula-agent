@@ -135,7 +135,7 @@ You need:
 
 ```sh
 uv sync
-npm ci                              # mobile-mcp: @mobilenext/mobile-mcp 1.0.5, pinned in package.json
+npm ci                              # mobile-mcp: @mobilenext/mobile-mcp 1.0.8, pinned in package.json
 uv run playwright install chromium  # Playwright 1.63.0, pinned in pyproject.toml
 cp .env.example .env                # then fill in the keys below
 uv run simula doctor                # free preflight: packages, mobile-mcp, Chromium, emulator, apps, keys present
