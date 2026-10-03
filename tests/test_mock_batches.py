@@ -42,6 +42,10 @@ def ids(groups: list[list[State]]) -> list[list[str]]:
     return [[s.id for s in batch] for batch in groups]
 
 
+def one_screen_batches(count: int) -> list[list[State]]:
+    return [[state(f"s{n:02d}")] for n in range(1, count + 1)]
+
+
 # ---------- batching ----------
 
 def test_batches_are_consecutive_screens_of_at_most_the_batch_size():
@@ -394,7 +398,7 @@ def draw_on_fake_budget(tmp_path, monkeypatch, cap: float, calls: dict, ended: l
                 return f'<section data-screen="{content[0]["text"]}"></section>'
         raise llm.LLMFailure("max_tokens", "cut off")
     monkeypatch.setattr(mock, "generate", generate)
-    groups = [[state(f"s{n:02d}")] for n in range(1, len(calls) + 1)]
+    groups = one_screen_batches(len(calls))
     contents = [[{"type": "text", "text": batch[0].id}] for batch in groups]
     return mock.draw_batches(ctx_for(tmp_path, "janitorai"), groups, contents, llm.Budget("mock", cap), None)
 
@@ -435,14 +439,18 @@ def test_two_cut_off_batches_near_the_cap_both_draw_without_hanging(tmp_path, mo
     assert drawn.lost == [] and drawn.plan.keep == 2
 
 
-def batch_rows(tmp_path, plan: mock.Plan, undrawn_from: int, reason: str = "$ cap reached: over budget") -> str:
-    """The exhibit of three one-screen batches, all but the first `undrawn_from - 1` not drawn for `reason`."""
-    model = golden("janitorai")
-    scope = mock.pick_scope(model)
-    undrawn = {s.id: reason for s in scope[undrawn_from - 1:3]}
+def batch_rows(tmp_path, plan: mock.Plan, lost: list[tuple[list[State], BaseException]]) -> str:
+    """The exhibit of the three one-screen batches draw_on_fake_budget draws, each batch in `lost` not drawn for what
+    stopped it, as the stage builds it."""
+    groups = one_screen_batches(3)
+    scope = [s for batch in groups for s in batch]
+    undrawn = {s.id: mock.failure_reason(e) for batch, e in lost for s in batch}
     report = ContractReport(passed=False, screens=[s.id for s in scope], errors=[])
-    return mock.exhibit(ctx_for(tmp_path, "janitorai"), model, scope, [[s] for s in scope[:3]], undrawn, "", report,
-                        plan)
+    return mock.exhibit(ctx_for(tmp_path, "janitorai"), golden("janitorai"), scope, groups, undrawn, "", report, plan)
+
+
+def lost_reasons(drawn: mock.Drawn) -> list[tuple[list[str], str]]:
+    return [([s.id for s in batch], mock.failure_reason(e)) for batch, e in drawn.lost]
 
 
 DREW_PAST = {"batch1": [(1.0, 0.5, 0, False)], "batch2": [(1.0, 0.9, 0, True), (2.0, 0.5, 0, False)],
@@ -450,6 +458,8 @@ DREW_PAST = {"batch1": [(1.0, 0.5, 0, False)], "batch2": [(1.0, 0.9, 0, True), (
 # Batch 2's first answer ends once batch 1 has and batch 3 holds, so its $2 retry can't fit beside batch 3; batch 3
 # ends after it.
 DREW_PAST_ORDER = {"batch2": ("batch1", "batch3 held"), "batch3": ("batch2",)}
+LEFT_OUT = ("$ cap reached: over budget: batches 2-3 were left out once the mock's $ cap turned a call away; raise "
+            "with --usd-cap")
 
 
 def test_a_batch_that_drew_but_was_left_out_to_keep_the_prefix_is_reported_with_its_cost(tmp_path, monkeypatch):
@@ -464,10 +474,11 @@ def test_a_batch_that_drew_but_was_left_out_to_keep_the_prefix_is_reported_with_
     assert drawn.plan.line(3) == ("1 of 3 batches kept in priority order under the $4.00 cap with $0.00 already spent, "
                                   "each holding its worst case while in flight and one more free for a retry; batch 3 "
                                   + note)
-    rows = batch_rows(tmp_path, drawn.plan, 2)
-    scope = mock.pick_scope(golden("janitorai"))
-    assert f"| 2 | {scope[1].id} | not drawn: $ cap reached: over budget |" in rows
-    assert f"| 3 | {scope[2].id} | {note} |" in rows
+    assert lost_reasons(drawn) == [(["s02"], LEFT_OUT), (["s03"], LEFT_OUT)]
+    assert drawn.parts[2] == ("", mock.placeholders([state("s03")], LEFT_OUT))
+    rows = batch_rows(tmp_path, drawn.plan, drawn.lost)
+    assert f"| 2 | s02 | not drawn: {LEFT_OUT} |" in rows
+    assert f"| 3 | s03 | {note} |" in rows
 
 
 def test_a_batch_that_ran_and_failed_past_the_prefix_keeps_its_cost_and_its_own_error(tmp_path, monkeypatch):
@@ -479,17 +490,18 @@ def test_a_batch_that_ran_and_failed_past_the_prefix_keeps_its_cost_and_its_own_
     error = mock.failure_reason(llm.LLMFailure("max_tokens", "cut off"))
     assert ended == ["batch1", "batch2", "batch3"] and drawn.plan.dropped == ((3, 0.9, error),)
     assert drawn.plan.line(3).endswith(f"; batch 3 ran ($0.90) and failed: {error}")
-    scope = mock.pick_scope(golden("janitorai"))
-    assert f"| 3 | {scope[2].id} | ran ($0.90) and failed: {error} |" in batch_rows(tmp_path, drawn.plan, 2)
+    assert lost_reasons(drawn) == [(["s02"], LEFT_OUT), (["s03"], LEFT_OUT)]
+    assert drawn.parts[2] == ("", mock.placeholders([state("s03")], LEFT_OUT))
+    assert f"| 3 | s03 | ran ($0.90) and failed: {error} |" in batch_rows(tmp_path, drawn.plan, drawn.lost)
 
 
 def test_a_failure_that_spans_lines_stays_on_its_row_of_the_batch_table(tmp_path):
     """Greptile: a provider's error with a newline (or a |) split the exhibit's markdown row."""
     plan = mock.Plan(1, 4.0, 0.0, ((3, 0.9, "overloaded\nretry | later"),))
-    rows = batch_rows(tmp_path, plan, 2, reason="overloaded\nretry | later")
-    scope = mock.pick_scope(golden("janitorai"))
-    assert f"| 2 | {scope[1].id} | not drawn: overloaded retry / later |" in rows
-    assert f"| 3 | {scope[2].id} | ran ($0.90) and failed: overloaded retry / later |" in rows
+    lost = [(batch, ValueError("overloaded\nretry | later")) for batch in one_screen_batches(3)[1:]]
+    rows = batch_rows(tmp_path, plan, lost)
+    assert "| 2 | s02 | not drawn: overloaded retry / later |" in rows
+    assert "| 3 | s03 | ran ($0.90) and failed: overloaded retry / later |" in rows
 
 
 FUZZ_SEEDS = (251, 348, 376, 482, 657, 827, 896, 1376, *range(8))  # rt-37's seven hangs and its float edge
