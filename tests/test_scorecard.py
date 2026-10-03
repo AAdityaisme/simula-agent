@@ -335,14 +335,30 @@ def test_three_tabs_with_one_name_are_three_tabs():
                                                tap("home", "search", "home.tab2")]))
 
 
+def test_a_row_of_other_controls_in_the_bars_places_is_no_bar():
+    """Another screen has three bottom controls of the tabs' class and size in their columns, with other names: a tap
+    on one of them opens a page, not a tab."""
+    form = [element("form", f"ctrl{n}", x, words) for n, (x, words) in enumerate([(40, "Cancel"), (400, "Draft"),
+                                                                                 (760, "Send")])]
+    states = [screen("home", elements=tabs("home")), screen("search", elements=tabs("search")),
+              screen("form", elements=form), screen("sent")]
+    walked = [tap("home", "search", "home.tab1"), tap("search", "home", "search.tab0"),
+              tap("form", "sent", "form.ctrl2")]
+    assert scorecard.all_tabs(product(states, walked)) is False
+    assert scorecard.all_tabs(product([*states, screen("profile", elements=tabs("profile"))],
+                                      [*walked, tap("search", "profile", "search.tab2")]))
+
+
 def test_a_button_named_like_a_tab_off_the_bar_is_not_its_control():
-    """A screen without the bar holds a single bottom button with a tab's name, class and size in another tab's
-    column: its tap opens a details page, not that tab."""
+    """A screen without the bar holds a single bottom button with a tab's name, class and size, in another tab's column
+    or in its own: its tap opens a details page, not that tab."""
     states = [screen("home", elements=tabs("home")), screen("search", elements=tabs("search")),
               screen("detail", elements=[element("detail", "profile_button", 40, "Profile")]),
               screen("information", "Information", "Show more information")]
     walked = [tap("home", "search", "home.tab1"), tap("search", "home", "search.tab0"),
               tap("detail", "information", "detail.profile_button")]
+    assert scorecard.all_tabs(product(states, walked)) is False
+    states[2] = screen("detail", elements=[element("detail", "profile_button", 760, "Profile")])
     assert scorecard.all_tabs(product(states, walked)) is False
 
 

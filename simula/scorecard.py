@@ -157,21 +157,24 @@ def tab_bar(pm: ProductModel) -> tuple[list[Element], bool]:
 
 
 def slots_on(state: State, bar: list[Element], device: Device) -> dict[int, Element] | None:
-    """A state's control in each slot of the bar (its elements of the bar's class, size and row, by the slot whose
-    column holds their center), or None when it doesn't show every slot."""
+    """A state's controls in the bar's slots: each element of the bar's class, size and row whose center lies in a
+    slot's column and whose name is that slot's. None unless at least two slots match, as a bar needs: a lone
+    same-named button is no bar. The name only matches a control to its slot, so three tabs with one name are still
+    three slots, and a slot whose name differs on this screen (an icon read another way) just doesn't match."""
     row = (*size(bar[0], device), ob.bucket(bar[0].rect_px.y, device))
     found = {}
     for e in state.elements:
         if (*size(e, device), ob.bucket(e.rect_px.y, device)) == row:
             x = ob.center(e.rect_px)[0]
-            found |= {n: e for n, t in enumerate(bar) if t.rect_px.x <= x < t.rect_px.x + t.rect_px.w}
-    return found if len(found) == len(bar) else None
+            found |= {n: e for n, t in enumerate(bar)
+                      if t.rect_px.x <= x < t.rect_px.x + t.rect_px.w and name(e) == name(t)}
+    return found if len(found) >= 2 else None
 
 
 def tab_of(state: State, element_id: str | None, bar: list[Element], device: Device) -> int | None:
-    """The bar slot a tapped element controls, on a state showing the whole bar: the slot's own control, or a box
+    """The bar slot a tapped element controls, on a state showing the bar: the slot's own control, or a box
     holding exactly one slot's control, as a tab's tap target holds its label, that is wordless or carries that
-    control's name. Names never tell slots apart: three tabs with one name are three tabs."""
+    control's name."""
     slots, tapped = slots_on(state, bar, device), next((e for e in state.elements if e.id == element_id), None)
     if not slots or tapped is None:
         return None
