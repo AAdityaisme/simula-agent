@@ -96,6 +96,7 @@ CORE_MESSAGES = [
     "Can you recommend a board game for four friends?",
     "Thanks! Can you sum up our chat in one sentence?",
 ]
+SEARCH_QUERIES = ("popular", "new", "help")  # the only text the agent types outside the core loop, in a search box
 
 
 class Stop(Exception):

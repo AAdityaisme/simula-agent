@@ -1,0 +1,15 @@
+# Taps the agent never makes: a control whose text, label or id holds one of these, as whole words in any case.
+# Generic English only, no app's names or terms. Sign-in and sending aren't here: Google sign-in is allowed, and
+# what is sent is the core loop's fixed text to an AI.
+words = [
+    # account deletion or deactivation
+    "delete account", "delete my account", "delete your account", "delete profile", "delete my profile",
+    "close account", "close my account", "close your account", "deactivate", "disable account",
+    # password, email or phone changes
+    "password", "change email", "update email", "edit email", "change phone", "update phone", "edit phone",
+    "phone number",
+    # sign-out
+    "sign out", "signout", "log out", "logout", "log off",
+    # public post, publish or share
+    "post", "repost", "publish", "share",
+]
