@@ -1,5 +1,6 @@
-# Taps the agent never makes: a control whose text or label holds one of these, or whose id does when it shows
-# neither, as whole words in any case. Generic English only, no app's names or terms. Sign-in isn't here: Google
+# Taps the agent never makes: a control whose text or label holds one of these, or whose id does unless they hold a
+# real word, as whole words in any case. A one-word entry counts only in a label of at most four words, so prose
+# that says "like" is no Like button. Generic English only, no app's names or terms. Sign-in isn't here: Google
 # sign-in is allowed. Subscribe, upgrade and free trial aren't either: they go through Play billing, whose screen
 # gets BACK at once, and tapping them is how the agent finds the price.
 words = [
@@ -20,9 +21,10 @@ words = [
     "buy now", "place order", "pay", "pay now", "checkout", "confirm purchase", "complete purchase", "purchase",
     "send gift", "tip",
 ]
-# over the text as lowercase words with single spaces: a deletion verb, up to two words, then the account
-patterns = ['(?:delete|remove|close|deactivate|disable|terminate)(?: \w+){0,2} (?:account|profile)']
+# over the text as lowercase words with single spaces, at any length: a deletion verb, up to four words, then the
+# account ("Delete your Example App account")
+patterns = ['(?:delete|remove|close|deactivate|disable|terminate)(?: \w+){0,4} (?:account|profile)']
 # refused outside the core loop, the one place the agent sends its fixed text to an AI
 outside_core = ["send", "submit", "reply", "add comment", "post comment", "send message"]
-# refused while any blocked word shows on the screen: the commit of a dialog that names one
+# refused while a label of at most six words on the screen is refused: the commit of a dialog that names one
 confirm = ["confirm", "yes", "ok", "delete", "remove", "proceed", "i understand"]
