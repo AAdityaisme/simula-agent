@@ -613,3 +613,75 @@ def test_a_replay_never_takes_a_try_its_own_run_did_not_record(tmp_path, monkeyp
     with pytest.raises(llm.ReplayMiss, match="no cached response this run recorded"):
         call(tmp_path, trace_path=tmp_path / "run-b.jsonl", replay=True)
     assert call(tmp_path, trace_path=tmp_path / "run-a.jsonl", replay=True)[0].word == "run-a"
+
+
+# ---------- prompt caching ----------
+
+CONVERSATION = [{"role": "user", "content": [{"type": "text", "text": "shared"}, {"type": "text", "text": "question"}]},
+                {"role": "assistant", "content": [{"type": "text", "text": "answer"}]},
+                {"role": "user", "content": [{"type": "text", "text": "again"}]}]
+
+
+def serve_message(monkeypatch, usage) -> list[dict]:
+    """An Anthropic client whose one non-streamed answer has this usage; returns the requests it was sent."""
+    import anthropic
+    sent = []
+    answer = SimpleNamespace(content=[SimpleNamespace(type="text", text='{"word": "hi"}')], model=MODEL,
+                             stop_reason="end_turn", usage=usage)
+
+    def create(**kwargs):
+        sent.append(kwargs)
+        return SimpleNamespace(parse=lambda: answer, headers={})
+    raw = SimpleNamespace(create=create)
+    client = SimpleNamespace(messages=SimpleNamespace(with_raw_response=raw))
+    monkeypatch.setattr(anthropic, "Anthropic", lambda **kw: client)
+    return sent
+
+
+def test_caching_leaves_the_cache_key_unchanged():
+    # computed before cache_control existed: every cached reply and committed run's replay keys the same
+    params = llm.request_params("anthropic", "high", 16001, None)
+    assert (llm.cache_key("anthropic", "claude-sonnet-5-5", "the rubric", CONVERSATION, params, 0)
+            == "cfb4bf4a3c46953a92d2d44cf97b6c2e79e69b9eb6b338b573a84f441b055276")
+
+
+def test_breakpoints_land_on_the_system_prompt_and_the_turns_sent_again(monkeypatch):
+    sent = serve_message(monkeypatch, SimpleNamespace(input_tokens=10, output_tokens=1))
+    before = json.dumps(CONVERSATION)
+    llm.call_anthropic(MODEL, "the rubric", CONVERSATION, None, None, max_tokens=100)
+    llm.call_anthropic(MODEL, "", message(), None, None, max_tokens=100)
+    conversation, single = sent
+    assert conversation["system"] == [{"type": "text", "text": "the rubric", "cache_control": {"type": "ephemeral"}}]
+    marked = [(m, b["text"]) for m, msg in enumerate(conversation["messages"]) for b in msg["content"]
+              if "cache_control" in b]
+    assert marked == [(1, "answer")], "the earlier turns are cached, the final message is not"
+    assert "system" not in single and not any("cache_control" in b for b in single["messages"][0]["content"])
+    assert json.dumps(CONVERSATION) == before, "the caller's messages are left as they were"
+
+
+def test_usd_prices_cache_reads_and_writes():
+    m = {"price_in": 2.0, "price_cached_in": 0.2, "price_cache_write": 2.5, "price_out": 10.0}
+    assert llm.usd("claude-sonnet-5-5", 10_000, 100, 6_000, 3_000) == pytest.approx(
+        (1_000 * m["price_in"] + 6_000 * m["price_cached_in"] + 3_000 * m["price_cache_write"]
+         + 100 * m["price_out"]) / 1e6)
+    assert llm.usd("claude-sonnet-5-5", 10_000, 100) == pytest.approx((10_000 * 2.0 + 100 * 10.0) / 1e6)
+
+
+def test_cache_reads_and_writes_count_in_tokens_in_and_reach_the_trace(tmp_path, monkeypatch):
+    serve_message(monkeypatch, SimpleNamespace(input_tokens=100, output_tokens=5, cache_read_input_tokens=900,
+                                               cache_creation_input_tokens=1000))
+    _, reply = call(tmp_path, system="the rubric")
+    assert (reply.tokens_in, reply.tokens_cached, reply.tokens_cache_write) == (2000, 900, 1000)
+    line = read_trace(tmp_path / "trace.jsonl")[-1]
+    assert (line.tokens_in, line.tokens_cached, line.tokens_cache_write) == (2000, 900, 1000)
+    assert line.usd == round(llm.usd(MODEL, 2000, 5, 900, 1000), 6)
+
+
+def test_a_reply_without_cache_fields_still_works(tmp_path, monkeypatch):
+    serve_message(monkeypatch, SimpleNamespace(input_tokens=100, output_tokens=5, cache_read_input_tokens=None,
+                                               cache_creation_input_tokens=None))
+    _, reply = call(tmp_path)
+    assert (reply.tokens_in, reply.tokens_cached, reply.tokens_cache_write) == (100, 0, 0)
+    entry = json.loads(next((tmp_path / "cache").glob("*.json")).read_text())
+    del entry["tokens_cache_write"]  # an entry written before writes were recorded
+    assert llm.Reply(**entry).tokens_cache_write == 0

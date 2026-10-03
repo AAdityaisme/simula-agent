@@ -29,6 +29,7 @@ RATE_HEADERS = ("anthropic-ratelimit-", "x-ratelimit-", "retry-after")
 REQUEST_TIMEOUT_S = 180.0
 STREAM_IDLE_TIMEOUT_S = 60.0
 RAISE_TO = re.compile(r"raise with --usd-cap (\d+(?:\.\d+)?)$")
+EPHEMERAL = {"type": "ephemeral"}  # Anthropic's 5-minute prompt cache; it marks a prefix only, never the cache key
 
 
 class LLMFailure(Exception):
@@ -74,6 +75,7 @@ class Reply:
     tokens_in: int = 0
     tokens_out: int = 0
     tokens_cached: int = 0
+    tokens_cache_write: int = 0
     stop_reason: str = "end_turn"
     headers: dict = field(default_factory=dict)
     failure: str = ""  # the typed outcome when this recorded attempt failed; "" for a usable answer
@@ -265,10 +267,12 @@ def estimate_tokens_in(system: str, messages: list[dict]) -> int:
     return chars // 3 + images * IMAGE_TOKENS_WORST
 
 
-def usd(model: str, tokens_in: int, tokens_out: int, tokens_cached: int = 0) -> float:
+def usd(model: str, tokens_in: int, tokens_out: int, tokens_cached: int = 0, tokens_cache_write: int = 0) -> float:
+    """tokens_in counts every input token; the cache reads and writes among them are priced at their own rates."""
     m = config.models()[model]
-    fresh = max(tokens_in - tokens_cached, 0)
-    return (fresh * m["price_in"] + tokens_cached * m["price_cached_in"] + tokens_out * m["price_out"]) / 1e6
+    fresh = max(tokens_in - tokens_cached - tokens_cache_write, 0)
+    return (fresh * m["price_in"] + tokens_cached * m["price_cached_in"]
+            + tokens_cache_write * m["price_cache_write"] + tokens_out * m["price_out"]) / 1e6
 
 
 def worst_case_usd(model: str, tokens_in: int, max_tokens: int) -> float:
@@ -301,6 +305,20 @@ def _anthropic_content(parts: list[dict]) -> list[dict]:
             for p in parts]
 
 
+def _anthropic_messages(messages: list[dict]) -> list[dict]:
+    """The messages with a cache breakpoint after the earlier turns, which the next turn of a conversation sends
+    again; the final message is sent once, so it is not written to the cache."""
+    sent = [{"role": m["role"], "content": _anthropic_content(m["content"])} for m in messages]
+    if len(sent) > 1:
+        sent[-2]["content"][-1]["cache_control"] = EPHEMERAL
+    return sent
+
+
+def _cache_tokens(usage) -> tuple[int, int]:
+    """(read, written) input tokens; a usage without cache fields (an older reply, a fake) reads as none."""
+    return (getattr(usage, "cache_read_input_tokens", 0) or 0, getattr(usage, "cache_creation_input_tokens", 0) or 0)
+
+
 def _spent(stream, tokens_in_estimate: int, max_tokens: int) -> tuple[int, int]:
     """What an aborted stream is charged. With no snapshot, message_start never arrived, so nothing was generated:
     only the estimated input. Otherwise its worst case, the input the stream reported plus max_tokens of output, or
@@ -311,7 +329,8 @@ def _spent(stream, tokens_in_estimate: int, max_tokens: int) -> tuple[int, int]:
     except (AssertionError, AttributeError):
         return tokens_in_estimate, 0
     streamed = sum(len(getattr(b, "text", None) or getattr(b, "thinking", None) or "") for b in snapshot.content) // 3
-    return snapshot.usage.input_tokens, max(snapshot.usage.output_tokens, streamed, max_tokens)
+    return (snapshot.usage.input_tokens + sum(_cache_tokens(snapshot.usage)),
+            max(snapshot.usage.output_tokens, streamed, max_tokens))
 
 
 def _drain(stream, total_timeout: float | None, tokens_in_estimate: int, max_tokens: int):
@@ -348,10 +367,9 @@ def call_anthropic(model: str, system: str, messages: list[dict], effort: str | 
         output_config["effort"] = effort
     if schema:
         output_config["format"] = {"type": "json_schema", "schema": json_schema_for("anthropic", schema)}
-    kwargs = {"model": model, "max_tokens": max_tokens,
-              "messages": [{"role": m["role"], "content": _anthropic_content(m["content"])} for m in messages]}
+    kwargs = {"model": model, "max_tokens": max_tokens, "messages": _anthropic_messages(messages)}
     if system:
-        kwargs["system"] = system
+        kwargs["system"] = [{"type": "text", "text": system, "cache_control": EPHEMERAL}]
     if output_config:
         kwargs["output_config"] = output_config
     try:
@@ -379,10 +397,10 @@ def call_anthropic(model: str, system: str, messages: list[dict], effort: str | 
         raise _failure("timeout" if isinstance(e, httpx2.TimeoutException) else "error", e) from e
     text = "".join(block.text for block in message.content if block.type == "text")
     usage = message.usage
-    cached = getattr(usage, "cache_read_input_tokens", 0) or 0
-    return Reply(text=text, model=message.model, tokens_in=usage.input_tokens + cached,
-                 tokens_out=usage.output_tokens, tokens_cached=cached, stop_reason=message.stop_reason or "",
-                 headers=_rate_headers(headers))
+    cached, written = _cache_tokens(usage)
+    return Reply(text=text, model=message.model, tokens_in=usage.input_tokens + cached + written,
+                 tokens_out=usage.output_tokens, tokens_cached=cached, tokens_cache_write=written,
+                 stop_reason=message.stop_reason or "", headers=_rate_headers(headers))
 
 
 def _openai_content(parts: list[dict]) -> list[dict]:
@@ -551,12 +569,12 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
                                           failure=failure.outcome), cache_dir)
             last = failure
             continue
-        cost = usd(model, reply.tokens_in, reply.tokens_out, reply.tokens_cached)
+        cost = usd(model, reply.tokens_in, reply.tokens_out, reply.tokens_cached, reply.tokens_cache_write)
         budget.charge(cost, worst)
         outcome, result = _check(reply, schema)
         trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
               tokens_in=reply.tokens_in, tokens_out=reply.tokens_out, tokens_cached=reply.tokens_cached,
-              usd=round(cost, 6), outcome=outcome,
+              tokens_cache_write=reply.tokens_cache_write, usd=round(cost, 6), outcome=outcome,
               note=f"key {fresh[key][:12]} {time.monotonic() - started:.1f}s" + ("" if outcome == "ok" else f" stop={reply.stop_reason}"))
         if outcome == "ok":
             cache_write(fresh[key], reply, cache_dir)
