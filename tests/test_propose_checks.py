@@ -355,10 +355,11 @@ def test_a_sheet_over_a_chat_screen_not_rated_unsafe_opened_by_a_limit_passes(mo
 
 
 def run_with(model, tmp_path, monkeypatch, fail_lenses, delay=None, benefit=None, part_of=None, draft=None,
-             counts=None):
+             counts=None, spans=None):
     """Runs the stage on fake calls: every lens and the top-up return one valid draft (`draft` overrides its
     fields), and the naming call gives every idea `benefit` (a different name each when None) and links it to
-    `part_of`. `counts` gives a step's number of drafts (1 when absent). Returns each call's step and prompt text."""
+    `part_of`. `counts` gives a step's number of drafts (1 when absent); `spans`, when given, gets each step's start
+    and end. Returns each call's step and prompt text."""
     (tmp_path / "model").mkdir()
     (tmp_path / "propose").mkdir()
     (tmp_path / "model" / "product_model.json").write_text(model.model_dump_json())
@@ -368,7 +369,10 @@ def run_with(model, tmp_path, monkeypatch, fail_lenses, delay=None, benefit=None
 
     def fake_call(*, step, schema, messages, **_):
         calls.append((step, messages[0]["content"][0]["text"]))
+        start = time.monotonic()
         time.sleep((delay or {}).get(step, 0))
+        if spans is not None:
+            spans[step] = (start, time.monotonic())
         if step.removeprefix("lens:") in fail_lenses:
             raise llm.LLMFailure("timeout", "provider down")
         if schema is propose.BenefitNames:
@@ -437,11 +441,15 @@ def test_one_lens_failing_still_finishes(model, tmp_path, monkeypatch):
 
 
 def test_lenses_run_at_the_same_time_and_keep_their_order(model, tmp_path, monkeypatch):
+    """Each lens's call starts before another one ends: run one after another, the last would start after every
+    other had ended. Overlap, not wall time, which a loaded runner stretches (item 46: 1.12 s against 1.1)."""
     lenses = propose.build_lenses(model)
     delay = {f"lens:{l.id}": 0.2 * (len(lenses) - n) for n, l in enumerate(lenses)}
-    started = time.monotonic()
-    run_with(model, tmp_path, monkeypatch, set(), delay)
-    assert time.monotonic() - started < max(delay.values()) + 0.3 < sum(delay.values())
+    spans = {}
+    run_with(model, tmp_path, monkeypatch, set(), delay, spans=spans)
+    ran = [spans[step] for step in delay]
+    assert len(ran) > 1 and all(any(start < end for j, (_, end) in enumerate(ran) if j != i)
+                                for i, (start, _) in enumerate(ran)), ran
     out = CandidatesFile.model_validate_json((tmp_path / "propose" / "candidates.json").read_text()).candidates
     assert [c.lens for c in sorted(out, key=lambda c: c.id)][:len(lenses)] == [l.id for l in lenses]
 
