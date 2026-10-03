@@ -508,6 +508,32 @@ def test_an_offer_joined_to_a_dismissal_is_none():
         assert stage_agent.dismissal(label), label
 
 
+def test_got_it_and_skip_are_no_dismissals(tmp_path, monkeypatch):
+    """rt-59: 'Got it' reads like a chat reply beside the banner, so it is no dismiss phrase; 'Skip' stays an offer."""
+    ex, _ = one_screen(tmp_path, monkeypatch, control("Explore", 1))
+    banner = capture("janitorai", "j20_chat_upsell_banner", package=PACKAGE)
+    ex.core = stage.CoreAction("chat", ex.current, [], "send messages")
+    box = next(n for n, e in enumerate(banner.elements) if e["type"].endswith("EditText"))
+
+    def picked(label):
+        over = {"ref": "@over", "type": "android.widget.Button", "text": label, "label": "",
+                "coordinates": {"x": 700, "y": 2080, "width": 200, "height": 80}}
+        elements = banner.elements[:box + 1] + [over] + banner.elements[box + 1:]
+        ex.obs = dataclasses.replace(ex.obs, elements=elements, cands=stage.ob.controls(elements, ex.device))
+        return ex.banner_close()
+    assert all(picked(label) is None for label in ("Got it", "Skip the wait", "Skip"))
+    assert picked("Not now").label == "Not now"
+
+
+def test_an_adjacent_got_it_reply_is_not_the_banner_dismiss(tmp_path, monkeypatch):
+    """rt-59's probe: a 'Got it' reply just above the banner lies in its grown region; the real dismiss is tapped."""
+    reply = {"ref": "@reply", "type": "android.widget.TextView", "text": "Got it",
+             "coordinates": {"x": 100, "y": 1890, "width": 200, "height": 80}}
+    ex, phone, _ = run(tmp_path, monkeypatch, chat_script("ai"), phone_factory=banner_after(1, extra=(reply,)))
+    assert ("chat_banner", "Dismiss upgrade prompt") in taps(phone)
+    assert ("chat_banner", "Got it") not in taps(phone) and ex.core_completed >= 3
+
+
 def test_run_3s_banner_dismiss_lies_under_the_composer_and_is_never_picked(tmp_path, monkeypatch):
     """Run 3's in-chat upsell (s19): its dismiss ('Dismiss long chat upgrade prompt') is listed before the composer's
     text box and inside its box, and the capture shows the composer drawn over the banner: a tap there lands on the
@@ -529,6 +555,65 @@ def test_run_3s_banner_dismiss_lies_under_the_composer_and_is_never_picked(tmp_p
     offer = [{**e, "label": "Close or Upgrade"} if e is shown else e for e in over]
     assert picked(offer) is None
 
+
+FAILED = "Your last answer failed"
+
+
+def test_a_failed_planner_answer_is_told_on_the_next_turn_so_it_is_a_real_call(tmp_path, monkeypatch):
+    """Run 5: a schema failure is cached and the next prompt was the same, so ten turns replayed it from the cache
+    in a second and the tour stopped as stale. The next prompt says it failed (another key, a real call) and the
+    run goes on."""
+    def script(n, text):  # the first turn's prompt fails (llm.call tries it twice); with the line it is answered
+        if n <= 2:
+            return llm.LLMFailure("schema_fail", "end_turn")
+        if n == 3:
+            assert FAILED in text and "schema_fail: end_turn" in text
+            return turn(tap(oid(text, "Explore"), "a page opens"))
+        return None
+    ex, phone, planner = run(tmp_path, monkeypatch, script, no_send=True, no_cache=False,
+                             phone_factory=phone_of({"root": drawn(control("Explore", 1)),
+                                                     "page": drawn(control("A page", 1))}, {("root", "Explore"): "page"}))
+    assert ("root", "Explore") in taps(phone) and ex.stop_reason.startswith("the planner said done")
+    assert FAILED not in planner.texts[0] and FAILED in planner.texts[2] and len(planner.texts) == 4
+    assert not [t for t in trace(ex) if t.step == "agent.turn" and t.cache_hit]
+
+
+def test_a_planner_that_always_fails_stops_after_three_real_turns(tmp_path, monkeypatch):
+    ex, phone, planner = run(tmp_path, monkeypatch, lambda n, text: llm.LLMFailure("schema_fail", "end_turn"),
+                             no_send=True, no_cache=False, phone_factory=phone_of({"root": drawn(control("Explore", 1))}))
+    assert ex.stop_reason.startswith("the planner's answer failed 3 turns in a row (last: schema_fail: end_turn")
+    assert len({t for t in planner.texts}) == stage_agent.PLANNER_FAILURES  # three prompts, each a real call
+    assert len(planner.texts) == 2 * stage_agent.PLANNER_FAILURES  # llm.call's own two attempts per turn
+    assert not [t for t in trace(ex) if t.step == "agent.turn" and t.cache_hit]
+
+
+def test_a_new_failure_streak_cannot_replay_failures_from_an_earlier_streak(tmp_path, monkeypatch):
+    """rt-59's probe: a valid plan that names nothing changes nothing on screen, so a second streak of failures on the
+    same screen would meet the first streak's prompts in the cache; the failure number never repeats, so none does."""
+    def script(n, text):
+        if n in (1, 6):
+            return turn(tap("o999"))
+        if n >= 7:
+            return None  # a real call answers and ends the tour
+        return llm.LLMFailure("schema_fail", "end_turn")
+    ex, _, planner = run(tmp_path, monkeypatch, script, no_send=True, no_cache=False,
+                         phone_factory=phone_of({"root": drawn(control("Explore", 1))}))
+    replayed = [t for t in trace(ex) if t.step == "agent.turn" and t.decider == "model" and t.cache_hit]
+    assert not replayed, f"provider calls {len(planner.texts)}, failed {ex.failed}, stop {ex.stop_reason!r}"
+    assert ex.stop_reason == "the planner said done: covered" and ex.failures == 2
+
+
+def test_a_failed_planner_turn_neither_resets_nor_bumps_the_stale_count(tmp_path, monkeypatch):
+    answers = iter([llm.LLMFailure("schema_fail", "end_turn")] * 2 + [turn({"action": "swipe", "direction": "up",
+                                                                            "expect": "more"})] * 2)
+    ex, _, _ = agent(tmp_path, monkeypatch, lambda n, text: next(answers), no_send=True,
+                     phone_factory=phone_of({"root": drawn(control("Explore", 1))}))
+    ex.relaunch(first=True)
+    ex.known, ex.stale = len(ex.states), 4
+    ex.next_turn()
+    assert (ex.stale, ex.failed) == (4, 1)
+    ex.next_turn()
+    assert (ex.stale, ex.failed) == (5, 0)
 
 def counting_jev(asked):
     def jev(state, instructions, labels, backend):
