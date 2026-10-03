@@ -25,8 +25,8 @@ PLANNER_FAILURES = 3  # planner turns in a row whose answer failed end the run
 BANNER_PASSES = 3  # a dismissible banner over the core action on this many passes in a row is a wall: the loop stops
 # a core-loop stop a banner's own dismiss control may clear; a paywall or a limit is what the loop measures
 BANNER_STOPS = ("sheet opened", "dialog opened", "modal opened", "upsell", "upsell screen")
-DISMISS_PHRASE = re.compile(r"^\W*(?:dismiss|close|not now|no,? thanks|maybe later|later|got it|x|×|✕)\W*$",
-                            re.IGNORECASE)
+# no "got it": a chat reply reads the same, and nothing tells a banner's own from one beside it (rt-59)
+DISMISS_PHRASE = re.compile(r"^\W*(?:dismiss|close|not now|no,? thanks|maybe later|later|x|×|✕)\W*$", re.IGNORECASE)
 # a label led by one of these dismisses at any length and on any element ("Dismiss long chat upgrade prompt"), naming
 # the offer it closes, unless a joining word ties an offer to it ("Close or Upgrade")
 DISMISS_START = re.compile(r"^\W*(?:dismiss|close|not now|no,? thanks|maybe later)\b", re.IGNORECASE)
@@ -117,7 +117,8 @@ class AgentExplorer(Explorer):
     deny-list, and the content filter is the planner's goal, verified by code but never a gate."""
 
     core_ran = False  # the passes ran during the tour, when start_core marked the core action
-    failed = 0  # planner turns in a row whose answer failed
+    failed = 0  # planner turns in a row whose answer failed: three stop the run
+    failures = 0  # planner answers that failed this run, never reset: the news line's number, so it never repeats
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -305,11 +306,13 @@ class AgentExplorer(Explorer):
             # real call), it is no stale turn, and a few in a row end the run under their own name
             self.counts["model call failures"] += 1
             self.failed += 1
+            self.failures += 1
             why = self.scrub(str(e))[:160]
             self.note("agent.turn", f"planner call failed: {why}", outcome="error")
             if self.failed >= PLANNER_FAILURES:
                 raise Stop(f"the planner's answer failed {self.failed} turns in a row (last: {why})") from e
-            self.news.append(f"Your last answer failed ({why}; {self.failed} in a row): answer again, in the schema.")
+            self.news.append(f"Your last answer failed (failure {self.failures} of this run: {why}): answer again, in "
+                             f"the schema.")
             return
         self.failed = 0
         self.stale += 1
@@ -453,6 +456,9 @@ class AgentExplorer(Explorer):
             "Your notes: " + ("; ".join(self.found) or "none yet"),
             f"Steps run so far ({len(self.history)}, the latest {len(history)}):", *(history or ["none yet"]),
             "Since your last turn: " + (" ".join(self.news) or "nothing to report"),
+            # after any failed answer every prompt differs from the ones before it, even once a valid answer that ran
+            # nothing put the screen back as it was: no cached failure meets it again
+            *([f"Your answers that failed so far this run: {self.failures}."] if self.failures else []),
             f"Content filter: {self.filter_news}",
             f"Core action: {self.picked_core.name if self.picked_core else 'not marked yet'}",
             "Texts you may type, into a search box only: " + ", ".join(f'"{q}"' for q in SEARCH_QUERIES),
