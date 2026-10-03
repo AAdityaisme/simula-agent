@@ -57,6 +57,22 @@ def emails(raw: list[dict]) -> list[Rect]:
     return [ob.rect(e) for e in raw if any(ob.EMAIL.search(e.get(k) or "") for k in ("text", "label"))]
 
 
+def account_row(c: ob.Candidate, raw: list[dict]) -> bool:
+    """Whether c is an account row on the chooser: an email in the unredacted list under c or inside it, or in the
+    smallest element holding c (the row its name, address and avatar share; the name alone is no email), when that row
+    names no account management."""
+    at = Rect(x=c.point[0], y=c.point[1], w=0, h=0)
+    if any(ob.inside(at, r) or ob.inside(r, c.rect) for r in emails(raw)):
+        return True
+    holders = [e for e in raw if ob.inside(c.rect, ob.rect(e)) and ob.area(ob.rect(e)) > ob.area(c.rect)]
+    if not holders:
+        return False
+    row = min((ob.rect(e) for e in holders), key=ob.area)
+    members = [e for e in raw if ob.inside(ob.rect(e), row)]
+    said = [e.get(k) or "" for e in members for k in ("text", "label")]
+    return any(ob.EMAIL.search(t) for t in said) and not any(GOOGLE_ACCOUNT.search(t) for t in said)
+
+
 class AgentExplorer(Explorer):
     """The scripted explorer with the agent's policy: tour() is the planner's loop, the hard blocks replace the
     deny-list, and the content filter is the planner's goal, verified by code but never a gate."""
@@ -476,8 +492,7 @@ class AgentExplorer(Explorer):
         reason = ""
         if guard.signing_in(fg):
             said = [t for t in (c.tree_label, c.label) if t]
-            row = any(ob.inside(Rect(x=c.point[0], y=c.point[1], w=0, h=0), r) or ob.inside(r, c.rect)
-                      for r in emails(raw))
+            row = account_row(c, raw)
             flow = any(t.strip().lower() in CHOOSER_STEPS for t in said)
             if any(GOOGLE_ACCOUNT.search(t) for t in said) or not (row or flow):
                 reason = "not an account row or a sign-in step on Google's account chooser"
