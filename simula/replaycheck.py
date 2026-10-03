@@ -89,13 +89,16 @@ def offline(clone: Path) -> dict[str, str]:
 
 READ = """import json, sys
 from pathlib import Path
-from simula.config import STAGES
+from simula.config import ROOT, STAGES
 from simula.runlog import read_manifest, read_trace
 run = Path(sys.argv[1])
 m = read_manifest(run)
+# Code from before 2026-10-03 hashes the account switch into explore; newer code has none, and its manifests say True.
+account = m.allow_account_create and "--allow-account-create" in (ROOT / "simula" / "cli.py").read_text()
 print(json.dumps({"stages": STAGES, "trace": [[line.stage, line.step] for line in read_trace(run / "trace.jsonl")],
                   "source": m.provenance.source, "git_sha": m.git_sha,
                   "options": ["--run", m.run_id, "--profile", m.profile, "--budget", m.budget,
+                              *(["--allow-account-create"] if account else []),
                               *(["--no-send"] if m.no_send else [])]}))"""
 
 

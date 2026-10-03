@@ -2784,8 +2784,8 @@ def run(ctx: Ctx) -> StageOutcome:
     if ctx.explorer == "agent":  # it subclasses Explorer; imported before the device or the last record is touched
         try:
             from simula.stages.explore_agent import AgentExplorer as kind
-        except ImportError as e:
-            raise NotStarted(f"the agent explorer can't load ({e})") from None
+        except Exception as e:  # anything its loading raises: nothing has started, so the last explore stands
+            raise NotStarted(f"the agent explorer can't load ({type(e).__name__}: {e})") from None
     if not redact_list():
         needs_human(ctx.run_dir, "explore", "SIMULA_REDACT is empty",
                     "the explorer saves screenshots and element lists, and nothing would hide the account handle",

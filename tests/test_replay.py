@@ -6,20 +6,23 @@ the stages it finished: one that stopped at explore (an app that refused the emu
 mechanism is simula/replaycheck.py, which `simula replay-check` runs too. Parametrized over the committed runs, so with
 none it skips."""
 
+import io
 import os
 import shutil
 import signal
 import subprocess
 import sys
+import tarfile
 from collections import defaultdict
 from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
 
-from simula import replaycheck
+from simula import cli, replaycheck
 from simula.config import STAGES
 from simula.replaycheck import PINS, commit, git, key, read
+from simula.runlog import read_manifest
 from tests.conftest import ROOT
 
 RUNS = replaycheck.committed_runs()
@@ -238,3 +241,45 @@ def test_replay_check_removes_its_clones_when_it_is_stopped(tmp_path):
     under = Path(result.stdout.split()[0])
     assert result.returncode == 128 + signal.SIGTERM and not under.exists(), (result.returncode,
                                                                               list(tmp_path.iterdir()))
+
+
+LEGACY = "submitted-2026-09-30"  # code from before --allow-account-create was removed (2026-10-03)
+OPENED_WITH_ACCOUNTS = """from simula import cli, config, runfolder, runlog
+from simula.contracts import Provenance, StageOutcome
+args = cli.parser().parse_args(["run", "janitorai", "--run", "legacy", "--allow-account-create"])
+run = config.ROOT / "runs" / "janitorai" / "legacy"
+run.mkdir(parents=True)
+provenance = Provenance(source="explorer_run", explorer_run_id="legacy")
+runlog.write_manifest(run, cli.new_manifest(run, config.app_config("janitorai"), args, provenance))
+ctx = cli.open_run(args)
+explore = run / "explore"
+explore.mkdir()
+(explore / "explore.json").write_text("{}")
+runfolder.write_done(explore, run, cli.stage_inputs("explore", ctx), cli.prompt_files("explore"),
+                     cli.stage_params("explore", ctx), [explore], provenance, code=runfolder.code_files("explore"),
+                     outcome=StageOutcome(status="partial", reasons=["the test account's email waits to be verified"]))
+"""
+
+
+def test_a_run_old_code_opened_with_account_creation_replays_its_partial_explore(tmp_path):
+    """Red team on f6e9ba5: code from before 2026-10-03 hashes --allow-account-create into explore's params, and a
+    partial explore nothing is built on replays only while they match, so its replay must pass the flag again."""
+    archive = subprocess.run(["git", "archive", replaycheck.resolve(LEGACY), "simula", "config", "prompts"], cwd=ROOT,
+                             capture_output=True, check=True).stdout
+    with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
+        tar.extractall(tmp_path, filter="data")
+    env = replaycheck.offline(tmp_path)
+    subprocess.run([sys.executable, "-c", OPENED_WITH_ACCOUNTS], cwd=tmp_path, env=env, capture_output=True,
+                   check=True)
+    options = read(tmp_path, tmp_path / "runs" / "janitorai" / "legacy")["options"]
+    assert "--allow-account-create" in options
+    replayed = subprocess.run([sys.executable, "-m", "simula.cli", "run", "janitorai", *options, "--replay"],
+                              cwd=tmp_path, env=env, capture_output=True, text=True, timeout=300)
+    assert replayed.returncode == 0, replayed.stdout + replayed.stderr
+
+
+def test_a_run_this_code_opened_replays_without_the_removed_flag(runs):
+    """Its manifest says account creation was on, as it always is now, and this code's CLI has no flag to pass."""
+    cli.main(["run", "janitorai", "--new"])
+    run = (runs / "janitorai" / "latest").resolve()
+    assert read_manifest(run).allow_account_create and "--allow-account-create" not in read(ROOT, run)["options"]
