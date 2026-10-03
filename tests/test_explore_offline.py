@@ -1688,6 +1688,36 @@ def test_a_sheet_that_comes_up_while_send_settles_stops_the_chat(tmp_path, monke
     assert [stop[0] for stop in stops] == [2] and phone.sent == 1, (stops, phone.sent)
 
 
+def billing_from_the_chat(during_settle: bool):
+    """Pass 2 brings up the store's billing screen: its send opens it, or, while send stays disabled after the typing,
+    it comes up a moment later. BACK, pressed at once, returns to the chat with its composer ready."""
+    def factory(clock):
+        phone = chatty(clock)
+        if not during_settle:
+            phone.after_sends = {2: "billing"}
+            return phone
+        phone.send_ready_s, plain, shown = 1.5 * stage.SETTLE_GAP_S, phone.elements, []
+
+        def elements():
+            if phone.sent == 1 and phone.draft and not shown and clock.t >= phone.typed_at + stage.SETTLE_GAP_S:
+                shown.append(phone.screen)
+                phone.go("billing")
+            return plain()
+        phone.elements = elements
+        return phone
+    return factory
+
+
+@pytest.mark.parametrize("during_settle", [False, True], ids=["opened by the send", "while send settles"])
+def test_a_billing_screen_a_chat_pass_brought_up_stops_it_greptile_46(tmp_path, monkeypatch, during_settle):
+    """Greptile on #46 (P1): settling read the chat that BACK restored before the billing screen was recorded, so the
+    billing stop vanished and the pass kept sending. A screen outside the app is a stop as it was seen."""
+    ex, phone = explore(tmp_path, monkeypatch, phone_factory=billing_from_the_chat(during_settle), budget="deep")
+    stops = [(line.loop_pass, line.loop_stop) for line in lines(ex) if line.loop_stop]
+    assert stops == [(2, "billing")] and ("back", "billing") in phone.log, (stops, phone.sent)
+    assert phone.sent == (1 if during_settle else 2) and ex.core_hit.startswith("billing")
+
+
 def test_a_chat_stop_read_after_settling_names_the_screen_it_settled_on_greptile_44(tmp_path, monkeypatch):
     """Greptile on #36 (item 44): the move landed before the composer settled, so the stop named the chat as it was
     before the sheet came up, a screen that doesn't show what stopped it."""

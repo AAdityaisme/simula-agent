@@ -568,8 +568,9 @@ class Explorer:
             raise
         self.escape_billing()
         canonical = ob.find(s.cands, move.cand) if move.cand else None
-        try:  # a chat stop is judged on the screen as it settled, so the move lands there
-            settled = bool(loop) and self.core.kind == "chat" and self.settle_input(move)
+        try:  # a chat stop is judged on the screen as it settled, so the move lands there; one outside the app is a
+            # stop as it was seen, though escape_billing's BACK may have brought the chat back
+            settled = bool(loop) and self.core.kind == "chat" and not self.away(obs) and self.settle_input(move)
         except DEVICE_ERRORS as e:
             self.log(s, None, move, canonical or live, "unknown",
                      f"{summary}; reading the screen again failed: {type(e).__name__}"[:160], "error", loop)
@@ -2161,12 +2162,15 @@ class Explorer:
     def settle_input(self, move: Move) -> bool:
         """When the composer reads as a stop, the screen is read again SETTLE_GAP_S later until two reads of the
         composer agree (up to SETTLE_ASK_S): a composer the keyboard is still moving, or send enabled a moment after
-        the text lands, stops nothing. Whether it read the screen again."""
+        the text lands, stops nothing. A read that finds another app in front, or the screen turned, ends it there.
+        Whether it read the screen again."""
         first, stop, deadline = self.obs, self.input_stop(move), self.clock() + SETTLE_ASK_S
         while stop:
             self.sleep(SETTLE_GAP_S)
             self.observe()
             self.escape_billing()
+            if self.away(self.obs):
+                break
             again = self.input_stop(move)
             if again == stop or self.clock() >= deadline:
                 break
