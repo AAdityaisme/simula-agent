@@ -7,7 +7,7 @@ import re
 
 from PIL import Image
 
-from simula import decide, llm, runlog
+from simula import cli, config, decide, llm, runlog
 from simula.contracts import AdLine, ExploreFile
 from simula.stages import explore as stage
 from simula.stages import model as model_stage
@@ -39,6 +39,11 @@ def tap(element: str, expect: str = "the screen changes") -> dict:
 
 
 DONE = {"action": "done", "expect": "nothing"}
+
+
+def scripted(*turns):
+    """A planner script from one function per turn, each given the user text it was shown."""
+    return lambda n, text: turns[n - 1](text) if n <= len(turns) else None
 
 
 class Planner:
@@ -98,10 +103,9 @@ def loads_cleanly(ex) -> None:
 
 
 def test_a_short_run_records_states_and_actions_the_model_stage_loads(tmp_path, monkeypatch):
-    def script(n, text):
-        return {1: lambda: turn(tap(oid(text, "Limited Only"), "the list narrows")),
-                2: lambda: turn(tap(oid(text, at=CHATS_TAB), "the chat list opens"), filter_set=True),
-                3: lambda: turn(DONE, done_reason="covered")}.get(n, lambda: None)()
+    script = scripted(lambda text: turn(tap(oid(text, "Limited Only"), "the list narrows")),
+                      lambda text: turn(tap(oid(text, at=CHATS_TAB), "the chat list opens"), filter_set=True),
+                      lambda text: turn(DONE, done_reason="covered"))
     ex, phone, planner = run(tmp_path, monkeypatch, script)
     assert len(planner.texts) == 3 and ex.stop_reason == "the planner said done: covered"
     assert ("root", "Limited Only") in taps(phone) and phone.screen != "root"
@@ -114,9 +118,8 @@ def test_a_short_run_records_states_and_actions_the_model_stage_loads(tmp_path, 
 
 
 def test_a_relaunch_puts_the_filter_back_and_checks_it_again(tmp_path, monkeypatch):
-    def script(n, text):
-        return {1: lambda: turn(tap(oid(text, "Limited Only"), "the list narrows")),
-                2: lambda: turn({"action": "launch", "expect": "the launch screen"}, filter_set=True)}.get(n, lambda: None)()
+    script = scripted(lambda text: turn(tap(oid(text, "Limited Only"), "the list narrows")),
+                      lambda text: turn({"action": "launch", "expect": "the launch screen"}, filter_set=True))
     ex, phone, planner = run(tmp_path, monkeypatch, script)
     assert ex.relaunches == 1 and [ok for _, ok, _ in ex.filter_checks][:2] == [True, True]
     assert ex.filter_checks[1][0] == 2 and "verified (check 2)" in planner.texts[2]
@@ -132,9 +135,8 @@ def test_the_google_account_chooser_is_acted_on_not_left(tmp_path, monkeypatch):
         phone.taps[("chooser", "View public profile")] = "limited"
         return phone
 
-    def script(n, text):
-        return {1: lambda: turn(tap(oid(text, "Limited Only"), "the account chooser")),
-                2: lambda: turn(tap(oid(text, "View public profile"), "signed in"))}.get(n, lambda: None)()
+    script = scripted(lambda text: turn(tap(oid(text, "Limited Only"), "the account chooser")),
+                      lambda text: turn(tap(oid(text, "View public profile"), "signed in")))
     ex, phone, planner = run(tmp_path, monkeypatch, script, phone_factory=with_chooser)
     assert ("chooser", "View public profile") in taps(phone)
     chooser = next(s for s in ex.states if s.fg == "com.google.android.gms")
@@ -186,8 +188,10 @@ def test_the_planner_sees_the_raw_screen_and_nothing_on_disk_holds_a_redacted_st
 
     def script(n, text):
         assert "Trending" not in text
-        return {1: lambda: turn(tap(oid(text, "Limited Only"), "the list narrows"), screen="Trending home",
-                        notes=["a Trending chip"])}.get(n, lambda: None)()
+        if n == 1:
+            return turn(tap(oid(text, "Limited Only"), "the list narrows"), screen="Trending home",
+                        notes=["a Trending chip"])
+        return None
     ex, _, planner = run(tmp_path, monkeypatch, script)
     root = next(s for s in ex.states if s.kind == "screen")
     saved = (ex.out / f"states/{root.sid}.png").read_bytes()
@@ -212,9 +216,8 @@ def test_a_hard_blocked_control_is_logged_denied_and_never_tapped(tmp_path, monk
 
 
 def test_text_that_isnt_allowed_is_never_typed_nor_written(tmp_path, monkeypatch):
-    def script(n, text):
-        return {1: lambda: turn({"action": "type", "text": "my secret plan", "expect": "text shows"}),
-                2: lambda: turn({"action": "type", "text": "popular", "expect": "text shows"})}.get(n, lambda: None)()
+    script = scripted(lambda text: turn({"action": "type", "text": "my secret plan", "expect": "text shows"}),
+                      lambda text: turn({"action": "type", "text": "popular", "expect": "text shows"}))
     ex, phone, planner = run(tmp_path, monkeypatch, script)
     assert phone.typed == [] and len(planner.texts) == 3
     assert "my secret plan" not in (ex.run_dir / "trace.jsonl").read_text()
@@ -247,9 +250,8 @@ def test_start_core_is_refused_for_a_person_and_measured_for_an_ai(tmp_path, mon
 
 
 def test_a_failed_filter_check_tells_the_planner_and_the_run_goes_on(tmp_path, monkeypatch):
-    def script(n, text):
-        return {1: lambda: turn(tap(oid(text, "Favorites"), "favorites only")),
-                2: lambda: turn({"action": "swipe", "direction": "up", "expect": "more"}, filter_set=True)}.get(n, lambda: None)()
+    script = scripted(lambda text: turn(tap(oid(text, "Favorites"), "favorites only")),
+                      lambda text: turn({"action": "swipe", "direction": "up", "expect": "more"}, filter_set=True))
     ex, _, planner = run(tmp_path, monkeypatch, script)
     assert len(planner.texts) == 3 and "not verified (check 1)" in planner.texts[2]
     assert [t.outcome for t in trace(ex) if t.step == "filter.check"][0] == "error"
@@ -271,8 +273,7 @@ def counting_jev(asked):
 def test_dial_on_grounds_an_intent_with_jev(tmp_path, monkeypatch):
     asked = []
 
-    def script(n, text):
-        return {1: lambda: turn({"action": "tap", "intent": "Limited Only", "expect": "the list narrows"})}.get(n, lambda: None)()
+    script = scripted(lambda text: turn({"action": "tap", "intent": "Limited Only", "expect": "the list narrows"}))
     ex, phone, _ = run(tmp_path, monkeypatch, script, jev=counting_jev(asked))
     assert asked and ("root", "Limited Only") in taps(phone) and ex.counts["steps grounded by Jev"] == 1
 
@@ -280,9 +281,8 @@ def test_dial_on_grounds_an_intent_with_jev(tmp_path, monkeypatch):
 def test_dial_off_never_asks_jev_and_runs_one_step(tmp_path, monkeypatch):
     asked = []
 
-    def script(n, text):
-        return {1: lambda: turn({"action": "tap", "intent": "Limited Only", "expect": "x"}),
-                2: lambda: turn(tap(oid(text, "Limited Only")), tap(oid(text, at=CHATS_TAB)))}.get(n, lambda: None)()
+    script = scripted(lambda text: turn({"action": "tap", "intent": "Limited Only", "expect": "x"}),
+                      lambda text: turn(tap(oid(text, "Limited Only")), tap(oid(text, at=CHATS_TAB))))
     ex, phone, planner = run(tmp_path, monkeypatch, script, jev=counting_jev(asked), explore_jev="off")
     assert asked == [] and ("root", "Limited Only") in taps(phone)
     assert not [t for t in taps(phone) if t[0] == "limited"]  # the second step was never run
@@ -291,8 +291,7 @@ def test_dial_off_never_asks_jev_and_runs_one_step(tmp_path, monkeypatch):
 def test_dial_shadow_asks_jev_beside_every_tap_and_traces_it(tmp_path, monkeypatch):
     asked = []
 
-    def script(n, text):
-        return {1: lambda: turn(tap(oid(text, "Limited Only"), "Limited Only"))}.get(n, lambda: None)()
+    script = scripted(lambda text: turn(tap(oid(text, "Limited Only"), "Limited Only")))
     ex, _, _ = run(tmp_path, monkeypatch, script, jev=counting_jev(asked), explore_jev="shadow")
     shadows = [t for t in trace(ex) if t.step == "jev.shadow"]
     assert asked and shadows and shadows[0].note.startswith("agree")
@@ -321,3 +320,7 @@ def test_ads_seen_and_tapped_are_written_live_as_ad_lines(tmp_path, monkeypatch)
     assert lines[1].landing and lines[1].landing != PACKAGE and ex.relaunches == 0
     assert not (ex.out / "states" / "ads.jsonl").exists()
 
+
+
+def test_the_hard_block_words_are_part_of_explores_fingerprint(tmp_path):
+    assert config.ROOT / "config" / "hard_blocks.toml" in cli.stage_inputs("explore", new_run(tmp_path))

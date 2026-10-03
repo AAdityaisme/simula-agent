@@ -31,8 +31,8 @@ def test_an_ad_line_round_trips():
     assert AdLine.model_validate_json(line.model_dump_json()) == line
 
 
-def test_the_scripted_explorer_and_jev_on_are_the_defaults_until_the_agent_lands():
-    assert (config.profiles()["explorer"], config.profiles()["explore_jev"]) == ("scripted", "on")
+def test_the_agent_explorer_and_jev_on_are_the_defaults():
+    assert (config.profiles()["explorer"], config.profiles()["explore_jev"]) == ("agent", "on")
     assert "explore_agent" in ROLES["explore"]
 
 
@@ -46,7 +46,7 @@ def test_a_misspelled_setting_stops_the_run(monkeypatch, key):
 
 def test_explorer_is_a_run_flag_and_account_creation_has_no_switch():
     assert cli.parser().parse_args(["explore", "janitorai", "--explorer", "agent"]).explorer == "agent"
-    assert cli.parser().parse_args(["run", "janitorai"]).explorer == "scripted"
+    assert cli.parser().parse_args(["run", "janitorai"]).explorer == "agent"
     for flags in (["--allow-account-create"], ["--explorer", "llm"]):
         with pytest.raises(SystemExit):
             cli.parser().parse_args(["explore", "janitorai", *flags])

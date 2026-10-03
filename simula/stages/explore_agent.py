@@ -166,7 +166,8 @@ class AgentExplorer(Explorer):
         history = self.history[-HISTORY_LINES:]
         return "\n".join([
             f"App in front: {self.obs.fg} (the app explored is {self.package}). Screen {d.w_px}x{d.h_px} px.",
-            f"Current screen: {s.sid} ({s.kind}){f', you named it {self.names[s.sid]!r}' if s.sid in self.names else ''}.",
+            f"Current screen: {s.sid} ({s.kind})" + (f", you named it {self.names[s.sid]!r}." if s.sid in self.names
+                                                     else "."),
             "Elements on this screen:", *(lines or ["none"]),
             "Screens recorded so far: " + "; ".join(f"{t.sid} {self.names.get(t.sid, t.kind)!r}" for t in self.states),
             "Your notes: " + ("; ".join(self.found) or "none yet"),
@@ -261,7 +262,8 @@ class AgentExplorer(Explorer):
         self.noops = 0 if changed else self.noops + 1
         self.history.append(f"{move.action} {what} on {s.sid} -> {to.sid}: {'changed' if changed else 'no change'}")
         shown = step.expect.lower() in " ".join(said).lower()
-        why = ("another app is in front" if to.kind in AWAY else "a screen you haven't named" if to.sid not in self.names
+        why = ("another app is in front" if to.kind in AWAY
+               else "a screen you haven't named" if to.sid not in self.names
                else "two steps in a row changed nothing" if self.noops >= 2
                else "" if changed or shown else f"{step.expect!r} didn't happen")
         if why and self.steps:
@@ -347,7 +349,7 @@ class AgentExplorer(Explorer):
     def perform(self, move: Move, live: ob.Candidate | None, upsell: bool = False, core: bool = False,
                 toggle_ok: bool = False, account: bool = False) -> str:
         """Typing is a core-loop message or a search query in a search box; anything else is refused unwritten."""
-        if move.action == "type" and not guard.allowed_text(move.text, core=core, field=self.field()):
+        if move.action == "type" and not guard.allowed_text(move.text, core=core, field=self.field(core)):
             move.text = ""  # the refused text never reaches the record
             return "hard block: not an allowed text"
         return super().perform(move, live, upsell, core, toggle_ok, account)
@@ -356,7 +358,11 @@ class AgentExplorer(Explorer):
         """A refused type has no control to mark tried."""
         return s if move.cand is None and expect is None else super().unrun(s, move, expect)
 
-    def field(self) -> str:
+    def field(self, core: bool) -> str:
+        """What a type goes into: the core loop's composer (the chat's text box it just tapped), a search box (the
+        focused box says search), or anything else."""
+        if core:
+            return "composer" if self.live_box() else "other"
         box = next((e for e in self.obs.elements if e.get("focused") and e["type"].endswith("EditText")), None)
         said = " ".join(str(box.get(k) or "") for k in ("text", "label", "identifier")) if box else ""
         return "search" if SEARCH.search(ob.ID_WORDS.sub(" ", said)) else "other"
