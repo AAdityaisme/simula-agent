@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
 
-from simula import cli, config, runfolder
+from simula import cli, config, runfolder, stages
 from simula.contracts import AdLine, AgentStep, AgentTurn
 from simula.runlog import read_manifest
 from simula.stages import ROLES, explore
@@ -81,17 +81,25 @@ def test_the_switch_builds_its_explorer(tmp_path, monkeypatch, explorer):
     assert built == [explorer]
 
 
-def test_an_agent_explorer_that_cant_load_leaves_the_last_explore(runs, monkeypatch):
-    """Greptile on 250ec6e: the stage runner drops explore's marker before the stage runs, and only a stage that
-    didn't start puts it back, so an import error lost the last explore."""
+@pytest.mark.parametrize("load", ["missing", "raises"])
+def test_an_agent_explorer_that_cant_load_leaves_the_last_explore(runs, tmp_path, monkeypatch, load):
+    """Greptile on 250ec6e (a missing module) and the red team on f6e9ba5 (one that raises while it loads): the stage
+    runner drops explore's marker before the stage runs, and only a stage that didn't start puts it back."""
     cli.main(["run", "janitorai", "--new"])
     run_dir = (runs / "janitorai" / "latest").resolve()
     finished_explore(run_dir)
     before = (run_dir / "explore" / "done.json").read_text()
-    monkeypatch.setitem(sys.modules, "simula.stages.explore_agent", None)
+    if load == "missing":
+        monkeypatch.setitem(sys.modules, "simula.stages.explore_agent", None)
+    else:
+        (tmp_path / "agent").mkdir()
+        (tmp_path / "agent" / "explore_agent.py").write_text("raise RuntimeError('agent initialization failed')\n")
+        monkeypatch.delitem(sys.modules, "simula.stages.explore_agent", raising=False)
+        monkeypatch.setattr(stages, "__path__", [str(tmp_path / "agent"), *stages.__path__])
     with pytest.raises(SystemExit, match="explore did not start: the agent explorer can't load"):
         cli.main(["explore", "janitorai", "--run", run_dir.name, "--explorer", "agent"])
     assert (run_dir / "explore" / "done.json").read_text() == before
+    assert not (run_dir / "explore" / "failure.json").exists() and cli.upstream_problem(run_dir, "model") is None
 
 
 def test_explores_code_hash_will_cover_the_agent_module(tmp_path):
