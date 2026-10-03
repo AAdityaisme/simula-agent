@@ -1156,6 +1156,17 @@ def test_with_no_accept_a_split_on_c3_is_never_the_closest_idea_and_a_person_can
     assert [d.candidate_id for d in flows.stage.select([payers, evidence], ids)] == ["c01"]
 
 
+def test_an_approved_split_revision_replaces_its_original_greptile_47():
+    """Greptile on #42 (item 47): a c3-split revision isn't drawable(), so it doesn't supersede its original, and the
+    judge's fallback can carry that original; a person who approved the split got both versions drawn."""
+    original = fallback("c01", 2.0)
+    revision = decision("c01-rev", "conditional", 3.0).model_copy(
+        update={"judgment_splits": ["c3_spares_payers"], "revision_of": "c01"})
+    decisions = [original, revision]
+    assert [d.candidate_id for d in flows.stage.select(decisions)] == ["c01"]
+    assert [d.candidate_id for d in flows.stage.select(decisions, ["c01-rev"])] == ["c01-rev"]
+
+
 def test_approvals_are_read_as_promote_and_hold(tmp_path):
     (tmp_path / "approvals.json").write_text('{"promote": [{"id": "c02", "splits": ["c5_moment"]}], "hold": ["c01"]}')
     known = [decision("c01", "accept", 1.0), decision("c02", "conditional", 0.5)]

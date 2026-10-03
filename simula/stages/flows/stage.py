@@ -20,7 +20,7 @@ from simula.stages.flows.page import ad_palette_css, blur_css, decline_edges, fl
 from simula.stages.flows.pdf import write_pdf
 from simula.stages.flows.walk import screenshot_before, walk, walk_decline, walk_failed_ad
 from simula.stages.flows.wording import NOT_WIRED, REWARD_NOT_SHOWN, VERDICTS, caption
-from simula.stages.judge import PAYERS, ordered, swap_in
+from simula.stages.judge import PAYERS, earlier, ordered, swap_in
 
 MAX_IDEAS = 4
 SURVIVED = ("accept", "conditional")
@@ -94,14 +94,15 @@ def survivors(decisions: list[Decision], promoted: list[str] = (), held: list[st
     the closest idea, so a deck with survivors has a full slide. A split on c3 is never the closest idea, since one
     judge found it aimed at paying users; the judge's fallback carries a clean reject in its place. A person promotes a
     split survivor into the deck and holds any idea out of it (flows/approvals.json), and a held closest idea gets no
-    replacement; everything else follows the judges."""
+    replacement; a promoted revision replaces the versions it came from. Everything else follows the judges."""
     picked = [d for d in ordered(decisions) if d.final in SURVIVED]
     splits = [d for d in picked if needs_call(d)]
     chosen = any(d.candidate_id in promoted for d in splits) or any(d.final == "accept" for d in decisions)
     clean = [d for d in splits if PAYERS not in d.judgment_splits]
     closest = [] if chosen else clean[:1]
+    replaced = {e for i in promoted for e in earlier(i)}
     return [d for d in picked if (not needs_call(d) or d in closest or d.candidate_id in promoted)
-            and d.candidate_id not in held]
+            and d.candidate_id not in held and d.candidate_id not in replaced]
 
 
 def select(decisions: list[Decision], promoted: list[str] = (), held: list[str] = ()) -> list[Decision]:
