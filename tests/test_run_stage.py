@@ -9,6 +9,7 @@ import subprocess
 import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
+from types import SimpleNamespace
 
 import anthropic
 import httpx2
@@ -73,6 +74,20 @@ def test_a_damaged_upstream_marker_blocks_the_stage_below_with_a_trace_line(runs
 def test_a_stage_runs_once_its_upstream_is_done(runs, mock_stage):
     run_dir = seeded_run(runs)
     assert len(mock_stage[1]) == 1 and (run_dir / "mock" / "done.json").exists()
+
+
+@pytest.mark.parametrize("platform, held", [("darwin", [["/usr/bin/caffeinate", "-i", "-w", str(os.getpid())]]),
+                                            ("linux", [])])
+def test_a_run_holds_off_idle_sleep_on_a_mac_once_per_process(runs, mock_stage, monkeypatch, platform, held):
+    """An idle Mac that sleeps mid-run stalls every model call in flight until it wakes."""
+    started = []
+    monkeypatch.setattr(sys, "platform", platform)
+    monkeypatch.setattr(cli, "subprocess", SimpleNamespace(Popen=started.append))
+    cli.stay_awake.cache_clear()
+    run_dir = seeded_run(runs)
+    cli.main(["mock", "janitorai", "--run", run_dir.name, "--allow-fixtures"])
+    cli.stay_awake.cache_clear()
+    assert started == held
 
 
 @pytest.mark.parametrize("exit_with", [lambda: sys.exit("no Android device online"),

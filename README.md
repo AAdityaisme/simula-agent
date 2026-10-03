@@ -186,6 +186,8 @@ uv run simula run janitorai --new               # all seven stages in a new run
 uv run simula run janitorai --from qa           # rerun qa and everything after it, in the latest run
 ```
 
+On macOS, a stage or `run` command keeps the Mac from idle-sleeping (`caffeinate -i`) until it exits, since a sleeping Mac stalls every model call in flight. Closing the lid still puts it to sleep.
+
 **Live QA walk** (opt-in, no model calls, never part of QA's approval):
 
 ```sh
