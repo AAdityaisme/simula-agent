@@ -12,9 +12,9 @@ from typing import get_args
 
 from pydantic import Field
 
-from simula import config, text
+from simula import config, decide, text
 from simula.contracts import (ActionLine, CandidatesFile, ContractReport, Decision, DecisionsFile, Device,
-                              Element, ExploreFile, Manifest, MechanicKind, ProductModel, QAReport, Rect, State,
+                              Element, ExploreFile, Manifest, MechanicKind, ProductModel, QAReport, State,
                               StateFile, Strict, TraceLine)
 from simula.device import observe as ob
 from simula.runlog import read_trace
@@ -24,6 +24,8 @@ BILLING = "com.android.vending"  # the Play Store, whose payment sheet is a hard
 LIST_ITEMS = 3
 NUMBER = re.compile(r"\d+")
 SETTINGS = re.compile(r"\bsettings?\b", re.IGNORECASE)
+# A purpose's subject: its words before the first punctuation or a word that starts saying what the state holds.
+SUBJECT = re.compile(r"^(.*?)(?:[:;,.(]|\s(?:with|listing|containing|showing|linking|asking|over)\b|$)", re.IGNORECASE)
 JEV_SECONDS = re.compile(r" in (\d+(?:\.\d+)?)s$")
 JUDGE = "Judge (an unvalidated instrument: no human labels yet)"
 
@@ -88,10 +90,14 @@ def identity(state: StateFile, tree: list[dict], device: Device) -> tuple[str, f
 
 
 def hidden_changes(actions: list[ActionLine]) -> list[ActionLine]:
-    """Moves recorded as staying on their state while the screen changed: a screen the record never saved. A
-    core-loop pass and typing change the screen they stay on by design, so they never count."""
-    return [a for a in actions if a.to_state == a.from_state and a.change_summary and a.loop_pass is None
-            and a.action != "type"]
+    """Moves recorded as staying on their state while the screen changed: a screen change the record never saved."""
+    return [a for a in actions if a.to_state == a.from_state and a.change_summary]
+
+
+def tour_hidden_changes(actions: list[ActionLine]) -> list[ActionLine]:
+    """The hidden changes outside the core loop and typing, which change the screen they stay on by design (a reply
+    growing, typed text)."""
+    return [a for a in hidden_changes(actions) if a.loop_pass is None and a.action != "type"]
 
 
 def completed(lines: list[ActionLine]) -> bool:
@@ -103,59 +109,94 @@ def completed(lines: list[ActionLine]) -> bool:
 
 # ---------- the explorer-independent checklist ----------
 
-def tab_bar(pm: ProductModel) -> tuple[list[Rect], bool]:
-    """The root's bottom tab bar and whether another saved screen confirms it. A candidate is a row of 2 or more
-    same-class, same-size elements in the root's bottom band, each with a name (text or label), evenly spaced (within
-    one 8 dp bucket) across the middle of the screen; a composer's buttons are never evenly spaced, nor named on their
-    outer boxes. Navigation stays put, so a screen that shows all of a row's names in its bottom band confirms it.
-    The biggest confirmed row, else the biggest candidate; none when the root has no candidate."""
-    device, band = pm.device, pm.device.content_bottom_px - ob.TAB_BAND_PX
-    screens = [s for s in pm.states if s.kind == "screen"]
-    if not screens:
-        return [], False
+def name(e: Element) -> str:
+    return e.text or e.label
 
-    def named(state: State) -> list[Element]:
-        return [e for e in state.elements if e.rect_px.y >= band and (e.text or e.label)]
+
+def band_named(state: State, device: Device) -> list[Element]:
+    return [e for e in state.elements if e.rect_px.y >= device.content_bottom_px - ob.TAB_BAND_PX and name(e)]
+
+
+def size(e: Element, device: Device) -> tuple[str, int, int]:
+    return e.type, ob.bucket(e.rect_px.w, device), ob.bucket(e.rect_px.h, device)
+
+
+def candidate_rows(state: State, device: Device) -> list[list[Element]]:
+    """What a tab bar looks like: rows of 2 or more same-class, same-size named elements in a screen's bottom band,
+    evenly spaced (within one 8 dp bucket) across its middle. A composer's buttons are never evenly spaced, nor named
+    on their outer boxes."""
     rows = defaultdict(dict)
-    for e in named(screens[0]):
-        r = e.rect_px
-        rows[e.type, ob.bucket(r.w, device), ob.bucket(r.h, device), ob.bucket(r.y, device)][ob.bucket(r.x, device)] = e
+    for e in band_named(state, device):
+        rows[(*size(e, device), ob.bucket(e.rect_px.y, device))][ob.bucket(e.rect_px.x, device)] = e
 
-    def candidate(row: list[Element]) -> bool:
+    def even(row: list[Element]) -> bool:
         xs = sorted(e.rect_px.x + e.rect_px.w / 2 for e in row)
         gaps = [b - a for a, b in zip(xs, xs[1:])]
         return bool(gaps) and xs[0] < device.w_px / 2 < xs[-1] and max(gaps) - min(gaps) <= ob.BUCKET_DP * device.scale
-    candidates = [row for row in (list(r.values()) for r in rows.values()) if candidate(row)]
-    elsewhere = [{e.text or e.label for e in named(s)} for s in screens[1:]]
-    confirmed = [row for row in candidates if any({e.text or e.label for e in row} <= names for names in elsewhere)]
-    return [e.rect_px for e in max(confirmed or candidates, key=len, default=[])], bool(confirmed)
+    return [row for row in (list(r.values()) for r in rows.values()) if even(row)]
 
 
-def all_tabs(pm: ProductModel) -> bool:
-    """Answered when the root has no candidate tab bar. A bar no other saved screen confirms stays open, so a run that
-    never left the root is never credited with tabs it didn't open. Otherwise every tab but the one the root already
-    shows needs a recorded tap that went to a state other than its own and the root's: a tap in the bottom band within
-    the tab's column (a tab's label often sits under its tap target)."""
-    tabs, confirmed = tab_bar(pm)
-    if not tabs or not confirmed:
-        return not tabs
-    root = next(s.id for s in pm.states if s.kind == "screen")
-    band = pm.device.content_bottom_px - ob.TAB_BAND_PX
-    elements = {e.id: e.rect_px for s in pm.states for e in s.elements}
-    taps = [ob.center(elements[e.element_id]) for e in pm.edges
-            if e.element_id in elements and e.to_state not in (e.from_state, root)]
-    reached = sum(any(tab.x <= x < tab.x + tab.w and y >= band for x, y in taps) for tab in tabs)
-    return reached >= len(tabs) - 1
+def tab_bar(pm: ProductModel) -> tuple[list[Element], bool]:
+    """The tab bar the run saw, on any saved screen, and whether it is confirmed: navigation stays put, so another saved
+    screen showing all of a row's names in its bottom band confirms it. The biggest confirmed row, else the biggest
+    candidate; none when no saved screen shows a candidate."""
+    screens = [s for s in pm.states if s.kind == "screen"]
+    shown = {s.id: {name(e) for e in band_named(s, pm.device)} for s in screens}
+    rows = [(s.id, row) for s in screens for row in candidate_rows(s, pm.device)]
+    confirmed = [row for sid, row in rows
+                 if any({name(e) for e in row} <= names for other, names in shown.items() if other != sid)]
+    return max(confirmed or [row for _, row in rows], key=len, default=[]), bool(confirmed)
 
 
-def model_checklist(pm: ProductModel) -> dict[str, bool]:
-    """explore's checklist items, answered from the product model alone."""
+def tab_of(state: State, element_id: str | None, bar: list[Element], device: Device) -> str | None:
+    """The tab a tapped element is: one of the bar's own elements on that state (the bar's class and size, a tab's
+    name), or a wordless box holding exactly one of them, as a tab's tap target holds its label."""
+    names, kind = {name(e) for e in bar}, size(bar[0], device)
+    members = [e for e in band_named(state, device) if size(e, device) == kind and name(e) in names]
+    tapped = next((e for e in state.elements if e.id == element_id), None)
+    if tapped is None:
+        return None
+    if any(m.id == tapped.id for m in members):
+        return name(tapped)
+    held = [m for m in members if ob.inside(m.rect_px, tapped.rect_px)]
+    return name(held[0]) if len(held) == 1 and not name(tapped) else None
+
+
+def all_tabs(pm: ProductModel) -> bool | None:
+    """None when no saved screen shows a tab bar: no bar seen is no evidence the run walked one. Open for a bar no other
+    saved screen confirms. Otherwise every tab but the one the first screen showing the bar is on needs a visit: a tap
+    on one of the bar's own elements that went to a state other than its own and that screen, so a tap back to it never
+    stands in for another tab."""
+    bar, confirmed = tab_bar(pm)
+    if not bar:
+        return None
+    if not confirmed:
+        return False
+    names, states = {name(e) for e in bar}, {s.id: s for s in pm.states}
+    home = next(s.id for s in pm.states
+                if s.kind == "screen" and names <= {name(e) for e in band_named(s, pm.device)})
+    visited = {tab for e in pm.edges if e.from_state in states and e.to_state not in (e.from_state, home)
+               and (tab := tab_of(states[e.from_state], e.element_id, bar, pm.device))}
+    return len(visited) >= len(names) - 1
+
+
+def settings_screen(state: State) -> bool:
+    """A settings screen by its recorded purpose: one whose subject names settings. A purpose that names them only
+    further on describes a way to them (a menu's link), never the screen; one that never names them (a list of what the
+    screen holds) leaves it to the state's name."""
+    if SETTINGS.search(state.purpose):
+        return bool(SETTINGS.search(SUBJECT.match(state.purpose)[1]))
+    return bool(SETTINGS.search(state.name))
+
+
+def model_checklist(pm: ProductModel) -> dict[str, bool | None]:
+    """explore's checklist items, answered from the product model alone; all_tabs is None when no tab bar was seen."""
     observed = {m.kind for m in pm.mechanics if m.status == "observed"}
     ledger = {item.kind for item in pm.value_ledger}
     found = {"root": any(s.kind == "screen" for s in pm.states),
              "all_tabs": all_tabs(pm),
              "paywall_or_membership": "paywall" in observed or bool({"price", "paywall_bullet"} & ledger),
-             "settings": any(SETTINGS.search(s.name) for s in pm.states),  # a purpose names it on every menu listing it
+             "settings": any(map(settings_screen, pm.states)),
              "limit": "limit" in observed or "limit" in ledger}
     items = tomllib.loads((config.CONFIG / "checklist.toml").read_text())["items"]
     return {item: found.get(item, False) for item in items}
@@ -175,6 +216,7 @@ def explore_record(states: Saved | None, actions: list[ActionLine] | None, explo
     if actions is not None:
         outcomes = Counter(a.outcome for a in actions)
         out |= {"hidden screen changes": len(hidden_changes(actions)),
+                "hidden screen changes outside the core loop and typing": len(tour_hidden_changes(actions)),
                 **{f"actions {o}": outcomes[o] for o in get_args(ActionLine.model_fields["outcome"].annotation)}}
     if explore:
         out["relaunches"] = explore.relaunches
@@ -200,8 +242,9 @@ def checklist(explore: ExploreFile | None, pm: ProductModel | None) -> dict:
                 "open in explore": ", ".join(explore.coverage.checklist_open) or "none"}
     if pm:
         answered = model_checklist(pm)
-        out |= {"answered by the product model": sum(answered.values()),
-                "open in the product model": ", ".join(i for i, ok in answered.items() if not ok) or "none"}
+        still_open = [f"{i} (no tab bar seen)" if ok is None else i for i, ok in answered.items() if ok is not True]
+        out |= {"answered by the product model": sum(ok is True for ok in answered.values()),
+                "open in the product model": ", ".join(still_open) or "none"}
     return out
 
 
@@ -220,10 +263,16 @@ def hard_blocks(states: Saved | None, actions: list[ActionLine] | None, trace: l
     if states is not None:
         out["payment sheet states"] = sum(s.foreground_package == BILLING for s, _ in states)
     if actions is not None:
-        out |= {"typed actions": sum(a.action == "type" and a.outcome == "ok" for a in actions),
-                "sent actions (a tap right after typing)": sum(
-                    b.action == "type" and a.action == "tap" for b, a in zip(actions, actions[1:])
-                    if a.outcome == b.outcome == "ok")}
+        ran = [a for a in actions if a.outcome == "ok"]
+        passes = defaultdict(list)
+        for a in ran:
+            if a.loop_pass is not None:
+                passes[a.loop_pass].append(a)
+        out |= {"typed actions outside the core loop": sum(a.action == "type" and a.loop_pass is None for a in ran),
+                "core-loop typed actions": sum(a.action == "type" for lines in passes.values() for a in lines),
+                "core-loop sends (a pass's tap after its typing)": sum(
+                    b.action == "type" and a.action == "tap" for lines in passes.values()
+                    for b, a in zip(lines, lines[1:]))}
     return out
 
 
@@ -245,7 +294,10 @@ def product_model(pm: ProductModel | None, trace: list[TraceLine]) -> dict:
 def downstream(run: Path) -> dict:
     out = {}
     if contract := load(run / "mock" / "contract_report.json", ContractReport):
-        out |= {"mock contract passed": contract.passed, "mock screens drawn": len(contract.screens)}
+        scope = set(contract.screens)
+        undrawn = {e.screen for e in contract.errors if e.kind == "undrawn_screen"}
+        out |= {"mock contract passed": contract.passed, "mock screens in scope": len(scope),
+                "mock screens drawn": len(scope - undrawn)}
     if qa := load(run / "qa" / "qa_report.json", QAReport):
         tagged = qa.structure.tagged
         out |= {"QA approved round": qa.approved_round, "QA score": qa.keep_score,
@@ -265,11 +317,22 @@ def judge(run: Path) -> dict:
 
 
 def role(line: TraceLine, roles: dict[str, str]) -> str:
-    """The stage's role whose configured model made the call (the one the step names, when several share the model),
-    or the stage and model when that leaves none or several."""
-    named = [r for r in ROLES.get(line.stage, []) if line.model in roles.get(r, "").split()]
-    named = [r for r in named if r in line.step] or named if len(named) > 1 else named
-    return named[0] if len(named) == 1 else f"{line.stage} {line.model}"
+    """The role that made a call: the stage's role its step names ('critic r1 g1' is qa_critic, 'judge:c01:judge_1:r1'
+    is judge_1), else the stage's one role whose configured model made it, else the stage and model."""
+    def word(r: str) -> str:
+        last = r.rsplit("_", 1)[-1]
+        return last if last.isalpha() else r
+    stage_roles = ROLES.get(line.stage, [])
+    named = [r for r in stage_roles if re.search(rf"\b{re.escape(word(r))}\b", line.step)]
+    found = named or [r for r in stage_roles if line.model in roles.get(r, "").split()]
+    return found[0] if len(found) == 1 else f"{line.stage} {line.model}"
+
+
+def jev_backend(line: TraceLine) -> str:
+    """The backend a Jev call went to: an answer's note names it, a failure carries its priced model; a refusal carries
+    TypeSafe's own model name, so anything else is TypeSafe."""
+    return next((b for b in decide.BACKENDS if line.note.startswith(f"{b} ") or line.model == decide.priced_as(b)),
+                "typesafe")
 
 
 def cost_and_time(trace: list[TraceLine], manifest: Manifest | None, actions: list[ActionLine] | None,
@@ -286,11 +349,17 @@ def cost_and_time(trace: list[TraceLine], manifest: Manifest | None, actions: li
     roles = manifest.roles if manifest else {}
     calls = Counter({r: 0 for s in stages for r in ROLES[s] if r in roles and r != "jev"})  # Jev has its own rows
     calls.update(role(t, roles) for t in trace if t.decider == "model" and t.model and not t.cache_hit)
-    jev = [t for t in trace if t.decider == "jev" and t.model and not t.cache_hit]
-    seconds = [float(m[1]) for t in jev if (m := JEV_SECONDS.search(t.note))]
+    jev = defaultdict(list)
+    for t in trace:
+        if t.decider == "jev" and t.model and not t.cache_hit:
+            jev[jev_backend(t)].append(t)
+
+    def seconds(lines: list[TraceLine]) -> float:
+        return sum(float(m[1]) for t in lines if (m := JEV_SECONDS.search(t.note)))
     out = {"$ total": sum(t.usd for t in trace), **{f"$ {s}": usd[s] for s in stages},
            **{f"minutes {s}": minutes[s] for s in stages}, **{f"model calls {r}": n for r, n in sorted(calls.items())},
-           "Jev calls": len(jev), "Jev seconds": sum(seconds)}
+           "Jev calls": len(jev["typesafe"]), "Jev seconds": seconds(jev["typesafe"]),
+           "Jev adapter calls": len(jev["adapter"]), "Jev adapter seconds": seconds(jev["adapter"])}
     if distinct:
         out["explore $ per distinct screen"] = usd.get("explore", 0.0) / distinct
         if actions is not None:

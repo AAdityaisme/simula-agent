@@ -10,8 +10,7 @@ from pydantic import ValidationError
 
 from simula import cli, scorecard
 from simula.contracts import (ActionLine, Device, Edge, Element, ExploreFile, Manifest, ProductModel, Provenance, Rect,
-                              StateFile, TraceLine)
-from simula.device import observe as ob
+                              State, StateFile, TraceLine)
 from tests.conftest import FIXTURES, PREFIX, ROOT
 from tests.explore_fixture import add_core_loop, build
 
@@ -123,12 +122,29 @@ def test_committed_janitorai_feed_reloads_stay_three_screens():
 
 # ---------- hidden screen changes and the core loop ----------
 
-def test_hidden_screen_changes_are_same_state_moves_that_changed_the_screen():
+def test_hidden_screen_changes_follow_the_spec_and_the_tour_count_leaves_out_the_loop_and_typing():
     lines = [line(1, change_summary="+'Settings'"), line(2), line(3, to_state="s02", change_summary="+'x'"),
              line(4, loop_pass=1, change_summary="reply started 1.0 s, finished 2.0 s, 40 chars"),
              line(5, action="type", change_summary="+'hello'"), line(6, to_state=None, outcome="denied",
                                                                      change_summary="denied: delete")]
-    assert [a.step for a in scorecard.hidden_changes(lines)] == [1]
+    assert [a.step for a in scorecard.hidden_changes(lines)] == [1, 4, 5]
+    assert [a.step for a in scorecard.tour_hidden_changes(lines)] == [1]
+
+
+def test_a_core_loop_move_to_another_page_is_still_a_hidden_change():
+    assert len(scorecard.hidden_changes([line(1, loop_pass=1, change_summary="+'Settings page'")])) == 1
+
+
+def test_committed_luzia_chat_passes_are_hidden_changes_by_the_spec():
+    record = scorecard.score(ROOT / "runs" / "luzia" / "20260929-204554-1f19585")["Explore record"]
+    assert (record["hidden screen changes"], record["hidden screen changes outside the core loop and typing"]) == (6, 0)
+
+
+def test_fixture_typing_is_a_hidden_change(tmp_path):
+    build("luzia", tmp_path / "explore")
+    (tmp_path / "explore" / "actions.jsonl").write_text(
+        line(1, action="type", change_summary="+'query'").model_dump_json() + "\n")
+    assert scorecard.score(tmp_path)["Explore record"]["hidden screen changes"] == 1
 
 
 def test_a_pass_completes_when_its_result_shows():
@@ -173,7 +189,16 @@ def test_explore_record_and_core_action(run):
     assert record["actions ok"] == len((run / "explore" / "actions.jsonl").read_text().splitlines())
     assert core == {"core action found": True, "core passes attempted": 2, "core passes completed": 2}
     assert scored["Hard blocks"] == {"payment sheet in trace lines": 0, "payment sheet states": 0,
-                                     "typed actions": 2, "sent actions (a tap right after typing)": 2}
+                                     "typed actions outside the core loop": 0, "core-loop typed actions": 2,
+                                     "core-loop sends (a pass's tap after its typing)": 2}
+
+
+def test_a_tap_after_typing_outside_the_core_loop_is_no_send():
+    """Typing into a search box and tapping a result sends nothing."""
+    actions = [line(1, action="type", mcp_ref="search_input"), line(2, mcp_ref="search_result", to_state="detail")]
+    assert scorecard.hard_blocks(None, actions, []) == {"typed actions outside the core loop": 1,
+                                                        "core-loop typed actions": 0,
+                                                        "core-loop sends (a pass's tap after its typing)": 0}
 
 
 def test_product_model_and_checklist(run):
@@ -186,18 +211,6 @@ def test_product_model_and_checklist(run):
                                    "answered by the product model": 4, "open in the product model": "limit"}
 
 
-def test_model_checklist_reads_tabs_paywall_settings_and_limit():
-    pm = ProductModel.model_validate_json((FIXTURES / "golden" / "janitorai" / "product_model.json").read_text())
-    assert scorecard.model_checklist(pm) == {"root": True, "all_tabs": True, "paywall_or_membership": True,
-                                             "settings": False, "limit": False}
-    first, *rest = [e for e in pm.edges if e.transition == "tab"]
-    one_left = pm.model_copy(update={"edges": [e for e in pm.edges if e not in rest]})
-    assert scorecard.all_tabs(one_left) is False
-    named = pm.model_copy(update={"states": [pm.states[0].model_copy(update={"name": "App settings"}),
-                                             *pm.states[1:]]})
-    assert scorecard.model_checklist(named)["settings"]
-
-
 def golden(app: str) -> ProductModel:
     return ProductModel.model_validate_json((FIXTURES / "golden" / app / "product_model.json").read_text())
 
@@ -207,67 +220,112 @@ def with_elements(pm: ProductModel, changed: dict[str, list[Element]]) -> Produc
                                             for s in pm.states]})
 
 
+def element(sid: str, suffix: str, x: int, words: str, kind: str = "TextView") -> Element:
+    r = Rect(x=x, y=2200, w=240, h=70)
+    return Element(id=f"{sid}.{suffix}", mcp_ref=None, type=kind, text=words, label="", source="mcp", rect_px=r,
+                   rect_dp=r, role="button", asset_png=None, fg_hex=None, bg_hex=None, font_px=None,
+                   font_guess="unknown", in_mock=True, repeat_group=None)
+
+
+def screen(sid: str, name: str = "Home", purpose: str = "Show the home feed", elements=()) -> State:
+    return State(id=sid, kind="screen", parent_id=None, name=name, purpose=purpose, fingerprint="",
+                 canonical_png=f"{sid}.png", elements=list(elements), in_mock_scope=True, content_rating="safe",
+                 dynamic_regions=[], blocked_reason=None)
+
+
+def tabs(sid: str) -> list[Element]:
+    return [element(sid, f"tab{n}", x, words) for n, (x, words) in enumerate([(40, "Home"), (400, "Search"),
+                                                                             (760, "Profile")])]
+
+
+def tap(sid: str, to: str, element_id: str) -> Edge:
+    return Edge(id=f"{element_id}>{to}", from_state=sid, to_state=to, element_id=element_id, action="tap",
+                transition="tab", change_summary="")
+
+
+def product(states: list[State], edges: list[Edge] = ()) -> ProductModel:
+    return golden("luzia").model_copy(update={"states": states, "edges": list(edges), "device": DEVICE,
+                                              "mechanics": [], "value_ledger": []})
+
+
+def test_model_checklist_reads_tabs_paywall_settings_and_limit():
+    pm = golden("janitorai")
+    assert scorecard.model_checklist(pm) == {"root": True, "all_tabs": True, "paywall_or_membership": True,
+                                             "settings": False, "limit": False}
+    first, *rest = [e for e in pm.edges if e.transition == "tab"]
+    assert scorecard.all_tabs(pm.model_copy(update={"edges": [e for e in pm.edges if e not in rest]})) is False
+
+
+@pytest.mark.parametrize("name,purpose,settings", [
+    ("Preferences", "Settings page for configuring app behavior", True),
+    ("Settings shortcut", "Account menu containing a link to settings", False),
+    ("Side menu", "Account drawer with links (Following, Settings)", False),
+    ("Settings", "Upgrade row, memories, language, theme, account", True),
+    ("Settings", "Onboarding modal; the pet can be turned off in Settings", False)])
+def test_settings_are_read_from_the_purpose_not_the_title(name, purpose, settings):
+    assert scorecard.settings_screen(screen("s01", name, purpose)) is settings
+
+
+def test_tabs_are_visited_only_through_the_bars_own_controls():
+    """Three tabs on two screens: a tap on Search's own control visits it, a wordless box around Profile visits it,
+    and a named button lying where a tab is visits nothing."""
+    holder = element("search", "box", 700, "").model_copy(update={"rect_px": Rect(x=700, y=2150, w=360, h=180)})
+    button = element("search", "help", 760, "Help", "Button")
+    states = [screen("home", elements=tabs("home")), screen("search", elements=[*tabs("search"), holder, button]),
+              screen("profile"), screen("dialog")]
+    assert scorecard.all_tabs(product(states, [tap("home", "search", "home.tab1"),
+                                               tap("search", "profile", "search.box")]))
+    assert scorecard.all_tabs(product(states, [tap("home", "search", "home.tab1"),
+                                               tap("search", "dialog", "search.help")])) is False
+
+
+def test_a_tap_back_to_the_first_tab_never_counts():
+    """The first screen showing the bar is on Home; Search was opened, then Home again; Profile never was."""
+    states = [screen("home", elements=tabs("home")), screen("search", elements=tabs("search"))]
+    assert scorecard.all_tabs(product(states, [tap("home", "search", "home.tab1"),
+                                               tap("search", "home", "search.tab0")])) is False
+
+
+def test_tabs_found_after_onboarding_are_not_reached_by_default():
+    onboarding = screen("welcome", "Welcome", "Introduce the app")
+    assert scorecard.all_tabs(product([onboarding, screen("home", elements=tabs("home"))])) is False
+    assert scorecard.all_tabs(product([onboarding, screen("home", elements=tabs("home")),
+                                       screen("search", elements=tabs("search"))])) is False
+
+
+def test_no_tab_bar_seen_is_not_answered():
+    pm = product([screen("welcome", "Welcome", "Introduce the app"), screen("next", "Goal", "Pick a goal")])
+    assert scorecard.tab_bar(pm) == ([], False)
+    assert scorecard.all_tabs(pm) is None
+    assert scorecard.checklist(None, pm)["open in the product model"] == \
+        "all_tabs (no tab bar seen), paywall_or_membership, settings, limit"
+
+
 def test_a_composer_row_is_no_tab_bar():
     pm = golden("luzia")
-    tabs, confirmed = scorecard.tab_bar(pm)
-    assert (len(tabs), confirmed) == (3, True)
+    bar, confirmed = scorecard.tab_bar(pm)
+    assert (len(bar), confirmed) == (3, True)
     uneven = [e.model_copy(update={"rect_px": e.rect_px.model_copy(update={"x": e.rect_px.x - 100})})
-              if e.rect_px == tabs[0] else e for e in pm.states[0].elements]
-    assert scorecard.tab_bar(with_elements(pm, {"s01": uneven})) == ([], False)
+              if e.id == bar[0].id else e for e in pm.states[0].elements]
+    assert scorecard.tab_bar(with_elements(pm, {"s01": uneven}))[0] != bar
 
 
 def test_a_screens_own_pair_of_bottom_buttons_is_an_unconfirmed_tab_bar():
-    """Two named buttons of one size, evenly spread at the bottom of the root: a candidate tab bar, confirmed only when
-    another screen shows them there too. Unconfirmed, all_tabs stays open rather than credit tabs no one opened."""
-    pm = golden("luzia")
-    root, other = pm.states[0], pm.states[1]
-    band = DEVICE.content_bottom_px - ob.TAB_BAND_PX
-    buttons = [root.elements[0].model_copy(update={"id": f"s01.b{n}", "type": "Button", "text": words, "label": "",
-                                                   "rect_px": Rect(x=x, y=2150, w=400, h=140)})
-               for n, (words, x) in enumerate((("Cancel", 60), ("Save", 620)))]
-    alone = with_elements(pm, {"s01": [e for e in root.elements if e.rect_px.y < band] + buttons})
-    assert scorecard.tab_bar(alone) == ([b.rect_px for b in buttons], False)
+    """Two named buttons of one size, evenly spread at the bottom of one screen: a candidate tab bar, confirmed only
+    when another screen shows them there too. Unconfirmed, all_tabs stays open rather than credit tabs no one opened."""
+    pair = [element("form", "cancel", 60, "Cancel", "Button"), element("form", "save", 620, "Save", "Button")]
+    alone = product([screen("form", elements=pair), screen("done")])
+    assert scorecard.tab_bar(alone) == (pair, False)
     assert scorecard.all_tabs(alone) is False
-    shared = with_elements(alone, {other.id: other.elements + buttons})
-    assert scorecard.tab_bar(shared) == ([b.rect_px for b in buttons], True)
+    assert scorecard.tab_bar(product([screen("form", elements=pair), screen("done", elements=pair)])) == (pair, True)
 
 
-def test_a_root_only_tab_bar_in_a_run_that_never_left_the_root_stays_open():
-    pm = golden("luzia")
-    band = DEVICE.content_bottom_px - ob.TAB_BAND_PX
-    root_only = with_elements(pm, {s.id: [e for e in s.elements if e.rect_px.y < band] for s in pm.states[1:]})
-    assert scorecard.tab_bar(root_only)[1] is False
-    assert scorecard.all_tabs(root_only.model_copy(update={"edges": []})) is False
-
-
-def test_a_root_with_no_candidate_row_has_all_tabs_answered():
-    pm = golden("luzia")
-    band = DEVICE.content_bottom_px - ob.TAB_BAND_PX
-    bare = with_elements(pm, {"s01": [e for e in pm.states[0].elements if e.rect_px.y < band]})
-    assert scorecard.tab_bar(bare) == ([], False)
-    assert scorecard.all_tabs(bare.model_copy(update={"edges": []}))
-
-
-def test_committed_aol_two_tab_bar_is_found():
+def test_committed_aol_two_tab_bar_is_found_and_walked():
     pm = ProductModel.model_validate_json(
         (ROOT / "runs" / "aol" / "20260929-205304-1f19585" / "model" / "product_model.json").read_text())
-    tabs, confirmed = scorecard.tab_bar(pm)
-    assert (len(tabs), confirmed) == (2, True)
-
-
-def test_a_tap_back_to_the_roots_tab_never_counts():
-    """A three-tab app: the root shows its own tab (the leftmost), s05's tab was opened, then the root's tab again from
-    s05; the third tab (s06's) was never opened."""
-    pm = golden("luzia")
-    own = min(scorecard.tab_bar(pm)[0], key=lambda r: r.x)
-    s05 = next(s for s in pm.states if s.id == "s05")
-    home = next(e for e in s05.elements if own.x <= ob.center(e.rect_px)[0] < own.x + own.w
-                and e.rect_px.y >= DEVICE.content_bottom_px - ob.TAB_BAND_PX)
-    back = Edge(id="s05.home>s01", from_state="s05", to_state="s01", element_id=home.id, action="tap",
-                transition="tab", change_summary="")
+    bar, confirmed = scorecard.tab_bar(pm)
+    assert (len(bar), confirmed) == (2, True)
     assert scorecard.all_tabs(pm)
-    assert scorecard.all_tabs(pm.model_copy(update={"edges": [*(e for e in pm.edges if e.id != "s01.e43>s06"),
-                                                              back]})) is False
 
 
 def test_filter_verdicts(run):
@@ -292,8 +350,31 @@ def test_cost_and_time(run):
     assert (cost["$ explore"], cost["$ model"]) == (pytest.approx(0.251), pytest.approx(2.5))
     assert (cost["minutes explore"], cost["minutes model"]) == (6.0, 1.5)
     assert (cost["model calls explore_vision"], cost["model calls model_meaning"]) == (1, 2)
-    assert (cost["Jev calls"], cost["Jev seconds"]) == (1, 0.4)
+    assert (cost["Jev calls"], cost["Jev seconds"], cost["Jev adapter calls"], cost["Jev adapter seconds"]) == \
+        (1, 0.4, 0, 0)
     assert cost["explore $ per distinct screen"] == pytest.approx(0.251 / distinct)
+
+
+def test_roles_sharing_a_model_keep_their_own_counts():
+    roles = {"qa_critic": "same-model medium", "qa_fixer": "same-model high"}
+    trace = [TraceLine(ts="2026-10-03T10:00:00", stage="qa", step="critic r1 g1", decider="model", model="same-model"),
+             TraceLine(ts="2026-10-03T10:01:00", stage="qa", step="fixer r1", decider="model", model="same-model")]
+    cost = scorecard.cost_and_time(trace, manifest(roles), None, None)
+    assert (cost["model calls qa_critic"], cost["model calls qa_fixer"]) == (1, 1)
+
+
+def test_adapter_calls_are_not_typesafe_jev_calls():
+    trace = [TraceLine(ts="2026-10-03T10:00:00", stage="explore", step="rank.s01", decider="jev",
+                       model="claude-haiku-4-5-20251001", usd=0.1, note="adapter picked o01 in 1.00s"),
+             TraceLine(ts="2026-10-03T10:00:30", stage="explore", step="rank.s02", decider="jev", model="jev-latest",
+                       outcome="retry", note="TimeoutError: no answer")]
+    cost = scorecard.cost_and_time(trace, None, None, None)
+    assert (cost["Jev calls"], cost["Jev seconds"], cost["Jev adapter calls"], cost["Jev adapter seconds"]) == \
+        (1, 0, 1, 1.0)
+
+
+def test_an_empty_folder_scores_blank(tmp_path):
+    assert all(section == {} for section in scorecard.score(tmp_path).values())
 
 
 def test_a_run_missing_stages_leaves_blanks(run, tmp_path):
@@ -312,12 +393,19 @@ def test_a_run_missing_stages_leaves_blanks(run, tmp_path):
 def test_committed_run_downstream_and_judge():
     run = ROOT / "runs" / "janitorai" / "20260929-203310-1f19585"
     scored = scorecard.score(run)
-    assert scored["Downstream"] == {"mock contract passed": True, "mock screens drawn": 15, "QA approved round": 2,
+    assert scored["Downstream"] == {"mock contract passed": True, "mock screens in scope": 15, "mock screens drawn": 15,
+                                    "QA approved round": 2,
                                     "QA score": 9.563, "QA mean masked SSIM": 0.821, "QA bounds share": 1.0,
                                     "propose drafts": 8, "propose distinct ideas kept": 4}
     assert scored[scorecard.JUDGE] == {"judge accept": 2, "judge conditional": 2, "judge reject": 6,
                                        "judge needs_human": 0}
     assert scored["Filter"] == {"filter verified": "yes", "filter checks": 4, "filter checks passed": 4}
+
+
+def test_committed_aol_drawn_screens_leave_out_the_undrawn():
+    downstream = scorecard.downstream(ROOT / "runs" / "aol" / "20260929-205304-1f19585")
+    assert (downstream["mock contract passed"], downstream["mock screens in scope"],
+            downstream["mock screens drawn"]) == (False, 57, 32)
 
 
 # ---------- inventory ----------
