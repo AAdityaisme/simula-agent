@@ -17,7 +17,7 @@ Everything else is generic behavior or a run flag:
 |---|---|
 | exploration size | `--budget deep` (80 actions / 25 min) or `--budget transfer` (40 / 12, default) |
 | account creation | `--allow-account-create`, off by default |
-| content filter | the explorer looks for a content or safety filter on the root screen, picks the most restrictive option, checks it by screenshot, re-applies it after every relaunch (PR 1) |
+| content filter | the explorer looks for a content or safety filter on the root screen, picks the most restrictive option, re-applies it after every launch, and checks it by screenshot each time: its last control must show the pick, a switch in its kept state or a chip or option selected, and a chip is selected only when its fill is clearly more saturated than every other control's in its row; a failed check stops the explore (PR 1; *updated 2026-10-03, approved by delegation: the check passed a chip that only differed from its row, so the submitted JanitorAI run explored with the filter off*) |
 | content rating | per state, from the screenshot pass, plus the generic `adult_keywords` list in `config/profiles.toml` |
 | dynamic regions (ads, clocks) | pixels that differ between two captures of the same state are masked in QA and recorded in `State.dynamic_regions` |
 | app category | written by the model stage (`ProductModel.app_category`) |
@@ -51,12 +51,13 @@ runs/<app>/<run_id>/                run_id = YYYYMMDD-HHMMSS-<git sha>[-fixture]
   qa/       round<N>/… · approved/index.html · approved/assets/ · qa_report.json
   propose/  lenses.json · candidates.json
   judge/    verdicts/ · revisions.json · decisions.json · human-queue.md · pairwise.json · order_swap.json
-  flows/    approvals.json? · <cand>/index.html · <cand>/screens/ · slides.html · slides.pdf
+  flows/    approvals.json? · <cand>/index.html · <cand>/screens/ · slides.html · slides.pdf · review.html · review.pdf
+                                    (review.*: updated 2026-10-03, approved by delegation)
   <stage>/done.json | <stage>/failure.json
 runs/<app>/latest -> <run_id>
 ```
 
-- `flows/approvals.json` (a person's, kept across reruns): `{"approved": [...]}`, each entry an idea id, or `{"id": "c02", "splits": ["c5_moment", "c7_specific"]}` for an idea the judges split on. An approval of a split holds only while the judge's `judgment_splits` are exactly those checks; otherwise the idea goes back to Needs your call, which says why and shows the entry to approve it again. A plain id still approves an accepted or other CONDITIONAL idea.
+- `flows/approvals.json` (a person's, kept across reruns): `{"promote": [...], "hold": [...]}`. A `promote` entry is an idea id, or `{"id": "c02", "splits": ["c5_moment", "c7_specific"]}` for an idea the judges split on; it adds to what the judges draw, and a promoted revision is drawn in place of the versions it came from. A `hold` entry is an id the deck leaves out; a held closest idea gets no replacement. An idea the file doesn't name follows the judges, and an older file's `approved` list is read as `promote`. An approval of a split holds only while the judge's `judgment_splits` are exactly those checks; otherwise flows sets it aside, and Simula's review (`flows/review.pdf`) says why and shows the entry to approve it again. A plain id still promotes an accepted or other CONDITIONAL idea. A malformed file, an unknown id, a promotion of an idea the judges didn't pass, an id both promoted and held, or more promotions that hold than the deck's 4 is refused before the last deck is cleared. *(updated 2026-10-03, approved by delegation)*
 - Spend outside a run has its own trace: `build/trace.jsonl` (build spend, hand fixes via `simula note`, and one line per paid `simula doctor --keys` probe) and `validation/latest/trace.jsonl` (`simula validate-judge`, under its own $20 cap; its report goes to `validation/latest/`, never over the committed `validation/report.md`, which `python -m simula.validate summarize` rebuilds from the saved runs in `validation/verdicts/` with no calls).
 - Run ids are `YYYYMMDD-HHMMSS-<git sha>`, plus `-fixture` for a fixture run, plus `-2`, `-3` … when two runs start in the same second.
 - A stage writes only its own folder. It never edits another stage's.
@@ -115,7 +116,7 @@ runs/<app>/latest -> <run_id>
 - No `dict` fields and no recursion. The Anthropic SDK turns a dict field into an object that can only be `{}`, and pydantic still accepts it, so a dict-shaped verdict would pass everything. `tests/test_schema_gate.py` checks both SDKs.
 - At most 4 levels of nesting; `extra="forbid"`.
 - **`ModelMeaning` is at the API's compiled-grammar limit** (measured 2026-09-29 on claude-opus-5-5): 45 properties across its objects are refused with "The compiled grammar is too large", 44 compile; descriptions don't count. `tests/test_schema_gate.py` pins 44, so a new field needs one out (or the call split in two). `app_name` went in and `QuestionDraft.id` came out.
-- Fixed named fields wherever the keys are known: the judge's 5 gates and 6 judgment checks are properties, not a map.
+- Fixed named fields wherever the keys are known: the judge's 5 gates and 7 judgment checks are properties, not a map *(updated 2026-10-03, approved by delegation)*.
 - No `minLength`, `maximum`, or `pattern` (the API drops them). Code checks those after parsing.
 - `CostInputs.currency_amount`: the USD price the app charges for exactly what the reward grants; 0 when no price was observed.
 - `CandidateDraft.after_reward` (added in PR 5, Aadi-approved): one plain sentence on what the user sees when the reward runs out and why that moves them toward paying, returning, or watching again. The proposer's schema (`CandidateDraft`) requires it; the stored `Candidate` defaults it to `""` so older files parse, and propose drops a candidate that leaves it empty.
@@ -143,7 +144,7 @@ Code writes every number and id; a model writes meaning keyed by ids code gave i
 | OpenQuestion | `id` (`q1`, `q2`, … in the model's order; the model writes no id, since 2026-09-29); rejects a `start_state` that isn't a recorded state; keeps at most 5 (the model orders them, most monetization-relevant first); `answered` starts false and is set by the targeted explore pass (a later PR) | question, start_state, look_for |
 | Candidate | id (`c01`, `c02`, … in draft order), the bucket prefix in `title` (`Existing opportunity: ` or `Product change: `), economics, reach_score, rank_score, dropped_reason, flags (concerns code raises that don't drop the idea, one readable sentence each, e.g. `uses "Pro", whose meaning was never observed`, checked against every field the slides print; for a person reviewing the output, never the judge). The economics cost term comes from `reward.kind`; `app_category` only breaks ties | everything else in CandidateDraft |
 | Verdict | nothing | every check, `other_concern`, `fixable` |
-| Decision | everything. `checks_total` = the 11 LLM-judged checks (5 gates + 6 judgment checks); `checks_passed` counts a check only when every judge that ran passed it. `final` is `conditional` for an idea the judges split on (a judgment check some fail and some pass; ranked below every accept, D10; flows lists it on the deck's Needs your call page and draws it only if `flows/approvals.json` approves that disagreement, or as the closest idea when nothing was accepted and it is the top-ranked split, D11) and `needs_human` only for a lost judge call. The fallback pick is `conditional` too and keeps its reject's `failure_type`, which is how flows tells it from a split | nothing |
+| Decision | everything. `checks_total` = the 12 LLM-judged checks (5 gates + 7 judgment checks; *updated 2026-10-03, approved by delegation*); `checks_passed` counts a check only when every judge that ran passed it. `final` is `conditional` for an idea the judges split on (a judgment check some fail and some pass; ranked below every accept, D10; flows lists it on the Needs your call page of Simula's review (`flows/review.pdf`) and draws it only if `flows/approvals.json` promotes it with that disagreement, or as the closest idea when nothing was accepted, no one promoted a split, and it is the top-ranked split not split on `c3_spares_payers`, D11; *updated 2026-10-03, approved by delegation*) and `needs_human` only for a lost judge call. The fallback pick is `conditional` too and keeps its reject's `failure_type`, which is how flows tells it from a split | nothing |
 
 ## 7. Mock contract (data attributes)
 

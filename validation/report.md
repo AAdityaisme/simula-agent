@@ -22,9 +22,9 @@ For comparison, VF′'s three runs, scored by `uv run python -m simula.validate 
 
 **The adoption bar, set after seeing earlier rounds' failures, was not met by either rubric (known-good 1/4 each). VF′ dominates V0 on every item of the bar (combined verdicts). Per judge, judge_2's C7 falls from 1/2 to 0/2. VF′ was adopted on that dominance (D9); three of its clauses were written after seeing the failures; judge_2 fails c2 on 3 of 4 known-goods under both rubrics; 0 human labels.**
 
-**PR 6's merge gate (D10).** PR 6's harness gate (each judge ≥ 70% known-good; no check at 0/2) is **not met by judge_2 under either rubric**. The PR merges with that disclosed, because tonight's end-to-end run needs the judge stage and the only fix, reworking judge_2's prompt, would be tuning on the validation set. Splits now become labelled CONDITIONAL ideas (D10), so judge_2's strictness shows as a flag instead of emptying the deck. *Superseded 2026-09-29 by D11: a split isn't drawn; it waits on the deck's Needs your call page, and only when nothing is accepted is the top split drawn, labelled as the closest idea (see below).*
+**PR 6's merge gate (D10).** PR 6's harness gate (each judge ≥ 70% known-good; no check at 0/2) is **not met by judge_2 under either rubric**. The PR merges with that disclosed, because tonight's end-to-end run needs the judge stage and the only fix, reworking judge_2's prompt, would be tuning on the validation set. Splits now become labelled CONDITIONAL ideas (D10), so judge_2's strictness shows as a flag instead of emptying the deck. *Superseded 2026-09-29 by D11: a split isn't drawn; it waits on the Needs your call page (since 2026-09-30 in Simula's review, `flows/review.pdf`), and only when nothing is accepted is the top split drawn, labelled as the closest idea (see below).*
 
-*(D11, 2026-09-29, Aadi: a split idea no longer gets full slides. It is listed on one "Needs your call" page at the end of the deck, each split check as its open question with both judges' reasons, and it is drawn only if a person names it in `flows/approvals.json`. Full slides go to accepted ideas, and to the judge's fallback pick when nothing survives.)*
+*(D11, 2026-09-29, Aadi: a split idea no longer gets full slides. It is listed on one "Needs your call" page at the end of the deck (since 2026-09-30, in Simula's review, `flows/review.pdf`), each split check as its open question with both judges' reasons, and it is drawn only if a person names it in `flows/approvals.json`. Full slides go to accepted ideas, and to the judge's fallback pick when nothing survives.)*
 
 What D10 and D11 do, measured on the saved VF′ runs through the stage's own `decide()` (annotate mode, the live one; the stage calls each judge once, so each run is one stage outcome):
 
@@ -124,7 +124,7 @@ The adoption rule is VF′'s dominance over V0 above. V0 fails the same judge_2 
 
 # Judge validation
 
-Generated 2026-10-01T07:56. Judges: judge_1, judge_2. Prompts frozen in `config/frozen_prompts.toml`.
+Generated 2026-10-03T00:06. Judges: judge_1, judge_2. Prompts frozen in `config/frozen_prompts.toml`.
 
 Fixtures: 24 planted LLM cases (12 subtle), 2 C8 cases, 4 known-good (bases and real-run ideas), and 2 agent-written known-good not yet approved, shown apart and never in the known-good rate; planted app types: AI assistant chat, companion chat, news, puzzle game; planted apps outside the test set: Candy Crush Saga, a news reader.
 
