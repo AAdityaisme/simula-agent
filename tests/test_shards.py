@@ -72,6 +72,17 @@ def test_a_shard_under_xdist_writes_the_ids_it_kept_and_the_seconds_of_every_tes
     assert list(json.loads(seconds.read_text())) == TESTS[1::2]
 
 
+def test_the_seconds_a_shard_writes_include_its_fixtures_setup_and_teardown(pytester, monkeypatch):
+    """Under xdist the controller gets every phase's report, passed setup and teardown included, as --durations does."""
+    seconds = pytester.path / "durations.json"
+    setup(pytester, monkeypatch, {"PYTEST_DURATIONS": str(seconds), "PYTHONPATH": str(ROOT)})
+    pytester.makepyfile(test_slow_fixture="import time\n\nimport pytest\n\n\n@pytest.fixture\ndef slow():\n"
+                        "    time.sleep(0.3)\n    yield\n    time.sleep(0.3)\n\n\ndef test_slow(slow):\n    pass\n")
+    result = pytester.runpytest_subprocess("-n", "2", "test_slow_fixture.py")
+    assert result.ret == 0, "\n".join(result.outlines)
+    assert json.loads(seconds.read_text())["test_slow_fixture.py::test_slow"] >= 0.6
+
+
 def test_the_ci_gate_collects_every_test_that_is_not_live_with_no_shard_set(pytester, monkeypatch):
     ids = pytester.path / "ids.txt"
     collect(pytester, monkeypatch, {"PYTEST_IDS": str(ids)})
