@@ -15,7 +15,7 @@ def test_reserve_allows_up_to_the_cap_exactly():
 
 
 def test_worst_case_uses_max_tokens_not_actual_output():
-    assert llm.worst_case_usd(MODEL, 1000, 8000) == pytest.approx((1000 * 1.0 + 8000 * 5.0) / 1e6)
+    assert llm.worst_case_usd(MODEL, 1000, 8000) == pytest.approx((1000 * 1.25 + 8000 * 5.0) / 1e6)  # input as a cache write
 
 
 def test_call_stops_before_crossing_the_cap(tmp_path, monkeypatch):

@@ -245,7 +245,7 @@ def priced(tmp_path, monkeypatch, app, calls: list, usd: float = 0.5) -> tuple:
     with_cache_in(tmp_path, monkeypatch)
     model = golden(app)
     monkeypatch.setattr(llm, "worst_case_usd", lambda model_id, tokens_in, tokens_out: 1.0)
-    monkeypatch.setattr(llm, "usd", lambda model_id, tokens_in, tokens_out, tokens_cached=0: usd)
+    monkeypatch.setattr(llm, "usd", lambda model_id, tokens_in, tokens_out, tokens_cached=0, tokens_cache_write=0: usd)
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider_drawing(model, calls))
     return run_dir, len(mock.batches(mock.pick_scope(model)))
 
@@ -332,7 +332,7 @@ def test_a_batch_whose_first_answer_is_cut_off_keeps_room_for_its_retry(tmp_path
     monkeypatch.setattr(mock, "BATCH_SCREENS", 1)
     monkeypatch.setattr(mock, "PARALLEL_BATCHES", 2)
     run_dir, _ = priced(tmp_path, monkeypatch, app, [])
-    monkeypatch.setattr(llm, "usd", lambda model_id, tokens_in, tokens_out, tokens_cached=0:
+    monkeypatch.setattr(llm, "usd", lambda model_id, tokens_in, tokens_out, tokens_cached=0, tokens_cache_write=0:
                         0.2 if tokens_out >= 100000 else 0.5)
     model = golden(app)
     first, second = [batch[0].id for batch in mock.batches(mock.pick_scope(model))[:2]]
@@ -537,7 +537,7 @@ def test_a_retry_keeps_no_spare_even_as_its_batchs_first_hold(tmp_path, monkeypa
     monkeypatch.setattr(mock, "BATCH_SCREENS", 1)
     monkeypatch.setattr(mock, "PARALLEL_BATCHES", 1)
     run_dir, _ = priced(tmp_path, monkeypatch, app, [])
-    monkeypatch.setattr(llm, "usd", lambda model_id, tokens_in, tokens_out, tokens_cached=0:
+    monkeypatch.setattr(llm, "usd", lambda model_id, tokens_in, tokens_out, tokens_cached=0, tokens_cache_write=0:
                         0.9 if tokens_out >= 100000 else 0.3)
     model = golden(app)
     first = mock.batches(mock.pick_scope(model))[0][0].id

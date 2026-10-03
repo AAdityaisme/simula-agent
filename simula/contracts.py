@@ -832,6 +832,7 @@ class TraceLine(Strict):
     tokens_in: int = 0
     tokens_out: int = 0
     tokens_cached: int = 0
+    tokens_cache_write: int = 0
     usd: float = 0.0
     cache_hit: bool = False
     outcome: Outcome = "ok"

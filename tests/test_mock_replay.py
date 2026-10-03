@@ -73,7 +73,7 @@ def test_a_live_run_that_lost_a_batch_replays_to_the_same_page(tmp_path, monkeyp
         # hold with one $1 spare, batch 1's retry takes it, and batch 2's retry, even once the calls in flight settle,
         # is turned away: batch 2 is left out, and every later one.
         monkeypatch.setattr(llm, "worst_case_usd", lambda model_id, tokens_in, tokens_out: 1.0)
-        monkeypatch.setattr(llm, "usd", lambda model_id, tokens_in, tokens_out, tokens_cached=0:
+        monkeypatch.setattr(llm, "usd", lambda model_id, tokens_in, tokens_out, tokens_cached=0, tokens_cache_write=0:
                             1.0 if tokens_out >= 100000 else 0.5)
         monkeypatch.setattr(mock, "PARALLEL_BATCHES", 2)
         ctx.usd_cap = 3.0
@@ -189,7 +189,7 @@ def test_batches_the_cap_left_out_are_one_plain_reason_and_resume_with_a_higher_
     with_cache_in(tmp_path, monkeypatch)
     model = golden(APP)
     monkeypatch.setattr(llm, "worst_case_usd", lambda model_id, tokens_in, tokens_out: 1.0)
-    monkeypatch.setattr(llm, "usd", lambda model_id, tokens_in, tokens_out, tokens_cached=0: 1.0)
+    monkeypatch.setattr(llm, "usd", lambda model_id, tokens_in, tokens_out, tokens_cached=0, tokens_cache_write=0: 1.0)
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider_drawing(model, []))
     assert cli.main(["mock", APP, "--allow-fixtures", "--fixture", f"model={GOLDEN}", "--usd-cap", "2"]) == 0
     run_dir = (runs / APP / "latest").resolve()

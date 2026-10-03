@@ -8,17 +8,25 @@ on:
 permissions:
   contents: read
 
+# A new push to a pull request cancels the run it supersedes. A push to main gets a group of its own commit: GitHub
+# keeps one pending run per group, so a shared group would drop a queued main run even without cancel-in-progress.
+concurrency:
+  group: test-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   shard:
     runs-on: ubuntu-latest
-    timeout-minutes: 30  # a shard takes 8-19 minutes; a hang fails here instead of at GitHub's 6 hours
+    timeout-minutes: 30  # a shard takes about 7 minutes; a hang fails here instead of at GitHub's 6 hours
     strategy:
       fail-fast: false
       matrix:
-        shard: [0, 1, 2, 3]  # only makes and names the legs; each leg's split comes from the matrix itself
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]  # only makes and names the legs; each leg's split comes from the matrix itself
     env:
       PYTEST_SHARD: ${{ strategy.job-index }}
       PYTEST_SHARDS: ${{ strategy.job-total }}
+      PYTEST_IDS: ids.txt
+      PYTEST_DURATIONS: durations.json
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -30,9 +38,22 @@ jobs:
       # Without --with-deps: the runner image ships Chrome's libraries, and apt's mirror has crawled past 12 minutes
       - run: uv run playwright install chromium
         timeout-minutes: 5
-      - run: uv run pytest -m "not live" -q -n auto --durations=50
+      # xdist starts each worker on two tests (the one it runs and the next) and then hands out one at a time, so the
+      # longest tests start first on every worker instead of all landing in the first worker's opening batch
+      - run: uv run pytest -m "not live" -q -n auto --maxschedchunk 1 --durations=50
+      # To refresh tests/durations.json from a run: gh run download <run-id> -p 'shard-*' -D <dir>, then
+      # jq -S -s add <dir>/*/durations.json > tests/durations.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: always()
+        with:
+          name: shard-${{ strategy.job-index }}
+          path: |
+            ids.txt
+            durations.json
+          retention-days: 14
 
-  # The gate scripts read the check named pytest; it passes only when every shard did.
+  # The gate scripts read the check named pytest; it passes only when every shard did and together they kept every
+  # test exactly once.
   pytest:
     needs: shard
     if: always()
@@ -42,3 +63,16 @@ jobs:
       - env:
           SHARDS: ${{ needs.shard.result }}
         run: test "$SHARDS" = success
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          python-version: "3.12"
+      - run: uv sync --frozen
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          pattern: shard-*
+      - name: every test that is not live ran on exactly one shard
+        run: |
+          PYTEST_IDS=ids.txt uv run pytest -m "not live" --collect-only -qq
+          sort shard-*/ids.txt | diff <(sort ids.txt) -
+          echo "$(ls -d shard-* | wc -l) shards kept each of the $(wc -l < ids.txt) tests collected once"
