@@ -1,15 +1,28 @@
-# Taps the agent never makes: a control whose text, label or id holds one of these, as whole words in any case.
-# Generic English only, no app's names or terms. Sign-in and sending aren't here: Google sign-in is allowed, and
-# what is sent is the core loop's fixed text to an AI.
+# Taps the agent never makes: a control whose text or label holds one of these, or whose id does when it shows
+# neither, as whole words in any case. Generic English only, no app's names or terms. Sign-in isn't here: Google
+# sign-in is allowed. Subscribe, upgrade and free trial aren't either: they go through Play billing, whose screen
+# gets BACK at once, and tapping them is how the agent finds the price.
 words = [
     # account deletion or deactivation
-    "delete account", "delete my account", "delete your account", "delete profile", "delete my profile",
-    "close account", "close my account", "close your account", "deactivate", "disable account",
-    # password, email or phone changes
+    "deactivate", "account deletion", "account removal", "account closure",
+    # password, email, phone, profile and security changes
     "password", "change email", "update email", "edit email", "change phone", "update phone", "edit phone",
-    "phone number",
+    "phone number", "edit profile", "change username", "reset username", "profile photo", "profile picture",
+    "two factor", "2fa", "two step", "recovery", "make profile public", "make profile private",
     # sign-out
     "sign out", "signout", "log out", "logout", "log off",
     # public post, publish or share
     "post", "repost", "publish", "share",
+    # actions toward other people under the account's name
+    "invite", "follow", "unfollow", "like", "unlike", "react", "report", "block", "send request", "accept request",
+    "friend request", "add friend",
+    # purchases inside the app
+    "buy now", "place order", "pay", "pay now", "checkout", "confirm purchase", "complete purchase", "purchase",
+    "send gift", "tip",
 ]
+# over the text as lowercase words with single spaces: a deletion verb, up to two words, then the account
+patterns = ['(?:delete|remove|close|deactivate|disable|terminate)(?: \w+){0,2} (?:account|profile)']
+# refused outside the core loop, the one place the agent sends its fixed text to an AI
+outside_core = ["send", "submit", "reply", "add comment", "post comment", "send message"]
+# refused while any blocked word shows on the screen: the commit of a dialog that names one
+confirm = ["confirm", "yes", "ok", "delete", "remove", "proceed", "i understand"]
