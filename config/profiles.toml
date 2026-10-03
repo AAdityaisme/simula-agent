@@ -3,7 +3,7 @@ judges = ["judge_1", "judge_2"]  # every run; an idea they split on waits on Nee
 judge_revision_cap = 1         # 1 or 2: how many times a fixable reject is revised (validation/EXPERIMENT-J.md)
 jev_backend = "typesafe"       # typesafe | adapter; env SIMULA_JEV_BACKEND overrides
 validation_usd_cap = 20.0
-explorer = "scripted"          # agent | scripted: who picks explore's moves; --explorer overrides
+explorer = "agent"             # agent | scripted: who picks explore's moves; --explorer overrides
 explore_jev = "on"             # on | shadow | off: Jev grounds the agent's steps (shadow: asked, logged, unused)
 
 # Exploration size is a run flag (--budget), never per app.

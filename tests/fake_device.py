@@ -263,6 +263,8 @@ def fake_jev(state, instructions, labels, backend, core_pick="send messages"):
         pick = 1 if re.search(r"\b(show|allow)\b", labels[0], re.IGNORECASE) else 0
     elif "content or safety filter" in instructions:
         pick = next((i for i, label in enumerate(labels) if RESTRICTIVE.search(label)), len(labels) - 1)
+    elif "most restrictive content setting" in instructions and labels[-1].startswith("none of these"):
+        pick = next((i for i, label in enumerate(labels) if RESTRICTIVE.search(label)), len(labels) - 1)
     elif "comes to this app" in instructions:
         pick = next((i for i, label in enumerate(labels) if core_pick in label), 0)
     else:

@@ -279,7 +279,7 @@ def test_a_cap_stop_prints_a_resume_command_with_the_runs_own_options(runs, tmp_
     # away, on top of what is spent and held.
     figure = llm.CapReached(json.loads((run_dir / "model" / "failure.json").read_text())["reason"]).usd_needed
     assert figure > config.stage_cap("model")
-    assert (f"simula model luzia --run {run_dir.name} --profile dev --budget transfer --explorer scripted "
+    assert (f"simula model luzia --run {run_dir.name} --profile dev --budget transfer --explorer agent "
             f"--allow-fixtures --usd-cap {figure:.2f}") in human
 
 
@@ -295,7 +295,7 @@ def test_a_usage_limit_fails_the_stage_with_needs_human_and_exit_5_so_a_rerun_re
     assert "the model provider is refusing calls" in human and "$ cap reached" not in human
     resume = re.search(r"simula run luzia[^`\n]*", human).group(0)
     assert resume == (f"simula run luzia --from model --run {run_dir.name} --profile dev --budget transfer "
-                      "--explorer scripted --allow-fixtures")
+                      "--explorer agent --allow-fixtures")
     # Greptile on 363456b: the printed command dropped --allow-fixtures and the profile; run it as printed.
     assert cli.main(resume.split()[1:]) == cli.EXIT_PROVIDER
     assert "usage limit" in (run_dir / "model" / "failure.json").read_text()

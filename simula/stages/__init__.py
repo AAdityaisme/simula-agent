@@ -19,6 +19,7 @@ UPSTREAM = {
 
 # Files outside the run folder that a stage reads, hashed like any input so an edit reruns the stage.
 EXTRA_INPUTS = {
+    "explore": ["config/hard_blocks.toml"],
     "mock": ["docs/CONTRACTS.md"],
     "qa": ["docs/CONTRACTS.md"],
     "propose": ["bible"],

@@ -895,7 +895,7 @@ def test_a_failed_retry_on_a_model_with_gaps_asks_for_a_human_and_continues(tmp_
     assert (ctx.run_dir / "model" / "raw_reply.txt").read_text() == '{"flows": ['
     asked = (ctx.run_dir / "needs-human.md").read_text()
     assert "the product model has gaps" in asked and "no core flow survived" in asked
-    assert ("**Continue with:** `simula model luzia --run run --profile dev --budget transfer --explorer scripted "
+    assert ("**Continue with:** `simula model luzia --run run --profile dev --budget transfer --explorer agent "
             "--allow-fixtures`") in asked
 
 
