@@ -426,14 +426,17 @@ class AgentExplorer(Explorer):
         return reason
 
     def boundary(self) -> str:
-        """Right before every tap, type, swipe and launch: nothing after the $ cap or the wall clock (Halt), and the
-        Play Store in front, read fresh, gets BACK and the action doesn't run (ScreenMoved). The foreground."""
+        """Right before every tap, type and swipe: nothing after the $ cap or the wall clock (Halt), and the foreground,
+        read fresh, must be the app or Google's account chooser; otherwise the action doesn't run (ScreenMoved) and the
+        away handling takes over. The Play Store gets BACK first. The foreground."""
         if why := self.halted():
             raise Halt(why)
         fg = self.phone.foreground()
         if guard.in_billing(fg):
             self.back_out(fg)
             raise ScreenMoved("the Play Store came to the front")
+        if fg != self.package and not guard.signing_in(fg):
+            raise ScreenMoved(f"{fg} came to the front")
         return fg
 
     def fresh(self) -> list[dict]:

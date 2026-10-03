@@ -531,6 +531,7 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
             pending.append(key)
             continue
         file_key, cached = chosen[key]
+        cached.text, cached.stop_reason = scrub(cached.text), scrub(cached.stop_reason or "") or cached.stop_reason
         if cached.failure:
             last = LLMFailure(cached.failure, cached.stop_reason, raw=cached.text)
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,

@@ -543,3 +543,53 @@ def test_an_ads_landing_in_the_app_is_ad_evidence_not_a_product_state(tmp_path, 
     assert not any(c.label.startswith(("Advertiser", "Offer")) for s in ex.states for c in s.cands)
     tapped = AdLine.model_validate_json((ex.out / "ads.jsonl").read_text().splitlines()[-1])
     assert tapped.tapped and tapped.landing == "Title Advertiser website" and ("back", "page") in phone.log
+
+
+def test_another_app_in_front_at_the_moment_of_acting_stops_the_plan(tmp_path, monkeypatch):
+    """Greptile on 2e43d0e: an app that comes to the front while the planner answers gets no swipe and no typing."""
+    held = {}
+
+    def factory(clock):
+        held["phone"] = phone_of({"root": drawn(control("Explore", 1)),
+                                  "other": drawn(control("Search", 1, "EditText", focused=True),
+                                                 package="com.example.other")})(clock)
+        return held["phone"]
+
+    def script(n, text):
+        if n == 1:
+            held["phone"].go("other")
+            return turn({"action": "swipe", "direction": "up", "expect": "more"},
+                        {"action": "type", "text": "popular", "expect": "a search"})
+        return None
+    ex, phone, planner = run(tmp_path, monkeypatch, script, phone_factory=factory, no_send=True)
+    assert not [e for e in phone.log if e[0] in ("swipe", "type") and e[1] == "other"] and phone.typed == []
+    assert "com.example.other came to the front" in planner.texts[1]
+
+
+def test_a_cached_answer_is_scrubbed_however_it_was_written(tmp_path, monkeypatch):
+    """Greptile on 2e43d0e: an entry written without a scrub, answer or failure, is scrubbed when read with one."""
+    def answering(model, system, messages, effort, schema, max_tokens, total_timeout=None):
+        return llm.Reply(text=f"hello {HANDLE}", model=model, tokens_in=10, tokens_out=5)
+
+    def failing(model, system, messages, effort, schema, max_tokens, total_timeout=None):
+        raise llm.LLMFailure("refusal", f"choked on {HANDLE}", raw=HANDLE)  # kept, unlike a lost call
+
+    def scrub(text):
+        return text.replace(HANDLE, "[redacted]")
+    for provider, text in ((answering, "hi"), (failing, "bye")):
+        monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider)
+        ask = dict(trace_path=tmp_path / "trace.jsonl", stage="explore", step="s", model="claude-sonnet-5-5",
+                   effort=None, system="sys", messages=[{"role": "user", "content": [{"type": "text", "text": text}]}],
+                   max_tokens=50, budget=llm.Budget.for_stage("explore", tmp_path / "trace.jsonl", 1.0),
+                   cache_dir=tmp_path / "cache")
+        try:
+            llm.call(**ask)
+        except llm.LLMFailure:
+            pass
+        monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)  # a second call must come from the cache
+        if provider is answering:
+            assert llm.call(**ask, scrub=scrub)[0] == "hello [redacted]"
+        else:
+            with pytest.raises(llm.LLMFailure) as failed:
+                llm.call(**ask, scrub=scrub)
+            assert HANDLE not in str(failed.value) + failed.value.raw
