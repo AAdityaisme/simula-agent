@@ -128,7 +128,8 @@ def run(app: str, run_id: str | None, out: Path, serial: str | None, clock=time.
 def approved_outcome(src: Path, app: str) -> StageOutcome:
     """QA's outcome for the approved page, once the stages' own markers show it was approved from the files on disk
     now: QA's hashes for the model, the mock's contract report and every file of the page (its images and styles too,
-    none added since), and the model's for the explore captures the walker reads. A model, mock or explore rerun alone leaves qa/ as it was, so any changed hash refuses, naming
+    none added since), and the model's for the explore captures the walker reads. A model, mock or explore rerun
+    alone leaves qa/ as it was, so any changed hash refuses, naming
     what changed. A partial QA is walked: its reasons go in the report."""
     qa_marker, model_marker = runfolder.read_done(src / "qa"), runfolder.read_done(src / "model")
     if qa_marker is None or model_marker is None:
