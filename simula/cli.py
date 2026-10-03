@@ -1,9 +1,11 @@
 """simula <command> APP. One command per stage, plus `run` to chain them."""
 
 import argparse
+import functools
 import importlib
 import os
 import signal
+import subprocess
 import sys
 from pathlib import Path
 
@@ -206,7 +208,17 @@ def finished_outcome(stage: str, ctx: Ctx, result, capped: list[str]) -> StageOu
     return outcome
 
 
+@functools.cache
+def stay_awake() -> subprocess.Popen | None:
+    """Holds off macOS idle sleep until this process exits. An idle Mac sleeps mid-run, and every model call in
+    flight stalls until it wakes, then waits out its timeout and is sent again."""
+    if sys.platform != "darwin":
+        return None
+    return subprocess.Popen(["caffeinate", "-i", "-w", str(os.getpid())])
+
+
 def open_run(args) -> Ctx:
+    stay_awake()
     skipped = preflight()
     app = config.app_config(args.app)
     fixtures = dict(f.split("=", 1) for f in getattr(args, "fixture", None) or [])
