@@ -14,8 +14,8 @@ from pydantic import Field
 
 from simula import config, text
 from simula.contracts import (ActionLine, CandidatesFile, ContractReport, Decision, DecisionsFile, Device,
-                              ExploreFile, Manifest, MechanicKind, ProductModel, QAReport, Rect, State, StateFile,
-                              Strict, TraceLine)
+                              Element, ExploreFile, Manifest, MechanicKind, ProductModel, QAReport, Rect, State,
+                              StateFile, Strict, TraceLine)
 from simula.device import observe as ob
 from simula.runlog import read_trace
 from simula.stages import ROLES, model
@@ -103,35 +103,45 @@ def completed(lines: list[ActionLine]) -> bool:
 
 # ---------- the explorer-independent checklist ----------
 
-def tab_bar(state: State, device: Device) -> list[Rect]:
-    """The bottom tab bar: the biggest row of 2 or more same-class, same-size elements in the bottom band, each with a
-    name (text or label), evenly spaced (within one 8 dp bucket) across the middle of the screen. A composer's
-    buttons are never evenly spaced, nor named on their outer boxes."""
-    band = device.content_bottom_px - ob.TAB_BAND_PX
-    rows = defaultdict(dict)
-    for e in state.elements:
-        r = e.rect_px
-        if r.y >= band and (e.text or e.label):
-            rows[e.type, ob.bucket(r.w, device), ob.bucket(r.h, device), ob.bucket(r.y, device)][
-                ob.bucket(r.x, device)] = r
+def tab_bar(pm: ProductModel) -> list[Rect]:
+    """The root's bottom tab bar: the biggest row of 2 or more same-class, same-size elements in its bottom band, each
+    with a name (text or label), evenly spaced (within one 8 dp bucket) across the middle of the screen, whose names
+    all show in the bottom band of another saved screen too, since navigation stays put. A composer's buttons are
+    never evenly spaced, nor named on their outer boxes, and a screen's own pair of buttons shows on it alone."""
+    device, band = pm.device, pm.device.content_bottom_px - ob.TAB_BAND_PX
+    screens = [s for s in pm.states if s.kind == "screen"]
+    if not screens:
+        return []
 
-    def bar(row: list[Rect]) -> bool:
-        xs = sorted(r.x + r.w / 2 for r in row)
+    def named(state: State) -> list[Element]:
+        return [e for e in state.elements if e.rect_px.y >= band and (e.text or e.label)]
+    elsewhere = [{e.text or e.label for e in named(s)} for s in screens[1:]]
+    rows = defaultdict(dict)
+    for e in named(screens[0]):
+        r = e.rect_px
+        rows[e.type, ob.bucket(r.w, device), ob.bucket(r.h, device), ob.bucket(r.y, device)][ob.bucket(r.x, device)] = e
+
+    def bar(row: list[Element]) -> bool:
+        xs = sorted(e.rect_px.x + e.rect_px.w / 2 for e in row)
         gaps = [b - a for a, b in zip(xs, xs[1:])]
-        return bool(gaps) and xs[0] < device.w_px / 2 < xs[-1] and max(gaps) - min(gaps) <= ob.BUCKET_DP * device.scale
+        return (bool(gaps) and xs[0] < device.w_px / 2 < xs[-1] and max(gaps) - min(gaps) <= ob.BUCKET_DP * device.scale
+                and any({e.text or e.label for e in row} <= names for names in elsewhere))
     found = [list(row.values()) for row in rows.values()]
-    return max(filter(bar, found), key=len, default=[])
+    return [e.rect_px for e in max(filter(bar, found), key=len, default=[])]
 
 
 def all_tabs(pm: ProductModel) -> bool:
-    """Every tab of the root's bar but the one the root already shows has a recorded tap that left its state: a tap in
-    the bottom band within the tab's column (a tab's label often sits under its tap target)."""
-    root = next((s for s in pm.states if s.kind == "screen"), None)
-    tabs = tab_bar(root, pm.device) if root else []
+    """Every tab of the root's bar but the one the root already shows has a recorded tap that went to a state other
+    than its own and the root's: a tap in the bottom band within the tab's column (a tab's label often sits under its
+    tap target). A tap back to the root's tab never counts."""
+    tabs = tab_bar(pm)
+    if not tabs:
+        return True
+    root = next(s.id for s in pm.states if s.kind == "screen")
     band = pm.device.content_bottom_px - ob.TAB_BAND_PX
     elements = {e.id: e.rect_px for s in pm.states for e in s.elements}
     taps = [ob.center(elements[e.element_id]) for e in pm.edges
-            if e.element_id in elements and e.to_state != e.from_state]
+            if e.element_id in elements and e.to_state not in (e.from_state, root)]
     reached = sum(any(tab.x <= x < tab.x + tab.w and y >= band for x, y in taps) for tab in tabs)
     return reached >= len(tabs) - 1
 
@@ -334,7 +344,7 @@ def table(scored: list[tuple[str, dict[str, dict]]]) -> str:
     """One row per metric, one column per run, and min and max columns over the runs' numbers when there are two or
     more runs."""
     spread = len(scored) > 1
-    head = ["metric", *(label for label, _ in scored), *(["min", "max"] if spread else [])]
+    head = ["metric", *(cell(label) for label, _ in scored), *(["min", "max"] if spread else [])]
     lines = ["| " + " | ".join(head) + " |", "|" + "---|" * len(head)]
     sections = list(dict.fromkeys(s for _, sections in scored for s in sections))
     for section in sections:

@@ -9,7 +9,9 @@ import pytest
 from pydantic import ValidationError
 
 from simula import cli, scorecard
-from simula.contracts import ActionLine, Device, ExploreFile, Manifest, ProductModel, Provenance, StateFile, TraceLine
+from simula.contracts import (ActionLine, Device, Edge, Element, ExploreFile, Manifest, ProductModel, Provenance, Rect,
+                              StateFile, TraceLine)
+from simula.device import observe as ob
 from tests.conftest import FIXTURES, PREFIX, ROOT
 from tests.explore_fixture import add_core_loop, build
 
@@ -196,14 +198,59 @@ def test_model_checklist_reads_tabs_paywall_settings_and_limit():
     assert scorecard.model_checklist(named)["settings"]
 
 
+def golden(app: str) -> ProductModel:
+    return ProductModel.model_validate_json((FIXTURES / "golden" / app / "product_model.json").read_text())
+
+
+def with_elements(pm: ProductModel, changed: dict[str, list[Element]]) -> ProductModel:
+    return pm.model_copy(update={"states": [s.model_copy(update={"elements": changed[s.id]}) if s.id in changed else s
+                                            for s in pm.states]})
+
+
 def test_a_composer_row_is_no_tab_bar():
-    pm = ProductModel.model_validate_json((FIXTURES / "golden" / "luzia" / "product_model.json").read_text())
-    root = pm.states[0]
-    tabs = scorecard.tab_bar(root, DEVICE)
+    pm = golden("luzia")
+    tabs = scorecard.tab_bar(pm)
     assert len(tabs) == 3
     uneven = [e.model_copy(update={"rect_px": e.rect_px.model_copy(update={"x": e.rect_px.x - 100})})
-              if e.rect_px == tabs[0] else e for e in root.elements]
-    assert scorecard.tab_bar(root.model_copy(update={"elements": uneven}), DEVICE) == []
+              if e.rect_px == tabs[0] else e for e in pm.states[0].elements]
+    assert scorecard.tab_bar(with_elements(pm, {"s01": uneven})) == []
+
+
+def test_a_screens_own_pair_of_bottom_buttons_is_no_tab_bar():
+    """Two named buttons of one size, evenly spread at the bottom of the root: a tab bar only if another screen shows
+    them there too."""
+    pm = golden("luzia")
+    root, other = pm.states[0], pm.states[1]
+    band = DEVICE.content_bottom_px - ob.TAB_BAND_PX
+    buttons = [root.elements[0].model_copy(update={"id": f"s01.b{n}", "type": "Button", "text": words, "label": "",
+                                                   "rect_px": Rect(x=x, y=2150, w=400, h=140)})
+               for n, (words, x) in enumerate((("Cancel", 60), ("Save", 620)))]
+    alone = with_elements(pm, {"s01": [e for e in root.elements if e.rect_px.y < band] + buttons})
+    assert scorecard.tab_bar(alone) == []
+    assert scorecard.all_tabs(alone)
+    shared = with_elements(alone, {other.id: other.elements + buttons})
+    assert scorecard.tab_bar(shared) == [b.rect_px for b in buttons]
+
+
+def test_committed_aol_two_tab_bar_is_found():
+    pm = ProductModel.model_validate_json(
+        (ROOT / "runs" / "aol" / "20260929-205304-1f19585" / "model" / "product_model.json").read_text())
+    assert len(scorecard.tab_bar(pm)) == 2
+
+
+def test_a_tap_back_to_the_roots_tab_never_counts():
+    """A three-tab app: the root shows its own tab (the leftmost), s05's tab was opened, then the root's tab again from
+    s05; the third tab (s06's) was never opened."""
+    pm = golden("luzia")
+    own = min(scorecard.tab_bar(pm), key=lambda r: r.x)
+    s05 = next(s for s in pm.states if s.id == "s05")
+    home = next(e for e in s05.elements if own.x <= ob.center(e.rect_px)[0] < own.x + own.w
+                and e.rect_px.y >= DEVICE.content_bottom_px - ob.TAB_BAND_PX)
+    back = Edge(id="s05.home>s01", from_state="s05", to_state="s01", element_id=home.id, action="tap",
+                transition="tab", change_summary="")
+    assert scorecard.all_tabs(pm)
+    assert scorecard.all_tabs(pm.model_copy(update={"edges": [*(e for e in pm.edges if e.id != "s01.e43>s06"),
+                                                              back]})) is False
 
 
 def test_filter_verdicts(run):
@@ -301,6 +348,10 @@ def test_command_prints_one_column_per_run_and_never_writes_into_them(run, tmp_p
     assert head == f"| metric | luzia {run.name} | luzia other | min | max |"
     assert files(run) | files(other) == before
     assert json.loads(out.read_text())[str(run)]["Core action"]["core passes attempted"] == 2
+
+
+def test_run_labels_are_escaped_in_the_header():
+    assert scorecard.table([("a|b", {"Explore record": {"states saved": 1}})]).splitlines()[0] == "| metric | a/b |"
 
 
 def test_command_refuses_to_write_json_into_a_run(run):
