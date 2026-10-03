@@ -148,12 +148,52 @@ def test_the_core_loops_send_on_a_real_chat_is_not_blocked_by_the_storys_contain
     assert guard.blocked_tap(send, chat, core=True) is None
 
 
-def test_prose_is_no_like_button_and_a_long_text_never_blocks_a_tap_inside_it():
+def test_a_word_inside_prose_is_no_button_but_a_phrase_in_a_long_text_still_blocks_a_tap_inside_it():
     bubble, copy = shown("what would you like to know", 600, h=300), shown("Copy", 700, w=200)
     assert guard.blocked_tap(bubble, [bubble]) is None and guard.blocked_tap(copy, [bubble, copy]) is None
     assert guard.blocked_tap({"text": "Characters like this one show up here"}) is None
     story = shown("She said she would delete my account if I ever told anyone the secret", 600, h=900)
-    assert guard.blocked_tap(story) and guard.blocked_tap(copy, [story, copy]) is None
+    assert guard.blocked_tap(story) and guard.blocked_tap(copy, [story, copy]) == "delete my account (at the tap point)"
+
+
+@pytest.mark.parametrize("words", ["Pay $4.99 with saved card", "Post to my public profile",
+                                   "Share with friends and family", "Report this user for spam",
+                                   "Send to all selected contacts", "Send this reply back to Alex"])
+def test_a_long_label_that_starts_with_a_one_word_entry_is_refused(words):
+    assert guard.blocked_tap({"text": words})
+
+
+def test_the_core_loop_lifts_only_the_send_family_on_a_long_label_too():
+    assert guard.blocked_tap({"text": "Send this reply back to Alex"}, core=True) is None
+    for words in ("Post to my public profile", "Pay $4.99 with saved card", "Share with friends and family"):
+        assert guard.blocked_tap({"text": words}, core=True)
+
+
+def test_a_long_affirmative_under_a_short_deletion_title_is_refused():
+    yes = shown("Yes, I am absolutely sure", 800, w=600)
+    assert guard.blocked_tap(yes, [shown("Delete account", 400), yes]) == "yes (delete account on the screen)"
+
+
+@pytest.mark.parametrize("title", ["Are you sure you want to delete your account?",
+                                   "Delete your account and all saved data",
+                                   "Change email address for your existing account",
+                                   "Make profile public for everyone to see"])
+def test_a_long_dialog_title_that_names_a_blocked_action_still_refuses_its_confirm(title):
+    confirm = shown("Confirm", 800, w=300)
+    assert guard.blocked_tap(confirm, [shown(title, 400), confirm])
+
+
+def test_a_glyph_inside_a_long_send_message_button_is_refused_at_its_tap_point():
+    row, icon = shown("Send message to all selected group members", 700, h=200), shown("➤", 750, x=800, w=80, h=80)
+    assert guard.blocked_tap(icon, [row, icon]) == "send message (at the tap point)"
+
+
+def test_a_two_letter_word_is_readable_so_a_go_button_submits_a_search_and_a_glyph_still_shows_its_id():
+    go = {**shown("Go", 800, w=200), "identifier": "com.example.app:id/btn_submit"}
+    query = {**shown("", 400), "label": "Search", "type": "android.widget.EditText"}
+    assert guard.blocked_tap(go, [query, go]) is None
+    assert guard.blocked_tap({"text": "OK", "identifier": "com.example.app:id/btn_submit"}) is None
+    assert guard.blocked_tap({"text": "2K", "identifier": "com.example.app:id/btn_submit"}) == "submit"
 
 
 def test_saving_next_to_a_sign_out_row_and_deleting_a_chat_stay_allowed():
