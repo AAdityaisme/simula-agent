@@ -921,3 +921,13 @@ def test_another_app_before_an_action_is_a_return_not_a_relaunch(tmp_path, monke
         return None
     ex, phone, _ = run(tmp_path, monkeypatch, script, phone_factory=factory, no_send=True)
     assert not [t for t in taps(phone) if t[0] == "other"] and ex.relaunches == 0 and ex.returns
+
+
+
+def test_consent_prose_about_data_is_sign_in_but_a_manage_button_is_not(tmp_path, monkeypatch):
+    """Greptile on 2eec2ce: the account-management words count on a control's label, never on prose."""
+    ex, _, _ = agent(tmp_path, monkeypatch, scripted(), phone_factory=phone_of({"root": drawn(control("Explore", 1))}))
+    prose = control("The app will access your data and your activity on this device", 1, "TextView")
+    consent = [prose, control("Allow", 2)]
+    assert ex.signing([], consent)
+    assert not ex.signing([], [prose, control("Allow", 2), control("Manage your Google Account", 3)])

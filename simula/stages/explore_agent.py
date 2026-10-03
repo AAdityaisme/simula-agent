@@ -662,10 +662,12 @@ class AgentExplorer(Explorer):
 
     def signing(self, raw: list[dict], elements: list[dict]) -> bool:
         """A Google screen is part of signing in when it shows no price and an account row, or else a flow button and
-        no account-management word (a consent step names no account; a chooser lists "Add another account")."""
-        said = [t for e in elements for t in (e.get("text") or "", e.get("label") or "") if t.strip()]
-        flow = any(t.strip().lower() in CHOOSER_STEPS for t in said)
-        managing = any(GOOGLE_ACCOUNT.search(t) for t in said)
+        no control labelled with an account-management word (a consent step names no account; a chooser lists "Add
+        another account")."""
+        said = [(e, t) for e in elements for t in (e.get("text") or "", e.get("label") or "") if t.strip()]
+        flow = any(t.strip().lower() in CHOOSER_STEPS for _, t in said)
+        # a control's label, not prose: a consent step says what the app "will access", data and activity among it
+        managing = any(GOOGLE_ACCOUNT.search(t) for e, t in said if "Button" in e["type"] or len(t.split()) <= 4)
         return not self.priced(elements) and (bool(emails(raw)) or (flow and not managing))
 
     def priced(self, elements: list[dict]) -> bool:
