@@ -3,6 +3,7 @@ every action, records what happened and stops the run. Observing, recording, lau
 and the core loop are the scripted explorer's (Explorer), so explore/ keeps its contracts."""
 
 import contextlib
+import dataclasses
 import re
 
 from PIL import Image
@@ -27,6 +28,8 @@ AD_FORMATS = ("banner", "interstitial", "rewarded", "native")
 SEARCH = re.compile(r"\bsearch\b", re.IGNORECASE)
 URL = re.compile(r"\b(?:https?://|www\.)\S+", re.IGNORECASE)
 CHOOSER_STEPS = {"continue", "next", "allow", "agree", "i agree", "ok", "cancel"}  # the account chooser's flow buttons
+UNVERIFIED = ("not verified since the app was launched again: go back to where you set it and say it is set on the "
+              "screen that shows it")
 FILTER_PATH = 4  # ponytail: the filter's last taps kept as its controls (opener, option, two hops to them)
 
 
@@ -46,9 +49,14 @@ def hard_block(c: ob.Candidate, screen: list[dict] | None, core: bool = False) -
     return guard.blocked_tap(element, screen, core=core)
 
 
+def account_row(said: str) -> bool:
+    """It shows an account: an email, redacted or not (redaction takes every email)."""
+    return ob.REDACTED in said or bool(ob.EMAIL.search(said))
+
+
 def chooser_step(said: str) -> bool:
-    """On Google's account chooser only an account row (it shows an email, redacted or not) or a flow button."""
-    return ob.REDACTED in said or bool(ob.EMAIL.search(said)) or said.strip().lower() in CHOOSER_STEPS
+    """On Google's account chooser only an account row or a flow button is tapped."""
+    return account_row(said) or said.strip().lower() in CHOOSER_STEPS
 
 
 class AgentExplorer(Explorer):
@@ -62,8 +70,9 @@ class AgentExplorer(Explorer):
         self.tour_seconds = AGENT_MINUTES * 60 - self.core_reps * CORE_SECONDS_PER_REP
         self.deadline = self.started + AGENT_MINUTES * 60
         self.capped = False
-        self.redacting = re.compile("|".join([ob.EMAIL.pattern, *(re.escape(x) for x in self.secrets if x.strip())]),
-                                    re.IGNORECASE)
+        parts = [rf"\b{re.escape(p)}\b" for p in sorted(self.parts, key=len, reverse=True)]  # as ob.redact matches
+        self.redacting = re.compile("|".join([ob.EMAIL.pattern, *(re.escape(x) for x in self.secrets if x.strip()),
+                                              *parts]), re.IGNORECASE)
         self.steps: list[AgentStep] = []
         self.ids: dict[str, ob.Candidate] = {}  # this turn's element ids
         self.names: dict[str, str] = {}  # the planner's name for each state it planned on
@@ -215,12 +224,19 @@ class AgentExplorer(Explorer):
         live = obs.cands if s.box is None else [c for c in (ob.find(obs.cands, o) for o in controls_of(s.cands)) if c]
         return [c for c in s.cands if ob.find(live, c)] + [c for c in live if s.box is None and not ob.find(s.cands, c)]
 
+    def as_shown(self, c: ob.Candidate) -> ob.Candidate:
+        """A listed control as the live screen shows it (its state, its place), under its recorded name; for words
+        only: the listing keeps the recorded control, which act() checks against its capture."""
+        live = ob.find(self.obs.cands, c)
+        return dataclasses.replace(live, label=c.label) if live and live is not c else c
+
     def situation(self, s: Seen) -> str:
         d = self.device
+        shown = {i: self.as_shown(c) for i, c in self.ids.items()}
         lines = [f"{i}: {c.kind} {c.label[:80]!r}" + (f" id={ob.short_id(c.ident)}" if c.ident else "")
                  + f" at {where(c, d)} [{int(c.rect.x)},{int(c.rect.y)},{int(c.rect.w)},{int(c.rect.h)}]"
                  + ("" if c.checked is None else " (on)" if c.checked else " (off)")
-                 + ("" if c.enabled else " (disabled)") for i, c in self.ids.items()]
+                 + ("" if c.enabled else " (disabled)") for i, c in shown.items()]
         history = self.history[-HISTORY_LINES:]
         return "\n".join([
             f"App in front: {self.obs.fg} (the app explored is {self.package}). Screen {d.w_px}x{d.h_px} px.",
@@ -297,6 +313,8 @@ class AgentExplorer(Explorer):
             else:
                 self.phone.back()
         self.obs = None
+        self.resync()
+        self.refilter()
 
     def move_for(self, step: AgentStep) -> Move | None:
         """The move a step asks for. A tap names an element of the planning screen, or (dial on) an intent Jev
@@ -328,7 +346,7 @@ class AgentExplorer(Explorer):
             return None
         try:
             order, confidence = decide.rank(self.trace_path, "explore", f"ground.{s.sid}", self.describe(s),
-                                            GROUND.format(intent), [self.option_label(c) for c in cands],
+                                            GROUND.format(intent), [self.option_label(self.as_shown(c)) for c in cands],
                                             **self.jev_options())
         except decide.JevFailed:
             return None
@@ -343,11 +361,13 @@ class AgentExplorer(Explorer):
                                 f"{pick.label[:30] if pick else 'unsure'!r}", decider="jev")
 
     def after(self, step: AgentStep, move: Move, what: str, s: Seen, before) -> None:
-        """The plan goes on while each step does what it expected: the screen changed, or the expected text shows.
+        """The plan goes on while each step does what it expected: the screen changed (its texts, or a control's state
+        in place), or the expected text shows.
         It ends on another app, a screen the planner hasn't named, or two steps in a row that changed nothing."""
         to = self.current
         said = ob.texts(self.obs.elements, self.device)
-        changed = to is not s or said != ob.texts(before.elements, self.device)
+        states = [{(c.key, c.checked, c.enabled) for c in look.cands} for look in (before, self.obs)]
+        changed = to is not s or said != ob.texts(before.elements, self.device) or states[0] != states[1]
         self.noops = 0 if changed else self.noops + 1
         self.history.append(f"{move.action} {what} on {s.sid} -> {to.sid}: {'changed' if changed else 'no change'}")
         shown = step.expect.lower() in " ".join(said).lower()
@@ -415,13 +435,13 @@ class AgentExplorer(Explorer):
         return self.refusal(cand, self.obs.fg, self.obs.elements, rules.get("core", False)) or None
 
     def refusal(self, c: ob.Candidate, fg: str, elements: list[dict], core: bool) -> str:
-        """Why the guard refuses a tap on c on this screen, or "": a hard-block word, or on Google's account chooser
-        anything but an account row or a flow button."""
-        if guard.signing_in(fg) and not chooser_step(f"{c.tree_label}\n{c.label}"):
+        """Why the guard refuses a tap on c on this screen, or "": on Google's account chooser anything but an account
+        row or a flow button, and everywhere a hard-block word (an OK on a dialog that names a deletion)."""
+        reason = ""
+        if guard.signing_in(fg) and not (chooser_step(c.tree_label) or chooser_step(c.label)):
             reason = "not an account row or a sign-in step on Google's account chooser"
-        else:
-            word = hard_block(c, elements, core=core)
-            reason = f"hard block: {word}" if word else ""
+        if not reason and (word := hard_block(c, elements, core=core)):
+            reason = f"hard block: {word}"
         self.counts["hard blocks refused"] += bool(reason)
         return reason
 
@@ -432,9 +452,9 @@ class AgentExplorer(Explorer):
         if why := self.halted():
             raise Halt(why)
         fg = self.phone.foreground()
-        if guard.in_billing(fg):
+        if guard.in_billing(fg) or (guard.signing_in(fg) and self.priced(self.fresh())):
             self.back_out(fg)
-            raise ScreenMoved("the Play Store came to the front")
+            raise ScreenMoved(f"a purchase screen ({fg}) came to the front")
         if fg != self.package and not guard.signing_in(fg):
             raise ScreenMoved(f"{fg} came to the front")
         return fg
@@ -494,6 +514,8 @@ class AgentExplorer(Explorer):
         if guard.in_billing(fg):
             self.back_out(fg)
         super().launch()
+        if self.filter_taps:
+            self.filter_news = UNVERIFIED
 
     def unrun(self, s: Seen, move: Move, expect: Seen | None) -> Seen:
         """A refused type has no control to mark tried."""
@@ -517,11 +539,21 @@ class AgentExplorer(Explorer):
                 self.log(s, None, Move("tap", c, why=why), c, "unknown", why, "denied")
 
     def escape_billing(self) -> bool:
-        """The Play Store in the last look gets BACK before the planner sees it; the rest of the plan is dropped."""
-        if not (self.obs and guard.in_billing(self.obs.fg)):
+        """The Play Store in the last look, or a Google screen showing a price (a payment sheet), gets BACK before the
+        planner sees it; the rest of the plan is dropped."""
+        if not self.obs:
+            return False
+        if guard.in_billing(self.obs.fg):
+            self.back_out(self.obs.fg)
+            return True
+        if not (guard.signing_in(self.obs.fg) and self.priced(self.obs.elements)):
             return False
         self.back_out(self.obs.fg)
+        self.observe()  # act() reads the store's sheet again itself, never a Google one: one BACK per sheet
         return True
+
+    def priced(self, elements: list[dict]) -> bool:
+        return any(ob.PRICE.search(t) for t in ob.texts(elements, self.device))
 
     def back_out(self, fg: str) -> None:
         self.note("billing", f"the store's billing screen opened ({fg}); pressed BACK at once", outcome="blocked")
@@ -531,10 +563,11 @@ class AgentExplorer(Explorer):
         self.news.append("A purchase screen opened and code pressed back at once.")
 
     def away(self, obs) -> str | None:
-        """Google's account chooser is part of signing in, not another app; any other Google screen is away."""
+        """Google's account chooser (an account row, no price) is part of signing in, not another app; any other
+        Google screen is away."""
         if guard.signing_in(obs.fg):
-            chooser = any(chooser_step(e.get(k) or "") for e in obs.elements for k in ("text", "label"))
-            return None if chooser else "external"
+            chooser = any(account_row(e.get(k) or "") for e in obs.elements for k in ("text", "label"))
+            return None if chooser and not self.priced(obs.elements) else "external"
         return super().away(obs)
 
     def account_wall(self, s: Seen) -> bool:
@@ -556,6 +589,7 @@ class AgentExplorer(Explorer):
                 super().leave()
         finally:
             self.ad_leave = False
+        self.refilter()  # a launch brought the app back: the filter the planner reads is rechecked
 
     def count_relaunch(self, why: str) -> None:
         if self.relaunches >= RELAUNCHES:
@@ -646,8 +680,7 @@ class AgentExplorer(Explorer):
             self.check_filter()
         else:
             self.filtered = False
-            self.filter_news = ("not verified since the app was launched again: go back to where you set it and "
-                                "say it is set on the screen that shows it")
+            self.filter_news = UNVERIFIED
 
     def check_filter(self) -> None:
         """The scripted explorer's check, with its evidence and trace line, but a failure doesn't stop the run: the

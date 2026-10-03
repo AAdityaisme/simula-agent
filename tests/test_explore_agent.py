@@ -593,3 +593,77 @@ def test_a_cached_answer_is_scrubbed_however_it_was_written(tmp_path, monkeypatc
             with pytest.raises(llm.LLMFailure) as failed:
                 llm.call(**ask, scrub=scrub)
             assert HANDLE not in str(failed.value) + failed.value.raw
+
+
+# ---------- Fable's review on 2e43d0e ----------
+
+def test_a_consent_step_after_the_account_row_is_tapped_through_its_flow_button(tmp_path, monkeypatch):
+    """M1: the chooser's Continue is allowed (its text alone, not text and label joined)."""
+    consent = drawn(control("someone@example.com", 1), control("Cancel", 2), control("Continue", 3),
+                    package=guard.ACCOUNT_CHOOSER)
+    phone_factory = phone_of({"root": drawn(control("Continue with Google", 1)), "home": drawn(control("Inside", 1)),
+                              "chooser": drawn(control("someone@example.com", 1), control("Add another account", 2),
+                                               package=guard.ACCOUNT_CHOOSER), "consent": consent},
+                             {("root", "Continue with Google"): "chooser",
+                              ("chooser", "someone@example.com"): "consent", ("consent", "Continue"): "home"})
+    script = scripted(lambda text: turn(tap(oid(text, "Continue with Google"), "the chooser")),
+                      lambda text: turn(tap(oid(text, "[redacted]"), "the consent")),
+                      lambda text: turn(tap(oid(text, "Continue"), "signed in")))
+    ex, phone, planner = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
+    assert ("consent", "Continue") in taps(phone) and planner.texts[3].startswith(f"App in front: {PACKAGE}")
+
+
+def test_a_flow_button_on_a_google_dialog_that_names_a_deletion_stays_refused(tmp_path, monkeypatch):
+    """L1: the word guard runs on Google's screens too."""
+    ex, _, _ = agent(tmp_path, monkeypatch, scripted(), phone_factory=phone_of({"root": drawn(control("Explore", 1))}))
+    dialog = [control("someone@example.com", 1, "TextView"), control("Remove this account", 2, "TextView"),
+              control("OK", 3)]
+    ok = next(c for c in stage.ob.controls(dialog, ex.device) if c.tree_label == "OK")
+    assert "hard block" in ex.refusal(ok, guard.ACCOUNT_CHOOSER, dialog, False)
+
+
+def test_a_google_screen_with_a_price_is_a_purchase_and_gets_back(tmp_path, monkeypatch):
+    """L2: a payment sheet in Play services shows the account and a price: it is no chooser."""
+    pay = drawn(control("someone@example.com", 1, "TextView"), control("$4.99 per month", 2, "TextView"),
+                control("Continue", 3), package=guard.ACCOUNT_CHOOSER)
+    phone_factory = phone_of({"root": drawn(control("Upgrade", 1)), "pay": pay}, {("root", "Upgrade"): "pay"},
+                             backs={"pay": "root"})
+    script = scripted(lambda text: turn(tap(oid(text, "Upgrade"), "plans")))
+    ex, phone, planner = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
+    assert ("back", "pay") in phone.log and not [t for t in taps(phone) if t[0] == "pay"]
+    assert not any(text.startswith(f"App in front: {guard.ACCOUNT_CHOOSER}") for text in planner.texts)
+    assert planner.texts[1].count("A purchase screen opened") == 1 and ex.counts["billing screens escaped"] >= 1
+    assert ("back", "root") not in phone.log  # one BACK per sheet: none past it, out of the app
+
+
+def filter_switch_phone(on: bool = True, **more):
+    switch = drawn(control("Safe only", 1, "Switch", checked=on), control("Help", 2), control("Explore", 3))
+    return {"root": switch, **more}
+
+
+def test_a_return_from_another_app_rechecks_the_filter_before_the_planner_reads_it(tmp_path, monkeypatch):
+    """M2: a launch brings the app back; the planner reads a fresh check, never the one before it left."""
+    phone_factory = phone_of(filter_switch_phone(browser=drawn(control("A web page", 1), package="com.example.web")),
+                             {("root", "Help"): "browser"})
+    script = scripted(lambda text: turn(tap(oid(text, "Help"), "help"), filter_set=True,
+                                        filter_element=oid(text, "Safe only")),
+                      lambda text: turn(DONE))
+    ex, _, planner = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
+    assert ex.returns and "Content filter: verified (check 2)" in planner.texts[1]
+
+
+def test_a_switch_flipped_in_place_is_reported_on(tmp_path, monkeypatch):
+    """M3: the listing shows a control's live state, and a state change is a change."""
+    screens = filter_switch_phone(on=False, flipped=filter_switch_phone(on=True)["root"])
+    phone_factory = phone_of(screens, {("root", "Safe only"): "flipped"})
+    script = scripted(lambda text: turn(tap(oid(text, "Safe only"), "the switch shows on")))
+    ex, _, planner = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
+    assert len(ex.states) == 1 and re.search(r"Switch 'Safe only' .*\(on\)", planner.texts[1])
+    assert "didn't happen" not in planner.texts[1]
+
+
+def test_the_scrub_takes_the_identity_parts_as_whole_words(tmp_path, monkeypatch):
+    """L4: as ob.redact does."""
+    monkeypatch.setenv("SIMULA_TEST_NAME", "Quillon Varga")
+    ex, _, _ = agent(tmp_path, monkeypatch, scripted(), phone_factory=phone_of({"root": drawn(control("Explore", 1))}))
+    assert ex.scrub("hello Quillon, Quillonx") == "hello [redacted], Quillonx"
