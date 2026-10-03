@@ -21,8 +21,8 @@ REAL_WORD = re.compile(r"[^\W\d_]{2,}")  # a label's letters ("Go", "OK"), not a
 # a one-word entry counts in a label this short, or one it starts ("Pay $4.99 with saved card"): prose that says
 # "like" is no Like button
 SHORT = 4
-# a refused label this short is a control that a tap inside it lands on, as a button's is and one that opens with the
-# refused entry; any other longer one is text (an AI's reply that says "log out" around the composer's Send)
+# a refused label this short is a control that a tap inside it lands on, as a button's is and, outside the core loop,
+# one that opens with the refused entry; any other longer one is text (an AI's reply around the composer's Send)
 CONTROL_WORDS = 6
 
 
@@ -88,11 +88,12 @@ def hit(blocked: tuple[re.Pattern, re.Pattern], texts: list[str], ids: list[str]
     return next((m.group() for m in found if m), None)
 
 
-def is_control(element: dict, label: str, blocked: tuple[re.Pattern, re.Pattern]) -> bool:
+def is_control(element: dict, label: str, blocked: tuple[re.Pattern, re.Pattern], core: bool) -> bool:
     """Whether a tap inside element lands on the control its label names: a button, a label of up to CONTROL_WORDS
-    words, or one that opens with a blocked entry ("Send message to all selected group members")."""
+    words, or, outside the core loop, one that opens with a blocked entry ("Send message to all selected group
+    members"). In the core loop such a long label is the AI's reply ("Share …") around the composer."""
     return ("Button" in element.get("type", "") or len(spellings(label)[1].split()) <= CONTROL_WORDS
-            or any(blocked[0].match(t) for t in spellings(label)))
+            or not core and any(blocked[0].match(t) for t in spellings(label)))
 
 
 # ponytail: whole words in any short label or one they start, so a title such as "Password safety tips" is refused
@@ -111,7 +112,7 @@ def blocked_tap(element: dict, screen: list[dict] | None = None, *, core: bool =
     x, y = center(rect(element))
     point = Rect(x=x, y=y, w=0, h=0)
     under = next((word for e in screen if inside(point, rect(e))
-                  and (word := hit(blocked, [s for s in labels(e) if is_control(e, s, blocked)]))), None)
+                  and (word := hit(blocked, [s for s in labels(e) if is_control(e, s, blocked, core)]))), None)
     if under:
         return f"{under} (at the tap point)"
     if yes := hit(CONFIRM, labels(element), id_evidence(element)):

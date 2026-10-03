@@ -218,6 +218,15 @@ def test_a_glyph_inside_a_long_row_that_opens_with_a_blocked_entry_is_refused_at
     assert guard.blocked_tap(icon, [row, icon]) == "send message (at the tap point)"
 
 
+def test_an_ai_reply_that_opens_with_share_around_the_real_chats_core_send_leaves_send_allowed():
+    chat = parse_elements(json.loads(CHAT.read_text()))
+    send = next(e for e in chat if e["ref"] == "@e48")
+    reply = shown("Share your favourite memory from this week and I will turn it into a short story.", 300,
+                  x=0, w=1080, h=2100)
+    assert guard.blocked_tap(reply, core=True) == "share"
+    assert guard.blocked_tap(send, [*chat, reply], core=True) is None
+
+
 def test_a_long_text_that_names_a_blocked_entry_only_mid_sentence_never_blocks_a_tap_inside_it():
     text = shown("You can always send message requests later from the settings page", 700, h=200)
     icon = shown("➤", 750, x=800, w=80, h=80)
