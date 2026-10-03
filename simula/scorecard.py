@@ -24,8 +24,16 @@ BILLING = "com.android.vending"  # the Play Store, whose payment sheet is a hard
 LIST_ITEMS = 3
 NUMBER = re.compile(r"\d+")
 SETTINGS = re.compile(r"\bsettings?\b", re.IGNORECASE)
-# A purpose's subject: its words before the first punctuation or a word that starts saying what the state holds.
-SUBJECT = re.compile(r"^(.*?)(?:[:;,.(]|\s(?:with|listing|containing|showing|linking|asking|over)\b|$)", re.IGNORECASE)
+MENU = re.compile(r"\bmenu\b|\blinks? to\b|\bnavigation\b", re.IGNORECASE)
+# A purpose's subject ends at the first of these: stop punctuation, or a word that starts saying what the state holds.
+SUBJECT_END = re.compile(r"[:;.(]|\s(?:with|listing|containing|showing|linking|asking|over)\b", re.IGNORECASE)
+SEND = "(core loop: send)"
+# The role each multi-role stage's model calls are made by, by step name: a judge step names its judge itself, and the
+# benefit naming judge's revisions ask for runs under propose.
+STEP_ROLES = {"qa": [("critic", "qa_critic"), ("fixer", "qa_fixer")],
+              "propose": [("lens:", "proposer"), ("topup", "proposer"), ("dedupe", "propose_dedupe"),
+                          ("judge:revisions", "propose_dedupe")],
+              "judge": [("revise:", "proposer")]}
 JEV_SECONDS = re.compile(r" in (\d+(?:\.\d+)?)s$")
 JUDGE = "Judge (an unvalidated instrument: no human labels yet)"
 
@@ -164,28 +172,31 @@ def tab_of(state: State, element_id: str | None, bar: list[Element], device: Dev
 
 def all_tabs(pm: ProductModel) -> bool | None:
     """None when no saved screen shows a tab bar: no bar seen is no evidence the run walked one. Open for a bar no other
-    saved screen confirms. Otherwise every tab but the one the first screen showing the bar is on needs a visit: a tap
-    on one of the bar's own elements that went to a state other than its own and that screen, so a tap back to it never
-    stands in for another tab."""
+    saved screen confirms. Otherwise every tab needs a successful tap on its own control that went to another saved
+    screen, not an overlay, counted once per tab. The tab the run started on counts only when its own control was
+    tapped too: nothing else tells which tab that was."""
     bar, confirmed = tab_bar(pm)
     if not bar:
         return None
     if not confirmed:
         return False
-    names, states = {name(e) for e in bar}, {s.id: s for s in pm.states}
-    home = next(s.id for s in pm.states
-                if s.kind == "screen" and names <= {name(e) for e in band_named(s, pm.device)})
-    visited = {tab for e in pm.edges if e.from_state in states and e.to_state not in (e.from_state, home)
+    states = {s.id: s for s in pm.states}
+    visited = {tab for e in pm.edges if e.action == "tap" and e.from_state in states and e.to_state != e.from_state
+               and e.to_state in states and states[e.to_state].kind == "screen"
                and (tab := tab_of(states[e.from_state], e.element_id, bar, pm.device))}
-    return len(visited) >= len(names) - 1
+    return visited >= {name(e) for e in bar}
 
 
 def settings_screen(state: State) -> bool:
-    """A settings screen by its recorded purpose: one whose subject names settings. A purpose that names them only
-    further on describes a way to them (a menu's link), never the screen; one that never names them (a list of what the
-    screen holds) leaves it to the state's name."""
-    if SETTINGS.search(state.purpose):
-        return bool(SETTINGS.search(SUBJECT.match(state.purpose)[1]))
+    """A heuristic over the model's wording. A settings screen's recorded purpose has settings in its subject: its
+    words before the first ':', ';', '.' or '(' or a word like 'with' or 'listing' that starts saying what the screen
+    holds. A purpose that says menu, links to or navigation describes a way to settings, as does one that names them
+    only further on; one that never names them leaves it to the state's name."""
+    purpose = " ".join(state.purpose.split())
+    if MENU.search(purpose):
+        return False
+    if SETTINGS.search(purpose):
+        return bool(SETTINGS.search(SUBJECT_END.split(purpose, maxsplit=1)[0]))
     return bool(SETTINGS.search(state.name))
 
 
@@ -244,7 +255,8 @@ def checklist(explore: ExploreFile | None, pm: ProductModel | None) -> dict:
         answered = model_checklist(pm)
         still_open = [f"{i} (no tab bar seen)" if ok is None else i for i, ok in answered.items() if ok is not True]
         out |= {"answered by the product model": sum(ok is True for ok in answered.values()),
-                "open in the product model": ", ".join(still_open) or "none"}
+                "open in the product model": ", ".join(still_open) or "none",
+                "settings screen (purpose/name heuristic)": answered.get("settings")}
     return out
 
 
@@ -263,16 +275,11 @@ def hard_blocks(states: Saved | None, actions: list[ActionLine] | None, trace: l
     if states is not None:
         out["payment sheet states"] = sum(s.foreground_package == BILLING for s, _ in states)
     if actions is not None:
-        ran = [a for a in actions if a.outcome == "ok"]
-        passes = defaultdict(list)
-        for a in ran:
-            if a.loop_pass is not None:
-                passes[a.loop_pass].append(a)
-        out |= {"typed actions outside the core loop": sum(a.action == "type" and a.loop_pass is None for a in ran),
-                "core-loop typed actions": sum(a.action == "type" for lines in passes.values() for a in lines),
-                "core-loop sends (a pass's tap after its typing)": sum(
-                    b.action == "type" and a.action == "tap" for lines in passes.values()
-                    for b, a in zip(lines, lines[1:]))}
+        typed = [a for a in actions if a.action == "type" and a.outcome == "ok"]
+        out |= {"typed actions outside the core loop": sum(a.loop_pass is None for a in typed),
+                "core-loop typed actions": sum(a.loop_pass is not None for a in typed)}
+    if explored := [t for t in trace if t.stage == "explore"]:
+        out[f"sends (recorded '{SEND[1:-1]}')"] = sum(t.outcome == "ok" and t.note.endswith(SEND) for t in explored)
     return out
 
 
@@ -317,14 +324,13 @@ def judge(run: Path) -> dict:
 
 
 def role(line: TraceLine, roles: dict[str, str]) -> str:
-    """The role that made a call: the stage's role its step names ('critic r1 g1' is qa_critic, 'judge:c01:judge_1:r1'
-    is judge_1), else the stage's one role whose configured model made it, else the stage and model."""
-    def word(r: str) -> str:
-        last = r.rsplit("_", 1)[-1]
-        return last if last.isalpha() else r
+    """The role that made a call: the one its stage and step family make it by (STEP_ROLES), else the stage's role its
+    step names ('judge:c01:judge_1:r1' is judge_1), else the stage's one role whose configured model made it, else the
+    stage and model."""
     stage_roles = ROLES.get(line.stage, [])
-    named = [r for r in stage_roles if re.search(rf"\b{re.escape(word(r))}\b", line.step)]
-    found = named or [r for r in stage_roles if line.model in roles.get(r, "").split()]
+    found = ([r for prefix, r in STEP_ROLES.get(line.stage, []) if line.step.startswith(prefix)]
+             or [r for r in stage_roles if re.search(rf"\b{re.escape(r)}\b", line.step)]
+             or [r for r in stage_roles if line.model in roles.get(r, "").split()])
     return found[0] if len(found) == 1 else f"{line.stage} {line.model}"
 
 
@@ -344,8 +350,9 @@ def cost_and_time(trace: list[TraceLine], manifest: Manifest | None, actions: li
         by_stage[t.stage].append(t)
     stages = [s for s in config.STAGES if s in by_stage]
     usd = {s: sum(t.usd for t in by_stage[s]) for s in stages}
-    minutes = {s: (datetime.fromisoformat(by_stage[s][-1].ts) - datetime.fromisoformat(by_stage[s][0].ts))
-               .total_seconds() / 60 for s in stages}
+    # Stages write from thread pools, so a later line can carry an earlier time: the span runs earliest to latest.
+    times = {s: [datetime.fromisoformat(t.ts) for t in by_stage[s]] for s in stages}
+    minutes = {s: (max(times[s]) - min(times[s])).total_seconds() / 60 for s in stages}
     roles = manifest.roles if manifest else {}
     calls = Counter({r: 0 for s in stages for r in ROLES[s] if r in roles and r != "jev"})  # Jev has its own rows
     calls.update(role(t, roles) for t in trace if t.decider == "model" and t.model and not t.cache_hit)

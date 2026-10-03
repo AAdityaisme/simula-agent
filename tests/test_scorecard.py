@@ -174,6 +174,8 @@ def run(tmp_path):
         trace_line("explore", "rank.s02", "02:00", decider="jev", model="jev-1.13.0", cache_hit=True,
                    note="typesafe picked o01 (cached)"),
         trace_line("explore", "core", "03:00", decider="jev", note="core action: send messages"),
+        *(trace_line("explore", f"act{n}", f"0{n}:30", note="tap 'Send' s01>s01 [unknown] (core loop: send)")
+          for n in (3, 4)),
         trace_line("explore", "done", "06:00"),
         trace_line("model", "meaning", "07:00", decider="model", model="claude-opus-5-5", usd=1.5),
         trace_line("model", "retry", "08:30", decider="model", model="claude-opus-5-5", usd=1.0)]))
@@ -190,15 +192,28 @@ def test_explore_record_and_core_action(run):
     assert core == {"core action found": True, "core passes attempted": 2, "core passes completed": 2}
     assert scored["Hard blocks"] == {"payment sheet in trace lines": 0, "payment sheet states": 0,
                                      "typed actions outside the core loop": 0, "core-loop typed actions": 2,
-                                     "core-loop sends (a pass's tap after its typing)": 2}
+                                     SENDS: 2}
 
 
-def test_a_tap_after_typing_outside_the_core_loop_is_no_send():
-    """Typing into a search box and tapping a result sends nothing."""
-    actions = [line(1, action="type", mcp_ref="search_input"), line(2, mcp_ref="search_result", to_state="detail")]
-    assert scorecard.hard_blocks(None, actions, []) == {"typed actions outside the core loop": 1,
-                                                        "core-loop typed actions": 0,
-                                                        "core-loop sends (a pass's tap after its typing)": 0}
+SENDS = "sends (recorded 'core loop: send')"
+
+
+def act(note: str, outcome: str = "ok") -> TraceLine:
+    return TraceLine(ts="2026-10-03T10:00:00", stage="explore", step="act002", decider="code", outcome=outcome,
+                     note=note)
+
+
+def test_sends_are_read_from_the_recorded_reason_only():
+    """Typing then tapping a result, or refocusing the box, sends nothing; a recorded send counts with or without loop
+    tags, a denied one never; with no explore trace the row stays unavailable."""
+    typed_then_tapped = [line(1, action="type", loop_pass=1), line(2, loop_pass=1, to_state="detail")]
+    assert scorecard.hard_blocks(None, typed_then_tapped, []) == {"typed actions outside the core loop": 0,
+                                                                  "core-loop typed actions": 1}
+    focus = act("tap s01>s01 [unknown] (core loop: focus the text box)")
+    assert scorecard.hard_blocks(None, typed_then_tapped, [focus])[SENDS] == 0
+    untagged = [line(1, action="type"), line(2)]
+    sent, denied = act("tap 'Send' s01>s01 [unknown] (core loop: send)"), act("tap 'Send' (core loop: send)", "denied")
+    assert scorecard.hard_blocks(None, untagged, [sent, denied])[SENDS] == 1
 
 
 def test_product_model_and_checklist(run):
@@ -208,7 +223,8 @@ def test_product_model_and_checklist(run):
     assert (model["states"], model["flows"], model["app category"]) == (len(golden.states), len(golden.flows), "chat")
     assert (model["model retry"], model["model needs-human"]) == (True, False)
     assert scored["Checklist"] == {"answered by explore": 0, "open in explore": "none",
-                                   "answered by the product model": 4, "open in the product model": "limit"}
+                                   "answered by the product model": 3, "open in the product model": "all_tabs, limit",
+                                   "settings screen (purpose/name heuristic)": True}
 
 
 def golden(app: str) -> ProductModel:
@@ -258,32 +274,60 @@ def test_model_checklist_reads_tabs_paywall_settings_and_limit():
 
 @pytest.mark.parametrize("name,purpose,settings", [
     ("Preferences", "Settings page for configuring app behavior", True),
+    ("Preferences", "Controls notification, language, and privacy settings", True),
     ("Settings shortcut", "Account menu containing a link to settings", False),
     ("Side menu", "Account drawer with links (Following, Settings)", False),
+    ("Menu", "Main navigation menu for opening settings", False),
+    ("Settings shortcut", "Account menu with links to preferences", False),
     ("Settings", "Upgrade row, memories, language, theme, account", True),
-    ("Settings", "Onboarding modal; the pet can be turned off in Settings", False)])
+    ("Settings", "Onboarding modal; the pet can be turned off in Settings", False),
+    ("Settings", "Settings page\nControls notifications", True),
+    ("Settings shortcut", "Opens the links\nto settings and help", False)])
 def test_settings_are_read_from_the_purpose_not_the_title(name, purpose, settings):
     assert scorecard.settings_screen(screen("s01", name, purpose)) is settings
 
 
+def test_a_multiline_purpose_scores(tmp_path):
+    (tmp_path / "model").mkdir()
+    (tmp_path / "model" / "product_model.json").write_text(
+        product([screen("s01", "Settings", "Settings page\nControls notifications")]).model_dump_json())
+    checklist = scorecard.score(tmp_path)["Checklist"]
+    assert (checklist["answered by the product model"], checklist["settings screen (purpose/name heuristic)"]) == \
+        (2, True)
+
+
 def test_tabs_are_visited_only_through_the_bars_own_controls():
-    """Three tabs on two screens: a tap on Search's own control visits it, a wordless box around Profile visits it,
-    and a named button lying where a tab is visits nothing."""
+    """Three tabs on three screens: a tap on Search's own control visits it, a wordless box around Profile visits it,
+    Home's own control visits Home, and a named button lying where a tab is visits nothing."""
     holder = element("search", "box", 700, "").model_copy(update={"rect_px": Rect(x=700, y=2150, w=360, h=180)})
     button = element("search", "help", 760, "Help", "Button")
     states = [screen("home", elements=tabs("home")), screen("search", elements=[*tabs("search"), holder, button]),
-              screen("profile"), screen("dialog")]
-    assert scorecard.all_tabs(product(states, [tap("home", "search", "home.tab1"),
-                                               tap("search", "profile", "search.box")]))
-    assert scorecard.all_tabs(product(states, [tap("home", "search", "home.tab1"),
-                                               tap("search", "dialog", "search.help")])) is False
+              screen("profile", elements=tabs("profile")), screen("dialog")]
+    walked = [tap("home", "search", "home.tab1"), tap("search", "profile", "search.box"),
+              tap("profile", "home", "profile.tab0")]
+    assert scorecard.all_tabs(product(states, walked))
+    assert scorecard.all_tabs(product(states, [walked[0], walked[2], tap("search", "dialog", "search.help")])) is False
 
 
-def test_a_tap_back_to_the_first_tab_never_counts():
-    """The first screen showing the bar is on Home; Search was opened, then Home again; Profile never was."""
-    states = [screen("home", elements=tabs("home")), screen("search", elements=tabs("search"))]
+def test_returning_to_the_first_tab_does_not_stand_in_for_an_unopened_one():
+    """Search's tab then Home's: Home, Search and a reloaded Home were reached, Profile never was."""
+    states = [screen("home", elements=tabs("home")), screen("search", elements=tabs("search")),
+              screen("home_reload", elements=tabs("home_reload"))]
     assert scorecard.all_tabs(product(states, [tap("home", "search", "home.tab1"),
-                                               tap("search", "home", "search.tab0")])) is False
+                                               tap("search", "home_reload", "search.tab0")])) is False
+
+
+def test_swipes_and_overlays_never_visit_a_tab():
+    states = [screen("home", elements=tabs("home")), screen("search", elements=tabs("search")),
+              screen("profile", elements=tabs("profile"))]
+    walked = [tap("home", "search", "home.tab1"), tap("search", "profile", "search.tab2"),
+              tap("profile", "home", "profile.tab0")]
+    assert scorecard.all_tabs(product(states, walked))
+    swipes = [e.model_copy(update={"action": "swipe"}) for e in walked]
+    assert scorecard.all_tabs(product(states, swipes)) is False
+    sheet = screen("sign_in", "Sign in", "Account required").model_copy(update={"kind": "sheet", "parent_id": "home"})
+    gated = [tap("home", "sign_in", "home.tab1"), tap("search", "sign_in", "search.tab2"), walked[2]]
+    assert scorecard.all_tabs(product([*states, sheet], gated)) is False
 
 
 def test_tabs_found_after_onboarding_are_not_reached_by_default():
@@ -355,12 +399,21 @@ def test_cost_and_time(run):
     assert cost["explore $ per distinct screen"] == pytest.approx(0.251 / distinct)
 
 
-def test_roles_sharing_a_model_keep_their_own_counts():
-    roles = {"qa_critic": "same-model medium", "qa_fixer": "same-model high"}
-    trace = [TraceLine(ts="2026-10-03T10:00:00", stage="qa", step="critic r1 g1", decider="model", model="same-model"),
-             TraceLine(ts="2026-10-03T10:01:00", stage="qa", step="fixer r1", decider="model", model="same-model")]
-    cost = scorecard.cost_and_time(trace, manifest(roles), None, None)
-    assert (cost["model calls qa_critic"], cost["model calls qa_fixer"]) == (1, 1)
+@pytest.mark.parametrize("stage,step,expected", [
+    ("propose", "judge:revisions", "propose_dedupe"), ("propose", "judge:revisions:r3", "propose_dedupe"),
+    ("judge", "revise:c01", "proposer"), ("judge", "judge:c01:judge_1:r1", "judge_1"),
+    ("judge", "judge:c01:judge_2:r1", "judge_2"), ("qa", "critic r1 g1", "qa_critic"), ("qa", "fixer r1", "qa_fixer"),
+    ("propose", "dedupe:topup", "propose_dedupe"), ("propose", "lens:utility", "proposer"),
+    ("propose", "topup", "proposer")])
+def test_roles_sharing_a_model_keep_their_own_counts(stage, step, expected):
+    roles = {r: "same-model high" for rs in scorecard.ROLES.values() for r in rs if r != "jev"}
+    trace = [TraceLine(ts="2026-10-03T10:00:00", stage=stage, step=step, decider="model", model="same-model")]
+    assert scorecard.cost_and_time(trace, manifest(roles), None, None)[f"model calls {expected}"] == 1
+
+
+def test_minutes_span_the_earliest_to_the_latest_time_whatever_the_append_order():
+    lines = [TraceLine(ts=f"2026-10-03T10:0{m}:00", stage="qa", step="critic", decider="code") for m in (2, 0, 1)]
+    assert scorecard.cost_and_time(lines, None, None, None)["minutes qa"] == 2
 
 
 def test_adapter_calls_are_not_typesafe_jev_calls():
