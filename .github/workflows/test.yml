@@ -38,7 +38,8 @@ jobs:
       # Without --with-deps: the runner image ships Chrome's libraries, and apt's mirror has crawled past 12 minutes
       - run: uv run playwright install chromium
         timeout-minutes: 5
-      # One test at a time, so the longest tests start first on every worker instead of in one worker's first batch
+      # xdist starts each worker on two tests (the one it runs and the next) and then hands out one at a time, so the
+      # longest tests start first on every worker instead of all landing in the first worker's opening batch
       - run: uv run pytest -m "not live" -q -n auto --maxschedchunk 1 --durations=50
       # To refresh tests/durations.json from a run: gh run download <run-id> -p 'shard-*' -D <dir>, then
       # jq -S -s add <dir>/*/durations.json > tests/durations.json
