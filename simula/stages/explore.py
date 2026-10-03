@@ -1374,6 +1374,8 @@ class Explorer:
         return past
 
     def stopped(self, wall: Seen, why: str) -> bool:
+        if self.account_state:  # a form was sent: an account may exist, and a new account's filter is unchecked
+            self.filtered = False
         return self.account_note(f"{wall.sid}: stopped at the wall, {why}", False)
 
     # ---------- the tour ----------

@@ -2430,6 +2430,26 @@ def test_an_account_made_on_the_tour_is_relaunched_with_the_filter_before_anothe
     assert tour_until(ex, monkeypatch, lambda: None) == [(True, 1)] and walls and ex.account_state == "made"
 
 
+def test_a_sent_form_that_ends_at_a_stop_rechecks_the_filter_before_another_tap_rt_s_r3_m3(tmp_path, monkeypatch):
+    """rt-s on #46 (MEDIUM 3): #43 clears the verified filter when the sign-up made an account, but item 41's stop
+    ("came back to sNN, seen before the wall") returned before that, though an account may have been made there (a
+    signed-in home that looks like the guest one). Once a form was sent, every stop of the sign-up clears it, so the
+    tour relaunches with the filter before another tap."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    walls = []
+    monkeypatch.setattr(ex, "account_wall", lambda s: not walls and len(ex.segments) == 1)
+
+    def get_past(wall):
+        walls.append(wall.sid)
+        earlier = [s for s in ex.states[:ex.states.index(wall)]
+                   if s.kind == "screen" and not any(map(ob.asks_sign_in, stage.controls_of(s.cands)))]
+        ex.current, ex.account_state = earlier[0], "sent"
+        return ex.result(wall)
+    monkeypatch.setattr(ex, "get_past", get_past)
+    assert tour_until(ex, monkeypatch, lambda: None) == [(True, 1)]
+    assert walls and ex.account[-1].endswith("seen before the wall") and ex.account_state == "sent"
+
+
 @pytest.mark.parametrize("left", [True, False])
 def test_an_account_made_on_the_tours_last_action_is_relaunched_with_the_filter_before_the_phases(tmp_path,
                                                                                                     monkeypatch, left):
