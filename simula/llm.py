@@ -29,23 +29,27 @@ RATE_HEADERS = ("anthropic-ratelimit-", "x-ratelimit-", "retry-after")
 REQUEST_TIMEOUT_S = 180.0
 STREAM_IDLE_TIMEOUT_S = 60.0
 RAISE_TO = re.compile(r"raise with --usd-cap (\d+(?:\.\d+)?)$")
+EPHEMERAL = {"type": "ephemeral"}  # Anthropic's 5-minute prompt cache; it marks a prefix only, never the cache key
+SPENT = ("tokens_in", "tokens_out", "tokens_cached", "tokens_cache_write")  # what a call is charged for: usd()'s args
 
 
 class LLMFailure(Exception):
-    """A typed failure. tokens_in / tokens_out are what the failed attempt still cost (an aborted stream)."""
-    def __init__(self, outcome: str, detail: str = "", raw: str = "", tokens_in: int = 0, tokens_out: int = 0):
+    """A typed failure. Its SPENT tokens are what the failed attempt still cost (an aborted stream)."""
+    def __init__(self, outcome: str, detail: str = "", raw: str = "", tokens_in: int = 0, tokens_out: int = 0,
+                 tokens_cached: int = 0, tokens_cache_write: int = 0):
         super().__init__(f"{outcome}: {detail}")
         self.outcome = outcome
         self.detail = detail
         self.raw = raw
         self.tokens_in = tokens_in
         self.tokens_out = tokens_out
+        self.tokens_cached = tokens_cached
+        self.tokens_cache_write = tokens_cache_write
 
 
 def _failure(outcome: str, error: Exception) -> "LLMFailure":
     """An LLMFailure that keeps whatever an aborted stream already spent (set on the error by _drain)."""
-    return LLMFailure(outcome, str(error), tokens_in=getattr(error, "tokens_in", 0),
-                      tokens_out=getattr(error, "tokens_out", 0))
+    return LLMFailure(outcome, str(error), **{k: getattr(error, k, 0) for k in SPENT})
 
 
 class CapReached(SystemExit):
@@ -74,6 +78,7 @@ class Reply:
     tokens_in: int = 0
     tokens_out: int = 0
     tokens_cached: int = 0
+    tokens_cache_write: int = 0
     stop_reason: str = "end_turn"
     headers: dict = field(default_factory=dict)
     failure: str = ""  # the typed outcome when this recorded attempt failed; "" for a usable answer
@@ -265,14 +270,17 @@ def estimate_tokens_in(system: str, messages: list[dict]) -> int:
     return chars // 3 + images * IMAGE_TOKENS_WORST
 
 
-def usd(model: str, tokens_in: int, tokens_out: int, tokens_cached: int = 0) -> float:
+def usd(model: str, tokens_in: int, tokens_out: int, tokens_cached: int = 0, tokens_cache_write: int = 0) -> float:
+    """tokens_in counts every input token; the cache reads and writes among them are priced at their own rates."""
     m = config.models()[model]
-    fresh = max(tokens_in - tokens_cached, 0)
-    return (fresh * m["price_in"] + tokens_cached * m["price_cached_in"] + tokens_out * m["price_out"]) / 1e6
+    fresh = max(tokens_in - tokens_cached - tokens_cache_write, 0)
+    return (fresh * m["price_in"] + tokens_cached * m["price_cached_in"]
+            + tokens_cache_write * m["price_cache_write"] + tokens_out * m["price_out"]) / 1e6
 
 
 def worst_case_usd(model: str, tokens_in: int, max_tokens: int) -> float:
-    return usd(model, tokens_in, max_tokens)
+    """A cold call: every input token written to the prompt cache, its dearest price, and max_tokens of output."""
+    return usd(model, tokens_in, max_tokens, tokens_cache_write=tokens_in)
 
 
 # ---------- providers ----------
@@ -301,7 +309,21 @@ def _anthropic_content(parts: list[dict]) -> list[dict]:
             for p in parts]
 
 
-def _spent(stream, tokens_in_estimate: int, max_tokens: int) -> tuple[int, int]:
+def _anthropic_messages(messages: list[dict]) -> list[dict]:
+    """The messages with a cache breakpoint after the earlier turns, which the next turn of a conversation sends
+    again; the final message is sent once, so it is not written to the cache."""
+    sent = [{"role": m["role"], "content": _anthropic_content(m["content"])} for m in messages]
+    if len(sent) > 1:
+        sent[-2]["content"][-1]["cache_control"] = EPHEMERAL
+    return sent
+
+
+def _cache_tokens(usage) -> tuple[int, int]:
+    """(read, written) input tokens; a usage without cache fields (an older reply, a fake) reads as none."""
+    return (getattr(usage, "cache_read_input_tokens", 0) or 0, getattr(usage, "cache_creation_input_tokens", 0) or 0)
+
+
+def _spent(stream, tokens_in_estimate: int, max_tokens: int) -> dict[str, int]:
     """What an aborted stream is charged. With no snapshot, message_start never arrived, so nothing was generated:
     only the estimated input. Otherwise its worst case, the input the stream reported plus max_tokens of output, or
     what streamed if that was more: the API bills thinking a stream may not carry, and sends the final output count
@@ -309,9 +331,11 @@ def _spent(stream, tokens_in_estimate: int, max_tokens: int) -> tuple[int, int]:
     try:
         snapshot = stream.current_message_snapshot
     except (AssertionError, AttributeError):
-        return tokens_in_estimate, 0
+        return {"tokens_in": tokens_in_estimate}
     streamed = sum(len(getattr(b, "text", None) or getattr(b, "thinking", None) or "") for b in snapshot.content) // 3
-    return snapshot.usage.input_tokens, max(snapshot.usage.output_tokens, streamed, max_tokens)
+    cached, written = _cache_tokens(snapshot.usage)
+    return {"tokens_in": snapshot.usage.input_tokens + cached + written, "tokens_cached": cached,
+            "tokens_cache_write": written, "tokens_out": max(snapshot.usage.output_tokens, streamed, max_tokens)}
 
 
 def _drain(stream, total_timeout: float | None, tokens_in_estimate: int, max_tokens: int):
@@ -326,11 +350,12 @@ def _drain(stream, total_timeout: float | None, tokens_in_estimate: int, max_tok
                 raise LLMFailure("timeout", f"passed the {total_timeout:.0f}s total timeout")
         return stream.get_final_message()
     except Exception as e:
-        e.tokens_in, e.tokens_out = _spent(stream, tokens_in_estimate, max_tokens)
+        spent = _spent(stream, tokens_in_estimate, max_tokens)
+        for k, v in spent.items():
+            setattr(e, k, v)
         if isinstance(e, LLMFailure) or provider_error(e):
             raise
-        raise LLMFailure("error", f"{type(e).__name__} reading the stream: {e}", tokens_in=e.tokens_in,
-                         tokens_out=e.tokens_out) from e
+        raise LLMFailure("error", f"{type(e).__name__} reading the stream: {e}", **spent) from e
 
 
 def call_anthropic(model: str, system: str, messages: list[dict], effort: str | None,
@@ -348,10 +373,9 @@ def call_anthropic(model: str, system: str, messages: list[dict], effort: str | 
         output_config["effort"] = effort
     if schema:
         output_config["format"] = {"type": "json_schema", "schema": json_schema_for("anthropic", schema)}
-    kwargs = {"model": model, "max_tokens": max_tokens,
-              "messages": [{"role": m["role"], "content": _anthropic_content(m["content"])} for m in messages]}
+    kwargs = {"model": model, "max_tokens": max_tokens, "messages": _anthropic_messages(messages)}
     if system:
-        kwargs["system"] = system
+        kwargs["system"] = [{"type": "text", "text": system, "cache_control": EPHEMERAL}]
     if output_config:
         kwargs["output_config"] = output_config
     try:
@@ -379,10 +403,10 @@ def call_anthropic(model: str, system: str, messages: list[dict], effort: str | 
         raise _failure("timeout" if isinstance(e, httpx2.TimeoutException) else "error", e) from e
     text = "".join(block.text for block in message.content if block.type == "text")
     usage = message.usage
-    cached = getattr(usage, "cache_read_input_tokens", 0) or 0
-    return Reply(text=text, model=message.model, tokens_in=usage.input_tokens + cached,
-                 tokens_out=usage.output_tokens, tokens_cached=cached, stop_reason=message.stop_reason or "",
-                 headers=_rate_headers(headers))
+    cached, written = _cache_tokens(usage)
+    return Reply(text=text, model=message.model, tokens_in=usage.input_tokens + cached + written,
+                 tokens_out=usage.output_tokens, tokens_cached=cached, tokens_cache_write=written,
+                 stop_reason=message.stop_reason or "", headers=_rate_headers(headers))
 
 
 def _openai_content(parts: list[dict]) -> list[dict]:
@@ -536,27 +560,27 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
             retry = isinstance(e, LLMFailure) or (isinstance(e, Exception) and provider_error(e))
             failure = e if isinstance(e, LLMFailure) else _failure(
                 "blocked" if isinstance(e, ProviderUnavailable) else "error", e)
-            cost = usd(model, failure.tokens_in, failure.tokens_out)
+            spent = {k: getattr(failure, k) for k in SPENT}
+            cost = usd(model, **spent)
             budget.charge(cost, worst)
             note = str(e) if retry or not isinstance(e, Exception) else f"{type(e).__name__}, not a provider error: {e}"
             # Only a retried failure is cached, so only its trace line names a key: a stop or a bug in our own code is
             # no model answer, and --replay must never look for it.
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
-                  tokens_in=failure.tokens_in, tokens_out=failure.tokens_out, usd=round(cost, 6),
-                  outcome=failure.outcome, note=(f"key {fresh[key][:12]} " if retry else "") + note[:200])
+                  **spent, usd=round(cost, 6), outcome=failure.outcome,
+                  note=(f"key {fresh[key][:12]} " if retry else "") + note[:200])
             if not retry:
                 raise
-            cache_write(fresh[key], Reply(text=failure.raw, model=model, tokens_in=failure.tokens_in,
-                                          tokens_out=failure.tokens_out, stop_reason=failure.detail,
+            cache_write(fresh[key], Reply(text=failure.raw, model=model, **spent, stop_reason=failure.detail,
                                           failure=failure.outcome), cache_dir)
             last = failure
             continue
-        cost = usd(model, reply.tokens_in, reply.tokens_out, reply.tokens_cached)
+        cost = usd(model, reply.tokens_in, reply.tokens_out, reply.tokens_cached, reply.tokens_cache_write)
         budget.charge(cost, worst)
         outcome, result = _check(reply, schema)
         trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
               tokens_in=reply.tokens_in, tokens_out=reply.tokens_out, tokens_cached=reply.tokens_cached,
-              usd=round(cost, 6), outcome=outcome,
+              tokens_cache_write=reply.tokens_cache_write, usd=round(cost, 6), outcome=outcome,
               note=f"key {fresh[key][:12]} {time.monotonic() - started:.1f}s" + ("" if outcome == "ok" else f" stop={reply.stop_reason}"))
         if outcome == "ok":
             cache_write(fresh[key], reply, cache_dir)
