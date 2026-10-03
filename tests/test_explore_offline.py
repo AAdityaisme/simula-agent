@@ -2271,6 +2271,36 @@ def test_an_account_made_on_the_tour_is_relaunched_with_the_filter_before_anothe
     assert tour_until(ex, monkeypatch, lambda: None) == [(True, 1)] and walls and ex.account_state == "made"
 
 
+@pytest.mark.parametrize("left", [True, False])
+def test_an_account_made_on_the_tours_last_action_is_relaunched_with_the_filter_before_the_phases(tmp_path,
+                                                                                                    monkeypatch, left):
+    """Greptile on 15170d2: a sign-up that makes an account with the tour's last allowed action leaves the filter
+    unverified, and the tour stops at its cap before it relaunches. Each phase after the tour relaunches with the
+    filter first, so the core loop runs filtered and no tap runs between a launch and a passing check. With no
+    relaunch left, each phase stops at the relaunch cap untapped."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    log_filter_checks(ex, phone, monkeypatch)
+    walls, made = [], []
+    monkeypatch.setattr(ex, "account_wall", lambda s: not walls and len(ex.segments) == 1)
+
+    def get_past(wall):
+        walls.append(wall.sid)
+        ex.actions = ex.limits["actions"]  # the sign-up's taps were the tour's last allowed actions
+        if not left:
+            ex.relaunches = stage.MAX_RELAUNCHES + stage.CORE_RELAUNCHES
+        made.append(len(phone.log))
+        return ex.result(wall)
+    monkeypatch.setattr(ex, "get_past", get_past)
+    monkeypatch.setattr(ex, "entry", lambda s: None)  # no upsell to follow: the paywall pass relaunches nothing
+    stage.explore_app(ex)
+    assert walls and ex.account_state == "made" and ex.stop_reason.startswith("action cap")
+    if left:
+        assert ex.core_completed >= 1 and unfiltered_taps(phone.log) == []
+    else:
+        assert all("Stop: relaunch cap" in r for r in ex.core_results) and len(ex.core_results) == 3
+        assert not [e for e in phone.log[made[0]:] if e[0] in ("tap", "launch")]
+
+
 @pytest.mark.parametrize("reset", [False, True])
 def test_a_return_to_home_re_applies_its_filter_switch_if_it_reset_and_checks_it(tmp_path, monkeypatch, reset):
     """rt-pr43-f6702e7 LOW 2: home holds the filter switch, turned on, and an app opened from home is left with a

@@ -1705,18 +1705,21 @@ class Explorer:
             return f"{STALE_ACTIONS} actions without a new state"
         return "" if self.checklist()[1] else "checklist answered"
 
+    def refilter(self) -> None:
+        """An app with a content filter is toured, and each phase after the tour run, only while this launch verified
+        it: one a device error cut short, or an account made on the way, is relaunched with the filter first. With no
+        relaunch left, relaunch() stops what was to run before any tap, naming this reason (relaunch cap)."""
+        if self.filter_taps and not self.filtered:
+            self.relaunch(why="the content filter isn't verified since a device error or a new account")
+
     def tour(self) -> None:
-        """Explores until a cap or nothing is left. An app with a content filter is toured only while it is verified:
-        a launch a device error cut short, or an account made on the way, is relaunched with the filter first."""
         self.relaunch(first=True)
         while True:
             reason = self.check_caps()
             if reason:
                 raise Stop(reason)
             try:
-                if self.filter_taps and not self.filtered:
-                    self.relaunch(why="the content filter isn't verified since a device error or a new account")
-                    continue
+                self.refilter()
                 if self.obs is None:
                     self.resync()
                 if self.current.kind in AWAY:
@@ -2750,8 +2753,10 @@ def explore_app(ex: Explorer) -> StageOutcome:
                   note=f"serial {ex.serial}, mobile-mcp device {ex.phone.device}")
         run_tour(ex)
         if ex.root and not ex.stop_reason.startswith(("blocked root", "content filter", *DEVICE_STOPS)):
+            ex.touring = False  # the phases' relaunch cap from here on
             for phase in (ex.paywall_pass, ex.core_loop, ex.verify_replay):
                 try:
+                    ex.refilter()
                     phase()
                 except DEVICE_LOST as e:
                     ex.lost(phase.__name__, e)
