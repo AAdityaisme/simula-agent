@@ -23,7 +23,7 @@ Plan 1 to 5 steps. Code runs them in order while each one does what its `expect`
 `expect` says in a few words what changes on screen after the step ("the chat list opens", "the switch shows on").
 
 ## Never
-Code refuses these, and each refusal costs you a turn: buying or subscribing, starting a free trial, posting, publishing or sharing in public, messaging or following real people, deleting or deactivating an account, signing out, and changing a password, an email or a phone number. To sign in, use "Continue with Google" when the app offers it and pick the account shown; never type an email or a password. When a purchase screen opens, code presses back before you see it.
+Code refuses these, and each refusal costs you a turn: buying or subscribing, starting a free trial, posting, publishing or sharing in public, messaging or following real people, deleting or deactivating an account, signing out, and changing a password, an email or a phone number. To sign in, use "Continue with Google" when the app offers it and pick the account shown; never type an email or a password, and never open the Google account's own settings (manage, add or switch accounts, privacy). When a purchase screen opens, code presses back before you see it.
 
 ## The rest of your answer
 - `screen`: a short name for this screen ("home", "character page", "plans").

@@ -12,6 +12,7 @@ import math
 import re
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -460,15 +461,16 @@ PROVIDERS = {"anthropic": call_anthropic, "openai": call_openai}
 def call(*, trace_path: Path, stage: str, step: str, model: str, effort: str | None, system: str,
          messages: list[dict], max_tokens: int, budget: Budget, schema: type[BaseModel] | None = None,
          no_cache: bool = False, replay: bool = False, cache_dir: Path = CACHE, fallback: str | None = None,
-         attempts: int = 2, total_timeout: float | None = None):
+         attempts: int = 2, total_timeout: float | None = None, scrub: Callable[[str], str] | None = None):
     """Returns (parsed schema object or text, Reply). Makes up to `attempts` tries (a typed failure is retried),
     then tries the declared fallback model if one is given, then raises LLMFailure. `total_timeout` bounds one
-    streamed Anthropic attempt end to end."""
+    streamed Anthropic attempt end to end. `scrub` rewrites what the model said (its answer, a failure's detail and
+    raw text) before the cache, the trace or the caller sees it; it isn't part of the cache key."""
     try:
         return _call_model(trace_path=trace_path, stage=stage, step=step, model=model, effort=effort, system=system,
                            messages=messages, max_tokens=max_tokens, budget=budget, schema=schema,
                            no_cache=no_cache, replay=replay, cache_dir=cache_dir, attempts=attempts,
-                           total_timeout=total_timeout)
+                           total_timeout=total_timeout, scrub=scrub)
     except LLMFailure as e:
         if not fallback or e.outcome not in ("error", "timeout"):
             raise
@@ -478,11 +480,12 @@ def call(*, trace_path: Path, stage: str, step: str, model: str, effort: str | N
         return _call_model(trace_path=trace_path, stage=stage, step=step, model=fallback, effort=effort, system=system,
                            messages=messages, max_tokens=max_tokens, budget=budget, schema=schema,
                            no_cache=no_cache, replay=replay, cache_dir=cache_dir, attempts=attempts,
-                           total_timeout=total_timeout)
+                           total_timeout=total_timeout, scrub=scrub)
 
 
 def _call_model(*, trace_path, stage, step, model, effort, system, messages, max_tokens, budget, schema,
-                no_cache, replay, cache_dir, attempts, total_timeout):
+                no_cache, replay, cache_dir, attempts, total_timeout, scrub=None):
+    scrub = scrub or (lambda text: text)
     provider = config.models()[model]["provider"]
     params = request_params(provider, effort, max_tokens, schema)
     keys = [cache_key(provider, model, system, messages, params, attempt) for attempt in range(attempts)]
@@ -561,9 +564,11 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
             failure = e if isinstance(e, LLMFailure) else _failure(
                 "blocked" if isinstance(e, ProviderUnavailable) else "error", e)
             spent = {k: getattr(failure, k) for k in SPENT}
+            failure = LLMFailure(failure.outcome, scrub(failure.detail), raw=scrub(failure.raw), **spent)
             cost = usd(model, **spent)
             budget.charge(cost, worst)
-            note = str(e) if retry or not isinstance(e, Exception) else f"{type(e).__name__}, not a provider error: {e}"
+            note = scrub(str(e) if retry or not isinstance(e, Exception) else
+                         f"{type(e).__name__}, not a provider error: {e}")
             # Only a retried failure is cached, so only its trace line names a key: a stop or a bug in our own code is
             # no model answer, and --replay must never look for it.
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
@@ -577,6 +582,7 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
             continue
         cost = usd(model, reply.tokens_in, reply.tokens_out, reply.tokens_cached, reply.tokens_cache_write)
         budget.charge(cost, worst)
+        reply.text, reply.stop_reason = scrub(reply.text), scrub(reply.stop_reason or "") or reply.stop_reason
         outcome, result = _check(reply, schema)
         trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
               tokens_in=reply.tokens_in, tokens_out=reply.tokens_out, tokens_cached=reply.tokens_cached,

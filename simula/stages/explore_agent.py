@@ -2,6 +2,7 @@
 every action, records what happened and stops the run. Observing, recording, launching, the content filter's check
 and the core loop are the scripted explorer's (Explorer), so explore/ keeps its contracts."""
 
+import contextlib
 import re
 
 from PIL import Image
@@ -10,11 +11,12 @@ from simula import config, decide, llm
 from simula.contracts import AdLine, AgentStep, AgentTurn
 from simula.device import guard
 from simula.device import observe as ob
-from simula.stages.explore import (AWAY, CORE_SECONDS_PER_REP, DEVICE_LOST, FILTER_SURE, PROMPTS, SEARCH_QUERIES,
-                                   CoreAction, Explorer, Move, NeedRelaunch, Seen, Stop, filter_holds,
-                                   filter_label, png_half, put_back, where)
+from simula.stages.explore import (AWAY, CORE_SECONDS_PER_REP, DEVICE_LOST, FILTER_MENU_QUESTION, FILTER_QUESTION,
+                                   FILTER_STATE_QUESTION, FILTER_SURE, NO_FILTER, PROMPTS, SEARCH_QUERIES, CoreAction,
+                                   Explorer, Move, NeedRelaunch, Seen, Stop, controls_of, filter_holds, filter_label,
+                                   png_half, put_back, title_of, where)
 
-AGENT_MINUTES = 60  # one wall clock for the tour and the core loop
+AGENT_MINUTES = 60  # one wall clock for everything the agent does: the tour, the core loop and the replay check
 STALE_TURNS = 10  # planner turns in a row that found no new state end the run
 RELAUNCHES = 10  # a guard against a launch loop, not a budget: the agent's stops are $, time, stale turns and done
 HISTORY_LINES = 60  # ponytail: the latest steps only; a summary of older ones if long runs lose their way
@@ -23,6 +25,17 @@ GROUND = "Which control does this: {}?"
 AD_NOTE = re.compile(r"^\s*(o\d+)\s*:\s*(.*)$", re.MULTILINE)
 AD_FORMATS = ("banner", "interstitial", "rewarded", "native")
 SEARCH = re.compile(r"\bsearch\b", re.IGNORECASE)
+URL = re.compile(r"\b(?:https?://|www\.)\S+", re.IGNORECASE)
+CHOOSER_STEPS = {"continue", "next", "allow", "agree", "i agree", "ok", "cancel"}  # the account chooser's flow buttons
+FILTER_PATH = 4  # ponytail: the filter's last taps kept as its controls (opener, option, two hops to them)
+
+
+class Halt(Stop):
+    """The $ cap or the wall clock: no device action after it, in any phase."""
+
+
+class ScreenMoved(NeedRelaunch):
+    """The screen changed under an action (the Play Store came to the front, or the target is gone): it didn't run."""
 
 
 def hard_block(c: ob.Candidate, screen: list[dict] | None, core: bool = False) -> str | None:
@@ -31,6 +44,11 @@ def hard_block(c: ob.Candidate, screen: list[dict] | None, core: bool = False) -
     element = {"text": c.tree_label, "label": c.label, "identifier": c.ident,
                "coordinates": {"x": r.x, "y": r.y, "width": r.w, "height": r.h}}
     return guard.blocked_tap(element, screen, core=core)
+
+
+def chooser_step(said: str) -> bool:
+    """On Google's account chooser only an account row (it shows an email, redacted or not) or a flow button."""
+    return ob.REDACTED in said or bool(ob.EMAIL.search(said)) or said.strip().lower() in CHOOSER_STEPS
 
 
 class AgentExplorer(Explorer):
@@ -42,13 +60,18 @@ class AgentExplorer(Explorer):
         self.dial = self.ctx.explore_jev
         self.limits = {**self.limits, "actions": float("inf")}
         self.tour_seconds = AGENT_MINUTES * 60 - self.core_reps * CORE_SECONDS_PER_REP
+        self.deadline = self.started + AGENT_MINUTES * 60
+        self.capped = False
+        self.redacting = re.compile("|".join([ob.EMAIL.pattern, *(re.escape(x) for x in self.secrets if x.strip())]),
+                                    re.IGNORECASE)
         self.steps: list[AgentStep] = []
         self.ids: dict[str, ob.Candidate] = {}  # this turn's element ids
         self.names: dict[str, str] = {}  # the planner's name for each state it planned on
         self.found: list[str] = []  # the planner's notes
         self.history: list[str] = []
         self.news: list[str] = []  # what code tells the planner on its next turn
-        self.tapped: list[ob.Candidate] = []  # taps run since the last turn: the filter's controls when it says set
+        self.tapped: list[ob.Candidate] = []  # taps while the filter isn't verified: its controls when it says set
+        self.tapped_on: dict[int, tuple[list[ob.Candidate], list[dict]]] = {}  # each one's screen: controls, elements
         self.turn: AgentTurn | None = None
         self.filter_news = "not set yet"
         self.picked_core: CoreAction | None = None
@@ -59,26 +82,59 @@ class AgentExplorer(Explorer):
     # ---------- the loop ----------
 
     def tour(self) -> None:
-        self.relaunch(first=True)
-        while True:
-            if self.clock() - self.started >= self.tour_seconds:
-                raise Stop("wall-time cap")
-            try:
-                if self.obs is None:
-                    self.resync()
-                if self.escape_billing():
+        with self.latching():
+            self.relaunch(first=True)
+            while True:
+                if self.clock() - self.started >= self.tour_seconds:
+                    raise Stop("wall-time cap")
+                try:
+                    if self.obs is None:
+                        self.resync()
+                    if self.escape_billing():
+                        self.obs = None
+                    elif self.current.kind in AWAY:
+                        self.leave()
+                    elif not self.steps:
+                        self.next_turn()
+                    else:
+                        self.run_step(self.steps.pop(0))
+                except ScreenMoved as e:
+                    self.note("agent.moved", f"{e}: nothing was done, the plan ended")
+                    self.news.append(f"The screen changed before a step could run ({e}): nothing was done.")
+                    self.steps.clear()
                     self.obs = None
-                elif self.current.kind in AWAY:
-                    self.leave()
-                elif not self.steps:
-                    self.next_turn()
-                else:
-                    self.run_step(self.steps.pop(0))
-            except NeedRelaunch as e:
-                self.note("relaunch", str(e))
-                self.relaunch(why=str(e))
-            except DEVICE_LOST as e:
-                self.hang(self.current, e)
+                except NeedRelaunch as e:
+                    self.note("relaunch", str(e))
+                    self.relaunch(why=str(e))
+                except DEVICE_LOST as e:
+                    self.hang(self.current, e)
+
+    @contextlib.contextmanager
+    def latching(self):
+        """A $ cap anywhere latches the stop: no later phase touches the device."""
+        try:
+            yield
+        except llm.CapReached:
+            self.capped = True
+            raise
+
+    def halted(self) -> str:
+        return "$ cap" if self.capped else "wall-time cap" if self.clock() >= self.deadline else ""
+
+    def core_loop(self) -> None:
+        self.touring = False
+        if why := self.halted():
+            self.core_results.append(f"not run: {why}")
+            return
+        with self.latching():
+            super().core_loop()
+
+    def verify_replay(self) -> None:
+        if why := self.halted():
+            self.note("replay", f"not run: {why}")
+            return
+        with self.latching():
+            super().verify_replay()
 
     def next_turn(self) -> None:
         if guard.in_billing(self.phone.foreground()):  # the screen may have moved since the last look
@@ -94,14 +150,15 @@ class AgentExplorer(Explorer):
             turn = self.plan(s)
         except llm.LLMFailure as e:
             self.counts["model call failures"] += 1
-            self.note("agent.turn", f"planner call failed: {e}", outcome="error")
+            self.note("agent.turn", self.scrub(f"planner call failed: {e}"), outcome="error")
             return
         self.turn, self.names[s.sid], self.found = turn, turn.screen, turn.notes
         self.counts["planner turns"] += 1
         self.record_ads(s, turn)
         if turn.filter_set and not self.filtered:
             self.filter_reported()
-        self.tapped = []
+        if turn.filter_set:
+            self.tapped = []
         self.steps = list(turn.steps if self.dial == "on" else turn.steps[:1])
         self.counts["planned steps"] += len(self.steps)
         self.note("agent.plan", f"{s.sid} {turn.screen!r}: {turn.goal}; "
@@ -110,7 +167,7 @@ class AgentExplorer(Explorer):
 
     def plan(self, s: Seen) -> AgentTurn:
         """One planner call: the raw screen (the only unredacted thing, and never written), its elements by id, and
-        the run so far. What it answers is scrubbed of the redaction list before anything stores it."""
+        the run so far. What it answers is scrubbed (scrub) before anything stores it."""
         cands = self.listing(s)
         self.ids = dict(zip(decide.option_ids([c.label for c in cands]), cands, strict=True))
         text = self.situation(s)
@@ -124,7 +181,8 @@ class AgentExplorer(Explorer):
                                  effort=role.get("effort"), system=system,
                                  messages=[{"role": "user", "content": [*images, {"type": "text", "text": text}]}],
                                  max_tokens=config.max_tokens(role), budget=self.budget, schema=AgentTurn,
-                                 no_cache=self.ctx.no_cache, replay=self.ctx.replay, cache_dir=self.cache_dir)
+                                 no_cache=self.ctx.no_cache, replay=self.ctx.replay, cache_dir=self.cache_dir,
+                                 scrub=self.scrub)
             return parsed
 
         try:
@@ -134,7 +192,7 @@ class AgentExplorer(Explorer):
                 raise
             self.note("agent.turn", "the screenshot was refused: planned from the element list alone")
             turn = attempt([])
-        return self.scrubbed(turn)
+        return turn
 
     def raw_png(self) -> bytes:
         """The screen as it is, half-size, for the planner alone: the file it passes through is deleted at once."""
@@ -144,17 +202,17 @@ class AgentExplorer(Explorer):
         finally:
             shot.unlink()
 
-    def scrubbed(self, turn: AgentTurn) -> AgentTurn:
-        """The planner saw the raw screen, so whatever it wrote may hold a redacted string."""
-        said = turn.model_dump_json()
-        for secret in self.secrets:
-            said = re.sub(re.escape(secret), ob.REDACTED, said, flags=re.IGNORECASE)
-        return AgentTurn.model_validate_json(said)
+    def scrub(self, text: str) -> str:
+        """The planner saw the raw screen, so whatever it wrote may hold a redacted string or an email: llm.call
+        scrubs its answers and failures with this before the cache or the trace sees them."""
+        return self.redacting.sub(ob.REDACTED, text)
 
-    def listing(self, s: Seen) -> list[ob.Candidate]:
-        """What the planner may name on the live screen: the state's recorded controls it still shows (with the icon
-        pass's names and the pictures it found), then live ones the record lacks; on an overlay, its own."""
-        live = self.obs.cands if s.box is None else self.surface()
+    def listing(self, s: Seen, obs=None) -> list[ob.Candidate]:
+        """What the planner may name on the live screen (or the look given): the state's recorded controls it still
+        shows (with the icon pass's names and the pictures it found), then live ones the record lacks; on an overlay,
+        its own."""
+        obs = obs or self.obs
+        live = obs.cands if s.box is None else [c for c in (ob.find(obs.cands, o) for o in controls_of(s.cands)) if c]
         return [c for c in s.cands if ob.find(live, c)] + [c for c in live if s.box is None and not ob.find(s.cands, c)]
 
     def situation(self, s: Seen) -> str:
@@ -195,6 +253,9 @@ class AgentExplorer(Explorer):
             return
         s, before, ran = self.current, self.obs, self.actions
         ad = next((i for i in self.turn.ads if move.cand is not None and self.ids.get(i) is move.cand), None)
+        if ad:
+            self.tap_ad(s, move, ad)
+            return
         self.act(move)
         what = repr(move.cand.label[:40]) if move.cand else move.text or move.direction if move.action != "back" else ""
         if self.actions == ran:
@@ -203,11 +264,39 @@ class AgentExplorer(Explorer):
                              f"shown as listed.")
             self.steps.clear()
             return
-        if move.action == "tap":
-            self.tapped.append(ob.find(s.cands, move.cand) or move.cand)
-        if ad:
-            self.ad_line(s, ad, tapped=True)
+        if move.action == "tap" and not self.filtered:
+            tapped = ob.find(s.cands, move.cand) or move.cand
+            self.tapped = [*self.tapped, tapped][-FILTER_PATH:]
+            self.tapped_on[id(tapped)] = (self.listing(s, before), before.elements)
         self.after(step, move, what, s, before)
+
+    def tap_ad(self, s: Seen, move: Move, element: str) -> None:
+        """An ad's landing is ad evidence, never a product state: the tap goes through the guard like any other, the
+        landing is read (another app's package, else a URL or the title it shows), and the agent goes back."""
+        live = ob.find(self.obs.cands, move.cand)
+        refused = self.perform(move, live)
+        if refused:
+            self.log(s, None, move, live, "unknown", f"denied: {refused}", "denied")
+            self.news.append(f"The ad {move.cand.label[:40]!r} was not tapped: {refused}.")
+            self.steps.clear()
+            return
+        self.actions += 1
+        obs = self.observe()
+        said = ob.texts(obs.elements, self.device)
+        landing = obs.fg if obs.fg != self.package else next((t for t in said if URL.search(t)), None) or \
+            title_of(obs.elements, self.device) or None
+        self.log(s, None, move, ob.find(s.cands, move.cand) or live, "unknown", f"an ad, landed on {landing}"[:160],
+                 "ok")
+        self.ad_line(s, element, tapped=True, landing=landing)
+        self.history.append(f"tap the ad {move.cand.label[:40]!r} on {s.sid}: landed on {landing}, then back")
+        self.steps.clear()
+        if not self.escape_billing():
+            if obs.fg != self.package:
+                self.ad_leave = True
+                self.launch()
+            else:
+                self.phone.back()
+        self.obs = None
 
     def move_for(self, step: AgentStep) -> Move | None:
         """The move a step asks for. A tap names an element of the planning screen, or (dial on) an intent Jev
@@ -310,33 +399,61 @@ class AgentExplorer(Explorer):
                 self.ads_seen.add((s.sid, c.key))
                 self.ad_line(s, element)
 
-    def ad_line(self, s: Seen, element: str, tapped: bool = False) -> None:
+    def ad_line(self, s: Seen, element: str, tapped: bool = False, landing: str | None = None) -> None:
         """One line of explore/ads.jsonl, written live: a tapped ad's line names where it landed."""
         said = dict(AD_NOTE.findall(self.turn.ad_notes)).get(element, "")
         kind, advertiser, category = ([p.strip() for p in said.split(";")] + ["", "", ""])[:3]
-        landed = self.current.kind in AWAY
-        self.ad_leave = tapped and landed
         line = AdLine(step=self.step, state=s.sid, format=kind.lower() if kind.lower() in AD_FORMATS else "other",
-                      advertiser=advertiser or None, category=category or None, tapped=tapped,
-                      landing=self.obs.fg if tapped and landed else None)
+                      advertiser=advertiser or None, category=category or None, tapped=tapped, landing=landing)
         with open(self.out / "ads.jsonl", "a") as f:
             f.write(line.model_dump_json() + "\n")
 
     # ---------- the hard blocks, instead of the deny-list ----------
 
     def denied_at(self, s: Seen, cand: ob.Candidate, **rules) -> str | None:
-        """The hard blocks on the live screen, before act() logs the move; tap() asks again at the device."""
-        word = hard_block(cand, self.obs.elements, core=rules.get("core", False))
-        return f"hard block: {word}" if word else None
+        """The hard blocks on the last look, before act() logs the move; tap() asks again on a fresh one."""
+        return self.refusal(cand, self.obs.fg, self.obs.elements, rules.get("core", False)) or None
+
+    def refusal(self, c: ob.Candidate, fg: str, elements: list[dict], core: bool) -> str:
+        """Why the guard refuses a tap on c on this screen, or "": a hard-block word, or on Google's account chooser
+        anything but an account row or a flow button."""
+        if guard.signing_in(fg) and not chooser_step(f"{c.tree_label}\n{c.label}"):
+            reason = "not an account row or a sign-in step on Google's account chooser"
+        else:
+            word = hard_block(c, elements, core=core)
+            reason = f"hard block: {word}" if word else ""
+        self.counts["hard blocks refused"] += bool(reason)
+        return reason
+
+    def boundary(self) -> str:
+        """Right before every tap, type, swipe and launch: nothing after the $ cap or the wall clock (Halt), and the
+        Play Store in front, read fresh, gets BACK and the action doesn't run (ScreenMoved). The foreground."""
+        if why := self.halted():
+            raise Halt(why)
+        fg = self.phone.foreground()
+        if guard.in_billing(fg):
+            self.back_out(fg)
+            raise ScreenMoved("the Play Store came to the front")
+        return fg
+
+    def fresh(self) -> list[dict]:
+        """The element list as the screen is now, redacted like every look (no image: nothing is painted or kept)."""
+        reply, _ = self.phone.elements()
+        return ob.redact(reply, Image.new("RGB", (1, 1)), self.secrets, self.parts)[1]
 
     def tap(self, live: ob.Candidate, elements: list[dict], **deny) -> str:
-        """Every tap reaches the device here (the planner's, the core loop's with core, a launch's, the replay's),
-        unless the guard refuses it on the live list. No content-filter gate: the filter is the planner's goal."""
-        word = hard_block(live, elements, core=deny.get("core", False))
-        if word:
-            return f"hard block: {word}"
-        self.phone.tap(*live.point)
-        return ""
+        """Every tap reaches the device here (the planner's, the core loop's with core, a launch's, the replay's): the
+        target is found again on a fresh element list and the guard reads that list. No content-filter gate: the filter
+        is the planner's goal."""
+        fg = self.boundary()
+        elements = self.fresh()
+        target = ob.find(ob.controls(elements, self.device), live)
+        if target is None:
+            raise ScreenMoved(f"{live.label[:40]!r} is gone from the screen")
+        reason = self.refusal(target, fg, elements, deny.get("core", False))
+        if not reason:
+            self.phone.tap(*target.point)
+        return reason
 
     def safe_tap(self, c: ob.Candidate, why: str) -> bool:
         """The replay's taps: only while the app is in front, and through tap()'s hard blocks, not the deny-list."""
@@ -348,22 +465,44 @@ class AgentExplorer(Explorer):
 
     def perform(self, move: Move, live: ob.Candidate | None, upsell: bool = False, core: bool = False,
                 toggle_ok: bool = False, account: bool = False) -> str:
-        """Typing is a core-loop message or a search query in a search box; anything else is refused unwritten."""
-        if move.action == "type" and not guard.allowed_text(move.text, core=core, field=self.field(core)):
+        """The one place a move reaches the device. BACK always runs (it is how the agent escapes); everything else
+        passes the boundary first. Typing is a core-loop message in the composer or a search query in a focused search
+        box, read on a fresh list; anything else is refused unwritten. The scripted deny-list isn't consulted."""
+        if move.action == "back":
+            self.phone.back()
+            return ""
+        if move.action == "tap":
+            return self.tap(live, self.obs.elements, core=core)
+        self.boundary()
+        if move.action == "swipe":
+            self.phone.swipe(move.direction)
+        elif guard.allowed_text(move.text, core=core, field=self.field(core, self.fresh())):
+            self.phone.type_text(move.text)
+        else:
             move.text = ""  # the refused text never reaches the record
+            self.counts["hard blocks refused"] += 1
             return "hard block: not an allowed text"
-        return super().perform(move, live, upsell, core, toggle_ok, account)
+        return ""
+
+    def launch(self) -> None:
+        if why := self.halted():
+            raise Halt(why)
+        fg = self.phone.foreground()
+        if guard.in_billing(fg):
+            self.back_out(fg)
+        super().launch()
 
     def unrun(self, s: Seen, move: Move, expect: Seen | None) -> Seen:
         """A refused type has no control to mark tried."""
         return s if move.cand is None and expect is None else super().unrun(s, move, expect)
 
-    def field(self, core: bool) -> str:
-        """What a type goes into: the core loop's composer (the chat's text box it just tapped), a search box (the
-        focused box says search), or anything else."""
+    def field(self, core: bool, elements: list[dict]) -> str:
+        """What a type goes into, on this list: the core loop's composer (the chat's text box it just tapped), a search
+        box (the focused box says search), or anything else."""
         if core:
-            return "composer" if self.live_box() else "other"
-        box = next((e for e in self.obs.elements if e.get("focused") and e["type"].endswith("EditText")), None)
+            cands = ob.controls(elements, self.device)
+            return "composer" if self.lower_box(cands) and not ob.dialog_box(cands, self.device) else "other"
+        box = next((e for e in elements if e.get("focused") and e["type"].endswith("EditText")), None)
         said = " ".join(str(box.get(k) or "") for k in ("text", "label", "identifier")) if box else ""
         return "search" if SEARCH.search(ob.ID_WORDS.sub(" ", said)) else "other"
 
@@ -375,20 +514,25 @@ class AgentExplorer(Explorer):
                 self.log(s, None, Move("tap", c, why=why), c, "unknown", why, "denied")
 
     def escape_billing(self) -> bool:
-        """The Play Store in front gets BACK before the planner sees it; the rest of the plan is dropped."""
+        """The Play Store in the last look gets BACK before the planner sees it; the rest of the plan is dropped."""
         if not (self.obs and guard.in_billing(self.obs.fg)):
             return False
-        self.note("billing", f"the store's billing screen opened ({self.obs.fg}); pressed BACK at once",
-                  outcome="blocked")
+        self.back_out(self.obs.fg)
+        return True
+
+    def back_out(self, fg: str) -> None:
+        self.note("billing", f"the store's billing screen opened ({fg}); pressed BACK at once", outcome="blocked")
         self.phone.back()
         self.counts["billing screens escaped"] += 1
         self.steps.clear()
         self.news.append("A purchase screen opened and code pressed back at once.")
-        return True
 
     def away(self, obs) -> str | None:
-        """Google sign-in's account chooser is part of signing in, not another app."""
-        return None if guard.signing_in(obs.fg) else super().away(obs)
+        """Google's account chooser is part of signing in, not another app; any other Google screen is away."""
+        if guard.signing_in(obs.fg):
+            chooser = any(chooser_step(e.get(k) or "") for e in obs.elements for k in ("text", "label"))
+            return None if chooser else "external"
+        return super().away(obs)
 
     def account_wall(self, s: Seen) -> bool:
         """Signing in is the planner's (Google only, no typing): code never fills a sign-up form for the agent."""
@@ -398,8 +542,12 @@ class AgentExplorer(Explorer):
 
     def leave(self) -> None:
         """As the scripted explorer leaves another app, set up: a return never relaunches for the filter, which the
-        planner is told to set again when it isn't verified."""
+        planner is told to set again when it isn't verified. A Google screen gets BACK first, toward the sign-in."""
         self.steps.clear()
+        if self.obs is not None and guard.signing_in(self.obs.fg):
+            self.act(Move("back", why="leave a Google screen that isn't the account chooser"), purpose="nav")
+            if self.current.kind not in AWAY:
+                return
         try:
             with self.setting_up():
                 super().leave()
@@ -436,19 +584,58 @@ class AgentExplorer(Explorer):
             self.recheck()
 
     def filter_reported(self) -> None:
-        """The planner says the filter is set: the taps since its last turn are the filter's controls, or, with none
-        (it was set already), the element it names; checked here."""
+        """The planner says the filter is set: its taps since the filter goal began (while it wasn't verified) are the
+        filter's controls, or, with none (it was set already), the element it names. Code judges them with the
+        scripted explorer's own questions (recognized), then checks the screen."""
         named = self.ids.get(self.turn.filter_element or "")
-        if self.tapped or named:
-            self.filter_taps, self.opener_says = list(self.tapped) or [ob.find(self.current.cands, named) or named], ""
-            live = ob.find(self.obs.cands, self.filter_taps[-1])
-            self.filter_on = live.checked if live else None
-            self.note("filter", f"content filter: {filter_label(self.filter_taps, self.filter_on)}", decider="model")
-        if self.filter_taps:
-            self.recheck()
-        else:
-            self.filter_news = ("you said it is set, but none of your taps set it and filter_element names nothing on "
-                                "this screen: name its control")
+        taps = self.tapped or ([ob.find(self.current.cands, named) or named] if named else [])
+        if not taps:
+            if self.filter_taps:
+                self.recheck()
+            else:
+                self.filter_news = ("you said it is set, but none of your taps set it and filter_element names nothing "
+                                    "on this screen: name its control")
+            return
+        on, why = self.recognized(taps)
+        if why:
+            self.note("filter.recognize", why, outcome="error")
+            self.filtered = False
+            self.filter_news = f"not verified: {why}"
+            return
+        self.filter_taps, self.filter_on, self.opener_says = taps, on, ""
+        self.note("filter", f"content filter: {filter_label(taps, on)}", decider="jev")
+        self.recheck()
+
+    def recognized(self, taps: list[ob.Candidate]) -> tuple[bool | None, str]:
+        """Whether taps set the strictest content filter, by the scripted explorer's recognizer: Jev's filter question
+        on this screen picks their last control (or the opener showing the option); a later control is the strictest
+        option of the screen it was tapped on; a switch's restrictive state is Jev's answer, never the state it shows.
+        The switch's wanted state (None for a tap), and "" or why not."""
+        s, last, opener = self.current, taps[-1], taps[0]
+        opts = self.filter_options(self.listing(s), self.obs.elements)
+        pick = self.pick(s, opts, FILTER_QUESTION, "filter", none_label=NO_FILTER) if opts else None
+        if pick is None or not (ob.find([pick], last) or ob.overlaps(pick.rect, opener.rect)):
+            return None, f"{last.label[:40]!r} isn't the content filter as code reads this screen"
+        if len(taps) > 1:
+            options = self.filter_options(*self.tapped_on.get(id(last), ([], [])))
+            option = self.pick(s, options, FILTER_MENU_QUESTION, "filter.menu") if options else None
+            if option is None or option.key != last.key:
+                return None, f"{last.label[:40]!r} isn't the strictest option of the screen it was tapped on"
+        live = ob.find(self.obs.cands, last)
+        if (live or last).checked is None:
+            return None, ""
+        name = last.label[:60]
+        try:
+            result = decide.choose(self.trace_path, "explore", "filter.state", self.describe(s), FILTER_STATE_QUESTION,
+                                   [f"{name} on", f"{name} off"], **self.jev_options())
+        except decide.JevFailed:
+            return None, f"no answer on which state of {name!r} is the strictest"
+        return decide.index_of(result.option_id) == 0, ""
+
+    def filter_options(self, cands: list[ob.Candidate], elements: list[dict]) -> list[ob.Candidate]:
+        """The controls a filter question offers Jev: labeled ones, never a tab or the screen's title."""
+        title = title_of(elements, self.device)
+        return [c for c in cands if c.tree_label and c.key not in self.tab_keys() and c.tree_label[:60] != title]
 
     def recheck(self) -> None:
         """The filter is checked only where its control shows: elsewhere the planner is told to go back to it."""

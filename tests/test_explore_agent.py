@@ -5,14 +5,16 @@ import io
 import json
 import re
 
-from PIL import Image
+import pytest
+from PIL import Image, ImageDraw
 
 from simula import cli, config, decide, llm, runlog
 from simula.contracts import AdLine, ExploreFile
+from simula.device import guard
 from simula.stages import explore as stage
 from simula.stages import model as model_stage
-from simula.stages.explore_agent import STALE_TURNS, AgentExplorer
-from tests.fake_device import PACKAGE, Clock, capture, fake_jev, fake_sonnet, new_run
+from simula.stages.explore_agent import STALE_TURNS, AgentExplorer, Halt
+from tests.fake_device import PACKAGE, Clock, FakePhone, Screen, fake_jev, fake_sonnet, new_run
 from tests.test_explore_offline import janitor_like
 
 CHATS_TAB = (540, 2253)
@@ -27,6 +29,31 @@ def oid(text: str, label: str | None = None, at: tuple[int, int] | None = None) 
         if (label and said.startswith(label)) or (at and x <= at[0] < x + w and y <= at[1] < y + h):
             return i
     raise AssertionError(f"no element {label or at} in:\n{text}")
+
+
+def control(label: str, n: int, kind: str = "Button", **fields) -> dict:
+    """An element of a drawn screen: one full-width row per n."""
+    return {"ref": f"@{n}", "type": f"android.widget.{kind}", "text": label, "label": "",
+            "identifier": f"app:id/control{n}", "enabled": True,
+            "coordinates": {"x": 100, "y": 200 + 200 * n, "width": 800, "height": 100}, **fields}
+
+
+def drawn(*elements: dict, package: str = PACKAGE) -> Screen:
+    """A screen whose picture draws its elements, under a title row naming the first."""
+    elements = [{**control(f"Title {elements[0]['text']}", 0, "TextView"), "coordinates": {
+        "x": 100, "y": 150, "width": 800, "height": 100}}, *elements]
+    image = Image.new("RGB", (1080, 2400), (240, 240, 240))
+    draw = ImageDraw.Draw(image)
+    for e in elements:
+        r = e["coordinates"]
+        draw.rectangle((r["x"], r["y"], r["x"] + r["width"], r["y"] + r["height"]), fill=(50, 80, 100))
+        draw.text((r["x"] + 10, r["y"] + 10), e["text"], fill="white")
+    return Screen(elements, image, package)
+
+
+def phone_of(screens: dict, taps: dict | None = None, **fields):
+    """A phone factory over drawn screens, starting on "root"."""
+    return lambda clock: FakePhone(dict(screens), "root", dict(taps or {}), clock, **fields)
 
 
 def turn(*steps, **fields) -> dict:
@@ -125,22 +152,37 @@ def test_a_relaunch_puts_the_filter_back_and_checks_it_again(tmp_path, monkeypat
     assert ex.filter_checks[1][0] == 2 and "verified (check 2)" in planner.texts[2]
 
 
-def test_the_google_account_chooser_is_acted_on_not_left(tmp_path, monkeypatch):
-    """Review focus 1: Continue with Google opens Play services' chooser, another package; the agent picks the
-    account there and comes back, with no relaunch."""
-    def with_chooser(clock):
-        phone = janitor_like(clock)
-        phone.screens["chooser"] = capture("janitorai", "j08_tab5", package="com.google.android.gms")
-        phone.taps[("root", "Limited Only")] = "chooser"
-        phone.taps[("chooser", "View public profile")] = "limited"
-        return phone
+def test_on_the_google_account_chooser_only_an_account_row_or_a_flow_button_is_tapped(tmp_path, monkeypatch):
+    """Review focus 1 and the red team's HIGH 2: the chooser is another package and is acted on, not left; only the
+    account row (its email redacted) or a plain flow button may be tapped there, never account management."""
+    chooser = drawn(control("someone@example.com", 1), control("Manage your Google Account", 2),
+                    control("Add another account", 3), package=guard.ACCOUNT_CHOOSER)
+    phone_factory = phone_of({"root": drawn(control("Continue with Google", 1)), "chooser": chooser,
+                              "home": drawn(control("Signed in home", 1))},
+                             {("root", "Continue with Google"): "chooser", ("chooser", "someone@example.com"): "home",
+                              ("chooser", "Manage your Google Account"): "root"})
+    script = scripted(lambda text: turn(tap(oid(text, "Continue with Google"), "the account chooser")),
+                      lambda text: turn(tap(oid(text, "Manage your Google Account"), "account settings")),
+                      lambda text: turn(tap(oid(text, "[redacted]"), "signed in")))
+    ex, phone, planner = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
+    assert ("chooser", "Manage your Google Account") not in taps(phone)
+    assert ("chooser", "someone@example.com") in taps(phone)
+    assert planner.texts[3].startswith(f"App in front: {PACKAGE}")  # signed in, back in the app
+    assert "was not run" in planner.texts[2] and ex.relaunches == 0
+    picked = next(s for s in ex.states if s.fg == guard.ACCOUNT_CHOOSER)
+    assert picked.kind == "screen"
+    denied = [json.loads(line) for line in (ex.out / "actions.jsonl").read_text().splitlines()]
+    assert any(d["outcome"] == "denied" and "account chooser" in d["change_summary"] for d in denied)
 
-    script = scripted(lambda text: turn(tap(oid(text, "Limited Only"), "the account chooser")),
-                      lambda text: turn(tap(oid(text, "View public profile"), "signed in")))
-    ex, phone, planner = run(tmp_path, monkeypatch, script, phone_factory=with_chooser)
-    assert ("chooser", "View public profile") in taps(phone)
-    chooser = next(s for s in ex.states if s.fg == "com.google.android.gms")
-    assert chooser.kind == "screen" and ex.relaunches == 0 and not ex.returns
+
+def test_a_google_screen_that_isnt_the_chooser_is_left_with_back_and_is_no_product_state(tmp_path, monkeypatch):
+    account = drawn(control("Data & privacy", 1), control("Personal info", 2), package=guard.ACCOUNT_CHOOSER)
+    phone_factory = phone_of({"root": drawn(control("Your account", 1)), "account": account},
+                             {("root", "Your account"): "account"})
+    script = scripted(lambda text: turn(tap(oid(text, "Your account"), "the account page")))
+    ex, phone, _ = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
+    assert ("back", "account") in phone.log and not [t for t in taps(phone) if t[0] == "account"]
+    assert [s.kind for s in ex.states if s.fg == guard.ACCOUNT_CHOOSER] == ["external"]
 
 
 def test_a_planned_element_gone_from_the_screen_is_skipped_and_the_planner_asked_again(tmp_path, monkeypatch):
@@ -249,21 +291,58 @@ def test_start_core_is_refused_for_a_person_and_measured_for_an_ai(tmp_path, mon
     assert any(t.step == "core" and t.note.startswith("core action: ") for t in trace(ex))
 
 
-def test_a_failed_filter_check_tells_the_planner_and_the_run_goes_on(tmp_path, monkeypatch):
+def test_a_control_code_doesnt_take_for_the_filter_is_not_verified_and_the_run_goes_on(tmp_path, monkeypatch):
     script = scripted(lambda text: turn(tap(oid(text, "Favorites"), "favorites only")),
                       lambda text: turn({"action": "swipe", "direction": "up", "expect": "more"}, filter_set=True))
     ex, _, planner = run(tmp_path, monkeypatch, script)
-    assert len(planner.texts) == 3 and "not verified (check 1)" in planner.texts[2]
-    assert [t.outcome for t in trace(ex) if t.step == "filter.check"][0] == "error"
+    assert len(planner.texts) == 3 and "not verified: 'Favorites' isn't the content filter" in planner.texts[2]
+    assert not ex.filter_taps and not ex.filtered and not ex.filter_checks
+    assert [t.outcome for t in trace(ex) if t.step == "filter.recognize"] == ["error"]
     assert not (ex.run_dir / "needs-human.md").exists()
+
+
+def test_an_unrelated_switch_named_as_the_filter_is_not_verified(tmp_path, monkeypatch):
+    """The red team's HIGH 4: the planner can't make code verify any control it names."""
+    phone_factory = phone_of({"root": drawn(control("Enable notifications", 1, "Switch", checked=False),
+                                            control("Explore", 2))})
+    script = scripted(lambda text: turn(DONE, filter_set=True, filter_element=oid(text, "Enable notifications")))
+    ex, _, _ = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
+    saved = ExploreFile.model_validate_json((ex.out / "explore.json").read_text())
+    assert not ex.filtered and not ex.filter_checks and saved.content_filter is None
+
+
+def test_a_filter_switch_is_wanted_in_the_state_jev_names_not_the_one_it_shows(tmp_path, monkeypatch):
+    """A content-filter switch left off: Jev says on is the strict state, so the check fails and the planner is told."""
+    phone_factory = phone_of({"root": drawn(control("Safe mode", 1, "Switch", checked=False), control("Explore", 2))})
+    script = scripted(lambda text: turn(DONE, filter_set=True, filter_element=oid(text, "Safe mode")))
+    ex, _, _ = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
+    assert ex.filter_on is True and ex.filter_checks[0][1] is False and not ex.filtered
+    assert ex.filter_news.startswith("not verified")
+
+
+def test_the_filter_path_holds_its_opener_across_planner_turns(tmp_path, monkeypatch):
+    """The red team's MEDIUM 3: an opener tapped a turn before its option is checked with it, read off the opener."""
+    options = drawn(control("Safe only", 1), control("Show all", 2))
+    ImageDraw.Draw(options.image).rectangle((0, 900, 300, 1900), fill="black")
+    phone_factory = phone_of({"root": drawn(control("Content filter", 1), control("Explore", 2)), "options": options,
+                              "safe": drawn(control("Content filter: Safe only", 1), control("Explore", 2))},
+                             {("root", "Content filter"): "options", ("options", "Safe only"): "safe"})
+    script = scripted(lambda text: turn(tap(oid(text, "Content filter"), "the options")),
+                      lambda text: turn(tap(oid(text, "Safe only"), "the filter shows safe")),
+                      lambda text: turn(DONE, filter_set=True, filter_element=oid(text, "Content filter: Safe only")))
+    ex, _, _ = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
+    assert [c.label for c in ex.filter_taps] == ["Content filter", "Safe only"] and ex.filter_checks[0][1]
 
 
 def test_a_filter_already_set_is_verified_by_the_element_the_planner_names(tmp_path, monkeypatch):
     """The strictest option shows selected already, so the planner taps nothing and names it instead."""
-    script = scripted(lambda text: turn(tap(oid(text, "Limited Only"), "the list narrows")),
-                      lambda text: turn({"action": "swipe", "direction": "down", "expect": "the top"}),
-                      lambda text: turn(DONE, filter_set=True, filter_element=oid(text, "Limited Only")))
-    ex, _, _ = run(tmp_path, monkeypatch, script)
+    def selected_already(clock):
+        phone = janitor_like(clock)
+        phone.taps[("launch", "Close subscription announcement")] = "limited"
+        return phone
+    script = scripted(lambda text: turn(DONE, filter_set=True, filter_element=oid(text, "Limited Only")))
+    ex, phone, _ = run(tmp_path, monkeypatch, script, phone_factory=selected_already)
+    assert not [t for t in taps(phone) if t[1] == "Limited Only" and t[0] == "root"]
     assert [t.label for t in ex.filter_taps] == ["Limited Only"] and ex.filter_checks[0][1]
     assert [t.outcome for t in trace(ex) if t.step == "filter.check"][0] == "ok"
 
@@ -334,3 +413,133 @@ def test_ads_seen_and_tapped_are_written_live_as_ad_lines(tmp_path, monkeypatch)
 
 def test_the_hard_block_words_are_part_of_explores_fingerprint(tmp_path):
     assert config.ROOT / "config" / "hard_blocks.toml" in cli.stage_inputs("explore", new_run(tmp_path))
+
+
+# ---------- the red team's findings on c75e9fc ----------
+
+def moving(to: str, screens: dict):
+    """A drawn root with Explore, and a planner that leaves the phone on another screen while it answers."""
+    held = {}
+
+    def factory(clock):
+        held["phone"] = phone_of({"root": drawn(control("Explore", 1), control("Settings", 2)), **screens},
+                                 backs={to: "root"})(clock)
+        return held["phone"]
+
+    def script(n, text):
+        if n == 1:
+            held["phone"].go(to)
+            return turn(tap(oid(text, "Explore"), "explore opens"))
+        return None
+    return factory, script
+
+
+def test_a_purchase_sheet_that_opens_while_the_planner_thinks_gets_back_before_the_tap(tmp_path, monkeypatch):
+    factory, script = moving("billing", {"billing": drawn(control("Buy now", 1), package=guard.BILLING)})
+    ex, phone, planner = run(tmp_path, monkeypatch, script, phone_factory=factory, no_send=True)
+    assert not [t for t in taps(phone) if t[0] == "billing"] and ("back", "billing") in phone.log
+    assert ex.counts["billing screens escaped"] >= 1 and "screen changed" in planner.texts[1]
+
+
+def test_the_guard_reads_the_screen_as_it_is_at_the_tap(tmp_path, monkeypatch):
+    """A control the screen changed under while the planner answered is found again, or not tapped."""
+    factory, script = moving("changed", {"changed": drawn(control("Delete account", 1), control("Settings", 2))})
+    ex, phone, _ = run(tmp_path, monkeypatch, script, phone_factory=factory, no_send=True)
+    assert not [t for t in taps(phone) if t[0] == "changed"]
+    assert any(t.step == "agent.moved" for t in trace(ex))
+
+
+HANDLE = "owner-fake@example.invalid"
+
+
+def test_what_the_planner_says_about_the_account_never_reaches_the_cache_or_the_trace(tmp_path, monkeypatch):
+    """The red team's HIGH 3: the planner reads the raw screen, so its answers and failures are scrubbed in llm.call."""
+    monkeypatch.setenv("SIMULA_REDACT", HANDLE)
+
+    def script(n, text):
+        if n == 1:
+            return llm.LLMFailure("error", f"the provider choked on {HANDLE}", raw=HANDLE)
+        return turn(DONE, screen=HANDLE, notes=[f"signed in as {HANDLE}"])
+    phone_factory = phone_of({"root": drawn(control(HANDLE, 1), control("Explore", 2))})
+    ex, _, planner = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
+    assert len(planner.texts) == 2 and ex.found == ["signed in as [redacted]"]
+    written = [*ex.cache_dir.glob("*.json"), ex.run_dir / "trace.jsonl", *ex.out.rglob("*.json*")]
+    assert len(list(ex.cache_dir.glob("*.json"))) >= 2 and not [p.name for p in written if HANDLE in p.read_text()]
+
+
+def test_the_scrub_isnt_part_of_the_cache_key(tmp_path, monkeypatch):
+    calls = []
+
+    def provider(model, system, messages, effort, schema, max_tokens, total_timeout=None):
+        calls.append(model)
+        return llm.Reply(text=f"hello {HANDLE}", model=model, tokens_in=10, tokens_out=5)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider)
+    ask = dict(trace_path=tmp_path / "trace.jsonl", stage="explore", step="s", model="claude-sonnet-5-5", effort=None,
+               system="sys", messages=[{"role": "user", "content": [{"type": "text", "text": "hi"}]}], max_tokens=50,
+               budget=llm.Budget.for_stage("explore", tmp_path / "trace.jsonl", 1.0), cache_dir=tmp_path / "cache")
+    said, _ = llm.call(**ask, scrub=lambda text: text.replace(HANDLE, "[redacted]"))
+    again, _ = llm.call(**ask)
+    assert said == again == "hello [redacted]" and len(calls) == 1
+
+
+def test_nothing_runs_after_the_wall_clock(tmp_path, monkeypatch):
+    """The red team's HIGH 5: one deadline for the tour, the core loop and the replay check."""
+    def script(n, text):
+        if n == 2:
+            ex.clock.t = ex.deadline
+            return turn({"action": "swipe", "direction": "down", "expect": "the top"})
+        mark = {"action": "start_core", "element": oid(text, "Explore"), "recipient": "ai", "expect": "marked"}
+        return turn(tap(oid(text, "Explore"), "explore opens"), mark)
+    ex, phone, _ = agent(tmp_path, monkeypatch, script,
+                         phone_factory=phone_of({"root": drawn(control("Explore", 1)),
+                                                 "page": drawn(control("A page", 1))}, {("root", "Explore"): "page"}))
+    stage.explore_app(ex)
+    late = phone.log[next(i for i, e in enumerate(phone.log) if e[0] == "tap" and e[2] == "Explore") + 1:]
+    assert ex.stop_reason == "wall-time cap" and not [e for e in late if e[0] in ("tap", "swipe", "type", "launch")]
+    assert ex.core_results == ["not run: wall-time cap"]
+    loads_cleanly(ex)
+    with pytest.raises(Halt):
+        ex.perform(stage.Move("swipe"), None)
+
+
+def test_a_cap_anywhere_stops_every_device_action_after_it(tmp_path, monkeypatch):
+    """The red team's HIGH 6: the cap hits Jev mid-plan; no later phase launches, taps or swipes."""
+    script = scripted(lambda text: turn({"action": "swipe", "direction": "down", "expect": "Explore"},
+                                        {"action": "tap", "intent": "Explore", "expect": "explore"}))
+    ex, phone, _ = agent(tmp_path, monkeypatch, script, phone_factory=phone_of({"root": drawn(control("Explore", 1))}),
+                         no_send=True)
+    seen = []
+
+    def capped(*args):
+        seen.append(len(phone.log))
+        ex.budget.cap = ex.budget.spent
+        return AgentExplorer.ground(ex, *args)
+    monkeypatch.setattr(ex, "ground", capped)
+    stage.explore_app(ex)
+    assert ex.stop_reason.startswith("$ cap") and ex.capped
+    assert not [e for e in phone.log[seen[0]:] if e[0] in ("tap", "swipe", "type", "launch")]
+    loads_cleanly(ex)
+
+
+def test_the_agents_taps_never_count_against_the_scripted_deny_list(tmp_path, monkeypatch):
+    """The red team's MEDIUM 1: Following is on the scripted deny-list, not a hard block."""
+    script = scripted(lambda text: turn(tap(oid(text, "Following"), "followed characters")))
+    ex, phone, _ = run(tmp_path, monkeypatch, script)
+    assert ("root", "Following") in taps(phone) and ex.denied_executed == 0
+
+
+def test_an_ads_landing_in_the_app_is_ad_evidence_not_a_product_state(tmp_path, monkeypatch):
+    """The red team's MEDIUM 2: the ad opens an advertiser page in the app's own package."""
+    page = drawn(control("Advertiser website", 1), control("Offer one", 2), control("Offer two", 3))
+    phone_factory = phone_of({"root": drawn(control("Sponsored deal", 1), control("Explore", 2)), "page": page},
+                             {("root", "Sponsored deal"): "page"})
+
+    def script(n, text):
+        if n == 1:
+            ad = oid(text, "Sponsored deal")
+            return turn(tap(ad, "the advertiser"), ads=[ad], ad_notes=f"{ad}: native; Acme; shopping")
+        return None
+    ex, phone, _ = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
+    assert not any(c.label.startswith(("Advertiser", "Offer")) for s in ex.states for c in s.cands)
+    tapped = AdLine.model_validate_json((ex.out / "ads.jsonl").read_text().splitlines()[-1])
+    assert tapped.tapped and tapped.landing == "Title Advertiser website" and ("back", "page") in phone.log
