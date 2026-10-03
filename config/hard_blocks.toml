@@ -6,10 +6,10 @@
 words = [
     # account deletion or deactivation
     "deactivate", "account deletion", "account removal", "account closure",
-    # password, email, phone, profile and security changes
-    "password", "change email", "update email", "edit email", "change phone", "update phone", "edit phone",
+    # email, phone, profile and security changes (password and 2fa are in anywhere below)
+    "change email", "update email", "edit email", "change phone", "update phone", "edit phone",
     "phone number", "edit profile", "change username", "reset username", "profile photo", "profile picture",
-    "two factor", "2fa", "two step", "recovery", "make profile public", "make profile private",
+    "two factor", "two step", "recovery", "make profile public", "make profile private",
     # sign-out
     "sign out", "signout", "log out", "logout", "log off",
     # public post, publish or share
@@ -21,6 +21,9 @@ words = [
     "buy now", "place order", "pay", "pay now", "checkout", "confirm purchase", "complete purchase", "purchase",
     "send gift", "tip",
 ]
+# account-security nouns: like the phrases, they count at any length and position ("Change the password for my
+# account"), where the one-word actions above count only in a short label or one they start
+anywhere = ["password", "2fa"]
 # over the text as lowercase words with single spaces, at any length: a deletion verb, up to four words, then the
 # account ("Delete your Example App account")
 patterns = ['(?:delete|remove|close|deactivate|disable|terminate)(?: \w+){0,4} (?:account|profile)']

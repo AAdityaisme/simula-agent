@@ -39,16 +39,19 @@ def phrases(entries: list[str], patterns: list[str]) -> re.Pattern:
     return re.compile(r"(?<!\S)(?:" + "|".join([*map(re.escape, spelled), *patterns]) + r")(?!\S)")
 
 
-def blocks(*lists: list[str], patterns: list[str] | tuple = ()) -> tuple[re.Pattern, re.Pattern]:
-    """The patterns of every entry, and of the entries of two or more words; both with the raw patterns."""
+def blocks(*lists: list[str], anywhere: list[str] | tuple = (), patterns: list[str] | tuple = ()) \
+        -> tuple[re.Pattern, re.Pattern]:
+    """The patterns of every entry, and of those that count in any label: the entries of two or more words and the
+    anywhere ones; both with the raw patterns."""
     entries = [e for group in lists for e in group]
-    return phrases(entries, patterns), phrases([e for e in entries if len(e.split()) > 1], patterns)
+    longer = [e for e in entries if len(e.split()) > 1]
+    return phrases([*entries, *anywhere], patterns), phrases([*longer, *anywhere], patterns)
 
 
 BLOCKS = tomllib.loads((config.CONFIG / "hard_blocks.toml").read_text())
-WORDS = BLOCKS["words"]
-ALWAYS = blocks(WORDS, patterns=BLOCKS["patterns"])
-OUTSIDE_CORE = blocks(WORDS, BLOCKS["outside_core"], patterns=BLOCKS["patterns"])
+WORDS, ANYWHERE, PATTERNS = BLOCKS["words"], BLOCKS["anywhere"], BLOCKS["patterns"]
+ALWAYS = blocks(WORDS, anywhere=ANYWHERE, patterns=PATTERNS)
+OUTSIDE_CORE = blocks(WORDS, BLOCKS["outside_core"], anywhere=ANYWHERE, patterns=PATTERNS)
 CONFIRM = blocks(BLOCKS["confirm"])
 
 
@@ -65,21 +68,21 @@ def labels(element: dict) -> list[str]:
     return [s for s in (element.get("text"), element.get("label")) if s and s.strip()]
 
 
-def said(element: dict) -> list[str]:
-    """What an element says: its labels, and its id without the package (which may hold any word) unless they hold a
-    real word, so a row's generic id ("post_item") never outweighs what it shows, and an icon's glyph or count
-    ("♥", "2K") never hides its id."""
-    shown = labels(element)
-    return shown if any(REAL_WORD.search(s) for s in shown) else [*shown, short_id(element.get("identifier"))]
+def id_evidence(element: dict) -> list[str]:
+    """Its id without the package (which may hold any word), unless its labels hold a real word: so a row's generic
+    id ("post_item") never outweighs what it shows, and an icon's glyph or count ("♥", "2K") never hides its id."""
+    worded = any(REAL_WORD.search(s) for s in labels(element))
+    return [] if worded else [short_id(element.get("identifier"))]
 
 
-def hit(blocked: tuple[re.Pattern, re.Pattern], texts: list[str]) -> str | None:
-    """The entry the first matching text holds: any entry anywhere in a text of up to SHORT words; in a longer one,
-    any entry it starts with, or a longer entry or pattern anywhere."""
+def hit(blocked: tuple[re.Pattern, re.Pattern], texts: list[str], ids: list[str] | tuple = ()) -> str | None:
+    """The entry the first matching text or id holds: in a text of up to SHORT words, any entry anywhere; in a longer
+    one, any entry it starts with, or a longer entry or pattern anywhere. An id holds no prose: any entry anywhere
+    ("toolbar_menu_action_share_button")."""
     every, longer = blocked
-    spelled = (t for s in texts for t in spellings(s))
-    return next((m.group() for t in spelled
-                 if (m := every.search(t) if len(t.split()) <= SHORT else every.match(t) or longer.search(t))), None)
+    found = (every.search(t) if whole or len(t.split()) <= SHORT else every.match(t) or longer.search(t)
+             for strings, whole in ((texts, False), (ids, True)) for s in strings for t in spellings(s))
+    return next((m.group() for m in found if m), None)
 
 
 # ponytail: whole words in any short label or one they start, so a title such as "Password safety tips" is refused
@@ -91,7 +94,7 @@ def blocked_tap(element: dict, screen: list[dict] | None = None, *, core: bool =
     tap point inside an element of the screen whose text or label carries one, since the tap lands on that; a confirm
     while such a label shows, as a dialog that names it does. Words come from config/hard_blocks.toml."""
     blocked = ALWAYS if core else OUTSIDE_CORE
-    if word := hit(blocked, said(element)):
+    if word := hit(blocked, labels(element), id_evidence(element)):
         return word
     if not screen:
         return None
@@ -99,7 +102,7 @@ def blocked_tap(element: dict, screen: list[dict] | None = None, *, core: bool =
     shown = [(rect(e), word) for e in screen if (word := hit(blocked, labels(e)))]
     if under := next((word for box, word in shown if inside(Rect(x=x, y=y, w=0, h=0), box)), None):
         return f"{under} (at the tap point)"
-    if shown and (yes := hit(CONFIRM, said(element))):
+    if shown and (yes := hit(CONFIRM, labels(element), id_evidence(element))):
         return f"{yes} ({shown[0][1]} on the screen)"
     return None
 

@@ -163,6 +163,20 @@ def test_a_long_label_that_starts_with_a_one_word_entry_is_refused(words):
     assert guard.blocked_tap({"text": words})
 
 
+@pytest.mark.parametrize("ident,word", [("toolbar_menu_action_share_button", "share"),
+                                        ("chat_message_composer_send_button", "send")])
+def test_an_ids_words_count_at_any_length(ident, word):
+    icon = {"identifier": f"com.example.app:id/{ident}"}
+    assert guard.blocked_tap(icon) == word and guard.blocked_tap({**icon, "text": "\u2197"}) == word
+    assert (guard.blocked_tap(icon, core=True) is None) is (word == "send")
+
+
+@pytest.mark.parametrize("words", ["Change the password for my account", "Enable 2FA for your account",
+                                   "We sent a link to reset your password"])
+def test_password_and_2fa_count_at_any_length_and_position(words):
+    assert guard.blocked_tap({"text": words}) and guard.blocked_tap({"text": words}, core=True)
+
+
 def test_the_core_loop_lifts_only_the_send_family_on_a_long_label_too():
     assert guard.blocked_tap({"text": "Send this reply back to Alex"}, core=True) is None
     for words in ("Post to my public profile", "Pay $4.99 with saved card", "Share with friends and family"):
@@ -221,5 +235,5 @@ def test_the_core_loop_starts_only_when_an_ai_receives_it():
 
 
 def test_the_word_lists_name_no_app():
-    listed = [w for key in ("words", "patterns", "outside_core", "confirm") for w in guard.BLOCKS[key]]
+    listed = [w for key in ("words", "anywhere", "patterns", "outside_core", "confirm") for w in guard.BLOCKS[key]]
     assert listed and not [w for w in listed for app in APP_WORDS if app in w.lower()]
