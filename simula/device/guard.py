@@ -21,6 +21,9 @@ REAL_WORD = re.compile(r"[^\W\d_]{2,}")  # a label's letters ("Go", "OK"), not a
 # a one-word entry counts in a label this short, or one it starts ("Pay $4.99 with saved card"): prose that says
 # "like" is no Like button
 SHORT = 4
+# a refused label this short, or a button's, is a control that a tap inside it lands on; a longer one is text (an AI's
+# reply that says "log out" around the composer's Send)
+CONTROL_WORDS = 6
 
 
 def spellings(text: str) -> list[str]:
@@ -85,25 +88,32 @@ def hit(blocked: tuple[re.Pattern, re.Pattern], texts: list[str], ids: list[str]
     return next((m.group() for m in found if m), None)
 
 
+def is_control(element: dict, label: str) -> bool:
+    return "Button" in element.get("type", "") or len(spellings(label)[1].split()) <= CONTROL_WORDS
+
+
 # ponytail: whole words in any short label or one they start, so a title such as "Password safety tips" is refused
-# too, and so is a tap inside a long text holding a phrase ("delete my account"); safety before coverage, and every
-# refusal is logged denied, so the scorecard shows the cost
+# too, and so is a confirm on a screen whose long text holds a phrase ("delete my account"); safety before coverage,
+# and every refusal is logged denied, so the scorecard shows the cost
 def blocked_tap(element: dict, screen: list[dict] | None = None, *, core: bool = False) -> str | None:
     """Why a tap on element must not run, or None. Refused: a hard-block word it carries (account deletion or
     changes, sign-out, public posts, actions toward other people, purchases, and sending outside the core loop); a
-    tap point inside an element of the screen whose text or label carries one, since the tap lands on that; a confirm
-    while such a label shows, as a dialog that names it does. Words come from config/hard_blocks.toml."""
+    tap point inside a control of the screen that carries one, since the tap lands on that; a confirm while any text
+    on the screen carries one, as a dialog that names it does. Words come from config/hard_blocks.toml."""
     blocked = ALWAYS if core else OUTSIDE_CORE
     if word := hit(blocked, labels(element), id_evidence(element)):
         return word
     if not screen:
         return None
     x, y = center(rect(element))
-    shown = [(rect(e), word) for e in screen if (word := hit(blocked, labels(e)))]
-    if under := next((word for box, word in shown if inside(Rect(x=x, y=y, w=0, h=0), box)), None):
+    point = Rect(x=x, y=y, w=0, h=0)
+    under = next((word for e in screen if inside(point, rect(e))
+                  and (word := hit(blocked, [s for s in labels(e) if is_control(e, s)]))), None)
+    if under:
         return f"{under} (at the tap point)"
-    if shown and (yes := hit(CONFIRM, labels(element), id_evidence(element))):
-        return f"{yes} ({shown[0][1]} on the screen)"
+    if yes := hit(CONFIRM, labels(element), id_evidence(element)):
+        if shown := next((word for e in screen if (word := hit(blocked, labels(e)))), None):
+            return f"{yes} ({shown} on the screen)"
     return None
 
 

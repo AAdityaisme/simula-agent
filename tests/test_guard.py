@@ -7,8 +7,10 @@ from pathlib import Path
 
 import pytest
 
+from simula.contracts import Rect
 from simula.device import guard
 from simula.device.mcp import parse_elements
+from simula.device.observe import center, inside, rect
 from simula.stages.explore import CORE_MESSAGES, SEARCH_QUERIES
 from tests.fake_device import capture
 from tests.test_invariants import APP_WORDS
@@ -148,12 +150,24 @@ def test_the_core_loops_send_on_a_real_chat_is_not_blocked_by_the_storys_contain
     assert guard.blocked_tap(send, chat, core=True) is None
 
 
-def test_a_word_inside_prose_is_no_button_but_a_phrase_in_a_long_text_still_blocks_a_tap_inside_it():
+def test_an_ai_reply_that_says_log_out_around_the_real_chats_core_send_leaves_send_allowed():
+    chat = parse_elements(json.loads(CHAT.read_text()))
+    send = next(e for e in chat if e["ref"] == "@e48")
+    reply = shown("Sure! If you ever want to log out, open the menu and pick the last option at the bottom.", 300,
+                  x=0, w=1080, h=2100)
+    x, y = center(rect(send))
+    assert guard.blocked_tap(reply) == "log out" and inside(Rect(x=x, y=y, w=0, h=0), rect(reply))
+    assert guard.blocked_tap(send, [*chat, reply], core=True) is None
+
+
+def test_a_word_inside_prose_is_no_button_and_a_long_text_never_blocks_a_tap_inside_it_but_still_guards_a_confirm():
     bubble, copy = shown("what would you like to know", 600, h=300), shown("Copy", 700, w=200)
     assert guard.blocked_tap(bubble, [bubble]) is None and guard.blocked_tap(copy, [bubble, copy]) is None
     assert guard.blocked_tap({"text": "Characters like this one show up here"}) is None
     story = shown("She said she would delete my account if I ever told anyone the secret", 600, h=900)
-    assert guard.blocked_tap(story) and guard.blocked_tap(copy, [story, copy]) == "delete my account (at the tap point)"
+    confirm = shown("Confirm", 1600, w=300)
+    assert guard.blocked_tap(story) and guard.blocked_tap(copy, [story, copy, confirm]) is None
+    assert guard.blocked_tap(confirm, [story, copy, confirm]) == "confirm (delete my account on the screen)"
 
 
 @pytest.mark.parametrize("words", ["Pay $4.99 with saved card", "Post to my public profile",
@@ -198,8 +212,10 @@ def test_a_long_dialog_title_that_names_a_blocked_action_still_refuses_its_confi
 
 
 def test_a_glyph_inside_a_long_send_message_button_is_refused_at_its_tap_point():
-    row, icon = shown("Send message to all selected group members", 700, h=200), shown("➤", 750, x=800, w=80, h=80)
+    row = {**shown("Send message to all selected group members", 700, h=200), "type": "android.widget.Button"}
+    icon = shown("➤", 750, x=800, w=80, h=80)
     assert guard.blocked_tap(icon, [row, icon]) == "send message (at the tap point)"
+    assert guard.blocked_tap(icon, [{**row, "type": "android.widget.TextView"}, icon]) is None
 
 
 def test_a_two_letter_word_is_readable_so_a_go_button_submits_a_search_and_a_glyph_still_shows_its_id():
