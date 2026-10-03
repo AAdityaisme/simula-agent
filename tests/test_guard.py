@@ -1,11 +1,18 @@
 """The agent's hard blocks: the Play Store gets BACK, Google's account chooser is part of signing in, a small generic
-word list refuses account and public-post taps, and the agent types only the fixed neutral texts."""
+word list refuses account, public, social, purchase and (outside the core loop) send taps, also at the tap point and
+on a dialog's confirm, and the agent types only the fixed neutral texts."""
 
 import pytest
 
 from simula.device import guard
 from simula.stages.explore import CORE_MESSAGES, SEARCH_QUERIES
+from tests.fake_device import capture
 from tests.test_invariants import APP_WORDS
+
+
+def shown(words: str, y: int, x: int = 42, w: int = 996, h: int = 100) -> dict:
+    return {"ref": f"@{y}", "type": "android.widget.TextView", "text": words,
+            "coordinates": {"x": x, "y": y, "width": w, "height": h}}
 
 
 def test_the_play_store_is_billing_and_googles_account_chooser_is_signing_in():
@@ -24,16 +31,102 @@ def test_a_hard_block_word_in_the_text_label_or_id_refuses_the_tap(element):
     assert guard.blocked_tap(element)
 
 
-@pytest.mark.parametrize("element", [{"text": "Continue with Google"}, {"text": "Send"}, {"text": "Sign in"},
-                                     {"text": "Settings"}, {"label": "Posts"}, {"text": "Shared with you"},
-                                     {"identifier": "com.share.post.app:id/home_tab"}, {}])
-def test_sign_in_sending_and_package_words_are_no_hard_block(element):
+# Not handled (triage of the red team on 87a3bc3): look-alike letters ("pоst" with a Cyrillic o), letter-spaced labels
+# ("S H A R E"), wordless toggles, a Save or Confirm with no blocked word on the screen, "Use suggested username",
+# Subscribe, Upgrade and free trials (Play billing gets BACK), and description keys the driver doesn't emit.
+@pytest.mark.parametrize("element", [{"label": "Sign–out"}, {"text": "Log—out"}, {"text": "Delete/account"},
+                                     {"label": "Delete.account"}, {"identifier": "delete.account.button"},
+                                     {"label": "Change e-mail"}, {"text": "Change e‑mail"},
+                                     {"label": "Ｐｏｓｔ"}, {"label": "Ｓｈａｒｅ"},
+                                     {"text": "P​ost"}, {"label": "Sha‍re"}, {"text": "Pub­lish"},
+                                     {"label": "Sign​out"}, {"identifier": "com.example.app:id/btnDELETEAccount"},
+                                     {"identifier": "com.example.app:id/deleteAccount2"},
+                                     {"identifier": "com.example.app:id/btn_post2"},
+                                     {"identifier": "com.example.app:id/btnPOSTAction"},
+                                     {"identifier": "com.example.app:id/LOGOUTButton"},
+                                     {"identifier": "com.example.app:id/signOUTButton"},
+                                     {"identifier": "com.example.app:id/password2"}])
+def test_dashes_slashes_invisible_characters_full_width_letters_and_id_word_breaks_still_refuse(element):
+    assert guard.blocked_tap(element)
+
+
+@pytest.mark.parametrize("words", ["Invite", "Follow", "Unfollow", "Like", "Unlike", "React", "Report user", "Block",
+                                   "Send request", "Accept request", "Friend request", "Add friend"])
+def test_actions_toward_other_people_are_refused(words):
+    assert guard.blocked_tap({"label": words})
+
+
+def test_an_icon_only_like_is_refused_by_its_id_and_its_counts_and_lists_are_not():
+    assert guard.blocked_tap({"identifier": "creationDetailLike"}) == "like"  # a recorded heart icon's id
+    for words in ("Following", "Followers", "Likes", "Liked by you"):
+        assert guard.blocked_tap({"text": words}) is None
+
+
+@pytest.mark.parametrize("words", ["Remove account", "Delete your profile", "Delete the account", "Account deletion",
+                                   "Deactivate my profile", "Edit profile", "Change username", "Reset username",
+                                   "Remove profile photo", "Make profile public", "Enable two-factor authentication",
+                                   "Set up 2FA", "Two-step verification", "Change recovery address"])
+def test_account_deletion_and_profile_or_security_changes_are_refused(words):
+    assert guard.blocked_tap({"text": words})
+
+
+@pytest.mark.parametrize("words", ["Buy now", "Place order", "Pay $4.99", "Confirm purchase", "Complete purchase",
+                                   "Checkout", "Send gift", "Tip $1"])
+def test_a_purchase_inside_the_app_is_refused(words):
+    assert guard.blocked_tap({"text": words})
+
+
+@pytest.mark.parametrize("element", [{"text": "Continue with Google"}, {"text": "Sign in"}, {"text": "Settings"},
+                                     {"label": "Posts"}, {"text": "Shared with you"}, {"text": "Delete chat"},
+                                     {"text": "Subscribe now"}, {"text": "Start free trial"}, {"text": "See plans"},
+                                     {"identifier": "com.share.post.app:id/home_tab"}, {},
+                                     {"text": "Read article", "identifier": "com.example.app:id/post_item"},
+                                     {"text": "Open story", "identifier": "com.example.app:id/share_card"}])
+def test_sign_in_plans_package_words_and_a_rows_generic_id_are_no_hard_block(element):
     assert guard.blocked_tap(element) is None
+
+
+@pytest.mark.parametrize("words", ["Send", "Submit", "Reply", "Add comment", "Post comment", "Send message"])
+def test_sending_is_refused_outside_the_core_loop(words):
+    assert guard.blocked_tap({"text": words})
+
+
+def test_the_core_loop_may_send_and_nothing_else_opens_up():
+    assert guard.blocked_tap({"text": "Send"}, core=True) is None
+    assert guard.blocked_tap({"text": "Post"}, core=True) and guard.blocked_tap({"text": "Delete account"}, core=True)
+
+
+def test_a_tap_point_under_a_worded_blocked_row_is_refused_and_an_id_only_one_is_not():
+    sheet = capture("janitorai", "j17_character_sheet").elements
+    for ref in ("@e50", "@e54"):  # an author name and a wordless icon under the open sheet's "Share character" row
+        under = next(e for e in sheet if e["ref"] == ref)
+        assert guard.blocked_tap(under) is None and guard.blocked_tap(under, sheet) == "share (at the tap point)"
+    card = {"ref": "@c", "type": "android.view.ViewGroup", "identifier": "com.example.app:id/share_container",
+            "coordinates": {"x": 0, "y": 300, "width": 1080, "height": 600}}
+    title = shown("Open", 400)
+    assert guard.blocked_tap(title, [card, title]) is None
+
+
+@pytest.mark.parametrize("title", ["Delete account", "Publish", "Change email", "Delete your account?"])
+@pytest.mark.parametrize("commit", ["Confirm", "Yes", "OK", "Delete", "Remove", "Proceed", "I understand"])
+def test_a_confirm_on_a_dialog_that_names_a_blocked_action_is_refused(title, commit):
+    button = shown(commit, 800, w=300)
+    assert guard.blocked_tap(button) is None
+    assert guard.blocked_tap(button, [shown(title, 400), button]).startswith(commit.lower())
+
+
+def test_saving_next_to_a_sign_out_row_and_deleting_a_chat_stay_allowed():
+    for commit in ("Save", "Done", "Apply", "Continue"):
+        button = shown(commit, 800, w=300)
+        assert guard.blocked_tap(button, [shown("Sign out", 400), button]) is None
+    delete = shown("Delete", 800, w=300)
+    assert guard.blocked_tap(delete, [shown("Delete chat?", 400), delete]) is None
 
 
 def test_the_agent_types_only_a_core_message_in_the_core_loop_or_a_search_query_in_a_search_box():
     assert guard.allowed_text(CORE_MESSAGES[0], core=True, field="composer")
     assert not guard.allowed_text(CORE_MESSAGES[0], core=False, field="composer")
+    assert not guard.allowed_text(CORE_MESSAGES[0], core=True, field="email")
     assert not guard.allowed_text("hello", core=True, field="composer")
     assert guard.allowed_text("popular", core=False, field="search") and "popular" in SEARCH_QUERIES
     assert not guard.allowed_text("hello", core=False, field="search")
@@ -46,5 +139,6 @@ def test_the_core_loop_starts_only_when_an_ai_receives_it():
     assert not guard.core_allowed("person") and not guard.core_allowed("none")
 
 
-def test_the_word_list_names_no_app():
-    assert guard.WORDS and not [w for w in guard.WORDS for app in APP_WORDS if app in w.lower()]
+def test_the_word_lists_name_no_app():
+    listed = [w for key in ("words", "patterns", "outside_core", "confirm") for w in guard.BLOCKS[key]]
+    assert listed and not [w for w in listed for app in APP_WORDS if app in w.lower()]
