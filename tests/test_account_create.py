@@ -414,6 +414,28 @@ def test_a_signed_in_home_that_kept_the_guest_homes_layout_is_an_account_rt_s_m1
     assert ex.account[0] == "s02: signed up with the test identity, now on s01", ex.account
 
 
+def test_a_guest_home_whose_sign_up_card_rotated_away_is_no_account_rt_s_r3_l1(tmp_path, monkeypatch, identity):
+    """rt-s on #46 (LOW 1): the guest home's feed carried a "Sign up" card shaped like its items. A send that made no
+    account came back to that home with the card rotated out, and its "ask" counted as gone. A card shaped like the
+    feed's items asks nothing."""
+    def home(*cards: str) -> Screen:
+        return screen(4, el("@h0", "TextView", "Discover", 200), el("@go", "Button", "Characters", 450, h=100),
+                      *(el(f"@card{n}", "Button", label, 600 + 260 * n, h=220) for n, label in enumerate(cards)),
+                      *(e for e in HOME if e["ref"].startswith("@tab")))
+
+    def app(clock):
+        phone = sign_up_app()(clock)
+        phone.screens["home"] = home("Character one", "Sign up", "Character two", "Character three")
+        phone.screens["after"] = home("Character one", "Character four", "Character two", "Character three")
+        phone.start, phone.taps[("home", "Characters")] = "home", "wall"
+        phone.taps[("form", "Create account")], phone.remember = "after", set()
+        return phone
+    ex, phone = new_explorer(tmp_path, monkeypatch, app, allow_account_create=True)
+    stage.run_tour(ex)
+    assert phone.typed[:3] == [EMAIL, PASSWORD, NAME] and ex.account_state == "sent"
+    assert ex.account[0].endswith("seen before the wall"), ex.account
+
+
 GUEST_HOME = [el("@g0", "TextView", "Discover AI characters", 200, w=700),
               el("@g1", "TextView", "Talk to anyone, any time. Thousands of characters are waiting.", 400, h=200),
               el("@go", "Button", "Start chatting", 1900), el("@li", "Button", "Log in", 200, x=820, w=200, h=90)]

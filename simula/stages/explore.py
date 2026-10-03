@@ -1315,9 +1315,13 @@ class Explorer:
         """The end of a sign-up. An account counts as made only on positive evidence: the screen is the app, in
         front, with no control that asks to sign in or up, and with a tab bar or a text box with send (two lines of
         an error look like a list, so a list is none). A screen recorded before the wall that asked no sign-in then
-        is none: the app showed it as it is without an account; one that did ask and asks no more is evidence."""
+        is none: the app showed it as it is without an account; one that did ask and asks no more is evidence. A card
+        shaped like the feed's items asks nothing: it can rotate out whatever the account."""
         s, cands = self.current, self.surface()
-        if s in self.states[:self.states.index(wall)] and not any(map(ob.asks_sign_in, controls_of(s.cands))):
+        own = controls_of(s.cands)
+        items = ob.feed_items(own, self.device, self.tab_keys())
+        asked = any(ob.asks_sign_in(c) and not ob.feed_shaped(c, items, self.device) for c in own)
+        if s in self.states[:self.states.index(wall)] and not asked:
             return self.stopped(wall, f"the form was sent, but it came back to {s.sid}, seen before the wall")
         app = (s.kind not in AWAY and not any(map(ob.asks_sign_in, cands))
                and bool(ob.tab_bar(cands, self.device) or ob.composer(cands, self.device)))

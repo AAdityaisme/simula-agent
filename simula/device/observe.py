@@ -897,6 +897,14 @@ def feed_items(cands: list[Candidate], device: Device, exclude: set[str] = froze
     return best if len(best) >= 2 else []
 
 
+def feed_shaped(c: Candidate, items: list[Candidate], device: Device) -> bool:
+    """A control shaped like the feed's items (feed_items): their resource id, or their class and width, at their
+    size. A card in the feed, whatever its words, though feed_items leaves out one the deny-list hits."""
+    return area(c.rect) >= 0.02 * content_area(device) and any(
+        (c.ident and c.ident == i.ident) or (c.kind, bucket(c.rect.w, device)) == (i.kind, bucket(i.rect.w, device))
+        for i in items)
+
+
 def short_buttons(cands: list[Candidate], device: Device, exclude: set[str] = frozenset(),
                   title: str = "") -> list[Candidate]:
     """Controls with a short label that aren't feed cards or text boxes, the biggest first: where an app puts its
