@@ -209,16 +209,16 @@ def with_elements(pm: ProductModel, changed: dict[str, list[Element]]) -> Produc
 
 def test_a_composer_row_is_no_tab_bar():
     pm = golden("luzia")
-    tabs = scorecard.tab_bar(pm)
-    assert len(tabs) == 3
+    tabs, confirmed = scorecard.tab_bar(pm)
+    assert (len(tabs), confirmed) == (3, True)
     uneven = [e.model_copy(update={"rect_px": e.rect_px.model_copy(update={"x": e.rect_px.x - 100})})
               if e.rect_px == tabs[0] else e for e in pm.states[0].elements]
-    assert scorecard.tab_bar(with_elements(pm, {"s01": uneven})) == []
+    assert scorecard.tab_bar(with_elements(pm, {"s01": uneven})) == ([], False)
 
 
-def test_a_screens_own_pair_of_bottom_buttons_is_no_tab_bar():
-    """Two named buttons of one size, evenly spread at the bottom of the root: a tab bar only if another screen shows
-    them there too."""
+def test_a_screens_own_pair_of_bottom_buttons_is_an_unconfirmed_tab_bar():
+    """Two named buttons of one size, evenly spread at the bottom of the root: a candidate tab bar, confirmed only when
+    another screen shows them there too. Unconfirmed, all_tabs stays open rather than credit tabs no one opened."""
     pm = golden("luzia")
     root, other = pm.states[0], pm.states[1]
     band = DEVICE.content_bottom_px - ob.TAB_BAND_PX
@@ -226,23 +226,40 @@ def test_a_screens_own_pair_of_bottom_buttons_is_no_tab_bar():
                                                    "rect_px": Rect(x=x, y=2150, w=400, h=140)})
                for n, (words, x) in enumerate((("Cancel", 60), ("Save", 620)))]
     alone = with_elements(pm, {"s01": [e for e in root.elements if e.rect_px.y < band] + buttons})
-    assert scorecard.tab_bar(alone) == []
-    assert scorecard.all_tabs(alone)
+    assert scorecard.tab_bar(alone) == ([b.rect_px for b in buttons], False)
+    assert scorecard.all_tabs(alone) is False
     shared = with_elements(alone, {other.id: other.elements + buttons})
-    assert scorecard.tab_bar(shared) == [b.rect_px for b in buttons]
+    assert scorecard.tab_bar(shared) == ([b.rect_px for b in buttons], True)
+
+
+def test_a_root_only_tab_bar_in_a_run_that_never_left_the_root_stays_open():
+    pm = golden("luzia")
+    band = DEVICE.content_bottom_px - ob.TAB_BAND_PX
+    root_only = with_elements(pm, {s.id: [e for e in s.elements if e.rect_px.y < band] for s in pm.states[1:]})
+    assert scorecard.tab_bar(root_only)[1] is False
+    assert scorecard.all_tabs(root_only.model_copy(update={"edges": []})) is False
+
+
+def test_a_root_with_no_candidate_row_has_all_tabs_answered():
+    pm = golden("luzia")
+    band = DEVICE.content_bottom_px - ob.TAB_BAND_PX
+    bare = with_elements(pm, {"s01": [e for e in pm.states[0].elements if e.rect_px.y < band]})
+    assert scorecard.tab_bar(bare) == ([], False)
+    assert scorecard.all_tabs(bare.model_copy(update={"edges": []}))
 
 
 def test_committed_aol_two_tab_bar_is_found():
     pm = ProductModel.model_validate_json(
         (ROOT / "runs" / "aol" / "20260929-205304-1f19585" / "model" / "product_model.json").read_text())
-    assert len(scorecard.tab_bar(pm)) == 2
+    tabs, confirmed = scorecard.tab_bar(pm)
+    assert (len(tabs), confirmed) == (2, True)
 
 
 def test_a_tap_back_to_the_roots_tab_never_counts():
     """A three-tab app: the root shows its own tab (the leftmost), s05's tab was opened, then the root's tab again from
     s05; the third tab (s06's) was never opened."""
     pm = golden("luzia")
-    own = min(scorecard.tab_bar(pm), key=lambda r: r.x)
+    own = min(scorecard.tab_bar(pm)[0], key=lambda r: r.x)
     s05 = next(s for s in pm.states if s.id == "s05")
     home = next(e for e in s05.elements if own.x <= ob.center(e.rect_px)[0] < own.x + own.w
                 and e.rect_px.y >= DEVICE.content_bottom_px - ob.TAB_BAND_PX)

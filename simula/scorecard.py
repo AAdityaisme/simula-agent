@@ -103,40 +103,42 @@ def completed(lines: list[ActionLine]) -> bool:
 
 # ---------- the explorer-independent checklist ----------
 
-def tab_bar(pm: ProductModel) -> list[Rect]:
-    """The root's bottom tab bar: the biggest row of 2 or more same-class, same-size elements in its bottom band, each
-    with a name (text or label), evenly spaced (within one 8 dp bucket) across the middle of the screen, whose names
-    all show in the bottom band of another saved screen too, since navigation stays put. A composer's buttons are
-    never evenly spaced, nor named on their outer boxes, and a screen's own pair of buttons shows on it alone."""
+def tab_bar(pm: ProductModel) -> tuple[list[Rect], bool]:
+    """The root's bottom tab bar and whether another saved screen confirms it. A candidate is a row of 2 or more
+    same-class, same-size elements in the root's bottom band, each with a name (text or label), evenly spaced (within
+    one 8 dp bucket) across the middle of the screen; a composer's buttons are never evenly spaced, nor named on their
+    outer boxes. Navigation stays put, so a screen that shows all of a row's names in its bottom band confirms it.
+    The biggest confirmed row, else the biggest candidate; none when the root has no candidate."""
     device, band = pm.device, pm.device.content_bottom_px - ob.TAB_BAND_PX
     screens = [s for s in pm.states if s.kind == "screen"]
     if not screens:
-        return []
+        return [], False
 
     def named(state: State) -> list[Element]:
         return [e for e in state.elements if e.rect_px.y >= band and (e.text or e.label)]
-    elsewhere = [{e.text or e.label for e in named(s)} for s in screens[1:]]
     rows = defaultdict(dict)
     for e in named(screens[0]):
         r = e.rect_px
         rows[e.type, ob.bucket(r.w, device), ob.bucket(r.h, device), ob.bucket(r.y, device)][ob.bucket(r.x, device)] = e
 
-    def bar(row: list[Element]) -> bool:
+    def candidate(row: list[Element]) -> bool:
         xs = sorted(e.rect_px.x + e.rect_px.w / 2 for e in row)
         gaps = [b - a for a, b in zip(xs, xs[1:])]
-        return (bool(gaps) and xs[0] < device.w_px / 2 < xs[-1] and max(gaps) - min(gaps) <= ob.BUCKET_DP * device.scale
-                and any({e.text or e.label for e in row} <= names for names in elsewhere))
-    found = [list(row.values()) for row in rows.values()]
-    return [e.rect_px for e in max(filter(bar, found), key=len, default=[])]
+        return bool(gaps) and xs[0] < device.w_px / 2 < xs[-1] and max(gaps) - min(gaps) <= ob.BUCKET_DP * device.scale
+    candidates = [row for row in (list(r.values()) for r in rows.values()) if candidate(row)]
+    elsewhere = [{e.text or e.label for e in named(s)} for s in screens[1:]]
+    confirmed = [row for row in candidates if any({e.text or e.label for e in row} <= names for names in elsewhere)]
+    return [e.rect_px for e in max(confirmed or candidates, key=len, default=[])], bool(confirmed)
 
 
 def all_tabs(pm: ProductModel) -> bool:
-    """Every tab of the root's bar but the one the root already shows has a recorded tap that went to a state other
-    than its own and the root's: a tap in the bottom band within the tab's column (a tab's label often sits under its
-    tap target). A tap back to the root's tab never counts."""
-    tabs = tab_bar(pm)
-    if not tabs:
-        return True
+    """Answered when the root has no candidate tab bar. A bar no other saved screen confirms stays open, so a run that
+    never left the root is never credited with tabs it didn't open. Otherwise every tab but the one the root already
+    shows needs a recorded tap that went to a state other than its own and the root's: a tap in the bottom band within
+    the tab's column (a tab's label often sits under its tap target)."""
+    tabs, confirmed = tab_bar(pm)
+    if not tabs or not confirmed:
+        return not tabs
     root = next(s.id for s in pm.states if s.kind == "screen")
     band = pm.device.content_bottom_px - ob.TAB_BAND_PX
     elements = {e.id: e.rect_px for s in pm.states for e in s.elements}
