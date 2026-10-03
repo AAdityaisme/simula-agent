@@ -609,6 +609,58 @@ def test_a_filtered_run_is_walked_only_once_each_launch_put_the_filter_back(runs
         assert report["flows"][0]["status"] == "blocked" and taps(phone) == [taps(phone)[0]]
 
 
+def filtered_tab_back_run(runs: Path, extra: dict[str, Screen] = {}, lines: list[ActionLine] = (),
+                          flows: list[list[tuple[str, str, str]]] = ()) -> dict[str, Screen]:
+    """A run explored with the "Safe mode" switch on: one flow, tap s01's second tab to s02 and BACK, unless flows
+    says otherwise; lines and extra add recorded moves and screens."""
+    recorded = screens() | extra
+    recorded["s01"] = safe_mode(recorded["s01"], on=True)
+    source_run(runs, recorded, [*lines, line(8, "s01", "s02", TAP, tab(recorded["s01"], 1), "tab"),
+                                line(9, "s02", "s01", BACK, transition="back"),
+                                line(10, "s01", "s03", TAP, tab(recorded["s01"], 3), "tab")],
+               list(flows) or [[("s01", "s02", TAP), ("s02", "s01", BACK)]], "Safe mode (on)",
+               filter_controls=[SAFE_CONTROL], filter_on=True)
+    return recorded
+
+
+def live_with_the_switch_off(**more: Screen) -> dict[str, Screen]:
+    live = screens() | more
+    live["s01"], live["on"] = safe_mode(live["s01"], on=False), safe_mode(live["s01"], on=True)
+    return live
+
+
+def test_a_launch_dialog_is_closed_over_its_recorded_route_before_the_filter_goes_back_rt_s_r3_ql1(runs, walk):
+    """rt-s on #46 (MEDIUM 1, QL1): qa-live judged the filter on the first readable look after a launch. Explore
+    closed JanitorAI's launch announcement (j01_launch, recorded as s05 with its Close edge to s01) before it put
+    the filter back; every launch shows the announcement again. The walker now takes that route as setup first."""
+    dialog = capture("janitorai", "j01_launch")
+    close = next(c for c in ob.controls(dialog.elements, DEVICE) if "Close" in c.label)
+    filtered_tab_back_run(runs, {"s05": dialog}, [line(1, "s05", "s01", TAP, close)])
+    live = live_with_the_switch_off(s05=dialog)
+    phone = FakePhone(screens=live, start="s05", clock=Clock(),
+                      taps={("s05", key_at(dialog, close.point)): "s01",
+                            ("s01", key_at(live["s01"], labeled(live["s01"], "Safe mode").point)): "on",
+                            ("on", key_at(live["on"], tab(live["on"], 1).point)): "s02"})
+
+    report = walk(phone)
+    setup = [s["action"] for s in report["setup"]]
+    assert setup[:5] == ["terminate", "launch", "tap", "filter", "filter check"], report["setup"]
+    assert report["setup"][2]["edge"] and report["flows"][0]["status"] == "matched", report["flows"][0]
+
+
+def test_a_launch_whose_feed_loads_after_its_placeholders_puts_the_filter_back_on_the_feed_rt_s_r3_ql3(runs, walk):
+    """rt-s on #46 (MEDIUM 1, QL3): the launch shows the feed's loading placeholders (tab bar up) for 6 s; the filter
+    switch is on the loaded feed, where explore recorded it."""
+    filtered_tab_back_run(runs)
+    live = live_with_the_switch_off(loading=capture("janitorai", "j02_home"))
+    phone = phone_for(live, [("s01", labeled(live["s01"], "Safe mode"), "on"), ("on", tab(live["on"], 1), "s02")],
+                      cls=LoadsSlowly)
+
+    report = walk(phone)
+    assert [s.get("verified") for s in report["setup"] if s["action"] == "filter check"] == [True]
+    assert report["flows"][0]["status"] == "matched", report["flows"][0]
+
+
 def test_a_run_that_recorded_a_filter_but_not_its_controls_is_refused_before_any_device_work(runs, walk):
     """A run explored before explore.json recorded the filter's controls can't have its filter put back."""
     recorded = screens()

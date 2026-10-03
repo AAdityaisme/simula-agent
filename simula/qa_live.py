@@ -365,15 +365,20 @@ class Audit:
         hops = self.route(self.current, start)
         if hops is None:
             raise FlowEnd("blocked", f"no recorded route of at most {ROUTE_HOPS} hops from {self.current} to {start}")
+        self.take(hops, start)
+        if self.verdict["expected"] != start:  # the last flow stopped here: its look was judged against its own target
+            self.verdict = self.match_state(self.live, start, launched=self.launched)
+
+    def take(self, hops: list[Edge], dst: str) -> None:
+        """Takes recorded hops toward dst as setup, each judged where it lands; one that lands elsewhere blocks the
+        flow."""
         for edge in hops:
             target = self.safe_target(edge) if edge.action == "tap" else None
             self.act(edge, target)
             self.look(edge.to_state)
             self.setup.append({"flow": self.flow, "action": edge.action, "edge": edge.id, **self.verdict})
             if self.current != edge.to_state:
-                raise FlowEnd("blocked", f"the route to {start} went wrong at {edge.id} ({self.verdict['verdict']})")
-        if self.verdict["expected"] != start:  # the last flow stopped here: its look was judged against its own target
-            self.verdict = self.match_state(self.live, start, launched=self.launched)
+                raise FlowEnd("blocked", f"the route to {dst} went wrong at {edge.id} ({self.verdict['verdict']})")
 
     def launch(self, want: str) -> None:
         """Terminate, then launch, neither ever retried (the first call may have landed), then name where the app
@@ -393,49 +398,61 @@ class Audit:
         self.verdict = self.match_state(self.live, want, launched=True)
         self.current, self.launched = self.verdict["landed"], True
         landing.update(self.verdict)
+        if self.filter:
+            self.refilter(want)
 
     def wait_for_launch(self, want: str) -> Live:
         """Looks as explore waits for a relaunch (Explorer.wait_for_app): up to SPLASH_WAIT_S for a launch screen, then
         up to LAUNCH_WAIT_S for want's fingerprint or a dialog, since a feed can sit on loading placeholders for many
-        seconds. Before the splash deadline, a dump that fails is only "not yet". The content filter is put back in
-        between (refilter): want is a screen explore recorded with it."""
+        seconds; or for the launch screen's (the model's root), where a launch lands before any route to want, and
+        where a content filter goes back. Before the splash deadline, a dump that fails is only "not yet"."""
         splash = self.clock() + explore.SPLASH_WAIT_S
         live = self.look_once(splash)
         while live is None or not (live.fg == self.package and launchable(live, self.device)) \
                 and self.clock() < splash:
             self.sleep(1.5)
             live = self.look_once(splash)
-        if self.filter:
-            self.live = live
-            live = self.refilter()
         deadline = self.clock() + explore.LAUNCH_WAIT_S
-        while (live.fg == self.package and not ob.same_state(self.fps[want], live.fp)
+        while (live.fg == self.package and not any(ob.same_state(self.fps[s], live.fp) for s in (want, self.root))
                and not ob.dialog_box(live.cands, self.device) and self.clock() < deadline):
             self.sleep(1.5)
             live = self.look_once(splash) or live
         return live
 
-    def refilter(self) -> Live:
-        """Puts the run's content filter back after a launch as explore does (Explorer.apply_filter): its controls
-        are tapped in order, each only where the screen shows it and no deny word or overlay is at its tap point, until
-        the last one needs no tap; then the filter is judged as explore judges it (explore.filter_holds). Every launch
-        can leave the app unfiltered, so an unverified filter ends the audit: nothing is walked without it."""
+    def refilter(self, want: str) -> None:
+        """Puts the run's content filter back where explore does (Explorer.apply_filter), once the launch has
+        settled: on the launch screen (the model's root), reached over the recorded route from where the launch landed
+        (a launch dialog's close, say) as setup. Its controls are tapped in order, each only where the screen shows it
+        and no deny word or overlay is at its tap point, until the last one needs no tap; then the filter is judged as
+        explore judges it (explore.filter_holds). Every launch can leave the app unfiltered, so a filter not put back
+        ends the audit: nothing is walked without it."""
+        named = explore.filter_label(self.filter, self.filter_on)
+        if self.current != self.root:
+            hops = self.route(self.current, self.root) if self.current else None
+            if hops is None:
+                raise Stopped(f"the launch landed where no recorded route leads to the launch screen "
+                              f"({self.verdict['verdict']}), so the content filter ({named}) can't be put back: "
+                              "nothing is walked without it")
+            self.take(hops, self.root)
         for n, tap in enumerate(self.filter):
             if explore.filter_set(n, self.filter, self.filter_on, self.live.cands, self.live.image):
                 break
             live = ob.find(self.live.cands, tap)
-            if live is None or ob.denied_at(live, self.live.elements, self.device, toggle_ok=True):
+            refused = ob.denied_at(live, self.live.elements, self.device, toggle_ok=True) if live \
+                else "not on the screen"
+            self.setup.append({"flow": self.flow, "action": "filter", "control": tap.label,
+                               **({"refused": refused} if refused else {})})
+            if refused:
                 break
             self.mutate(self.phone.tap, *live.point)
-            self.setup.append({"flow": self.flow, "action": "filter", "control": tap.label})
             self.live = self.capture()
         ok, self.opener_says = explore.filter_holds(self.filter, self.filter_on, self.live.cands, self.live.image,
                                                     self.opener_says)
         self.setup.append({"flow": self.flow, "action": "filter check", "verified": ok})
         if not ok:
-            raise Stopped(f"the content filter ({explore.filter_label(self.filter, self.filter_on)}) isn't verified "
-                          f"after the launch: nothing is walked without it")
-        return self.live
+            raise Stopped(f"the content filter ({named}) isn't verified after the launch: nothing is walked without it")
+        self.verdict = self.match_state(self.live, want, launched=True)
+        self.current = self.verdict["landed"]
 
     def look_once(self, deadline: float) -> Live | None:
         self.in_time()
