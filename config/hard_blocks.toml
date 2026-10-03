@@ -1,15 +1,15 @@
 # Taps the agent never makes: a control whose text or label holds one of these, or whose id does unless they hold a
-# real word, as whole words in any case. A one-word entry counts only in a label of at most four words, so prose
-# that says "like" is no Like button. Generic English only, no app's names or terms. Sign-in isn't here: Google
-# sign-in is allowed. Subscribe, upgrade and free trial aren't either: they go through Play billing, whose screen
-# gets BACK at once, and tapping them is how the agent finds the price.
+# real word, as whole words in any case. A one-word entry counts only in a label of at most four words or one it
+# starts, so prose that says "like" is no Like button. Generic English only, no app's names or terms. Sign-in isn't
+# here: Google sign-in is allowed. Subscribe, upgrade and free trial aren't either: they go through Play billing,
+# whose screen gets BACK at once, and tapping them is how the agent finds the price.
 words = [
     # account deletion or deactivation
     "deactivate", "account deletion", "account removal", "account closure",
-    # password, email, phone, profile and security changes
-    "password", "change email", "update email", "edit email", "change phone", "update phone", "edit phone",
+    # email, phone, profile and security changes (password and 2fa are in anywhere below)
+    "change email", "update email", "edit email", "change phone", "update phone", "edit phone",
     "phone number", "edit profile", "change username", "reset username", "profile photo", "profile picture",
-    "two factor", "2fa", "two step", "recovery", "make profile public", "make profile private",
+    "two factor", "two step", "recovery", "make profile public", "make profile private",
     # sign-out
     "sign out", "signout", "log out", "logout", "log off",
     # public post, publish or share
@@ -21,10 +21,13 @@ words = [
     "buy now", "place order", "pay", "pay now", "checkout", "confirm purchase", "complete purchase", "purchase",
     "send gift", "tip",
 ]
+# account-security nouns: like the phrases, they count at any length and position ("Change the password for my
+# account"), where the one-word actions above count only in a short label or one they start
+anywhere = ["password", "2fa"]
 # over the text as lowercase words with single spaces, at any length: a deletion verb, up to four words, then the
 # account ("Delete your Example App account")
 patterns = ['(?:delete|remove|close|deactivate|disable|terminate)(?: \w+){0,4} (?:account|profile)']
 # refused outside the core loop, the one place the agent sends its fixed text to an AI
 outside_core = ["send", "submit", "reply", "add comment", "post comment", "send message"]
-# refused while a label of at most six words on the screen is refused: the commit of a dialog that names one
+# refused while a label on the screen is refused: the commit of a dialog that names one
 confirm = ["confirm", "yes", "ok", "delete", "remove", "proceed", "i understand"]

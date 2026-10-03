@@ -315,6 +315,12 @@ def cmd_qa_live(args) -> int:
     return 0
 
 
+def cmd_scorecard(args) -> int:
+    from simula import scorecard
+    return scorecard.main([Path(r) for r in args.runs], args.inventory and Path(args.inventory),
+                          args.json and Path(args.json))
+
+
 def cmd_replay_check(args) -> int:
     from simula import replaycheck
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(128 + signal.SIGTERM))  # a stopped check still removes its clones
@@ -383,6 +389,14 @@ def parser() -> argparse.ArgumentParser:
     q.add_argument("--device", metavar="SERIAL", help="adb serial (default: ANDROID_SERIAL, else the only device "
                                                       "online)")
     q.set_defaults(func=cmd_qa_live)
+
+    sc = sub.add_parser("scorecard", help="score runs' outputs the same way, whichever explorer made them; one column "
+                                          "per run (reads only, no model calls)")
+    sc.add_argument("runs", nargs="+", metavar="RUN_DIR")
+    sc.add_argument("--inventory", metavar="PATH", help="a TOML list of the app's named screens, each with the texts "
+                                                         "that identify it")
+    sc.add_argument("--json", metavar="PATH", help="also write every metric per run here, outside the runs")
+    sc.set_defaults(func=cmd_scorecard)
 
     n = sub.add_parser("note", help="log a hand fix or build spend")
     n.add_argument("text")

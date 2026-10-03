@@ -17,9 +17,13 @@ WORD_BREAK = re.compile(r"(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|(?<=[^\W\
 HYPHEN = re.compile("[-\u2010\u2011]")  # the hyphen, Unicode's hyphen and its non-breaking one
 NOT_WORD = re.compile(r"[\W_]+")
 POSSESSIVE = re.compile(r"(?<=\w)['\u2019]s\b", re.IGNORECASE)  # "this app's account" is "this app account"
-REAL_WORD = re.compile(r"[^\W\d_]{3,}")  # a label's letters, not an icon's glyph or a count ("♥", "2K")
-SHORT = 4  # a one-word entry counts only in a label this short: prose that says "like" is no Like button
-CONTEXT = 6  # the screen's tap-point and dialog checks read only labels this short, never a story's container
+REAL_WORD = re.compile(r"[^\W\d_]{2,}")  # a label's letters ("Go", "OK"), not an icon's glyph or a count ("♥", "2K")
+# a one-word entry counts in a label this short, or one it starts ("Pay $4.99 with saved card"): prose that says
+# "like" is no Like button
+SHORT = 4
+# a refused label this short is a control that a tap inside it lands on, as a button's is and, outside the core loop,
+# one that opens with the refused entry; any other longer one is text (an AI's reply around the composer's Send)
+CONTROL_WORDS = 6
 
 
 def spellings(text: str) -> list[str]:
@@ -38,17 +42,19 @@ def phrases(entries: list[str], patterns: list[str]) -> re.Pattern:
     return re.compile(r"(?<!\S)(?:" + "|".join([*map(re.escape, spelled), *patterns]) + r")(?!\S)")
 
 
-def blocks(*lists: list[str], patterns: list[str] | tuple = ()) -> tuple[re.Pattern, re.Pattern]:
-    """The patterns for a label of up to SHORT words (every entry) and for a longer one (the entries of two or more
-    words, and the raw patterns)."""
+def blocks(*lists: list[str], anywhere: list[str] | tuple = (), patterns: list[str] | tuple = ()) \
+        -> tuple[re.Pattern, re.Pattern]:
+    """The patterns of every entry, and of those that count in any label: the entries of two or more words and the
+    anywhere ones; both with the raw patterns."""
     entries = [e for group in lists for e in group]
-    return phrases(entries, patterns), phrases([e for e in entries if len(e.split()) > 1], patterns)
+    longer = [e for e in entries if len(e.split()) > 1]
+    return phrases([*entries, *anywhere], patterns), phrases([*longer, *anywhere], patterns)
 
 
 BLOCKS = tomllib.loads((config.CONFIG / "hard_blocks.toml").read_text())
-WORDS = BLOCKS["words"]
-ALWAYS = blocks(WORDS, patterns=BLOCKS["patterns"])
-OUTSIDE_CORE = blocks(WORDS, BLOCKS["outside_core"], patterns=BLOCKS["patterns"])
+WORDS, ANYWHERE, PATTERNS = BLOCKS["words"], BLOCKS["anywhere"], BLOCKS["patterns"]
+ALWAYS = blocks(WORDS, anywhere=ANYWHERE, patterns=PATTERNS)
+OUTSIDE_CORE = blocks(WORDS, BLOCKS["outside_core"], anywhere=ANYWHERE, patterns=PATTERNS)
 CONFIRM = blocks(BLOCKS["confirm"])
 
 
@@ -65,40 +71,53 @@ def labels(element: dict) -> list[str]:
     return [s for s in (element.get("text"), element.get("label")) if s and s.strip()]
 
 
-def said(element: dict) -> list[str]:
-    """What an element says: its labels, and its id without the package (which may hold any word) unless they hold a
-    real word, so a row's generic id ("post_item") never outweighs what it shows, and an icon's glyph or count
-    ("♥", "2K") never hides its id."""
-    shown = labels(element)
-    return shown if any(REAL_WORD.search(s) for s in shown) else [*shown, short_id(element.get("identifier"))]
+def id_evidence(element: dict) -> list[str]:
+    """Its id without the package (which may hold any word), unless its labels hold a real word: so a row's generic
+    id ("post_item") never outweighs what it shows, and an icon's glyph or count ("♥", "2K") never hides its id."""
+    worded = any(REAL_WORD.search(s) for s in labels(element))
+    return [] if worded else [short_id(element.get("identifier"))]
 
 
-def hit(blocked: tuple[re.Pattern, re.Pattern], texts: list[str], most: float = float("inf")) -> str | None:
-    """The entry the first matching text holds: any entry in a text of up to SHORT words, only the longer entries
-    and the patterns in a longer one. A text over `most` words isn't read."""
-    spelled = ((t, len(t.split())) for s in texts for t in spellings(s))
-    return next((m.group() for t, n in spelled if n <= most and (m := blocked[n > SHORT].search(t))), None)
+def hit(blocked: tuple[re.Pattern, re.Pattern], texts: list[str], ids: list[str] | tuple = ()) -> str | None:
+    """The entry the first matching text or id holds: in a text of up to SHORT words, any entry anywhere; in a longer
+    one, any entry it starts with, or a longer entry or pattern anywhere. An id holds no prose: any entry anywhere
+    ("toolbar_menu_action_share_button")."""
+    every, longer = blocked
+    found = (every.search(t) if whole or len(t.split()) <= SHORT else every.match(t) or longer.search(t)
+             for strings, whole in ((texts, False), (ids, True)) for s in strings for t in spellings(s))
+    return next((m.group() for m in found if m), None)
 
 
-# ponytail: whole words in any short label, so a title such as "Password safety tips" is refused too; safety before
-# coverage, and every refusal is logged denied, so the scorecard shows the cost
+def is_control(element: dict, label: str, blocked: tuple[re.Pattern, re.Pattern], core: bool) -> bool:
+    """Whether a tap inside element lands on the control its label names: a button, a label of up to CONTROL_WORDS
+    words, or, outside the core loop, one that opens with a blocked entry ("Send message to all selected group
+    members"). In the core loop such a long label is the AI's reply ("Share …") around the composer."""
+    return ("Button" in element.get("type", "") or len(spellings(label)[1].split()) <= CONTROL_WORDS
+            or not core and any(blocked[0].match(t) for t in spellings(label)))
+
+
+# ponytail: whole words in any short label or one they start, so a title such as "Password safety tips" is refused
+# too, and so is a confirm on a screen whose long text holds a phrase ("delete my account"); safety before coverage,
+# and every refusal is logged denied, so the scorecard shows the cost
 def blocked_tap(element: dict, screen: list[dict] | None = None, *, core: bool = False) -> str | None:
     """Why a tap on element must not run, or None. Refused: a hard-block word it carries (account deletion or
     changes, sign-out, public posts, actions toward other people, purchases, and sending outside the core loop); a
-    tap point inside an element of the screen whose label of up to CONTEXT words carries one, since the tap lands on
-    that; a confirm while such a label shows, as a dialog that names it does. Words come from
-    config/hard_blocks.toml."""
+    tap point inside a control of the screen that carries one, since the tap lands on that; a confirm while any text
+    on the screen carries one, as a dialog that names it does. Words come from config/hard_blocks.toml."""
     blocked = ALWAYS if core else OUTSIDE_CORE
-    if word := hit(blocked, said(element)):
+    if word := hit(blocked, labels(element), id_evidence(element)):
         return word
     if not screen:
         return None
     x, y = center(rect(element))
-    shown = [(rect(e), word) for e in screen if (word := hit(blocked, labels(e), CONTEXT))]
-    if under := next((word for box, word in shown if inside(Rect(x=x, y=y, w=0, h=0), box)), None):
+    point = Rect(x=x, y=y, w=0, h=0)
+    under = next((word for e in screen if inside(point, rect(e))
+                  and (word := hit(blocked, [s for s in labels(e) if is_control(e, s, blocked, core)]))), None)
+    if under:
         return f"{under} (at the tap point)"
-    if shown and (yes := hit(CONFIRM, said(element))):
-        return f"{yes} ({shown[0][1]} on the screen)"
+    if yes := hit(CONFIRM, labels(element), id_evidence(element)):
+        if shown := next((word for e in screen if (word := hit(blocked, labels(e)))), None):
+            return f"{yes} ({shown} on the screen)"
     return None
 
 
