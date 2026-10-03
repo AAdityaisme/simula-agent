@@ -774,6 +774,19 @@ def test_a_filter_chip_under_a_wordless_picture_is_never_tapped_rt_s_r4_m1(runs,
     assert taps(phone) == [] and "isn't verified after the launch" in report["stop"]
 
 
+def test_a_launch_ends_its_wait_on_the_launch_screen_when_the_flow_starts_elsewhere_rt_s_r4_l1(runs, walk):
+    """rt-s on #46 (LOW 1): a launch lands on the launch screen, never on a flow's start elsewhere, so waiting only
+    for the start's fingerprint spent LAUNCH_WAIT_S (30 s) on every such launch before the filter went back."""
+    filtered_tab_back_run(runs, flows=[[("s02", "s01", BACK)]])
+    live = live_with_the_switch_off()
+    phone = phone_for(live, [("s01", labeled(live["s01"], "Safe mode"), "on"), ("on", tab(live["on"], 1), "s02")],
+                      backs={"s02": "on"})
+
+    report = walk(phone)
+    assert report["flows"][0]["status"] == "matched", report["flows"][0]
+    assert phone.clock.t < qa_live.explore.LAUNCH_WAIT_S, phone.clock.t
+
+
 @pytest.mark.parametrize("controls", [[], [SAFE_CONTROL.model_copy(update={"state": ""})]],
                          ids=["no controls", "no screen they were on"])
 def test_a_run_that_recorded_a_filter_but_not_its_controls_is_refused_before_any_device_work(runs, walk, controls):
