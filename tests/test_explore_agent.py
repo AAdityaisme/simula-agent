@@ -16,6 +16,7 @@ from simula.stages import explore as stage
 from simula.stages import model as model_stage
 from simula.contracts import Rect
 from simula.device.mcp import McpTimeout
+from simula.stages import explore_agent as stage_agent
 from simula.stages.explore_agent import STALE_TURNS, AgentExplorer, Halt, ScreenMoved
 from tests.fake_device import PACKAGE, Clock, FakePhone, Screen, capture, fake_jev, fake_sonnet, new_run
 from tests.test_explore_offline import janitor_like
@@ -293,6 +294,43 @@ def test_start_core_is_refused_for_a_person_and_measured_for_an_ai(tmp_path, mon
     assert {p["loop_pass"] for p in passes if p["loop_pass"]} >= {1}
     assert any(t.step == "core" and t.note.startswith("core action: ") for t in trace(ex))
 
+
+def banner_after(*sends: int):
+    """The chat phone, with an upsell banner over the composer after these sends; its dismiss returns to the chat."""
+    def phone_factory(clock):
+        phone = janitor_like(clock)
+        phone.taps[("chats", "Kang Jun-Seo (Idol x Idol), Sat, 1 chat")] = "chat"
+        chat = phone.screens["chat"]
+        banner = [{"ref": "@tip", "type": "android.widget.TextView", "text": "Keep long chats on track",
+                   "coordinates": {"x": 200, "y": 2000, "width": 600, "height": 50}},
+                  {"ref": "@dismiss", "type": "android.view.ViewGroup", "text": "", "label": "Dismiss upgrade prompt",
+                   "coordinates": {"x": 900, "y": 1990, "width": 72, "height": 72}},
+                  {"ref": "@upgrade", "type": "android.widget.Button", "text": "Upgrade",
+                   "coordinates": {"x": 200, "y": 2080, "width": 300, "height": 90}}]
+        phone.screens["chat_banner"] = Screen(chat.elements + banner, chat.image, chat.package)
+        phone.taps[("chat_banner", "Dismiss upgrade prompt")] = "chat"
+        phone.after_sends = dict.fromkeys(sends, "chat_banner")
+        return phone
+    return phone_factory
+
+
+def test_a_banner_over_the_core_action_is_recorded_dismissed_and_the_passes_go_on(tmp_path, monkeypatch):
+    """Run 3: an upsell banner with its own dismiss over the composer after the first send stopped the loop at one
+    pass; it is recorded, dismissed through the guard, and the passes go on. Upgrade is never tapped."""
+    ex, phone, _ = run(tmp_path, monkeypatch, chat_script("ai"), phone_factory=banner_after(1))
+    assert ("chat_banner", "Dismiss upgrade prompt") in taps(phone)
+    assert ("chat_banner", "Upgrade") not in taps(phone)
+    assert phone.sent >= 3 and ex.core_completed >= 3
+    assert any("recorded and dismissed with 'Dismiss upgrade prompt'" in r for r in ex.core_results)
+    stops = [json.loads(line)["loop_stop"] for line in (ex.out / "actions.jsonl").read_text().splitlines()]
+    assert any(stops)  # the banner's stop is still on its action line, with its capture
+
+
+def test_a_banner_back_on_every_pass_stops_the_loop(tmp_path, monkeypatch):
+    ex, phone, _ = run(tmp_path, monkeypatch, chat_script("ai"), phone_factory=banner_after(*range(1, 9)))
+    assert phone.sent == stage_agent.BANNER_PASSES and ex.core_hit
+    assert [t for t in taps(phone) if t == ("chat_banner", "Dismiss upgrade prompt")] == [
+        ("chat_banner", "Dismiss upgrade prompt")] * (stage_agent.BANNER_PASSES - 1)
 
 def test_a_control_code_doesnt_take_for_the_filter_is_not_verified_and_the_run_goes_on(tmp_path, monkeypatch):
     script = scripted(lambda text: turn(tap(oid(text, "Favorites"), "favorites only")),
@@ -735,6 +773,8 @@ def test_an_account_row_is_judged_by_its_unredacted_email(tmp_path, monkeypatch)
             box(control("Personal info", 3), 130, 500, 600, 70)]
     shown = [card[0], {**card[1], "text": "[redacted]"}, card[2]]
     assert "account chooser" in judged(card, shown, "Personal info")
+    compact = [box(card[0], 70, 180, 940, 280), card[1], box(card[2], 130, 360, 600, 70)]  # rt-58 again: row-sized
+    assert "account chooser" in judged(compact, [compact[0], shown[1], compact[2]], "Personal info")
 
 def bar(*xs: int) -> list[dict]:
     """A bottom tab bar of wordless icons, as an app draws one, centered at these x."""
@@ -754,6 +794,23 @@ def test_a_tab_the_bar_redrew_under_the_same_screen_is_tapped_live(tmp_path, mon
                       lambda text: turn(tap(oid(text, at=(540, 2253)), "the middle tab opens")))
     ex, phone, _ = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
     assert ("after", "540,2253") in taps(phone)
+
+
+def test_an_unlisted_overlay_across_the_bar_keeps_the_recorded_tab_refused(tmp_path, monkeypatch):
+    """rt-58: a sheet the element list doesn't show, drawn across the bar, changes the bar's gaps too: the recorded
+    crop check stands and the tab isn't tapped."""
+    before = drawn(control("Sign in", 1), *bar(155, 540, 924))
+    after = Screen(before.elements, before.image.copy(), PACKAGE)
+    draw = ImageDraw.Draw(after.image)
+    draw.rectangle((0, 2230, 1080, 2337), fill=(250, 250, 250))
+    for x in range(0, 1080, 60):
+        draw.rectangle((x, 2230, x + 25, 2337), fill=(20, 20, 20))
+    phone_factory = phone_of({"root": before, "after": after, "tab": drawn(control("Tab page", 1))},
+                             {("root", "Sign in"): "after", ("after", "540,2253"): "tab"})
+    script = scripted(lambda text: turn(tap(oid(text, "Sign in"), "signed in")),
+                      lambda text: turn(tap(oid(text, at=(540, 2253)), "the middle tab opens")))
+    ex, phone, _ = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
+    assert ("after", "540,2253") not in taps(phone)
 
 
 def test_a_tab_the_bar_gained_after_home_taught_the_tabs_is_no_content_under_the_bar(tmp_path, monkeypatch):
@@ -1029,3 +1086,13 @@ def test_consent_prose_about_data_is_sign_in_but_a_manage_button_is_not(tmp_path
     consent = [prose, control("Allow", 2)]
     assert ex.signing([], consent)
     assert not ex.signing([], [prose, control("Allow", 2), control("Manage your Google Account", 3)])
+
+
+def test_the_prompt_asks_for_every_tab_a_fresh_conversation_and_no_early_done():
+    """Runs 1-3: the start tab was never tapped, the core pass continued a long chat, and done came early."""
+    said = " ".join((stage.PROMPTS / "agent.md").read_text().split())
+    assert "the one you start on included (tap its own control)" in said
+    assert "Prefer starting a new conversation" in said
+    assert "only when no unvisited control of the app's own navigation" in said
+    assert "Open at least one item of each list or feed" in said
+    assert "never plan the same step the same way on your next turn" in said

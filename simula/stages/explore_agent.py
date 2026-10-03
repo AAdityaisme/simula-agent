@@ -6,6 +6,8 @@ import contextlib
 import dataclasses
 import re
 
+import numpy as np
+
 from PIL import Image
 
 from simula import config, decide, llm
@@ -14,11 +16,16 @@ from simula.device import guard
 from simula.device import observe as ob
 from simula.stages.explore import (AWAY, CORE_SECONDS_PER_REP, DEVICE_LOST, FILTER_MENU_QUESTION, FILTER_QUESTION,
                                    FILTER_STATE_QUESTION, FILTER_SURE, NO_FILTER, PROMPTS, SEARCH_QUERIES, CoreAction,
-                                   Explorer, Move, NeedRelaunch, Seen, Stop, controls_of, filter_holds, filter_label,
+                                   Explorer, Move, NeedRelaunch, Seen, Stop, capture, controls_of, filter_holds, filter_label,
                                    opener_label, png_half, put_back, title_of, where)
 
 AGENT_MINUTES = 60  # one wall clock for everything the agent does: the tour, the core loop and the replay check
 STALE_TURNS = 10  # planner turns in a row that found no new state end the run
+BANNER_PASSES = 3  # a dismissible banner over the core action on this many passes in a row is a wall: the loop stops
+# a core-loop stop a banner's own dismiss control may clear; a paywall or a limit is what the loop measures
+BANNER_STOPS = ("sheet opened", "dialog opened", "modal opened", "upsell", "upsell screen")
+DISMISSING = re.compile(r"^\W*(?:dismiss|close|not now|no,? thanks|maybe later|later|skip|got it|x|×|✕)\b",
+                        re.IGNORECASE)
 RELAUNCHES = 10  # a guard against a launch loop, not a budget: the agent's stops are $, time, stale turns and done
 HISTORY_LINES = 60  # ponytail: the latest steps only; a summary of older ones if long runs lose their way
 ONE_STEP = "\n\nPlan exactly one step, and name its element by id: never by intent."
@@ -73,7 +80,15 @@ def account_row(c: ob.Candidate, raw: list[dict], device: Device = Device()) -> 
         return False
     members = [e for e in raw if ob.inside(ob.rect(e), row)]
     said = [e.get(k) or "" for e in members for k in ("text", "label")]
-    return any(ob.EMAIL.search(t) for t in said) and not any(GOOGLE_ACCOUNT.search(t) for t in said)
+    return any(beside(c.rect, ob.rect(e)) for e in members if any(ob.EMAIL.search(e.get(k) or "") for k in
+                                                                  ("text", "label"))) \
+        and not any(GOOGLE_ACCOUNT.search(t) for t in said)
+
+
+def beside(a: Rect, email: Rect) -> bool:
+    """a and the email line share a row: their heights overlap or lie at most one email line apart (a name over its
+    address), not a header over the card's next button."""
+    return a.y <= email.y + 2 * email.h and email.y <= a.y + a.h + email.h
 
 
 class AgentExplorer(Explorer):
@@ -92,6 +107,7 @@ class AgentExplorer(Explorer):
                                               *parts]), re.IGNORECASE)
         self.steps: list[AgentStep] = []
         self.ids: dict[str, ob.Candidate] = {}  # this turn's element ids
+        self.banners = 0  # passes in a row that ended on a dismissible banner
         self.covered: dict[tuple[str, str], int] = {}  # (state, control key): taps skipped as covered since the last move
         self.names: dict[str, str] = {}  # the planner's name for each state it planned on
         self.found: list[str] = []  # the planner's notes
@@ -172,6 +188,30 @@ class AgentExplorer(Explorer):
             raise Halt(why)
         with super().launching(home):
             yield
+
+    def core_once(self, n: int) -> tuple[str, bool, str]:
+        """A pass that ended on a sheet or banner offering its own dismiss control (an upsell during the core action)
+        records it, as the stop's capture and a result line, dismisses it through the guard and lets the passes go
+        on. It stops the loop when it can't be dismissed or shows on BANNER_PASSES passes in a row."""
+        result, seen, hit = super().core_once(n)
+        close = self.banner_close() if hit and self.stop_kind in BANNER_STOPS else None
+        self.banners = self.banners + 1 if close else 0
+        if close is None or self.banners >= BANNER_PASSES or self.halted():
+            return result, seen, hit
+        ran = self.actions
+        self.act(Move("tap", close, why="core loop: dismiss a banner over the core action"), purpose="setup")
+        if self.actions == ran or (self.obs and ob.find(self.obs.cands, close)):
+            return result, seen, hit
+        self.core_results.append(f"pass {n}: {hit}: a banner over the core action, recorded and dismissed with "
+                                 f"{close.label[:40]!r}")
+        return result, seen, ""
+
+    def banner_close(self) -> ob.Candidate | None:
+        """The live screen's dismiss control that the core screen didn't show: the banner's own close or not now."""
+        if self.obs is None or self.obs.fg != self.package:
+            return None
+        return next((c for c in self.obs.cands if DISMISSING.match(c.label) and not ob.denied(c)
+                     and not ob.find(self.core.state.cands, c)), None)
 
     def core_loop(self) -> None:
         self.touring = False
@@ -275,7 +315,8 @@ class AgentExplorer(Explorer):
             # a tab the live bar draws otherwise than recorded (signing in redrew the bar under the same screen) is
             # offered as the screen shows it now, or its recorded crop refuses every tap; anything else keeps its crop
             # check (invariant 3), which sees overlays the element list doesn't
-            pick = now and (now if now.key in bar and not self.shows(c, now, obs) else c)
+            pick = now and (now if now.key in bar and not self.shows(c, now, obs) and self.bar_as_recorded(s, obs)
+                            else c)
             if pick and not any(pick is x for x in listed):
                 listed.append(pick)
         return listed + [c for c in live if s.box is None and not ob.find(s.cands, c)]
@@ -283,9 +324,27 @@ class AgentExplorer(Explorer):
     def under_tab_bar(self, cand: ob.Candidate, live: ob.Candidate, now) -> bool:
         """A control of the tab bar the live screen shows is a tab too: the bar can gain tabs after the home screen
         taught the tabs (signing in adds some), and those aren't content scrolled under it."""
-        if live.key in {t.key for t in ob.tab_bar(controls_of(now.cands), self.device)}:
+        if live.key in {t.key for t in ob.tab_bar(controls_of(now.cands), self.device)} \
+                and self.bar_as_recorded(self.current, now):
             return False
         return super().under_tab_bar(cand, live, now)
+
+    def bar_as_recorded(self, s: Seen, now) -> bool:
+        """The tab bar's own background (its strip, every tab of the recorded and the live bar masked out) looks as s
+        recorded it: a redrawn or added tab changes only its own box, while an overlay across the bar that the element
+        list doesn't show changes the gaps too (run 2's redraw: 0% of the gaps; a sheet over the bar: 64%)."""
+        tabs = [t.rect for t in (*ob.tab_bar(controls_of(s.cands), self.device),
+                                 *ob.tab_bar(controls_of(now.cands), self.device))]
+        path = self.out / s.png
+        then = capture(path, path.stat().st_mtime_ns)
+        if not tabs or then.size != now.image.size:
+            return False
+        top, bottom = int(min(r.y for r in tabs)), int(max(r.y + r.h for r in tabs))
+        a, b = (np.asarray(i.convert("L"), dtype=np.int16)[top:bottom] for i in (then, now.image))
+        gaps = np.ones(a.shape, dtype=bool)
+        for r in tabs:
+            gaps[int(r.y) - top:int(r.y + r.h) - top, int(r.x):int(r.x + r.w)] = False
+        return bool(gaps.any()) and (np.abs(a - b)[gaps] > 24).mean() <= 0.02
 
     def what_covers(self, cand: ob.Candidate) -> str:
         """Why a tap on cand was skipped as not shown, in the planner's terms: what lies over it, by its words or type,
