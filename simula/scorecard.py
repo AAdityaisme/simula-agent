@@ -156,36 +156,48 @@ def tab_bar(pm: ProductModel) -> tuple[list[Element], bool]:
     return max(confirmed or [row for _, row in rows], key=len, default=[]), bool(confirmed)
 
 
-def tab_of(state: State, element_id: str | None, bar: list[Element], device: Device) -> str | None:
-    """The tab a tapped element is: one of the bar's own elements on that state (the bar's class and size, a tab's
-    name), or a box holding exactly one of them, as a tab's tap target holds its label, that is wordless or carries
-    that tab's own name."""
-    names, kind = {name(e) for e in bar}, size(bar[0], device)
-    members = [e for e in band_named(state, device) if size(e, device) == kind and name(e) in names]
-    tapped = next((e for e in state.elements if e.id == element_id), None)
-    if tapped is None:
+def slots_on(state: State, bar: list[Element], device: Device) -> dict[int, Element] | None:
+    """A state's control in each slot of the bar (its elements of the bar's class, size and row, by the slot whose
+    column holds their center), or None when it doesn't show every slot."""
+    row = (*size(bar[0], device), ob.bucket(bar[0].rect_px.y, device))
+    found = {}
+    for e in state.elements:
+        if (*size(e, device), ob.bucket(e.rect_px.y, device)) == row:
+            x = ob.center(e.rect_px)[0]
+            found |= {n: e for n, t in enumerate(bar) if t.rect_px.x <= x < t.rect_px.x + t.rect_px.w}
+    return found if len(found) == len(bar) else None
+
+
+def tab_of(state: State, element_id: str | None, bar: list[Element], device: Device) -> int | None:
+    """The bar slot a tapped element controls, on a state showing the whole bar: the slot's own control, or a box
+    holding exactly one slot's control, as a tab's tap target holds its label, that is wordless or carries that
+    control's name. Names never tell slots apart: three tabs with one name are three tabs."""
+    slots, tapped = slots_on(state, bar, device), next((e for e in state.elements if e.id == element_id), None)
+    if not slots or tapped is None:
         return None
-    if any(m.id == tapped.id for m in members):
-        return name(tapped)
-    held = [m for m in members if ob.inside(m.rect_px, tapped.rect_px)]
-    return name(held[0]) if len(held) == 1 and name(tapped) in ("", name(held[0])) else None
+    own = next((n for n, e in slots.items() if e.id == tapped.id), None)
+    if own is not None:
+        return own
+    held = [n for n, e in slots.items() if ob.inside(e.rect_px, tapped.rect_px)]
+    return held[0] if len(held) == 1 and name(tapped) in ("", name(slots[held[0]])) else None
 
 
 def all_tabs(pm: ProductModel) -> bool | None:
     """None when no saved screen shows a tab bar: no bar seen is no evidence the run walked one. Open for a bar no other
-    saved screen confirms. Otherwise every tab needs a successful tap on its own control that went to another saved
-    screen, not an overlay, counted once per tab. The tab the run started on counts only when its own control was
-    tapped too: nothing else tells which tab that was."""
+    saved screen confirms. Otherwise every slot of the bar needs a successful tap on its own control that went to
+    another saved screen, not an overlay. The tab the run started on counts only when its own control was tapped too,
+    which may keep the first screen showing the bar where it is (the tab reloads in place)."""
     bar, confirmed = tab_bar(pm)
     if not bar:
         return None
     if not confirmed:
         return False
-    states = {s.id: s for s in pm.states}
-    visited = {tab for e in pm.edges if e.action == "tap" and e.from_state in states and e.to_state != e.from_state
-               and e.to_state in states and states[e.to_state].kind == "screen"
-               and (tab := tab_of(states[e.from_state], e.element_id, bar, pm.device))}
-    return visited >= {name(e) for e in bar}
+    bar, states = sorted(bar, key=lambda e: e.rect_px.x), {s.id: s for s in pm.states}
+    home = next((s.id for s in pm.states if s.kind == "screen" and slots_on(s, bar, pm.device)), None)
+    visited = {slot for e in pm.edges if e.action == "tap" and e.from_state in states and e.to_state in states
+               and states[e.to_state].kind == "screen" and (e.to_state != e.from_state or e.from_state == home)
+               and (slot := tab_of(states[e.from_state], e.element_id, bar, pm.device)) is not None}
+    return len(visited) == len(bar)
 
 
 def settings_screen(state: State) -> bool:

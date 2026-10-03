@@ -11,6 +11,7 @@ from pydantic import ValidationError
 from simula import cli, scorecard
 from simula.contracts import (ActionLine, Device, Edge, Element, ExploreFile, Manifest, ProductModel, Provenance, Rect,
                               State, StateFile, TraceLine)
+from simula.stages import model
 from tests.conftest import FIXTURES, PREFIX, ROOT
 from tests.explore_fixture import add_core_loop, build
 
@@ -323,6 +324,42 @@ def test_a_parent_named_like_the_tab_it_holds_visits_that_tab():
     assert scorecard.all_tabs(product(states, walked))
     states[1] = screen("search", elements=[*tabs("search"), parent("search", "More")])
     assert scorecard.all_tabs(product(states, walked)) is False
+
+
+def test_three_tabs_with_one_name_are_three_tabs():
+    same = {sid: [e.model_copy(update={"text": "Navigation item"}) for e in tabs(sid)] for sid in ("home", "search")}
+    states = [screen("home", elements=same["home"]), screen("search", elements=same["search"])]
+    assert len(scorecard.tab_bar(product(states))[0]) == 3
+    assert scorecard.all_tabs(product(states, [tap("home", "search", "home.tab1")])) is False
+    assert scorecard.all_tabs(product(states, [tap("home", "search", "home.tab1"), tap("search", "home", "search.tab0"),
+                                               tap("home", "search", "home.tab2")]))
+
+
+def test_a_button_named_like_a_tab_off_the_bar_is_not_its_control():
+    """A screen without the bar holds a single bottom button with a tab's name, class and size in another tab's
+    column: its tap opens a details page, not that tab."""
+    states = [screen("home", elements=tabs("home")), screen("search", elements=tabs("search")),
+              screen("detail", elements=[element("detail", "profile_button", 40, "Profile")]),
+              screen("information", "Information", "Show more information")]
+    walked = [tap("home", "search", "home.tab1"), tap("search", "home", "search.tab0"),
+              tap("detail", "information", "detail.profile_button")]
+    assert scorecard.all_tabs(product(states, walked)) is False
+
+
+def test_a_tap_on_the_starting_tab_that_reloads_it_in_place_counts(tmp_path):
+    """The first screen showing the bar is Home: tapping Home's own control there reloads it in place and counts. The
+    edges come from stage 2's own reader of the action lines. A same-screen tap counts for the starting screen only."""
+    states = [screen(sid, elements=[e.model_copy(update={"mcp_ref": e.id}) for e in tabs(sid)])
+              for sid in ("home", "search", "profile")]
+    (tmp_path / "actions.jsonl").write_text("".join(a.model_dump_json() + "\n" for a in [
+        line(1, from_state="home", to_state="home", mcp_ref="home.tab0", transition="tab", change_summary="reloaded"),
+        line(2, from_state="home", to_state="search", mcp_ref="home.tab1", transition="tab"),
+        line(3, from_state="search", to_state="profile", mcp_ref="search.tab2", transition="tab")]))
+    edges, notes = model.load_edges(tmp_path, states)
+    assert (len(edges), notes) == (3, [])
+    assert scorecard.all_tabs(product(states, edges))
+    elsewhere = [tap("search", "search", "search.tab0"), *edges[1:]]
+    assert scorecard.all_tabs(product(states, elsewhere)) is False
 
 
 def test_returning_to_the_first_tab_does_not_stand_in_for_an_unopened_one():
