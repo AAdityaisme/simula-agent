@@ -330,7 +330,8 @@ def test_what_it_is_not_sure_of_stops_it_at_the_wall_before_anything_is_typed(tm
      el("@ok", "Button", "OK", 1700)],
     [el("@o0", "TextView", "Create your first character", 200), el("@o1", "TextView", "Character name", 420, h=60),
      el("@o2", "EditText", "", 500), el("@o3", "Button", "Create", 1700)],
-], ids=["an error rt-f8", "an onboarding form rt-f11"])
+    [*HOME, el("@ca", "Button", "Create account", 1600, w=400)],
+], ids=["an error rt-f8", "an onboarding form rt-f11", "the app still offering create account greptile-43"])
 def test_after_the_form_only_the_app_itself_counts_as_signed_up_and_nothing_more_is_typed(tmp_path, monkeypatch,
                                                                                          identity, after):
     phones = []
@@ -493,6 +494,15 @@ def test_the_sign_up_words_are_lifted_on_the_sign_up_path_only():
             "Agree and continue": "consent", "Accept & continue": "consent", "Accept": "consent"}
     assert {label: ob.denied(control(label), account=True) for label in kept} == kept
     assert ob.denied(control("I accept the terms and the privacy policy", "CheckBox"), account=True) == "consent"
+
+
+def test_an_icon_only_close_reads_the_deny_words_it_read_before_rt_s_l1():
+    """rt-s on #46 (LOW 1): item 43's wall words reached denied(), so with the flag off an X whose id names "create
+    account" became tappable. A control's deny words are as they were."""
+    def close(ident: str) -> ob.Candidate:
+        return ob.Candidate(f"Close {ident}", "ImageButton", Rect(x=950, y=200, w=90, h=90), "@x", "", ident=ident)
+    assert [ob.denied(close(i)) for i in ("createAccountClose", "register_dismiss", "login_close")] == \
+        ["create account", None, None]
 
 
 def test_guest_words_are_a_whole_label():

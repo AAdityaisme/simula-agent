@@ -1040,7 +1040,7 @@ class Explorer:
         form = any(c.kind == "EditText" for c in cands)
         other = any(ob.shaped(c) and c.tree_label and not ob.denied(c, upsell=s.upsell) and not ob.account_way(c)
                     and not (form and ob.SUBMIT.search(c.label)) for c in cands)
-        return (any(ob.shaped(c) and ob.SIGN_IN.search(c.label) for c in cands) and not other
+        return (any(map(ob.asks_sign_in, cands)) and not other
                 and not ob.feed_items(cands, self.device, self.tab_keys()) and not ob.composer(cands, self.device)
                 and not ob.tab_bar(cands, self.device))
 
@@ -1232,7 +1232,7 @@ class Explorer:
         s, cands = self.current, self.surface()
         if s in self.states[:self.states.index(wall)]:
             return self.stopped(wall, f"the form was sent, but it came back to {s.sid}, seen before the wall")
-        app = (s.kind not in AWAY and not any(ob.shaped(c) and ob.SIGN_IN.search(c.label) for c in cands)
+        app = (s.kind not in AWAY and not any(map(ob.asks_sign_in, cands))
                and bool(ob.tab_bar(cands, self.device) or ob.composer(cands, self.device)))
         if not app:
             return self.stopped(wall, f"the form was sent, but {s.sid} shows no sign of an account")

@@ -71,8 +71,7 @@ ID_WORDS = re.compile(r"(?<=[a-z])(?=[A-Z])|[_-]")  # an id's words ("buttonFavo
 # denies it; a text button such as "Close account" meets every deny word
 ICON_ONLY = re.compile(r"\s*[x×✕✖]?\s*", re.IGNORECASE)
 DISMISS_ID = re.compile(r"\b(?:close|dismiss|skip|not now)\b", re.IGNORECASE)
-SIGN_IN = re.compile(r"\b(?:log ?in|sign ?in|sign ?up|continue with|create (?:an |my |your )?account|register)\b",
-                     re.IGNORECASE)
+SIGN_IN = re.compile(r"\b(?:log ?in|sign ?in|sign ?up|continue with)\b", re.IGNORECASE)
 TOGGLE = re.compile(r"Switch|CheckBox|ToggleButton", re.IGNORECASE)
 DENY_ON_UPSELL = re.compile(r"continue|try|start|get|claim|unlock|join|redeem|activate|\bremove\b", re.IGNORECASE)
 DENY_IN_TOUR = re.compile(r"send|swipe|regenerate", re.IGNORECASE)
@@ -529,6 +528,11 @@ def consents(c: Candidate, tapped: bool = True) -> bool:
     toggle = bool(TOGGLE.search(c.kind))
     attests = (tapped or toggle or "Button" in c.kind) and ATTESTS.search(c.label)
     return (shaped(c) or toggle) and bool(AGREES.search(c.label) or attests)
+
+
+def asks_sign_in(c: Candidate) -> bool:
+    """A control that asks to sign in or up: log in, sign in or up, continue with, create an account, register."""
+    return shaped(c) and bool(SIGN_IN.search(c.label) or SIGN_UP_WAY.search(c.label))
 
 
 def account_way(c: Candidate) -> bool:
