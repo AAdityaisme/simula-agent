@@ -2783,7 +2783,10 @@ def run(ctx: Ctx) -> StageOutcome:
         raise llm.ReplayMiss("explore drives the device; --replay reuses a finished explore/ folder")
     kind = Explorer
     if ctx.explorer == "agent":  # it subclasses Explorer; imported before the device or the last record is touched
-        from simula.stages.explore_agent import AgentExplorer as kind
+        try:
+            from simula.stages.explore_agent import AgentExplorer as kind
+        except ImportError as e:
+            raise NotStarted(f"the agent explorer can't load ({e})") from None
     if not redact_list():
         needs_human(ctx.run_dir, "explore", "SIMULA_REDACT is empty",
                     "the explorer saves screenshots and element lists, and nothing would hide the account handle",

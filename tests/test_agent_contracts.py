@@ -11,6 +11,7 @@ from simula.contracts import AdLine, AgentStep, AgentTurn
 from simula.runlog import read_manifest
 from simula.stages import ROLES, explore
 from tests.fake_device import new_run
+from tests.test_run_reuses_explore import finished_explore
 
 TAP = {"action": "tap", "element": "e3", "expect": "a character's page opens"}
 
@@ -80,14 +81,17 @@ def test_the_switch_builds_its_explorer(tmp_path, monkeypatch, explorer):
     assert built == [explorer]
 
 
-def test_an_agent_explorer_that_cant_load_leaves_the_last_explore(tmp_path, monkeypatch):
-    ctx = new_run(tmp_path, explorer="agent")
-    (ctx.run_dir / "explore").mkdir()
-    (ctx.run_dir / "explore" / "explore.json").write_text("{}")
+def test_an_agent_explorer_that_cant_load_leaves_the_last_explore(runs, monkeypatch):
+    """Greptile on 250ec6e: the stage runner drops explore's marker before the stage runs, and only a stage that
+    didn't start puts it back, so an import error lost the last explore."""
+    cli.main(["run", "janitorai", "--new"])
+    run_dir = (runs / "janitorai" / "latest").resolve()
+    finished_explore(run_dir)
+    before = (run_dir / "explore" / "done.json").read_text()
     monkeypatch.setitem(sys.modules, "simula.stages.explore_agent", None)
-    with pytest.raises(ImportError):
-        explore.run(ctx)
-    assert (ctx.run_dir / "explore" / "explore.json").read_text() == "{}"
+    with pytest.raises(SystemExit, match="explore did not start: the agent explorer can't load"):
+        cli.main(["explore", "janitorai", "--run", run_dir.name, "--explorer", "agent"])
+    assert (run_dir / "explore" / "done.json").read_text() == before
 
 
 def test_explores_code_hash_will_cover_the_agent_module(tmp_path):
