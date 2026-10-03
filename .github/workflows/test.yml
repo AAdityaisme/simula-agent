@@ -30,7 +30,7 @@ jobs:
       # Without --with-deps: the runner image ships Chrome's libraries, and apt's mirror has crawled past 12 minutes
       - run: uv run playwright install chromium
         timeout-minutes: 5
-      - run: uv run pytest -m "not live" -q -n auto --durations=50
+      - run: uv run pytest -m "not live" -q -n auto --durations=0 --durations-min=0
 
   # The gate scripts read the check named pytest; it passes only when every shard did.
   pytest:
