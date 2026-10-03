@@ -295,8 +295,9 @@ def test_start_core_is_refused_for_a_person_and_measured_for_an_ai(tmp_path, mon
     assert any(t.step == "core" and t.note.startswith("core action: ") for t in trace(ex))
 
 
-def banner_after(*sends: int):
-    """The chat phone, with an upsell banner over the composer after these sends; its dismiss returns to the chat."""
+def banner_after(*sends: int, extra: tuple = ()):
+    """The chat phone, with an upsell banner over the composer after these sends (and these extra elements); its
+    dismiss returns to the chat."""
     def phone_factory(clock):
         phone = janitor_like(clock)
         phone.taps[("chats", "Kang Jun-Seo (Idol x Idol), Sat, 1 chat")] = "chat"
@@ -307,7 +308,7 @@ def banner_after(*sends: int):
                    "coordinates": {"x": 900, "y": 1990, "width": 72, "height": 72}},
                   {"ref": "@upgrade", "type": "android.widget.Button", "text": "Upgrade",
                    "coordinates": {"x": 200, "y": 2080, "width": 300, "height": 90}}]
-        phone.screens["chat_banner"] = Screen(chat.elements + banner, chat.image, chat.package)
+        phone.screens["chat_banner"] = Screen(chat.elements + [*extra, *banner], chat.image, chat.package)
         phone.taps[("chat_banner", "Dismiss upgrade prompt")] = "chat"
         phone.after_sends = dict.fromkeys(sends, "chat_banner")
         return phone
@@ -326,11 +327,76 @@ def test_a_banner_over_the_core_action_is_recorded_dismissed_and_the_passes_go_o
     assert any(stops)  # the banner's stop is still on its action line, with its capture
 
 
+def test_the_banner_dismiss_is_never_reply_content_or_an_offer(tmp_path, monkeypatch):
+    """rt-58: a new reply reading like a dismissal ('Got it — I can help') lies outside the banner and isn't control
+    shaped; an offer ('Skip the wait') is no dismissal: the real dismiss is taken, and with only the offer the loop
+    stops on the banner as before."""
+    reply = {"ref": "@reply", "type": "android.widget.TextView", "text": "Got it — I can help",
+             "coordinates": {"x": 100, "y": 900, "width": 800, "height": 100}}
+    ex, phone, _ = run(tmp_path / "reply", monkeypatch, chat_script("ai"), phone_factory=banner_after(1, extra=(reply,)))
+    assert ("chat_banner", "Dismiss upgrade prompt") in taps(phone)
+    assert not [t for t in taps(phone) if t[1] in ("Got it — I can help", "Upgrade")]
+    skip = {"ref": "@skip", "type": "android.widget.Button", "text": "Skip the wait",
+            "coordinates": {"x": 600, "y": 2080, "width": 300, "height": 90}}
+
+    def offer_only(clock):
+        phone = banner_after(1, extra=(skip,))(clock)
+        banner = phone.screens["chat_banner"]
+        phone.screens["chat_banner"] = Screen([e for e in banner.elements if e["ref"] != "@dismiss"], banner.image,
+                                              banner.package)
+        return phone
+    ex, phone, _ = run(tmp_path / "offer", monkeypatch, chat_script("ai"), phone_factory=offer_only)
+    assert phone.sent == 1 and ex.core_hit
+    assert not [t for t in taps(phone) if t[0] == "chat_banner"]
+
+
 def test_a_banner_back_on_every_pass_stops_the_loop(tmp_path, monkeypatch):
     ex, phone, _ = run(tmp_path, monkeypatch, chat_script("ai"), phone_factory=banner_after(*range(1, 9)))
     assert phone.sent == stage_agent.BANNER_PASSES and ex.core_hit
     assert [t for t in taps(phone) if t == ("chat_banner", "Dismiss upgrade prompt")] == [
         ("chat_banner", "Dismiss upgrade prompt")] * (stage_agent.BANNER_PASSES - 1)
+
+def test_start_core_runs_the_passes_at_once_and_the_tour_goes_on(tmp_path, monkeypatch):
+    """Run 4: after the tour the loop had to walk back to the chat through a card that had changed, and failed. The
+    passes run when start_core is accepted, on its screen; the tour resumes after them, and no core phase follows."""
+    def chats(clock):
+        phone = janitor_like(clock)
+        phone.taps[("chats", "Kang Jun-Seo (Idol x Idol), Sat, 1 chat")] = "chat"
+        return phone
+
+    def script(n, text):
+        if n < 3:
+            return chat_script("ai")(n, text)
+        if n == 3:
+            return turn({"action": "start_core", "recipient": "ai", "expect": "marked"})
+        if n == 4:
+            return turn({"action": "back", "expect": "the chat list"})
+        return None
+    ex, phone, planner = run(tmp_path, monkeypatch, script, phone_factory=chats)
+    lines = [json.loads(line) for line in (ex.out / "actions.jsonl").read_text().splitlines()]
+    passes = [n for n, line in enumerate(lines) if line["loop_pass"]]
+    later = [n for n, line in enumerate(lines) if line["action"] == "back" and not line["loop_pass"]]
+    assert passes and later and max(passes) < min(n for n in later if n > min(passes))
+    assert "measured now" in planner.texts[3] and phone.sent == ex.core_reps
+    assert any(t.step == "core" and "ran during the tour" in t.note for t in trace(ex))
+
+def test_a_cap_during_the_passes_in_the_tour_stops_everything_after_it(tmp_path, monkeypatch):
+    def chats(clock):
+        phone = janitor_like(clock)
+        phone.taps[("chats", "Kang Jun-Seo (Idol x Idol), Sat, 1 chat")] = "chat"
+        return phone
+    ex, phone, _ = agent(tmp_path, monkeypatch, chat_script("ai"), phone_factory=chats)
+    once = ex.core_once
+
+    def capped(n):
+        if n == 2:
+            raise llm.CapReached("$ cap")
+        return once(n)
+    ex.core_once = capped
+    stage.explore_app(ex)
+    sends = [i for i, e in enumerate(phone.log) if e[0] == "type"]
+    assert len(sends) == 1 and not [e for e in phone.log[sends[0] + 1:] if e[0] in ("launch", "swipe", "type")]
+    assert any("core_loop stopped: CapReached" in r for r in ex.core_results) and ex.capped
 
 def test_a_control_code_doesnt_take_for_the_filter_is_not_verified_and_the_run_goes_on(tmp_path, monkeypatch):
     script = scripted(lambda text: turn(tap(oid(text, "Favorites"), "favorites only")),
@@ -387,6 +453,31 @@ def test_a_filter_already_set_is_verified_by_the_element_the_planner_names(tmp_p
     assert [t.label for t in ex.filter_taps] == ["Limited Only"] and ex.filter_checks[0][1]
     assert [t.outcome for t in trace(ex) if t.step == "filter.check"][0] == "ok"
 
+
+def test_a_launch_onto_another_home_never_relaunches_for_the_filter(tmp_path, monkeypatch):
+    """Run 4: signed in, the app launched onto a home with no recorded way to the screen where the filter was set,
+    and the filter recheck relaunched ten times in a row. One launch, then the planner hears it is not verified."""
+    def signed_in(clock):
+        phone = janitor_like(clock)
+        phone.taps[("launch", "Close subscription announcement")] = "limited"
+        phone.screens["home2"] = drawn(control("Welcome back", 1))
+        launch = phone.launch
+
+        def later_launches(retry=True):
+            if ("launch",) in phone.log:
+                phone.start = "home2"
+            launch(retry)
+        phone.launch = later_launches
+        return phone
+    script = scripted(lambda text: turn(tap(oid(text, "Limited Only"), "stays on"), filter_set=True,
+                                        filter_element=oid(text, "Limited Only")),
+                      lambda text: turn({"action": "launch", "expect": "the app opens again"}),
+                      lambda text: turn(DONE))
+    ex, phone, planner = run(tmp_path, monkeypatch, script, phone_factory=signed_in, no_send=True)
+    assert ex.filter_checks and ex.filter_checks[0][1]
+    assert ex.relaunches == 1  # the planner's; BACK off the new home left the app and a launch, uncounted, returned
+    assert any(t.step == "filter" and "with no relaunch for it" in t.note for t in trace(ex))
+    assert "Content filter: not verified" in planner.texts[2]
 
 def counting_jev(asked):
     def jev(state, instructions, labels, backend):
@@ -525,12 +616,12 @@ def test_the_scrub_isnt_part_of_the_cache_key(tmp_path, monkeypatch):
 
 def test_nothing_runs_after_the_wall_clock(tmp_path, monkeypatch):
     """The red team's HIGH 5: one deadline for the tour, the core loop and the replay check."""
-    def script(n, text):
+    def script(n, text):  # the core passes run when start_core is marked: mark it once the clock has run out
         if n == 2:
             ex.clock.t = ex.deadline
-            return turn({"action": "swipe", "direction": "down", "expect": "the top"})
-        mark = {"action": "start_core", "element": oid(text, "Explore"), "recipient": "ai", "expect": "marked"}
-        return turn(tap(oid(text, "Explore"), "explore opens"), mark)
+            mark = {"action": "start_core", "element": oid(text, "A page"), "recipient": "ai", "expect": "marked"}
+            return turn(mark, {"action": "swipe", "direction": "down", "expect": "the top"})
+        return turn(tap(oid(text, "Explore"), "explore opens"))
     ex, phone, _ = agent(tmp_path, monkeypatch, script,
                          phone_factory=phone_of({"root": drawn(control("Explore", 1)),
                                                  "page": drawn(control("A page", 1))}, {("root", "Explore"): "page"}))

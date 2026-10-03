@@ -24,8 +24,12 @@ STALE_TURNS = 10  # planner turns in a row that found no new state end the run
 BANNER_PASSES = 3  # a dismissible banner over the core action on this many passes in a row is a wall: the loop stops
 # a core-loop stop a banner's own dismiss control may clear; a paywall or a limit is what the loop measures
 BANNER_STOPS = ("sheet opened", "dialog opened", "modal opened", "upsell", "upsell screen")
-DISMISSING = re.compile(r"^\W*(?:dismiss|close|not now|no,? thanks|maybe later|later|skip|got it|x|×|✕)\b",
-                        re.IGNORECASE)
+DISMISS_PHRASE = re.compile(r"^\W*(?:dismiss|close|not now|no,? thanks|maybe later|later|x|×|✕)\W*$", re.IGNORECASE)
+DISMISS_LEAD = re.compile(r"^\W*(?:dismiss|close)\b", re.IGNORECASE)
+# after a leading dismiss or close these words name what it dismisses ("Dismiss upgrade prompt"); joined to it they
+# make it an offer ("Close and upgrade", "Close to unlock")
+OFFER = re.compile(r"\b(?:upgrade|buy|subscribe|skip|unlock|try)\b", re.IGNORECASE)
+JOINED = re.compile(r"\b(?:and|then|to)\b|[&+]", re.IGNORECASE)
 RELAUNCHES = 10  # a guard against a launch loop, not a budget: the agent's stops are $, time, stale turns and done
 HISTORY_LINES = 60  # ponytail: the latest steps only; a summary of older ones if long runs lose their way
 ONE_STEP = "\n\nPlan exactly one step, and name its element by id: never by intent."
@@ -85,6 +89,21 @@ def account_row(c: ob.Candidate, raw: list[dict], device: Device = Device()) -> 
         and not any(GOOGLE_ACCOUNT.search(t) for t in said)
 
 
+def dismissal(label: str) -> bool:
+    """A label that only dismisses: a whole dismiss phrase, or one led by dismiss or close that names what it closes,
+    never an offer joined to it or a price."""
+    if ob.PRICE.search(label):
+        return False
+    if DISMISS_PHRASE.match(label):
+        return True
+    return bool(DISMISS_LEAD.match(label)) and not (OFFER.search(label) and JOINED.search(label))
+
+
+def span(rects: list[Rect]) -> Rect:
+    x, y = min(r.x for r in rects), min(r.y for r in rects)
+    return Rect(x=x, y=y, w=max(r.x + r.w for r in rects) - x, h=max(r.y + r.h for r in rects) - y)
+
+
 def beside(a: Rect, email: Rect) -> bool:
     """a and the email line share a row: their heights overlap or lie at most one email line apart (a name over its
     address), not a header over the card's next button."""
@@ -94,6 +113,8 @@ def beside(a: Rect, email: Rect) -> bool:
 class AgentExplorer(Explorer):
     """The scripted explorer with the agent's policy: tour() is the planner's loop, the hard blocks replace the
     deny-list, and the content filter is the planner's goal, verified by code but never a gate."""
+
+    core_ran = False  # the passes ran during the tour, when start_core marked the core action
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -207,14 +228,45 @@ class AgentExplorer(Explorer):
         return result, seen, ""
 
     def banner_close(self) -> ob.Candidate | None:
-        """The live screen's dismiss control that the core screen didn't show: the banner's own close or not now."""
-        if self.obs is None or self.obs.fg != self.package:
+        """The banner's own dismiss control: control-shaped (a button, an icon named only by its accessibility label,
+        or a label of at most four words), inside the banner, labelled only as a dismissal, and new since the core
+        screen was recorded. None leaves the stop standing."""
+        if self.obs is None or self.obs.fg != self.package or (region := self.banner_region()) is None:
             return None
-        return next((c for c in self.obs.cands if DISMISSING.match(c.label) and not ob.denied(c)
-                     and not ob.find(self.core.state.cands, c)), None)
+        raw = {e.get("ref"): e for e in self.obs.elements}
+
+        def shaped(c: ob.Candidate) -> bool:
+            e = raw.get(c.ref, {})
+            return "Button" in c.kind or len(c.label.split()) <= 4 or (not e.get("text") and bool(e.get("label")))
+        return next((c for c in self.obs.cands if ob.inside(c.rect, region) and shaped(c) and dismissal(c.label)
+                     and not ob.denied(c) and not ob.find(self.core.state.cands, c)), None)
+
+    def banner_region(self) -> Rect | None:
+        """Where the banner lies: the sheet's own box, or the span of what is new since the core screen was recorded;
+        in a chat only what lies over the text box and what touches it, never the conversation above."""
+        if self.current is not self.core.state and getattr(self.current, "box", None) is not None:
+            return self.current.box
+        old = {(ob.words(e), e["type"]) for e in getattr(self.core.state, "elements", [])}
+        new = [ob.rect(e) for e in self.obs.elements
+               if ob.words(e) and (ob.words(e), e["type"]) not in old and ob.in_content(e, self.device)]
+        if self.core.kind == "chat":
+            box = self.lower_box(self.obs.cands)
+            region = [r for r in new if box and ob.overlaps(r, box.rect)]
+            while region and (more := [r for r in new if r not in region and ob.overlaps(r, Rect(
+                    x=0, y=span(region).y - 24, w=self.device.w_px, h=span(region).h + 48))]):
+                region += more
+            new = region
+        return span(new) if new else None
 
     def core_loop(self) -> None:
         self.touring = False
+        if self.core_ran:
+            self.note("core", "the core passes ran during the tour, when start_core marked the core action")
+            return
+        self.measure_core()
+
+    def measure_core(self) -> None:
+        """The inherited core loop, never after the cap or the clock."""
         if why := self.halted():
             self.core_results.append(f"not run: {why}")
             return
@@ -315,6 +367,9 @@ class AgentExplorer(Explorer):
             # a tab the live bar draws otherwise than recorded (signing in redrew the bar under the same screen) is
             # offered as the screen shows it now, or its recorded crop refuses every tap; anything else keeps its crop
             # check (invariant 3), which sees overlays the element list doesn't
+            # ponytail: known limit, accepted 2026-10-03: a popup drawn wholly inside a tab's own box that the element
+            # list doesn't show looks like a redrawn icon; pixels can't tell them apart, and the guard still checks
+            # every listed element at the tap point
             pick = now and (now if now.key in bar and not self.shows(c, now, obs) and self.bar_as_recorded(s, obs)
                             else c)
             if pick and not any(pick is x for x in listed):
@@ -542,7 +597,10 @@ class AgentExplorer(Explorer):
             self.steps.clear()
 
     def start_core(self, step: AgentStep) -> None:
-        """Marks the core action the inherited core loop measures after the tour, only for an AI recipient."""
+        """Marks the core action, only for an AI recipient, and measures it at once (core_now)."""
+        if self.core_ran:
+            self.news.append("The core action was measured already: start_core runs once.")
+            return
         if not guard.core_allowed(step.recipient):
             self.note("agent.core", f"start_core refused: the recipient is {step.recipient!r}", outcome="blocked")
             self.news.append("start_core was refused: code sends messages only to the app's AI or bot.")
@@ -561,7 +619,28 @@ class AgentExplorer(Explorer):
             self.picked_core = CoreAction("action", s, [ob.find(s.cands, cand) or cand],
                                           f"tap {cand.label[:40]!r} again and again on {s.sid}")
         self.note("agent.core", f"marked: {self.picked_core.name}", decider="model")
-        self.news.append(f"Core action marked ({self.picked_core.name}): code measures it after you are done.")
+        self.core_now()
+
+    def core_now(self) -> None:
+        """Spec 6, the core loop as a tool: the passes run the moment start_core is accepted, on this screen, with the
+        core loop's own code; then the tour goes on with the clock it had kept for them. A cap or the clock that stops
+        the passes stops the tour too; a relaunch they need is the tour's next step."""
+        self.core_ran, self.steps = True, []
+        self.tour_seconds = AGENT_MINUTES * 60
+        before = len(self.core_results)
+        try:
+            self.measure_core()
+        except (Stop, llm.CapReached, NeedRelaunch) as e:
+            self.core_results.append(f"core_loop stopped: {type(e).__name__}: {e}"[:200])
+            self.note("core_loop", str(e)[:200], outcome="error")
+            if not isinstance(e, NeedRelaunch):
+                raise
+            self.obs = None
+        finally:
+            self.touring = True
+        done = "; ".join(self.core_results[before:]) or "no pass ran"
+        self.news.append(f"Core action marked ({self.picked_core.name}) and measured now: {self.core_completed} "
+                         f"passes completed ({done[:300]}). Go on covering the app; don't mark it again.")
 
     def choose_core(self) -> list[CoreAction]:
         return [self.picked_core] if self.picked_core else []
@@ -861,6 +940,15 @@ class AgentExplorer(Explorer):
                 self.act(Move("tap", c, why="re-apply the content filter"), purpose="filter")
         put_back(self.filter_taps, self.filter_on, lambda: self.obs, again)
         self.check_filter()
+
+    def walk_home(self) -> bool:
+        """A launch never relaunches for the filter (spec 5): a recorded route to the launch screen is walked when
+        there is one; where none leads (signed in, the app opens on another home), the filter is rechecked on the
+        screen as it is, and the planner hears it is not verified and sets it again."""
+        if not super().walk_home():
+            self.note("filter", f"the launch landed on {self.current.sid}, and no recorded way leads to "
+                                f"{self.launch_root.sid}: the filter is rechecked here, with no relaunch for it")
+        return True
 
     def refilter(self) -> None:
         if self.filter_taps and not self.filtered and self.obs is not None:
