@@ -1,7 +1,7 @@
 import hashlib
 import json
 import re
-import time
+import threading
 
 import pytest
 
@@ -354,12 +354,12 @@ def test_a_sheet_over_a_chat_screen_not_rated_unsafe_opened_by_a_limit_passes(mo
     assert check(c, chat) is None
 
 
-def run_with(model, tmp_path, monkeypatch, fail_lenses, delay=None, benefit=None, part_of=None, draft=None,
-             counts=None, spans=None):
+def run_with(model, tmp_path, monkeypatch, fail_lenses, hold=None, benefit=None, part_of=None, draft=None,
+             counts=None):
     """Runs the stage on fake calls: every lens and the top-up return one valid draft (`draft` overrides its
     fields), and the naming call gives every idea `benefit` (a different name each when None) and links it to
-    `part_of`. `counts` gives a step's number of drafts (1 when absent); `spans`, when given, gets each step's start
-    and end. Returns each call's step and prompt text."""
+    `part_of`. `counts` gives a step's number of drafts (1 when absent); `hold`, when given, runs inside each call
+    before it answers. Returns each call's step and prompt text."""
     (tmp_path / "model").mkdir()
     (tmp_path / "propose").mkdir()
     (tmp_path / "model" / "product_model.json").write_text(model.model_dump_json())
@@ -369,10 +369,8 @@ def run_with(model, tmp_path, monkeypatch, fail_lenses, delay=None, benefit=None
 
     def fake_call(*, step, schema, messages, **_):
         calls.append((step, messages[0]["content"][0]["text"]))
-        start = time.monotonic()
-        time.sleep((delay or {}).get(step, 0))
-        if spans is not None:
-            spans[step] = (start, time.monotonic())
+        if hold:
+            hold(step)
         if step.removeprefix("lens:") in fail_lenses:
             raise llm.LLMFailure("timeout", "provider down")
         if schema is propose.BenefitNames:
@@ -441,17 +439,23 @@ def test_one_lens_failing_still_finishes(model, tmp_path, monkeypatch):
 
 
 def test_lenses_run_at_the_same_time_and_keep_their_order(model, tmp_path, monkeypatch):
-    """Each lens's call starts before another one ends: run one after another, the last would start after every
-    other had ended. Overlap, not wall time, which a loaded runner stretches (item 46: 1.12 s against 1.1)."""
+    """Every lens call starts before the first one ends: each waits at a barrier until all have started, which
+    breaks if any runs after another has ended (item 46; Greptile on #46: an overlap check let all but the last two run
+    one after another). Each then ends only after the lens below it, so the answers come back in reverse."""
     lenses = propose.build_lenses(model)
-    delay = {f"lens:{l.id}": 0.2 * (len(lenses) - n) for n, l in enumerate(lenses)}
-    spans = {}
-    run_with(model, tmp_path, monkeypatch, set(), delay, spans=spans)
-    ran = [spans[step] for step in delay]
-    assert len(ran) > 1 and all(any(start < end for j, (_, end) in enumerate(ran) if j != i)
-                                for i, (start, _) in enumerate(ran)), ran
+    steps = [f"lens:{lens.id}" for lens in lenses]
+    started, ended = threading.Barrier(len(steps), timeout=10), {step: threading.Event() for step in steps}
+
+    def hold(step):
+        if step in ended:
+            started.wait()
+            after = steps[steps.index(step) + 1:]
+            assert not after or ended[after[0]].wait(10), f"{after[0]} never ended"
+            ended[step].set()
+    assert len(steps) > 1
+    run_with(model, tmp_path, monkeypatch, set(), hold)
     out = CandidatesFile.model_validate_json((tmp_path / "propose" / "candidates.json").read_text()).candidates
-    assert [c.lens for c in sorted(out, key=lambda c: c.id)][:len(lenses)] == [l.id for l in lenses]
+    assert [c.lens for c in sorted(out, key=lambda c: c.id)][:len(lenses)] == [lens.id for lens in lenses]
 
 
 def test_the_top_up_fires_once_when_dedupe_leaves_fewer_than_four(model, tmp_path, monkeypatch):
