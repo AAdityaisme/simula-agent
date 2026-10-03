@@ -1,4 +1,4 @@
-"""Doctor's paid probes log their own spend to build/trace.jsonl, and its local checks catch untracked loader files."""
+"""Doctor's paid probes log their own spend to build/trace.jsonl, and its local checks catch untracked loader files and a stale mobile-mcp install."""
 
 import pytest
 
@@ -48,3 +48,17 @@ def test_doctor_fails_on_an_untracked_file_a_loader_reads(monkeypatch):
     doctor.check_local()
     [(_, ok, detail)] = [r for r in doctor.results if r[0] == "every file a loader reads is tracked by git"]
     assert not ok and detail.endswith("prompts/mock/builder 2.md")
+
+
+def test_doctor_fails_when_the_installed_mobile_mcp_is_not_the_pinned_one(tmp_path, monkeypatch):
+    """A checkout pulled to a new pin without npm ci still runs the old server."""
+    package = tmp_path / "node_modules/@mobilenext/mobile-mcp/package.json"
+    package.parent.mkdir(parents=True)
+    package.write_text('{"version": "1.0.5"}')
+    monkeypatch.setattr(doctor, "ROOT", tmp_path)
+    monkeypatch.setattr(doctor, "mobile_mcp_version", lambda: doctor.EXPECTED["mobile-mcp"])
+    monkeypatch.setattr(doctor, "untracked_inputs", lambda: [])
+    doctor.results.clear()
+    doctor.check_local()
+    [(_, ok, detail)] = [r for r in doctor.results if r[0] == "mobile-mcp pinned + installed"]
+    assert not ok and "installed 1.0.5" in detail and detail.endswith("run npm ci")
