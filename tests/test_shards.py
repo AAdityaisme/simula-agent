@@ -13,20 +13,25 @@ TESTS = [f"test_shards_fixture.py::test_{i}" for i in range(9)]
 JOB = re.compile(r"""^  ("[^"]+"|'[^']+'|[\w-]+):[ \t]*(?:#.*)?$""", re.M)
 
 
+def named(tests: list[str], seconds: dict[str, float], shards: int) -> list[list[str]]:
+    return [[tests[i] for i in shard] for shard in balance(tests, seconds, shards)]
+
+
 def test_a_test_the_durations_dont_list_counts_as_their_mean_and_each_shard_runs_its_longest_first():
     seconds = {"a": 9.0, "b": 6.0, "c": 5.0, "d": 4.0, "e": 1.0}
-    assert balance([*seconds, "x", "y"], seconds, 3) == [["a", "d"], ["b", "y"], ["c", "x", "e"]]
+    assert named([*seconds, "x", "y"], seconds, 3) == [["a", "d"], ["b", "y"], ["c", "x", "e"]]
 
 
 def test_shards_are_disjoint_cover_every_test_and_dont_depend_on_the_collection_order():
+    """Repeated ids stand for a node id collected twice, which is two tests."""
     rng = random.Random(0)
     for shards in range(1, 10):
-        tests = [f"t{i}" for i in range(rng.randrange(1, 60))]
+        tests = [f"t{rng.randrange(40)}" for _ in range(rng.randrange(1, 60))]
         listed = rng.sample(tests, len(tests) // 2)
         seconds = {test: rng.choice([0.0, 0.5, 2.0, rng.uniform(0, 200)]) for test in listed} | {"since-removed": 30.0}
         split = balance(tests, seconds, shards)
-        assert len(split) == shards and sorted(test for shard in split for test in shard) == sorted(tests)
-        assert balance(rng.sample(tests, len(tests)), seconds, shards) == split
+        assert len(split) == shards and sorted(i for shard in split for i in shard) == list(range(len(tests)))
+        assert named(rng.sample(tests, len(tests)), seconds, shards) == named(tests, seconds, shards)
 
 
 def setup(pytester, monkeypatch, env: dict[str, str]) -> None:
@@ -41,11 +46,11 @@ def setup(pytester, monkeypatch, env: dict[str, str]) -> None:
         monkeypatch.setenv(name, value)
 
 
-def collect(pytester, monkeypatch, env: dict[str, str]) -> tuple[list[str], int]:
+def collect(pytester, monkeypatch, env: dict[str, str], *args: str) -> tuple[list[str], int]:
     """The tests one machine runs under env, in its order, collected by pytest as CI collects them, and how many it
     reports deselected."""
     setup(pytester, monkeypatch, env)
-    result = pytester.runpytest("-m", "not live", "--collect-only", "-q")
+    result = pytester.runpytest("-m", "not live", "--collect-only", "-q", *args)
     assert result.ret == 0, "\n".join(result.outlines)
     return [line for line in result.outlines if "::" in line], result.parseoutcomes()["deselected"]
 
@@ -59,6 +64,13 @@ def test_four_shards_run_every_test_that_is_not_live_exactly_once_and_one_variab
     assert collect(pytester, monkeypatch, {}) == (TESTS[::-1], 1)
     assert collect(pytester, monkeypatch, {"PYTEST_SHARD": "0"}) == (TESTS[::-1], 1)
     assert collect(pytester, monkeypatch, {"PYTEST_SHARDS": "4"}) == (TESTS[::-1], 1)
+
+
+def test_a_node_id_collected_twice_runs_once_on_each_of_two_shards(pytester, monkeypatch):
+    """With --keep-duplicates a file named twice is collected twice, and each copy is a test of its own."""
+    twice = ("test_shards_fixture.py", "test_shards_fixture.py", "--keep-duplicates")
+    shards = [collect(pytester, monkeypatch, {"PYTEST_SHARD": str(s), "PYTEST_SHARDS": "2"}, *twice) for s in range(2)]
+    assert shards == [(TESTS, 11), (TESTS, 11)]
 
 
 def test_a_shard_under_xdist_writes_the_ids_it_kept_and_the_seconds_of_every_test_it_ran(pytester, monkeypatch):

@@ -18,16 +18,16 @@ APPS = ("janitorai", "luzia", "aol")
 PREFIX = "Found these elements on screen: "
 
 
-def balance(tests: list[str], seconds: dict[str, float], shards: int) -> list[list[str]]:
-    """Each shard's tests, longest first: every test in turn, longest first and then by node id, goes to the shard with
-    the fewest seconds so far, a test seconds doesn't list counting as their mean. The order of tests doesn't change
-    the result, so every machine computes the same split."""
+def balance(tests: list[str], seconds: dict[str, float], shards: int) -> list[list[int]]:
+    """Each shard's tests as positions in tests, longest first: every test in turn, longest first and then by node id,
+    goes to the shard with the fewest seconds so far, a test seconds doesn't list counting as their mean. A node id
+    collected twice (--keep-duplicates) is two tests. Every machine collects the same list, so gets the same split."""
     mean = statistics.fmean(seconds.values())
     load, split = [0.0] * shards, [[] for _ in range(shards)]
-    for test in sorted(tests, key=lambda test: (-seconds.get(test, mean), test)):
+    for i in sorted(range(len(tests)), key=lambda i: (-seconds.get(tests[i], mean), tests[i])):
         shard = min(range(shards), key=load.__getitem__)
-        split[shard].append(test)
-        load[shard] += seconds.get(test, mean)
+        split[shard].append(i)
+        load[shard] += seconds.get(tests[i], mean)
     return split
 
 
@@ -40,9 +40,9 @@ def pytest_collection_modifyitems(config, items):
     shard, shards = os.environ.get("PYTEST_SHARD"), os.environ.get("PYTEST_SHARDS")
     if shard is not None and shards is not None:
         mine = balance([item.nodeid for item in items], json.loads(DURATIONS.read_text()), int(shards))[int(shard)]
-        rank = {test: i for i, test in enumerate(mine)}
-        config.hook.pytest_deselected(items=[item for item in items if item.nodeid not in rank])
-        items[:] = sorted((item for item in items if item.nodeid in rank), key=lambda item: rank[item.nodeid])
+        kept = set(mine)
+        config.hook.pytest_deselected(items=[item for i, item in enumerate(items) if i not in kept])
+        items[:] = [items[i] for i in mine]
     # Every xdist worker collects the same list, and the controller none, so one worker writes it.
     if (path := os.environ.get("PYTEST_IDS")) and os.environ.get("PYTEST_XDIST_WORKER", "gw0") == "gw0":
         Path(path).write_text("".join(f"{item.nodeid}\n" for item in items))
