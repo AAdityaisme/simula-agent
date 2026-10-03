@@ -674,6 +674,24 @@ def test_a_log_in_form_whose_button_only_continues_is_never_filled_greptile_43(t
     assert taps(phone)[0] == "Sign up" and "Continue" not in taps(phone) and ex.account_state == "made"
 
 
+@pytest.mark.parametrize("button, extra", [("Continue", []), ("Next", []),
+                                           ("Continue", [el("@cs", "Button", "Can't sign in?", 1300, w=400, h=80)])],
+                         ids=["continue", "next", "can't sign in"])
+def test_a_log_in_form_that_offers_a_way_to_sign_up_is_never_filled_rt_s_m2(tmp_path, monkeypatch, identity, button,
+                                                                           extra):
+    """rt-s on #46 (MEDIUM 2): a log-in form whose button only goes on and that offers no password reset still got
+    the test identity. A sign-up form offers no way to sign up, being one; a log-in form does, under its boxes."""
+    log_in = [*LOG_IN_FORM[:5], el("@go", "Button", button, 1100), *extra, el("@su", "Button", "Sign up", 1700)]
+
+    def app(clock):
+        phone = sign_up_app(wall=log_in)(clock)
+        phone.taps[("wall", "Sign up")] = "form"
+        return phone
+    ex, phone = launched(tmp_path, monkeypatch, app)
+    assert phone.values == {("form", "@f1"): EMAIL, ("form", "@f2"): PASSWORD, ("form", "@f3"): NAME}
+    assert taps(phone)[0] == "Sign up" and button not in taps(phone) and ex.account_state == "made"
+
+
 @pytest.mark.parametrize("label", ["Create account", "Register"])
 def test_a_wall_that_only_asks_to_create_an_account_is_a_wall_greptile_43(tmp_path, monkeypatch, identity, label):
     """Greptile on #37 (item 43): a wall was recognized by sign-in words only, so one offering nothing but "Create

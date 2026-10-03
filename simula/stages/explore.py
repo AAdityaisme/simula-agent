@@ -1073,8 +1073,8 @@ class Explorer:
         value; then the form is sent. A screen without one gets the way to an email sign-up. After a send, a
         verification step asks a person (needs-human.md), a form asking only for values not typed yet, the email or
         the password among them, is the next step, and anything else is the end, an account only when it is the app itself (result). A form's own button
-        must say no more than that it sends it (PLAIN_SUBMIT); a form whose own button logs in, or that offers to
-        reset a forgotten password, is a log-in form: never filled; its way to sign up is taken."""
+        must say no more than that it sends it (PLAIN_SUBMIT); a log-in form (log_in_form) is never filled: its way
+        to sign up is taken."""
         sent, typed = False, set()
         for _ in range(SIGN_UP_STEPS):
             s = self.current
@@ -1095,8 +1095,7 @@ class Explorer:
                              and any(kind != "name" for _, kind in boxes) and button
                              and ob.PLAIN_SUBMIT.search(button.label)):
                 return self.result(wall)
-            log_in = bool(button and ob.LOG_IN.search(button.label)) or any(ob.FORGOT.search(t) for t in self.said())
-            if boxes and not log_in:
+            if boxes and not self.log_in_form(boxes, button):
                 why = ("no control sends the form" if button is None else
                        f"the form's button {button.label[:40]!r} says more than that it sends the form"
                        if not ob.PLAIN_SUBMIT.search(button.label) else self.fill(boxes, typed))
@@ -1112,6 +1111,15 @@ class Explorer:
             if self.current is s:
                 return self.stopped(wall, f"{way.label[:40]!r} led nowhere")
         return self.stopped(wall, f"no account after {SIGN_UP_STEPS} screens")
+
+    def log_in_form(self, boxes: list[tuple[dict, str]], button: ob.Candidate | None) -> bool:
+        """A form that signs in to an account that exists: its own button logs in, it offers to reset a forgotten
+        password, or it offers a way to sign up under its last box besides its own button (a sign-up form is one, so it
+        offers none; a title above its boxes doesn't count)."""
+        floor = max(ob.rect(e).y + ob.rect(e).h for e, _ in boxes)
+        return (bool(button and ob.LOG_IN.search(button.label)) or any(ob.FORGOT.search(t) for t in self.said())
+                or any(c is not button and ob.shaped(c) and ob.TO_SIGN_UP.search(c.label) and c.rect.y >= floor
+                       for c in self.surface()))
 
     def unsure(self) -> str:
         """What ends the sign-up on the screen now, "" for nothing: it left the app, a check only a person can pass,
