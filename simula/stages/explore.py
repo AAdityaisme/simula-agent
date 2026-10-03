@@ -326,7 +326,7 @@ class Explorer:
         self.tour_actions = 0
         self.replay = (0, 0)
         self.started = clock()
-        self.identity = account_identity() if ctx.allow_account_create else {}
+        self.identity = account_identity()
         self.secrets = redact_list() + list(self.identity.values())
         self.parts = identity_parts(self.identity)
         self.typing = False  # once an identity value is typed, every capture paints the soft keyboard while it is up
@@ -1105,13 +1105,13 @@ class Explorer:
             raise Unfiltered(f"content filter not verified (check {n})")
         self.filtered = True
 
-    # ---------- account walls (--allow-account-create) ----------
+    # ---------- account walls ----------
 
     def account_wall(self, s: Seen) -> bool:
-        """With --allow-account-create, a screen or overlay that asks to sign in or up (not one that logs out) and
-        offers nothing else is a wall: no other short control with words the deny-list allows, whatever its kind (a
-        form's own button aside), no list, no text box with send, no tab bar. Each is met once."""
-        if not self.ctx.allow_account_create or s.sid in self.walls or s.kind not in ("screen", "modal", "sheet"):
+        """A screen or overlay that asks to sign in or up (not one that logs out) and offers nothing else is a wall: no
+        other short control with words the deny-list allows, whatever its kind (a form's own button aside), no list,
+        no text box with send, no tab bar. Each is met once."""
+        if s.sid in self.walls or s.kind not in ("screen", "modal", "sheet"):
             return False
         cands = controls_of(s.cands)
         form = any(c.kind == "EditText" for c in cands)
@@ -1124,8 +1124,8 @@ class Explorer:
     def get_past(self, wall: Seen) -> bool:
         """A way on without an account first ("Continue as guest", "Skip", "Not now"), which counts only when it
         lands in the app; then an email sign-up with the operator's test identity, until one makes an account.
-        Whatever stops it leaves the explorer at the wall, as without the flag, with the reason in the trace and the
-        exhibit. True when past it."""
+        Whatever stops it leaves the explorer at the wall, with the reason in the trace and the exhibit. True when past
+        it."""
         self.walls.add(wall.sid)
         on = next((c for c in controls_of(wall.cands) if ob.shaped(c) and ob.GUEST.search(c.label)
                    and not ob.denied(c, upsell=wall.upsell)), None)
@@ -2666,9 +2666,8 @@ def exhibit(ex: Explorer, app_version: str | None) -> str:
     listed = "SIMULA_REDACT and SIMULA_TEST_*" if ex.identity else "SIMULA_REDACT"
     lines += [f"- Redaction: {len(ex.secrets)} strings listed in {listed}; {ex.redacted} element texts "
               "redacted at capture"]
-    if ex.ctx.allow_account_create:
-        lines += [f"- Account walls (--allow-account-create): {'; '.join(ex.account) or 'none met'}"]
-    lines += [f"- Checklist answered: {', '.join(answered) or 'none'}; open: {', '.join(still_open) or 'none'}",
+    lines += [f"- Account walls: {'; '.join(ex.account) or 'none met'}",
+              f"- Checklist answered: {', '.join(answered) or 'none'}; open: {', '.join(still_open) or 'none'}",
               f"- Denied taps: {sum(1 for _ in denied_lines(ex))} logged, {ex.denied_executed} executed. The deny-list "
              "is English only: a confirm button in another language isn't caught, and the store's billing screen "
              "getting BACK at once is the guard that works in any language (Play purchases only).", ""]
@@ -2762,7 +2761,7 @@ def redact_list() -> list[str]:
 
 
 def account_identity() -> dict[str, str]:
-    """The operator's throwaway account for --allow-account-create, from the environment; never made up."""
+    """The operator's throwaway account for an email sign-up at a wall, from the environment; never made up."""
     return {kind: value for kind, var in IDENTITY.items() if (value := os.environ.get(var, "")).strip()}
 
 
@@ -2781,6 +2780,9 @@ def rerun(ctx: Ctx) -> str:
 def run(ctx: Ctx) -> StageOutcome:
     if ctx.replay:
         raise llm.ReplayMiss("explore drives the device; --replay reuses a finished explore/ folder")
+    kind = Explorer
+    if ctx.explorer == "agent":  # it subclasses Explorer; imported before the device or the last record is touched
+        from simula.stages.explore_agent import AgentExplorer as kind
     if not redact_list():
         needs_human(ctx.run_dir, "explore", "SIMULA_REDACT is empty",
                     "the explorer saves screenshots and element lists, and nothing would hide the account handle",
@@ -2802,7 +2804,7 @@ def run(ctx: Ctx) -> StageOutcome:
         (out / ".scratch").mkdir(parents=True)
         server = Server(cwd=out)
         try:
-            ex = Explorer(ctx, Phone(server, ctx.app["package"], out / ".scratch", serial, avd), out)
+            ex = kind(ctx, Phone(server, ctx.app["package"], out / ".scratch", serial, avd), out)
             ex.serial = serial
             return explore_app(ex)
         finally:

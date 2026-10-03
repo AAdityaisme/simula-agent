@@ -189,7 +189,8 @@ def test_a_stage_its_cap_cut_short_is_partial_and_says_how_to_continue(runs, mon
     # the figure the stop names, or, naming none, what is spent plus a whole cap again (the configured one: 1 is lower)
     figure = config.stage_cap("mock") + turned_away
     assert marker.outcome.resume == (f"simula mock janitorai --run {run_dir.name} --profile real --budget transfer "
-                                     f"--allow-fixtures --usd-cap {figure:.2f}"), "it reruns the run as it was opened"
+                                     f"--explorer scripted --allow-fixtures --usd-cap {figure:.2f}"), (
+        "it reruns the run as it was opened")
     asked = (run_dir / "needs-human.md").read_text()
     assert "partial output" in asked and marker.outcome.resume in asked
     assert "mock: done (partial" in capsys.readouterr().out
@@ -228,7 +229,7 @@ def test_a_stage_that_reports_partial_work_is_labeled_and_reruns_until_it_comple
     marker = runfolder.read_done(run_dir / "mock")
     assert (marker.outcome.status, marker.outcome.reasons) == ("partial", ["2 of 24 taps failed"])
     assert marker.outcome.resume == (f"simula mock janitorai --run {run_dir.name} --profile real --budget transfer "
-                                     "--allow-fixtures")
+                                     "--explorer scripted --allow-fixtures")
     assert "2 of 24 taps failed" in (run_dir / "needs-human.md").read_text()
     assert rerun(run_dir) and runfolder.read_done(run_dir / "mock").outcome.status == "complete"
     assert not rerun(run_dir)
@@ -521,9 +522,9 @@ def reopened(command: str):
     return cli.open_run(cli.parser().parse_args(shlex.split(command, comments=True)[1:]))
 
 
-@pytest.mark.parametrize("flag", [["--profile", "dev"], ["--budget", "deep"], ["--allow-account-create"],
+@pytest.mark.parametrize("flag", [["--profile", "dev"], ["--budget", "deep"], ["--explorer", "agent"],
                                   ["--usd-cap", "12.3456789"], ["--no-send"], ["--device", "emulator-5556"]],
-                         ids=["profile", "budget", "account_create", "usd_cap", "no_send", "device"])
+                         ids=["profile", "budget", "explorer", "usd_cap", "no_send", "device"])
 def test_a_partial_stages_resume_parses_back_to_the_options_it_ran_under(runs, monkeypatch, quiet, flag):
     reports = [StageOutcome(status="partial", reasons=["2 of 24 taps failed"])]
     mock_that(monkeypatch, lambda ctx: reports.pop(0) if reports else None)

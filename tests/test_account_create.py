@@ -1,6 +1,6 @@
-"""--allow-account-create on a fake phone: off, nothing changes; on, a sign-up wall is passed by a way on without an
-account first, else by an email sign-up typed from SIMULA_TEST_*, and anything it isn't sure of stops it at the wall
-with its reason. The identity never reaches a saved file, a model's input or a screenshot unredacted. The tests named
+"""Account walls on a fake phone (always on, no switch): an app without one takes no account step; a sign-up wall is
+passed by a way on without an account first, else by an email sign-up typed from SIMULA_TEST_*, and anything it isn't
+sure of stops it at the wall with its reason. The identity never reaches a saved file, a model's input or a screenshot unredacted. The tests named
 for a red-team finding failed on the commit it was found on (rt_f*: 8735b45, rt_r2_*: b568449,
 rt_r3_*: 66f6ca8, rt_r4_*: 3d48f8d)."""
 
@@ -130,9 +130,9 @@ def identity(monkeypatch):
         monkeypatch.setenv(var, value)
 
 
-def launched(tmp_path, monkeypatch, factory, allow=True):
+def launched(tmp_path, monkeypatch, factory):
     """The first launch, where a launch wall is met: the explorer and the phone after it."""
-    ex, phone = new_explorer(tmp_path, monkeypatch, factory, allow_account_create=allow)
+    ex, phone = new_explorer(tmp_path, monkeypatch, factory)
     ex.relaunch(first=True)
     return ex, phone
 
@@ -141,19 +141,10 @@ def taps(phone) -> list[str]:
     return [key for kind, *rest in phone.log if kind == "tap" for key in rest[1:]]
 
 
-def test_flag_off_leaves_the_wall_as_it_is(tmp_path, monkeypatch, identity):
-    ex, phone = launched(tmp_path, monkeypatch, sign_up_app(), allow=False)
-    assert ex.root.sid == "s01" and ex.current is ex.root and not phone.typed
-    assert not {"Sign up with email", "Continue with Google"} & set(taps(phone))
-    assert ex.secrets == ["offline-test-handle"] and not ex.account
+def test_without_a_wall_no_account_step_runs(tmp_path, monkeypatch, identity):
+    ex, phone = run_explorer(tmp_path, monkeypatch, janitor_like)
+    assert not ex.account and not {EMAIL, PASSWORD, NAME} & set(phone.typed)
     assert not any(line.step == "account" for line in runlog.read_trace(ex.run_dir / "trace.jsonl"))
-
-
-def test_without_a_wall_the_flag_changes_no_action(tmp_path, monkeypatch, identity):
-    off, phone_off = run_explorer(tmp_path / "off", monkeypatch, janitor_like)
-    on, phone_on = run_explorer(tmp_path / "on", monkeypatch, janitor_like, allow_account_create=True)
-    assert (on.out / "actions.jsonl").read_text() == (off.out / "actions.jsonl").read_text()
-    assert phone_on.log == phone_off.log and not on.account
 
 
 def test_the_way_on_without_an_account_comes_first(tmp_path, monkeypatch, identity):
@@ -167,8 +158,7 @@ def test_the_way_on_without_an_account_comes_first(tmp_path, monkeypatch, identi
 def test_a_dismissal_on_an_overlay_wall_is_a_way_on_rt_f4(tmp_path, monkeypatch, identity):
     """rt F4: the old test's "Not now" wasn't on the phone. Now it is: dismissing the sheet is the way on."""
     later = el("@later", "Button", "Not now", 2100)
-    ex, phone = new_explorer(tmp_path, monkeypatch, sign_up_app(wall=[TITLE, EMAIL_WAY, GOOGLE, LOG_IN, later]),
-                             allow_account_create=True)
+    ex, phone = new_explorer(tmp_path, monkeypatch, sign_up_app(wall=[TITLE, EMAIL_WAY, GOOGLE, LOG_IN, later]))
     phone.screen = "wall"
     wall = ex.current = ex.record(ex.observe(), None, None, None)
     wall.kind = "sheet"
@@ -361,7 +351,7 @@ def test_an_email_verification_asks_a_person_and_leaves_explore_partial(tmp_path
     assert ex.account[-1] == (f"s01: stopped at the wall, an email verification step on {ex.current.sid}, for a person "
                               "(needs-human.md)")
     asked = (ex.run_dir / "needs-human.md").read_text()
-    assert "SIMULA_TEST_EMAIL" in asked and "follow its link" in asked and "--allow-account-create" in asked
+    assert "SIMULA_TEST_EMAIL" in asked and "follow its link" in asked and "simula explore" in asked
     result = stage.outcome(ex)
     assert result.status == "partial" and any("verify the test account's email" in r for r in result.reasons)
 
@@ -371,7 +361,7 @@ def test_a_wall_the_tour_opens_is_met_like_a_launch_wall(tmp_path, monkeypatch, 
         phone = sign_up_app()(clock)
         phone.start, phone.taps[("home", "Characters")] = "home", "wall"
         return phone
-    ex, phone = new_explorer(tmp_path, monkeypatch, app, allow_account_create=True)
+    ex, phone = new_explorer(tmp_path, monkeypatch, app)
     stage.run_tour(ex)
     assert phone.typed[:3] == [EMAIL, PASSWORD, NAME] and ex.account_state == "made"
     assert ex.root.sid == "s01" and ex.account[0].startswith("s02: signed up with the test identity"), ex.account
@@ -385,7 +375,7 @@ def test_a_send_that_lands_on_a_screen_seen_before_the_wall_is_no_account_grepti
         phone.start, phone.taps[("home", "Characters")] = "home", "wall"
         phone.taps[("form", "Create account")] = "home"
         return phone
-    ex, phone = new_explorer(tmp_path, monkeypatch, app, allow_account_create=True)
+    ex, phone = new_explorer(tmp_path, monkeypatch, app)
     stage.run_tour(ex)
     assert phone.typed[:3] == [EMAIL, PASSWORD, NAME] and ex.account_state == "sent"
     assert ex.account[0] == "s02: stopped at the wall, the form was sent, but it came back to s01, seen before the wall"
@@ -408,7 +398,7 @@ def test_a_signed_in_home_that_kept_the_guest_homes_layout_is_an_account_rt_s_m1
         phone.start, phone.taps[("home", "Characters")] = "home", "wall"
         phone.taps[("form", "Create account")], phone.remember = "signed", set()
         return phone
-    ex, phone = new_explorer(tmp_path, monkeypatch, app, allow_account_create=True)
+    ex, phone = new_explorer(tmp_path, monkeypatch, app)
     stage.run_tour(ex)
     assert phone.typed[:3] == [EMAIL, PASSWORD, NAME] and ex.account_state == "made"
     assert ex.account[0] == "s02: signed up with the test identity, now on s01", ex.account
@@ -430,7 +420,7 @@ def test_a_guest_home_whose_sign_up_card_rotated_away_is_no_account_rt_s_r3_l1(t
         phone.start, phone.taps[("home", "Characters")] = "home", "wall"
         phone.taps[("form", "Create account")], phone.remember = "after", set()
         return phone
-    ex, phone = new_explorer(tmp_path, monkeypatch, app, allow_account_create=True)
+    ex, phone = new_explorer(tmp_path, monkeypatch, app)
     stage.run_tour(ex)
     assert phone.typed[:3] == [EMAIL, PASSWORD, NAME] and ex.account_state == "sent"
     assert ex.account[0].endswith("seen before the wall"), ex.account
@@ -470,7 +460,7 @@ def test_the_identity_reaches_no_file_no_model_and_no_screenshot(tmp_path, monke
     def sonnet(model, system, messages, effort, schema, max_tokens, total_timeout=None):
         seen.append(system + json.dumps([p.get("text", "") for p in messages[0]["content"]]))
         return fake_sonnet(model, system, messages, effort, schema, max_tokens, total_timeout)
-    ex, phone = new_explorer(tmp_path, monkeypatch, sign_up_app(after_form=VERIFY), allow_account_create=True)
+    ex, phone = new_explorer(tmp_path, monkeypatch, sign_up_app(after_form=VERIFY))
     monkeypatch.setattr(decide, "ask_choice", jev)
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", sonnet)
     stage.explore_app(ex)
@@ -519,7 +509,7 @@ class FlakyTypePhone(FormPhone):
 
 
 def test_a_failed_type_never_writes_the_typed_text_rt_f1(tmp_path, monkeypatch, identity):
-    ex, phone = new_explorer(tmp_path, monkeypatch, sign_up_app(phone=FlakyTypePhone), allow_account_create=True)
+    ex, phone = new_explorer(tmp_path, monkeypatch, sign_up_app(phone=FlakyTypePhone))
     with pytest.raises(stage.ExploreFailed) as failed:
         stage.explore_app(ex)
     assert "mobile_type_keys failed" in ex.stop_reason and PASSWORD[:6] not in str(failed.value)
@@ -983,7 +973,7 @@ def test_a_sign_up_that_stops_mid_form_keeps_the_keyboard_painted_rt_r4_5(tmp_pa
 def test_pictures_side_by_side_at_its_foot_never_pass_a_wall_off_as_a_tab_bar(tmp_path, monkeypatch, identity):
     """A picture the icon pass found is no control: two at the foot of a sign-up wall are no tab bar, so the wall
     stays a wall."""
-    ex, _ = new_explorer(tmp_path, monkeypatch, sign_up_app(), allow_account_create=True)
+    ex, _ = new_explorer(tmp_path, monkeypatch, sign_up_app())
     tiles = [unlisted(ex, 40, 2150, 500, 2330, "picture", "left tile"),
              unlisted(ex, 580, 2150, 1040, 2330, "picture", "right tile")]
     monkeypatch.setattr(ex, "ask", lambda *a: IconPass(names=[], unlisted=tiles))
@@ -1003,7 +993,7 @@ def test_the_tabs_set_past_a_launch_wall_are_never_pictures(tmp_path, monkeypatc
                                        el("@home", "Button", "Home", 2200, x=0, w=360),
                                        el("@me", "Button", "Me", 2200, x=720, w=360))
         return phone
-    ex, phone = new_explorer(tmp_path, monkeypatch, app, allow_account_create=True)
+    ex, phone = new_explorer(tmp_path, monkeypatch, app)
     tile = unlisted(ex, 380, 2210, 700, 2310, "picture", "promo tile")
     real = ex.ask
     monkeypatch.setattr(ex, "ask", lambda prompt, step, *a: IconPass(names=[], unlisted=[tile])

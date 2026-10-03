@@ -61,5 +61,16 @@ def judge_revision_cap() -> int:
     return cap
 
 
+CHOICES = {"explorer": ("agent", "scripted"), "explore_jev": ("on", "shadow", "off")}
+
+
+def choice(key: str) -> str:
+    """A setting that takes one of a few words (CHOICES): a typo stops the run instead of falling back to another."""
+    value = profiles()[key]
+    if value not in CHOICES[key]:
+        raise SystemExit(f"config/profiles.toml: {key} must be one of {', '.join(CHOICES[key])}, not {value!r}")
+    return value
+
+
 def jev_backend(profile: str) -> str:
     return os.environ.get("SIMULA_JEV_BACKEND") or roles(profile)["jev"].get("backend") or profiles()["jev_backend"]
