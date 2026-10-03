@@ -33,7 +33,12 @@ SEND = "(core loop: send)"
 STEP_ROLES = {"qa": [("critic", "qa_critic"), ("fixer", "qa_fixer")],
               "propose": [("lens:", "proposer"), ("topup", "proposer"), ("dedupe", "propose_dedupe"),
                           ("judge:revisions", "propose_dedupe")],
-              "judge": [("revise:", "proposer")]}
+              "judge": [("revise:", "proposer")],
+              # explore_agent and explore_vision may share a model: the planner's turns are the agent's, the rest the
+              # explorer's own looks (icons, arrival, replay, hard screens, walks, settling)
+              "explore": [("agent.", "explore_agent"), ("icons.", "explore_vision"), ("arrival.", "explore_vision"),
+                          ("replay.", "explore_vision"), ("hard.", "explore_vision"), ("walk.", "explore_vision"),
+                          ("settle", "explore_vision")]}
 JEV_SECONDS = re.compile(r" in (\d+(?:\.\d+)?)s$")
 JUDGE = "Judge (an unvalidated instrument: no human labels yet)"
 

@@ -9,7 +9,7 @@ import re
 import pytest
 from PIL import Image, ImageDraw
 
-from simula import cli, config, decide, llm, runlog
+from simula import cli, config, decide, llm, runlog, scorecard
 from simula.contracts import AdLine, AgentStep, AgentTurn, ExploreFile
 from simula.device import guard
 from simula.stages import explore as stage
@@ -478,6 +478,33 @@ def test_a_launch_onto_another_home_never_relaunches_for_the_filter(tmp_path, mo
     assert ex.relaunches == 1  # the planner's; BACK off the new home left the app and a launch, uncounted, returned
     assert any(t.step == "filter" and "with no relaunch for it" in t.note for t in trace(ex))
     assert "Content filter: not verified" in planner.texts[2]
+    # rt-58: the missing control is a failed check, so the saved run doesn't read as verified
+    assert [ok for _, ok, _ in ex.filter_checks] == [True, False]
+    assert any(t.step == "filter.check" and t.outcome == "error" and "control not on the launch screen" in t.note
+               for t in trace(ex))
+    saved = ExploreFile.model_validate_json((ex.out / "explore.json").read_text())
+    assert scorecard.content_filter(saved, trace(ex))["filter verified"] == "no"
+
+
+def test_a_button_core_action_keeps_the_hard_blocks(tmp_path, monkeypatch):
+    """rt-58: the core exception to the send family holds for a chat's composer and send only; a 'Submit' button
+    marked as the core action is refused on every pass."""
+    script = scripted(lambda text: turn({"action": "start_core", "element": oid(text, "Submit"), "recipient": "ai",
+                                         "expect": "marked"}))
+    ex, phone, _ = run(tmp_path, monkeypatch, script, phone_factory=phone_of({"root": drawn(control("Submit", 1))}))
+    assert ex.core and ex.core.kind != "chat" and ("root", "Submit") not in taps(phone)
+    lines = [json.loads(line) for line in (ex.out / "actions.jsonl").read_text().splitlines()]
+    assert not [line for line in lines if line["loop_pass"] and line["outcome"] == "ok" and line["action"] == "tap"]
+
+
+def test_an_offer_word_anywhere_is_no_dismissal():
+    """rt-58: 'Close or Upgrade' is an offer; only a close icon's own description may name an upgrade."""
+    for label in ("Close or Upgrade", "Close and buy now", "Close to unlock", "Close / Subscribe", "Skip the wait"):
+        assert not stage_agent.dismissal(label) and not stage_agent.dismissal(label, icon=True), label
+    assert not stage_agent.dismissal("Dismiss upgrade prompt")  # as words it is an offer's text
+    assert stage_agent.dismissal("Dismiss long chat upgrade prompt", icon=True)
+    assert all(stage_agent.dismissal(label) for label in ("Not now", "Close", "x", "No thanks", "Close tips"))
+
 
 def counting_jev(asked):
     def jev(state, instructions, labels, backend):

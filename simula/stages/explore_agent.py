@@ -26,10 +26,12 @@ BANNER_PASSES = 3  # a dismissible banner over the core action on this many pass
 BANNER_STOPS = ("sheet opened", "dialog opened", "modal opened", "upsell", "upsell screen")
 DISMISS_PHRASE = re.compile(r"^\W*(?:dismiss|close|not now|no,? thanks|maybe later|later|x|×|✕)\W*$", re.IGNORECASE)
 DISMISS_LEAD = re.compile(r"^\W*(?:dismiss|close)\b", re.IGNORECASE)
-# after a leading dismiss or close these words name what it dismisses ("Dismiss upgrade prompt"); joined to it they
-# make it an offer ("Close and upgrade", "Close to unlock")
 OFFER = re.compile(r"\b(?:upgrade|buy|subscribe|skip|unlock|try)\b", re.IGNORECASE)
-JOINED = re.compile(r"\b(?:and|then|to)\b|[&+]", re.IGNORECASE)
+JOINED = re.compile(r"\b(?:and|or|then|to)\b|[&+/]", re.IGNORECASE)
+# a close icon's accessibility description naming what it closes ("Dismiss long chat upgrade prompt"): the one place
+# an offer word may stand in a dismissal
+CLOSE_ICON = re.compile(r"^\W*(?:dismiss|close)\b(?:[\s-]+[\w-]+){0,5}?[\s-]+(?:prompt|banner|pop-?up|dialog|message|"
+                        r"sheet|tip|notice|card|offer|ad)\W*$", re.IGNORECASE)
 RELAUNCHES = 10  # a guard against a launch loop, not a budget: the agent's stops are $, time, stale turns and done
 HISTORY_LINES = 60  # ponytail: the latest steps only; a summary of older ones if long runs lose their way
 ONE_STEP = "\n\nPlan exactly one step, and name its element by id: never by intent."
@@ -89,14 +91,17 @@ def account_row(c: ob.Candidate, raw: list[dict], device: Device = Device()) -> 
         and not any(GOOGLE_ACCOUNT.search(t) for t in said)
 
 
-def dismissal(label: str) -> bool:
-    """A label that only dismisses: a whole dismiss phrase, or one led by dismiss or close that names what it closes,
-    never an offer joined to it or a price."""
+def dismissal(label: str, icon: bool = False) -> bool:
+    """A label that only dismisses: a whole dismiss phrase, or one led by dismiss or close with nothing joined to it.
+    An offer word anywhere ("Close or Upgrade") or a price makes it no dismissal, except in a close icon's own
+    description of what it closes (icon: no text of its own, only an accessibility label)."""
     if ob.PRICE.search(label):
         return False
     if DISMISS_PHRASE.match(label):
         return True
-    return bool(DISMISS_LEAD.match(label)) and not (OFFER.search(label) and JOINED.search(label))
+    if not DISMISS_LEAD.match(label) or JOINED.search(label):
+        return False
+    return not OFFER.search(label) or (icon and bool(CLOSE_ICON.match(label)))
 
 
 def span(rects: list[Rect]) -> Rect:
@@ -235,11 +240,15 @@ class AgentExplorer(Explorer):
             return None
         raw = {e.get("ref"): e for e in self.obs.elements}
 
-        def shaped(c: ob.Candidate) -> bool:
+        def icon(c: ob.Candidate) -> bool:
             e = raw.get(c.ref, {})
-            return "Button" in c.kind or len(c.label.split()) <= 4 or (not e.get("text") and bool(e.get("label")))
-        return next((c for c in self.obs.cands if ob.inside(c.rect, region) and shaped(c) and dismissal(c.label)
-                     and not ob.denied(c) and not ob.find(self.core.state.cands, c)), None)
+            return not e.get("text") and bool(e.get("label"))
+
+        def shaped(c: ob.Candidate) -> bool:
+            return "Button" in c.kind or len(c.label.split()) <= 4 or icon(c)
+        return next((c for c in self.obs.cands if ob.inside(c.rect, region) and shaped(c)
+                     and dismissal(c.label, icon(c)) and not ob.denied(c)
+                     and not ob.find(self.core.state.cands, c)), None)
 
     def banner_region(self) -> Rect | None:
         """Where the banner lies: the sheet's own box, or the span of what is new since the core screen was recorded;
@@ -673,9 +682,14 @@ class AgentExplorer(Explorer):
     def denied_at(self, s: Seen, cand: ob.Candidate, **rules) -> str | None:
         """The word guard on the last look, before act() logs the move; tap() asks again, Google's rules included, on
         a fresh one."""
-        word = hard_block(cand, self.obs.elements, core=rules.get("core", False))
+        word = hard_block(cand, self.obs.elements, core=self.chat_core(rules.get("core", False)))
         self.counts["hard blocks refused"] += bool(word)
         return f"hard block: {word}" if word else None
+
+    def chat_core(self, core: bool) -> bool:
+        """The guard's core exception (sending is the measured action) holds only for a chat's composer and send: a
+        core action that is a button ("Submit" that makes something) runs its passes under the ordinary hard blocks."""
+        return core and self.core is not None and self.core.kind == "chat"
 
     def refusal(self, c: ob.Candidate, fg: str, elements: list[dict], raw: list[dict], core: bool) -> str:
         """Why the guard refuses a tap on c on this screen, or "": on Google's account chooser anything but an account
@@ -722,7 +736,7 @@ class AgentExplorer(Explorer):
         """Every tap reaches the device here (the planner's, the core loop's with core, a launch's, the replay's): the
         target is found again on a fresh element list (resolve), the foreground is read again after that read, and the
         guard reads that list. No content-filter gate: the filter is the planner's goal."""
-        core = deny.get("core", False)
+        core = self.chat_core(deny.get("core", False))
         self.boundary()
         raw, elements = self.fresh()
         fg = self.boundary((raw, elements))
@@ -939,7 +953,7 @@ class AgentExplorer(Explorer):
             if ob.find(self.obs.cands, c):
                 self.act(Move("tap", c, why="re-apply the content filter"), purpose="filter")
         put_back(self.filter_taps, self.filter_on, lambda: self.obs, again)
-        self.check_filter()
+        self.check_filter(launch=True)
 
     def walk_home(self) -> bool:
         """A launch never relaunches for the filter (spec 5): a recorded route to the launch screen is walked when
@@ -1016,24 +1030,34 @@ class AgentExplorer(Explorer):
         title = title_of(elements, self.device)
         return [c for c in cands if c.tree_label and c.key not in self.tab_keys() and c.tree_label[:60] != title]
 
-    def check_filter(self) -> None:
+    def check_filter(self, launch: bool = False) -> None:
         """The scripted explorer's check, with its evidence and trace line, run only where the filter's control shows
         (its last control, its opener, or the opener showing the option): elsewhere the planner is told to go back to
-        it. A failure doesn't stop the run: the planner is told and sets it again."""
+        it. A failure doesn't stop the run: the planner is told and sets it again. After a launch a screen without
+        the control is a failed check, recorded like any other, so the saved run shows the filter unverified until a
+        later check passes."""
         last, opener, cands = self.filter_taps[-1], self.filter_taps[0], self.obs.cands
-        if not (ob.find(cands, last) or ob.find(cands, opener) or opener_label(last, opener, cands, self.opener_says)):
+        shown = ob.find(cands, last) or ob.find(cands, opener) or opener_label(last, opener, cands, self.opener_says)
+        if not shown and not launch:
             self.filtered = False
             self.filter_news = UNVERIFIED
             return
-        ok, self.opener_says = filter_holds(self.filter_taps, self.filter_on, self.obs.cands, self.obs.image,
-                                            self.opener_says)
+        ok, why = False, "control not on the launch screen"
+        if shown:
+            ok, self.opener_says = filter_holds(self.filter_taps, self.filter_on, self.obs.cands, self.obs.image,
+                                                self.opener_says)
+            why = "by screenshot"
         n = len(self.filter_checks) + 1
         evidence = self.out / "filter" / f"check-{n:02d}.png"
         evidence.parent.mkdir(exist_ok=True)
         self.obs.image.save(evidence)
         self.filter_checks.append((n, ok, f"explore/filter/{evidence.name}"))
-        self.note("filter.check", f"{last.label!r} {'verified' if ok else 'NOT verified'} by screenshot "
-                                  f"(check {n})", outcome="ok" if ok else "error")
+        self.note("filter.check", f"{last.label!r} {'verified' if ok else 'NOT verified'} {why} (check {n})",
+                  outcome="ok" if ok else "error")
+        if not shown:
+            self.filtered = False
+            self.filter_news = UNVERIFIED
+            return
         self.filtered = ok
         self.filter_news = (f"verified (check {n}): {filter_label(self.filter_taps, self.filter_on)}" if ok else
                             f"not verified (check {n}): {last.label[:40]!r} doesn't show it set here; set it again")
