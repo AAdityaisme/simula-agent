@@ -133,8 +133,8 @@ or only the human-written ones if a later change narrows the rate to those. *A j
 *combined* passes only when both judges do. *Second control draw*: VF3's committed run in `validation/verdicts/VF3/`,
 saved at e56402e under the prompts `config/frozen_prompts.toml` pins there. It counts only while that file is unchanged
 since e56402e. A *promotion* is a valid good that the treatment passes and that both control draws fail, for the same judge.
-This guards against judge_2's own run-to-run noise: it passed JanitorAI c02 in 2 of its 4 saved runs and Luzia c05 in 3
-of 4.
+This guards against judge_2's own run-to-run noise: it passed JanitorAI c02 in 3 of its 6 saved runs and Luzia c05 in 5
+of 6.
 
 1. judge_2 gains at least one promotion, and combined passes at least as many valid goods as in the fresh control.
 2. Under the treatment, judge_1, judge_2 and combined each pass at least 70% of the valid goods.
@@ -156,14 +156,19 @@ verdict that changed; how many of judge_2's c2 fails under the treatment name an
 ## Expected outcome, stated before any call: not adopted
 
 The four original known-good ideas carry the question, and they leave almost no room for a countable promotion.
-judge_2's results on them across the 4 saved runs (VF′ ×3, VF3 ×1):
+judge_2's results on them across the 6 saved runs (VF′ ×3, VF3 ×3):
 
 | Idea | judge_2 | What the treatment should do |
 |---|---|---|
-| AOL c01 | fails c2, 4 of 4 (judge_1 also, 4 of 4) | Nothing. "The app has no paywall, limit, or currency" asserts more than "none seen on the home feed"; C2 fails it by design. If Aadi labels it fail, it leaves the valid goods. |
-| Candy Crush | fails c2, 4 of 4 | Probably nothing. "A full set of lives" adds "full set" to "Get more lives with gold bars": an extra assertion, so a correct three-part reason still fails it. |
-| JanitorAI c02 | passes 2 of 4 | The paraphrase the treatment targets. VF3 passed it, so it can't count as a promotion. |
-| Luzia c05 | passes 3 of 4 | None needed. VF3 passed it. |
+| AOL c01 | fails c2, 6 of 6 (judge_1 also, 6 of 6) | Nothing. "The app has no paywall, limit, or currency" asserts more than "none seen on the home feed"; C2 fails it by design. If Aadi labels it fail, it leaves the valid goods. |
+| Candy Crush | fails c2, 6 of 6 | Probably nothing. "A full set of lives" adds "full set" to "Get more lives with gold bars": an extra assertion, so a correct three-part reason still fails it. |
+| JanitorAI c02 | passes 3 of 6 | The paraphrase the treatment targets. VF3 passed it, so it can't count as a promotion. |
+| Luzia c05 | passes 5 of 6 | None needed. VF3 passed it. |
+
+*(Updated 2026-10-03: this was registered over 4 saved runs, VF′ ×3 and VF3's kept run, and said 4 of 4, 4 of 4, 2 of 4
+and 3 of 4. #42 then saved VF3's two earlier paid runs, so the counts above are over all 6: the run at 42f9428 failed
+c02 on c2 and passed c05, and the run at 9092006 passed both. "VF3 passed it" means VF3's kept run, the second control
+draw.)*
 
 Candy Crush is the only countable promotion, and the treatment shouldn't produce it. With 4 original goods, one repeat
 per arm can't tell a real effect on c02 from noise. The 70% bar in item 2 doesn't decide it either; where VF3 sits on
