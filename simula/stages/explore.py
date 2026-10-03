@@ -567,14 +567,21 @@ class Explorer:
                      f"observing after the move failed: {type(e).__name__}", "error")
             raise
         self.escape_billing()
+        canonical = ob.find(s.cands, move.cand) if move.cand else None
+        try:  # a chat stop is judged on the screen as it settled, so the move lands there
+            settled = bool(loop) and self.core.kind == "chat" and self.settle_input(move)
+        except DEVICE_ERRORS as e:
+            self.log(s, None, move, canonical or live, "unknown",
+                     f"{summary}; reading the screen again failed: {type(e).__name__}"[:160], "error", loop)
+            raise
+        obs = self.obs
         # a chat pass stays on the chat while its composer shows: the growing conversation is not a new state
         chatting = purpose == "core" and self.core.kind == "chat" and self.live_box() and not self.covering(before)
         to = s if chatting else self.land(obs, s, move, before, expect)
         if to is s and not summary:
             summary = ob.change_summary(before.elements, obs.elements, self.device)
-        canonical = ob.find(s.cands, move.cand) if move.cand else None
         try:
-            stop = self.keep_stop(self.hit(s, to, before, move), before) if loop else ("", "")
+            stop = self.keep_stop(self.hit(s, to, before, move, settled), before) if loop else ("", "")
         except DEVICE_ERRORS as e:
             self.log(s, to, move, canonical or live, self.transition(s, to, move),
                      f"{summary}; reading the screen again failed: {type(e).__name__}"[:160], "error", loop)
@@ -2094,7 +2101,7 @@ class Explorer:
         self.note("settle", f"{answer.verdict} after {waited:.0f} s: {answer.reason}", decider="model")
         return answer.verdict
 
-    def hit(self, s: Seen, here: Seen, before: Obs, move: Move) -> tuple[str, str]:
+    def hit(self, s: Seen, here: Seen, before: Obs, move: Move, settled: bool = False) -> tuple[str, str]:
         """What a core-loop move brought up that ends the loop, read from what changed on screen and never from
         words in content. A few words for loop_stop, and the evidence."""
         if here.kind == "external":
@@ -2104,7 +2111,7 @@ class Explorer:
         if here.kind == "rotated":
             return "screen rotated", here.sid
         if self.core.kind == "chat":
-            return self.chat_stop(here, before, move)
+            return self.chat_stop(here, before, move, settled)
         if here is not s and here.kind in ("modal", "sheet"):
             own = self.within(here)
             wall = ob.walled(ob.controls(own, self.device))
@@ -2120,25 +2127,19 @@ class Explorer:
         moved = ob.counters(before.elements, self.obs.elements, self.device, [(0, ob.TOP_CHROME_BOTTOM_PX)])
         return ("counter", moved[0]) if moved else ("", "")
 
-    def chat_stop(self, here: Seen, before: Obs, move: Move) -> tuple[str, str]:
+    def chat_stop(self, here: Seen, before: Obs, move: Move, settled: bool) -> tuple[str, str]:
         """In a chat only the window can stop the loop: a dialog over it, a sheet's new words over the text box, the
         text box disabled or gone, send still disabled once a message is typed, or a counter moving beside the
-        composer. The conversation's own text, prices and timestamps included, never does. A composer that reads as a
-        stop is read again until it settles, then the whole screen is judged as it settled; one that isn't the chat
-        any more is a stop."""
-        first = self.obs
-        self.settle_input(move)
-        kind, own = here.kind, self.within(here)
-        if self.obs is not first:
-            kind, box = self.kind_of(self.obs, before)
-            own = [e for e in self.obs.elements if box is None or ob.inside(ob.rect(e), box)]
-        if kind in ("modal", "sheet"):
+        composer. The conversation's own text, prices and timestamps included, never does. A composer that read as a
+        stop was read again until it settled (settle_input, before the move landed on here), so the whole screen is
+        judged as it settled; one that isn't the chat any more is a stop."""
+        own = self.within(here)
+        if here.kind in ("modal", "sheet"):
             window = ob.dialog_box(self.obs.cands, self.device)
             return self.named(own if window else self.sheet_words(before)) or "dialog opened", here.sid
         if self.covering(before):
             return self.sheet_words(before) or "sheet opened", here.sid
-        stop = self.input_stop(move) or ("input gone" if self.obs is not first and not self.arrived(self.core.state)
-                                         else "")
+        stop = self.input_stop(move) or ("input gone" if settled and not self.arrived(self.core.state) else "")
         if stop:
             return (self.sheet_words(before) if stop == "input gone" else "") or stop, here.sid
         box = self.live_box()
@@ -2157,19 +2158,20 @@ class Explorer:
         typed = move.action == "type" and (live is None or not live[1].enabled)
         return "input disabled" if not box.enabled or typed else ""
 
-    def settle_input(self, move: Move) -> None:
+    def settle_input(self, move: Move) -> bool:
         """When the composer reads as a stop, the screen is read again SETTLE_GAP_S later until two reads of the
         composer agree (up to SETTLE_ASK_S): a composer the keyboard is still moving, or send enabled a moment after
-        the text lands, stops nothing."""
-        stop, deadline = self.input_stop(move), self.clock() + SETTLE_ASK_S
+        the text lands, stops nothing. Whether it read the screen again."""
+        first, stop, deadline = self.obs, self.input_stop(move), self.clock() + SETTLE_ASK_S
         while stop:
             self.sleep(SETTLE_GAP_S)
             self.observe()
             self.escape_billing()
             again = self.input_stop(move)
             if again == stop or self.clock() >= deadline:
-                return
+                break
             stop = again
+        return self.obs is not first
 
     def keep_stop(self, stop: tuple[str, str], before: Obs) -> tuple[str, str]:
         """A core-loop stop, kept so it can be explained: the capture and element list it was read from, and the

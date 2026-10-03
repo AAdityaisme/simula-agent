@@ -1688,6 +1688,15 @@ def test_a_sheet_that_comes_up_while_send_settles_stops_the_chat(tmp_path, monke
     assert [stop[0] for stop in stops] == [2] and phone.sent == 1, (stops, phone.sent)
 
 
+def test_a_chat_stop_read_after_settling_names_the_screen_it_settled_on_greptile_44(tmp_path, monkeypatch):
+    """Greptile on #36 (item 44): the move landed before the composer settled, so the stop named the chat as it was
+    before the sheet came up, a screen that doesn't show what stopped it."""
+    ex, _ = explore(tmp_path, monkeypatch, phone_factory=sheet_while_send_waits, budget="deep")
+    stop = next(line for line in lines(ex) if line.loop_stop)
+    shown = {ob.words(e) for e in ex.by_id[stop.to_state].elements}
+    assert "You're out of free messages" in shown and f"({stop.to_state}) on pass 2" in ex.core_hit, ex.core_hit
+
+
 def log_in_after_the_box_tap(clock):
     """Pass 2: the tap on the text box shows a "one moment" screen, then the app's log-in screen with its email
     field focused (rt-pr41 H2)."""
@@ -2058,6 +2067,22 @@ def test_a_sheet_that_asks_for_an_upgrade_or_a_registration_stops_the_feed_pass(
         ex, opened = feed_pass_sheets(tmp_path / button.replace(" ", "-"), monkeypatch, sheet_over_feed(own))
         assert opened[0].loop_stop == "sheet opened" and ex.core_hit.startswith("sheet opened"), ex.core_results
         assert stage.loop_end(ex, 1).startswith("Stopped by the app: sheet opened")
+
+
+def test_a_short_sheet_that_asks_nothing_still_stops_the_feed_pass_greptile_44(tmp_path, monkeypatch):
+    """Greptile on #36 (item 44) read "short item sheets remain walkable" as owed. By design they don't: a sheet with
+    less new text than PAGE_CHARS may be the filter or a prompt (115-340 chars in the committed runs), so when unsure
+    it stops."""
+    own = [{"ref": "@s1", "type": "android.view.ViewGroup", "text": "Kang Jun-Seo (Idol x Idol)",
+            "coordinates": {"x": 0, "y": 1250, "width": 1080, "height": 110}},
+           {"ref": "@s2", "type": "android.widget.TextView",
+            "text": "A rising idol with a secret he keeps from his fans, and a manager who knows too much.",
+            "coordinates": {"x": 60, "y": 1400, "width": 960, "height": 200}},
+           {"ref": "@s3", "type": "android.widget.Button", "text": "Close",
+            "coordinates": {"x": 240, "y": 2150, "width": 600, "height": 120}}]
+    assert sum(len(ob.words(e)) for e in own) < stage.PAGE_CHARS
+    ex, opened = feed_pass_sheets(tmp_path, monkeypatch, sheet_over_feed(own))
+    assert opened[0].loop_stop == "sheet opened", (opened[0].loop_stop, ex.core_results[:2])
 
 
 # rt-pr41 M1: an upgrade sheet's feature list makes it as long as an item's page; its controls still ask.
