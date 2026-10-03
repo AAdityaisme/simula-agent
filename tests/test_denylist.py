@@ -5,8 +5,17 @@ import dataclasses
 
 import pytest
 
-from simula.contracts import Rect
-from simula.device.observe import Candidate, denied, dismiss_control
+from simula.contracts import Device, Rect
+from simula.device.observe import Candidate, denied, denied_at, dismiss_control, is_upsell, worded
+from tests.fake_device import capture
+
+
+SAID = "He stopped. Sign in, he said, and he would go."  # a reply that says a deny word
+
+
+def listed(ref, kind, text, label, x, y, w, h) -> dict:
+    return {"ref": ref, "type": f"android.widget.{kind}", "text": text, "label": label,
+            "coordinates": {"x": x, "y": y, "width": w, "height": h}}
 
 
 def control(label: str, kind: str = "TextView") -> Candidate:
@@ -48,11 +57,154 @@ def test_a_reason_is_never_its_text_twice():
     assert denied(control("Start free trial")) == "start free trial"
 
 
+def test_words_under_a_tap_point_never_refuse_it_and_words_drawn_over_it_do():
+    """JanitorAI's keyboard-lifted composer (def99ac s27): a reply listed before the text box and not around it lies
+    under the box's tap point. A button listed after a row, inside its box, lies over the row's; listed right after
+    it, it is the row's own, and its deny word still refuses (Greptile #43)."""
+    box = Candidate(label="", kind="EditText", rect=Rect(x=46, y=1215, w=988, h=123), ref="@box", tree_label="")
+    def element(ref, kind, text, x, y, w, h):
+        return {"ref": ref, "type": f"android.widget.{kind}", "text": text,
+                "coordinates": {"x": x, "y": y, "width": w, "height": h}}
+    reply = element("@reply", "TextView", "Here are three tips for staying focused", 134, 1103, 902, 300)
+    target = element("@box", "EditText", "", 46, 1215, 988, 123)
+    assert denied_at(box, [reply, target], Device(), core=True) == ""
+    assert "tips" in denied_at(box, [target, reply], Device(), core=True)
+    row = Candidate(label="Read item", kind="ViewGroup", rect=Rect(x=0, y=1100, w=1080, h=200), ref="@row",
+                    tree_label="Read item")
+    rows = [element("@row", "ViewGroup", "Read item", 0, 1100, 1080, 200),
+            element("@next", "ViewGroup", "Next item", 0, 1300, 1080, 200)]
+    sign = element("@sign", "Button", "Sign in", 440, 1170, 200, 60)
+    assert "sign in" in denied_at(row, [*rows, sign], Device())
+    assert "sign in" in denied_at(row, [rows[0], sign, rows[1]], Device())
+
+
+def test_a_controls_own_icon_listed_right_after_it_is_its_own_not_drawn_over_it():
+    """Luzia's send control (a wordless View) lists its icon, labelled "Confirm button", right after it inside its
+    box: the target's own, so sending isn't refused; the same words drawn later in the list would be."""
+    send = Candidate(label="sendButton", kind="View", rect=Rect(x=933, y=1313, w=126, h=126), ref="@send",
+                     tree_label="", ident="sendButton")
+    target = {"ref": "@send", "type": "android.view.View", "text": "", "identifier": "app:id/sendButton",
+              "coordinates": {"x": 933, "y": 1313, "width": 126, "height": 126}}
+    icon = {"ref": "@icon", "type": "android.view.View", "text": "", "label": "Confirm button",
+            "coordinates": {"x": 970, "y": 1350, "width": 52, "height": 52}}
+    note = {"ref": "@note", "type": "android.widget.TextView", "text": "Luzia is AI and can make mistakes.",
+            "coordinates": {"x": 21, "y": 1460, "width": 1038, "height": 36}}
+    assert denied_at(send, [target, icon, note], Device(), core=True) == ""
+    assert "confirm" in denied_at(send, [target, note, icon], Device(), core=True)
+
+
+
+def test_a_reply_listed_before_a_lifted_composers_send_never_refuses_it_and_a_control_absorbing_it_does():
+    """JanitorAI's chat with the keyboard up (PR O's run 20261001-035432-69c8c4f, act114; words shortened): the reply
+    container (its label the whole reply) and its last paragraph hold Send's box, listed before it. The paragraph is a
+    leaf and the container's label is content, so a reply saying "Sign in" doesn't refuse the send. A control listed
+    before Send that absorbs it, with a control's words, still does."""
+    element = listed
+    chat = [element("@e26", "FrameLayout", "", "", 0, 0, 1080, 2400),
+            element("@e33", "ViewGroup", "", f"Miro blinked. {SAID}", 134, 274, 902, 1243),
+            element("@e34", "TextView", "There was once a light.", "", 134, 274, 902, 104),
+            element("@e35", "TextView", "He looked at the boots again.", "", 134, 403, 902, 135),
+            element("@e36", "TextView", "The light stayed awake.", "", 134, 563, 902, 639),
+            element("@e37", "TextView", SAID, "", 134, 1227, 902, 261),
+            element("@e38", "TextView", "That is all I know.", "", 134, 1513, 902, 4),
+            element("@e39", "EditText", "What's a good phone for a student?", "", 46, 1215, 988, 123),
+            element("@e40", "ViewGroup", "", "AI write for me", 68, 1338, 89, 89),
+            element("@e41", "Button", "", "Change who you are in this chat", 174, 1338, 284, 86),
+            element("@e42", "TextView", "Persona", "", 270, 1361, 108, 39),
+            element("@e43", "ViewGroup", "", "Send", 922, 1338, 89, 89)]
+    send = Candidate(label="Send", kind="ViewGroup", rect=Rect(x=922, y=1338, w=89, h=89), ref="@e43", tree_label="Send")
+    assert denied_at(send, chat, Device(), core=True) == ""
+    card = element("@card", "ViewGroup", "", "Sign in", 900, 1320, 140, 130)
+    icon = element("@icon", "ImageView", "", "", 940, 1330, 40, 40)
+    assert "sign in" in denied_at(send, [*chat[:-1], card, icon, chat[-1]], Device(), core=True)
+
+
+
+def test_a_reply_container_under_a_lifted_composer_never_refuses_send_or_the_text_box():
+    """#29's JanitorAI run def99ac, s27 (words shortened): a reply container (a ViewGroup labelled with the whole
+    reply, 710 chars) and its paragraph hold Send's box, listed before the text box. The container's words are
+    content, not a control's, so it absorbs neither. It is no ancestor of either: the text box lies outside it, and
+    is listed between it and Send. So a reply saying "Sign in" refuses neither Send nor the tap that focuses the text
+    box."""
+    elements = [listed("@e26", "FrameLayout", "", "", 0, 0, 1080, 2400),
+                listed("@e41", "ViewGroup", "", f"Miro froze. {SAID}", 134, 468, 902, 1049),
+                listed("@e45", "TextView", f"Miro didn't move. {SAID}", "", 134, 1326, 902, 191),
+                listed("@e48", "EditText", "", "", 46, 1215, 988, 123),
+                listed("@e52", "ViewGroup", "", "Send", 922, 1338, 89, 89)]
+    send = Candidate(label="Send", kind="ViewGroup", rect=Rect(x=922, y=1338, w=89, h=89), ref="@e52", tree_label="Send")
+    box = Candidate(label="", kind="EditText", rect=Rect(x=46, y=1215, w=988, h=123), ref="@e48", tree_label="")
+    for upsell in (False, True):  # the container is no ancestor of Send: the text box listed between lies outside it
+        assert denied_at(send, elements, Device(), core=True, upsell=upsell) == ""
+        assert denied_at(box, elements, Device(), core=True, upsell=upsell) == ""
+
+
+def test_a_wordless_call_to_action_inside_a_paywall_card_is_refused_and_its_not_now_runs():
+    """A paywall card labelled with all its text is no control, so it absorbs nothing; its words still count over a
+    control it is the ancestor of, so a wordless button inside it is refused. Its "Not now" runs."""
+    card = listed("@card", "ViewGroup", "",
+                  "Unlock Premium. Unlimited chats and memory. $9.99/month, cancel anytime. Continue. Not now",
+                  40, 900, 1000, 900)
+    elements = [card, listed("@t", "TextView", "Unlock Premium", "", 80, 930, 900, 70),
+                listed("@p", "TextView", "$9.99/month, cancel anytime", "", 80, 1100, 900, 60),
+                listed("@c", "Button", "Continue", "", 140, 1500, 700, 120),
+                listed("@i", "ImageView", "", "", 880, 1500, 100, 100),
+                listed("@n", "Button", "Not now", "", 140, 1650, 800, 100)]
+    arrow = Candidate(label="", kind="ImageView", rect=Rect(x=880, y=1500, w=100, h=100), ref="@i", tree_label="")
+    not_now = Candidate(label="Not now", kind="Button", rect=Rect(x=140, y=1650, w=800, h=100), ref="@n",
+                        tree_label="Not now")
+    assert is_upsell(elements, Device()) and denied(arrow, upsell=True) is None
+    assert denied_at(arrow, elements, Device(), upsell=True) and denied_at(not_now, elements, Device(), upsell=True) == ""
+
+
+def test_a_wordless_button_inside_a_sign_in_sheet_is_refused_on_any_screen_and_not_now_in_a_short_container_runs():
+    """rt-pr43-f6702e7 MEDIUM 1, D1: a sign-in sheet labelled with all its text, on a screen with no price, over a
+    wordless Google button: the sheet is the button's ancestor, so its "sign in" refuses the tap. LOW 1, D2: "Not
+    now" inside a container labelled "Get Premium" dismisses, so the container's "get" doesn't hold over it."""
+    sheet = [listed("@sheet", "FrameLayout", "", "Sign in to keep your chats on every device. Continue with Google. "
+                    "Not now", 0, 1150, 1080, 1187),
+             listed("@title", "TextView", "Sign in to keep your chats on every device", "", 60, 1200, 960, 80),
+             listed("@g", "ImageButton", "", "", 440, 1650, 200, 140),
+             listed("@later", "Button", "Not now", "", 240, 2050, 600, 110)]
+    google = Candidate(label="", kind="ImageButton", rect=Rect(x=440, y=1650, w=200, h=140), ref="@g", tree_label="")
+    later = Candidate(label="Not now", kind="Button", rect=Rect(x=240, y=2050, w=600, h=110), ref="@later",
+                      tree_label="Not now")
+    assert not is_upsell(sheet, Device()) and "sign in" in denied_at(google, sheet, Device())
+    assert denied_at(later, sheet, Device()) == ""
+    paywall = [listed("@pay", "FrameLayout", "", "Get Premium", 0, 1150, 1080, 1187),
+               listed("@price", "TextView", "Unlimited chats for $4.99/month", "", 60, 1250, 960, 80),
+               listed("@cta", "Button", "Continue", "", 240, 1850, 600, 110),
+               listed("@later", "Button", "Not now", "", 240, 2050, 600, 110)]
+    assert denied_at(later, paywall, Device(), upsell=is_upsell(paywall, Device())) == ""
+
+
+def test_another_page_of_a_pager_in_the_same_box_is_beside_a_row_and_a_card_after_it_is_over_it():
+    """AOL's feed (committed run, s10): two ViewPagers of one box list two pages of rows over each other. What the
+    second page lists is beside a row of the first, not over it; a card listed after that page still is."""
+    elements = [listed("@p1", "ViewPager", "", "", 0, 283, 1080, 2117),
+                listed("@row", "ViewGroup", "", "Read item", 0, 800, 1080, 300),
+                listed("@p2", "ViewPager", "", "", 0, 283, 1080, 2117),
+                listed("@next", "TextView", "Entertainment Weekly", "", 300, 900, 500, 100),
+                listed("@bar", "FrameLayout", "", "", 0, 0, 1080, 220),
+                listed("@card", "TextView", "What's new", "", 300, 900, 500, 100)]
+    row = Candidate(label="Read item", kind="ViewGroup", rect=Rect(x=0, y=800, w=1080, h=300), ref="@row",
+                    tree_label="Read item")
+    assert denied_at(row, elements[:4], Device()) == ""
+    assert "drawn over" in denied_at(row, elements, Device())
+
+def test_a_sheet_row_listed_before_the_page_under_it_refuses_a_tap_on_the_page():
+    """rt-pr41-b7dc068 H3, on PR O's capture (20261001-035432-69c8c4f, s09): a bottom sheet is listed before the
+    character page it covers, and its "Block character" row holds three of the page's timestamps. A tap on one lands
+    on Block character, so it is refused; the timestamps listed after Block don't make it theirs."""
+    screen = capture("janitorai", "j17_character_sheet")
+    stamps = [c for c in worded(screen.elements, Device()) if c.label in ("about 4 hours ago", "14 minutes ago")]
+    assert len(stamps) == 3 and all("block" in denied_at(t, screen.elements, Device()) for t in stamps)
+
 def test_the_exhibit_counts_denied_taps_that_reached_the_device(tmp_path, monkeypatch):
     from simula.stages import explore as stage
     from tests.fake_device import explorer
     from tests.test_explore_offline import janitor_like
     ex, phone = explorer(tmp_path, monkeypatch, janitor_like)
+    ex.observe()  # the live list a tap is checked against; neither control is in it
     ex.perform(stage.Move("tap", control("Subscribe now")), control("Subscribe now"))
     ex.perform(stage.Move("tap", control("Settings")), control("Settings"))
     assert ex.denied_executed == 1

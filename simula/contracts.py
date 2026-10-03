@@ -7,7 +7,7 @@ at most 4 levels of nesting. The Anthropic SDK turns a dict field into an object
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 SCHEMA_VERSION = 1
 OutcomeStatus = Literal["complete", "partial"]  # a stage's done.json and QA's report share it
@@ -511,6 +511,9 @@ class ActionLine(Strict):
                                   "null for tour moves.")
     loop_stop: str | None = Field(default=None, description="On the pass where a limit, paywall, or ad appeared: what "
                                   "it was, in a few words. The loop stops there.")
+    capture: str | None = Field(default=None, description="The later capture of from_state the move was taken on (its "
+                                "screenshot, relative to explore/), whose mcp_ref and tap_px these are; null for the "
+                                "state's own capture.")
 
 
 class IconLabel(Strict):
@@ -526,10 +529,11 @@ class VisionElement(Strict):
 
 # ---------- file-level wrappers: every JSON file a stage writes carries schema_version ----------
 
-class ReplacedCapture(Strict):
-    """A capture of a state that a relaunch replaced (home with its list reloaded). Paths are relative to explore/."""
-    until_step: int = Field(description="The last action line step taken on this capture: a line from the state with "
-                                        "a step up to here resolves its tap against this capture, not the state's own.")
+class LaterCapture(Strict):
+    """A capture of a state taken after its own, by a relaunch that landed on it with its list reloaded (home). Paths
+    are relative to explore/."""
+    from_step: int = Field(description="The first action line step that may be taken on this capture; the lines taken "
+                                       "on it name it in their capture field.")
     screenshot: str
     elements_reply: str
     icon_labels: list[IconLabel] = []
@@ -555,7 +559,25 @@ class StateFile(Strict):
     icon_labels: list[IconLabel] = []
     vision_elements: list[VisionElement] = []
     blocked_reason: str | None = None
-    replaced: list[ReplacedCapture] = Field([], description="Earlier captures a relaunch replaced, oldest first.")
+    later: list[LaterCapture] = Field([], description="Captures a relaunch took after the state's own, oldest first.")
+
+    @model_validator(mode="before")
+    @classmethod
+    def read_replaced(cls, data):
+        """A file #33's explorer wrote names its latest capture canonical and keeps the earlier ones in replaced, each
+        with the last step taken on it. Here the first capture is canonical and the rest start at a step, so the first
+        replaced one becomes the file's own and the others, then the file's, become later. The file's fingerprint and
+        moving regions are its latest capture's, and #33 kept no others, so the first's are unknown: none, and QA masks
+        nothing on it (its capture time and settle are the latest's too)."""
+        if not isinstance(data, dict) or not data.get("replaced"):
+            return {k: v for k, v in data.items() if k != "replaced"} if isinstance(data, dict) else data
+        own = {k: data.get(k) for k in ("screenshot", "elements_reply", "icon_labels", "vision_elements")}
+        first, *rest = [*data["replaced"], own]
+        later = [{k: c.get(k, []) for k in ("screenshot", "elements_reply", "icon_labels", "vision_elements")}
+                 | {"from_step": before["until_step"] + 1} for before, c in zip([first, *rest], rest)]
+        return {k: v for k, v in data.items() if k != "replaced"} | {
+            k: first.get(k, []) for k in ("screenshot", "elements_reply", "icon_labels", "vision_elements")} | {
+            "later": later, "fingerprint": "", "dynamic_regions": []}
 
 
 class ExploreFile(Strict):

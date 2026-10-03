@@ -98,6 +98,7 @@ CLOCK = re.compile(r"\b\d{1,2}:\d{2}\b|\bago\b", re.IGNORECASE)
 LETTER = re.compile(r"[^\W\d_]")
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
 LEAF = re.compile(r"(?:TextView|ImageView|EditText)$")
+PAGED = re.compile(r"ViewPager|RecyclerView|ListView|ScrollView")
 TEXT_OR_IMAGE = re.compile(r"(?:TextView|ImageView)$")
 REDACTED = "[redacted]"
 # --allow-account-create's words. A way on without an account is a whole label, so "Watch later" is content.
@@ -457,6 +458,119 @@ def covered(c: Candidate, elements: list[dict], device: Device) -> bool:
     return any(e.get("clickable") for e in over) or any(
         e in after and not inside(rect(e), c.rect)
         and (words(e) or any(words(o) and inside(rect(o), rect(e)) for o in after)) for e in over)
+
+
+def own_controls(cands: list[Candidate], box: Rect | None, behind: list[Candidate], elements: list[dict] = (),
+                 behind_elements: list[dict] = ()) -> list[Candidate]:
+    """A state's own controls: on a screen all of them; on an overlay in the parent's window, which leaves the
+    parent's controls (behind) listed, maybe moved, only the new ones inside its box (a control without words is told
+    by its place too). An element the parent's capture listed too, with the same class, place and words, is the
+    parent's however controls() grouped it: a row the parent merged into one control falls apart into its parts once
+    the overlay's texts lie in its box (a drawer over a weather row)."""
+    if box is None:
+        return cands
+    keys = {c.key for c in behind}
+    named = {(c.tree_label, c.kind) for c in behind if c.tree_label and overlaps(c.rect, box)}
+    def same(e: dict) -> tuple:
+        return e["type"], *e["coordinates"].values(), words(e)
+    listed, by_ref = {same(e) for e in behind_elements}, {e.get("ref"): e for e in elements}
+    return [c for c in cands if inside(c.rect, box) and c.key not in keys and (c.tree_label, c.kind) not in named
+            and not (c.ref in by_ref and same(by_ref[c.ref]) in listed)]
+
+
+def worded(elements: list[dict], device: Device) -> list[Candidate]:
+    """Every element with words in the content area, each as the list has it: controls() merges a container's texts
+    into one control and drops a control nested in a bigger one, so a button drawn inside a row's box is no control of
+    its own there. What the deny-list reads at a tap point, and what a wall is read from."""
+    return [Candidate(label=words(e), kind=e["type"].split(".")[-1], rect=rect(e), ref=e.get("ref"),
+                      tree_label=words(e), ident=short_id(e.get("identifier")))
+            for e in elements if words(e) and in_content(e, device)]
+
+
+def windows(elements: list[dict]) -> list[int]:
+    """Each element's window, numbered in list order. The device lists an upper window before the ones under it (an
+    app's popup, systemui's clipboard overlay, then the status bar and the activity, measured 2026-10-01), each from
+    its root: an activity's action_bar_root, or an android:id/content that isn't right under one."""
+    found, n = [], 0
+    for k, e in enumerate(elements):
+        ident = e.get("identifier") or ""
+        under_root = k and (elements[k - 1].get("identifier") or "").endswith(":id/action_bar_root")
+        n += bool(k) and (ident.endswith(":id/action_bar_root") or ident == "android:id/content" and not under_root)
+        found.append(n)
+    return found
+
+
+def denied_at(target: Candidate, elements: list[dict], device: Device, **deny) -> str:
+    """Why a tap on target must not run, or "" for none: the deny-list's hit on an element of the live list over the
+    tap point, else something drawn over the target there. The list as it is, not the controls, which merge a
+    container's words and drop a button nested in a bigger one, so a sign-in button a card draws inside a row's box is
+    read. Within a window the list is in drawing order, parent first. The run it lists right after the target inside
+    its box is the target's own, never drawn over it. A wordless target's run is its look (a send button's icon
+    labelled "Confirm button") and is not read; in a worded one's, a deny word at the tap point still refuses (a
+    "Sign in" button inside a row's box, listed right after it). What it lists after
+    that run is over the target: a deny word there refuses the tap, and so does an element that isn't around the
+    whole target and shows words, its own or ones listed after it inside it (a card over a row, even one whose words
+    ask for nothing). What it lists before the target is content under it, like a reply under a lifted composer's
+    Send, unless it absorbs the target (a sheet's "Block character" row, listed before the page it covers, over a
+    timestamp) or is the target's ancestor (everything listed between them lies inside it): a paywall card or a
+    sign-in sheet labelled with all its text over a wordless call to action. Neither holds over a control that
+    dismisses ("Not now" in a "Get Premium" container). An
+    upper window's elements are over the target wherever they lie. A pager or list can list another of its pages in
+    the same box, in a second container of the same kind (a news feed): the run listed right after it inside its box
+    is that page, beside the target. Limits: with no hierarchy, a
+    deny-worded sibling listed right after a wordless target inside its box reads as the target's own, a control-shaped
+    container listed before the target and around it reads as over it, and a sibling an elevation draws over the
+    target while it is listed before it reads as under it; a wordless overlay that holds no words is unseen: no list
+    the device gives reports clickable (mobile-mcp's, mobilecli's dump), and uiautomator dump is killed on the emulator
+    (measured 2026-10-01)."""
+    x, y = target.point
+    point = Rect(x=x, y=y, w=0, h=0)
+    order = {e.get("ref"): n for n, e in enumerate(elements)}
+    at = end = order.get(target.ref, -1)
+    while 0 <= at and end + 1 < len(elements) and inside(rect(elements[end + 1]), target.rect):
+        end += 1
+    window = windows(elements)
+    def place(e: dict) -> tuple:
+        return *e["coordinates"].values(), e.get("type")
+    mine = {place(e) for e in elements[:max(at, 0)] if PAGED.search(e.get("type", "")) and inside(target.rect, rect(e))}
+    beside = set()
+    for k in (k for k in range(end + 1, len(elements)) if place(elements[k]) in mine):
+        run = next((j for j in range(k + 1, len(elements)) if not inside(rect(elements[j]), rect(elements[k]))),
+                   len(elements))
+        beside.update(range(k + 1, run))
+    held = [n for n, e in enumerate(elements) if in_content(e, device) and inside(point, rect(e)) and n not in beside]
+    over = [n for n in held if at < 0 or window[n] < window[at] or n > end and window[n] == window[at]]
+    dismisses = DISMISS.match(target.label.strip()) or ICON_ONLY.fullmatch(target.tree_label) and DISMISS_ID.search(
+        ID_WORDS.sub(" ", target.ident or target.label))
+    absorbing = [n for n in held if 0 <= n < at and window[n] == window[at] and not dismisses and (
+        absorbs(elements[n], elements[at])
+        or all(inside(r, rect(elements[n])) for r in [target.rect, *map(rect, elements[n + 1:at])]))]
+    own = [n for n in held if at < n <= end and words(elements[at])]
+    for n in sorted(over + absorbing + own):
+        reason = words(elements[n]) and denied(worded([elements[n]], device)[0], **deny)
+        if reason:
+            return f"{reason} ({words(elements[n])[:40]!r} at the tap point)"
+    for n in over if at >= 0 else []:
+        e = elements[n]
+        said = [words(o) for k, o in enumerate(elements[n + 1:], n + 1)
+                if window[k] == window[n] and words(o) and inside(rect(o), rect(e))]
+        if (window[n] < window[at] or not inside(target.rect, rect(e))) and (words(e) or said):
+            return f"drawn over ({(words(e) or said[0])[:40]!r} at the tap point)"
+    return ""
+
+
+def new_words(then: list[dict], now: list[dict], device: Device) -> list[Candidate]:
+    """The worded elements now shows that then didn't show in the same place (same words and class, overlapping)."""
+    shown = worded(then, device)
+    return [c for c in worded(now, device)
+            if not any(h.label == c.label and h.kind == c.kind and overlaps(h.rect, c.rect) for h in shown)]
+
+
+def other_controls(then: list[Candidate], now: list[Candidate]) -> bool:
+    """Whether now lacks a control then has or shows one it doesn't, by find()'s identity: a feed reloaded with the
+    same card shapes and new titles keeps its fingerprint all the same."""
+    then = [c for c in then if c.ref is not None]
+    return any(find(now, c) is None for c in then) or any(find(then, c) is None for c in now)
 
 
 def find(cands: list[Candidate], want: Candidate) -> Candidate | None:
