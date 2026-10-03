@@ -497,13 +497,37 @@ def test_a_button_core_action_keeps_the_hard_blocks(tmp_path, monkeypatch):
     assert not [line for line in lines if line["loop_pass"] and line["outcome"] == "ok" and line["action"] == "tap"]
 
 
-def test_an_offer_word_anywhere_is_no_dismissal():
-    """rt-58: 'Close or Upgrade' is an offer; only a close icon's own description may name an upgrade."""
-    for label in ("Close or Upgrade", "Close and buy now", "Close to unlock", "Close / Subscribe", "Skip the wait"):
-        assert not stage_agent.dismissal(label) and not stage_agent.dismissal(label, icon=True), label
-    assert not stage_agent.dismissal("Dismiss upgrade prompt")  # as words it is an offer's text
-    assert stage_agent.dismissal("Dismiss long chat upgrade prompt", icon=True)
-    assert all(stage_agent.dismissal(label) for label in ("Not now", "Close", "x", "No thanks", "Close tips"))
+def test_an_offer_joined_to_a_dismissal_is_none():
+    """A label led by a dismiss phrase dismisses at any length, naming the offer it closes; a joining word ties an
+    offer to it ('Close or Upgrade'); anything else must be a whole dismiss phrase."""
+    for label in ("Close or Upgrade", "Close and upgrade", "Close then subscribe", "Close to unlock", "Skip the wait",
+                  "Got it — I can help", "Upgrade", "Close $4.99"):
+        assert not stage_agent.dismissal(label), label
+    for label in ("Dismiss long chat upgrade prompt", "Dismiss upgrade prompt", "Not now", "No thanks", "Maybe later",
+                  "Later", "x", "Close"):
+        assert stage_agent.dismissal(label), label
+
+
+def test_run_3s_banner_dismiss_lies_under_the_composer_and_is_never_picked(tmp_path, monkeypatch):
+    """Run 3's in-chat upsell (s19): its dismiss ('Dismiss long chat upgrade prompt') is listed before the composer's
+    text box and inside its box, and the capture shows the composer drawn over the banner: a tap there lands on the
+    text box, so it is no control and nothing is picked (the stop stands). The reply text is never picked either; the
+    same dismiss listed after the text box, drawn over it, is its own control and is picked."""
+    ex, _ = one_screen(tmp_path, monkeypatch, control("Explore", 1))
+    banner = capture("janitorai", "j20_chat_upsell_banner", package=PACKAGE)
+    ex.core = stage.CoreAction("chat", ex.current, [], "send messages")
+
+    def picked(elements):
+        ex.obs = dataclasses.replace(ex.obs, elements=elements, cands=stage.ob.controls(elements, ex.device))
+        return ex.banner_close()
+    assert picked(banner.elements) is None
+    hidden = next(e for e in banner.elements if e.get("label") == "Dismiss long chat upgrade prompt")
+    shown = {**hidden, "ref": "@shown"}
+    box = next(n for n, e in enumerate(banner.elements) if e["type"].endswith("EditText"))
+    over = banner.elements[:box + 1] + [shown] + banner.elements[box + 1:]
+    assert picked(over).label == "Dismiss long chat upgrade prompt"
+    offer = [{**e, "label": "Close or Upgrade"} if e is shown else e for e in over]
+    assert picked(offer) is None
 
 
 def counting_jev(asked):

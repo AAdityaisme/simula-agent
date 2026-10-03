@@ -391,7 +391,8 @@ def controls(elements: list[dict], device: Device) -> list[Candidate]:
     layout, not a control. Words without a letter ("8", "1 / 102") are counters, not controls. A smaller element
     inside a bigger one is part of it, except a control in the composer's row (the row of the text box composer()
     finds a send for, and the row under it) that the bigger one doesn't absorb: a composer the keyboard lifted is
-    drawn over the reply under it."""
+    drawn over the reply under it. A text box holds nothing: a worded control listed after it, inside its box, is drawn
+    over it (a banner's close over the composer) and is its own; one listed before it lies under it."""
     content = [e for e in elements if in_content(e, device) and area(rect(e)) < LAYOUT_SHARE * content_area(device)
                and rect(e).y + rect(e).h <= device.content_bottom_px + 16]
     found = []
@@ -419,8 +420,14 @@ def controls(elements: list[dict], device: Device) -> list[Candidate]:
         row, y = chat[0].rect if chat else None, center(c.rect)[1]
         return row is not None and row.y <= y < row.y + 2 * row.h and (
             "Button" in c.kind or (control_shaped(c.label, c.kind) and not TEXT_OR_IMAGE.search(e["type"])))
+    order = {id(e): n for n, (e, _) in enumerate(found)}
+
+    def over_box(oe: dict, e: dict) -> bool:  # a text box holds nothing: a worded control listed after it is drawn over
+        return oe["type"].endswith("EditText") and not TEXT_OR_IMAGE.search(e["type"]) and bool(words(e)) \
+            and order[id(e)] > order[id(oe)]
     kept = [c for e, c in found if not any(o is not c and area(o.rect) > area(c.rect) and inside(c.rect, o.rect)
-                                           and (absorbs(oe, e) or not lifted(e, c)) for oe, o in found)]
+                                           and (absorbs(oe, e) or not (lifted(e, c) or over_box(oe, e)))
+                                           for oe, o in found)]
     return [c for n, c in enumerate(kept) if all(o.rect != c.rect for o in kept[:n])]
 
 

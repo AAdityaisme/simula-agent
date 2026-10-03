@@ -25,13 +25,11 @@ BANNER_PASSES = 3  # a dismissible banner over the core action on this many pass
 # a core-loop stop a banner's own dismiss control may clear; a paywall or a limit is what the loop measures
 BANNER_STOPS = ("sheet opened", "dialog opened", "modal opened", "upsell", "upsell screen")
 DISMISS_PHRASE = re.compile(r"^\W*(?:dismiss|close|not now|no,? thanks|maybe later|later|x|×|✕)\W*$", re.IGNORECASE)
-DISMISS_LEAD = re.compile(r"^\W*(?:dismiss|close)\b", re.IGNORECASE)
+# a label led by one of these dismisses at any length and on any element ("Dismiss long chat upgrade prompt"), naming
+# the offer it closes, unless a joining word ties an offer to it ("Close or Upgrade")
+DISMISS_START = re.compile(r"^\W*(?:dismiss|close|not now|no,? thanks|maybe later)\b", re.IGNORECASE)
 OFFER = re.compile(r"\b(?:upgrade|buy|subscribe|skip|unlock|try)\b", re.IGNORECASE)
 JOINED = re.compile(r"\b(?:and|or|then|to)\b|[&+/]", re.IGNORECASE)
-# a close icon's accessibility description naming what it closes ("Dismiss long chat upgrade prompt"): the one place
-# an offer word may stand in a dismissal
-CLOSE_ICON = re.compile(r"^\W*(?:dismiss|close)\b(?:[\s-]+[\w-]+){0,5}?[\s-]+(?:prompt|banner|pop-?up|dialog|message|"
-                        r"sheet|tip|notice|card|offer|ad)\W*$", re.IGNORECASE)
 RELAUNCHES = 10  # a guard against a launch loop, not a budget: the agent's stops are $, time, stale turns and done
 HISTORY_LINES = 60  # ponytail: the latest steps only; a summary of older ones if long runs lose their way
 ONE_STEP = "\n\nPlan exactly one step, and name its element by id: never by intent."
@@ -91,17 +89,14 @@ def account_row(c: ob.Candidate, raw: list[dict], device: Device = Device()) -> 
         and not any(GOOGLE_ACCOUNT.search(t) for t in said)
 
 
-def dismissal(label: str, icon: bool = False) -> bool:
-    """A label that only dismisses: a whole dismiss phrase, or one led by dismiss or close with nothing joined to it.
-    An offer word anywhere ("Close or Upgrade") or a price makes it no dismissal, except in a close icon's own
-    description of what it closes (icon: no text of its own, only an accessibility label)."""
+def dismissal(label: str) -> bool:
+    """A label that only dismisses: one led by a dismiss phrase, even naming the offer it closes, unless a joining word
+    ties an offer to it; else a whole dismiss phrase ("Later", "x"). Never a price."""
     if ob.PRICE.search(label):
         return False
-    if DISMISS_PHRASE.match(label):
-        return True
-    if not DISMISS_LEAD.match(label) or JOINED.search(label):
-        return False
-    return not OFFER.search(label) or (icon and bool(CLOSE_ICON.match(label)))
+    if DISMISS_START.match(label):
+        return not (OFFER.search(label) and JOINED.search(label))
+    return bool(DISMISS_PHRASE.match(label))
 
 
 def span(rects: list[Rect]) -> Rect:
@@ -233,9 +228,9 @@ class AgentExplorer(Explorer):
         return result, seen, ""
 
     def banner_close(self) -> ob.Candidate | None:
-        """The banner's own dismiss control: control-shaped (a button, an icon named only by its accessibility label,
-        or a label of at most four words), inside the banner, labelled only as a dismissal, and new since the core
-        screen was recorded. None leaves the stop standing."""
+        """The banner's own dismiss control, inside the banner and new since the core screen was recorded: one led by a
+        dismiss phrase, on any element; else a whole dismiss phrase on a control-shaped one (a button, an icon named
+        only by its accessibility label, or at most four words). None leaves the stop standing."""
         if self.obs is None or self.obs.fg != self.package or (region := self.banner_region()) is None:
             return None
         raw = {e.get("ref"): e for e in self.obs.elements}
@@ -245,10 +240,9 @@ class AgentExplorer(Explorer):
             return not e.get("text") and bool(e.get("label"))
 
         def shaped(c: ob.Candidate) -> bool:
-            return "Button" in c.kind or len(c.label.split()) <= 4 or icon(c)
-        return next((c for c in self.obs.cands if ob.inside(c.rect, region) and shaped(c)
-                     and dismissal(c.label, icon(c)) and not ob.denied(c)
-                     and not ob.find(self.core.state.cands, c)), None)
+            return bool(DISMISS_START.match(c.label)) or "Button" in c.kind or len(c.label.split()) <= 4 or icon(c)
+        return next((c for c in self.obs.cands if ob.inside(c.rect, region) and shaped(c) and dismissal(c.label)
+                     and not ob.denied(c) and not ob.find(self.core.state.cands, c)), None)
 
     def banner_region(self) -> Rect | None:
         """Where the banner lies: the sheet's own box, or the span of what is new since the core screen was recorded;
