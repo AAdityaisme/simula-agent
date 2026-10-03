@@ -535,15 +535,23 @@ def account_way(c: Candidate) -> bool:
 
 def field_kind(e: dict, elements: list[dict]) -> str:
     """What a text box asks for ("email", "password", "phone", "name", or ""), from its own words and id and its
-    caption: the closest text above it, unless another text box sits between, which owns that text."""
+    caption: the closest text above it, unless another text box sits between, which owns that text. A caption over
+    boxes side by side is the caption of the one it lies over more than any other, and of none on a tie."""
     r = rect(e)
 
     def above(o: dict) -> bool:
         t = rect(o)
         return t.y + t.h <= r.y + 8 and t.x < r.x + r.w and r.x < t.x + t.w
+
+    def over(o: dict, box: dict) -> float:
+        t, b = rect(o), rect(box)
+        return min(t.x + t.w, b.x + b.w) - max(t.x, b.x)
+    row = [o for o in elements if o is not e and o["type"].endswith("EditText")
+           and rect(o).y < r.y + r.h and r.y < rect(o).y + rect(o).h]
     nearest = max((o for o in elements if (words(o) or o["type"].endswith("EditText")) and above(o)),
                   key=lambda o: rect(o).y + rect(o).h, default=None)
-    caption = words(nearest) if nearest and not nearest["type"].endswith("EditText") else ""
+    caption = words(nearest) if nearest and not nearest["type"].endswith("EditText") \
+        and all(over(nearest, e) > over(nearest, o) for o in row) else ""
     said = [words(e), ID_WORDS.sub(" ", short_id(e.get("identifier"))).strip(), caption]
     return next((kind for kind, rule in FIELDS.items() for text in said if text and rule.search(text)), "")
 

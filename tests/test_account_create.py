@@ -309,8 +309,11 @@ def form_with(*extra: dict, without: str = "") -> list[dict]:
     (sign_up_app(after_way=[{**e, "text": "owner.real@gmail.com"} if e["ref"] == "@f1" else e for e in FORM]),
      "a box on s02 shows a value already"),
     (other_app, "the way in left the app (com.google.android.gms)"),
+    (sign_up_app(after_way=[{**e, "coordinates": {**e["coordinates"], "width": 440}} if e["ref"] == "@f1" else e
+                            for e in form_with(el("@f1b", "EditText", "", 500, x=550, w=440))]),
+     "s02 has a box that is not the email, the password or the name"),
 ], ids=["another account", "phone way", "phone box", "captcha", "payment rt-f6a", "consent rt-f3", "unknown box",
-        "pre-filled rt-f2", "another app rt-f7"])
+        "pre-filled rt-f2", "another app rt-f7", "one caption over two boxes greptile-40"])
 def test_what_it_is_not_sure_of_stops_it_at_the_wall_before_anything_is_typed(tmp_path, monkeypatch, identity, app,
                                                                                 reason):
     phones = []
@@ -503,6 +506,16 @@ def test_a_box_is_named_by_its_own_words_or_its_caption():
     assert ob.field_kind(by_id, [by_id]) == "password"
     below = [el("@c", "TextView", "Email", 420, h=60), el("@a", "EditText", "", 500), el("@b", "EditText", "", 700)]
     assert ob.field_kind(below[2], below) == ""
+
+
+def test_a_caption_over_boxes_side_by_side_names_only_the_box_it_lies_over_most_greptile_40():
+    """Greptile on #41 (item 40): a wide "Email" caption over two boxes side by side named both, so the test email
+    could go into the second one."""
+    def kinds(caption: dict) -> list[str]:
+        row = [caption, el("@a", "EditText", "", 500, w=440), el("@b", "EditText", "", 500, x=550, w=440)]
+        return [ob.field_kind(e, row) for e in row[1:]]
+    assert kinds(el("@c", "TextView", "Email", 420, h=60)) == ["", ""]
+    assert kinds(el("@c", "TextView", "Email", 420, w=600, h=60)) == ["email", ""]
 
 
 ATTESTED = ("I'm 18+, continue", "Yes, I'm over 18 - Next", "I understand, continue", "Acknowledge and continue",
