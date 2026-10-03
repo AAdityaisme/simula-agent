@@ -376,6 +376,20 @@ def test_a_wall_the_tour_opens_is_met_like_a_launch_wall(tmp_path, monkeypatch, 
     assert ex.root.sid == "s01" and ex.account[0].startswith("s02: signed up with the test identity"), ex.account
 
 
+def test_a_send_that_lands_on_a_screen_seen_before_the_wall_is_no_account_greptile_41(tmp_path, monkeypatch, identity):
+    """Greptile on #41 (item 41): the guest app's home has tabs and no sign-in control, so a send that came back to it
+    counted as an account made, and every later wall was skipped."""
+    def app(clock):
+        phone = sign_up_app()(clock)
+        phone.start, phone.taps[("home", "Characters")] = "home", "wall"
+        phone.taps[("form", "Create account")] = "home"
+        return phone
+    ex, phone = new_explorer(tmp_path, monkeypatch, app, allow_account_create=True)
+    stage.run_tour(ex)
+    assert phone.typed[:3] == [EMAIL, PASSWORD, NAME] and ex.account_state == "sent"
+    assert ex.account[0] == "s02: stopped at the wall, the form was sent, but it came back to s01, seen before the wall"
+
+
 GUEST_HOME = [el("@g0", "TextView", "Discover AI characters", 200, w=700),
               el("@g1", "TextView", "Talk to anyone, any time. Thousands of characters are waiting.", 400, h=200),
               el("@go", "Button", "Start chatting", 1900), el("@li", "Button", "Log in", 200, x=820, w=200, h=90)]
