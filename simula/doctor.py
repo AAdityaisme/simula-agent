@@ -1,5 +1,6 @@
 """Preflight. Touches the emulator read-only, under the shared lock. --keys makes one tiny call per model."""
 
+import json
 import os
 import subprocess
 import sys
@@ -28,10 +29,12 @@ def check_local() -> None:
         version = package_version(pkg)
         check(f"package {pkg}", version is not None, version or "missing")
     check("package mcp", package_version("mcp") == EXPECTED["mcp"], f"{package_version('mcp')} (want {EXPECTED['mcp']})")
-    installed = (ROOT / "node_modules/@mobilenext/mobile-mcp/package.json").exists()
-    version = mobile_mcp_version()
-    check("mobile-mcp pinned + installed", installed and version == EXPECTED["mobile-mcp"],
-          f"{version} (want {EXPECTED['mobile-mcp']}){'' if installed else ', run npm ci'}")
+    package = ROOT / "node_modules/@mobilenext/mobile-mcp/package.json"
+    installed = json.loads(package.read_text())["version"] if package.exists() else None
+    pinned = mobile_mcp_version()
+    check("mobile-mcp pinned + installed", pinned == installed == EXPECTED["mobile-mcp"],
+          f"pinned {pinned}, installed {installed} (want {EXPECTED['mobile-mcp']})"
+          f"{', run npm ci' if installed != pinned else ''}")
     for name in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "TYPESAFE_API_KEY"):
         check(f"env {name}", bool(os.environ.get(name)), "set" if os.environ.get(name) else "missing from .env")
     untracked = untracked_inputs()
