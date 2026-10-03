@@ -127,13 +127,15 @@ def test_from_explore_explores_again(runs):
     assert read_trace(run_dir / "trace.jsonl")[-1].outcome == "not_built"
 
 
-def test_no_send_changes_only_explores_params(tmp_path):
+@pytest.mark.parametrize("option, one, other", [("no_send", True, False), ("explorer", "agent", "scripted"),
+                                                ("explore_jev", "on", "off")])
+def test_an_explore_option_changes_only_explores_params(tmp_path, option, one, other):
     from simula.stages import Ctx
     ctx = {"app": {"name": "janitorai", "package": "com.janitor.ai"}, "run_dir": tmp_path, "profile": "real",
            "no_cache": False, "replay": False, "usd_cap": None, "allow_fixtures": False}
     for stage in cli.STAGES:
-        same = cli.stage_params(stage, Ctx(**ctx, no_send=True)) == cli.stage_params(stage, Ctx(**ctx, no_send=False))
-        assert same == (stage != "explore"), stage
+        params = [cli.stage_params(stage, Ctx(**ctx, **{option: value})) for value in (one, other)]
+        assert (params[0] == params[1]) == (stage != "explore"), stage
 
 
 def test_explore_new_starts_a_new_run(runs):

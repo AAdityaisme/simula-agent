@@ -43,7 +43,8 @@ def stage_params(stage: str, ctx: Ctx) -> dict:
               "economics_mode": config.profiles()["economics_mode"] if stage in ("propose", "judge", "flows") else None,
               "no_send": ctx.no_send if stage == "explore" else None,
               "budget": config.budget(ctx.budget) if stage == "explore" else None,
-              "allow_account_create": ctx.allow_account_create if stage == "explore" else None}
+              "explorer": ctx.explorer if stage == "explore" else None,
+              "explore_jev": ctx.explore_jev if stage == "explore" else None}
     if stage == "judge":  # only here, so adding it left every other stage's marker valid
         params["judge_revision_cap"] = config.judge_revision_cap()
     return params
@@ -61,7 +62,7 @@ def new_manifest(run_dir: Path, app: dict, args, provenance: Provenance) -> Mani
     return Manifest(
         run_id=run_dir.name, app=app["name"], created_at=runlog.now(), git_sha=runfolder.git_sha(),
         git_dirty=runfolder.git_dirty(), profile=profile, budget=args.budget,
-        allow_account_create=args.allow_account_create,
+        allow_account_create=True,  # always on now; the field stays so manifests from before still read
         roles={name: " ".join(str(v) for v in role.values()) for name, role in roles.items()},
         prompt_hashes={str(p.relative_to(ROOT)): runfolder.sha256(p) for p in sorted((ROOT / "prompts").rglob("*.md"))},
         app_package=app["package"], app_version=None, mobile_mcp_version=checkout.mobile_mcp_version(),
@@ -245,7 +246,7 @@ def open_run(args) -> Ctx:
     runlog.sync_manifest(run_dir)  # heals a manifest an earlier command failed to update
     return Ctx(app=app, run_dir=run_dir, profile=args.profile, no_cache=args.no_cache, replay=args.replay,
                usd_cap=args.usd_cap, allow_fixtures=args.allow_fixtures, budget=args.budget,
-               allow_account_create=args.allow_account_create, no_send=args.no_send, device=args.device)
+               no_send=args.no_send, device=args.device, explorer=args.explorer)
 
 
 def built_on(run_dir: Path) -> list[str]:
@@ -329,8 +330,9 @@ def add_run_flags(p: argparse.ArgumentParser) -> None:
     p.add_argument("--usd-cap", type=float, help="override this stage's $ cap")
     p.add_argument("--budget", choices=["deep", "transfer"], default="transfer",
                    help="exploration size: deep = 80 actions / 25 min, transfer = 40 / 12")
-    p.add_argument("--allow-account-create", action="store_true",
-                   help="at a sign-up wall, go on without an account or sign up by email with SIMULA_TEST_*")
+    p.add_argument("--explorer", choices=config.CHOICES["explorer"], default=config.choice("explorer"),
+                   help="who picks explore's moves: the agent, or the scripted comparison arm "
+                        "(default: explorer in config/profiles.toml)")
     p.add_argument("--no-send", action="store_true", help="explore without the core-loop pass (sends nothing)")
     p.add_argument("--device", metavar="SERIAL", help="adb serial to explore on (default: ANDROID_SERIAL, "
                                                       "else the only device online)")

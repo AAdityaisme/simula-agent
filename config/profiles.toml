@@ -3,6 +3,8 @@ judges = ["judge_1", "judge_2"]  # every run; an idea they split on waits on Nee
 judge_revision_cap = 1         # 1 or 2: how many times a fixable reject is revised (validation/EXPERIMENT-J.md)
 jev_backend = "typesafe"       # typesafe | adapter; env SIMULA_JEV_BACKEND overrides
 validation_usd_cap = 20.0
+explorer = "scripted"          # agent | scripted: who picks explore's moves; --explorer overrides
+explore_jev = "on"             # on | shadow | off: Jev grounds the agent's steps (shadow: asked, logged, unused)
 
 # Exploration size is a run flag (--budget), never per app.
 [budgets.deep]
@@ -32,6 +34,7 @@ flows = 8.0
 [real.roles]
 jev = { model = "jev-latest" }
 explore_vision = { model = "claude-sonnet-5-5", effort = "low", max_tokens = 2000 }
+explore_agent = { model = "claude-sonnet-5-5", effort = "medium", max_tokens = 4000 }
 model_meaning = { model = "claude-opus-5-5", effort = "high", max_tokens = 64000 }
 mock_builder = { model = "claude-opus-5-5", effort = "xhigh", max_tokens = 128000 }
 qa_critic = { model = "claude-sonnet-5-5", effort = "medium", max_tokens = 16000 }
@@ -48,6 +51,7 @@ flows_editor = { model = "claude-opus-5-5", effort = "high", max_tokens = 16000 
 [dev.roles]
 jev = { model = "claude-haiku-4-5-20251001", backend = "adapter" }
 explore_vision = { model = "claude-haiku-4-5-20251001", max_tokens = 2000 }
+explore_agent = { model = "claude-haiku-4-5-20251001", max_tokens = 4000 }
 model_meaning = { model = "claude-haiku-4-5-20251001", max_tokens = 64000 }
 mock_builder = { model = "claude-sonnet-5-5", effort = "low", max_tokens = 32000 }
 qa_critic = { model = "claude-haiku-4-5-20251001", max_tokens = 16000 }

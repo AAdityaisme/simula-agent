@@ -32,7 +32,7 @@ from tests.test_spend_limit import USAGE_LIMIT, error_400, fake_anthropic
 SCRIPTED = '<html><body><section data-screen="s01">v0</section>unsent</body></html>'
 
 # The options ctx_for and this file's CLI calls open a run with, which a printed resume command carries.
-OPTIONS = "--profile dev --budget transfer --allow-fixtures"
+OPTIONS = "--profile dev --budget transfer --explorer scripted --allow-fixtures"
 
 
 @pytest.fixture(autouse=True)
