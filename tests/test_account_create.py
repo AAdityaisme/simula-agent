@@ -391,6 +391,29 @@ def test_a_send_that_lands_on_a_screen_seen_before_the_wall_is_no_account_grepti
     assert ex.account[0] == "s02: stopped at the wall, the form was sent, but it came back to s01, seen before the wall"
 
 
+@pytest.mark.parametrize("avatar", [False, True], ids=["same pixels", "avatar drawn"])
+def test_a_signed_in_home_that_kept_the_guest_homes_layout_is_an_account_rt_s_m1(tmp_path, monkeypatch, identity,
+                                                                                avatar):
+    """rt-s on #46 (MEDIUM 1): the guest home's "Log in" pill turns into a "Profile" button of its size, so the landing
+    fingerprints as the guest home. That home asked for a sign-in and the landing doesn't: an account was made."""
+    guest = screen(4, *HOME, el("@li", "Button", "Log in", 200, x=820, w=200, h=90))
+    image = guest.image.copy()
+    if avatar:
+        ImageDraw.Draw(image).ellipse((875, 200, 965, 290), fill=(30, 30, 30))
+    signed = Screen([*HOME, el("@me", "Button", "Profile", 200, x=820, w=200, h=90)], image, guest.package)
+
+    def app(clock):
+        phone = sign_up_app()(clock)
+        phone.screens["home"], phone.screens["signed"] = guest, signed
+        phone.start, phone.taps[("home", "Characters")] = "home", "wall"
+        phone.taps[("form", "Create account")], phone.remember = "signed", set()
+        return phone
+    ex, phone = new_explorer(tmp_path, monkeypatch, app, allow_account_create=True)
+    stage.run_tour(ex)
+    assert phone.typed[:3] == [EMAIL, PASSWORD, NAME] and ex.account_state == "made"
+    assert ex.account[0] == "s02: signed up with the test identity, now on s01", ex.account
+
+
 GUEST_HOME = [el("@g0", "TextView", "Discover AI characters", 200, w=700),
               el("@g1", "TextView", "Talk to anyone, any time. Thousands of characters are waiting.", 400, h=200),
               el("@go", "Button", "Start chatting", 1900), el("@li", "Button", "Log in", 200, x=820, w=200, h=90)]
