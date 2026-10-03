@@ -8,9 +8,10 @@ on:
 permissions:
   contents: read
 
-# A new push to a pull request cancels the run it supersedes; a push to main always runs to the end.
+# A new push to a pull request cancels the run it supersedes. A push to main gets a group of its own commit: GitHub
+# keeps one pending run per group, so a shared group would drop a queued main run even without cancel-in-progress.
 concurrency:
-  group: test-${{ github.event.pull_request.number || github.ref }}
+  group: test-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
