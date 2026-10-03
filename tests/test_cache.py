@@ -685,3 +685,21 @@ def test_a_reply_without_cache_fields_still_works(tmp_path, monkeypatch):
     entry = json.loads(next((tmp_path / "cache").glob("*.json")).read_text())
     del entry["tokens_cache_write"]  # an entry written before writes were recorded
     assert llm.Reply(**entry).tokens_cache_write == 0
+
+
+class StalledCachedStream(StalledStream):
+    current_message_snapshot = SimpleNamespace(content=[], usage=SimpleNamespace(
+        input_tokens=100, output_tokens=1, cache_read_input_tokens=600, cache_creation_input_tokens=300))
+
+
+def test_a_stalled_stream_charges_its_cache_reads_and_writes_at_their_rates(tmp_path, monkeypatch):
+    serve_stream(monkeypatch, StalledCachedStream())
+    budget = llm.Budget("model", 1.0)
+    with pytest.raises(llm.LLMFailure):
+        call(tmp_path, budget=budget, max_tokens=20_000, attempts=1)
+    worst = llm.usd(MODEL, 1000, 20_000, 600, 300)
+    assert budget.spent == pytest.approx(worst)
+    last = read_trace(tmp_path / "trace.jsonl")[-1]
+    assert (last.tokens_in, last.tokens_cached, last.tokens_cache_write, last.usd) == (1000, 600, 300, round(worst, 6))
+    entry = json.loads(next((tmp_path / "cache").glob("*.json")).read_text())
+    assert (entry["tokens_in"], entry["tokens_cached"], entry["tokens_cache_write"]) == (1000, 600, 300)
