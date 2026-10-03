@@ -76,7 +76,8 @@ def test_a_stage_runs_once_its_upstream_is_done(runs, mock_stage):
     assert len(mock_stage[1]) == 1 and (run_dir / "mock" / "done.json").exists()
 
 
-@pytest.mark.parametrize("platform, held", [("darwin", [["caffeinate", "-i", "-w", str(os.getpid())]]), ("linux", [])])
+@pytest.mark.parametrize("platform, held", [("darwin", [["/usr/bin/caffeinate", "-i", "-w", str(os.getpid())]]),
+                                            ("linux", [])])
 def test_a_run_holds_off_idle_sleep_on_a_mac_once_per_process(runs, mock_stage, monkeypatch, platform, held):
     """An idle Mac that sleeps mid-run stalls every model call in flight until it wakes."""
     started = []

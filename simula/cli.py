@@ -214,7 +214,7 @@ def stay_awake() -> subprocess.Popen | None:
     flight stalls until it wakes, then waits out its timeout and is sent again."""
     if sys.platform != "darwin":
         return None
-    return subprocess.Popen(["caffeinate", "-i", "-w", str(os.getpid())])
+    return subprocess.Popen(["/usr/bin/caffeinate", "-i", "-w", str(os.getpid())])
 
 
 def open_run(args) -> Ctx:
