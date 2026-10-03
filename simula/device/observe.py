@@ -449,15 +449,21 @@ def covered(c: Candidate, elements: list[dict], device: Device) -> bool:
     floating button lies under it. mobile-mcp reports no clickable, so on a device a wordless overlay, or one an
     elevation draws over rows listed after it, is unseen; one app lists a wordless empty box over its sheet's main
     button, which still took the tap."""
+    return cover(c, elements, device) is not None
+
+
+def cover(c: Candidate, elements: list[dict], device: Device) -> dict | None:
+    """What covered() finds over c's point, the one drawn last; None when nothing does."""
     at = next((n for n, e in enumerate(elements) if e.get("ref") == c.ref), None)
     if at is None:
-        return False
+        return None
     x, y, after = *c.point, elements[at + 1:]
     over = [e for e in elements if in_content(e, device) and not inside(c.rect, rect(e))
             and inside(Rect(x=x, y=y, w=0, h=0), rect(e))]
-    return any(e.get("clickable") for e in over) or any(
+    hits = [e for e in over if e.get("clickable") or (
         e in after and not inside(rect(e), c.rect)
-        and (words(e) or any(words(o) and inside(rect(o), rect(e)) for o in after)) for e in over)
+        and (words(e) or any(words(o) and inside(rect(o), rect(e)) for o in after)))]
+    return hits[-1] if hits else None
 
 
 def own_controls(cands: list[Candidate], box: Rect | None, behind: list[Candidate], elements: list[dict] = (),

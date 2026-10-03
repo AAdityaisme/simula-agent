@@ -9,7 +9,7 @@ import re
 from PIL import Image
 
 from simula import config, decide, llm
-from simula.contracts import AdLine, AgentStep, AgentTurn, Rect
+from simula.contracts import AdLine, AgentStep, AgentTurn, Device, Rect
 from simula.device import guard
 from simula.device import observe as ob
 from simula.stages.explore import (AWAY, CORE_SECONDS_PER_REP, DEVICE_LOST, FILTER_MENU_QUESTION, FILTER_QUESTION,
@@ -57,10 +57,11 @@ def emails(raw: list[dict]) -> list[Rect]:
     return [ob.rect(e) for e in raw if any(ob.EMAIL.search(e.get(k) or "") for k in ("text", "label"))]
 
 
-def account_row(c: ob.Candidate, raw: list[dict]) -> bool:
+def account_row(c: ob.Candidate, raw: list[dict], device: Device = Device()) -> bool:
     """Whether c is an account row on the chooser: an email in the unredacted list under c or inside it, or in the
-    smallest element holding c (the row its name, address and avatar share; the name alone is no email), when that row
-    names no account management."""
+    smallest element holding c (the row its name, address and avatar share; the name alone is no email), when that
+    holder is row-sized (a card holding an email header lends it to no other button in it) and names no account
+    management."""
     at = Rect(x=c.point[0], y=c.point[1], w=0, h=0)
     if any(ob.inside(at, r) or ob.inside(r, c.rect) for r in emails(raw)):
         return True
@@ -68,6 +69,8 @@ def account_row(c: ob.Candidate, raw: list[dict]) -> bool:
     if not holders:
         return False
     row = min((ob.rect(e) for e in holders), key=ob.area)
+    if row.h > device.h_px / 8:
+        return False
     members = [e for e in raw if ob.inside(ob.rect(e), row)]
     said = [e.get(k) or "" for e in members for k in ("text", "label")]
     return any(ob.EMAIL.search(t) for t in said) and not any(GOOGLE_ACCOUNT.search(t) for t in said)
@@ -89,6 +92,7 @@ class AgentExplorer(Explorer):
                                               *parts]), re.IGNORECASE)
         self.steps: list[AgentStep] = []
         self.ids: dict[str, ob.Candidate] = {}  # this turn's element ids
+        self.covered: dict[tuple[str, str], int] = {}  # (state, control key): taps skipped as covered since the last move
         self.names: dict[str, str] = {}  # the planner's name for each state it planned on
         self.found: list[str] = []  # the planner's notes
         self.history: list[str] = []
@@ -264,7 +268,38 @@ class AgentExplorer(Explorer):
         its own."""
         obs = obs or self.obs
         live = obs.cands if s.box is None else [c for c in (ob.find(obs.cands, o) for o in controls_of(s.cands)) if c]
-        return [c for c in s.cands if ob.find(live, c)] + [c for c in live if s.box is None and not ob.find(s.cands, c)]
+        bar = {t.key for t in ob.tab_bar(controls_of(obs.cands), self.device)}
+        listed: list[ob.Candidate] = []
+        for c in s.cands:
+            now = ob.find(live, c)
+            # a tab the live bar draws otherwise than recorded (signing in redrew the bar under the same screen) is
+            # offered as the screen shows it now, or its recorded crop refuses every tap; anything else keeps its crop
+            # check (invariant 3), which sees overlays the element list doesn't
+            pick = now and (now if now.key in bar and not self.shows(c, now, obs) else c)
+            if pick and not any(pick is x for x in listed):
+                listed.append(pick)
+        return listed + [c for c in live if s.box is None and not ob.find(s.cands, c)]
+
+    def under_tab_bar(self, cand: ob.Candidate, live: ob.Candidate, now) -> bool:
+        """A control of the tab bar the live screen shows is a tab too: the bar can gain tabs after the home screen
+        taught the tabs (signing in adds some), and those aren't content scrolled under it."""
+        if live.key in {t.key for t in ob.tab_bar(controls_of(now.cands), self.device)}:
+            return False
+        return super().under_tab_bar(cand, live, now)
+
+    def what_covers(self, cand: ob.Candidate) -> str:
+        """Why a tap on cand was skipped as not shown, in the planner's terms: what lies over it, by its words or type,
+        or that the screen draws something else there than when it was recorded."""
+        live = ob.find(self.obs.cands, cand)
+        if live is None:
+            return "it is not on the screen"
+        if self.painted_over(cand, live, self.obs):
+            return "the keyboard covers it"
+        if self.under_tab_bar(cand, live, self.obs):
+            return "the tab bar covers it"
+        if over := ob.cover(live, self.obs.elements, self.device):
+            return f"{(ob.words(over) or over['type'].rsplit('.', 1)[-1])[:40]!r} covers it"
+        return "the screen draws something else at its place than when this screen was recorded"
 
     def as_shown(self, c: ob.Candidate) -> ob.Candidate:
         """A listed control as the live screen shows it (its state, its place), under its recorded name; for words
@@ -276,6 +311,7 @@ class AgentExplorer(Explorer):
         d = self.device
         shown = {i: self.as_shown(c) for i, c in self.ids.items()}
         lines = [f"{i}: {c.kind} {c.label[:80]!r}" + (f" id={ob.short_id(c.ident)}" if c.ident else "")
+                 + (" (covered: not tappable until the screen changes)" if self.blocked_cover(s, self.ids[i]) else "")
                  + f" at {where(c, d)} [{int(c.rect.x)},{int(c.rect.y)},{int(c.rect.w)},{int(c.rect.h)}]"
                  + ("" if c.checked is None else " (on)" if c.checked else " (off)")
                  + ("" if c.enabled else " (disabled)") for i, c in shown.items()]
@@ -314,14 +350,24 @@ class AgentExplorer(Explorer):
         if ad:
             self.tap_ad(s, move, ad)
             return
+        hidden = self.counts["covered controls"]
         self.act(move)
         what = repr(move.cand.label[:40]) if move.cand else move.text or move.direction if move.action != "back" else ""
         if self.actions == ran:
-            self.history.append(f"{move.action} {what} on {s.sid}: refused or not run")
-            self.news.append(f"Your {move.action} {what} was not run: a hard block refused it, or the control wasn't "
-                             f"shown as listed.")
+            if self.counts["covered controls"] > hidden:
+                key = (s.sid, move.cand.key)
+                self.covered[key] = self.covered.get(key, 0) + 1
+                why = self.what_covers(move.cand)
+                self.history.append(f"tap {what} on {s.sid}: not run, {why}")
+                self.news.append(f"Your tap {what} was not run: {why}. BACK, or closing what lies over it, may uncover "
+                                 f"it; don't plan the same tap again.")
+            else:
+                self.history.append(f"{move.action} {what} on {s.sid}: refused or not run")
+                self.news.append(f"Your {move.action} {what} was not run: a hard block refused it, or the control "
+                                 f"wasn't shown as listed.")
             self.steps.clear()
             return
+        self.covered.clear()  # a move ran: the screen may have changed
         if move.action == "tap" and not self.filtered:
             tapped = ob.find(s.cands, move.cand) or move.cand
             self.tapped = [*self.tapped, tapped][-FILTER_PATH:]
@@ -381,11 +427,19 @@ class AgentExplorer(Explorer):
         if cand is None:
             self.news.append(f"A tap named nothing on the screen ({step.element or step.intent!r}).")
             return None
+        if self.blocked_cover(self.current, cand):
+            self.note("agent.skip", f"{cand.label[:40]!r} was covered twice on {self.current.sid}: not tapped again")
+            self.news.append(f"{cand.label[:40]!r} was covered twice on this screen and isn't tapped again until the "
+                             f"screen changes: take BACK, close what covers it, or another path.")
+            return None
         if ob.find(self.obs.cands, cand) is None:
             self.note("agent.skip", f"{cand.label[:40]!r} is not on the live screen ({self.current.sid}): plan ended")
             self.news.append(f"{cand.label[:40]!r} was gone from the screen when its turn came: nothing was tapped.")
             return None
         return Move("tap", cand, decider=decider, why=why)
+
+    def blocked_cover(self, s: Seen, cand: ob.Candidate) -> bool:
+        return self.covered.get((s.sid, cand.key), 0) >= 2
 
     def ground(self, s: Seen, intent: str) -> ob.Candidate | None:
         """Jev picks the live control an intent names, or None when it fails or is unsure."""
@@ -492,7 +546,7 @@ class AgentExplorer(Explorer):
         reason = ""
         if guard.signing_in(fg):
             said = [t for t in (c.tree_label, c.label) if t]
-            row = account_row(c, raw)
+            row = account_row(c, raw, self.device)
             flow = any(t.strip().lower() in CHOOSER_STEPS for t in said)
             if any(GOOGLE_ACCOUNT.search(t) for t in said) or not (row or flow):
                 reason = "not an account row or a sign-in step on Google's account chooser"

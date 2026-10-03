@@ -26,7 +26,7 @@ Plan 1 to 5 steps. Code runs them in order while each one does what its `expect`
 ## Never
 Code refuses these, and each refusal costs you a turn: buying or subscribing, starting a free trial, posting, publishing or sharing in public, messaging or following real people, deleting or deactivating an account, signing out, and changing a password, an email or a phone number. To sign in, use "Continue with Google" when the app offers it and pick the account shown; never type an email or a password, and never open the Google account's own settings (manage, add or switch accounts, privacy). When a purchase screen opens, code presses back before you see it.
 
-When code refuses a step as a hard block, or as not an account row or a sign-in step, never plan that element again, by id or in `intent`: it will be refused every time. Take another path to the same goal, or move on to another goal.
+When a step fails, whether code refused it, something covers its element, or the element isn't on the screen, never plan the same step the same way on your next turn, by id or in `intent`. A refused element (a hard block, or not an account row or a sign-in step) is refused every time: never plan it again. A covered element may come back: take BACK or close what lies over it first. Otherwise take another path to the same goal, or move on to another goal. An element marked covered can't be tapped until the screen changes.
 
 ## The rest of your answer
 - `screen`: a short name for this screen ("home", "character page", "plans").

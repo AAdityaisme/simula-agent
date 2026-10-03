@@ -1,6 +1,7 @@
 """The agent explorer offline: a fake phone made of fixture captures, a fake planner returning canned AgentTurns
 through llm.call, and fake Jev. Every hard block, the filter check, the stops, the dial and the record."""
 
+import dataclasses
 import io
 import json
 import re
@@ -9,7 +10,7 @@ import pytest
 from PIL import Image, ImageDraw
 
 from simula import cli, config, decide, llm, runlog
-from simula.contracts import AdLine, ExploreFile
+from simula.contracts import AdLine, AgentStep, AgentTurn, ExploreFile
 from simula.device import guard
 from simula.stages import explore as stage
 from simula.stages import model as model_stage
@@ -728,6 +729,70 @@ def test_an_account_row_is_judged_by_its_unredacted_email(tmp_path, monkeypatch)
     assert "account chooser" in judged(raw, redacted, "Add another account")
     nameless = chooser("Jamie Om", "Jamie", "Add another account")
     assert "account chooser" in judged(nameless, redacted, "[redacted] Om")
+    # rt-58: a card holding an email header lends it to no separate button in it: the holder must be row-sized
+    card = [box(control("", 1, "LinearLayout"), 70, 180, 940, 650),
+            box(control("jamie@example.com", 2, "TextView"), 130, 230, 600, 50),
+            box(control("Personal info", 3), 130, 500, 600, 70)]
+    shown = [card[0], {**card[1], "text": "[redacted]"}, card[2]]
+    assert "account chooser" in judged(card, shown, "Personal info")
+
+def bar(*xs: int) -> list[dict]:
+    """A bottom tab bar of wordless icons, as an app draws one, centered at these x."""
+    return [{**control("", 10 + n, "ViewGroup", identifier=""), "coordinates": {
+        "x": x - 83, "y": 2170, "width": 167, "height": 167}} for n, x in enumerate(xs)]
+
+
+def test_a_tab_the_bar_redrew_under_the_same_screen_is_tapped_live(tmp_path, monkeypatch):
+    """Run 2: signing in redrew the tab bar (new icons) while the screen kept its fingerprint, and the recorded crop of
+    the middle tab refused it as covered nine turns in a row; the live bar's tab is offered and tapped."""
+    before = drawn(control("Sign in", 1), *bar(155, 540, 924))
+    after = Screen(before.elements, before.image.copy(), PACKAGE)
+    ImageDraw.Draw(after.image).ellipse((480, 2200, 600, 2310), fill=(250, 200, 0))
+    phone_factory = phone_of({"root": before, "after": after, "tab": drawn(control("Tab page", 1))},
+                             {("root", "Sign in"): "after", ("after", "540,2253"): "tab"})
+    script = scripted(lambda text: turn(tap(oid(text, "Sign in"), "signed in")),
+                      lambda text: turn(tap(oid(text, at=(540, 2253)), "the middle tab opens")))
+    ex, phone, _ = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
+    assert ("after", "540,2253") in taps(phone)
+
+
+def test_a_tab_the_bar_gained_after_home_taught_the_tabs_is_no_content_under_the_bar(tmp_path, monkeypatch):
+    """Signing in grew the bar from three tabs to five: the new ones are tabs, not content scrolled under the bar."""
+    phone_factory = phone_of({"root": drawn(control("Sign in", 1), *bar(155, 540, 924)),
+                              "after": drawn(control("Signed in", 1), *bar(155, 347, 540, 733, 924)),
+                              "bell": drawn(control("Bell page", 1))},
+                             {("root", "Sign in"): "after", ("after", "733,2253"): "bell"})
+    script = scripted(lambda text: turn(tap(oid(text, "Sign in"), "signed in")),
+                      lambda text: turn(tap(oid(text, at=(733, 2253)), "the fourth tab opens")))
+    ex, phone, _ = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
+    assert ("after", "733,2253") in taps(phone)
+
+def test_a_covered_tap_names_its_cover_and_twice_covered_is_marked_not_offered(tmp_path, monkeypatch):
+    """A tap skipped as covered tells the planner what lies over it and that BACK may uncover it; covered twice on
+    one screen, the control stays listed, marked covered, and a step naming it isn't run until a move runs."""
+    ex, phone = one_screen(tmp_path, monkeypatch, control("Explore", 1), control("Go", 2))
+    explore = next(c for c in ex.current.cands if c.label == "Explore")
+    image = ex.obs.image.copy()
+    ImageDraw.Draw(image).rectangle((0, 380, 1080, 620), fill=(250, 250, 250))
+    for x in range(0, 1080, 60):
+        ImageDraw.Draw(image).rectangle((x, 380, x + 25, 620), fill=(20, 20, 20))
+    sheet = {**control("Welcome tips", 3, "TextView"), "coordinates": {"x": 0, "y": 420, "width": 1080, "height": 200}}
+    elements = [*ex.obs.elements, sheet]
+    ex.obs = dataclasses.replace(ex.obs, image=image, elements=elements, cands=stage.ob.controls(elements, ex.device))
+    ex.ids = {"o01": explore}
+    ex.turn = AgentTurn(screen="home", goal="cover", steps=[AgentStep(action="tap", element="o01", expect="opens")])
+    step = AgentStep(action="tap", element="o01", expect="opens")
+    ex.run_step(step)
+    assert "'Welcome tips' covers it" in " ".join(ex.news) and "BACK" in " ".join(ex.news)
+    assert not [t for t in taps(phone) if t[1] == "Explore"]
+    ex.news = []
+    ex.run_step(step)
+    assert "(covered" in ex.situation(ex.current)
+    ex.news = []
+    ex.run_step(step)
+    assert "covered twice" in " ".join(ex.news) and not [t for t in taps(phone) if t[1] == "Explore"]
+    ex.run_step(AgentStep(action="swipe", direction="up", expect="scrolls"))
+    assert not ex.covered and "(covered" not in ex.situation(ex.current)
 
 def test_a_json_escaped_handle_and_a_propagated_stop_are_scrubbed(tmp_path, monkeypatch):
     """Item 2: the decoded values are scrubbed, and a stop that leaves llm.call carries a scrubbed message."""
