@@ -696,6 +696,39 @@ def test_a_redacted_name_is_no_account_row_and_account_words_are_refused_on_goog
     assert "account chooser" in ex2.refusal(manage, guard.ACCOUNT_CHOOSER, row, row, False)
 
 
+def test_an_account_row_is_judged_by_its_unredacted_email(tmp_path, monkeypatch):
+    """Run 1: the chooser's name line ('[redacted] Om') was refused six times, since its email sits in a sibling line
+    of the same row. An email in the raw text, on the element or in its row, makes an account row; a redacted name
+    alone or an account-management word never does."""
+    ex, _ = one_screen(tmp_path, monkeypatch, control("Explore", 1))
+
+    def box(e, x, y, w, h):
+        return {**e, "coordinates": {"x": x, "y": y, "width": w, "height": h}}
+
+    def judged(raw, redacted, label):
+        c = next(c for c in stage.ob.controls(redacted, ex.device) if c.tree_label == label)
+        return ex.refusal(c, guard.ACCOUNT_CHOOSER, redacted, raw, False)
+
+    own = [control("Jamie Om jamie@example.com", 1)]
+    assert judged(own, [control("[redacted] Om", 1)], "[redacted] Om") == ""
+    assert judged([control("Jamie", 1)], [control("[redacted]", 1)], "[redacted]")
+    assert "account chooser" in judged([control("Manage account for Jamie", 1)],
+                                       [control("Manage account for [redacted]", 1)], "Manage account for [redacted]")
+
+    def chooser(name, address, add):
+        return [box(control("", 1, "LinearLayout"), 70, 1265, 940, 169),
+                box(control("", 2, "ImageView"), 133, 1312, 74, 74),
+                box(control(name, 3), 239, 1297, 205, 56), box(control(address, 4, "TextView"), 239, 1353, 404, 49),
+                box(control("", 5, "LinearLayout"), 70, 1434, 940, 130),
+                box(control(add, 6), 228, 1471, 719, 56)]
+
+    raw = chooser("Jamie Om", "jamie@example.com", "Add another account")
+    redacted = chooser("[redacted] Om", "[redacted]", "Add another account")
+    assert judged(raw, redacted, "[redacted] Om") == ""
+    assert "account chooser" in judged(raw, redacted, "Add another account")
+    nameless = chooser("Jamie Om", "Jamie", "Add another account")
+    assert "account chooser" in judged(nameless, redacted, "[redacted] Om")
+
 def test_a_json_escaped_handle_and_a_propagated_stop_are_scrubbed(tmp_path, monkeypatch):
     """Item 2: the decoded values are scrubbed, and a stop that leaves llm.call carries a scrubbed message."""
     name = "José"
