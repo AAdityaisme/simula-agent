@@ -24,9 +24,9 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from simula import config, decide, llm
-from simula.contracts import (ActionLine, Arrival, Coverage, Device, ExploreFile, HardScreenAction, IconLabel, IconPass,
-                              LaterCapture, Point, Progress, Rect, StageOutcome, StateFile, Unlisted, VisionElement,
-                              WalkPick)
+from simula.contracts import (ActionLine, Arrival, Coverage, Device, ExploreFile, FilterControl, HardScreenAction,
+                              IconLabel, IconPass, LaterCapture, Point, Progress, Rect, StageOutcome, StateFile,
+                              Unlisted, VisionElement, WalkPick)
 from simula.device import observe as ob
 from simula.device.mcp import McpReplyError, McpTimeout, Phone, Server
 from simula.device.devices import adb, emulator_lock, online, resolve_serial
@@ -596,14 +596,22 @@ class Explorer:
                      f"observing after the move failed: {type(e).__name__}", "error")
             raise
         self.escape_billing()
+        canonical = ob.find(s.cands, move.cand) if move.cand else None
+        try:  # a chat stop is judged on the screen as it settled, so the move lands there; one outside the app is a
+            # stop as it was seen, though escape_billing's BACK may have brought the chat back
+            settled = bool(loop) and self.core.kind == "chat" and not self.away(obs) and self.settle_input(move)
+        except DEVICE_ERRORS as e:
+            self.log(s, None, move, canonical or live, "unknown",
+                     f"{summary}; reading the screen again failed: {type(e).__name__}"[:160], "error", loop)
+            raise
+        obs = self.obs
         # a chat pass stays on the chat while its composer shows: the growing conversation is not a new state
         chatting = purpose == "core" and self.core.kind == "chat" and self.live_box() and not self.covering(before)
         to = s if chatting else self.land(obs, s, move, before, expect)
         if to is s and not summary:
             summary = ob.change_summary(before.elements, obs.elements, self.device)
-        canonical = ob.find(s.cands, move.cand) if move.cand else None
         try:
-            stop = self.keep_stop(self.hit(s, to, before, move), before) if loop else ("", "")
+            stop = self.keep_stop(self.hit(s, to, before, move, settled), before) if loop else ("", "")
         except DEVICE_ERRORS as e:
             self.log(s, to, move, canonical or live, self.transition(s, to, move),
                      f"{summary}; reading the screen again failed: {type(e).__name__}"[:160], "error", loop)
@@ -1009,10 +1017,8 @@ class Explorer:
                 self.root.done = "the unfiltered launch screen"
                 self.root, self.current.depth, self.current.back_to = self.current, 0, None
         else:
-            for n, tap in enumerate(self.filter_taps):
-                if self.filter_set(n):
-                    break
-                self.act(Move("tap", tap, decider="code", why="re-apply the content filter"), purpose="filter")
+            put_back(self.filter_taps, self.filter_on, lambda: self.obs, lambda c: self.act(
+                Move("tap", c, decider="code", why="re-apply the content filter"), purpose="filter"))
         if self.filter_taps:
             self.check_filter()
 
@@ -1060,16 +1066,7 @@ class Explorer:
         return want
 
     def filter_set(self, n: int) -> bool:
-        """The filter's n-th control needs no tap now: it is the last one and already shows what the filter wants
-        (a switch in its restrictive state, a chip that is the selected one of its row), or it is a switch the screen doesn't
-        show, whose state can't be read, so a tap would be blind."""
-        if n != len(self.filter_taps) - 1:
-            return False
-        tap = self.filter_taps[-1]
-        if self.filter_on is None:
-            return self.selected(tap)
-        live = ob.find(self.obs.cands, tap)
-        return live is None or live.checked == self.filter_on
+        return filter_set(n, self.filter_taps, self.filter_on, self.obs.cands, self.obs.image)
 
     def pick(self, s: Seen, opts: list[ob.Candidate], question: str, step: str,
              none_label: str | None = None) -> ob.Candidate | None:
@@ -1087,30 +1084,16 @@ class Explorer:
         return opts[index]
 
     def selected(self, c: ob.Candidate) -> bool:
-        """The control is the selected one of its row: checked, when the tree says, else it carries the row's accent,
-        its fill clearly more saturated than every other control's in the row. Differing is not enough: in a two-chip
-        control the unselected chip differs from the selected one just as much."""
-        live = ob.find(self.obs.cands, c)
-        if live is None:
-            return False
-        if live.checked is not None:
-            return live.checked
-        cy = ob.center(live.rect)[1]
-        row = [o for o in self.obs.cands if o is not live and abs(ob.center(o.rect)[1] - cy) < 24
-               and abs(o.rect.h - live.rect.h) < 24]
-        own = saturation(self.obs.image, live.rect)
-        return bool(row) and all(own - saturation(self.obs.image, o.rect) > ACCENT_SATURATION for o in row)
+        return selected(c, self.obs.cands, self.obs.image)
 
     def check_filter(self) -> None:
         """The filter's last control, found on the screen, shows what the filter wants (a switch's state, a chip or a
         sheet's option selected). An option on a sheet that closed is read off its opener (opener_shows).
         A control the screen doesn't show is not verified. A pass marks this launch filtered; a fail ends the
         explore."""
-        last, opener = self.filter_taps[-1], self.filter_taps[0]
-        live = ob.find(self.obs.cands, last)
-        ok = (live.checked == self.filter_on if self.filter_on is not None else self.selected(last)) if live \
-            else last is not opener and self.filter_on is None and self.opener_shows(last, opener)
-        n = len(self.filter_checks) + 1
+        ok, self.opener_says = filter_holds(self.filter_taps, self.filter_on, self.obs.cands, self.obs.image,
+                                            self.opener_says)
+        last, n = self.filter_taps[-1], len(self.filter_checks) + 1
         evidence = self.out / "filter" / f"check-{n:02d}.png"
         evidence.parent.mkdir(exist_ok=True)
         shutil.copyfile(self.scratch / "now.png", evidence)
@@ -1121,19 +1104,6 @@ class Explorer:
             self.human("the content filter can't be verified", f"{last.label!r} not verified by screenshot (check {n})")
             raise Unfiltered(f"content filter not verified (check {n})")
         self.filtered = True
-
-    def opener_shows(self, option: ob.Candidate, opener: ob.Candidate) -> bool:
-        """An option on a sheet that closed, read off its opener. The first time, a control over the opener's box must
-        show a label it didn't show before the filter's taps, with the option in it as a whole token ("SFW" is no
-        part of "NSFW"); that label is kept, and from then on a control there must show exactly it. A label alone
-        can't say a switch's state, so a switch the screen doesn't show is never verified here."""
-        says = [c.label for c in self.obs.cands if ob.overlaps(c.rect, opener.rect)]
-        if self.opener_says:
-            return self.opener_says in says
-        token = re.compile(rf"(?<![\w+]){re.escape(option.tree_label)}(?![\w+])")
-        self.opener_says = next((label for label in says if label != opener.label and token.search(label)), "") \
-            if option.tree_label else ""
-        return bool(self.opener_says)
 
     # ---------- account walls (--allow-account-create) ----------
 
@@ -1147,7 +1117,7 @@ class Explorer:
         form = any(c.kind == "EditText" for c in cands)
         other = any(ob.shaped(c) and c.tree_label and not ob.denied(c, upsell=s.upsell) and not ob.account_way(c)
                     and not (form and ob.SUBMIT.search(c.label)) for c in cands)
-        return (any(ob.shaped(c) and ob.SIGN_IN.search(c.label) for c in cands) and not other
+        return (any(map(ob.asks_sign_in, cands)) and not other
                 and not ob.feed_items(cands, self.device, self.tab_keys()) and not ob.composer(cands, self.device)
                 and not ob.tab_bar(cands, self.device))
 
@@ -1180,8 +1150,8 @@ class Explorer:
         value; then the form is sent. A screen without one gets the way to an email sign-up. After a send, a
         verification step asks a person (needs-human.md), a form asking only for values not typed yet, the email or
         the password among them, is the next step, and anything else is the end, an account only when it is the app itself (result). A form's own button
-        must say no more than that it sends it (PLAIN_SUBMIT); a form whose own button logs in is a log-in form: never
-        filled; its way to sign up is taken."""
+        must say no more than that it sends it (PLAIN_SUBMIT); a log-in form (log_in_form) is never filled: its way
+        to sign up is taken."""
         sent, typed = False, set()
         for _ in range(SIGN_UP_STEPS):
             s = self.current
@@ -1202,7 +1172,7 @@ class Explorer:
                              and any(kind != "name" for _, kind in boxes) and button
                              and ob.PLAIN_SUBMIT.search(button.label)):
                 return self.result(wall)
-            if boxes and not (button and ob.LOG_IN.search(button.label)):
+            if boxes and not self.log_in_form(boxes, button):
                 why = ("no control sends the form" if button is None else
                        f"the form's button {button.label[:40]!r} says more than that it sends the form"
                        if not ob.PLAIN_SUBMIT.search(button.label) else self.fill(boxes, typed))
@@ -1218,6 +1188,15 @@ class Explorer:
             if self.current is s:
                 return self.stopped(wall, f"{way.label[:40]!r} led nowhere")
         return self.stopped(wall, f"no account after {SIGN_UP_STEPS} screens")
+
+    def log_in_form(self, boxes: list[tuple[dict, str]], button: ob.Candidate | None) -> bool:
+        """A form that signs in to an account that exists: its own button logs in, it offers to reset a forgotten
+        password, or it offers a way to sign up under its last box besides its own button (a sign-up form is one, so it
+        offers none; a title above its boxes doesn't count)."""
+        floor = max(ob.rect(e).y + ob.rect(e).h for e, _ in boxes)
+        return (bool(button and ob.LOG_IN.search(button.label)) or any(ob.FORGOT.search(t) for t in self.said())
+                or any(c is not button and ob.shaped(c) and ob.TO_SIGN_UP.search(c.label) and c.rect.y >= floor
+                       for c in self.surface()))
 
     def unsure(self) -> str:
         """What ends the sign-up on the screen now, "" for nothing: it left the app, a check only a person can pass,
@@ -1333,9 +1312,16 @@ class Explorer:
     def result(self, wall: Seen) -> bool:
         """The end of a sign-up. An account counts as made only on positive evidence: the screen is the app, in
         front, with no control that asks to sign in or up, and with a tab bar or a text box with send (two lines of
-        an error look like a list, so a list is none)."""
+        an error look like a list, so a list is none). A screen recorded before the wall that asked no sign-in then
+        is none: the app showed it as it is without an account; one that did ask and asks no more is evidence. A card
+        shaped like the feed's items asks nothing: it can rotate out whatever the account."""
         s, cands = self.current, self.surface()
-        app = (s.kind not in AWAY and not any(ob.shaped(c) and ob.SIGN_IN.search(c.label) for c in cands)
+        own = controls_of(s.cands)
+        items = ob.feed_items(own, self.device, self.tab_keys())
+        asked = any(ob.asks_sign_in(c) and not ob.feed_shaped(c, items, self.device) for c in own)
+        if s in self.states[:self.states.index(wall)] and not asked:
+            return self.stopped(wall, f"the form was sent, but it came back to {s.sid}, seen before the wall")
+        app = (s.kind not in AWAY and not any(map(ob.asks_sign_in, cands))
                and bool(ob.tab_bar(cands, self.device) or ob.composer(cands, self.device)))
         if not app:
             return self.stopped(wall, f"the form was sent, but {s.sid} shows no sign of an account")
@@ -1390,6 +1376,8 @@ class Explorer:
         return past
 
     def stopped(self, wall: Seen, why: str) -> bool:
+        if self.account_state:  # a form was sent: an account may exist, and a new account's filter is unchecked
+            self.filtered = False
         return self.account_note(f"{wall.sid}: stopped at the wall, {why}", False)
 
     # ---------- the tour ----------
@@ -1718,9 +1706,10 @@ class Explorer:
         return "" if self.checklist()[1] else "checklist answered"
 
     def refilter(self) -> None:
-        """An app with a content filter is toured, and each phase after the tour run, only while this launch verified
-        it: one a device error cut short, or an account made on the way, is relaunched with the filter first. With no
-        relaunch left, relaunch() stops what was to run before any tap, naming this reason (relaunch cap)."""
+        """An app with a content filter is toured, and the paywall pass and the core loop run, only while this launch
+        verified it: one a device error cut short, or an account made on the way, is relaunched with the filter first.
+        With no relaunch left, relaunch() stops what was to run before any tap, naming this reason (relaunch cap). The
+        replay check needs none: its quiet_launch() re-applies and checks the filter for each segment."""
         if self.filter_taps and not self.filtered:
             self.relaunch(why="the content filter isn't verified since a device error or a new account")
 
@@ -2230,7 +2219,7 @@ class Explorer:
         self.note("settle", f"{answer.verdict} after {waited:.0f} s: {answer.reason}", decider="model")
         return answer.verdict
 
-    def hit(self, s: Seen, here: Seen, before: Obs, move: Move) -> tuple[str, str]:
+    def hit(self, s: Seen, here: Seen, before: Obs, move: Move, settled: bool = False) -> tuple[str, str]:
         """What a core-loop move brought up that ends the loop, read from what changed on screen and never from
         words in content. A few words for loop_stop, and the evidence."""
         if here.kind == "external":
@@ -2240,7 +2229,7 @@ class Explorer:
         if here.kind == "rotated":
             return "screen rotated", here.sid
         if self.core.kind == "chat":
-            return self.chat_stop(here, before, move)
+            return self.chat_stop(here, before, move, settled)
         if here is not s and here.kind in ("modal", "sheet"):
             own = self.within(here)
             wall = ob.walled(ob.controls(own, self.device))
@@ -2256,25 +2245,19 @@ class Explorer:
         moved = ob.counters(before.elements, self.obs.elements, self.device, [(0, ob.TOP_CHROME_BOTTOM_PX)])
         return ("counter", moved[0]) if moved else ("", "")
 
-    def chat_stop(self, here: Seen, before: Obs, move: Move) -> tuple[str, str]:
+    def chat_stop(self, here: Seen, before: Obs, move: Move, settled: bool) -> tuple[str, str]:
         """In a chat only the window can stop the loop: a dialog over it, a sheet's new words over the text box, the
         text box disabled or gone, send still disabled once a message is typed, or a counter moving beside the
-        composer. The conversation's own text, prices and timestamps included, never does. A composer that reads as a
-        stop is read again until it settles, then the whole screen is judged as it settled; one that isn't the chat
-        any more is a stop."""
-        first = self.obs
-        self.settle_input(move)
-        kind, own = here.kind, self.within(here)
-        if self.obs is not first:
-            kind, box = self.kind_of(self.obs, before)
-            own = [e for e in self.obs.elements if box is None or ob.inside(ob.rect(e), box)]
-        if kind in ("modal", "sheet"):
+        composer. The conversation's own text, prices and timestamps included, never does. A composer that read as a
+        stop was read again until it settled (settle_input, before the move landed on here), so the whole screen is
+        judged as it settled; one that isn't the chat any more is a stop."""
+        own = self.within(here)
+        if here.kind in ("modal", "sheet"):
             window = ob.dialog_box(self.obs.cands, self.device)
             return self.named(own if window else self.sheet_words(before)) or "dialog opened", here.sid
         if self.covering(before):
             return self.sheet_words(before) or "sheet opened", here.sid
-        stop = self.input_stop(move) or ("input gone" if self.obs is not first and not self.arrived(self.core.state)
-                                         else "")
+        stop = self.input_stop(move) or ("input gone" if settled and not self.arrived(self.core.state) else "")
         if stop:
             return (self.sheet_words(before) if stop == "input gone" else "") or stop, here.sid
         box = self.live_box()
@@ -2293,19 +2276,23 @@ class Explorer:
         typed = move.action == "type" and (live is None or not live[1].enabled)
         return "input disabled" if not box.enabled or typed else ""
 
-    def settle_input(self, move: Move) -> None:
+    def settle_input(self, move: Move) -> bool:
         """When the composer reads as a stop, the screen is read again SETTLE_GAP_S later until two reads of the
         composer agree (up to SETTLE_ASK_S): a composer the keyboard is still moving, or send enabled a moment after
-        the text lands, stops nothing."""
-        stop, deadline = self.input_stop(move), self.clock() + SETTLE_ASK_S
+        the text lands, stops nothing. A read that finds another app in front, or the screen turned, ends it there.
+        Whether it read the screen again."""
+        first, stop, deadline = self.obs, self.input_stop(move), self.clock() + SETTLE_ASK_S
         while stop:
             self.sleep(SETTLE_GAP_S)
             self.observe()
             self.escape_billing()
+            if self.away(self.obs):
+                break
             again = self.input_stop(move)
             if again == stop or self.clock() >= deadline:
-                return
+                break
             stop = again
+        return self.obs is not first
 
     def keep_stop(self, stop: tuple[str, str], before: Obs) -> tuple[str, str]:
         """A core-loop stop, kept so it can be explained: the capture and element list it was read from, and the
@@ -2380,10 +2367,11 @@ class Explorer:
                 elif not self.safe_tap(close, "replay"):
                     break
                 self.observe()
-            for n, tap in enumerate(self.filter_taps):
-                live = ob.find(self.obs.cands, tap)
-                if live and not self.filter_set(n) and self.safe_tap(live, "replay"):
+            def replay_tap(c: ob.Candidate) -> None:
+                live = ob.find(self.obs.cands, c)
+                if live and self.safe_tap(live, "replay"):
                     self.observe()
+            put_back(self.filter_taps, self.filter_on, lambda: self.obs, replay_tap)
             if self.filter_taps:
                 self.check_filter()
 
@@ -2553,6 +2541,10 @@ class Explorer:
         explore = ExploreFile(
             app_package=self.package, app_version=app_version, budget=self.ctx.budget, relaunches=self.relaunches,
             content_filter=filter_label(self.filter_taps, self.filter_on) or None,
+            filter_controls=[FilterControl(label=c.label, kind=c.kind, rect=c.rect, tree_label=c.tree_label,
+                                           ident=c.ident,
+                                           state=next((s.sid for s in self.states if any(o is c for o in s.cands)), ""))
+                             for c in self.filter_taps], filter_on=self.filter_on,
             blocked_state_ids=[s.sid for s in self.states if s.kind == "blocked"],
             coverage=Coverage(states_found=len(self.states), actions_taken=self.actions, stop_reason=self.stop_reason,
                               checklist_answered=answered, checklist_open=still_open),
@@ -2564,6 +2556,78 @@ class Explorer:
 def saturation(image: Image.Image, r: Rect) -> float:
     crop = image.crop((int(r.x), int(r.y), int(r.x + r.w), int(r.y + r.h))).convert("HSV")
     return float(np.asarray(crop, dtype=float)[..., 1].mean())
+
+
+def selected(c: ob.Candidate, cands: list[ob.Candidate], image: Image.Image) -> bool:
+    """The control is the selected one of its row on this screen: checked, when the tree says, else it carries the
+    row's accent, its fill clearly more saturated than every other control's in the row. Differing is not enough: in a
+    two-chip control the unselected chip differs from the selected one just as much. Shared with qa-live."""
+    live = ob.find(cands, c)
+    if live is None:
+        return False
+    if live.checked is not None:
+        return live.checked
+    cy = ob.center(live.rect)[1]
+    row = [o for o in cands if o is not live and abs(ob.center(o.rect)[1] - cy) < 24
+           and abs(o.rect.h - live.rect.h) < 24]
+    own = saturation(image, live.rect)
+    return bool(row) and all(own - saturation(image, o.rect) > ACCENT_SATURATION for o in row)
+
+
+def filter_set(n: int, taps: list[ob.Candidate], on: bool | None, cands: list[ob.Candidate],
+               image: Image.Image) -> bool:
+    """The filter's n-th control needs no tap now: it is the last one and already shows what the filter wants
+    (a switch in its kept state `on`, a chip that is the selected one of its row), or it is a switch the screen
+    doesn't show, whose state can't be read, so a tap would be blind. Shared with qa-live."""
+    if n != len(taps) - 1:
+        return False
+    if on is None:
+        return selected(taps[-1], cands, image)
+    live = ob.find(cands, taps[-1])
+    return live is None or live.checked == on
+
+
+def put_back(taps: list[ob.Candidate], on: bool | None, look: Callable[[], Obs], tap: Callable[[ob.Candidate], object]
+             ) -> None:
+    """Puts a content filter back, as every launch needs: its controls in order, each through tap (the caller's own
+    guarded tap, which may refuse it and go on), until the last one needs no tap on the screen look() returns
+    (filter_set). Explore's re-apply, its replay launch and qa-live share it; each judges the result with
+    filter_holds."""
+    for n, control in enumerate(taps):
+        now = look()
+        if filter_set(n, taps, on, now.cands, now.image):
+            break
+        tap(control)
+
+
+def filter_holds(taps: list[ob.Candidate], on: bool | None, cands: list[ob.Candidate], image: Image.Image,
+                 kept: str) -> tuple[bool, str]:
+    """Whether the screen shows the filter as it wants: its last control found and showing it (a switch in its kept
+    state, a chip or option selected), or an option on a sheet that closed read off its opener (opener_label), never
+    a switch the screen doesn't show. With the opener's label to keep (kept, or the one this check verified by).
+    Explorer.check_filter and qa-live judge a filter by it."""
+    last, opener = taps[-1], taps[0]
+    live = ob.find(cands, last)
+    if live:
+        return (live.checked == on if on is not None else selected(last, cands, image)), kept
+    if last is opener or on is not None:
+        return False, kept
+    label = opener_label(last, opener, cands, kept)
+    return bool(label), kept or label
+
+
+def opener_label(option: ob.Candidate, opener: ob.Candidate, cands: list[ob.Candidate], kept: str) -> str:
+    """An option on a sheet that closed, read off its opener. The first time, a control over the opener's box must
+    show a label it didn't show before the filter's taps, with the option in it as a whole token ("SFW" is no
+    part of "NSFW"); that label is kept (kept), and from then on a control there must show exactly it. A label alone
+    can't say a switch's state, so a switch the screen doesn't show is never verified here. The label it verified by,
+    or ""."""
+    says = [c.label for c in cands if ob.overlaps(c.rect, opener.rect)]
+    if kept:
+        return kept if kept in says else ""
+    token = re.compile(rf"(?<![\w+]){re.escape(option.tree_label)}(?![\w+])")
+    return next((label for label in says if label != opener.label and token.search(label)), "") \
+        if option.tree_label else ""
 
 
 def adb_shell(serial: str, args: list[str]) -> str | None:
@@ -2768,7 +2832,8 @@ def explore_app(ex: Explorer) -> StageOutcome:
             ex.touring = False  # the phases' relaunch cap from here on
             for phase in (ex.paywall_pass, ex.core_loop, ex.verify_replay):
                 try:
-                    ex.refilter()
+                    if phase != ex.verify_replay:  # its quiet_launch() re-applies and checks the filter, uncounted
+                        ex.refilter()
                     phase()
                 except DEVICE_LOST as e:
                     ex.lost(phase.__name__, e)

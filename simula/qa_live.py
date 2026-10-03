@@ -15,7 +15,8 @@ from pathlib import Path
 from PIL import Image
 
 from simula import config, qa_metrics, render, runfolder
-from simula.contracts import SCHEMA_VERSION, Device, Edge, ExploreFile, ProductModel, Rect, StageOutcome, StateFile
+from simula.contracts import (SCHEMA_VERSION, Device, Edge, ExploreFile, FilterControl, ProductModel, Rect,
+                              StageOutcome, StateFile)
 from simula.device import observe as ob
 from simula.device.devices import emulator_lock, resolve_serial
 from simula.device.mcp import McpReplyError, McpTimeout, Phone, Server, parse_elements
@@ -87,11 +88,12 @@ def run(app: str, run_id: str | None, out: Path, serial: str | None, clock=time.
     if not (src / "qa" / "approved" / "index.html").exists():
         raise SystemExit(f"{src} has no approved mock: run `simula qa {app}` first")
     approval = approved_outcome(src, app)
-    # every launch can leave the app unfiltered, and no shared check yet tells a filter that holds from one that doesn't
-    applied = ExploreFile.model_validate_json((src / "explore" / "explore.json").read_text()).content_filter
-    if applied:
-        raise SystemExit(f"the run recorded a content filter qa-live can't verify ({applied!r}): it walks no run with "
-                         f"one until a shared filter check lands")
+    explored = ExploreFile.model_validate_json((src / "explore" / "explore.json").read_text())
+    controls = explored.filter_controls
+    if explored.content_filter and not (controls and all(c.state for c in controls)):
+        raise SystemExit(f"the run recorded a content filter ({explored.content_filter!r}) but not its controls and "
+                         f"the screens they were on, which qa-live puts back and checks after every launch: explore "
+                         f"the app again")
     model = ProductModel.model_validate_json((src / "model" / "product_model.json").read_text())
     if model.device != Device():
         raise SystemExit(f"the run was explored on {model.device}, but the mock renders and compares on {Device()}")
@@ -106,7 +108,8 @@ def run(app: str, run_id: str | None, out: Path, serial: str | None, clock=time.
             found = live_device(phone, resolved)
             if found != model.device:
                 raise SystemExit(f"the device is {found}, but the run was explored on {model.device}")
-            audit = Audit(ctx, model, phone, out, secrets, parts, clock, sleep)
+            audit = Audit(ctx, model, phone, out, secrets, parts, clock, sleep, explored.filter_controls,
+                          explored.filter_on)
             with render.open_mock(src / "qa" / "approved") as (page, _):
                 flows, stop = audit.walk(page)
         report = {"schema_version": SCHEMA_VERSION, "app": app, "run": src.name, "created_at": now(),
@@ -127,26 +130,32 @@ def run(app: str, run_id: str | None, out: Path, serial: str | None, clock=time.
 
 def approved_outcome(src: Path, app: str) -> StageOutcome:
     """QA's outcome for the approved page, once the stages' own markers show it was approved from the files on disk
-    now: QA's hashes for the model, the mock's contract report and the page, and the model's for the explore captures
-    the walker reads. A model, mock or explore rerun alone leaves qa/ as it was, so any changed hash refuses, naming
+    now: QA's hashes for the model, the mock's contract report and every file of the page (its images and styles too,
+    none added since), and the model's for the explore captures the walker reads. A model, mock or explore rerun
+    alone leaves qa/ as it was, so any changed hash refuses, naming
     what changed. A partial QA is walked: its reasons go in the report."""
     qa_marker, model_marker = runfolder.read_done(src / "qa"), runfolder.read_done(src / "model")
     if qa_marker is None or model_marker is None:
         raise SystemExit(f"{'QA' if qa_marker is None else 'the model stage'} never finished on {src.name}: "
                          f"run `simula run {app} --run {src.name}`")
     recorded = {h.path: h.sha256 for h in [*qa_marker.input_hashes, *qa_marker.output_hashes]}
-    changed = [path for path in INPUTS
+    page = {path for path in recorded if path.startswith("qa/approved/")}
+    page |= {h.path for h in runfolder.hashes([src / "qa" / "approved"], src)}
+    changed = [path for path in dict.fromkeys([*INPUTS, *sorted(page)])
                if not (src / path).exists() or recorded.get(path) != runfolder.sha256(src / path)]
     if changed:
-        raise SystemExit(f"{', '.join(changed)} changed since QA approved the mock: rerun `simula qa {app}`")
+        raise SystemExit(f"{listed(changed)} changed since QA approved the mock: rerun `simula qa {app}`")
     built_on = {h.path: h.sha256 for h in model_marker.input_hashes if h.path.startswith("explore/")}
     captured = {h.path: h.sha256 for h in runfolder.hashes([src / "explore"], src)}
     moved = sorted(path for path in built_on.keys() | captured.keys() if built_on.get(path) != captured.get(path))
     if moved:
-        shown = ", ".join(moved[:3]) + (f" and {len(moved) - 3} more" if len(moved) > 3 else "")
-        raise SystemExit(f"explore changed since the model was built ({shown}): rerun "
+        raise SystemExit(f"explore changed since the model was built ({listed(moved)}): rerun "
                          f"`simula run {app} --run {src.name} --from model`")
     return qa_marker.outcome
+
+
+def listed(paths: list[str]) -> str:
+    return ", ".join(paths[:3]) + (f" and {len(paths) - 3} more" if len(paths) > 3 else "")
 
 
 def scroll_backs(run_dir: Path, edges: list[Edge]) -> set[str]:
@@ -217,7 +226,7 @@ class Audit:
     """One walk over a run's flows. `current` is the recorded state the live app is known to show, or None."""
 
     def __init__(self, ctx: Ctx, model: ProductModel, phone, out: Path, secrets: list[str], parts: list[str], clock,
-                 sleep):
+                 sleep, filter_controls: list[FilterControl] = (), filter_on: bool | None = None):
         self.ctx, self.model, self.phone, self.out, self.secrets, self.parts = ctx, model, phone, out, secrets, parts
         self.clock, self.sleep, self.started = clock, sleep, clock()
         self.device, self.package, self.scratch = model.device, ctx.app["package"], out / ".scratch"
@@ -235,6 +244,12 @@ class Audit:
         self.live: Live | None = None
         self.verdict: dict = {}
         self.launched = False  # whether self.live is a launch's landing
+        # explore's content filter, put back and checked after every launch as explore does (explore.filter_holds);
+        # like explore's tap(), act() takes no walk step while it isn't verified since the launch (filtered)
+        self.filter = [ob.Candidate(c.label, c.kind, c.rect, f"filter{n}", c.tree_label, c.ident)
+                       for n, c in enumerate(filter_controls)]
+        self.filter_states = [c.state for c in filter_controls]
+        self.filter_on, self.opener_says, self.filtered, self.in_setup = filter_on, "", False, False
 
     # ---------- the flows ----------
 
@@ -354,38 +369,53 @@ class Audit:
         hops = self.route(self.current, start)
         if hops is None:
             raise FlowEnd("blocked", f"no recorded route of at most {ROUTE_HOPS} hops from {self.current} to {start}")
+        self.take(hops, start)
+        if self.verdict["expected"] != start:  # the last flow stopped here: its look was judged against its own target
+            self.verdict = self.match_state(self.live, start, launched=self.launched)
+
+    def take(self, hops: list[Edge], dst: str) -> None:
+        """Takes recorded hops toward dst as setup, each judged where it lands; one that lands elsewhere blocks the
+        flow."""
         for edge in hops:
             target = self.safe_target(edge) if edge.action == "tap" else None
             self.act(edge, target)
             self.look(edge.to_state)
             self.setup.append({"flow": self.flow, "action": edge.action, "edge": edge.id, **self.verdict})
             if self.current != edge.to_state:
-                raise FlowEnd("blocked", f"the route to {start} went wrong at {edge.id} ({self.verdict['verdict']})")
-        if self.verdict["expected"] != start:  # the last flow stopped here: its look was judged against its own target
-            self.verdict = self.match_state(self.live, start, launched=self.launched)
+                raise FlowEnd("blocked", f"the route to {dst} went wrong at {edge.id} ({self.verdict['verdict']})")
 
     def launch(self, want: str) -> None:
         """Terminate, then launch, neither ever retried (the first call may have landed), then name where the app
-        landed: a launch does not imply home."""
-        self.current = None
+        landed: a launch does not imply home. Every launch can leave the app unfiltered, so it clears filtered.
+
+        Its order follows explore's (wait for the launch to settle, get past a launch dialog, put the filter back), but
+        not its code, which is the Explorer's own: explore's wait reads its live session (homelike, a list lagging),
+        and its normalize() dismisses whatever dialog it meets. The walker judges every screen against the captures
+        explore recorded, with no model, so it waits for a recorded fingerprint and gets past a dialog only over the
+        route explore recorded from it, every tap one invariant 3 can check against its recorded crop."""
+        self.current, self.filtered = None, False
         for name, call in (("terminate", self.phone.terminate), ("launch", self.phone.launch)):
             try:
                 self.mutate(call, retry=False)
             except DEVICE_ERRORS as e:
                 raise Stopped(f"the device failed to {name} the app ({type(e).__name__}); not retried") from None
             self.setup.append({"flow": self.flow, "action": name})
+        landing = self.setup[-1]
         try:
             self.live = self.wait_for_launch(want)
         except DEVICE_ERRORS as e:
             raise Stopped(f"the device failed after the launch ({type(e).__name__}); not launched again") from None
         self.verdict = self.match_state(self.live, want, launched=True)
         self.current, self.launched = self.verdict["landed"], True
-        self.setup[-1].update(self.verdict)
+        landing.update(self.verdict)
+        if self.filter:
+            self.refilter(want)
 
     def wait_for_launch(self, want: str) -> Live:
         """Looks as explore waits for a relaunch (Explorer.wait_for_app): up to SPLASH_WAIT_S for a launch screen, then
         up to LAUNCH_WAIT_S for want's fingerprint or a dialog, since a feed can sit on loading placeholders for many
-        seconds. Before the splash deadline, a dump that fails is only "not yet"."""
+        seconds; or for the launch screen's (the model's root), where a launch lands before any route to want, and
+        where a content filter goes back. Before the splash deadline, a dump that fails is only "not yet"."""
         splash = self.clock() + explore.SPLASH_WAIT_S
         live = self.look_once(splash)
         while live is None or not (live.fg == self.package and launchable(live, self.device)) \
@@ -393,11 +423,71 @@ class Audit:
             self.sleep(1.5)
             live = self.look_once(splash)
         deadline = self.clock() + explore.LAUNCH_WAIT_S
-        while (live.fg == self.package and not ob.same_state(self.fps[want], live.fp)
+        while (live.fg == self.package and not any(ob.same_state(self.fps[s], live.fp) for s in (want, self.root))
                and not ob.dialog_box(live.cands, self.device) and self.clock() < deadline):
             self.sleep(1.5)
             live = self.look_once(splash) or live
         return live
+
+    def refilter(self, want: str) -> None:
+        """Puts the run's content filter back where explore does, once the launch has settled: on the screen its first
+        control was recorded on (explore's launch screen), reached over the recorded route from where the launch
+        landed (a launch dialog's close, say) as setup. Its controls go back through explore.put_back, each tapped only
+        as the walk taps a control (filter_tap); then the filter is judged as explore judges it (explore.filter_holds),
+        and a pass marks the launch filtered. Every launch can leave the app unfiltered, so a filter not put back, or a
+        route there that goes wrong, ends the audit: nothing is walked without it."""
+        named, home = explore.filter_label(self.filter, self.filter_on), self.filter_states[0]
+        with self.setting_up():
+            if self.current != home:
+                hops = self.route(self.current, home) if self.current else None
+                if hops is None:
+                    raise Stopped(f"the launch landed where no recorded route leads to {home}, where the content "
+                                  f"filter ({named}) goes back ({self.verdict['verdict']}): nothing is walked without "
+                                  "it")
+                try:
+                    self.take(hops, home)
+                except FlowEnd as e:
+                    raise Stopped(f"the route to {home} went wrong ({e}), so the content filter ({named}) can't be put "
+                                  "back: nothing is walked without it") from None
+            explore.put_back(self.filter, self.filter_on, lambda: self.live, self.filter_tap)
+        ok, self.opener_says = explore.filter_holds(self.filter, self.filter_on, self.live.cands, self.live.image,
+                                                    self.opener_says)
+        self.setup.append({"flow": self.flow, "action": "filter check", "verified": ok})
+        if not ok:
+            raise Stopped(f"the content filter ({named}) isn't verified after the launch: nothing is walked without it")
+        self.filtered = True
+        self.verdict = self.match_state(self.live, want, launched=True)
+        self.current = self.verdict["landed"]
+
+    def filter_tap(self, control: ob.Candidate) -> None:
+        """One of the filter's controls, tapped only as the walk taps a control (safe, against the capture of the state
+        explore recorded it on) and with no deny word at its tap point; a refusal is logged and the control left
+        alone."""
+        state = self.filter_states[self.filter.index(control)]
+        rec, live = self.recorded(state), ob.find(self.live.cands, control)
+        want = ob.find(rec.cands, control)
+        try:
+            if live is None or want is None:
+                raise FlowEnd("unsupported", f"not on the {'live screen' if want else f'capture of {state}'}")
+            refused = ob.denied_at(live, self.live.elements, self.device, toggle_ok=True)
+            if refused:
+                raise FlowEnd("blocked", f"denied: {refused}")
+            live = self.safe(rec, want, repr(control.label), toggle_ok=True)
+        except FlowEnd as e:
+            self.setup.append({"flow": self.flow, "action": "filter", "control": control.label, "refused": str(e)})
+            return
+        self.setup.append({"flow": self.flow, "action": "filter", "control": control.label})
+        self.mutate(self.phone.tap, *live.point)
+        self.live = self.capture()
+
+    @contextmanager
+    def setting_up(self):
+        """The launch's own steps, which run before its filter is verified: the route to the filter and its taps."""
+        self.in_setup = True
+        try:
+            yield
+        finally:
+            self.in_setup = False
 
     def look_once(self, deadline: float) -> Live | None:
         self.in_time()
@@ -447,6 +537,12 @@ class Audit:
             raise Stopped(f"the time cap ({MAX_MINUTES} minutes) was reached")
 
     def act(self, edge: Edge, target: ob.Candidate | None) -> None:
+        """Every recorded step the walker takes goes through here. With a recorded content filter, none runs while the
+        filter isn't verified since the launch, except the launch's own setup (setting_up): that ends the audit."""
+        if self.filter and not (self.filtered or self.in_setup):
+            raise Stopped(f"a walk step ({edge.id}) with the content filter "
+                          f"({explore.filter_label(self.filter, self.filter_on)}) not verified since the launch: "
+                          "nothing is walked without it")
         if self.live.fg != self.package:
             raise FlowEnd("blocked", f"{self.live.fg} is in front, not the app")
         if edge.action == "tap":
@@ -482,23 +578,28 @@ class Audit:
         rec, want = self.recorded(edge.from_state), self.recorded_control(edge)
         if want is None:
             raise FlowEnd("unsupported", f"no recorded control is {edge.element_id}")
+        return self.safe(rec, want, edge.element_id)
+
+    def safe(self, rec: Recorded, want: ob.Candidate, name: str, **deny) -> ob.Candidate:
+        """safe_target's checks of want, recorded in rec, on the live screen; deny goes to the deny-list (a filter's
+        switch is toggle_ok)."""
         found = matches(self.live.cands, want)
         if len(found) != 1:
-            raise FlowEnd("unsupported", f"{len(found)} live controls fit {edge.element_id}" if found
-                          else f"{edge.element_id} is not on the live screen")
+            raise FlowEnd("unsupported", f"{len(found)} live controls fit {name}" if found
+                          else f"{name} is not on the live screen")
         live = found[0]
-        reason = ob.denied(live, upsell=ob.is_upsell(self.live.elements, self.device))
+        reason = ob.denied(live, upsell=ob.is_upsell(self.live.elements, self.device), **deny)
         if reason:
             raise FlowEnd("blocked", f"denied: {reason}")
         if not live.enabled:
-            raise FlowEnd("blocked", f"{edge.element_id} is disabled on the live screen")
+            raise FlowEnd("blocked", f"{name} is disabled on the live screen")
         box = self.new_overlay(rec)
         if box and not ob.inside(live.rect, box):
             raise FlowEnd("unsupported", "an overlay the recording didn't have is up")
         if ob.covered(live, self.live.elements, self.device):
-            raise FlowEnd("unsupported", f"something lies over {edge.element_id} on the live screen")
+            raise FlowEnd("unsupported", f"something lies over {name} on the live screen")
         if not ob.looks_same(rec.image, want.rect, self.live.image, live.rect, self.device):
-            raise FlowEnd("unsupported", f"{edge.element_id} looks different from its recorded crop")
+            raise FlowEnd("unsupported", f"{name} looks different from its recorded crop")
         return live
 
     def recorded_control(self, edge: Edge) -> ob.Candidate | None:

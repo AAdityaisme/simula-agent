@@ -103,6 +103,11 @@ def test_content_filter_is_chosen_and_verified(run):
     assert [t.label for t in ex.filter_taps] == ["Limited Only"]
     assert ex.filter_checks and all(ok for _, ok, _ in ex.filter_checks)
     assert (ex.run_dir / ex.filter_checks[0][2]).exists()
+    saved = ExploreFile.model_validate_json((ex.out / "explore.json").read_text())  # what qa-live puts back
+    assert [(c.label, c.kind) for c in saved.filter_controls] == [("Limited Only", ex.filter_taps[0].kind)]
+    assert saved.filter_on is None and saved.content_filter == "Limited Only"
+    on = ex.by_id[saved.filter_controls[0].state]  # the capture qa-live checks its filter tap against
+    assert "Limited Only" in [c.label for c in ob.controls(on.elements, ex.device)]
 
 
 def test_caps_hold_and_no_denied_tap_runs(run):
@@ -1800,6 +1805,46 @@ def test_a_sheet_that_comes_up_while_send_settles_stops_the_chat(tmp_path, monke
     assert [stop[0] for stop in stops] == [2] and phone.sent == 1, (stops, phone.sent)
 
 
+def billing_from_the_chat(during_settle: bool):
+    """Pass 2 brings up the store's billing screen: its send opens it, or, while send stays disabled after the typing,
+    it comes up a moment later. BACK, pressed at once, returns to the chat with its composer ready."""
+    def factory(clock):
+        phone = chatty(clock)
+        if not during_settle:
+            phone.after_sends = {2: "billing"}
+            return phone
+        phone.send_ready_s, plain, shown = 1.5 * stage.SETTLE_GAP_S, phone.elements, []
+
+        def elements():
+            if phone.sent == 1 and phone.draft and not shown and clock.t >= phone.typed_at + stage.SETTLE_GAP_S:
+                shown.append(phone.screen)
+                phone.go("billing")
+            return plain()
+        phone.elements = elements
+        return phone
+    return factory
+
+
+@pytest.mark.parametrize("during_settle", [False, True], ids=["opened by the send", "while send settles"])
+def test_a_billing_screen_a_chat_pass_brought_up_stops_it_greptile_46(tmp_path, monkeypatch, during_settle):
+    """Greptile on #46 (P1): settling read the chat that BACK restored before the billing screen was recorded, so the
+    billing stop vanished and the pass kept sending. A screen outside the app is a stop as it was seen."""
+    ex, phone = explore(tmp_path, monkeypatch, phone_factory=billing_from_the_chat(during_settle), budget="deep")
+    stops = [(line.loop_pass, line.loop_stop) for line in lines(ex) if line.loop_stop]
+    assert stops == [(2, "billing")] and ("back", "billing") in phone.log, (stops, phone.sent)
+    assert phone.sent == (1 if during_settle else 2) and ex.core_hit.startswith("billing")
+    assert "Stopped by the app: billing (com.android.vending) on pass 2." in stage.loop_end(ex, 1)
+
+
+def test_a_chat_stop_read_after_settling_names_the_screen_it_settled_on_greptile_44(tmp_path, monkeypatch):
+    """Greptile on #36 (item 44): the move landed before the composer settled, so the stop named the chat as it was
+    before the sheet came up, a screen that doesn't show what stopped it."""
+    ex, _ = explore(tmp_path, monkeypatch, phone_factory=sheet_while_send_waits, budget="deep")
+    stop = next(line for line in lines(ex) if line.loop_stop)
+    shown = {ob.words(e) for e in ex.by_id[stop.to_state].elements}
+    assert "You're out of free messages" in shown and f"({stop.to_state}) on pass 2" in ex.core_hit, ex.core_hit
+
+
 def log_in_after_the_box_tap(clock):
     """Pass 2: the tap on the text box shows a "one moment" screen, then the app's log-in screen with its email
     field focused (rt-pr41 H2)."""
@@ -2319,6 +2364,59 @@ def test_a_tour_relaunch_whose_launch_lands_and_then_times_out_is_relaunched_wit
     assert tour_until(ex, monkeypatch, relaunch_whose_launch_times_out) == [(True, 2)]
 
 
+def test_a_return_launch_that_lands_and_then_times_out_leaves_the_filter_unverified_rt_p_d1b(tmp_path, monkeypatch):
+    """rt-pr43-d32378e LOW 1 (D1b): the launch back from another app, through leave(), starts an app killed while away
+    afresh and then its answer times out. launch() clears the verified filter before it launches, the only clear on
+    this path (launching() clears it for a relaunch), so the tour's next round relaunches with the filter."""
+    from simula.device.mcp import McpTimeout
+    ex, phone, chats = on_chats(tmp_path, monkeypatch)
+    assert ex.filtered and ex.filter_taps
+    ex.act(stage.Move("tap", next(c for c in chats.cands if c.point == (996, 209))), purpose="tour")
+    assert ex.current.kind == "external"
+    launch = phone.launch
+
+    def killed_lands_then_times_out():
+        phone.launch, phone.alive = launch, False  # killed while away: the launch starts it afresh, its filter off
+        launch()
+        raise McpTimeout("mobile_launch_app took over 30s")
+    phone.launch = killed_lands_then_times_out
+    with pytest.raises(McpTimeout):
+        ex.leave()
+    assert not ex.filtered
+
+
+def test_a_tour_that_ends_unverified_in_the_app_relaunches_on_the_phases_cap_rt_p_p2(tmp_path, monkeypatch):
+    """rt-pr43-d32378e LOW 1 (P2): the tour's last relaunch is cut short by a device error, so the tour ends with the
+    filter unverified while the app is in front. The phases count relaunches against their own cap (touring off), so
+    the paywall pass relaunches with the filter and the core loop runs."""
+    from simula.device.mcp import McpReplyError
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    caps, done = ex.check_caps, []
+
+    def cut_at_the_cap():
+        drawer = any(any("Upgrade to Janitor Plus" in c.label for c in s.cands) for s in ex.states)
+        if not done and ex.touring and drawer and ex.current and ex.current.kind == "screen":
+            done.append(ex.relaunches)
+            ex.relaunches = stage.MAX_RELAUNCHES - 1
+            tap, refused = phone.tap, []
+
+            def refuses_once(x, y):
+                if not refused and phone.screen == "root":
+                    refused.append((x, y))
+                    raise McpReplyError("the device lost the answer")
+                tap(x, y)
+            monkeypatch.setattr(phone, "tap", refuses_once)
+            try:
+                ex.relaunch(why="no recorded way (as goto() relaunches)")
+            except McpReplyError as e:
+                ex.hang(ex.current, e)  # tour()'s handler
+        return caps()
+    monkeypatch.setattr(ex, "check_caps", cut_at_the_cap)
+    stage.explore_app(ex)
+    assert done and "paywall_pass" not in ex.stop_reason, ex.stop_reason
+    assert any(r.startswith("pass ") for r in ex.core_results), ex.core_results
+
+
 def test_an_account_made_on_the_tour_is_relaunched_with_the_filter_before_another_tap(tmp_path, monkeypatch):
     """rt-pr43-60db74b LOW 3: a sign-up that makes an account mid-tour switches the app to the new account's settings
     without a launch, so its filter is unchecked: result() clears the verified filter, and the tour relaunches with
@@ -2334,13 +2432,34 @@ def test_an_account_made_on_the_tour_is_relaunched_with_the_filter_before_anothe
     assert tour_until(ex, monkeypatch, lambda: None) == [(True, 1)] and walls and ex.account_state == "made"
 
 
+def test_a_sent_form_that_ends_at_a_stop_rechecks_the_filter_before_another_tap_rt_s_r3_m3(tmp_path, monkeypatch):
+    """rt-s on #46 (MEDIUM 3): #43 clears the verified filter when the sign-up made an account, but item 41's stop
+    ("came back to sNN, seen before the wall") returned before that, though an account may have been made there (a
+    signed-in home that looks like the guest one). Once a form was sent, every stop of the sign-up clears it, so the
+    tour relaunches with the filter before another tap."""
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    walls = []
+    monkeypatch.setattr(ex, "account_wall", lambda s: not walls and len(ex.segments) == 1)
+
+    def get_past(wall):
+        walls.append(wall.sid)
+        earlier = [s for s in ex.states[:ex.states.index(wall)]
+                   if s.kind == "screen" and not any(map(ob.asks_sign_in, stage.controls_of(s.cands)))]
+        ex.current, ex.account_state = earlier[0], "sent"
+        return ex.result(wall)
+    monkeypatch.setattr(ex, "get_past", get_past)
+    assert tour_until(ex, monkeypatch, lambda: None) == [(True, 1)]
+    assert walls and ex.account[-1].endswith("seen before the wall") and ex.account_state == "sent"
+
+
 @pytest.mark.parametrize("left", [True, False])
 def test_an_account_made_on_the_tours_last_action_is_relaunched_with_the_filter_before_the_phases(tmp_path,
                                                                                                     monkeypatch, left):
     """Greptile on 15170d2: a sign-up that makes an account with the tour's last allowed action leaves the filter
     unverified, and the tour stops at its cap before it relaunches. Each phase after the tour relaunches with the
     filter first, so the core loop runs filtered and no tap runs between a launch and a passing check. With no
-    relaunch left, each phase stops at the relaunch cap untapped."""
+    relaunch left, the paywall pass and the core loop stop at the relaunch cap untapped; the replay check isn't
+    stopped by it, since its own uncounted launches re-apply and check the filter (rt-pr43-d32378e LOW 2)."""
     ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
     log_filter_checks(ex, phone, monkeypatch)
     walls, made = [], []
@@ -2360,7 +2479,8 @@ def test_an_account_made_on_the_tours_last_action_is_relaunched_with_the_filter_
     if left:
         assert ex.core_completed >= 1 and unfiltered_taps(phone.log) == []
     else:
-        assert all("Stop: relaunch cap" in r for r in ex.core_results) and len(ex.core_results) == 3
+        assert [r.split(" stopped")[0] for r in ex.core_results] == ["paywall_pass", "core_loop"]
+        assert all("Stop: relaunch cap" in r for r in ex.core_results)
         assert not [e for e in phone.log[made[0]:] if e[0] in ("tap", "launch")]
 
 
@@ -2608,6 +2728,22 @@ def test_a_sheet_that_asks_for_an_upgrade_or_a_registration_stops_the_feed_pass(
         ex, opened = feed_pass_sheets(tmp_path / button.replace(" ", "-"), monkeypatch, sheet_over_feed(own))
         assert opened[0].loop_stop == "sheet opened" and ex.core_hit.startswith("sheet opened"), ex.core_results
         assert stage.loop_end(ex, 1).startswith("Stopped by the app: sheet opened")
+
+
+def test_a_short_sheet_that_asks_nothing_still_stops_the_feed_pass_greptile_44(tmp_path, monkeypatch):
+    """Greptile on #36 (item 44) read "short item sheets remain walkable" as owed. By design they don't: a sheet with
+    less new text than PAGE_CHARS may be the filter or a prompt (115-340 chars in the committed runs), so when unsure
+    it stops."""
+    own = [{"ref": "@s1", "type": "android.view.ViewGroup", "text": "Kang Jun-Seo (Idol x Idol)",
+            "coordinates": {"x": 0, "y": 1250, "width": 1080, "height": 110}},
+           {"ref": "@s2", "type": "android.widget.TextView",
+            "text": "A rising idol with a secret he keeps from his fans, and a manager who knows too much.",
+            "coordinates": {"x": 60, "y": 1400, "width": 960, "height": 200}},
+           {"ref": "@s3", "type": "android.widget.Button", "text": "Close",
+            "coordinates": {"x": 240, "y": 2150, "width": 600, "height": 120}}]
+    assert sum(len(ob.words(e)) for e in own) < stage.PAGE_CHARS
+    ex, opened = feed_pass_sheets(tmp_path, monkeypatch, sheet_over_feed(own))
+    assert opened[0].loop_stop == "sheet opened", (opened[0].loop_stop, ex.core_results[:2])
 
 
 # rt-pr41 M1: an upgrade sheet's feature list makes it as long as an item's page; its controls still ask.

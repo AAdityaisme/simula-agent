@@ -16,8 +16,8 @@ import pytest
 from PIL import Image, ImageDraw
 
 from simula import cli, decide, llm, qa_live, runfolder, runlog
-from simula.contracts import (ActionLine, ContractError, ContractReport, Coverage, Device, ExploreFile, Flow, Point,
-                              ProductModel, Provenance, StageOutcome, StateFile)
+from simula.contracts import (ActionLine, ContractError, ContractReport, Coverage, Device, ExploreFile, FilterControl,
+                              Flow, Point, ProductModel, Provenance, Rect, StageOutcome, StateFile)
 from simula.device import mcp
 from simula.device import observe as ob
 from simula.stages import model as model_stage
@@ -58,7 +58,8 @@ def line(step: int, src: str, to: str, action: str, cand: ob.Candidate | None = 
 
 
 def source_run(runs: Path, recorded: dict[str, Screen], lines: list[ActionLine],
-               flows: list[list[tuple[str, str, str]]], content_filter: str | None = None) -> Path:
+               flows: list[list[tuple[str, str, str]]], content_filter: str | None = None,
+               filter_controls: list[FilterControl] = (), filter_on: bool | None = None) -> Path:
     """A run folder built the way explore and the model stage build one: explore/states and actions.jsonl from
     captures, the product model's code facts with every state in scope and one flow per list of (from, to, action)
     hops, and an approved mock the offline builder drew."""
@@ -80,7 +81,8 @@ def source_run(runs: Path, recorded: dict[str, Screen], lines: list[ActionLine],
                         checklist_open=[])
     (explore_dir / "explore.json").write_text(ExploreFile(
         app_package=PACKAGE, app_version="1", budget="transfer", relaunches=0, content_filter=content_filter,
-        blocked_state_ids=[], coverage=coverage).model_dump_json())
+        filter_controls=list(filter_controls), filter_on=filter_on, blocked_state_ids=[],
+        coverage=coverage).model_dump_json())
     states, images, _ = model_stage.load_states(explore_dir, DEVICE)
     edges, _ = model_stage.load_edges(explore_dir, states)
     ids, tapped = [s.id for s in states], {e.element_id for e in edges if e.element_id}
@@ -175,11 +177,11 @@ def taps(phone: FakePhone) -> list[tuple]:
     return [entry for entry in phone.log if entry[0] == "tap"]
 
 
-def tab_back_run(runs: Path, recorded: dict[str, Screen], content_filter: str | None = None) -> Path:
+def tab_back_run(runs: Path, recorded: dict[str, Screen], content_filter: str | None = None, **filter_) -> Path:
     """One flow: tap s01's second tab to s02, then BACK to s01."""
     return source_run(runs, recorded, [line(1, "s01", "s02", TAP, tab(recorded["s01"], 1), "tab"),
                                        line(2, "s02", "s01", BACK, transition="back")],
-                      [[("s01", "s02", TAP), ("s02", "s01", BACK)]], content_filter)
+                      [[("s01", "s02", TAP), ("s02", "s01", BACK)]], content_filter, **filter_)
 
 
 def test_a_tap_and_back_flow_is_walked_on_both_sides_with_a_redacted_paired_checkpoint_per_hop(runs, walk, tmp_path,
@@ -531,6 +533,8 @@ def swap_captures(run_dir: Path, a: str, b: str) -> None:
     ("model", r"model/product_model.json changed since QA approved the mock: rerun `simula qa janitorai`"),
     ("contract", r"mock/contract_report.json changed since QA approved the mock: rerun `simula qa janitorai`"),
     ("page", r"qa/approved/index.html changed since QA approved the mock: rerun `simula qa janitorai`"),
+    ("asset", r"qa/approved/assets/page.css changed since QA approved the mock: rerun `simula qa janitorai`"),
+    ("new asset", r"qa/approved/assets/added.png changed since QA approved the mock: rerun `simula qa janitorai`"),
     ("explore", r"explore changed since the model was built \(explore/states/s01.elements.json, .* and 3 more\): "
                 r"rerun `simula run janitorai --run r1 --from model`"),
     ("no-marker", r"QA never finished on r1: run `simula run janitorai --run r1`"),
@@ -551,6 +555,13 @@ def test_an_approved_mock_older_than_the_files_it_was_made_from_is_refused_befor
     elif stale == "page":
         page = run_dir / "qa" / "approved" / "index.html"
         page.write_text(page.read_text() + "<!-- edited after approval -->")
+    elif stale == "asset":  # Greptile on #42 (item 45): the page's own files can change after QA too
+        css = run_dir / "qa" / "approved" / "assets" / "page.css"
+        css.write_text("body { color: black }")
+        approve(run_dir)
+        css.write_text("body { color: red }")
+    elif stale == "new asset":
+        (run_dir / "qa" / "approved" / "assets" / "added.png").write_bytes(b"not approved")
     elif stale == "explore":
         swap_captures(run_dir, "s01", "s02")
     else:
@@ -562,20 +573,250 @@ def test_an_approved_mock_older_than_the_files_it_was_made_from_is_refused_befor
     assert phone.log == [] and walk.held == []
 
 
-@pytest.mark.parametrize("content_filter", ["Limited Only", None], ids=["filter", "none"])
-def test_a_run_whose_explore_applied_a_content_filter_is_refused_before_any_device_work(runs, walk, content_filter):
-    """The walker force-stops and launches the app and can't verify a content filter after a launch, so a run whose
-    explore applied one is refused before the lock, the server or any device call. A run without one walks as before."""
+SAFE = {"ref": "@safe", "type": "android.widget.Switch", "text": "Safe mode",
+        "coordinates": {"x": 700, "y": 1400, "width": 300, "height": 100}}
+SAFE_CONTROL = FilterControl(label="Safe mode", kind="Switch", rect=Rect(x=700, y=1400, w=300, h=100),
+                             tree_label="Safe mode", state="s01")
+
+
+def safe_mode(screen: Screen, on: bool) -> Screen:
+    """The screen with the run's content filter, a "Safe mode" switch, on or off."""
+    return with_extra(screen, {**SAFE, "checked": True} if on else SAFE)
+
+
+@pytest.mark.parametrize("comes_on", [True, False], ids=["put back", "won't come on"])
+def test_a_filtered_run_is_walked_only_once_each_launch_put_the_filter_back(runs, walk, comes_on):
+    """Spec item 3: every launch can leave the app unfiltered, so after each one the walker puts the run's filter back
+    as explore does and judges it with explore's own check (explore.filter_holds). One that won't come on ends the
+    audit before any flow's tap."""
     recorded = screens()
-    tab_back_run(runs, recorded, content_filter)
+    recorded["s01"] = safe_mode(recorded["s01"], on=True)
+    tab_back_run(runs, recorded, "Safe mode (on)", filter_controls=[SAFE_CONTROL], filter_on=True)
+    live = screens()
+    live["s01"], live["on"] = safe_mode(live["s01"], on=False), safe_mode(live["s01"], on=True)
+    phone = phone_for(live, [("s01", labeled(live["s01"], "Safe mode"), "on" if comes_on else "s01"),
+                             ("on", tab(live["on"], 1), "s02")])
+
+    report = walk(phone)
+    setup = [s["action"] for s in report["setup"]]
+    assert setup[:4] == ["terminate", "launch", "filter", "filter check"], report["setup"]
+    assert report["setup"][3]["verified"] is comes_on
+    if comes_on:
+        assert report["flows"][0]["status"] == "matched" and report["stop"] is None, report["flows"][0]
+    else:
+        assert report["stop"] == ("the content filter (Safe mode (on)) isn't verified after the launch: nothing is "
+                                  "walked without it")
+        assert report["flows"][0]["status"] == "blocked" and taps(phone) == [taps(phone)[0]]
+
+
+def filtered_tab_back_run(runs: Path, extra: dict[str, Screen] = {}, lines: list[ActionLine] = (),
+                          flows: list[list[tuple[str, str, str]]] = ()) -> dict[str, Screen]:
+    """A run explored with the "Safe mode" switch on: one flow, tap s01's second tab to s02 and BACK, unless flows
+    says otherwise; lines and extra add recorded moves and screens."""
+    recorded = screens() | extra
+    recorded["s01"] = safe_mode(recorded["s01"], on=True)
+    source_run(runs, recorded, [*lines, line(8, "s01", "s02", TAP, tab(recorded["s01"], 1), "tab"),
+                                line(9, "s02", "s01", BACK, transition="back"),
+                                line(10, "s01", "s03", TAP, tab(recorded["s01"], 3), "tab")],
+               list(flows) or [[("s01", "s02", TAP), ("s02", "s01", BACK)]], "Safe mode (on)",
+               filter_controls=[SAFE_CONTROL], filter_on=True)
+    return recorded
+
+
+def live_with_the_switch_off(**more: Screen) -> dict[str, Screen]:
+    live = screens() | more
+    live["s01"], live["on"] = safe_mode(live["s01"], on=False), safe_mode(live["s01"], on=True)
+    return live
+
+
+def test_a_launch_dialog_is_closed_over_its_recorded_route_before_the_filter_goes_back_rt_s_r3_ql1(runs, walk):
+    """rt-s on #46 (MEDIUM 1, QL1): qa-live judged the filter on the first readable look after a launch. Explore
+    closed JanitorAI's launch announcement (j01_launch, recorded as s05 with its Close edge to s01) before it put
+    the filter back; every launch shows the announcement again. The walker now takes that route as setup first."""
+    dialog = capture("janitorai", "j01_launch")
+    close = next(c for c in ob.controls(dialog.elements, DEVICE) if "Close" in c.label)
+    filtered_tab_back_run(runs, {"s05": dialog}, [line(1, "s05", "s01", TAP, close)])
+    live = live_with_the_switch_off(s05=dialog)
+    phone = FakePhone(screens=live, start="s05", clock=Clock(),
+                      taps={("s05", key_at(dialog, close.point)): "s01",
+                            ("s01", key_at(live["s01"], labeled(live["s01"], "Safe mode").point)): "on",
+                            ("on", key_at(live["on"], tab(live["on"], 1).point)): "s02"})
+
+    report = walk(phone)
+    setup = [s["action"] for s in report["setup"]]
+    assert setup[:5] == ["terminate", "launch", "tap", "filter", "filter check"], report["setup"]
+    assert report["setup"][2]["edge"] and report["flows"][0]["status"] == "matched", report["flows"][0]
+
+
+def test_a_launch_whose_feed_loads_after_its_placeholders_puts_the_filter_back_on_the_feed_rt_s_r3_ql3(runs, walk):
+    """rt-s on #46 (MEDIUM 1, QL3): the launch shows the feed's loading placeholders (tab bar up) for 6 s; the filter
+    switch is on the loaded feed, where explore recorded it."""
+    filtered_tab_back_run(runs)
+    live = live_with_the_switch_off(loading=capture("janitorai", "j02_home"))
+    phone = phone_for(live, [("s01", labeled(live["s01"], "Safe mode"), "on"), ("on", tab(live["on"], 1), "s02")],
+                      cls=LoadsSlowly)
+
+    report = walk(phone)
+    assert [s.get("verified") for s in report["setup"] if s["action"] == "filter check"] == [True]
+    assert report["flows"][0]["status"] == "matched", report["flows"][0]
+
+
+class SecondLaunchOff(FakePhone):
+    """The filter switch takes a tap on the first launch only."""
+    switch = (0, 0)
+
+    def tap(self, x: int, y: int) -> None:
+        if self.screen == "s01" and self.log.count(("launch",)) >= 2 and (x, y) == self.switch:
+            self.tick()
+            self.log.append(("tap", self.screen, "dead switch"))
+            return
+        super().tap(x, y)
+
+
+@pytest.mark.parametrize("second", ["comes on", "won't come on"])
+def test_every_launch_puts_the_filter_back_before_any_tap_of_the_walk_rt_s_r3_ql2(runs, walk, second):
+    """rt-s on #46 (MEDIUM 2, QL2): flow 1 lands where no recorded state matches, so flow 2 starts from a second
+    launch, which puts the filter back and checks it before any tap of the walk; one that won't come on the second
+    time stops the walk there."""
+    filtered_tab_back_run(runs, flows=[[("s01", "s03", TAP)], [("s01", "s02", TAP), ("s02", "s01", BACK)]])
+    live = live_with_the_switch_off(weird=capture("janitorai", "j09_drawer"))
+    switch = labeled(live["s01"], "Safe mode")
+    phone = phone_for(live, [("s01", switch, "on"), ("on", tab(live["on"], 3), "weird"),
+                             ("on", tab(live["on"], 1), "s02")], cls=SecondLaunchOff)
+    phone.switch = switch.point if second == "won't come on" else (-1, -1)
+
+    report = walk(phone)
+    setup = [s["action"] + (f"={s['verified']}" if "verified" in s else "") for s in report["setup"]]
+    launches = [n for n, action in enumerate(setup) if action == "launch"]
+    assert len(launches) == 2, setup
+    assert setup[launches[1] + 1:launches[1] + 3] == ["filter", f"filter check={second == 'comes on'}"], setup
+    if second == "comes on":
+        assert report["flows"][1]["status"] == "matched", report["flows"][1]
+    else:
+        assert "isn't verified after the launch" in report["stop"] and report["flows"][1]["status"] == "blocked"
+        assert not [e for e in phone.log[phone.log.index(("launch",), phone.log.index(("launch",)) + 1):]
+                    if e[0] == "tap" and e[2] != "dead switch"], phone.log
+
+
+def test_a_filter_control_under_a_deny_worded_overlay_is_never_tapped_rt_s_r3_m2(runs, walk):
+    """rt-s on #46 (MEDIUM 2): nothing tested the deny check before a filter tap. A "Subscribe" banner lies over the
+    switch's tap point: the walker refuses the tap, the filter stays off, and nothing is walked."""
+    filtered_tab_back_run(runs)
+    live = live_with_the_switch_off()
+    banner = {"ref": "@promo", "type": "android.widget.Button", "text": "Subscribe",
+              "coordinates": {"x": 800, "y": 1350, "width": 280, "height": 200}}
+    live["s01"] = with_extra(live["s01"], banner)
+    phone = phone_for(live, [("s01", labeled(live["s01"], "Safe mode"), "on"), ("on", tab(live["on"], 1), "s02")])
+
+    report = walk(phone)
+    refusal = next(s for s in report["setup"] if s["action"] == "filter")
+    assert "subscribe" in refusal["refused"].lower() and report["flows"][0]["status"] == "blocked", report["setup"]
+    assert taps(phone) == [] and "isn't verified after the launch" in report["stop"]
+
+
+def test_a_route_to_the_filter_that_goes_wrong_ends_the_audit_rt_s_r4_h1(runs, walk):
+    """rt-s on #46 (HIGH 1): refilter()'s route to the launch screen went wrong (the announcement's Close landed on s02
+    this time), which ended only that flow, and flow 2 then walked from s02 with no filter put back since the launch.
+    A route there that goes wrong now ends the audit."""
+    dialog = capture("janitorai", "j01_launch")
+    close = next(c for c in ob.controls(dialog.elements, DEVICE) if "Close" in c.label)
+    filtered_tab_back_run(runs, {"s05": dialog}, [line(1, "s05", "s01", TAP, close)],
+                          [[("s01", "s02", TAP), ("s02", "s01", BACK)]] * 2)
+    live = live_with_the_switch_off(s05=dialog)
+    phone = FakePhone(screens=live, start="s05", clock=Clock(), backs={"s02": "s01"},
+                      taps={("s05", key_at(dialog, close.point)): "s02",
+                            ("s01", key_at(live["s01"], tab(live["s01"], 1).point)): "s02"})
+
+    report = walk(phone)
+    assert report["stop"].startswith("the route to s01 went wrong") and [f["status"] for f in report["flows"]] == \
+        ["blocked", "blocked"], report
+    assert not [s for s in report["setup"] if s["action"] in ("back", "filter")], report["setup"]
+
+
+def test_no_walk_step_runs_while_the_filter_is_unverified_since_the_launch_rt_s_r4_h1(runs, walk, monkeypatch):
+    """rt-s on #46 (HIGH 1), the structural half: as explore's tap() refuses a tap until the launch's filter passed its
+    check, act() takes no walk step while a recorded filter isn't verified since the launch, whatever path got there
+    (here, a refilter() that put nothing back)."""
+    filtered_tab_back_run(runs)
+    live = live_with_the_switch_off()
+    phone = phone_for(live, [("s01", tab(live["s01"], 1), "s02")])
+    monkeypatch.setattr(qa_live.Audit, "refilter", lambda self, want: None)
+
+    report = walk(phone)
+    assert report["stop"].startswith("a walk step (") and "not verified since the launch" in report["stop"], report
+    assert taps(phone) == [] and report["flows"][0]["status"] == "blocked"
+
+
+def test_a_filter_chip_under_a_wordless_picture_is_never_tapped_rt_s_r4_m1(runs, walk):
+    """rt-s on #46 (MEDIUM 1): qa-live's filter taps checked only the deny words at the tap point, so a wordless
+    picture drawn over JanitorAI's "Limited Only" chip (j18_filter_all, the launch screen explore recorded) took the
+    tap. A filter tap now passes the walk's own checks against the capture of the state the chip was recorded on."""
+    chips = capture("janitorai", "j18_filter_all")
+    chip = next(c for c in ob.controls(chips.elements, DEVICE) if c.label == "Limited Only")
+    control = FilterControl(label=chip.label, kind=chip.kind, rect=chip.rect, tree_label=chip.tree_label,
+                            ident=chip.ident, state="s01")
+    recorded = screens() | {"s01": chips}
+    source_run(runs, recorded, [line(1, "s01", "s02", TAP, tab(chips, 1), "tab"),
+                                line(2, "s02", "s01", BACK, transition="back")],
+               [[("s01", "s02", TAP), ("s02", "s01", BACK)]], "Limited Only", filter_controls=[control])
+    r = chip.rect
+    picture = {"ref": "@ad", "type": "android.widget.ImageView", "text": "", "label": "",
+               "coordinates": {"x": int(r.x + r.w / 2 - 60), "y": int(r.y + r.h / 2 - 40), "width": 120, "height": 80}}
+    image = chips.image.copy()
+    c = picture["coordinates"]
+    ImageDraw.Draw(image).rectangle((c["x"], c["y"], c["x"] + c["width"], c["y"] + c["height"]), fill=(250, 0, 200))
+    live = screens() | {"s01": Screen([*chips.elements, picture], image, chips.package)}
+    phone = phone_for(live, [("s01", chip, "s02")])
+
+    report = walk(phone)
+    refusal = next(s for s in report["setup"] if s["action"] == "filter")
+    assert "looks different from its recorded crop" in refusal["refused"], report["setup"]
+    assert taps(phone) == [] and "isn't verified after the launch" in report["stop"]
+
+
+def test_a_launch_ends_its_wait_on_the_launch_screen_when_the_flow_starts_elsewhere_rt_s_r4_l1(runs, walk):
+    """rt-s on #46 (LOW 1): a launch lands on the launch screen, never on a flow's start elsewhere, so waiting only
+    for the start's fingerprint spent LAUNCH_WAIT_S (30 s) on every such launch before the filter went back."""
+    filtered_tab_back_run(runs, flows=[[("s02", "s01", BACK)]])
+    live = live_with_the_switch_off()
+    phone = phone_for(live, [("s01", labeled(live["s01"], "Safe mode"), "on"), ("on", tab(live["on"], 1), "s02")],
+                      backs={"s02": "on"})
+
+    report = walk(phone)
+    assert report["flows"][0]["status"] == "matched", report["flows"][0]
+    assert phone.clock.t < qa_live.explore.LAUNCH_WAIT_S, phone.clock.t
+
+
+def test_a_filter_tap_that_moves_to_another_recorded_screen_is_where_the_walk_goes_on_rt_s_r4_l2(runs, walk):
+    """rt-s on #46 (LOW 2): explore re-roots on a filter whose tap moves to another screen. After the filter goes
+    back, the walker judges where the app is again, so the route to the flow's start leaves from that screen, not
+    from the unfiltered launch screen."""
+    filtered = safe_mode(capture("janitorai", "j13_home"), on=True)
+    recorded = screens() | {"s01": safe_mode(screens()["s01"], on=False), "s06": filtered}
+    source_run(runs, recorded, [line(1, "s06", "s02", TAP, tab(filtered, 1), "tab"),
+                                line(2, "s02", "s06", BACK, transition="back")],
+               [[("s06", "s02", TAP), ("s02", "s06", BACK)]], "Safe mode (on)", filter_controls=[SAFE_CONTROL],
+               filter_on=True)
+    live = screens() | {"s01": recorded["s01"], "s06": filtered}
+    phone = phone_for(live, [("s01", labeled(live["s01"], "Safe mode"), "s06"), ("s06", tab(filtered, 1), "s02")])
+
+    report = walk(phone)
+    assert [s.get("verified") for s in report["setup"] if s["action"] == "filter check"] == [True]
+    assert report["flows"][0]["status"] == "matched", report["flows"][0]
+
+
+@pytest.mark.parametrize("controls", [[], [SAFE_CONTROL.model_copy(update={"state": ""})]],
+                         ids=["no controls", "no screen they were on"])
+def test_a_run_that_recorded_a_filter_but_not_its_controls_is_refused_before_any_device_work(runs, walk, controls):
+    """A run explored before explore.json recorded the filter's controls, or the state each was recorded on (round
+    4), can't have its filter put back as explore puts it."""
+    recorded = screens()
+    tab_back_run(runs, recorded, "Limited Only", filter_controls=controls)
     phone = phone_for(screens(), [("s01", tab(recorded["s01"], 1), "s02")])
 
-    if content_filter:
-        with pytest.raises(SystemExit, match="the run recorded a content filter qa-live can't verify"):
-            walk(phone)
-        assert phone.log == [] and walk.held == [] and walk.servers == []
-    else:
-        assert walk(phone)["flows"][0]["status"] == "matched" and walk.held == ["held", "released"]
+    with pytest.raises(SystemExit, match=r"the run recorded a content filter \('Limited Only'\) but not its controls"):
+        walk(phone)
+    assert phone.log == [] and walk.held == [] and walk.servers == []
 
 
 def test_a_partial_qa_on_current_files_is_walked_and_says_so_and_an_undrawn_screen_is_left_out(runs, walk, tmp_path):

@@ -580,6 +580,18 @@ class StateFile(Strict):
             "later": later, "fingerprint": "", "dynamic_regions": []}
 
 
+class FilterControl(Strict):
+    """One control of the content filter explore applied, as it found it on screen, and the state it was recorded on.
+    qa-live re-finds it by its words (observe.find) after every launch, taps it only where it looks as in that state's
+    capture, and judges the filter as explore does (explore.filter_holds)."""
+    label: str
+    kind: str
+    rect: Rect
+    tree_label: str
+    ident: str = ""
+    state: str = ""  # empty in a run explored before it was recorded: qa-live refuses that run
+
+
 class ExploreFile(Strict):
     """explore/explore.json"""
     schema_version: int = SCHEMA_VERSION
@@ -588,6 +600,8 @@ class ExploreFile(Strict):
     budget: str
     relaunches: int
     content_filter: str | None
+    filter_controls: list[FilterControl] = []  # the filter's controls in tap order; empty for a run from before them
+    filter_on: bool | None = None  # the state a switch filter is kept in; None for a filter set by a tap
     blocked_state_ids: list[str]
     coverage: Coverage
     device: Device = Device()

@@ -112,6 +112,8 @@ GUEST = re.compile(r"^\W*(?:[\w'’]+\s+){0,3}?(?:as (?:a )?(?:guest|visitor)|gu
 AGREES = re.compile(r"\bagree|\baccept|\bconsent|\backnowledg|\bunderstand\b|\badult\b", re.IGNORECASE)
 ATTESTS = re.compile(r"\b\d+\s*\+|\b(?:over|at least|under) \d+|^\W*(?:yes|i|i['’]?m|i am)\b", re.IGNORECASE)
 LOG_IN = re.compile(r"\b(?:log|sign) ?in\b", re.IGNORECASE)
+# a log-in form offers to reset a forgotten password; a sign-up form has none to forget
+FORGOT = re.compile(r"\bforgot(?:ten)?\b.*\bpass ?word|\breset (?:your |my )?pass ?word", re.IGNORECASE)
 # a sign-in with another account (Google, Apple, ...) or a phone is a real person's, so it is never a way in
 OTHER_ACCOUNT = re.compile(r"\b(?:continue|sign ?(?:in|up)|log ?in|connect|register)\s+(?:with|using|via)\b"
                            r"(?!.*\be-?mail\b)", re.IGNORECASE)
@@ -642,6 +644,11 @@ def consents(c: Candidate, tapped: bool = True) -> bool:
     return (shaped(c) or toggle) and bool(AGREES.search(c.label) or attests)
 
 
+def asks_sign_in(c: Candidate) -> bool:
+    """A control that asks to sign in or up: log in, sign in or up, continue with, create an account, register."""
+    return shaped(c) and bool(SIGN_IN.search(c.label) or SIGN_UP_WAY.search(c.label))
+
+
 def account_way(c: Candidate) -> bool:
     """A control on the way in or past an account wall: sign in or up, email, create an account, go on as a guest."""
     return any(rule.search(c.label) for rule in (SIGN_IN, EMAIL_WAY, SIGN_UP_WAY, GUEST))
@@ -649,15 +656,23 @@ def account_way(c: Candidate) -> bool:
 
 def field_kind(e: dict, elements: list[dict]) -> str:
     """What a text box asks for ("email", "password", "phone", "name", or ""), from its own words and id and its
-    caption: the closest text above it, unless another text box sits between, which owns that text."""
+    caption: the closest text above it, unless another text box sits between, which owns that text. A caption over
+    boxes side by side is the caption of the one it lies over more than any other, and of none on a tie."""
     r = rect(e)
 
     def above(o: dict) -> bool:
         t = rect(o)
         return t.y + t.h <= r.y + 8 and t.x < r.x + r.w and r.x < t.x + t.w
+
+    def over(o: dict, box: dict) -> float:
+        t, b = rect(o), rect(box)
+        return min(t.x + t.w, b.x + b.w) - max(t.x, b.x)
+    row = [o for o in elements if o is not e and o["type"].endswith("EditText")
+           and rect(o).y < r.y + r.h and r.y < rect(o).y + rect(o).h]
     nearest = max((o for o in elements if (words(o) or o["type"].endswith("EditText")) and above(o)),
                   key=lambda o: rect(o).y + rect(o).h, default=None)
-    caption = words(nearest) if nearest and not nearest["type"].endswith("EditText") else ""
+    caption = words(nearest) if nearest and not nearest["type"].endswith("EditText") \
+        and all(over(nearest, e) > over(nearest, o) for o in row) else ""
     said = [words(e), ID_WORDS.sub(" ", short_id(e.get("identifier"))).strip(), caption]
     return next((kind for kind, rule in FIELDS.items() for text in said if text and rule.search(text)), "")
 
@@ -880,6 +895,14 @@ def feed_items(cands: list[Candidate], device: Device, exclude: set[str] = froze
     groups = [[c for c in big if key(c) == value] for key in keys for value in dict.fromkeys(map(key, big)) if value]
     best = max(groups, key=len, default=[])
     return best if len(best) >= 2 else []
+
+
+def feed_shaped(c: Candidate, items: list[Candidate], device: Device) -> bool:
+    """A control shaped like the feed's items (feed_items): their resource id, or their class and width, at their
+    size. A card in the feed, whatever its words, though feed_items leaves out one the deny-list hits."""
+    return area(c.rect) >= 0.02 * content_area(device) and any(
+        (c.ident and c.ident == i.ident) or (c.kind, bucket(c.rect.w, device)) == (i.kind, bucket(i.rect.w, device))
+        for i in items)
 
 
 def short_buttons(cands: list[Candidate], device: Device, exclude: set[str] = frozenset(),

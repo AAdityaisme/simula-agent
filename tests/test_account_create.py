@@ -309,8 +309,11 @@ def form_with(*extra: dict, without: str = "") -> list[dict]:
     (sign_up_app(after_way=[{**e, "text": "owner.real@gmail.com"} if e["ref"] == "@f1" else e for e in FORM]),
      "a box on s02 shows a value already"),
     (other_app, "the way in left the app (com.google.android.gms)"),
+    (sign_up_app(after_way=[{**e, "coordinates": {**e["coordinates"], "width": 440}} if e["ref"] == "@f1" else e
+                            for e in form_with(el("@f1b", "EditText", "", 500, x=550, w=440))]),
+     "s02 has a box that is not the email, the password or the name"),
 ], ids=["another account", "phone way", "phone box", "captcha", "payment rt-f6a", "consent rt-f3", "unknown box",
-        "pre-filled rt-f2", "another app rt-f7"])
+        "pre-filled rt-f2", "another app rt-f7", "one caption over two boxes greptile-40"])
 def test_what_it_is_not_sure_of_stops_it_at_the_wall_before_anything_is_typed(tmp_path, monkeypatch, identity, app,
                                                                                 reason):
     phones = []
@@ -327,7 +330,8 @@ def test_what_it_is_not_sure_of_stops_it_at_the_wall_before_anything_is_typed(tm
      el("@ok", "Button", "OK", 1700)],
     [el("@o0", "TextView", "Create your first character", 200), el("@o1", "TextView", "Character name", 420, h=60),
      el("@o2", "EditText", "", 500), el("@o3", "Button", "Create", 1700)],
-], ids=["an error rt-f8", "an onboarding form rt-f11"])
+    [*HOME, el("@ca", "Button", "Create account", 1600, w=400)],
+], ids=["an error rt-f8", "an onboarding form rt-f11", "the app still offering create account greptile-43"])
 def test_after_the_form_only_the_app_itself_counts_as_signed_up_and_nothing_more_is_typed(tmp_path, monkeypatch,
                                                                                          identity, after):
     phones = []
@@ -371,6 +375,65 @@ def test_a_wall_the_tour_opens_is_met_like_a_launch_wall(tmp_path, monkeypatch, 
     stage.run_tour(ex)
     assert phone.typed[:3] == [EMAIL, PASSWORD, NAME] and ex.account_state == "made"
     assert ex.root.sid == "s01" and ex.account[0].startswith("s02: signed up with the test identity"), ex.account
+
+
+def test_a_send_that_lands_on_a_screen_seen_before_the_wall_is_no_account_greptile_41(tmp_path, monkeypatch, identity):
+    """Greptile on #41 (item 41): the guest app's home has tabs and no sign-in control, so a send that came back to it
+    counted as an account made, and every later wall was skipped."""
+    def app(clock):
+        phone = sign_up_app()(clock)
+        phone.start, phone.taps[("home", "Characters")] = "home", "wall"
+        phone.taps[("form", "Create account")] = "home"
+        return phone
+    ex, phone = new_explorer(tmp_path, monkeypatch, app, allow_account_create=True)
+    stage.run_tour(ex)
+    assert phone.typed[:3] == [EMAIL, PASSWORD, NAME] and ex.account_state == "sent"
+    assert ex.account[0] == "s02: stopped at the wall, the form was sent, but it came back to s01, seen before the wall"
+
+
+@pytest.mark.parametrize("avatar", [False, True], ids=["same pixels", "avatar drawn"])
+def test_a_signed_in_home_that_kept_the_guest_homes_layout_is_an_account_rt_s_m1(tmp_path, monkeypatch, identity,
+                                                                                avatar):
+    """rt-s on #46 (MEDIUM 1): the guest home's "Log in" pill turns into a "Profile" button of its size, so the landing
+    fingerprints as the guest home. That home asked for a sign-in and the landing doesn't: an account was made."""
+    guest = screen(4, *HOME, el("@li", "Button", "Log in", 200, x=820, w=200, h=90))
+    image = guest.image.copy()
+    if avatar:
+        ImageDraw.Draw(image).ellipse((875, 200, 965, 290), fill=(30, 30, 30))
+    signed = Screen([*HOME, el("@me", "Button", "Profile", 200, x=820, w=200, h=90)], image, guest.package)
+
+    def app(clock):
+        phone = sign_up_app()(clock)
+        phone.screens["home"], phone.screens["signed"] = guest, signed
+        phone.start, phone.taps[("home", "Characters")] = "home", "wall"
+        phone.taps[("form", "Create account")], phone.remember = "signed", set()
+        return phone
+    ex, phone = new_explorer(tmp_path, monkeypatch, app, allow_account_create=True)
+    stage.run_tour(ex)
+    assert phone.typed[:3] == [EMAIL, PASSWORD, NAME] and ex.account_state == "made"
+    assert ex.account[0] == "s02: signed up with the test identity, now on s01", ex.account
+
+
+def test_a_guest_home_whose_sign_up_card_rotated_away_is_no_account_rt_s_r3_l1(tmp_path, monkeypatch, identity):
+    """rt-s on #46 (LOW 1): the guest home's feed carried a "Sign up" card shaped like its items. A send that made no
+    account came back to that home with the card rotated out, and its "ask" counted as gone. A card shaped like the
+    feed's items asks nothing."""
+    def home(*cards: str) -> Screen:
+        return screen(4, el("@h0", "TextView", "Discover", 200), el("@go", "Button", "Characters", 450, h=100),
+                      *(el(f"@card{n}", "Button", label, 600 + 260 * n, h=220) for n, label in enumerate(cards)),
+                      *(e for e in HOME if e["ref"].startswith("@tab")))
+
+    def app(clock):
+        phone = sign_up_app()(clock)
+        phone.screens["home"] = home("Character one", "Sign up", "Character two", "Character three")
+        phone.screens["after"] = home("Character one", "Character four", "Character two", "Character three")
+        phone.start, phone.taps[("home", "Characters")] = "home", "wall"
+        phone.taps[("form", "Create account")], phone.remember = "after", set()
+        return phone
+    ex, phone = new_explorer(tmp_path, monkeypatch, app, allow_account_create=True)
+    stage.run_tour(ex)
+    assert phone.typed[:3] == [EMAIL, PASSWORD, NAME] and ex.account_state == "sent"
+    assert ex.account[0].endswith("seen before the wall"), ex.account
 
 
 GUEST_HOME = [el("@g0", "TextView", "Discover AI characters", 200, w=700),
@@ -478,6 +541,15 @@ def test_the_sign_up_words_are_lifted_on_the_sign_up_path_only():
     assert ob.denied(control("I accept the terms and the privacy policy", "CheckBox"), account=True) == "consent"
 
 
+def test_an_icon_only_close_reads_the_deny_words_it_read_before_rt_s_l1():
+    """rt-s on #46 (LOW 1): item 43's wall words reached denied(), so with the flag off an X whose id names "create
+    account" became tappable. A control's deny words are as they were."""
+    def close(ident: str) -> ob.Candidate:
+        return ob.Candidate(f"Close {ident}", "ImageButton", Rect(x=950, y=200, w=90, h=90), "@x", "", ident=ident)
+    assert [ob.denied(close(i)) for i in ("createAccountClose", "register_dismiss", "login_close")] == \
+        ["create account", None, None]
+
+
 def test_guest_words_are_a_whole_label():
     ways = ("Continue as guest", "Continue as a guest", "Continue without an account", "Skip", "Skip for now",
             "Not now", "Maybe later", "Guest mode")
@@ -503,6 +575,16 @@ def test_a_box_is_named_by_its_own_words_or_its_caption():
     assert ob.field_kind(by_id, [by_id]) == "password"
     below = [el("@c", "TextView", "Email", 420, h=60), el("@a", "EditText", "", 500), el("@b", "EditText", "", 700)]
     assert ob.field_kind(below[2], below) == ""
+
+
+def test_a_caption_over_boxes_side_by_side_names_only_the_box_it_lies_over_most_greptile_40():
+    """Greptile on #41 (item 40): a wide "Email" caption over two boxes side by side named both, so the test email
+    could go into the second one."""
+    def kinds(caption: dict) -> list[str]:
+        row = [caption, el("@a", "EditText", "", 500, w=440), el("@b", "EditText", "", 500, x=550, w=440)]
+        return [ob.field_kind(e, row) for e in row[1:]]
+    assert kinds(el("@c", "TextView", "Email", 420, h=60)) == ["", ""]
+    assert kinds(el("@c", "TextView", "Email", 420, w=600, h=60)) == ["email", ""]
 
 
 ATTESTED = ("I'm 18+, continue", "Yes, I'm over 18 - Next", "I understand, continue", "Acknowledge and continue",
@@ -597,6 +679,46 @@ def test_a_log_in_form_is_never_filled_and_its_sign_up_link_is_taken_rt_r2_5(tmp
     assert phone.values == {("form", "@f1"): EMAIL, ("form", "@f2"): PASSWORD, ("form", "@f3"): NAME}
     assert taps(phone)[0] == "Sign up" and "Log in" not in taps(phone)
     assert ex.account_state == "made" and ex.account[-1].startswith("s01: signed up with the test identity")
+
+
+def test_a_log_in_form_whose_button_only_continues_is_never_filled_greptile_43(tmp_path, monkeypatch, identity):
+    """Greptile on #37 (item 43): only a log-in button told a log-in form apart, so one whose button says "Continue"
+    got the test identity. Offering to reset a forgotten password makes it a log-in form too."""
+    log_in = [*LOG_IN_FORM[:5], el("@go", "Button", "Continue", 1100),
+              el("@fp", "Button", "Forgot password?", 1300, w=400, h=80), EMAIL_WAY]  # no whole-label "Sign up": FORGOT
+    ex, phone = launched(tmp_path, monkeypatch, sign_up_app(wall=log_in))  # alone marks it (rt-s on #46, LOW 2)
+    assert phone.values == {("form", "@f1"): EMAIL, ("form", "@f2"): PASSWORD, ("form", "@f3"): NAME}
+    assert taps(phone)[0] == "Sign up with email" and "Continue" not in taps(phone) and ex.account_state == "made"
+
+
+@pytest.mark.parametrize("button, extra", [("Continue", []), ("Next", []),
+                                           ("Continue", [el("@cs", "Button", "Can't sign in?", 1300, w=400, h=80)])],
+                         ids=["continue", "next", "can't sign in"])
+def test_a_log_in_form_that_offers_a_way_to_sign_up_is_never_filled_rt_s_m2(tmp_path, monkeypatch, identity, button,
+                                                                           extra):
+    """rt-s on #46 (MEDIUM 2): a log-in form whose button only goes on and that offers no password reset still got
+    the test identity. A sign-up form offers no way to sign up, being one; a log-in form does, under its boxes."""
+    log_in = [*LOG_IN_FORM[:5], el("@go", "Button", button, 1100), *extra, el("@su", "Button", "Sign up", 1700)]
+
+    def app(clock):
+        phone = sign_up_app(wall=log_in)(clock)
+        phone.taps[("wall", "Sign up")] = "form"
+        return phone
+    ex, phone = launched(tmp_path, monkeypatch, app)
+    assert phone.values == {("form", "@f1"): EMAIL, ("form", "@f2"): PASSWORD, ("form", "@f3"): NAME}
+    assert taps(phone)[0] == "Sign up" and button not in taps(phone) and ex.account_state == "made"
+
+
+@pytest.mark.parametrize("label", ["Create account", "Register"])
+def test_a_wall_that_only_asks_to_create_an_account_is_a_wall_greptile_43(tmp_path, monkeypatch, identity, label):
+    """Greptile on #37 (item 43): a wall was recognized by sign-in words only, so one offering nothing but "Create
+    account" or "Register" was explored as a screen."""
+    def app(clock):
+        phone = sign_up_app(wall=[TITLE, el("@ca", "Button", label, 1500)])(clock)
+        phone.taps[("wall", label)] = "form"
+        return phone
+    ex, phone = launched(tmp_path, monkeypatch, app)
+    assert taps(phone)[0] == label and phone.typed == [EMAIL, PASSWORD, NAME] and ex.account_state == "made"
 
 
 def test_name_parts_are_redacted_as_whole_words_only_rt_r2_6():
