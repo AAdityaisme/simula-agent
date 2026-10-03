@@ -531,6 +531,8 @@ def swap_captures(run_dir: Path, a: str, b: str) -> None:
     ("model", r"model/product_model.json changed since QA approved the mock: rerun `simula qa janitorai`"),
     ("contract", r"mock/contract_report.json changed since QA approved the mock: rerun `simula qa janitorai`"),
     ("page", r"qa/approved/index.html changed since QA approved the mock: rerun `simula qa janitorai`"),
+    ("asset", r"qa/approved/assets/page.css changed since QA approved the mock: rerun `simula qa janitorai`"),
+    ("new asset", r"qa/approved/assets/added.png changed since QA approved the mock: rerun `simula qa janitorai`"),
     ("explore", r"explore changed since the model was built \(explore/states/s01.elements.json, .* and 3 more\): "
                 r"rerun `simula run janitorai --run r1 --from model`"),
     ("no-marker", r"QA never finished on r1: run `simula run janitorai --run r1`"),
@@ -551,6 +553,13 @@ def test_an_approved_mock_older_than_the_files_it_was_made_from_is_refused_befor
     elif stale == "page":
         page = run_dir / "qa" / "approved" / "index.html"
         page.write_text(page.read_text() + "<!-- edited after approval -->")
+    elif stale == "asset":  # Greptile on #42 (item 45): the page's own files can change after QA too
+        css = run_dir / "qa" / "approved" / "assets" / "page.css"
+        css.write_text("body { color: black }")
+        approve(run_dir)
+        css.write_text("body { color: red }")
+    elif stale == "new asset":
+        (run_dir / "qa" / "approved" / "assets" / "added.png").write_bytes(b"not approved")
     elif stale == "explore":
         swap_captures(run_dir, "s01", "s02")
     else:

@@ -127,26 +127,31 @@ def run(app: str, run_id: str | None, out: Path, serial: str | None, clock=time.
 
 def approved_outcome(src: Path, app: str) -> StageOutcome:
     """QA's outcome for the approved page, once the stages' own markers show it was approved from the files on disk
-    now: QA's hashes for the model, the mock's contract report and the page, and the model's for the explore captures
-    the walker reads. A model, mock or explore rerun alone leaves qa/ as it was, so any changed hash refuses, naming
+    now: QA's hashes for the model, the mock's contract report and every file of the page (its images and styles too,
+    none added since), and the model's for the explore captures the walker reads. A model, mock or explore rerun alone leaves qa/ as it was, so any changed hash refuses, naming
     what changed. A partial QA is walked: its reasons go in the report."""
     qa_marker, model_marker = runfolder.read_done(src / "qa"), runfolder.read_done(src / "model")
     if qa_marker is None or model_marker is None:
         raise SystemExit(f"{'QA' if qa_marker is None else 'the model stage'} never finished on {src.name}: "
                          f"run `simula run {app} --run {src.name}`")
     recorded = {h.path: h.sha256 for h in [*qa_marker.input_hashes, *qa_marker.output_hashes]}
-    changed = [path for path in INPUTS
+    page = {path for path in recorded if path.startswith("qa/approved/")}
+    page |= {h.path for h in runfolder.hashes([src / "qa" / "approved"], src)}
+    changed = [path for path in dict.fromkeys([*INPUTS, *sorted(page)])
                if not (src / path).exists() or recorded.get(path) != runfolder.sha256(src / path)]
     if changed:
-        raise SystemExit(f"{', '.join(changed)} changed since QA approved the mock: rerun `simula qa {app}`")
+        raise SystemExit(f"{listed(changed)} changed since QA approved the mock: rerun `simula qa {app}`")
     built_on = {h.path: h.sha256 for h in model_marker.input_hashes if h.path.startswith("explore/")}
     captured = {h.path: h.sha256 for h in runfolder.hashes([src / "explore"], src)}
     moved = sorted(path for path in built_on.keys() | captured.keys() if built_on.get(path) != captured.get(path))
     if moved:
-        shown = ", ".join(moved[:3]) + (f" and {len(moved) - 3} more" if len(moved) > 3 else "")
-        raise SystemExit(f"explore changed since the model was built ({shown}): rerun "
+        raise SystemExit(f"explore changed since the model was built ({listed(moved)}): rerun "
                          f"`simula run {app} --run {src.name} --from model`")
     return qa_marker.outcome
+
+
+def listed(paths: list[str]) -> str:
+    return ", ".join(paths[:3]) + (f" and {len(paths) - 3} more" if len(paths) > 3 else "")
 
 
 def scroll_backs(run_dir: Path, edges: list[Edge]) -> set[str]:
