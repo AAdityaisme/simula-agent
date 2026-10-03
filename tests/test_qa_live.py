@@ -16,8 +16,8 @@ import pytest
 from PIL import Image, ImageDraw
 
 from simula import cli, decide, llm, qa_live, runfolder, runlog
-from simula.contracts import (ActionLine, ContractError, ContractReport, Coverage, Device, ExploreFile, Flow, Point,
-                              ProductModel, Provenance, StageOutcome, StateFile)
+from simula.contracts import (ActionLine, ContractError, ContractReport, Coverage, Device, ExploreFile, FilterControl,
+                              Flow, Point, ProductModel, Provenance, Rect, StageOutcome, StateFile)
 from simula.device import mcp
 from simula.device import observe as ob
 from simula.stages import model as model_stage
@@ -58,7 +58,8 @@ def line(step: int, src: str, to: str, action: str, cand: ob.Candidate | None = 
 
 
 def source_run(runs: Path, recorded: dict[str, Screen], lines: list[ActionLine],
-               flows: list[list[tuple[str, str, str]]], content_filter: str | None = None) -> Path:
+               flows: list[list[tuple[str, str, str]]], content_filter: str | None = None,
+               filter_controls: list[FilterControl] = (), filter_on: bool | None = None) -> Path:
     """A run folder built the way explore and the model stage build one: explore/states and actions.jsonl from
     captures, the product model's code facts with every state in scope and one flow per list of (from, to, action)
     hops, and an approved mock the offline builder drew."""
@@ -80,7 +81,8 @@ def source_run(runs: Path, recorded: dict[str, Screen], lines: list[ActionLine],
                         checklist_open=[])
     (explore_dir / "explore.json").write_text(ExploreFile(
         app_package=PACKAGE, app_version="1", budget="transfer", relaunches=0, content_filter=content_filter,
-        blocked_state_ids=[], coverage=coverage).model_dump_json())
+        filter_controls=list(filter_controls), filter_on=filter_on, blocked_state_ids=[],
+        coverage=coverage).model_dump_json())
     states, images, _ = model_stage.load_states(explore_dir, DEVICE)
     edges, _ = model_stage.load_edges(explore_dir, states)
     ids, tapped = [s.id for s in states], {e.element_id for e in edges if e.element_id}
@@ -175,11 +177,11 @@ def taps(phone: FakePhone) -> list[tuple]:
     return [entry for entry in phone.log if entry[0] == "tap"]
 
 
-def tab_back_run(runs: Path, recorded: dict[str, Screen], content_filter: str | None = None) -> Path:
+def tab_back_run(runs: Path, recorded: dict[str, Screen], content_filter: str | None = None, **filter_) -> Path:
     """One flow: tap s01's second tab to s02, then BACK to s01."""
     return source_run(runs, recorded, [line(1, "s01", "s02", TAP, tab(recorded["s01"], 1), "tab"),
                                        line(2, "s02", "s01", BACK, transition="back")],
-                      [[("s01", "s02", TAP), ("s02", "s01", BACK)]], content_filter)
+                      [[("s01", "s02", TAP), ("s02", "s01", BACK)]], content_filter, **filter_)
 
 
 def test_a_tap_and_back_flow_is_walked_on_both_sides_with_a_redacted_paired_checkpoint_per_hop(runs, walk, tmp_path,
@@ -571,20 +573,51 @@ def test_an_approved_mock_older_than_the_files_it_was_made_from_is_refused_befor
     assert phone.log == [] and walk.held == []
 
 
-@pytest.mark.parametrize("content_filter", ["Limited Only", None], ids=["filter", "none"])
-def test_a_run_whose_explore_applied_a_content_filter_is_refused_before_any_device_work(runs, walk, content_filter):
-    """The walker force-stops and launches the app and can't verify a content filter after a launch, so a run whose
-    explore applied one is refused before the lock, the server or any device call. A run without one walks as before."""
+SAFE = {"ref": "@safe", "type": "android.widget.Switch", "text": "Safe mode",
+        "coordinates": {"x": 700, "y": 1400, "width": 300, "height": 100}}
+SAFE_CONTROL = FilterControl(label="Safe mode", kind="Switch", rect=Rect(x=700, y=1400, w=300, h=100),
+                             tree_label="Safe mode")
+
+
+def safe_mode(screen: Screen, on: bool) -> Screen:
+    """The screen with the run's content filter, a "Safe mode" switch, on or off."""
+    return with_extra(screen, {**SAFE, "checked": True} if on else SAFE)
+
+
+@pytest.mark.parametrize("comes_on", [True, False], ids=["put back", "won't come on"])
+def test_a_filtered_run_is_walked_only_once_each_launch_put_the_filter_back(runs, walk, comes_on):
+    """Spec item 3: every launch can leave the app unfiltered, so after each one the walker puts the run's filter back
+    as explore does and judges it with explore's own check (explore.filter_holds). One that won't come on ends the
+    audit before any flow's tap."""
     recorded = screens()
-    tab_back_run(runs, recorded, content_filter)
+    recorded["s01"] = safe_mode(recorded["s01"], on=True)
+    tab_back_run(runs, recorded, "Safe mode (on)", filter_controls=[SAFE_CONTROL], filter_on=True)
+    live = screens()
+    live["s01"], live["on"] = safe_mode(live["s01"], on=False), safe_mode(live["s01"], on=True)
+    phone = phone_for(live, [("s01", labeled(live["s01"], "Safe mode"), "on" if comes_on else "s01"),
+                             ("on", tab(live["on"], 1), "s02")])
+
+    report = walk(phone)
+    setup = [s["action"] for s in report["setup"]]
+    assert setup[:4] == ["terminate", "launch", "filter", "filter check"], report["setup"]
+    assert report["setup"][3]["verified"] is comes_on
+    if comes_on:
+        assert report["flows"][0]["status"] == "matched" and report["stop"] is None, report["flows"][0]
+    else:
+        assert report["stop"] == ("the content filter (Safe mode (on)) isn't verified after the launch: nothing is "
+                                  "walked without it")
+        assert report["flows"][0]["status"] == "blocked" and taps(phone) == [taps(phone)[0]]
+
+
+def test_a_run_that_recorded_a_filter_but_not_its_controls_is_refused_before_any_device_work(runs, walk):
+    """A run explored before explore.json recorded the filter's controls can't have its filter put back."""
+    recorded = screens()
+    tab_back_run(runs, recorded, "Limited Only")
     phone = phone_for(screens(), [("s01", tab(recorded["s01"], 1), "s02")])
 
-    if content_filter:
-        with pytest.raises(SystemExit, match="the run recorded a content filter qa-live can't verify"):
-            walk(phone)
-        assert phone.log == [] and walk.held == [] and walk.servers == []
-    else:
-        assert walk(phone)["flows"][0]["status"] == "matched" and walk.held == ["held", "released"]
+    with pytest.raises(SystemExit, match=r"the run recorded a content filter \('Limited Only'\) but not its controls"):
+        walk(phone)
+    assert phone.log == [] and walk.held == [] and walk.servers == []
 
 
 def test_a_partial_qa_on_current_files_is_walked_and_says_so_and_an_undrawn_screen_is_left_out(runs, walk, tmp_path):

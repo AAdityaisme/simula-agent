@@ -15,7 +15,8 @@ from pathlib import Path
 from PIL import Image
 
 from simula import config, qa_metrics, render, runfolder
-from simula.contracts import SCHEMA_VERSION, Device, Edge, ExploreFile, ProductModel, Rect, StageOutcome, StateFile
+from simula.contracts import (SCHEMA_VERSION, Device, Edge, ExploreFile, FilterControl, ProductModel, Rect,
+                              StageOutcome, StateFile)
 from simula.device import observe as ob
 from simula.device.devices import emulator_lock, resolve_serial
 from simula.device.mcp import McpReplyError, McpTimeout, Phone, Server, parse_elements
@@ -87,11 +88,10 @@ def run(app: str, run_id: str | None, out: Path, serial: str | None, clock=time.
     if not (src / "qa" / "approved" / "index.html").exists():
         raise SystemExit(f"{src} has no approved mock: run `simula qa {app}` first")
     approval = approved_outcome(src, app)
-    # every launch can leave the app unfiltered, and no shared check yet tells a filter that holds from one that doesn't
-    applied = ExploreFile.model_validate_json((src / "explore" / "explore.json").read_text()).content_filter
-    if applied:
-        raise SystemExit(f"the run recorded a content filter qa-live can't verify ({applied!r}): it walks no run with "
-                         f"one until a shared filter check lands")
+    explored = ExploreFile.model_validate_json((src / "explore" / "explore.json").read_text())
+    if explored.content_filter and not explored.filter_controls:
+        raise SystemExit(f"the run recorded a content filter ({explored.content_filter!r}) but not its controls, which "
+                         f"qa-live puts back and checks after every launch: explore the app again")
     model = ProductModel.model_validate_json((src / "model" / "product_model.json").read_text())
     if model.device != Device():
         raise SystemExit(f"the run was explored on {model.device}, but the mock renders and compares on {Device()}")
@@ -106,7 +106,8 @@ def run(app: str, run_id: str | None, out: Path, serial: str | None, clock=time.
             found = live_device(phone, resolved)
             if found != model.device:
                 raise SystemExit(f"the device is {found}, but the run was explored on {model.device}")
-            audit = Audit(ctx, model, phone, out, secrets, parts, clock, sleep)
+            audit = Audit(ctx, model, phone, out, secrets, parts, clock, sleep, explored.filter_controls,
+                          explored.filter_on)
             with render.open_mock(src / "qa" / "approved") as (page, _):
                 flows, stop = audit.walk(page)
         report = {"schema_version": SCHEMA_VERSION, "app": app, "run": src.name, "created_at": now(),
@@ -223,7 +224,7 @@ class Audit:
     """One walk over a run's flows. `current` is the recorded state the live app is known to show, or None."""
 
     def __init__(self, ctx: Ctx, model: ProductModel, phone, out: Path, secrets: list[str], parts: list[str], clock,
-                 sleep):
+                 sleep, filter_controls: list[FilterControl] = (), filter_on: bool | None = None):
         self.ctx, self.model, self.phone, self.out, self.secrets, self.parts = ctx, model, phone, out, secrets, parts
         self.clock, self.sleep, self.started = clock, sleep, clock()
         self.device, self.package, self.scratch = model.device, ctx.app["package"], out / ".scratch"
@@ -241,6 +242,10 @@ class Audit:
         self.live: Live | None = None
         self.verdict: dict = {}
         self.launched = False  # whether self.live is a launch's landing
+        # explore's content filter, put back and checked after every launch as explore does (explore.filter_holds)
+        self.filter = [ob.Candidate(c.label, c.kind, c.rect, f"filter{n}", c.tree_label, c.ident)
+                       for n, c in enumerate(filter_controls)]
+        self.filter_on, self.opener_says = filter_on, ""
 
     # ---------- the flows ----------
 
@@ -380,30 +385,57 @@ class Audit:
             except DEVICE_ERRORS as e:
                 raise Stopped(f"the device failed to {name} the app ({type(e).__name__}); not retried") from None
             self.setup.append({"flow": self.flow, "action": name})
+        landing = self.setup[-1]
         try:
             self.live = self.wait_for_launch(want)
         except DEVICE_ERRORS as e:
             raise Stopped(f"the device failed after the launch ({type(e).__name__}); not launched again") from None
         self.verdict = self.match_state(self.live, want, launched=True)
         self.current, self.launched = self.verdict["landed"], True
-        self.setup[-1].update(self.verdict)
+        landing.update(self.verdict)
 
     def wait_for_launch(self, want: str) -> Live:
         """Looks as explore waits for a relaunch (Explorer.wait_for_app): up to SPLASH_WAIT_S for a launch screen, then
         up to LAUNCH_WAIT_S for want's fingerprint or a dialog, since a feed can sit on loading placeholders for many
-        seconds. Before the splash deadline, a dump that fails is only "not yet"."""
+        seconds. Before the splash deadline, a dump that fails is only "not yet". The content filter is put back in
+        between (refilter): want is a screen explore recorded with it."""
         splash = self.clock() + explore.SPLASH_WAIT_S
         live = self.look_once(splash)
         while live is None or not (live.fg == self.package and launchable(live, self.device)) \
                 and self.clock() < splash:
             self.sleep(1.5)
             live = self.look_once(splash)
+        if self.filter:
+            self.live = live
+            live = self.refilter()
         deadline = self.clock() + explore.LAUNCH_WAIT_S
         while (live.fg == self.package and not ob.same_state(self.fps[want], live.fp)
                and not ob.dialog_box(live.cands, self.device) and self.clock() < deadline):
             self.sleep(1.5)
             live = self.look_once(splash) or live
         return live
+
+    def refilter(self) -> Live:
+        """Puts the run's content filter back after a launch as explore does (Explorer.apply_filter): its controls
+        are tapped in order, each only where the screen shows it and no deny word or overlay is at its tap point, until
+        the last one needs no tap; then the filter is judged as explore judges it (explore.filter_holds). Every launch
+        can leave the app unfiltered, so an unverified filter ends the audit: nothing is walked without it."""
+        for n, tap in enumerate(self.filter):
+            if explore.filter_set(n, self.filter, self.filter_on, self.live.cands, self.live.image):
+                break
+            live = ob.find(self.live.cands, tap)
+            if live is None or ob.denied_at(live, self.live.elements, self.device, toggle_ok=True):
+                break
+            self.mutate(self.phone.tap, *live.point)
+            self.setup.append({"flow": self.flow, "action": "filter", "control": tap.label})
+            self.live = self.capture()
+        ok, self.opener_says = explore.filter_holds(self.filter, self.filter_on, self.live.cands, self.live.image,
+                                                    self.opener_says)
+        self.setup.append({"flow": self.flow, "action": "filter check", "verified": ok})
+        if not ok:
+            raise Stopped(f"the content filter ({explore.filter_label(self.filter, self.filter_on)}) isn't verified "
+                          f"after the launch: nothing is walked without it")
+        return self.live
 
     def look_once(self, deadline: float) -> Live | None:
         self.in_time()
