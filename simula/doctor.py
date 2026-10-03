@@ -12,7 +12,7 @@ from simula.checkout import mobile_mcp_version, package_version, untracked_input
 from simula.config import ROOT
 from simula.device.devices import adb, emulator_lock, online
 
-EXPECTED = {"mobile-mcp": "1.0.5", "mcp": "2.2.0"}
+EXPECTED = {"mobile-mcp": "1.0.8", "mcp": "2.2.0"}
 results: list[tuple[str, bool, str]] = []
 
 

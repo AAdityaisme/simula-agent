@@ -3,6 +3,6 @@
   "private": true,
   "description": "Pinned mobile-mcp server used by the explorer",
   "dependencies": {
-    "@mobilenext/mobile-mcp": "1.0.5"
+    "@mobilenext/mobile-mcp": "1.0.8"
   }
 }
