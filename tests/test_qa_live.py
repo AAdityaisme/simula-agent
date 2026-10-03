@@ -787,6 +787,24 @@ def test_a_launch_ends_its_wait_on_the_launch_screen_when_the_flow_starts_elsewh
     assert phone.clock.t < qa_live.explore.LAUNCH_WAIT_S, phone.clock.t
 
 
+def test_a_filter_tap_that_moves_to_another_recorded_screen_is_where_the_walk_goes_on_rt_s_r4_l2(runs, walk):
+    """rt-s on #46 (LOW 2): explore re-roots on a filter whose tap moves to another screen. After the filter goes
+    back, the walker judges where the app is again, so the route to the flow's start leaves from that screen, not
+    from the unfiltered launch screen."""
+    filtered = safe_mode(capture("janitorai", "j13_home"), on=True)
+    recorded = screens() | {"s01": safe_mode(screens()["s01"], on=False), "s06": filtered}
+    source_run(runs, recorded, [line(1, "s06", "s02", TAP, tab(filtered, 1), "tab"),
+                                line(2, "s02", "s06", BACK, transition="back")],
+               [[("s06", "s02", TAP), ("s02", "s06", BACK)]], "Safe mode (on)", filter_controls=[SAFE_CONTROL],
+               filter_on=True)
+    live = screens() | {"s01": recorded["s01"], "s06": filtered}
+    phone = phone_for(live, [("s01", labeled(live["s01"], "Safe mode"), "s06"), ("s06", tab(filtered, 1), "s02")])
+
+    report = walk(phone)
+    assert [s.get("verified") for s in report["setup"] if s["action"] == "filter check"] == [True]
+    assert report["flows"][0]["status"] == "matched", report["flows"][0]
+
+
 @pytest.mark.parametrize("controls", [[], [SAFE_CONTROL.model_copy(update={"state": ""})]],
                          ids=["no controls", "no screen they were on"])
 def test_a_run_that_recorded_a_filter_but_not_its_controls_is_refused_before_any_device_work(runs, walk, controls):
