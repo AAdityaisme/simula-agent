@@ -2,13 +2,18 @@
 word list refuses account, public, social, purchase and (outside the core loop) send taps, also at the tap point and
 on a dialog's confirm, and the agent types only the fixed neutral texts."""
 
+import json
+from pathlib import Path
+
 import pytest
 
 from simula.device import guard
+from simula.device.mcp import parse_elements
 from simula.stages.explore import CORE_MESSAGES, SEARCH_QUERIES
 from tests.fake_device import capture
 from tests.test_invariants import APP_WORDS
 
+CHAT = Path(__file__).parent / "fixtures" / "arrival" / "janitorai" / "20260928-095854-s21.elements.json"
 
 def shown(words: str, y: int, x: int = 42, w: int = 996, h: int = 100) -> dict:
     return {"ref": f"@{y}", "type": "android.widget.TextView", "text": words,
@@ -113,6 +118,42 @@ def test_a_confirm_on_a_dialog_that_names_a_blocked_action_is_refused(title, com
     button = shown(commit, 800, w=300)
     assert guard.blocked_tap(button) is None
     assert guard.blocked_tap(button, [shown(title, 400), button]).startswith(commit.lower())
+
+
+@pytest.mark.parametrize("glyph,ident", [("↑", "btn_post"), ("↗", "button_share"),
+                                         ("♥", "creationDetailLike"), ("2K", "creationDetailLike"),
+                                         ("➤", "button_send")])
+def test_an_icons_glyph_or_count_never_hides_its_id(glyph, ident):
+    icon = {**shown(glyph, 300, w=84, h=84), "identifier": f"com.example.app:id/{ident}"}
+    assert guard.blocked_tap(icon, [icon])
+
+
+@pytest.mark.parametrize("title", ["Delete your app’s account", "Remove this app's account",
+                                   "Delete your Example App account"])
+def test_a_possessive_or_a_products_name_before_the_account_still_names_its_deletion(title):
+    confirm = shown("Confirm", 800, w=300)
+    assert guard.blocked_tap(shown(title, 400)) and guard.blocked_tap(confirm, [shown(title, 400), confirm])
+
+
+def test_whitespace_text_never_hides_a_label_from_the_screens_checks():
+    title, confirm = {**shown(" ", 400), "label": "Delete account"}, shown("Confirm", 800, w=300)
+    assert guard.blocked_tap(confirm, [title, confirm]) == "confirm (delete account on the screen)"
+    row, name = {**shown(" ", 1000, h=200), "label": "Share"}, shown("Author", 1050, w=200)
+    assert guard.blocked_tap(name, [row, name]) == "share (at the tap point)"
+
+
+def test_the_core_loops_send_on_a_real_chat_is_not_blocked_by_the_storys_container_around_it():
+    chat = parse_elements(json.loads(CHAT.read_text()))
+    send = next(e for e in chat if e["ref"] == "@e48")
+    assert guard.blocked_tap(send, chat, core=True) is None
+
+
+def test_prose_is_no_like_button_and_a_long_text_never_blocks_a_tap_inside_it():
+    bubble, copy = shown("what would you like to know", 600, h=300), shown("Copy", 700, w=200)
+    assert guard.blocked_tap(bubble, [bubble]) is None and guard.blocked_tap(copy, [bubble, copy]) is None
+    assert guard.blocked_tap({"text": "Characters like this one show up here"}) is None
+    story = shown("She said she would delete my account if I ever told anyone the secret", 600, h=900)
+    assert guard.blocked_tap(story) and guard.blocked_tap(copy, [story, copy]) is None
 
 
 def test_saving_next_to_a_sign_out_row_and_deleting_a_chat_stay_allowed():
