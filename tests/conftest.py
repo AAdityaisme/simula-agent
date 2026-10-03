@@ -1,6 +1,9 @@
 import contextlib
 import json
 import os
+import statistics
+from collections import Counter
+from itertools import chain
 from pathlib import Path
 
 import pytest
@@ -10,21 +13,51 @@ from simula.stages import explore
 
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = ROOT / "tests" / "fixtures"
+DURATIONS = ROOT / "tests" / "durations.json"
 APPS = ("janitorai", "luzia", "aol")
 PREFIX = "Found these elements on screen: "
 
 
+def balance(tests: list[str], seconds: dict[str, float], shards: int) -> list[list[str]]:
+    """Each shard's tests, longest first: every test in turn, longest first and then by node id, goes to the shard with
+    the fewest seconds so far, a test seconds doesn't list counting as their mean. The order of tests doesn't change
+    the result, so every machine computes the same split."""
+    mean = statistics.fmean(seconds.values())
+    load, split = [0.0] * shards, [[] for _ in range(shards)]
+    for test in sorted(tests, key=lambda test: (-seconds.get(test, mean), test)):
+        shard = min(range(shards), key=load.__getitem__)
+        split[shard].append(test)
+        load[shard] += seconds.get(test, mean)
+    return split
+
+
 @pytest.hookimpl(trylast=True)
 def pytest_collection_modifyitems(config, items):
-    """CI splits the suite over PYTEST_SHARDS machines: shard PYTEST_SHARD keeps every test whose index in the
-    collection is PYTEST_SHARD modulo PYTEST_SHARDS, so slow neighbours land on different machines. It runs last, after
-    -m 'not live' has dropped its tests, and does nothing when the variables are unset."""
+    """CI splits the suite over PYTEST_SHARDS machines by the seconds each test took in tests/durations.json, and shard
+    PYTEST_SHARD runs its tests longest first. It runs last, after -m 'not live' has dropped its tests, and splits
+    nothing when the variables are unset. With PYTEST_IDS set it writes the node ids the run keeps there, one per line,
+    which the CI gate checks the shards against."""
     shard, shards = os.environ.get("PYTEST_SHARD"), os.environ.get("PYTEST_SHARDS")
-    if shard is None or shards is None:
+    if shard is not None and shards is not None:
+        mine = balance([item.nodeid for item in items], json.loads(DURATIONS.read_text()), int(shards))[int(shard)]
+        rank = {test: i for i, test in enumerate(mine)}
+        config.hook.pytest_deselected(items=[item for item in items if item.nodeid not in rank])
+        items[:] = sorted((item for item in items if item.nodeid in rank), key=lambda item: rank[item.nodeid])
+    # Every xdist worker collects the same list, and the controller none, so one worker writes it.
+    if (path := os.environ.get("PYTEST_IDS")) and os.environ.get("PYTEST_XDIST_WORKER", "gw0") == "gw0":
+        Path(path).write_text("".join(f"{item.nodeid}\n" for item in items))
+
+
+def pytest_terminal_summary(terminalreporter):
+    """With PYTEST_DURATIONS set, writes there the seconds each test took, setup and teardown included, in
+    tests/durations.json's format. xdist workers see only their own tests, so only the controller writes."""
+    if not (path := os.environ.get("PYTEST_DURATIONS")) or "PYTEST_XDIST_WORKER" in os.environ:
         return
-    mine = [i % int(shards) == int(shard) for i in range(len(items))]
-    config.hook.pytest_deselected(items=[item for item, keep in zip(items, mine) if not keep])
-    items[:] = [item for item, keep in zip(items, mine) if keep]
+    seconds = Counter()
+    for report in chain.from_iterable(terminalreporter.stats.values()):
+        if isinstance(report, pytest.TestReport):
+            seconds[report.nodeid] += report.duration
+    Path(path).write_text(json.dumps({test: round(s, 3) for test, s in sorted(seconds.items())}, indent=2) + "\n")
 
 
 @pytest.fixture(scope="session")
