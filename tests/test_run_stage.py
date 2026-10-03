@@ -204,7 +204,7 @@ def test_a_stage_its_cap_cut_short_is_partial_and_says_how_to_continue(runs, mon
     # the figure the stop names, or, naming none, what is spent plus a whole cap again (the configured one: 1 is lower)
     figure = config.stage_cap("mock") + turned_away
     assert marker.outcome.resume == (f"simula mock janitorai --run {run_dir.name} --profile real --budget transfer "
-                                     f"--explorer scripted --allow-fixtures --usd-cap {figure:.2f}"), (
+                                     f"--explorer agent --allow-fixtures --usd-cap {figure:.2f}"), (
         "it reruns the run as it was opened")
     asked = (run_dir / "needs-human.md").read_text()
     assert "partial output" in asked and marker.outcome.resume in asked
@@ -244,7 +244,7 @@ def test_a_stage_that_reports_partial_work_is_labeled_and_reruns_until_it_comple
     marker = runfolder.read_done(run_dir / "mock")
     assert (marker.outcome.status, marker.outcome.reasons) == ("partial", ["2 of 24 taps failed"])
     assert marker.outcome.resume == (f"simula mock janitorai --run {run_dir.name} --profile real --budget transfer "
-                                     "--explorer scripted --allow-fixtures")
+                                     "--explorer agent --allow-fixtures")
     assert "2 of 24 taps failed" in (run_dir / "needs-human.md").read_text()
     assert rerun(run_dir) and runfolder.read_done(run_dir / "mock").outcome.status == "complete"
     assert not rerun(run_dir)
