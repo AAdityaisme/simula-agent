@@ -714,6 +714,39 @@ def test_a_filter_control_under_a_deny_worded_overlay_is_never_tapped_rt_s_r3_m2
     assert taps(phone) == [] and "isn't verified after the launch" in report["stop"]
 
 
+def test_a_route_to_the_filter_that_goes_wrong_ends_the_audit_rt_s_r4_h1(runs, walk):
+    """rt-s on #46 (HIGH 1): refilter()'s route to the launch screen went wrong (the announcement's Close landed on s02
+    this time), which ended only that flow, and flow 2 then walked from s02 with no filter put back since the launch.
+    A route there that goes wrong now ends the audit."""
+    dialog = capture("janitorai", "j01_launch")
+    close = next(c for c in ob.controls(dialog.elements, DEVICE) if "Close" in c.label)
+    filtered_tab_back_run(runs, {"s05": dialog}, [line(1, "s05", "s01", TAP, close)],
+                          [[("s01", "s02", TAP), ("s02", "s01", BACK)]] * 2)
+    live = live_with_the_switch_off(s05=dialog)
+    phone = FakePhone(screens=live, start="s05", clock=Clock(), backs={"s02": "s01"},
+                      taps={("s05", key_at(dialog, close.point)): "s02",
+                            ("s01", key_at(live["s01"], tab(live["s01"], 1).point)): "s02"})
+
+    report = walk(phone)
+    assert report["stop"].startswith("the route to s01 went wrong") and [f["status"] for f in report["flows"]] == \
+        ["blocked", "blocked"], report
+    assert not [s for s in report["setup"] if s["action"] in ("back", "filter")], report["setup"]
+
+
+def test_no_walk_step_runs_while_the_filter_is_unverified_since_the_launch_rt_s_r4_h1(runs, walk, monkeypatch):
+    """rt-s on #46 (HIGH 1), the structural half: as explore's tap() refuses a tap until the launch's filter passed its
+    check, act() takes no walk step while a recorded filter isn't verified since the launch, whatever path got there
+    (here, a refilter() that put nothing back)."""
+    filtered_tab_back_run(runs)
+    live = live_with_the_switch_off()
+    phone = phone_for(live, [("s01", tab(live["s01"], 1), "s02")])
+    monkeypatch.setattr(qa_live.Audit, "refilter", lambda self, want: None)
+
+    report = walk(phone)
+    assert report["stop"].startswith("a walk step (") and "not verified since the launch" in report["stop"], report
+    assert taps(phone) == [] and report["flows"][0]["status"] == "blocked"
+
+
 def test_a_run_that_recorded_a_filter_but_not_its_controls_is_refused_before_any_device_work(runs, walk):
     """A run explored before explore.json recorded the filter's controls can't have its filter put back."""
     recorded = screens()

@@ -242,10 +242,11 @@ class Audit:
         self.live: Live | None = None
         self.verdict: dict = {}
         self.launched = False  # whether self.live is a launch's landing
-        # explore's content filter, put back and checked after every launch as explore does (explore.filter_holds)
+        # explore's content filter, put back and checked after every launch as explore does (explore.filter_holds);
+        # like explore's tap(), act() takes no walk step while it isn't verified since the launch (filtered)
         self.filter = [ob.Candidate(c.label, c.kind, c.rect, f"filter{n}", c.tree_label, c.ident)
                        for n, c in enumerate(filter_controls)]
-        self.filter_on, self.opener_says = filter_on, ""
+        self.filter_on, self.opener_says, self.filtered, self.in_setup = filter_on, "", False, False
 
     # ---------- the flows ----------
 
@@ -382,8 +383,8 @@ class Audit:
 
     def launch(self, want: str) -> None:
         """Terminate, then launch, neither ever retried (the first call may have landed), then name where the app
-        landed: a launch does not imply home."""
-        self.current = None
+        landed: a launch does not imply home. Every launch can leave the app unfiltered, so it clears filtered."""
+        self.current, self.filtered = None, False
         for name, call in (("terminate", self.phone.terminate), ("launch", self.phone.launch)):
             try:
                 self.mutate(call, retry=False)
@@ -424,35 +425,51 @@ class Audit:
         settled: on the launch screen (the model's root), reached over the recorded route from where the launch landed
         (a launch dialog's close, say) as setup. Its controls are tapped in order, each only where the screen shows it
         and no deny word or overlay is at its tap point, until the last one needs no tap; then the filter is judged as
-        explore judges it (explore.filter_holds). Every launch can leave the app unfiltered, so a filter not put back
-        ends the audit: nothing is walked without it."""
+        explore judges it (explore.filter_holds), and a pass marks the launch filtered. Every launch can leave the app
+        unfiltered, so a filter not put back, or a route there that goes wrong, ends the audit: nothing is walked
+        without it."""
         named = explore.filter_label(self.filter, self.filter_on)
-        if self.current != self.root:
-            hops = self.route(self.current, self.root) if self.current else None
-            if hops is None:
-                raise Stopped(f"the launch landed where no recorded route leads to the launch screen "
-                              f"({self.verdict['verdict']}), so the content filter ({named}) can't be put back: "
-                              "nothing is walked without it")
-            self.take(hops, self.root)
-        for n, tap in enumerate(self.filter):
-            if explore.filter_set(n, self.filter, self.filter_on, self.live.cands, self.live.image):
-                break
-            live = ob.find(self.live.cands, tap)
-            refused = ob.denied_at(live, self.live.elements, self.device, toggle_ok=True) if live \
-                else "not on the screen"
-            self.setup.append({"flow": self.flow, "action": "filter", "control": tap.label,
-                               **({"refused": refused} if refused else {})})
-            if refused:
-                break
-            self.mutate(self.phone.tap, *live.point)
-            self.live = self.capture()
+        with self.setting_up():
+            if self.current != self.root:
+                hops = self.route(self.current, self.root) if self.current else None
+                if hops is None:
+                    raise Stopped(f"the launch landed where no recorded route leads to the launch screen "
+                                  f"({self.verdict['verdict']}), so the content filter ({named}) can't be put back: "
+                                  "nothing is walked without it")
+                try:
+                    self.take(hops, self.root)
+                except FlowEnd as e:
+                    raise Stopped(f"the route to {self.root} went wrong ({e}), so the content filter ({named}) can't "
+                                  "be put back: nothing is walked without it") from None
+            for n, tap in enumerate(self.filter):
+                if explore.filter_set(n, self.filter, self.filter_on, self.live.cands, self.live.image):
+                    break
+                live = ob.find(self.live.cands, tap)
+                refused = ob.denied_at(live, self.live.elements, self.device, toggle_ok=True) if live \
+                    else "not on the screen"
+                self.setup.append({"flow": self.flow, "action": "filter", "control": tap.label,
+                                   **({"refused": refused} if refused else {})})
+                if refused:
+                    break
+                self.mutate(self.phone.tap, *live.point)
+                self.live = self.capture()
         ok, self.opener_says = explore.filter_holds(self.filter, self.filter_on, self.live.cands, self.live.image,
                                                     self.opener_says)
         self.setup.append({"flow": self.flow, "action": "filter check", "verified": ok})
         if not ok:
             raise Stopped(f"the content filter ({named}) isn't verified after the launch: nothing is walked without it")
+        self.filtered = True
         self.verdict = self.match_state(self.live, want, launched=True)
         self.current = self.verdict["landed"]
+
+    @contextmanager
+    def setting_up(self):
+        """The launch's own steps, which run before its filter is verified: the route to the filter and its taps."""
+        self.in_setup = True
+        try:
+            yield
+        finally:
+            self.in_setup = False
 
     def look_once(self, deadline: float) -> Live | None:
         self.in_time()
@@ -502,6 +519,12 @@ class Audit:
             raise Stopped(f"the time cap ({MAX_MINUTES} minutes) was reached")
 
     def act(self, edge: Edge, target: ob.Candidate | None) -> None:
+        """Every recorded step the walker takes goes through here. With a recorded content filter, none runs while the
+        filter isn't verified since the launch, except the launch's own setup (setting_up): that ends the audit."""
+        if self.filter and not (self.filtered or self.in_setup):
+            raise Stopped(f"a walk step ({edge.id}) with the content filter "
+                          f"({explore.filter_label(self.filter, self.filter_on)}) not verified since the launch: "
+                          "nothing is walked without it")
         if self.live.fg != self.package:
             raise FlowEnd("blocked", f"{self.live.fg} is in front, not the app")
         if edge.action == "tap":
