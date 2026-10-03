@@ -211,11 +211,17 @@ def test_a_long_dialog_title_that_names_a_blocked_action_still_refuses_its_confi
     assert guard.blocked_tap(confirm, [shown(title, 400), confirm])
 
 
-def test_a_glyph_inside_a_long_send_message_button_is_refused_at_its_tap_point():
-    row = {**shown("Send message to all selected group members", 700, h=200), "type": "android.widget.Button"}
+@pytest.mark.parametrize("kind", ["android.widget.Button", "android.widget.TextView", "android.view.ViewGroup"])
+def test_a_glyph_inside_a_long_row_that_opens_with_a_blocked_entry_is_refused_at_its_tap_point(kind):
+    row = {**shown("Send message to all selected group members", 700, h=200), "type": kind}
     icon = shown("➤", 750, x=800, w=80, h=80)
     assert guard.blocked_tap(icon, [row, icon]) == "send message (at the tap point)"
-    assert guard.blocked_tap(icon, [{**row, "type": "android.widget.TextView"}, icon]) is None
+
+
+def test_a_long_text_that_names_a_blocked_entry_only_mid_sentence_never_blocks_a_tap_inside_it():
+    text = shown("You can always send message requests later from the settings page", 700, h=200)
+    icon = shown("➤", 750, x=800, w=80, h=80)
+    assert guard.blocked_tap(text) == "send message" and guard.blocked_tap(icon, [text, icon]) is None
 
 
 def test_a_two_letter_word_is_readable_so_a_go_button_submits_a_search_and_a_glyph_still_shows_its_id():
