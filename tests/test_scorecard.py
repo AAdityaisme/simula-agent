@@ -473,12 +473,24 @@ def test_cost_and_time(run):
     ("judge", "revise:c01", "proposer"), ("judge", "judge:c01:judge_1:r1", "judge_1"),
     ("judge", "judge:c01:judge_2:r1", "judge_2"), ("qa", "critic r1 g1", "qa_critic"), ("qa", "fixer r1", "qa_fixer"),
     ("propose", "dedupe:topup", "propose_dedupe"), ("propose", "lens:utility", "proposer"),
-    ("propose", "topup", "proposer")])
+    ("propose", "topup", "proposer"), ("explore", "agent.turn", "explore_agent"),
+    ("explore", "icons.s01", "explore_vision"), ("explore", "arrival.s09", "explore_vision"),
+    ("explore", "replay.s02", "explore_vision"), ("explore", "settle", "explore_vision")])
 def test_roles_sharing_a_model_keep_their_own_counts(stage, step, expected):
     roles = {r: "same-model high" for rs in scorecard.ROLES.values() for r in rs if r != "jev"}
     trace = [TraceLine(ts="2026-10-03T10:00:00", stage=stage, step=step, decider="model", model="same-model")]
     assert scorecard.cost_and_time(trace, manifest(roles), None, None)[f"model calls {expected}"] == 1
 
+
+def test_the_agents_planner_turns_count_as_explore_agent_when_it_shares_vision_s_model():
+    """Run 5: 80 planner turns and the icon passes on one Sonnet landed in 'model calls explore claude-sonnet-5-5'."""
+    roles = {"explore_vision": "claude-sonnet-5-5 low", "explore_agent": "claude-sonnet-5-5 medium"}
+    steps = ["agent.turn"] * 3 + ["icons.s01", "icons.s02", "arrival.s09", "settle"]
+    trace = [TraceLine(ts=f"2026-10-03T10:00:0{n}", stage="explore", step=step, decider="model",
+                       model="claude-sonnet-5-5") for n, step in enumerate(steps)]
+    cost = scorecard.cost_and_time(trace, manifest(roles), None, None)
+    assert (cost["model calls explore_agent"], cost["model calls explore_vision"]) == (3, 4)
+    assert not [k for k in cost if k.startswith("model calls explore claude")]
 
 def test_minutes_span_the_earliest_to_the_latest_time_whatever_the_append_order():
     lines = [TraceLine(ts=f"2026-10-03T10:0{m}:00", stage="qa", step="critic", decider="code") for m in (2, 0, 1)]

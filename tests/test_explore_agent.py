@@ -1,6 +1,7 @@
 """The agent explorer offline: a fake phone made of fixture captures, a fake planner returning canned AgentTurns
 through llm.call, and fake Jev. Every hard block, the filter check, the stops, the dial and the record."""
 
+import dataclasses
 import io
 import json
 import re
@@ -8,13 +9,14 @@ import re
 import pytest
 from PIL import Image, ImageDraw
 
-from simula import cli, config, decide, llm, runlog
-from simula.contracts import AdLine, ExploreFile
+from simula import cli, config, decide, llm, runlog, scorecard
+from simula.contracts import AdLine, AgentStep, AgentTurn, ExploreFile
 from simula.device import guard
 from simula.stages import explore as stage
 from simula.stages import model as model_stage
 from simula.contracts import Rect
 from simula.device.mcp import McpTimeout
+from simula.stages import explore_agent as stage_agent
 from simula.stages.explore_agent import STALE_TURNS, AgentExplorer, Halt, ScreenMoved
 from tests.fake_device import PACKAGE, Clock, FakePhone, Screen, capture, fake_jev, fake_sonnet, new_run
 from tests.test_explore_offline import janitor_like
@@ -293,6 +295,109 @@ def test_start_core_is_refused_for_a_person_and_measured_for_an_ai(tmp_path, mon
     assert any(t.step == "core" and t.note.startswith("core action: ") for t in trace(ex))
 
 
+def banner_after(*sends: int, extra: tuple = ()):
+    """The chat phone, with an upsell banner over the composer after these sends (and these extra elements); its
+    dismiss returns to the chat."""
+    def phone_factory(clock):
+        phone = janitor_like(clock)
+        phone.taps[("chats", "Kang Jun-Seo (Idol x Idol), Sat, 1 chat")] = "chat"
+        chat = phone.screens["chat"]
+        banner = [{"ref": "@tip", "type": "android.widget.TextView", "text": "Keep long chats on track",
+                   "coordinates": {"x": 200, "y": 2000, "width": 600, "height": 50}},
+                  {"ref": "@dismiss", "type": "android.view.ViewGroup", "text": "", "label": "Dismiss upgrade prompt",
+                   "coordinates": {"x": 900, "y": 1990, "width": 72, "height": 72}},
+                  {"ref": "@upgrade", "type": "android.widget.Button", "text": "Upgrade",
+                   "coordinates": {"x": 200, "y": 2080, "width": 300, "height": 90}}]
+        phone.screens["chat_banner"] = Screen(chat.elements + [*extra, *banner], chat.image, chat.package)
+        phone.taps[("chat_banner", "Dismiss upgrade prompt")] = "chat"
+        phone.after_sends = dict.fromkeys(sends, "chat_banner")
+        return phone
+    return phone_factory
+
+
+def test_a_banner_over_the_core_action_is_recorded_dismissed_and_the_passes_go_on(tmp_path, monkeypatch):
+    """Run 3: an upsell banner with its own dismiss over the composer after the first send stopped the loop at one
+    pass; it is recorded, dismissed through the guard, and the passes go on. Upgrade is never tapped."""
+    ex, phone, _ = run(tmp_path, monkeypatch, chat_script("ai"), phone_factory=banner_after(1))
+    assert ("chat_banner", "Dismiss upgrade prompt") in taps(phone)
+    assert ("chat_banner", "Upgrade") not in taps(phone)
+    assert phone.sent >= 3 and ex.core_completed >= 3
+    assert any("recorded and dismissed with 'Dismiss upgrade prompt'" in r for r in ex.core_results)
+    stops = [json.loads(line)["loop_stop"] for line in (ex.out / "actions.jsonl").read_text().splitlines()]
+    assert any(stops)  # the banner's stop is still on its action line, with its capture
+
+
+def test_the_banner_dismiss_is_never_reply_content_or_an_offer(tmp_path, monkeypatch):
+    """rt-58: a new reply reading like a dismissal ('Got it — I can help') lies outside the banner and isn't control
+    shaped; an offer ('Skip the wait') is no dismissal: the real dismiss is taken, and with only the offer the loop
+    stops on the banner as before."""
+    reply = {"ref": "@reply", "type": "android.widget.TextView", "text": "Got it — I can help",
+             "coordinates": {"x": 100, "y": 900, "width": 800, "height": 100}}
+    ex, phone, _ = run(tmp_path / "reply", monkeypatch, chat_script("ai"), phone_factory=banner_after(1, extra=(reply,)))
+    assert ("chat_banner", "Dismiss upgrade prompt") in taps(phone)
+    assert not [t for t in taps(phone) if t[1] in ("Got it — I can help", "Upgrade")]
+    skip = {"ref": "@skip", "type": "android.widget.Button", "text": "Skip the wait",
+            "coordinates": {"x": 600, "y": 2080, "width": 300, "height": 90}}
+
+    def offer_only(clock):
+        phone = banner_after(1, extra=(skip,))(clock)
+        banner = phone.screens["chat_banner"]
+        phone.screens["chat_banner"] = Screen([e for e in banner.elements if e["ref"] != "@dismiss"], banner.image,
+                                              banner.package)
+        return phone
+    ex, phone, _ = run(tmp_path / "offer", monkeypatch, chat_script("ai"), phone_factory=offer_only)
+    assert phone.sent == 1 and ex.core_hit
+    assert not [t for t in taps(phone) if t[0] == "chat_banner"]
+
+
+def test_a_banner_back_on_every_pass_stops_the_loop(tmp_path, monkeypatch):
+    ex, phone, _ = run(tmp_path, monkeypatch, chat_script("ai"), phone_factory=banner_after(*range(1, 9)))
+    assert phone.sent == stage_agent.BANNER_PASSES and ex.core_hit
+    assert [t for t in taps(phone) if t == ("chat_banner", "Dismiss upgrade prompt")] == [
+        ("chat_banner", "Dismiss upgrade prompt")] * (stage_agent.BANNER_PASSES - 1)
+
+def test_start_core_runs_the_passes_at_once_and_the_tour_goes_on(tmp_path, monkeypatch):
+    """Run 4: after the tour the loop had to walk back to the chat through a card that had changed, and failed. The
+    passes run when start_core is accepted, on its screen; the tour resumes after them, and no core phase follows."""
+    def chats(clock):
+        phone = janitor_like(clock)
+        phone.taps[("chats", "Kang Jun-Seo (Idol x Idol), Sat, 1 chat")] = "chat"
+        return phone
+
+    def script(n, text):
+        if n < 3:
+            return chat_script("ai")(n, text)
+        if n == 3:
+            return turn({"action": "start_core", "recipient": "ai", "expect": "marked"})
+        if n == 4:
+            return turn({"action": "back", "expect": "the chat list"})
+        return None
+    ex, phone, planner = run(tmp_path, monkeypatch, script, phone_factory=chats)
+    lines = [json.loads(line) for line in (ex.out / "actions.jsonl").read_text().splitlines()]
+    passes = [n for n, line in enumerate(lines) if line["loop_pass"]]
+    later = [n for n, line in enumerate(lines) if line["action"] == "back" and not line["loop_pass"]]
+    assert passes and later and max(passes) < min(n for n in later if n > min(passes))
+    assert "measured now" in planner.texts[3] and phone.sent == ex.core_reps
+    assert any(t.step == "core" and "ran during the tour" in t.note for t in trace(ex))
+
+def test_a_cap_during_the_passes_in_the_tour_stops_everything_after_it(tmp_path, monkeypatch):
+    def chats(clock):
+        phone = janitor_like(clock)
+        phone.taps[("chats", "Kang Jun-Seo (Idol x Idol), Sat, 1 chat")] = "chat"
+        return phone
+    ex, phone, _ = agent(tmp_path, monkeypatch, chat_script("ai"), phone_factory=chats)
+    once = ex.core_once
+
+    def capped(n):
+        if n == 2:
+            raise llm.CapReached("$ cap")
+        return once(n)
+    ex.core_once = capped
+    stage.explore_app(ex)
+    sends = [i for i, e in enumerate(phone.log) if e[0] == "type"]
+    assert len(sends) == 1 and not [e for e in phone.log[sends[0] + 1:] if e[0] in ("launch", "swipe", "type")]
+    assert any("core_loop stopped: CapReached" in r for r in ex.core_results) and ex.capped
+
 def test_a_control_code_doesnt_take_for_the_filter_is_not_verified_and_the_run_goes_on(tmp_path, monkeypatch):
     script = scripted(lambda text: turn(tap(oid(text, "Favorites"), "favorites only")),
                       lambda text: turn({"action": "swipe", "direction": "up", "expect": "more"}, filter_set=True))
@@ -347,6 +452,82 @@ def test_a_filter_already_set_is_verified_by_the_element_the_planner_names(tmp_p
     assert not [t for t in taps(phone) if t[1] == "Limited Only" and t[0] == "root"]
     assert [t.label for t in ex.filter_taps] == ["Limited Only"] and ex.filter_checks[0][1]
     assert [t.outcome for t in trace(ex) if t.step == "filter.check"][0] == "ok"
+
+
+def test_a_launch_onto_another_home_never_relaunches_for_the_filter(tmp_path, monkeypatch):
+    """Run 4: signed in, the app launched onto a home with no recorded way to the screen where the filter was set,
+    and the filter recheck relaunched ten times in a row. One launch, then the planner hears it is not verified."""
+    def signed_in(clock):
+        phone = janitor_like(clock)
+        phone.taps[("launch", "Close subscription announcement")] = "limited"
+        phone.screens["home2"] = drawn(control("Welcome back", 1))
+        launch = phone.launch
+
+        def later_launches(retry=True):
+            if ("launch",) in phone.log:
+                phone.start = "home2"
+            launch(retry)
+        phone.launch = later_launches
+        return phone
+    script = scripted(lambda text: turn(tap(oid(text, "Limited Only"), "stays on"), filter_set=True,
+                                        filter_element=oid(text, "Limited Only")),
+                      lambda text: turn({"action": "launch", "expect": "the app opens again"}),
+                      lambda text: turn(DONE))
+    ex, phone, planner = run(tmp_path, monkeypatch, script, phone_factory=signed_in, no_send=True)
+    assert ex.filter_checks and ex.filter_checks[0][1]
+    assert ex.relaunches == 1  # the planner's; BACK off the new home left the app and a launch, uncounted, returned
+    assert any(t.step == "filter" and "with no relaunch for it" in t.note for t in trace(ex))
+    assert "Content filter: not verified" in planner.texts[2]
+    # rt-58: the missing control is a failed check, so the saved run doesn't read as verified
+    assert [ok for _, ok, _ in ex.filter_checks] == [True, False]
+    assert any(t.step == "filter.check" and t.outcome == "error" and "control not on the launch screen" in t.note
+               for t in trace(ex))
+    saved = ExploreFile.model_validate_json((ex.out / "explore.json").read_text())
+    assert scorecard.content_filter(saved, trace(ex))["filter verified"] == "no"
+
+
+def test_a_button_core_action_keeps_the_hard_blocks(tmp_path, monkeypatch):
+    """rt-58: the core exception to the send family holds for a chat's composer and send only; a 'Submit' button
+    marked as the core action is refused on every pass."""
+    script = scripted(lambda text: turn({"action": "start_core", "element": oid(text, "Submit"), "recipient": "ai",
+                                         "expect": "marked"}))
+    ex, phone, _ = run(tmp_path, monkeypatch, script, phone_factory=phone_of({"root": drawn(control("Submit", 1))}))
+    assert ex.core and ex.core.kind != "chat" and ("root", "Submit") not in taps(phone)
+    lines = [json.loads(line) for line in (ex.out / "actions.jsonl").read_text().splitlines()]
+    assert not [line for line in lines if line["loop_pass"] and line["outcome"] == "ok" and line["action"] == "tap"]
+
+
+def test_an_offer_joined_to_a_dismissal_is_none():
+    """A label led by a dismiss phrase dismisses at any length, naming the offer it closes; a joining word ties an
+    offer to it ('Close or Upgrade'); anything else must be a whole dismiss phrase."""
+    for label in ("Close or Upgrade", "Close and upgrade", "Close then subscribe", "Close to unlock", "Skip the wait",
+                  "Got it — I can help", "Upgrade", "Close $4.99"):
+        assert not stage_agent.dismissal(label), label
+    for label in ("Dismiss long chat upgrade prompt", "Dismiss upgrade prompt", "Not now", "No thanks", "Maybe later",
+                  "Later", "x", "Close"):
+        assert stage_agent.dismissal(label), label
+
+
+def test_run_3s_banner_dismiss_lies_under_the_composer_and_is_never_picked(tmp_path, monkeypatch):
+    """Run 3's in-chat upsell (s19): its dismiss ('Dismiss long chat upgrade prompt') is listed before the composer's
+    text box and inside its box, and the capture shows the composer drawn over the banner: a tap there lands on the
+    text box, so it is no control and nothing is picked (the stop stands). The reply text is never picked either; the
+    same dismiss listed after the text box, drawn over it, is its own control and is picked."""
+    ex, _ = one_screen(tmp_path, monkeypatch, control("Explore", 1))
+    banner = capture("janitorai", "j20_chat_upsell_banner", package=PACKAGE)
+    ex.core = stage.CoreAction("chat", ex.current, [], "send messages")
+
+    def picked(elements):
+        ex.obs = dataclasses.replace(ex.obs, elements=elements, cands=stage.ob.controls(elements, ex.device))
+        return ex.banner_close()
+    assert picked(banner.elements) is None
+    hidden = next(e for e in banner.elements if e.get("label") == "Dismiss long chat upgrade prompt")
+    shown = {**hidden, "ref": "@shown"}
+    box = next(n for n, e in enumerate(banner.elements) if e["type"].endswith("EditText"))
+    over = banner.elements[:box + 1] + [shown] + banner.elements[box + 1:]
+    assert picked(over).label == "Dismiss long chat upgrade prompt"
+    offer = [{**e, "label": "Close or Upgrade"} if e is shown else e for e in over]
+    assert picked(offer) is None
 
 
 def counting_jev(asked):
@@ -486,12 +667,12 @@ def test_the_scrub_isnt_part_of_the_cache_key(tmp_path, monkeypatch):
 
 def test_nothing_runs_after_the_wall_clock(tmp_path, monkeypatch):
     """The red team's HIGH 5: one deadline for the tour, the core loop and the replay check."""
-    def script(n, text):
+    def script(n, text):  # the core passes run when start_core is marked: mark it once the clock has run out
         if n == 2:
             ex.clock.t = ex.deadline
-            return turn({"action": "swipe", "direction": "down", "expect": "the top"})
-        mark = {"action": "start_core", "element": oid(text, "Explore"), "recipient": "ai", "expect": "marked"}
-        return turn(tap(oid(text, "Explore"), "explore opens"), mark)
+            mark = {"action": "start_core", "element": oid(text, "A page"), "recipient": "ai", "expect": "marked"}
+            return turn(mark, {"action": "swipe", "direction": "down", "expect": "the top"})
+        return turn(tap(oid(text, "Explore"), "explore opens"))
     ex, phone, _ = agent(tmp_path, monkeypatch, script,
                          phone_factory=phone_of({"root": drawn(control("Explore", 1)),
                                                  "page": drawn(control("A page", 1))}, {("root", "Explore"): "page"}))
@@ -695,6 +876,122 @@ def test_a_redacted_name_is_no_account_row_and_account_words_are_refused_on_goog
     manage = next(c for c in stage.ob.controls(row, ex2.device) if c.tree_label == "Manage your account")
     assert "account chooser" in ex2.refusal(manage, guard.ACCOUNT_CHOOSER, row, row, False)
 
+
+def test_an_account_row_is_judged_by_its_unredacted_email(tmp_path, monkeypatch):
+    """Run 1: the chooser's name line ('[redacted] Om') was refused six times, since its email sits in a sibling line
+    of the same row. An email in the raw text, on the element or in its row, makes an account row; a redacted name
+    alone or an account-management word never does."""
+    ex, _ = one_screen(tmp_path, monkeypatch, control("Explore", 1))
+
+    def box(e, x, y, w, h):
+        return {**e, "coordinates": {"x": x, "y": y, "width": w, "height": h}}
+
+    def judged(raw, redacted, label):
+        c = next(c for c in stage.ob.controls(redacted, ex.device) if c.tree_label == label)
+        return ex.refusal(c, guard.ACCOUNT_CHOOSER, redacted, raw, False)
+
+    own = [control("Jamie Om jamie@example.com", 1)]
+    assert judged(own, [control("[redacted] Om", 1)], "[redacted] Om") == ""
+    assert judged([control("Jamie", 1)], [control("[redacted]", 1)], "[redacted]")
+    assert "account chooser" in judged([control("Manage account for Jamie", 1)],
+                                       [control("Manage account for [redacted]", 1)], "Manage account for [redacted]")
+
+    def chooser(name, address, add):
+        return [box(control("", 1, "LinearLayout"), 70, 1265, 940, 169),
+                box(control("", 2, "ImageView"), 133, 1312, 74, 74),
+                box(control(name, 3), 239, 1297, 205, 56), box(control(address, 4, "TextView"), 239, 1353, 404, 49),
+                box(control("", 5, "LinearLayout"), 70, 1434, 940, 130),
+                box(control(add, 6), 228, 1471, 719, 56)]
+
+    raw = chooser("Jamie Om", "jamie@example.com", "Add another account")
+    redacted = chooser("[redacted] Om", "[redacted]", "Add another account")
+    assert judged(raw, redacted, "[redacted] Om") == ""
+    assert "account chooser" in judged(raw, redacted, "Add another account")
+    nameless = chooser("Jamie Om", "Jamie", "Add another account")
+    assert "account chooser" in judged(nameless, redacted, "[redacted] Om")
+    # rt-58: a card holding an email header lends it to no separate button in it: the holder must be row-sized
+    card = [box(control("", 1, "LinearLayout"), 70, 180, 940, 650),
+            box(control("jamie@example.com", 2, "TextView"), 130, 230, 600, 50),
+            box(control("Personal info", 3), 130, 500, 600, 70)]
+    shown = [card[0], {**card[1], "text": "[redacted]"}, card[2]]
+    assert "account chooser" in judged(card, shown, "Personal info")
+    compact = [box(card[0], 70, 180, 940, 280), card[1], box(card[2], 130, 360, 600, 70)]  # rt-58 again: row-sized
+    assert "account chooser" in judged(compact, [compact[0], shown[1], compact[2]], "Personal info")
+
+def bar(*xs: int) -> list[dict]:
+    """A bottom tab bar of wordless icons, as an app draws one, centered at these x."""
+    return [{**control("", 10 + n, "ViewGroup", identifier=""), "coordinates": {
+        "x": x - 83, "y": 2170, "width": 167, "height": 167}} for n, x in enumerate(xs)]
+
+
+def test_a_tab_the_bar_redrew_under_the_same_screen_is_tapped_live(tmp_path, monkeypatch):
+    """Run 2: signing in redrew the tab bar (new icons) while the screen kept its fingerprint, and the recorded crop of
+    the middle tab refused it as covered nine turns in a row; the live bar's tab is offered and tapped."""
+    before = drawn(control("Sign in", 1), *bar(155, 540, 924))
+    after = Screen(before.elements, before.image.copy(), PACKAGE)
+    ImageDraw.Draw(after.image).ellipse((480, 2200, 600, 2310), fill=(250, 200, 0))
+    phone_factory = phone_of({"root": before, "after": after, "tab": drawn(control("Tab page", 1))},
+                             {("root", "Sign in"): "after", ("after", "540,2253"): "tab"})
+    script = scripted(lambda text: turn(tap(oid(text, "Sign in"), "signed in")),
+                      lambda text: turn(tap(oid(text, at=(540, 2253)), "the middle tab opens")))
+    ex, phone, _ = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
+    assert ("after", "540,2253") in taps(phone)
+
+
+def test_an_unlisted_overlay_across_the_bar_keeps_the_recorded_tab_refused(tmp_path, monkeypatch):
+    """rt-58: a sheet the element list doesn't show, drawn across the bar, changes the bar's gaps too: the recorded
+    crop check stands and the tab isn't tapped."""
+    before = drawn(control("Sign in", 1), *bar(155, 540, 924))
+    after = Screen(before.elements, before.image.copy(), PACKAGE)
+    draw = ImageDraw.Draw(after.image)
+    draw.rectangle((0, 2230, 1080, 2337), fill=(250, 250, 250))
+    for x in range(0, 1080, 60):
+        draw.rectangle((x, 2230, x + 25, 2337), fill=(20, 20, 20))
+    phone_factory = phone_of({"root": before, "after": after, "tab": drawn(control("Tab page", 1))},
+                             {("root", "Sign in"): "after", ("after", "540,2253"): "tab"})
+    script = scripted(lambda text: turn(tap(oid(text, "Sign in"), "signed in")),
+                      lambda text: turn(tap(oid(text, at=(540, 2253)), "the middle tab opens")))
+    ex, phone, _ = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
+    assert ("after", "540,2253") not in taps(phone)
+
+
+def test_a_tab_the_bar_gained_after_home_taught_the_tabs_is_no_content_under_the_bar(tmp_path, monkeypatch):
+    """Signing in grew the bar from three tabs to five: the new ones are tabs, not content scrolled under the bar."""
+    phone_factory = phone_of({"root": drawn(control("Sign in", 1), *bar(155, 540, 924)),
+                              "after": drawn(control("Signed in", 1), *bar(155, 347, 540, 733, 924)),
+                              "bell": drawn(control("Bell page", 1))},
+                             {("root", "Sign in"): "after", ("after", "733,2253"): "bell"})
+    script = scripted(lambda text: turn(tap(oid(text, "Sign in"), "signed in")),
+                      lambda text: turn(tap(oid(text, at=(733, 2253)), "the fourth tab opens")))
+    ex, phone, _ = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
+    assert ("after", "733,2253") in taps(phone)
+
+def test_a_covered_tap_names_its_cover_and_twice_covered_is_marked_not_offered(tmp_path, monkeypatch):
+    """A tap skipped as covered tells the planner what lies over it and that BACK may uncover it; covered twice on
+    one screen, the control stays listed, marked covered, and a step naming it isn't run until a move runs."""
+    ex, phone = one_screen(tmp_path, monkeypatch, control("Explore", 1), control("Go", 2))
+    explore = next(c for c in ex.current.cands if c.label == "Explore")
+    image = ex.obs.image.copy()
+    ImageDraw.Draw(image).rectangle((0, 380, 1080, 620), fill=(250, 250, 250))
+    for x in range(0, 1080, 60):
+        ImageDraw.Draw(image).rectangle((x, 380, x + 25, 620), fill=(20, 20, 20))
+    sheet = {**control("Welcome tips", 3, "TextView"), "coordinates": {"x": 0, "y": 420, "width": 1080, "height": 200}}
+    elements = [*ex.obs.elements, sheet]
+    ex.obs = dataclasses.replace(ex.obs, image=image, elements=elements, cands=stage.ob.controls(elements, ex.device))
+    ex.ids = {"o01": explore}
+    ex.turn = AgentTurn(screen="home", goal="cover", steps=[AgentStep(action="tap", element="o01", expect="opens")])
+    step = AgentStep(action="tap", element="o01", expect="opens")
+    ex.run_step(step)
+    assert "'Welcome tips' covers it" in " ".join(ex.news) and "BACK" in " ".join(ex.news)
+    assert not [t for t in taps(phone) if t[1] == "Explore"]
+    ex.news = []
+    ex.run_step(step)
+    assert "(covered" in ex.situation(ex.current)
+    ex.news = []
+    ex.run_step(step)
+    assert "covered twice" in " ".join(ex.news) and not [t for t in taps(phone) if t[1] == "Explore"]
+    ex.run_step(AgentStep(action="swipe", direction="up", expect="scrolls"))
+    assert not ex.covered and "(covered" not in ex.situation(ex.current)
 
 def test_a_json_escaped_handle_and_a_propagated_stop_are_scrubbed(tmp_path, monkeypatch):
     """Item 2: the decoded values are scrubbed, and a stop that leaves llm.call carries a scrubbed message."""
@@ -931,3 +1228,13 @@ def test_consent_prose_about_data_is_sign_in_but_a_manage_button_is_not(tmp_path
     consent = [prose, control("Allow", 2)]
     assert ex.signing([], consent)
     assert not ex.signing([], [prose, control("Allow", 2), control("Manage your Google Account", 3)])
+
+
+def test_the_prompt_asks_for_every_tab_a_fresh_conversation_and_no_early_done():
+    """Runs 1-3: the start tab was never tapped, the core pass continued a long chat, and done came early."""
+    said = " ".join((stage.PROMPTS / "agent.md").read_text().split())
+    assert "the one you start on included (tap its own control)" in said
+    assert "Prefer starting a new conversation" in said
+    assert "only when no unvisited control of the app's own navigation" in said
+    assert "Open at least one item of each list or feed" in said
+    assert "never plan the same step the same way on your next turn" in said

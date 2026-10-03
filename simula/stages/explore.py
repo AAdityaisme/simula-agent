@@ -5,6 +5,7 @@ The only agent in the pipeline: code decides what is possible, Jev what is likel
 code checks every answer."""
 
 import contextlib
+import functools
 import io
 import json
 import os
@@ -209,6 +210,13 @@ class Landing:
     move: Move | None
     model: str
     structure: float
+
+
+@functools.lru_cache(maxsize=8)
+def capture(path: Path, mtime_ns: int) -> Image.Image:
+    """A recorded capture, decoded once: shows() compares crops of one many times a turn, and a decode is 13 ms."""
+    with Image.open(path) as image:
+        return image.copy()
 
 
 def where(c: ob.Candidate, device: Device) -> str:
@@ -686,8 +694,8 @@ class Explorer:
         owner = next((st for st in self.states if any(c is cand for c in st.cands)), None)
         if owner is None:
             return False
-        then = Image.open(self.out / owner.png)
-        return ob.looks_same(then, cand.rect, now.image, live.rect, self.device)
+        path = self.out / owner.png
+        return ob.looks_same(capture(path, path.stat().st_mtime_ns), cand.rect, now.image, live.rect, self.device)
 
     def painted_over(self, cand: ob.Candidate, live: ob.Candidate, now: Obs) -> bool:
         """The soft keyboard was painted over a recorded control's crop, in the capture it was recorded from or in the
