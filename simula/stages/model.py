@@ -16,8 +16,8 @@ import regex
 from PIL import Image
 
 from simula import config, llm, render, runfolder, text
-from simula.contracts import (ActionLine, ContentRating, Device, Edge, Element, ExploreFile, IconLabel, LedgerItem,
-                              ModelMeaning, OpenQuestion, Point, ProductModel, Rect, State, StateFile, Term,
+from simula.contracts import (ActionLine, ContentRating, Device, Edge, Element, ExploreFile, IconLabel, LaterCapture,
+                              LedgerItem, ModelMeaning, OpenQuestion, Point, ProductModel, Rect, State, StateFile, Term,
                               VisionElement)
 from simula.runlog import needs_human, run_trace, write_exhibit
 from simula.stages import Ctx, rerun_command
@@ -160,29 +160,34 @@ def load_states(explore_dir: Path, device: Device) -> tuple[list[State], dict[st
         model_labels |= {e.id for e in elements if e.source == "vision" or e.mcp_ref in named}
         states.append(State(
             id=sf.state_id, kind=sf.kind, parent_id=sf.parent_id, name=sf.state_id, purpose="",
-            fingerprint=sf.fingerprint, canonical_png=f"states/{sf.state_id}.png", elements=elements,
+            fingerprint=sf.fingerprint, canonical_png=sf.screenshot, elements=elements,
             in_mock_scope=False, content_rating="unknown", dynamic_regions=sf.dynamic_regions,
             blocked_reason=sf.blocked_reason))
     return states, images, model_labels
 
 
-def load_replaced(explore_dir: Path, device: Device) -> dict[str, list[tuple[int, list[Element]]]]:
-    """Per state, the captures a relaunch replaced (a reloaded home), oldest first: the last step taken on each, and
-    its elements."""
-    replaced = {}
+Later = dict[str, list[tuple[LaterCapture, list[Element]]]]
+
+
+def load_later(explore_dir: Path, device: Device) -> Later:
+    """Every capture a relaunch took after a state's own (a reloaded home) with its elements, by state, oldest first."""
+    later = {}
     for path in sorted(p for p in (explore_dir / "states").glob("*.json") if "." not in p.stem):
         sf = StateFile.model_validate_json(path.read_text())
-        for capture in sf.replaced:
+        for capture in sf.later:
             pixels = np.asarray(Image.open(explore_dir / capture.screenshot).convert("RGB"))
             tree = read_tree(explore_dir / capture.elements_reply)
-            elements = build_elements(sf.state_id, tree, capture.icon_labels, capture.vision_elements, pixels, device)
-            replaced.setdefault(sf.state_id, []).append((capture.until_step, elements))
-    return replaced
+            later.setdefault(sf.state_id, []).append((capture, build_elements(
+                sf.state_id, tree, capture.icon_labels, capture.vision_elements, pixels, device)))
+    return later
 
 
-def taken_on(replaced: dict[str, list[tuple[int, list[Element]]]], line: ActionLine) -> list[Element] | None:
-    """The elements of the capture a line's move was taken on, when a relaunch later replaced it; else None."""
-    return next((elements for until, elements in replaced.get(line.from_state, []) if line.step <= until), None)
+def taken_on(later: Later, line: ActionLine) -> list[Element] | None:
+    """The elements of the later capture a line's move was taken on: the one its capture field names, else (a run
+    written before that field) the last one whose from_step it reaches; None for the state's own."""
+    taken = [els for capture, els in later.get(line.from_state, [])
+             if (capture.screenshot == line.capture if line.capture else capture.from_step <= line.step)]
+    return taken[-1] if taken else None
 
 
 def tapped_element(state: State, line: ActionLine) -> Element | None:
@@ -203,7 +208,7 @@ def same_control(e: Element, then: Element) -> bool:
 
 
 def edge_for(state: State, line: ActionLine, then: list[Element] | None = None) -> tuple[Element | None, str]:
-    """The tapped element and the edge's id. A move taken on a capture a relaunch later replaced (then) resolves its
+    """The tapped element and the edge's id. A move taken on a later capture of the state (then) resolves its
     tap on that capture, and keeps only the state's element that is the same control in the same place, if any."""
     element = tapped_element(state, line)
     if then is not None:
@@ -272,11 +277,11 @@ def value_changes(before: State, after: State) -> str:
 
 
 def load_edges(explore_dir: Path, states: list[State],
-               replaced: dict[str, list[tuple[int, list[Element]]]] | None = None) -> tuple[list[Edge], list[str]]:
+               later: Later | None = None) -> tuple[list[Edge], list[str]]:
     """One edge per distinct recorded move that reached a state (or changed something in place). The
     transition is the one explore recorded. What changed is the explorer's summary, or else, for a move its two
-    captures sit right around, the values that changed between them. A move taken on a capture a relaunch later
-    replaced (load_replaced) resolves its tap there. Returns the edges and a note for every line not taken as
+    captures sit right around, the values that changed between them. A move taken on a later capture of a state
+    (load_later) resolves its tap there. Returns the edges and a note for every line not taken as
     given."""
     by_id = {s.id: s for s in states}
     edges, notes = {}, []
@@ -290,11 +295,11 @@ def load_edges(explore_dir: Path, states: list[State],
         if {a.from_state, a.to_state} - by_id.keys():
             notes.append(f"step {a.step}: unknown state in {a.from_state}>{a.to_state}")
             continue
-        then = taken_on(replaced or {}, a)
+        then = taken_on(later or {}, a)
         element, edge_id = edge_for(by_id[a.from_state], a, then)
-        if then is not None and element is None:
-            notes.append(f"step {a.step}: taken on a capture of {a.from_state} a relaunch replaced, whose tapped "
-                         f"control the state's capture no longer shows in its place; bound to no element")
+        if then is not None and a.tap_px and element is None:
+            notes.append(f"step {a.step}: taken on {a.capture}, a later capture of {a.from_state}, whose tapped "
+                         f"control the state's own capture doesn't show in its place; bound to no element")
         elif then is None and a.mcp_ref and (element is None or element.mcp_ref != a.mcp_ref):
             where = f"the tap at {a.tap_px.x},{a.tap_px.y}" if a.tap_px else "the tap"
             notes.append(f"step {a.step}: {a.mcp_ref} does not hold {where}; "
@@ -350,7 +355,7 @@ def measured(what: str, unit: str, values: list[float]) -> str:
 
 
 def loop_facts(explore_dir: Path, states: list[State], edges: list[Edge],
-               replaced: dict[str, list[tuple[int, list[Element]]]] | None = None) -> list[LedgerItem]:
+               later: Later | None = None) -> list[LedgerItem]:
     """The measured experience, from the explorer's core-loop passes: one item with each measurement's median, min,
     max and n (or the one value, when there is one), and one saying what stopped the loop, or that nothing did on an
     account whose plan explore doesn't record. Passes are counted by distinct loop_pass, not by line. A stop counts
@@ -364,7 +369,7 @@ def loop_facts(explore_dir: Path, states: list[State], edges: list[Edge],
         by_pass.setdefault(a.loop_pass, []).append(a)
     by_state, known = {s.id: s for s in states}, {e.id for e in edges}
     # A pass that recorded no edge still ran on its state; the step range in the text points at its action line.
-    evidence = sorted({edge_for(by_state[a.from_state], a, taken_on(replaced or {}, a))[1] for a in passes
+    evidence = sorted({edge_for(by_state[a.from_state], a, taken_on(later or {}, a))[1] for a in passes
                        if a.from_state in by_state} & known) \
         or sorted({a.from_state for a in loop} & by_state.keys())
     steps = f"explore steps {loop[0].step}-{loop[-1].step}"
@@ -931,11 +936,11 @@ def run(ctx: Ctx) -> None:
         (out / sub).mkdir(parents=True)
 
     states, images, model_labels = load_states(explore_dir, device)
-    replaced = load_replaced(explore_dir, device)
-    edges, notes = load_edges(explore_dir, states, replaced)
+    later = load_later(explore_dir, device)
+    edges, notes = load_edges(explore_dir, states, later)
     tapped = {e.element_id for e in edges if e.element_id}
     states = [group_repeats(s, tapped) for s in states]
-    experience = loop_facts(explore_dir, states, edges, replaced)
+    experience = loop_facts(explore_dir, states, edges, later)
     for s in states:
         content_png(images[s.id], device).save(out / s.canonical_png)
     run_trace(ctx.run_dir, stage="model", step="facts", decider="code",

@@ -1,0 +1,2364 @@
+{
+ "aol/20260929-205304-1f19585": {
+  "root": "s01",
+  "tabs": [
+   "Inbox | View | 0,2187 540x150",
+   "Home | TextView | 775,2287 70x35"
+  ],
+  "states": {
+   "s01": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Sidebar button. Double tap or slide two  | ImageView | 29,163 126x126",
+     "Home | ViewGroup | 155,163 132x59",
+     "See the latest news | TextView | 171,222 457x67",
+     "Access your saved articles | ImageButton | 828,168 105x105",
+     "Search | ImageButton | 954,168 105x105",
+     "Top Stories | View | 53,294 239x126",
+     "Entertainment | View | 313,294 284x126",
+     "Local | View | 618,294 159x126",
+     "Sports | View | 798,294 176x126",
+     "Business | View | 995,294 85x126",
+     "Tap here for weather | ComposeView | 0,430 1080x194",
+     "custom_poster_view_container | ViewGroup | 0,624 1080x608",
+     "Entertainment Weekly | TextView | 100,1250 347x43",
+     "Amber Glenn sobs after giving partner Pa | TextView | 0,1300 1080x140",
+     "2h ago | TextView | 53,1455 99x38",
+     "Save this article | ImageView | 194,1453 42x42",
+     "Share this news article | ImageView | 278,1453 42x42",
+     "TEMU in Taboola advertising section · Sp | View | 49,1523 699x289",
+     "Image for Taboola Advertising Unit | View | 742,1523 289x289",
+     " | View | 583,1508 126x106",
+     "E! | TextView | 100,1856 52x43",
+     "Former DHS chief Kristi Noem files for d | TextView | 53,1914 646x201",
+     "iv_articleImage | ImageView | 712,1854 315x315",
+     "toast_container | FrameLayout | 0,2022 1080x231",
+     "Inbox | View | 0,2187 540x150",
+     "Home | TextView | 775,2287 70x35"
+    ],
+    "refused": []
+   },
+   "s02": {
+    "kind": "screen",
+    "box": null,
+    "controls": [],
+    "refused": []
+   },
+   "s03": {
+    "kind": "modal",
+    "box": "0,168 1080x1975",
+    "controls": [
+     "AD | ComposeView | 0,1508 1080x294",
+     "iv_articleImage | ImageView | 712,1828 315x315",
+     "Close side bar | ImageView | 21,168 116x116",
+     "Accounts | TextView | 158,168 284x116",
+     "Manage Accounts | ViewGroup | 0,326 814x148",
+     "Contacts | ViewGroup | 0,474 814x148",
+     "Receipts | ViewGroup | 0,622 814x148",
+     "Unsubscribe | ViewGroup | 0,770 814x148",
+     "Manage Notifications | ViewGroup | 0,918 814x148",
+     "Settings | ViewGroup | 0,1066 814x148",
+     "Divider line | View | 0,1246 814x3",
+     "Give feedback | ViewGroup | 0,1281 814x148",
+     "Call Customer Support | ViewGroup | 0,1429 814x148"
+    ],
+    "refused": [
+     "AD | drawn over ('Manage Accounts' at the tap point)"
+    ]
+   },
+   "s04": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Saved articles | FrameLayout | 0,136 1080x158",
+     "No Saved Articles | ViewGroup | 0,966 1080x773"
+    ],
+    "refused": []
+   },
+   "s05": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Entertainment Weekly | TextView | 53,317 317x38",
+     "Amber Glenn sobs after giving partner Pa | TextView | 53,355 974x328",
+     "Marina Watts | TextView | 53,684 222x96",
+     "Sep. 29, 2026 5:56 PM PT | TextView | 53,780 365x38",
+     "Image for Taboola Advertising Unit | View | 52,860 220x223",
+     "New Temu users get jackets for $2.36 TEM | View | 267,860 758x223",
+     " | View | 884,963 126x125",
+     "Amber Glenn and Pasha Pashkov on ‘Dancin | TextView | 52,1804 979x113",
+     "Key Points | TextView | 52,1946 979x68",
+     "Amber Glenn and Pasha Pashkov scored hig | TextView | 101,2051 930x192",
+     "Back | ImageView | 21,189 84x84",
+     "article_sdk_engagement_bar | ViewGroup | 0,2190 1080x147"
+    ],
+    "refused": []
+   },
+   "s06": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Marina Watts | TextView | 53,305 222x96",
+     "Sep. 29, 2026 5:56 PM PT | TextView | 53,401 365x38",
+     "Image for Taboola Advertising Unit | View | 52,481 220x223",
+     "New Temu users get jackets for $2.36 TEM | View | 267,481 758x223",
+     " | View | 884,584 126x125",
+     "Amber Glenn and Pasha Pashkov on ‘Dancin | TextView | 52,1425 979x113",
+     "Key Points | TextView | 52,1567 979x68",
+     "Amber Glenn and Pasha Pashkov scored hig | TextView | 101,1672 930x192",
+     "“The hardest part of the Foxtrot for me  | TextView | 101,1892 930x192",
+     "season 35 air on Tuesdays at 8 p.m. ET/P | TextView | 101,2121 914x113",
+     "Amber Glenn | View | 52,2278 236x48",
+     "and | TextView | 285,2278 89x48",
+     "Pasha Pashkov | View | 369,2278 263x48",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s07": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "TEMU | TextView | 335,256 89x42",
+     "Sponsored: learn about this recommendati | View | 267,264 44x39",
+     "Ad | TextView | 267,256 44x42",
+     " | View | 884,207 126x125",
+     "Amber Glenn and Pasha Pashkov on ‘Dancin | TextView | 52,1048 979x113",
+     "Key Points | TextView | 52,1190 979x68",
+     "Amber Glenn and Pasha Pashkov scored hig | TextView | 101,1295 930x192",
+     "“The hardest part of the Foxtrot for me  | TextView | 101,1515 930x192",
+     "season 35 air on Tuesdays at 8 p.m. ET/P | TextView | 101,1744 914x113",
+     "didn’t let a gnarly bloody nose keep the | TextView | 52,1901 908x174",
+     "A rehearsal clip of the dancing duo show | TextView | 52,2122 863x113",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": [
+     "Sponsored: learn about this recommendati | drawn over ('Ad' at the tap point)"
+    ]
+   },
+   "s08": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "include_ym7_toolbar_layout | FrameLayout | 0,136 1080x158",
+     "SUGGESTED SEARCHES | TextView | 0,361 1080x44",
+     "MLB Playoffs | ViewGroup | 0,416 1080x126",
+     "Christa Pike Execution | ViewGroup | 0,542 1080x126",
+     "Chad Lowe | ViewGroup | 0,668 1080x126",
+     "Jack Smith | ViewGroup | 0,794 1080x126",
+     "Eric Schmitt | ViewGroup | 0,920 1080x126",
+     "USMNT | ViewGroup | 0,1046 1080x126",
+     "Jonathan Mckinsey | ViewGroup | 0,1172 1080x126",
+     "Donald Trump | ViewGroup | 0,1298 1080x126"
+    ],
+    "refused": []
+   },
+   "s09": {
+    "kind": "modal",
+    "box": "123,899 834x675",
+    "controls": [
+     "image | ImageView | 343,899 394x347",
+     "Allow Location permission to get the mos | TextView | 123,1246 834x119",
+     "Do you want to allow Location permission | TextView | 123,1397 834x50",
+     "Not now | Button | 157,1479 291x95",
+     "Allow Location | Button | 524,1479 399x95"
+    ],
+    "refused": []
+   },
+   "s10": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Sidebar button. Double tap or slide two  | ImageView | 29,152 126x126",
+     "toolbar_title_parent | LinearLayout | 155,152 333x126",
+     "Search | ImageButton | 954,157 105x105",
+     "Top Stories | View | 53,147 239x126",
+     "Entertainment | View | 313,147 284x126",
+     "Local | View | 618,147 159x126",
+     "Sports | View | 798,147 176x126",
+     "Business | View | 995,147 85x126",
+     "Tap here for weather | ViewGroup | 0,283 1080x578",
+     "2h ago | TextView | 53,1084 99x38",
+     "Save this article | ImageView | 194,1082 42x42",
+     "Share this news article | ImageView | 278,1082 42x42",
+     "AD | TextView | 522,1266 35x36",
+     "Former DHS chief Kristi Noem files for d | TextView | 53,1517 646x201",
+     "9h ago | TextView | 53,1720 100x38",
+     "Save this article | ImageView | 195,1718 42x42",
+     "Share this news article | ImageView | 279,1718 42x42",
+     "iv_articleImage | ImageView | 712,1457 315x315",
+     "GOP Sen. Britt's look as gotcha moment a | TextView | 53,1884 646x201",
+     "iv_articleImage | ImageView | 712,1824 315x315",
+     "custom_poster_view_container | ViewGroup | 0,477 1080x608",
+     "Entertainment Weekly | TextView | 100,1103 347x43",
+     "Amber Glenn sobs after giving partner Pa | TextView | 0,1153 1080x140",
+     "2h ago | TextView | 53,1308 99x38",
+     "Save this article | ImageView | 194,1306 42x42",
+     "Share this news article | ImageView | 278,1306 42x42",
+     "TEMU in Taboola advertising section · Sp | View | 49,1376 699x289",
+     "Image for Taboola Advertising Unit | View | 742,1376 289x289",
+     " | View | 583,1361 126x106",
+     "E! | TextView | 100,1709 52x43",
+     "Former DHS chief Kristi Noem files for d | TextView | 53,1767 646x201",
+     "iv_articleImage | ImageView | 712,1707 315x315",
+     "GOP Sen. Britt's look as gotcha moment a | TextView | 53,2134 646x201",
+     "toast_container | FrameLayout | 0,2022 1080x231"
+    ],
+    "refused": [
+     "Sidebar button. Double tap or slide two  | drawn over ('Top Stories' at the tap point)",
+     "toolbar_title_parent | drawn over ('Entertainment' at the tap point)",
+     "Search | drawn over ('Business' at the tap point)"
+    ]
+   },
+   "s11": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Sidebar button. Double tap or slide two  | ImageView | 29,152 126x126",
+     "toolbar_title_parent | LinearLayout | 155,152 333x126",
+     "Search | ImageButton | 954,157 105x105",
+     "Top Stories | View | 53,147 239x126",
+     "Entertainment | View | 313,147 284x126",
+     "Local | View | 618,147 159x126",
+     "Sports | View | 798,147 176x126",
+     "Business | View | 995,147 85x126",
+     "Tap here for weather | ViewGroup | 0,283 1080x557",
+     "2h ago | TextView | 53,1063 99x38",
+     "Save this article | ImageView | 194,1061 42x42",
+     "Share this news article | ImageView | 278,1061 42x42",
+     "Former DHS chief Kristi Noem files for d | TextView | 53,1496 646x201",
+     "9h ago | TextView | 53,1699 100x38",
+     "Save this article | ImageView | 195,1697 42x42",
+     "Share this news article | ImageView | 279,1697 42x42",
+     "iv_articleImage | ImageView | 712,1436 315x315",
+     "GOP Sen. Britt's look as gotcha moment a | TextView | 53,1863 646x201",
+     "iv_articleImage | ImageView | 712,1803 315x315",
+     "custom_poster_view_container | ViewGroup | 0,477 1080x608",
+     "Entertainment Weekly | TextView | 100,1103 347x43",
+     "Amber Glenn sobs after giving partner Pa | TextView | 0,1153 1080x140",
+     "2h ago | TextView | 53,1308 99x38",
+     "Save this article | ImageView | 194,1306 42x42",
+     "Share this news article | ImageView | 278,1306 42x42",
+     "TEMU in Taboola advertising section · Sp | View | 49,1376 699x289",
+     "Image for Taboola Advertising Unit | View | 742,1376 289x289",
+     " | View | 583,1361 126x106",
+     "E! | TextView | 100,1709 52x43",
+     "Former DHS chief Kristi Noem files for d | TextView | 53,1767 646x201",
+     "iv_articleImage | ImageView | 712,1707 315x315",
+     "GOP Sen. Britt's look as gotcha moment a | TextView | 53,2134 646x201",
+     "toast_container | FrameLayout | 0,2022 1080x231"
+    ],
+    "refused": [
+     "Sidebar button. Double tap or slide two  | drawn over ('Top Stories' at the tap point)",
+     "toolbar_title_parent | drawn over ('Entertainment' at the tap point)",
+     "Search | drawn over ('Business' at the tap point)"
+    ]
+   },
+   "s12": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "E! | TextView | 4,317 126x82",
+     "Kristi Noem Files for Divorce From Bryon | TextView | 53,355 974x246",
+     "Sasha Wayman | TextView | 53,602 255x96",
+     "Updated Sep. 29, 2026 1:31 PM PT | TextView | 53,698 481x38",
+     "Image for Taboola Advertising Unit | View | 52,778 220x223",
+     "New Temu users get jackets for $2.36 TEM | View | 267,778 758x223",
+     " | View | 884,881 126x125",
+     "Originally appeared on | TextView | 52,2066 412x50",
+     "E! Online | View | 458,2066 161x50",
+     "Kristi Noem | View | 52,2161 212x47",
+     "is stepping into a new chapter. | TextView | 262,2161 543x47",
+     "Back | ImageView | 21,189 84x84",
+     "article_sdk_engagement_bar | ViewGroup | 0,2190 1080x147"
+    ],
+    "refused": [
+     "E! | drawn over ('Kristi Noem Files for Divorce From Bryon' at the tap point)"
+    ]
+   },
+   "s13": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Sasha Wayman | TextView | 53,216 255x96",
+     "Updated Sep. 29, 2026 1:31 PM PT | TextView | 53,312 481x38",
+     "Image for Taboola Advertising Unit | View | 52,392 220x223",
+     "New Temu users get jackets for $2.36 TEM | View | 267,392 758x223",
+     " | View | 884,495 126x125",
+     "Originally appeared on | TextView | 52,1680 412x50",
+     "E! Online | View | 458,1680 161x50",
+     "Kristi Noem | View | 52,1775 212x47",
+     "is stepping into a new chapter. | TextView | 262,1775 543x47",
+     "Six months after photos of her husband | TextView | 52,1869 700x50",
+     "Bryon Noem | View | 747,1869 229x50",
+     "surfaced, the former Department of Homel | TextView | 52,1932 968x239",
+     "ADVERTISEMENT | TextView | 413,2247 255x44",
+     "Test Ad | FrameLayout | 147,2312 787x25",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": [
+     "Test Ad | drawn over ('Test Ad' at the tap point)"
+    ]
+   },
+   "s14": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "TEMU | TextView | 335,161 89x42",
+     "Sponsored: learn about this recommendati | View | 267,169 44x39",
+     "Ad | TextView | 267,161 44x42",
+     "More options | View | 920,148 53x53",
+     "Originally appeared on | TextView | 52,1297 412x50",
+     "E! Online | View | 458,1297 161x50",
+     "Kristi Noem | View | 52,1392 212x47",
+     "is stepping into a new chapter. | TextView | 262,1392 543x47",
+     "Six months after photos of her husband | TextView | 52,1486 700x50",
+     "Bryon Noem | View | 747,1486 229x50",
+     "surfaced, the former Department of Homel | TextView | 52,1549 968x239",
+     "ADVERTISEMENT | TextView | 413,1864 255x44",
+     "Brand logo | Image | 188,2007 339x100",
+     "The #1 prestige mascara in America. | TextView | 188,2112 339x191",
+     "Test Ad | TextView | 469,1929 143x53",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": [
+     "Sponsored: learn about this recommendati | drawn over ('Ad' at the tap point)"
+    ]
+   },
+   "s15": {
+    "kind": "screen",
+    "box": null,
+    "controls": [],
+    "refused": []
+   },
+   "s16": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Sidebar button. Double tap or slide two  | ImageView | 29,163 126x126",
+     "Home | ViewGroup | 155,163 132x59",
+     "See the latest news | TextView | 171,222 457x67",
+     "Access your saved articles | ImageButton | 828,168 105x105",
+     "Search | ImageButton | 954,168 105x105",
+     "Top Stories | View | 53,294 239x126",
+     "Entertainment | View | 313,294 284x126",
+     "Local | View | 618,294 159x126",
+     "Sports | View | 798,294 176x126",
+     "Business | View | 995,294 85x126",
+     "Tap here for weather | ComposeView | 0,430 1080x194",
+     "custom_poster_view_container | ViewGroup | 0,629 1080x608",
+     "Entertainment Weekly | TextView | 100,1255 347x43",
+     "Amber Glenn sobs after giving partner Pa | TextView | 0,1305 1080x140",
+     "3h ago | TextView | 53,1460 100x38",
+     "Save this article | ImageView | 195,1458 42x42",
+     "Share this news article | ImageView | 279,1458 42x42",
+     "Toxin Free Life in Taboola advertising s | View | 49,1528 699x289",
+     "Image for Taboola Advertising Unit | View | 742,1528 289x289",
+     " | View | 583,1513 126x106",
+     "E! | TextView | 100,1861 52x43",
+     "Former DHS chief Kristi Noem files for d | TextView | 53,1919 646x201",
+     "iv_articleImage | ImageView | 712,1859 315x315",
+     "toast_container | FrameLayout | 0,2022 1080x231",
+     "Inbox | View | 0,2187 540x150",
+     "Home | TextView | 775,2287 70x35"
+    ],
+    "refused": []
+   },
+   "s17": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "image | ImageView | 304,738 473x473",
+     "There isn't any spending activity yet | TextView | 53,1232 974x65",
+     "View transactions based on your inbox he | TextView | 53,1318 974x50",
+     "toast_container | FrameLayout | 0,2022 1080x231",
+     "Inbox | View | 0,2187 540x150",
+     "Home | View | 540,2187 540x150"
+    ],
+    "refused": []
+   },
+   "s18": {
+    "kind": "external",
+    "box": null,
+    "controls": [
+     "help.aol.com | FrameLayout | 0,136 1080x150"
+    ],
+    "refused": []
+   },
+   "s19": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Marina Watts | TextView | 53,300 222x96",
+     "Sep. 29, 2026 5:56 PM PT | TextView | 53,396 365x38",
+     "Image for Taboola Advertising Unit | View | 52,476 220x223",
+     "Why Everyone Is Ditching Ladders For Fal | View | 267,476 758x223",
+     " | View | 884,579 126x125",
+     "Amber Glenn and Pasha Pashkov on ‘Dancin | TextView | 52,1420 979x113",
+     "Key Points | TextView | 52,1562 979x68",
+     "Amber Glenn and Pasha Pashkov scored hig | TextView | 101,1667 930x192",
+     "“The hardest part of the Foxtrot for me  | TextView | 101,1887 930x192",
+     "season 35 air on Tuesdays at 8 p.m. ET/P | TextView | 101,2116 914x113",
+     "Amber Glenn | View | 52,2273 236x48",
+     "and | TextView | 285,2273 89x48",
+     "Pasha Pashkov | View | 369,2273 263x48",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s20": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Amber Glenn and Pasha Pashkov on ‘Dancin | TextView | 52,583 979x113",
+     "Key Points | TextView | 52,725 979x68",
+     "Amber Glenn and Pasha Pashkov scored hig | TextView | 101,830 930x192",
+     "“The hardest part of the Foxtrot for me  | TextView | 101,1050 930x192",
+     "season 35 air on Tuesdays at 8 p.m. ET/P | TextView | 101,1279 914x113",
+     "didn’t let a gnarly bloody nose keep the | TextView | 52,1436 908x174",
+     "A rehearsal clip of the dancing duo show | TextView | 52,1657 863x113",
+     "featured the Olympic figure skater and p | TextView | 52,1720 971x239",
+     "ADVERTISEMENT | TextView | 413,2034 255x44",
+     "Test Ad | FrameLayout | 147,2099 787x238",
+     "privacy | View | 896,2099 40x36",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s21": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Amber Glenn and Pasha Pashkov on ‘Dancin | TextView | 52,214 979x113",
+     "Key Points | TextView | 52,356 979x68",
+     "Amber Glenn and Pasha Pashkov scored hig | TextView | 101,461 930x192",
+     "“The hardest part of the Foxtrot for me  | TextView | 101,681 930x192",
+     "season 35 air on Tuesdays at 8 p.m. ET/P | TextView | 101,910 914x113",
+     "didn’t let a gnarly bloody nose keep the | TextView | 52,1067 908x174",
+     "A rehearsal clip of the dancing duo show | TextView | 52,1288 863x113",
+     "featured the Olympic figure skater and p | TextView | 52,1351 971x239",
+     "ADVERTISEMENT | TextView | 413,1665 255x44",
+     "Antioch This Is The Cost To Cover 150 Fe | Image | 147,1730 789x461",
+     "HOMEBUDDY.COM | TextView | 152,2204 55x55",
+     "Homebuddy.com | TextView | 220,2204 703x55",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s22": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "“The hardest part of the Foxtrot for me  | TextView | 101,344 930x192",
+     "season 35 air on Tuesdays at 8 p.m. ET/P | TextView | 101,573 914x113",
+     "didn’t let a gnarly bloody nose keep the | TextView | 52,730 908x174",
+     "A rehearsal clip of the dancing duo show | TextView | 52,951 863x113",
+     "featured the Olympic figure skater and p | TextView | 52,1014 971x239",
+     "Glenn found their song choice,“Hold the  | TextView | 52,2114 979x191",
+     "ADVERTISEMENT | TextView | 413,1328 255x44",
+     "Antioch This Is The Cost To Cover 150 Fe | View | 147,1393 789x657",
+     "Antioch This Is The Cost To Cover 150 Fe | TextView | 157,1935 789x108",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s23": {
+    "kind": "screen",
+    "box": null,
+    "controls": [],
+    "refused": []
+   },
+   "s24": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "A rehearsal clip of the dancing duo show | TextView | 52,180 863x113",
+     "featured the Olympic figure skater and p | TextView | 52,243 971x239",
+     "Glenn found their song choice,“Hold the  | TextView | 52,1343 979x191",
+     "“The hardest part of the Foxtrot for me  | TextView | 52,1563 979x192",
+     "ADVERTISEMENT | TextView | 413,557 255x44",
+     "Antioch This Is The Cost To Cover 150 Fe | View | 147,622 789x657",
+     "Antioch This Is The Cost To Cover 150 Fe | TextView | 157,1164 789x108",
+     "Back | ImageView | 21,189 84x84",
+     "Next in More For You: | TextView | 53,2105 347x48",
+     "Kristi Noem Files for Divorce From Bryon | TextView | 53,2158 889x126",
+     "Right Arrow | ImageView | 953,2163 63x63"
+    ],
+    "refused": []
+   },
+   "s25": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Glenn found their song choice,“Hold the  | TextView | 52,952 979x191",
+     "“The hardest part of the Foxtrot for me  | TextView | 52,1172 979x192",
+     "Amber Glenn on ‘Dancing With the Stars’C | Image | 52,1393 979x653",
+     "Amber Glenn on ‘Dancing With the Stars’C | TextView | 52,2067 979x61",
+     "ADVERTISEMENT | TextView | 413,166 255x44",
+     "Antioch This Is The Cost To Cover 150 Fe | View | 147,231 789x657",
+     "Antioch This Is The Cost To Cover 150 Fe | TextView | 157,773 789x108",
+     "Back | ImageView | 21,189 84x84",
+     "Next in More For You: | TextView | 53,2105 347x48",
+     "Kristi Noem Files for Divorce From Bryon | TextView | 53,2158 889x126",
+     "Right Arrow | ImageView | 953,2163 63x63"
+    ],
+    "refused": []
+   },
+   "s26": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Glenn found their song choice,“Hold the  | TextView | 52,565 979x191",
+     "“The hardest part of the Foxtrot for me  | TextView | 52,785 979x192",
+     "Amber Glenn on ‘Dancing With the Stars’C | Image | 52,1006 979x653",
+     "Amber Glenn on ‘Dancing With the Stars’C | TextView | 52,1680 979x61",
+     "While spinning during a rehearsal, Glenn | TextView | 52,1770 979x257",
+     "The paramedics came to check out the dan | TextView | 52,2053 979x192",
+     "HOMEBUDDY.COM | TextView | 152,318 55x55",
+     "Homebuddy.com | TextView | 220,318 703x55",
+     "Antioch This Is The Cost To Cover 150 Fe | TextView | 157,386 789x108",
+     "Back | ImageView | 21,189 84x84",
+     "Kristi Noem Files for Divorce From Bryon | TextView | 53,2158 889x126"
+    ],
+    "refused": []
+   },
+   "s27": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Glenn found their song choice,“Hold the  | TextView | 52,176 979x191",
+     "“The hardest part of the Foxtrot for me  | TextView | 52,396 979x192",
+     "Amber Glenn on ‘Dancing With the Stars’C | Image | 52,617 979x653",
+     "Amber Glenn on ‘Dancing With the Stars’C | TextView | 52,1291 979x61",
+     "While spinning during a rehearsal, Glenn | TextView | 52,1381 979x257",
+     "The paramedics came to check out the dan | TextView | 52,1664 979x192",
+     "“I had never been the cause of physical  | TextView | 52,1885 979x320",
+     "Back | ImageView | 21,189 84x84",
+     "Kristi Noem Files for Divorce From Bryon | TextView | 53,2158 889x126",
+     "Right Arrow | ImageView | 953,2163 63x63"
+    ],
+    "refused": []
+   },
+   "s28": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Amber Glenn on ‘Dancing With the Stars’C | Image | 52,262 979x653",
+     "Amber Glenn on ‘Dancing With the Stars’C | TextView | 52,936 979x61",
+     "While spinning during a rehearsal, Glenn | TextView | 52,1026 979x257",
+     "The paramedics came to check out the dan | TextView | 52,1309 979x192",
+     "“I had never been the cause of physical  | TextView | 52,1530 979x320",
+     "When they hit the dance floor for show n | TextView | 52,1876 979x192",
+     "Back | ImageView | 21,189 84x84",
+     "Next in More For You: | TextView | 53,2105 347x48",
+     "Kristi Noem Files for Divorce From Bryon | TextView | 53,2158 889x126",
+     "Right Arrow | ImageView | 953,2163 63x63"
+    ],
+    "refused": []
+   },
+   "s29": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Amber Glenn on ‘Dancing With the Stars’C | TextView | 52,578 979x61",
+     "While spinning during a rehearsal, Glenn | TextView | 52,668 979x257",
+     "The paramedics came to check out the dan | TextView | 52,951 979x192",
+     "“I had never been the cause of physical  | TextView | 52,1172 979x320",
+     "When they hit the dance floor for show n | TextView | 52,1518 979x192",
+     "Derek Hough praised the “ice queen,” poi | TextView | 52,1739 979x257",
+     "Get your daily dose of entertainment new | View | 52,2030 937x113",
+     "EW Dispatch newsletter | View | 52,2093 892x113",
+     "Back | ImageView | 21,189 84x84",
+     "Kristi Noem Files for Divorce From Bryon | TextView | 53,2158 889x126",
+     "Right Arrow | ImageView | 953,2163 63x63"
+    ],
+    "refused": [
+     "Get your daily dose of entertainment new | drawn over ('Next in More For You:' at the tap point)"
+    ]
+   },
+   "s30": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Amber Glenn on ‘Dancing With the Stars’C | TextView | 52,224 979x61",
+     "While spinning during a rehearsal, Glenn | TextView | 52,314 979x257",
+     "The paramedics came to check out the dan | TextView | 52,597 979x192",
+     "“I had never been the cause of physical  | TextView | 52,818 979x320",
+     "When they hit the dance floor for show n | TextView | 52,1164 979x192",
+     "Derek Hough praised the “ice queen,” poi | TextView | 52,1385 979x257",
+     "Get your daily dose of entertainment new | View | 52,1676 937x113",
+     "EW Dispatch newsletter | View | 52,1739 892x113",
+     "Carrie Ann Inaba called out the growth t | TextView | 52,1889 979x257",
+     "Back | ImageView | 21,189 84x84",
+     "Next in More For You: | TextView | 53,2105 347x48",
+     "Kristi Noem Files for Divorce From Bryon | TextView | 53,2158 889x126",
+     "Right Arrow | ImageView | 953,2163 63x63"
+    ],
+    "refused": []
+   },
+   "s31": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "The paramedics came to check out the dan | TextView | 52,280 979x192",
+     "“I had never been the cause of physical  | TextView | 52,501 979x320",
+     "When they hit the dance floor for show n | TextView | 52,847 979x192",
+     "Derek Hough praised the “ice queen,” poi | TextView | 52,1068 979x257",
+     "Get your daily dose of entertainment new | View | 52,1359 937x113",
+     "EW Dispatch newsletter | View | 52,1422 892x113",
+     "Carrie Ann Inaba called out the growth t | TextView | 52,1572 979x257",
+     "She noted that Glenn’s goal is to be “so | TextView | 52,1855 979x192",
+     "Their performance lived up to the judges | TextView | 52,2076 979x257",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": [
+     "Their performance lived up to the judges | drawn over ('Kristi Noem Files for Divorce From Bryon' at the tap point)"
+    ]
+   },
+   "s32": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "TV Insider | ImageView | 52,136 488x10",
+     "‘DWTS’: Who Was Eliminated on Yacht Rock | TextView | 52,157 619x111",
+     "2hr ago | TextView | 52,370 619x38",
+     "‘DWTS’: Who Was Eliminated on Yacht Rock | ImageView | 713,136 315x272",
+     "Entertainment Weekly | ImageView | 52,470 488x53",
+     "“DWTS ”season 35 week 3 recap: A bloody  | TextView | 52,534 619x172",
+     "1hr ago | TextView | 52,747 619x38",
+     "“DWTS ”season 35 week 3 recap: A bloody  | ImageView | 713,470 315x315",
+     "Extend-A-Reach in Taboola advertising se | View | 53,848 661x315",
+     "Image for Taboola Advertising Unit | View | 711,848 321x315",
+     "RealityTea | ImageView | 52,1252 488x53",
+     "Why Ezra Frech & Amber Glenn Should Have | TextView | 52,1316 619x172",
+     "6d ago | TextView | 52,1529 619x38",
+     "Why Ezra Frech & Amber Glenn Should Have | ImageView | 713,1252 315x315",
+     "Parade | ImageView | 52,1629 488x53",
+     "Dancing With the Stars: Who Was Eliminat | TextView | 52,1693 619x172",
+     "4hr ago | TextView | 52,1906 619x38",
+     "Dancing With the Stars: Who Was Eliminat | ImageView | 713,1629 315x315",
+     "Back | ImageView | 21,189 84x84",
+     "Next in More For You: | TextView | 53,2105 347x48",
+     "Kristi Noem Files for Divorce From Bryon | TextView | 53,2158 889x126",
+     "Right Arrow | ImageView | 953,2163 63x63"
+    ],
+    "refused": []
+   },
+   "s33": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Sasha Wayman | TextView | 53,218 255x96",
+     "Updated Sep. 29, 2026 1:31 PM PT | TextView | 53,314 481x38",
+     "Image for Taboola Advertising Unit | View | 52,394 220x223",
+     "Find Results For Secure Business It Netw | View | 267,394 853x223",
+     " | View | 884,497 126x125",
+     "Originally appeared on | TextView | 52,1682 412x50",
+     "E! Online | View | 458,1682 161x50",
+     "Kristi Noem | View | 52,1777 212x47",
+     "is stepping into a new chapter. | TextView | 262,1777 543x47",
+     "Six months after photos of her husband | TextView | 52,1871 700x50",
+     "Bryon Noem | View | 747,1871 229x50",
+     "surfaced, the former Department of Homel | TextView | 52,1934 968x239",
+     "ADVERTISEMENT | TextView | 413,2249 255x44",
+     "Test Ad | FrameLayout | 147,2314 787x23",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": [
+     "Test Ad | drawn over ('Test Ad' at the tap point)"
+    ]
+   },
+   "s34": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Yahoo Search | Secure Business It Networ | TextView | 335,162 756x42",
+     "Sponsored: learn about this recommendati | View | 267,170 44x39",
+     "Ad | TextView | 267,162 44x42",
+     "More options | View | 920,149 53x53",
+     "Originally appeared on | TextView | 52,1298 412x50",
+     "E! Online | View | 458,1298 161x50",
+     "Kristi Noem | View | 52,1393 212x47",
+     "is stepping into a new chapter. | TextView | 262,1393 543x47",
+     "Six months after photos of her husband | TextView | 52,1487 700x50",
+     "Bryon Noem | View | 747,1487 229x50",
+     "surfaced, the former Department of Homel | TextView | 52,1550 968x239",
+     "ADVERTISEMENT | TextView | 413,1865 255x44",
+     "data-centers-ai | View | 147,1930 790x414",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": [
+     "Sponsored: learn about this recommendati | drawn over ('Ad' at the tap point)"
+    ]
+   },
+   "s35": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Originally appeared on | TextView | 52,914 412x50",
+     "E! Online | View | 458,914 161x50",
+     "Kristi Noem | View | 52,1009 212x47",
+     "is stepping into a new chapter. | TextView | 262,1009 543x47",
+     "Six months after photos of her husband | TextView | 52,1103 700x50",
+     "Bryon Noem | View | 747,1103 229x50",
+     "surfaced, the former Department of Homel | TextView | 52,1166 968x239",
+     "ADVERTISEMENT | TextView | 413,1481 255x44",
+     "data-centers-ai | View | 147,1546 790x414",
+     "TE Connectivity Leads AI | View | 199,1997 617x68",
+     "TE Connectivity | View | 199,2123 331x60",
+     "Open | View | 700,2123 116x60",
+     "data-centers-ai | View | 821,2123 61x63",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s36": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Originally appeared on | TextView | 52,527 412x50",
+     "E! Online | View | 458,527 161x50",
+     "Kristi Noem | View | 52,622 212x47",
+     "is stepping into a new chapter. | TextView | 262,622 543x47",
+     "Six months after photos of her husband | TextView | 52,716 700x50",
+     "Bryon Noem | View | 747,716 229x50",
+     "surfaced, the former Department of Homel | TextView | 52,779 968x239",
+     "Kristi, 54, cited irreconcilable differe | TextView | 52,1879 979x192",
+     "E! News has reached out to attorneys for | TextView | 52,2099 979x129",
+     "ADVERTISEMENT | TextView | 413,1094 255x44",
+     "data-centers-ai | View | 147,1159 790x414",
+     "TE Connectivity Leads AI | View | 199,1610 617x68",
+     "TE Connectivity | View | 199,1736 331x60",
+     "Open | View | 700,1736 116x60",
+     "data-centers-ai | View | 821,1736 61x63",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s37": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Kristi Noem | View | 52,227 212x47",
+     "is stepping into a new chapter. | TextView | 262,227 543x47",
+     "Six months after photos of her husband | TextView | 52,321 700x50",
+     "Bryon Noem | View | 747,321 229x50",
+     "surfaced, the former Department of Homel | TextView | 52,384 968x239",
+     "Kristi, 54, cited irreconcilable differe | TextView | 52,1484 979x192",
+     "E! News has reached out to attorneys for | TextView | 52,1704 979x129",
+     "News of the couple’s divorce after 34 ye | TextView | 52,1870 960x239",
+     "March 31, with the outlet alleging that  | TextView | 52,2059 963x239",
+     "ADVERTISEMENT | TextView | 413,699 255x44",
+     "data-centers-ai | View | 147,764 790x414",
+     "TE Connectivity Leads AI | View | 199,1215 617x68",
+     "TE Connectivity | View | 199,1341 331x60",
+     "Open | View | 700,1341 116x60",
+     "data-centers-ai | View | 821,1341 61x63",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s38": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Kristi, 54, cited irreconcilable differe | TextView | 52,1091 979x192",
+     "E! News has reached out to attorneys for | TextView | 52,1311 979x129",
+     "News of the couple’s divorce after 34 ye | TextView | 52,1477 960x239",
+     "March 31, with the outlet alleging that  | TextView | 52,1666 963x239",
+     "At the time, a rep for Kristi—who shares | TextView | 52,1949 882x50",
+     ", 24, with Bryon—said the former South D | TextView | 52,2012 918x176",
+     "More from E! Online | View | 52,2233 362x50",
+     "ADVERTISEMENT | TextView | 413,306 255x44",
+     "data-centers-ai | View | 147,371 790x414",
+     "TE Connectivity Leads AI | View | 199,822 617x68",
+     "TE Connectivity | View | 199,948 331x60",
+     "Open | View | 700,948 116x60",
+     "data-centers-ai | View | 821,948 61x63",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s39": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Kristi, 54, cited irreconcilable differe | TextView | 52,700 979x192",
+     "E! News has reached out to attorneys for | TextView | 52,920 979x129",
+     "News of the couple’s divorce after 34 ye | TextView | 52,1086 960x239",
+     "March 31, with the outlet alleging that  | TextView | 52,1275 963x239",
+     "At the time, a rep for Kristi—who shares | TextView | 52,1558 882x50",
+     ", 24, with Bryon—said the former South D | TextView | 52,1621 918x176",
+     "More from E! Online | View | 52,1842 362x50",
+     "Why Jason Kelce Apologized Live on Air D | View | 101,1936 825x113",
+     "Dylan Sprouse Reveals Name of His and Ba | View | 101,2094 846x113",
+     "TE Connectivity Leads AI | View | 199,431 617x68",
+     "TE Connectivity | View | 199,557 331x60",
+     "Open | View | 700,557 116x60",
+     "data-centers-ai | View | 821,557 61x63",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s40": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Kristi, 54, cited irreconcilable differe | TextView | 52,314 979x192",
+     "E! News has reached out to attorneys for | TextView | 52,534 979x129",
+     "News of the couple’s divorce after 34 ye | TextView | 52,700 960x239",
+     "March 31, with the outlet alleging that  | TextView | 52,889 963x239",
+     "At the time, a rep for Kristi—who shares | TextView | 52,1172 882x50",
+     ", 24, with Bryon—said the former South D | TextView | 52,1235 918x176",
+     "More from E! Online | View | 52,1456 362x50",
+     "Why Jason Kelce Apologized Live on Air D | View | 101,1550 825x113",
+     "Dylan Sprouse Reveals Name of His and Ba | View | 101,1708 846x113",
+     "Why Tom Brady and Gisele Bündchen's Marr | View | 101,1865 854x113",
+     "The New York Post | View | 52,2023 892x113",
+     "in a statement on March 31, “and they as | TextView | 52,2086 976x113",
+     "TE Connectivity | View | 199,171 331x60",
+     "Open | View | 700,171 116x60",
+     "data-centers-ai | View | 821,171 61x63",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s41": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "E! News has reached out to attorneys for | TextView | 52,150 979x129",
+     "News of the couple’s divorce after 34 ye | TextView | 52,316 960x239",
+     "March 31, with the outlet alleging that  | TextView | 52,505 963x239",
+     "At the time, a rep for Kristi—who shares | TextView | 52,788 882x50",
+     ", 24, with Bryon—said the former South D | TextView | 52,851 918x176",
+     "More from E! Online | View | 52,1072 362x50",
+     "Why Jason Kelce Apologized Live on Air D | View | 101,1166 825x113",
+     "Dylan Sprouse Reveals Name of His and Ba | View | 101,1324 846x113",
+     "Why Tom Brady and Gisele Bündchen's Marr | View | 101,1481 854x113",
+     "The New York Post | View | 52,1639 892x113",
+     "in a statement on March 31, “and they as | TextView | 52,1702 976x113",
+     "And though Bryon did not address the pho | TextView | 52,1859 966x113",
+     "'s article, he denied making comments ab | TextView | 52,1922 926x113",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s42": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "At the time, a rep for Kristi—who shares | TextView | 52,402 882x50",
+     ", 24, with Bryon—said the former South D | TextView | 52,465 918x176",
+     "More from E! Online | View | 52,686 362x50",
+     "Why Jason Kelce Apologized Live on Air D | View | 101,780 825x113",
+     "Dylan Sprouse Reveals Name of His and Ba | View | 101,938 846x113",
+     "Why Tom Brady and Gisele Bündchen's Marr | View | 101,1095 854x113",
+     "The New York Post | View | 52,1253 892x113",
+     "in a statement on March 31, “and they as | TextView | 52,1316 976x113",
+     "And though Bryon did not address the pho | TextView | 52,1473 966x113",
+     "'s article, he denied making comments ab | TextView | 52,1536 926x113",
+     "Kristi Noem/Facebook | TextView | 52,2256 979x55",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s43": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "More from E! Online | View | 52,297 362x50",
+     "Why Jason Kelce Apologized Live on Air D | View | 101,391 825x113",
+     "Dylan Sprouse Reveals Name of His and Ba | View | 101,549 846x113",
+     "Why Tom Brady and Gisele Bündchen's Marr | View | 101,706 854x113",
+     "The New York Post | View | 52,864 892x113",
+     "in a statement on March 31, “and they as | TextView | 52,927 976x113",
+     "And though Bryon did not address the pho | TextView | 52,1084 966x113",
+     "'s article, he denied making comments ab | TextView | 52,1147 926x113",
+     "Kristi Noem/Facebook | TextView | 52,1867 979x55",
+     "\"Yeah, I made no comments like that,\" he | TextView | 52,1953 979x129",
+     "reported that Bryon hung up the phone af | TextView | 52,2119 942x112",
+     "But Kristi—who was | TextView | 52,2276 362x50",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s44": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Dylan Sprouse Reveals Name of His and Ba | View | 101,159 846x113",
+     "Why Tom Brady and Gisele Bündchen's Marr | View | 101,316 854x113",
+     "The New York Post | View | 52,474 892x113",
+     "in a statement on March 31, “and they as | TextView | 52,537 976x113",
+     "And though Bryon did not address the pho | TextView | 52,694 966x113",
+     "'s article, he denied making comments ab | TextView | 52,757 926x113",
+     "Kristi Noem/Facebook | TextView | 52,1477 979x55",
+     "\"Yeah, I made no comments like that,\" he | TextView | 52,1563 979x129",
+     "reported that Bryon hung up the phone af | TextView | 52,1729 942x112",
+     "fired from her post as the DHS leader | View | 52,1886 892x113",
+     "March 5 amid national backlash over her  | TextView | 52,1949 966x239",
+     "After all, the former South Dakota gover | TextView | 52,2233 863x112",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s45": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "in a statement on March 31, “and they as | TextView | 52,151 976x113",
+     "And though Bryon did not address the pho | TextView | 52,308 966x113",
+     "'s article, he denied making comments ab | TextView | 52,371 926x113",
+     "Kristi Noem/Facebook | TextView | 52,1091 979x55",
+     "\"Yeah, I made no comments like that,\" he | TextView | 52,1177 979x129",
+     "reported that Bryon hung up the phone af | TextView | 52,1343 942x112",
+     "fired from her post as the DHS leader | View | 52,1500 892x113",
+     "March 5 amid national backlash over her  | TextView | 52,1563 966x239",
+     "After all, the former South Dakota gover | TextView | 52,1847 863x112",
+     "during a House Judiciary Committee heari | TextView | 52,1973 850x175",
+     "Corey has also denied the rumors. | TextView | 52,2185 979x66",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s46": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Kristi Noem/Facebook | TextView | 52,707 979x55",
+     "\"Yeah, I made no comments like that,\" he | TextView | 52,793 979x129",
+     "reported that Bryon hung up the phone af | TextView | 52,959 942x112",
+     "fired from her post as the DHS leader | View | 52,1116 892x113",
+     "March 5 amid national backlash over her  | TextView | 52,1179 966x239",
+     "After all, the former South Dakota gover | TextView | 52,1463 863x112",
+     "during a House Judiciary Committee heari | TextView | 52,1589 850x175",
+     "Corey has also denied the rumors. | TextView | 52,1801 979x66",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s47": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Kristi Noem/Facebook | TextView | 52,320 979x55",
+     "\"Yeah, I made no comments like that,\" he | TextView | 52,406 979x129",
+     "reported that Bryon hung up the phone af | TextView | 52,572 942x112",
+     "fired from her post as the DHS leader | View | 52,729 892x113",
+     "March 5 amid national backlash over her  | TextView | 52,792 966x239",
+     "After all, the former South Dakota gover | TextView | 52,1076 863x112",
+     "during a House Judiciary Committee heari | TextView | 52,1202 850x175",
+     "Corey has also denied the rumors. | TextView | 52,1414 979x66",
+     "Bryon Noem (R), husband of U.S. Secretar | Image | 52,1509 979x609",
+     "Photo by Heather Diehl/Getty Images | TextView | 52,2078 979x58",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s48": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "reported that Bryon hung up the phone af | TextView | 52,184 942x112",
+     "fired from her post as the DHS leader | View | 52,341 892x113",
+     "March 5 amid national backlash over her  | TextView | 52,404 966x239",
+     "After all, the former South Dakota gover | TextView | 52,688 863x112",
+     "during a House Judiciary Committee heari | TextView | 52,814 850x175",
+     "Corey has also denied the rumors. | TextView | 52,1026 979x66",
+     "Bryon Noem (R), husband of U.S. Secretar | Image | 52,1121 979x609",
+     "Photo by Heather Diehl/Getty Images | TextView | 52,1690 979x58",
+     "As for her life with Bryon, Kristi has p | TextView | 52,1780 979x191",
+     "“People know me and we are such a transp | TextView | 52,2005 973x113",
+     "in 2022. “I don’t know of another electe | TextView | 52,2068 945x176",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s49": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "After all, the former South Dakota gover | TextView | 52,300 863x112",
+     "during a House Judiciary Committee heari | TextView | 52,426 850x175",
+     "Corey has also denied the rumors. | TextView | 52,638 979x66",
+     "Bryon Noem (R), husband of U.S. Secretar | Image | 52,733 979x609",
+     "Photo by Heather Diehl/Getty Images | TextView | 52,1302 979x58",
+     "As for her life with Bryon, Kristi has p | TextView | 52,1392 979x191",
+     "“People know me and we are such a transp | TextView | 52,1617 973x113",
+     "in 2022. “I don’t know of another electe | TextView | 52,1680 945x176",
+     "She added, “I think that is what this jo | TextView | 52,1896 979x128",
+     "Keep reading for more celebrity couples  | TextView | 52,2050 979x132",
+     "Audrina Patridge & Michael Ray | TextView | 52,2211 979x65",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s50": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Corey has also denied the rumors. | TextView | 52,247 979x66",
+     "Bryon Noem (R), husband of U.S. Secretar | Image | 52,342 979x609",
+     "Photo by Heather Diehl/Getty Images | TextView | 52,911 979x58",
+     "As for her life with Bryon, Kristi has p | TextView | 52,1001 979x191",
+     "“People know me and we are such a transp | TextView | 52,1226 973x113",
+     "in 2022. “I don’t know of another electe | TextView | 52,1289 945x176",
+     "She added, “I think that is what this jo | TextView | 52,1505 979x128",
+     "Keep reading for more celebrity couples  | TextView | 52,1659 979x132",
+     "Audrina Patridge & Michael Ray | TextView | 52,1820 979x65",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s51": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Photo by Heather Diehl/Getty Images | TextView | 52,521 979x58",
+     "As for her life with Bryon, Kristi has p | TextView | 52,611 979x191",
+     "“People know me and we are such a transp | TextView | 52,836 973x113",
+     "in 2022. “I don’t know of another electe | TextView | 52,899 945x176",
+     "She added, “I think that is what this jo | TextView | 52,1115 979x128",
+     "Keep reading for more celebrity couples  | TextView | 52,1269 979x132",
+     "Audrina Patridge & Michael Ray | TextView | 52,1430 979x65",
+     "The Hillsalumconfirmed her romancewith t | TextView | 52,2099 979x113",
+     "J Balvin & Valentina Ferrer | TextView | 52,2243 979x66",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s52": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "As for her life with Bryon, Kristi has p | TextView | 52,222 979x191",
+     "“People know me and we are such a transp | TextView | 52,447 973x113",
+     "in 2022. “I don’t know of another electe | TextView | 52,510 945x176",
+     "She added, “I think that is what this jo | TextView | 52,726 979x128",
+     "Keep reading for more celebrity couples  | TextView | 52,880 979x132",
+     "Audrina Patridge & Michael Ray | TextView | 52,1041 979x65",
+     "The Hillsalumconfirmed her romancewith t | TextView | 52,1710 979x113",
+     "J Balvin & Valentina Ferrer | TextView | 52,1854 979x66",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s53": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "She added, “I think that is what this jo | TextView | 52,342 979x128",
+     "Keep reading for more celebrity couples  | TextView | 52,496 979x132",
+     "Audrina Patridge & Michael Ray | TextView | 52,657 979x65",
+     "The Hillsalumconfirmed her romancewith t | TextView | 52,1326 979x113",
+     "J Balvin & Valentina Ferrer | TextView | 52,1470 979x66",
+     "The \"Mi Gente\" singer (real nameJosé Álv | TextView | 52,2142 979x166",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s54": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Audrina Patridge & Michael Ray | TextView | 52,271 979x65",
+     "The Hillsalumconfirmed her romancewith t | TextView | 52,940 979x113",
+     "J Balvin & Valentina Ferrer | TextView | 52,1084 979x66",
+     "The \"Mi Gente\" singer (real nameJosé Álv | TextView | 52,1756 979x166",
+     "Amanda Seyfried & Thomas Sadoski | TextView | 52,1953 979x66",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s55": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "The Hillsalumconfirmed her romancewith t | TextView | 52,557 979x113",
+     "J Balvin & Valentina Ferrer | TextView | 52,701 979x66",
+     "The \"Mi Gente\" singer (real nameJosé Álv | TextView | 52,1373 979x166",
+     "Amanda Seyfried & Thomas Sadoski | TextView | 52,1570 979x66",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s56": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "The Hillsalumconfirmed her romancewith t | TextView | 52,172 979x113",
+     "J Balvin & Valentina Ferrer | TextView | 52,316 979x66",
+     "The \"Mi Gente\" singer (real nameJosé Álv | TextView | 52,988 979x166",
+     "Amanda Seyfried & Thomas Sadoski | TextView | 52,1185 979x66",
+     "“We have beenseparated for a while, and  | TextView | 52,1857 979x166",
+     "Dakota Johnson & Role Model | TextView | 52,2054 979x68",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s57": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "The \"Mi Gente\" singer (real nameJosé Álv | TextView | 52,602 979x166",
+     "Amanda Seyfried & Thomas Sadoski | TextView | 52,799 979x66",
+     "“We have beenseparated for a while, and  | TextView | 52,1471 979x166",
+     "Dakota Johnson & Role Model | TextView | 52,1668 979x68",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s58": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "The \"Mi Gente\" singer (real nameJosé Álv | TextView | 52,217 979x166",
+     "Amanda Seyfried & Thomas Sadoski | TextView | 52,414 979x66",
+     "“We have beenseparated for a while, and  | TextView | 52,1086 979x166",
+     "Dakota Johnson & Role Model | TextView | 52,1283 979x68",
+     "<p>Dakota Johnson &amp; Role Model</p> | Image | 52,1385 979x728",
+     "On Aug. 19, multiple outlets reported th | TextView | 52,1955 979x168",
+     "Kelly Osbourne & Sid Wilson | TextView | 52,2152 979x68",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s59": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "“We have beenseparated for a while, and  | TextView | 52,699 979x166",
+     "Dakota Johnson & Role Model | TextView | 52,896 979x68",
+     "<p>Dakota Johnson &amp; Role Model</p> | Image | 52,998 979x728",
+     "On Aug. 19, multiple outlets reported th | TextView | 52,1568 979x168",
+     "Kelly Osbourne & Sid Wilson | TextView | 52,1765 979x68",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s60": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "“We have beenseparated for a while, and  | TextView | 52,312 979x166",
+     "Dakota Johnson & Role Model | TextView | 52,509 979x68",
+     "<p>Dakota Johnson &amp; Role Model</p> | Image | 52,611 979x728",
+     "On Aug. 19, multiple outlets reported th | TextView | 52,1181 979x168",
+     "Kelly Osbourne & Sid Wilson | TextView | 52,1378 979x68",
+     "TheFashion Policealumconfirmed her split | TextView | 52,2050 979x168",
+     "Joey Bada$$ & Serayah | TextView | 52,2247 979x68",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s61": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "<p>Dakota Johnson &amp; Role Model</p> | Image | 52,226 979x728",
+     "On Aug. 19, multiple outlets reported th | TextView | 52,796 979x168",
+     "Kelly Osbourne & Sid Wilson | TextView | 52,993 979x68",
+     "TheFashion Policealumconfirmed her split | TextView | 52,1665 979x168",
+     "Joey Bada$$ & Serayah | TextView | 52,1862 979x68",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s62": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "On Aug. 19, multiple outlets reported th | TextView | 52,416 979x168",
+     "Kelly Osbourne & Sid Wilson | TextView | 52,613 979x68",
+     "TheFashion Policealumconfirmed her split | TextView | 52,1285 979x168",
+     "Joey Bada$$ & Serayah | TextView | 52,1482 979x68",
+     "TheEmpireactress confirmed the former co | TextView | 52,2154 979x168",
+     "Back | ImageView | 21,189 84x84"
+    ],
+    "refused": []
+   },
+   "s63": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Entertainment Weekly | TextView | 53,317 317x38",
+     "Amber Glenn sobs after giving partner Pa | TextView | 53,355 974x328",
+     "Marina Watts | TextView | 53,684 222x96",
+     "Sep. 29, 2026 5:56 PM PT | TextView | 53,780 365x38",
+     "Amber Glenn and Pasha Pashkov on ‘Dancin | TextView | 52,1534 979x113",
+     "Key Points | TextView | 52,1676 979x68",
+     "Amber Glenn and Pasha Pashkov scored hig | TextView | 101,1781 930x192",
+     "“The hardest part of the Foxtrot for me  | TextView | 101,2001 930x192",
+     "season 35 air on Tuesdays at 8 p.m. ET/P | TextView | 101,2230 914x113",
+     "Back | ImageView | 21,189 84x84",
+     "article_sdk_engagement_bar | ViewGroup | 0,2190 1080x147"
+    ],
+    "refused": [
+     "season 35 air on Tuesdays at 8 p.m. ET/P | drawn over ('View Comments' at the tap point)"
+    ]
+   },
+   "s64": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "E! | TextView | 4,317 126x82",
+     "Kristi Noem Files for Divorce From Bryon | TextView | 53,355 974x246",
+     "Sasha Wayman | TextView | 53,602 255x96",
+     "Updated Sep. 29, 2026 1:31 PM PT | TextView | 53,698 481x38",
+     "Originally appeared on | TextView | 52,1796 412x50",
+     "E! Online | View | 458,1796 161x50",
+     "Kristi Noem | View | 52,1891 212x47",
+     "is stepping into a new chapter. | TextView | 262,1891 543x47",
+     "Six months after photos of her husband | TextView | 52,1985 700x50",
+     "Bryon Noem | View | 747,1985 229x50",
+     "surfaced, the former Department of Homel | TextView | 52,2048 968x239",
+     "Back | ImageView | 21,189 84x84",
+     "article_sdk_engagement_bar | ViewGroup | 0,2190 1080x147"
+    ],
+    "refused": [
+     "E! | drawn over ('Kristi Noem Files for Divorce From Bryon' at the tap point)"
+    ]
+   },
+   "launcher": {
+    "kind": "external",
+    "box": null,
+    "controls": [],
+    "refused": []
+   }
+  }
+ },
+ "janitorai/20260929-203310-1f19585": {
+  "root": "s01",
+  "tabs": [
+   " | ViewGroup | 72,2170 167x167",
+   " | ViewGroup | 264,2170 167x167",
+   " | ViewGroup | 457,2170 167x167",
+   " | ViewGroup | 649,2170 167x167",
+   " | ViewGroup | 841,2170 167x167"
+  ],
+  "states": {
+   "s01": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Build, Share, Explore | TextView | 42,174 485x71",
+     " | Button | 954,167 84x84",
+     "All | ViewGroup | 50,309 145x75",
+     "Limited Only | ViewGroup | 201,309 300x75",
+     "Following | ViewGroup | 50,434 255x75",
+     "Favorites | ViewGroup | 311,434 247x75",
+     "Trending | ViewGroup | 564,434 242x75",
+     "Hidden Gems | ViewGroup | 812,434 224x75",
+     "￼Hidden Gems show characters from smalle | TextView | 41,551 998x211",
+     "characters | TextView | 167,821 175x43",
+     " | ViewGroup | 601,795 95x95",
+     " | ViewGroup | 944,795 95x95",
+     "背徳の貴婦人 | ViewGroup | 63,932 443x545",
+     "Hot Day | ViewGroup | 574,932 443x536",
+     "@miemist | ViewGroup | 63,1494 133x34",
+     "@Mini890 | ViewGroup | 574,1485 134x34",
+     "[名前(\"シルビア・クリステル\")], [性別(\"女性\")], [外見(\"赤みが | ViewGroup | 63,1545 443x705",
+     "Pick me with cast on a hot day. | ViewGroup | 574,1536 443x40",
+     "Limitless | ViewGroup | 574,1691 158x57",
+     "👨 Male | ViewGroup | 744,1691 148x57",
+     "📺 Anime | ViewGroup | 574,1760 164x58",
+     "👭 Multiple | ViewGroup | 750,1760 186x58",
+     "👤 AnyPOV | ViewGroup | 574,1830 185x57",
+     "#JJK | ViewGroup | 771,1830 112x57",
+     " | ViewGroup | 72,2170 167x167",
+     " | ViewGroup | 264,2170 167x167",
+     " | ViewGroup | 457,2170 167x167",
+     " | ViewGroup | 649,2170 167x167",
+     " | ViewGroup | 841,2170 167x167"
+    ],
+    "refused": []
+   },
+   "s02": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Search | TextView | 42,174 165x71",
+     " | Button | 954,167 84x84",
+     " | EditText | 41,300 854x112",
+     " | ViewGroup | 924,300 115x115",
+     "👨 Male | ViewGroup | 41,443 161x84",
+     "⛓️ Dominant | ViewGroup | 216,443 232x84",
+     "👩‍🦰 Female | ViewGroup | 462,443 197x84",
+     "📚 Fictional | ViewGroup | 673,443 213x84",
+     "🧑‍🎨 OC | ViewGroup | 900,443 133x84",
+     "All | ViewGroup | 50,564 145x75",
+     "Limited Only | ViewGroup | 201,564 300x75",
+     "All | ViewGroup | 50,689 145x75",
+     "Following | ViewGroup | 201,689 255x75",
+     "Favorites | ViewGroup | 462,689 247x75",
+     " | ViewGroup | 72,2170 167x167",
+     " | ViewGroup | 264,2170 167x167",
+     " | ViewGroup | 457,2170 167x167",
+     " | ViewGroup | 649,2170 167x167",
+     " | ViewGroup | 841,2170 167x167"
+    ],
+    "refused": [
+     "🧑‍🎨 OC | drawn over ('￼' at the tap point)"
+    ]
+   },
+   "s03": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     " | Button | 42,167 84x84",
+     "My Chats | View | 155,174 799x71",
+     " | Button | 954,167 84x84",
+     " | EditText | 23,294 1034x112",
+     "☆ Rodrick Heffley!, 20:08, 1 chat | ViewGroup | 17,408 1046x223",
+     "Kang Jun-Seo (Idol x Idol), 02:12, 15 ch | ViewGroup | 17,631 1046x223",
+     "The Former Husband is the New Employer , | ViewGroup | 17,854 1046x223",
+     "NANAMI KENTO, 01:35, 4 chats | ViewGroup | 17,1076 1046x223",
+     " | ViewGroup | 72,2170 167x167",
+     " | ViewGroup | 264,2170 167x167",
+     " | ViewGroup | 457,2170 167x167",
+     " | ViewGroup | 649,2170 167x167",
+     " | ViewGroup | 841,2170 167x167"
+    ],
+    "refused": []
+   },
+   "s04": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     " | Button | 42,167 84x84",
+     "Notifications | View | 155,174 799x71",
+     " | Button | 954,167 84x84",
+     "No notifications | TextView | 388,400 304x50",
+     " | ViewGroup | 72,2170 167x167",
+     " | ViewGroup | 264,2170 167x167",
+     " | ViewGroup | 457,2170 167x167",
+     " | ViewGroup | 649,2170 167x167",
+     " | ViewGroup | 841,2170 167x167"
+    ],
+    "refused": []
+   },
+   "s05": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     " | Button | 954,167 84x84",
+     "@[redacted] | TextView | 286,294 377x73",
+     "0, Following | ViewGroup | 286,395 173x102",
+     "Followers | TextView | 542,459 138x38",
+     "View public profile | ViewGroup | 45,530 990x38",
+     "Characters | ViewGroup | 0,590 360x109",
+     "Personas (1) | ViewGroup | 360,590 360x109",
+     "Scripts | ViewGroup | 720,590 360x109",
+     " | EditText | 41,733 681x112",
+     "Latest | ViewGroup | 751,733 288x112",
+     "New Character | ViewGroup | 41,878 998x137",
+     "No characters found | TextView | 343,1144 393x50",
+     "Try adjusting filters | TextView | 382,1216 315x43",
+     " | ViewGroup | 72,2170 167x167",
+     " | ViewGroup | 264,2170 167x167",
+     " | ViewGroup | 457,2170 167x167",
+     " | ViewGroup | 649,2170 167x167",
+     " | ViewGroup | 841,2170 167x167"
+    ],
+    "refused": []
+   },
+   "s06": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     " | Button | 148,167 84x84",
+     "Hidden Gems | ViewGroup | 6,434 224x75",
+     "Explore All | ViewGroup | 230,434 100x75",
+     "Explore All | TextView | 230,451 176x41",
+     "￼Hidden Gems show characters from smalle | TextView | 0,551 233x211",
+     " | ViewGroup | 138,795 95x95",
+     "Hot Day | ViewGroup | 0,932 211x536",
+     "Pick me with cast on a hot day. | ViewGroup | 0,1536 211x40",
+     "👨 Male | ViewGroup | 0,1691 86x57",
+     "👭 Multiple | ViewGroup | 0,1760 130x58",
+     "#JJK | ViewGroup | 0,1830 77x57",
+     " | ViewGroup | 35,2170 167x167",
+     " | ViewGroup | 531,196 312x61",
+     " | ViewGroup | 531,279 172x95",
+     "Followers | TextView | 777,336 138x38",
+     "Member Since Sep 26, 2026 | TextView | 318,407 398x38",
+     "View public profile | ViewGroup | 318,462 298x38",
+     "Main navigation | Button | 306,572 743x142",
+     "Following | Button | 306,726 743x142",
+     "Blocks | Button | 306,880 743x141",
+     "Media Library | Button | 306,1033 743x142",
+     "Settings | Button | 306,1187 743x142",
+     "Billing | Button | 306,1341 743x142",
+     "Upgrade to Janitor Plus | ViewGroup | 335,1514 743x149",
+     "Get Help | ViewGroup | 572,1755 212x87",
+     "Logout | Button | 306,1875 743x142",
+     "v2.5.0.136.v35 | ViewGroup | 306,2020 743x34"
+    ],
+    "refused": [
+     "Explore All | drawn over ('Explore All' at the tap point)",
+     "Explore All | drawn over ('View public profile' at the tap point)"
+    ]
+   },
+   "s07": {
+    "kind": "screen",
+    "box": null,
+    "controls": [],
+    "refused": []
+   },
+   "s08": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     " | Button | 42,168 84x84",
+     "背徳の貴婦人 | View | 126,171 715x78",
+     " | ViewGroup | 841,165 96x89",
+     " | Button | 954,168 84x84",
+     "背徳の貴婦人 | TextView | 76,309 348x84",
+     "1 | ViewGroup | 76,421 928x522",
+     "by: | TextView | 97,992 61x47",
+     "@miemist | ViewGroup | 158,992 185x47",
+     " | ViewGroup | 920,974 84x84",
+     "Notifications-top | View | 76,1088 931x111",
+     "Created | TextView | 164,1249 117x34",
+     "Updated | TextView | 476,1249 127x34",
+     "Published | TextView | 783,1249 148x34",
+     "about 2 hours ago | TextView | 101,1289 243x96",
+     "3 minutes ago | TextView | 418,1289 243x96",
+     "3 minutes ago | TextView | 736,1289 243x96",
+     "Limitless | ViewGroup | 76,1437 158x58",
+     "👩‍🦰 Female | ViewGroup | 246,1437 176x58",
+     "Proxy not allowed | TextView | 146,1538 278x41",
+     "PLAYING AS, Aaditya | ViewGroup | 79,1595 922x130",
+     "Chat with シルビア・クリステル | ViewGroup | 88,1737 904x113",
+     "Character Definition is hidden, Total 21 | TextView | 37,1935 1006x152",
+     "Comments | TextView | 92,2168 840x54",
+     "Be the first to comment ❤️ | TextView | 221,2278 769x55"
+    ],
+    "refused": []
+   },
+   "s09": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Build, Share, Explore | TextView | 42,174 485x71",
+     " | Button | 954,167 84x84",
+     "￼Hidden Gems show characters from smalle | TextView | 41,283 998x79",
+     "characters | TextView | 167,421 175x43",
+     " | ViewGroup | 601,395 95x95",
+     " | ViewGroup | 944,395 95x95",
+     "背徳の貴婦人 | ViewGroup | 63,532 443x545",
+     "@miemist | ViewGroup | 63,1094 133x34",
+     "[名前(\"シルビア・クリステル\")], [性別(\"女性\")], [外見(\"赤みが | ViewGroup | 63,1145 443x705",
+     "Limitless | ViewGroup | 63,1965 158x57",
+     "2.1k tokens | TextView | 63,2033 443x27",
+     "Teddy ⚝ Bob’s Burgers | TextView | 63,2126 391x47",
+     "👩‍🦰 Female | ViewGroup | 233,1965 176x57",
+     "Hot Day | ViewGroup | 574,532 443x536",
+     "@Mini890 | ViewGroup | 574,1085 134x34",
+     "Pick me with cast on a hot day. | ViewGroup | 574,1136 443x40",
+     "Limitless | ViewGroup | 574,1291 158x57",
+     "📺 Anime | ViewGroup | 574,1360 164x58",
+     "👤 AnyPOV | ViewGroup | 574,1430 185x57",
+     "787 tokens | TextView | 574,2032 443x27",
+     "Black Sapphire Cookie - boys beware (son | TextView | 574,2126 442x42",
+     "👨 Male | ViewGroup | 744,1291 148x57",
+     "👭 Multiple | ViewGroup | 750,1360 186x58",
+     "#JJK | ViewGroup | 771,1430 112x57"
+    ],
+    "refused": []
+   },
+   "s10": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Build, Share, Explore | TextView | 42,174 485x71",
+     " | Button | 954,167 84x84",
+     "￼Hidden Gems show characters from smalle | TextView | 41,283 998x98",
+     "characters | TextView | 167,440 175x43",
+     " | ViewGroup | 601,414 95x95",
+     " | ViewGroup | 944,414 95x95",
+     "背徳の貴婦人 | ViewGroup | 63,551 443x545",
+     "@miemist | ViewGroup | 63,1113 133x34",
+     "[名前(\"シルビア・クリステル\")], [性別(\"女性\")], [外見(\"赤みが | ViewGroup | 63,1164 443x705",
+     "Limitless | ViewGroup | 63,1984 158x57",
+     "2.1k tokens | TextView | 63,2052 443x27",
+     "Teddy ⚝ Bob’s Burgers | TextView | 63,2145 391x47",
+     "👩‍🦰 Female | ViewGroup | 233,1984 176x57",
+     "Hot Day | ViewGroup | 574,551 443x536",
+     "@Mini890 | ViewGroup | 574,1104 134x34",
+     "Pick me with cast on a hot day. | ViewGroup | 574,1155 443x40",
+     "Limitless | ViewGroup | 574,1310 158x57",
+     "📺 Anime | ViewGroup | 574,1379 164x58",
+     "👤 AnyPOV | ViewGroup | 574,1449 185x57",
+     "787 tokens | TextView | 574,2051 443x27",
+     "Black Sapphire Cookie - boys beware (son | TextView | 574,2145 442x42",
+     "👨 Male | ViewGroup | 744,1310 148x57",
+     "👭 Multiple | ViewGroup | 750,1379 186x58",
+     "#JJK | ViewGroup | 771,1449 112x57"
+    ],
+    "refused": []
+   },
+   "s11": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Build, Share, Explore | TextView | 42,174 485x71",
+     " | Button | 954,167 84x84",
+     "￼Hidden Gems show characters from smalle | TextView | 41,283 998x98",
+     "characters | TextView | 167,440 175x43",
+     " | ViewGroup | 601,414 95x95",
+     " | ViewGroup | 944,414 95x95",
+     "[MARIA CLARA AT IBARRA] - Fidel Delos Re | ViewGroup | 63,551 443x536",
+     "Enzo Santoro | ViewGroup | 574,551 443x536",
+     "@minlix_bylertruther | ViewGroup | 63,1104 276x34",
+     "@spicey_23 | ViewGroup | 574,1108 158x34",
+     "[TAGALOG and ENGLISH available] TAGALOG: | ViewGroup | 63,1155 443x386",
+     "Limitless | ViewGroup | 63,1656 158x58",
+     "👨 Male | ViewGroup | 233,1656 148x58",
+     "📚 Fictional | ViewGroup | 63,1725 190x57",
+     "🏰 Historical | ViewGroup | 265,1725 203x57",
+     "👑 Royalty | ViewGroup | 63,1795 176x57",
+     "🌎 Non-English | ViewGroup | 251,1795 231x57",
+     "❤️‍🔥 Smut | ViewGroup | 63,1864 151x57",
+     "❤️‍🩹 Fluff | ViewGroup | 226,1864 143x57",
+     "🌗 Switch | ViewGroup | 63,1933 168x58",
+     "#nolimetangere | ViewGroup | 243,1933 237x58",
+     "1.1k tokens | TextView | 63,2072 443x27",
+     "Enzo Santoro, Age: 29\nHeight: 6’5”\nOccup | ViewGroup | 574,1163 443x518",
+     "Limitless | ViewGroup | 574,1796 158x57",
+     "👨 Male | ViewGroup | 744,1796 148x57",
+     "⚔️ Enemies to Lovers | ViewGroup | 574,1865 303x57",
+     "❤️‍🔥 Smut | ViewGroup | 574,1935 151x58",
+     "🕊🗡 Dead Dove | ViewGroup | 737,1935 247x58",
+     "#mafia | ViewGroup | 574,2004 133x57",
+     "#cinderella | ViewGroup | 719,2004 183x57",
+     "722 tokens | TextView | 574,2072 443x27",
+     "it's just a hobby | kit vance | TextView | 63,2166 442x42",
+     "The Toman Kids | TextView | 574,2166 265x42"
+    ],
+    "refused": []
+   },
+   "s12": {
+    "kind": "external",
+    "box": null,
+    "controls": [
+     "Tue, Sep 29 | FrameLayout | 67,231 946x273",
+     "Play Store | TextView | 67,1491 205x273",
+     "Gmail | TextView | 314,1491 205x273",
+     "Photos | TextView | 561,1491 205x273",
+     "YouTube | TextView | 808,1491 205x273",
+     "page_indicator | View | 0,1810 1080x63",
+     "Phone | TextView | 83,1873 173x195",
+     "Messages | TextView | 330,1873 173x195",
+     "Chrome | TextView | 577,1873 173x195",
+     "Perplexity | TextView | 824,1873 173x195",
+     "Google search | FrameLayout | 90,2125 900x165"
+    ],
+    "refused": []
+   },
+   "s13": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Build, Share, Explore | TextView | 42,174 485x71",
+     " | Button | 954,167 84x84",
+     "All | ViewGroup | 50,309 145x75",
+     "Limited Only | ViewGroup | 201,309 300x75",
+     "Following | ViewGroup | 50,434 255x75",
+     "Favorites | ViewGroup | 311,434 247x75",
+     "Trending | ViewGroup | 564,434 242x75",
+     "Hidden Gems | ViewGroup | 812,434 224x75",
+     "￼Hidden Gems show characters from smalle | TextView | 41,551 998x211",
+     "characters | TextView | 167,821 175x43",
+     " | ViewGroup | 601,795 95x95",
+     " | ViewGroup | 944,795 95x95",
+     "Nora beady | ViewGroup | 63,932 443x536",
+     "@Patrickrose1995 | ViewGroup | 63,1485 246x34",
+     "🐮I have always prided myself on being a  | ViewGroup | 63,1536 443x320",
+     "Limitless | ViewGroup | 63,1971 158x57",
+     "👩‍🦰 Female | ViewGroup | 233,1971 176x57",
+     "📚 Fictional | ViewGroup | 63,2040 190x58",
+     "#nickelodeon | ViewGroup | 265,2040 211x58",
+     "#barnyard2006 | ViewGroup | 63,2110 230x57",
+     "背徳の貴婦人 | ViewGroup | 574,932 443x545",
+     "@miemist | ViewGroup | 574,1494 133x34",
+     "[名前(\"シルビア・クリステル\")], [性別(\"女性\")], [外見(\"赤みが | ViewGroup | 574,1545 443x705",
+     " | ViewGroup | 72,2170 167x167",
+     " | ViewGroup | 264,2170 167x167",
+     " | ViewGroup | 457,2170 167x167",
+     " | ViewGroup | 649,2170 167x167",
+     " | ViewGroup | 841,2170 167x167"
+    ],
+    "refused": []
+   },
+   "s14": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Search | TextView | 42,174 165x71",
+     " | Button | 954,167 84x84",
+     " | EditText | 41,300 854x112",
+     " | ViewGroup | 924,300 115x115",
+     "👨 Male | ViewGroup | 41,443 161x84",
+     " | ViewGroup | 944,811 95x95",
+     "Medieval Fantasy World RP | ViewGroup | 63,948 443x536",
+     "Real Life World RP | ViewGroup | 574,948 443x536",
+     "@Mayu0910 | ViewGroup | 63,1501 166x34",
+     "Welcome to Medieval Fantasy World RP! A  | ViewGroup | 63,1552 443x360",
+     "Limitless | ViewGroup | 63,2027 158x57",
+     "📚 Fictional | ViewGroup | 233,2027 191x57",
+     "🪢 Scenario | ViewGroup | 63,2166 192x57",
+     "🎲 RPG | ViewGroup | 267,2166 141x57",
+     "@Mayu0910 | ViewGroup | 574,1501 166x34",
+     "Have you ever wondered how life would've | ViewGroup | 574,1552 443x438",
+     "🪢 Scenario | ViewGroup | 574,2174 192x57",
+     "🎲 RPG | ViewGroup | 778,2174 141x57",
+     "👤 AnyPOV | ViewGroup | 574,2244 185x58",
+     "#realife | ViewGroup | 771,2244 142x58",
+     " | ViewGroup | 72,2170 167x167",
+     " | ViewGroup | 264,2170 167x167",
+     " | ViewGroup | 457,2170 167x167",
+     " | ViewGroup | 649,2170 167x167",
+     " | ViewGroup | 841,2170 167x167",
+     "Bottom sheet handle | SeekBar | 0,240 1080x64",
+     "Filters | TextView | 43,360 994x53",
+     "Sort by | TextView | 43,442 994x88",
+     "Popular | ViewGroup | 43,552 994x125",
+     "Latest | ViewGroup | 43,677 994x125",
+     "Trending | ViewGroup | 43,802 994x125",
+     "Trending 24h | ViewGroup | 43,927 994x125",
+     "Relevance | ViewGroup | 43,1052 994x125",
+     "Messages | TextView | 43,1206 994x89",
+     "Greater than or equal | ViewGroup | 72,1362 936x70",
+     " | EditText | 43,1515 994x145",
+     "Tokens | TextView | 43,1731 994x89",
+     "Greater than or equal | ViewGroup | 72,1887 936x70",
+     " | EditText | 43,2040 994x145",
+     "Proxy | TextView | 43,2269 826x46",
+     " | Switch | 915,2256 122x71"
+    ],
+    "refused": [
+     "👨 Male | drawn over ('Sort by' at the tap point)",
+     " | drawn over ('Trending' at the tap point)",
+     "Medieval Fantasy World RP | drawn over ('Messages' at the tap point)",
+     "Real Life World RP | drawn over ('Messages' at the tap point)",
+     "Welcome to Medieval Fantasy World RP! A  | drawn over ('Tokens' at the tap point)",
+     "Have you ever wondered how life would've | drawn over ('Tokens' at the tap point)",
+     "👤 AnyPOV | drawn over ('Proxy' at the tap point)",
+     "#realife | drawn over ('Proxy' at the tap point)"
+    ]
+   },
+   "s15": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Build, Share, Explore | TextView | 42,174 485x71",
+     " | Button | 954,167 84x84",
+     "All | ViewGroup | 50,309 145x75",
+     "Limited Only | ViewGroup | 201,309 300x75",
+     "Following | ViewGroup | 50,434 255x75",
+     "Favorites | ViewGroup | 311,434 247x75",
+     "Trending | ViewGroup | 564,434 242x75",
+     "Hidden Gems | ViewGroup | 812,434 224x75",
+     "￼Hidden Gems show characters from smalle | TextView | 41,551 998x211",
+     "characters | TextView | 167,821 175x43",
+     " | ViewGroup | 601,795 95x95",
+     " | ViewGroup | 944,795 95x95",
+     "Dr. Stein | Soul Eater | ViewGroup | 63,932 443x536",
+     "@-H4UNT1NG-D3AD- | ViewGroup | 63,1485 284x34",
+     "STEIN HAS A KID!!, Mainly for my OC who' | ViewGroup | 63,1536 443x332",
+     "Limitless | ViewGroup | 63,1983 158x57",
+     "👨 Male | ViewGroup | 233,1983 148x57",
+     "📺 Anime | ViewGroup | 63,2052 164x57",
+     "👤 AnyPOV | ViewGroup | 239,2052 186x57",
+     "🛸 Sci-Fi | ViewGroup | 63,2122 156x57",
+     "#souleater | ViewGroup | 231,2122 177x57",
+     "#souleaterau | ViewGroup | 63,2191 204x58",
+     "Dean Winchester | ViewGroup | 574,932 443x536",
+     "@anxqel | ViewGroup | 574,1489 113x34",
+     "In the middle of nowhere, Colorado, the  | ViewGroup | 574,1544 443x703",
+     " | ViewGroup | 72,2170 167x167",
+     " | ViewGroup | 264,2170 167x167",
+     " | ViewGroup | 457,2170 167x167",
+     " | ViewGroup | 649,2170 167x167",
+     " | ViewGroup | 841,2170 167x167"
+    ],
+    "refused": []
+   },
+   "s16": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "More memory for\nlong chats. | TextView | 40,203 1000x184",
+     "Keep more of the story in context, get f | TextView | 124,730 834x92",
+     "/month | TextView | 423,918 120x58",
+     "Subscribe now | ViewGroup | 124,1034 832x149",
+     "No commitment, cancel anytime. | TextView | 124,1200 834x46",
+     "Everything in Free, plus: | TextView | 124,1363 834x60",
+     "5× context for better memory | TextView | 213,1447 745x52",
+     "Priority routing for faster replies | TextView | 213,1511 745x52",
+     "Generous monthly swipes with our frontie | TextView | 213,1575 745x104",
+     "Golden checkmark next to your username | TextView | 213,1692 745x52",
+     "More info | ViewGroup | 43,1854 994x117",
+     "Payment will be charged to your Google P | TextView | 40,2001 1000x172",
+     "Terms of Service | View | 156,2195 241x52",
+     "Privacy Policy | View | 426,2195 198x52",
+     "Restore Purchases | Button | 653,2195 270x52",
+     "Close paywall | ViewGroup | 953,178 84x84"
+    ],
+    "refused": []
+   },
+   "s17": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "More memory for\nlong chats. | TextView | 40,181 1000x184",
+     "Keep more of the story in context, get f | TextView | 124,708 834x92",
+     "/month | TextView | 423,896 120x58",
+     "Subscribe now | ViewGroup | 124,1012 832x149",
+     "No commitment, cancel anytime. | TextView | 124,1178 834x46",
+     "Everything in Free, plus: | TextView | 124,1341 834x60",
+     "5× context for better memory | TextView | 213,1425 745x52",
+     "Priority routing for faster replies | TextView | 213,1489 745x52",
+     "Generous monthly swipes with our frontie | TextView | 213,1553 745x104",
+     "Golden checkmark next to your username | TextView | 213,1670 745x52",
+     "More info | ViewGroup | 43,1832 994x117",
+     "Payment will be charged to your Google P | TextView | 40,1979 1000x172",
+     "Terms of Service | View | 156,2173 241x52",
+     "Privacy Policy | View | 426,2173 198x52",
+     "Restore Purchases | Button | 653,2173 270x52",
+     "Close paywall | ViewGroup | 953,178 84x84"
+    ],
+    "refused": []
+   },
+   "s18": {
+    "kind": "sheet",
+    "box": "0,240 1080x2041",
+    "controls": [
+     "Bottom sheet handle | SeekBar | 0,240 1080x64",
+     "☆ Rodrick Heffley!, 1 chat | ViewGroup | 17,304 1046x195",
+     "Start new chat | ViewGroup | 43,2169 994x112"
+    ],
+    "refused": []
+   },
+   "s19": {
+    "kind": "sheet",
+    "box": "0,240 1080x2041",
+    "controls": [
+     "Bottom sheet handle | SeekBar | 0,240 1080x64",
+     "Kang Jun-Seo (Idol x Idol), 15 chats | ViewGroup | 17,304 1046x195",
+     "Kang Jun-Seo (Idol x Idol), 01:59, The l | ViewGroup | 17,834 1046x195",
+     "Kang Jun-Seo (Idol x Idol), 01:37, The l | ViewGroup | 17,1029 1046x195",
+     "Kang Jun-Seo (Idol x Idol), 01:34, The l | ViewGroup | 17,1224 1046x195",
+     "Kang Jun-Seo (Idol x Idol), Mon, The liv | ViewGroup | 17,1419 1046x195",
+     "Kang Jun-Seo (Idol x Idol), Mon, The liv | ViewGroup | 17,1614 1046x195",
+     "Kang Jun-Seo (Idol x Idol), Mon, The liv | ViewGroup | 17,1808 1046x195",
+     "Kang Jun-Seo (Idol x Idol), Mon, The liv | ViewGroup | 17,2003 1046x152",
+     "Kang Jun-Seo (Idol x Idol), Mon, The liv | ViewGroup | 17,2155 1046x43",
+     "Mon | TextView | 964,2155 70x70",
+     "The livestream starts out deceptively ca | TextView | 205,2155 755x125",
+     "Start new chat | ViewGroup | 43,2169 994x112"
+    ],
+    "refused": [
+     "Kang Jun-Seo (Idol x Idol), 01:59, The l | drawn over ('The Former Husband is the New Employer ,' at the tap point)",
+     "Kang Jun-Seo (Idol x Idol), 01:37, The l | drawn over ('NANAMI KENTO, 01:35, 4 chats' at the tap point)",
+     "Kang Jun-Seo (Idol x Idol), Mon, The liv | drawn over ('Kang Jun-Seo (Idol x Idol)' at the tap point)",
+     "Mon | drawn over ('Start new chat' at the tap point)",
+     "The livestream starts out deceptively ca | drawn over ('Kang Jun-Seo (Idol x Idol)' at the tap point)"
+    ]
+   },
+   "s20": {
+    "kind": "sheet",
+    "box": "0,240 1080x2041",
+    "controls": [
+     "Bottom sheet handle | SeekBar | 0,240 1080x64",
+     "The Former Husband is the New Employer , | ViewGroup | 17,304 1046x195",
+     "The Former Husband is the New Employer , | ViewGroup | 17,834 1046x195",
+     "The Former Husband is the New Employer , | ViewGroup | 17,1029 1046x194",
+     "Start new chat | ViewGroup | 43,2169 994x112"
+    ],
+    "refused": [
+     "The Former Husband is the New Employer , | drawn over ('The Former Husband is the New Employer ,' at the tap point)",
+     "The Former Husband is the New Employer , | drawn over ('NANAMI KENTO, 01:35, 4 chats' at the tap point)"
+    ]
+   },
+   "launcher": {
+    "kind": "external",
+    "box": null,
+    "controls": [],
+    "refused": []
+   }
+  }
+ },
+ "luzia/20260929-204554-1f19585": {
+  "root": "s01",
+  "tabs": [
+   "Chat | View | 11,2169 338x126",
+   "Services | View | 370,2169 339x126",
+   "Create | View | 730,2169 339x126"
+  ],
+  "states": {
+   "s01": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Chats | TextView | 32,164 514x73",
+     "Try Luzia | View | 567,137 271x126",
+     " | View | 838,137 105x126",
+     "buttonSettings | View | 943,137 126x126",
+     "Luzia | TextView | 85,407 76x40",
+     "How can I help you today? | TextView | 85,447 521x53",
+     "New chat | TextView | 42,638 709x53",
+     "SEE MORE | View | 772,602 266x126",
+     "Teacher | View | 42,728 318x318",
+     "Friend | View | 381,728 318x318",
+     "Elias | View | 720,728 318x318",
+     "Custom Bestie | TextView | 206,1141 256x46",
+     "Make an AI expert tailored to you | TextView | 206,1192 470x40",
+     " | View | 917,1105 126x126",
+     "Meet Toki, your virtual pet! | TextView | 206,1368 455x46",
+     "Create and take care of your own pet | TextView | 206,1419 535x40",
+     " | View | 917,1332 126x126",
+     "Keep chatting | TextView | 42,1568 849x53",
+     " | View | 891,1532 53x110",
+     " | View | 944,1532 126x110",
+     "Our new chat | View | 42,1669 105x105",
+     "Our new chat | TextView | 168,1676 231x46",
+     "2 days ago | TextView | 168,1727 160x40",
+     "Chat | View | 11,2169 338x126",
+     "Services | View | 370,2169 339x126",
+     "Create | View | 730,2169 339x126"
+    ],
+    "refused": []
+   },
+   "s02": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "buttonNavBack | View | 21,136 126x126",
+     "Services | TextView | 431,166 218x66",
+     " | View | 828,136 105x126",
+     " | View | 933,136 126x126",
+     "Routines | View | 442,256 196x126",
+     "Let Luzia handle it! | TextView | 291,1183 499x73",
+     "When Luzia shops, books or watches somet | TextView | 42,1298 996x106",
+     "Start something | View | 42,1970 996x126",
+     "Chat | View | 11,2169 338x126",
+     "Services | View | 370,2169 339x126",
+     "Create | View | 730,2169 339x126"
+    ],
+    "refused": []
+   },
+   "s03": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "My Apps | View | 42,142 236x126",
+     "Explore | View | 320,141 210x126",
+     "Search | View | 933,141 126x126",
+     "Loading content | TextView | 373,1278 334x53",
+     "Create app | View | 42,1975 996x126",
+     "Chat | View | 11,2169 338x126",
+     "Services | View | 370,2169 339x126",
+     "Create | View | 730,2169 339x126"
+    ],
+    "refused": []
+   },
+   "s04": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "buttonNavBack | View | 21,136 126x126",
+     "New chat | TextView | 422,166 236x66",
+     "Luzia | View | 42,325 318x318",
+     "Teacher | View | 381,325 318x318",
+     "Friend | View | 720,325 318x318",
+     "Elias | View | 42,664 318x318",
+     "Trainer | View | 381,664 318x318",
+     "Chef | View | 720,664 318x318",
+     "Languages | View | 42,1003 318x318",
+     "Intimate | View | 381,1003 318x318",
+     "Marketing | View | 720,1003 318x318",
+     "Stylist | View | 42,1342 318x318",
+     "Astrologer | View | 381,1342 318x318",
+     "Kawaii | View | 720,1342 318x318",
+     "Legal | View | 42,1681 318x318",
+     "Adult | View | 381,1681 318x318",
+     "Staff | View | 720,1681 318x318",
+     "Try something else | TextView | 42,2083 996x66"
+    ],
+    "refused": []
+   },
+   "s05": {
+    "kind": "modal",
+    "box": "162,581 798x1267",
+    "controls": [
+     " | View | 834,581 126x126",
+     "Tok-Tok! I'm Toki and I need your help! | TextView | 162,1285 756x132",
+     "I want to grow and become as powerful as | TextView | 162,1428 756x92",
+     "Meet me | View | 162,1552 756x121",
+     "Later | View | 162,1673 756x126",
+     "You can turn me on & off anytime in Sett | TextView | 220,1808 641x40"
+    ],
+    "refused": []
+   },
+   "s06": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Hello, I'm Teacher. Ask me for advice, a | TextView | 42,401 996x2",
+     "fsfsd | TextView | 231,456 104x53",
+     "Hello, what would you like to know? Reme | View | 42,634 996x222",
+     " | View | 21,751 105x126",
+     " | View | 126,751 126x126",
+     "buttonCopy | View | 618,751 105x126",
+     " | View | 723,751 105x126",
+     "buttonFavorite | View | 828,751 105x126",
+     " | View | 933,751 126x126",
+     "Ask Teacher | EditText | 42,2028 996x126",
+     "buttonAddComposer | Button | 21,2133 126x126",
+     "sendButton | View | 933,2133 126x126",
+     "Luzia is AI and can make mistakes. Verif | TextView | 21,2280 1038x36",
+     "buttonNavBack | View | 21,147 126x126",
+     "User avatar | View | 147,157 105x105",
+     "Teacher | TextView | 273,177 422x66",
+     "New | View | 716,147 217x126",
+     "buttonSearch | View | 933,147 126x126",
+     "Our new chat | View | 42,275 996x126"
+    ],
+    "refused": []
+   },
+   "s07": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "buttonNavBack | View | 21,142 126x126",
+     " | View | 933,142 126x126",
+     "Create your own Bestie | TextView | 222,945 636x73",
+     "Personalize your unique friend and disco | TextView | 42,1029 996x92",
+     "Let's get started! | View | 42,2185 996x126"
+    ],
+    "refused": []
+   },
+   "s08": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Today | TextView | 495,372 91x40",
+     "Hi! I can set up a routine that quietly  | TextView | 42,449 996x265",
+     "buttonCopy | View | 21,725 105x126",
+     " | View | 126,725 126x126",
+     "Watch a price, event or product | View | 42,858 692x126",
+     "Briefing, newsletter | View | 42,996 489x126",
+     "Remind me of a date | View | 42,1134 506x126",
+     "Something else | View | 42,1272 424x126",
+     "buttonNavBack | View | 21,136 126x126",
+     "Routines | TextView | 430,166 220x66",
+     " | View | 933,136 126x126",
+     "Ask Luzia | EditText | 42,2085 996x126",
+     "sendButton | View | 933,2190 126x126"
+    ],
+    "refused": []
+   },
+   "s09": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "buttonNavBack | View | 21,136 126x126",
+     "Services | TextView | 431,166 218x66",
+     " | View | 828,136 105x126",
+     " | View | 933,136 126x126",
+     "Routines | View | 442,256 196x99",
+     "Active routines | TextView | 42,387 1038x40",
+     "New routine | TextView | 159,503 181x40",
+     "Draft | TextView | 939,503 78x40",
+     "Add new Routine | View | 21,1996 1038x126",
+     "Chat | View | 11,2169 338x126",
+     "Services | View | 370,2169 339x126",
+     "Create | View | 730,2169 339x126"
+    ],
+    "refused": []
+   },
+   "s10": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Updates | View | 42,243 150x126",
+     "Services | View | 234,254 149x117",
+     "Activity | View | 425,243 135x126",
+     "Active routines | TextView | 42,403 1038x40",
+     "New routine | TextView | 159,519 181x40",
+     "Draft | TextView | 939,519 78x40",
+     "Add new Routine | View | 21,2206 1038x126",
+     "buttonNavBack | View | 21,136 126x126",
+     "Notifications | TextView | 378,166 324x66",
+     " | View | 828,136 105x126",
+     " | View | 933,136 126x126"
+    ],
+    "refused": []
+   },
+   "s11": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "buttonNavBack | View | 21,136 126x126",
+     "Create | TextView | 454,166 173x66",
+     "Start with an idea or remix. | TextView | 42,288 659x66",
+     " | EditText | 84,459 912x336",
+     " | View | 902,806 126x126",
+     "Luzia is AI and can make mistakes. Creat | TextView | 42,963 996x80",
+     "Pixel Art Pad | TextView | 84,1101 214x46",
+     "Creative | TextView | 84,1147 145x46",
+     "Gratitude Journal | TextView | 709,1101 298x46",
+     "Lifestyle | TextView | 709,1147 143x46"
+    ],
+    "refused": []
+   },
+   "s12": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "My Apps | View | 42,141 236x126",
+     "Explore | View | 320,142 210x126",
+     "Notifications | View | 933,141 126x126",
+     "Loading content | TextView | 373,1278 334x53",
+     "Create app | View | 42,1975 996x126",
+     "Chat | View | 11,2169 338x126",
+     "Services | View | 370,2169 339x126",
+     "Create | View | 730,2169 339x126"
+    ],
+    "refused": []
+   },
+   "s13": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "buttonNavBack | View | 21,136 126x126",
+     "Open app | View | 74,1606 932x126",
+     "Photoedit | TextView | 42,1800 276x73",
+     "By Luzia | TextView | 42,1894 135x46",
+     "2K | View | 42,1951 318x126",
+     "1.4K | View | 381,1951 318x126",
+     "Share | View | 720,1951 318x126",
+     " | Button | 42,2077 996x114",
+     "Report app | View | 42,2191 996x126"
+    ],
+    "refused": []
+   },
+   "s14": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "My Apps | View | 42,142 236x67",
+     "Explore | View | 320,141 210x68",
+     "Search | View | 933,141 126x126",
+     "Photoedit | View | 42,272 996x489",
+     "Trending | TextView | 42,819 996x66",
+     "Photoedit | View | 42,917 394x700",
+     "Anima | View | 468,917 394x700",
+     "Stories | View | 894,917 186x700",
+     "Hot | TextView | 100,1649 65x46",
+     "New | View | 218,1609 138x126",
+     "Creative | View | 409,1609 208x126",
+     "Arcade | View | 670,1609 185x126",
+     "Tools | View | 908,1609 150x126",
+     " | View | 42,1748 482x379",
+     " | View | 556,1748 482x379",
+     "Create app | View | 42,1975 996x126",
+     "Chat | View | 11,2169 338x126",
+     "Services | View | 370,2169 339x126",
+     "Create | View | 730,2169 339x126"
+    ],
+    "refused": []
+   },
+   "s15": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "messageViewa4f42cd5-9925-4c8a-b160-6ee67 | View | 42,435 996x318",
+     "iceBreakersContainer | View | 0,1901 1080x95",
+     "Ask Teacher | EditText | 42,2028 996x126",
+     "buttonAddComposer | Button | 21,2133 126x126",
+     "sendButton | View | 933,2133 126x126",
+     "Luzia is AI and can make mistakes. Verif | TextView | 21,2280 1038x36",
+     "buttonNavBack | View | 21,147 126x126",
+     "User avatar | View | 147,157 105x105",
+     "Teacher | TextView | 273,177 660x66",
+     "buttonSearch | View | 933,147 126x126",
+     "Our new chat | View | 42,275 996x126"
+    ],
+    "refused": []
+   },
+   "launcher": {
+    "kind": "external",
+    "box": null,
+    "controls": [],
+    "refused": []
+   }
+  }
+ },
+ "ooc/20260929-212755-1f19585": {
+  "root": null,
+  "tabs": [],
+  "states": {
+   "s01": {
+    "kind": "external",
+    "box": null,
+    "controls": [
+     "Emulator Detected | TextView | 43,1210 993x71",
+     "Not allowed to launch the App on android | TextView | 43,1281 993x156",
+     "OK(2) | TextView | 797,1470 197x105"
+    ],
+    "refused": []
+   },
+   "launcher": {
+    "kind": "external",
+    "box": null,
+    "controls": [],
+    "refused": []
+   }
+  }
+ },
+ "perplexity/20260929-212810-1f19585": {
+  "root": "s01",
+  "tabs": [],
+  "states": {
+   "s01": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "home-logo-free | View | 461,1058 158x158",
+     "Library | Button | 37,152 126x126",
+     "Search | View | 277,189 185x53",
+     " | View | 541,153 342x126",
+     "discover-tab-button | View | 917,152 126x126",
+     "Ask anything… | EditText | 85,2007 910x126",
+     "Model | View | 32,2147 1016x148"
+    ],
+    "refused": []
+   },
+   "s02": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Library | Button | 37,152 126x126",
+     "Search | View | 277,189 185x53",
+     " | View | 541,153 342x126",
+     "discover-tab-button | View | 917,152 126x126",
+     "Ask anything… | EditText | 85,2007 910x126",
+     "Model | View | 32,2147 1016x148"
+    ],
+    "refused": []
+   },
+   "s03": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Projects | View | 0,315 1080x105",
+     "Artifacts | View | 0,420 1080x105",
+     "Connectors | View | 0,525 1080x126",
+     "Sessions | TextView | 42,712 174x49",
+     "Filter: All | Spinner | 897,673 141x126",
+     "Start something new | TextView | 84,1752 479x86",
+     "Create a session and dive into a new wor | TextView | 84,1843 912x95",
+     "Ask anything… | View | 84,1980 912x126",
+     "Do anything… | View | 84,2127 912x126",
+     "library-settings-button | View | 37,152 126x126",
+     "[redacted] | TextView | 200,188 680x55",
+     "library-close-button | View | 917,152 126x126"
+    ],
+    "refused": []
+   },
+   "s04": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "drag handle | View | 493,751 95x52",
+     " | View | 906,798 126x126",
+     "LIMITED PREVIEW | TextView | 404,1410 273x36",
+     "Computer is available for you to try | TextView | 136,1499 808x86",
+     "Hand off complex tasks and get polished  | TextView | 190,1627 816x95",
+     "Work across all your connected apps and  | TextView | 190,1804 787x42",
+     "Automate recurring tasks on any schedule | TextView | 190,1954 713x42",
+     "Get started | View | 63,2148 954x126"
+    ],
+    "refused": []
+   },
+   "s05": {
+    "kind": "external",
+    "box": null,
+    "controls": [
+     "Allow Perplexity to send you notificatio | LinearLayout | 70,863 940x375",
+     "Allow | Button | 133,1243 814x147",
+     "Don’t allow | Button | 133,1400 814x147"
+    ],
+    "refused": []
+   },
+   "s06": {
+    "kind": "modal",
+    "box": "183,1010 735x492",
+    "controls": [
+     "Notifications are off | TextView | 183,1010 453x61",
+     "To discover new threads from Perplexity  | TextView | 183,1113 735x238",
+     "Cancel | TextView | 326,1376 217x126",
+     "Open settings | TextView | 564,1376 354x126"
+    ],
+    "refused": []
+   },
+   "s07": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Welcome to\nComputer | TextView | 42,1470 996x263",
+     "You have access to a limited preview of  | TextView | 42,1754 996x95",
+     "Get started | View | 42,1980 996x147",
+     "Skip intro | View | 42,2148 996x147",
+     " | View | 938,184 126x126",
+     "drag handle | View | 493,136 95x52"
+    ],
+    "refused": []
+   },
+   "s08": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Library | Button | 37,152 126x126",
+     " | View | 198,153 343x126",
+     "computer-mode-toggle | View | 583,163 259x105",
+     "discover-tab-button | View | 917,152 126x126",
+     "Do anything… | View | 0,1970 1080x367"
+    ],
+    "refused": []
+   },
+   "s09": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Set up Computer | View | 42,319 996x126",
+     "home-logo-free | View | 461,1136 158x158",
+     "Library | Button | 37,152 126x126",
+     " | View | 198,153 343x126",
+     "computer-mode-toggle | View | 583,163 259x105",
+     "discover-tab-button | View | 917,152 126x126",
+     "Do anything… | View | 0,1970 1080x367",
+     "Make the most of Computer and knock anyt | TextView | 74,439 932x95",
+     "Connect your apps | View | 74,550 932x126",
+     "Start your first task | View | 74,655 932x126",
+     "Turn on notifications | View | 74,760 932x126"
+    ],
+    "refused": []
+   },
+   "s10": {
+    "kind": "screen",
+    "box": null,
+    "controls": [
+     "Set up Computer | View | 42,319 996x126",
+     "home-logo-free | View | 461,1136 158x158",
+     "Library | Button | 37,152 126x126",
+     " | View | 198,153 343x126",
+     "computer-mode-toggle | View | 583,163 259x105",
+     "discover-tab-button | View | 917,152 126x126",
+     "Do anything… | View | 0,1970 1080x367"
+    ],
+    "refused": []
+   },
+   "s11": {
+    "kind": "external",
+    "box": null,
+    "controls": [
+     "Aol | Image | 105,183 307x110",
+     "Sign in to AOL | TextView | 105,388 874x84",
+     "Email or phone number | View | 105,566 874x50",
+     " | EditText | 154,687 775x58",
+     "This is required. | View | 105,810 257x47",
+     "Forgot username | View | 105,905 325x55",
+     "Next | Button | 105,1054 874x163",
+     "Create account | Button | 105,1406 874x160",
+     "Help | View | 317,2236 92x55",
+     "Terms | View | 454,2236 120x55",
+     "Privacy | View | 619,2236 144x55"
+    ],
+    "refused": []
+   },
+   "s12": {
+    "kind": "external",
+    "box": null,
+    "controls": [
+     "Sidebar button. Double tap or slide two  | ImageView | 29,163 126x126",
+     "toolbar_title_parent | LinearLayout | 155,163 333x126",
+     "Access your saved articles | ImageButton | 828,168 105x105",
+     "Search | ImageButton | 954,168 105x105",
+     "Top Stories | View | 53,294 239x126",
+     "Entertainment | View | 313,294 284x126",
+     "Local | View | 618,294 159x126",
+     "Sports | View | 798,294 176x126",
+     "Business | View | 995,294 85x126",
+     "Tap here for weather | ComposeView | 0,430 1080x194",
+     "custom_poster_view_container | ViewGroup | 0,624 1080x608",
+     "Entertainment Weekly | TextView | 100,1250 347x43",
+     "Amber Glenn sobs after giving partner Pa | TextView | 0,1300 1080x140",
+     "3h ago | TextView | 53,1455 100x38",
+     "Save this article | ImageView | 195,1453 42x42",
+     "Share this news article | ImageView | 279,1453 42x42",
+     "TEMU in Taboola advertising section · Sp | View | 49,1523 699x289",
+     "Image for Taboola Advertising Unit | View | 742,1523 289x289",
+     "E! | TextView | 100,1856 52x43",
+     "Former DHS chief Kristi Noem files for d | TextView | 53,1914 646x201",
+     "iv_articleImage | ImageView | 712,1854 315x315",
+     "AD | ComposeView | 0,1508 1080x294",
+     "E! | TextView | 100,1830 52x43",
+     "Former DHS chief Kristi Noem files for d | TextView | 53,1888 646x201",
+     "iv_articleImage | ImageView | 712,1828 315x315",
+     "toast_container | FrameLayout | 0,2022 1080x231",
+     "Inbox | View | 0,2187 540x150",
+     "Home | TextView | 775,2287 70x35"
+    ],
+    "refused": []
+   },
+   "s13": {
+    "kind": "external",
+    "box": null,
+    "controls": [
+     "Chats | TextView | 32,164 514x73",
+     "Try Luzia | View | 567,137 271x126",
+     " | View | 838,137 105x126",
+     "buttonSettings | View | 943,137 126x126",
+     "Luzia | TextView | 85,407 76x40",
+     "How can I help you today? | TextView | 85,447 521x53",
+     "New chat | TextView | 42,638 709x53",
+     "SEE MORE | View | 772,602 266x126",
+     "Teacher | View | 42,728 318x318",
+     "Friend | View | 381,728 318x318",
+     "Elias | View | 720,728 318x318",
+     "Custom Bestie | TextView | 206,1141 256x46",
+     "Make an AI expert tailored to you | TextView | 206,1192 470x40",
+     " | View | 917,1105 126x126",
+     "Meet Toki, your virtual pet! | TextView | 206,1368 455x46",
+     "Create and take care of your own pet | TextView | 206,1419 535x40",
+     " | View | 917,1332 126x126",
+     "Keep chatting | TextView | 42,1568 849x53",
+     " | View | 891,1532 53x110",
+     " | View | 944,1532 126x110",
+     "User seeks assistance | View | 42,1669 105x105",
+     "User seeks assistance | TextView | 168,1676 376x46",
+     "Today | TextView | 168,1727 90x40",
+     "Our new chat | View | 42,1828 105x105",
+     "Our new chat | TextView | 168,1835 231x46",
+     "2 days ago | TextView | 168,1886 160x40",
+     "Chat | View | 11,2169 338x126",
+     "Services | View | 370,2169 339x126",
+     "Create | View | 730,2169 339x126"
+    ],
+    "refused": []
+   },
+   "launcher": {
+    "kind": "external",
+    "box": null,
+    "controls": [],
+    "refused": []
+   }
+  }
+ }
+}
