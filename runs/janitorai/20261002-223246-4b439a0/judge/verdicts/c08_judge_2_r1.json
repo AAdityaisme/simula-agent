@@ -1,0 +1,53 @@
+{
+ "candidate_id": "c08",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 24-hour checkmark before the user chooses to play. The decline and ad-failure fields preserve the saved like and provide a path when the game is unavailable or cannot be confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field gives a temporary cosmetic checkmark, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is a tap on the like button at s08.e16; it does not require anything the user typed or said."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The adds and removes-nothing-free fields introduce temporary badge access without removing, locking, or capping an existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a sheet over s08, which the product model rates safe, rather than an offer in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this product change, the player's 24-hour checkmark is a limited slice of the paid benefit listed at s14.e12. The creator's notice is secondary."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The rationale claims users cannot get the badge without paying, and the when-the-reward-runs-out field says Plus keeps it next to their name 'for good.' The paywall shows a Plus badge benefit on a cancellable monthly plan (s14.e03–e12), but does not support either absolute claim about the current app."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The offered-to and subscribers fields restrict the sheet to free users; Plus members, whose plan includes the checkmark at s14.e12, do not see it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field expires the checkmark after 24 hours, and the proposal gives the creator a notice rather than taking another creator's placement or visibility."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement opens after the like at s08.e16 is saved, so the offer follows a completed action."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow calls for a short sponsored game and grants the reward once play is confirmed; the trigger is the detectable like-button tap at s08.e16."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea ties the Plus checkmark at s14.e12 to liking a character reached through this app's Hidden Gems feed."
+ },
+ "other_concern": "Requiring a like before the offer could encourage badge-seeking likes rather than genuine appreciation.",
+ "fixable": true
+}

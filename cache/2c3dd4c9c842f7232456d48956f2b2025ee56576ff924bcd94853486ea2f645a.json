@@ -1,0 +1,9 @@
+{
+ "text": "{\"verdict\":\"progressing\",\"reason\":\"Miro's reply is still streaming in, with new text added between screenshots and the red stop button still showing.\"}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 2222,
+ "tokens_out": 50,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[],\"unlisted\":[{\"left\":104,\"top\":188,\"right\":270,\"bottom\":230,\"kind\":\"control\",\"name\":\"Oldest sort\"},{\"left\":270,\"top\":188,\"right\":529,\"bottom\":230,\"kind\":\"control\",\"name\":\"Latest sort\"},{\"left\":488,\"top\":119,\"right\":516,\"bottom\":147,\"kind\":\"control\",\"name\":\"more options\"},{\"left\":30,\"top\":26,\"right\":54,\"bottom\":50,\"kind\":\"control\",\"name\":\"filters\"},{\"left\":486,\"top\":26,\"right\":510,\"bottom\":50,\"kind\":\"control\",\"name\":\"menu\"},{\"left\":14,\"top\":261,\"right\":92,\"bottom\":338,\"kind\":\"control\",\"name\":\"first chat\"},{\"left\":14,\"top\":94,\"right\":92,\"bottom\":171,\"kind\":\"picture\",\"name\":\"Nanami Kento avatar\"},{\"left\":14,\"top\":261,\"right\":92,\"bottom\":338,\"kind\":\"picture\",\"name\":\"Nanami Kento avatar\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1924,
+ "tokens_out": 339,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

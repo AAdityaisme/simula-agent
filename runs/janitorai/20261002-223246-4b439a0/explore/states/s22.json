@@ -1,0 +1,48 @@
+{
+ "schema_version": 1,
+ "state_id": "s22",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "com.janitor.ai|b510b1904061860be604e60502032801|a105e405e005c205e285c9058625e405|664648f5a164",
+ "foreground_package": "com.janitor.ai",
+ "screenshot": "states/s22.png",
+ "elements_reply": "states/s22.elements.json",
+ "settled": true,
+ "settle_seconds": 2.85,
+ "dynamic_regions": [],
+ "captured_at": "2026-10-02T22:38:34",
+ "box": null,
+ "icon_labels": [
+  {
+   "mcp_ref": "@e32",
+   "name": "new comment toggle"
+  },
+  {
+   "mcp_ref": "@e35",
+   "name": "new reply toggle"
+  },
+  {
+   "mcp_ref": "@e38",
+   "name": "comment pinned toggle"
+  },
+  {
+   "mcp_ref": "@e41",
+   "name": "new character toggle"
+  },
+  {
+   "mcp_ref": "@e44",
+   "name": "character updated toggle"
+  },
+  {
+   "mcp_ref": "@e47",
+   "name": "community poll toggle"
+  },
+  {
+   "mcp_ref": "@e50",
+   "name": "new follower toggle"
+  }
+ ],
+ "vision_elements": [],
+ "blocked_reason": null,
+ "later": []
+}

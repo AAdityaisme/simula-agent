@@ -1,0 +1,53 @@
+{
+ "candidate_id": "c02",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the golden checkmark and its 24-hour duration before play. The decline and ad-failure fields leave the menu unchanged and withhold the reward if the game is not confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field gives a cosmetic golden checkmark, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses paywall closure and opening the side menu, not anything typed in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds a temporary checkmark and says it removes nothing free."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the side menu, which the product model rates safe, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, s14.e12 lists the golden checkmark as a Janitor Plus benefit, so the app charges for the rewarded resource."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The rationale says free users still see Plus members’ golden checkmarks, and 'what makes it work here' implies the checkmark appears in the profile and menu today. The model shows the badge on the paywall (s14.e12 and s14.e25), but does not establish where members’ badges appear in the app; these claims about current behavior lack support."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'offered to' and 'subscribers' fields restrict the card to free users; Janitor Plus members never see it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 24 hours, and the frequency cap allows at most one try per week, so it does not grant lasting access to the paid checkmark."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits in the side menu, a persistent surface the user chooses to open, rather than interrupting a chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game, the trigger is a detectable menu-opening event, and the failure field says an unconfirmed game gives no checkmark."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea ties the reward to the Janitor Plus golden-checkmark benefit and places the offer beneath the side-menu upgrade banner (s06.e50)."
+ },
+ "other_concern": "The copy's 'keeps it for good' could imply the badge remains after a user cancels Janitor Plus; 'while subscribed' would be clearer.",
+ "fixable": true
+}

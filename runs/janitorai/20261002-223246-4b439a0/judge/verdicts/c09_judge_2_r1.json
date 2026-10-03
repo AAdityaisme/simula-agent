@@ -1,0 +1,53 @@
+{
+ "candidate_id": "c09",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 20-reply reward before the optional game. The decline and ad-failure fields leave chats unchanged and withhold the reward if play cannot be confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is faster in-app replies, not cash or a transferable or externally exchangeable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event is closing the Janitor Plus paywall, not anything the user wrote or said in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free and adds a temporary priority-routing reward; it does not cap an existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a sheet over the safe s14 paywall, not inside a conversation. The confirmation banner is on s03 My Chats, which is rated mixed rather than unsafe or unknown."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing opportunity, s14.e10 shows that Janitor Plus sells priority routing for faster replies, the resource the reward samples."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says free-tier reply time 'under load' was measured. Exp1 and exp2 do not record the account's plan or a load condition, so they do not support that claim about the app today."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'offered to' and 'subscribers' fields exclude Janitor Plus members, so paying users do not see an offer for a benefit their plan includes."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward ends after 20 replies or at midnight, and s14.e10 shows the app already sells the routing advantage."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger event follows the user's completed action of closing the paywall, rather than interrupting a chat in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable paywall-close event. The ad-failure field says no faster replies are added if the game cannot be confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the s14 Janitor Plus paywall and its specific priority-routing benefit."
+ },
+ "other_concern": "The assertion that priority routing costs no extra AI work is not established by the product model.",
+ "fixable": true
+}

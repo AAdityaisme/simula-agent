@@ -1,0 +1,1317 @@
+<!doctype html>
+<html><head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<style id="simula-shared">
+:root{--bg-1:#303337;--bg-2:#000000;--bg-3:#2a2b2e;--bg-4:#1b0d30;--fg-1:#ffffff;--fg-2:#af89f0;--fg-3:#5a5c63;--fg-4:#c1c2c3;--font-1:"Roboto",system-ui,sans-serif;--font-2:"Jura",system-ui,sans-serif;--font-3:"DM Serif Display",system-ui,sans-serif}
+body{background:var(--bg-1);font-family:var(--font-1)}
+</style>
+<style data-batch="1">
+section[data-screen="s01"]{background:#000;overflow:hidden;color:var(--fg-1);font-family:var(--font-1)}
+section[data-screen="s01"] .a{position:absolute;box-sizing:border-box;margin:0}
+section[data-screen="s01"] .pn{left:0;top:0;width:411px;height:772px;background:var(--bg-1);border-radius:0 0 20px 20px;overflow:hidden;box-shadow:0 0 0 1px #46484c}
+section[data-screen="s01"] .tt{font-size:20px;font-weight:500;line-height:27px;white-space:nowrap}
+section[data-screen="s01"] .fc{display:flex;align-items:center;justify-content:center}
+section[data-screen="s01"] .sg{border-radius:10px;background:linear-gradient(#404144,#333437);border:1px solid #57585c;box-shadow:0 3px 7px rgba(0,0,0,.4)}
+section[data-screen="s01"] .sb{border-radius:7px;color:#c0c0c1}
+section[data-screen="s01"] .sb svg{position:absolute;left:10.7px;top:8.3px}
+section[data-screen="s01"] .on{background:linear-gradient(#8672b0,#7562a0);box-shadow:inset 0 0 0 1px #a998d4;color:#f8f7f9}
+section[data-screen="s01"] .sl{left:28.9px;top:6.5px;font-size:13.5px;line-height:15.6px;white-space:nowrap}
+section[data-screen="s01"] .ex{padding-top:15.7px;font-size:15.5px;line-height:18px;white-space:nowrap}
+section[data-screen="s01"] .ex svg{margin:0 3px 0 5.4px;vertical-align:-2px}
+section[data-screen="s01"] .cn{font-size:14.5px;font-weight:700;line-height:16px}
+section[data-screen="s01"] .cc{font-size:14.5px;line-height:16.4px;color:var(--fg-4);white-space:nowrap}
+section[data-screen="s01"] .pb{width:36.2px;height:36.2px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+section[data-screen="s01"] .pi{text-align:center;font-size:14.5px;font-weight:700;line-height:16.4px;white-space:nowrap}
+section[data-screen="s01"] .cf{top:293px;height:560px;border:1.5px solid #7d5eb4;border-radius:11px;background:linear-gradient(#5b3973,#41265a 32px,#1a0b2e 215px,#1c0e31)}
+section[data-screen="s01"] .ct{left:0;top:0;font-family:var(--font-2);font-size:13px;font-weight:500;line-height:16px;color:#a882e5;white-space:nowrap}
+section[data-screen="s01"] .bd{top:336.7px;height:22.5px;background:linear-gradient(90deg,#33278a,#4336b6);clip-path:polygon(7px 0,100% 0,100% 100%,0 100%)}
+section[data-screen="s01"] .bd svg{position:absolute;left:6px;top:6px}
+section[data-screen="s01"] .bn{top:3.9px;font-family:var(--font-2);font-size:13px;font-weight:700;line-height:14.5px;color:#fbfafd}
+section[data-screen="s01"] .fd{top:359.2px;width:10px;height:7px;background:#1d1652;clip-path:polygon(0 0,100% 0,0 100%)}
+section[data-screen="s01"] .hd{left:0;top:0;font-size:11.2px;font-weight:700;line-height:12.9px;color:var(--fg-2);white-space:nowrap}
+section[data-screen="s01"] .ds{font-size:12px;line-height:15.23px;white-space:nowrap;color:#efeaf9}
+section[data-screen="s01"] .ds>div{left:0;width:168.8px}
+section[data-screen="s01"] .bo{font-weight:700;color:#f0ebfa}
+section[data-screen="s01"] .dv{height:1.5px;background:linear-gradient(90deg,#8a68d2,#c7b1ff 82%,rgba(199,177,255,0));box-shadow:0 0 4px #9a7ae6}
+section[data-screen="s01"] .st{filter:drop-shadow(0 0 5px #b597ff)}
+section[data-screen="s01"] .cp{display:flex;align-items:center;justify-content:center;border:1px solid #6e657b;border-radius:7px;background:var(--bg-4);font-size:10.5px;font-weight:600;line-height:11.4px;color:#eee9f4;white-space:nowrap}
+section[data-screen="s01"] .k{background:var(--bg-2)}
+section[data-screen="s01"] .tbr{left:0;top:772px;width:411px;height:66.2px;background:var(--bg-2)}
+section[data-screen="s01"] .tab{top:2.9px;width:63.6px;height:63.6px;display:flex;align-items:center;justify-content:center;color:var(--fg-3)}
+</style>
+<style data-batch="2">
+:is(section[data-screen="s06"],section[data-screen="s14"],section[data-screen="s25"]){overflow:hidden;font-family:var(--font-1);color:var(--fg-1)}
+:is(section[data-screen="s06"],section[data-screen="s14"],section[data-screen="s25"]) .a{position:absolute;box-sizing:border-box;margin:0}
+:is(section[data-screen="s06"],section[data-screen="s14"],section[data-screen="s25"]) .ic{display:block;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+:is(section[data-screen="s06"],section[data-screen="s14"],section[data-screen="s25"]) .nw{white-space:nowrap}
+section[data-screen="s06"]{background:#000}
+section[data-screen="s06"] .lp{left:0;top:0;width:104.2px;height:774px;background:#1b1c1e;border-bottom-right-radius:22px}
+section[data-screen="s06"] .cl{overflow:hidden}
+section[data-screen="s06"] .rl{position:absolute;top:0;white-space:nowrap}
+section[data-screen="s06"] .dl{font-size:10.5px;line-height:15px;color:#78757d}
+section[data-screen="s06"] .chip{background:#000;border:1px solid #0c0c0c;border-radius:6px;font-size:10.5px;line-height:11.4px;color:#121212;white-space:nowrap;overflow:hidden;opacity:.08}
+section[data-screen="s06"] .dw{left:104.2px;top:0;width:306.8px;height:838.2px;background:var(--bg-3)}
+section[data-screen="s06"] .sn{left:0;top:0;height:20.6px;font-size:17px;font-weight:700;line-height:20.6px;color:var(--fg-1)}
+section[data-screen="s06"] .sl{font-size:12.3px;font-weight:500;line-height:14.5px;color:#959597;white-space:nowrap}
+section[data-screen="s06"] .mi{left:116.6px;width:283.1px;height:54.1px;color:var(--fg-1)}
+section[data-screen="s06"] .mi .ic{position:absolute;left:16px;top:17px;width:20px;height:20px;color:#d4d5d6}
+section[data-screen="s06"] .mt{left:48px;top:14.8px;width:199.2px;height:24px;font-size:16px;font-weight:500;line-height:24px;white-space:nowrap}
+section[data-screen="s06"] .up{left:127.6px;top:525px;width:283.1px;height:56.8px;border:1px solid #2f3f86;border-radius:13px;overflow:hidden;background:radial-gradient(40% 70% at 20% 30%,rgba(90,110,210,.35),transparent),radial-gradient(45% 80% at 75% 80%,rgba(80,60,170,.35),transparent),linear-gradient(90deg,#101d5b,#18276c 55%,#0e1b49)}
+section[data-screen="s14"]{background:radial-gradient(60% 30% at 25% 38%,rgba(70,95,185,.35),transparent),radial-gradient(50% 28% at 78% 62%,rgba(80,95,175,.3),transparent),radial-gradient(45% 22% at 88% 84%,rgba(150,120,175,.22),transparent),radial-gradient(55% 25% at 8% 96%,rgba(90,110,185,.25),transparent),#070e2b}
+section[data-screen="s14"] .cd{left:16px;top:111px;width:379px;height:530.4px;border:1px solid rgba(255,255,255,.15);border-radius:18px;background:rgba(255,255,255,.04)}
+section[data-screen="s14"] .bl{left:81.1px;width:283.8px;font-size:14px;line-height:19.8px}
+section[data-screen="s14"] .ck{left:49.5px;width:16.8px;height:13.7px;color:#8c90a5}
+section[data-screen="s14"] .lk{top:784.4px;height:19.8px;font-size:12px;line-height:19.8px;text-decoration:underline;white-space:nowrap}
+section[data-screen="s14"] .dt{top:787px;width:4.2px;height:14.5px;font-size:10px;line-height:14.5px;text-align:center}
+section[data-screen="s14"] .hr{top:448px;height:1px;background:rgba(215,220,240,.6)}
+section[data-screen="s25"]{background:var(--bg-1)}
+section[data-screen="s25"] .hd{left:0;top:0;width:411px;height:52.4px;background:var(--bg-1);box-shadow:0 2px 8px rgba(0,0,0,.45)}
+section[data-screen="s25"] .mp{left:0;width:343.6px;font-size:17px;line-height:24.3px;color:var(--fg-1)}
+section[data-screen="s25"] .ib{left:17.6px;top:732px;width:376.4px;height:88.4px;background:var(--bg-1);border:1px solid #4a4d51;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.35)}
+</style>
+<style data-batch="3">
+:is(section[data-screen="s07"],section[data-screen="s08"]){background:var(--bg-1);overflow:hidden;color:var(--fg-1);font-family:var(--font-1)}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .a{position:absolute;margin:0;box-sizing:border-box}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .hdr{left:0;top:0;width:411px;height:56px}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .ib{width:32px;height:32px;top:12.2px;background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .ib svg,:is(section[data-screen="s07"],section[data-screen="s08"]) .cm svg,:is(section[data-screen="s07"],section[data-screen="s08"]) .hrt svg{position:absolute;left:0;top:0}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .ttl{left:48px;top:14.5px;width:272.4px;height:27.1px;font-size:20px;font-weight:500;line-height:27.1px;white-space:nowrap;overflow:hidden}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .cm{left:320.4px;top:11.1px;width:36.6px;height:33.9px}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .cnt{left:25.9px;top:8px;width:8.4px;font-size:15.3px;line-height:18px}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .hid{color:transparent}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .card{left:14.4px;top:56px;width:382.2px;height:820px;border:1.5px solid #8c65c7;border-radius:12px;background:radial-gradient(100% 35% at 100% 100%,rgba(98,88,128,.32),rgba(98,88,128,0)),linear-gradient(160deg,#5c3877 0,#3a2052 10%,var(--bg-4) 25%)}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .ct{left:28.9px;top:65.9px;height:26.3px;font:23px/26.3px var(--font-2);letter-spacing:.6px;color:var(--fg-2);white-space:nowrap}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .im{left:28.9px;top:102.9px;width:353.5px;height:353.5px;border-radius:10px;overflow:hidden}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .im:after{content:"";position:absolute;inset:0;border:2px solid rgba(232,218,232,.85);border-radius:10px}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .im img{position:absolute;left:.1px;top:0;height:353.4px}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .st{top:130px;height:22.3px;background:linear-gradient(90deg,#5537c6,#3d1383)}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .st:after{content:"";position:absolute;right:0;top:100%;border-top:8px solid #200d45;border-right:8.4px solid transparent}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .bi{top:135.5px;width:11px;height:11px}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .sn{top:133.7px;height:15.6px;font-size:13.3px;line-height:15.6px;color:#fefeff}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .by{left:29.4px;top:466.6px;height:33.7px;border:1.5px solid #a3812e;border-radius:7px;background:linear-gradient(90deg,#3c2c0e,#6e5730)}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .byl{left:37px;top:475.1px;font-size:15.3px;line-height:17.9px;color:#b8b9be;white-space:pre}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .hl{left:60.2px;top:475.1px;height:17.9px;font-size:15px;line-height:17.9px;font-weight:700;color:var(--fg-2);white-space:nowrap}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .lk{left:335.2px;top:474.3px;width:9.9px;font-size:17.2px;line-height:20.2px;font-weight:700;color:var(--fg-2)}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .hrt{left:350.5px;top:468.2px;width:32px;height:32px}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .ds{left:28.9px;top:511.6px;width:354.7px;border-radius:8px}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .dln{left:37.7px;width:336px;font-size:12.3px;line-height:20.2px;color:#d2d1d4;white-space:nowrap}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .red{color:#f01c1c}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .hr{left:28.9px;width:354.7px;height:.4px}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .dt{left:29.4px;width:352.2px;border:1px solid #2d2342;border-radius:7px;background:#11071f}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .vl{width:1px;background:#2d2342}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .dl{width:100px;font:12px/13px var(--font-2);text-align:center;white-space:nowrap}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .dv{width:104px;font:16.5px/18.3px var(--font-2);text-align:center;color:var(--fg-1)}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .cp{height:22.1px;border:1px solid #5f566e;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;line-height:11.4px;font-weight:600;color:#e3e3e6;white-space:nowrap}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .r2{height:21.7px}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .px{left:29.4px;width:352.2px;height:160px;border:1px solid #5d5373;border-radius:7px;background:linear-gradient(100deg,#2f2343,#3b3151 55%,#4d4566)}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .gl{left:35.3px;width:16px;height:16px}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .pt{left:55.6px;font-size:13.3px;line-height:15.6px;color:#fcfcfc;white-space:nowrap}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .pr{left:30.1px;top:757.7px;width:351.2px;height:49.5px;background:rgba(255,255,255,.03)}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .pr img{position:absolute;left:0;top:.1px;width:57.1px;height:49.4px}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .pa{left:57.1px;top:4.6px;width:261.3px;font:14px/16px var(--font-2);letter-spacing:.4px;color:#fdfdfe}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .pn{left:57.1px;top:27.1px;font-size:15.2px;line-height:17.9px;font-weight:700;color:var(--fg-1)}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .chv{left:330.6px;top:17.3px;width:14px;height:14px}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .ln{left:29.4px;width:352.2px;height:1px;background:#5f5676}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .btn{left:33.5px;top:811.8px;width:344.4px;height:38.9px;border:1px solid #7a7290;border-radius:6px;background:linear-gradient(90deg,#4a435c,#5f5974);display:flex;align-items:center;justify-content:center}
+:is(section[data-screen="s07"],section[data-screen="s08"]) .bl{font-size:13.3px;line-height:15.6px;font-weight:600;color:var(--fg-1)}
+</style>
+<style data-batch="4">
+:is(section[data-screen="s02"],section[data-screen="s13"]){overflow:hidden;font-family:var(--font-1)}
+:is(section[data-screen="s02"],section[data-screen="s13"]) :is(div,img,.ic){position:absolute;box-sizing:border-box;margin:0}
+:is(section[data-screen="s02"],section[data-screen="s13"]) svg{display:block;flex:none}
+section[data-screen="s02"]{background:var(--bg-2)}
+section[data-screen="s02"] .pn{left:0;top:0;width:411px;height:774.5px;background:var(--bg-1);border-radius:0 0 18px 18px;overflow:hidden;box-shadow:0 1.5px 0 #45474c}
+section[data-screen="s02"] .hd{left:0;top:0;width:411px;height:56px}
+section[data-screen="s02"] .tt{left:16px;top:14.5px;width:62.9px;height:27px;line-height:27px;font-size:22.5px;font-weight:500;color:var(--fg-1);white-space:nowrap}
+section[data-screen="s02"] .mb{left:363.4px;top:11.8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center}
+section[data-screen="s02"] .sf{left:15.6px;top:62.5px;width:325.3px;height:42.7px;border-radius:11px;background:#45484b;padding:0 14px 0 44px;line-height:42.7px;font-size:15px;color:var(--fg-1);white-space:nowrap;overflow:hidden}
+section[data-screen="s02"] .fb{left:352px;top:62.5px;width:43.8px;height:43.8px;border-radius:10px;background:#45484b;display:flex;align-items:center;justify-content:center}
+section[data-screen="s02"] .ch{top:117px;height:32px;border:1px solid #d4af37;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12.7px;font-weight:700;color:#d4af37;white-space:nowrap;overflow:hidden}
+section[data-screen="s02"] .fd{left:300px;top:115px;width:64px;height:36px;background:linear-gradient(90deg,rgba(48,51,55,0),rgba(48,51,55,.75));pointer-events:none}
+section[data-screen="s02"] .sg{left:16px;height:34.8px;border:1px solid #58595d;border-radius:10px;background:linear-gradient(#45464a,#2a2b2e);box-shadow:0 2px 4px rgba(0,0,0,.4)}
+section[data-screen="s02"] .sb{height:28.6px;border-radius:7px;display:flex;align-items:center;gap:6px;padding-left:11.5px;font-size:13.3px;color:#c0c0c1;white-space:nowrap}
+section[data-screen="s02"] .sb.on{background:linear-gradient(#8771ae,#705b98);border:1px solid #9d89c6;color:#f3f2f6;font-weight:500;padding-left:10.5px}
+section[data-screen="s02"] .dg{top:267.4px;width:8px;height:16px;line-height:16px;font-size:14px;font-weight:700;color:var(--fg-1);text-align:center}
+section[data-screen="s02"] .gh{color:transparent}
+section[data-screen="s02"] .pg{top:257.1px;width:36.2px;height:36.2px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+section[data-screen="s02"] .cf{top:300.4px;width:183.2px;height:560px;border:1px solid #6e52a4;border-bottom:0;border-radius:10px 10px 0 0;overflow:hidden;background:linear-gradient(180deg,#4b2d64 0,#3a2153 30px,#160727 212px,#1a0b2e calc(var(--l) - 120px),#2b1947 calc(var(--l) - 1px),#1c0e31 calc(var(--l) + 3px),#1c0e31 calc(var(--l) + 50px),#25163f 100%)}
+section[data-screen="s02"] .ln{left:0;top:calc(var(--l) - .75px);width:138.8px;height:1.5px;background:linear-gradient(90deg,#7d61b8,#c6a8ff);box-shadow:0 0 3px #9c78e8}
+section[data-screen="s02"] .sp{left:124.8px;top:calc(var(--l) - 20px);filter:drop-shadow(0 0 3px #b58cff) drop-shadow(0 0 7px #8d5fe8)}
+section[data-screen="s02"] .ph{top:331.4px;width:181.2px;height:182.1px;overflow:hidden}
+section[data-screen="s02"] .ph img{width:168.7px;height:152.3px}
+section[data-screen="s02"] .fy{left:6.2px;top:-122.5px;transform:scaleY(-1)}
+section[data-screen="s02"] .fl{left:-162.5px;top:29.8px;transform:scaleX(-1)}
+section[data-screen="s02"] .fr{left:174.9px;top:29.8px;transform:scaleX(-1)}
+section[data-screen="s02"] .cd{top:309.3px;width:168.8px;height:204.2px}
+section[data-screen="s02"] .art{left:0;top:51.9px;width:168.7px;height:152.3px}
+section[data-screen="s02"] .ct{left:0;top:0;height:16px;line-height:16px;font-family:var(--font-2);font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+section[data-screen="s02"] .bdg{top:342.6px;height:22.4px;border-radius:6px 0 0 6px;background:rgba(106,50,222,.62)}
+section[data-screen="s02"] .bdg::after{content:"";position:absolute;right:0;top:100%;border-top:7.5px solid #2b1362;border-right:9.9px solid transparent}
+section[data-screen="s02"] .st{top:346.7px;height:14.5px;line-height:14.5px;font-family:var(--font-2);font-size:13.5px;font-weight:700;color:#f8f5fc;white-space:nowrap}
+section[data-screen="s02"] .hn{top:520px;width:63.2px;height:12.9px;line-height:13px;font-size:11.2px;font-weight:700;color:var(--fg-2);white-space:nowrap}
+section[data-screen="s02"] .ds{width:168.8px}
+section[data-screen="s02"] .dt{left:0;width:168.8px;font-size:11.2px;line-height:15.23px;color:#e6e1f0;white-space:nowrap}
+section[data-screen="s02"] .tg{height:21.7px;border:1px solid #605176;border-radius:6px;background:#1c0e31;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#e4d5fd;white-space:nowrap}
+section[data-screen="s02"] .ch span{display:block;height:14.9px;line-height:14.9px}
+section[data-screen="s02"] .tg span{display:block;height:11.4px;line-height:11.4px}
+section[data-screen="s02"] .tb{left:0;top:774.9px;width:411px;height:63.3px;background:var(--bg-2)}
+section[data-screen="s02"] .ti{top:0;width:63.6px;height:63.6px;display:flex;align-items:center;justify-content:center}
+section[data-screen="s13"] .bk{left:0;top:0;width:411px;height:838.2px;background:rgba(0,0,0,.79)}
+section[data-screen="s13"] .mi{left:370.3px;top:19.8px;width:18.3px;height:16.8px}
+section[data-screen="s13"] .sh{left:0;top:39px;width:411px;height:820px;background:var(--bg-1);border-radius:14px 14px 0 0}
+section[data-screen="s13"] .hl{left:0;top:39.6px;width:411.4px;height:24.4px}
+section[data-screen="s13"] .hb{left:183.8px;top:9.6px;width:43.8px;height:4.2px;border-radius:2.1px;background:#6f7173}
+section[data-screen="s13"] .ft{left:16.4px;top:85.3px;width:378.7px;height:20.2px;line-height:20.2px;font-size:17.2px;font-weight:700;color:var(--fg-1)}
+section[data-screen="s13"] .sx{left:16.4px;width:378.7px;padding-top:15.5px;line-height:17.4px;font-size:14.8px;font-weight:600;white-space:nowrap}
+section[data-screen="s13"] .rd{left:16.6px;width:25.6px;height:25.6px;border-radius:50%;border:2px solid #6c6e72}
+section[data-screen="s13"] .rd.on{border:2.5px solid #af89f0;background:radial-gradient(circle,#b38ff3 0 5.9px,transparent 6.4px)}
+section[data-screen="s13"] .ol{left:53.7px;width:341.3px;height:20.6px;line-height:20.6px;font-size:15.2px;color:#98999b;white-space:nowrap}
+section[data-screen="s13"] .dv{left:16.6px;width:377.8px;height:1px;background:#45484c}
+section[data-screen="s13"] .dd{left:16.6px;width:377.8px;height:54px;border:1.8px solid #5e6064;border-radius:10px;background:var(--bg-3)}
+section[data-screen="s13"] .dr{left:27.4px;width:356.6px;height:26.7px}
+section[data-screen="s13"] .dl{left:0;top:3px;width:329.1px;height:20.6px;line-height:20.6px;font-size:15.2px;color:var(--fg-1);white-space:nowrap}
+section[data-screen="s13"] .in{left:16.4px;width:378.7px;height:55.2px;border:1px solid #4b4e52;border-radius:12px;padding-left:17px;line-height:53.2px;font-size:15px;color:#98999b;white-space:nowrap;overflow:hidden}
+section[data-screen="s13"] .px{left:16.4px;top:812.6px;width:314.7px;height:17.5px;line-height:17.5px;font-size:14.8px;font-weight:600;color:#d6d6d7}
+section[data-screen="s13"] .sw{left:348.6px;top:807.6px;width:46.5px;height:27.1px}
+section[data-screen="s13"] .tr{left:4.1px;top:5.4px;width:31px;height:15px;border-radius:7.5px;background:#46494d}
+section[data-screen="s13"] .th{left:4px;top:4.1px;width:17.4px;height:17.4px;border-radius:50%;background:#2a2b2e;box-shadow:0 1px 3px rgba(0,0,0,.6)}
+</style>
+<style data-batch="5">
+:is(section[data-screen="s05"],section[data-screen="s24"]){overflow:hidden;background:var(--bg-1);font-family:var(--font-1);color:var(--fg-1)}
+:is(section[data-screen="s05"],section[data-screen="s24"]) .a{position:absolute;margin:0;box-sizing:border-box}
+:is(section[data-screen="s05"],section[data-screen="s24"]) .t{white-space:nowrap}
+:is(section[data-screen="s05"],section[data-screen="s24"]) .ic{display:flex;align-items:center;justify-content:center}
+section[data-screen="s05"] .num{font-size:22px;font-weight:700;line-height:23.2px;height:23.2px}
+section[data-screen="s05"] .lbl{font-size:12.5px;font-weight:500;line-height:14.5px;height:14.5px;color:#98999b}
+section[data-screen="s05"] .tab{top:172.9px;width:137.1px;height:41.5px;color:var(--fg-1)}
+section[data-screen="s05"] .tb{top:34.9px;width:63.6px;height:63.6px;color:var(--fg-3)}
+section[data-screen="s24"] .lab{left:22.1px;width:367.2px;font-size:15.5px;font-weight:700;white-space:nowrap}
+section[data-screen="s24"] .req{color:#ef4444;font-size:20px}
+section[data-screen="s24"] .hp{left:22.1px;width:367.2px;font-size:13.2px;white-space:nowrap}
+section[data-screen="s24"] .hp b{font-weight:700;text-decoration:underline}
+section[data-screen="s24"] .in{left:22.1px;width:367.2px;height:58.3px;background:var(--bg-3);border:1px solid #45484b;border-radius:12px;padding-left:18px;font-size:15.5px;line-height:56.3px;color:#959597;white-space:nowrap;overflow:hidden}
+</style>
+<style data-batch="6">
+:is(section[data-screen="s03"],section[data-screen="s20"],section[data-screen="s15"]){overflow:hidden;font-family:var(--font-1);color:var(--fg-1)}
+:is(section[data-screen="s03"],section[data-screen="s20"],section[data-screen="s15"]) .a{position:absolute;margin:0;box-sizing:border-box}
+:is(section[data-screen="s03"],section[data-screen="s20"]) .nm{position:absolute;left:71.6px;height:17.9px;font-size:15px;line-height:17.9px;font-weight:500;color:var(--fg-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:is(section[data-screen="s03"],section[data-screen="s20"]) .tm{position:absolute;right:11.1px;height:15.6px;font-size:13.5px;line-height:15.6px;color:var(--fg-4);white-space:nowrap}
+:is(section[data-screen="s03"],section[data-screen="s20"]) .pl{position:absolute;left:71.5px;height:23.5px;padding:0 10.7px 0 28.3px;border-radius:12px;background:#49445c;color:#d2bef4;font-size:13.5px;line-height:15.6px;font-weight:500;display:flex;align-items:center;white-space:nowrap}
+:is(section[data-screen="s03"],section[data-screen="s20"]) .pl svg{position:absolute;left:12.5px;top:6.25px;width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linejoin:round}
+:is(section[data-screen="s03"],section[data-screen="s20"]) .mi{width:21.3px;height:21.3px;flex:none;stroke-width:2;stroke-linecap:round}
+section[data-screen="s03"]{background:var(--bg-2)}
+section[data-screen="s03"] .pn{left:0;top:0;width:411px;height:773.4px;background:var(--bg-1);border-radius:0 0 16px 16px;box-shadow:0 1px 0 #4a4d52}
+section[data-screen="s03"] .hd{left:0;top:0;width:411px;height:56px}
+section[data-screen="s03"] .ib{top:11.8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+section[data-screen="s03"] .sf{left:8.8px;top:60.2px;width:393.9px;height:42.7px;padding-left:46.8px;border-radius:10.7px;background:#45484b;color:#a2a4a5;font-size:15px;line-height:42.7px;white-space:nowrap}
+section[data-screen="s03"] .rw{left:6.5px;width:398.5px;height:85px;border-bottom:1px solid #46494d;cursor:pointer}
+section[data-screen="s03"] .rw img{position:absolute;left:0;width:71.6px}
+section[data-screen="s03"] .cv{position:absolute;left:375.1px;top:44.5px;width:7px;height:9px;fill:none;stroke:#c1c2c3;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+section[data-screen="s03"] .tb{left:0;top:773.4px;width:411px;height:64.8px;background:var(--bg-2)}
+section[data-screen="s03"] .tab{position:absolute;top:1.5px;width:63.6px;height:63.6px;display:flex;align-items:center;justify-content:center;color:var(--fg-3);cursor:pointer}
+section[data-screen="s20"] .ic{display:flex;align-items:center;justify-content:center}
+section[data-screen="s20"] .sh{left:0;top:39.6px;width:411px;height:798.6px;background:var(--bg-1);border-radius:16px 16px 0 0}
+section[data-screen="s20"] .hb{position:absolute;left:183.7px;top:9.6px;width:44px;height:4.3px;border-radius:3px;background:#6f7173}
+section[data-screen="s20"] .mav{position:absolute;width:59.4px;height:57.9px;border-radius:9px;background:radial-gradient(38% 30% at 52% 88%,#c8643a,rgba(150,80,45,.7) 50%,transparent),radial-gradient(45% 40% at 50% 55%,#8e6040,transparent 85%),radial-gradient(55% 30% at 48% 12%,#15130f,transparent),linear-gradient(140deg,#21412f,#2b3a24 55%,#141c16)}
+section[data-screen="s20"] .sg{top:143.6px;height:32px}
+section[data-screen="s20"] .so{position:absolute;top:154.1px;width:13px;height:11px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+section[data-screen="s20"] .sl{top:151.6px;height:15.6px;font-size:13.5px;line-height:15.6px;font-weight:700;white-space:nowrap}
+section[data-screen="s20"] .rw{left:6.5px;width:398.5px;height:74.3px;cursor:pointer}
+section[data-screen="s20"] .rw>img{position:absolute}
+section[data-screen="s20"] .pv{position:absolute;left:71.6px;top:29.5px;width:280px;height:41.9px;font-size:13.5px;line-height:18.5px;color:#c0c1c2;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+section[data-screen="s20"] .ct{position:absolute;right:11.1px;top:32.8px;height:15.6px;display:flex;align-items:center;gap:2.5px;font-size:13.5px;line-height:15.6px;color:var(--fg-4)}
+section[data-screen="s20"] .ct svg{width:12.5px;height:11.5px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linejoin:round}
+section[data-screen="s20"] .dm span{color:#635681}
+section[data-screen="s20"] .fd{left:0;top:734px;width:411px;height:38px;background:linear-gradient(rgba(48,51,55,0),#303337)}
+section[data-screen="s20"] .ft{left:0;top:772px;width:411px;height:66.2px;background:var(--bg-1)}
+section[data-screen="s20"] .ti{top:774.9px;width:63.6px;height:63.6px}
+section[data-screen="s20"] .nb{left:16.4px;top:774.5px;width:378.7px;height:42.7px;border-radius:14px;background:var(--bg-1);box-shadow:inset 0 0 0 1.5px #635681;cursor:pointer}
+section[data-screen="s15"]{background:radial-gradient(55% 28% at 78% 62%,rgba(105,75,150,.32),transparent 70%),radial-gradient(60% 25% at 22% 40%,rgba(45,70,160,.3),transparent 70%),radial-gradient(70% 22% at 25% 93%,rgba(80,90,150,.28),transparent 70%),linear-gradient(#050a24,#0a143f 40%,#0c1744 70%,#08112f)}
+section[data-screen="s15"] .sk{left:0;top:0;width:411px;height:838.2px;opacity:.45;background:radial-gradient(circle at 17px 23px,rgba(255,255,255,.75) .6px,transparent 1.3px) 0 0/89px 97px,radial-gradient(circle at 53px 61px,rgba(205,215,255,.55) .5px,transparent 1.1px) 0 0/127px 113px,radial-gradient(circle at 101px 37px,rgba(255,255,255,.5) .8px,transparent 1.7px) 0 0/163px 151px,radial-gradient(circle at 30px 120px,rgba(255,240,220,.45) .7px,transparent 1.5px) 0 0/211px 191px}
+section[data-screen="s15"] .cd{left:15.5px;top:102.6px;width:379.5px;height:530.8px;border-radius:14px;border:1px solid rgba(175,185,230,.3);background:linear-gradient(rgba(30,50,130,.18),rgba(40,55,140,.22))}
+section[data-screen="s15"] .cl{left:363.1px;top:16px;width:32px;height:32px;border-radius:50%;background:#141b38;display:flex;align-items:center;justify-content:center;cursor:pointer}
+section[data-screen="s15"] .sb{left:47.2px;top:333.7px;width:316.9px;height:56.8px;border-radius:13px;background:var(--fg-2);display:flex;align-items:center;justify-content:center;cursor:pointer}
+section[data-screen="s15"] .ck{left:47.2px;width:21.3px;height:15.2px;fill:none;stroke:#8c90a5;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+section[data-screen="s15"] .bf{left:81.1px;width:283.8px;height:19.8px;font-size:14px;line-height:19.8px}
+section[data-screen="s15"] .mo{left:16.4px;top:646.1px;width:378.7px;height:44.6px;border-radius:12px;background:#0a122d;box-shadow:inset 0 0 0 1px rgba(200,205,235,.28);cursor:pointer}
+section[data-screen="s15"] .lk{top:776px;height:19.8px;font-size:12.1px;line-height:19.8px;text-decoration:underline;text-underline-offset:2px;white-space:nowrap;cursor:pointer}
+section[data-screen="s15"] .dt{top:778.7px;width:4.2px;height:14.5px;font-size:12px;line-height:14.5px}
+</style>
+<style data-batch="7">
+:is(section[data-screen="s04"],section[data-screen="s10"]){overflow:hidden;font-family:var(--font-1);color:var(--fg-1)}
+:is(section[data-screen="s04"],section[data-screen="s10"]) .a{position:absolute;margin:0;box-sizing:border-box}
+:is(section[data-screen="s04"],section[data-screen="s10"]) .hd{position:absolute;left:0;top:0;width:411px;height:46.5px;background:var(--bg-1);z-index:5}
+:is(section[data-screen="s04"],section[data-screen="s10"]) .tt{position:absolute;top:14.5px;height:27.1px;font-size:19.5px;line-height:27.1px;font-weight:500;white-space:nowrap;color:var(--fg-1)}
+:is(section[data-screen="s04"],section[data-screen="s10"]) .ib{position:absolute;top:11.8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+section[data-screen="s04"]{background:var(--bg-2)}
+section[data-screen="s04"] .pn{position:absolute;left:0;top:0;width:411px;height:773.4px;background:var(--bg-1);border-radius:0 0 21px 21px;box-shadow:0 1.2px 0 #45474c}
+section[data-screen="s04"] .tb{position:absolute;left:0;top:773.4px;width:411px;height:64.8px;background:var(--bg-2)}
+section[data-screen="s04"] .tab{position:absolute;top:1.5px;width:63.6px;height:63.6px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+section[data-screen="s04"] .em{left:147.8px;top:100.6px;width:115.8px;height:19.1px;font-size:15.5px;line-height:19.1px;font-weight:500;color:#929394;text-align:center;white-space:nowrap}
+section[data-screen="s10"]{background:var(--bg-1)}
+section[data-screen="s10"] .xp{left:15.6px;top:56px;width:380.2px;height:34.3px}
+section[data-screen="s10"] .xp p{position:absolute;left:0;bottom:12px;margin:0;width:380.2px;font-size:15px;line-height:17.15px;color:var(--fg-1)}
+section[data-screen="s10"] .xp span{display:block;white-space:nowrap}
+section[data-screen="s10"] .dg{position:absolute;top:113.1px;width:8px;height:16px}
+section[data-screen="s10"] .dg span{position:absolute;left:0;top:0;width:8px;height:16px;font-size:14.5px;line-height:16px;font-weight:700;text-align:center;color:var(--fg-1)}
+section[data-screen="s10"] .dg .z{color:transparent}
+section[data-screen="s10"] .pg{top:102.9px;width:36.2px;height:36.2px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+section[data-screen="s10"] .cd{position:absolute;width:183px;border:1.2px solid #7f62c6;border-bottom-color:#a88cec;border-radius:9px;box-sizing:border-box;background:linear-gradient(180deg,#55346d 0,#43275a 30px,#1e0c34 33px,#160629 37%,#190b2e 50%,#1b0d30 71%,#262040 87%,#2c2444 94%,#332b4b 100%)}
+section[data-screen="s10"] .cd.c2{background:linear-gradient(180deg,#53336b 0,#43275a 30px,#1e0c34 31px)}
+section[data-screen="s10"] .ct{position:absolute;left:0;top:0;height:16px;font-family:var(--font-2);font-size:14px;line-height:16px;letter-spacing:.3px;color:#a882e5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+section[data-screen="s10"] .hl{top:365.7px;height:12.9px;font-size:11.5px;line-height:12.9px;font-weight:700;color:var(--fg-2);white-space:nowrap}
+section[data-screen="s10"] .ds{position:absolute;left:0;width:168.8px;font-size:11.6px;line-height:15.23px;color:#f0ebfa;overflow:hidden}
+section[data-screen="s10"] .ds.b{font-weight:700}
+section[data-screen="s10"] .ch{position:absolute;height:21.7px;display:flex;align-items:center;justify-content:center;border:1px solid #625870;border-radius:4px;box-sizing:border-box}
+section[data-screen="s10"] .ch span{font-size:10.5px;line-height:11.4px;height:11.4px;font-weight:500;color:#ebe6f1;white-space:nowrap}
+section[data-screen="s10"] .ch.h span{font-weight:700}
+section[data-screen="s10"] .tk{position:absolute;width:168.8px;height:10.3px;font-size:9.5px;line-height:10.3px;text-align:center;color:#9b96aa}
+section[data-screen="s10"] .bd{position:absolute;height:21.4px;border-radius:3px 1px 1px 3px;display:flex;align-items:center;padding-left:5px;box-sizing:border-box}
+section[data-screen="s10"] .bd::after{content:"";position:absolute;right:0;top:100%;width:10px;height:8px;background:#1d1350;clip-path:polygon(0 0,100% 0,0 100%)}
+section[data-screen="s10"] .bt{height:14.5px;font-family:var(--font-2);font-size:13.5px;line-height:14.5px;font-weight:700;white-space:nowrap}
+section[data-screen="s10"] .ln{position:absolute;height:1.5px;background:linear-gradient(90deg,#5b40a0,#a98cf2 78%,rgba(169,140,242,0))}
+section[data-screen="s10"] .sp{position:absolute;width:46px;height:44px;filter:drop-shadow(0 0 4px #9d75ff)}
+section[data-screen="s10"] .st{position:absolute;top:177.4px;height:181.2px}
+</style>
+<style data-batch="8">
+section[data-screen="s11"]{overflow:hidden;background:var(--bg-1);color:var(--fg-1);font-family:var(--font-1)}
+section[data-screen="s11"] .a{position:absolute;box-sizing:border-box;margin:0}
+section[data-screen="s11"] .hd{left:0;top:0;width:411px;height:48px;background:var(--bg-1);z-index:9}
+section[data-screen="s11"] .t1{left:16px;top:14.5px;width:184.8px;height:27.1px;font-size:19.5px;font-weight:500;line-height:27px;white-space:nowrap;color:var(--fg-1)}
+section[data-screen="s11"] .mn{left:363.4px;top:11.8px;width:32px;height:32px}
+section[data-screen="s11"] .ex{left:15.6px;top:56px;width:380.2px;height:33.9px}
+section[data-screen="s11"] .ext{position:absolute;left:0;top:-31.9px;font-size:15px;line-height:17.5px;white-space:nowrap}
+section[data-screen="s11"] .dg{top:112.8px;width:8px;height:16px;font-size:14px;font-weight:700;line-height:16px;text-align:center;color:var(--fg-1)}
+section[data-screen="s11"] .hid{color:transparent}
+section[data-screen="s11"] .pb{top:102.5px;width:36.2px;height:36.2px;background:var(--bg-3);border:1px solid #46484d;border-radius:6px;display:flex;align-items:center;justify-content:center}
+section[data-screen="s11"] .pit{display:block;width:77px;height:16.4px;font-size:14px;font-weight:700;line-height:16.4px;text-align:center;white-space:nowrap}
+section[data-screen="s11"] .cd{width:184px;height:546.6px;border:1px solid #8467c6;border-top-color:#9c7edc;border-radius:9px;background:linear-gradient(180deg,#55336e 0,#3a1f52 31px,#170929 213px,#1a0c2f 300px,#1e1033 420px,#2f2846 100%)}
+section[data-screen="s11"] .fl{width:182px;height:181.4px}
+section[data-screen="s11"] .ttl{font-family:var(--font-2);font-size:14px;line-height:16px;color:#a984e8;white-space:nowrap}
+section[data-screen="s11"] .bd{top:188px;height:22px;background:#8d6bd3;display:flex;align-items:center;padding-left:17.7px;font-family:var(--font-2);font-size:13px;line-height:14.5px;color:#efe7fb;white-space:nowrap}
+section[data-screen="s11"] .bd svg{position:absolute;left:5.5px;top:6px}
+section[data-screen="s11"] .fd{top:210px;width:9.6px;height:8px;background:#3a2a5a;clip-path:polygon(0 0,100% 0,0 100%)}
+section[data-screen="s11"] .hn{left:0;top:0;height:12.9px;font-size:11px;font-weight:700;line-height:13px;color:var(--fg-2);white-space:nowrap}
+section[data-screen="s11"] .ds{left:0;width:168.8px;font-size:11px;line-height:15.25px;color:#f0ebfa;white-space:nowrap}
+section[data-screen="s11"] .bb{font-weight:700}
+section[data-screen="s11"] .dv{width:141px;height:1.4px;background:#b597f0}
+section[data-screen="s11"] .gl{width:48px;height:48px;border-radius:50%;background:radial-gradient(circle,rgba(170,125,255,.5) 0,rgba(170,125,255,0) 68%)}
+section[data-screen="s11"] .st{width:36px;height:46px;filter:drop-shadow(0 0 3px #a679ff)}
+section[data-screen="s11"] .ch{height:21.7px;border:1px solid #5c5270;border-radius:5px;padding-left:8.5px;display:flex;align-items:center;font-size:10px;font-weight:700;line-height:11.4px;color:#ece6f4;white-space:nowrap;background:rgba(255,255,255,.02)}
+section[data-screen="s11"] .ht{border-color:#2f6474;color:#48d0cb}
+section[data-screen="s11"] .hy{border-color:#6a5e4c;color:#e8dd88}
+section[data-screen="s11"] .ho{border-color:#7a5137;color:#fcb147}
+section[data-screen="s11"] .tk{width:168.8px;height:10.3px;font-size:9px;line-height:10.3px;text-align:center;color:#857f96;white-space:nowrap}
+</style>
+<style id="simula-runtime">
+html,body{margin:0;padding:0;width:411px;height:914px;overflow:hidden}
+body{position:relative}
+[data-screen]{position:absolute!important;left:0!important;top:51.8px!important;width:411px!important;height:838.2px!important;overflow:hidden;box-sizing:border-box}
+[data-screen]:not(.simula-on){display:none!important}
+[data-screen][data-parent]{z-index:10;background:transparent!important}
+.simula-push{animation:simula-slide .25s ease-out}
+.simula-back{animation:simula-slide-back .25s ease-out}
+.simula-modal{animation:simula-fade .2s ease-out}
+@keyframes simula-slide{from{transform:translateX(100%)}}
+@keyframes simula-slide-back{from{transform:translateX(-30%)}}
+@keyframes simula-fade{from{opacity:0}}
+@media (prefers-reduced-motion:reduce){.simula-push,.simula-back,.simula-modal{animation:none}}
+[data-simula-field]{cursor:text;-webkit-user-select:text;user-select:text}
+[data-simula-field]:focus{outline:none}
+</style>
+<style id="simula-flow">
+body:not(.simula-rewarded) [data-reward]{display:none!important}
+body.simula-rewarded [data-unrewarded]{display:none!important}
+body.simula-hide-replaced [data-unrewarded]{opacity:0!important}
+[data-screen]{isolation:isolate}
+.sa-dim{position:absolute;inset:0;background:rgba(8,10,14,.72)}
+.sa-card{position:absolute;left:28px;right:28px;top:140px;border-radius:20px;background:var(--bg-1,#fff);color:var(--fg-1,#16181d);padding:18px;font:15px/1.35 var(--font-1,system-ui,-apple-system,Roboto,sans-serif);box-shadow:0 12px 40px rgba(0,0,0,.4)}
+.sa-top{display:flex;justify-content:space-between;align-items:center}
+.sa-tag{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.6}
+.sa-close{border:0;background:rgba(127,127,127,.2);color:inherit;border-radius:50%;width:30px;height:30px;font-size:18px;line-height:30px;cursor:pointer}
+.sa-game{margin:14px 0 12px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sa-game i{aspect-ratio:1;border-radius:12px;background:linear-gradient(135deg,#ffb347,#ff5f6d)}
+.sa-game i:nth-child(3n+2){background:linear-gradient(135deg,#43cea2,#185a9d)}
+.sa-game i:nth-child(4n){background:linear-gradient(135deg,#a18cd1,#fbc2eb)}
+.sa-bar{height:6px;border-radius:3px;background:rgba(127,127,127,.2);overflow:hidden}
+.sa-bar i{display:block;height:100%;width:0;background:var(--sa-accent,#22c55e);transition:width 3s linear}
+.sa-reward{margin:12px 0;font-weight:600}
+.sa-play{width:100%;border:0;border-radius:12px;padding:12px;background:var(--sa-accent,#16181d);color:var(--sa-on-accent,#fff);font:700 16px var(--font-1,system-ui,sans-serif);cursor:pointer}
+.sa-cta{width:100%;border:0;background:none;color:inherit;opacity:.7;padding:10px 0 0;font-size:14px;cursor:pointer}
+.sa-note{position:absolute;left:24px;right:24px;bottom:90px;z-index:50;background:#16181d;color:#fff;border-radius:12px;padding:12px 14px;font:14px system-ui,sans-serif}
+:is(img[src="assets/s01.e30.art.png"],[style*="s01.e30.art.png"],img[src="assets/s01.e54.art.png"],[style*="s01.e54.art.png"],img[src="assets/s02.e43.art.png"],[style*="s02.e43.art.png"],img[src="assets/s02.e47.art.png"],[style*="s02.e47.art.png"],img[src="assets/s07.e08.art.png"],[style*="s07.e08.art.png"],img[src="assets/s10.e18.art.png"],[style*="s10.e18.art.png"],img[src="assets/s10.e48.art.png"],[style*="s10.e48.art.png"],img[src="assets/s11.e18.art.png"],[style*="s11.e18.art.png"],img[src="assets/s11.e21.art.png"],[style*="s11.e21.art.png"],img[src="assets/s11.e58.art.png"],[style*="s11.e58.art.png"],img[src="assets/s11.e61.art.png"],[style*="s11.e61.art.png"]){filter:blur(14px)!important}
+.sa-card{--sa-accent:#af89f0;--sa-on-accent:#000}
+</style>
+</head><body>
+<section data-screen="s01">
+<div class="a tbr" data-chrome="tabbar">
+<div class="a tab" data-el="s01.e79" style="left:27.4px"><svg width="24" height="24" viewBox="0 0 24 24" fill="#af89f0"><path d="M12 2.5 1.8 11.2c-.6.5-.2 1.3.5 1.3H4v8c0 .8.6 1.5 1.5 1.5h4v-6h5v6h4c.8 0 1.5-.7 1.5-1.5v-8h1.7c.7 0 1.1-.8.5-1.3z"/></svg></div>
+<div class="a tab" data-el="s01.e80" data-edge="s01.e80>s02" data-transition="tab" style="left:100.6px"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="10" cy="10" r="7"/><path d="m15.5 15.5 6 6"/></svg></div>
+<div class="a tab" data-el="s01.e81" data-edge="s01.e81>s03" data-transition="tab" style="left:174.1px"><svg width="26" height="32" viewBox="0 0 26 32" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 11 4 2l6 5c2-.7 4-.7 6 0l6-5-1 9c3 4 3 10-1 14-4 4-11 4-15 0-4-4-4-10 0-14z"/><path d="M13 19.5c-1 0-1.6-.9-1.2-1.8.6-1.2 2.5-1 3 .3.8 1.8-.8 3.6-2.7 3.4-2.6-.3-3.8-3.3-2.4-5.4 1.8-2.6 5.9-2.4 7.2.5"/></svg></div>
+<div class="a tab" data-el="s01.e82" data-edge="s01.e82>s04" data-transition="tab" style="left:247.2px"><svg width="24" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div>
+<div class="a tab" data-el="s01.e83" style="left:320.4px"><svg width="24" height="26" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="7.5" r="4.5"/><path d="M4 21v-1.5C4 16 8 14 12 14s8 2 8 5.5V21c0 .6-.4 1-1 1H5c-.6 0-1-.4-1-1z"/></svg></div>
+</div>
+<div class="a pn">
+<div class="a" data-chrome="header" style="left:0;top:0;width:411px;height:56px">
+<div class="a tt" data-el="s01.e01" style="left:16px;top:14.5px;width:184.8px;height:27.1px">Build, Share, Explore</div>
+<div class="a fc" data-el="s01.e02" data-edge="s01.e02>s06" data-transition="push" style="left:363.4px;top:11.8px;width:32px;height:32px"><svg width="17" height="13" viewBox="0 0 17 13" fill="#fff"><rect width="17" height="2" rx="1"/><rect y="5.5" width="17" height="2" rx="1"/><rect y="11" width="17" height="2" rx="1"/></svg></div>
+</div>
+<div class="a sg" style="left:16px;top:63px;width:179.6px;height:35.9px"></div>
+<div class="a sb" data-el="s01.e03" style="left:19.1px;top:65.9px;width:55.2px;height:28.6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/></svg><span class="a sl" data-el="s01.e04">All</span></div>
+<div class="a sb on" data-el="s01.e05" style="left:76.6px;top:65.9px;width:114.3px;height:28.6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M3 3l18 18M10.6 5.1C11 5 11.5 5 12 5c6.5 0 10.5 7 10.5 7s-1.2 2.1-3.3 4M6.6 6.6C3.3 8.6 1.5 12 1.5 12s4 7 10.5 7c2 0 3.8-.6 5.3-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg><span class="a sl" data-el="s01.e06">Limited Only</span></div>
+<div class="a sg" style="left:16px;top:110.6px;width:379.6px;height:35.9px"></div>
+<div class="a sb" data-el="s01.e07" style="left:19.1px;top:113.5px;width:97.1px;height:28.6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.7a3.5 3.5 0 0 1 0 6.6M18 14.4c2 .7 3.5 2.8 3.5 5.6"/></svg><span class="a sl" data-el="s01.e08">Following</span></div>
+<div class="a sb" data-el="s01.e09" style="left:118.5px;top:113.5px;width:94.1px;height:28.6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21S3 15.5 3 9.2C3 6.3 5.2 4 8 4c1.7 0 3.1.8 4 2.1C12.9 4.8 14.3 4 16 4c2.8 0 5 2.3 5 5.2C21 15.5 12 21 12 21z"/></svg><span class="a sl" data-el="s01.e10">Favorites</span></div>
+<div class="a sb" style="left:214.9px;top:113.5px;width:92.2px;height:28.6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M12 22c-3.9 0-7-2.9-7-6.8 0-3.2 2-5.2 3.5-7 .3 1.8 1.2 3 2.5 3.6C11 8 12.5 5 15 2.5c.3 3.6 4 6.4 4 11.5 0 4.5-3.1 8-7 8z"/></svg><span class="a sl">Trending</span></div>
+<div class="a sb on" data-el="s01.e13" style="left:309.3px;top:113.5px;width:85.3px;height:28.6px;border-radius:7px 0 0 7px;overflow:hidden"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M6.5 3.5h11L22 9l-10 12L2 9z"/></svg><span class="a sl" style="left:29px">Hidden Gems</span></div>
+<div class="a ex" data-el="s01.e15" style="left:15.6px;top:158.1px;width:380.2px;height:80.4px"><svg width="16" height="15" viewBox="0 0 24 24" fill="none" stroke="#af89f0" stroke-width="2.2" stroke-linejoin="round"><path d="M6.5 3.5h11L22 9l-10 12L2 9z"/></svg>Hidden Gems show <b>characters from smaller <br>creators</b> with engaging conversations, created in the <br>last 30 days.</div>
+<span class="a cn" data-el="s01.e16" style="left:15.6px;top:261.3px;color:transparent">8</span>
+<span class="a cn" data-el="s01.e17" style="left:15.6px;top:261.3px">3</span>
+<span class="a cn" data-el="s01.e18" style="left:23.6px;top:260.9px">,</span>
+<span class="a cn" style="left:27.1px;top:261.3px">4</span>
+<span class="a cn" style="left:35px;top:261.3px">3</span>
+<span class="a cn" style="left:43px;top:261.3px">0</span>
+<span class="a cc" data-el="s01.e25" style="left:55.6px;top:260.9px">characters</span>
+<div class="a pb" data-el="s01.e26" style="left:228.9px;top:251.1px;background:#2d2f33;border:1px solid #393b3f;color:#87888a"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 6 8.5 12l6 6"/></svg></div>
+<div class="a" data-el="s01.e27" style="left:273.9px;top:260.9px;width:77px;height:16.4px"><div class="a pi" data-el="s01.e28" style="left:0;top:0;width:77px;height:16.4px">1 / 101</div></div>
+<div class="a pb" data-el="s01.e29" style="left:359.6px;top:251.1px;background:var(--bg-3);border:1px solid #57595d;color:#e1e1e1"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 6l6 6-6 6"/></svg></div>
+<div class="a cf" style="left:16px;width:184.4px"></div>
+<div class="a" style="left:17.6px;top:325.5px;width:181.8px;height:181.2px;background:linear-gradient(90deg,transparent 7px,#b06b74 7px),linear-gradient(#b06a72 20%,#17233a 42%,#2c6a92 75%,#24344e)"></div>
+<div class="a" data-el="s01.e30" style="left:24px;top:303.2px;width:168.8px;height:204.2px"><img class="a" src="assets/s01.e30.art.png" alt="" style="left:0;top:16.1px;width:159.2px;height:188.1px"><span class="a ct" data-el="s01.e31" style="width:64px;height:16px">Kitsunami</span></div>
+<div class="a fd" style="left:200px"></div>
+<div class="a bd" style="left:165.7px;width:44.3px"><svg width="11" height="10" viewBox="0 0 22 20" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"><path d="M2 2h11v8H6l-4 3.5z"/><path d="M13 6h7v8.5l-3.5-2.5H9v-2"/></svg><span class="a bn" data-el="s01.e53" style="left:17.5px;width:13.7px">31</span></div>
+<div class="a" data-el="s01.e32" style="left:24px;top:513.9px;width:86.9px;height:12.9px"><span class="a hd" data-el="s01.e33">@sonicthegoatyo</span></div>
+<div class="a ds" data-el="s01.e34" data-edge="s01.e34>s07" data-transition="push" style="left:24px;top:533.3px;width:168.8px;height:147.1px">
+<div class="a bo" data-el="s01.e35" style="top:0;height:45.7px">"C−could you... please...?" 🌊 | He <br>wants a... bedtime story? Surge <br>user!!</div>
+<div class="a bo" data-el="s01.e36" style="top:55.7px;height:91.4px">Hey so I love Surge and Kit <br>sosososo much they're my roman <br>empire, so if you could make fluff <br>siblings chats with these two <br>and publish them that would be <br>great... thank you... REQUE</div>
+</div>
+<div class="a dv" style="left:17.6px;top:700.3px;width:164px"></div>
+<svg class="a st" style="left:144.7px;top:683px" width="26" height="36" viewBox="0 0 24 32"><path fill="#ece2ff" d="M12 0C12.8 10.5 15 14.8 24 16 15 17.2 12.8 21.5 12 32 11.2 21.5 9 17.2 0 16 9 14.8 11.2 10.5 12 0z"/></svg>
+<div class="a cp" data-el="s01.e37" style="left:24px;top:724.2px;width:56px;height:22.1px"><span data-el="s01.e38">👨 Male</span></div>
+<div class="a cp" data-el="s01.e47" style="left:84.6px;top:724.2px;width:72.8px;height:22.1px"><span data-el="s01.e48">📚 Fictional</span></div>
+<div class="a cp" data-el="s01.e39" style="left:24px;top:750.5px;width:85.3px;height:21.7px"><span data-el="s01.e40" style="display:block;width:65.9px;font-size:9.7px;text-align:center;overflow:hidden">🦄 Non-human</span></div>
+<div class="a cp k" data-el="s01.e41" style="left:24px;top:777.1px;width:85.3px;height:21.7px"><span data-el="s01.e42" style="display:block;width:65.9px;font-size:9.7px;text-align:center;overflow:hidden">🙇 Submissive</span></div>
+<div class="a cp k" style="left:113.9px;top:777.1px;width:54.5px;height:21.7px"><span data-el="s01.e52">❤️‍🩹 Fluff</span></div>
+<div class="a cp k" data-el="s01.e43" style="left:24px;top:803.4px;width:56.4px;height:21.7px"><span data-el="s01.e44">🐺 Furry</span></div>
+<div class="a cp k" data-el="s01.e49" style="left:85px;top:803.4px;width:70.9px;height:21.7px"><span data-el="s01.e50">👩 FemPov</span></div>
+<div class="a cp k" data-el="s01.e45" style="left:24px;top:829.7px;width:107.8px;height:22.1px"><span data-el="s01.e46" style="display:block;width:88.4px;font-size:9.9px;text-align:center;overflow:hidden">#sonicthehedgehog</span></div>
+<div class="a cf" style="left:211px;width:183.4px"></div>
+<div class="a" style="left:212.5px;top:325.5px;width:181.5px;height:181.2px;background:linear-gradient(#2c4c98,#5a78c4 35%,#c9ccd8 52%,#3a4f8f 68%,#d0386c 85%,#2a1d3c)"></div>
+<div class="a" data-el="s01.e54" data-edge="s01.e54>s08" data-transition="push" style="left:218.7px;top:303.2px;width:168.8px;height:204.2px"><img class="a" src="assets/s01.e54.art.png" alt="" style="left:0;top:16.1px;width:156.9px;height:188.1px"><span class="a ct" data-el="s01.e55" style="width:128px;height:16px;color:#a781e4">Parkour Reborn RPG</span></div>
+<div class="a fd" style="left:394.5px"></div>
+<div class="a bd" style="left:358px;width:46.6px"><svg width="11" height="10" viewBox="0 0 22 20" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"><path d="M2 2h11v8H6l-4 3.5z"/><path d="M13 6h7v8.5l-3.5-2.5H9v-2"/></svg><span class="a bn" style="left:17.6px;width:16px">26</span></div>
+<div class="a" data-el="s01.e56" style="left:218.7px;top:513.9px;width:87.6px;height:12.9px"><span class="a hd" data-el="s01.e57">@thec00lestk1dd</span></div>
+<div class="a ds" data-el="s01.e58" data-edge="s01.e58>s08" data-transition="push" style="left:218.7px;top:533.3px;width:168.8px;height:177.1px">
+<div class="a" data-el="s01.e59" style="top:0;height:15.2px;color:#e8e3f4">[🏙️Fragment Update!]</div>
+<div class="a" data-el="s01.e60" style="top:25.2px;height:30.5px">An average RPG, but it's about <br><b>parkour reborn</b>??</div>
+<div class="a" data-el="s01.e61" style="top:65.6px;height:30.5px">Because parkour reborn had a lore <br>I decided to make this bot.</div>
+<div class="a" data-el="s01.e62" style="top:105.9px;height:45.7px">The lore of <b>Parkour Reborn</b> takes <br>place in the city of <b>Verna</b>. You are <br>one of the Runners</div>
+<div class="a" data-el="s01.e63" style="top:161.9px;height:15.2px;color:#e2dced">[BOT IS HEAVILY UNFINISHED]</div>
+</div>
+<div class="a dv" style="left:212.5px;top:730.3px;width:164px"></div>
+<svg class="a st" style="left:337px;top:713px" width="26" height="36" viewBox="0 0 24 32"><path fill="#ece2ff" d="M12 0C12.8 10.5 15 14.8 24 16 15 17.2 12.8 21.5 12 32 11.2 21.5 9 17.2 0 16 9 14.8 11.2 10.5 12 0z"/></svg>
+<div class="a cp" data-el="s01.e64" style="left:218.7px;top:754.3px;width:56px;height:21.7px"><span>👨 Male</span></div>
+<div class="a cp" data-el="s01.e73" style="left:279.2px;top:754.3px;width:67px;height:21.7px"><span>👩‍🦰 Female</span></div>
+<div class="a cp k" data-el="s01.e66" style="left:218.7px;top:780.6px;width:60.2px;height:22.1px"><span>🎮 Game</span></div>
+<div class="a cp k" style="left:283.4px;top:780.6px;width:70.9px;height:22.1px"><span>👭 Multiple</span></div>
+<div class="a cp k" style="left:218.7px;top:807.2px;width:53.3px;height:21.7px"><span data-el="s01.e69">🎲 RPG</span></div>
+<div class="a cp k" style="left:276.6px;top:807.2px;width:70.9px;height:21.7px"><span data-el="s01.e72">👤 AnyPOV</span></div>
+<div class="a cp k" style="left:218.7px;top:833.5px;width:72.8px;height:21.7px"><span>#runneruser</span></div>
+<div class="a cp k" style="left:296px;top:833.5px;width:60.2px;height:21.7px"><span>#parkour</span></div>
+</div>
+</section>
+<section data-screen="s06">
+<div class="a lp"></div>
+<div class="a" data-el="s06.e01" style="left:56.4px;top:11.8px;width:32px;height:32px;color:#7f7f7f"><svg class="ic" viewBox="0 0 24 24" width="32" height="32" style="stroke-width:2"><path d="M5 7h14M5 12h14M5 17h14"/></svg></div>
+<div class="a cl" style="left:0;top:0;width:88px;height:150px">
+<div class="a" style="left:-12px;top:110.6px;width:99.5px;height:36.4px;background:#1f1f24;border:1px solid #2d2d33;border-radius:10px"></div>
+<div class="a" data-el="s06.e02" style="left:2.3px;top:113.5px;width:85.3px;height:28.6px;background:#3d3351;border:1px solid #56487a;border-right:0;border-radius:9px 0 0 9px;color:#7f7f7f"><svg class="a ic" viewBox="0 0 24 24" width="11" height="11" style="left:11px;top:7.8px;stroke-width:2.2"><path d="M6 4h12l3.5 5L12 20 2.5 9z"/></svg></div>
+<div class="a nw" data-el="s06.e03" style="left:31.2px;top:120px;width:56.4px;height:15.6px;font-size:14px;line-height:15.6px;color:#7f7f7f">Hidden Gems</div>
+<div class="a" data-el="s06.e04" style="left:87.6px;top:113.5px;width:38.1px;height:28.6px;background:#2a2b2e;border-radius:9px"></div>
+<div class="a nw" data-el="s06.e05" style="left:87.6px;top:120px;width:67px;height:15.6px;font-size:14px;line-height:15.6px;color:#959597">Explore All</div>
+</div>
+<div class="a cl" data-el="s06.e06" style="left:0;top:158.1px;width:88.8px;height:80.4px;font-size:15px;line-height:18px;color:#7f7f7f"><span class="rl" style="top:15.9px;right:13.8px;font-weight:700">Hidden Gems show characters from smaller</span><span class="rl" style="top:33.9px;right:25.8px">creators with engaging conversations, created in the</span><span class="rl" style="top:51.9px;right:100px">last 30 days.</span></div>
+<div class="a cl" data-el="s06.e07" style="left:0;top:260.9px;width:43.8px;height:16.4px"><div class="a" data-el="s06.e08" style="left:0;top:0;width:43.8px;height:16.4px;font-size:15px;font-weight:700;line-height:16.4px;color:#7f7f7f"><span class="rl" style="right:16.8px">1 / 101</span></div></div>
+<div class="a" data-el="s06.e09" style="left:52.6px;top:251.1px;width:36.2px;height:36.2px;background:#151517;border:1px solid #2c2d30;border-radius:9px;color:#8a8a8c"><svg class="a ic" viewBox="0 0 24 24" width="16" height="16" style="left:9.1px;top:9.1px;stroke-width:2"><path d="M9.5 6l6 6-6 6"/></svg></div>
+<div class="a" style="left:-20px;top:294px;width:107px;height:478px;border:1px solid #2b2142;border-radius:14px;background:linear-gradient(#1a1229,#0d0617 45%,#120a20)"></div>
+<div class="a" data-el="s06.e10" style="left:0;top:303.2px;width:80.4px;height:204.2px;background:#1a1b2a">
+<div class="a" style="left:0;top:16.1px;width:87px;height:188.1px;background:#1d2848"></div>
+<img class="a" src="assets/s06.e10.art.png" alt="" style="left:0;top:16.1px;width:68.5px;height:188.1px">
+<div class="a" style="left:51.5px;top:33.8px;width:46.5px;height:21px;background:#2d2470;border-radius:3px;color:#8f86c4"><svg class="a ic" viewBox="0 0 24 24" width="11" height="11" style="left:5px;top:5px;stroke-width:2.2"><rect x="3" y="10" width="10" height="10" rx="1"/><path d="M9 6V4h11v11h-3"/></svg></div>
+<div class="a nw" data-el="s06.e25" style="left:68.6px;top:37.4px;width:16px;height:14.5px;font-family:var(--font-2);font-size:13px;line-height:14.5px;color:#7f7f7f">26</div>
+<div class="a cl" data-el="s06.e11" style="left:0;top:0;width:39.6px;height:16px;background:#1f112a;font-family:var(--font-2);font-size:13px;line-height:16px;color:#574477"><span class="rl" style="right:.6px">Parkour Reborn RPG</span></div>
+</div>
+<div class="a" data-el="s06.e12" style="left:0;top:533.3px;width:80.4px;height:177.1px;background:#0d0617">
+<div class="a dl" data-el="s06.e13" style="left:0;top:0;width:80.4px;height:15.2px"><span class="rl" style="right:20.4px">[🏙️Fragment Update!]</span></div>
+<div class="a dl" data-el="s06.e14" style="left:0;top:25.2px;width:80.4px;height:30.5px"><span class="rl" style="right:22.7px">An average RPG, but it's about</span><span class="rl" style="top:15px;right:95px">parkour reborn??</span></div>
+<div class="a dl" data-el="s06.e15" style="left:0;top:65.6px;width:80.4px;height:30.5px"><span class="rl" style="right:.4px">Because parkour reborn had a lore</span><span class="rl" style="top:15px;right:25.9px">I decided to make this bot.</span></div>
+<div class="a dl" data-el="s06.e16" style="left:0;top:105.9px;width:80.4px;height:45.7px"><span class="rl" style="right:6.6px">The lore of <b>Parkour Reborn</b> takes</span><span class="rl" style="top:15px;right:6.4px">place in the city of <b>Verna</b>. You are</span><span class="rl" style="top:30px;right:77.4px">one of the Runners</span></div>
+<div class="a dl" data-el="s06.e17" style="left:0;top:161.9px;width:80.4px;height:15.2px"><span class="rl" style="right:20.4px">[BOT IS HEAVILY UNFINISHED]</span></div>
+</div>
+<svg class="a" viewBox="0 0 24 24" preserveAspectRatio="none" width="28" height="36" style="left:31.4px;top:714px;fill:#cdbdf5;opacity:.75;filter:drop-shadow(0 0 6px #8c6ce0)"><path d="M12 0C12.8 9 14 11 24 12 14 13 12.8 15 12 24 11.2 15 10 13 0 12 10 11 11.2 9 12 0z"/></svg>
+<div class="a" data-el="s06.e20" style="left:0;top:754.3px;width:39.2px;height:21.7px;background:#0f0a1a;border:1px solid #3b393f;border-left:0;border-radius:0 6px 6px 0"><div class="a cl" data-el="s06.e21" style="left:0;top:3.9px;width:28.9px;height:11.4px;font-size:10.5px;line-height:11.4px;color:#6c6b6c"><span class="rl" style="right:0">👩‍🦰 Female</span></div></div>
+<div class="a chip" data-el="s06.e22" style="left:0;top:780.6px;width:47.2px;height:22.1px"><div class="a" data-el="s06.e23" style="left:0;top:3.9px;width:37px;height:11.4px">👭 Multiple</div></div>
+<div class="a chip" data-el="s06.e18" style="left:0;top:807.2px;width:40.4px;height:21.7px"><div class="a" data-el="s06.e19" style="left:0;top:4px;width:30.1px;height:11.4px">👤 AnyPOV</div></div>
+<div class="a chip" data-el="s06.e24" style="left:0;top:833.5px;width:49.1px;height:21.7px;padding:4px 0 0 2px">#parkour</div>
+<div class="a" data-el="s06.e27" style="left:13.3px;top:774.9px;width:63.6px;height:63.6px;background:#000"><svg class="a" viewBox="0 0 24 24" width="22" height="24" style="left:20.8px;top:19.8px;fill:#36373b"><circle cx="12" cy="7" r="4.5"/><path d="M3 23c0-5.5 4-8.5 9-8.5s9 3 9 8.5z"/></svg></div>
+<div class="a dw"></div>
+<img class="a" data-el="s06.e60" src="assets/s06.e60.png" alt="" style="left:120.4px;top:19.8px;width:77.7px;height:59.4px">
+<div class="a" data-el="s06.e28" style="left:202.3px;top:22.9px;width:118.9px;height:23.2px;background:#000"><div class="a nw" data-el="s06.e29" style="left:0;top:0;width:118.9px;height:23.2px;font-size:16px;line-height:23.2px;color:#000;overflow:hidden">@[redacted]</div></div>
+<div class="a" data-el="s06.e30" style="left:202.3px;top:54.5px;width:65.5px;height:36.2px"><div class="a sn" data-el="s06.e31" data-value="c5" style="width:65.5px">0</div><div class="a sl" data-el="s06.e32" style="left:0;top:21.7px;width:52.6px;height:14.5px">Following</div><svg class="a ic" viewBox="0 0 24 24" width="8" height="8" style="left:56.4px;top:24.3px;color:#959597;stroke-width:2.6"><path d="M6 18L18 6M8 6h10v10"/></svg></div>
+<div class="a" style="left:281.2px;top:60px;width:1px;height:26px;background:#46474b"></div>
+<div class="a sn" data-el="s06.e33" style="left:296px;top:54.5px;width:52.6px">0</div>
+<div class="a sl" style="left:296px;top:76.2px;width:52.6px;height:14.5px">Followers</div>
+<div class="a sl" data-el="s06.e35" style="left:121.1px;top:103.2px;width:151.6px;height:14.5px;color:#6a6b6d;font-weight:400">Member Since Sep 26, 2026</div>
+<div class="a sl" data-el="s06.e37" style="left:121.1px;top:124.2px;width:100.6px;height:14.5px">View public profile</div>
+<svg class="a ic" viewBox="0 0 24 24" width="8" height="8" style="left:225.5px;top:127.3px;color:#959597;stroke-width:2.6"><path d="M6 18L18 6M8 6h10v10"/></svg>
+<div class="a" style="left:116.6px;top:155.3px;width:282.1px;height:1px;background:#3e3f43"></div>
+<div class="a mi" data-el="s06.e38" style="top:166.1px"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="12.5" rx="2.5"/><path d="M7 20h10"/></svg><div class="a mt" data-el="s06.e39" style="left:44.9px;width:202.3px">Main navigation</div></div>
+<div class="a mi" data-el="s06.e40" style="top:224.8px"><svg class="ic" viewBox="0 0 24 24"><circle cx="8" cy="8" r="3.5"/><path d="M2 19.5c.4-3.5 2.8-5.5 6-5.5s5.6 2 6 5.5zM16 7.5h6M16 11.5h6M18 15.5h4"/></svg><div class="a mt" data-el="s06.e41">Following</div></div>
+<div class="a mi" style="top:283.4px;height:53.7px"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.7 5.7l12.6 12.6"/></svg><div class="a mt" style="top:14.9px">Blocks</div></div>
+<div class="a mi" data-el="s06.e44" style="top:341.7px"><svg class="ic" viewBox="0 0 24 24"><rect x="6" y="3.5" width="16" height="13" rx="1.5"/><path d="M2.5 7.5v13h15M9 13.5l3-3.5 3 3 2-2 3 3"/></svg><div class="a mt" style="top:14.9px">Media Library</div></div>
+<div class="a mi" data-el="s06.e46" style="top:400.4px"><svg class="ic" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/><circle cx="9" cy="6" r="2.2" style="fill:#2a2b2e"/><circle cx="15" cy="12" r="2.2" style="fill:#2a2b2e"/><circle cx="9" cy="18" r="2.2" style="fill:#2a2b2e"/></svg><div class="a mt">Settings</div></div>
+<div class="a mi" style="top:459.1px"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18M7 15h3"/></svg><div class="a mt">Billing</div></div>
+<div class="a up" data-el="s06.e50" data-edge="s06.e50>s14" data-transition="push"><div class="a" style="left:0;top:0;width:1.5px;height:1.5px;border-radius:50%;box-shadow:30px 8px #fff8,70px 44px #fff6,120px 12px #fff7,165px 40px #fff5,190px 8px #fff9,215px 30px #fff6,240px 48px #fff7,262px 12px #fff5,140px 50px #fff6,95px 20px #fff5,275px 35px #fff8"></div><div class="a nw" data-el="s06.e51" style="left:13.5px;top:16.5px;width:80.8px;height:22.1px;font-size:15.8px;font-weight:700;line-height:22.1px;color:#f8f6ff">Upgrade to</div><img class="a" src="assets/s14.e24.png" alt="" style="left:102.4px;top:16.5px;width:82px;height:20.3px;mix-blend-mode:lighten"><svg class="a ic" viewBox="0 0 24 24" width="11" height="11" style="left:254.5px;top:21.5px;color:#f8f6ff;stroke-width:2.2"><path d="M6 18L18 6M8 6h10v10"/></svg></div>
+<div class="a nw" style="left:231.2px;top:625.1px;width:54.1px;height:16.4px;font-size:14px;font-weight:500;line-height:16.4px;color:#959597">Get Help</div>
+<div class="a mi" style="top:662.5px;color:#6a6b6d"><svg class="ic" viewBox="0 0 24 24" style="color:#6a6b6d"><path d="M13 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5M15 12H4M8 8l-4 4 4 4"/></svg><div class="a mt" style="left:46.8px;width:200.4px">Logout</div></div>
+<div class="a" data-el="s06.e56" style="left:116.6px;top:717.7px;width:283.1px;height:12.9px"><div class="a nw" data-el="s06.e57" style="left:105.5px;top:0;width:71.6px;height:12.9px;font-size:11px;line-height:12.9px;color:#b6b6b7">v2.5.0.136.v35</div></div>
+</section>
+<section data-screen="s14">
+<div data-edge="s14>new:faster-replies-offer" data-transition="modal" aria-label="Close" style="position:absolute;left:363.1px;top:16px;width:32px;height:32px;border-radius:50%;background:transparent;z-index:20;cursor:pointer"></div>
+<div class="a" style="left:0;top:0;width:1.5px;height:1.5px;border-radius:50%;box-shadow:30px 60px #fff6,85px 140px #fff8,140px 30px #fff5,200px 95px #fff7,260px 40px #fff5,330px 120px #fff8,380px 70px #fff6,20px 260px #fff5,70px 330px #fff9,120px 410px #fff6,395px 300px #fff7,360px 380px 1px 1px #fffa,300px 250px #fff5,230px 470px #fff6,380px 470px #fff8,25px 520px #fff6,110px 560px #fff5,285px 540px 2px 1px #fffa,350px 610px #fff7,60px 640px #fff6,180px 720px #fff5,330px 700px #fff6,395px 770px #fff8,40px 800px #fff6,150px 820px #fff5,260px 790px #fff6,210px 610px #fff7,165px 360px #fff5,290px 330px #fff6,400px 200px #fff7,375px 400px 1px #fff9,95px 480px #fff6"></div>
+<div class="a cd"></div>
+<div class="a" data-el="s14.e21" data-edge="s14.back>s02" data-transition="back" style="left:363.1px;top:16px;width:32px;height:32px;border-radius:50%;background:#121832;color:#9395a5"><svg class="ic" viewBox="0 0 32 32" width="32" height="32"><path d="M11.5 11.5l9 9M20.5 11.5l-9 9"/></svg></div>
+<div class="a" data-el="s14.e01" style="left:15.2px;top:25.5px;width:380.9px;height:70.1px;font-family:var(--font-3);font-size:31.5px;line-height:35px;text-align:center;color:#f8f6ff">More memory for<br>long chats.</div>
+<img class="a" data-el="s14.e24" src="assets/s14.e24.png" alt="" style="left:47.2px;top:154.7px;width:190.5px;height:47.2px;mix-blend-mode:lighten">
+<div class="a nw" data-el="s14.e02" style="left:47.2px;top:226.3px;width:317.7px;height:35px;font-size:12.8px;line-height:17.5px;color:#b0b2c5">Keep more of the story in context, get faster replies, and<br>unlock smarter swipes.</div>
+<div class="a nw" data-el="s14.e03" data-value="c1" style="left:47.2px;top:281.1px;width:107.4px;height:41.9px;font-family:var(--font-3);font-size:36px;line-height:41.9px;color:#f8f6ff">$12.99</div>
+<div class="a nw" data-el="s14.e04" style="left:161.1px;top:297.9px;width:45.7px;height:22.1px;font-size:14px;line-height:22.1px;color:#b5b8c9">/month</div>
+<div class="a" data-el="s14.e05" style="left:47.2px;top:342.1px;width:316.9px;height:56.8px;border-radius:13px;background:var(--fg-2)"><div class="a nw" data-el="s14.e06" style="left:100.2px;top:17.9px;width:116.2px;height:20.6px;font-size:17px;font-weight:700;line-height:20.6px;text-align:center;color:#000">Subscribe now</div></div>
+<div class="a nw" data-el="s14.e07" style="left:47.2px;top:405.3px;width:317.7px;height:17.5px;font-size:13px;line-height:17.5px;text-align:center;color:#8f93ab">No commitment, cancel anytime.</div>
+<div class="a hr" style="left:47.2px;width:145.4px"></div>
+<div class="a hr" style="left:219px;width:144.5px"></div>
+<div class="a" style="left:203.3px;top:445.5px;width:5px;height:5px;background:#b5b8c9;transform:rotate(45deg)"></div>
+<div class="a nw" data-el="s14.e08" style="left:47.2px;top:467.4px;width:317.7px;height:22.9px;font-size:16px;font-weight:700;line-height:22.9px;color:#f8f6ff">Everything in Free, plus:</div>
+<svg class="a ic ck" data-el="s14.e26" viewBox="0 0 17 14" style="top:502.1px"><path d="M1.5 7.5l4.5 4.5 9.5-10.5"/></svg>
+<div class="a bl nw" data-el="s14.e09" style="top:499.4px;height:19.8px;color:#cbccda">5× context for better memory</div>
+<svg class="a ic ck" data-el="s14.e27" viewBox="0 0 17 14" style="top:526.5px"><path d="M1.5 7.5l4.5 4.5 9.5-10.5"/></svg>
+<div class="a bl nw" data-el="s14.e10" style="top:523.8px;height:19.8px;color:#cccddc">Priority routing for faster replies</div>
+<svg class="a ic ck" viewBox="0 0 17 14" style="top:560.8px"><path d="M1.5 7.5l4.5 4.5 9.5-10.5"/></svg>
+<div class="a bl" data-el="s14.e11" style="top:548.2px;height:39.6px;color:#cacbdb">Generous monthly swipes with our frontier models</div>
+<img class="a" data-el="s14.e25" src="assets/s14.e25.png" alt="" style="left:47.2px;top:592px;width:20.6px;height:21.3px">
+<div class="a bl nw" style="top:592.8px;height:19.8px;color:#c5c8d7">Golden checkmark next to your username</div>
+<div class="a" data-el="s14.e13" style="left:16.4px;top:654.5px;width:378.7px;height:44.6px;background:#0b122d;border:1px solid rgba(190,195,230,.2);border-radius:12px"><svg class="a" viewBox="0 0 24 24" width="16" height="16" style="left:14px;top:13.3px;fill:#a98ae8"><path d="M10 5l1.5 4.5L16 11l-4.5 1.5L10 17l-1.5-4.5L4 11l4.5-1.5zM18 2.5l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/></svg><div class="a nw" data-el="s14.e14" style="left:36.7px;top:11.5px;width:298.3px;height:19.8px;font-size:14.5px;font-weight:700;line-height:19.8px;color:#f8f6ff">More info</div><svg class="a ic" viewBox="0 0 24 24" width="16" height="16" style="left:344.6px;top:12.5px;color:#c4c6d6;stroke-width:2"><path d="M6 9l6 6 6-6"/></svg></div>
+<div class="a nw" data-el="s14.e15" style="left:15.2px;top:710.5px;width:380.9px;height:65.5px;font-size:10.8px;line-height:16.4px;text-align:center;color:#8e92a7">Payment will be charged to your Google Play account at confirmation of<br>purchase. Subscription renews automatically unless canceled before the end of<br>the current period. You can manage or cancel in Google Play subscriptions after<br>purchase.</div>
+<div class="a lk" data-el="s14.e16" style="left:59.4px;width:91.8px;color:#a99cce">Terms of Service</div>
+<div class="a dt" data-el="s14.e17" style="left:154.7px;color:#a3a7ba">•</div>
+<div class="a lk" data-el="s14.e18" style="left:162.3px;width:75.4px;color:#a498cb">Privacy Policy</div>
+<div class="a dt" data-el="s14.e19" style="left:241.1px;color:#a1a4b6">•</div>
+<div class="a lk" data-el="s14.e20" style="left:248.8px;width:102.9px;color:#a497c9">Restore Purchases</div>
+</section>
+<section data-screen="s25">
+<div class="a hd"></div>
+<div class="a" data-el="s25.e01" style="left:8.4px;top:12.6px;width:29.7px;height:25.1px;color:#fff"><svg class="a ic" viewBox="0 0 24 24" width="24" height="24" style="left:1px;top:0;stroke-width:2.4"><path d="M15 5l-7 7 7 7"/></svg></div>
+<div class="a" data-el="s25.e02" style="left:50.7px;top:16px;width:206.5px;height:17.9px"><div class="a nw" data-el="s25.e03" style="left:0;top:0;width:32px;height:17.9px;font-size:15.5px;font-weight:700;line-height:17.9px">Miro</div></div>
+<div class="a" style="left:273px;top:12.3px;width:86.7px;height:25.1px;background:#423a5c;border:1.5px solid #8a6be6;border-radius:8px"></div>
+<div class="a nw" data-el="s25.e05" style="left:283.1px;top:17.5px;width:67.8px;height:14.5px;font-size:12px;font-weight:700;line-height:14.5px;text-align:center">using janitor</div>
+<div class="a" data-el="s25.e06" style="left:364.6px;top:8.4px;width:34.3px;height:33.5px"><svg class="a" viewBox="0 0 34.3 33.5" width="34.3" height="33.5" style="left:0;top:0;fill:#fff"><circle cx="17.2" cy="9.1" r="2.3"/><circle cx="17.2" cy="16.6" r="2.3"/><circle cx="17.2" cy="24.1" r="2.3"/></svg></div>
+<div class="a" style="left:56px;top:73.8px;width:298.5px;height:25.6px;background:#49445c;border:1px solid #5b5672;border-radius:8px"></div>
+<div class="a nw" data-el="s25.e07" style="left:70.1px;top:78.5px;width:270.5px;height:16.4px;font-family:var(--font-3);font-size:12.3px;line-height:16.4px;text-align:center;color:#f3f3f4">All replies are a work of fiction, generated by AI.</div>
+<div class="a" data-el="s25.e08" style="left:4.2px;top:125.3px;width:42.7px;height:42.7px;border-radius:6px;background:radial-gradient(45% 45% at 50% 50%,#8a5a3a,transparent),linear-gradient(160deg,#242c18,#3c4424 40%,#704e2a 75%,#3a2a1c)"></div>
+<div class="a nw" data-el="s25.e09" style="left:51px;top:125.3px;width:37px;height:20.9px;font-size:17px;font-weight:700;line-height:21px">Miro</div>
+<div class="a" style="left:95.7px;top:131.5px;width:15px;height:9px;background:#3d55b0;border-radius:2px"></div>
+<div class="a" data-el="s25.e10" style="left:51px;top:150.5px;width:343.6px;height:712px">
+<p class="a mp" data-el="s25.e11" style="top:0;height:99.4px">Miro figured out a long time ago that his life wasn’t worth more than whatever number some asshole was willing to shout across a room.</p>
+<p class="a mp" data-el="s25.e12" style="top:108.9px;height:315.4px">He stared up at another one now, same chipped panels, same shitty flickering light, same rust smell under the bleach. Different city, different owner, same cage. His knees were pulled up to his chest, arms locked around them like he was trying to fold himself small enough to disappear. Big joke. He took up half the fucking cell even like this. His back ached from the metal bars. His brain kept doing that thing it did every time he got dropped somewhere new: <i style="color:#8b8c90">Count exits. Count guards. Count how fast they can drop you if you run.</i></p>
+<p class="a mp" data-el="s25.e13" style="top:433.9px;height:219.4px;color:#fdfdfd">He knew what he was here for. Everyone always wanted the same thing from him. Big, broad shoulders, thick arms, good bone structure, easy to train with enough pain. He was the guy you threw in when you wanted something to break loudly. He was also the guy who flinched when someone raised their voice in his direction, but no one cared about that part as long as he hit hard on command.</p>
+<p class="a mp" data-el="s25.e14" style="top:662.8px;height:27.4px;color:#c1c1c1">It didn’t start that way.</p>
+</div>
+<div class="a ib"></div>
+<div class="a nw" data-el="s25.e15" data-edge="s25.e15>s25" data-transition="push" style="left:17.5px;top:731.8px;width:376.4px;height:46.9px;padding:7.7px 0 0 10.8px;font-size:16.5px;line-height:24px;color:#98999b;overflow:hidden">Press button to send chat. Enter for linebreak</div>
+<div class="a" data-el="s25.e16" style="left:25.9px;top:778.7px;width:33.9px;height:33.9px"><svg class="a" viewBox="0 0 24 24" width="20" height="20" style="left:7px;top:7px"><path style="fill:#6f5cc0" d="M9.5 4l1.7 5 5 1.7-5 1.7-1.7 5-1.7-5-5-1.7 5-1.7z"/><path style="fill:#b04a62" d="M17.5 13l.9 2.4 2.4.9-2.4.9-.9 2.4-.9-2.4-2.4-.9 2.4-.9z"/></svg></div>
+<div class="a" data-el="s25.e17" style="left:66.3px;top:778.7px;width:108.2px;height:32.8px;background:#45484b;border-radius:10px"><div class="a" style="left:8.7px;top:5.3px;width:21px;height:22px;border-radius:4px;background:linear-gradient(#c79a6a 0 42%,#2a8b8b 42%)"></div><div class="a nw" data-el="s25.e18" data-value="c4" style="left:36.6px;top:8.7px;width:41.1px;height:14.9px;font-family:var(--font-3);font-size:13.5px;line-height:14.9px;color:#e3e3e3">Aaditya</div><svg class="a ic" viewBox="0 0 24 24" width="14" height="14" style="left:84.4px;top:9.4px;color:#c8c8c8;stroke-width:2.2"><path d="M7 10l5 5 5-5"/></svg></div>
+<div class="a" data-el="s25.e19" data-edge="s25.e19>s25" data-transition="push" style="left:351.2px;top:778.7px;width:33.9px;height:33.9px;background:#373a3e;border:1px solid #45484b;border-radius:8px;color:#575a5d"><svg class="a ic" viewBox="0 0 24 24" width="18" height="18" style="left:7px;top:7px;stroke-width:2"><path d="M12 19V5M6 11l6-6 6 6"/></svg></div>
+</section>
+<section data-screen="s07">
+<div class="a hdr" data-chrome="header">
+<button class="a ib" data-el="s07.e01" data-edge="s07.back>s01" data-transition="back" style="left:16px" aria-label="back"><svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 9.6 13.4 16 20 22.4"/></svg></button>
+<div class="a ttl" data-el="s07.e02">Kitsunami</div>
+<div class="a cm" data-el="s07.e03"><svg width="18" height="18" viewBox="0 0 24 24" style="left:2.6px;top:8.6px"><path d="M4.5 4h15A1.5 1.5 0 0 1 21 5.5v10a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 3.5V17h-1A1.5 1.5 0 0 1 3 15.5v-10A1.5 1.5 0 0 1 4.5 4z" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/><circle cx="8" cy="10.5" r="1.3" fill="#fff"/><circle cx="12" cy="10.5" r="1.3" fill="#fff"/><circle cx="16" cy="10.5" r="1.3" fill="#fff"/></svg><span class="a cnt hid" data-el="s07.e04">8</span><span class="a cnt" data-el="s07.e05">0</span></div>
+<button class="a ib" data-el="s07.e06" style="left:363.4px" aria-label="more options"><svg width="32" height="32" viewBox="0 0 32 32" fill="#fff"><circle cx="15" cy="9.2" r="2.4"/><circle cx="15" cy="15.6" r="2.4"/><circle cx="15" cy="22" r="2.4"/></svg></button>
+</div>
+<div class="a card"></div>
+<div class="a ct" data-el="s07.e07">Kitsunami</div>
+<div class="a im" style="background:linear-gradient(180deg,#814c5c 0 7%,#1d4c75 7% 17%,#0b0a12 17% 21%,#814c5c 21%)"><img src="assets/s07.e08.art.png" alt="" style="width:353.5px"></div>
+<div class="a st" style="left:327px;width:78px"></div>
+<svg class="a bi" style="left:331.5px" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"><path d="M2.5 5.5c3.2-1.2 6.4-1 9.5 1 3.1-2 6.3-2.2 9.5-1v13c-3.2-1.2-6.4-1-9.5 1-3.1-2-6.3-2.2-9.5-1zM12 6.5v13"/></svg>
+<svg class="a bi" style="left:365px" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"><path d="M4 4h15v11H8l-4 4z"/></svg>
+<span class="a sn" data-el="s07.e09" style="left:344px;width:19.8px">14</span>
+<span class="a sn" data-el="s07.e10" style="left:376.8px">31</span>
+<div class="a by" style="width:158.6px"></div>
+<span class="a byl" data-el="s07.e11">by: </span>
+<div class="a hl" data-el="s07.e12" style="width:120.4px"><span data-el="s07.e13">@sonicthegoatyo</span></div>
+<span class="a lk hid" data-el="s07.e14">8</span>
+<span class="a lk" data-el="s07.e15">2</span>
+<div class="a hrt" data-el="s07.e16"><svg width="29" height="29" viewBox="0 0 24 24" style="left:1.5px;top:2px"><path fill="#93959c" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></div>
+<div class="a ds" data-el="s07.e18" style="height:42.3px;background:#11071d"></div>
+<div class="a dln" data-el="s07.e17" style="top:520.4px;font-size:14px;line-height:23.2px;color:#7c7c7e">No data available</div>
+<div class="a hr" data-el="s07.e19" style="top:553.5px;background:#1a0c2f"></div>
+<div class="a dt" style="top:563.3px;height:69px"></div>
+<div class="a vl" style="left:144.8px;top:563.3px;height:69px"></div>
+<div class="a vl" style="left:265.6px;top:563.3px;height:69px"></div>
+<div class="a dl" data-el="s07.e20" style="left:62.5px;width:44.6px;top:573px;color:#a9a9b0">Created</div>
+<div class="a dl" data-el="s07.e21" style="left:181.3px;width:48.4px;top:573px;color:#b0b0b6">Updated</div>
+<div class="a dl" data-el="s07.e22" style="left:298.3px;width:56.4px;top:573px;color:#b3b4b9">Published</div>
+<div class="a dv" data-el="s07.e23" style="left:40.8px;width:88px;top:588.2px">4 days ago</div>
+<div class="a dv" data-el="s07.e24" style="left:159.2px;width:92.6px;top:588.2px">15 minutes ago</div>
+<div class="a dv" data-el="s07.e25" style="left:282.7px;width:88px;top:588.2px">4 days ago</div>
+<div class="a cp" data-el="s07.e26" style="left:28.9px;top:644.6px;width:56px"><span data-el="s07.e27">👨 Male</span></div>
+<div class="a cp" data-el="s07.e28" style="left:89.5px;top:644.6px;width:72.8px"><span data-el="s07.e29">📚 Fictional</span></div>
+<div class="a cp" data-el="s07.e30" style="left:166.9px;top:644.6px;width:85.3px"><span data-el="s07.e31">🦄 Non-human</span></div>
+<div class="a cp" data-el="s07.e32" style="left:256.8px;top:644.6px;width:85.3px"><span data-el="s07.e33">🙇 Submissive</span></div>
+<div class="a cp r2" data-el="s07.e34" style="left:28.9px;top:670.9px;width:54.1px"><span data-el="s07.e35">❤️‍🩹 Fluff</span></div>
+<div class="a cp r2" style="left:87.6px;top:670.9px;width:56.8px"><span data-el="s07.e37">🐺 Furry</span></div>
+<div class="a cp r2" data-el="s07.e38" style="left:148.9px;top:670.9px;width:70.5px"><span data-el="s07.e39">👩 FemPov</span></div>
+<div class="a cp r2" data-el="s07.e40" style="left:224px;top:670.9px;width:107.8px;border-color:#5f8e69;color:#90ee90"><span data-el="s07.e41">#sonicthehedgehog</span></div>
+<div class="a cp r2" data-el="s07.e42" style="left:28.9px;top:697.5px;width:97.9px;border-color:#4d4a6a;color:#abbed8"><span data-el="s07.e43">#sonicidwcomics</span></div>
+<div class="a px" style="top:729.6px"></div>
+<svg class="a gl" style="top:735.8px" viewBox="0 0 24 24" fill="none" stroke="#34a853" stroke-width="1.8"><circle cx="12" cy="12" r="9.5"/><ellipse cx="12" cy="12" rx="4.2" ry="9.5"/><path d="M2.5 12h19M4.2 7h15.6M4.2 17h15.6"/></svg>
+<span class="a pt" data-el="s07.e44" style="top:736px">Proxy allowed</span>
+<div class="a pr" data-el="s07.e45"><img src="assets/s07.e45.art.png" alt=""><span class="a pa" data-el="s07.e46">PLAYING AS</span><span class="a pn" data-el="s07.e47" data-value="c4" style="width:261.3px">Aaditya</span><svg class="a chv" viewBox="0 0 14 14" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 2 9.5 7l-5 5"/></svg></div>
+<div class="a ln" style="top:756.3px"></div>
+<div class="a ln" style="top:806.9px"></div>
+<div class="a btn" data-el="s07.e48"><span class="bl" data-el="s07.e49">Chat with Kitsunami</span></div>
+</section>
+<section data-screen="s08">
+<div class="a hdr" data-chrome="header">
+<button class="a ib" data-el="s08.e01" data-edge="s08.back>s01" data-transition="back" style="left:16px" aria-label="back"><svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 9.6 13.4 16 20 22.4"/></svg></button>
+<div class="a ttl" data-el="s08.e02">Parkour Reborn RPG</div>
+<div class="a cm" data-el="s08.e03"><svg width="18" height="18" viewBox="0 0 24 24" style="left:2.6px;top:8.6px"><path d="M4.5 4h15A1.5 1.5 0 0 1 21 5.5v10a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 3.5V17h-1A1.5 1.5 0 0 1 3 15.5v-10A1.5 1.5 0 0 1 4.5 4z" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/><circle cx="8" cy="10.5" r="1.3" fill="#fff"/><circle cx="12" cy="10.5" r="1.3" fill="#fff"/><circle cx="16" cy="10.5" r="1.3" fill="#fff"/></svg><span class="a cnt hid" data-el="s08.e04">8</span><span class="a cnt" data-el="s08.e05">0</span></div>
+<button class="a ib" data-el="s08.e06" style="left:363.4px" aria-label="more options"><svg width="32" height="32" viewBox="0 0 32 32" fill="#fff"><circle cx="15" cy="9.2" r="2.4"/><circle cx="15" cy="15.6" r="2.4"/><circle cx="15" cy="22" r="2.4"/></svg></button>
+</div>
+<div class="a card"></div>
+<div class="a ct" data-el="s08.e07">Parkour Reborn RPG</div>
+<div class="a im" style="background:linear-gradient(180deg,#4a6fc8 0,#3557b0 35%,#2b3f86 60%,#2a2638 82%,#4a1f2a 100%)"><img src="assets/s08.e08.art.png" alt="" style="width:353.5px"></div>
+<div class="a st" style="left:335.6px;width:69.4px"></div>
+<svg class="a bi" style="left:340px" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"><path d="M2.5 5.5c3.2-1.2 6.4-1 9.5 1 3.1-2 6.3-2.2 9.5-1v13c-3.2-1.2-6.4-1-9.5 1-3.1-2-6.3-2.2-9.5-1zM12 6.5v13"/></svg>
+<svg class="a bi" style="left:365px" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"><path d="M4 4h15v11H8l-4 4z"/></svg>
+<span class="a sn" data-el="s08.e09" style="left:351.6px;width:12.2px">5</span>
+<span class="a sn" data-el="s08.e10" style="left:376.8px">26</span>
+<div class="a by" style="width:160px"></div>
+<span class="a byl" data-el="s08.e11">by: </span>
+<div class="a hl" data-el="s08.e12" style="width:121.5px"><span data-el="s08.e13">@thec00lestk1dd</span></div>
+<span class="a lk hid" data-el="s08.e14">8</span>
+<span class="a lk" data-el="s08.e15">1</span>
+<div class="a hrt" data-el="s08.e16"><svg width="29" height="29" viewBox="0 0 24 24" style="left:1.5px;top:2px"><path fill="#93959c" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></div>
+<div class="a ds" style="height:159px;background:#1d0c31"></div>
+<div class="a ds" data-el="s08.e22" style="height:51.8px;background:#1d0c31"></div>
+<div class="a dln" data-el="s08.e17" style="top:520.4px">[🏙️Fragment Update!]</div>
+<div class="a dln" data-el="s08.e18" style="top:546.3px">An average RPG, but it's about <span class="red">parkour reborn</span>??</div>
+<div class="a dln" style="top:571.4px">Because parkour reborn had a lore I decided to make this bot.</div>
+<div class="a dln" data-el="s08.e20" style="top:597.3px;height:38.1px;line-height:19.05px;white-space:normal">The lore of <span class="red">Parkour Reborn</span> takes place in the city of <span class="red">Verna</span>. You are one of the Runners</div>
+<div class="a dln" style="top:640.4px">[BOT IS HEAVILY UNFINISHED]</div>
+<div class="a hr" data-el="s08.e23" style="top:670.5px;background:var(--bg-4)"></div>
+<div class="a dt" style="top:680.6px;height:69.8px"></div>
+<div class="a vl" style="left:144.8px;top:680.6px;height:69.8px"></div>
+<div class="a vl" style="left:265.6px;top:680.6px;height:69.8px"></div>
+<div class="a dl" data-el="s08.e24" style="left:62.5px;width:44.6px;top:690.7px;color:#a9a9b0">Created</div>
+<div class="a dl" data-el="s08.e25" style="left:181.3px;width:48.4px;top:690.7px;color:#b0b0b6">Updated</div>
+<div class="a dl" data-el="s08.e26" style="left:298.3px;width:56.4px;top:690.7px;color:#b4b4ba">Published</div>
+<div class="a dv" data-el="s08.e27" style="left:40.4px;width:88.4px;top:705.9px">3 days ago</div>
+<div class="a dv" data-el="s08.e28" style="left:159.2px;width:92.6px;top:705.9px">about 2 hours ago</div>
+<div class="a dv" data-el="s08.e29" style="left:280.4px;width:92.6px;top:705.9px">about 10 hours ago</div>
+<div class="a cp" data-el="s08.e30" style="left:28.9px;top:762.7px;width:56px"><span data-el="s08.e31">👨 Male</span></div>
+<div class="a cp" data-el="s08.e32" style="left:89.5px;top:762.7px;width:67px"><span data-el="s08.e33">👩‍🦰 Female</span></div>
+<div class="a cp" data-el="s08.e34" style="left:161.1px;top:762.7px;width:60.2px"><span data-el="s08.e35">🎮 Game</span></div>
+<div class="a cp" data-el="s08.e36" style="left:225.9px;top:762.7px;width:70.5px"><span data-el="s08.e37">👭 Multiple</span></div>
+<div class="a cp" data-el="s08.e38" style="left:300.9px;top:762.7px;width:53.3px"><span data-el="s08.e39">🎲 RPG</span></div>
+<div class="a cp r2" data-el="s08.e40" style="left:28.9px;top:789px;width:70.5px"><span>👤 AnyPOV</span></div>
+<div class="a cp r2" style="left:104px;top:789px;width:73.1px;border-color:#1f737b;color:#20b0a8"><span data-el="s08.e43">#runneruser</span></div>
+<div class="a cp r2" style="left:181.7px;top:789px;width:59.8px;border-color:#704822;color:#faa201"><span>#parkour</span></div>
+<div class="a cp r2" style="left:246.1px;top:789px;width:54.5px;border-color:#6e3564;color:#fb68b2"><span data-el="s08.e47">#reborn</span></div>
+<div class="a cp r2" data-el="s08.e48" style="left:305.1px;top:789px;width:41.9px;border-color:#335a6e;color:#47cdc8"><span data-el="s08.e49">#city</span></div>
+<div class="a px" style="top:821px"></div>
+<svg class="a gl" style="top:827.2px" viewBox="0 0 24 24" fill="none" stroke="#e6d3dc" stroke-width="1.8"><circle cx="12" cy="12" r="9.5"/><ellipse cx="12" cy="12" rx="4.2" ry="9.5"/><path d="M2.5 12h19M4.2 7h15.6M4.2 17h15.6"/></svg>
+<span class="a pt" data-el="s08.e50" style="top:827.4px">Proxy not allowed</span>
+</section>
+<section data-screen="s02">
+<div class="pn">
+<div class="hd" data-chrome="header">
+<div data-el="s02.e01" class="tt">Search</div>
+<div data-el="s02.e02" class="mb" data-edge="s02.e02>s06" data-transition="push"><svg width="18.3" height="16.8" viewBox="0 0 18.3 16.8"><path d="M1.2 2.2h15.9M1.2 8.4h15.9M1.2 14.6h15.9" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/></svg></div>
+</div>
+<div data-el="s02.e03" class="sf"></div>
+<svg class="ic" style="left:32.5px;top:75px;pointer-events:none" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8f9193" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="7.5"/><path d="M16 16l5.5 5.5"/></svg>
+<div data-el="s02.e04" class="fb" data-edge="s02.e04>s13" data-transition="modal"><svg width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="#fff" stroke-width="1.6"><path d="M1 3h16M1 8h16M1 13h16"/><circle cx="12" cy="3" r="2.1" fill="#45484b"/><circle cx="6" cy="8" r="2.1" fill="#45484b"/><circle cx="11" cy="13" r="2.1" fill="#45484b"/></svg></div>
+<div data-el="s02.e05" class="ch" style="left:15.6px;width:61.3px"><span data-el="s02.e06">👨 Male</span></div>
+<div data-el="s02.e07" class="ch" style="left:82.3px;width:88.4px"><span data-el="s02.e08">⛓&#xFE0F; Dominant</span></div>
+<div data-el="s02.e09" class="ch" style="left:176px;width:75px"><span data-el="s02.e10">👩&#x200D;🦰 Female</span></div>
+<div data-el="s02.e11" class="ch" style="left:256.4px;width:81.1px;border-color:#bd9a37;color:#be9837"><span data-el="s02.e12">📚 Fictional</span></div>
+<div data-el="s02.e13" class="ch" style="left:342.9px;width:50.7px;border-color:#646467;background:var(--bg-3);color:#fff"><span data-el="s02.e14">🧑&#x200D;🎨 OC</span></div>
+<div class="fd"></div>
+<img data-el="s02.e15" src="assets/s02.e15.png" alt="" style="left:363.8px;top:117px;width:32px;height:32px">
+<img data-el="s02.e16" src="assets/s02.e16.png" alt="" style="left:369.9px;top:123px;width:19.4px;height:19.4px">
+<div class="sg" style="top:160px;width:178.6px"></div>
+<div data-el="s02.e17" class="sb on" style="left:19.1px;top:163.1px;width:55.2px"><svg width="11.4" height="11.4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M1.5 12C4 7 7.5 4.5 12 4.5S20 7 22.5 12C20 17 16.5 19.5 12 19.5S4 17 1.5 12z"/><circle cx="12" cy="12" r="3.2" fill="currentColor"/></svg><span data-el="s02.e18">All</span></div>
+<div data-el="s02.e19" class="sb" style="left:76.6px;top:163.1px;width:114.3px"><svg width="11.4" height="11.4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M1.5 12C4 7 7.5 4.5 12 4.5S20 7 22.5 12C20 17 16.5 19.5 12 19.5S4 17 1.5 12z"/><circle cx="12" cy="12" r="3.2"/><path d="M3 3l18 18"/></svg><span data-el="s02.e20">Limited Only</span></div>
+<div class="sg" style="top:207.6px;width:258px"></div>
+<div data-el="s02.e21" class="sb on" style="left:19.1px;top:210.7px;width:55.2px"><svg width="11.4" height="11.4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2c3 3 4 6.5 4 10s-1 7-4 10c-3-3-4-6.5-4-10s1-7 4-10z"/></svg><span>All</span></div>
+<div data-el="s02.e23" class="sb" style="left:76.6px;top:210.7px;width:97.1px"><svg width="11.4" height="11.4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.3c2 .7 3.5 2.8 3.5 5.7"/></svg><span data-el="s02.e24">Following</span></div>
+<div data-el="s02.e25" class="sb" style="left:176px;top:210.7px;width:94.1px"><svg width="11.4" height="11.4" viewBox="0 0 24 24"><path d="M12 21s-8.5-5.4-8.5-11.2A4.8 4.8 0 0 1 12 6.6a4.8 4.8 0 0 1 8.5 3.2C20.5 15.6 12 21 12 21z" fill="currentColor"/></svg><span data-el="s02.e26">Favorites</span></div>
+<div data-el="s02.e27" class="dg gh" style="left:15.6px">8</div>
+<div data-el="s02.e28" class="dg" style="left:15.6px">1</div>
+<div class="dg gh" style="left:23.6px">8</div>
+<div class="dg" style="left:23.6px">0</div>
+<div data-el="s02.e31" class="dg" style="left:31.6px;top:267.1px;width:3.4px;height:16.4px">,</div>
+<div class="dg gh" style="left:35px">8</div>
+<div class="dg" style="left:35px">0</div>
+<div class="dg gh" style="left:43px">8</div>
+<div class="dg" style="left:43px">0</div>
+<div class="dg gh" style="left:51px">8</div>
+<div class="dg" style="left:51px">0</div>
+<div style="left:63.6px;top:267.1px;width:66.7px;height:16.4px;line-height:16.4px;font-size:14px;color:var(--fg-4);white-space:nowrap">characters</div>
+<div data-el="s02.e39" class="pg" style="left:228.9px;background:#2d2f33;border:1px solid #3c3e43"><svg width="8" height="12" viewBox="0 0 8 12" fill="none" stroke="#87888a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 1.5 1.8 6 6 10.5"/></svg></div>
+<div data-el="s02.e40" style="left:273.9px;top:267.1px;width:77px;height:16.4px"><div data-el="s02.e41" style="left:0;top:0;width:77px;height:16.4px;line-height:16.4px;text-align:center;font-size:14px;font-weight:700;color:#fff;white-space:nowrap">1 / 295</div></div>
+<div data-el="s02.e42" class="pg" style="left:359.6px;background:var(--bg-3);border:1px solid #55575c"><svg width="8" height="12" viewBox="0 0 8 12" fill="none" stroke="#e1e1e1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 1.5 6.2 6 2 10.5"/></svg></div>
+<div class="cf" style="left:16.8px;--l:396.1px"><div class="ln"></div><svg class="ic sp" width="28" height="40" viewBox="0 0 28 40"><path d="M14 0C14.8 14 16 17.8 28 20 16 22.2 14.8 26 14 40 13.2 26 12 22.2 0 20 12 17.8 13.2 14 14 0z" fill="#efe4ff"/></svg></div>
+<div class="ph" style="left:17.8px;background:#6d6a63"><img class="fy" src="assets/s02.e43.art.png" alt=""><img class="fl" src="assets/s02.e43.art.png" alt=""><img class="fr" src="assets/s02.e43.art.png" alt=""></div>
+<div data-el="s02.e43" class="cd" style="left:24px"><img class="art" src="assets/s02.e43.art.png" alt=""><div data-el="s02.e44" class="ct" style="width:168.4px;color:#a07cdb">Medieval Fantasy World RP</div></div>
+<div class="bdg" style="left:93.5px;width:116.4px"></div>
+<svg class="ic" style="left:98.6px;top:348.6px" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#f8f5fc" stroke-width="2.8" stroke-linejoin="round"><path d="M3 21V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8z"/></svg>
+<div data-el="s02.e45" class="st" style="left:110.1px;width:48.8px">128.8m</div>
+<svg class="ic" style="left:160.6px;top:348.6px" width="10" height="11" viewBox="0 0 20 24" fill="none" stroke="#f8f5fc" stroke-width="2.6" stroke-linejoin="round"><path d="M3 2h9l5 5v15H3zM7 13h6M7 17h6"/></svg>
+<div data-el="s02.e46" class="st" style="left:171.8px;width:25.1px">399</div>
+<div class="cf" style="left:211.5px;--l:426.6px"><div class="ln"></div><svg class="ic sp" width="28" height="40" viewBox="0 0 28 40"><path d="M14 0C14.8 14 16 17.8 28 20 16 22.2 14.8 26 14 40 13.2 26 12 22.2 0 20 12 17.8 13.2 14 14 0z" fill="#efe4ff"/></svg></div>
+<div class="ph" style="left:212.5px;background:#0b0e15"><img class="fy" src="assets/s02.e47.art.png" alt=""><img class="fl" src="assets/s02.e47.art.png" alt=""><img class="fr" src="assets/s02.e47.art.png" alt=""></div>
+<div data-el="s02.e47" class="cd" style="left:218.7px"><img class="art" src="assets/s02.e47.art.png" alt=""><div data-el="s02.e48" class="ct" style="width:114.3px;overflow:visible;color:#a984e8">Real Life World RP</div></div>
+<div class="bdg" style="left:294.5px;width:110.1px"></div>
+<svg class="ic" style="left:299.2px;top:348.6px" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#f8f5fc" stroke-width="2.8" stroke-linejoin="round"><path d="M3 21V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8z"/></svg>
+<div class="st" style="left:312.4px;width:44.2px">64.5m</div>
+<svg class="ic" style="left:357.6px;top:348.6px" width="10" height="11" viewBox="0 0 20 24" fill="none" stroke="#f8f5fc" stroke-width="2.6" stroke-linejoin="round"><path d="M3 2h9l5 5v15H3zM7 13h6M7 17h6"/></svg>
+<div data-el="s02.e66" class="st" style="left:369.5px;width:22.1px">106</div>
+<div data-el="s02.e49" class="hn" style="left:24px"><span>@Mayu0910</span></div>
+<div data-el="s02.e67" class="hn" style="left:218.7px"><span>@Mayu0910</span></div>
+<div data-el="s02.e51" class="ds" style="left:24px;top:539.4px;height:137.1px"><div data-el="s02.e52" class="dt" style="top:0;height:137.1px">Welcome to Medieval Fantasy <br>World RP! A Fantasy world RP <br>where you're already a part of it <br>(aka NOT ISEKAI). Live your life <br>as a commoner, an adventurer, <br>a monster hunter, a dragon, or <br>a pitiful slave. Become a highly <br>respected knight, or an infamous <br>mass</div></div>
+<div data-el="s02.e69" class="ds" style="left:218.7px;top:539.4px;height:166.9px"><div data-el="s02.e70" class="dt" style="top:0;height:45.7px;color:#e5e0ef">Have you ever wondered how <br>life would've been if you were <br>someone else?</div><div data-el="s02.e71" class="dt" style="top:55.6px;height:15.2px;line-height:15.2px;color:#dbd5e6">~~~~~~~~~~~~~~~~~~~~~</div><div data-el="s02.e72" class="dt" style="top:80.8px;height:45.7px;color:#e4dfef">Seeing the love for Medieval <br>Fantasy World RP, I decided to <br>make a modern version of it ^^</div><div data-el="s02.e73" class="dt" style="top:136.4px;height:30.5px;color:#e4dfef">I've no idea if u guys would like it, <br>but I think it's pretty cool &#x304;\_(ツ)_</div></div>
+<div data-el="s02.e53" class="tg" style="left:24px;top:720.4px;width:60.2px"><span data-el="s02.e54">Limitless</span></div>
+<div data-el="s02.e55" class="tg" style="left:88.8px;top:720.4px;width:72.8px;background:#211536"><span data-el="s02.e56">📚 Fictional</span></div>
+<div data-el="s02.e57" class="tg" style="left:24px;top:746.7px;width:62.5px;height:22.1px"><span data-el="s02.e58">📺 Anime</span></div>
+<div data-el="s02.e59" class="tg" style="left:91px;top:746.7px;width:70.9px;height:22.1px;background:#231838"><span data-el="s02.e60">👭 Multiple</span></div>
+<div class="tg" style="left:24px;top:773.3px;width:73.1px"><span data-el="s02.e62">🪢 Scenario</span></div>
+<div data-el="s02.e63" class="tg" style="left:101.7px;top:773.3px;width:53.7px"><span data-el="s02.e64">🎲 RPG</span></div>
+<div class="tg" style="left:218.7px;top:750.1px;width:60.2px"><span>Limitless</span></div>
+<div class="tg" style="left:283.4px;top:750.1px;width:70.9px;background:#221737"><span data-el="s02.e75">👭 Multiple</span></div>
+<div class="tg" style="left:218.7px;top:776.4px;width:73.1px"><span>🪢 Scenario</span></div>
+<div data-el="s02.e80" class="tg" style="left:296.4px;top:776.4px;width:53.7px"><span data-el="s02.e81">🎲 RPG</span></div>
+<div class="tg" style="left:218.7px;top:803px;width:70.5px;height:22.1px"><span>👤 AnyPOV</span></div>
+<div class="tg" style="left:293.7px;top:803px;width:54.1px;height:22.1px"><span>#realife</span></div>
+<div class="tg" style="left:218.7px;top:829.3px;width:58.7px"><span>#realism</span></div>
+</div>
+<div class="tb" data-chrome="tabbar">
+<div data-el="s02.e88" class="ti" style="left:27.4px"><svg width="26" height="26" viewBox="0 0 24 24"><path fill="#5a5c63" d="M12 2.8 1.8 11.6h2.9V21h5.6v-6h3.4v6h5.6v-9.4h2.9z"/></svg></div>
+<div data-el="s02.e89" class="ti" style="left:100.6px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#af89f0" stroke-width="2.6" stroke-linecap="round"><circle cx="10" cy="10" r="7"/><path d="M15.2 15.2 21.5 21.5"/></svg></div>
+<div data-el="s02.e90" class="ti" style="left:174.1px" data-edge="s02.e90>s03" data-transition="tab"><svg width="30" height="30" viewBox="0 0 28 28" fill="none" stroke="#5a5c63" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"><path d="M4.5 12.5V3l6 4.6a11 11 0 0 1 7 0L23.5 3v9.5c1.3 6.6-3.5 12.5-9.5 12.5S3.2 19.1 4.5 12.5z"/><path d="M14 16.5a1.5 1.5 0 0 1 3 0 3 3 0 0 1-6 0 4.5 4.5 0 0 1 9 0 6 6 0 0 1-6 6"/></svg></div>
+<div class="ti" style="left:247.2px"><svg width="26" height="26" viewBox="0 0 24 24"><path fill="#5a5c63" d="M12 22.5a2.6 2.6 0 0 0 2.6-2.6H9.4a2.6 2.6 0 0 0 2.6 2.6zM19 16v-5.2c0-3.3-1.8-6-4.8-6.7v-.7a2.2 2.2 0 0 0-4.4 0v.7C6.8 4.8 5 7.5 5 10.8V16l-2 2v1h18v-1z"/></svg></div>
+<div class="ti" style="left:320.4px"><svg width="26" height="26" viewBox="0 0 24 24" fill="#5a5c63"><circle cx="12" cy="7" r="4.6"/><path d="M3.5 21.5v-1.3c0-3.6 3.8-6 8.5-6s8.5 2.4 8.5 6v1.3z"/></svg></div>
+</div>
+</section>
+<section data-screen="s13" data-parent="s02">
+<img data-el="s13.e03" src="assets/s13.e03.png" alt="" style="left:15.6px;top:62.5px;width:325.3px;height:42.7px">
+<div data-el="s13.e04" style="left:352px;top:62.5px;width:43.8px;height:43.8px"></div>
+<div data-el="s13.e39" style="left:228.9px;top:257.1px;width:36.2px;height:36.2px"></div>
+<div style="left:359.6px;top:257.1px;width:36.2px;height:36.2px"></div>
+<img data-el="s13.e90" src="assets/s13.e90.png" alt="" style="left:174.1px;top:774.9px;width:63.6px;height:63.6px">
+<img data-el="s13.e91" src="assets/s13.e91.png" alt="" style="left:247.2px;top:774.9px;width:63.6px;height:63.6px">
+<img src="assets/s13.e92.png" alt="" style="left:320.4px;top:774.9px;width:63.6px;height:63.6px">
+<div class="bk"></div>
+<div data-el="s13.e118" class="mi"><svg width="18.3" height="16.8" viewBox="0 0 18.3 16.8"><path d="M1.2 2.2h15.9M1.2 8.4h15.9M1.2 14.6h15.9" stroke="#333333" stroke-width="2.1" stroke-linecap="round"/></svg></div>
+<div class="sh"></div>
+<div data-el="s13.e93" class="hl"><div class="hb"></div></div>
+<div data-el="s13.e94" class="ft">Filters</div>
+<div data-el="s13.e95" class="sx" style="top:116.6px;height:33.5px;color:#d6d6d7">Sort by</div>
+<div class="rd on" style="top:169.3px"></div>
+<div data-el="s13.e97" class="ol" style="top:171.8px;color:#fff">Popular</div>
+<div class="rd" style="top:216.9px"></div>
+<div data-el="s13.e99" class="ol" style="top:219.4px">Latest</div>
+<div class="rd" style="top:264.6px"></div>
+<div class="ol" style="top:267.1px">Trending</div>
+<div class="rd" style="top:312.2px"></div>
+<div class="ol" style="top:314.7px">Trending 24h</div>
+<div class="rd" style="top:359.8px"></div>
+<div class="ol" style="top:362.3px">Relevance</div>
+<div class="dv" style="top:407px"></div>
+<div data-el="s13.e106" class="sx" style="top:407.6px;height:33.9px;color:#c7c7c9">Messages</div>
+<div class="dd" style="top:452.7px"></div>
+<div data-el="s13.e107" class="dr" style="top:467.1px"><div data-el="s13.e108" class="dl">Greater than or equal</div><svg class="ic" style="left:335.5px;top:8.9px" width="14" height="9" viewBox="0 0 14 9" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1.5 7 7l5.5-5.5"/></svg></div>
+<div data-el="s13.e109" class="in" style="top:525.3px">Enter message count</div>
+<div class="dv" style="top:607px"></div>
+<div class="sx" style="top:607.6px;height:33.9px;color:#abadae">Tokens</div>
+<div class="dd" style="top:652.6px"></div>
+<div data-el="s13.e111" class="dr" style="top:667px"><div data-el="s13.e112" class="dl">Greater than or equal</div><svg class="ic" style="left:335.5px;top:8.9px" width="14" height="9" viewBox="0 0 14 9" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1.5 7 7l5.5-5.5"/></svg></div>
+<div data-el="s13.e113" class="in" style="top:725.3px">Enter tokens count</div>
+<div data-el="s13.e114" class="px">Proxy</div>
+<div data-el="s13.e115" class="sw"><div class="tr"></div><div class="th"></div></div>
+</section>
+<section data-screen="s05">
+<div class="a ic" data-el="s05.e01" style="left:363.4px;top:11.8px;width:32px;height:32px"><svg width="32" height="32" viewBox="0 0 32 32"><path d="M7.6 9.6h16M7.6 15.5h16M7.6 21.3h16" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg></div>
+<img class="a" data-el="s05.e28" src="assets/s05.e28.png" alt="" style="left:16.8px;top:55.6px;width:77px;height:77.7px;border-radius:6px;background:var(--bg-3)">
+<div class="a t" data-el="s05.e02" style="left:109px;top:60.2px;width:143.6px;height:27.8px;line-height:27.8px;font-size:17px;font-weight:700;background:#000;color:#000;overflow:hidden">@[redacted]</div>
+<div class="a" data-el="s05.e03" style="left:109px;top:98.7px;width:65.9px;height:38.9px">
+<div class="a t num" data-el="s05.e04" data-value="c5" style="left:0;top:0;width:65.9px">0</div>
+<div class="a t lbl" data-el="s05.e05" style="left:0;top:24.3px;width:52.6px">Following</div>
+<svg class="a" style="left:56.5px;top:27.8px" width="7" height="7" viewBox="0 0 7 7"><path d="M1 6L6 1M2 1h4v4" stroke="#98999b" stroke-width="1" fill="none"/></svg>
+</div>
+<div class="a" style="left:190.5px;top:103px;width:1px;height:30px;background:#45484b"></div>
+<div class="a t num" data-el="s05.e06" style="left:206.5px;top:98.7px;width:52.6px">0</div>
+<div class="a t lbl" data-el="s05.e07" style="left:206.5px;top:123px;width:52.6px">Followers</div>
+<div class="a" data-el="s05.e08" style="left:17.1px;top:150.1px;width:377.1px;height:14.5px">
+<div class="a t lbl" data-el="s05.e09" style="left:0;top:0;width:100.6px">View public profile</div>
+<svg class="a" style="left:104.5px;top:3.8px" width="7" height="7" viewBox="0 0 7 7"><path d="M1 6L6 1M2 1h4v4" stroke="#98999b" stroke-width="1" fill="none"/></svg>
+</div>
+<div class="a tab ic" data-el="s05.e10" style="left:0;color:var(--fg-2)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+<div class="a tab" data-el="s05.e11" style="left:137.1px">
+<svg class="a" style="left:46.3px;top:12.1px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01M15 9h.01"/></svg>
+<div class="a t" data-el="s05.e12" style="left:74px;top:13px;width:16.8px;height:15.6px;line-height:15.6px;font-size:14px;font-weight:500">(1)</div>
+</div>
+<div class="a tab ic" style="left:274.3px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 20a2 2 0 0 0 1.4-.6l5.4-5.4a6 6 0 0 0-8.5-8.5L6.4 10.9A2 2 0 0 0 5.8 12.3V19a1 1 0 0 0 1 1z"/><path d="M16 9 3 22M18 15h-8"/><path d="M5 1.5v4M3 3.5h4" stroke-width="1.6"/></svg></div>
+<div class="a" style="left:0;top:213.4px;width:411px;height:1px;background:#45484b"></div>
+<div class="a" style="left:0;top:212px;width:137.1px;height:2.4px;background:var(--fg-2)"></div>
+<div class="a" data-el="s05.e14" style="left:15.6px;top:227.4px;width:259.4px;height:42.7px;background:#45484b;border-radius:12px;padding-left:44px;line-height:42.7px;font-size:15px;color:#8f9193"></div>
+<svg class="a" style="left:30.5px;top:237.5px;pointer-events:none" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#8f9193" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7.5"/><path d="M21 21l-4.6-4.6"/></svg>
+<div class="a" data-el="s05.e15" style="left:286.1px;top:227.4px;width:109.7px;height:42.7px;background:#45484b;border:1px solid #5d6064;border-radius:14px">
+<div class="a t" data-el="s05.e16" style="left:13.1px;top:12.4px;width:37.7px;height:15.6px;line-height:15.6px;font-size:13.8px;font-weight:700">Latest</div>
+<svg class="a" style="left:78.4px;top:17.1px" width="12" height="7" viewBox="0 0 12 7"><path d="M0 0h12L6 6.5z" fill="#fff"/></svg>
+</div>
+<div class="a" data-el="s05.e17" data-edge="s05.e17>s24" data-transition="push" style="left:15.6px;top:282.7px;width:380.2px;height:52.2px;background:var(--bg-3);border:1.3px dashed #8a63e6;border-radius:16px;cursor:pointer">
+<svg class="a" style="left:121.6px;top:16px" width="18" height="18" viewBox="0 0 18 18"><path d="M9 1v16M1 9h16" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>
+<div class="a t" data-el="s05.e18" style="left:151.9px;top:14.7px;width:107.8px;height:19.8px;line-height:19.8px;font-size:15.2px;font-weight:700">New Character</div>
+</div>
+<div class="a t" data-el="s05.e19" style="left:130.7px;top:384px;width:149.7px;height:19.1px;line-height:19.1px;font-size:16px;font-weight:700;text-align:center">No characters found</div>
+<div class="a t" data-el="s05.e20" style="left:145.5px;top:411.4px;width:120px;height:16.4px;line-height:16.4px;font-size:14px;color:var(--fg-4);text-align:center">Try adjusting filters</div>
+<div class="a" data-chrome="tabbar" style="left:0;top:740px;width:411px;height:98.2px;background:var(--bg-2)">
+<div class="a tb ic" data-el="s05.e21" data-edge="s05.e21>s01" data-transition="tab" style="left:27.4px;cursor:pointer"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.2 2.5 11.5h2.8v9c0 .6.4 1 1 1h4v-6h3.4v6h4c.6 0 1-.4 1-1v-9h2.8z"/></svg></div>
+<div class="a tb ic" data-el="s05.e22" style="left:100.6px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="7"/><path d="M15.6 15.6 21 21"/></svg></div>
+<div class="a tb ic" data-el="s05.e23" data-edge="s05.e23>s03" data-transition="tab" style="left:174.1px;cursor:pointer"><svg width="28" height="30" viewBox="0 0 28 30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 9.5 5 2l6 4.9M21.5 9.5 23 2l-6 4.9"/><circle cx="14" cy="17.5" r="11"/><path d="M14 17.5a2 2 0 0 1 4 0a4 4 0 0 1-8 0a6 6 0 0 1 12 0a8 8 0 0 1-8 8"/></svg></div>
+<div class="a tb ic" data-el="s05.e24" style="left:247.2px"><svg width="25" height="25" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div>
+<div class="a tb ic" style="left:320.4px;color:var(--fg-2)"><svg width="27" height="27" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="7.5" r="4.8"/><path d="M4.5 21.5V20a5.5 5.5 0 0 1 5.5-5.5h4a5.5 5.5 0 0 1 5.5 5.5v1.5a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1z"/></svg></div>
+</div>
+<div class="a" style="left:0;top:720px;width:411px;height:53.5px;background:var(--bg-1);border-radius:0 0 22px 22px;box-shadow:0 1px 0 #45484b"></div>
+</section>
+<section data-screen="s24">
+<div class="a" data-chrome="header" style="left:0;top:0;width:411px;height:56px;background:var(--bg-1)">
+<div class="a ic" data-el="s24.e01" data-edge="s24.back>s05" data-transition="back" style="left:0;top:0;width:56px;height:56px;cursor:pointer"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill="#fff"/></svg></div>
+<div class="a t" data-el="s24.e02" style="left:72px;top:15.5px;width:169.5px;height:27.1px;line-height:27.1px;font-size:20px;font-weight:500">Create a Character</div>
+</div>
+<div class="a lab" data-el="s24.e03" style="top:77.3px;height:20.6px;line-height:20.6px">Image <span class="req">*</span></div>
+<div class="a" data-el="s24.e04" style="left:22.1px;top:106.3px;width:367.2px;height:106.3px;border:1.3px dashed #7c5ccf;border-radius:6px">
+<svg class="a" style="left:169.9px;top:26.4px" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></svg>
+<div class="a t" data-el="s24.e05" style="left:109.2px;top:61.5px;width:146.3px;height:16px;line-height:16px;font-size:14px;color:#98999b">Upload character image</div>
+</div>
+<p class="a hp" data-el="s24.e06" style="top:233.5px;height:46.9px;line-height:15.63px;color:#d6d6d7">• Select an image as bot avatar or import a Tavern PNG file. <br>You can also <b>search for existing character</b> before importing a <br>new one!</p>
+<p class="a hp" data-el="s24.e07" style="top:282.3px;height:31.2px;line-height:15.6px;color:#d4d5d6">• Please make sure your image/character does not violate our <br><b>guidelines</b>, otherwise it will be removed.</p>
+<p class="a hp" data-el="s24.e08" style="top:317.7px;height:65.5px;line-height:16.375px;color:#fbbf24;font-weight:700">• ⚠️ Important: If you update the image on a public <br>character, it may take up to 30 seconds to verify. If <br>moderation fails, the character will not be updated, so <br>don’t leave this page.</p>
+<div class="a lab" data-el="s24.e09" style="top:410.3px;height:20.6px;line-height:20.6px">Character Name <span class="req">*</span></div>
+<div class="a in" data-el="s24.e10" style="top:439.2px">Provide a unique name for your character*</div>
+<div class="a lab" data-el="s24.e11" style="top:524.2px;height:18.7px;line-height:18.7px">Character Chat Name</div>
+<div class="a in" data-el="s24.e12" style="top:551.2px">Character Chat Name</div>
+<p class="a hp" data-el="s24.e13" style="top:617.9px;height:38.1px;line-height:19.05px;font-size:12.5px;color:#97999b">An optional nickname for your character that will show up in <br>chats instead of 'name' and be used in the LLM</p>
+<div class="a lab" data-el="s24.e14" style="top:682.7px;height:18.7px;line-height:18.7px">Character Bio</div>
+<div class="a" data-el="s24.e15" style="left:22.1px;top:709.7px;width:367.2px;height:117px;border:1px solid #45484b;border-radius:12px">
+<div class="a t" data-el="s24.e16" style="left:17.3px;top:12.7px;width:330.7px;height:15.6px;line-height:15.6px;font-size:13.2px;font-weight:500;color:#98999b">Press here to start writing...</div>
+</div>
+
+</section>
+<section data-screen="s03">
+<div data-reward style="position:absolute;left:8.8px;top:540px;width:393.9px;height:52px;box-sizing:border-box;border-radius:12px;background:#49445c;border:1px solid #5b5672;z-index:20;font-family:var(--font-1)"><svg style="position:absolute;left:14px;top:15px" width="20" height="20" viewBox="0 0 24 24" fill="#af89f0"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><div style="position:absolute;left:44px;top:8px;width:340px;height:17.9px;font-size:15px;line-height:17.9px;font-weight:700;color:#f3f2f6;white-space:nowrap">Faster replies are on</div><div style="position:absolute;left:44px;top:27px;width:340px;height:15.6px;font-size:13.5px;line-height:15.6px;color:#d2bef4;white-space:nowrap">For the next 60 minutes</div></div>
+<div class="a pn"></div>
+<div class="a hd" data-chrome="header">
+<div class="a ib" data-el="s03.e01" style="left:16px"><svg class="mi" viewBox="0 0 24 24" fill="#303337" stroke="#fff"><path d="M3 6h18M3 12h18M3 18h18"/><circle cx="8" cy="6" r="2.4"/><circle cx="16" cy="12" r="2.4"/><circle cx="10" cy="18" r="2.4"/></svg></div>
+<div class="a" data-el="s03.e02" style="left:59px;top:14.5px;width:304.4px;height:27.1px;font-size:20px;line-height:27.1px;font-weight:500">My Chats</div>
+<div class="a ib" data-el="s03.e03" data-edge="s03.e03>s06" data-transition="push" style="left:363.4px"><svg class="mi" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M3 5.5h18M3 12h18M3 18.5h18"/></svg></div>
+</div>
+<div class="a sf" data-el="s03.e04">Enter character name</div>
+<svg class="a" style="left:25.2px;top:72.3px;width:18px;height:18px;pointer-events:none" viewBox="0 0 24 24" fill="none" stroke="#a2a4a5" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="7"/><path d="M15.8 15.8 21 21"/></svg>
+<div class="a rw" data-el="s03.e05" data-edge="s03.e05>s20" data-transition="modal" style="top:103.6px">
+<img src="assets/s03.e05.art.png" alt="" style="top:.1px;height:84.8px">
+<span class="nm" data-el="s03.e06" style="top:13px;width:278.9px">Miro | MARSEILLE </span>
+<span class="tm" data-el="s03.e07" style="top:15.3px;color:#bfc0c1">13:59</span>
+<span class="pl" style="top:39.15px"><svg viewBox="0 0 24 24"><path d="M12 3 21 8 12 13 3 8ZM3 12.5l9 5 9-5M3 16.5l9 5 9-5"/></svg><span data-el="s03.e08" data-value="c2">12 chats</span></span>
+<svg class="cv" viewBox="0 0 7 9"><path d="M1.5 1 5.5 4.5 1.5 8"/></svg>
+</div>
+<div class="a rw" data-el="s03.e09" style="top:188.6px">
+<img src="assets/s03.e09.art.png" alt="" style="top:0;height:84.9px">
+<span class="nm" data-el="s03.e10" style="top:11.4px;width:290.3px;height:20.9px;line-height:20.9px">☆ Rodrick Heffley!</span>
+<span class="tm" data-el="s03.e11" style="top:15.2px">Tue</span>
+<span class="pl" style="top:40.55px"><svg viewBox="0 0 24 24"><path d="M12 3 21 8 12 13 3 8ZM3 12.5l9 5 9-5M3 16.5l9 5 9-5"/></svg><span data-el="s03.e12">1 chat</span></span>
+<svg class="cv" viewBox="0 0 7 9"><path d="M1.5 1 5.5 4.5 1.5 8"/></svg>
+</div>
+<div class="a rw" data-el="s03.e13" style="top:273.5px">
+<img src="assets/s03.e13.art.png" alt="" style="top:.1px;height:84.5px">
+<span class="nm" data-el="s03.e14" style="top:13px;width:290.3px">Kang Jun-Seo (Idol x Idol)</span>
+<span class="tm" data-el="s03.e15" style="top:15.3px">Tue</span>
+<span class="pl" style="top:39.15px"><svg viewBox="0 0 24 24"><path d="M12 3 21 8 12 13 3 8ZM3 12.5l9 5 9-5M3 16.5l9 5 9-5"/></svg><span data-el="s03.e16" data-value="c3">15 chats</span></span>
+<svg class="cv" viewBox="0 0 7 9"><path d="M1.5 1 5.5 4.5 1.5 8"/></svg>
+</div>
+<div class="a rw" data-el="s03.e17" style="top:358.1px">
+<img src="assets/s03.e17.art.png" alt="" style="top:.4px;height:84.5px">
+<span class="nm" data-el="s03.e18" style="top:13px;width:290.3px">The Former Husband is the New Employer </span>
+<span class="tm" style="top:15.2px">Tue</span>
+<span class="pl" style="top:39.05px"><svg viewBox="0 0 24 24"><path d="M12 3 21 8 12 13 3 8ZM3 12.5l9 5 9-5M3 16.5l9 5 9-5"/></svg><span data-el="s03.e20">3 chats</span></span>
+<svg class="cv" viewBox="0 0 7 9"><path d="M1.5 1 5.5 4.5 1.5 8"/></svg>
+</div>
+<div class="a rw" data-el="s03.e21" style="top:443.1px;border-bottom:0">
+<img src="assets/s03.e21.art.png" alt="" style="top:0;height:84.9px">
+<span class="nm" style="top:12.9px;width:290.3px">NANAMI KENTO</span>
+<span class="tm" style="top:15.2px">Tue</span>
+<span class="pl" style="top:39.05px"><svg viewBox="0 0 24 24"><path d="M12 3 21 8 12 13 3 8ZM3 12.5l9 5 9-5M3 16.5l9 5 9-5"/></svg><span>4 chats</span></span>
+<svg class="cv" viewBox="0 0 7 9"><path d="M1.5 1 5.5 4.5 1.5 8"/></svg>
+</div>
+<nav class="a tb" data-chrome="tabbar">
+<div class="tab" data-el="s03.e25" data-edge="s03.e25>s01" data-transition="tab" style="left:27.4px"><svg width="23" height="23" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.8 1.8 11.6c-.5.4-.2 1.2.5 1.2h2.2V21a1 1 0 0 0 1 1H10v-6.2h4V22h4.5a1 1 0 0 0 1-1v-8.2h2.2c.7 0 1-.8.5-1.2Z"/></svg></div>
+<div class="tab" data-el="s03.e26" style="left:100.6px"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="10.2" cy="10.2" r="7.2"/><path d="m15.6 15.6 5.9 5.9"/></svg></div>
+<div class="tab" data-el="s03.e27" style="left:174.1px;color:var(--fg-2)"><svg width="26" height="32" viewBox="0 0 26 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 10.5 4.8 2.8l5.4 4.3a10 10 0 0 1 5.6 0l5.4-4.3-.7 7.7A10.6 10.6 0 1 1 5.5 10.5Z"/><path d="M13 18a1 1 0 0 1 2 0a2 2 0 0 1-4 0a3 3 0 0 1 6 0a4 4 0 0 1-8 0a5 5 0 0 1 10 0"/></svg></div>
+<div class="tab" data-el="s03.e28" data-edge="s03.e28>s04" data-transition="tab" style="left:247.2px"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5c-.9 0-1.6.7-1.6 1.6v.5C7.6 5.3 5.6 7.8 5.6 10.8v4.6L3.5 18v1h17v-1l-2.1-2.6v-4.6c0-3-2-5.5-4.8-6.2v-.5c0-.9-.7-1.6-1.6-1.6ZM9.6 20.2a2.4 2.4 0 0 0 4.8 0Z"/></svg></div>
+<div class="tab" style="left:320.4px"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="7" r="4.6"/><path d="M3.5 21.5c0-4.6 3.8-7.5 8.5-7.5s8.5 2.9 8.5 7.5c0 .6-.4 1-1 1h-15c-.6 0-1-.4-1-1Z"/></svg></div>
+</nav>
+</section>
+<section data-screen="s20" data-parent="s03">
+<div class="a" style="left:0;top:0;width:411px;height:838.2px;background:rgba(0,0,0,.8)"></div>
+<div class="a ic" data-el="s20.e92" style="left:21.3px;top:16.8px;width:21.3px;height:22.9px"><svg class="mi" viewBox="0 0 24 24" fill="#0a0a0b" stroke="#333"><path d="M3 6h18M3 12h18M3 18h18"/><circle cx="8" cy="6" r="2.4"/><circle cx="16" cy="12" r="2.4"/><circle cx="10" cy="18" r="2.4"/></svg></div>
+<div class="a ic" data-el="s20.e93" style="left:369.5px;top:16.8px;width:19.8px;height:22.9px"><svg class="mi" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.2"><path d="M3 5.5h18M3 12h18M3 18.5h18"/></svg></div>
+<div class="a sh"></div>
+<div class="a" data-el="s20.e01" style="left:0;top:39.6px;width:411.4px;height:24.4px"><i class="hb"></i></div>
+<div class="a" data-el="s20.e02" style="left:6.5px;top:64px;width:398.5px;height:74.3px">
+<i class="mav" style="left:4.2px;top:7.1px"></i>
+<span class="nm" data-el="s20.e03" style="top:7.6px;width:285.3px">Miro | MARSEILLE </span>
+<span class="pl" style="top:33.75px"><svg viewBox="0 0 24 24"><path d="M12 3 21 8 12 13 3 8ZM3 12.5l9 5 9-5M3 16.5l9 5 9-5"/></svg><span data-el="s20.e04" data-value="c2">12 chats</span></span>
+<svg style="position:absolute;left:373.7px;top:28.5px;width:4px;height:16px" viewBox="0 0 4 16" fill="#e6e6e7"><circle cx="2" cy="2" r="1.8"/><circle cx="2" cy="8" r="1.8"/><circle cx="2" cy="14" r="1.8"/></svg>
+</div>
+<div class="a sg" data-el="s20.e05" style="left:8.4px;width:197.3px;background:#414348;border-radius:16px 0 0 16px"></div>
+<div class="a" data-el="s20.e94" style="left:8.4px;top:144px;width:197.3px;height:31.2px"></div>
+<svg class="so" style="left:79px;color:#a0a1a4" viewBox="0 0 13 11"><path d="M1 2h5M1 5.5h4M1 9h3M10 10V1.5M7.8 3.7 10 1.5l2.2 2.2"/></svg>
+<span class="a sl" data-el="s20.e06" style="left:97.1px;color:#a0a1a4">Oldest</span>
+<div class="a sg" data-el="s20.e07" style="left:205.7px;width:197.3px;background:var(--fg-2);border-radius:0 16px 16px 0"></div>
+<div class="a" data-el="s20.e95" style="left:205.7px;top:144px;width:197.3px;height:31.2px"></div>
+<svg class="so" style="left:276.8px;color:#000" viewBox="0 0 13 11"><path d="M1 2h5M1 5.5h4M1 9h3M10 1v8.5M7.8 7.3 10 9.5l2.2-2.2"/></svg>
+<span class="a sl" data-el="s20.e08" style="left:295.2px;color:#000">Latest</span>
+<div class="a rw" data-el="s20.e09" style="top:191.6px">
+<img src="assets/s20.e96.png" alt="" data-el="s20.e96" style="left:4.2px;top:8px;width:59.4px;height:57.9px">
+<span class="nm" data-el="s20.e10" style="top:8px;width:278.9px">Miro | MARSEILLE </span>
+<span class="tm" data-el="s20.e11" style="top:10.3px;color:#bfc0c1">13:59</span>
+<span class="pv" data-el="s20.e12">Miro's breathing hitched. His chest felt tight, like the air in the room was thinning out. The questions weren't stopping. They weren't even making sense. They were like strange, colorful birds flying into a stone wall bright, impossible, a…</span>
+<span class="ct" style="color:#bfc0c1"><svg viewBox="0 0 24 22"><path d="M8 8V3.5a1 1 0 0 1 1-1h11.5a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1H19v3l-3.5-3H15M2.5 8H14a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H8l-4.5 3.5V17h-1a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/></svg><span data-el="s20.e13">13</span></span>
+</div>
+<div class="a rw" style="top:265.9px">
+<i class="mav" style="left:4.2px;top:8px"></i>
+<span class="nm" data-el="s20.e15" style="top:8px;width:289.9px">Miro | MARSEILLE </span>
+<span class="tm" data-el="s20.e16" style="top:10.3px">Thu</span>
+<span class="pv" data-el="s20.e17" style="width:287.6px;height:42.3px">Miro blinked. The question hung in the stale air between them, absurd and wrong. A lighthouse. He waited for the trick. He waited for the shift in Aaditya's tone, the laughter that would signal this was some cruel game some test to see if h…</span>
+<span class="ct"><svg viewBox="0 0 24 22"><path d="M8 8V3.5a1 1 0 0 1 1-1h11.5a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1H19v3l-3.5-3H15M2.5 8H14a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H8l-4.5 3.5V17h-1a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/></svg><span data-el="s20.e18">5</span></span>
+</div>
+<div class="a rw" style="top:340.2px">
+<i class="mav" style="left:4.2px;top:8px"></i>
+<span class="nm" style="top:8px;width:289.9px">Miro | MARSEILLE </span>
+<span class="tm" data-el="s20.e21" style="top:10.3px">Thu</span>
+<span class="pv" data-el="s20.e22" style="width:287.6px;height:42.3px">Miro's breathing became shallow, rapid. His chest broad enough to block the light from the doorway heaved once, twice. The muscles in his thick neck corded as he stared at the concrete floor. Studying. The word felt alien, like something fr…</span>
+<span class="ct" style="color:#bfc0c1"><svg viewBox="0 0 24 22"><path d="M8 8V3.5a1 1 0 0 1 1-1h11.5a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1H19v3l-3.5-3H15M2.5 8H14a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H8l-4.5 3.5V17h-1a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/></svg><span data-el="s20.e23">9</span></span>
+</div>
+<div class="a rw" style="top:414.5px">
+<i class="mav" style="left:4.2px;top:8px"></i>
+<span class="nm" style="top:8px;width:289.9px">Miro | MARSEILLE </span>
+<span class="tm" style="top:10.3px">Thu</span>
+<span class="pv" style="width:287.6px;height:42.3px">Miro figured out a long time ago that his life wasn’t worth more than whatever number some asshole was willing to shout across a room. He stared up at another one now, same chipped panels, same shitty flickering light, same rust smell under…</span>
+<span class="ct" style="color:#c0c1c2"><svg viewBox="0 0 24 22"><path d="M8 8V3.5a1 1 0 0 1 1-1h11.5a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1H19v3l-3.5-3H15M2.5 8H14a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H8l-4.5 3.5V17h-1a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/></svg><span data-el="s20.e28">1</span></span>
+</div>
+<div class="a rw" style="top:488.8px">
+<i class="mav" style="left:4.2px;top:8px"></i>
+<span class="nm" style="top:8px;width:289.9px">Miro | MARSEILLE </span>
+<span class="tm" style="top:10.3px">Thu</span>
+<span class="pv" style="width:287.6px;height:42.3px">Miro figured out a long time ago that his life wasn’t worth more than whatever number some asshole was willing to shout across a room. He stared up at another one now, same chipped panels, same shitty flickering light, same rust smell under…</span>
+<span class="ct" style="color:#c0c1c2"><svg viewBox="0 0 24 22"><path d="M8 8V3.5a1 1 0 0 1 1-1h11.5a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1H19v3l-3.5-3H15M2.5 8H14a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H8l-4.5 3.5V17h-1a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/></svg><span data-el="s20.e33">1</span></span>
+</div>
+<div class="a rw" style="top:563px">
+<img src="assets/s20.e34.art.png" alt="" style="left:0;top:.1px;width:71.6px;height:73.8px">
+<span class="nm" style="top:8px;width:289.9px">Miro | MARSEILLE </span>
+<span class="tm" style="top:10.3px">Thu</span>
+<span class="pv" style="width:287.6px">Miro figured out a long time ago that his life wasn’t worth more than whatever number some asshole was willing to shout across a room. He stared up at another one now, same chipped panels, same shitty flickering light, same rust smell under…</span>
+<span class="ct" style="color:#c0c1c2"><svg viewBox="0 0 24 22"><path d="M8 8V3.5a1 1 0 0 1 1-1h11.5a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1H19v3l-3.5-3H15M2.5 8H14a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H8l-4.5 3.5V17h-1a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/></svg><span data-el="s20.e38">1</span></span>
+</div>
+<div class="a rw" style="top:637px">
+<img src="assets/s20.e39.art.png" alt="" style="left:0;top:.4px;width:71.6px;height:73.8px">
+<span class="nm" style="top:8px;width:285.7px">Miro | MARSEILLE </span>
+<span class="tm" style="top:10.2px">Wed</span>
+<span class="pv" data-el="s20.e42">Miro didn't understand the words "sum up" or "chat." To him, the last few minutes hadn't been a conversation they had been a psychological assault. Each question had been a new wound, a new way to fail, a new way to prove he was broken, stu…</span>
+<span class="ct" style="color:#b9babb"><svg viewBox="0 0 24 22"><path d="M8 8V3.5a1 1 0 0 1 1-1h11.5a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1H19v3l-3.5-3H15M2.5 8H14a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H8l-4.5 3.5V17h-1a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/></svg><span data-el="s20.e43">17</span></span>
+</div>
+<div class="a rw" data-el="s20.e44" style="top:711.2px;height:57.9px">
+<i class="mav" style="left:4.2px;top:8px"></i>
+<span class="nm" style="top:8px;width:285.7px">Miro | MARSEILLE </span>
+<span class="tm" style="top:10.3px">Wed</span>
+<span class="pv" data-el="s20.e47" style="height:26.7px">Miro closed his eyes for a long moment, leaning his forehead against his knees. His massive chest rose and fell in a slow, shaky breath. His brain felt like it was spinning in circles, chasing a thread that didn't exist. Board games. He had…</span>
+<span class="ct"><svg viewBox="0 0 24 22"><path d="M8 8V3.5a1 1 0 0 1 1-1h11.5a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1H19v3l-3.5-3H15M2.5 8H14a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H8l-4.5 3.5V17h-1a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/></svg><span>15</span></span>
+</div>
+<div class="a rw dm" data-el="s20.e49" style="top:769.1px;height:16.4px">
+<span class="nm" data-el="s20.e50" style="top:0;width:285.7px;height:24.4px;line-height:24.4px">Miro | MARSEILLE </span>
+<span class="tm" data-el="s20.e51" style="top:0;height:26.7px">Wed</span>
+<span class="pv" data-el="s20.e52" style="top:0;width:287.6px;height:47.6px">Miro figured out a long time ago that his life wasn’t worth more than whatever number some asshole was willing to shout across a room. He stared up at another one now, same chipped panels, same shitty flickering light, same rust smell under…</span>
+<span class="tm" data-el="s20.e53" style="top:0;height:49.1px">1</span>
+</div>
+<div class="dm">
+<span class="nm" data-el="s20.e55" style="left:78.1px;top:769.1px;width:285.7px;height:93.3px">Miro | MARSEILLE </span>
+<span class="tm" data-el="s20.e56" style="right:17.1px;top:769.1px;height:93.3px">Wed</span>
+<span class="pv" data-el="s20.e57" style="left:78.1px;top:769.1px;width:287.6px;height:93.3px">Miro froze. The words didn't match. The script was wrong. In every other cell, in every other warehouse, the first words from a new owner were never a greeting. They were commands. They were assessments. They were demands for submission or …</span>
+<span class="tm" data-el="s20.e58" style="right:17.1px;top:769.1px;height:93.3px">3</span>
+</div>
+<div class="a fd"></div>
+<div class="a ft"></div>
+<img class="a ti" src="assets/s20.e85.png" alt="" data-el="s20.e85" style="left:27.4px">
+<img class="a ti" src="assets/s20.e86.png" alt="" data-el="s20.e86" style="left:100.6px">
+<img class="a ti" src="assets/s20.e87.png" alt="" style="left:174.1px">
+<img class="a ti" src="assets/s20.e88.png" alt="" style="left:247.2px">
+<img class="a ti" src="assets/s20.e89.png" alt="" style="left:320.4px">
+<div class="a nb" data-el="s20.e59" data-edge="s20.e59>s25" data-transition="push">
+<svg style="position:absolute;left:126.8px;top:12.2px;width:17px;height:17px" viewBox="0 0 24 24" fill="none" stroke="#af89f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h2v3.5l4.5-3.5H13M7.5 8h9M7.5 12.5h5M18.5 15v6.5M15.25 18.25h6.5"/></svg>
+<span class="a" data-el="s20.e60" style="left:153.1px;top:12.2px;width:99.4px;height:17.9px;font-size:15px;line-height:17.9px;font-weight:700;color:var(--fg-2);white-space:nowrap">Start new chat</span>
+</div>
+</section>
+<section data-screen="s15">
+<div class="a sk"></div>
+<div class="a cd"></div>
+<div class="a" data-el="s15.e01" style="left:15.2px;top:17.1px;width:380.9px;height:70.1px;font-family:var(--font-3);font-size:32px;line-height:35.05px;text-align:center;color:#f8f6ff;white-space:pre-line">More memory for
+long chats.</div>
+<div class="a cl" data-el="s15.e21"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#9395a5" stroke-width="1.5" stroke-linecap="round"><path d="M1 1l8 8M9 1 1 9"/></svg></div>
+<img class="a" src="assets/s15.e24.png" alt="" data-el="s15.e24" style="left:47.2px;top:146.3px;width:190.5px;height:47.2px;mix-blend-mode:lighten">
+<div class="a" data-el="s15.e02" style="left:47.2px;top:217.9px;width:317.7px;height:35px;font-size:12.6px;line-height:17.5px;color:#b0b2c5;white-space:nowrap">Keep more of the story in context, get faster replies, and <br>unlock smarter swipes.</div>
+<div class="a" data-el="s15.e03" data-value="c1" style="left:47.2px;top:272.8px;width:107.4px;height:41.9px;font-family:var(--font-3);font-size:38px;line-height:41.9px;color:#f8f6ff;white-space:nowrap">$12.99</div>
+<div class="a" data-el="s15.e04" style="left:161.1px;top:289.5px;width:45.7px;height:22.1px;font-size:13.8px;line-height:22.1px;color:#b5b8c9;white-space:nowrap">/month</div>
+<div class="a sb" data-el="s15.e05"><span data-el="s15.e06" style="font-size:17.5px;line-height:20.6px;font-weight:700;color:#000;white-space:nowrap">Subscribe now</span></div>
+<div class="a" data-el="s15.e07" style="left:47.2px;top:396.9px;width:317.7px;height:17.5px;font-size:12.6px;line-height:17.5px;text-align:center;color:#8f93ab;white-space:nowrap">No commitment, cancel anytime.</div>
+<i class="a" style="left:47px;top:438.8px;width:145.4px;height:1.2px;background:#b4b7c8"></i>
+<i class="a" style="left:219px;top:438.8px;width:144.4px;height:1.2px;background:#b4b7c8"></i>
+<i class="a" style="left:203.6px;top:437.2px;width:4.4px;height:4.4px;background:#8f93ab;transform:rotate(45deg)"></i>
+<div class="a" data-el="s15.e08" style="left:47.2px;top:459.1px;width:317.7px;height:22.9px;font-size:16.4px;line-height:22.9px;font-weight:700;color:#f8f6ff;white-space:nowrap">Everything in Free, plus:</div>
+<svg class="a ck" data-el="s15.e25" style="top:493.7px" viewBox="0 0 21.3 15.2"><path d="M3 7.6 7.8 12.4 18 2"/></svg>
+<div class="a bf" data-el="s15.e09" style="top:491.1px;color:#cbccda">5× context for better memory</div>
+<svg class="a ck" data-el="s15.e26" style="top:518.1px" viewBox="0 0 21.3 15.2"><path d="M3 7.6 7.8 12.4 18 2"/></svg>
+<div class="a bf" data-el="s15.e10" style="top:515.4px;color:#cccddc">Priority routing for faster replies</div>
+<svg class="a ck" style="top:551.6px" viewBox="0 0 21.3 15.2"><path d="M3 7.6 7.8 12.4 18 2"/></svg>
+<div class="a bf" data-el="s15.e11" style="top:539.8px;height:39.6px;color:#cacbdb">Generous monthly swipes with our frontier models</div>
+<img class="a" src="assets/s15.e28.png" alt="" data-el="s15.e28" style="left:45.7px;top:583.6px;width:22.9px;height:21.3px">
+<div class="a bf" style="top:584.4px;color:#c5c8d7;white-space:nowrap">Golden checkmark next to your username</div>
+<div class="a mo" data-el="s15.e13">
+<svg style="position:absolute;left:16.1px;top:16.4px;width:11px;height:11px" viewBox="0 0 24 24" fill="none" stroke="#af89f0" stroke-width="1.8" stroke-linejoin="round"><path d="M10 4l1.6 4.4L16 10l-4.4 1.6L10 16l-1.6-4.4L4 10l4.4-1.6zM18 2l.8 2.2L21 5l-2.2.8L18 8l-.8-2.2L15 5l2.2-.8zM18 15l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z"/></svg>
+<span class="a" data-el="s15.e14" style="left:37.7px;top:12.6px;width:298.3px;height:19.8px;font-size:14px;line-height:19.8px;font-weight:700;color:#f8f6ff">More info</span>
+<svg style="position:absolute;left:347.5px;top:18.4px;width:12px;height:7px" viewBox="0 0 12 7" fill="none" stroke="#c8cad8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l5 5 5-5"/></svg>
+</div>
+<div class="a" data-el="s15.e15" style="left:15.2px;top:702.1px;width:380.9px;height:65.5px;font-size:10.1px;line-height:16.4px;text-align:center;color:#8e93a7;white-space:nowrap">Payment will be charged to your Google Play account at confirmation of <br>purchase. Subscription renews automatically unless canceled before the end of <br>the current period. You can manage or cancel in Google Play subscriptions after <br>purchase.</div>
+<span class="a lk" data-el="s15.e16" style="left:59.4px;color:#a89cce">Terms of Service</span>
+<span class="a dt" data-el="s15.e17" style="left:154.7px;color:#a3a7ba">•</span>
+<span class="a lk" data-el="s15.e18" style="left:162.3px;color:#a498ca">Privacy Policy</span>
+<span class="a dt" data-el="s15.e19" style="left:241.1px;color:#a1a4b6">•</span>
+<span class="a lk" data-el="s15.e20" style="left:248.8px;color:#a497c9">Restore Purchases</span>
+</section>
+<section data-screen="s04">
+<div class="pn"></div>
+<div class="hd" data-chrome="header">
+<div class="ib" data-el="s04.e01" style="left:16px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+<div class="tt" data-el="s04.e02" style="left:59px;width:304.4px">Notifications</div>
+<div class="ib" data-el="s04.e03" data-edge="s04.e03>s06" data-transition="push" style="left:363.4px"><svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M8 10.6h15.6M8 16h15.6M8 21.4h15.6"/></svg></div>
+</div>
+<div class="a em" data-el="s04.e04">No notifications</div>
+<div class="tb" data-chrome="tabbar">
+<div class="tab" data-el="s04.e05" data-edge="s04.e05>s01" data-transition="tab" style="left:27.4px"><svg width="27" height="27" viewBox="0 0 24 24" fill="#5a5c63"><path d="M12 3.2 2.6 11.6l1.3 1.5 1.3-1.1V21h5v-5a1.8 1.8 0 0 1 3.6 0v5h5V12l1.3 1.1 1.3-1.5z"/></svg></div>
+<div class="tab" data-el="s04.e06" style="left:100.6px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#5a5c63" stroke-width="2.3" stroke-linecap="round"><circle cx="10.3" cy="10.3" r="7"/><path d="M15.5 15.5 21 21"/></svg></div>
+<div class="tab" data-el="s04.e07" style="left:174.1px"><svg width="27" height="31" viewBox="0 0 28 32"><path fill="#5a5c63" d="M6 2.5 10.5 7.5Q14 6.6 17.5 7.5L22 2.5 23.2 10.5Q26.5 14.5 26 19Q25 27 16 29.5L14 31.5Q15 29 13 29.6Q2.5 28 2 18.5Q1.8 14 4.8 10.5Z"/><path fill="none" stroke="#000" stroke-width="1.6" stroke-linecap="round" d="M14 17a1 1 0 0 1 2 0 2 2 0 0 1-4 0 3 3 0 0 1 6 0 4 4 0 0 1-8 0 5 5 0 0 1 10 0 6 6 0 0 1-12 0"/></svg></div>
+<div class="tab" style="left:247.2px"><svg width="26" height="26" viewBox="0 0 24 24" fill="#af89f0"><path d="M12 22.5a2.6 2.6 0 0 0 2.5-2h-5a2.6 2.6 0 0 0 2.5 2zM19 16.5V11a7 7 0 0 0-5.3-6.8V3.6a1.7 1.7 0 0 0-3.4 0v.6A7 7 0 0 0 5 11v5.5L3 18.6v.9h18v-.9z"/></svg></div>
+<div class="tab" data-el="s04.e09" data-edge="s04.e09>s05" data-transition="tab" style="left:320.4px"><svg width="26" height="26" viewBox="0 0 24 24" fill="#5a5c63"><path d="M12 11.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zM12 13.5c-4.8 0-8 2.4-8 5.2V20a1.5 1.5 0 0 0 1.5 1.5h13A1.5 1.5 0 0 0 20 20v-1.3c0-2.8-3.2-5.2-8-5.2z"/></svg></div>
+</div>
+</section>
+<section data-screen="s10">
+<div class="cd" style="left:17.1px;top:145.4px;height:604px"></div>
+<div class="cd" style="left:211.1px;top:145.4px;height:604px"></div>
+<div class="cd c2" style="left:17.1px;top:763.2px;height:140px"></div>
+<div class="cd c2" style="left:211.1px;top:763.2px;height:140px"></div>
+<div class="st" style="left:18.4px;width:5.6px;background:linear-gradient(#151a33 0 28%,#a15b6c 28% 60%,#27477f 60%)"></div>
+<div class="st" style="left:183.2px;width:15.6px;background:linear-gradient(#a15b6c 0 6%,#161b34 6% 42%,#a05a6b 42%)"></div>
+<div class="st" style="left:212.4px;width:6.3px;background:linear-gradient(#6d9be0,#2f5eae 45%,#2a2238 75%,#161018)"></div>
+<div class="st" style="left:375.6px;width:17.6px;background:linear-gradient(#78a6e8 0,#3463b6 35%,#b24fb8 58%,#ff78cc 64%,#5a2460 74%,#181220 100%)"></div>
+<div class="a" style="left:18.4px;top:795.3px;width:180.4px;height:50px;background:#d3cfcb;overflow:hidden"><div class="a" style="left:22px;top:21px;width:40px;height:26px;border-radius:9px 9px 0 0;background:#a9bdd8"></div><div class="a" style="left:25px;top:3px;width:32px;height:25px;border-radius:50%;background:#3a2c27"></div><div class="a" style="left:33px;top:11px;width:15px;height:14px;border-radius:45%;background:#e8cdb3"></div></div>
+<div class="a" style="left:212.4px;top:795.3px;width:180.6px;height:50px;overflow:hidden;background:repeating-conic-gradient(from 0deg at 50% 100%,#f2c531 0 1.6deg,#0b1631 1.6deg 9deg)"><div class="a" style="left:65px;top:27px;width:56px;height:40px;border-radius:50%;background:#1aa3ad;border:2px solid #0c3550"></div></div>
+<div class="a xp" data-el="s10.e03"><p><span><b>Hidden Gems</b> show characters from smaller</span> <span><b>creators</b> with engaging conversations, created in the</span> <span>last 30 days.</span></p></div>
+<div class="dg" style="left:15.6px"><span class="z" data-el="s10.e04">8</span><span data-el="s10.e05">3</span></div>
+<div class="a" data-el="s10.e06" style="left:23.6px;top:112.8px;width:3.4px;height:16.4px;font-size:14.5px;line-height:16.4px;font-weight:700;color:#fefefe">,</div>
+<div class="dg" style="left:27.1px"><span class="z">8</span><span>4</span></div>
+<div class="dg" style="left:35px"><span class="z">8</span><span>3</span></div>
+<div class="dg" style="left:43px"><span class="z">8</span><span>0</span></div>
+<div class="a" data-el="s10.e13" style="left:55.6px;top:112.8px;width:66.7px;height:16.4px;font-size:14.5px;line-height:16.4px;color:var(--fg-4);white-space:nowrap">characters</div>
+<div class="a pg" data-el="s10.e14" style="left:228.9px;background:#2d2f33;border:1px solid #3c3e43"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#87888a" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6.3 1.8 3.2 5l3.1 3.2"/></svg></div>
+<div class="a" data-el="s10.e15" style="left:273.9px;top:112.8px;width:77px;height:16.4px"><div data-el="s10.e16" style="font-size:14.5px;line-height:16.4px;font-weight:700;text-align:center;color:var(--fg-1)">1 / 101</div></div>
+<div class="a pg" data-el="s10.e17" data-edge="s10.e17>s11" data-transition="push" style="left:359.6px;background:var(--bg-3);border:1px solid #4a4c51"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#e1e1e1" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3.7 1.8 6.8 5 3.7 8.2"/></svg></div>
+<div class="a" data-el="s10.e18" style="left:24px;top:155.1px;width:168.8px;height:204.2px"><img class="a" src="assets/s10.e18.art.png" alt="" style="left:0;top:16px;width:159.2px;height:188.1px"><div class="ct" data-el="s10.e19" style="width:64px;overflow:visible;text-overflow:clip">Kitsunami</div></div>
+<div class="a" data-el="s10.e48" style="left:218.7px;top:155.1px;width:168.8px;height:204.2px"><img class="a" src="assets/s10.e48.art.png" alt="" style="left:0;top:16px;width:156.9px;height:188.1px"><div class="ct" data-el="s10.e49" style="width:128px;color:#a781e4;overflow:visible;text-overflow:clip">Parkour Reborn RPG</div></div>
+<div class="bd" style="left:167.3px;top:189.2px;width:42.2px;background:#3f30a0"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"><path d="M3 1.5h7.5v6H6L3.5 10V7.5H3z"/></svg></div>
+<div class="a bt" data-el="s10.e47" style="left:183.2px;top:192.4px;width:13.7px;color:#fbfafd">31</div>
+<div class="bd" style="left:357.6px;top:189.2px;width:47px;background:#3b38bd"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"><path d="M3 1.5h7.5v6H6L3.5 10V7.5H3z"/></svg></div>
+<div class="a bt" data-el="s10.e81" style="left:375.6px;top:192.4px;width:16px;color:#dad7f2">26</div>
+<div class="a hl" data-el="s10.e20" style="left:24px;width:86.9px"><span data-el="s10.e21">@sonicthegoatyo</span></div>
+<div class="a hl" data-el="s10.e50" style="left:218.7px;width:87.6px"><span data-el="s10.e51">@thec00lestk1dd</span></div>
+<div class="a" data-el="s10.e22" style="left:24px;top:385.1px;width:168.8px;height:147.1px"><div class="ds b" data-el="s10.e23" style="top:0;height:45.7px">"C−could you... please...?" 🌊 | He wants a... bedtime story? Surge user!!</div><div class="ds b" data-el="s10.e24" style="top:55.7px;height:91.4px">Hey so I love Surge and Kit sosososo much they're my roman empire, so if you could make fluff siblings chats with these two and publish them that would be great... thank you... REQUE</div></div>
+<div class="a" data-el="s10.e52" style="left:218.7px;top:385.1px;width:168.8px;height:177.1px"><div class="ds" data-el="s10.e53" style="top:0;height:15.2px">[🏙️Fragment Update!]</div><div class="ds" data-el="s10.e54" style="top:25.2px;height:30.5px">An average RPG, but it's about <b>parkour reborn</b>??</div><div class="ds" data-el="s10.e55" style="top:65.6px;height:30.5px">Because parkour reborn had a lore I decided to make this bot.</div><div class="ds" data-el="s10.e56" style="top:106px;height:45.7px">The lore of <b>Parkour Reborn</b> takes place in the city of <b>Verna</b>. You are one of the Runners</div><div class="ds" style="top:161.9px;height:15.2px">[BOT IS HEAVILY UNFINISHED]</div></div>
+<div class="ln" style="left:18.4px;top:551.8px;width:162px"></div>
+<svg class="sp" style="left:137.3px;top:531px" viewBox="0 0 46 44"><path fill="#cdb6ff" d="M23 0C24 15 28 20 46 22C28 24 24 29 23 44C22 29 18 24 0 22C18 20 22 15 23 0Z"/></svg>
+<div class="ln" style="left:212.4px;top:581.9px;width:162px"></div>
+<svg class="sp" style="left:329.7px;top:560.6px" viewBox="0 0 46 44"><path fill="#cdb6ff" d="M23 0C24 15 28 20 46 22C28 24 24 29 23 44C22 29 18 24 0 22C18 20 22 15 23 0Z"/></svg>
+<div class="ch" data-el="s10.e25" style="left:24px;top:576px;width:56px;height:22.1px"><span data-el="s10.e26">👨 Male</span></div>
+<div class="ch" data-el="s10.e40" style="left:84.6px;top:576px;width:72.8px;height:22.1px"><span data-el="s10.e41">📚 Fictional</span></div>
+<div class="ch" data-el="s10.e27" style="left:24px;top:602.3px;width:85.3px"><span data-el="s10.e28" style="display:block;width:65.9px;font-size:9.7px;text-align:center;overflow:hidden">🦄 Non-human</span></div>
+<div class="ch" data-el="s10.e29" style="left:24px;top:629px;width:85.3px"><span data-el="s10.e30">🙇 Submissive</span></div>
+<div class="ch" style="left:113.9px;top:629px;width:54.5px"><span data-el="s10.e45">❤️‍🩹 Fluff</span></div>
+<div class="ch" data-el="s10.e31" style="left:24px;top:655.2px;width:56.4px"><span data-el="s10.e32">🐺 Furry</span></div>
+<div class="ch" data-el="s10.e42" style="left:85px;top:655.2px;width:70.9px"><span data-el="s10.e43">👩 FemPov</span></div>
+<div class="ch h" data-el="s10.e33" style="left:24px;top:681.5px;width:107.8px;height:22.1px;border-color:#4f8a5c"><span data-el="s10.e34" style="color:#90ee90;display:block;width:88.4px;font-size:9.9px;text-align:center;overflow:hidden">#sonicthehedgehog</span></div>
+<div class="ch h" data-el="s10.e35" style="left:24px;top:707.8px;width:97.9px;border-color:#5a5a78"><span data-el="s10.e36" style="color:#afc3dd">#sonicidwcomics</span></div>
+<div class="tk" data-el="s10.e37" style="left:24px;top:737.1px">2.4k tokens</div>
+<div class="ch" style="left:218.7px;top:606.1px;width:56px"><span>👨 Male</span></div>
+<div class="ch" data-el="s10.e75" style="left:279.2px;top:606.1px;width:67px"><span>👩‍🦰 Female</span></div>
+<div class="ch" data-el="s10.e60" style="left:218.7px;top:632.4px;width:60.2px;height:22.1px"><span>🎮 Game</span></div>
+<div class="ch" style="left:283.4px;top:632.4px;width:70.9px;height:22.1px"><span>👭 Multiple</span></div>
+<div class="ch" style="left:218.7px;top:659px;width:53.3px"><span data-el="s10.e63">🎲 RPG</span></div>
+<div class="ch" style="left:276.6px;top:659px;width:70.9px"><span data-el="s10.e72">👤 AnyPOV</span></div>
+<div class="ch h" style="left:218.7px;top:685.3px;width:72.8px;border-color:#1e7f80"><span data-el="s10.e65" style="color:#20b2aa;display:block;width:53.3px;font-size:9.6px;text-align:center;overflow:hidden">#runneruser</span></div>
+<div class="ch h" style="left:296px;top:685.3px;width:60.2px;border-color:#7f5628"><span style="color:#fda401">#parkour</span></div>
+<div class="ch h" style="left:218.7px;top:711.6px;width:54.5px;border-color:#713967"><span style="color:#ff69b4">#reborn</span></div>
+<div class="ch h" data-el="s10.e73" style="left:277.7px;top:711.6px;width:42.3px;border-color:#376072"><span data-el="s10.e74" style="color:#48d0cb">#city</span></div>
+<div class="tk" data-el="s10.e68" style="left:218.7px;top:737.5px">878 tokens</div>
+<div class="a" data-el="s10.e38" style="left:24px;top:773px;width:168.8px;height:89.5px"><div class="ct" data-el="s10.e39" style="width:168.4px;color:#aa84e9">Artemisia and Abas your famliy</div></div>
+<div class="a" data-el="s10.e69" style="left:218.7px;top:773px;width:168.8px;height:89.5px"><div class="ct" data-el="s10.e70" style="width:138.7px;color:#aa84e9">Wayback Intelligence</div></div>
+<div class="bd" style="left:159.3px;top:806px;width:50.2px;height:22.4px;background:#805cbe"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"><path d="M3 1.5h7.5v6H6L3.5 10V7.5H3z"/></svg></div>
+<div class="a bt" data-el="s10.e46" style="left:176.8px;top:810.3px;width:20.2px;color:#fefdfe">179</div>
+<div class="bd" style="left:358px;top:806px;width:46.6px;height:22.4px;background:#351174"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"><path d="M3 1.5h7.5v6H6L3.5 10V7.5H3z"/></svg></div>
+<div class="a bt" style="left:375.6px;top:810.3px;width:16px;color:#f3f1f7">92</div>
+<img class="a" data-el="s10.e83" src="assets/s10.e83.png" alt="" style="left:27.4px;top:834.3px;width:63.6px;height:28.2px">
+<img class="a" data-el="s10.e84" src="assets/s10.e84.png" alt="" style="left:100.6px;top:834.3px;width:63.6px;height:28.2px">
+<img class="a" src="assets/s10.e85.png" alt="" style="left:174.1px;top:834.3px;width:63.6px;height:28.2px">
+<img class="a" src="assets/s10.e86.png" alt="" style="left:247.2px;top:834.3px;width:63.6px;height:28.2px">
+<img class="a" src="assets/s10.e87.png" alt="" style="left:320.4px;top:834.3px;width:63.6px;height:28.2px">
+<div class="hd" data-chrome="header">
+<div class="tt" data-el="s10.e01" style="left:16px;width:184.8px">Build, Share, Explore</div>
+<div class="ib" data-el="s10.e02" style="left:363.4px"><svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M8 10.6h15.6M8 16h15.6M8 21.4h15.6"/></svg></div>
+</div>
+</section>
+<section data-screen="s11">
+<div class="a ex" data-el="s11.e03"><div class="ext">Hidden Gems show characters from <b>smaller </b><br><b>creators</b> with engaging conversations, created in the <br>last 30 days.</div></div>
+<div class="a dg hid" data-el="s11.e04" style="left:15.6px">8</div>
+<div class="a dg" data-el="s11.e05" style="left:15.6px">3</div>
+<div class="a" data-el="s11.e06" style="left:23.6px;top:112.4px;width:3.4px;height:16.4px;font-size:14px;font-weight:700;line-height:16.4px;color:#fefefe">,</div>
+<div class="a dg hid" style="left:27.1px">8</div>
+<div class="a dg" style="left:27.1px">4</div>
+<div class="a dg hid" style="left:35px">8</div>
+<div class="a dg" style="left:35px">3</div>
+<div class="a dg hid" style="left:43px">8</div>
+<div class="a dg" style="left:43px">0</div>
+<div class="a" data-el="s11.e13" style="left:55.6px;top:112.4px;width:66.7px;height:16.4px;font-size:14px;line-height:16.4px;color:var(--fg-4);white-space:nowrap">characters</div>
+<div class="a pb" data-el="s11.e14" style="left:228.9px"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M6.4 1.2 2.6 5l3.8 3.8" fill="none" stroke="#e1e1e1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+<div class="a" data-el="s11.e15" style="left:273.9px;top:112.4px;width:77px;height:16.4px"><span class="pit" data-el="s11.e16">2 / 101</span></div>
+<div class="a pb" data-el="s11.e17" style="left:359.6px"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M3.6 1.2 7.4 5 3.6 8.8" fill="none" stroke="#e1e1e1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+<div class="a cd" style="left:16px;top:145px"></div>
+<div class="a cd" style="left:211px;top:145px"></div>
+<div class="a cd" style="left:16px;top:705px"></div>
+<div class="a cd" style="left:211px;top:705px"></div>
+<div class="a fl" style="left:17px;top:177.4px;background:linear-gradient(180deg,#f3e7e7 0,#f6efee 40%,#eceaf2 70%,#c5cbe0 100%)"></div>
+<div class="a fl" style="left:212px;top:177.4px;background:linear-gradient(180deg,#3d3a36 0,#5b3a2e 22%,#9a3020 42%,#8a3223 60%,#a99d90 78%,#d8d3cc 100%)"></div>
+<div class="a fl" style="left:17px;top:737.6px;height:120px;background:linear-gradient(180deg,#6d7650 0,#9a956d 50%,#b8a47f 100%)"></div>
+<div class="a fl" style="left:212px;top:737.6px;height:120px;background:#e9e8ee"></div>
+
+<div class="a" data-el="s11.e18" style="left:24px;top:154.7px;width:168.8px;height:204.2px"><img class="a" src="assets/s11.e18.art.png" alt="" style="left:0;top:16px;width:150.8px;height:188.1px"><div class="a ttl" data-el="s11.e19" style="left:0;top:0;width:31.6px;height:16px">Luna</div></div>
+<div class="a bd" style="left:157.2px;width:52.4px"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M1.2 1.2h7.6v5.4H4L1.2 8.8z" fill="none" stroke="#efe7fb" stroke-width="1.1" stroke-linejoin="round"/></svg><span data-el="s11.e20">150</span></div>
+<div class="a fd" style="left:200px"></div>
+<div class="a" data-el="s11.e23" style="left:24px;top:365.3px;width:142.5px;height:12.9px"><div class="a hn" data-el="s11.e24" style="width:142.5px">@whiteCATeieioeieoeoeoeie</div></div>
+<div class="a" data-el="s11.e27" style="left:24px;top:384.8px;width:168.8px;height:172.2px">
+<div class="a ds" data-el="s11.e28" style="top:0;height:61px">+++++++++++++++++++++++++++<br>++++++++++++++"One wish &mdash; and <br>you're already in her power. Just <br>don't wish for too much."</div>
+<div class="a ds" data-el="s11.e29" style="top:70.8px;height:30.5px">+++++++++++++++++++++++++++<br>++++++++++++++</div>
+<div class="a ds bb" data-el="s11.e30" style="top:111.2px;height:61px">Name: Luna. Age: 19 years old. <br>Gender: Female. Height: 162 <br>cm. Build: Slender, flexible, with <br>smoot</div>
+</div>
+<div class="a dv" style="left:17px;top:577.6px"></div>
+<div class="a gl" style="left:133.7px;top:554.3px"></div>
+<svg class="a st" style="left:139.7px;top:555.3px" viewBox="0 0 36 46"><path d="M18 0C19 17 21 21 36 23 21 25 19 29 18 46 17 29 15 25 0 23 15 21 17 17 18 0z" fill="#dccaff"/></svg>
+<div class="a ch" data-el="s11.e33" style="left:24px;top:600.8px;width:66.7px"><span data-el="s11.e34">&#x1F469;&#x200D;&#x1F9B0; Female</span></div>
+<div class="a ch" data-el="s11.e35" style="left:95.2px;top:600.8px;width:85.7px"><span data-el="s11.e36">&#x1F984; Non-human</span></div>
+<div class="a ch" data-el="s11.e37" style="left:24px;top:627px;width:70.5px"><span data-el="s11.e38">&#x1F464; AnyPOV</span></div>
+<div class="a ch" data-el="s11.e39" style="left:99px;top:627px;width:54.5px"><span data-el="s11.e40">&#x2764;&#xFE0F;&#x200D;&#x1FA79; Fluff</span></div>
+<div class="a ch ht" data-el="s11.e41" style="left:24px;top:653.7px;width:46.5px"><span data-el="s11.e42">#furry</span></div>
+<div class="a tk" data-el="s11.e43" style="left:24px;top:679.6px">1.2k tokens</div>
+
+<div class="a" data-el="s11.e21" style="left:218.7px;top:154.7px;width:168.8px;height:204.6px"><img class="a" src="assets/s11.e21.art.png" alt="" style="left:0;top:16.4px;width:155.7px;height:188.1px"><div class="a ttl" data-el="s11.e22" style="left:0;top:0;width:143.2px;height:16.4px;line-height:16.4px">Aigis ate big burgir &#x1F354;</div></div>
+<div class="a bd" style="left:356.8px;width:47.8px"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M1.2 1.2h7.6v5.4H4L1.2 8.8z" fill="none" stroke="#efe7fb" stroke-width="1.1" stroke-linejoin="round"/></svg><span data-el="s11.e44">55</span></div>
+<div class="a fd" style="left:395px"></div>
+<div class="a" data-el="s11.e25" style="left:218.7px;top:365.7px;width:34.3px;height:12.9px"><div class="a hn" data-el="s11.e26" style="width:34.3px">@_rein</div></div>
+<div class="a" data-el="s11.e31" style="left:218.7px;top:385.1px;width:168.8px;height:15.2px"><div class="a ds" data-el="s11.e32" style="top:0;height:15.2px;line-height:15.2px;color:#e5dfef">YUM</div></div>
+<div class="a dv" style="left:212px;top:421.5px"></div>
+<div class="a gl" style="left:328.7px;top:398.2px"></div>
+<svg class="a st" style="left:334.7px;top:399.2px" viewBox="0 0 36 46"><path d="M18 0C19 17 21 21 36 23 21 25 19 29 18 46 17 29 15 25 0 23 15 21 17 17 18 0z" fill="#dccaff"/></svg>
+<div class="a ch" data-el="s11.e45" style="left:218.7px;top:444.2px;width:66.7px"><span>&#x1F469;&#x200D;&#x1F9B0; Female</span></div>
+<div class="a ch" style="left:289.9px;top:444.2px;width:62.9px"><span data-el="s11.e48">&#x1F4FA; Anime</span></div>
+<div class="a ch" style="left:218.7px;top:470.5px;width:60.6px;height:22.1px"><span data-el="s11.e50">&#x1F916; Robot</span></div>
+<div class="a ch" data-el="s11.e51" style="left:283.8px;top:470.5px;width:54.5px;height:22.1px"><span data-el="s11.e52">&#x2764;&#xFE0F;&#x200D;&#x1FA79; Fluff</span></div>
+<div class="a ch hy" style="left:218.7px;top:497.1px;width:61.3px"><span>#persona</span></div>
+<div class="a ch ho" style="left:284.6px;top:497.1px;width:67.4px"><span>#persona3</span></div>
+<div class="a tk" data-el="s11.e57" style="left:218.7px;top:679.2px">749 tokens</div>
+
+<div class="a" data-el="s11.e58" style="left:24px;top:715px;width:168.8px;height:147.4px"><img class="a" src="assets/s11.e58.art.png" alt="" style="left:0;top:16.1px;width:155.4px;height:103.1px"><div class="a ttl" data-el="s11.e59" style="left:0;top:0;width:95.2px;height:16px">Adrien Agreste</div></div>
+<div class="a bd" style="left:161.7px;top:748.4px;width:47.9px"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M1.2 1.2h7.6v5.4H4L1.2 8.8z" fill="none" stroke="#efe7fb" stroke-width="1.1" stroke-linejoin="round"/></svg><span data-el="s11.e60">50</span></div>
+<div class="a fd" style="left:200px;top:770.4px"></div>
+<div class="a" data-el="s11.e61" style="left:218.7px;top:715px;width:168.8px;height:147.4px"><img class="a" src="assets/s11.e61.art.png" alt="" style="left:0;top:16.1px;width:157.3px;height:103.1px"><div class="a ttl" data-el="s11.e62" style="left:0;top:0;width:75.4px;height:16px">Abbie -FPE-</div></div>
+<div class="a bd" style="left:358.3px;top:748.4px;width:46.3px"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M1.2 1.2h7.6v5.4H4L1.2 8.8z" fill="none" stroke="#efe7fb" stroke-width="1.1" stroke-linejoin="round"/></svg><span>42</span></div>
+<div class="a fd" style="left:395px;top:770.4px"></div>
+
+<img class="a" data-el="s11.e64" src="assets/s11.e64.png" alt="" style="left:27.4px;top:834.3px;width:63.6px;height:28.2px">
+<img class="a" data-el="s11.e65" src="assets/s11.e65.png" alt="" style="left:100.6px;top:834.3px;width:63.6px;height:28.2px">
+<img class="a" src="assets/s11.e66.png" alt="" style="left:174.1px;top:834.3px;width:63.6px;height:28.2px">
+<img class="a" src="assets/s11.e67.png" alt="" style="left:247.2px;top:834.3px;width:63.6px;height:28.2px">
+<img class="a" src="assets/s11.e68.png" alt="" style="left:320.4px;top:834.3px;width:63.6px;height:28.2px">
+
+<div class="a hd" data-chrome="header">
+<div class="a t1" data-el="s11.e01">Build, Share, Explore</div>
+<div class="a mn" data-el="s11.e02"><svg width="32" height="32" viewBox="0 0 32 32"><path d="M8.5 10.1h14.2M8.5 16h14.2M8.5 21.9h14.2" stroke="#fff" stroke-width="1.9" stroke-linecap="round"/></svg></div>
+</div>
+</section>
+<script id="simula-actions" type="application/json">{"s01": {"swipe": ["s10", "push", null]}, "s06": {"back": ["s01", "back", null]}, "s07": {"back": ["s01", "back", null]}, "s08": {"back": ["s01", "back", null]}, "s10": {"swipe": ["s01", "push", null]}, "s13": {"back": ["s02", "back", null]}, "s14": {"back": ["s02", "back", null], "swipe": ["s15", "push", null]}, "s15": {"swipe": ["s14", "push", null]}, "s20": {"back": ["s03", "back", null]}, "s24": {"back": ["s05", "back", null]}, "s25": {"type": ["s25", "push", "s25.e15"]}}</script>
+<section data-screen="new:faster-replies-offer" data-flow="c01" data-parent="s14">
+<div style="position:absolute;left:0;top:0;width:411px;height:838px;background:rgba(0,0,0,.6)"></div>
+<div style="position:absolute;left:0;top:520px;width:411px;height:318px;box-sizing:border-box;background:#0b122d;border:1px solid rgba(190,195,230,.2);border-bottom:0;border-radius:18px 18px 0 0;font-family:var(--font-1);color:#f8f6ff">
+<div style="position:absolute;left:183.7px;top:9.6px;width:44px;height:4.3px;border-radius:3px;background:#6f7173"></div>
+<div style="position:absolute;left:31.2px;top:28px;width:348px;height:30px;font-family:var(--font-3);font-size:24px;line-height:30px;color:#f8f6ff;white-space:nowrap">Faster replies for 1 hour</div>
+<div style="position:absolute;left:31.2px;top:68px;width:348px;font-size:14px;line-height:19.8px;color:#cbccda">Not ready for Janitor Plus? Play a short game and get faster replies for the next 1 hour. Janitor Plus keeps them on all month.</div>
+<div data-edge="new:faster-replies-offer>new:sponsored-game" data-transition="modal" style="position:absolute;left:47.2px;top:168px;width:316.9px;height:56.8px;border-radius:13px;background:var(--fg-2);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;line-height:20.6px;color:#000;cursor:pointer;white-space:nowrap">Play a short game</div>
+<div data-edge="new:faster-replies-offer>s14" data-transition="back" style="position:absolute;left:47.2px;top:236px;width:316.9px;height:44.6px;box-sizing:border-box;border-radius:12px;background:#0a122d;border:1px solid rgba(200,205,235,.28);display:flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:700;line-height:19.8px;color:#f8f6ff;cursor:pointer;white-space:nowrap">No thanks</div>
+</div>
+</section>
+<section data-screen="new:sponsored-game" data-flow="c01" data-parent="s14" data-ad></section>
+<script id="simula-runtime-js">
+(() => {
+  const ROOT = "s01";
+  const find = id => document.querySelector(`[data-screen="${CSS.escape(id)}"]`);
+  let current = null;
+  function show(id, transition) {
+    const target = find(id);
+    if (!target) return false;
+    const from = current && find(current);
+    const closingOverlay = from && from.dataset.parent === id;
+    const kind = transition === 'unknown' ? 'push' : transition;
+    for (const s of document.querySelectorAll('[data-screen]')) s.classList.remove('simula-on', 'simula-push', 'simula-back', 'simula-modal');
+    const parent = target.dataset.parent && find(target.dataset.parent);
+    if (parent) parent.classList.add('simula-on');
+    target.classList.add('simula-on');
+    if (['push', 'back', 'modal'].includes(kind) && !closingOverlay) target.classList.add('simula-' + kind);
+    current = id;
+    document.body.dataset.transition = kind;
+    return true;
+  }
+  // Edges that start on no element come from code's #simula-actions map: {screen: {action: [to, transition, field]}}.
+  // A drag of 48 px or more is a swipe, or the system back when it starts at the left edge and runs right; Escape is
+  // the system back too; Enter in the screen's text field sends what was typed.
+  let actions = null;
+  const actionsOf = () => actions = actions || JSON.parse(document.getElementById('simula-actions')?.textContent || '{}');
+  const gesture = kind => { const a = (actionsOf()[current] || {})[kind]; return !!a && show(a[0], a[1]); };
+  let start = null, dragged = false;
+  document.addEventListener('pointerdown', e => { start = [e.clientX, e.clientY]; dragged = false; });
+  document.addEventListener('pointercancel', () => { start = null; });
+  // A drag that starts on a picture must stay a swipe: the browser's own image drag would cancel the pointer.
+  document.addEventListener('dragstart', e => e.preventDefault());
+  document.addEventListener('pointerup', e => {
+    if (!start) return;
+    const [x, y] = start, dx = e.clientX - x, dy = e.clientY - y;
+    start = null;
+    if (Math.hypot(dx, dy) < 48) return;
+    dragged = true;
+    if (!(x <= 24 && dx > Math.abs(dy) && gesture('back'))) gesture('swipe');
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') gesture('back');
+    const field = e.target.closest && e.target.closest('[data-simula-field]');
+    if (e.key === 'Enter' && field && field.closest('[data-screen]').dataset.screen === current) {
+      e.preventDefault();
+      gesture('type');
+    }
+  });
+  const fields = () => {
+    for (const [sid, a] of Object.entries(actionsOf())) {
+      const id = a.type && a.type[2];
+      const f = id && document.querySelector(`[data-screen="${CSS.escape(sid)}"] [data-el="${CSS.escape(id)}"]`);
+      if (!f) continue;
+      f.contentEditable = 'plaintext-only';
+      f.tabIndex = 0;
+      f.dataset.simulaField = '';
+      // The drawn placeholder gives way on the first focus, as a real field's hint does.
+      f.addEventListener('focus', () => {
+        if ('simulaTyped' in f.dataset) return;
+        f.dataset.simulaTyped = '';
+        f.textContent = '';
+      });
+    }
+  };
+  document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', fields) : fields();
+  document.addEventListener('click', e => {
+    if (dragged) { dragged = false; return; }
+    const el = e.target.closest('[data-edge]');
+    if (!el) return;
+    e.preventDefault();
+    show(el.dataset.edge.split('>').pop(), el.dataset.transition || 'push');
+  });
+  window.simula = {go: id => show(id, 'tab'), state: () => current, reset: () => show(ROOT, 'tab')};
+  show(ROOT, 'tab');
+})();
+</script>
+<script id="simula-flow-js">
+(() => {
+  const FLOW = {"trigger": "s14", "ad": "new:sponsored-game", "afterAd": "s03", "card": "<div class=\"sa-dim\"><\/div><div class=\"sa-card\"><div class=\"sa-top\"><span class=\"sa-tag\">Sponsored game<\/span><button class=\"sa-close\" aria-label=\"Close\">\u00d7<\/button><\/div><div class=\"sa-game\"><i><\/i><i><\/i><i><\/i><i><\/i><i><\/i><i><\/i><i><\/i><i><\/i><i><\/i><\/div><div class=\"sa-bar\"><i><\/i><\/div><div class=\"sa-reward\">Finish to get: faster replies, 1 hour<\/div><button class=\"sa-play\">Play<\/button><button class=\"sa-cta\">Learn more<\/button><\/div>", "failNote": "That didn't go through. Nothing was used, and the app is as it was."};
+  const find = id => id && document.querySelector(`[data-screen="${CSS.escape(id)}"]`);
+  const ad = find(FLOW.ad);
+  const log = {events: [], grants: 0};
+  const failures = ['LOAD_FAILED', 'DISPLAY_FAILED', 'REWARD_VERIFICATION_FAILED'];
+  const onAd = () => ad && window.simula.state() === FLOW.ad;
+  let timers = [];
+  function note(text) {
+    const el = document.createElement('div');
+    el.className = 'sa-note';
+    el.textContent = text;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2500);
+  }
+  function emit(type) {
+    log.events.push(type);
+    if (type === 'REWARD_VERIFIED' && log.grants === 0) {
+      log.grants = 1;
+      document.body.classList.add('simula-rewarded');
+      if (onAd()) window.simula.go(FLOW.afterAd);
+    } else if ((type === 'CLOSED' || failures.includes(type)) && onAd()) {
+      timers.forEach(clearTimeout);
+      timers = [];
+      window.simula.go(FLOW.trigger);
+      if (type !== 'CLOSED') note(FLOW.failNote);
+    }
+  }
+  window.simulaAd = {emit, complete: () => { emit('EARNED_REWARD'); emit('REWARD_VERIFIED'); },
+                     grants: () => log.grants, events: () => [...log.events]};
+  if (!ad) return;
+  ad.innerHTML = FLOW.card;
+  ad.querySelector('.sa-close').addEventListener('click', () => emit('CLOSED'));
+  ad.querySelector('.sa-cta').addEventListener('click', () => emit('CLICKED'));
+  ad.querySelector('.sa-play').addEventListener('click', () => {
+    ad.querySelector('.sa-bar i').style.width = '100%';
+    timers.push(setTimeout(() => {
+      emit('EARNED_REWARD');
+      timers.push(setTimeout(() => emit('REWARD_VERIFIED'), 400));
+    }, 3000));
+  });
+  let shown = false;
+  new MutationObserver(() => {
+    const on = ad.classList.contains('simula-on');
+    if (on && !shown) ['LOADED', 'DISPLAYED', 'IMPRESSION'].forEach(emit);
+    shown = on;
+  }).observe(ad, {attributes: true, attributeFilter: ['class']});
+})();
+</script>
+</body></html>

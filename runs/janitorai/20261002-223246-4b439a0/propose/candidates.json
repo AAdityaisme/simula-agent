@@ -1,0 +1,748 @@
+{
+ "schema_version": 1,
+ "candidates": [
+  {
+   "id": "c04",
+   "lens": "subscriber",
+   "kind": "product_change",
+   "title": "Product change: A gold ring around your profile picture for 24 hours",
+   "anchor_evidence_ids": [],
+   "bible_mechanic": "M11",
+   "what_is_different_here": "Status is part of what Janitor Plus sells: the paywall promises a 'Golden checkmark next to your username' (s14.e12, gold badge s14.e25). The profile (s05) shows the avatar, username, follower counts and public profile link to other users in this creator community (characters, personas, scripts). A matching gold ring around the avatar extends that status for subscribers. It costs nothing to serve, and the profile is a safe screen. The ring is new and not sold, so it never undercuts the plan.",
+   "adds": "A daily card on the profile lets subscribers play a short game to show a gold ring around their profile picture for 24 hours.",
+   "removes_nothing_free": true,
+   "trigger_event": "A Janitor Plus subscriber opens their own profile and has no ring active, at most once a day.",
+   "trigger_state_id": "s05",
+   "placement": "A small card under the follower counts on the user's own profile.",
+   "offer_copy": "Play a short game to add a gold ring around your profile picture, matching your golden checkmark, for 24 hours.",
+   "reward": {
+    "kind": "cosmetic",
+    "unit": "gold profile ring",
+    "amount": 1.0,
+    "duration": "24 hours"
+   },
+   "for_users": "paying",
+   "grants_id": null,
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per day per subscriber, resets at midnight local time. Only offered while no ring is active.",
+   "daily_cap": 1,
+   "decline_path": "The card closes until tomorrow. The profile and golden checkmark stay exactly as they were.",
+   "ad_fail_path": "If no game is available, the card does not show. If the game can't be confirmed, a short note says the ring wasn't added, and the subscriber can try again today.",
+   "subscriber_treatment": "Only Janitor Plus subscribers see this offer, and the ring sits beside the golden checkmark they already have. Free users see no change.",
+   "advertiser_category": "Casual mobile games and anime streaming",
+   "character_use": "None",
+   "flow_steps": [
+    {
+     "state_id": "s05",
+     "caption": "A subscriber opens their own profile."
+    },
+    {
+     "state_id": "new:ring-offer-card",
+     "caption": "A card offers a gold ring around their profile picture for 24 hours."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The subscriber plays a short sponsored game."
+    },
+    {
+     "state_id": "s05",
+     "caption": "The profile now shows the gold ring next to the golden checkmark for 24 hours."
+    }
+   ],
+   "after_reward": "When the 24 hours end, the ring fades and the card returns the next day, giving subscribers a reason to come back and keep their profile looking its best.",
+   "rationale": "Subscribers already pay partly for a visible gold badge, so a matching ring that others can see is a reward they value. It costs the app nothing to serve. It brings ad income from users who otherwise see no ads, and it never touches what free users get or what the plan sells.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve. The check can't tell whether it gives a place ahead of other users, which apps sell as a boost: no reward kind types visibility. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1).",
+    "lost_sale": null
+   },
+   "reach_score": 1.0,
+   "rank_score": 1.0,
+   "dropped_reason": null,
+   "flags": []
+  },
+  {
+   "id": "c01",
+   "lens": "free_at_limit",
+   "kind": "existing_anchor",
+   "title": "Existing opportunity: Faster replies for one hour",
+   "anchor_evidence_ids": [
+    "s14.e10",
+    "s14.e03",
+    "s14.e21"
+   ],
+   "bible_mechanic": "M02",
+   "what_is_different_here": "The Janitor Plus paywall (s14) lists 'Priority routing for faster replies' (s14.e10) at $12.99/month, and a free user can close it (s14.e21). The explorer measured long replies that took about 92 seconds to finish (exp1), so faster replies are something a free user feels in every reply. The reward reuses routing the app already runs for Plus members, so it costs no extra replies. No message limit was seen in chat, so the paywall close is the wall this idea uses.",
+   "adds": null,
+   "removes_nothing_free": true,
+   "trigger_event": "A free user taps Close on the Janitor Plus paywall.",
+   "trigger_state_id": "s14",
+   "placement": "A small sheet that slides up over the Janitor Plus paywall right after the user taps Close.",
+   "offer_copy": "Not ready for Janitor Plus? Play a short game and get faster replies for the next 1 hour. Janitor Plus keeps them on all month.",
+   "reward": {
+    "kind": "queue_priority",
+    "unit": "faster replies",
+    "amount": 1.0,
+    "duration": "1 hour"
+   },
+   "for_users": "free",
+   "grants_id": "l4",
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "2 per day, resets at midnight local time",
+   "daily_cap": 2,
+   "decline_path": "Tapping 'No thanks' closes the sheet and the paywall, exactly as Close does today; chats keep working at normal speed.",
+   "ad_fail_path": "If no game is available the sheet does not appear and the paywall simply closes; if the game is not confirmed, a short note says no reward was given this time, and the try does not count toward today's 2.",
+   "subscriber_treatment": "Janitor Plus members already have faster replies and never see this offer.",
+   "advertiser_category": "Mobile games",
+   "character_use": "None",
+   "flow_steps": [
+    {
+     "state_id": "s14",
+     "caption": "A free user reads the Janitor Plus offer and taps Close."
+    },
+    {
+     "state_id": "new:faster-replies-offer",
+     "caption": "A sheet offers faster replies for 1 hour for one short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays a short sponsored game and can quit at any time."
+    },
+    {
+     "state_id": "s03",
+     "caption": "Back in My Chats, a banner says faster replies are on for the next 60 minutes."
+    }
+   ],
+   "after_reward": "When the hour ends, a banner says replies are back to normal speed and that Janitor Plus keeps them fast all month for $12.99.",
+   "rationale": "Replies in this app are long and take over a minute to finish, so a free user who just said no to $12.99 still wants them sooner. The reward uses routing the app already gives Plus members and adds no replies, so it costs almost nothing to serve. It turns a closed paywall into ad revenue and lets free users feel one Plus benefit before deciding again.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve. It is a sample of the paid benefit l4 \"Priority routing for faster replies\", which stays on sale. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost (the peak-capacity cost is real but unknown); one view per reward; a publisher-net eCPM (share 1).",
+    "lost_sale": null
+   },
+   "reach_score": 0.5,
+   "rank_score": 0.5,
+   "dropped_reason": null,
+   "flags": []
+  },
+  {
+   "id": "c03",
+   "lens": "subscriber",
+   "kind": "existing_anchor",
+   "title": "Existing opportunity: Double the memory for your next 10 messages",
+   "anchor_evidence_ids": [
+    "s14.e09",
+    "s06.e50"
+   ],
+   "bible_mechanic": "M02",
+   "what_is_different_here": "Janitor Plus sells memory as a number: the paywall line '5× context for better memory' (s14.e09) and the headline 'More memory for long chats' (s14.e01). Users here run long stories. Chats with Miro show 12 chats with up to 17 messages each (s20), and replies averaged about 3,200 characters, so a long story quickly outgrows even 5× memory. A subscriber can only buy more of the same plan, and no higher tier was seen. A short boost from 5× to 10× for a few messages is the one thing this payer cannot get today. It sits in the side menu (s06) slot where free users see the upgrade banner (s06.e50), which is a safe screen away from chat content. The play pays only for the extra memory on messages the subscriber would send anyway.",
+   "adds": null,
+   "removes_nothing_free": true,
+   "trigger_event": "A Janitor Plus subscriber opens the side menu, at most once a day.",
+   "trigger_state_id": "s06",
+   "placement": "A card in the side menu, in the spot where free users see the upgrade banner.",
+   "offer_copy": "Play a short game to have the AI remember 10× more of your story, instead of 5×, for your next 10 messages in one chat today.",
+   "reward": {
+    "kind": "inference",
+    "unit": "context",
+    "amount": 10.0,
+    "duration": "next 10 messages in one chat, used by midnight local time"
+   },
+   "for_users": "paying",
+   "grants_id": "l3",
+   "cost_inputs": {
+    "inference_count": 10,
+    "tokens_in": 16000,
+    "tokens_out": 800,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per day per subscriber, resets at midnight local time",
+   "daily_cap": 1,
+   "decline_path": "The card closes and stays hidden until tomorrow. The plan's 5× memory works exactly as before.",
+   "ad_fail_path": "If no game is available, the card does not show. If the game can't be confirmed, a short note says no boost was added, and the subscriber can try again today.",
+   "subscriber_treatment": "Only Janitor Plus subscribers see this offer. It adds to the plan and never replaces it. Free users keep seeing the upgrade banner as today.",
+   "advertiser_category": "Story-driven mobile games and streaming entertainment",
+   "character_use": "None",
+   "flow_steps": [
+    {
+     "state_id": "s06",
+     "caption": "A subscriber opens the side menu as usual."
+    },
+    {
+     "state_id": "new:memory-offer-card",
+     "caption": "A card offers 10× memory instead of 5× for the next 10 messages in one chat."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The subscriber plays a short sponsored game."
+    },
+    {
+     "state_id": "s03",
+     "caption": "A note on My Chats says the next 10 messages in the chat they open will remember twice as much."
+    }
+   ],
+   "after_reward": "After 10 messages the chat goes back to the plan's 5× memory, with a note that the boost can be played for again tomorrow, which brings the subscriber back daily.",
+   "rationale": "Subscribers pay mainly for memory in long stories, and the paywall headline leads with it. A one-day doubling is the only way to get more. The play pays only for the extra memory on messages the subscriber was already sending, so it pays for itself in high-earning regions or with cheap serving. It also gives paying users a daily reason to open the app.",
+   "economics": {
+    "cost_2k": 0.021,
+    "cost_8k": 0.036,
+    "breakeven_ecpm_2k": 21.0,
+    "breakeven_ecpm_8k": 36.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "CONDITIONAL",
+    "assumption_line": "Costs ~$0.0210 per reward to serve; pays for itself above $21.00 eCPM at 2k context ($36.00 at 8k). It may give away something the app could sell (more of the paid benefit l3 \"5× context for better memory\" to users who pay for it); that lost sale isn't counted. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 10 replies of 800 tokens out, at $0.25 / $2.00 per million tokens in / out (central prices); the verdict uses the 8k figure; one view per reward; a publisher-net eCPM (share 1).",
+    "lost_sale": "more of the paid benefit l3 \"5× context for better memory\" to users who pay for it"
+   },
+   "reach_score": 0.5,
+   "rank_score": 0.5,
+   "dropped_reason": null,
+   "flags": []
+  },
+  {
+   "id": "c08",
+   "lens": "ledger_l9",
+   "kind": "product_change",
+   "title": "Product change: Wear the golden checkmark for 24 hours by backing a creator",
+   "anchor_evidence_ids": [
+    "s14.e12",
+    "s14.e25"
+   ],
+   "bible_mechanic": "M27",
+   "what_is_different_here": "Janitor Plus sells a 'Golden checkmark next to your username' (s14.e12, s14.e25), a pure badge that costs nothing to grant. Creators already get notified about activity on their characters (l11, 'Get notified when a new comment is submitted to your characters'), so a short 'a player backed your character' notice fits an existing channel. The offer opens on a Hidden Gems character page (s08) after the user taps like (s08.e16), naming the smaller creator (s08.e12). The creator gets a notice only; no feed or ranking changes.",
+   "adds": "After a free user plays a short game on a Hidden Gems character page, they wear the golden checkmark for 24 hours and the character's creator gets a notice that a player backed their character.",
+   "removes_nothing_free": true,
+   "trigger_event": "The user taps like on a character page opened from the Hidden Gems feed.",
+   "trigger_state_id": "s08",
+   "placement": "A small sheet over the character page that slides up after the like is saved.",
+   "offer_copy": "Back this creator: play a short game to wear the golden checkmark next to your username for 24 hours, and they'll get a note that a player backed their character.",
+   "reward": {
+    "kind": "cosmetic",
+    "unit": "golden checkmark next to your username",
+    "amount": 1.0,
+    "duration": "24 hours"
+   },
+   "for_users": "free",
+   "grants_id": "l6",
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per day per user, resets at midnight local time; each creator gets at most one notice from the same user per week.",
+   "daily_cap": 1,
+   "decline_path": "The sheet closes, the like stays saved, and nothing else changes.",
+   "ad_fail_path": "If no game is available the sheet doesn't appear; if the game can't be confirmed, the user sees 'That didn't go through, nothing was used up', no notice is sent, and the offer stays available today.",
+   "subscriber_treatment": "Janitor Plus members already wear the golden checkmark, so they don't see this sheet.",
+   "advertiser_category": "Mobile games and creative tools",
+   "character_use": "The sheet shows the character's name and the creator's handle so the user knows who they're backing; the character does not appear in the game.",
+   "flow_steps": [
+    {
+     "state_id": "s08",
+     "caption": "The user likes a new character from a smaller creator in Hidden Gems."
+    },
+    {
+     "state_id": "new:back-creator-sheet",
+     "caption": "A sheet offers the golden checkmark for 24 hours and a note to the creator for one short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays a short sponsored game and can leave at any time."
+    },
+    {
+     "state_id": "s08",
+     "caption": "Once confirmed, the checkmark appears next to the user's name and the page says the creator was told."
+    }
+   ],
+   "after_reward": "When the 24 hours end, the checkmark comes off with a note that Janitor Plus keeps it next to your name for good, and tomorrow you can back another creator.",
+   "rationale": "The golden checkmark is a visible status perk users can't get without paying, and a short game for a day of it is an easy yes that costs the app nothing. Smaller creators, who are the point of Hidden Gems, hear that real players backed their new character, which keeps them publishing. Showing users the badge for a day also previews what Janitor Plus offers.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve. It is a sample of the paid benefit l6 \"Golden checkmark next to your username\", which stays on sale. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1).",
+    "lost_sale": null
+   },
+   "reach_score": 0.5,
+   "rank_score": 0.5,
+   "dropped_reason": null,
+   "flags": []
+  },
+  {
+   "id": "c05",
+   "lens": "drifting",
+   "kind": "existing_anchor",
+   "title": "Existing opportunity: 5× context for better memory on your next 5 replies",
+   "anchor_evidence_ids": [
+    "s14.e09",
+    "s14.e03",
+    "s14.e01"
+   ],
+   "bible_mechanic": "M02",
+   "what_is_different_here": "The Janitor Plus paywall (s14) leads with 'More memory for long chats' and lists '5× context for better memory' (s14.e09) at $12.99/month (s14.e03). A returning user's chats are long and story-heavy: the Miro chat list (s20) shows sessions of up to 17 messages, and measured replies run about 3,200 characters each. Someone coming back after a gap wants the story they left to be remembered. Free context size and any free memory limit were not observed, so the offer is framed as a short taste of the paid line, not a fix for a seen limit. It shows only after the user has said no to paying.",
+   "adds": null,
+   "removes_nothing_free": true,
+   "trigger_event": "A user whose previous visit was 7 or more days ago taps close on the Janitor Plus paywall without subscribing.",
+   "trigger_state_id": "s14",
+   "placement": "A sheet that slides up over the Janitor Plus paywall right after the close button is tapped.",
+   "offer_copy": "Not ready to subscribe? Play a short game and your next 5 replies get 5× context for better memory, until midnight tonight.",
+   "reward": {
+    "kind": "inference",
+    "unit": "replies with 5× context",
+    "amount": 5.0,
+    "duration": "until midnight local time"
+   },
+   "for_users": "free",
+   "grants_id": "l3",
+   "cost_inputs": {
+    "inference_count": 5,
+    "tokens_in": 10000,
+    "tokens_out": 800,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per user per 7 days, offered only on a visit after 7 or more days away; resets 7 days after it was taken.",
+   "daily_cap": 0,
+   "decline_path": "Tapping 'No thanks' closes the sheet and the paywall together, and the user lands back in the side menu exactly as before.",
+   "ad_fail_path": "If no game is available the sheet does not appear and the paywall simply closes. If the game cannot be confirmed, a short note says the reward could not be added, nothing is used up, and the offer can be tried again on this visit.",
+   "subscriber_treatment": "Janitor Plus members already have 5× context and never see this offer.",
+   "advertiser_category": "Mobile story games and streaming entertainment",
+   "character_use": "None. The sheet shows only the Janitor Plus logo and the offer text.",
+   "flow_steps": [
+    {
+     "state_id": "s14",
+     "caption": "A user back after a week away opens the Janitor Plus paywall and taps close."
+    },
+    {
+     "state_id": "new:memory-offer-sheet",
+     "caption": "A sheet offers 5 replies with 5× context for one short game, until midnight."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays a short sponsored game."
+    },
+    {
+     "state_id": "s06",
+     "caption": "Back in the side menu, a note confirms the next 5 replies will remember 5× more of the story."
+    }
+   ],
+   "after_reward": "After the 5th reply a small note says memory is back to normal and that Janitor Plus keeps 5× context on every chat, which shows the returning user exactly what the plan adds to the story they came back for.",
+   "rationale": "A returning user who just closed the paywall still wants the plan's headline benefit; a few replies with more memory let them pick up a long story without paying today, and gives them a reason to keep chatting this session. It costs fresh model replies, so it pays for itself mainly with a North American audience or cheaper serving; in LATAM it likely does not.",
+   "economics": {
+    "cost_2k": 0.0105,
+    "cost_8k": 0.018,
+    "breakeven_ecpm_2k": 10.5,
+    "breakeven_ecpm_8k": 18.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "CONDITIONAL",
+    "assumption_line": "Costs ~$0.0105 per reward to serve; pays for itself above $10.50 eCPM at 2k context ($18.00 at 8k). It is a sample of the paid benefit l3 \"5× context for better memory\", which stays on sale. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes 5 replies of 800 tokens out, at $0.25 / $2.00 per million tokens in / out (central prices); the verdict uses the 8k figure; one view per reward; a publisher-net eCPM (share 1).",
+    "lost_sale": null
+   },
+   "reach_score": 0.0,
+   "rank_score": 0.0,
+   "dropped_reason": null,
+   "flags": []
+  },
+  {
+   "id": "c06",
+   "lens": "drifting",
+   "kind": "existing_anchor",
+   "title": "Existing opportunity: Priority routing for faster replies for one hour",
+   "anchor_evidence_ids": [
+    "s14.e10",
+    "s06.e50"
+   ],
+   "bible_mechanic": "M02",
+   "what_is_different_here": "The Janitor Plus paywall lists 'Priority routing for faster replies' (s14.e10), and the side menu (s06) carries the 'Upgrade to Janitor Plus' banner (s06.e50) that leads there. Measured replies took about 92 seconds to finish, so speed is something a user feels on every message. A user drifting away gets a faster first hour back, which costs no extra model replies, only a place earlier in line. Whether the measured account was free or paid was not recorded.",
+   "adds": null,
+   "removes_nothing_free": true,
+   "trigger_event": "The first time a user opens the side menu on a visit after 5 or more days away, during the first 3 days after that return.",
+   "trigger_state_id": "s06",
+   "placement": "A card directly under the 'Upgrade to Janitor Plus' banner in the side menu.",
+   "offer_copy": "Welcome back! Play a short game to get priority routing for faster replies for the next 60 minutes.",
+   "reward": {
+    "kind": "queue_priority",
+    "unit": "minutes of priority routing for faster replies",
+    "amount": 60.0,
+    "duration": "60 minutes from when it is added"
+   },
+   "for_users": "free",
+   "grants_id": "l4",
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per user per day, resets at midnight local time; shown only in the first 3 days after returning from 5 or more days away.",
+   "daily_cap": 1,
+   "decline_path": "Tapping 'Not now' hides the card for the rest of the day; the side menu and chats work exactly as before.",
+   "ad_fail_path": "If no game is available the card is hidden. If the game cannot be confirmed, a note says the faster replies were not added, nothing is used up, and the card stays so the user can try again.",
+   "subscriber_treatment": "Janitor Plus members already have priority routing and never see this card.",
+   "advertiser_category": "Casual mobile games and entertainment apps",
+   "character_use": "None. The card uses the app's own Janitor Plus styling with no character art.",
+   "flow_steps": [
+    {
+     "state_id": "s06",
+     "caption": "A user back after 5 days away opens the side menu."
+    },
+    {
+     "state_id": "new:faster-replies-card",
+     "caption": "Under the upgrade banner, a card offers 60 minutes of faster replies for one short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays a short sponsored game."
+    },
+    {
+     "state_id": "s03",
+     "caption": "The user lands on My Chats with a banner showing faster replies are on for the next 60 minutes."
+    }
+   ],
+   "after_reward": "When the hour ends, a small banner on My Chats says replies are back to normal speed and that Janitor Plus keeps priority routing on every day, nudging the user to come back tomorrow for another hour or to subscribe.",
+   "rationale": "Replies were seen taking about a minute and a half to finish, so a faster first hour back makes a lapsed user's return feel smoother and more likely to turn into a full session. It costs no extra model replies, gives a real taste of a paid line, and the 3-day window gives the user a reason to open the app again on the following days.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve. It is a sample of the paid benefit l4 \"Priority routing for faster replies\", which stays on sale. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost (the peak-capacity cost is real but unknown); one view per reward; a publisher-net eCPM (share 1).",
+    "lost_sale": null
+   },
+   "reach_score": 0.5,
+   "rank_score": 0.5,
+   "dropped_reason": "duplicate of c01: same benefit (faster replies)",
+   "flags": []
+  },
+  {
+   "id": "c07",
+   "lens": "ledger_l9",
+   "kind": "existing_anchor",
+   "title": "Existing opportunity: Faster replies with this smaller creator's character for 24 hours",
+   "anchor_evidence_ids": [
+    "s14.e10",
+    "s06.e50",
+    "s14.e03"
+   ],
+   "bible_mechanic": "M02",
+   "what_is_different_here": "The Janitor Plus paywall (s14) sells 'Priority routing for faster replies' (s14.e10), and the explorer measured long replies taking about 92 seconds to finish (exp1). The offer is tied to one Hidden Gems character page (s08), which names the smaller creator (s08.e12) and shows its chat count (s08.e10). Hidden Gems ranks new characters by engaging conversations (s01.e15), so faster replies give that creator more real chats on top of the viewer's own benefit. The size of the speed-up on a free account wasn't measured, and the plan of the explored account wasn't recorded.",
+   "adds": null,
+   "removes_nothing_free": true,
+   "trigger_event": "The user opens a character page from the Hidden Gems feed, which shows new characters from smaller creators.",
+   "trigger_state_id": "s08",
+   "placement": "A card on the character page, under the creator's name and above the chat button.",
+   "offer_copy": "Play a short game to get faster replies, a Janitor Plus perk, in your chats with this character for the next 24 hours.",
+   "reward": {
+    "kind": "queue_priority",
+    "unit": "faster replies",
+    "amount": 1.0,
+    "duration": "24 hours, chats with this one character only"
+   },
+   "for_users": "free",
+   "grants_id": "l4",
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per day per user, resets at midnight local time; one character at a time.",
+   "daily_cap": 1,
+   "decline_path": "The card closes and the character page and chat work exactly as before at normal speed.",
+   "ad_fail_path": "If no game is available the card is not shown; if the game can't be confirmed, the user sees 'That didn't go through, nothing was used up' and can try again later today.",
+   "subscriber_treatment": "Janitor Plus members already get faster replies everywhere, so they don't see this card.",
+   "advertiser_category": "Mobile games and entertainment streaming",
+   "character_use": "The card shows the character's name and its creator's handle; the character does not appear in the game itself.",
+   "flow_steps": [
+    {
+     "state_id": "s08",
+     "caption": "The user opens a new character from a smaller creator in Hidden Gems."
+    },
+    {
+     "state_id": "new:faster-replies-card",
+     "caption": "A card offers faster replies with this character for 24 hours for one short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays a short sponsored game and can leave at any time."
+    },
+    {
+     "state_id": "s08",
+     "caption": "Once the game is confirmed, the page shows 'Faster replies on for 24 hours' and the user starts chatting."
+    }
+   ],
+   "after_reward": "When the 24 hours end, replies go back to normal speed with a note that Janitor Plus keeps faster replies on for every character, every day.",
+   "rationale": "Long replies take about a minute and a half to finish, so a faster wait is something free users feel in every chat, and it costs the app nothing extra to serve. Tying it to one new character from a smaller creator sends real conversations to the newcomers Hidden Gems is built to surface, and gives free users a daily taste of a Janitor Plus perk.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve. It is a sample of the paid benefit l4 \"Priority routing for faster replies\", which stays on sale. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost (the peak-capacity cost is real but unknown); one view per reward; a publisher-net eCPM (share 1).",
+    "lost_sale": null
+   },
+   "reach_score": 0.5,
+   "rank_score": 0.5,
+   "dropped_reason": "duplicate of c01: same benefit (faster replies)",
+   "flags": []
+  },
+  {
+   "id": "c09",
+   "lens": "ledger_l10",
+   "kind": "existing_anchor",
+   "title": "Existing opportunity: Faster replies for your next 20 replies today",
+   "anchor_evidence_ids": [
+    "s14.e10",
+    "s14.e03",
+    "s14.e21"
+   ],
+   "bible_mechanic": "M02",
+   "what_is_different_here": "The Janitor Plus paywall (s14) sells 'Priority routing for faster replies' at $12.99/month. The explorer measured how long the AI takes to write its long story replies: about 92 seconds median to finish, around 3,200 characters each. Waiting on the AI writer is the cost every free user feels. A paywall close with Close paywall (s14.e21) is a clear moment when the user has just said no to paying. The reward speeds up replies the app would write anyway, so it costs no extra AI work. Only replies get faster: 5x memory and the other Plus benefits stay paid. How long free-tier replies take under load was measured on one account only. Whether that account was free or paid was not recorded.",
+   "adds": null,
+   "removes_nothing_free": true,
+   "trigger_event": "The user closes the Janitor Plus subscription screen without subscribing.",
+   "trigger_state_id": "s14",
+   "placement": "A sheet that slides up over the Janitor Plus subscription screen right after the user taps close.",
+   "offer_copy": "Not ready to subscribe? Play a short game and get faster replies on your next 20 replies, until midnight tonight.",
+   "reward": {
+    "kind": "queue_priority",
+    "unit": "faster replies",
+    "amount": 20.0,
+    "duration": "until midnight local time, or 20 replies, whichever comes first"
+   },
+   "for_users": "free",
+   "grants_id": "l4",
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per day, resets at midnight local time",
+   "daily_cap": 1,
+   "decline_path": "Tapping 'No thanks' closes the sheet and returns the user to where they opened the subscription screen. Chats work exactly as before.",
+   "ad_fail_path": "If no game is available, the sheet is not shown. If the game can't be confirmed, a short note says no faster replies were added this time. The offer stays available today.",
+   "subscriber_treatment": "Janitor Plus members already get faster replies and never see this offer.",
+   "advertiser_category": "Mobile games and anime or entertainment streaming",
+   "character_use": "None; the sheet shows only the app's own styling and the reward.",
+   "flow_steps": [
+    {
+     "state_id": "s14",
+     "caption": "The user reads the Janitor Plus offer and taps close."
+    },
+    {
+     "state_id": "new:faster-replies-sheet",
+     "caption": "A sheet offers faster replies on the next 20 replies today in exchange for a short game."
+    },
+    {
+     "state_id": "new:playable",
+     "caption": "The user plays a short sponsored game."
+    },
+    {
+     "state_id": "s03",
+     "caption": "Back in My Chats, a banner confirms faster replies are on for the next 20 replies until midnight."
+    }
+   ],
+   "after_reward": "After 20 replies or at midnight, replies go back to normal speed, with a note that Janitor Plus keeps faster replies every day, so users who felt the difference have a reason to subscribe or come back tomorrow.",
+   "rationale": "The app's long story replies take over a minute and a half to finish, so faster writing is something free users feel in every chat. Offering it right after they decline the $12.99 plan turns a 'no' into a daily ad view and a hands-on taste of a Plus benefit. It costs no extra AI work because the replies would be written anyway.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve. It is a sample of the paid benefit l4 \"Priority routing for faster replies\", which stays on sale. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost (the peak-capacity cost is real but unknown); one view per reward; a publisher-net eCPM (share 1).",
+    "lost_sale": null
+   },
+   "reach_score": 0.25,
+   "rank_score": 0.25,
+   "dropped_reason": "duplicate of c01: same benefit (faster replies)",
+   "flags": []
+  },
+  {
+   "id": "c02",
+   "lens": "free_at_limit",
+   "kind": "existing_anchor",
+   "title": "Existing opportunity: Golden checkmark next to your username for 24 hours",
+   "anchor_evidence_ids": [
+    "s06.e50",
+    "s14.e12",
+    "s14.e25"
+   ],
+   "bible_mechanic": "M29",
+   "what_is_different_here": "The paywall lists 'Golden checkmark next to your username' (s14.e12, gold badge s14.e25) as a Plus benefit, and the side menu (s06) shows the username (s06.e29) right beside the 'Upgrade to Janitor Plus' banner (s06.e50). In a creator community where anyone publishes characters and gets comments (l11), a visible badge matters. It is a pure display change with no serving cost. Where the checkmark shows beyond the profile and menu was not seen.",
+   "adds": null,
+   "removes_nothing_free": true,
+   "trigger_event": "A free user who has closed the Janitor Plus paywall at least once opens the side menu.",
+   "trigger_state_id": "s06",
+   "placement": "A card just under the 'Upgrade to Janitor Plus' banner in the side menu.",
+   "offer_copy": "Try the golden checkmark: play a short game and show it next to your username for 24 hours. Janitor Plus keeps it for good.",
+   "reward": {
+    "kind": "cosmetic",
+    "unit": "golden checkmark",
+    "amount": 1.0,
+    "duration": "24 hours"
+   },
+   "for_users": "free",
+   "grants_id": "l6",
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per week, resets 7 days after it was taken",
+   "daily_cap": 0,
+   "decline_path": "The user can ignore the card or dismiss it; the side menu and everything in it work exactly as before.",
+   "ad_fail_path": "If no game is available the card is hidden; if the game is not confirmed, a short note says no checkmark was given this time, and the weekly try is not used up.",
+   "subscriber_treatment": "Janitor Plus members already have the golden checkmark and never see this card.",
+   "advertiser_category": "Mobile games",
+   "character_use": "None",
+   "flow_steps": [
+    {
+     "state_id": "s06",
+     "caption": "A free user opens the side menu and sees the upgrade banner."
+    },
+    {
+     "state_id": "new:checkmark-offer",
+     "caption": "A card under the banner offers the golden checkmark for 24 hours for one short game."
+    },
+    {
+     "state_id": "new:sponsored-game",
+     "caption": "The user plays a short sponsored game and can quit at any time."
+    },
+    {
+     "state_id": "s05",
+     "caption": "The profile now shows a golden checkmark next to the username, with a note that it lasts 24 hours."
+    }
+   ],
+   "after_reward": "When the 24 hours end, the checkmark disappears with a note that Janitor Plus keeps it next to your username for good.",
+   "rationale": "Free users who passed on the paywall still see Plus members' golden checkmarks, and a creator-heavy app gives them reasons to want one on their profile. The reward costs nothing to serve, is short and capped weekly so it never replaces the plan, and each time it ends it reminds the user what $12.99 a month keeps.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve. It is a sample of the paid benefit l6 \"Golden checkmark next to your username\", which stays on sale. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1).",
+    "lost_sale": null
+   },
+   "reach_score": 0.0,
+   "rank_score": 0.0,
+   "dropped_reason": "duplicate of c08: same benefit (golden checkmark)",
+   "flags": []
+  },
+  {
+   "id": "c10",
+   "lens": "ledger_l10",
+   "kind": "existing_anchor",
+   "title": "Existing opportunity: Golden checkmark next to your username for 24 hours",
+   "anchor_evidence_ids": [
+    "s14.e12",
+    "s14.e25",
+    "s06.e50"
+   ],
+   "bible_mechanic": "M29",
+   "what_is_different_here": "The Janitor Plus paywall (s14) lists 'Golden checkmark next to your username' as a paid benefit. The side menu (s06) shows the username next to the 'Upgrade to Janitor Plus' banner. This is a creator community: anyone can publish characters (New Character on s05, Create a Character on s24). Characters carry comments (s07 comments button), and creators get notified of new comments. So a checkmark is a status mark that other people in the app see, not only the viewer. Exactly where the checkmark appears was not seen in the explored screens. It is assumed to show wherever the username shows. The reward is a display badge that costs nothing to serve. It lasts 24 hours and can be taken at most once every 3 days, so the monthly plan stays the way to keep it.",
+   "adds": null,
+   "removes_nothing_free": true,
+   "trigger_event": "The user opens the side menu after having closed the Janitor Plus subscription screen without subscribing at least once before.",
+   "trigger_state_id": "s06",
+   "placement": "A card directly under the 'Upgrade to Janitor Plus' banner in the side menu.",
+   "offer_copy": "Play a short game to show the golden checkmark next to your username for 24 hours.",
+   "reward": {
+    "kind": "cosmetic",
+    "unit": "golden checkmark",
+    "amount": 1.0,
+    "duration": "24 hours from when it is granted"
+   },
+   "for_users": "free",
+   "grants_id": "l6",
+   "cost_inputs": {
+    "inference_count": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "minutes": 0.0,
+    "currency_amount": 0.0
+   },
+   "frequency_cap": "1 per 3 days per user, the 3 days start when the reward is granted",
+   "daily_cap": 0,
+   "decline_path": "The user can ignore the card or tap close on it. The side menu and every link in it work exactly as before.",
+   "ad_fail_path": "If no game is available, the card is not shown. If the game can't be confirmed, a short note says the checkmark wasn't added this time, and the card stays available.",
+   "subscriber_treatment": "Janitor Plus members already have the golden checkmark and never see this card.",
+   "advertiser_category": "Mobile games and digital art or creator tools",
+   "character_use": "None; the card shows the user's own username with the golden checkmark as a preview.",
+   "flow_steps": [
+    {
+     "state_id": "s06",
+     "caption": "The user opens the side menu with the upgrade banner."
+    },
+    {
+     "state_id": "new:checkmark-card",
+     "caption": "A card under the banner offers the golden checkmark for 24 hours for a short game."
+    },
+    {
+     "state_id": "new:playable",
+     "caption": "The user plays a short sponsored game."
+    },
+    {
+     "state_id": "s05",
+     "caption": "The profile now shows the golden checkmark next to the username, with the hours left."
+    }
+   ],
+   "after_reward": "When the 24 hours end, the checkmark disappears with a note that Janitor Plus keeps it next to your name every day, a visible reminder for users who liked being seen with it.",
+   "rationale": "Users who publish characters and comment on others' characters are seen by the rest of the community, so a status badge has real value to them. The checkmark costs nothing to serve, and it is visible to other users. That makes every grant a small, recurring ad for Janitor Plus inside the community.",
+   "economics": {
+    "cost_2k": 0.0,
+    "cost_8k": 0.0,
+    "breakeven_ecpm_2k": 0.0,
+    "breakeven_ecpm_8k": 0.0,
+    "benchmark_ecpm": 10.16,
+    "verdict": "PASS",
+    "assumption_line": "Costs nothing extra to serve. It is a sample of the paid benefit l6 \"Golden checkmark next to your username\", which stays on sale. A rewarded view earns $9.20-16.49 eCPM in North America on Android, $1.90 in LATAM. Assumes no marginal serving cost; one view per reward; a publisher-net eCPM (share 1).",
+    "lost_sale": null
+   },
+   "reach_score": 0.0,
+   "rank_score": 0.0,
+   "dropped_reason": "duplicate of c08: same benefit (golden checkmark)",
+   "flags": []
+  }
+ ]
+}

@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[{\"box_id\":5,\"name\":\"new comment toggle\"},{\"box_id\":8,\"name\":\"new reply toggle\"},{\"box_id\":11,\"name\":\"comment pinned toggle\"},{\"box_id\":14,\"name\":\"new character toggle\"},{\"box_id\":17,\"name\":\"character updated toggle\"},{\"box_id\":20,\"name\":\"community poll toggle\"},{\"box_id\":23,\"name\":\"new follower toggle\"}],\"unlisted\":[]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1943,
+ "tokens_out": 158,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

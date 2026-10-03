@@ -1,0 +1,53 @@
+{
+ "candidate_id": "c10",
+ "g_policy": {
+  "passed": true,
+  "reason": "The card is opt-in, the offer copy states the reward (golden checkmark for 24 hours), declining leaves the side menu unchanged, and the if_the_ad_fails field covers both no game available and a game that can't be confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic golden checkmark that expires after 24 hours and has no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is an app event: opening the side menu after the paywall was closed without subscribing. No chat content is used."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed or capped. The proposal adds a card and the side menu works as before."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card sits in the side menu drawer (s06), which is rated safe, is not a chat screen, and is app chrome next to the upgrade banner."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The golden checkmark is a charged Janitor Plus benefit (l6, s14.e12), so the app already charges for the resource the reward gives."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "Cited claims are supported: the paywall lists the golden checkmark (s14.e12), s06 has the username and upgrade banner, and creators are notified of comments (l11). Where the badge is shown is explicitly labeled as an assumption."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "Plus members already have the checkmark and never see the card, and the side menu is not a place only paying users reach."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The checkmark lasts 24 hours and is capped at once per 3 days, so it is a sample that ends. Nothing is taken from other users."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The card sits on the side menu, a persistent surface the user chooses to open, and it does not interrupt a task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "A short sponsored game is a play-to-earn unit, the checkmark is granted only once the play is confirmed, and the trigger is a detectable app event."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the Janitor Plus paywall benefit l6, the s06 upgrade banner and the username, so it is tied to this app."
+ },
+ "other_concern": "The claim that other users see the checkmark, and that it acts as a status mark in the community, is an assumption. The model doesn't show where usernames appear to others. The rationale states it more firmly than the 'assumed' caveat in the what-makes-it-work field.",
+ "fixable": false
+}

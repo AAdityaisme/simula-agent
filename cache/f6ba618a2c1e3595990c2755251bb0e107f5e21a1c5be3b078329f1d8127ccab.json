@@ -1,0 +1,9 @@
+{
+ "text": "{\"verdict\":\"finished\",\"reason\":\"The reply finished streaming: the last paragraph is complete, the stop button turned back into the send arrow, and rating stars with regenerate/next controls now appear.\"}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 2222,
+ "tokens_out": 68,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

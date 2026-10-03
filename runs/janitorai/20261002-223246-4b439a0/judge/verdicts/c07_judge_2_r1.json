@@ -1,0 +1,53 @@
+{
+ "candidate_id": "c07",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states faster replies with this character for 24 hours before the user chooses to play. The decline and ad-failure fields preserve normal use and provide a retry path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is faster replies in chats with one character, not cash or something exchangeable outside the app."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is opening a character page from Hidden Gems; it does not require reading what the user wrote in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and declining leaves the character page and chats working as before."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on s08, a character-detail screen rated safe, rather than inside a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing-anchor idea, the reward is a limited slice of priority routing for faster replies, a Janitor Plus benefit shown at s14.e10."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field says Hidden Gems ranks characters by engaging conversations. s01.e15 says Hidden Gems shows recent characters from smaller creators with engaging conversations, but does not establish ranking by engagement."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The 'offered to' and 'subscribers' fields restrict the card to free users, so Janitor Plus members do not see an offer for a benefit their plan includes."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward limits faster replies to one character for 24 hours; it does not grant lasting access to the Janitor Plus benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The placement is a card on the character page the user chose to open, before starting a chat, rather than an interruption mid-conversation."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The trigger is a detectable character-page opening, and the flow grants the reward once the sponsored game is confirmed, not on a tap or an unverified start."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the Hidden Gems character page at s08 and the Janitor Plus priority-routing benefit at s14.e10."
+ },
+ "other_concern": "The rationale's claim that faster routing costs the app nothing extra is not established by the product model.",
+ "fixable": true
+}

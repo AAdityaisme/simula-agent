@@ -1,0 +1,100 @@
+{
+ "schema_version": 1,
+ "state_id": "s06",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "com.janitor.ai|580c5c3c1d101e98c904d9301ec01e88|dd1c1e801e00de004e203ce19ac49880|3d742d004f03",
+ "foreground_package": "com.janitor.ai",
+ "screenshot": "states/s06.png",
+ "elements_reply": "states/s06.elements.json",
+ "settled": true,
+ "settle_seconds": 3.05,
+ "dynamic_regions": [
+  {
+   "x": 120.0,
+   "y": 336.0,
+   "w": 80.0,
+   "h": 40.0
+  },
+  {
+   "x": 0.0,
+   "y": 416.0,
+   "w": 240.0,
+   "h": 120.0
+  },
+  {
+   "x": 0.0,
+   "y": 576.0,
+   "w": 200.0,
+   "h": 120.0
+  },
+  {
+   "x": 0.0,
+   "y": 816.0,
+   "w": 240.0,
+   "h": 680.0
+  },
+  {
+   "x": 0.0,
+   "y": 1536.0,
+   "w": 160.0,
+   "h": 120.0
+  },
+  {
+   "x": 0.0,
+   "y": 1696.0,
+   "w": 240.0,
+   "h": 480.0
+  },
+  {
+   "x": 0.0,
+   "y": 416.0,
+   "w": 240.0,
+   "h": 160.0
+  },
+  {
+   "x": 0.0,
+   "y": 576.0,
+   "w": 240.0,
+   "h": 200.0
+  }
+ ],
+ "captured_at": "2026-10-02T22:33:45",
+ "box": null,
+ "icon_labels": [
+  {
+   "mcp_ref": "@e28",
+   "name": "menu"
+  },
+  {
+   "mcp_ref": "@e36",
+   "name": "next arrow"
+  },
+  {
+   "mcp_ref": "@e56",
+   "name": "profile tab"
+  },
+  {
+   "mcp_ref": "@e57",
+   "name": "username"
+  },
+  {
+   "mcp_ref": "@e59",
+   "name": "following"
+  }
+ ],
+ "vision_elements": [
+  {
+   "name": "profile avatar",
+   "rect_px": {
+    "x": 316.0,
+    "y": 188.0,
+    "w": 204.0,
+    "h": 156.0
+   },
+   "kind": "picture"
+  }
+ ],
+ "blocked_reason": null,
+ "later": []
+}

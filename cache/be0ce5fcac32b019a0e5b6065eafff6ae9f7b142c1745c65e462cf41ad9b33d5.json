@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[{\"box_id\":11,\"name\":\"message count input\"},{\"box_id\":14,\"name\":\"tokens count input\"},{\"box_id\":16,\"name\":\"proxy toggle\"}],\"unlisted\":[{\"left\":486,\"top\":26,\"right\":510,\"bottom\":48,\"kind\":\"control\",\"name\":\"menu\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1931,
+ "tokens_out": 110,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

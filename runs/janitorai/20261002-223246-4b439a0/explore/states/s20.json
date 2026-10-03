@@ -1,0 +1,75 @@
+{
+ "schema_version": 1,
+ "state_id": "s20",
+ "kind": "sheet",
+ "parent_id": "s03",
+ "fingerprint": "com.janitor.ai|a08283026c003842b833f18eb18c6c62|b812b98eac4aac52a842a852ac422c42|8c10b7868623",
+ "foreground_package": "com.janitor.ai",
+ "screenshot": "states/s20.png",
+ "elements_reply": "states/s20.elements.json",
+ "settled": true,
+ "settle_seconds": 2.87,
+ "dynamic_regions": [],
+ "captured_at": "2026-10-02T22:38:00",
+ "box": {
+  "x": 0.0,
+  "y": 240.0,
+  "w": 1080.0,
+  "h": 2041.0
+ },
+ "icon_labels": [],
+ "vision_elements": [
+  {
+   "name": "filter settings",
+   "rect_px": {
+    "x": 56.0,
+    "y": 180.0,
+    "w": 56.0,
+    "h": 60.0
+   },
+   "kind": "control"
+  },
+  {
+   "name": "menu",
+   "rect_px": {
+    "x": 970.0,
+    "y": 180.0,
+    "w": 52.0,
+    "h": 60.0
+   },
+   "kind": "control"
+  },
+  {
+   "name": "oldest sort",
+   "rect_px": {
+    "x": 22.0,
+    "y": 514.0,
+    "w": 518.0,
+    "h": 82.0
+   },
+   "kind": "control"
+  },
+  {
+   "name": "latest sort",
+   "rect_px": {
+    "x": 540.0,
+    "y": 514.0,
+    "w": 518.0,
+    "h": 82.0
+   },
+   "kind": "control"
+  },
+  {
+   "name": "Miro avatar",
+   "rect_px": {
+    "x": 28.0,
+    "y": 660.0,
+    "w": 156.0,
+    "h": 152.0
+   },
+   "kind": "picture"
+  }
+ ],
+ "blocked_reason": null,
+ "later": []
+}

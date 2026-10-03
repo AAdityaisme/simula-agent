@@ -1,0 +1,53 @@
+{
+ "candidate_id": "c05",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 5-reply, 5×-context reward before the user chooses to play. The decline and ad-failure fields preserve the user's prior state and provide failure paths."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field grants temporary in-app context for replies, not cash or a transferable equivalent."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses time since the previous visit and a paywall-close tap, not the content of a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal adds a temporary paid-benefit sample and, as its removes-nothing-free field states, does not take away an existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a sheet over the safe Janitor Plus paywall (s14), not an offer in or beside the unsafe conversation screen."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing opportunity samples 5× context, a benefit of the paid Janitor Plus plan shown at s14.e09."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The paywall's memory benefit and price are supported by s14, while s20 shows a 17-message Miro session and exp1 supports the approximate reply length. The proposal identifies the unobserved free context limit as unobserved rather than claiming one exists."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The offered-to and subscribers fields restrict the offer to free users; Janitor Plus members, whose plan includes 5× context under m2, never see it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is limited to five replies and expires at midnight, rather than granting lasting access to the paid benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger event opens the sheet after the user taps to close the paywall, a finished action rather than an interruption to an ongoing chat."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game triggered by a detectable paywall-close tap. The ad-failure field says an unconfirmed game grants no reward, consistent with granting it only after verified play."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the Janitor Plus paywall's specific 5×-context benefit (s14.e09) and its close action."
+ },
+ "other_concern": "The rationale itself flags that the cost of five larger-context replies may exceed ad revenue in some markets. Keep the post-reward note out of the unsafe chat conversation.",
+ "fixable": false
+}

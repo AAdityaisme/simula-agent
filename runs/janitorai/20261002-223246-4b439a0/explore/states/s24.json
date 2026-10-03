@@ -1,0 +1,28 @@
+{
+ "schema_version": 1,
+ "state_id": "s24",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "com.janitor.ai|b600b20088408080210003210d490800|b6008d08d2009050c011c801c2004001|dc05c5782058",
+ "foreground_package": "com.janitor.ai",
+ "screenshot": "states/s24.png",
+ "elements_reply": "states/s24.elements.json",
+ "settled": true,
+ "settle_seconds": 2.97,
+ "dynamic_regions": [],
+ "captured_at": "2026-10-02T22:39:31",
+ "box": null,
+ "icon_labels": [
+  {
+   "mcp_ref": "@e36",
+   "name": "character name field"
+  },
+  {
+   "mcp_ref": "@e38",
+   "name": "chat name field"
+  }
+ ],
+ "vision_elements": [],
+ "blocked_reason": null,
+ "later": []
+}

@@ -1,0 +1,75 @@
+{
+ "schema_version": 1,
+ "state_id": "s19",
+ "kind": "sheet",
+ "parent_id": "s03",
+ "fingerprint": "com.janitor.ai|a082e302960032423833b18eb18eb262|b222b186322240090000000000000e40|ef6cf501d97a",
+ "foreground_package": "com.janitor.ai",
+ "screenshot": "states/s19.png",
+ "elements_reply": "states/s19.elements.json",
+ "settled": true,
+ "settle_seconds": 2.91,
+ "dynamic_regions": [],
+ "captured_at": "2026-10-02T22:37:51",
+ "box": {
+  "x": 0.0,
+  "y": 240.0,
+  "w": 1080.0,
+  "h": 2041.0
+ },
+ "icon_labels": [],
+ "vision_elements": [
+  {
+   "name": "filter settings",
+   "rect_px": {
+    "x": 56.0,
+    "y": 184.0,
+    "w": 56.0,
+    "h": 52.0
+   },
+   "kind": "control"
+  },
+  {
+   "name": "menu",
+   "rect_px": {
+    "x": 970.0,
+    "y": 184.0,
+    "w": 52.0,
+    "h": 52.0
+   },
+   "kind": "control"
+  },
+  {
+   "name": "oldest sort",
+   "rect_px": {
+    "x": 22.0,
+    "y": 514.0,
+    "w": 518.0,
+    "h": 82.0
+   },
+   "kind": "control"
+  },
+  {
+   "name": "latest sort",
+   "rect_px": {
+    "x": 540.0,
+    "y": 514.0,
+    "w": 518.0,
+    "h": 82.0
+   },
+   "kind": "control"
+  },
+  {
+   "name": "character avatar",
+   "rect_px": {
+    "x": 28.0,
+    "y": 658.0,
+    "w": 154.0,
+    "h": 154.0
+   },
+   "kind": "picture"
+  }
+ ],
+ "blocked_reason": null,
+ "later": []
+}

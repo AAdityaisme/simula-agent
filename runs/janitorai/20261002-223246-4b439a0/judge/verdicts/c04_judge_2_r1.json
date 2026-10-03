@@ -1,0 +1,53 @@
+{
+ "candidate_id": "c04",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states one gold ring for 24 hours before the user chooses to play. The decline and ad-failure fields leave the profile unchanged and provide a retry path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field gives a cosmetic profile ring, not cash or a transferable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses a profile opening and ring status, not chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The removes-nothing-free and subscribers fields leave free users' existing access unchanged."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card on the user's own profile, s05, which is rated safe; it is not in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The product change gives the player a ring on their own profile, s05, which is used in the observed character-creation flow f5. The reward does not go to another user or creator."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The rationale claims subscribers otherwise see no ads. The model does not establish that: exp2 observed no ad, but the account's plan was not recorded."
+ },
+ "c3_spares_payers": {
+  "passed": false,
+  "reason": "Paying users see the offer, and the offer copy and what-makes-it-work-here field pitch the ring as an extension of the golden checkmark sold by Plus in s14.e12. That is more of what their plan sells."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits the ring to 24 hours, and the proposal does not take ordered placement or another limited benefit from users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger and placement put the card on the user's own profile, a surface they choose to open, rather than interrupting an in-progress task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game after a detectable profile-opening event, and the ad-failure field says an unconfirmed game does not add the ring."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea names the s05 profile avatar and the golden checkmark benefit on the s14 Janitor Plus paywall."
+ },
+ "other_concern": "The proposal says others can see the ring, but its flow only specifies display on the subscriber's own profile; public-profile display needs implementation detail.",
+ "fixable": true
+}

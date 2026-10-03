@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[],\"unlisted\":[{\"left\":62,\"top\":192,\"right\":312,\"bottom\":254,\"kind\":\"picture\",\"name\":\"janitor plus logo\"},{\"left\":62,\"top\":648,\"right\":90,\"bottom\":668,\"kind\":\"picture\",\"name\":\"checkmark\"},{\"left\":62,\"top\":680,\"right\":90,\"bottom\":700,\"kind\":\"picture\",\"name\":\"checkmark\"},{\"left\":62,\"top\":724,\"right\":90,\"bottom\":744,\"kind\":\"picture\",\"name\":\"checkmark\"},{\"left\":60,\"top\":766,\"right\":90,\"bottom\":794,\"kind\":\"picture\",\"name\":\"gold verified badge\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1924,
+ "tokens_out": 222,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

@@ -1,0 +1,141 @@
+{
+ "schema_version": 1,
+ "fixes": [
+  {
+   "element_id": "s01.e30",
+   "problem": "Kitsunami card art is drawn lighter and more washed out than the real art. The heatmap shows a blue masked block, so the image seems offset or tinted differently. The real card has a purple Hidden Gems tint.",
+   "fix": "Draw assets/s01.e30.art.png at exactly x=24, y=319.3, w=159.2, h=188.1 with object-fit:fill and no filter, opacity or overlay. Remove any extra background behind it."
+  },
+  {
+   "element_id": "s01.e54",
+   "problem": "Parkour Reborn art is not at its rect: it is shifted and shows a gap on the right edge compared with the real card, which has the image running to the card edge under the purple tint.",
+   "fix": "Draw assets/s01.e54.art.png at x=218.7, y=319.3, w=156.9, h=188.1, unscaled, with no border radius or padding. The real badge '26' sits on top of the art at the right edge, so keep it above."
+  },
+  {
+   "element_id": "s01",
+   "problem": "The bottom nav center icon is a cat-head outline. The real one is a filled purple/gray swirl logo. The search icon is thinner and the badge icons on the cards are different (the real ones are layered-square glyphs).",
+   "fix": "Draw the center icon as a swirl (concentric spiral ring with two small ear tips) in #b8b0c8, about 28px, centered at x=205, y=805. Make the search icon stroke 2px. Use a stacked-squares glyph for the '31' and '26' badges."
+  },
+  {
+   "element_id": "s14",
+   "problem": "The background is a flat navy with sharp dots. The real one is a soft starry nebula with a lighter blue-purple tone, and the card interior has a faint glow and a lighter border. The heatmap is red over the whole card.",
+   "fix": "Use a softer background: base #141a45 with radial gradients of #2a2f6e at the top and #3a2d6b near the bottom, 1px star dots at 40% opacity (no large bright dots). Give the card a 1px border rgba(255,255,255,0.18), a fill rgba(60,70,130,0.25), and radius 16px."
+  },
+  {
+   "element_id": "s25",
+   "problem": "The Miro avatar is a blurry brown blob and the badge next to the name is a blue rectangle. The real avatar is a portrait with warm skin and dark hair, and the badge is a small eye icon.",
+   "fix": "Draw the avatar as a 44x44 rounded square at x=4, y=125 with sharper detail: dark brown/green hair at the top, skin tone #c58a62 face, dark clothes. Replace the badge with a small blue eye glyph (#3b5bdb, 14x8 almond with a white dot)."
+  },
+  {
+   "element_id": "s06",
+   "problem": "The feed behind the drawer is wrong: the real one shows the 'Parkour' card at a shifted position (card edge x=87, badge '26' at x~70) and the sparkle at y~730. The mock has it shifted about 20px left, and the hamburger icon is brighter and larger.",
+   "fix": "Shift the background feed 18px right so the '26' badge sits at x=60-97, and 'Female' at x=0-38 (bottom). Place the sparkle at x=45,y=732. Dim it with a rgba(0,0,0,0.5) overlay, and make the hamburger icon 16px wide in #8a8a90, at x=64-80,y=21-35."
+  },
+  {
+   "element_id": "s07.e08",
+   "problem": "Hero art leaves a strip on the right: the heatmap shows a blue-masked image ending at x=344 and a mismatched red band from x=344 to 381. The real art spans the full card width and has a different crop.",
+   "fix": "Draw assets/s07.e08.art.png at its own rect (x29, y102.9, w315, h353.4). Behind it, fill the rest of the frame (x344 to 381) with the real art's edge colors (maroon #8a4a5a at top, blue #2f6a8a in the middle) so no black strip shows. Give the frame a 1px #b08a95 border with a 4px radius."
+  },
+  {
+   "element_id": "s08.e08",
+   "problem": "Hero art leaves a mismatched strip on the right (x~355-381). The mock's crop differs from the real art.",
+   "fix": "Draw assets/s08.e08.art.png at its own rect (x29, y102.9, w322.6, h353.4). Fill the remaining frame area to x381 with a dark blue (#1d3a66) background, and keep the 1px light border with a 4px radius."
+  },
+  {
+   "element_id": "s07.e45",
+   "problem": "The Aaditya avatar at the 'PLAYING AS' row is blurry and its crop is slightly off; the heatmap shows a blue block with a shifted edge.",
+   "fix": "Draw assets/s07.e45.art.png exactly at x30.1, y757.8, w57.1, h49.4, with no extra scaling or rounding."
+  },
+  {
+   "element_id": "s07.e14",
+   "problem": "The like count '2' next to the heart renders as a tiny glyph that looks like '8'. The real one is a bold purple digit about 10x20px.",
+   "fix": "Set the count text to '2' with font-size 18px, weight 500, color #b79cf0, line-height 20px, at x335, y474, with no letter-spacing. Do the same on s08 for '1'."
+  },
+  {
+   "element_id": "s02.e43",
+   "problem": "The card art is cropped and shifted compared with the real art. The first card shows the lanterns and towers higher, and the second card is too dark and too far zoomed.",
+   "fix": "Draw assets/s02.e43.art.png at x24, y361.2, w168.7, h152.3. Draw assets/s02.e47.art.png at x218.7, y361.2, w168.7, h152.3. Use object-fit:fill with no extra transforms, and keep the dark card background behind them."
+  },
+  {
+   "element_id": "s02.e15",
+   "problem": "The filter button icon is slightly off. The heatmap shows red inside the button.",
+   "fix": "Draw assets/s02.e15.png at x363.8, y117, w32, h32 and assets/s02.e16.png at x369.9, y123, w19.4, h19.4, instead of a CSS-drawn icon."
+  },
+  {
+   "element_id": "s02",
+   "problem": "The bottom-nav center icon is a cat-head outline. The real one is a spiral logo in gray-white. The stat badges use a speech-bubble icon where the real ones show a stacked-bubbles icon plus a document icon. The chip emoji differ.",
+   "fix": "Replace the center nav icon with a filled swirl/spiral glyph, about 30px, color #c9c9d0. Change the badge icons to two overlapping bubbles (messages) and a page icon (tokens). Make the badge text 13px, weight 500, with 4px between the icon and the text. Use the Apple-style emoji (\ud83d\udc68, \u26d3, \ud83d\udc69\u200d\ud83e\uddb0, \ud83d\udcda, \ud83d\udcfa, \ud83d\udc6b) at 11px."
+  },
+  {
+   "element_id": "s07",
+   "problem": "All text is red in the heatmap, with glyphs about 1px off. The heading font is lighter than the real one, the badge '14 31' icons are wrong, and the chips' emoji are drawn in a different style.",
+   "fix": "Shift the body text 1px lower. Use a slightly wider geometric font for the title (Kitsunami) at 20px with letter-spacing 0.5px. In the read-count badge, use an open-book icon for 14 and a stacked-bubbles icon for 31, and widen the number text to fit. Use the real emoji set in the tag chips."
+  },
+  {
+   "element_id": "s08",
+   "problem": "The description's first line has a \ud83d\udcca emoji drawn as a plain chart with extra space; the real one is the \ud83c\udfd9 city emoji, '[\ud83c\udfd9\ufe0fFragment Update!]' with no space. The tag emoji also differ in style.",
+   "fix": "Change the first line to '[\ud83c\udfd9\ufe0fFragment Update!]' (no space after the emoji). Use the standard emoji for \ud83d\udc68 \ud83d\udc69\u200d\ud83e\uddb0 \ud83c\udfae \ud83d\udc6b \ud83c\udfb2 \ud83d\udc64 in the tag chips, at 11px."
+  },
+  {
+   "element_id": "s13",
+   "problem": "The text and radio buttons sit about 1px above the real positions. For example 'Filters' is at y95 in both, but 'Sort by' is at 140 instead of 141 and the radios are at 181 instead of 182. The Messages and Tokens dropdowns have a thin border instead of the thicker one.",
+   "fix": "Shift every element below 'Filters' down 1px. Set the dropdown borders to 2px solid #6b6d73. Draw the three images assets/s13.e90.png, s13.e91.png and s13.e92.png at their rects at the bottom (y774.9), plus assets/s13.e03.png at x15.6, y62.5, w325.3, h42.7."
+  },
+  {
+   "element_id": "s20",
+   "problem": "Chat preview text wraps to three lines and the third is clipped at the row bottom, so the text area is the largest red zone. The real rows show two lines with an ellipsis at the end of line 2, and the mock's second line is cut off after 'The'.",
+   "fix": "Limit each snippet to 2 lines (line-clamp 2, line-height about 17px, font-size 14px, color #9a9ca3). Use the real text: line 1 ends 'His chest felt tight,' and line 2 ends 'like the air in the room was thinning out. The \u2026'. Remove the third line. Shift the row title down 1px (y 207 instead of 206)."
+  },
+  {
+   "element_id": "s05",
+   "problem": "The tab underline is wrong: the real one is a short purple line under the first tab only (x0-137, y~213), while the mock draws it differently. The feather icon on the third tab is also larger and shifted right (about 2px).",
+   "fix": "Draw a 2px #a78bfa line at x0,y213,w137, and a 1px #3a3d44 divider across the rest. Make the feather icon 16px and center it at x341."
+  },
+  {
+   "element_id": "s03",
+   "problem": "The bottom-nav center logo is still an outlined cat head. The real one is a filled purple swirl. The titles are 1px higher than the real ones, and the title text is slightly narrower.",
+   "fix": "Draw a purple (#a78bfa) spiral swirl logo about 26px wide centered at x205,y805, filled with a cat-ear notch at the top, in place of the ring. Move 'My Chats' and each row title down 1px. Use font-size 16px, weight 500 for row titles."
+  },
+  {
+   "element_id": "s24",
+   "problem": "The form text is about 1px off vertically and wider than the real text. The title is at y28 in the real screen but y27 in the mock. Placeholders start at x41 instead of 40. The warning text is bolder. The upload box border is thicker.",
+   "fix": "Shift the title and all labels down 1px. Set the placeholder padding-left so the text starts at x40, font-size 15px, weight 400. Set the warning text to weight 600 with a slightly narrower letter-spacing (-0.1px). Make the dashed border 1px #7c4fe0. Ensure the 'Character Bio' label sits at y692."
+  },
+  {
+   "element_id": "s15",
+   "problem": "The headline 'More memory for long chats.' is a heavier, wider serif than the real one. The price '$12.99' is also bolder and a bit wider. Both sit about 1px high. The heatmap shows solid red there, and this was asked in round 1 without a fix.",
+   "fix": "Use a lighter, narrower display serif (Playfair/DM Serif-like) at weight 400 for the headline and price. Headline: about 32px, centered, lines at y\u224836 and y\u224872. Price: about 38px, baseline 1px lower. Shift the body text and bullet rows down 1px."
+  },
+  {
+   "element_id": "s15.e24",
+   "problem": "The janitor+ logo shows as a blue block in the heatmap, so it may still have a box behind it or sit slightly off.",
+   "fix": "Draw assets/s15.e24.png at x47.2, y146.3, 190.5x47.2 with background transparent, no fill or border, and nothing over it."
+  },
+  {
+   "element_id": "s15.e28",
+   "problem": "The golden checkmark badge differs from the real one. The heatmap shows a blue masked block, so it may be drawn at the wrong size.",
+   "fix": "Draw assets/s15.e28.png at x45.7, y583.6, 22.9x21.3, with no extra background."
+  },
+  {
+   "element_id": "s04",
+   "problem": "The header title and 'No notifications' sit 1-2px too high and are bolder than the real ones. They are not exactly the same width.",
+   "fix": "Move the 'Notifications' title down 1px (centre y\u224829) and set weight 500, 20px. Move 'No notifications' down 1px (centre y\u2248110) at weight 400, 16px, color #8b8e94, x\u2248148 to 263."
+  },
+  {
+   "element_id": "s10",
+   "problem": "The card descriptions wrap differently: the real first quote line ends '...REQUE' and wraps earlier, but the mock wraps later. The heading and intro text are 2px high and bolder. Emoji in the chips use a different style.",
+   "fix": "Set the description width so the text wraps like the real one, with 'Hey so I love Surge and Kit' lines ending '...REQUE'. Move the heading and intro down 2px and use weight 500 for the heading. Use the Noto-style emoji set in the chips."
+  },
+  {
+   "element_id": "s10.e18.art",
+   "problem": "The Kitsunami art and Parkour art are drawn with a dark border and a wrong crop. The right edge of the second one shows a stripe.",
+   "fix": "Draw assets/s10.e18.art.png at x24, y171.1, 159.2x188.1 and assets/s10.e48.art.png at x218.7, y171.1, 156.9x188.1. Use object-fit fill with no border, and no overlay or gradient on top."
+  },
+  {
+   "element_id": "s11",
+   "problem": "The page 2 header text is 2px high and bolder. The Luna art has a visible gap on the right, and the card art does not fill the real rects.",
+   "fix": "Move the heading and intro down 2px. Draw assets/s11.e18.art.png at x24, y170.7, 150.8x188.1 and assets/s11.e21.art.png at x218.7, y171.1, 155.7x188.1, then fill the remaining art strip with the same image colour (#f4eef5), or extend the art to the card's inner right edge."
+  }
+ ],
+ "summary": "Layout is nearly exact: all data-el boxes are in place and taps work, so the remaining gains come from visuals. This round should focus on the card art placement on s01, the soft nebula background and lighter serif type on s14, the real avatar and line wrapping on s25, and the dimmed feed behind the s06 drawer. Also fix the swirl nav icon and the 1px text offsets.. All elements are placed and taps work, so the remaining gap is image fidelity and typography. The most valuable changes are filling the hero art on s07 and s08 to the full card width, drawing the listed pictures at their own rects (s07.e45, s02 art and button icons, s13 images), and fixing the like-count digit and the nav and badge icons. After that, adjust the 1px text offsets and the emoji styles. All data-el boxes, taps and contracts pass, so the score is limited by pixel-level differences, mostly text rendering. The biggest wins this round are s20's snippet wrapping (two lines with an ellipsis) and the blurry avatars, then the nav swirl logo, the s05 tab underline and the 1px text offsets on s24. All elements are placed correctly and no taps fail, so what remains is how things look. The main differences are the serif font and nebula background on s15, 1-2px high and bolder text on all screens, the chips' emoji, and the art crops on the s10/s11 cards. This round should fix the s15 fonts and background first, then the card art and text positions."
+}

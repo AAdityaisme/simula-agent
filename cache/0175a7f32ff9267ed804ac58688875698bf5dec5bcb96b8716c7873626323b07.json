@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[{\"box_id\":1,\"name\":\"menu\"},{\"box_id\":6,\"name\":\"next arrow\"},{\"box_id\":12,\"name\":\"profile tab\"},{\"box_id\":13,\"name\":\"username\"},{\"box_id\":14,\"name\":\"following\"}],\"unlisted\":[{\"left\":158,\"top\":26,\"right\":260,\"bottom\":104,\"kind\":\"picture\",\"name\":\"profile avatar\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1937,
+ "tokens_out": 140,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

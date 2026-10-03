@@ -1,0 +1,53 @@
+{
+ "candidate_id": "c01",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states faster replies for one hour before the optional game. The decline and ad-failure paths close the sheet without changing chat access or granting an unverified reward."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is temporary priority routing within the app, not cash or a transferable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is tapping Close on the Janitor Plus paywall (s14.e21); it does not use message content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes no free feature or chat access; its two-per-day cap applies only to the new rewarded offer."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a sheet over the Janitor Plus paywall (s14), which the product model rates safe, rather than an insertion into a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The existing-anchor reward samples priority routing, a benefit sold by Janitor Plus (s14.e10)."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The paywall price, priority-routing benefit, and Close control are shown on s14; exp1 supports the measured reply time, and exp2 supports the statement that no message limit was seen."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The proposal's subscribers field says Janitor Plus members never see the offer."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward field limits priority routing to one hour rather than granting lasting access to the Plus benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The sheet appears after the user taps Close on the paywall, a finished action, rather than during an ongoing chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a chosen sponsored game triggered by a detectable Close tap, and the ad-failure path says an unconfirmed game gives no reward."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea depends on the Janitor Plus paywall's priority-routing benefit (s14.e10) and its Close control (s14.e21)."
+ },
+ "other_concern": "The reward field's “1 faster replies” is ambiguous beside copy promising faster replies for an hour; clarify whether the boost covers one reply or all replies during that hour.",
+ "fixable": false
+}

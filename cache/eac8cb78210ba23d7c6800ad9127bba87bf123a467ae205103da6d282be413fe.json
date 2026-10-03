@@ -1,0 +1,9 @@
+{
+ "text": "{\"verdict\":\"progressing\",\"reason\":\"The reply is still streaming in: new paragraphs appeared between the screenshots, and the red stop button is still shown.\"}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 2222,
+ "tokens_out": 55,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

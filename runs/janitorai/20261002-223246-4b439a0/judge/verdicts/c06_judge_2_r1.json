@@ -1,0 +1,53 @@
+{
+ "candidate_id": "c06",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 60-minute reward before the user chooses to play. The decline and ad-failure fields preserve normal access and withhold the reward if play cannot be confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 60 minutes of in-app priority routing, not cash or an externally exchangeable benefit."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger uses a side-menu opening and time since the user's last visit, not what anyone wrote in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal removes nothing free; its reward samples priority routing, a Janitor Plus benefit shown at s14.e10."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the safe side-menu drawer s06, under its upgrade banner, not in a conversation or beside unsafe content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "This existing-anchor reward gives temporary access to priority routing, which the Janitor Plus paywall lists as a paid benefit at s14.e10."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The paywall and upgrade-banner claims are supported by s14.e10 and s06.e50. The roughly 92-second measured reply completion time and the unrecorded account plan match exp1 and exp2."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The subscribers field says Janitor Plus members, who already receive priority routing under m2, never see the offer."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward expires after 60 minutes rather than granting lasting access. Any priority advantage is one the app already sells through Janitor Plus at s14.e10."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears on the side menu, a persistent surface the user chooses to open, rather than interrupting an active chat."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game triggered by an app-detectable menu opening; the ad-failure field says unconfirmed play does not add the reward."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses this app's Janitor Plus priority-routing benefit and places its card under the side-menu upgrade banner s06.e50."
+ },
+ "other_concern": "",
+ "fixable": false
+}

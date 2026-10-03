@@ -1,0 +1,48 @@
+{
+ "schema_version": 1,
+ "state_id": "s13",
+ "kind": "sheet",
+ "parent_id": "s02",
+ "fingerprint": "com.janitor.ai|808283022300908080009800a400a000|8b028000a000c000c402900184028002|875e0ffe4b11",
+ "foreground_package": "com.janitor.ai",
+ "screenshot": "states/s13.png",
+ "elements_reply": "states/s13.elements.json",
+ "settled": true,
+ "settle_seconds": 3.34,
+ "dynamic_regions": [],
+ "captured_at": "2026-10-02T22:35:45",
+ "box": {
+  "x": 0.0,
+  "y": 240.0,
+  "w": 1080.0,
+  "h": 2087.0
+ },
+ "icon_labels": [
+  {
+   "mcp_ref": "@e142",
+   "name": "message count input"
+  },
+  {
+   "mcp_ref": "@e146",
+   "name": "tokens count input"
+  },
+  {
+   "mcp_ref": "@e148",
+   "name": "proxy toggle"
+  }
+ ],
+ "vision_elements": [
+  {
+   "name": "menu",
+   "rect_px": {
+    "x": 972.0,
+    "y": 188.0,
+    "w": 48.0,
+    "h": 44.0
+   },
+   "kind": "control"
+  }
+ ],
+ "blocked_reason": null,
+ "later": []
+}

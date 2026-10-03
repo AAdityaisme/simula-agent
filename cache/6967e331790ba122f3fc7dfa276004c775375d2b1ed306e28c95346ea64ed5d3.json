@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[],\"unlisted\":[{\"left\":103,\"top\":189,\"right\":269,\"bottom\":229,\"kind\":\"control\",\"name\":\"oldest sort\"},{\"left\":270,\"top\":189,\"right\":528,\"bottom\":229,\"kind\":\"control\",\"name\":\"latest sort\"},{\"left\":488,\"top\":120,\"right\":516,\"bottom\":146,\"kind\":\"control\",\"name\":\"more options\"},{\"left\":28,\"top\":24,\"right\":56,\"bottom\":50,\"kind\":\"control\",\"name\":\"filter\"},{\"left\":486,\"top\":24,\"right\":512,\"bottom\":50,\"kind\":\"control\",\"name\":\"menu\"},{\"left\":14,\"top\":261,\"right\":91,\"bottom\":338,\"kind\":\"picture\",\"name\":\"character avatar\"},{\"left\":14,\"top\":94,\"right\":91,\"bottom\":171,\"kind\":\"picture\",\"name\":\"character avatar\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1924,
+ "tokens_out": 287,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

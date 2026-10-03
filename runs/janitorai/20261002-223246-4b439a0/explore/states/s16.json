@@ -1,0 +1,32 @@
+{
+ "schema_version": 1,
+ "state_id": "s16",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "com.janitor.ai|880288029909890492398181a481627e|818ae2117a635861a5c95d5d5a4b51dc|be3ac29a4e77",
+ "foreground_package": "com.janitor.ai",
+ "screenshot": "states/s16.png",
+ "elements_reply": "states/s16.elements.json",
+ "settled": true,
+ "settle_seconds": 3.07,
+ "dynamic_regions": [],
+ "captured_at": "2026-10-02T22:36:44",
+ "box": null,
+ "icon_labels": [
+  {
+   "mcp_ref": "@e29",
+   "name": "menu"
+  },
+  {
+   "mcp_ref": "@e48",
+   "name": "previous page"
+  },
+  {
+   "mcp_ref": "@e51",
+   "name": "next page"
+  }
+ ],
+ "vision_elements": [],
+ "blocked_reason": null,
+ "later": []
+}

@@ -1,0 +1,53 @@
+{
+ "candidate_id": "c03",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 10× memory boost and its 10-message duration before the user chooses to play. The decline and ad-failure fields preserve the existing plan benefit and provide a retry path."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is temporary in-app context memory, not cash or a transferable or externally exchangeable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a subscriber opening the side menu, not anything typed or said in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal says it removes nothing free, and its decline path leaves the existing 5× Plus memory unchanged."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a card in the side menu, which s06 rates safe, rather than an offer inside or over a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The reward gives more context memory, a benefit sold by Janitor Plus in s14.e09."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The 'what makes it work here' field claims long stories quickly outgrow even 5× memory and that a subscriber cannot get more today. Neither s14.e09 nor the cited chat counts in s20 establishes memory exhaustion or that no other option exists."
+ },
+ "c3_spares_payers": {
+  "passed": false,
+  "reason": "The 'offered to' field targets Plus subscribers, and the offer copy pitches them more memory—the benefit their plan sells in s14.e09."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward ends after 10 messages or at midnight local time, so it does not grant lasting access to the paid memory benefit."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger occurs when the subscriber chooses to open the side menu, a persistent surface, rather than interrupting a chat task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a sponsored game after a detectable side-menu opening, and the ad-failure field says no boost is added if the game cannot be confirmed."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea uses the s06 upgrade-banner slot and the 5× context benefit shown on the Janitor Plus paywall."
+ },
+ "other_concern": "The feasibility and cost of a 10× context boost are not established by the product model.",
+ "fixable": false
+}

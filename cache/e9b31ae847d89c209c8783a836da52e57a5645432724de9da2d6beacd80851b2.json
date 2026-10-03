@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[],\"unlisted\":[{\"left\":28,\"top\":22,\"right\":56,\"bottom\":52,\"kind\":\"control\",\"name\":\"filter settings\"},{\"left\":485,\"top\":22,\"right\":511,\"bottom\":52,\"kind\":\"control\",\"name\":\"menu\"},{\"left\":11,\"top\":189,\"right\":270,\"bottom\":230,\"kind\":\"control\",\"name\":\"oldest sort\"},{\"left\":270,\"top\":189,\"right\":529,\"bottom\":230,\"kind\":\"control\",\"name\":\"latest sort\"},{\"left\":14,\"top\":262,\"right\":92,\"bottom\":338,\"kind\":\"picture\",\"name\":\"Miro avatar\"},{\"left\":14,\"top\":94,\"right\":92,\"bottom\":171,\"kind\":\"picture\",\"name\":\"Miro avatar\"}]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1924,
+ "tokens_out": 256,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

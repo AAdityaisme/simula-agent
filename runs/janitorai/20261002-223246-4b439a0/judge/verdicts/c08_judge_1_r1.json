@@ -1,0 +1,53 @@
+{
+ "candidate_id": "c08",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user opts in on a sheet that states the reward (golden checkmark for 24 hours) before the game. Declining only closes the sheet and the like stays saved, and the ad-fail path is covered."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic badge for 24 hours, with no cash value and nothing withdrawable or transferable."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a like tap on the s08 character page, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The idea adds a temporary perk and removes or caps nothing free ('removes nothing free: yes')."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a sheet over s08, a non-chat screen rated safe. It is not in the conversation and is not next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "As a product change, the new resource is a slice of something the app charges for: the golden checkmark is a Janitor Plus benefit (s14.e12, l6). The player gets the badge, and the creator gets only a notice."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The golden checkmark as a Plus benefit is supported by s14.e12 and s14.e25. The like button (s08.e16), the creator handle (s08.e12), and the Hidden Gems feed that lists Parkour Reborn (s01) are observed. The creator-notice, cost, and publishing-impact statements are the proposal's own additions or predictions."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "Plus members already have the checkmark and never see the sheet ('subscribers' field). The reward is a slice of the plan, but only non-payers are shown it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The badge expires after 24 hours and is only a cosmetic sample of one Plus perk, not the main benefit. It takes nothing from other users or creators, since the creator only gets a notice."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The sheet appears after the like action finishes, which is a finished-action moment and not an interruption of a task in progress."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit that grants the reward once the game is confirmed. The trigger, a like tap on s08, is an app event the app can detect."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It is built on the Janitor Plus golden checkmark, the Hidden Gems character page s08, the like button, and the creator handle, so it would not read the same in another app."
+ },
+ "other_concern": "The 'gold verified badge' could make other users think the wearer is a verified or paying member. The creator notice is a new notification type, and the app's only observed notification is for comments (l11). Tying the offer to a Hidden Gems origin needs the app to detect that the page was opened from that feed.",
+ "fixable": false
+}

@@ -1,0 +1,59 @@
+{
+ "schema_version": 1,
+ "state_id": "s05",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "com.janitor.ai|00026802846193609100e082c32c432d|8162d11ca6980e490e0000800082cb24|c8fe7f038293",
+ "foreground_package": "com.janitor.ai",
+ "screenshot": "states/s05.png",
+ "elements_reply": "states/s05.elements.json",
+ "settled": true,
+ "settle_seconds": 2.96,
+ "dynamic_regions": [],
+ "captured_at": "2026-10-02T22:33:35",
+ "box": null,
+ "icon_labels": [
+  {
+   "mcp_ref": "@e28",
+   "name": "menu"
+  },
+  {
+   "mcp_ref": "@e41",
+   "name": "search characters"
+  },
+  {
+   "mcp_ref": "@e48",
+   "name": "home tab"
+  },
+  {
+   "mcp_ref": "@e49",
+   "name": "search tab"
+  },
+  {
+   "mcp_ref": "@e50",
+   "name": "chats tab"
+  },
+  {
+   "mcp_ref": "@e51",
+   "name": "notifications"
+  },
+  {
+   "mcp_ref": "@e52",
+   "name": "profile tab"
+  }
+ ],
+ "vision_elements": [
+  {
+   "name": "profile avatar",
+   "rect_px": {
+    "x": 44.0,
+    "y": 282.0,
+    "w": 202.0,
+    "h": 204.0
+   },
+   "kind": "picture"
+  }
+ ],
+ "blocked_reason": null,
+ "later": []
+}

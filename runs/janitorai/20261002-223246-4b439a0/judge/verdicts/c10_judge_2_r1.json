@@ -1,0 +1,53 @@
+{
+ "candidate_id": "c10",
+ "g_policy": {
+  "passed": true,
+  "reason": "The offer copy states the 24-hour checkmark reward before the user chooses to play. The decline and ad-failure fields leave the app unchanged and withhold the reward if play cannot be confirmed."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward field grants a temporary cosmetic checkmark, not cash or an exchangeable item."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger event uses opening the side menu and previously closing the paywall, not anything written in a chat."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal's removes-nothing-free field and temporary reward do not remove or cap an existing free feature."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The placement is a card in the side-menu drawer s06, which the model rates safe, rather than an offer in a conversation."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "For this existing_anchor proposal, s14.e12 lists the golden checkmark as a Janitor Plus paid benefit."
+ },
+ "c2_evidence": {
+  "passed": false,
+  "reason": "The rationale says users who comment on others’ characters are seen by the community. The comments button s07.e03 and notification text l11 do not establish that commenters are publicly identified."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The offered-to and subscribers fields restrict the card to free users; Janitor Plus members never see it."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward ends after 24 hours, and the frequency cap permits at most one grant every three days. It does not take a feed position or another limited benefit from anyone."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The trigger and placement put the card in the side menu, a surface the user chooses to open."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The flow uses a short sponsored game after a detectable menu-open event, and the ad-failure field says an unconfirmed game does not add the checkmark."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The proposal names Janitor Plus, its golden-checkmark benefit s14.e12, and the side-menu upgrade banner s06.e50."
+ },
+ "other_concern": "The proposal explicitly assumes where the badge appears, but its predicted value depends heavily on other users seeing it. Its claim of zero serving cost is also unverified.",
+ "fixable": true
+}

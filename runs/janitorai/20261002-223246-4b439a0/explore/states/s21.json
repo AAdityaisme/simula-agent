@@ -1,0 +1,85 @@
+{
+ "schema_version": 1,
+ "state_id": "s21",
+ "kind": "sheet",
+ "parent_id": "s03",
+ "fingerprint": "com.janitor.ai|a082c302b400b002b933f18ef18eb422|b012b18eb492b452b490410000000e40|378e30a0b73c",
+ "foreground_package": "com.janitor.ai",
+ "screenshot": "states/s21.png",
+ "elements_reply": "states/s21.elements.json",
+ "settled": true,
+ "settle_seconds": 2.89,
+ "dynamic_regions": [],
+ "captured_at": "2026-10-02T22:38:10",
+ "box": {
+  "x": 0.0,
+  "y": 240.0,
+  "w": 1080.0,
+  "h": 2041.0
+ },
+ "icon_labels": [],
+ "vision_elements": [
+  {
+   "name": "Oldest sort",
+   "rect_px": {
+    "x": 208.0,
+    "y": 512.0,
+    "w": 332.0,
+    "h": 84.0
+   },
+   "kind": "control"
+  },
+  {
+   "name": "Latest sort",
+   "rect_px": {
+    "x": 540.0,
+    "y": 512.0,
+    "w": 518.0,
+    "h": 84.0
+   },
+   "kind": "control"
+  },
+  {
+   "name": "filters",
+   "rect_px": {
+    "x": 60.0,
+    "y": 188.0,
+    "w": 48.0,
+    "h": 48.0
+   },
+   "kind": "control"
+  },
+  {
+   "name": "menu",
+   "rect_px": {
+    "x": 972.0,
+    "y": 188.0,
+    "w": 48.0,
+    "h": 48.0
+   },
+   "kind": "control"
+  },
+  {
+   "name": "first chat",
+   "rect_px": {
+    "x": 28.0,
+    "y": 658.0,
+    "w": 156.0,
+    "h": 154.0
+   },
+   "kind": "control"
+  },
+  {
+   "name": "Nanami Kento avatar",
+   "rect_px": {
+    "x": 28.0,
+    "y": 658.0,
+    "w": 156.0,
+    "h": 154.0
+   },
+   "kind": "picture"
+  }
+ ],
+ "blocked_reason": null,
+ "later": []
+}

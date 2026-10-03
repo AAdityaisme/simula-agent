@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[{\"box_id\":9,\"name\":\"character name field\"},{\"box_id\":11,\"name\":\"chat name field\"}],\"unlisted\":[]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1928,
+ "tokens_out": 52,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

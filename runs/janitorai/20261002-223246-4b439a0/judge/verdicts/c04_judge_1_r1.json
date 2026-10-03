@@ -1,0 +1,53 @@
+{
+ "candidate_id": "c04",
+ "g_policy": {
+  "passed": true,
+  "reason": "The subscriber chooses to play from the card, and the offer copy states the reward (a gold ring for 24 hours). Declining just closes the card, and a failure path exists (the card hides if no game is available, and a note appears if the play can't be confirmed)."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is a cosmetic profile ring that expires after 24 hours and has no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is a subscriber opening their own profile (s05), which is an app event, and it needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "Nothing free is removed or capped. The offer is additive and shown only to subscribers."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The card is app chrome on s05 Profile, which is rated safe, and it is not in a conversation or next to unsafe or unknown content."
+ },
+ "c1_revealed_value": {
+  "passed": false,
+  "reason": "For a product_change, the new resource (the gold ring) must be a slice of something the app charges for or something the player uses in a core flow. The proposal itself says 'piece of a paid benefit: none' and that the ring is 'not sold'. The ring is a cosmetic shown to other users, and no observed core flow (f1-f6) uses it."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The golden checkmark claim is supported by s14.e12 and s14.e25. The profile content and public profile link are supported by s05, and the ring itself is the proposal's new feature. The claim that subscribers 'otherwise see no ads' is unverified (see other_concern)."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "Subscribers see a ring that the plan does not include, and it sits on the profile screen, which is not a paid area. Nothing in the model shows that Plus removes ads."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The ring lasts only 24 hours, gives away no main plan benefit, and takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer is a card on the user's own profile, which is a persistent surface the user chooses to open, and it interrupts no task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "It is a play-to-earn unit with the reward granted after the verified play, triggered by the app event of opening the profile while subscribed with no ring active."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "It names the s05 Profile screen and Janitor Plus's golden checkmark benefit, so it is tied to this app."
+ },
+ "other_concern": "The rationale says subscribers 'otherwise see no ads', but the model does not show that Plus removes ads (the plan of the exploring account was not recorded). The idea also assumes the app can detect subscriber status and that other users can see the ring. The ring only benefits payers, and the reward goes largely to how other users see the player.",
+ "fixable": false
+}

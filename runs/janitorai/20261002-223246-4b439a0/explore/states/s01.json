@@ -1,0 +1,65 @@
+{
+ "schema_version": 1,
+ "state_id": "s01",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "com.janitor.ai|a442a442f841b000caec2a6cc709c990|b44eec188199e78664c6b0e1acedc96d|dcbb9a82831b",
+ "foreground_package": "com.janitor.ai",
+ "screenshot": "states/s01.png",
+ "elements_reply": "states/s01.elements.json",
+ "settled": true,
+ "settle_seconds": 3.11,
+ "dynamic_regions": [
+  {
+   "x": 80.0,
+   "y": 816.0,
+   "w": 80.0,
+   "h": 40.0
+  },
+  {
+   "x": 400.0,
+   "y": 1016.0,
+   "w": 120.0,
+   "h": 80.0
+  }
+ ],
+ "captured_at": "2026-10-02T22:33:05",
+ "box": null,
+ "icon_labels": [
+  {
+   "mcp_ref": "@e29",
+   "name": "menu"
+  },
+  {
+   "mcp_ref": "@e53",
+   "name": "previous page"
+  },
+  {
+   "mcp_ref": "@e56",
+   "name": "next page"
+  },
+  {
+   "mcp_ref": "@e112",
+   "name": "home tab"
+  },
+  {
+   "mcp_ref": "@e113",
+   "name": "search tab"
+  },
+  {
+   "mcp_ref": "@e114",
+   "name": "explore tab"
+  },
+  {
+   "mcp_ref": "@e115",
+   "name": "notifications tab"
+  },
+  {
+   "mcp_ref": "@e116",
+   "name": "profile tab"
+  }
+ ],
+ "vision_elements": [],
+ "blocked_reason": null,
+ "later": []
+}

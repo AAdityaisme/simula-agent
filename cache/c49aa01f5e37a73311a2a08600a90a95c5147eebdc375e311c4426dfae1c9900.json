@@ -1,0 +1,9 @@
+{
+ "text": "{\"names\":[{\"box_id\":2,\"name\":\"menu\"},{\"box_id\":7,\"name\":\"previous page\"},{\"box_id\":8,\"name\":\"next page\"}],\"unlisted\":[]}",
+ "model": "claude-sonnet-5-5",
+ "tokens_in": 1931,
+ "tokens_out": 66,
+ "tokens_cached": 0,
+ "stop_reason": "end_turn",
+ "failure": ""
+}

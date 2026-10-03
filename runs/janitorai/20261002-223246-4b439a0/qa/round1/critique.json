@@ -1,0 +1,211 @@
+{
+ "schema_version": 1,
+ "fixes": [
+  {
+   "element_id": "s01.e40",
+   "problem": "The 'Non-human' chip is about 5px too wide (71.1 vs 65.9) and starts 2px too far left. The emoji and text sizing is off.",
+   "fix": "Set the chip's text box to x=33.5, w=65.9. Use a smaller emoji and 12px text with less padding, so the label fits 65.9px wide."
+  },
+  {
+   "element_id": "s01.e42",
+   "problem": "The 'Submissive' chip is too wide (70.0 vs 65.9) and starts about 2px too far left.",
+   "fix": "Set the text box to x=33.5, w=65.9, h=11.4, with the same chip padding and emoji size as the Non-human chip."
+  },
+  {
+   "element_id": "s01.e46",
+   "problem": "The '#sonicthehedgehog' tag is 93.5px wide where 88.4 is wanted, and starts about 2.4px too far left.",
+   "fix": "Set x=33.5 and w=88.4. Reduce the font size or letter-spacing slightly so the text fits."
+  },
+  {
+   "element_id": "s01.e30",
+   "problem": "The Kitsunami card image is a flat stand-in with different framing and color. The real art is lighter and more saturated.",
+   "fix": "Draw assets/s01.e30.art.png at x=24, y=319.3, w=159.2, h=188.1 with object-fit fill. Remove any CSS filter or tint."
+  },
+  {
+   "element_id": "s01.e54",
+   "problem": "The Parkour Reborn image is cropped and shifted compared with the real one, and it is missing the 'Hidden Gems' tint.",
+   "fix": "Draw assets/s01.e54.art.png at x=218.7, y=319.3, w=156.9, h=188.1, with no scaling or cropping offsets."
+  },
+  {
+   "element_id": "s01",
+   "problem": "The heatmap shows red across all text. The mock's title and body text sit about 1px higher and the glyphs are slightly different. The bottom nav icons are also wrong: the center logo is a cat-head outline instead of the swirl logo, and the search icon is thinner.",
+   "fix": "Shift the title and description text down 1px. Match the Roboto weight and size. Replace the center nav icon with a swirl glyph like the real one. Use the real nav icon stroke weights. Keep the tab colors #7c5cbf for active and #8a8a8a for inactive."
+  },
+  {
+   "element_id": "s14.e24",
+   "problem": "The janitor+ logo is drawn with a dark rectangular background box visible against the starry background. The heatmap shows it as a blue block.",
+   "fix": "Draw assets/s14.e24.png at x=47.2, y=154.7, w=190.5, h=47.2 and make sure the surrounding box has a transparent background. Do not add any dark fill behind it."
+  },
+  {
+   "element_id": "s14",
+   "problem": "The background is a flat navy gradient with scattered dots. The real one is a starry nebula with a lighter card interior and faint border glow. The title serif is also wrong: the mock is bolder and narrower.",
+   "fix": "Use a lighter blue-purple radial gradient (#1a2150 to #0c1030) with a few soft stars. Make the card fill rgba(255,255,255,0.04) with a 1px border rgba(255,255,255,0.15). Use a lighter, wider serif (Playfair or DM Serif style) for the heading, 32px, centered at y~60."
+  },
+  {
+   "element_id": "s14.e25",
+   "problem": "The golden checkmark badge may not match the real asset at its rect.",
+   "fix": "Use assets/s14.e25.png at x=47.2, y=592, w=20.6, h=21.3."
+  },
+  {
+   "element_id": "s25",
+   "problem": "The Miro avatar is a blurry brown blob instead of the real portrait. The blue badge next to the name is a plain rectangle, not an eye icon.",
+   "fix": "Draw a 44x44 rounded avatar at x=4,y=125 with a warm dark green-brown portrait gradient (#3a2a1c to #6b7a4a). Replace the badge with a small blue eye glyph, 14x10, at x=95,y=131."
+  },
+  {
+   "element_id": "s06.e10",
+   "problem": "The part of the feed visible behind the drawer is shifted: the mock shows the card edge and the sparkle at wrong positions and sizes, and lacks the dim overlay.",
+   "fix": "Draw assets/s06.e10.art.png at x=0, y=319.3, w=68.5, h=188.1. Make the feed text behind the drawer match the real position; for example, the 'maller' line should be at x=0 and y=182. Add a dim overlay rgba(0,0,0,0.35) on the feed."
+  },
+  {
+   "element_id": "s06",
+   "problem": "The drawer items are about 1px higher than the real ones, and the 'Media Library' icon is different. The Upgrade banner has a plainer background than the real starry gradient, and its right edge is cut off.",
+   "fix": "Move the menu rows down 1px. Use an image-gallery icon for Media Library. Make the banner x=128 to 410, h=55, with a starry navy gradient (#1b2a6b to #0c1a4a) and radius 10px. Put the arrow icon at x=388."
+  },
+  {
+   "element_id": "s06.e60",
+   "problem": "The profile avatar might not be at the exact rect, and the hamburger icon at the top of the dimmed area is brighter than the real one.",
+   "fix": "Draw assets/s06.e60.png at x=120.4, y=19.8, w=77.7, h=59.4. Reduce the hamburger opacity to 0.5 and place it at x=64..80, y=21..35."
+  },
+  {
+   "element_id": "s07.e08",
+   "problem": "The hero art stops at x=344 and leaves a visible strip of the image on the right (about 37px wide) where the real art fills the full card width.",
+   "fix": "Draw assets/s07.e08.art.png at its rect x=29,y=102.9,w=315,h=353.4, but make the frame around it 352px wide (x=29 to 381). Stretch the picture to cover the frame, or fix the picture's width to its rect. Remove the stray crop."
+  },
+  {
+   "element_id": "s08.e08",
+   "problem": "The hero art is cut off on the right. A strip beside the art shows a mismatched crop at x~352-381.",
+   "fix": "Draw assets/s08.e08.art.png at rect x=29,y=102.9,w=322.6,h=353.4 with object-fit:fill. The frame should span x=29 to 381 with a 1px #d9a0a8-like border and 6px radius. Keep nothing else over the strip."
+  },
+  {
+   "element_id": "s07.e20",
+   "problem": "The Created, Updated and Published labels are drawn as 100px-wide boxes, so their rects are off. The real boxes hug the text.",
+   "fix": "Make each label inline-block and shrink-wrap it, with no fixed width. Center it in its column. Created: x=62.5,w=44.6. Updated: x=181.3,w=48.4. Published: x=298.3,w=56.4. All at y=573,h=13."
+  },
+  {
+   "element_id": "s07.e23",
+   "problem": "The date values (4 days ago, 15 minutes ago) are 104px wide and shifted left of the wanted rects.",
+   "fix": "Make each value shrink-wrap. 4 days ago: x=40.8,w=88. 15 minutes ago: x=159.2,w=92.6 with wrapping at about 93px. Second 4 days ago: x=282.7,w=88. Center the text in the 3 equal columns."
+  },
+  {
+   "element_id": "s08.e27",
+   "problem": "The date values and labels in the stats row have the same width and x errors as on s07.",
+   "fix": "Shrink-wrap the labels: Created x=62.5,w=44.6. Updated x=181.3,w=48.4. Published x=298.3,w=56.4. Values: 3 days ago x=40.4,w=88.4. about 2 hours ago x=159.2,w=92.6. about 10 hours ago x=280.4,w=92.6."
+  },
+  {
+   "element_id": "s07.e47",
+   "problem": "The 'Aaditya' text box is 51.8px wide, but it should be 261.3px wide.",
+   "fix": "Make the name a block that fills the remaining row width: x=87.2,w=261.3,h=17.9, left-aligned. The chevron stays at the right."
+  },
+  {
+   "element_id": "s07.e04",
+   "problem": "The element '8' in the header (x=346.3,y=19.1,w=8.4,h=18.7) is missing. It is the vertical three-dot menu glyph.",
+   "fix": "Add a visible tagged element with data-el s07.e04 at x=346.3,y=19.1,w=8.4,h=18.7 for the kebab menu. Use the same on s08.e04."
+  },
+  {
+   "element_id": "s07.e14",
+   "problem": "The element '8' next to the heart (x=335.2,y=474.3,w=9.9,h=20.2) is missing. It is the like count '2' on s07 and '1' on s08.",
+   "fix": "Tag the like-count text with data-el s07.e14, sized 9.9x20.2 at x=335.2,y=474.3. Color #b48cf0, 16px. Do the same for s08.e14 with the text '1'."
+  },
+  {
+   "element_id": "s07.e07",
+   "problem": "The card title is narrower than the real one (105.9 vs 112 wide). The font is a bit small and not wide enough. The same problem is on s08 (214 vs 223.6).",
+   "fix": "Increase letter-spacing slightly, to about 0.6px, or the font size, so 'Kitsunami' is 112px wide and 'Parkour Reborn RPG' is 223.6px. Keep the height at 26.3."
+  },
+  {
+   "element_id": "s07.e09",
+   "problem": "The read-count badge labels are too narrow (14 is 15px wide but should be 19.8; on s08 '5' is 7.5 but should be 12.2). The badge icons also differ from the real ones.",
+   "fix": "Widen the number text boxes to 19.8 and 12.2px and use the real icons (book and chat-copy). Use a 14px number with 1px letter gap."
+  },
+  {
+   "element_id": "s02.e06",
+   "problem": "The filter chips are 21px tall, but the real ones are 14.9px (text box). The text sits about 3px too high or low. The same applies to e08, e10, e12 and e14.",
+   "fix": "Set the chip text element height to 14.9 at y=125.3, with line-height 15px. Keep the border box the same. Widths should be 46.5, 73.1, 60.2, 66.3 and 35.8."
+  },
+  {
+   "element_id": "s02.e56",
+   "problem": "The tag-pill text elements are 17px tall with y offset about 2.6px, but the real ones are 11.4px tall.",
+   "fix": "For the card tags (e56, e58, e60, e62, e64, e75, e81), set the text span to line-height 11.4px, font size 11px. Place it at the wanted y: 725.3, 751.6, 778.3, 755.0 and 781.3. Match widths, e.g. 53.0, 43.0, 51.0."
+  },
+  {
+   "element_id": "s02.e27",
+   "problem": "The element '8' at x=15.6,y=267.4,w=8,h=16 is missing. It is the first digit of '10,000 characters'.",
+   "fix": "Tag the '10,000' text start with data-el s02.e27 at the wanted rect. Real text is white, 14px, with 'characters' in gray."
+  },
+  {
+   "element_id": "s02.e43",
+   "problem": "The card art images look different from the real ones. The second one is cropped wrong.",
+   "fix": "Draw assets/s02.e43.art.png at x=24,y=361.2,w=168.7,h=152.3 and assets/s02.e47.art.png at x=218.7,y=361.2,w=168.7,h=152.3, with no extra overlay."
+  },
+  {
+   "element_id": "s08",
+   "problem": "The emoji in the tags and the description differ (for example the \ud83d\udcca icon in the description is drawn with an added space, and the pill emoji styles differ).",
+   "fix": "Use the same emoji, with no extra space after the \ud83c\udfd9\ufe0f emoji, in 'Fragment Update!' as in the real screen. Keep the text color of the tags the same."
+  },
+  {
+   "element_id": "s20",
+   "problem": "Chat snippet text is wrong: the real rows show two lines of preview that end with an ellipsis, but the mock shows three lines that wrap differently and clip at the row bottom. This is the largest red area and the cause of the low SSIM (0.653).",
+   "fix": "Limit each preview to 2 lines with a 14px font and ~22px line-height, ending in an ellipsis. Use the real text, e.g. 'Miro's breathing hitched. His chest felt tight, like the air in the room was thinning out. The \u2026'. Keep the title at y\u2248207 and the preview starting at y\u2248230. Rows are 74px apart."
+  },
+  {
+   "element_id": "s03",
+   "problem": "The bottom-nav center icon is wrong: the real one is a filled purple spiral/cat-swirl logo, while the mock draws an outlined cat head.",
+   "fix": "Replace the center icon with a purple (#a78bfa) spiral logo about 26px, centered at x\u2248205, y\u2248805. Match the filled style of the inactive icons at the same size."
+  },
+  {
+   "element_id": "s05",
+   "problem": "The tab indicator is wrong. The real screen has a purple underline under the first tab only (x0-137, y\u2248213), while the mock's line looks offset. The third tab icon (feather) is also drawn larger and shifted right.",
+   "fix": "Underline: 2px #a78bfa at y212-214, x0-137, with a 1px gray divider across the rest. Make the feather icon 18px, centered at x\u2248341, y\u2248192."
+  },
+  {
+   "element_id": "s24",
+   "problem": "The text in the form is rendered about 1px off vertically and slightly wider than the real one: the title is at y27 instead of 28, the placeholders are at x41 instead of 40 and are wider, and the warning text is slightly bolder. The text in the Bio hint at the bottom shows in the mock but is cut off in the real screen.",
+   "fix": "Shift the title down 1px. Set the placeholder font to 15px, color #7d8088, left padding 18px. Make the warning text weight 600 at 14px. Remove the hint text that appears below the Bio box at y\u2248830 so it is not visible."
+  },
+  {
+   "element_id": "s10.e04",
+   "problem": "The '8' glyph at the start of '3,430 characters' is missing as a tagged element. The real screen has a separate 8-wide text box at x 15.6, y 113.1, 8x16.",
+   "fix": "Draw the '8' as its own tagged element with data-el s10.e04 at x 15.6, y 113.1, w 8, h 16 (13px-ish white Roboto digit). Keep '3,430' and ' characters' as the rest of the line."
+  },
+  {
+   "element_id": "s10.e28",
+   "problem": "The Non-human chip text is 70.8 px wide, but the real one is 65.9. It starts at x 31.3 instead of 33.5, so the emoji and text are too large.",
+   "fix": "Set the chip label to x 33.5, w 65.9, h 11.4, with a 12px font and a smaller emoji (about 11px). Keep the chip border where it is."
+  },
+  {
+   "element_id": "s10.e34",
+   "problem": "The #sonicthehedgehog chip text is 93.7 px wide and starts at 31.0. It should be 88.4 wide and start at 33.5.",
+   "fix": "Reduce the font size or letter-spacing so the label is 88.4 px wide at x 33.5, y 686.5. Use the green #7CFC7C-like color."
+  },
+  {
+   "element_id": "s10.e65",
+   "problem": "The #runneruser chip text is 58.0 px wide, but the real one is 53.3. It starts at x 226.1 instead of 228.2.",
+   "fix": "Make the label 53.3 px wide at x 228.2, y 690.3, with a smaller font or tighter letter-spacing, in teal."
+  },
+  {
+   "element_id": "s10.e18.art",
+   "problem": "The card art is drawn at the wrong crop or scale and has a visible border. The Kitsunami art and Parkour art do not match the real screen.",
+   "fix": "Draw assets/s10.e18.art.png at x 24, y 171.1, w 159.2, h 188.1 and assets/s10.e48.art.png at x 218.7, y 171.1, w 156.9, h 188.1, with object-fit fill and no extra overlay."
+  },
+  {
+   "element_id": "s10",
+   "problem": "Card titles are truncated with an ellipsis ('Kitsuna\u2026', 'Parkour Reborn R\u2026'). The real screen shows 'Kitsunami' and 'Parkour Reborn RPG'. The description text wraps differently, with the first quote line wrapping early and the real one ending in '...REQUE'. The heading and intro text are also about 2px high with a bolder weight than the real one.",
+   "fix": "Remove the text-overflow ellipsis and give the titles full width. Narrow the title font to match. Use the real wording: 'Kitsunami', and end the description with 'great... thank you... REQUE'. Move the 'Build, Share, Explore' header and the intro down 2px at weight 500."
+  },
+  {
+   "element_id": "s15",
+   "problem": "The headline 'More memory for long chats.' is a heavier, wider serif than the real one. The price '$12.99' is also heavier, and the star dots are too sharp and bright compared to the soft real nebula background.",
+   "fix": "Use a lighter serif for the headline at about 30px so each line is about 235px wide, centered. Reduce the price weight. Replace the bright dot grid with a soft, low-contrast dark navy/purple gradient with faint glow."
+  },
+  {
+   "element_id": "s04",
+   "problem": "The header and 'No notifications' text sit 1-2px too high and look bolder than the real ones. The center cat tab icon is a flat dark ring instead of the real swirl cat logo. The bottom nav area lacks the shadow at the card's bottom edge.",
+   "fix": "Move the title to y+1.5 (28.5 center) with a lighter weight, and the 'No notifications' text to y 110 with no text-shadow. Draw the cat swirl icon in gray #5f6368 with the ears and spiral. Add a faint 2px lighter shadow under the rounded bottom edge at y 772."
+  },
+  {
+   "element_id": "s11",
+   "problem": "Cards show chips and avatar art that differ from the real ones. The page 2 header text is 2px high, and the Luna art has a visible gap at the right.",
+   "fix": "Draw s11.e18.art.png at x 24, y 170.7, w 150.8, h 188.1 and s11.e21.art.png at x 218.7, y 171.1, w 155.7, h 188.1. Draw s11.e58.art.png at x 24, y 731.1, w 155.4, h 103.1 and s11.e61.art.png at x 218.7, y 731.1, w 157.3, h 103.1. Move the header down 2px."
+  }
+ ],
+ "summary": "The mock already scores well (9.22) with no failed taps or contract errors. The main remaining misses are three chip/tag widths on s01 (e40, e42, e46), each 2 to 5px wide of the target. Visible differences come from the card art, the Janitor+ logo box and paywall background, the Miro avatar, and the text wrapping and weight on the chat screen. This round should fix those widths, use the listed pictures at their exact rects, and match the text lines.} The mock is close (9.22), and the taps work. The main problems are the cropped hero art on s07 and s08, the stat labels and values drawn as wide boxes instead of shrink-wrapped, and the missing '8' elements. This round should fix those, then the chip and pill text heights on s02. All elements and taps already pass; the remaining loss is in visual fidelity. The worst screen is s20, where the preview text wraps to 3 lines instead of 2 with an ellipsis, and the avatars are blurred. Fix that first, then the s03 center nav icon and 1px text offsets, then the minor s05 and s24 tweaks. All three screens are structurally close, with no failed taps and no contract errors. The biggest gap is s10, which is missing the '8' element and has three chip labels about 5px too wide. Next round, fix those, then the truncated card titles, the art placement, and the softer paywall background and serif weights."
+}

@@ -1,0 +1,53 @@
+{
+ "candidate_id": "c05",
+ "g_policy": {
+  "passed": true,
+  "reason": "The user chooses to play from the sheet, whose offer copy states the reward (5 replies with 5× context, until midnight). Declining returns to the side menu as before, and the ad-failure path is stated."
+ },
+ "g_no_cash": {
+  "passed": true,
+  "reason": "The reward is 5 replies with 5× context, which is a temporary in-app capability and has no cash value."
+ },
+ "g_no_chat_content": {
+  "passed": true,
+  "reason": "The trigger is tapping close on the paywall after 7 or more days away, which is an app event and needs no chat content."
+ },
+ "g_no_free_removal": {
+  "passed": true,
+  "reason": "The proposal states it removes nothing free and adds no cap. It only offers a temporary sample of a paid benefit."
+ },
+ "g_brand_safety": {
+  "passed": true,
+  "reason": "The offer is a sheet over the Janitor Plus paywall s14, which is rated safe, and it is not in or near any chat."
+ },
+ "c1_revealed_value": {
+  "passed": true,
+  "reason": "The existing_anchor reward gives context memory, which the app charges for: m2 and ledger l3 list 5× context as a $12.99/month Plus benefit."
+ },
+ "c2_evidence": {
+  "passed": true,
+  "reason": "The claims about the app are supported: s14.e09 and s14.e03 for the Plus benefit and price, s20.e43 for 17-message sessions, and exp1 for roughly 3,200-character replies. The proposal states that free context limits were not observed. The new sheet, copy and reward are its own additions."
+ },
+ "c3_spares_payers": {
+  "passed": true,
+  "reason": "The proposal says Janitor Plus members never see the offer, and the offer is shown only to free users. The paid plan is not placed at risk."
+ },
+ "c4_protects_subscription": {
+  "passed": true,
+  "reason": "The reward is a sample that ends: 5 replies, expiring at midnight local time. It does not grant lasting access and takes nothing from other users or creators."
+ },
+ "c5_moment": {
+  "passed": true,
+  "reason": "The offer appears right after the user closes the paywall, which is a finished action on a screen the user opened themselves. It does not interrupt a chat or other task."
+ },
+ "c6_fits_simula": {
+  "passed": true,
+  "reason": "The unit is a play-to-earn sponsored game. The reward is added only once the game is confirmed, and the trigger (paywall close after 7 or more days away) is detectable by the app."
+ },
+ "c7_specific": {
+  "passed": true,
+  "reason": "The idea relies on this app's Janitor Plus paywall s14, its '5× context for better memory' line, the $12.99 price and the Miro chat list."
+ },
+ "other_concern": "The offer gives extra memory to free users right when they decline the paywall, and an unconfirmed play can be retried on the same visit despite the 1-per-7-days cap. Both are minor tensions. The model cost is acknowledged in the rationale.",
+ "fixable": false
+}

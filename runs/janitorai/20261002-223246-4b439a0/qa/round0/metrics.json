@@ -1,0 +1,152 @@
+{
+ "schema_version": 1,
+ "round": 0,
+ "screens": [
+  {
+   "state_id": "s01",
+   "ssim_masked": 0.7140245692164647,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.809188253807873,
+   "bounds_ok_share": 0.9523809523809523,
+   "nav_pass_rate": 1.0,
+   "score": 9.189953900337692
+  },
+  {
+   "state_id": "s06",
+   "ssim_masked": 0.9291480837170504,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.805692501553345,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.858296167434101
+  },
+  {
+   "state_id": "s14",
+   "ssim_masked": 0.7180595275560939,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.9669181053255056,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.194455793017413
+  },
+  {
+   "state_id": "s25",
+   "ssim_masked": 0.6443579568575316,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 1.0,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.288715913715063
+  },
+  {
+   "state_id": "s07",
+   "ssim_masked": 0.8305844084573826,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.6529536783791788,
+   "bounds_ok_share": 0.7659574468085106,
+   "nav_pass_rate": 1.0,
+   "score": 7.844222929939027
+  },
+  {
+   "state_id": "s08",
+   "ssim_masked": 0.7820169669061539,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.6551602994036316,
+   "bounds_ok_share": 0.7619047619047619,
+   "nav_pass_rate": 1.0,
+   "score": 7.676511061908739
+  },
+  {
+   "state_id": "s02",
+   "ssim_masked": 0.7440766642062405,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.8336585195895685,
+   "bounds_ok_share": 0.8,
+   "nav_pass_rate": 1.0,
+   "score": 8.488153328412482
+  },
+  {
+   "state_id": "s13",
+   "ssim_masked": 0.9433759739220305,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.9109512278684622,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.83821706834866
+  },
+  {
+   "state_id": "s05",
+   "ssim_masked": 0.9521045934480717,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.9792693761650088,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.904209186896143
+  },
+  {
+   "state_id": "s24",
+   "ssim_masked": 0.8424716023536233,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 1.0,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.549918863867495
+  },
+  {
+   "state_id": "s03",
+   "ssim_masked": 0.926278475636348,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.9011404746557962,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.852556951272696
+  },
+  {
+   "state_id": "s20",
+   "ssim_masked": 0.6525011762170659,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.88352234784477,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.305002352434132
+  },
+  {
+   "state_id": "s15",
+   "ssim_masked": 0.7545852940347133,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.9666742156333292,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.298815125813466
+  },
+  {
+   "state_id": "s04",
+   "ssim_masked": 0.9730397157460442,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 1.0,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.94607943149209
+  },
+  {
+   "state_id": "s10",
+   "ssim_masked": 0.6422167840560202,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.8060293016044457,
+   "bounds_ok_share": 0.935483870967742,
+   "nav_pass_rate": 1.0,
+   "score": 8.96185292295075
+  },
+  {
+   "state_id": "s11",
+   "ssim_masked": 0.7849518634830193,
+   "pixelmatch_ratio": null,
+   "masked_coverage": 0.7138941634873903,
+   "bounds_ok_share": 1.0,
+   "nav_pass_rate": 1.0,
+   "score": 9.385576752808626
+  }
+ ],
+ "cross_screen_failures": [],
+ "score": 9.223908609415536
+}

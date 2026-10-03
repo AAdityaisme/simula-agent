@@ -1,0 +1,70 @@
+{
+ "schema_version": 1,
+ "state_id": "s15",
+ "kind": "screen",
+ "parent_id": null,
+ "fingerprint": "com.janitor.ai|322233120c898e8883e1dc01dc21d4c1|3e82dc01d809f0607d20f01bc037c008|c4a7458cc2e4",
+ "foreground_package": "com.janitor.ai",
+ "screenshot": "states/s15.png",
+ "elements_reply": "states/s15.elements.json",
+ "settled": true,
+ "settle_seconds": 2.83,
+ "dynamic_regions": [],
+ "captured_at": "2026-10-02T22:36:06",
+ "box": null,
+ "icon_labels": [],
+ "vision_elements": [
+  {
+   "name": "janitor plus logo",
+   "rect_px": {
+    "x": 124.0,
+    "y": 520.0,
+    "w": 500.0,
+    "h": 124.0
+   },
+   "kind": "picture"
+  },
+  {
+   "name": "checkmark",
+   "rect_px": {
+    "x": 124.0,
+    "y": 1432.0,
+    "w": 56.0,
+    "h": 40.0
+   },
+   "kind": "picture"
+  },
+  {
+   "name": "checkmark",
+   "rect_px": {
+    "x": 124.0,
+    "y": 1496.0,
+    "w": 56.0,
+    "h": 40.0
+   },
+   "kind": "picture"
+  },
+  {
+   "name": "checkmark",
+   "rect_px": {
+    "x": 124.0,
+    "y": 1584.0,
+    "w": 56.0,
+    "h": 40.0
+   },
+   "kind": "picture"
+  },
+  {
+   "name": "gold verified badge",
+   "rect_px": {
+    "x": 120.0,
+    "y": 1668.0,
+    "w": 60.0,
+    "h": 56.0
+   },
+   "kind": "picture"
+  }
+ ],
+ "blocked_reason": null,
+ "later": []
+}
