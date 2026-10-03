@@ -1,5 +1,5 @@
 economics_mode = "annotate"   # annotate | gate
-judges = ["judge_1", "judge_2"]  # every run; a judgment check they split on goes to a person
+judges = ["judge_1", "judge_2"]  # every run; an idea they split on waits on Needs your call (flows/review.pdf)
 judge_revision_cap = 1         # 1 or 2: how many times a fixable reject is revised (validation/EXPERIMENT-J.md)
 jev_backend = "typesafe"       # typesafe | adapter; env SIMULA_JEV_BACKEND overrides
 validation_usd_cap = 20.0
