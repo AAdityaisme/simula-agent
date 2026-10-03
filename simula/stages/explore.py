@@ -24,9 +24,9 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from simula import config, decide, llm
-from simula.contracts import (ActionLine, Arrival, Coverage, Device, ExploreFile, HardScreenAction, IconLabel, IconPass,
-                              LaterCapture, Point, Progress, Rect, StageOutcome, StateFile, Unlisted, VisionElement,
-                              WalkPick)
+from simula.contracts import (ActionLine, Arrival, Coverage, Device, ExploreFile, FilterControl, HardScreenAction,
+                              IconLabel, IconPass, LaterCapture, Point, Progress, Rect, StageOutcome, StateFile,
+                              Unlisted, VisionElement, WalkPick)
 from simula.device import observe as ob
 from simula.device.mcp import McpReplyError, McpTimeout, Phone, Server
 from simula.device.devices import adb, emulator_lock, online, resolve_serial
@@ -1068,16 +1068,7 @@ class Explorer:
         return want
 
     def filter_set(self, n: int) -> bool:
-        """The filter's n-th control needs no tap now: it is the last one and already shows what the filter wants
-        (a switch in its restrictive state, a chip that is the selected one of its row), or it is a switch the screen doesn't
-        show, whose state can't be read, so a tap would be blind."""
-        if n != len(self.filter_taps) - 1:
-            return False
-        tap = self.filter_taps[-1]
-        if self.filter_on is None:
-            return self.selected(tap)
-        live = ob.find(self.obs.cands, tap)
-        return live is None or live.checked == self.filter_on
+        return filter_set(n, self.filter_taps, self.filter_on, self.obs.cands, self.obs.image)
 
     def pick(self, s: Seen, opts: list[ob.Candidate], question: str, step: str,
              none_label: str | None = None) -> ob.Candidate | None:
@@ -1095,30 +1086,16 @@ class Explorer:
         return opts[index]
 
     def selected(self, c: ob.Candidate) -> bool:
-        """The control is the selected one of its row: checked, when the tree says, else it carries the row's accent,
-        its fill clearly more saturated than every other control's in the row. Differing is not enough: in a two-chip
-        control the unselected chip differs from the selected one just as much."""
-        live = ob.find(self.obs.cands, c)
-        if live is None:
-            return False
-        if live.checked is not None:
-            return live.checked
-        cy = ob.center(live.rect)[1]
-        row = [o for o in self.obs.cands if o is not live and abs(ob.center(o.rect)[1] - cy) < 24
-               and abs(o.rect.h - live.rect.h) < 24]
-        own = saturation(self.obs.image, live.rect)
-        return bool(row) and all(own - saturation(self.obs.image, o.rect) > ACCENT_SATURATION for o in row)
+        return selected(c, self.obs.cands, self.obs.image)
 
     def check_filter(self) -> None:
         """The filter's last control, found on the screen, shows what the filter wants (a switch's state, a chip or a
         sheet's option selected). An option on a sheet that closed is read off its opener (opener_shows).
         A control the screen doesn't show is not verified. A pass marks this launch filtered; a fail ends the
         explore."""
-        last, opener = self.filter_taps[-1], self.filter_taps[0]
-        live = ob.find(self.obs.cands, last)
-        ok = (live.checked == self.filter_on if self.filter_on is not None else self.selected(last)) if live \
-            else last is not opener and self.filter_on is None and self.opener_shows(last, opener)
-        n = len(self.filter_checks) + 1
+        ok, self.opener_says = filter_holds(self.filter_taps, self.filter_on, self.obs.cands, self.obs.image,
+                                            self.opener_says)
+        last, n = self.filter_taps[-1], len(self.filter_checks) + 1
         evidence = self.out / "filter" / f"check-{n:02d}.png"
         evidence.parent.mkdir(exist_ok=True)
         shutil.copyfile(self.scratch / "now.png", evidence)
@@ -1129,19 +1106,6 @@ class Explorer:
             self.human("the content filter can't be verified", f"{last.label!r} not verified by screenshot (check {n})")
             raise Unfiltered(f"content filter not verified (check {n})")
         self.filtered = True
-
-    def opener_shows(self, option: ob.Candidate, opener: ob.Candidate) -> bool:
-        """An option on a sheet that closed, read off its opener. The first time, a control over the opener's box must
-        show a label it didn't show before the filter's taps, with the option in it as a whole token ("SFW" is no
-        part of "NSFW"); that label is kept, and from then on a control there must show exactly it. A label alone
-        can't say a switch's state, so a switch the screen doesn't show is never verified here."""
-        says = [c.label for c in self.obs.cands if ob.overlaps(c.rect, opener.rect)]
-        if self.opener_says:
-            return self.opener_says in says
-        token = re.compile(rf"(?<![\w+]){re.escape(option.tree_label)}(?![\w+])")
-        self.opener_says = next((label for label in says if label != opener.label and token.search(label)), "") \
-            if option.tree_label else ""
-        return bool(self.opener_says)
 
     # ---------- account walls (--allow-account-create) ----------
 
@@ -2572,6 +2536,8 @@ class Explorer:
         explore = ExploreFile(
             app_package=self.package, app_version=app_version, budget=self.ctx.budget, relaunches=self.relaunches,
             content_filter=filter_label(self.filter_taps, self.filter_on) or None,
+            filter_controls=[FilterControl(label=c.label, kind=c.kind, rect=c.rect, tree_label=c.tree_label,
+                                           ident=c.ident) for c in self.filter_taps], filter_on=self.filter_on,
             blocked_state_ids=[s.sid for s in self.states if s.kind == "blocked"],
             coverage=Coverage(states_found=len(self.states), actions_taken=self.actions, stop_reason=self.stop_reason,
                               checklist_answered=answered, checklist_open=still_open),
@@ -2583,6 +2549,65 @@ class Explorer:
 def saturation(image: Image.Image, r: Rect) -> float:
     crop = image.crop((int(r.x), int(r.y), int(r.x + r.w), int(r.y + r.h))).convert("HSV")
     return float(np.asarray(crop, dtype=float)[..., 1].mean())
+
+
+def selected(c: ob.Candidate, cands: list[ob.Candidate], image: Image.Image) -> bool:
+    """The control is the selected one of its row on this screen: checked, when the tree says, else it carries the
+    row's accent, its fill clearly more saturated than every other control's in the row. Differing is not enough: in a
+    two-chip control the unselected chip differs from the selected one just as much. Shared with qa-live."""
+    live = ob.find(cands, c)
+    if live is None:
+        return False
+    if live.checked is not None:
+        return live.checked
+    cy = ob.center(live.rect)[1]
+    row = [o for o in cands if o is not live and abs(ob.center(o.rect)[1] - cy) < 24
+           and abs(o.rect.h - live.rect.h) < 24]
+    own = saturation(image, live.rect)
+    return bool(row) and all(own - saturation(image, o.rect) > ACCENT_SATURATION for o in row)
+
+
+def filter_set(n: int, taps: list[ob.Candidate], on: bool | None, cands: list[ob.Candidate],
+               image: Image.Image) -> bool:
+    """The filter's n-th control needs no tap now: it is the last one and already shows what the filter wants
+    (a switch in its kept state `on`, a chip that is the selected one of its row), or it is a switch the screen
+    doesn't show, whose state can't be read, so a tap would be blind. Shared with qa-live."""
+    if n != len(taps) - 1:
+        return False
+    if on is None:
+        return selected(taps[-1], cands, image)
+    live = ob.find(cands, taps[-1])
+    return live is None or live.checked == on
+
+
+def filter_holds(taps: list[ob.Candidate], on: bool | None, cands: list[ob.Candidate], image: Image.Image,
+                 kept: str) -> tuple[bool, str]:
+    """Whether the screen shows the filter as it wants: its last control found and showing it (a switch in its kept
+    state, a chip or option selected), or an option on a sheet that closed read off its opener (opener_label), never
+    a switch the screen doesn't show. With the opener's label to keep (kept, or the one this check verified by).
+    Explorer.check_filter and qa-live judge a filter by it."""
+    last, opener = taps[-1], taps[0]
+    live = ob.find(cands, last)
+    if live:
+        return (live.checked == on if on is not None else selected(last, cands, image)), kept
+    if last is opener or on is not None:
+        return False, kept
+    label = opener_label(last, opener, cands, kept)
+    return bool(label), kept or label
+
+
+def opener_label(option: ob.Candidate, opener: ob.Candidate, cands: list[ob.Candidate], kept: str) -> str:
+    """An option on a sheet that closed, read off its opener. The first time, a control over the opener's box must
+    show a label it didn't show before the filter's taps, with the option in it as a whole token ("SFW" is no
+    part of "NSFW"); that label is kept (kept), and from then on a control there must show exactly it. A label alone
+    can't say a switch's state, so a switch the screen doesn't show is never verified here. The label it verified by,
+    or ""."""
+    says = [c.label for c in cands if ob.overlaps(c.rect, opener.rect)]
+    if kept:
+        return kept if kept in says else ""
+    token = re.compile(rf"(?<![\w+]){re.escape(option.tree_label)}(?![\w+])")
+    return next((label for label in says if label != opener.label and token.search(label)), "") \
+        if option.tree_label else ""
 
 
 def adb_shell(serial: str, args: list[str]) -> str | None:

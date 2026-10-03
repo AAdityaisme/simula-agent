@@ -103,6 +103,9 @@ def test_content_filter_is_chosen_and_verified(run):
     assert [t.label for t in ex.filter_taps] == ["Limited Only"]
     assert ex.filter_checks and all(ok for _, ok, _ in ex.filter_checks)
     assert (ex.run_dir / ex.filter_checks[0][2]).exists()
+    saved = ExploreFile.model_validate_json((ex.out / "explore.json").read_text())  # what qa-live puts back
+    assert [(c.label, c.kind) for c in saved.filter_controls] == [("Limited Only", ex.filter_taps[0].kind)]
+    assert saved.filter_on is None and saved.content_filter == "Limited Only"
 
 
 def test_caps_hold_and_no_denied_tap_runs(run):
