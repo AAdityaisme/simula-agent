@@ -685,15 +685,10 @@ def test_a_log_in_form_whose_button_only_continues_is_never_filled_greptile_43(t
     """Greptile on #37 (item 43): only a log-in button told a log-in form apart, so one whose button says "Continue"
     got the test identity. Offering to reset a forgotten password makes it a log-in form too."""
     log_in = [*LOG_IN_FORM[:5], el("@go", "Button", "Continue", 1100),
-              el("@fp", "Button", "Forgot password?", 1300, w=400, h=80), el("@su", "Button", "Sign up", 1700)]
-
-    def app(clock):
-        phone = sign_up_app(wall=log_in)(clock)
-        phone.taps[("wall", "Sign up")] = "form"
-        return phone
-    ex, phone = launched(tmp_path, monkeypatch, app)
+              el("@fp", "Button", "Forgot password?", 1300, w=400, h=80), EMAIL_WAY]  # no whole-label "Sign up": FORGOT
+    ex, phone = launched(tmp_path, monkeypatch, sign_up_app(wall=log_in))  # alone marks it (rt-s on #46, LOW 2)
     assert phone.values == {("form", "@f1"): EMAIL, ("form", "@f2"): PASSWORD, ("form", "@f3"): NAME}
-    assert taps(phone)[0] == "Sign up" and "Continue" not in taps(phone) and ex.account_state == "made"
+    assert taps(phone)[0] == "Sign up with email" and "Continue" not in taps(phone) and ex.account_state == "made"
 
 
 @pytest.mark.parametrize("button, extra", [("Continue", []), ("Next", []),
