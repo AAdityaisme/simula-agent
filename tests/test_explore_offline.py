@@ -2359,6 +2359,59 @@ def test_a_tour_relaunch_whose_launch_lands_and_then_times_out_is_relaunched_wit
     assert tour_until(ex, monkeypatch, relaunch_whose_launch_times_out) == [(True, 2)]
 
 
+def test_a_return_launch_that_lands_and_then_times_out_leaves_the_filter_unverified_rt_p_d1b(tmp_path, monkeypatch):
+    """rt-pr43-d32378e LOW 1 (D1b): the launch back from another app, through leave(), starts an app killed while away
+    afresh and then its answer times out. launch() clears the verified filter before it launches, the only clear on
+    this path (launching() clears it for a relaunch), so the tour's next round relaunches with the filter."""
+    from simula.device.mcp import McpTimeout
+    ex, phone, chats = on_chats(tmp_path, monkeypatch)
+    assert ex.filtered and ex.filter_taps
+    ex.act(stage.Move("tap", next(c for c in chats.cands if c.point == (996, 209))), purpose="tour")
+    assert ex.current.kind == "external"
+    launch = phone.launch
+
+    def killed_lands_then_times_out():
+        phone.launch, phone.alive = launch, False  # killed while away: the launch starts it afresh, its filter off
+        launch()
+        raise McpTimeout("mobile_launch_app took over 30s")
+    phone.launch = killed_lands_then_times_out
+    with pytest.raises(McpTimeout):
+        ex.leave()
+    assert not ex.filtered
+
+
+def test_a_tour_that_ends_unverified_in_the_app_relaunches_on_the_phases_cap_rt_p_p2(tmp_path, monkeypatch):
+    """rt-pr43-d32378e LOW 1 (P2): the tour's last relaunch is cut short by a device error, so the tour ends with the
+    filter unverified while the app is in front. The phases count relaunches against their own cap (touring off), so
+    the paywall pass relaunches with the filter and the core loop runs."""
+    from simula.device.mcp import McpReplyError
+    ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
+    caps, done = ex.check_caps, []
+
+    def cut_at_the_cap():
+        drawer = any(any("Upgrade to Janitor Plus" in c.label for c in s.cands) for s in ex.states)
+        if not done and ex.touring and drawer and ex.current and ex.current.kind == "screen":
+            done.append(ex.relaunches)
+            ex.relaunches = stage.MAX_RELAUNCHES - 1
+            tap, refused = phone.tap, []
+
+            def refuses_once(x, y):
+                if not refused and phone.screen == "root":
+                    refused.append((x, y))
+                    raise McpReplyError("the device lost the answer")
+                tap(x, y)
+            monkeypatch.setattr(phone, "tap", refuses_once)
+            try:
+                ex.relaunch(why="no recorded way (as goto() relaunches)")
+            except McpReplyError as e:
+                ex.hang(ex.current, e)  # tour()'s handler
+        return caps()
+    monkeypatch.setattr(ex, "check_caps", cut_at_the_cap)
+    stage.explore_app(ex)
+    assert done and "paywall_pass" not in ex.stop_reason, ex.stop_reason
+    assert any(r.startswith("pass ") for r in ex.core_results), ex.core_results
+
+
 def test_an_account_made_on_the_tour_is_relaunched_with_the_filter_before_another_tap(tmp_path, monkeypatch):
     """rt-pr43-60db74b LOW 3: a sign-up that makes an account mid-tour switches the app to the new account's settings
     without a launch, so its filter is unchecked: result() clears the verified filter, and the tour relaunches with
