@@ -1738,9 +1738,10 @@ class Explorer:
         return "" if self.checklist()[1] else "checklist answered"
 
     def refilter(self) -> None:
-        """An app with a content filter is toured, and each phase after the tour run, only while this launch verified
-        it: one a device error cut short, or an account made on the way, is relaunched with the filter first. With no
-        relaunch left, relaunch() stops what was to run before any tap, naming this reason (relaunch cap)."""
+        """An app with a content filter is toured, and the paywall pass and the core loop run, only while this launch
+        verified it: one a device error cut short, or an account made on the way, is relaunched with the filter first.
+        With no relaunch left, relaunch() stops what was to run before any tap, naming this reason (relaunch cap). The
+        replay check needs none: its quiet_launch() re-applies and checks the filter for each segment."""
         if self.filter_taps and not self.filtered:
             self.relaunch(why="the content filter isn't verified since a device error or a new account")
 
@@ -2786,7 +2787,8 @@ def explore_app(ex: Explorer) -> StageOutcome:
             ex.touring = False  # the phases' relaunch cap from here on
             for phase in (ex.paywall_pass, ex.core_loop, ex.verify_replay):
                 try:
-                    ex.refilter()
+                    if phase != ex.verify_replay:  # its quiet_launch() re-applies and checks the filter, uncounted
+                        ex.refilter()
                     phase()
                 except DEVICE_LOST as e:
                     ex.lost(phase.__name__, e)

@@ -2380,7 +2380,8 @@ def test_an_account_made_on_the_tours_last_action_is_relaunched_with_the_filter_
     """Greptile on 15170d2: a sign-up that makes an account with the tour's last allowed action leaves the filter
     unverified, and the tour stops at its cap before it relaunches. Each phase after the tour relaunches with the
     filter first, so the core loop runs filtered and no tap runs between a launch and a passing check. With no
-    relaunch left, each phase stops at the relaunch cap untapped."""
+    relaunch left, the paywall pass and the core loop stop at the relaunch cap untapped; the replay check isn't
+    stopped by it, since its own uncounted launches re-apply and check the filter (rt-pr43-d32378e LOW 2)."""
     ex, phone = new_explorer(tmp_path, monkeypatch, janitor_like)
     log_filter_checks(ex, phone, monkeypatch)
     walls, made = [], []
@@ -2400,7 +2401,8 @@ def test_an_account_made_on_the_tours_last_action_is_relaunched_with_the_filter_
     if left:
         assert ex.core_completed >= 1 and unfiltered_taps(phone.log) == []
     else:
-        assert all("Stop: relaunch cap" in r for r in ex.core_results) and len(ex.core_results) == 3
+        assert [r.split(" stopped")[0] for r in ex.core_results] == ["paywall_pass", "core_loop"]
+        assert all("Stop: relaunch cap" in r for r in ex.core_results)
         assert not [e for e in phone.log[made[0]:] if e[0] in ("tap", "launch")]
 
 
