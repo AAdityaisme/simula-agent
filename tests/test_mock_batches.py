@@ -365,21 +365,31 @@ class Strict(threading.Condition):
         return True
 
 
-def draw_on_fake_budget(tmp_path, monkeypatch, cap: float, calls: dict, ended: list, parallel: int = 2):
+def draw_on_fake_budget(tmp_path, monkeypatch, cap: float, calls: dict, ended: list, parallel: int = 2,
+                        after: dict[str, tuple[str, ...]] | None = None):
     """draw_batches over one-screen batches whose generate holds and charges the budget as llm.call does. `calls`
     gives each batch's calls in order as (worst case, cost, seconds, cut off at max_tokens); `ended` collects the
-    calls in the order they ended."""
+    calls in the order they ended. `after` holds a call, once it holds its worst case, until the events it names have
+    happened, whatever the machine's load: another call's name ("batch2", "batch2 retry") once it ended, or its name
+    and " held" once it holds."""
     monkeypatch.setattr(mock, "PARALLEL_BATCHES", parallel)
     monkeypatch.setattr(mock.threading, "Condition", Strict)
+    names = [step + (" retry" if n else "") for step, specs in calls.items() for n in range(len(specs))]
+    happened = {event: threading.Event() for name in names for event in (name, f"{name} held")}
 
     def generate(ctx, content, budget, step):
         for n, (worst, cost, seconds, cut_off) in enumerate(calls[step]):
+            name = step + (" retry" if n else "")
             if n:
                 budget.spare = False
             budget.reserve(worst, step=step)
+            happened[f"{name} held"].set()
+            for event in (after or {}).get(name, ()):
+                assert happened[event].wait(5), f"{name} waited 5 s for {event}"
             time.sleep(seconds)
             budget.charge(cost, worst)
-            ended.append(step + (" retry" if n else ""))
+            ended.append(name)
+            happened[name].set()
             if not cut_off:
                 return f'<section data-screen="{content[0]["text"]}"></section>'
         raise llm.LLMFailure("max_tokens", "cut off")
@@ -435,8 +445,11 @@ def batch_rows(tmp_path, plan: mock.Plan, undrawn_from: int, reason: str = "$ ca
                         plan)
 
 
-DREW_PAST = {"batch1": [(1.0, 0.5, 0.05, False)], "batch2": [(1.0, 0.9, 0.1, True), (2.0, 0.5, 0, False)],
-             "batch3": [(1.0, 0.9, 0.3, False)]}
+DREW_PAST = {"batch1": [(1.0, 0.5, 0, False)], "batch2": [(1.0, 0.9, 0, True), (2.0, 0.5, 0, False)],
+             "batch3": [(1.0, 0.9, 0, False)]}
+# Batch 2's first answer ends once batch 1 has and batch 3 holds, so its $2 retry can't fit beside batch 3; batch 3
+# ends after it.
+DREW_PAST_ORDER = {"batch2": ("batch1", "batch3 held"), "batch3": ("batch2",)}
 
 
 def test_a_batch_that_drew_but_was_left_out_to_keep_the_prefix_is_reported_with_its_cost(tmp_path, monkeypatch):
@@ -444,7 +457,7 @@ def test_a_batch_that_drew_but_was_left_out_to_keep_the_prefix_is_reported_with_
     out to keep the kept batches a prefix. The plan line and its exhibit row say it drew, what it cost, and that a
     rerun with a raised cap takes it from the cache free unless run with --no-cache (Greptile)."""
     ended = []
-    drawn = draw_on_fake_budget(tmp_path, monkeypatch, 4.0, DREW_PAST, ended)
+    drawn = draw_on_fake_budget(tmp_path, monkeypatch, 4.0, DREW_PAST, ended, after=DREW_PAST_ORDER)
     assert ended == ["batch1", "batch2", "batch3"] and drawn.plan.keep == 1 and drawn.plan.dropped == ((3, 0.9, None),)
     note = ("drew ($0.90) and was left out to keep the kept batches top-ranked; a rerun with a raised cap takes it "
             "from the cache free unless run with --no-cache")
@@ -461,7 +474,8 @@ def test_a_batch_that_ran_and_failed_past_the_prefix_keeps_its_cost_and_its_own_
     """Greptile: batch 3's call ran and was charged $0.90 but was cut off with no retry left, past batch 2, which the
     cap left out. Its cost and its own error stay in the plan line and its exhibit row, not just the cap's reason."""
     ended = []
-    drawn = draw_on_fake_budget(tmp_path, monkeypatch, 4.0, {**DREW_PAST, "batch3": [(1.0, 0.9, 0.3, True)]}, ended)
+    drawn = draw_on_fake_budget(tmp_path, monkeypatch, 4.0, {**DREW_PAST, "batch3": [(1.0, 0.9, 0, True)]}, ended,
+                                after=DREW_PAST_ORDER)
     error = mock.failure_reason(llm.LLMFailure("max_tokens", "cut off"))
     assert ended == ["batch1", "batch2", "batch3"] and drawn.plan.dropped == ((3, 0.9, error),)
     assert drawn.plan.line(3).endswith(f"; batch 3 ran ($0.90) and failed: {error}")
