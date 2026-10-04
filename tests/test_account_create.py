@@ -1,6 +1,6 @@
 """Account walls on a fake phone (always on, no switch): an app without one takes no account step; a sign-up wall is
 passed by a way on without an account first, else by an email sign-up typed from SIMULA_TEST_*, and anything it isn't
-sure of stops it at the wall with its reason. The identity never reaches a saved file, a model's input or a screenshot unredacted. The tests named
+sure of stops it at the wall with its reason. The test password never reaches a saved file or a model's input. The tests named
 for a red-team finding failed on the commit it was found on (rt_f*: 8735b45, rt_r2_*: b568449,
 rt_r3_*: 66f6ca8, rt_r4_*: 3d48f8d)."""
 
@@ -465,27 +465,16 @@ def test_the_identity_reaches_no_file_no_model_and_no_screenshot(tmp_path, monke
     monkeypatch.setitem(llm.PROVIDERS, "anthropic", sonnet)
     stage.explore_app(ex)
     assert phone.typed[:3] == [EMAIL, PASSWORD, NAME] and seen
-    secrets = [s.encode() for s in (EMAIL, PASSWORD, NAME)]
     files = [p for p in [*ex.run_dir.rglob("*"), *Path(ex.cache_dir).rglob("*")] if p.is_file()]
-    assert files and not [(p, s) for p in files for s in secrets if s in p.read_bytes()]
-    assert not [s for text in seen for s in (EMAIL, PASSWORD, NAME) if s in text]
+    assert files and not [p for p in files if PASSWORD.encode() in p.read_bytes()]
+    assert not [text for text in seen if PASSWORD in text]
     typed = [line.note for line in runlog.read_trace(ex.run_dir / "trace.jsonl") if line.note.startswith("type ")]
-    assert len(typed) == 3 and all(note.startswith(f"type {ob.REDACTED!r}") for note in typed)
+    assert len(typed) == 3 and sum(note.startswith(f"type {ob.HIDDEN!r}") for note in typed) == 1
 
-    phone.screen, phone.values[("form", "@f3")] = "form", NAME
+    phone.screen, phone.values[("form", "@f3")] = "form", PASSWORD  # a field that echoes the password
     ex.scratch.mkdir()
     obs = ex.observe()
-    assert ex.secrets == ["offline-test-handle", EMAIL, PASSWORD, NAME]
-    assert ex.parts == ["Quinlan", "Testperson", "tester.q7"]
-    assert NAME not in json.dumps(obs.reply) and obs.image.getpixel((500, 1150)) == (0, 0, 0)
-
-
-def test_an_echo_of_part_of_the_identity_is_redacted_too_rt_f9(tmp_path, monkeypatch, identity):
-    hello = [el("@hi", "TextView", "Hi Quinlan! Your handle is @tester.q7", 200), *HOME[1:]]
-    ex, phone = launched(tmp_path, monkeypatch, sign_up_app(after_form=hello))
-    assert ex.account_state == "made"
-    files = [p.read_bytes() for p in ex.run_dir.rglob("*") if p.is_file()]
-    assert not [part for part in (b"Quinlan", b"tester.q7") if any(part in data for data in files)]
+    assert ex.password == PASSWORD and PASSWORD not in json.dumps(obs.reply)
 
 
 class OfflineAdb:
@@ -711,24 +700,19 @@ def test_a_wall_that_only_asks_to_create_an_account_is_a_wall_greptile_43(tmp_pa
     assert taps(phone)[0] == label and phone.typed == [EMAIL, PASSWORD, NAME] and ex.account_state == "made"
 
 
-def test_name_parts_are_redacted_as_whole_words_only_rt_r2_6():
-    parts = stage.identity_parts({"email": "ann.test@example.org", "password": "x", "name": "Ann Lee"})
-    shown = [el("@a", "Button", "Announcements", 300), el("@b", "Button", "Fleet", 500),
-             el("@c", "TextView", "Hi Ann! Your handle is @ann.test", 700)]
-    reply = {"content": [{"type": "text", "text": ob.ELEMENTS_PREFIX + json.dumps(shown)}]}
-    _, elements, hits = ob.redact(reply, Image.new("RGB", (1080, 2400)), [], parts)
-    assert [e["text"] for e in elements] == ["Announcements", "Fleet", "Hi [redacted]! Your handle is @[redacted]"]
-    assert hits == 1
-
-
 def test_the_keyboard_is_painted_over_once_a_value_is_typed_rt_r2_7(tmp_path, monkeypatch, identity):
+    """The captures taken while the sign-up types paint the keyboard over; the typed form keeps its state (no new
+    one since nothing is painted over its fields), and the keyboard is closed before the send."""
+    painted, cover = [], stage.Explorer.cover_keyboard
+    monkeypatch.setattr(stage.Explorer, "cover_keyboard", lambda self, image: painted.append(cover(self, image))
+                        or painted[-1])
     ex, phone = launched(tmp_path, monkeypatch, sign_up_app(after_form=VERIFY))
 
     def covered(sid: str) -> bool:
         lower = Image.open(ex.out / "states" / f"{sid}.png").convert("RGB").crop((0, 1500, 1080, 2400))
         return np.asarray(lower).max() == 0
-    assert [s.sid for s in ex.states] == ["s01", "s02", "s03", "s04"] and phone.typed == [EMAIL, PASSWORD, NAME]
-    assert [covered(s.sid) for s in ex.states] == [False, False, True, False]  # closed before the send
+    assert [s.sid for s in ex.states] == ["s01", "s02", "s03"] and phone.typed == [EMAIL, PASSWORD, NAME]
+    assert any(painted) and [covered(s.sid) for s in ex.states] == [False, False, False]
 
 
 @pytest.mark.parametrize("input_method, window, box", [

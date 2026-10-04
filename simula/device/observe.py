@@ -9,7 +9,7 @@ from collections import Counter
 from dataclasses import dataclass
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image
 from skimage.measure import label, regionprops
 
 from simula.contracts import Device, Rect
@@ -101,7 +101,8 @@ EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
 LEAF = re.compile(r"(?:TextView|ImageView|EditText)$")
 PAGED = re.compile(r"ViewPager|RecyclerView|ListView|ScrollView")
 TEXT_OR_IMAGE = re.compile(r"(?:TextView|ImageView)$")
-REDACTED = "[redacted]"
+HIDDEN = "[password]"
+HIDDEN_EMAIL = "hidden@hidden.invalid"
 # Account walls' words. A way on without an account is a whole label, so "Watch later" is content.
 GUEST = re.compile(r"^\W*(?:[\w'’]+\s+){0,3}?(?:as (?:a )?(?:guest|visitor)|guest(?: mode)?|without (?:an? )?account|"
                    r"without (?:signing|logging) (?:up|in)|without (?:registering|registration|log ?in|sign ?in)|"
@@ -220,30 +221,28 @@ def device_from(elements: list[dict], w_px: int, h_px: int, density: int) -> Dev
                   content_bottom_px=nav[0] if nav else h_px - (default.h_px - default.content_bottom_px))
 
 
-# ---------- redaction ----------
+# ---------- the test password ----------
 
-def redact(reply: dict, image: Image.Image, secrets: list[str], parts: list[str] = ()) -> tuple[dict, list[dict], int]:
-    """Replaces every listed string (any case), each of parts as a whole word, and every email address in any of an
-    element's strings with [redacted] and paints a solid box over those elements in the image, before anything reads
-    or saves them. Also returns how many elements were redacted."""
-    # the longest part first: "ann" must not take the front of "ann.test" and leave the rest
-    listed = [re.escape(s.strip()) for s in secrets if s.strip()] + [rf"\b{re.escape(p)}\b"
-                                                                      for p in sorted(parts, key=len, reverse=True)]
-    pattern = re.compile("|".join([EMAIL.pattern, *listed]), re.IGNORECASE)
+def mask(text: str, secret: str) -> str:
+    """text with the test password hidden: an email that holds it becomes a stand-in email, so whatever tells an
+    email (the email-control refusal, Google's account row) still sees one; anywhere else it becomes [password]."""
+    if not secret or secret not in text:
+        return text
+    return EMAIL.sub(lambda m: HIDDEN_EMAIL if secret in m.group(0) else m.group(0), text).replace(secret, HIDDEN)
+
+
+def hide(reply: dict, secret: str) -> tuple[dict, list[dict]]:
+    """The element list with the test password, should an element echo it, masked before anything reads or saves
+    it: the one string that never reaches disk (a password field draws dots, so the screenshot shows none)."""
     elements = json.loads(reply["content"][0]["text"].removeprefix(ELEMENTS_PREFIX))
-    draw = ImageDraw.Draw(image)
-    hits = 0
+    if not secret:
+        return reply, elements
     for e in elements:
-        hit = False
         for key, value in list(e.items()):
-            if key not in ("ref", "type") and isinstance(value, str) and pattern.search(value):
-                e[key], hit = pattern.sub(REDACTED, value), True
-        if hit:
-            hits += 1
-            r = rect(e)
-            draw.rectangle((r.x, r.y, r.x + r.w, r.y + r.h), fill=(0, 0, 0))
+            if key not in ("ref", "type") and isinstance(value, str) and secret in value:
+                e[key] = mask(value, secret)
     content = [{**reply["content"][0], "text": ELEMENTS_PREFIX + json.dumps(elements, ensure_ascii=False)}]
-    return {**reply, "content": content + reply["content"][1:]}, elements, hits
+    return {**reply, "content": content + reply["content"][1:]}, elements
 
 
 # ---------- fingerprint ----------
@@ -614,15 +613,15 @@ def control_shaped(label: str, kind: str) -> bool:
 def denied(c: Candidate, upsell: bool = False, core: bool = False, toggle_ok: bool = False,
            account: bool = False) -> str | None:
     """The deny-list word that blocks this tap, or None. On an upsell screen its call-to-action words are
-    denied too. A control that shows the account's own name or email is never tapped: a tap can copy it where no
-    redaction reaches, like the keyboard's clipboard chip. Sending and typing belong to the core-loop pass only. A
+    denied too. A control that shows an email address is never tapped: a tap can copy it, like the keyboard's
+    clipboard chip. Sending and typing belong to the core-loop pass only. A
     switch or checkbox could undo the content filter, so only the filter's own row may flip one (toggle_ok). On that
     row a filter phrase ("Hide NSFW", "Block explicit content") is no deny hit; every other deny word still is. On
     the sign-up path (account) the words that sign up by email are no deny hit and a text box may be typed into,
     unless the control names a sign-in with another account or a phone; a consent and every other deny word still
     are."""
     text = "\n".join(dict.fromkeys(t for t in (c.label, c.tree_label) if t))
-    if REDACTED in text:
+    if EMAIL.search(text):
         return "account text"
     if account and consents(c):
         return "consent"

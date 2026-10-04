@@ -336,13 +336,11 @@ class Explorer:
         self.replay = (0, 0)
         self.started = clock()
         self.identity = account_identity()
-        self.secrets = redact_list() + list(self.identity.values())
-        self.parts = identity_parts(self.identity)
+        self.password = self.identity.get("password", "")  # the one string that never reaches disk
         self.typing = False  # once an identity value is typed, every capture paints the soft keyboard while it is up
         self.walls: set[str] = set()
         self.account: list[str] = []  # what each account wall came to, for the exhibit
         self.account_state = ""  # "made" once the sign-up made an account, "verify" while its email waits
-        self.redacted = 0
         self.denied_executed = 0
         self.counts: Counter = Counter()
         self.settles: list[tuple[float, str]] = []
@@ -363,10 +361,7 @@ class Explorer:
         self.anr_waited = False
         shot = self.phone.screenshot(self.scratch / "now.png", (self.device.w_px, self.device.h_px))
         image = Image.open(shot).convert("RGB")
-        reply, elements, hits = ob.redact(settled.reply, image, self.secrets, self.parts)
-        if hits or not settled.ok:
-            ob.redact(self.phone.elements()[0], image, self.secrets, self.parts)  # the screen may have moved since
-        self.redacted += hits
+        reply, elements = ob.hide(settled.reply, self.password)
         painted = self.cover_keyboard(image) if self.typing else None
         image.save(shot)
         fg = self.phone.foreground()
@@ -539,7 +534,7 @@ class Explorer:
         line = ActionLine(**fields)
         with open(self.out / "actions.jsonl", "a") as f:
             f.write(line.model_dump_json() + "\n")
-        typed = ob.REDACTED if move.text in self.secrets else move.text
+        typed = ob.HIDDEN if self.password and move.text == self.password else move.text
         label = f" {move.cand.label[:40]!r}" if move.cand else (f" {typed[:40]!r}" if typed else "")
         run_trace(self.ctx.run_dir, stage="explore", step=f"act{self.step:03d}", decider=move.decider,
                   outcome=outcome, note=f"{move.action}{label} {s.sid}>{to.sid if to else '-'} "
@@ -1307,8 +1302,8 @@ class Explorer:
         return shown.group(1) == "true" if shown else None
 
     def cover_keyboard(self, image: Image.Image) -> Rect | None:
-        """Paints the soft keyboard over: its suggestion strip is in no element list, so redaction can't see a typed
-        value there, during the sign-up or after it. Its place is the input method window's frame while dumpsys says it
+        """Paints the soft keyboard over: its suggestion strip is in no element list and can show a value the sign-up
+        typed, during the sign-up or after it. Its place is the input method window's frame while dumpsys says it
         is shown; when dumpsys can't say, the lower half of the screen, so a reading that fails leaves nothing
         uncovered. Where it painted, if anywhere."""
         if self.keyboard_shown() is False:
@@ -2208,10 +2203,9 @@ class Explorer:
         return live is not None and ob.looks_same(idle[0], idle[1].rect, frame, live.rect, self.device)
 
     def frame(self, reply: dict) -> Image.Image:
-        """A full screenshot for the settle check, redacted with the element list read just before it."""
+        """A full screenshot for the settle check."""
         shot = self.phone.screenshot(self.scratch / "frame.png", (self.device.w_px, self.device.h_px))
         image = Image.open(shot).convert("RGB")
-        ob.redact(reply, image, self.secrets, self.parts)
         if self.typing:
             self.cover_keyboard(image)
         return image
@@ -2672,9 +2666,6 @@ def exhibit(ex: Explorer, app_version: str | None) -> str:
              f"- Content filter: {filter_label(ex.filter_taps, ex.filter_on) or 'none found'}"]
     lines += [f"  - check {n}: {'verified' if ok else 'NOT verified'} by screenshot (`{path}`)"
               for n, ok, path in ex.filter_checks]
-    listed = "SIMULA_REDACT and SIMULA_TEST_*" if ex.identity else "SIMULA_REDACT"
-    lines += [f"- Redaction: {len(ex.secrets)} strings listed in {listed}; {ex.redacted} element texts "
-              "redacted at capture"]
     lines += [f"- Account walls: {'; '.join(ex.account) or 'none met'}",
               f"- Checklist answered: {', '.join(answered) or 'none'}; open: {', '.join(still_open) or 'none'}",
               f"- Denied taps: {sum(1 for _ in denied_lines(ex))} logged, {ex.denied_executed} executed. The deny-list "
@@ -2765,20 +2756,9 @@ def denied_lines(ex: Explorer):
             yield line
 
 
-def redact_list() -> list[str]:
-    return [s.strip() for s in os.environ.get("SIMULA_REDACT", "").split(",") if s.strip()]
-
-
 def account_identity() -> dict[str, str]:
     """The operator's throwaway account for an email sign-up at a wall, from the environment; never made up."""
     return {kind: value for kind, var in IDENTITY.items() if (value := os.environ.get(var, "")).strip()}
-
-
-def identity_parts(identity: dict[str, str]) -> list[str]:
-    """The parts of the identity an app echoes back, redacted as whole words: each word of the name and the email's
-    local part, three letters or more."""
-    parts = [*identity.get("name", "").split(), identity.get("email", "").split("@")[0]]
-    return [part for part in parts if len(part) >= 3]
 
 
 def rerun(ctx: Ctx) -> str:
@@ -2795,12 +2775,6 @@ def run(ctx: Ctx) -> StageOutcome:
             from simula.stages.explore_agent import AgentExplorer as kind
         except Exception as e:  # anything its loading raises: nothing has started, so the last explore stands
             raise NotStarted(f"the agent explorer can't load ({type(e).__name__}: {e})") from None
-    if not redact_list():
-        needs_human(ctx.run_dir, "explore", "SIMULA_REDACT is empty",
-                    "the explorer saves screenshots and element lists, and nothing would hide the account handle",
-                    [".env", ".env.example"], rerun(ctx))
-        raise ExploreFailed("SIMULA_REDACT is empty: list the emulator account's handle and names in .env, "
-                            "comma-separated, then explore again")
     with contextlib.ExitStack() as held:
         # the device and its lock first: a run that can't explore leaves the last explore, and its record, as they were
         try:
@@ -2867,8 +2841,7 @@ def explore_app(ex: Explorer) -> StageOutcome:
         update_manifest(ex.ctx.run_dir, app_version=app_version)
         write_exhibit(ex.ctx.run_dir, 1, "explore", exhibit(ex, app_version))
         run_trace(ex.ctx.run_dir, stage="explore", step="summary", decider="code",
-                  note=f"{len(ex.states)} states, {ex.actions} actions, stop: {ex.stop_reason}; "
-                       f"{ex.redacted} element texts redacted")
+                  note=f"{len(ex.states)} states, {ex.actions} actions, stop: {ex.stop_reason}")
         run_trace(ex.ctx.run_dir, stage="explore", step="counters", decider="code",
                   note=json.dumps({**ex.counts, "settles": ex.settles, "replay_fingerprint": ex.replay_fingerprint})[:3000])
     if not ex.states or ex.stop_reason.startswith(DEVICE_STOPS):
