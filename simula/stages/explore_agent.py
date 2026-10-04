@@ -617,15 +617,17 @@ class AgentExplorer(Explorer):
             self.steps.clear()
 
     def start_core(self, step: AgentStep) -> None:
-        """Marks the core action, only for an AI recipient, and measures it at once (core_now)."""
+        """Marks the core action and measures it at once (core_now), never for a person: a conversation only for an AI
+        recipient, since code types there; else the list the element names or lies in (a feed: its items are opened
+        and read), or the button it names."""
         if self.core_ran:
             self.news.append("The core action was measured already: start_core runs once.")
             return
-        if not guard.core_allowed(step.recipient):
+        s, chat = self.current, self.live_composer()
+        if step.recipient == "person" or chat and not guard.core_allowed(step.recipient):
             self.note("agent.core", f"start_core refused: the recipient is {step.recipient!r}", outcome="blocked")
             self.news.append("start_core was refused: code sends messages only to the app's AI or bot.")
             return
-        s, chat = self.current, self.live_composer()
         if chat:
             self.picked_core = CoreAction("chat", s, [ob.find(s.cands, c) or c for c in chat],
                                           f"send messages in a conversation and read the replies "
@@ -636,8 +638,13 @@ class AgentExplorer(Explorer):
             if cand is None:
                 self.news.append("start_core named no element on this screen.")
                 return
-            self.picked_core = CoreAction("action", s, [ob.find(s.cands, cand) or cand],
-                                          f"tap {cand.label[:40]!r} again and again on {s.sid}")
+            items = ob.feed_items(s.cands, self.device, self.tab_keys())
+            if any(i.key == cand.key or ob.inside(i.rect, cand.rect) for i in items):
+                self.picked_core = CoreAction("feed", s, items, f"open and read items from the list on {s.sid} "
+                                                                f"(e.g. {items[0].label[:40]!r})")
+            else:
+                self.picked_core = CoreAction("action", s, [ob.find(s.cands, cand) or cand],
+                                              f"tap {cand.label[:40]!r} again and again on {s.sid}")
         self.note("agent.core", f"marked: {self.picked_core.name}", decider="model")
         self.core_now()
 

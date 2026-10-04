@@ -18,8 +18,9 @@ from simula.contracts import Rect
 from simula.device.mcp import McpTimeout
 from simula.stages import explore_agent as stage_agent
 from simula.stages.explore_agent import STALE_TURNS, AgentExplorer, Halt, ScreenMoved
+from tests import fake_device
 from tests.fake_device import PACKAGE, Clock, FakePhone, Screen, capture, fake_jev, fake_sonnet, new_run
-from tests.test_explore_offline import janitor_like
+from tests.test_explore_offline import aol_home_2, janitor_like
 
 CHATS_TAB = (540, 2253)
 DRAWER = (996, 209)
@@ -282,17 +283,50 @@ def chat_script(recipient_first: str):
     return script
 
 
-def test_start_core_is_refused_for_a_person_and_measured_for_an_ai(tmp_path, monkeypatch):
+@pytest.mark.parametrize("recipient", ["person", "none"])
+def test_start_core_is_refused_for_a_person_and_measured_for_an_ai(tmp_path, monkeypatch, recipient):
+    """A conversation is where code types: start_core there needs the recipient to be the app's AI."""
     def chats(clock):
         phone = janitor_like(clock)
         phone.taps[("chats", "Kang Jun-Seo (Idol x Idol), Sat, 1 chat")] = "chat"  # the card's center
         return phone
-    ex, phone, planner = run(tmp_path, monkeypatch, chat_script("person"), phone_factory=chats)
+    ex, phone, planner = run(tmp_path, monkeypatch, chat_script(recipient), phone_factory=chats)
     assert "start_core was refused" in planner.texts[3]
     assert ex.core and ex.core.kind == "chat" and phone.sent >= 1
     passes = [json.loads(line) for line in (ex.out / "actions.jsonl").read_text().splitlines()]
     assert {p["loop_pass"] for p in passes if p["loop_pass"]} >= {1}
     assert any(t.step == "core" and t.note.startswith("core action: ") for t in trace(ex))
+
+
+def news_feed(clock):
+    """A news app's home (aol-home-2) whose article rows open an article; BACK returns home."""
+    phone = aol_home_2(clock)
+    phone.screens["article"] = capture("aol", "aol-article", package=PACKAGE)
+    for e in phone.screens["home"].elements:
+        if (e.get("identifier") or "").endswith("tv_articleTitle"):
+            phone.taps[("home", fake_device.element_key(e))] = "article"
+    return phone
+
+
+def test_start_core_marks_a_feed_whose_passes_open_items_and_type_nothing(tmp_path, monkeypatch):
+    """A news app's agent run ended with no core action: start_core knew only a chat or a button. Naming one item of
+    a list marks the list as a feed, as the scripted explorer's; its passes open the items, never typing, and a
+    person as the recipient is still refused."""
+    def script(n, text):
+        if n in (1, 2):
+            row = oid(text, "Doctors recommend")
+            return turn({"action": "start_core", "element": row, "recipient": "person" if n == 1 else "none",
+                         "expect": "marked"})
+        return None
+    ex, phone, planner = run(tmp_path, monkeypatch, script, phone_factory=news_feed)
+    assert "start_core was refused" in planner.texts[1]
+    assert ex.core and ex.core.kind == "feed" and ex.core.name.startswith("open and read items from the list on ")
+    lines = [json.loads(line) for line in (ex.out / "actions.jsonl").read_text().splitlines()]
+    opened = [line for line in lines if line["loop_pass"] and line["action"] == "tap" and line["outcome"] == "ok"]
+    assert len({line["loop_pass"] for line in opened}) >= 2 and ex.core_completed >= 2
+    assert len({key for screen, key in taps(phone) if screen == "home"}) == 2  # both rows, in turn
+    assert phone.typed == [] and phone.sent == 0
+    assert not [e for e in phone.log if e[0] == "type"]
 
 
 def banner_after(*sends: int, extra: tuple = ()):
