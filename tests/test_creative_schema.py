@@ -27,8 +27,9 @@ def luzia_record() -> dict:
         "interaction": {"kind": "minigame", "mechanic": "quick_puzzles",
                         "puzzle_families": ["solve_for_x", "next_in_sequence", "unscramble_word"], "puzzle_count": 3,
                         "seed": 20261004},
-        "proof": {"screen_id": "s15", "claims": [{"text": "I am Teacher, your personal tutor.", "evidence_id": "s15.e02"},
-                                                  {"text": "Ask me for advice, answers", "evidence_id": "s06.e02"}]},
+        "proof": {"screen_id": "s15", "claims": [
+            {"text": "I am Teacher, your personal tutor.", "evidence_id": "s15.e02"},
+            {"text": "I'm here to resolve your doubts, clarify those difficult concepts", "evidence_id": "s15.e02"}]},
         "copy": {"intro": "Three quick ones. Can you get them all?",
                  "captions": ["Find x", "What comes next?", "Unscramble the word"], "right_line": "That's it!",
                  "wrong_hint": "Not quite, try again", "end_headline": "Keep learning every day"},

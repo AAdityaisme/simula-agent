@@ -11,7 +11,7 @@
       "proof_screen": "s15",
       "proof": [
         {"evidence_id": "s15.e02", "text": "I am Teacher, your personal tutor."},
-        {"evidence_id": "s06.e02", "text": "Ask me for advice, answers"}
+        {"evidence_id": "s15.e02", "text": "I'm here to resolve your doubts, clarify those difficult concepts"}
       ]
     },
     {
