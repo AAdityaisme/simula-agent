@@ -1,0 +1,31 @@
+{
+  "app": "luzia",
+  "hosts": [
+    {
+      "id": "teacher",
+      "name": "Teacher",
+      "kind": "app_persona",
+      "art": "s01.e13.art.png",
+      "evidence_id": "s01.e13",
+      "greetings": ["s15.e02", "s06.e02"],
+      "proof_screen": "s15",
+      "proof": [
+        {"evidence_id": "s15.e02", "text": "I am Teacher, your personal tutor."},
+        {"evidence_id": "s06.e02", "text": "Ask me for advice, answers"}
+      ]
+    },
+    {
+      "id": "toki",
+      "name": "Toki",
+      "kind": "app_mascot",
+      "art": "s05.e01.art.png",
+      "evidence_id": "s05.e03",
+      "greetings": [],
+      "proof_screen": "s01",
+      "proof": [
+        {"evidence_id": "s01.e26", "text": "Meet Toki, your virtual pet!"},
+        {"evidence_id": "s01.e27", "text": "Create and take care of your own pet"}
+      ]
+    }
+  ]
+}
