@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "creative-attributes/v0",
+  "title": "CreativeAttributes v0 (DRAFT, vocabulary invented)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "creative_id", "status", "format", "advertiser", "content_tier", "gate_tier",
+               "character", "hook", "interaction", "proof", "copy", "end_card", "qa", "lineage", "provenance"],
+  "x-future-training-inputs": ["format", "gate_tier", "hook", "character.kind", "interaction.mechanic",
+                               "end_card.cta", "advertiser.category_iab", "age_days"],
+  "properties": {
+    "schema_version": {"const": 0},
+    "creative_id": {"type": "string", "pattern": "^cr_[0-9a-f]{12}$", "description": "sha1 of the HTML file, first 12 hex"},
+    "status": {"enum": ["draft", "failed", "accepted", "live", "retired"]},
+    "format": {"enum": ["INT", "RWD", "NAT"]},
+    "age_days": {"type": "integer", "minimum": 0, "description": "days since first live; set by the registry"},
+    "advertiser": {
+      "type": "object", "additionalProperties": false,
+      "required": ["app_package", "app_name", "app_version", "run_id", "has_unsafe_screens", "campaign_id", "category_iab"],
+      "properties": {
+        "app_package": {"type": "string"},
+        "app_name": {"type": "string"},
+        "app_version": {"type": "string"},
+        "run_id": {"type": "string"},
+        "has_unsafe_screens": {"type": "boolean", "description": "any state in the product model rated unsafe"},
+        "campaign_id": {"type": ["string", "null"]},
+        "category_iab": {"type": ["string", "null"], "description": "IAB Ad Product 2.0 id; null until mapped"}
+      }
+    },
+    "content_tier": {"enum": ["sfw", "suggestive", "mature"], "description": "derived by code from screens, art, text"},
+    "gate_tier": {"enum": ["sfw", "suggestive", "mature"],
+                  "description": "content_tier raised to at least suggestive when has_unsafe_screens; the gate reads this"},
+    "character": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "name", "art_ref", "evidence_id"],
+      "properties": {
+        "kind": {"enum": ["app_mascot", "app_persona", "publisher_character", "none"]},
+        "name": {"type": "string", "maxLength": 40},
+        "art_ref": {"type": ["string", "null"], "description": "art crop file, e.g. s05.e01.art.png"},
+        "evidence_id": {"type": ["string", "null"], "description": "element that shows the host in the app"}
+      }
+    },
+    "hook": {"enum": ["challenge", "help_host"]},
+    "interaction": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "mechanic", "puzzle_families", "puzzle_count", "seed"],
+      "properties": {
+        "kind": {"const": "minigame"},
+        "mechanic": {"enum": ["quick_puzzles"]},
+        "puzzle_families": {"type": "array", "minItems": 1, "uniqueItems": true,
+                            "items": {"enum": ["solve_for_x", "next_in_sequence", "unscramble_word"]}},
+        "puzzle_count": {"const": 3},
+        "seed": {"type": "integer"}
+      }
+    },
+    "proof": {
+      "type": "object", "additionalProperties": false, "required": ["screen_id", "claims"],
+      "properties": {
+        "screen_id": {"type": "string"},
+        "claims": {"type": "array", "minItems": 1, "maxItems": 2,
+          "items": {"type": "object", "additionalProperties": false, "required": ["text", "evidence_id"],
+                    "properties": {"text": {"type": "string", "maxLength": 90}, "evidence_id": {"type": "string"}}}}
+      }
+    },
+    "copy": {
+      "type": "object", "additionalProperties": false,
+      "required": ["intro", "captions", "right_line", "wrong_hint", "end_headline"],
+      "properties": {
+        "intro": {"type": "string", "maxLength": 90},
+        "captions": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "string", "maxLength": 60}},
+        "right_line": {"type": "string", "maxLength": 40},
+        "wrong_hint": {"type": "string", "maxLength": 40},
+        "end_headline": {"type": "string", "maxLength": 60}
+      }
+    },
+    "end_card": {
+      "type": "object", "additionalProperties": false, "required": ["cta"],
+      "properties": {"cta": {"enum": ["Install Now", "Get the App", "Open App"]}}
+    },
+    "qa": {
+      "type": "object", "additionalProperties": false,
+      "required": ["playthrough_pass", "grounding_pass", "tier_pass", "repair_round", "first_pass_accept",
+                   "human_verdict", "human_edits"],
+      "properties": {
+        "playthrough_pass": {"type": "boolean"},
+        "grounding_pass": {"type": "boolean"},
+        "tier_pass": {"type": "boolean"},
+        "repair_round": {"enum": [0, 1]},
+        "first_pass_accept": {"type": "boolean"},
+        "human_verdict": {"enum": ["pending", "accepted", "accepted_with_edits", "rejected"]},
+        "human_edits": {"type": "integer", "minimum": 0}
+      }
+    },
+    "lineage": {
+      "type": "object", "additionalProperties": false,
+      "required": ["brief_id", "parent_creative_id", "generator_version", "prompt_sha", "template_sha"],
+      "properties": {
+        "brief_id": {"type": "string"},
+        "parent_creative_id": {"type": ["string", "null"]},
+        "generator_version": {"type": "string"},
+        "prompt_sha": {"type": "string"},
+        "template_sha": {"type": "string"}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": {"enum": ["observed", "derived", "generated", "code", "assumed"]},
+      "description": "one stamp per top-level field"
+    }
+  }
+}

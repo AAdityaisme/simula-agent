@@ -1,0 +1,3 @@
+{"brief_id": "br_example_luzia_0", "advertiser": "co.thewordlab.luzia", "format": "INT",
+ "keep": {"hook": ["challenge"]}, "drop": {}, "explore": {"character.kind": ["app_mascot"]},
+ "siblings_of": [], "max_variants": 4, "source": "EXAMPLE - no outcomes exist"}
