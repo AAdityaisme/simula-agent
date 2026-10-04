@@ -6,13 +6,17 @@ import json
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
 from simula.contracts import Rect
 from simula.device import guard
+from simula.device import observe as ob
 from simula.device.mcp import parse_elements
 from simula.device.observe import center, inside, rect
+from simula.stages import explore_agent
 from simula.stages.explore import CORE_MESSAGES, SEARCH_QUERIES
-from tests.fake_device import capture
+from tests import test_explore_agent as harness
+from tests.fake_device import PACKAGE, FakePhone, Screen, blank, capture, element_key
 from tests.test_invariants import APP_WORDS
 
 CHAT = Path(__file__).parent / "fixtures" / "arrival" / "janitorai" / "20260928-095854-s21.elements.json"
@@ -173,7 +177,10 @@ def test_a_word_inside_prose_is_no_button_and_a_long_text_never_blocks_a_tap_ins
 @pytest.mark.parametrize("words", ["Pay $4.99 with saved card", "Post to my public profile",
                                    "Share with friends and family", "Report this user for spam",
                                    "Send to all selected contacts", "Send this reply back to Alex"])
-def test_a_long_button_label_that_starts_with_a_one_word_entry_is_refused(words):
+def test_a_long_label_that_starts_with_a_one_word_entry_is_refused_in_every_shape(words):
+    assert guard.blocked_tap({"text": words})
+    assert guard.blocked_tap({"type": "android.widget.TextView", "text": words})
+    assert guard.blocked_tap({"type": "android.view.View", "text": words})
     assert guard.blocked_tap({"type": "android.widget.Button", "text": words})
     assert guard.blocked_tap({"type": "android.view.ViewGroup", "label": words})
 
@@ -197,11 +204,11 @@ def test_a_button_that_changes_a_password_is_refused_at_any_length_and_position(
     assert guard.blocked_tap(button) == "change your password"
 
 
-def test_the_core_loop_lifts_only_the_send_family_on_a_long_label_too():
-    button = {"type": "android.widget.Button"}
-    assert guard.blocked_tap({**button, "text": "Send this reply back to Alex"}, core=True) is None
+@pytest.mark.parametrize("kind", ["android.widget.Button", "android.widget.TextView", "android.view.View"])
+def test_the_core_loop_lifts_only_the_send_family_on_a_long_label_too(kind):
+    assert guard.blocked_tap({"type": kind, "text": "Send this reply back to Alex"}, core=True) is None
     for words in ("Post to my public profile", "Pay $4.99 with saved card", "Share with friends and family"):
-        assert guard.blocked_tap({**button, "text": words}, core=True)
+        assert guard.blocked_tap({"type": kind, "text": words}, core=True)
 
 
 def test_a_long_affirmative_under_a_short_deletion_title_is_refused():
@@ -230,7 +237,7 @@ def test_an_ai_reply_that_opens_with_share_around_the_real_chats_core_send_leave
     send = next(e for e in chat if e["ref"] == "@e48")
     reply = shown("Share your favourite memory from this week and I will turn it into a short story.", 300,
                   x=0, w=1080, h=2100)
-    assert guard.blocked_tap(reply, core=True) is None
+    assert guard.blocked_tap(reply, core=True) == "share"
     assert guard.blocked_tap(send, [*chat, reply], core=True) is None
 
 
@@ -341,3 +348,104 @@ def test_a_confirm_is_judged_by_its_own_dialogs_text_not_the_page_behind_it():
     assert guard.blocked_tap(clear[-1], [*page, *clear]) is None
     delete = [{**clear[0]}, {**clear[1], "text": "Delete account?"}, clear[2], {**clear[3], "text": "Delete"}]
     assert guard.blocked_tap(delete[-1], [*page, *delete]) == "delete (delete account on the screen)"
+
+
+# The red team on 2e22d20 (rt-66): every real command shape, a confirm beside a Cancel, and named security switches.
+def element(text: str = "", *, kind: str = "android.widget.TextView", label: str = "", ref: str = "@target",
+            x: int = 100, y: int = 600, w: int = 800, h: int = 100, **fields) -> dict:
+    return {"ref": ref, "type": kind, "text": text, "label": label, "identifier": "", "enabled": True,
+            "coordinates": {"x": x, "y": y, "width": w, "height": h}, **fields}
+
+
+def candidate(target: dict, screen: list[dict]) -> ob.Candidate:
+    return next(c for c in ob.controls(screen, ob.Device()) if c.ref == target["ref"])
+
+
+COMMANDS = ["Post", "Share", "Follow", "Report", "Block", "Log out", "Delete account", "Post to your story",
+            "Send message to all members", "Change the password for my account", "Turn on two-step verification",
+            "Pay $4.99 with saved card", "Buy now", "Post to my public profile", "Share with friends and family",
+            "Report this user for spam", "Follow this creator for more updates", "Send to all selected contacts"]
+
+
+@pytest.mark.parametrize("text", COMMANDS)
+@pytest.mark.parametrize("shape", ["button", "textview", "clickable_view_text", "label_only_view", "child_text"])
+def test_every_real_command_shape_is_refused_through_the_agents_wiring(text, shape):
+    if shape == "child_text":
+        target = element(kind="android.view.View", clickable=True, h=180)
+        screen = [target, element(text, ref="@child", x=120, y=610, w=650, h=40)]
+    else:
+        target = {"button": element(text, kind="android.widget.Button"),
+                  "textview": element(text, clickable=True),
+                  "clickable_view_text": element(text, kind="android.view.View", clickable=True),
+                  "label_only_view": element(kind="android.view.View", label=text)}[shape]
+        screen = [target]
+    assert explore_agent.hard_block(candidate(target, screen), screen)
+
+
+def dialog_screen(title: str, layout: str = "siblings", cancel: bool = True) -> tuple[list[dict], dict]:
+    caption = element(title, ref="@title", x=140, y=950, w=800, h=60)
+    yes = element("Confirm", kind="android.widget.Button", ref="@yes", x=700, y=1280, w=250, h=100)
+    no = element("Cancel", kind="android.widget.Button", ref="@no", x=140, y=1280, w=250, h=100)
+    panel = element(kind="android.widget.LinearLayout", ref="@dialog", x=90, y=900, w=900, h=500)
+    message = element(kind="android.widget.LinearLayout", ref="@message", x=90, y=920, w=900, h=280)
+    buttons = element(kind="android.widget.LinearLayout", ref="@buttons", x=90, y=1250, w=900, h=150)
+    screen = {"flat": [caption], "flat_button_row": [caption, buttons],
+              "siblings": [panel, message, caption, buttons]}[layout]
+    return [*screen, *([no] if cancel else []), yes], yes
+
+
+@pytest.mark.parametrize("title", ["Delete account?", "Log out?", "Post this?"])
+@pytest.mark.parametrize("layout", ["siblings", "flat", "flat_button_row"])
+@pytest.mark.parametrize("core", [False, True])
+def test_a_confirm_reaches_its_dialogs_caption_past_a_sibling_button_row(title, layout, core):
+    screen, confirm = dialog_screen(title, layout)
+    assert guard.blocked_tap(confirm, screen, core=core)
+
+
+@pytest.mark.parametrize("title", ["Delete account?", "Log out?", "Post this?"])
+def test_a_lone_confirm_merged_into_its_row_is_still_refused(title):
+    screen, confirm = dialog_screen(title, cancel=False)
+    merged = next(c for c in ob.controls(screen, ob.Device()) if c.tree_label == "Confirm")
+    assert guard.blocked_tap(confirm, screen) and explore_agent.hard_block(merged, screen)
+
+
+def test_a_harmless_dialogs_confirm_ignores_the_page_behind_it():
+    screen, confirm = dialog_screen("Clear reading history?")
+    page = [element(kind="android.widget.FrameLayout", ref="@root", x=0, y=0, w=1080, h=2400),
+            element("Log out", ref="@row", y=400),
+            element(kind="android.widget.ImageView", label="Share", ref="@share", x=900, y=300, w=84, h=84)]
+    assert guard.blocked_tap(confirm, [*page, *screen]) is None
+
+
+@pytest.mark.parametrize("text", ["Two-step verification", "Two-factor authentication", "2FA", "Account recovery",
+                                  "Require password"])
+@pytest.mark.parametrize("kind", ["android.widget.Switch", "android.widget.CheckBox", "android.view.View"])
+def test_a_switch_that_names_a_security_setting_is_refused(text, kind):
+    target = element(text, kind=kind, checked=True)
+    assert explore_agent.hard_block(candidate(target, [target]), [target])
+
+
+@pytest.mark.parametrize("text", ["Biometric & Password", "Security & password", "Recovery"])
+def test_a_security_row_or_a_recovery_tab_that_is_no_toggle_stays_allowed(text):
+    target = element(text)
+    assert explore_agent.hard_block(candidate(target, [target]), [target]) is None
+    assert guard.blocked_tap(element(text, kind="android.widget.Switch", checked=True)) == (
+        None if text == "Recovery" else "password")
+
+
+@pytest.mark.parametrize("scenario", ["long_purchase_text", "deletion_dialog_with_cancel", "named_2fa_switch"])
+def test_the_agents_tap_never_reaches_the_forbidden_effect(tmp_path, monkeypatch, scenario):
+    if scenario == "long_purchase_text":
+        target = element("Pay $4.99 with saved card", clickable=True)
+        screen = [target]
+    elif scenario == "deletion_dialog_with_cancel":
+        screen, target = dialog_screen("Delete account?")
+    else:
+        target = element("Two-step verification", kind="android.widget.Switch", checked=True)
+        screen = [target]
+    shown_screen = Screen(screen, Image.new("RGB", (1080, 2400), (220, 220, 220)), PACKAGE)
+    factory = lambda clock: FakePhone({"root": shown_screen, "effect": blank(PACKAGE)}, "root",  # noqa: E731
+                                      {("root", element_key(target)): "effect"}, clock)
+    ex, phone, _ = harness.agent(tmp_path, monkeypatch, lambda *a: harness.turn(harness.DONE),
+                                 phone_factory=factory, no_send=True)
+    assert ex.tap(candidate(target, screen), screen) and not harness.taps(phone)

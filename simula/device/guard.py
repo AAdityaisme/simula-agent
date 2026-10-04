@@ -7,7 +7,7 @@ import unicodedata
 
 from simula import config
 from simula.contracts import Rect
-from simula.device.observe import area, center, inside, rect, short_id
+from simula.device.observe import TOGGLE, area, center, inside, rect, short_id
 from simula.stages.explore import CORE_MESSAGES, SEARCH_QUERIES
 
 BILLING = "com.android.vending"  # the Play Store: its payment sheet gets BACK before anyone sees it
@@ -21,8 +21,8 @@ REAL_WORD = re.compile(r"[^\W\d_]{2,}")  # a label's letters ("Go", "OK"), not a
 # a one-word entry counts in a label this short, or one it starts ("Pay $4.99 with saved card"): prose that says
 # "like" is no Like button
 SHORT = 4
-# on text that is no control, a phrase counts in a label this short or one it opens: longer text that mentions one
-# (a headline, an AI's reply around the composer's Send) is content
+# on text that is no control, a phrase counts only in a label this short or one it opens: longer text that mentions
+# one (a headline, an AI's reply around the composer's Send) is content
 CONTROL_WORDS = 6
 
 
@@ -55,6 +55,7 @@ WORDS, PATTERNS = BLOCKS["words"], BLOCKS["patterns"]
 ALWAYS = blocks(WORDS, patterns=PATTERNS)
 OUTSIDE_CORE = blocks(WORDS, BLOCKS["outside_core"], patterns=PATTERNS)
 CONFIRM = blocks(BLOCKS["confirm"])
+SECURITY = phrases(BLOCKS["security"], [])
 
 
 def in_billing(foreground: str) -> bool:
@@ -82,7 +83,7 @@ def hit(blocked: tuple[re.Pattern, re.Pattern], texts: list[str], ids: list[str]
     """The entry the first matching text or id holds: in a text of up to SHORT words, any entry anywhere; in a longer
     one, any entry it starts with, or a longer entry or pattern anywhere. An id holds no prose: any entry anywhere
     ("toolbar_menu_action_share_button"). Content (text that is no control) names an action only as a command
-    does: a one-word entry opening a text of up to SHORT words, a phrase in one of up to CONTROL_WORDS or opening it."""
+    does: any entry opening it, or a phrase in a text of up to CONTROL_WORDS words."""
     every, longer = blocked
 
     def find(t: str, whole: bool) -> re.Match | None:
@@ -90,8 +91,7 @@ def hit(blocked: tuple[re.Pattern, re.Pattern], texts: list[str], ids: list[str]
         if whole:
             return every.search(t)
         if content:
-            return (every.match(t) if n <= SHORT else None) or (longer.search(t) if n <= CONTROL_WORDS
-                                                                 else longer.match(t))
+            return every.match(t) or (longer.search(t) if n <= CONTROL_WORDS else None)
         return every.search(t) if n <= SHORT else every.match(t) or longer.search(t)
 
     found = (find(t, whole) for strings, whole in ((texts, False), (ids, True)) for s in strings for t in spellings(s))
@@ -104,41 +104,58 @@ def is_control(element: dict) -> bool:
     return "Button" in element.get("type", "") or not (element.get("text") or "").strip() and bool(labels(element))
 
 
-def names(blocked: tuple[re.Pattern, re.Pattern], element: dict, ids: bool = True) -> str | None:
+def names(blocked: tuple[re.Pattern, re.Pattern], element: dict) -> str | None:
     """The entry element names as its own action: any in a control's label or an action id, only a command's in
     content."""
-    return hit(blocked, labels(element), id_evidence(element) if ids else (), content=not is_control(element))
+    return hit(blocked, labels(element), id_evidence(element), content=not is_control(element))
+
+
+def reply(element: dict, label: str, core: bool) -> bool:
+    """In the core loop, a label longer than CONTROL_WORDS words that is no button is the AI's reply ("Share …")
+    around the composer, not a control a tap inside it lands on."""
+    return core and "Button" not in element.get("type", "") and len(spellings(label)[1].split()) > CONTROL_WORDS
 
 
 def dialog(element: dict, screen: list[dict]) -> list[dict]:
-    """What a confirm answers: the text in the smallest element around it that holds text besides its own words (a
-    dialog's title and message, an item's card), or with none the screen's. An icon is another choice beside it (an
-    item's share), not what the dialog says."""
+    """What a confirm answers: the text in the smallest element around it that holds a caption (text that is neither
+    a control nor inside one: a dialog's title or message, an item's headline), or with none the screen's. Another
+    choice (Cancel, its button row) is no caption, and an icon (an item's share) is not what the dialog says."""
     own, r = set(labels(element)), rect(element)
-    text = [e for e in screen if "Image" not in e.get("type", "")
-            and any(s not in own for s in labels(e))]
+    text = [e for e in screen if "Image" not in e.get("type", "") and any(s not in own for s in labels(e))]
+    choices = [rect(e) for e in screen if is_control(e)]
+    captions = [rect(t) for t in text if not is_control(t) and not any(inside(rect(t), c) for c in choices)]
     boxes = [rect(e) for e in screen if inside(r, rect(e)) and area(rect(e)) > area(r)
-             and any(inside(rect(t), rect(e)) for t in text)]
+             and any(inside(c, rect(e)) for c in captions)]
     box = min(boxes, key=area, default=None)
     return [t for t in text if box is None or inside(rect(t), box)]
 
 
-# ponytail: a command is told from content by its shape (a button, a label-only icon, a short text opening with the
-# action), so a text-only "Post" control is refused and so is a short heading that opens with an entry ("Follow
-# along"); safety before coverage, and every refusal is logged denied, so the scorecard shows the cost
+def security_toggle(element: dict) -> str | None:
+    """The security setting a switch or checkbox names ("Two-step verification"): flipping it is the change."""
+    if not (TOGGLE.search(element.get("type", "")) or "checked" in element):
+        return None
+    found = (SECURITY.search(t) for s in labels(element) for t in spellings(s))
+    return next((m.group() for m in found if m), None)
+
+
+# ponytail: a command is told from content by its shape (a button, a label-only icon, a text opening with the
+# action), so a text-only "Post" control is refused and so is a heading that opens with an entry ("Follow along",
+# "Post Malone…") and a label-only reading link ("The Evening Post"); safety before coverage, and every refusal is
+# logged denied, so the scorecard shows the cost
 def blocked_tap(element: dict, screen: list[dict] | None = None, *, core: bool = False) -> str | None:
     """Why a tap on element must not run, or None. Refused: a hard-block action it names (account deletion or
     changes, sign-out, public posts, actions toward other people, purchases, and sending outside the core loop); a
     tap point inside an element of the screen that names one, since the tap lands on that; a confirm while the
-    dialog around it names one. Words come from config/hard_blocks.toml."""
+    dialog around it names one; a switch that names a security setting. Words come from config/hard_blocks.toml."""
     blocked = ALWAYS if core else OUTSIDE_CORE
-    if word := names(blocked, element):
+    if word := names(blocked, element) or security_toggle(element):
         return word
     if not screen:
         return None
     x, y = center(rect(element))
     point = Rect(x=x, y=y, w=0, h=0)
-    under = next((word for e in screen if inside(point, rect(e)) and (word := names(blocked, e, ids=False))), None)
+    under = next((word for e in screen if inside(point, rect(e)) and (word := hit(
+        blocked, [s for s in labels(e) if not reply(e, s, core)], content=not is_control(e)))), None)
     if under:
         return f"{under} (at the tap point)"
     if yes := hit(CONFIRM, labels(element), id_evidence(element)):

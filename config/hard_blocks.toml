@@ -1,11 +1,10 @@
 # Taps the agent never makes: a control whose text or label holds one of these, or whose id does unless they hold a
 # real word, as whole words in any case. A one-word entry counts only in a label of at most four words or one it
-# starts, so prose that says "like" is no Like button. On text that is no control (a heading, a row, an article), a
-# one-word entry counts only opening a label of at most four words, and a phrase only in one of at most six or opening
-# it: a masthead such as "The Evening Post" and a headline that mentions a phone number are content. Generic English
-# only, no app's names or terms. Sign-in isn't here: Google sign-in is allowed. Subscribe, upgrade and free trial
-# aren't either: they go through Play billing, whose screen gets BACK at once, and tapping them is how the agent finds
-# the price.
+# starts, so prose that says "like" is no Like button. On text that is no control (a heading, a row, an article), an
+# entry counts opening the text, and a phrase anywhere in one of at most six words: a masthead such as "The Evening
+# Post" and a headline that mentions a phone number are content. Generic English only, no app's names or terms.
+# Sign-in isn't here: Google sign-in is allowed. Subscribe, upgrade and free trial aren't either: they go through Play
+# billing, whose screen gets BACK at once, and tapping them is how the agent finds the price.
 words = [
     # account deletion or deactivation
     "deactivate", "account deletion", "account removal", "account closure",
@@ -30,6 +29,8 @@ words = [
 # tab is no change
 patterns = ['(?:delete|remove|close|deactivate|disable|terminate)(?: \w+){0,4} (?:account|profile)',
             '(?:change|reset|update|edit|set|enable|disable|turn on|turn off|remove|forgot|create)(?: \w+){0,3} (?:password|2 ?fa|two factor|two step|recovery)']
+# a switch or checkbox whose label names one of these is refused: flipping it changes the account's security
+security = ["password", "2fa", "two factor", "two step", "account recovery"]
 # refused outside the core loop, the one place the agent sends its fixed text to an AI
 outside_core = ["send", "submit", "reply", "add comment", "post comment", "send message"]
 # refused while the dialog around it names a refused action: the commit of that action
