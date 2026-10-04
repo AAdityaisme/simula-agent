@@ -63,14 +63,11 @@ def run(mvp, tmp_path):
 
 
 def fill_review(mvp, out, first_verdict="edit"):
-    """Two reviewers' sheets, merged: fable gives the first string first_verdict, astra says ok to every string and
-    notes the last (merge refuses byte-identical sheets)."""
+    """Two reviewers' sheets, merged: fable gives the first string first_verdict, astra says ok to every string."""
     sheets = {}
     for name, verdict in (("fable", first_verdict), ("astra", "ok")):
         rows = [dict(row, verdict="ok") for row in mvp.read_review(out)]
         rows[0]["verdict"], rows[0]["edit"] = verdict, "" if verdict == "ok" else "Sponsored mini-game"
-        if name == "astra":
-            rows[-1]["edit"] = "reads well"
         sheets[name] = write_rows(mvp, out.parent / f"{name}.csv", rows)
     mvp.merge(out, sheets)
 
@@ -371,16 +368,22 @@ def test_a_refused_interrupted_rerun_leaves_every_file_as_it_was(mvp, calls, tmp
     assert len(calls) == 4 and snapshot(out) == before
 
 
-@pytest.mark.parametrize("same", ["path", "content"])
-def test_merge_refuses_one_sheet_given_as_two_reviewers(mvp, calls, tmp_path, same):
+def test_merge_refuses_one_sheet_given_as_two_reviewers(mvp, calls, tmp_path):
+    out = tmp_path / "out"
+    run(mvp, tmp_path)
+    sheet = write_rows(mvp, tmp_path / "fable.csv", [dict(row, verdict="ok") for row in mvp.read_review(out)])
+    with pytest.raises(SystemExit, match="same sheet"):
+        mvp.merge(out, {"Claude Fable 5.1": sheet, "GPT-6 Astra": tmp_path / "." / "fable.csv"})
+    assert not (out / "reviewers.json").exists()
+
+
+def test_two_reviewers_who_both_approve_everything_merge(mvp, calls, tmp_path):
     out = tmp_path / "out"
     run(mvp, tmp_path)
     rows = [dict(row, verdict="ok") for row in mvp.read_review(out)]
-    first = write_rows(mvp, tmp_path / "fable.csv", rows)
-    second = first if same == "path" else write_rows(mvp, tmp_path / "astra.csv", rows)
-    with pytest.raises(SystemExit, match="same sheet"):
-        mvp.merge(out, {"Claude Fable 5.1": first, "GPT-6 Astra": second})
-    assert not (out / "reviewers.json").exists()
+    mvp.merge(out, {"Claude Fable 5.1": write_rows(mvp, tmp_path / "fable.csv", rows),
+                    "GPT-6 Astra": write_rows(mvp, tmp_path / "astra.csv", rows)})
+    assert mvp.finalize(out)["final_accept"] == 4 and mvp.check(out) == []
 
 
 @pytest.mark.parametrize("edit", ["a reviewer list beside the sheets", "a name that is not its sheet's"])

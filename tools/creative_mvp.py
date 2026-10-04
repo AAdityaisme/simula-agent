@@ -131,10 +131,9 @@ def merged(out: Path, sheets: dict[str, Path]) -> list[dict]:
     if len(sheets) < 2 or not all(REVIEWER.fullmatch(name) for name in sheets):
         raise SystemExit(f"merge needs two or more reviewers named with letters, digits, spaces, _, . or -; got "
                          f"{list(sheets)}")
-    paths = [Path(path).resolve() for path in sheets.values()]
-    if len(set(paths)) < len(paths) or len({path.read_bytes() for path in paths}) < len(paths):
-        raise SystemExit("two reviewers gave the same sheet (one path, or byte-identical content); each model "
-                         "reviewer reads every string on a sheet of its own")
+    if len({Path(path).resolve() for path in sheets.values()}) < len(sheets):
+        raise SystemExit("two reviewers gave the same sheet; each model reviewer reads every string on a sheet of its "
+                         "own")
     copies = {}
     for name, path in sheets.items():
         copies[name] = read_sheet(path)
