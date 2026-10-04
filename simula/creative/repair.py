@@ -18,8 +18,18 @@ from simula.creative.qa import MODES, PATHS, WIDTHS, grounding, playthrough, tie
 from simula.creative.schema import Hook, Tier
 
 
+class Inputs(Strict):
+    """What a draft was made from: a rerun reuses a saved draft only when these match."""
+    seed: int
+    run_id: str
+    paths: list[str]
+    widths: list[int]
+    modes: list[str]
+
+
 class Draft(Strict):
     round: int
+    inputs: Inputs
     lines: HostLines | None
     assembled: bool
     content_tier: Tier | None
@@ -27,8 +37,8 @@ class Draft(Strict):
     grounding_failures: list[str]
     tier_failures: list[str]
     playthrough: dict[str, list[str]]
-    seconds: float = 0
-    usd: float = 0
+    seconds: float
+    usd: float
 
     def failures(self) -> list[str]:
         """Every failure of this draft, as the repair call receives them."""
@@ -53,24 +63,29 @@ class VariantResult(Strict):
     usd: float
 
 
-def _check(round_: int, lines: HostLines, facts: Facts, host: Host, hook: Hook, seed: int, run_dir: Path, out: Path,
-           qa: dict) -> Draft:
+def _unassembled(lines: HostLines | None, failures: list[str]) -> dict:
+    return {"lines": lines, "assembled": False, "content_tier": None, "lines_failures": failures,
+            "grounding_failures": [], "tier_failures": [], "playthrough": {}}
+
+
+def _check(lines: HostLines, facts: Facts, host: Host, hook: Hook, seed: int, run_dir: Path, out: Path,
+           qa: dict) -> dict:
+    """The Draft fields these lines earn: their code checks, then the assembled creative's grounding, tier and
+    playthrough."""
     (out / "lines.json").write_text(lines.model_dump_json(indent=1))
     found = problems(lines, facts, host, puzzles(seed))
     if found:
-        return Draft(round=round_, lines=lines, assembled=False, content_tier=None, lines_failures=found,
-                     grounding_failures=[], tier_failures=[], playthrough={})
+        return _unassembled(lines, found)
     try:
         content = build_content(facts, host, hook, seed, lines)
     except ValidationError as e:
-        return Draft(round=round_, lines=lines, assembled=False, content_tier=None,
-                     lines_failures=[f"{e.title}.{'.'.join(map(str, err['loc']))}: {err['msg']}" for err in e.errors()],
-                     grounding_failures=[], tier_failures=[], playthrough={})
+        return _unassembled(lines, [f"{e.title}.{'.'.join(map(str, err['loc']))}: {err['msg']}"
+                                    for err in e.errors()])
     html = write_variant(content, run_dir, out)
     content_tier, tier_failures = tier(content, facts)
-    return Draft(round=round_, lines=lines, assembled=True, content_tier=content_tier, lines_failures=[],
-                 grounding_failures=grounding(content, facts), tier_failures=tier_failures,
-                 playthrough=playthrough(html, content, **qa))
+    return {"lines": lines, "assembled": True, "content_tier": content_tier, "lines_failures": [],
+            "grounding_failures": grounding(content, facts), "tier_failures": tier_failures,
+            "playthrough": playthrough(html, content, **qa)}
 
 
 def generate_variant(*, facts: Facts, host: Host, hook: Hook, seed: int, run_dir: Path, drafts_dir: Path,
@@ -79,18 +94,24 @@ def generate_variant(*, facts: Facts, host: Host, hook: Hook, seed: int, run_dir
                      modes: tuple[str, ...] = MODES) -> VariantResult:
     """Generates one variant: a first draft, and a repair round only when the first draft fails a check. A failed
     host-line call, or a host the content can't hold, is a failure like any other. A rerun resumes from the saved
-    drafts: it never rewrites a saved round and calls the model only for a round still owed. seconds and usd sum each
+    drafts: it never rewrites a saved round and calls the model only for a round still owed, and raises SystemExit
+    when a saved draft was made from another seed, run or QA matrix (new inputs need a new drafts_dir). seconds and usd sum each
     draft's own, saved with it, so a resumed result reports what generating the variant cost. paths, widths and modes
     narrow the playthrough (tests use one run). llm.CapReached propagates: the $ cap stops the whole MVP run."""
     variant_id = f"{host.id}-{hook}"
     qa = {"paths": paths, "widths": widths, "modes": modes}
+    inputs = Inputs(seed=seed, run_id=facts.run_id, **qa)
     drafts: list[Draft] = []
     for round_ in (0, 1):
         if drafts and not drafts[-1].failures():
             break
         out = drafts_dir / variant_id / f"round{round_}"
         if (out / "draft.json").exists():
-            drafts.append(Draft.model_validate_json((out / "draft.json").read_text()))
+            saved = Draft.model_validate_json((out / "draft.json").read_text())
+            if saved.inputs != inputs:
+                raise SystemExit(f"{drafts_dir / variant_id} holds drafts made from {saved.inputs.model_dump()}, not "
+                                 f"{inputs.model_dump()}; use a new drafts dir for new inputs")
+            drafts.append(saved)
             continue
         previous = drafts[-1] if drafts else None
         started, spent = time.monotonic(), budget.spent
@@ -102,10 +123,9 @@ def generate_variant(*, facts: Facts, host: Host, hook: Hook, seed: int, run_dir
         except llm.LLMFailure as e:
             lines, failed = None, f"the host-line call failed: {e.outcome}"
         out.mkdir(parents=True)
-        draft = _check(round_, lines, facts, host, hook, seed, run_dir, out, qa) if lines else Draft(
-            round=round_, lines=None, assembled=False, content_tier=None, lines_failures=[failed],
-            grounding_failures=[], tier_failures=[], playthrough={})
-        draft = draft.model_copy(update={"seconds": time.monotonic() - started, "usd": budget.spent - spent})
+        fields = _check(lines, facts, host, hook, seed, run_dir, out, qa) if lines else _unassembled(None, [failed])
+        draft = Draft(round=round_, inputs=inputs, **fields, seconds=time.monotonic() - started,
+                      usd=budget.spent - spent)
         (out / "draft.json").write_text(draft.model_dump_json(indent=1))
         drafts.append(draft)
     last = drafts[-1]

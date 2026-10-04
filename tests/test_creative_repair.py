@@ -1,10 +1,12 @@
 import json
+import re
 
 import pytest
+from pydantic import ValidationError
 
 from simula import llm
 from simula.creative.facts import build_facts
-from simula.creative.repair import generate_variant
+from simula.creative.repair import Draft, generate_variant
 from tests.conftest import ROOT
 
 RUN = ROOT / "runs" / "luzia" / "20260929-204554-1f19585"
@@ -27,10 +29,10 @@ def replying(replies: list[dict], seen: list):
     return provider
 
 
-def generate(facts, tmp_path, host=None, cache="cache"):
-    return generate_variant(facts=facts, host=host or facts.hosts[0], hook="challenge", seed=7, run_dir=RUN,
+def generate(facts, tmp_path, host=None, cache="cache", seed=7, **qa):
+    return generate_variant(facts=facts, host=host or facts.hosts[0], hook="challenge", seed=seed, run_dir=RUN,
                             drafts_dir=tmp_path / "drafts", budget=llm.Budget("creative", cap=6.0),
-                            trace_path=tmp_path / "trace.jsonl", cache_dir=tmp_path / cache, **ONE_RUN)
+                            trace_path=tmp_path / "trace.jsonl", cache_dir=tmp_path / cache, **{**ONE_RUN, **qa})
 
 
 def saved(tmp_path) -> dict:
@@ -108,3 +110,28 @@ def test_a_host_the_content_cannot_hold_fails_with_both_drafts_kept(facts, tmp_p
     assert (result.passed, result.repair_round, result.final_dir) == (False, 1, None)
     assert all("Character.name: String should have at most 40 characters" in d.lines_failures for d in result.drafts)
     assert all((tmp_path / "drafts" / "teacher-challenge" / f"round{n}" / "draft.json").exists() for n in (0, 1))
+
+
+@pytest.mark.parametrize("change", [{"seed": 8}, {"widths": (360,)}, {"run_id": "another-run"}])
+def test_a_rerun_with_other_inputs_refuses_the_saved_drafts(facts, tmp_path, monkeypatch, change):
+    free = {**CLEAN, "intro": "Play free: three quick ones!"}
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", replying([free, free], []))
+    generate(facts, tmp_path)
+    files = saved(tmp_path)
+    run_id = change.pop("run_id", None)
+    other = facts.model_copy(update={"run_id": run_id}) if run_id else facts
+    with pytest.raises(SystemExit, match=re.escape(str(tmp_path / "drafts" / "teacher-challenge"))):
+        generate(other, tmp_path, cache="cache-gone", **change)
+    assert saved(tmp_path) == files
+
+
+def test_a_saved_draft_without_its_cost_does_not_load(facts, tmp_path, monkeypatch):
+    def failing(model, system, messages, effort, schema, max_tokens, total_timeout=None):
+        raise llm.LLMFailure("error", "provider down")
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", failing)
+    generate(facts, tmp_path)
+    for field in ("seconds", "usd"):
+        draft = json.loads((tmp_path / "drafts" / "teacher-challenge" / "round0" / "draft.json").read_text())
+        del draft[field]
+        with pytest.raises(ValidationError, match=field):
+            Draft.model_validate(draft)
