@@ -7,7 +7,7 @@ import unicodedata
 
 from simula import config
 from simula.contracts import Rect
-from simula.device.observe import center, inside, rect, short_id
+from simula.device.observe import TOGGLE, area, center, inside, rect, short_id
 from simula.stages.explore import CORE_MESSAGES, SEARCH_QUERIES
 
 BILLING = "com.android.vending"  # the Play Store: its payment sheet gets BACK before anyone sees it
@@ -21,8 +21,8 @@ REAL_WORD = re.compile(r"[^\W\d_]{2,}")  # a label's letters ("Go", "OK"), not a
 # a one-word entry counts in a label this short, or one it starts ("Pay $4.99 with saved card"): prose that says
 # "like" is no Like button
 SHORT = 4
-# a refused label this short is a control that a tap inside it lands on, as a button's is and, outside the core loop,
-# one that opens with the refused entry; any other longer one is text (an AI's reply around the composer's Send)
+# on text that is no control, a phrase counts only in a label this short or one it opens: longer text that mentions
+# one (a headline, an AI's reply around the composer's Send) is content
 CONTROL_WORDS = 6
 
 
@@ -42,20 +42,20 @@ def phrases(entries: list[str], patterns: list[str]) -> re.Pattern:
     return re.compile(r"(?<!\S)(?:" + "|".join([*map(re.escape, spelled), *patterns]) + r")(?!\S)")
 
 
-def blocks(*lists: list[str], anywhere: list[str] | tuple = (), patterns: list[str] | tuple = ()) \
-        -> tuple[re.Pattern, re.Pattern]:
-    """The patterns of every entry, and of those that count in any label: the entries of two or more words and the
-    anywhere ones; both with the raw patterns."""
+def blocks(*lists: list[str], patterns: list[str] | tuple = ()) -> tuple[re.Pattern, re.Pattern]:
+    """The patterns of every entry, and of the phrases: the entries of two or more words; both with the raw
+    patterns."""
     entries = [e for group in lists for e in group]
     longer = [e for e in entries if len(e.split()) > 1]
-    return phrases([*entries, *anywhere], patterns), phrases([*longer, *anywhere], patterns)
+    return phrases(entries, patterns), phrases(longer, patterns)
 
 
 BLOCKS = tomllib.loads((config.CONFIG / "hard_blocks.toml").read_text())
-WORDS, ANYWHERE, PATTERNS = BLOCKS["words"], BLOCKS["anywhere"], BLOCKS["patterns"]
-ALWAYS = blocks(WORDS, anywhere=ANYWHERE, patterns=PATTERNS)
-OUTSIDE_CORE = blocks(WORDS, BLOCKS["outside_core"], anywhere=ANYWHERE, patterns=PATTERNS)
+WORDS, PATTERNS = BLOCKS["words"], BLOCKS["patterns"]
+ALWAYS = blocks(WORDS, patterns=PATTERNS)
+OUTSIDE_CORE = blocks(WORDS, BLOCKS["outside_core"], patterns=PATTERNS)
 CONFIRM = blocks(BLOCKS["confirm"])
+SECURITY = phrases(BLOCKS["security"], [])
 
 
 def in_billing(foreground: str) -> bool:
@@ -78,45 +78,118 @@ def id_evidence(element: dict) -> list[str]:
     return [] if worded else [short_id(element.get("identifier"))]
 
 
-def hit(blocked: tuple[re.Pattern, re.Pattern], texts: list[str], ids: list[str] | tuple = ()) -> str | None:
+def hit(blocked: tuple[re.Pattern, re.Pattern], texts: list[str], ids: list[str] | tuple = (), *,
+        content: bool = False) -> str | None:
     """The entry the first matching text or id holds: in a text of up to SHORT words, any entry anywhere; in a longer
     one, any entry it starts with, or a longer entry or pattern anywhere. An id holds no prose: any entry anywhere
-    ("toolbar_menu_action_share_button")."""
+    ("toolbar_menu_action_share_button"). Content (text that is no control) names an action only as a command
+    does: any entry opening it, or a phrase in a text of up to CONTROL_WORDS words."""
     every, longer = blocked
-    found = (every.search(t) if whole or len(t.split()) <= SHORT else every.match(t) or longer.search(t)
-             for strings, whole in ((texts, False), (ids, True)) for s in strings for t in spellings(s))
+
+    def find(t: str, whole: bool) -> re.Match | None:
+        n = len(t.split())
+        if whole:
+            return every.search(t)
+        if content:
+            return every.match(t) or (longer.search(t) if n <= CONTROL_WORDS else None)
+        return every.search(t) if n <= SHORT else every.match(t) or longer.search(t)
+
+    found = (find(t, whole) for strings, whole in ((texts, False), (ids, True)) for s in strings for t in spellings(s))
     return next((m.group() for m in found if m), None)
 
 
-def is_control(element: dict, label: str, blocked: tuple[re.Pattern, re.Pattern], core: bool) -> bool:
-    """Whether a tap inside element lands on the control its label names: a button, a label of up to CONTROL_WORDS
-    words, or, outside the core loop, one that opens with a blocked entry ("Send message to all selected group
-    members"). In the core loop such a long label is the AI's reply ("Share …") around the composer."""
-    return ("Button" in element.get("type", "") or len(spellings(label)[1].split()) <= CONTROL_WORDS
-            or not core and any(blocked[0].match(t) for t in spellings(label)))
+def is_control(element: dict) -> bool:
+    """A tap target by its own shape: a button, or an icon or row named only by its accessibility label. Other text
+    (a heading, a feed row's title, an article) is content."""
+    return "Button" in element.get("type", "") or not (element.get("text") or "").strip() and bool(labels(element))
 
 
-# ponytail: whole words in any short label or one they start, so a title such as "Password safety tips" is refused
-# too, and so is a confirm on a screen whose long text holds a phrase ("delete my account"); safety before coverage,
-# and every refusal is logged denied, so the scorecard shows the cost
+def names(blocked: tuple[re.Pattern, re.Pattern], element: dict) -> str | None:
+    """The entry element names as its own action: any in a control's label or an action id, only a command's in
+    content."""
+    return hit(blocked, labels(element), id_evidence(element), content=not is_control(element))
+
+
+def reply(element: dict, label: str, core: bool) -> bool:
+    """In the core loop, a label longer than CONTROL_WORDS words that is no button is the AI's reply ("Share …")
+    around the composer, not a control a tap inside it lands on."""
+    return core and "Button" not in element.get("type", "") and len(spellings(label)[1].split()) > CONTROL_WORDS
+
+
+def texts(element: dict, screen: list[dict]) -> list[dict]:
+    """The other elements with words, icons left out: what can say what element is for."""
+    own = set(labels(element))
+    return [e for e in screen if "Image" not in e.get("type", "") and any(s not in own for s in labels(e))]
+
+
+def captioned(element: dict, screen: list[dict]) -> Rect | None:
+    """The smallest element around element that holds a caption: text that is neither a control nor inside one (a
+    dialog's title or message, an item's headline, a settings row's title). Another choice (Cancel, its button row)
+    is no caption; a control around element (a row named by its label) is element's own, so its text is one."""
+    r = rect(element)
+    choices = [rect(e) for e in screen if is_control(e) and not inside(r, rect(e))]
+    captions = [rect(t) for t in texts(element, screen)
+                if not is_control(t) and not any(inside(rect(t), c) for c in choices)]
+    boxes = [rect(e) for e in screen if inside(r, rect(e)) and area(rect(e)) > area(r)
+             and any(inside(c, rect(e)) for c in captions)]
+    return min(boxes, key=area, default=None)
+
+
+def dialog(element: dict, screen: list[dict]) -> list[dict]:
+    """What a confirm answers: the text in its captioned() box, or with none the screen's. An icon (an item's share)
+    is not what the dialog says."""
+    box = captioned(element, screen)
+    return [t for t in texts(element, screen) if box is None or inside(rect(t), box)]
+
+
+def security(strings: list[str]) -> str | None:
+    found = (SECURITY.search(t) for s in strings for t in spellings(s))
+    return next((m.group() for m in found if m), None)
+
+
+def security_toggle(element: dict, screen: list[dict]) -> str | None:
+    """The security setting a switch or checkbox flips ("Two-step verification"), by its own label or its row's
+    caption (an unlabelled switch beside the row's title), when the tap lands on the switch or anywhere in that
+    row: flipping it is the change. A row without a switch ("Biometric & Password") is navigation."""
+    if not security([s for e in [element, *screen] for s in labels(e)]):
+        return None
+    x, y = center(rect(element))
+    point = Rect(x=x, y=y, w=0, h=0)
+    toggles = [e for e in [element, *screen] if TOGGLE.search(e.get("type", "")) or "checked" in e]
+    for toggle in toggles:
+        row = captioned(toggle, screen)
+        if row and any(inside(rect(e), row) and (e is not toggle and e in toggles or "EditText" in e.get("type", ""))
+                       for e in screen):
+            row = None  # a box holding another switch or a text box is a list or a form, not this switch's row
+        if inside(point, rect(toggle)) or row and inside(point, row):
+            said = labels(toggle) + [s for e in screen if row and inside(rect(e), row) for s in labels(e)]
+            if word := security(said):
+                return word
+    return None
+
+
+# ponytail: a command is told from content by its shape (a button, a label-only icon, a text opening with the
+# action), so a text-only "Post" control is refused and so is a heading that opens with an entry ("Follow along",
+# "Post Malone…") and a label-only reading link ("The Evening Post"); safety before coverage, and every refusal is
+# logged denied, so the scorecard shows the cost
 def blocked_tap(element: dict, screen: list[dict] | None = None, *, core: bool = False) -> str | None:
-    """Why a tap on element must not run, or None. Refused: a hard-block word it carries (account deletion or
+    """Why a tap on element must not run, or None. Refused: a hard-block action it names (account deletion or
     changes, sign-out, public posts, actions toward other people, purchases, and sending outside the core loop); a
-    tap point inside a control of the screen that carries one, since the tap lands on that; a confirm while any text
-    on the screen carries one, as a dialog that names it does. Words come from config/hard_blocks.toml."""
+    tap point inside an element of the screen that names one, since the tap lands on that; a confirm while the
+    dialog around it names one; a switch that names a security setting. Words come from config/hard_blocks.toml."""
     blocked = ALWAYS if core else OUTSIDE_CORE
-    if word := hit(blocked, labels(element), id_evidence(element)):
+    if word := names(blocked, element) or security_toggle(element, screen or []):
         return word
     if not screen:
         return None
     x, y = center(rect(element))
     point = Rect(x=x, y=y, w=0, h=0)
-    under = next((word for e in screen if inside(point, rect(e))
-                  and (word := hit(blocked, [s for s in labels(e) if is_control(e, s, blocked, core)]))), None)
+    under = next((word for e in screen if inside(point, rect(e)) and (word := hit(
+        blocked, [s for s in labels(e) if not reply(e, s, core)], content=not is_control(e)))), None)
     if under:
         return f"{under} (at the tap point)"
     if yes := hit(CONFIRM, labels(element), id_evidence(element)):
-        if shown := next((word for e in screen if (word := hit(blocked, labels(e)))), None):
+        if shown := next((word for e in dialog(element, screen) if (word := hit(blocked, labels(e)))), None):
             return f"{yes} ({shown} on the screen)"
     return None
 

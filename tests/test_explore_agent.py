@@ -230,6 +230,15 @@ def test_a_run_cut_short_by_the_cap_still_leaves_a_loadable_record(tmp_path, mon
     loads_cleanly(ex)
 
 
+def test_the_guard_sees_a_candidates_own_element_so_a_label_only_row_is_a_control_and_a_headline_is_content():
+    screen = [{"ref": "@1", "type": "android.view.ViewGroup", "text": "", "label": "Report this user for spam",
+               "coordinates": {"x": 0, "y": 600, "width": 1080, "height": 150}},
+              {"ref": "@2", "type": "android.widget.TextView", "text": "Most users share one password, a report finds",
+               "coordinates": {"x": 0, "y": 900, "width": 1080, "height": 150}}]
+    row, headline = stage.ob.controls(screen, stage.ob.Device())
+    assert stage_agent.hard_block(row, screen) == "report" and stage_agent.hard_block(headline, screen) is None
+
+
 def test_a_hard_blocked_control_is_logged_denied_and_never_tapped(tmp_path, monkeypatch):
     def script(n, text):
         if n == 1:
