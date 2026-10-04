@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Literal
 
 from simula.contracts import ContentRating, ProductModel, Strict
+from simula.stages.mock import StartTags
 
 HOSTS = Path(__file__).with_name("hosts")
 
@@ -78,7 +79,8 @@ def build_facts(run_dir: Path, hosts_path: Path | None = None) -> Facts:
         raise SystemExit(f"{run_dir}: no approved mock at qa/approved/index.html")
     if not qa_report.exists():
         raise SystemExit(f"{run_dir}: no QA report at qa/qa_report.json")
-    drawn = set(re.findall(r"""<section\b[^>]*\bdata-screen=["']?([^"'\s>]+)""", mock.read_text()))
+    drawn = {t["attrs"]["data-screen"] for t in StartTags(mock.read_text()).tags
+             if t["name"] == "section" and "data-screen" in t["attrs"]}
     drawn -= {u["screen"] for u in json.loads(qa_report.read_text()).get("undrawn_screens", [])}
     excluded = {}
     for state in model.states:

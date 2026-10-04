@@ -72,12 +72,24 @@ def test_a_state_the_approved_mock_does_not_draw_is_out_of_scope(tmp_path):
     assert facts.excluded["s07"] == "not_drawn" and "s07" not in facts.safe_scope
 
 
-@pytest.mark.parametrize("attr", ["data-screen='s07'", "data-screen=s07"])
-def test_a_section_with_single_or_no_quotes_counts_as_drawn(tmp_path, attr):
+@pytest.mark.parametrize("attr, drawn", [("data-screen='s07'", True), ("data-screen=s07", True),
+                                         ('data-screen = "s07"', True), ('data-old-data-screen="s07"', False)])
+def test_a_screen_is_drawn_only_by_a_section_whose_data_screen_attribute_names_it(tmp_path, attr, drawn):
     run = copy_run(tmp_path)
     mock = run / "qa" / "approved" / "index.html"
     mock.write_text(mock.read_text().replace('data-screen="s07"', attr))
-    assert "s07" in build_facts(run).safe_scope
+    assert ("s07" in build_facts(run).safe_scope) is drawn
+
+
+def test_a_section_inside_an_html_comment_is_not_drawn(tmp_path):
+    run = copy_run(tmp_path)
+    mock = run / "qa" / "approved" / "index.html"
+    html = mock.read_text()
+    start = html.index('<section data-screen="s07"')
+    end = html.index("</section>", start) + len("</section>")
+    mock.write_text(html[:start] + "<!--" + html[start:end] + "-->" + html[end:])
+    facts = build_facts(run)
+    assert facts.excluded["s07"] == "not_drawn" and all(a.screen != "s07" for a in facts.allowed)
 
 
 def test_a_placeholder_for_an_undrawn_screen_is_out_of_scope(tmp_path):
