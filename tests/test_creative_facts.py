@@ -3,7 +3,7 @@ import shutil
 
 import pytest
 
-from simula.creative.facts import build_facts
+from simula.creative.facts import build_facts, is_excerpt
 from tests.conftest import ROOT
 
 RUN = ROOT / "runs" / "luzia" / "20260929-204554-1f19585"
@@ -150,3 +150,9 @@ def test_a_host_whose_art_comes_from_an_unsafe_screen_is_refused(tmp_path):
     path.write_text(json.dumps(table))
     with pytest.raises(SystemExit, match="s04.e04"):
         build_facts(RUN, path)
+
+
+@pytest.mark.parametrize("text, excerpt", [("I am Teacher", True), ("I am Teach", False), ("", False), ("   ", False),
+                                           (" I am Teacher", False), ("Teacher, ", False)])
+def test_an_excerpt_is_a_stripped_piece_of_the_text_on_word_boundaries(text, excerpt):
+    assert is_excerpt(text, "Hi! I am Teacher, your personal tutor!") is excerpt

@@ -58,10 +58,11 @@ class Facts(Strict):
 
 
 def is_excerpt(text: str, whole: str) -> bool:
-    """True when text is whole or an exact contiguous piece of it that cuts no word in two."""
+    """True when text is whole or an exact contiguous piece of it that cuts no word in two; blank text, or text with
+    leading or trailing whitespace, is not an excerpt."""
     start = r"\b" if re.match(r"\w", text) else ""
     end = r"\b" if re.search(r"\w$", text) else ""
-    return bool(text.strip()) and re.search(start + re.escape(text) + end, whole) is not None
+    return bool(text.strip()) and text == text.strip() and re.search(start + re.escape(text) + end, whole) is not None
 
 
 def build_facts(run_dir: Path, hosts_path: Path | None = None) -> Facts:
