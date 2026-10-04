@@ -184,9 +184,7 @@ def tab_back_run(runs: Path, recorded: dict[str, Screen], content_filter: str | 
                       [[("s01", "s02", TAP), ("s02", "s01", BACK)]], content_filter, **filter_)
 
 
-def test_a_tap_and_back_flow_is_walked_on_both_sides_with_a_redacted_paired_checkpoint_per_hop(runs, walk, tmp_path,
-                                                                                               monkeypatch):
-    monkeypatch.setenv("SIMULA_REDACT", "Trending")
+def test_a_tap_and_back_flow_is_walked_on_both_sides_with_a_paired_checkpoint_per_hop(runs, walk, tmp_path):
     recorded = screens()
     run_dir = tab_back_run(runs, recorded)
     before = digest(run_dir)
@@ -205,8 +203,6 @@ def test_a_tap_and_back_flow_is_walked_on_both_sides_with_a_redacted_paired_chec
         assert c["ssim"] is not None and 0 < c["coverage"] <= 1
         assert all((out / path).exists() for path in c["files"].values())
     assert flow["checkpoints"][1]["control"]["within"]
-    start_tree = (out / flow["checkpoints"][0]["files"]["tree"]).read_text()
-    assert "Trending" not in start_tree and ob.REDACTED in start_tree
     coverage = [c["coverage"] for c in flow["checkpoints"]]
     assert report["summary"] | {"by_status": None} == {"total": 1, "supported": 1, "completed": 1, "by_status": None,
                                                         "checkpoints": 3,
@@ -997,46 +993,17 @@ def test_a_landing_elsewhere_after_an_assumed_swipe_blames_neither_side(runs, wa
     assert flow["checkpoints"][-1]["live"]["landed"] == "s03"
 
 
-class KeepsScratch(FakePhone):
-    """Keeps what the scratch capture holds once capture() has redacted it and goes on to read the foreground."""
-
-    def screenshot(self, path: Path, size=None) -> Path:
-        self.scratch_path = path
-        return super().screenshot(path, size)
-
-    def foreground(self) -> str:
-        if getattr(self, "scratch_path", None):
-            self.on_disk = Image.open(self.scratch_path).convert("RGB")
-        return super().foreground()
-
-
-def test_the_capture_on_disk_is_the_redacted_one(runs, walk, monkeypatch):
-    monkeypatch.setenv("SIMULA_REDACT", "Trending")
+def test_the_test_password_never_reaches_a_checkpoint_tree(runs, walk, monkeypatch, tmp_path):
+    """An element that echoes SIMULA_TEST_PASSWORD (here a chip's word) is saved with it hidden."""
+    monkeypatch.setenv("SIMULA_TEST_PASSWORD", "Trending")
     recorded = screens()
     tab_back_run(runs, recorded)
-    phone = phone_for(screens(), [("s01", tab(recorded["s01"], 1), "s02")], cls=KeepsScratch)
-
-    walk(phone)
-
-    hidden = [ob.rect(e) for e in recorded["s01"].elements if "Trending" in ob.words(e)]
-    assert hidden and all(phone.on_disk.crop((r.x, r.y, r.x + r.w, r.y + r.h)).getextrema() == ((0, 0),) * 3
-                          for r in hidden)
-
-
-def test_the_account_explore_signs_up_with_is_redacted_as_explore_redacts_it(runs, walk, monkeypatch, tmp_path):
-    """After an explore that made an account, the app shows it: its name, word by word, never reaches the disk."""
-    monkeypatch.setenv("SIMULA_TEST_NAME", "Trending Tester")
-    recorded = screens()
-    tab_back_run(runs, recorded)
-    phone = phone_for(screens(), [("s01", tab(recorded["s01"], 1), "s02")], cls=KeepsScratch)
+    phone = phone_for(screens(), [("s01", tab(recorded["s01"], 1), "s02")])
 
     flow = walk(phone)["flows"][0]
 
     tree = (tmp_path / "audit" / flow["checkpoints"][0]["files"]["tree"]).read_text()
-    assert "Trending" not in tree and ob.REDACTED in tree
-    hidden = [ob.rect(e) for e in recorded["s01"].elements if "Trending" in ob.words(e)]
-    assert hidden and all(phone.on_disk.crop((r.x, r.y, r.x + r.w, r.y + r.h)).getextrema() == ((0, 0),) * 3
-                          for r in hidden)
+    assert "Trending" not in tree and ob.HIDDEN in tree
 
 
 SIGTERM_WALK = '''
@@ -1082,7 +1049,7 @@ def test_a_sigterm_mid_walk_releases_the_device_and_leaves_no_raw_capture(tmp_pa
     (tmp_path / "walk.py").write_text(SIGTERM_WALK)
     done = subprocess.run([sys.executable, str(tmp_path / "walk.py"), str(tmp_path)], cwd=root, capture_output=True,
                           text=True, timeout=120,
-                          env={**os.environ, "PYTHONPATH": str(root), "SIMULA_REDACT": "Trending"})
+                          env={**os.environ, "PYTHONPATH": str(root)})
 
     assert done.returncode == 1 and "qa-live stopped by SIGTERM" in done.stderr, done.stderr[-2000:]
     assert done.stdout.split() == ["server", "closed", "lock", "released"]

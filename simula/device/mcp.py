@@ -93,7 +93,7 @@ class Server:
     def __init__(self, cwd: Path, command: list[str] | None = None):
         command = command or ["node", str(SERVER_JS)]
         self.params = StdioServerParameters(command=command[0], args=command[1:], cwd=str(cwd), env=server_env())
-        self.errlog = open(os.devnull, "w")  # mobile-mcp logs every raw reply there, before redaction
+        self.errlog = open(os.devnull, "w")  # mobile-mcp logs every reply there: noise
         self.loop = asyncio.new_event_loop()
         threading.Thread(target=self.loop.run_forever, daemon=True).start()
         self.respawns = 0

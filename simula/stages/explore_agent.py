@@ -64,27 +64,26 @@ def hard_block(c: ob.Candidate, screen: list[dict] | None, core: bool = False) -
     return guard.blocked_tap(element, screen, core=core)
 
 
-def emails(raw: list[dict]) -> list[Rect]:
-    """Where the unredacted list shows an email: redaction turns a name into the same marker, so only the raw list
-    tells an account row."""
-    return [ob.rect(e) for e in raw if any(ob.EMAIL.search(e.get(k) or "") for k in ("text", "label"))]
+def emails(elements: list[dict]) -> list[Rect]:
+    """Where the list shows an email: an account row's mark on Google's chooser."""
+    return [ob.rect(e) for e in elements if any(ob.EMAIL.search(e.get(k) or "") for k in ("text", "label"))]
 
 
-def account_row(c: ob.Candidate, raw: list[dict], device: Device = Device()) -> bool:
-    """Whether c is an account row on the chooser: an email in the unredacted list under c or inside it, or in the
+def account_row(c: ob.Candidate, elements: list[dict], device: Device = Device()) -> bool:
+    """Whether c is an account row on the chooser: an email in the list under c or inside it, or in the
     smallest element holding c (the row its name, address and avatar share; the name alone is no email), when that
     holder is row-sized (a card holding an email header lends it to no other button in it) and names no account
     management."""
     at = Rect(x=c.point[0], y=c.point[1], w=0, h=0)
-    if any(ob.inside(at, r) or ob.inside(r, c.rect) for r in emails(raw)):
+    if any(ob.inside(at, r) or ob.inside(r, c.rect) for r in emails(elements)):
         return True
-    holders = [e for e in raw if ob.inside(c.rect, ob.rect(e)) and ob.area(ob.rect(e)) > ob.area(c.rect)]
+    holders = [e for e in elements if ob.inside(c.rect, ob.rect(e)) and ob.area(ob.rect(e)) > ob.area(c.rect)]
     if not holders:
         return False
     row = min((ob.rect(e) for e in holders), key=ob.area)
     if row.h > device.h_px / 8:
         return False
-    members = [e for e in raw if ob.inside(ob.rect(e), row)]
+    members = [e for e in elements if ob.inside(ob.rect(e), row)]
     said = [e.get(k) or "" for e in members for k in ("text", "label")]
     return any(beside(c.rect, ob.rect(e)) for e in members if any(ob.EMAIL.search(e.get(k) or "") for k in
                                                                   ("text", "label"))) \
@@ -127,9 +126,6 @@ class AgentExplorer(Explorer):
         self.tour_seconds = AGENT_MINUTES * 60 - self.core_reps * CORE_SECONDS_PER_REP
         self.deadline = self.started + AGENT_MINUTES * 60
         self.capped = False
-        parts = [rf"\b{re.escape(p)}\b" for p in sorted(self.parts, key=len, reverse=True)]  # as ob.redact matches
-        self.redacting = re.compile("|".join([ob.EMAIL.pattern, *(re.escape(x) for x in self.secrets if x.strip()),
-                                              *parts]), re.IGNORECASE)
         self.steps: list[AgentStep] = []
         self.ids: dict[str, ob.Candidate] = {}  # this turn's element ids
         self.banners = 0  # passes in a row that ended on a dismissible banner
@@ -146,7 +142,6 @@ class AgentExplorer(Explorer):
         self.ads_seen: set[tuple[str, str]] = set()
         self.ad_leave = False  # leaving an ad's landing: a relaunch for it isn't counted
         self.text_box: ob.Candidate | None = None  # the text box the last tap focused (none after any other tap)
-        self.raw_of: tuple[object, list[dict]] = (None, [])  # a Google screen's look and its unredacted list
         self.pause, self.sleep = self.sleep, self.bounded_sleep
         self.stale = self.known = self.noops = 0
 
@@ -237,10 +232,10 @@ class AgentExplorer(Explorer):
         only by its accessibility label, or at most four words). None leaves the stop standing."""
         if self.obs is None or self.obs.fg != self.package or (region := self.banner_region()) is None:
             return None
-        raw = {e.get("ref"): e for e in self.obs.elements}
+        by_ref = {e.get("ref"): e for e in self.obs.elements}
 
         def icon(c: ob.Candidate) -> bool:
-            e = raw.get(c.ref, {})
+            e = by_ref.get(c.ref, {})
             return not e.get("text") and bool(e.get("label"))
 
         def shaped(c: ob.Candidate) -> bool:
@@ -330,8 +325,8 @@ class AgentExplorer(Explorer):
                                             for p in self.steps), decider="model")
 
     def plan(self, s: Seen) -> AgentTurn:
-        """One planner call: the raw screen (the only unredacted thing, and never written), its elements by id, and
-        the run so far. What it answers is scrubbed (scrub) before anything stores it."""
+        """One planner call: the screen as it is, its elements by id, and the run so far. What it answers is scrubbed
+        of the test password (scrub) before anything stores it."""
         cands = self.listing(s)
         self.ids = dict(zip(decide.option_ids([c.label for c in cands]), cands, strict=True))
         text = self.situation(s)
@@ -350,7 +345,7 @@ class AgentExplorer(Explorer):
             return parsed
 
         try:
-            turn, _ = llm.without_refused_images([self.raw_png()], attempt)
+            turn, _ = llm.without_refused_images([self.screen_png()], attempt)
         except llm.LLMFailure as e:
             if e.outcome != "refusal":
                 raise
@@ -358,18 +353,18 @@ class AgentExplorer(Explorer):
             turn = attempt([])
         return AgentTurn.model_validate(llm.scrub_values(turn.model_dump(), self.scrub))
 
-    def raw_png(self) -> bytes:
+    def scrub(self, text: str) -> str:
+        """The planner saw the screen, so what it writes may echo the test password: llm.call scrubs its answers and
+        failures with this, decoded JSON included, before the cache, the trace or the next prompt sees them."""
+        return ob.mask(text, self.password)
+
+    def screen_png(self) -> bytes:
         """The screen as it is, half-size, for the planner alone: the file it passes through is deleted at once."""
         shot = self.phone.screenshot(self.scratch / "planner.png", (self.device.w_px, self.device.h_px))
         try:
             return png_half(Image.open(shot).convert("RGB"))
         finally:
             shot.unlink()
-
-    def scrub(self, text: str) -> str:
-        """The planner saw the raw screen, so whatever it wrote may hold a redacted string or an email: llm.call
-        scrubs its answers and failures with this before the cache or the trace sees them."""
-        return self.redacting.sub(ob.REDACTED, text)
 
     def listing(self, s: Seen, obs=None) -> list[ob.Candidate]:
         """What the planner may name on the live screen (or the look given): the state's recorded controls it still
@@ -702,14 +697,14 @@ class AgentExplorer(Explorer):
         core action that is a button ("Submit" that makes something) runs its passes under the ordinary hard blocks."""
         return core and self.core is not None and self.core.kind == "chat"
 
-    def refusal(self, c: ob.Candidate, fg: str, elements: list[dict], raw: list[dict], core: bool) -> str:
+    def refusal(self, c: ob.Candidate, fg: str, elements: list[dict], core: bool) -> str:
         """Why the guard refuses a tap on c on this screen, or "": on Google's account chooser anything but an account
-        row (an email in the unredacted list) or a flow button by its own words, and any account-management word; and
+        row (an email in the list) or a flow button by its own words, and any account-management word; and
         everywhere a hard-block word (an OK on a dialog that names a deletion)."""
         reason = ""
         if guard.signing_in(fg):
             said = [t for t in (c.tree_label, c.label) if t]
-            row = account_row(c, raw, self.device)
+            row = account_row(c, elements, self.device)
             flow = any(t.strip().lower() in CHOOSER_STEPS for t in said)
             if any(GOOGLE_ACCOUNT.search(t) for t in said) or not (row or flow):
                 reason = "not an account row or a sign-in step on Google's account chooser"
@@ -718,7 +713,7 @@ class AgentExplorer(Explorer):
         self.counts["hard blocks refused"] += bool(reason)
         return reason
 
-    def boundary(self, fresh: tuple[list[dict], list[dict]] | None = None) -> str:
+    def boundary(self, fresh: list[dict] | None = None) -> str:
         """Right before every tap, type and swipe, and again after the slow element read before one: nothing after the
         $ cap or the wall clock (Halt), and the foreground, read fresh, must be the app or Google's account chooser;
         otherwise the action doesn't run (ScreenMoved) and the away handling takes over. A purchase screen (the Play
@@ -727,21 +722,19 @@ class AgentExplorer(Explorer):
         if why := self.halted():
             raise Halt(why)
         fg = self.phone.foreground()
-        raw, elements = (fresh or self.fresh()) if guard.signing_in(fg) else ([], [])
+        elements = (fresh or self.fresh()) if guard.signing_in(fg) else []
         if guard.in_billing(fg) or (guard.signing_in(fg) and self.priced(elements)):
             self.back_out(fg)
             raise ScreenMoved(f"a purchase screen ({fg}) came to the front")
-        if guard.signing_in(fg) and not self.signing(raw, elements):
+        if guard.signing_in(fg) and not self.signing(elements):
             raise ScreenMoved(f"{fg} came to the front, and it isn't Google's sign-in")
         if fg != self.package and not guard.signing_in(fg):
             raise ScreenMoved(f"{fg} came to the front")
         return fg
 
-    def fresh(self) -> tuple[list[dict], list[dict]]:
-        """The element list as the screen is now: unredacted, for code alone (an account row's email), and redacted
-        like every look (no image: nothing is painted or kept)."""
-        reply, raw = self.phone.elements()
-        return raw, ob.redact(reply, Image.new("RGB", (1, 1)), self.secrets, self.parts)[1]
+    def fresh(self) -> list[dict]:
+        """The element list as the screen is now."""
+        return ob.hide(self.phone.elements()[0], self.password)[1]
 
     def tap(self, live: ob.Candidate, elements: list[dict], **deny) -> str:
         """Every tap reaches the device here (the planner's, the core loop's with core, a launch's, the replay's): the
@@ -749,10 +742,10 @@ class AgentExplorer(Explorer):
         guard reads that list. No content-filter gate: the filter is the planner's goal."""
         core = self.chat_core(deny.get("core", False))
         self.boundary()
-        raw, elements = self.fresh()
-        fg = self.boundary((raw, elements))
+        elements = self.fresh()
+        fg = self.boundary(elements)
         target = self.resolve(live, ob.controls(elements, self.device))
-        reason = self.refusal(target, fg, elements, raw, core)
+        reason = self.refusal(target, fg, elements, core)
         if not reason:
             self.text_box = target if target.kind == "EditText" else None
             self.phone.tap(*target.point)
@@ -816,8 +809,8 @@ class AgentExplorer(Explorer):
         if move.action == "swipe":
             self.phone.swipe(move.direction)
             return ""
-        raw, elements = self.fresh()
-        self.boundary((raw, elements))
+        elements = self.fresh()
+        self.boundary(elements)
         if guard.allowed_text(move.text, core=core, field=self.field(core, elements)):
             self.phone.type_text(move.text)
         else:
@@ -892,7 +885,7 @@ class AgentExplorer(Explorer):
         self.observe()  # act() reads the store's sheet again itself, never a Google one: one BACK per sheet
         return True
 
-    def signing(self, raw: list[dict], elements: list[dict]) -> bool:
+    def signing(self, elements: list[dict]) -> bool:
         """A Google screen is part of signing in when it shows no price and an account row, or else a flow button and
         no control labelled with an account-management word (a consent step names no account; a chooser lists "Add
         another account")."""
@@ -900,7 +893,7 @@ class AgentExplorer(Explorer):
         flow = any(t.strip().lower() in CHOOSER_STEPS for _, t in said)
         # a control's label, not prose: a consent step says what the app "will access", data and activity among it
         managing = any(GOOGLE_ACCOUNT.search(t) for e, t in said if "Button" in e["type"] or len(t.split()) <= 4)
-        return not self.priced(elements) and (bool(emails(raw)) or (flow and not managing))
+        return not self.priced(elements) and (bool(emails(elements)) or (flow and not managing))
 
     def priced(self, elements: list[dict]) -> bool:
         return any(ob.PRICE.search(t) for t in ob.texts(elements, self.device))
@@ -915,9 +908,7 @@ class AgentExplorer(Explorer):
     def away(self, obs) -> str | None:
         """Google's sign-in (signing) is part of signing in, not another app; any other Google screen is away."""
         if guard.signing_in(obs.fg):
-            if self.raw_of[0] is not obs:
-                self.raw_of = (obs, self.phone.elements()[1])
-            return None if self.signing(self.raw_of[1], obs.elements) else "external"
+            return None if self.signing(obs.elements) else "external"
         return super().away(obs)
 
     def account_wall(self, s: Seen) -> bool:

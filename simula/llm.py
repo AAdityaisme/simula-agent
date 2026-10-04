@@ -9,6 +9,7 @@ import hashlib
 import io
 import json
 import math
+import os
 import re
 import threading
 import time
@@ -465,7 +466,8 @@ def call(*, trace_path: Path, stage: str, step: str, model: str, effort: str | N
     """Returns (parsed schema object or text, Reply). Makes up to `attempts` tries (a typed failure is retried),
     then tries the declared fallback model if one is given, then raises LLMFailure. `total_timeout` bounds one
     streamed Anthropic attempt end to end. `scrub` rewrites what the model said (its answer, a failure's detail and
-    raw text) before the cache, the trace or the caller sees it; it isn't part of the cache key."""
+    raw text) before the cache, the trace or the caller sees it; it isn't part of the cache key. Without one, the
+    test password (SIMULA_TEST_PASSWORD) is hidden, so no caller's model output can carry it to disk."""
     try:
         return _call_model(trace_path=trace_path, stage=stage, step=step, model=model, effort=effort, system=system,
                            messages=messages, max_tokens=max_tokens, budget=budget, schema=schema,
@@ -481,6 +483,12 @@ def call(*, trace_path: Path, stage: str, step: str, model: str, effort: str | N
                            messages=messages, max_tokens=max_tokens, budget=budget, schema=schema,
                            no_cache=no_cache, replay=replay, cache_dir=cache_dir, attempts=attempts,
                            total_timeout=total_timeout, scrub=scrub)
+
+
+def hide_password(text: str) -> str:
+    """text with the test password, if one is set, as [password]: llm.call's scrub when its caller names none."""
+    password = os.environ.get("SIMULA_TEST_PASSWORD", "").strip()
+    return text.replace(password, "[password]") if password and text else text
 
 
 def scrub_values(value, scrub: Callable[[str], str]):
@@ -507,7 +515,7 @@ def scrub_text(text: str | None, scrub: Callable[[str], str]) -> str | None:
 
 def _call_model(*, trace_path, stage, step, model, effort, system, messages, max_tokens, budget, schema,
                 no_cache, replay, cache_dir, attempts, total_timeout, scrub=None):
-    scrub = scrub or (lambda text: text)
+    scrub = scrub or hide_password
     provider = config.models()[model]["provider"]
     params = request_params(provider, effort, max_tokens, schema)
     keys = [cache_key(provider, model, system, messages, params, attempt) for attempt in range(attempts)]
