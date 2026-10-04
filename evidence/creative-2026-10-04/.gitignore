@@ -3,3 +3,5 @@
 variants/
 drafts/
 spikes/pick/
+# ~6 MB of per-request starvation records; starvation/starvation.json holds the summary
+starvation/starvation_decisions.jsonl
