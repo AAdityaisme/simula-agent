@@ -131,7 +131,8 @@ def merged(out: Path, sheets: dict[str, Path]) -> list[dict]:
     if len(sheets) < 2 or not all(REVIEWER.fullmatch(name) for name in sheets):
         raise SystemExit(f"merge needs two or more reviewers named with letters, digits, spaces, _, . or -; got "
                          f"{list(sheets)}")
-    if len({Path(path).resolve() for path in sheets.values()}) < len(sheets):
+    paths = list(sheets.values())
+    if any(os.path.samefile(a, b) for i, a in enumerate(paths) for b in paths[i + 1:]):
         raise SystemExit("two reviewers gave the same sheet; each model reviewer reads every string on a sheet of its "
                          "own")
     copies = {}
@@ -229,11 +230,12 @@ def results(out: Path) -> dict[str, VariantResult]:
 
 
 def starvation_summary(records: list[dict], star: dict) -> dict:
-    """starvation.json as tools/th1_starvation.py's summarize gives it for these records and star's own settings."""
+    """starvation.json as tools/th1_starvation.py's summarize gives it for these records, the sample seed run uses
+    and star's bundle, windows and policy."""
     spec = importlib.util.spec_from_file_location("th1_starvation", ROOT / "tools" / "th1_starvation.py")
     tool = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(tool)
-    summary = tool.summarize(records, seed=star["sample_seed"], feature_set=star["bundle"]["feature_set"],
+    summary = tool.summarize(records, seed=th1.SAMPLE_SEED, feature_set=star["bundle"]["feature_set"],
                              rows_all=star["bundle"]["rows_all"], windows=star["windows"], policy=star["policy"])
     return json.loads(json.dumps(summary))
 
@@ -324,8 +326,9 @@ def wrapper(decisions) -> dict:
 
 
 def creative_spend(out: Path) -> float:
-    """Every creative call's spend in the trace, earlier runs included, unrounded."""
-    return sum(line.usd for line in read_trace(out / "trace.jsonl") if line.stage == "creative")
+    """Every creative call's spend in the trace, earlier runs included, and how many calls that is."""
+    spends = [line.usd for line in read_trace(out / "trace.jsonl") if line.stage == "creative"]
+    return sum(spends), len(spends)
 
 
 def report(out: Path) -> dict:
@@ -339,7 +342,7 @@ def report(out: Path) -> dict:
     wrap = json.loads((out / "wrapper.json").read_text())
     pending = any(r.qa.review_verdict == "pending" for r in records.values())
     accepted = None if pending else sum(r.status == "accepted" for r in records.values())
-    usd_total = round(creative_spend(out), 4)
+    usd_total = round(creative_spend(out)[0], 4)
     table: dict[str, dict[str, list[int]]] = {}
     for result in derived:
         for run_name, found in result.drafts[-1].playthrough.items():
@@ -472,7 +475,8 @@ def _locked_run(run_dir: Path, out: Path, *, seed: int, cache_dir: Path, qa: dic
         raise SystemExit(f"{out / 'drafts'} was made from other inputs (facts, art, screenshots, font, content "
                          "config, seed, QA matrix or the creative code); new inputs need a new --out")
     (out / "facts.json").write_text(facts_json)
-    (out / "run.json").write_text(json.dumps({"run_dir": str(run_dir), "seed": seed, "fingerprint": inputs}, indent=1))
+    (out / "run.json").write_text(json.dumps({"run_dir": str(run_dir), "seed": seed, "requests": requests,
+                                              "fingerprint": inputs}, indent=1))
     trace_path = out / "trace.jsonl"
     budget = llm.Budget.for_stage("creative", trace_path, cap=CAP_USD)
     generated = [generate_variant(facts=facts, host=host, hook=hook, seed=seed, run_dir=run_dir,
@@ -515,7 +519,8 @@ def check(out: Path = OUT) -> list[str]:
     """Everything report.json or report.md says that the files don't, a review sheet that misses a string, a
     review.csv that is not the merge of the reviewers' sheets, verdicts that no longer match it, a creative.html that
     is not its record's creative, a result.json its drafts don't give, drafts that claim more spend than the trace,
-    and a starvation.json or wrapper.json the starvation decisions don't give."""
+    a starvation.json from another sample than the run asked for, and a starvation.json or wrapper.json the
+    starvation decisions don't give."""
     saved = json.loads((out / "report.json").read_text())
     fresh = report(out)
     found = [f"{key}: report.json has {saved.get(key)!r}, the files give {value!r}"
@@ -558,15 +563,22 @@ def check(out: Path = OUT) -> list[str]:
               for variant, result in derived.items()
               if VariantResult.model_validate_json((out / "variants" / variant / "result.json").read_text())
               .model_dump(exclude={"final_dir"}) != result.model_dump(exclude={"final_dir"})]  # absolute: out may move
-    spent, traced = sum(result.usd for result in derived.values()), creative_spend(out)
-    if spent > traced + 1e-9:
+    spent, (traced, calls) = sum(result.usd for result in derived.values()), creative_spend(out)
+    if spent > traced + 5e-7 * calls + 1e-9:  # the trace rounds each call's usd to 6 places; drafts keep it whole
         found.append(f"the drafts spent ${spent:.6f}, more than the trace's creative spend ${traced:.6f}")
+    star = json.loads((out / "starvation" / "starvation.json").read_text())
+    requests = json.loads((out / "run.json").read_text()).get("requests")
+    if (star["sample_seed"], star["requests_sampled"]) != (th1.SAMPLE_SEED, requests):
+        found.append(f"starvation.json samples {star['requests_sampled']} requests with seed {star['sample_seed']}; "
+                     f"this run asks for {requests} with seed {th1.SAMPLE_SEED}")
     if not (out / "starvation" / "starvation_decisions.jsonl").exists():
         found.append("wrapper.json and starvation.json not rechecked: starvation/starvation_decisions.jsonl is "
                      "git-ignored and absent here")
         return found
     records = list(th1.decisions(out / "starvation"))
-    star = json.loads((out / "starvation" / "starvation.json").read_text())
+    if len(records) != star["requests_sampled"]:
+        found.append(f"starvation_decisions.jsonl holds {len(records)} records; starvation.json says "
+                     f"{star['requests_sampled']} requests")
     summary = starvation_summary(records, star)
     if summary != star:
         found.append(f"starvation.json is not what starvation_decisions.jsonl gives: {summary}")

@@ -1,6 +1,7 @@
 import csv
 import importlib.util
 import json
+import os
 import shutil
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -32,12 +33,14 @@ def load_tool(name):
     return module
 
 
-def fake_starvation(out_dir, *, requests=10_000, **_):
-    """What th1.starvation writes, for three requests, without TH1: the records and th1_starvation's own summary."""
+def fake_starvation(out_dir, *, requests=10_000, seed=20261004, **_):
+    """What th1.starvation writes for `requests` requests, without TH1: DECISIONS repeated with fresh row numbers (the
+    tests ask for exactly those three), and th1_starvation's own summary."""
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "starvation_decisions.jsonl").write_text("".join(json.dumps(d) + "\n" for d in DECISIONS))
+    records = [{**DECISIONS[i % len(DECISIONS)], "row": i + 1} for i in range(requests)]
+    (out_dir / "starvation_decisions.jsonl").write_text("".join(json.dumps(d) + "\n" for d in records))
     summary = load_tool("th1_starvation").summarize(
-        DECISIONS, seed=20261004, feature_set="B", rows_all=1_000_000,
+        records, seed=seed, feature_set="B", rows_all=1_000_000,
         windows={"refit": ["2014-10-21", "2014-10-29"], "test": ["2014-10-30", "2014-10-30"]},
         policy={"max_candidates": 50})
     (out_dir / "starvation.json").write_text(json.dumps(summary, indent=1) + "\n")
@@ -59,7 +62,7 @@ def mvp():
 
 
 def run(mvp, tmp_path):
-    return mvp.run(RUN, tmp_path / "out", seed=7, cache_dir=tmp_path / "cache", qa=ONE_RUN)
+    return mvp.run(RUN, tmp_path / "out", seed=7, cache_dir=tmp_path / "cache", qa=ONE_RUN, requests=3)
 
 
 def fill_review(mvp, out, first_verdict="edit"):
@@ -159,7 +162,7 @@ def test_a_rerun_with_another_seed_refuses_the_saved_drafts(mvp, calls, tmp_path
     run(mvp, tmp_path)
     before = snapshot(out)
     with pytest.raises(SystemExit, match="new --out"):
-        mvp.run(RUN, out, seed=8, cache_dir=tmp_path / "cache", qa=ONE_RUN)
+        mvp.run(RUN, out, seed=8, cache_dir=tmp_path / "cache", qa=ONE_RUN, requests=3)
     assert len(calls) == 4 and snapshot(out) == before
 
 
@@ -335,14 +338,14 @@ def test_a_second_run_refuses_while_the_first_holds_the_lock(mvp, calls, tmp_pat
 
 def test_a_rerun_after_a_changed_proof_screenshot_touches_nothing(mvp, calls, tmp_path):
     source, out = copy_run(tmp_path), tmp_path / "out"
-    mvp.run(source, out, seed=7, cache_dir=tmp_path / "cache", qa=ONE_RUN)
+    mvp.run(source, out, seed=7, cache_dir=tmp_path / "cache", qa=ONE_RUN, requests=3)
     before = snapshot(out)
     shot = source / "model" / "states" / "s15.png"
     with Image.open(shot) as image:
         size = image.size
     Image.new("RGB", size, "black").save(shot)
     with pytest.raises(SystemExit, match="new --out"):
-        mvp.run(source, out, seed=7, cache_dir=tmp_path / "cache", qa=ONE_RUN)
+        mvp.run(source, out, seed=7, cache_dir=tmp_path / "cache", qa=ONE_RUN, requests=3)
     assert len(calls) == 4 and snapshot(out) == before
 
 
@@ -452,3 +455,35 @@ def test_check_passes_a_clean_run_whose_spend_rounds_down(mvp, calls, tmp_path, 
         text=json.dumps(CLEAN), model=model, tokens_in=1001, tokens_out=210))
     assert run(mvp, tmp_path)["usd_total"] == 0.0164
     assert mvp.check(tmp_path / "out") == []
+
+
+def test_check_allows_the_trace_rounding_each_call_to_six_places(mvp, calls, tmp_path, monkeypatch):
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", lambda model, *args, **kwargs: llm.Reply(
+        text=json.dumps(CLEAN), model=model, tokens_in=1001, tokens_out=210, tokens_cached=1))
+    run(mvp, tmp_path)
+    assert mvp.results(tmp_path / "out")["teacher-challenge"].usd == pytest.approx(0.0041002)
+    assert mvp.check(tmp_path / "out") == []
+
+
+def test_merge_refuses_two_hardlinks_to_one_sheet(mvp, calls, tmp_path):
+    out = tmp_path / "out"
+    run(mvp, tmp_path)
+    sheet = write_rows(mvp, tmp_path / "fable.csv", [dict(row, verdict="ok") for row in mvp.read_review(out)])
+    os.link(sheet, tmp_path / "astra.csv")
+    with pytest.raises(SystemExit, match="same sheet"):
+        mvp.merge(out, {"Claude Fable 5.1": sheet, "GPT-6 Astra": tmp_path / "astra.csv"})
+
+
+def test_check_catches_a_starvation_json_from_another_seed(mvp, calls, tmp_path):
+    out = tmp_path / "out"
+    run(mvp, tmp_path)
+    path = out / "starvation" / "starvation.json"
+    path.write_text(json.dumps({**json.loads(path.read_text()), "sample_seed": 7}))
+    assert [line for line in mvp.check(out) if line.startswith("starvation.json samples")]
+
+
+def test_check_catches_a_reused_starvation_json_for_another_request_count(mvp, calls, tmp_path):
+    out = tmp_path / "out"
+    run(mvp, tmp_path)
+    mvp.run(RUN, out, seed=7, cache_dir=tmp_path / "cache", qa=ONE_RUN, requests=5)
+    assert [line for line in mvp.check(out) if line.startswith("starvation.json samples")]
