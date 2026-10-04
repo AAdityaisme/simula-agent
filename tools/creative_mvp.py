@@ -12,7 +12,9 @@ wrapper.json, s04_fixture.json) every time, and report.md is rendered from repor
 import argparse
 import csv
 import hashlib
+import importlib.util
 import json
+import os
 import re
 import shutil
 import statistics
@@ -22,12 +24,12 @@ from pathlib import Path
 from simula import config, llm
 from simula.config import ROOT
 from simula.creative import th1
-from simula.creative.assemble import SDK_EVENTS, TEMPLATE, visible_strings
+from simula.creative.assemble import SDK_EVENTS, TEMPLATE, font_css, proof_png, visible_strings
 from simula.creative.facts import Facts, build_facts
 from simula.creative.lines import PROMPT, HostLines, build_content
 from simula.creative.policy import EPSILON_NEW, N_MIN, mix
 from simula.creative.qa import MODES, PATHS, WIDTHS, grounding, tier
-from simula.creative.repair import VariantResult, generate_variant
+from simula.creative.repair import Draft, VariantResult, generate_variant, variant_result
 from simula.creative.schema import (PROVENANCE, QA, Advertiser, Content, CreativeAttributes, EndCard, Interaction,
                                     Lineage, Proof, creative_id, dump, gate_for)
 from simula.runlog import read_trace
@@ -42,6 +44,7 @@ BRIEF_ID = "br_luzia_v0_grid"
 GENERATOR = "creative-v0"
 REVIEW_FIELDS = ("variant", "screen", "string", "source", "verdict", "edit")
 VERDICTS = ("ok", "edit", "reject")  # least to most strict: a merge keeps the strictest
+REVIEWER = re.compile(r"\w[\w .-]*")
 NUMBERS = ("variants_total", "first_pass_accept", "final_accept", "review_edits", "usd_total", "usd_per_accepted",
            "seconds_per_variant", "starvation_share", "starvation_ci", "starvation_requests", "wrapper_min_propensity")
 FIXTURE_LINES = HostLines(intro="Three quick ones!", captions=["One", "Two", "Three"], right_line="Yes!",
@@ -125,9 +128,13 @@ def unread(rows: list[dict], out: Path) -> str | None:
 def merged(out: Path, sheets: dict[str, Path]) -> list[dict]:
     """review.csv's rows from two or more reviewers' sheets: each string's strictest verdict, and every reviewer's
     note as "name: note; name: note". SystemExit naming the reviewer when a sheet misses a string or a verdict."""
-    if len(sheets) < 2 or not all(re.fullmatch(r"\w[\w .-]*", name) for name in sheets):
+    if len(sheets) < 2 or not all(REVIEWER.fullmatch(name) for name in sheets):
         raise SystemExit(f"merge needs two or more reviewers named with letters, digits, spaces, _, . or -; got "
                          f"{list(sheets)}")
+    paths = [Path(path).resolve() for path in sheets.values()]
+    if len(set(paths)) < len(paths) or len({path.read_bytes() for path in paths}) < len(paths):
+        raise SystemExit("two reviewers gave the same sheet (one path, or byte-identical content); each model "
+                         "reviewer reads every string on a sheet of its own")
     copies = {}
     for name, path in sheets.items():
         copies[name] = read_sheet(path)
@@ -142,7 +149,7 @@ def merged(out: Path, sheets: dict[str, Path]) -> list[dict]:
 
 def merge(out: Path, sheets: dict[str, Path]) -> None:
     """Writes review.csv from the reviewers' sheets (see merged), keeps each sheet beside it as review-<name>.csv,
-    and records who reviewed in reviewers.json."""
+    and records who reviewed in reviewers.json as {name: review-<name>.csv}."""
     rows = merged(out, sheets)
     kept = {name: f"review-{name}.csv" for name in sheets}
     for name, path in sheets.items():
@@ -152,13 +159,26 @@ def merge(out: Path, sheets: dict[str, Path]) -> None:
         writer = csv.DictWriter(f, fieldnames=REVIEW_FIELDS)
         writer.writeheader()
         writer.writerows(rows)
-    (out / "reviewers.json").write_text(json.dumps({"reviewers": list(sheets), "files": kept}, indent=1))
+    (out / "reviewers.json").write_text(json.dumps(kept, indent=1))
 
 
-def unmerged(out: Path, reviewed: dict) -> str | None:
-    """How review.csv differs from the merge of the reviewers' sheets named in reviewers.json, or None."""
+def reviewer_sheets(out: Path) -> dict[str, Path]:
+    """reviewers.json's {name: sheet}; reviewer names everywhere come from its keys. SystemExit unless it maps two or
+    more names, each to its own review-<name>.csv."""
+    path = out / "reviewers.json"
+    if not path.exists():
+        raise SystemExit(f"{path} is missing; run merge first")
+    mapping = json.loads(path.read_text())
+    if not (isinstance(mapping, dict) and len(mapping) >= 2
+            and all(REVIEWER.fullmatch(name) and sheet == f"review-{name}.csv" for name, sheet in mapping.items())):
+        raise SystemExit(f"{path} must map two or more reviewer names to their review-<name>.csv; it holds {mapping}")
+    return {name: out / sheet for name, sheet in mapping.items()}
+
+
+def unmerged(out: Path, sheets: dict[str, Path]) -> str | None:
+    """How review.csv differs from the merge of the reviewers' kept sheets, or None."""
     rows = read_review(out)
-    expected = merged(out, {name: out / path for name, path in reviewed["files"].items()})
+    expected = merged(out, sheets)
     if len(rows) != len(expected):
         return f"review.csv is not the merge of the reviewers' sheets: {len(rows)} rows, the merge has {len(expected)}"
     for row, merge_row in zip(rows, expected):
@@ -185,14 +205,53 @@ def read_verdicts(out: Path) -> dict[str, tuple[str, str, int]]:
     return read
 
 
+def html_problems(out: Path) -> list[str]:
+    """Each passing variant whose creative.html is missing or is no longer the creative its record was made from."""
+    found = []
+    for path in sorted((out / "variants").glob("*/creative.json")):
+        record, html = CreativeAttributes.model_validate_json(path.read_text()), path.parent / "creative.html"
+        if not html.exists():
+            found.append(f"{path.parent.name}: creative.html is missing")
+        elif creative_id(html.read_text()) != record.creative_id:
+            found.append(f"{path.parent.name}: creative.html is not {record.creative_id}, the creative that was "
+                         "checked and reviewed")
+    return found
+
+
+def results(out: Path) -> dict[str, VariantResult]:
+    """Each variant's result as its saved drafts give it; result.json supplies only its host and hook."""
+    found = {}
+    for path in sorted((out / "variants").glob("*/result.json")):
+        saved, variant = VariantResult.model_validate_json(path.read_text()), path.parent.name
+        drafts = [Draft.model_validate_json(p.read_text())
+                  for p in sorted((out / "drafts" / variant).glob("round*/draft.json"))]
+        found[variant] = variant_result(variant, saved.host_id, saved.hook, drafts, out / "drafts")
+    return found
+
+
+def starvation_summary(records: list[dict], star: dict) -> dict:
+    """starvation.json as tools/th1_starvation.py's summarize gives it for these records and star's own settings."""
+    spec = importlib.util.spec_from_file_location("th1_starvation", ROOT / "tools" / "th1_starvation.py")
+    tool = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(tool)
+    summary = tool.summarize(records, seed=star["sample_seed"], feature_set=star["bundle"]["feature_set"],
+                             rows_all=star["bundle"]["rows_all"], windows=star["windows"], policy=star["policy"])
+    return json.loads(json.dumps(summary))
+
+
 def fingerprint(facts_json: str, facts: Facts, run_dir: Path, seed: int, qa: dict) -> str:
-    """sha256 of everything generation reads: the facts, the template, the host-line prompt, the host art, the seed
-    and the QA matrix. Saved drafts are reusable only under the same fingerprint."""
+    """sha256 of everything generation and QA read: the facts, the host art, the proof screenshots and font the
+    assembler inlines, the content config, the seed, the QA matrix, and the source of the creative package, its
+    template, the host-line prompt and this runner. Saved drafts are reusable only under the same fingerprint."""
     art = [(run_dir / "qa" / "approved" / "assets" / host.art).read_bytes() for host in facts.hosts]
-    matrix = json.dumps({"seed": seed, "paths": list(qa.get("paths", PATHS)), "widths": list(qa.get("widths", WIDTHS)),
-                         "modes": list(qa.get("modes", MODES))}).encode()
+    shots = [proof_png(run_dir, host.proof_screen) for host in facts.hosts]
+    code = [path.read_bytes() for path in sorted((ROOT / "simula" / "creative").glob("*.py"))]
+    settings = json.dumps({"seed": seed, "paths": list(qa.get("paths", PATHS)),
+                           "widths": list(qa.get("widths", WIDTHS)), "modes": list(qa.get("modes", MODES)),
+                           "content": config.profiles()["content"]}, sort_keys=True).encode()
     digest = hashlib.sha256()
-    for part in (facts_json.encode(), TEMPLATE.read_bytes(), PROMPT.read_bytes(), *art, matrix):
+    for part in (facts_json.encode(), font_css(run_dir).encode(), TEMPLATE.read_bytes(), PROMPT.read_bytes(),
+                 Path(__file__).read_bytes(), *art, *shots, *code, settings):
         digest.update(hashlib.sha256(part).digest())
     return digest.hexdigest()
 
@@ -269,7 +328,7 @@ def report(out: Path) -> dict:
     """Every number and table the report shows, recomputed from the files in out."""
     facts = Facts.model_validate_json((out / "facts.json").read_text())
     info = json.loads((out / "run.json").read_text())
-    results = [VariantResult.model_validate_json(p.read_text()) for p in sorted((out / "variants").glob("*/result.json"))]
+    derived = list(results(out).values())
     records = {p.parent.name: CreativeAttributes.model_validate_json(p.read_text())
                for p in sorted((out / "variants").glob("*/creative.json"))}
     star = json.loads((out / "starvation" / "starvation.json").read_text())
@@ -278,7 +337,7 @@ def report(out: Path) -> dict:
     accepted = None if pending else sum(r.status == "accepted" for r in records.values())
     usd_total = round(sum(line.usd for line in read_trace(out / "trace.jsonl") if line.stage == "creative"), 4)
     table: dict[str, dict[str, list[int]]] = {}
-    for result in results:
+    for result in derived:
         for run_name, found in result.drafts[-1].playthrough.items():
             path, _, width = run_name.split("/")
             cell = table.setdefault(path, {}).setdefault(width, [0, 0])
@@ -287,12 +346,12 @@ def report(out: Path) -> dict:
     return {
         "status": "pending_review" if pending else "final", "app": facts.app_name, "run_id": facts.run_id,
         "seed": info["seed"],
-        "variants_total": len(results), "first_pass_accept": sum(r.first_pass_accept for r in results),
+        "variants_total": len(derived), "first_pass_accept": sum(r.first_pass_accept for r in derived),
         "final_accept": accepted,
         "review_edits": None if pending else sum(r.qa.review_edits for r in records.values()),
         "reviewers": [] if pending else list(dict.fromkeys(name for r in records.values() for name in r.qa.reviewers)),
         "usd_total": usd_total, "usd_per_accepted": round(usd_total / accepted, 4) if accepted else None,
-        "seconds_per_variant": round(statistics.mean(r.seconds for r in results), 1) if results else None,
+        "seconds_per_variant": round(statistics.mean(r.seconds for r in derived), 1) if derived else None,
         "starvation_share": star["starvation_share"], "starvation_ci": star["starvation_ci"],
         "starvation_requests": star["starvation_requests"], "requests_sampled": star["requests_sampled"],
         "exploration_set_mean": star["exploration_set_size"]["mean"],
@@ -305,7 +364,7 @@ def report(out: Path) -> dict:
                       "seconds": round(r.seconds, 1), "usd": round(r.usd, 4),
                       "review_verdict": records[r.variant_id].qa.review_verdict if r.variant_id in records else None,
                       "review_edits": records[r.variant_id].qa.review_edits if r.variant_id in records else None}
-                     for r in results],
+                     for r in derived],
         "playthrough": table,
         "s04_fixture": json.loads((out / "s04_fixture.json").read_text()),
         "sdk_events": SDK_EVENTS,
@@ -381,7 +440,22 @@ def run(run_dir: Path = RUN, out: Path = OUT, *, seed: int = SEED, cache_dir: Pa
     fixture, starvation (reused when out/starvation/starvation.json exists) and the wrapper, then the report. Refuses
     to start while review.csv holds a verdict or reviewers.json exists, so a rerun never wipes the reviewers' read. A
     rerun resumes from out/drafts only under the same input fingerprint, and refuses before touching any file
-    otherwise."""
+    otherwise; variants/ is rebuilt only once every variant is generated or resumed. One run per out at a time: it
+    holds out/.run.lock, from before it reads earlier spend to the end."""
+    out.mkdir(parents=True, exist_ok=True)
+    lock = out / ".run.lock"
+    try:
+        os.close(os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
+    except FileExistsError:
+        raise SystemExit(f"{lock} exists: another run is writing {out}. If none is (a killed run leaves the lock "
+                         f"behind), remove {lock} and rerun") from None
+    try:
+        return _locked_run(run_dir, out, seed=seed, cache_dir=cache_dir, qa=qa, requests=requests)
+    finally:
+        lock.unlink()
+
+
+def _locked_run(run_dir: Path, out: Path, *, seed: int, cache_dir: Path, qa: dict | None, requests: int) -> dict:
     if (out / "review.csv").exists() and any(row["verdict"] for row in read_review(out)):
         raise SystemExit(f"{out / 'review.csv'} holds verdicts; move it away before a new run")
     if (out / "reviewers.json").exists():
@@ -391,20 +465,19 @@ def run(run_dir: Path = RUN, out: Path = OUT, *, seed: int = SEED, cache_dir: Pa
     inputs = fingerprint(facts_json, facts, run_dir, seed, qa or {})
     if (out / "drafts").exists() and (not (out / "run.json").exists()
                                       or json.loads((out / "run.json").read_text()).get("fingerprint") != inputs):
-        raise SystemExit(f"{out / 'drafts'} was made from other facts, template, prompt, art, seed or QA matrix; "
-                         "new inputs need a new --out")
-    out.mkdir(parents=True, exist_ok=True)
-    shutil.rmtree(out / "variants", ignore_errors=True)
+        raise SystemExit(f"{out / 'drafts'} was made from other inputs (facts, art, screenshots, font, content "
+                         "config, seed, QA matrix or the creative code); new inputs need a new --out")
     (out / "facts.json").write_text(facts_json)
     (out / "run.json").write_text(json.dumps({"run_dir": str(run_dir), "seed": seed, "fingerprint": inputs}, indent=1))
     trace_path = out / "trace.jsonl"
     budget = llm.Budget.for_stage("creative", trace_path, cap=CAP_USD)
-    for host in facts.hosts:
-        for hook in HOOKS:
-            result = generate_variant(facts=facts, host=host, hook=hook, seed=seed, run_dir=run_dir,
-                                      drafts_dir=out / "drafts", budget=budget, trace_path=trace_path,
-                                      cache_dir=cache_dir, **(qa or {}))
-            write_variant_files(out, facts, result)
+    generated = [generate_variant(facts=facts, host=host, hook=hook, seed=seed, run_dir=run_dir,
+                                  drafts_dir=out / "drafts", budget=budget, trace_path=trace_path, cache_dir=cache_dir,
+                                  **(qa or {}))
+                 for host in facts.hosts for hook in HOOKS]
+    shutil.rmtree(out / "variants", ignore_errors=True)
+    for result in generated:
+        write_variant_files(out, facts, result)
     write_review(out)
     (out / "s04_fixture.json").write_text(json.dumps(s04_fixture(facts, seed), indent=1))
     if not (out / "starvation" / "starvation.json").exists():
@@ -416,13 +489,14 @@ def run(run_dir: Path = RUN, out: Path = OUT, *, seed: int = SEED, cache_dir: Pa
 def finalize(out: Path = OUT) -> dict:
     """Applies the merged review verdicts (see read_verdicts): a variant with a rejected string fails, one with edits
     is accepted_with_edits (edits are counted, not applied, in v0), the rest are accepted. Then rebuilds the report."""
-    if not (out / "reviewers.json").exists():
-        raise SystemExit(f"{out / 'reviewers.json'} is missing; run merge first")
-    reviewed = json.loads((out / "reviewers.json").read_text())
-    problem = unmerged(out, reviewed)
+    sheets = reviewer_sheets(out)
+    problem = unmerged(out, sheets)
     if problem:
         raise SystemExit(problem)
-    reviewers = reviewed["reviewers"]
+    changed = html_problems(out)
+    if changed:
+        raise SystemExit("; ".join(changed))
+    reviewers = list(sheets)
     read = read_verdicts(out)
     for path in sorted((out / "variants").glob("*/creative.json")):
         status, verdict, edits = read[path.parent.name]
@@ -435,8 +509,9 @@ def finalize(out: Path = OUT) -> dict:
 
 def check(out: Path = OUT) -> list[str]:
     """Everything report.json or report.md says that the files don't, a review sheet that misses a string, a
-    review.csv that is not the merge of the reviewers' sheets, verdicts that no longer match it, and a wrapper.json
-    the starvation decisions no longer give."""
+    review.csv that is not the merge of the reviewers' sheets, verdicts that no longer match it, a creative.html that
+    is not its record's creative, a result.json its drafts don't give, drafts that claim more spend than the trace,
+    and a starvation.json or wrapper.json the starvation decisions don't give."""
     saved = json.loads((out / "report.json").read_text())
     fresh = report(out)
     found = [f"{key}: report.json has {saved.get(key)!r}, the files give {value!r}"
@@ -446,7 +521,12 @@ def check(out: Path = OUT) -> list[str]:
     rows = [(row["variant"], row["screen"], row["string"], row["source"]) for row in read_review(out)]
     records = {p.parent.name: CreativeAttributes.model_validate_json(p.read_text())
                for p in sorted((out / "variants").glob("*/creative.json"))}
-    reviewed = json.loads((out / "reviewers.json").read_text()) if (out / "reviewers.json").exists() else None
+    sheets = None
+    if (out / "reviewers.json").exists():
+        try:
+            sheets = reviewer_sheets(out)
+        except SystemExit as e:
+            found.append(str(e))
     if rows != expected_rows(out):
         found.append(f"review.csv has {len(rows)} rows; the passing variants show {len(expected_rows(out))} strings")
     elif any(r.qa.review_verdict != "pending" for r in records.values()):
@@ -455,23 +535,38 @@ def check(out: Path = OUT) -> list[str]:
         except SystemExit as e:
             found.append(str(e))
         else:
-            reviewers = reviewed["reviewers"] if reviewed else None
+            reviewers = list(sheets) if sheets else None
             for variant, r in records.items():
                 has = (r.status, r.qa.review_verdict, r.qa.review_edits, r.qa.reviewers)
                 gives = (*read[variant], reviewers)
                 if has != gives:
                     found.append(f"{variant}: creative.json has {has}, review.csv and reviewers.json give {gives}")
-    if reviewed:
+    if sheets:
         try:
-            problem = unmerged(out, reviewed)
+            problem = unmerged(out, sheets)
             if problem:
                 found.append(problem)
         except SystemExit as e:
             found.append(str(e))
+    found += html_problems(out)
+    derived = results(out)
+    found += [f"{variant}: result.json is not what its saved drafts give"
+              for variant, result in derived.items()
+              if VariantResult.model_validate_json((out / "variants" / variant / "result.json").read_text())
+              .model_dump(exclude={"final_dir"}) != result.model_dump(exclude={"final_dir"})]  # absolute: out may move
+    spent = sum(result.usd for result in derived.values())
+    if spent > fresh["usd_total"] + 1e-6:
+        found.append(f"the drafts spent ${spent:.4f}, more than the trace's creative spend ${fresh['usd_total']:.4f}")
     if not (out / "starvation" / "starvation_decisions.jsonl").exists():
-        found.append("wrapper.json not rechecked: starvation/starvation_decisions.jsonl is git-ignored and absent here")
+        found.append("wrapper.json and starvation.json not rechecked: starvation/starvation_decisions.jsonl is "
+                     "git-ignored and absent here")
         return found
-    wrap = wrapper(th1.decisions(out / "starvation"))
+    records = list(th1.decisions(out / "starvation"))
+    star = json.loads((out / "starvation" / "starvation.json").read_text())
+    summary = starvation_summary(records, star)
+    if summary != star:
+        found.append(f"starvation.json is not what starvation_decisions.jsonl gives: {summary}")
+    wrap = wrapper(records)
     if json.loads((out / "wrapper.json").read_text()) != wrap:
         found.append(f"wrapper.json is not what starvation_decisions.jsonl gives: {wrap}")
     return found

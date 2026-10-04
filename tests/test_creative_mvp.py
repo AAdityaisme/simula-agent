@@ -1,8 +1,12 @@
 import csv
 import importlib.util
 import json
+import shutil
+import threading
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
+from PIL import Image
 
 from simula import llm
 from simula.creative import th1
@@ -21,14 +25,22 @@ DECISIONS = [{"row": 1, "n": 4, "e": 1, "p": [0.95, 0.05, 0.0, 0.0], "u": [0, 0,
              {"row": 3, "n": 2, "e": 1, "p": [1.0, 0.0], "u": [0, 0], "c14": [0, 0], "gap": None}]
 
 
+def load_tool(name):
+    spec = importlib.util.spec_from_file_location(name, ROOT / "tools" / f"{name}.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def fake_starvation(out_dir, *, requests=10_000, **_):
-    """What th1.starvation writes, for three requests, without TH1."""
+    """What th1.starvation writes, for three requests, without TH1: the records and th1_starvation's own summary."""
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "starvation_decisions.jsonl").write_text("".join(json.dumps(d) + "\n" for d in DECISIONS))
-    summary = {"requests_sampled": 3, "starvation_requests": 2, "starved": 1, "starvation_share": 0.5,
-               "starvation_ci": [0.0945, 0.9055], "exploration_set_size": {"mean": 1.333, "histogram": {"1": 2, "2": 1}},
-               "pctr_gap_top_unseen_to_leader": {"median": 0.01, "p10": 0.002, "p90": 0.018, "zero_gap_share": 0.5}}
-    (out_dir / "starvation.json").write_text(json.dumps(summary))
+    summary = load_tool("th1_starvation").summarize(
+        DECISIONS, seed=20261004, feature_set="B", rows_all=1_000_000,
+        windows={"refit": ["2014-10-21", "2014-10-29"], "test": ["2014-10-30", "2014-10-30"]},
+        policy={"max_candidates": 50})
+    (out_dir / "starvation.json").write_text(json.dumps(summary, indent=1) + "\n")
     return summary
 
 
@@ -43,10 +55,7 @@ def calls(monkeypatch):
 
 @pytest.fixture
 def mvp():
-    spec = importlib.util.spec_from_file_location("creative_mvp", ROOT / "tools" / "creative_mvp.py")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    return load_tool("creative_mvp")
 
 
 def run(mvp, tmp_path):
@@ -54,11 +63,14 @@ def run(mvp, tmp_path):
 
 
 def fill_review(mvp, out, first_verdict="edit"):
-    """Two reviewers' sheets, merged: fable gives the first string first_verdict, astra says ok to every string."""
+    """Two reviewers' sheets, merged: fable gives the first string first_verdict, astra says ok to every string and
+    notes the last (merge refuses byte-identical sheets)."""
     sheets = {}
     for name, verdict in (("fable", first_verdict), ("astra", "ok")):
         rows = [dict(row, verdict="ok") for row in mvp.read_review(out)]
         rows[0]["verdict"], rows[0]["edit"] = verdict, "" if verdict == "ok" else "Sponsored mini-game"
+        if name == "astra":
+            rows[-1]["edit"] = "reads well"
         sheets[name] = write_rows(mvp, out.parent / f"{name}.csv", rows)
     mvp.merge(out, sheets)
 
@@ -122,6 +134,7 @@ def test_a_rerun_counts_what_earlier_runs_spent_against_the_6_dollar_cap(mvp, ca
     trace(tmp_path / "out" / "trace.jsonl", stage="creative", step="an earlier run", decider="model", usd=5.999)
     with pytest.raises(llm.CapReached):
         run(mvp, tmp_path)
+    assert not (tmp_path / "out" / ".run.lock").exists()
     assert calls == []
 
 
@@ -141,8 +154,7 @@ def test_a_rerun_resumes_from_the_saved_drafts_without_calling_the_model(mvp, ca
 
 
 def snapshot(out):
-    return {p: p.read_bytes() for folder in ("variants", "drafts") for p in sorted((out / folder).rglob("*"))
-            if p.is_file()}
+    return {p: p.read_bytes() for p in sorted(out.rglob("*")) if p.is_file()}
 
 
 def test_a_rerun_with_another_seed_refuses_the_saved_drafts(mvp, calls, tmp_path):
@@ -213,7 +225,8 @@ def test_merge_keeps_the_strictest_verdict_and_every_note(mvp, calls, tmp_path):
     assert [row["edit"] for row in merged[:5]] == ["", "astra: astra note", "fable: fable note; astra: astra note",
                                                    "fable: fable note", "fable: fable note; astra: astra note"]
     assert all(row["verdict"] == "ok" for row in merged[5:])
-    assert json.loads((out / "reviewers.json").read_text())["reviewers"] == ["fable", "astra"]
+    assert json.loads((out / "reviewers.json").read_text()) == {"fable": "review-fable.csv",
+                                                                 "astra": "review-astra.csv"}
     assert mvp.check(out) == []
 
 
@@ -248,8 +261,8 @@ def test_check_says_the_wrapper_was_not_rechecked_without_the_decisions_file(mvp
     out = tmp_path / "out"
     run(mvp, tmp_path)
     (out / "starvation" / "starvation_decisions.jsonl").unlink()
-    assert mvp.check(out) == ["wrapper.json not rechecked: starvation/starvation_decisions.jsonl is git-ignored and "
-                              "absent here"]
+    assert mvp.check(out) == ["wrapper.json and starvation.json not rechecked: starvation/starvation_decisions.jsonl "
+                              "is git-ignored and absent here"]
 
 
 def test_finalize_refuses_a_review_csv_that_is_not_the_merge(mvp, calls, tmp_path):
@@ -272,8 +285,9 @@ def test_the_email_names_the_reviewers_only_once_they_have_read(mvp, calls, tmp_
     md = (out / "report.md").read_text()
     assert "a read of every string by model reviewers (still pending), at $pending" in md and "Fable" not in md
     rows = [dict(row, verdict="ok") for row in mvp.read_review(out)]
-    mvp.merge(out, {name: write_rows(mvp, tmp_path / f"{i}.csv", rows)
-                    for i, name in enumerate(("Claude Fable 5.1", "GPT-6 Astra"))})
+    noted = [dict(rows[0], edit="fine as is"), *rows[1:]]
+    mvp.merge(out, {"Claude Fable 5.1": write_rows(mvp, tmp_path / "fable.csv", rows),
+                    "GPT-6 Astra": write_rows(mvp, tmp_path / "astra.csv", noted)})
     mvp.finalize(out)
     md = (out / "report.md").read_text()
     assert "a read of every string by the model reviewers Claude Fable 5.1 and GPT-6 Astra, at $" in md
@@ -288,3 +302,143 @@ def test_a_rerun_refuses_while_reviewer_sheets_remain(mvp, calls, tmp_path):
     with pytest.raises(SystemExit, match=r"move reviewers.json and review-\*.csv away"):
         run(mvp, tmp_path)
     assert (out / "reviewers.json").exists() and (out / "review-fable.csv").exists()
+
+
+def copy_run(tmp_path):
+    """The parts of the committed run that facts, assembly and QA read, copied so a test can change them."""
+    copy = tmp_path / "run"
+    for name in ("model", "qa/approved/assets"):
+        shutil.copytree(RUN / name, copy / name)
+    for name in ("manifest.json", "qa/qa_report.json", "qa/approved/index.html"):
+        (copy / name).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(RUN / name, copy / name)
+    return copy
+
+
+def test_a_second_run_refuses_while_the_first_holds_the_lock(mvp, calls, tmp_path, monkeypatch):
+    entered, release = threading.Event(), threading.Event()
+
+    def held(model, *args, **kwargs):
+        entered.set()
+        release.wait(timeout=60)
+        return llm.Reply(text=json.dumps(CLEAN), model=model, tokens_in=100, tokens_out=10)
+
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", held)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        first = pool.submit(run, mvp, tmp_path)
+        assert entered.wait(timeout=60)
+        try:
+            with pytest.raises(SystemExit, match=r"another run is writing .*remove .*\.run\.lock"):
+                run(mvp, tmp_path)
+        finally:
+            release.set()
+        assert first.result(timeout=300)["variants_total"] == 4
+    assert not (tmp_path / "out" / ".run.lock").exists()
+
+
+def test_a_rerun_after_a_changed_proof_screenshot_touches_nothing(mvp, calls, tmp_path):
+    source, out = copy_run(tmp_path), tmp_path / "out"
+    mvp.run(source, out, seed=7, cache_dir=tmp_path / "cache", qa=ONE_RUN)
+    before = snapshot(out)
+    shot = source / "model" / "states" / "s15.png"
+    with Image.open(shot) as image:
+        size = image.size
+    Image.new("RGB", size, "black").save(shot)
+    with pytest.raises(SystemExit, match="new --out"):
+        mvp.run(source, out, seed=7, cache_dir=tmp_path / "cache", qa=ONE_RUN)
+    assert len(calls) == 4 and snapshot(out) == before
+
+
+def test_a_rerun_under_a_changed_content_config_touches_nothing(mvp, calls, tmp_path, monkeypatch):
+    out = tmp_path / "out"
+    run(mvp, tmp_path)
+    before = snapshot(out)
+    profiles = mvp.config.profiles()
+    profiles["content"]["adult_keywords"].append("learning")
+    monkeypatch.setattr(mvp.config, "profiles", lambda: profiles)
+    with pytest.raises(SystemExit, match="new --out"):
+        run(mvp, tmp_path)
+    assert len(calls) == 4 and snapshot(out) == before
+
+
+def test_a_refused_interrupted_rerun_leaves_every_file_as_it_was(mvp, calls, tmp_path):
+    out = tmp_path / "out"
+    run(mvp, tmp_path)
+    (out / "drafts" / "teacher-help_host" / "round0" / "draft.json").unlink()
+    before = snapshot(out)
+    with pytest.raises(FileExistsError):
+        run(mvp, tmp_path)
+    assert len(calls) == 4 and snapshot(out) == before
+
+
+@pytest.mark.parametrize("same", ["path", "content"])
+def test_merge_refuses_one_sheet_given_as_two_reviewers(mvp, calls, tmp_path, same):
+    out = tmp_path / "out"
+    run(mvp, tmp_path)
+    rows = [dict(row, verdict="ok") for row in mvp.read_review(out)]
+    first = write_rows(mvp, tmp_path / "fable.csv", rows)
+    second = first if same == "path" else write_rows(mvp, tmp_path / "astra.csv", rows)
+    with pytest.raises(SystemExit, match="same sheet"):
+        mvp.merge(out, {"Claude Fable 5.1": first, "GPT-6 Astra": second})
+    assert not (out / "reviewers.json").exists()
+
+
+@pytest.mark.parametrize("edit", ["a reviewer list beside the sheets", "a name that is not its sheet's"])
+def test_finalize_and_check_refuse_reviewer_metadata_of_another_shape(mvp, calls, tmp_path, edit):
+    out = tmp_path / "out"
+    run(mvp, tmp_path)
+    fill_review(mvp, out)
+    mapping = json.loads((out / "reviewers.json").read_text())
+    if edit == "a reviewer list beside the sheets":
+        mapping = {"reviewers": ["Uninvoked Model"], "files": mapping}
+    else:
+        mapping["Uninvoked Model"] = mapping.pop("astra")
+    (out / "reviewers.json").write_text(json.dumps(mapping))
+    with pytest.raises(SystemExit, match="reviewers.json"):
+        mvp.finalize(out)
+    assert [line for line in mvp.check(out) if "reviewers.json" in line]
+
+
+def test_an_html_edited_after_run_refuses_finalize_and_fails_check(mvp, calls, tmp_path):
+    out = tmp_path / "out"
+    run(mvp, tmp_path)
+    path = out / "variants" / "teacher-challenge" / "creative.html"
+    path.write_text(path.read_text().replace(CLEAN["intro"], "The app is free and guarantees better grades."))
+    fill_review(mvp, out)
+    with pytest.raises(SystemExit, match="teacher-challenge.*creative.html"):
+        mvp.finalize(out)
+    assert [line for line in mvp.check(out) if line.startswith("teacher-challenge: creative.html")]
+
+
+def test_check_recomputes_the_starvation_numbers_from_the_decisions(mvp, calls, tmp_path):
+    out = tmp_path / "out"
+    run(mvp, tmp_path)
+    changed = [DECISIONS[0], {**DECISIONS[1], "p": [0.0, 1.0], "e": 8, "gap": 0.8}, DECISIONS[2]]
+    (out / "starvation" / "starvation_decisions.jsonl").write_text("".join(json.dumps(d) + "\n" for d in changed))
+    assert [line for line in mvp.check(out) if line.startswith("starvation.json")]
+
+
+def test_variant_numbers_come_from_the_saved_drafts(mvp, calls, tmp_path):
+    out = tmp_path / "out"
+    run(mvp, tmp_path)
+    path = out / "variants" / "teacher-challenge" / "result.json"
+    path.write_text(json.dumps({**json.loads(path.read_text()), "first_pass_accept": False, "seconds": 10000.0,
+                                "usd": 999.0}))
+    fill_review(mvp, out)
+    final = mvp.finalize(out)
+    assert final["first_pass_accept"] == 4 and final["variants"][0]["usd"] < 1 and final["seconds_per_variant"] < 100
+    assert [line for line in mvp.check(out) if line.startswith("teacher-challenge: result.json")]
+
+
+def test_check_catches_drafts_that_claim_more_spend_than_the_trace(mvp, calls, tmp_path):
+    out = tmp_path / "out"
+    run(mvp, tmp_path)
+    path = out / "drafts" / "toki-challenge" / "round0" / "draft.json"
+    path.write_text(json.dumps({**json.loads(path.read_text()), "usd": 999.0}))
+    assert [line for line in mvp.check(out) if line.startswith("the drafts spent")]
+
+
+def test_check_passes_on_an_out_folder_moved_after_run(mvp, calls, tmp_path):
+    run(mvp, tmp_path)
+    shutil.copytree(tmp_path / "out", tmp_path / "moved")
+    assert mvp.check(tmp_path / "moved") == []
