@@ -1,3 +1,8 @@
+import base64
+import hashlib
+import socket
+import threading
+
 import pytest
 
 from simula.creative.assemble import write_variant
@@ -68,6 +73,13 @@ def test_an_adult_keyword_in_a_generated_line_fails_tier(facts):
     assert tier(content, facts) == (None, ['generated text uses the adult keyword "adult"'])
 
 
+@pytest.mark.parametrize("intro, found", [("18+players welcome!", ['generated text uses the adult keyword "18+"']),
+                                          ("Feel the adulthood of numbers", [])])
+def test_an_adult_keyword_matches_on_its_own_edges(facts, intro, found):
+    content = content_for(facts, lines=LINES.model_copy(update={"intro": intro}))
+    assert tier(content, facts)[1] == found
+
+
 def test_a_clean_creative_passes_all_36_playthroughs(creative):
     html, content = creative
     runs = playthrough(html, content)
@@ -95,3 +107,66 @@ def test_a_creative_that_ends_too_soon_fails_the_timed_right_path(creative, tmp_
     quick.write_text(html.read_text().replace("proof: 4000", "proof: 0").replace("intro: 3000", "intro: 0"))
     runs = playthrough(quick, content, paths=("right",), widths=(390,), modes=("timers",))
     assert any("it must take 15-25 s" in problem for problem in runs["right/timers/390"])
+
+
+def test_a_websocket_is_refused_and_fails_the_bot(creative, tmp_path):
+    html, content = creative
+    server = socket.create_server(("127.0.0.1", 0))
+    server.settimeout(10)
+    received = []
+
+    def accept():
+        """A loopback WebSocket server that records any frame it gets."""
+        try:
+            with server.accept()[0] as conn:
+                key = next(line.split(":", 1)[1].strip() for line in conn.recv(4096).decode().splitlines()
+                           if line.lower().startswith("sec-websocket-key:"))
+                token = base64.b64encode(hashlib.sha1((key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode()).digest())
+                conn.sendall(b"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
+                             b"Sec-WebSocket-Accept: " + token + b"\r\n\r\n")
+                received.append(conn.recv(4096))
+        except OSError:
+            pass
+
+    thread = threading.Thread(target=accept, daemon=True)
+    thread.start()
+    url = f"ws://127.0.0.1:{server.getsockname()[1]}/"
+    leaky = tmp_path / "creative.html"
+    leaky.write_text(html.read_text().replace("</body>", f"<script>const ws = new WebSocket('{url}'); "
+                                                         "ws.onopen = () => ws.send('leak');</script></body>"))
+    try:
+        found = playthrough(leaky, content, **ONE_RUN)["right/fast/390"]
+    finally:
+        server.close()
+        thread.join(2)
+    assert f"network request: {url}" in found
+    assert received == []
+
+
+def test_the_intro_is_inspected(creative, tmp_path):
+    html, content = creative
+    hidden = tmp_path / "creative.html"
+    style = ('<style>body[data-state="intro"] #sponsored{display:none!important}'
+             "#host-art{width:600px!important;max-width:none!important;max-height:none!important}</style>")
+    hidden.write_text(html.read_text().replace("</head>", style + "</head>"))
+    found = playthrough(hidden, content, paths=("right",), widths=(390,), modes=("timers",))["right/timers/390"]
+    assert "intro: the Sponsored label is not visible" in found
+    assert "intro: host-art is drawn above 1.25x its pixel size" in found
+
+
+@pytest.mark.parametrize("payload, problem", [("{n: 999, attempts}", "CHALLENGE_PASS_1 says puzzle 999"),
+                                              ("{n: index + 1}", "CHALLENGE_PASS_1 logged None attempts")])
+def test_a_malformed_event_payload_is_a_failure_not_a_crash(creative, tmp_path, payload, problem):
+    html, content = creative
+    bad = tmp_path / "creative.html"
+    bad.write_text(html.read_text().replace("{n: index + 1, attempts}", payload))
+    assert any(problem in found for found in playthrough(bad, content, **ONE_RUN)["right/fast/390"])
+
+
+def test_every_console_error_is_kept(creative, tmp_path):
+    html, content = creative
+    noisy = tmp_path / "creative.html"
+    noisy.write_text(html.read_text().replace("</body>", '<script>console.error("Failed to load resource: injected")'
+                                                         "</script></body>"))
+    found = playthrough(noisy, content, **ONE_RUN)["right/fast/390"]
+    assert "console error: Failed to load resource: injected" in found

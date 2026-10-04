@@ -2,7 +2,6 @@
 ?fast=1, grounding checks every proof claim against the facts' allowed strings, and the tier comes from the screens,
 art and generated text a creative uses."""
 
-import re
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
@@ -102,22 +101,39 @@ def _drive(page, content: Content, path: str, mode: str, look) -> None:
             page.click("#close")
 
 
-def _event_problems(events: list[dict], path: str, mode: str) -> list[str]:
-    names = [e["name"] for e in events]
+def _is_int(value, want: int) -> bool:
+    """value is the integer want; JSON true is not 1."""
+    return type(value) is int and value == want
+
+
+def _event_problems(events, path: str, mode: str) -> list[str]:
+    """What the page's event log gets wrong; a malformed log is a problem, never an exception."""
+    if not isinstance(events, list) or not all(isinstance(e, dict) for e in events):
+        return [f"events() returned {events!r}, not a list of events"]
+    names = [e.get("name") for e in events]
     if names != PATHS[path]:
         return [f"events {names}, expected {PATHS[path]}"]
     taps = 2 if path == "wrong_then_right" else 1
-    found = [f"{e['name']} logged {e['attempts']} attempts; the bot tapped {taps}"
-             for e in events if e["name"].startswith("CHALLENGE_PASS_") and e["attempts"] != taps]
-    took = events[-1]["t"] - events[0]["t"]
-    if path == "right" and mode == "timers" and not RIGHT_PATH_MS[0] <= took <= RIGHT_PATH_MS[1]:
-        found.append(f"the right path took {took} ms from DISPLAYED to CTA_CLICKED; it must take 15-25 s")
+    found = []
+    for e in events:
+        if e["name"].startswith("CHALLENGE_PASS_"):
+            n = int(e["name"].removeprefix("CHALLENGE_PASS_"))
+            if not _is_int(e.get("n"), n):
+                found.append(f"{e['name']} says puzzle {e.get('n')!r}")
+            if not _is_int(e.get("attempts"), taps):
+                found.append(f"{e['name']} logged {e.get('attempts')!r} attempts; the bot tapped {taps}")
+    times = [e.get("t") for e in events]
+    if any(type(t) not in (int, float) for t in times):
+        found.append(f"events carry times {times}; each must be a number")
+    elif path == "right" and mode == "timers" and not RIGHT_PATH_MS[0] <= times[-1] - times[0] <= RIGHT_PATH_MS[1]:
+        found.append(f"the right path took {times[-1] - times[0]} ms from DISPLAYED to CTA_CLICKED; it must take "
+                     "15-25 s")
     return found
 
 
 def _run(browser, html: Path, content: Content, path: str, mode: str, width: int) -> list[str]:
     """One playthrough on a fresh page with Playwright's clock installed and paused, so timers fire only as the bot
-    advances them; every request but the creative's own file is refused and counted."""
+    advances them; every request but the creative's own file, and every WebSocket, is refused and counted."""
     context = browser.new_context(viewport={"width": width, "height": HEIGHTS[width]})
     page = context.new_page()
     page.set_default_timeout(3000)
@@ -137,14 +153,16 @@ def _run(browser, html: Path, content: Content, path: str, mode: str, width: int
         layout.extend(f"{state}: {problem}" for problem in page.evaluate(LAYOUT))
 
     page.route("**/*", route)
-    page.on("console", lambda m: console.append(m.text)
-            if m.type == "error" and not m.text.startswith("Failed to load resource") else None)
+    # A routed WebSocket never reaches the server unless connect_to_server() is called; ws.close() here deadlocks.
+    page.route_web_socket("**/*", lambda ws: requests.append(ws.url))
+    page.on("console", lambda m: console.append(m.text) if m.type == "error" else None)
     page.on("pageerror", lambda e: console.append(str(e)))
     try:
         page.clock.install(time=0)
         page.goto(doc.as_uri() + "?hold=1" + ("&fast=1" if mode == "fast" else ""))
         page.clock.pause_at(1000)
         page.evaluate("() => window.simulaCreative.start()")
+        look()
         _drive(page, content, path, mode, look)
         found += _event_problems(page.evaluate("() => window.simulaCreative.events()"), path, mode)
     except (RuntimeError, PlaywrightError) as e:
@@ -204,7 +222,6 @@ def tier(content: Content, facts: Facts) -> tuple[Tier | None, list[str]]:
     copy = content.copy_
     texts = [copy.intro, *copy.captions, copy.right_line, copy.wrong_hint, copy.end_headline]
     for word in config.profiles()["content"]["adult_keywords"]:
-        pattern = rf"(?<![a-z0-9]){re.escape(word)}(?![a-z0-9])"
-        if any(re.search(pattern, text.lower()) for text in texts):
+        if any(is_excerpt(word, text.lower()) for text in texts):
             found.append(f'generated text uses the adult keyword "{word}"')
     return (None if found else "sfw"), found
