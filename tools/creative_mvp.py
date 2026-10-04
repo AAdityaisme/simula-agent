@@ -23,7 +23,7 @@ from simula.creative.assemble import SDK_EVENTS, TEMPLATE, visible_strings
 from simula.creative.facts import Facts, build_facts
 from simula.creative.lines import PROMPT, HostLines, build_content
 from simula.creative.policy import EPSILON_NEW, N_MIN, mix
-from simula.creative.qa import grounding, tier
+from simula.creative.qa import MODES, PATHS, WIDTHS, grounding, tier
 from simula.creative.repair import VariantResult, generate_variant
 from simula.creative.schema import (PROVENANCE, QA, Advertiser, Content, CreativeAttributes, EndCard, Interaction,
                                     Lineage, Proof, creative_id, dump, gate_for)
@@ -96,6 +96,41 @@ def write_review(out: Path) -> None:
         writer = csv.writer(f)
         writer.writerow(REVIEW_FIELDS)
         writer.writerows([*row, "", ""] for row in expected_rows(out))
+
+
+def human_read(out: Path) -> dict[str, tuple[str, str, int]]:
+    """Each passing variant's (status, human_verdict, human_edits) from review.csv. A variant is accepted only when
+    every string it shows has a verdict and none says reject; SystemExit when a string is missing or unread."""
+    rows = read_review(out)
+    listed = [(row["variant"], row["screen"], row["string"], row["source"]) for row in rows]
+    expected = expected_rows(out)
+    if listed != expected:
+        missing, extra = [row for row in expected if row not in listed], [row for row in listed if row not in expected]
+        raise SystemExit(f"review.csv must list exactly the strings the passing variants show, in order; missing "
+                         f"{len(missing)} (first {missing[:1]}), not shown {len(extra)} (first {extra[:1]})")
+    blank = [row for row in rows if row["verdict"] not in VERDICTS]
+    if blank:
+        raise SystemExit(f"review.csv: {len(blank)} rows have no verdict (ok, edit or reject); the first is "
+                         f"{blank[0]['variant']} {blank[0]['string']!r}")
+    read = {}
+    for variant in dict.fromkeys(row["variant"] for row in rows):
+        verdicts = [row["verdict"] for row in rows if row["variant"] == variant]
+        edits = verdicts.count("edit")
+        verdict = "rejected" if "reject" in verdicts else "accepted_with_edits" if edits else "accepted"
+        read[variant] = ("failed" if verdict == "rejected" else "accepted", verdict, edits)
+    return read
+
+
+def fingerprint(facts_json: str, facts: Facts, run_dir: Path, seed: int, qa: dict) -> str:
+    """sha256 of everything generation reads: the facts, the template, the host-line prompt, the host art, the seed
+    and the QA matrix. Saved drafts are reusable only under the same fingerprint."""
+    art = [(run_dir / "qa" / "approved" / "assets" / host.art).read_bytes() for host in facts.hosts]
+    matrix = json.dumps({"seed": seed, "paths": list(qa.get("paths", PATHS)), "widths": list(qa.get("widths", WIDTHS)),
+                         "modes": list(qa.get("modes", MODES))}).encode()
+    digest = hashlib.sha256()
+    for part in (facts_json.encode(), TEMPLATE.read_bytes(), PROMPT.read_bytes(), *art, matrix):
+        digest.update(hashlib.sha256(part).digest())
+    return digest.hexdigest()
 
 
 def attributes(content: Content, html: str, facts: Facts, result: VariantResult) -> CreativeAttributes:
@@ -276,14 +311,20 @@ def run(run_dir: Path = RUN, out: Path = OUT, *, seed: int = SEED, cache_dir: Pa
     """Facts, the 2 hosts x 2 hooks variants with QA and one repair round under the $6 cap, the review sheet, the s04
     fixture, starvation (reused when out/starvation/starvation.json exists) and the wrapper, then the report. Refuses
     to start while review.csv holds a verdict, so a rerun never wipes Aadi's read. A rerun resumes from out/drafts
-    (generate_variant refuses drafts made from another seed or run, and an interrupted round)."""
+    only under the same input fingerprint, and refuses before touching any file otherwise."""
     if (out / "review.csv").exists() and any(row["verdict"] for row in read_review(out)):
         raise SystemExit(f"{out / 'review.csv'} holds verdicts; move it away before a new run")
+    facts = build_facts(run_dir)
+    facts_json = facts.model_dump_json(indent=1)
+    inputs = fingerprint(facts_json, facts, run_dir, seed, qa or {})
+    if (out / "drafts").exists() and (not (out / "run.json").exists()
+                                      or json.loads((out / "run.json").read_text()).get("fingerprint") != inputs):
+        raise SystemExit(f"{out / 'drafts'} was made from other facts, template, prompt, art, seed or QA matrix; "
+                         "new inputs need a new --out")
     out.mkdir(parents=True, exist_ok=True)
     shutil.rmtree(out / "variants", ignore_errors=True)
-    facts = build_facts(run_dir)
-    (out / "facts.json").write_text(facts.model_dump_json(indent=1))
-    (out / "run.json").write_text(json.dumps({"run_dir": str(run_dir), "seed": seed}, indent=1))
+    (out / "facts.json").write_text(facts_json)
+    (out / "run.json").write_text(json.dumps({"run_dir": str(run_dir), "seed": seed, "fingerprint": inputs}, indent=1))
     trace_path = out / "trace.jsonl"
     budget = llm.Budget.for_stage("creative", trace_path, cap=CAP_USD)
     for host in facts.hosts:
@@ -301,19 +342,13 @@ def run(run_dir: Path = RUN, out: Path = OUT, *, seed: int = SEED, cache_dir: Pa
 
 
 def finalize(out: Path = OUT) -> dict:
-    """Applies Aadi's verdicts: a variant with a rejected string fails, one with edits is accepted_with_edits (edits
-    are counted, not applied, in v0), the rest are accepted. Then rebuilds the report."""
-    rows = read_review(out)
-    blank = [row for row in rows if row["verdict"] not in VERDICTS]
-    if blank:
-        raise SystemExit(f"review.csv: {len(blank)} rows have no verdict (ok, edit or reject); the first is "
-                         f"{blank[0]['variant']} {blank[0]['string']!r}")
+    """Applies Aadi's verdicts (see human_read): a variant with a rejected string fails, one with edits is
+    accepted_with_edits (edits are counted, not applied, in v0), the rest are accepted. Then rebuilds the report."""
+    read = human_read(out)
     for path in sorted((out / "variants").glob("*/creative.json")):
-        verdicts = [row["verdict"] for row in rows if row["variant"] == path.parent.name]
-        edits = verdicts.count("edit")
-        verdict = "rejected" if "reject" in verdicts else "accepted_with_edits" if edits else "accepted"
+        status, verdict, edits = read[path.parent.name]
         record = CreativeAttributes.model_validate_json(path.read_text())
-        record = record.model_copy(update={"status": "failed" if verdict == "rejected" else "accepted",
+        record = record.model_copy(update={"status": status,
                                            "qa": record.qa.model_copy(update={"human_verdict": verdict,
                                                                               "human_edits": edits})})
         path.write_text(json.dumps(dump(record), indent=1))
@@ -321,7 +356,8 @@ def finalize(out: Path = OUT) -> dict:
 
 
 def check(out: Path = OUT) -> list[str]:
-    """Everything report.json or report.md says that the files don't, and a review sheet that misses a string."""
+    """Everything report.json or report.md says that the files don't, a review sheet that misses a string, verdicts
+    that no longer match review.csv, and a wrapper.json the starvation decisions no longer give."""
     saved = json.loads((out / "report.json").read_text())
     fresh = report(out)
     found = [f"{key}: report.json has {saved.get(key)!r}, the files give {value!r}"
@@ -329,8 +365,22 @@ def check(out: Path = OUT) -> list[str]:
     if (out / "report.md").read_text() != render_report(saved):
         found.append("report.md is not what report.json renders to")
     rows = [(row["variant"], row["screen"], row["string"], row["source"]) for row in read_review(out)]
+    records = {p.parent.name: CreativeAttributes.model_validate_json(p.read_text())
+               for p in sorted((out / "variants").glob("*/creative.json"))}
     if rows != expected_rows(out):
         found.append(f"review.csv has {len(rows)} rows; the passing variants show {len(expected_rows(out))} strings")
+    elif any(r.qa.human_verdict != "pending" for r in records.values()):
+        try:
+            read = human_read(out)
+        except SystemExit as e:
+            found.append(str(e))
+        else:
+            found += [f"{variant}: creative.json has {(r.status, r.qa.human_verdict, r.qa.human_edits)}, review.csv "
+                      f"gives {read[variant]}" for variant, r in records.items()
+                      if (r.status, r.qa.human_verdict, r.qa.human_edits) != read[variant]]
+    wrap = wrapper(th1.decisions(out / "starvation"))
+    if json.loads((out / "wrapper.json").read_text()) != wrap:
+        found.append(f"wrapper.json is not what starvation_decisions.jsonl gives: {wrap}")
     return found
 
 

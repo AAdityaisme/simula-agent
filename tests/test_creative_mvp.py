@@ -58,6 +58,10 @@ def fill_review(mvp, out, first_verdict="edit"):
     for row in rows:
         row["verdict"] = "ok"
     rows[0]["verdict"], rows[0]["edit"] = first_verdict, "Sponsored mini-game"
+    write_rows(mvp, out, rows)
+
+
+def write_rows(mvp, out, rows):
     with open(out / "review.csv", "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=mvp.REVIEW_FIELDS)
         writer.writeheader()
@@ -126,8 +130,63 @@ def test_a_rerun_resumes_from_the_saved_drafts_without_calling_the_model(mvp, ca
     assert mvp.check(tmp_path / "out") == []
 
 
+def snapshot(out):
+    return {p: p.read_bytes() for folder in ("variants", "drafts") for p in sorted((out / folder).rglob("*"))
+            if p.is_file()}
+
+
 def test_a_rerun_with_another_seed_refuses_the_saved_drafts(mvp, calls, tmp_path):
+    out = tmp_path / "out"
     run(mvp, tmp_path)
-    with pytest.raises(SystemExit, match="new drafts dir"):
-        mvp.run(RUN, tmp_path / "out", seed=8, cache_dir=tmp_path / "cache", qa=ONE_RUN)
-    assert len(calls) == 4
+    before = snapshot(out)
+    with pytest.raises(SystemExit, match="new --out"):
+        mvp.run(RUN, out, seed=8, cache_dir=tmp_path / "cache", qa=ONE_RUN)
+    assert len(calls) == 4 and snapshot(out) == before
+
+
+def test_a_rerun_on_a_changed_template_touches_nothing(mvp, calls, tmp_path, monkeypatch):
+    out = tmp_path / "out"
+    run(mvp, tmp_path)
+    before = snapshot(out)
+    template = tmp_path / "quick_puzzles.html"
+    template.write_text(mvp.TEMPLATE.read_text() + "<!-- changed -->")
+    monkeypatch.setattr(mvp, "TEMPLATE", template)
+    with pytest.raises(SystemExit, match="new --out"):
+        run(mvp, tmp_path)
+    assert len(calls) == 4 and snapshot(out) == before
+
+
+@pytest.mark.parametrize("damage", ["drop a variant's rows", "blank a verdict"])
+def test_finalize_refuses_a_review_that_misses_a_verdict(mvp, calls, tmp_path, damage):
+    out = tmp_path / "out"
+    run(mvp, tmp_path)
+    fill_review(mvp, out, first_verdict="ok")
+    rows = mvp.read_review(out)
+    if damage == "drop a variant's rows":
+        rows = [row for row in rows if row["variant"] != rows[0]["variant"]]
+    else:
+        rows[-1]["verdict"] = ""
+    write_rows(mvp, out, rows)
+    with pytest.raises(SystemExit, match="review.csv"):
+        mvp.finalize(out)
+    assert all(json.loads(p.read_text())["qa"]["human_verdict"] == "pending"
+               for p in (out / "variants").glob("*/creative.json"))
+
+
+def test_check_catches_a_verdict_changed_after_finalize(mvp, calls, tmp_path):
+    out = tmp_path / "out"
+    run(mvp, tmp_path)
+    fill_review(mvp, out, first_verdict="ok")
+    mvp.finalize(out)
+    rows = mvp.read_review(out)
+    rows[0]["verdict"] = "reject"
+    write_rows(mvp, out, rows)
+    assert [line for line in mvp.check(out) if line.startswith(rows[0]["variant"])]
+
+
+def test_check_catches_a_changed_starvation_decision(mvp, calls, tmp_path):
+    out = tmp_path / "out"
+    run(mvp, tmp_path)
+    changed = [{**DECISIONS[0], "u": [0, 0, 0, 1]}, *DECISIONS[1:]]
+    (out / "starvation" / "starvation_decisions.jsonl").write_text("".join(json.dumps(d) + "\n" for d in changed))
+    assert [line for line in mvp.check(out) if line.startswith("wrapper.json")]
