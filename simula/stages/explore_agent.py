@@ -302,7 +302,7 @@ class AgentExplorer(Explorer):
             self.counts["model call failures"] += 1
             self.failed += 1
             self.failures += 1
-            why = str(e)[:160]
+            why = self.scrub(str(e))[:160]
             self.note("agent.turn", f"planner call failed: {why}", outcome="error")
             if self.failed >= PLANNER_FAILURES:
                 raise Stop(f"the planner's answer failed {self.failed} turns in a row (last: {why})") from e
@@ -325,7 +325,8 @@ class AgentExplorer(Explorer):
                                             for p in self.steps), decider="model")
 
     def plan(self, s: Seen) -> AgentTurn:
-        """One planner call: the screen as it is, its elements by id, and the run so far."""
+        """One planner call: the screen as it is, its elements by id, and the run so far. What it answers is scrubbed
+        of the test password (scrub) before anything stores it."""
         cands = self.listing(s)
         self.ids = dict(zip(decide.option_ids([c.label for c in cands]), cands, strict=True))
         text = self.situation(s)
@@ -339,7 +340,8 @@ class AgentExplorer(Explorer):
                                  effort=role.get("effort"), system=system,
                                  messages=[{"role": "user", "content": [*images, {"type": "text", "text": text}]}],
                                  max_tokens=config.max_tokens(role), budget=self.budget, schema=AgentTurn,
-                                 no_cache=self.ctx.no_cache, replay=self.ctx.replay, cache_dir=self.cache_dir)
+                                 no_cache=self.ctx.no_cache, replay=self.ctx.replay, cache_dir=self.cache_dir,
+                                 scrub=self.scrub)
             return parsed
 
         try:
@@ -349,7 +351,12 @@ class AgentExplorer(Explorer):
                 raise
             self.note("agent.turn", "the screenshot was refused: planned from the element list alone")
             turn = attempt([])
-        return turn
+        return AgentTurn.model_validate(llm.scrub_values(turn.model_dump(), self.scrub))
+
+    def scrub(self, text: str) -> str:
+        """The planner saw the screen, so what it writes may echo the test password: llm.call scrubs its answers and
+        failures with this, decoded JSON included, before the cache, the trace or the next prompt sees them."""
+        return ob.mask(text, self.password)
 
     def screen_png(self) -> bytes:
         """The screen as it is, half-size, for the planner alone: the file it passes through is deleted at once."""

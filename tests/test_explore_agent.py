@@ -539,6 +539,101 @@ def test_run_3s_banner_dismiss_lies_under_the_composer_and_is_never_picked(tmp_p
 FAILED = "Your last answer failed"
 
 
+PASSWORD = "Pw-Sécrét-7xK9"  # non-ASCII, so a JSON answer escapes it
+
+
+def hiding(text: str) -> str:
+    return stage.ob.mask(text, PASSWORD)
+
+
+def ask_for(tmp_path, text="hi", system="sys") -> dict:
+    return dict(trace_path=tmp_path / "trace.jsonl", stage="explore", step="s", model="claude-sonnet-5-5", effort=None,
+                system=system, messages=[{"role": "user", "content": [{"type": "text", "text": text}]}], max_tokens=50,
+                budget=llm.Budget.for_stage("explore", tmp_path / "trace.jsonl", 1.0), cache_dir=tmp_path / "cache")
+
+
+def test_what_the_planner_says_with_the_test_password_never_reaches_the_cache_or_the_trace(tmp_path, monkeypatch):
+    """rt-60 HIGH 1: the planner sees the screen, so its answers and failures are scrubbed of SIMULA_TEST_PASSWORD
+    in llm.call before the cache, the trace, the saved run or the next prompt sees them."""
+    monkeypatch.setenv("SIMULA_TEST_PASSWORD", PASSWORD)
+
+    def script(n, text):
+        assert PASSWORD not in text
+        if n == 1:
+            return llm.LLMFailure("error", f"the provider choked on {PASSWORD}", raw=PASSWORD)
+        return turn(DONE, screen=PASSWORD, notes=[f"signed in with {PASSWORD}"], done_reason=PASSWORD,
+                    ads=["o01"], ad_notes=f"o01: banner; {PASSWORD}; other")
+    phone_factory = phone_of({"root": drawn(control("Explore", 1))})
+    ex, _, planner = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True, no_cache=False)
+    assert len(planner.texts) == 2 and ex.found == ["signed in with [password]"]
+    written = [p for p in [*ex.cache_dir.glob("*.json"), *ex.run_dir.rglob("*")] if p.is_file()]
+    assert len(list(ex.cache_dir.glob("*.json"))) >= 2
+    assert not [p.name for p in written if PASSWORD.encode() in p.read_bytes()]
+
+
+def test_the_scrub_isnt_part_of_the_cache_key(tmp_path, monkeypatch):
+    calls = []
+
+    def provider(model, system, messages, effort, schema, max_tokens, total_timeout=None):
+        calls.append(model)
+        return llm.Reply(text=f"hello {PASSWORD}", model=model, tokens_in=10, tokens_out=5)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider)
+    said, _ = llm.call(**ask_for(tmp_path), scrub=hiding)
+    again, _ = llm.call(**ask_for(tmp_path))
+    assert said == again == "hello [password]" and len(calls) == 1
+
+
+def test_a_cached_answer_is_scrubbed_however_it_was_written(tmp_path, monkeypatch):
+    """An entry written without a scrub, answer or failure, is scrubbed when read with one."""
+    def answering(model, system, messages, effort, schema, max_tokens, total_timeout=None):
+        return llm.Reply(text=f"hello {PASSWORD}", model=model, tokens_in=10, tokens_out=5)
+
+    def failing(model, system, messages, effort, schema, max_tokens, total_timeout=None):
+        raise llm.LLMFailure("refusal", f"choked on {PASSWORD}", raw=PASSWORD)  # kept, unlike a lost call
+    for provider, text in ((answering, "hi"), (failing, "bye")):
+        monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider)
+        try:
+            llm.call(**ask_for(tmp_path, text))
+        except llm.LLMFailure:
+            pass
+        monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)  # a second call must come from the cache
+        if provider is answering:
+            assert llm.call(**ask_for(tmp_path, text), scrub=hiding)[0] == "hello [password]"
+        else:
+            with pytest.raises(llm.LLMFailure) as failed:
+                llm.call(**ask_for(tmp_path, text), scrub=hiding)
+            assert PASSWORD not in str(failed.value) + failed.value.raw
+
+
+def test_a_json_escaped_password_and_a_propagated_stop_are_scrubbed(tmp_path, monkeypatch):
+    """The decoded values are scrubbed, and a stop that leaves llm.call carries a scrubbed message."""
+    def answering(model, *args):
+        return llm.Reply(text=json.dumps({"said": f"hello {PASSWORD}"}), model=model, tokens_in=10, tokens_out=5)
+
+    def stopping(model, *args):
+        raise llm.ProviderUnavailable(f"quota for {PASSWORD}")
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", answering)
+    said, reply = llm.call(**ask_for(tmp_path), scrub=hiding)
+    assert json.loads(said) == {"said": "hello [password]"} and PASSWORD not in json.loads(reply.text)["said"]
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", stopping)
+    with pytest.raises(llm.ProviderUnavailable) as stopped:
+        llm.call(**ask_for(tmp_path, system="other"), scrub=hiding)
+    assert PASSWORD not in str(stopped.value) and PASSWORD not in (tmp_path / "trace.jsonl").read_text()
+
+
+def test_a_password_inside_an_email_keeps_it_an_email_for_the_guards(tmp_path, monkeypatch):
+    """rt-60 MEDIUM 1: a password equal to an email's local part still leaves an email there, so the email-control
+    refusal and Google's account row hold on the one, hidden list."""
+    monkeypatch.setenv("SIMULA_TEST_PASSWORD", "jamie")
+    ex, _ = one_screen(tmp_path, monkeypatch, control("Explore", 1))
+    reply = {"content": [{"type": "text", "text": stage.ob.ELEMENTS_PREFIX + json.dumps(
+        [control("jamie@example.com", 1, "TextView"), control("Jamie Om", 2)])}]}
+    _, elements = stage.ob.hide(reply, ex.password)
+    assert "jamie@" not in json.dumps(elements)
+    mail = next(c for c in stage.ob.controls(elements, ex.device) if stage.ob.EMAIL.search(c.label))
+    assert stage.ob.denied(mail) == "account text"
+    assert ex.refusal(mail, guard.ACCOUNT_CHOOSER, elements, False) == ""
+
 def test_a_failed_planner_answer_is_told_on_the_next_turn_so_it_is_a_real_call(tmp_path, monkeypatch):
     """Run 5: a schema failure is cached and the next prompt was the same, so ten turns replayed it from the cache
     in a second and the tour stopped as stale. The next prompt says it failed (another key, a real call) and the

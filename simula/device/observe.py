@@ -101,6 +101,7 @@ LEAF = re.compile(r"(?:TextView|ImageView|EditText)$")
 PAGED = re.compile(r"ViewPager|RecyclerView|ListView|ScrollView")
 TEXT_OR_IMAGE = re.compile(r"(?:TextView|ImageView)$")
 HIDDEN = "[password]"
+HIDDEN_EMAIL = "hidden@hidden.invalid"
 # Account walls' words. A way on without an account is a whole label, so "Watch later" is content.
 GUEST = re.compile(r"^\W*(?:[\w'’]+\s+){0,3}?(?:as (?:a )?(?:guest|visitor)|guest(?: mode)?|without (?:an? )?account|"
                    r"without (?:signing|logging) (?:up|in)|without (?:registering|registration|log ?in|sign ?in)|"
@@ -221,8 +222,16 @@ def device_from(elements: list[dict], w_px: int, h_px: int, density: int) -> Dev
 
 # ---------- the test password ----------
 
+def mask(text: str, secret: str) -> str:
+    """text with the test password hidden: an email that holds it becomes a stand-in email, so whatever tells an
+    email (the email-control refusal, Google's account row) still sees one; anywhere else it becomes [password]."""
+    if not secret or secret not in text:
+        return text
+    return EMAIL.sub(lambda m: HIDDEN_EMAIL if secret in m.group(0) else m.group(0), text).replace(secret, HIDDEN)
+
+
 def hide(reply: dict, secret: str) -> tuple[dict, list[dict]]:
-    """The element list with the test password, should an element echo it, replaced before anything reads or saves
+    """The element list with the test password, should an element echo it, masked before anything reads or saves
     it: the one string that never reaches disk (a password field draws dots, so the screenshot shows none)."""
     elements = json.loads(reply["content"][0]["text"].removeprefix(ELEMENTS_PREFIX))
     if not secret:
@@ -230,7 +239,7 @@ def hide(reply: dict, secret: str) -> tuple[dict, list[dict]]:
     for e in elements:
         for key, value in list(e.items()):
             if key not in ("ref", "type") and isinstance(value, str) and secret in value:
-                e[key] = value.replace(secret, HIDDEN)
+                e[key] = mask(value, secret)
     content = [{**reply["content"][0], "text": ELEMENTS_PREFIX + json.dumps(elements, ensure_ascii=False)}]
     return {**reply, "content": content + reply["content"][1:]}, elements
 
