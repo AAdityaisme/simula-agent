@@ -79,20 +79,27 @@ DENY_IN_CORE = re.compile(r"\b(?:gifts?|coins?|gems?|tips?|donat\w*|credits?)\b"
 # what an overlay that asks something of the user says on its controls: an upgrade or plans word, a brand's "+"
 # tier ("Brand+"), or a decline
 ASKING = re.compile(r"^(?:not now|later|maybe later|no,? thanks)$|upgrade|premium|membership|subscription|remove ads|"
-                    r"\bad[- ]free\b|\bno ads\b|\bplans\b|(?<![\w+])[^\W\d_]{2,}\+(?![\w+])", re.IGNORECASE)
+                    r"\bad[- ]free\b|\bno ads\b|\bplans\b|\b(?:choose|pick|select) (?:your |a )?plan\b|\bsubscribe\b|"
+                    r"\bgo (?:pro|plus)\b|(?<![\w+])[^\W\d_]{2,}\+(?![\w+])", re.IGNORECASE)
 DISMISS = re.compile(r"^(close\b.*|not now|later|maybe later|no,? thanks|skip|dismiss|got it|x|×|✕)$", re.IGNORECASE)
 BLOCKING = re.compile(r"emulator|rooted|captcha|verify (that )?you.?re (a )?human|age verification|"
                       r"date of birth|not supported on this device", re.IGNORECASE)
 CURRENCY = r"[$€£¥₹]|\b(?:USD|EUR|GBP|INR|JPY|CAD|AUD)\b"
 PRICE = re.compile(rf"(?:{CURRENCY})\s?\d|\d(?:[\d.,]*\d)?\s?(?:{CURRENCY})", re.IGNORECASE)
+# a price a plan charges ("$9.99 / month", "Start your membership: $9.99", "$4.99 monthly"): a sentence of content
+# names a price ("$90 checks"), seldom a recurring one
+PLAN_PRICE = re.compile(rf"^(?=.*(?:{PRICE.pattern}))(?=.*(?:subscription|membership|free trial|"
+                        r"per (?:month|week|year)|/ ?(?:month|week|year|mo)\b|\b(?:monthly|weekly|yearly|annually)\b))",
+                        re.IGNORECASE)
 PAYWALL = re.compile(rf"{PRICE.pattern}|subscription|membership|free trial|per (month|week|year)|"
                      r"/ ?(month|week|year|mo)\b", re.IGNORECASE)
 CREATE = re.compile(r"\W*(generate|play|draw|spin|roll|scan)\b", re.IGNORECASE)
 ENTRY = re.compile(r"upgrade|\bplans?\b|premium|\bplus\b|\bpro\b|(?<!\d)\+|membership|subscription|remove ads|"
                    r"\bad[- ]free\b|\bno ads\b", re.IGNORECASE)
-AD_MARK = re.compile(r"\bsponsored\b|\badvertis\w*|\bpromoted\b|^\W*ad\W*$", re.IGNORECASE)  # an ad says it is one
+# an ad says it is one; never "advertising" alone, which a plan's "No advertising" says too
+AD_MARK = re.compile(r"\bsponsored\b|\bpromoted\b|\badvertisement\b|^\W*ad\W*$", re.IGNORECASE)
 LIMIT = re.compile(r"\blimits?\b|\bremaining\b|\bquota\b|resets? in|no more (free )?\w+|\bleft today\b|"
-                   r"out of (?!(?:the|this|that|your|my|our|their|an?)\b)(free )?[^\W\d_]{3,}", re.IGNORECASE)
+                   r"out of (?!(?:the|this|that|your|my|our|their|an?|stock)\b)(free )?[^\W\d_]{3,}", re.IGNORECASE)
 DIGITS = re.compile(r"\d")
 NUMBER = re.compile(r"\d+")
 CLOCK = re.compile(r"\b\d{1,2}:\d{2}\b|\bago\b", re.IGNORECASE)
@@ -810,9 +817,9 @@ def shifted(before: list[dict], after: list[dict], device: Device) -> bool:
 
 def counters(before: list[dict], after: list[dict], device: Device, bands: list[tuple[int, int]]) -> list[str]:
     """Short numbers that changed in place inside the given y bands (the header, the input bar), UI chrome and never
-    the content that scrolls between them, when they gate: the number went down (a quota spent, "5 left" → "4 left")
-    or names a limit, or the screen newly says one where a wall is read from ("Out of moves", never an article's
-    sentence) or disables a control. A score, a level or a like count going up is progress, not a limit."""
+    the content that scrolls between them, when they gate: a number in it went down (a quota spent: "5 left" → "4
+    left") or it names a limit, or the screen newly says one where a wall is read from ("Out of moves", never an
+    article's sentence) or disables a control. A score, a level or a like count going up is progress, not a limit."""
     def at(elements):
         return {(bucket(e["coordinates"]["x"], device), bucket(e["coordinates"]["y"], device)): words(e)
                 for e in elements if in_content(e, device) and words(e) and len(words(e)) <= 30
@@ -824,7 +831,8 @@ def counters(before: list[dict], after: list[dict], device: Device, bands: list[
         or any(not c.enabled and c.key in enabled for c in controls(after, device))
     return [f"{old[p]} → {new[p]}" for p in old.keys() & new.keys()
             if old[p] != new[p] and DIGITS.search(old[p]) and DIGITS.search(new[p])
-            and (gated or LIMIT.search(new[p]) or int(NUMBER.search(new[p])[0]) < int(NUMBER.search(old[p])[0]))]
+            and (gated or LIMIT.search(new[p]) or any(int(b) < int(a) for a, b in zip(NUMBER.findall(old[p]),
+                                                                                      NUMBER.findall(new[p]))))]
 
 
 def change_summary(before: list[dict], after: list[dict], device: Device, limit: int = 160) -> str:
@@ -869,23 +877,54 @@ def wall_texts(elements: list[dict], device: Device, box: Rect | None = None, ow
     its parent screen didn't show (shown), wherever the tree lists them. With no parent capture, those listed from
     the overlay's first own control on (content listed before an overlay lies under it). On a chat (a screen with a
     composer) also the text from the composer down: a conversation, the explorer's messages and the replies, is never
-    a paywall. Elsewhere also short texts (a plan's price, "Start free trial"), but never a sentence of content (a
-    headline, an article), and nothing inside an ad or, unless the screen asks for an upgrade, a feed's row."""
+    a paywall. Elsewhere also short texts (a plan's price, "Start free trial") and a sentence that states a plan's
+    price (PLAN_PRICE), never other sentences of content (a headline, an article), nor a feed's row unless the screen
+    asks for an upgrade or a control offers a price or plan. Nothing inside an ad counts, an overlay's or a chat's
+    text included."""
     cands = controls(elements, device)
     chat = composer(cands, device)
     refs = {c.ref for c in own}
     start = next((n for n, e in enumerate(elements) if e.get("ref") in refs), len(elements))
-    content = [rect(e) for e in elements if AD_MARK.search(words(e))] + (
-        [] if chat or asks(cands) else [c.rect for c in feed_items(cands, device)])
+    ads = ad_regions(elements, device)
+
+    def in_ad(r: Rect) -> bool:
+        return any(inside(r, a) for a in ads)
+    # a control that names a price or a plan is the wall's own evidence, and its screen is no feed (plan cards share
+    # a feed's shape)
+    offers = any(control_shaped(c.label, c.kind) and PAYWALL.search(c.label) and not in_ad(c.rect) for c in cands)
+    rows = [] if chat or offers or asks(cands) else [c.rect for c in feed_items(cands, device)]
+
+    def content(r: Rect) -> bool:
+        return in_ad(r) or any(inside(r, row) for row in rows)
 
     def read(n: int, e: dict) -> bool:
+        if in_ad(rect(e)):
+            return False
         if box is not None and inside(rect(e), box) and (words(e) not in shown if shown is not None else n >= start):
             return True
         if chat:
             return rect(e).y >= chat[0].rect.y
-        return control_shaped(words(e), e.get("type", "")) and not any(inside(rect(e), r) for r in content)
-    return ({c.label for c in cands if control_shaped(c.label, c.kind) and not any(inside(c.rect, r) for r in content)}
+        return (control_shaped(words(e), e.get("type", "")) or bool(PLAN_PRICE.search(words(e)))) \
+            and not content(rect(e))
+    return ({c.label for c in cands if control_shaped(c.label, c.kind) and not content(c.rect)}
             | {words(e) for n, e in enumerate(elements) if in_content(e, device) and words(e) and read(n, e)})
+
+
+def ad_regions(elements: list[dict], device: Device) -> list[Rect]:
+    """Where ads lie: each element that says it is one ("Sponsored", a bare "AD"), as its card: itself when it holds
+    other words, else the smallest element (short of a layout) that holds it and other words."""
+    worded = [e for e in elements if words(e)]
+    found = []
+    for mark in (e for e in elements if AD_MARK.search(words(e))):
+        def holds(r: Rect) -> bool:
+            return any(o is not mark and inside(rect(o), r) for o in worded)
+        r = rect(mark)
+        if not holds(r):
+            cards = [rect(e) for e in elements if e is not mark and inside(r, rect(e)) and area(rect(e)) > area(r)
+                     and area(rect(e)) < LAYOUT_SHARE * content_area(device) and holds(rect(e))]
+            r = min(cards, key=area, default=r)
+        found.append(r)
+    return found
 
 
 def priced(elements: list[dict], device: Device, box: Rect | None = None, own: list[Candidate] = (),

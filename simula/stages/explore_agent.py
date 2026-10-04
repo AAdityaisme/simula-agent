@@ -39,7 +39,7 @@ ONE_STEP = "\n\nPlan exactly one step, and name its element by id: never by inte
 GROUND = "Which control does this: {}?"
 AD_NOTE = re.compile(r"^\s*(o\d+)\s*:\s*(.*)$", re.MULTILINE)
 AD_FORMATS = ("banner", "interstitial", "rewarded", "native")
-AD_LABEL = re.compile(r"^\W*(?:ad|sponsored|promoted)\b", re.IGNORECASE)  # a label that opens by saying it is an ad
+AD_LABEL = re.compile(r"^\W*(?:ad|advertisement|sponsored|promoted)\b", re.IGNORECASE)  # a label that opens by saying it is an ad
 SEARCH = re.compile(r"\bsearch\b", re.IGNORECASE)
 URL = re.compile(r"\b(?:https?://|www\.)\S+", re.IGNORECASE)
 CHOOSER_STEPS = {"continue", "next", "allow", "agree", "i agree", "ok", "cancel"}  # the account chooser's flow buttons
@@ -636,12 +636,21 @@ class AgentExplorer(Explorer):
         return ""
 
     def act(self, move: Move, purpose: str = "tour", **kwargs) -> Seen:
-        """A tap tried on a recorded control counts its item as opened, run or refused: a row that can't open is owed
-        nothing."""
-        s = self.current
-        if move.action == "tap" and move.cand is not None and s is not None:
-            self.opened.add((s.sid, (ob.find(s.cands, move.cand) or move.cand).key))
+        """A tap tried on a recorded control counts its item as opened, run or refused (a row that can't open is owed
+        nothing), and so does one on a live control inside it (a title a later read exposes)."""
+        s, c = self.current, move.cand
+        if move.action == "tap" and c is not None and s is not None:
+            holding = [i for i in s.cands if ob.inside(c.rect, i.rect)]
+            self.opened |= {(s.sid, k.key) for k in [ob.find(s.cands, c) or c, *holding]}
         return super().act(move, purpose, **kwargs)
+
+    def refresh(self, home: Seen, obs, cands: list[ob.Candidate]) -> Seen:
+        """Home re-recorded: its opened items go with the controls they moved to, as its tried ones do."""
+        old = home.cands
+        home = super().refresh(home, obs, cands)
+        keys = {c.key: m.key for c in old if (m := ob.find(home.cands, c))}
+        self.opened = {(sid, keys.get(k, k) if sid == home.sid else k) for sid, k in self.opened}
+        return home
 
     def start_core(self, step: AgentStep) -> None:
         """Marks the core action and measures it at once (core_now), never for a person: a conversation only for an AI

@@ -110,6 +110,57 @@ def test_a_counter_in_the_header_counts_and_a_changing_reply_does_not():
     assert ob.counters(tree("5 left", "at 3 pm"), tree("5 left", "at 4 pm"), DEVICE, bands) == []
 
 
+def e(text, ref="@t", x=100, y=900, w=800, h=80, kind="TextView", **fields):
+    return {"ref": ref, "type": f"android.widget.{kind}", "text": text,
+            "coordinates": {"x": x, "y": y, "width": w, "height": h}, **fields}
+
+
+def subscription_tiers(title="Choose your plan"):
+    """A full-screen plans chooser (its title at the top, no dialog box): its priced buttons share a feed's shape."""
+    def button(label, n):
+        return e(label, f"@b{n}", y=200 + 200 * n, h=100, kind="Button", identifier=f"app:id/control{n}")
+    return [e(title, "@title", y=200, h=100), button("Monthly $4.99", 2), button("Annual $39.99", 3),
+            button("Continue", 4)]
+
+
+@pytest.mark.parametrize("title", ["Choose your plan", "Go Pro", "Subscribe"])
+def test_a_full_screen_plans_chooser_is_a_wall_whatever_its_title(title):
+    """rt-65: the chooser's priced buttons were taken for a feed's rows and left out, so it was no wall, and the
+    scripted explorer's refusal of Continue on an upsell went with it. A control that offers a price or a plan is the
+    wall's own evidence, and its screen is no feed."""
+    tiers = subscription_tiers(title)
+    assert ob.priced(tiers, DEVICE) and ob.is_upsell(tiers, DEVICE), ob.wall_texts(tiers, DEVICE)
+    go = next(c for c in ob.controls(tiers, DEVICE) if c.label == "Continue")
+    assert ob.denied(go, upsell=ob.is_upsell(tiers, DEVICE)) == "continue"
+
+
+def test_a_sentence_that_states_a_plans_price_is_a_wall_and_one_that_names_a_price_is_not():
+    """Greptile on f55d256: a plans screen whose only price is in a sentence ("Unlock all features for $4.99 monthly")
+    beside a Continue button read as no wall. A recurring price in a sentence is a plan's; a bare one is content."""
+    for offer in ("Unlock all features for $4.99 monthly", "Start your membership: $9.99 / month",
+                  "Try 7 days free, then $29.99 per year"):
+        screen = [e(offer, "@offer", y=600, h=160), e("Continue", "@go", y=1800, h=120, kind="Button")]
+        assert ob.priced(screen, DEVICE) and ob.is_upsell(screen, DEVICE), offer
+    for content in ("See where Trump's $90 checks to 20M seniors are going", "New users get jackets for $2.36"):
+        assert not ob.priced([e(content, "@c", y=600, h=160)], DEVICE), content
+
+def ad_with_badge():
+    """An ad card with no words of its own: a small Sponsored badge, a title, a price and a call to action."""
+    return [e("Article title", "@header", y=180, w=800, h=60),
+            e("", "@container", y=800, w=950, h=460, kind="ViewGroup"),
+            e("Sponsored", "@badge", y=810, w=140, h=40), e("Winter jackets", "@title", y=900, w=500, h=60),
+            e("$2.36", "@price", y=1000, w=160, h=50), e("Learn more", "@cta", y=1100, w=300, h=80, kind="Button")]
+
+
+def test_a_sponsored_badge_marks_its_whole_card_and_an_overlay_never_admits_an_ad():
+    """rt-65: the badge's own box was the ad, so the price beside it read as a wall; and an overlay's own words were
+    read before the ad check, so a marked ad's price in an overlay did too."""
+    card = ad_with_badge()
+    assert not ob.priced(card, DEVICE) and not ob.is_upsell(card, DEVICE), ob.wall_texts(card, DEVICE)
+    card[1] = {**card[1], "text": "Sponsored"}
+    box = Rect(x=50, y=750, w=1000, h=600)
+    assert not ob.priced(card, DEVICE, box, ob.controls(card, DEVICE), set())
+
 def test_a_count_going_up_is_progress_and_a_count_that_gates_is_a_limit():
     """Generality audit (Sol), HIGH 3: a score going up stopped the loop as a limit. A moved number counts when it
     goes down (a quota or lives spent), names a limit, or the screen newly says one or disables a control."""
@@ -124,6 +175,10 @@ def test_a_count_going_up_is_progress_and_a_count_that_gates_is_a_limit():
     out = {"ref": "@o", "type": "android.widget.TextView", "text": "Out of moves",
            "coordinates": {"x": 100, "y": 900, "width": 800, "height": 80}}
     assert ob.counters(tree("Score 10"), tree("Score 20", out), DEVICE, bands) == ["Score 10 → Score 20"]
+    # Greptile on f55d256: every number of a mixed counter is compared, and a product's stock is no limit
+    assert ob.counters(tree("Score 10 · 3 lives"), tree("Score 12 · 2 lives"), DEVICE, bands)
+    stock = {**out, "text": "Out of stock"}
+    assert ob.counters(tree("Score 10"), tree("Score 20", stock), DEVICE, bands) == []
     play = {"ref": "@b", "type": "android.widget.Button", "text": "Play", "enabled": True,
             "coordinates": {"x": 100, "y": 1500, "width": 800, "height": 120}}
     assert ob.counters(tree("Score 10", play), tree("Score 20", {**play, "enabled": False}), DEVICE, bands)
@@ -221,7 +276,7 @@ def test_an_overlay_asks_with_an_upgrade_or_plans_word_a_plus_tier_or_a_decline_
     def asks(label, kind="Button"):
         return ob.asks(ob.controls([element("@c", kind, 100, 1200, 600, 120, text=label)], DEVICE))
     assert all(asks(label) for label in ("See plans", "Upgrade now", "Not now", "Maybe later", "Unlock Luzia+",
-                                         "See janitor+"))
+                                         "See janitor+", "Choose your plan", "Subscribe", "Go Pro"))
     assert not any(asks(label) for label in ("Close", "Got it", "Skip", "+", "Pro tips", "Add to plan",
                                              "+18 Discord server", "18+", "18+ only", "C++", "A+", "Notepad++"))
 
