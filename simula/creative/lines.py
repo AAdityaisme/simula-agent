@@ -44,13 +44,41 @@ def observed_lines(facts: Facts, host: Host) -> list[str]:
     return [text[eid] for eid in [*host.greetings, host.evidence_id] if eid in text]
 
 
-def _names(text: str, phrase: str) -> bool:
-    return re.search(rf"(?<![A-Za-z0-9]){re.escape(phrase)}(?![A-Za-z0-9])", text, re.IGNORECASE) is not None
+_ONES = ("zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen "
+         "seventeen eighteen nineteen").split()
+_TENS = "twenty thirty forty fifty sixty seventy eighty ninety".split()
+# A fixed cue list, not a parser: widen it if a model gets an answer past it.
+_CUE = r"(?:\b(?:is|was|be|try|equals?|it[’']?s)\s+|[=:]\s*)"
+
+
+def _flat(text: str) -> str:
+    return " ".join(text.replace("-", " ").split())
+
+
+def _names(text: str, phrase: str, cue: str = "") -> bool:
+    pattern = rf"{cue}(?<![A-Za-z0-9]){re.escape(_flat(phrase))}(?![A-Za-z0-9])"
+    return re.search(pattern, _flat(text), re.IGNORECASE) is not None
+
+
+def _number_words(answer: str) -> list[str]:
+    """A numeric answer spelled out; every puzzle answer is under 100."""
+    if not answer.isdigit() or int(answer) >= 100:
+        return []
+    n = int(answer)
+    return [_ONES[n] if n < 20 else _TENS[n // 10 - 2] + (f" {_ONES[n % 10]}" if n % 10 else "")]
 
 
 def problems(lines: HostLines, facts: Facts, host: Host, puzzles: list[Puzzle]) -> list[str]:
     """Every code check the lines fail, one plain sentence each: count and length per field, banned price and claim
-    words, the app's feature terms, and a caption or hint that gives away an answer. [] when they pass."""
+    words, the app's feature terms (whitespace and hyphens normalized), and a line that gives away an answer. [] when
+    they pass.
+
+    A line is checked against the answers of the puzzles still open while it shows: the intro and the wrong hint
+    against all three, caption i against puzzles i to 3, the right line against puzzles 2 and 3. The end card comes
+    after the last puzzle (or replaces the rest), so nothing is left to give away. Captions and the hint may not
+    name an open answer at all, as a word, digits or a number word. The intro and right line may not name a word
+    answer or its digits, but a number word counts there only after a cue (is, try, equals, =), so "Three quick
+    ones" passes when an answer is 3 and "x is three" fails."""
     found = [] if len(lines.captions) == 3 else [f"captions has {len(lines.captions)} lines; it needs exactly 3"]
     fields = [("intro", lines.intro, LIMITS["intro"]),
               *[(f"caption {i + 1}", c, LIMITS["caption"]) for i, c in enumerate(lines.captions)],
@@ -67,9 +95,10 @@ def problems(lines: HostLines, facts: Facts, host: Host, puzzles: list[Puzzle]) 
         found += [f'{name} names the app feature "{term}"' for term in forbidden_terms(facts, host)
                   if _names(text, term)]
     answers = [p.options[p.answer] for p in puzzles]
-    found += [f"caption {i + 1} gives away the answer {answer}"
-              for i, (caption, answer) in enumerate(zip(lines.captions, answers)) if _names(caption, answer)]
-    found += [f"wrong_hint gives away the answer {answer}" for answer in answers if _names(lines.wrong_hint, answer)]
+    shown = [("intro", lines.intro, 0, _CUE), *[(f"caption {i + 1}", c, i, "") for i, c in enumerate(lines.captions)],
+             ("right_line", lines.right_line, 1, _CUE), ("wrong_hint", lines.wrong_hint, 0, "")]
+    found += [f"{name} gives away the answer {answer}" for name, text, first, cue in shown for answer in answers[first:]
+              if _names(text, answer) or any(_names(text, word, cue) for word in _number_words(answer))]
     return found
 
 

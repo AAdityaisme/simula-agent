@@ -87,3 +87,45 @@ def test_a_caption_or_hint_that_gives_away_an_answer_is_flagged(facts):
     found = problems(lines, facts, host(facts), ps)
     assert f"caption 3 gives away the answer {word}" in found
     assert f"wrong_hint gives away the answer {x}" in found
+
+
+@pytest.mark.parametrize("field", ["intro", "right_line", "caption 2"])
+def test_a_line_shown_before_the_word_puzzle_that_names_its_answer_is_flagged(facts, field):
+    ps = puzzles(7)
+    assert [p.options[p.answer] for p in ps] == ["3", "30", "CHALK"]
+    update = ({"captions": ["Find x", "The final word is chalk!", "Unscramble the word"]} if field == "caption 2"
+              else {field: "The final word is chalk!"})
+    found = problems(HostLines(**{**CLEAN, **update}), facts, host(facts), ps)
+    assert f"{field} gives away the answer CHALK" in found
+
+
+def test_a_line_shown_only_after_a_puzzle_is_solved_may_name_its_answer(facts):
+    lines = HostLines(**{**CLEAN, "captions": ["Find x", "What comes next?", "You found 3 and 30!"],
+                         "right_line": "Yes, 3!", "end_headline": "The word was chalk"})
+    assert problems(lines, facts, host(facts), puzzles(7)) == []
+
+
+@pytest.mark.parametrize("field, value, answer", [
+    ("caption 1", "The answer is three", "3"),
+    ("wrong_hint", "Try three", "3"),
+    ("caption 2", "Is it thirty?", "30"),
+    ("intro", "Here is a clue: x is three", "3"),
+    ("right_line", "Next one equals thirty", "30"),
+])
+def test_a_numeric_answer_spelled_out_is_flagged(facts, field, value, answer):
+    lines = HostLines(**{**CLEAN, **({"captions": [value if i == int(field[-1]) - 1 else c
+                                                    for i, c in enumerate(CLEAN["captions"])]}
+                                     if field.startswith("caption") else {field: value})})
+    assert f"{field} gives away the answer {answer}" in problems(lines, facts, host(facts), puzzles(7))
+
+
+def test_a_number_word_that_does_not_read_as_an_answer_passes_in_the_intro_and_right_line(facts):
+    lines = HostLines(**{**CLEAN, "intro": "Three quick ones. Can you get all three?",
+                         "right_line": "Three for three!"})
+    assert problems(lines, facts, host(facts), puzzles(7)) == []
+
+
+@pytest.mark.parametrize("term", ["Custom  Bestie", "Custom\nBestie", "Custom\tBestie", "Custom-Bestie"])
+def test_a_feature_term_with_other_whitespace_is_still_flagged(facts, term):
+    lines = HostLines(**{**CLEAN, "end_headline": f"Meet your {term}"})
+    assert 'end_headline names the app feature "Custom Bestie"' in problems(lines, facts, host(facts), puzzles(7))

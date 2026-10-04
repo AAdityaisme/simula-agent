@@ -16,6 +16,7 @@ Rules:
 - Never use these words: free, $, price, premium, unlimited, discount.
 - Never use any of the forbidden terms you are given. They are the app's feature names.
 - Never state the answer to any puzzle, in any line.
+- Use no numbers, as digits or words, in the captions or the wrong hint.
 - Nothing adult or suggestive.
 - Plain text only: no emoji, no markdown, no quotation marks around a line.
 
