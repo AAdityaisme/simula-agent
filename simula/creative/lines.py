@@ -141,5 +141,6 @@ def build_content(facts: Facts, host: Host, hook: Hook, seed: int, lines: HostLi
                                   evidence_id=host.evidence_id),
                    hook=hook, seed=seed, puzzles=make_puzzles(seed), copy=Copy(**lines.model_dump()),
                    proof=Proof(screen_id=host.proof_screen,
-                               claims=[Claim(text=p.text, evidence_id=p.evidence_id) for p in host.proof]),
+                               claims=[Claim(text=p.text, evidence_id=p.evidence_id) for p in host.proof],
+                               crop=host.proof_crop),
                    cta=CTA)

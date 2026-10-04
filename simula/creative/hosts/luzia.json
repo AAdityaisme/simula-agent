@@ -9,6 +9,7 @@
       "evidence_id": "s01.e13",
       "greetings": ["s15.e02", "s06.e02"],
       "proof_screen": "s15",
+      "proof_crop": [0, 0, 411, 136],
       "proof": [
         {"evidence_id": "s15.e02", "text": "I am Teacher, your personal tutor."}
       ]
@@ -21,9 +22,10 @@
       "art_crop": [224, 508, 614, 1058],
       "evidence_id": "s05.e03",
       "greetings": [],
-      "proof_screen": "s01",
+      "proof_screen": "s05",
+      "proof_crop": [46, 169, 365, 490],
       "proof": [
-        {"evidence_id": "s01.e26", "text": "Meet Toki, your virtual pet!"}
+        {"evidence_id": "s05.e03", "text": "Tok-Tok! I'm Toki and I need your help!"}
       ]
     }
   ]

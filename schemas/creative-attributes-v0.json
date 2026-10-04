@@ -61,7 +61,9 @@
         "screen_id": {"type": "string"},
         "claims": {"type": "array", "minItems": 1, "maxItems": 2,
           "items": {"type": "object", "additionalProperties": false, "required": ["text", "evidence_id"],
-                    "properties": {"text": {"type": "string", "maxLength": 90}, "evidence_id": {"type": "string"}}}}
+                    "properties": {"text": {"type": "string", "maxLength": 90}, "evidence_id": {"type": "string"}}}},
+        "crop": {"type": ["array", "null"], "items": {"type": "number"}, "minItems": 4, "maxItems": 4,
+                 "description": "box shown from the proof screen, [x0, y0, x1, y1] in content dp; null: cut automatically"}
       }
     },
     "copy": {

@@ -505,3 +505,29 @@ def test_check_catches_a_reused_starvation_json_for_another_request_count(mvp, c
     run(mvp, tmp_path)
     mvp.run(RUN, out, seed=7, cache_dir=tmp_path / "cache", qa=ONE_RUN, requests=5)
     assert [line for line in mvp.check(out) if line.startswith("starvation.json samples")]
+
+
+FREE = dict(CLEAN, intro="Three free ones. Can you get them all?")  # "free" is a banned word: every draft fails
+
+
+def test_a_run_where_no_variant_passes_still_writes_its_report(mvp, calls, monkeypatch, tmp_path):
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", lambda model, *a, **k: llm.Reply(
+        text=json.dumps(FREE), model=model, tokens_in=100, tokens_out=10))
+    report = run(mvp, tmp_path)
+    assert (report["first_pass_accept"], report["final_checks_pass"]) == (0, 0)
+    md = (tmp_path / "out" / "report.md").read_text()
+    assert ("0 passed every automatic check on the first draft and 0 after one repair round; none passed the "
+            "automatic checks, so there was nothing to read.") in md
+    assert mvp.check(tmp_path / "out") == []
+
+
+def test_final_checks_pass_counts_variants_the_repair_round_fixed(mvp, calls, monkeypatch, tmp_path):
+    def reply(model, system, messages, *a, **k):
+        repairing = "free" in json.dumps(messages)
+        return llm.Reply(text=json.dumps(CLEAN if repairing else FREE), model=model, tokens_in=100, tokens_out=10)
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", reply)
+    report = run(mvp, tmp_path)
+    assert (report["first_pass_accept"], report["final_checks_pass"]) == (0, 4)
+    md = (tmp_path / "out" / "report.md").read_text()
+    assert ("0 passed every automatic check on the first draft and 4 after one repair round; the model reviewers' "
+            "read of every string is still pending.") in md

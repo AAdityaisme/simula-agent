@@ -63,6 +63,7 @@ class Claim(Strict):
 class Proof(Strict):
     screen_id: str
     claims: list[Claim] = Field(min_length=1, max_length=2)
+    crop: list[float] | None = Field(default=None, min_length=4, max_length=4)  # content dp; None: assemble.proof_box
 
 
 class Copy(Strict):

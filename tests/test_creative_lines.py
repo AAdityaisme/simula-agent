@@ -159,5 +159,6 @@ def test_a_ones_word_inside_a_larger_number_does_not_give_away_its_answer(facts)
 
 def test_each_host_proves_only_its_identity_and_toki_carries_its_art_crop(facts):
     toki = build_content(facts, host(facts, "toki"), "challenge", 7, HostLines(**CLEAN))
-    assert [(c.evidence_id, c.text) for c in toki.proof.claims] == [("s01.e26", "Meet Toki, your virtual pet!")]
+    assert [(c.evidence_id, c.text) for c in toki.proof.claims] == [("s05.e03", "Tok-Tok! I'm Toki and I need your help!")]
+    assert (toki.proof.screen_id, toki.proof.crop) == ("s05", host(facts, "toki").proof_crop)
     assert toki.host.art_crop == host(facts, "toki").art_crop is not None

@@ -11,6 +11,7 @@ from PIL import Image
 from pydantic import Field
 
 from simula.contracts import ContentRating, ProductModel, Strict
+from simula.render import content_size
 from simula.stages.mock import StartTags
 
 HOSTS = Path(__file__).with_name("hosts")
@@ -30,6 +31,7 @@ class Host(Strict):
     evidence_id: str
     greetings: list[str]
     proof_screen: str
+    proof_crop: list[float] | None = Field(default=None, min_length=4, max_length=4)  # [x0, y0, x1, y1] in content dp
     proof: list[ProofPick]
 
 
@@ -75,8 +77,8 @@ def build_facts(run_dir: Path, hosts_path: Path | None = None) -> Facts:
     proof string is the text of an element on a safe-scope screen that an observed or inferred mechanic or a
     value-ledger item cites, or that the host table lists; a mechanic of unknown status counts for nothing. Raises
     SystemExit when the run has no approved mock or QA report, a host-table id is not on a safe-scope screen, or a host
-    proof pick is not a word-boundary excerpt of its element's text or not on the host's proof screen, or a host's
-    art_crop is not a box inside its art."""
+    proof pick is not a word-boundary excerpt of its element's text, not on the host's proof screen or not inside the
+    content frame, or a host's art_crop or proof_crop is not a box inside its art or the content frame."""
     model = ProductModel.model_validate_json((run_dir / "model" / "product_model.json").read_text())
     manifest = json.loads((run_dir / "manifest.json").read_text())
     mock = run_dir / "qa" / "approved" / "index.html"
@@ -101,6 +103,7 @@ def build_facts(run_dir: Path, hosts_path: Path | None = None) -> Facts:
     safe = [s.id for s in model.states if s.id not in excluded]
     elements = {e.id: (s.id, e) for s in model.states for e in s.elements}
     table = HostTable.model_validate_json((hosts_path or HOSTS / f"{model.app}.json").read_text())
+    width, height = content_size(model.device)
     for host in table.hosts:
         art_element = host.art.removesuffix(".art.png")
         ids = [host.evidence_id, *host.greetings, *(p.evidence_id for p in host.proof), art_element]
@@ -113,6 +116,15 @@ def build_facts(run_dir: Path, hosts_path: Path | None = None) -> Facts:
             if elements[pick.evidence_id][0] != host.proof_screen:
                 raise SystemExit(f"hosts table, {host.id}: proof {pick.evidence_id} is not on its proof screen "
                                  f"{host.proof_screen}, which is cropped to it")
+            r = elements[pick.evidence_id][1].rect_dp
+            if not (0 <= r.x and 0 <= r.y and r.x + r.w <= width and r.y + r.h <= height):
+                raise SystemExit(f"hosts table, {host.id}: proof {pick.evidence_id} is not inside the content frame "
+                                 f"({width}x{height} dp)")
+        if host.proof_crop:
+            x0, y0, x1, y1 = host.proof_crop
+            if not (0 <= x0 < x1 <= width and 0 <= y0 < y1 <= height):
+                raise SystemExit(f"hosts table, {host.id}: proof_crop {host.proof_crop} is not a box inside the "
+                                 f"content frame ({width}x{height} dp)")
         if host.proof_screen not in safe:
             raise SystemExit(f"hosts table, {host.id}: proof screen {host.proof_screen} is not in the safe scope")
         art = run_dir / "qa" / "approved" / "assets" / host.art

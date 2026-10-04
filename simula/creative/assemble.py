@@ -43,7 +43,8 @@ def _holds(box: tuple[float, float, float, float], rect: Rect) -> bool:
 def proof_box(state: State, cited: set[str], size: tuple[int, int]) -> tuple[float, float, float, float]:
     """The proof crop, (x0, y0, x1, y1) in content dp on a screen of size: the cited elements plus MARGIN_DP, taken
     from the top of the screen at full width when that stays within HEADER_FITS_DP tall, so the screen's header shows.
-    It then stops short of any other text element it would cut into, so no uncited line is half shown."""
+    It then stops short of any other text element it would cut into, pass after pass until nothing changes, so no
+    uncited line is half shown."""
     rects = [e.rect_dp for e in state.elements if e.id in cited]
     held = (min(r.x for r in rects), min(r.y for r in rects),
             max(r.x + r.w for r in rects), max(r.y + r.h for r in rects))
@@ -51,20 +52,23 @@ def proof_box(state: State, cited: set[str], size: tuple[int, int]) -> tuple[flo
     x1, y1 = min(size[0], held[2] + MARGIN_DP), min(size[1], held[3] + MARGIN_DP)
     if y1 <= HEADER_FITS_DP:
         x0, y0, x1 = 0, 0, size[0]
-    for e in state.elements:
-        r = e.rect_dp
+    box = None
+    while box != (x0, y0, x1, y1):  # each pass only shrinks the box, so this ends
         box = (x0, y0, x1, y1)
-        if e.id in cited or not e.text.strip() or _meets(r, held) or not _meets(r, box) or _holds(box, r):
-            continue
-        if r.y >= held[3]:
-            y1 = min(y1, r.y)
-        elif r.y + r.h <= held[1]:
-            y0 = max(y0, r.y + r.h)
-        elif r.x >= held[2]:
-            x1 = min(x1, r.x)
-        else:
-            x0 = max(x0, r.x + r.w)
-    return x0, y0, x1, y1
+        for e in state.elements:
+            r = e.rect_dp
+            if e.id in cited or not e.text.strip() or _meets(r, held) or not _meets(r, (x0, y0, x1, y1)) \
+                    or _holds((x0, y0, x1, y1), r):
+                continue
+            if r.y >= held[3]:
+                y1 = min(y1, r.y)
+            elif r.y + r.h <= held[1]:
+                y0 = max(y0, r.y + r.h)
+            elif r.x >= held[2]:
+                x1 = min(x1, r.x)
+            else:
+                x0 = max(x0, r.x + r.w)
+    return box
 
 
 def png(image: Image.Image) -> bytes:
@@ -73,14 +77,14 @@ def png(image: Image.Image) -> bytes:
     return out.getvalue()
 
 
-def proof_png(run_dir: Path, screen_id: str, cited: set[str]) -> bytes:
-    """The state's real screenshot in content dp (render.content_dp), cropped to proof_box around the cited elements,
-    as PNG bytes. Crop only: no pixel is drawn."""
+def proof_png(run_dir: Path, screen_id: str, cited: set[str], crop: list[float] | None = None) -> bytes:
+    """The state's real screenshot in content dp (render.content_dp), cropped to crop (the host table's proof_crop)
+    or else to proof_box around the cited elements, as PNG bytes. Crop only: no pixel is drawn."""
     model = ProductModel.model_validate_json((run_dir / "model" / "product_model.json").read_text())
     state = next(s for s in model.states if s.id == screen_id)
     with Image.open(run_dir / "model" / state.canonical_png) as image:
         frame = content_dp(image, model.device)
-    return png(frame.crop(tuple(round(v) for v in proof_box(state, cited, frame.size))))
+    return png(frame.crop(tuple(round(v) for v in crop or proof_box(state, cited, frame.size))))
 
 
 def art_png(run_dir: Path, host: Character) -> bytes:
@@ -108,7 +112,7 @@ def assemble(content: Content, run_dir: Path) -> str:
     """The creative's HTML. "<" in the JSON is written as \\u003c, so no string can close the script tag."""
     cited = {claim.evidence_id for claim in content.proof.claims}
     data = {**content.model_dump(mode="json"), "art": data_uri(art_png(run_dir, content.host), "image/png"),
-            "shot": data_uri(proof_png(run_dir, content.proof.screen_id, cited), "image/png"),
+            "shot": data_uri(proof_png(run_dir, content.proof.screen_id, cited, content.proof.crop), "image/png"),
             "concept": concept(content.app_name), "proof_label": proof_label(content)}
     blob = json.dumps(data, ensure_ascii=False).replace("<", "\\u003c")
     template = TEMPLATE.read_text()

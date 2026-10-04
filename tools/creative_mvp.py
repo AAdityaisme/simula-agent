@@ -246,7 +246,8 @@ def fingerprint(facts_json: str, facts: Facts, run_dir: Path, seed: int, qa: dic
     assembler inlines, the content config, the seed, the QA matrix, and the source of the creative package, its
     template, the host-line prompt and this runner. Saved drafts are reusable only under the same fingerprint."""
     art = [(run_dir / "qa" / "approved" / "assets" / host.art).read_bytes() for host in facts.hosts]
-    shots = [proof_png(run_dir, host.proof_screen, {p.evidence_id for p in host.proof}) for host in facts.hosts]
+    shots = [proof_png(run_dir, host.proof_screen, {p.evidence_id for p in host.proof}, host.proof_crop)
+             for host in facts.hosts]
     code = [path.read_bytes() for path in sorted((ROOT / "simula" / "creative").glob("*.py"))]
     settings = json.dumps({"seed": seed, "paths": list(qa.get("paths", PATHS)),
                            "widths": list(qa.get("widths", WIDTHS)), "modes": list(qa.get("modes", MODES)),
@@ -384,7 +385,9 @@ def render_report(r: dict) -> str:
     def show(value):
         return "pending" if value is None else json.dumps(value)
     names = r["reviewers"]
-    if r["final_accept"] is None:
+    if not r["final_checks_pass"]:
+        accepted = "none passed the automatic checks, so there was nothing to read"
+    elif r["final_accept"] is None:
         accepted = "the model reviewers' read of every string is still pending"
     else:
         accepted = (f"after a read of every string by the model reviewers {', '.join(names[:-1])} and {names[-1]}, "

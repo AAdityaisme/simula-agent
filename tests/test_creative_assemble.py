@@ -7,7 +7,7 @@ import pytest
 from PIL import Image
 from playwright.sync_api import sync_playwright
 
-from simula.contracts import ProductModel
+from simula.contracts import ProductModel, Rect
 from simula.creative.assemble import SKIP, SPONSORED, assemble, concept, proof_box, visible_strings, write_variant
 from simula.creative.facts import build_facts
 from simula.creative.lines import build_content
@@ -35,7 +35,8 @@ def teacher_content(**copy) -> Content:
                  Puzzle(family="next_in_sequence", prompt="2, 5, 8, 11, ?", options=["17", "14", "15"], answer=1),
                  Puzzle(family="unscramble_word", prompt="LCNEPI", options=["PENCIL", "RULER", "CHALK"], answer=0)],
         copy=Copy(**lines),
-        proof=Proof(screen_id="s15", claims=[Claim(text="I am Teacher, your personal tutor.", evidence_id="s15.e02")]),
+        proof=Proof(screen_id="s15", claims=[Claim(text="I am Teacher, your personal tutor.", evidence_id="s15.e02")],
+                    crop=next(h for h in build_facts(RUN).hosts if h.id == "teacher").proof_crop),
         cta="Install Now")
 
 
@@ -224,3 +225,36 @@ def test_the_toki_art_is_inlined_cut_to_its_crop_box():
     x0, y0, x1, y1 = content.host.art_crop
     with Image.open(io.BytesIO(base64.b64decode(art))) as image:
         assert image.size == (x1 - x0, y1 - y0)
+
+
+def state_with(*rows):
+    """s15 with its elements replaced by (id, text, x, y, w, h) rows, in that order (red team, PR 70)."""
+    s15 = model_state("s15")
+    elements = [s15.elements[0].model_copy(update={"id": i, "text": t, "rect_dp": Rect(x=x, y=y, w=w, h=h)})
+                for i, t, x, y, w, h in rows]
+    return s15.model_copy(update={"elements": elements})
+
+
+def half_shown(box, state, cited):
+    return [e.id for e in state.elements
+            if e.id not in cited and e.text.strip() and meets(box, e.rect_dp) and not holds(box, e.rect_dp)]
+
+
+@pytest.mark.parametrize("rows", [
+    [("title", "Screen title", 20, 10, 300, 24), ("claim", "The claim", 100, 100, 200, 40),
+     ("time", "2 days ago", 10, 130, 60, 30)],
+    [("title", "Screen title", 20, 10, 380, 24), ("claim", "The claim", 16, 100, 200, 40),
+     ("time", "SEE MORE", 300, 130, 90, 30)],
+], ids=["label_left", "label_right"])
+def test_a_label_beside_the_claim_does_not_cut_a_line_the_box_already_passed(rows):
+    state = state_with(*rows)
+    assert half_shown(proof_box(state, {"claim"}, (411, 838)), state, {"claim"}) == []
+
+
+@pytest.mark.parametrize("make", [teacher_content, toki_content], ids=["teacher", "toki"])
+def test_a_host_proof_crop_replaces_the_automatic_box(make):
+    content = make()
+    shot = re.search(r'"shot": "data:image/png;base64,([A-Za-z0-9+/=]+)"', assemble(content, RUN)).group(1)
+    x0, y0, x1, y1 = content.proof.crop
+    with Image.open(io.BytesIO(base64.b64decode(shot))) as image:
+        assert image.size == (round(x1) - round(x0), round(y1) - round(y0))
