@@ -1,0 +1,5 @@
+# Brand-bearing ad concepts (Luzia screens and art) stay local; this repo is public.
+*.html
+variants/
+drafts/
+spikes/pick/
