@@ -449,3 +449,47 @@ def test_the_agents_tap_never_reaches_the_forbidden_effect(tmp_path, monkeypatch
     ex, phone, _ = harness.agent(tmp_path, monkeypatch, lambda *a: harness.turn(harness.DONE),
                                  phone_factory=factory, no_send=True)
     assert ex.tap(candidate(target, screen), screen) and not harness.taps(phone)
+
+
+def settings_row(title: str, y: int, toggle: str | None = None) -> list[dict]:
+    """A settings list row as Android lays it out: the row, its title and summary, and an unlabelled switch apart."""
+    row = [element(kind="android.widget.LinearLayout", ref=f"@row{y}", x=0, y=y, w=1080, h=200),
+           element(title, ref=f"@title{y}", x=60, y=y + 40, w=700, h=60),
+           element("Tap to manage", ref=f"@summary{y}", x=60, y=y + 110, w=700, h=50)]
+    return row + ([element(kind=toggle, ref=f"@switch{y}", x=900, y=y + 60, w=120, h=80)] if toggle else [])
+
+
+@pytest.mark.parametrize("title", ["Two-step verification", "Two-factor authentication", "Account recovery",
+                                   "Require password"])
+@pytest.mark.parametrize("toggle", ["android.widget.Switch", "android.widget.CheckBox"])
+def test_an_unlabelled_switch_in_a_security_rows_caption_is_refused_and_so_is_a_tap_on_the_row(title, toggle):
+    screen = [element(kind="android.widget.FrameLayout", ref="@root", x=0, y=0, w=1080, h=2400),
+              *settings_row(title, 600, toggle)]
+    row, caption, summary, switch = screen[1:]
+    for target in (switch, row, caption, summary):
+        assert guard.blocked_tap(target, screen)
+    assert explore_agent.hard_block(candidate(switch, screen), screen)
+
+
+def test_a_security_row_without_a_switch_is_navigation_even_beside_one_that_has_one():
+    screen = [element(kind="android.widget.FrameLayout", ref="@root", x=0, y=0, w=1080, h=2400),
+              *settings_row("Biometric & Password", 400), *settings_row("Two-step verification", 600,
+                                                                          "android.widget.Switch"),
+              *settings_row("Dark mode", 800, "android.widget.Switch")]
+    at = {e["ref"]: e for e in screen}
+    for ref in ("@row400", "@title400", "@row800", "@switch800"):
+        assert guard.blocked_tap(at[ref], screen) is None
+    assert guard.blocked_tap(at["@switch600"], screen) == "two step"
+
+
+def test_a_consent_switch_on_a_form_with_a_password_field_leaves_the_forms_other_taps_alone():
+    consent = "I confirm that I am 18 or older and agree to the terms"
+    screen = [element(kind="android.widget.FrameLayout", ref="@root", x=0, y=0, w=1080, h=2400),
+              element("Password", ref="@heading", y=300, h=60),
+              element(kind="android.widget.EditText", ref="@password", y=400),
+              element(kind="android.view.ViewGroup", label=consent, ref="@row", x=0, y=700, w=1080, h=200),
+              element(kind="android.widget.Switch", label=consent, ref="@switch", x=40, y=740, w=120, h=80),
+              element(consent, ref="@consent", x=200, y=720, w=800, h=120),
+              element("Continue", kind="android.widget.Button", ref="@continue", y=1200)]
+    for target in screen[3:]:
+        assert guard.blocked_tap(target, screen) is None

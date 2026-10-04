@@ -116,26 +116,56 @@ def reply(element: dict, label: str, core: bool) -> bool:
     return core and "Button" not in element.get("type", "") and len(spellings(label)[1].split()) > CONTROL_WORDS
 
 
-def dialog(element: dict, screen: list[dict]) -> list[dict]:
-    """What a confirm answers: the text in the smallest element around it that holds a caption (text that is neither
-    a control nor inside one: a dialog's title or message, an item's headline), or with none the screen's. Another
-    choice (Cancel, its button row) is no caption, and an icon (an item's share) is not what the dialog says."""
-    own, r = set(labels(element)), rect(element)
-    text = [e for e in screen if "Image" not in e.get("type", "") and any(s not in own for s in labels(e))]
-    choices = [rect(e) for e in screen if is_control(e)]
-    captions = [rect(t) for t in text if not is_control(t) and not any(inside(rect(t), c) for c in choices)]
+def texts(element: dict, screen: list[dict]) -> list[dict]:
+    """The other elements with words, icons left out: what can say what element is for."""
+    own = set(labels(element))
+    return [e for e in screen if "Image" not in e.get("type", "") and any(s not in own for s in labels(e))]
+
+
+def captioned(element: dict, screen: list[dict]) -> Rect | None:
+    """The smallest element around element that holds a caption: text that is neither a control nor inside one (a
+    dialog's title or message, an item's headline, a settings row's title). Another choice (Cancel, its button row)
+    is no caption; a control around element (a row named by its label) is element's own, so its text is one."""
+    r = rect(element)
+    choices = [rect(e) for e in screen if is_control(e) and not inside(r, rect(e))]
+    captions = [rect(t) for t in texts(element, screen)
+                if not is_control(t) and not any(inside(rect(t), c) for c in choices)]
     boxes = [rect(e) for e in screen if inside(r, rect(e)) and area(rect(e)) > area(r)
              and any(inside(c, rect(e)) for c in captions)]
-    box = min(boxes, key=area, default=None)
-    return [t for t in text if box is None or inside(rect(t), box)]
+    return min(boxes, key=area, default=None)
 
 
-def security_toggle(element: dict) -> str | None:
-    """The security setting a switch or checkbox names ("Two-step verification"): flipping it is the change."""
-    if not (TOGGLE.search(element.get("type", "")) or "checked" in element):
-        return None
-    found = (SECURITY.search(t) for s in labels(element) for t in spellings(s))
+def dialog(element: dict, screen: list[dict]) -> list[dict]:
+    """What a confirm answers: the text in its captioned() box, or with none the screen's. An icon (an item's share)
+    is not what the dialog says."""
+    box = captioned(element, screen)
+    return [t for t in texts(element, screen) if box is None or inside(rect(t), box)]
+
+
+def security(strings: list[str]) -> str | None:
+    found = (SECURITY.search(t) for s in strings for t in spellings(s))
     return next((m.group() for m in found if m), None)
+
+
+def security_toggle(element: dict, screen: list[dict]) -> str | None:
+    """The security setting a switch or checkbox flips ("Two-step verification"), by its own label or its row's
+    caption (an unlabelled switch beside the row's title), when the tap lands on the switch or anywhere in that
+    row: flipping it is the change. A row without a switch ("Biometric & Password") is navigation."""
+    if not security([s for e in [element, *screen] for s in labels(e)]):
+        return None
+    x, y = center(rect(element))
+    point = Rect(x=x, y=y, w=0, h=0)
+    toggles = [e for e in [element, *screen] if TOGGLE.search(e.get("type", "")) or "checked" in e]
+    for toggle in toggles:
+        row = captioned(toggle, screen)
+        if row and any(inside(rect(e), row) and (e is not toggle and e in toggles or "EditText" in e.get("type", ""))
+                       for e in screen):
+            row = None  # a box holding another switch or a text box is a list or a form, not this switch's row
+        if inside(point, rect(toggle)) or row and inside(point, row):
+            said = labels(toggle) + [s for e in screen if row and inside(rect(e), row) for s in labels(e)]
+            if word := security(said):
+                return word
+    return None
 
 
 # ponytail: a command is told from content by its shape (a button, a label-only icon, a text opening with the
@@ -148,7 +178,7 @@ def blocked_tap(element: dict, screen: list[dict] | None = None, *, core: bool =
     tap point inside an element of the screen that names one, since the tap lands on that; a confirm while the
     dialog around it names one; a switch that names a security setting. Words come from config/hard_blocks.toml."""
     blocked = ALWAYS if core else OUTSIDE_CORE
-    if word := names(blocked, element) or security_toggle(element):
+    if word := names(blocked, element) or security_toggle(element, screen or []):
         return word
     if not screen:
         return None
