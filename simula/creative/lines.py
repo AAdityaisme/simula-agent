@@ -47,25 +47,30 @@ def observed_lines(facts: Facts, host: Host) -> list[str]:
 _ONES = ("zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen "
          "seventeen eighteen nineteen").split()
 _TENS = "twenty thirty forty fifty sixty seventy eighty ninety".split()
-# A fixed cue list, not a parser: widen it if a model gets an answer past it.
-_CUE = r"(?:\b(?:is|was|be|try|equals?|it[’']?s)\s+|[=:]\s*)"
+_NUMBER = re.compile(rf"(?<![A-Za-z0-9])(?:({'|'.join(_TENS)})(?: ({'|'.join(_ONES[1:10])}))?|({'|'.join(_ONES)}))"
+                     r"(?![A-Za-z0-9])", re.IGNORECASE)
+# A fixed cue list and at most two words after it, not a parser: widen it if a model gets an answer past it.
+_CUE = re.compile(r"(?:\b(?:is|was|be|try|equals?|it[’']?s)\s+|[=:]\s*)(?:[A-Za-z]+\s+){0,2}$", re.IGNORECASE)
 
 
 def _flat(text: str) -> str:
     return " ".join(text.replace("-", " ").split())
 
 
-def _names(text: str, phrase: str, cue: str = "") -> bool:
-    pattern = rf"{cue}(?<![A-Za-z0-9]){re.escape(_flat(phrase))}(?![A-Za-z0-9])"
+def _names(text: str, phrase: str) -> bool:
+    pattern = rf"(?<![A-Za-z0-9]){re.escape(_flat(phrase))}(?![A-Za-z0-9])"
     return re.search(pattern, _flat(text), re.IGNORECASE) is not None
 
 
-def _number_words(answer: str) -> list[str]:
-    """A numeric answer spelled out; every puzzle answer is under 100."""
-    if not answer.isdigit() or int(answer) >= 100:
-        return []
-    n = int(answer)
-    return [_ONES[n] if n < 20 else _TENS[n // 10 - 2] + (f" {_ONES[n % 10]}" if n % 10 else "")]
+def _spells(text: str, value: int, cued: bool) -> bool:
+    """Whether text spells out value as a whole number ("twenty-five" is 25, never 20 or 5), after a cue if cued."""
+    flat = _flat(text)
+    for m in _NUMBER.finditer(flat):
+        tens, ones, alone = (w and w.lower() for w in m.groups())
+        n = (_TENS.index(tens) + 2) * 10 + (_ONES.index(ones) if ones else 0) if tens else _ONES.index(alone)
+        if n == value and (not cued or _CUE.search(flat[:m.start()])):
+            return True
+    return False
 
 
 def problems(lines: HostLines, facts: Facts, host: Host, puzzles: list[Puzzle]) -> list[str]:
@@ -77,8 +82,9 @@ def problems(lines: HostLines, facts: Facts, host: Host, puzzles: list[Puzzle]) 
     against all three, caption i against puzzles i to 3, the right line against puzzles 2 and 3. The end card comes
     after the last puzzle (or replaces the rest), so nothing is left to give away. Captions and the hint may not
     name an open answer at all, as a word, digits or a number word. The intro and right line may not name a word
-    answer or its digits, but a number word counts there only after a cue (is, try, equals, =), so "Three quick
-    ones" passes when an answer is 3 and "x is three" fails."""
+    answer or its digits, but a number word counts there only after a cue (is, try, equals, =) and at most two other
+    words, so "Three quick ones" passes when an answer is 3 and "x is exactly three" fails. Number words are read as
+    whole numbers: "twenty-five" never gives away 20, nor "twenty three" 3."""
     found = [] if len(lines.captions) == 3 else [f"captions has {len(lines.captions)} lines; it needs exactly 3"]
     fields = [("intro", lines.intro, LIMITS["intro"]),
               *[(f"caption {i + 1}", c, LIMITS["caption"]) for i, c in enumerate(lines.captions)],
@@ -95,10 +101,12 @@ def problems(lines: HostLines, facts: Facts, host: Host, puzzles: list[Puzzle]) 
         found += [f'{name} names the app feature "{term}"' for term in forbidden_terms(facts, host)
                   if _names(text, term)]
     answers = [p.options[p.answer] for p in puzzles]
-    shown = [("intro", lines.intro, 0, _CUE), *[(f"caption {i + 1}", c, i, "") for i, c in enumerate(lines.captions)],
-             ("right_line", lines.right_line, 1, _CUE), ("wrong_hint", lines.wrong_hint, 0, "")]
-    found += [f"{name} gives away the answer {answer}" for name, text, first, cue in shown for answer in answers[first:]
-              if _names(text, answer) or any(_names(text, word, cue) for word in _number_words(answer))]
+    shown = [("intro", lines.intro, 0, True),
+             *[(f"caption {i + 1}", c, i, False) for i, c in enumerate(lines.captions)],
+             ("right_line", lines.right_line, 1, True), ("wrong_hint", lines.wrong_hint, 0, False)]
+    found += [f"{name} gives away the answer {answer}"
+              for name, text, first, cued in shown for answer in answers[first:]
+              if _names(text, answer) or (answer.isdigit() and _spells(text, int(answer), cued))]
     return found
 
 

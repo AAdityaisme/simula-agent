@@ -129,3 +129,28 @@ def test_a_number_word_that_does_not_read_as_an_answer_passes_in_the_intro_and_r
 def test_a_feature_term_with_other_whitespace_is_still_flagged(facts, term):
     lines = HostLines(**{**CLEAN, "end_headline": f"Meet your {term}"})
     assert 'end_headline names the app feature "Custom Bestie"' in problems(lines, facts, host(facts), puzzles(7))
+
+
+@pytest.mark.parametrize("intro, right_line", [
+    ("The answer is exactly three.", "The next answer is exactly thirty."),
+    ("Try the number three.", "Try the number thirty next."),
+    ("x equals precisely three.", "The next answer equals precisely thirty."),
+    ("x = exactly three.", "Next = exactly thirty."),
+])
+def test_a_cue_then_up_to_two_ordinary_words_before_a_number_word_still_gives_it_away(facts, intro, right_line):
+    found = problems(HostLines(**{**CLEAN, "intro": intro, "right_line": right_line}), facts, host(facts), puzzles(7))
+    assert "intro gives away the answer 3" in found and "right_line gives away the answer 30" in found
+
+
+@pytest.mark.parametrize("field", ["intro", "right_line"])
+@pytest.mark.parametrize("number", ["twenty-one", "twenty four", "twenty-five"])
+def test_a_different_complete_number_does_not_give_away_its_tens_answer(facts, field, number):
+    ps = puzzles(70)
+    assert [p.options[p.answer] for p in ps] == ["5", "20", "CIRCLE"]
+    lines = HostLines(**{**CLEAN, field: f"Your goal is {number} seconds. Ready?"})
+    assert problems(lines, facts, host(facts), ps) == []
+
+
+def test_a_ones_word_inside_a_larger_number_does_not_give_away_its_answer(facts):
+    lines = HostLines(**{**CLEAN, "wrong_hint": "Not twenty three, try again"})
+    assert problems(lines, facts, host(facts), puzzles(7)) == []
