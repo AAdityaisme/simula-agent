@@ -2,6 +2,7 @@
 ?fast=1, grounding checks every proof claim against the facts' allowed strings, and the tier comes from the screens,
 art and generated text a creative uses."""
 
+import re
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
@@ -222,6 +223,9 @@ def tier(content: Content, facts: Facts) -> tuple[Tier | None, list[str]]:
     copy = content.copy_
     texts = [copy.intro, *copy.captions, copy.right_line, copy.wrong_hint, copy.end_headline]
     for word in config.profiles()["content"]["adult_keywords"]:
-        if any(is_excerpt(word, text.lower()) for text in texts):
+        # Not is_excerpt: "_" is a word character there, so "adult_content" would pass.
+        pattern = ((r"(?<![a-z0-9])" if word[0].isalnum() else "") + re.escape(word)
+                   + (r"(?![a-z0-9])" if word[-1].isalnum() else ""))
+        if any(re.search(pattern, text.lower()) for text in texts):
             found.append(f'generated text uses the adult keyword "{word}"')
     return (None if found else "sfw"), found

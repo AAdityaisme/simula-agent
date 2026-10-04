@@ -74,6 +74,7 @@ def test_an_adult_keyword_in_a_generated_line_fails_tier(facts):
 
 
 @pytest.mark.parametrize("intro, found", [("18+players welcome!", ['generated text uses the adult keyword "18+"']),
+                                          ("adult_content inside", ['generated text uses the adult keyword "adult"']),
                                           ("Feel the adulthood of numbers", [])])
 def test_an_adult_keyword_matches_on_its_own_edges(facts, intro, found):
     content = content_for(facts, lines=LINES.model_copy(update={"intro": intro}))
