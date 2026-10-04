@@ -12,14 +12,16 @@ from PIL import Image, ImageDraw
 from simula import cli, config, decide, llm, runlog, scorecard
 from simula.contracts import AdLine, AgentStep, AgentTurn, ExploreFile
 from simula.device import guard
+from simula.device import observe as ob
 from simula.stages import explore as stage
 from simula.stages import model as model_stage
 from simula.contracts import Rect
 from simula.device.mcp import McpTimeout
 from simula.stages import explore_agent as stage_agent
 from simula.stages.explore_agent import STALE_TURNS, AgentExplorer, Halt, ScreenMoved
+from tests import fake_device
 from tests.fake_device import PACKAGE, Clock, FakePhone, Screen, capture, fake_jev, fake_sonnet, new_run
-from tests.test_explore_offline import janitor_like
+from tests.test_explore_offline import aol_home_2, janitor_like
 
 CHATS_TAB = (540, 2253)
 DRAWER = (996, 209)
@@ -262,17 +264,164 @@ def chat_script(recipient_first: str):
     return script
 
 
-def test_start_core_is_refused_for_a_person_and_measured_for_an_ai(tmp_path, monkeypatch):
+@pytest.mark.parametrize("recipient", ["person", "none"])
+def test_start_core_is_refused_for_a_person_and_measured_for_an_ai(tmp_path, monkeypatch, recipient):
+    """A conversation is where code types: start_core there needs the recipient to be the app's AI."""
     def chats(clock):
         phone = janitor_like(clock)
         phone.taps[("chats", "Kang Jun-Seo (Idol x Idol), Sat, 1 chat")] = "chat"  # the card's center
         return phone
-    ex, phone, planner = run(tmp_path, monkeypatch, chat_script("person"), phone_factory=chats)
+    ex, phone, planner = run(tmp_path, monkeypatch, chat_script(recipient), phone_factory=chats)
     assert "start_core was refused" in planner.texts[3]
     assert ex.core and ex.core.kind == "chat" and phone.sent >= 1
     passes = [json.loads(line) for line in (ex.out / "actions.jsonl").read_text().splitlines()]
     assert {p["loop_pass"] for p in passes if p["loop_pass"]} >= {1}
     assert any(t.step == "core" and t.note.startswith("core action: ") for t in trace(ex))
+
+
+def news_feed(clock):
+    """A news app's home (aol-home-2) whose article rows open an article; BACK returns home."""
+    phone = aol_home_2(clock)
+    phone.screens["article"] = capture("aol", "aol-article", package=PACKAGE)
+    for e in phone.screens["home"].elements:
+        if (e.get("identifier") or "").endswith("tv_articleTitle"):
+            phone.taps[("home", fake_device.element_key(e))] = "article"
+    return phone
+
+
+def test_start_core_marks_a_feed_whose_passes_open_items_and_type_nothing(tmp_path, monkeypatch):
+    """A news app's agent run ended with no core action: start_core knew only a chat or a button. Naming one item of
+    a list marks the list as a feed, as the scripted explorer's; its passes open the items, never typing, and a
+    person as the recipient is still refused."""
+    def script(n, text):
+        if n in (1, 2):
+            row = oid(text, "Doctors recommend")
+            return turn({"action": "start_core", "element": row, "recipient": "person" if n == 1 else "none",
+                         "expect": "marked"})
+        return None
+    ex, phone, planner = run(tmp_path, monkeypatch, script, phone_factory=news_feed)
+    assert "start_core was refused" in planner.texts[1]
+    assert ex.core and ex.core.kind == "feed" and ex.core.name.startswith("open and read items from the list on ")
+    lines = [json.loads(line) for line in (ex.out / "actions.jsonl").read_text().splitlines()]
+    opened = [line for line in lines if line["loop_pass"] and line["action"] == "tap" and line["outcome"] == "ok"]
+    assert len({line["loop_pass"] for line in opened}) >= 2 and ex.core_completed >= 2
+    assert len({key for screen, key in taps(phone) if screen == "home"}) == 2  # both rows, in turn
+    assert phone.typed == [] and phone.sent == 0
+    assert not [e for e in phone.log if e[0] == "type"]
+
+
+def start(tmp_path, monkeypatch, factory, reps=3):
+    """An agent explorer on the launch screen, its ids shown as a turn would show them, before any planner turn."""
+    ex, phone, _ = agent(tmp_path, monkeypatch, scripted(), phone_factory=factory)
+    ex.relaunch(first=True)
+    ex.core_reps = reps
+    expose(ex)
+    return ex, phone
+
+
+def expose(ex):
+    ex.ids = {f"o{n:02d}": c for n, c in enumerate(ex.listing(ex.current), 1)}
+    return ex.ids
+
+
+def element_id(ex, label):
+    return next(i for i, c in ex.ids.items() if c.label == label)
+
+
+def mark(ex, label=None, recipient="none", **fields):
+    ex.start_core(AgentStep(action="start_core", element=element_id(ex, label) if label else None,
+                            recipient=recipient, expect="measure the core", **fields))
+
+
+def row(label, n, **fields):
+    return control(label, n, "ViewGroup", identifier="app:id/feed_row", **fields)
+
+
+def articles(*labels):
+    home = drawn(*(row(label, n) for n, label in enumerate(labels, 1)))
+    detail = drawn(control("Article detail with a long readable story", 1, "TextView"))
+    return phone_of({"root": home, "article": detail}, {("root", s): "article" for s in labels})
+
+
+def test_a_named_live_title_inside_a_recorded_feed_card_marks_the_feed(tmp_path, monkeypatch):
+    """rt-61: a later read exposes a card's title as its own control; naming it marks the feed the card is in."""
+    first, second = row("First article", 1), row("Second article", 2)
+    ex, phone = start(tmp_path, monkeypatch, phone_of({"root": drawn(first, second)}))
+    recorded = ex.current
+    title = control("Newly exposed title", 20, "TextView",
+                    coordinates={"x": 120, "y": 410, "width": 700, "height": 35})
+    summary = control("Newly exposed summary", 21, "TextView",
+                      coordinates={"x": 120, "y": 450, "width": 700, "height": 35})
+    phone.screens["root"].elements = [*phone.screens["root"].elements[:1], {**first, "text": ""},
+                                       title, summary, second]
+    ex.observe()
+    expose(ex)
+    assert ex.current is recorded
+    named = ex.ids[element_id(ex, "Newly exposed title")]
+    assert any(ob.inside(named.rect, c.rect) for c in ob.feed_items(recorded.cands, ex.device, ex.tab_keys()))
+    monkeypatch.setattr(ex, "core_now", lambda: None)
+    mark(ex, "Newly exposed title")
+    assert ex.picked_core.kind == "feed"
+
+
+def test_a_known_native_ad_cannot_be_tapped_as_a_feed_pass(tmp_path, monkeypatch):
+    """rt-61: a row the planner named as an ad is never one of the feed's passes, though it shares the rows' shape."""
+    ad = "Sponsored: discover this recommendation"
+    factory = articles("First article", ad, "Third article")
+
+    def phone_factory(clock):
+        phone = factory(clock)
+        phone.screens["browser"] = drawn(control("Advertiser landing page", 1), package="com.android.chrome")
+        phone.taps[("root", ad)] = "browser"
+        return phone
+
+    ex, phone = start(tmp_path, monkeypatch, phone_factory, reps=3)
+    ad_id = element_id(ex, ad)
+    ex.turn = AgentTurn(screen="home", goal="read articles",
+                        steps=[AgentStep(action="start_core", recipient="none", expect="measure")], ads=[ad_id],
+                        ad_notes=f"{ad_id}: native; advertiser; retail")
+    ex.record_ads(ex.current, ex.turn)
+    assert (ex.current.sid, ex.ids[ad_id].key) in ex.ads_seen
+    mark(ex, "First article")
+    assert ex.core.kind == "feed"
+    assert ("root", ad) not in taps(phone)
+    assert ("root", "Third article") in taps(phone)
+
+
+@pytest.mark.parametrize("card", ["Sponsored: warm jackets for less", "Partner content: warm jackets for less"])
+def test_a_headline_inside_an_ad_card_is_refused_as_the_core_action(tmp_path, monkeypatch, card):
+    """Greptile on #61: a later read exposes an ad card's headline as its own control, with its own key and label;
+    marking it is refused as marking the ad is, whether the card's label says it is an ad or the planner named it,
+    and nothing is tapped."""
+    ex, phone = start(tmp_path, monkeypatch, articles("First article", card, "Third article"))
+    card_id = element_id(ex, card)
+    ex.turn = AgentTurn(screen="home", goal="read articles", ads=[card_id], ad_notes=f"{card_id}: native; ; ",
+                        steps=[AgentStep(action="start_core", recipient="none", expect="measure")])
+    if card.startswith("Partner"):
+        ex.record_ads(ex.current, ex.turn)
+    headline = control("Great deal on jackets", 20, "TextView",
+                       coordinates={"x": 120, "y": 610, "width": 600, "height": 40})
+    root = phone.screens["root"]
+    root.elements = [*({**e, "text": ""} if e["text"] == card else e for e in root.elements), headline]
+    ex.observe()
+    expose(ex)
+    named = ex.ids[element_id(ex, "Great deal on jackets")]
+    assert any(ob.inside(named.rect, c.rect) for c in ex.current.cands if c.label == card)
+    mark(ex, "Great deal on jackets")
+    assert ex.picked_core is None and not ex.core_ran and "named an ad" in ex.news[-1]
+    assert taps(phone) == []
+
+def test_real_aol_ad_container_is_excluded_from_feed_measurement(tmp_path, monkeypatch):
+    """rt-61: a news app's 'AD' slot shares the feed's resource id; its own label keeps it out of the passes."""
+    def phone_factory(clock):
+        home = capture("aol", "aol-home-repeat", package=PACKAGE)
+        browser = capture("aol", "aol-ad-in-chrome")
+        return FakePhone({"root": home, "browser": browser}, "root", {("root", "AD"): "browser"}, clock)
+
+    ex, phone = start(tmp_path, monkeypatch, phone_factory, reps=2)
+    mark(ex, "Tap here for weather")
+    assert ex.core.kind == "feed"
+    assert ("root", "AD") not in taps(phone)
 
 
 def banner_after(*sends: int, extra: tuple = ()):

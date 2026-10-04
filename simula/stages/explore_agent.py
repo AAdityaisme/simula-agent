@@ -38,6 +38,7 @@ ONE_STEP = "\n\nPlan exactly one step, and name its element by id: never by inte
 GROUND = "Which control does this: {}?"
 AD_NOTE = re.compile(r"^\s*(o\d+)\s*:\s*(.*)$", re.MULTILINE)
 AD_FORMATS = ("banner", "interstitial", "rewarded", "native")
+AD_LABEL = re.compile(r"^\W*(?:ad|sponsored|promoted)\b", re.IGNORECASE)  # a label that opens by saying it is an ad
 SEARCH = re.compile(r"\bsearch\b", re.IGNORECASE)
 URL = re.compile(r"\b(?:https?://|www\.)\S+", re.IGNORECASE)
 CHOOSER_STEPS = {"continue", "next", "allow", "agree", "i agree", "ok", "cancel"}  # the account chooser's flow buttons
@@ -612,15 +613,17 @@ class AgentExplorer(Explorer):
             self.steps.clear()
 
     def start_core(self, step: AgentStep) -> None:
-        """Marks the core action, only for an AI recipient, and measures it at once (core_now)."""
+        """Marks the core action and measures it at once (core_now), never for a person: a conversation only for an AI
+        recipient, since code types there; else the list the element names or lies in (a feed: its items are opened
+        and read), or the button it names."""
         if self.core_ran:
             self.news.append("The core action was measured already: start_core runs once.")
             return
-        if not guard.core_allowed(step.recipient):
+        s, chat = self.current, self.live_composer()
+        if step.recipient == "person" or chat and not guard.core_allowed(step.recipient):
             self.note("agent.core", f"start_core refused: the recipient is {step.recipient!r}", outcome="blocked")
             self.news.append("start_core was refused: code sends messages only to the app's AI or bot.")
             return
-        s, chat = self.current, self.live_composer()
         if chat:
             self.picked_core = CoreAction("chat", s, [ob.find(s.cands, c) or c for c in chat],
                                           f"send messages in a conversation and read the replies "
@@ -631,8 +634,16 @@ class AgentExplorer(Explorer):
             if cand is None:
                 self.news.append("start_core named no element on this screen.")
                 return
-            self.picked_core = CoreAction("action", s, [ob.find(s.cands, cand) or cand],
-                                          f"tap {cand.label[:40]!r} again and again on {s.sid}")
+            if self.in_ad(s, cand):
+                self.news.append("start_core named an ad or a part of one: the core action is the app's own.")
+                return
+            items = [i for i in ob.feed_items(s.cands, self.device, self.tab_keys()) if not self.in_ad(s, i)]
+            if any(i.key == cand.key or ob.inside(cand.rect, i.rect) or ob.inside(i.rect, cand.rect) for i in items):
+                self.picked_core = CoreAction("feed", s, items, f"open and read items from the list on {s.sid} "
+                                                                f"(e.g. {items[0].label[:40]!r})")
+            else:
+                self.picked_core = CoreAction("action", s, [ob.find(s.cands, cand) or cand],
+                                              f"tap {cand.label[:40]!r} again and again on {s.sid}")
         self.note("agent.core", f"marked: {self.picked_core.name}", decider="model")
         self.core_now()
 
@@ -659,6 +670,19 @@ class AgentExplorer(Explorer):
 
     def choose_core(self) -> list[CoreAction]:
         return [self.picked_core] if self.picked_core else []
+
+    def rows(self, feed: CoreAction) -> list[ob.Candidate]:
+        """The inherited feed rows without the ads, so a feed pass never opens one."""
+        return [c for c in super().rows(feed) if not self.in_ad(feed.state, c)]
+
+    def is_ad(self, s: Seen, c: ob.Candidate) -> bool:
+        """An ad the planner named on s, or a control whose own label says it is one ("AD", "Sponsored: ...")."""
+        return (s.sid, c.key) in self.ads_seen or any(AD_LABEL.match(t) for t in (c.label, c.tree_label) if t)
+
+    def in_ad(self, s: Seen, c: ob.Candidate) -> bool:
+        """c is an ad or lies inside one on s, recorded or live: an ad card's headline is a link to the advertiser."""
+        cands = [*s.cands, *(self.obs.cands if self.obs else [])]
+        return any(ob.inside(c.rect, a.rect) for a in cands if self.is_ad(s, a)) or self.is_ad(s, c)
 
     def paywall_pass(self) -> None:
         """The planner opens the paywall itself; this only names the priced screen it found, for the exhibit."""
