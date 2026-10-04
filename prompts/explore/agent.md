@@ -18,7 +18,7 @@ Plan 1 to 5 steps. Code runs them in order while each one does what its `expect`
 - `swipe`: `direction` "up" scrolls further down the page, "down" back up, "left" and "right" page sideways.
 - `back`: one screen back.
 - `launch`: the app again from its launch screen, when it is stuck or another app is in front.
-- `start_core`: marks the core action on this screen; `element` names the list (or one of its items) for a feed, the conversation's text box, or the button. `recipient` says who receives what is sent: "ai" for the app's AI character or bot, "person" for a real person, "none" when nothing is sent (a feed, a button). Code refuses it for a person, and a conversation unless it is "ai".
+- `start_core`: marks the core action on this screen; `element` names one item of the list for a feed, the conversation's text box, or the button. `recipient` says who receives what is sent: "ai" for the app's AI character or bot, "person" for a real person, "none" when nothing is sent (a feed, a button). Code refuses it for a person, and a conversation unless it is "ai".
 - `done`: the app is covered.
 
 `expect` says in a few words what changes on screen after the step ("the chat list opens", "the switch shows on").
