@@ -6,6 +6,8 @@ import time
 from pathlib import Path
 from typing import Literal
 
+from pydantic import ValidationError
+
 from simula import llm
 from simula.contracts import Strict
 from simula.creative.assemble import write_variant
@@ -56,7 +58,12 @@ def _check(round_: int, lines: HostLines, facts: Facts, host: Host, hook: Hook, 
     if found:
         return Draft(round=round_, lines=lines, assembled=False, content_tier=None, lines_failures=found,
                      grounding_failures=[], tier_failures=[], playthrough={})
-    content = build_content(facts, host, hook, seed, lines)
+    try:
+        content = build_content(facts, host, hook, seed, lines)
+    except ValidationError as e:
+        return Draft(round=round_, lines=lines, assembled=False, content_tier=None,
+                     lines_failures=[f"{e.title}.{'.'.join(map(str, err['loc']))}: {err['msg']}" for err in e.errors()],
+                     grounding_failures=[], tier_failures=[], playthrough={})
     html = write_variant(content, run_dir, out)
     content_tier, tier_failures = tier(content, facts)
     return Draft(round=round_, lines=lines, assembled=True, content_tier=content_tier, lines_failures=[],
@@ -69,29 +76,33 @@ def generate_variant(*, facts: Facts, host: Host, hook: Hook, seed: int, run_dir
                      paths: tuple[str, ...] = tuple(PATHS), widths: tuple[int, ...] = WIDTHS,
                      modes: tuple[str, ...] = MODES) -> VariantResult:
     """Generates one variant: a first draft, and a repair round only when the first draft fails a check. A failed
-    host-line call is a failure like any other. paths, widths and modes narrow the playthrough (tests use one run).
-    llm.CapReached propagates: the $ cap stops the whole MVP run."""
+    host-line call, or a host the content can't hold, is a failure like any other. A rerun resumes from the saved
+    drafts: it never rewrites a saved round and calls the model only for a round still owed. paths, widths and modes
+    narrow the playthrough (tests use one run). llm.CapReached propagates: the $ cap stops the whole MVP run."""
     variant_id, started, spent = f"{host.id}-{hook}", time.monotonic(), budget.spent
     qa = {"paths": paths, "widths": widths, "modes": modes}
     drafts: list[Draft] = []
     for round_ in (0, 1):
-        previous = drafts[-1] if drafts else None
+        if drafts and not drafts[-1].failures():
+            break
         out = drafts_dir / variant_id / f"round{round_}"
-        out.mkdir(parents=True, exist_ok=True)
+        if (out / "draft.json").exists():
+            drafts.append(Draft.model_validate_json((out / "draft.json").read_text()))
+            continue
+        previous = drafts[-1] if drafts else None
         try:
             lines = write_lines(facts=facts, host=host, hook=hook, puzzles=puzzles(seed), budget=budget,
-                                trace_path=trace_path, cache_dir=cache_dir, previous=previous.lines if previous else None,
+                                trace_path=trace_path, cache_dir=cache_dir,
+                                previous=previous.lines if previous else None,
                                 failures=previous.failures() if previous else None)
         except llm.LLMFailure as e:
-            draft = Draft(round=round_, lines=None, assembled=False, content_tier=None,
-                          lines_failures=[f"the host-line call failed: {e.outcome}"], grounding_failures=[],
-                          tier_failures=[], playthrough={})
-        else:
-            draft = _check(round_, lines, facts, host, hook, seed, run_dir, out, qa)
+            lines, failed = None, f"the host-line call failed: {e.outcome}"
+        out.mkdir(parents=True)
+        draft = _check(round_, lines, facts, host, hook, seed, run_dir, out, qa) if lines else Draft(
+            round=round_, lines=None, assembled=False, content_tier=None, lines_failures=[failed],
+            grounding_failures=[], tier_failures=[], playthrough={})
         (out / "draft.json").write_text(draft.model_dump_json(indent=1))
         drafts.append(draft)
-        if not draft.failures():
-            break
     last = drafts[-1]
     return VariantResult(
         variant_id=variant_id, host_id=host.id, hook=hook, drafts=drafts, first_pass_accept=not drafts[0].failures(),

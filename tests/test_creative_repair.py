@@ -27,10 +27,14 @@ def replying(replies: list[dict], seen: list):
     return provider
 
 
-def generate(facts, tmp_path):
-    return generate_variant(facts=facts, host=facts.hosts[0], hook="challenge", seed=7, run_dir=RUN,
+def generate(facts, tmp_path, host=None, cache="cache"):
+    return generate_variant(facts=facts, host=host or facts.hosts[0], hook="challenge", seed=7, run_dir=RUN,
                             drafts_dir=tmp_path / "drafts", budget=llm.Budget("creative", cap=6.0),
-                            trace_path=tmp_path / "trace.jsonl", cache_dir=tmp_path / "cache", **ONE_RUN)
+                            trace_path=tmp_path / "trace.jsonl", cache_dir=tmp_path / cache, **ONE_RUN)
+
+
+def saved(tmp_path) -> dict:
+    return {p: p.read_bytes() for p in (tmp_path / "drafts").rglob("*") if p.is_file()}
 
 
 def test_the_repair_call_gets_the_concrete_failures_and_both_drafts_are_kept(facts, tmp_path, monkeypatch):
@@ -65,3 +69,40 @@ def test_a_host_line_call_that_fails_twice_is_a_failed_variant(facts, tmp_path, 
     result = generate(facts, tmp_path)
     assert (result.passed, result.repair_round, result.final_dir) == (False, 1, None)
     assert result.drafts[1].lines_failures == ["the host-line call failed: error"]
+
+
+def test_a_rerun_returns_the_saved_drafts_without_a_model_call(facts, tmp_path, monkeypatch):
+    seen = []
+    free = {**CLEAN, "intro": "Play free: three quick ones!"}
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", replying([free, free], seen))
+    first = generate(facts, tmp_path)
+    files = saved(tmp_path)
+    again = generate(facts, tmp_path, cache="cache-gone")
+    assert len(seen) == 2 and saved(tmp_path) == files
+    assert again.model_dump(exclude={"seconds", "usd"}) == first.model_dump(exclude={"seconds", "usd"})
+    assert (again.first_pass_accept, again.repair_round, again.passed, again.usd) == (False, 1, False, 0)
+
+
+def test_a_rerun_after_a_failed_first_round_runs_only_the_repair_round(facts, tmp_path, monkeypatch):
+    seen = []
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", replying([{**CLEAN, "intro": "Play free: three quick ones!"},
+                                                               CLEAN], seen))
+    generate(facts, tmp_path)
+    variant = tmp_path / "drafts" / "teacher-challenge"
+    for path in (variant / "round1").iterdir():
+        path.unlink()
+    (variant / "round1").rmdir()
+    round0 = saved(tmp_path)
+    seen.pop()
+    result = generate(facts, tmp_path, cache="cache-gone")
+    assert len(seen) == 2 and '- intro uses the banned word "free"' in seen[1]
+    assert (result.first_pass_accept, result.repair_round, result.passed) == (False, 1, True)
+    assert {p: raw for p, raw in saved(tmp_path).items() if p.parent.name == "round0"} == round0
+
+
+def test_a_host_the_content_cannot_hold_fails_with_both_drafts_kept(facts, tmp_path, monkeypatch):
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", replying([CLEAN, CLEAN], []))
+    result = generate(facts, tmp_path, host=facts.hosts[0].model_copy(update={"name": "T" * 41}))
+    assert (result.passed, result.repair_round, result.final_dir) == (False, 1, None)
+    assert all("Character.name: String should have at most 40 characters" in d.lines_failures for d in result.drafts)
+    assert all((tmp_path / "drafts" / "teacher-challenge" / f"round{n}" / "draft.json").exists() for n in (0, 1))
