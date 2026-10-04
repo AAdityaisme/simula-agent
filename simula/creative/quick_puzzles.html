@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sponsored mini-game (concept)</title>
+<style>/*FONT*/</style>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:#101318;color:#f4f5f7;font:16px/1.35 var(--font,system-ui,-apple-system,Roboto,sans-serif);overflow-wrap:anywhere}
+button{font:inherit;color:inherit;cursor:pointer}
+#sponsored{position:fixed;top:12px;left:12px;z-index:5;margin:0;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.14);font-size:12px;font-weight:700;letter-spacing:.04em}
+#skip{position:fixed;top:8px;right:12px;z-index:5;min-height:36px;padding:6px 14px;border:0;border-radius:999px;background:rgba(255,255,255,.14);font-size:14px}
+#concept{position:fixed;left:0;right:0;bottom:8px;z-index:5;margin:0;text-align:center;font-size:11px;color:#a9aeb8}
+[data-screen]{display:none;position:fixed;inset:0;padding:56px 16px 40px;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center}
+[data-screen].on{display:flex}
+body[data-state="closed"]>*{display:none!important}
+#host-art,#end-art{display:block;width:auto;height:auto;max-width:100%;max-height:38vh;border-radius:16px}
+#end-art{max-height:24vh}
+#host-name{margin:0;font-size:20px;font-weight:700}
+#intro-line,#end-headline{margin:0;max-width:24em;font-size:20px;font-weight:700}
+#caption{margin:0;color:#a9aeb8;font-size:15px}
+#prompt{margin:0;font-size:30px;font-weight:800;letter-spacing:.02em}
+#options{display:flex;flex-direction:column;gap:10px;width:100%;max-width:360px}
+.option{min-height:52px;border:2px solid rgba(255,255,255,.18);border-radius:14px;background:rgba(255,255,255,.06);font-size:20px;font-weight:700}
+.option.wrong{border-color:#ef4444;opacity:.6}
+.option.right{border-color:#22c55e;background:rgba(34,197,94,.18)}
+#feedback{margin:0;min-height:1.4em;font-weight:600}
+#proof-shot{display:block;width:auto;height:auto;max-width:100%;max-height:52vh;border-radius:14px}
+#claims{display:flex;flex-direction:column;gap:6px;max-width:360px}
+.claim{margin:0;font-size:15px}
+#cta{width:100%;max-width:360px;min-height:52px;border:0;border-radius:14px;background:#4264fc;color:#fff;font-size:18px;font-weight:800}
+#close{position:fixed;top:8px;right:12px;width:40px;height:40px;border:0;border-radius:50%;background:rgba(255,255,255,.14);font-size:22px;line-height:40px}
+</style>
+</head>
+<body data-state="loading">
+<p id="sponsored">Sponsored</p>
+<button id="skip" type="button" hidden>Skip</button>
+<section data-screen="intro"><img id="host-art" alt=""><p id="host-name"></p><p id="intro-line"></p></section>
+<section data-screen="puzzle"><p id="caption"></p><p id="prompt"></p><div id="options"><button class="option" type="button" data-index="0"></button><button class="option" type="button" data-index="1"></button><button class="option" type="button" data-index="2"></button></div><p id="feedback" aria-live="polite"></p></section>
+<section data-screen="proof"><img id="proof-shot" alt=""><div id="claims"></div></section>
+<section data-screen="end"><button id="close" type="button" aria-label="Close">×</button><img id="end-art" alt=""><p id="end-headline"></p><button id="cta" type="button"></button></section>
+<p id="concept">Concept, not affiliated, not served</p>
+<script id="creative-data" type="application/json">__DATA__</script>
+<script>
+(() => {
+  const D = JSON.parse(document.getElementById('creative-data').textContent);
+  const query = new URLSearchParams(location.search);
+  const FAST = query.get('fast') === '1';
+  const HOLD = query.get('hold') === '1';
+  const MS = {intro: 3000, pause: 800, proof: 4000, skip: 4000, idle: 10000};
+  const $ = id => document.getElementById(id);
+  const log = [];
+  let t0 = null, state = 'loading', index = 0, attempts = 0, locked = false, skipReady = false, timers = [], idle = null;
+
+  const emit = (name, extra) => log.push(Object.assign({name, t: Math.round(performance.now() - t0)}, extra));
+  const later = (ms, fn) => { if (FAST) fn(); else timers.push(setTimeout(fn, ms)); };
+  function stopTimers() { timers.forEach(clearTimeout); timers = []; clearTimeout(idle); idle = null; }
+  function syncSkip() { $('skip').hidden = !(skipReady && ['intro', 'puzzle', 'proof'].includes(state)); }
+  function show(name) {
+    state = name;
+    document.body.dataset.state = name;
+    for (const s of document.querySelectorAll('[data-screen]')) s.classList.toggle('on', s.dataset.screen === name);
+    syncSkip();
+  }
+  function armIdle() { clearTimeout(idle); idle = setTimeout(toEnd, MS.idle); }
+  function showPuzzle(i) {
+    const p = D.puzzles[i];
+    index = i; attempts = 0; locked = false;
+    $('caption').textContent = D.copy.captions[i];
+    $('prompt').textContent = p.prompt;
+    $('feedback').textContent = '';
+    document.querySelectorAll('.option').forEach((b, k) => { b.textContent = p.options[k]; b.disabled = false; b.className = 'option'; });
+    show('puzzle');
+    armIdle();
+  }
+  function tap(k) {
+    if (state !== 'puzzle' || locked) return;
+    attempts += 1;
+    armIdle();
+    const button = document.querySelectorAll('.option')[k];
+    if (k !== D.puzzles[index].answer) {
+      button.classList.add('wrong');
+      button.disabled = true;
+      $('feedback').textContent = D.copy.wrong_hint;
+      return;
+    }
+    locked = true;
+    button.classList.add('right');
+    $('feedback').textContent = D.copy.right_line;
+    emit('CHALLENGE_PASS_' + (index + 1), {n: index + 1, attempts});
+    if (index + 1 < D.puzzles.length) { later(MS.pause, () => showPuzzle(index + 1)); return; }
+    clearTimeout(idle);
+    emit('CHALLENGE_SOLVED');
+    later(MS.pause, () => { show('proof'); later(MS.proof, toEnd); });
+  }
+  function toEnd() {
+    if (t0 === null || state === 'end' || state === 'closed') return;
+    stopTimers();
+    show('end');
+    emit('ENDCARD_SHOWN');
+  }
+  function start() {
+    if (t0 !== null) return;
+    t0 = performance.now();
+    emit('DISPLAYED');
+    if (FAST) skipReady = true; else timers.push(setTimeout(() => { skipReady = true; syncSkip(); }, MS.skip));
+    show('intro');
+    later(MS.intro, () => { emit('CHALLENGE_STARTED'); showPuzzle(0); });
+  }
+
+  $('host-art').src = $('end-art').src = D.art;
+  $('host-art').alt = $('end-art').alt = D.host.name;
+  $('host-name').textContent = D.host.name;
+  $('intro-line').textContent = D.copy.intro;
+  $('proof-shot').src = D.shot;
+  $('proof-shot').alt = 'Screenshot from the app';
+  for (const c of D.proof.claims) {
+    const p = document.createElement('p');
+    p.className = 'claim';
+    p.dataset.evidence = c.evidence_id;
+    p.textContent = c.text;
+    $('claims').appendChild(p);
+  }
+  $('end-headline').textContent = D.copy.end_headline;
+  $('cta').textContent = D.cta;
+  document.querySelectorAll('.option').forEach((b, k) => b.addEventListener('click', () => tap(k)));
+  $('skip').addEventListener('click', toEnd);
+  $('cta').addEventListener('click', () => { if (state === 'end') emit('CTA_CLICKED'); });
+  $('close').addEventListener('click', () => { if (state !== 'end') return; emit('CLOSED'); stopTimers(); show('closed'); });
+  window.simulaCreative = {events: () => log.map(e => Object.assign({}, e)), state: () => state, start};
+  if (!HOLD) start();
+})();
+</script>
+</body>
+</html>
