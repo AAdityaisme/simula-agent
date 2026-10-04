@@ -32,10 +32,10 @@ def test_the_th1_scripts_import_nothing_from_exp_connect(script):
 def test_th1_runs_under_its_own_project_without_writing_in_its_tree(monkeypatch):
     monkeypatch.setenv("VIRTUAL_ENV", "/somewhere/.venv")
     assert th1.command("th1_bridge.py", "--model", "m") == [
-        "uv", "run", "--no-sync", "--project", "/Users/aadi/simula-ctr", "python", str(ROOT / "tools" / "th1_bridge.py"),
+        "uv", "run", "--no-sync", "--project", str(th1.TH1), "python", str(ROOT / "tools" / "th1_bridge.py"),
         "--model", "m"]
     env = th1.env()
-    assert env["PYTHONPATH"] == "/Users/aadi/simula-ctr" and env["PYTHONDONTWRITEBYTECODE"] == "1"
+    assert env["PYTHONPATH"] == str(th1.TH1) and env["PYTHONDONTWRITEBYTECODE"] == "1"
     assert "VIRTUAL_ENV" not in env
 
 
