@@ -378,6 +378,9 @@ def check(out: Path = OUT) -> list[str]:
             found += [f"{variant}: creative.json has {(r.status, r.qa.human_verdict, r.qa.human_edits)}, review.csv "
                       f"gives {read[variant]}" for variant, r in records.items()
                       if (r.status, r.qa.human_verdict, r.qa.human_edits) != read[variant]]
+    if not (out / "starvation" / "starvation_decisions.jsonl").exists():
+        found.append("wrapper.json not rechecked: starvation/starvation_decisions.jsonl is git-ignored and absent here")
+        return found
     wrap = wrapper(th1.decisions(out / "starvation"))
     if json.loads((out / "wrapper.json").read_text()) != wrap:
         found.append(f"wrapper.json is not what starvation_decisions.jsonl gives: {wrap}")

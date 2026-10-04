@@ -190,3 +190,11 @@ def test_check_catches_a_changed_starvation_decision(mvp, calls, tmp_path):
     changed = [{**DECISIONS[0], "u": [0, 0, 0, 1]}, *DECISIONS[1:]]
     (out / "starvation" / "starvation_decisions.jsonl").write_text("".join(json.dumps(d) + "\n" for d in changed))
     assert [line for line in mvp.check(out) if line.startswith("wrapper.json")]
+
+
+def test_check_says_the_wrapper_was_not_rechecked_without_the_decisions_file(mvp, calls, tmp_path):
+    out = tmp_path / "out"
+    run(mvp, tmp_path)
+    (out / "starvation" / "starvation_decisions.jsonl").unlink()
+    assert mvp.check(out) == ["wrapper.json not rechecked: starvation/starvation_decisions.jsonl is git-ignored and "
+                              "absent here"]
