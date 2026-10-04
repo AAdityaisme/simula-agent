@@ -54,17 +54,16 @@ EMAIL = (
     "advertiser's app (Luzia), and a fixed mini-game template has the app's own Teacher or Toki pose three quick "
     "puzzles that code generates and answers. A proof card shows only exact strings from the app, next to a real "
     "screenshot. On {variants_total} variants, {first_pass_accept} passed every automatic check on the first draft "
-    "and {final_accept} after one repair round and a read of every string by two model reviewers (Claude Fable 5.1 and "
-    "GPT-6 Astra), at ${usd_per_accepted} per accepted creative. On take-home 1's own held-out traffic, its ranker "
-    "gave every unseen real creative zero chance in {starvation_share} of decisions where a seen one was eligible, so "
-    "I added an exploration layer with exact logged probabilities. The limit: your sample advertisers are games, and "
-    "my explorer reads element trees, so canvas games need a second fact source (store listing or an advertiser "
-    "brief). Could you share one representative advertiser asset pack, and how a creative id joins to impressions and "
-    "postbacks today?")
+    "and {final_accept} after one repair round and {read}, at ${usd_per_accepted} per accepted creative. On "
+    "take-home 1's own held-out traffic, its ranker gave every unseen real creative zero chance in {starvation_share} "
+    "of decisions where a seen one was eligible, so I added an exploration layer with exact logged probabilities. The "
+    "limit: your sample advertisers are games, and my explorer reads element trees, so canvas games need a second "
+    "fact source (store listing or an advertiser brief). Could you share one representative advertiser asset pack, "
+    "and how a creative id joins to impressions and postbacks today?")
 NOT_CLAIMED = (
     "No measured outcomes: no lift in CTR, installs, ROAS, revenue or engagement. Nothing was served.",
-    "Fun is untested: automation cannot establish it, and four variants and two model reviewers cannot either.",
-    "No person read the strings: two model reviewers did, independently, and the strictest verdict counts; their "
+    "Fun is untested: automation cannot establish it, and four variants and model reviewers cannot either.",
+    "No person reads the strings: model reviewers read them independently, and the strictest verdict counts; their "
     "sheets are kept beside review.csv.",
     "The puzzles are not Luzia's product: they are code-made homework puzzles hosted by Luzia characters.",
     "Traceable is not true: a proof claim is an exact string the explorer saw, traceable to an element.",
@@ -126,8 +125,9 @@ def unread(rows: list[dict], out: Path) -> str | None:
 def merged(out: Path, sheets: dict[str, Path]) -> list[dict]:
     """review.csv's rows from two or more reviewers' sheets: each string's strictest verdict, and every reviewer's
     note as "name: note; name: note". SystemExit naming the reviewer when a sheet misses a string or a verdict."""
-    if len(sheets) < 2 or not all(re.fullmatch(r"[\w-]+", name) for name in sheets):
-        raise SystemExit(f"merge needs two or more reviewers named with letters, digits, _ or -; got {list(sheets)}")
+    if len(sheets) < 2 or not all(re.fullmatch(r"\w[\w .-]*", name) for name in sheets):
+        raise SystemExit(f"merge needs two or more reviewers named with letters, digits, spaces, _, . or -; got "
+                         f"{list(sheets)}")
     copies = {}
     for name, path in sheets.items():
         copies[name] = read_sheet(path)
@@ -153,6 +153,19 @@ def merge(out: Path, sheets: dict[str, Path]) -> None:
         writer.writeheader()
         writer.writerows(rows)
     (out / "reviewers.json").write_text(json.dumps({"reviewers": list(sheets), "files": kept}, indent=1))
+
+
+def unmerged(out: Path, reviewed: dict) -> str | None:
+    """How review.csv differs from the merge of the reviewers' sheets named in reviewers.json, or None."""
+    rows = read_review(out)
+    expected = merged(out, {name: out / path for name, path in reviewed["files"].items()})
+    if len(rows) != len(expected):
+        return f"review.csv is not the merge of the reviewers' sheets: {len(rows)} rows, the merge has {len(expected)}"
+    for row, merge_row in zip(rows, expected):
+        if row != merge_row:
+            return (f"review.csv is not the merge of the reviewers' sheets; the first differing row is {row}, "
+                    f"the merge gives {merge_row}")
+    return None
 
 
 def read_verdicts(out: Path) -> dict[str, tuple[str, str, int]]:
@@ -303,7 +316,10 @@ def render_report(r: dict) -> str:
     """report.md, rendered from report.json alone."""
     def show(value):
         return "pending" if value is None else json.dumps(value)
-    email = EMAIL.format(
+    names = r["reviewers"]
+    read = (f"a read of every string by the model reviewers {', '.join(names[:-1])} and {names[-1]}" if names
+            else "a read of every string by model reviewers (still pending)")
+    email = EMAIL.format(read=read,
         variants_total=r["variants_total"], first_pass_accept=r["first_pass_accept"],
         final_accept="pending" if r["final_accept"] is None else r["final_accept"],
         usd_per_accepted="pending" if r["usd_per_accepted"] is None else f"{r['usd_per_accepted']:.2f}",
@@ -363,10 +379,13 @@ def run(run_dir: Path = RUN, out: Path = OUT, *, seed: int = SEED, cache_dir: Pa
         qa: dict | None = None, requests: int = REQUESTS) -> dict:
     """Facts, the 2 hosts x 2 hooks variants with QA and one repair round under the $6 cap, the review sheet, the s04
     fixture, starvation (reused when out/starvation/starvation.json exists) and the wrapper, then the report. Refuses
-    to start while review.csv holds a verdict, so a rerun never wipes the reviewers' read. A rerun resumes from
-    out/drafts only under the same input fingerprint, and refuses before touching any file otherwise."""
+    to start while review.csv holds a verdict or reviewers.json exists, so a rerun never wipes the reviewers' read. A
+    rerun resumes from out/drafts only under the same input fingerprint, and refuses before touching any file
+    otherwise."""
     if (out / "review.csv").exists() and any(row["verdict"] for row in read_review(out)):
         raise SystemExit(f"{out / 'review.csv'} holds verdicts; move it away before a new run")
+    if (out / "reviewers.json").exists():
+        raise SystemExit(f"{out} holds a merged review; move reviewers.json and review-*.csv away before a new run")
     facts = build_facts(run_dir)
     facts_json = facts.model_dump_json(indent=1)
     inputs = fingerprint(facts_json, facts, run_dir, seed, qa or {})
@@ -399,7 +418,11 @@ def finalize(out: Path = OUT) -> dict:
     is accepted_with_edits (edits are counted, not applied, in v0), the rest are accepted. Then rebuilds the report."""
     if not (out / "reviewers.json").exists():
         raise SystemExit(f"{out / 'reviewers.json'} is missing; run merge first")
-    reviewers = json.loads((out / "reviewers.json").read_text())["reviewers"]
+    reviewed = json.loads((out / "reviewers.json").read_text())
+    problem = unmerged(out, reviewed)
+    if problem:
+        raise SystemExit(problem)
+    reviewers = reviewed["reviewers"]
     read = read_verdicts(out)
     for path in sorted((out / "variants").glob("*/creative.json")):
         status, verdict, edits = read[path.parent.name]
@@ -440,8 +463,9 @@ def check(out: Path = OUT) -> list[str]:
                     found.append(f"{variant}: creative.json has {has}, review.csv and reviewers.json give {gives}")
     if reviewed:
         try:
-            if read_review(out) != merged(out, {name: out / path for name, path in reviewed["files"].items()}):
-                found.append("review.csv is not the merge of the reviewers' sheets")
+            problem = unmerged(out, reviewed)
+            if problem:
+                found.append(problem)
         except SystemExit as e:
             found.append(str(e))
     if not (out / "starvation" / "starvation_decisions.jsonl").exists():

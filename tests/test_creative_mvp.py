@@ -95,7 +95,8 @@ def test_run_finalize_and_check_recompute_every_number(mvp, calls, tmp_path):
     assert mvp.check(out) == []
     md = (out / "report.md").read_text()
     assert "On 4 variants, 4 passed every automatic check on the first draft and 4 after" in md
-    assert "a read of every string by two model reviewers" in md and "No person read the strings" in md
+    assert "a read of every string by the model reviewers fable and astra, at $" in md
+    assert "No person reads the strings" in md
     assert "human" not in md.lower() + (out / "report.json").read_text().lower()
 
 
@@ -192,7 +193,7 @@ def test_check_catches_a_verdict_changed_after_finalize(mvp, calls, tmp_path):
     write_rows(mvp, out / "review.csv", rows)
     found = mvp.check(out)
     assert [line for line in found if line.startswith(rows[0]["variant"])]
-    assert "review.csv is not the merge of the reviewers' sheets" in found
+    assert [line for line in found if line.startswith("review.csv is not the merge of the reviewers' sheets")]
 
 
 def test_merge_keeps_the_strictest_verdict_and_every_note(mvp, calls, tmp_path):
@@ -249,3 +250,41 @@ def test_check_says_the_wrapper_was_not_rechecked_without_the_decisions_file(mvp
     (out / "starvation" / "starvation_decisions.jsonl").unlink()
     assert mvp.check(out) == ["wrapper.json not rechecked: starvation/starvation_decisions.jsonl is git-ignored and "
                               "absent here"]
+
+
+def test_finalize_refuses_a_review_csv_that_is_not_the_merge(mvp, calls, tmp_path):
+    out = tmp_path / "out"
+    run(mvp, tmp_path)
+    fill_review(mvp, out, first_verdict="reject")
+    rows = mvp.read_review(out)
+    rows[0]["verdict"] = "ok"
+    write_rows(mvp, out / "review.csv", rows)
+    with pytest.raises(SystemExit, match="not the merge.*first differing row"):
+        mvp.finalize(out)
+    assert all(json.loads(p.read_text())["qa"]["review_verdict"] == "pending"
+               for p in (out / "variants").glob("*/creative.json"))
+    assert [line for line in mvp.check(out) if line.startswith("review.csv is not the merge")]
+
+
+def test_the_email_names_the_reviewers_only_once_they_have_read(mvp, calls, tmp_path):
+    out = tmp_path / "out"
+    run(mvp, tmp_path)
+    md = (out / "report.md").read_text()
+    assert "a read of every string by model reviewers (still pending), at $pending" in md and "Fable" not in md
+    rows = [dict(row, verdict="ok") for row in mvp.read_review(out)]
+    mvp.merge(out, {name: write_rows(mvp, tmp_path / f"{i}.csv", rows)
+                    for i, name in enumerate(("Claude Fable 5.1", "GPT-6 Astra"))})
+    mvp.finalize(out)
+    md = (out / "report.md").read_text()
+    assert "a read of every string by the model reviewers Claude Fable 5.1 and GPT-6 Astra, at $" in md
+    assert mvp.check(out) == []
+
+
+def test_a_rerun_refuses_while_reviewer_sheets_remain(mvp, calls, tmp_path):
+    out = tmp_path / "out"
+    run(mvp, tmp_path)
+    fill_review(mvp, out)
+    (out / "review.csv").rename(tmp_path / "moved.csv")
+    with pytest.raises(SystemExit, match=r"move reviewers.json and review-\*.csv away"):
+        run(mvp, tmp_path)
+    assert (out / "reviewers.json").exists() and (out / "review-fable.csv").exists()
