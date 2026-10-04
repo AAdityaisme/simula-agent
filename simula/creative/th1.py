@@ -11,8 +11,8 @@ from pathlib import Path
 
 from simula.config import ROOT
 
-TH1 = Path(os.environ.get("SIMULA_TH1", "/Users/aadi/simula-ctr"))
-DATA = Path(os.environ.get("SIMULA_TH1_DATA", "/Users/aadi/Desktop/Simula/ml-takehome/data"))
+TH1 = Path(os.environ.get("SIMULA_TH1", "/Users/aadi/simula-ctr")).expanduser().resolve()
+DATA = Path(os.environ.get("SIMULA_TH1_DATA", "/Users/aadi/Desktop/Simula/ml-takehome/data")).expanduser().resolve()
 BUNDLE = TH1 / "bundle"
 TOOLS = ROOT / "tools"
 SAMPLE_SEED = 20261004

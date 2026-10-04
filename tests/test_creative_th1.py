@@ -39,13 +39,14 @@ def test_th1_runs_under_its_own_project_without_writing_in_its_tree(monkeypatch)
     assert "VIRTUAL_ENV" not in env
 
 
-def test_the_th1_paths_come_from_the_environment(tmp_path):
+def test_the_th1_paths_come_from_the_environment_resolved_from_the_callers_directory(tmp_path):
     probe = ("from simula.creative import th1; import json; "
              "print(json.dumps([th1.command('x.py')[4], th1.env()['PYTHONPATH'], str(th1.DATA), str(th1.BUNDLE)]))")
-    env = {**os.environ, "SIMULA_TH1": str(tmp_path / "th1"), "SIMULA_TH1_DATA": str(tmp_path / "data")}
+    env = {**os.environ, "SIMULA_TH1": os.path.relpath(tmp_path / "th1", ROOT),
+           "SIMULA_TH1_DATA": os.path.relpath(tmp_path / "data", ROOT)}
     done = subprocess.run([sys.executable, "-c", probe], cwd=ROOT, env=env, capture_output=True, text=True, check=True)
-    assert json.loads(done.stdout) == [str(tmp_path / "th1"), str(tmp_path / "th1"), str(tmp_path / "data"),
-                                       str(tmp_path / "th1" / "bundle")]
+    th1_dir, data = (tmp_path / "th1").resolve(), (tmp_path / "data").resolve()
+    assert json.loads(done.stdout) == [str(th1_dir), str(th1_dir), str(data), str(th1_dir / "bundle")]
 
 
 def test_wilson_matches_known_intervals():
