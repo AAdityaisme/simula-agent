@@ -38,6 +38,7 @@ ONE_STEP = "\n\nPlan exactly one step, and name its element by id: never by inte
 GROUND = "Which control does this: {}?"
 AD_NOTE = re.compile(r"^\s*(o\d+)\s*:\s*(.*)$", re.MULTILINE)
 AD_FORMATS = ("banner", "interstitial", "rewarded", "native")
+AD_LABEL = re.compile(r"^\W*(?:ad|sponsored|promoted)\b", re.IGNORECASE)  # a label that opens by saying it is an ad
 SEARCH = re.compile(r"\bsearch\b", re.IGNORECASE)
 URL = re.compile(r"\b(?:https?://|www\.)\S+", re.IGNORECASE)
 CHOOSER_STEPS = {"continue", "next", "allow", "agree", "i agree", "ok", "cancel"}  # the account chooser's flow buttons
@@ -638,8 +639,11 @@ class AgentExplorer(Explorer):
             if cand is None:
                 self.news.append("start_core named no element on this screen.")
                 return
-            items = ob.feed_items(s.cands, self.device, self.tab_keys())
-            if any(i.key == cand.key or ob.inside(i.rect, cand.rect) for i in items):
+            if self.is_ad(s, cand):
+                self.news.append("start_core named an ad: the core action is the app's own.")
+                return
+            items = [i for i in ob.feed_items(s.cands, self.device, self.tab_keys()) if not self.is_ad(s, i)]
+            if any(i.key == cand.key or ob.inside(cand.rect, i.rect) or ob.inside(i.rect, cand.rect) for i in items):
                 self.picked_core = CoreAction("feed", s, items, f"open and read items from the list on {s.sid} "
                                                                 f"(e.g. {items[0].label[:40]!r})")
             else:
@@ -671,6 +675,14 @@ class AgentExplorer(Explorer):
 
     def choose_core(self) -> list[CoreAction]:
         return [self.picked_core] if self.picked_core else []
+
+    def rows(self, feed: CoreAction) -> list[ob.Candidate]:
+        """The inherited feed rows without the ads, so a feed pass never opens one."""
+        return [c for c in super().rows(feed) if not self.is_ad(feed.state, c)]
+
+    def is_ad(self, s: Seen, c: ob.Candidate) -> bool:
+        """An ad the planner named on s, or a control whose own label says it is one ("AD", "Sponsored: ...")."""
+        return (s.sid, c.key) in self.ads_seen or any(AD_LABEL.match(t) for t in (c.label, c.tree_label) if t)
 
     def paywall_pass(self) -> None:
         """The planner opens the paywall itself; this only names the priced screen it found, for the exhibit."""
