@@ -79,8 +79,8 @@ def test_a_rerun_returns_the_saved_drafts_without_a_model_call(facts, tmp_path, 
     files = saved(tmp_path)
     again = generate(facts, tmp_path, cache="cache-gone")
     assert len(seen) == 2 and saved(tmp_path) == files
-    assert again.model_dump(exclude={"seconds", "usd"}) == first.model_dump(exclude={"seconds", "usd"})
-    assert (again.first_pass_accept, again.repair_round, again.passed, again.usd) == (False, 1, False, 0)
+    assert again == first and (again.first_pass_accept, again.repair_round, again.passed) == (False, 1, False)
+    assert again.usd == pytest.approx(2 * llm.usd("claude-sonnet-5-5", 100, 10)) and again.seconds > 0
 
 
 def test_a_rerun_after_a_failed_first_round_runs_only_the_repair_round(facts, tmp_path, monkeypatch):
@@ -97,6 +97,8 @@ def test_a_rerun_after_a_failed_first_round_runs_only_the_repair_round(facts, tm
     result = generate(facts, tmp_path, cache="cache-gone")
     assert len(seen) == 2 and '- intro uses the banned word "free"' in seen[1]
     assert (result.first_pass_accept, result.repair_round, result.passed) == (False, 1, True)
+    assert result.usd == pytest.approx(2 * llm.usd("claude-sonnet-5-5", 100, 10))
+    assert result.seconds == pytest.approx(sum(d.seconds for d in result.drafts)) and result.drafts[0].seconds > 0
     assert {p: raw for p, raw in saved(tmp_path).items() if p.parent.name == "round0"} == round0
 
 

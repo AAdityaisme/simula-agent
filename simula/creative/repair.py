@@ -27,6 +27,8 @@ class Draft(Strict):
     grounding_failures: list[str]
     tier_failures: list[str]
     playthrough: dict[str, list[str]]
+    seconds: float = 0
+    usd: float = 0
 
     def failures(self) -> list[str]:
         """Every failure of this draft, as the repair call receives them."""
@@ -77,9 +79,10 @@ def generate_variant(*, facts: Facts, host: Host, hook: Hook, seed: int, run_dir
                      modes: tuple[str, ...] = MODES) -> VariantResult:
     """Generates one variant: a first draft, and a repair round only when the first draft fails a check. A failed
     host-line call, or a host the content can't hold, is a failure like any other. A rerun resumes from the saved
-    drafts: it never rewrites a saved round and calls the model only for a round still owed. paths, widths and modes
+    drafts: it never rewrites a saved round and calls the model only for a round still owed. seconds and usd sum each
+    draft's own, saved with it, so a resumed result reports what generating the variant cost. paths, widths and modes
     narrow the playthrough (tests use one run). llm.CapReached propagates: the $ cap stops the whole MVP run."""
-    variant_id, started, spent = f"{host.id}-{hook}", time.monotonic(), budget.spent
+    variant_id = f"{host.id}-{hook}"
     qa = {"paths": paths, "widths": widths, "modes": modes}
     drafts: list[Draft] = []
     for round_ in (0, 1):
@@ -90,6 +93,7 @@ def generate_variant(*, facts: Facts, host: Host, hook: Hook, seed: int, run_dir
             drafts.append(Draft.model_validate_json((out / "draft.json").read_text()))
             continue
         previous = drafts[-1] if drafts else None
+        started, spent = time.monotonic(), budget.spent
         try:
             lines = write_lines(facts=facts, host=host, hook=hook, puzzles=puzzles(seed), budget=budget,
                                 trace_path=trace_path, cache_dir=cache_dir,
@@ -101,6 +105,7 @@ def generate_variant(*, facts: Facts, host: Host, hook: Hook, seed: int, run_dir
         draft = _check(round_, lines, facts, host, hook, seed, run_dir, out, qa) if lines else Draft(
             round=round_, lines=None, assembled=False, content_tier=None, lines_failures=[failed],
             grounding_failures=[], tier_failures=[], playthrough={})
+        draft = draft.model_copy(update={"seconds": time.monotonic() - started, "usd": budget.spent - spent})
         (out / "draft.json").write_text(draft.model_dump_json(indent=1))
         drafts.append(draft)
     last = drafts[-1]
@@ -111,4 +116,4 @@ def generate_variant(*, facts: Facts, host: Host, hook: Hook, seed: int, run_dir
         grounding_pass=last.assembled and not last.grounding_failures,
         tier_pass=last.assembled and not last.tier_failures, content_tier=last.content_tier,
         final_dir=str(drafts_dir / variant_id / f"round{last.round}") if last.assembled else None,
-        seconds=time.monotonic() - started, usd=budget.spent - spent)
+        seconds=sum(d.seconds for d in drafts), usd=sum(d.usd for d in drafts))
