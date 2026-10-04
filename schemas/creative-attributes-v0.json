@@ -37,6 +37,8 @@
         "kind": {"enum": ["app_mascot", "app_persona", "publisher_character", "none"]},
         "name": {"type": "string", "maxLength": 40},
         "art_ref": {"type": ["string", "null"], "description": "art crop file, e.g. s05.e01.art.png"},
+        "art_crop": {"type": ["array", "null"], "items": {"type": "integer"}, "minItems": 4, "maxItems": 4,
+                     "description": "box shown from the art file, [x0, y0, x1, y1] in its pixels; null shows all of it"},
         "evidence_id": {"type": ["string", "null"], "description": "element that shows the host in the app"}
       }
     },
@@ -59,7 +61,9 @@
         "screen_id": {"type": "string"},
         "claims": {"type": "array", "minItems": 1, "maxItems": 2,
           "items": {"type": "object", "additionalProperties": false, "required": ["text", "evidence_id"],
-                    "properties": {"text": {"type": "string", "maxLength": 90}, "evidence_id": {"type": "string"}}}}
+                    "properties": {"text": {"type": "string", "maxLength": 90}, "evidence_id": {"type": "string"}}}},
+        "crop": {"type": ["array", "null"], "items": {"type": "number"}, "minItems": 4, "maxItems": 4,
+                 "description": "box shown from the proof screen, [x0, y0, x1, y1] in content dp; null: cut automatically"}
       }
     },
     "copy": {

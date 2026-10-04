@@ -44,6 +44,7 @@ class Character(Strict):
     kind: CharacterKind
     name: str = Field(max_length=40)
     art_ref: str | None
+    art_crop: list[int] | None = Field(default=None, min_length=4, max_length=4)
     evidence_id: str | None
 
 
@@ -62,6 +63,7 @@ class Claim(Strict):
 class Proof(Strict):
     screen_id: str
     claims: list[Claim] = Field(min_length=1, max_length=2)
+    crop: list[float] | None = Field(default=None, min_length=4, max_length=4)  # content dp; None: assemble.proof_box
 
 
 class Copy(Strict):

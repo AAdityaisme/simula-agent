@@ -155,11 +155,16 @@ def render_and_validate(mock_dir: Path, model: ProductModel, screens: list[str],
     return ContractReport(passed=not errors, screens=screens, errors=errors)
 
 
+def content_size(device: Device = Device()) -> tuple[int, int]:
+    """The content area's size in content dp (411x838)."""
+    return int(device.w_px / device.scale), int((device.content_bottom_px - device.content_top_px) / device.scale)
+
+
 def content_dp(image: Image.Image, device: Device = Device()) -> Image.Image:
     """Brings a render or a real screenshot to content dp (411x838) for pixel comparison. Accepts a full
     device-size image (renders come out 1079x2399) or one already cropped to the content area."""
     content_h = device.content_bottom_px - device.content_top_px
-    size = (int(device.w_px / device.scale), int(content_h / device.scale))
+    size = content_size(device)
     image = image.convert("RGB")
     if image.size != (device.w_px, content_h):
         image = image.resize((device.w_px, device.h_px), Image.LANCZOS)

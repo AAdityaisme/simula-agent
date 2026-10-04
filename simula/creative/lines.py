@@ -137,8 +137,10 @@ def build_content(facts: Facts, host: Host, hook: Hook, seed: int, lines: HostLi
     """The variant's content: the seed's puzzles, the host table's proof picks and the fixed CTA beside the lines.
     Call it only on lines problems() passed; over-long lines fail Copy's validation."""
     return Content(variant_id=f"{host.id}-{hook}", app_name=facts.app_name,
-                   host=Character(kind=host.kind, name=host.name, art_ref=host.art, evidence_id=host.evidence_id),
+                   host=Character(kind=host.kind, name=host.name, art_ref=host.art, art_crop=host.art_crop,
+                                  evidence_id=host.evidence_id),
                    hook=hook, seed=seed, puzzles=make_puzzles(seed), copy=Copy(**lines.model_dump()),
                    proof=Proof(screen_id=host.proof_screen,
-                               claims=[Claim(text=p.text, evidence_id=p.evidence_id) for p in host.proof]),
+                               claims=[Claim(text=p.text, evidence_id=p.evidence_id) for p in host.proof],
+                               crop=host.proof_crop),
                    cta=CTA)

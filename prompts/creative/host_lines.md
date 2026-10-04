@@ -12,6 +12,8 @@ Rules:
 
 - Speak as the host, in the voice of the host's observed lines. Friendly, short, plain.
 - Follow the hook. "challenge": dare the player to get all three. "help_host": the host asks the player for help with three quick ones.
+- The puzzles were made for this ad, not taken from the app. The intro never suggests the app has puzzles or that they come from it; saying they are puzzles made for this ad is fine.
+- The end card follows a finished game, a skip and a player who stopped tapping alike. The end headline never thanks or praises the player for playing, solving or helping, and never says they finished; a question or a plain goodbye works on every path.
 - Make no claim about the app: no features, prices, plans, offers, results or comparisons. The end card's button is added by code.
 - Never use these words: free, $, price, premium, unlimited, discount.
 - Never use any of the forbidden terms you are given. They are the app's feature names.

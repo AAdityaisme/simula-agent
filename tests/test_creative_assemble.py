@@ -1,11 +1,16 @@
 import base64
 import hashlib
+import io
 import re
 
 import pytest
+from PIL import Image
 from playwright.sync_api import sync_playwright
 
-from simula.creative.assemble import CONCEPT, SPONSORED, assemble, visible_strings, write_variant
+from simula.contracts import ProductModel, Rect
+from simula.creative.assemble import SKIP, SPONSORED, assemble, concept, proof_box, visible_strings, write_variant
+from simula.creative.facts import build_facts
+from simula.creative.lines import build_content
 from simula.creative.schema import Character, Claim, Content, Copy, Proof, Puzzle
 from tests.conftest import ROOT
 
@@ -30,10 +35,16 @@ def teacher_content(**copy) -> Content:
                  Puzzle(family="next_in_sequence", prompt="2, 5, 8, 11, ?", options=["17", "14", "15"], answer=1),
                  Puzzle(family="unscramble_word", prompt="LCNEPI", options=["PENCIL", "RULER", "CHALK"], answer=0)],
         copy=Copy(**lines),
-        proof=Proof(screen_id="s15", claims=[
-            Claim(text="I am Teacher, your personal tutor.", evidence_id="s15.e02"),
-            Claim(text="I'm here to resolve your doubts, clarify those difficult concepts", evidence_id="s15.e02")]),
+        proof=Proof(screen_id="s15", claims=[Claim(text="I am Teacher, your personal tutor.", evidence_id="s15.e02")],
+                    crop=next(h for h in build_facts(RUN).hosts if h.id == "teacher").proof_crop),
         cta="Install Now")
+
+
+def toki_content() -> Content:
+    """The Toki variant as build_content makes it from the host table, with teacher_content's lines."""
+    facts = build_facts(RUN)
+    toki = next(h for h in facts.hosts if h.id == "toki")
+    return build_content(facts, toki, "help_host", 7, teacher_content().copy_)
 
 
 @pytest.fixture(scope="module")
@@ -106,7 +117,8 @@ def test_every_string_on_screen_is_a_review_row(browser, tmp_path):
     assert page.evaluate("() => window.simulaCreative.state()") == "end"
     assert shown - {string for _, string, _ in visible_strings(content)} == set()
     assert {"Teacher", content.copy_.intro, content.copy_.wrong_hint, content.proof.claims[0].text,
-            content.copy_.end_headline, "Install Now", SPONSORED, CONCEPT} <= shown
+            "From Teacher's screen in Luzia", content.copy_.end_headline, "Luzia", "Install Now", SPONSORED,
+            "Concept ad, not affiliated with Luzia, not served", "Skip puzzles"} <= shown
     page.close()
 
 
@@ -127,3 +139,122 @@ def test_host_art_is_never_drawn_above_125_percent_of_its_pixels(browser, tmp_pa
         return [i.getBoundingClientRect().width, i.naturalWidth]; }""")
     assert natural == 318 and 0 < width <= natural * 1.25
     page.close()
+
+
+def model_state(screen_id):
+    model = ProductModel.model_validate_json((RUN / "model" / "product_model.json").read_text())
+    return next(s for s in model.states if s.id == screen_id)
+
+
+def holds(box, rect) -> bool:
+    return box[0] <= rect.x and box[1] <= rect.y and rect.x + rect.w <= box[2] and rect.y + rect.h <= box[3]
+
+
+def meets(box, rect) -> bool:
+    return rect.x < box[2] and box[0] < rect.x + rect.w and rect.y < box[3] and box[1] < rect.y + rect.h
+
+
+def test_the_teacher_proof_crop_is_the_greeting_under_the_screen_header():
+    state = model_state("s15")
+    rects = {e.id: e.rect_dp for e in state.elements}
+    box = proof_box(state, {"s15.e02"}, (411, 838))
+    assert holds(box, rects["s15.e02"]) and holds(box, rects["s15.e13"]) and box[1] == 0
+    assert box[3] < rects["s15.e06"].y
+
+
+def test_the_toki_proof_crop_holds_its_claim_and_no_piece_of_the_line_below():
+    state = model_state("s01")
+    rects = {e.id: e.rect_dp for e in state.elements}
+    box = proof_box(state, {"s01.e26"}, (411, 838))
+    assert holds(box, rects["s01.e26"])
+    assert not meets(box, rects["s01.e27"]) and not meets(box, rects["s01.e23"])
+
+
+@pytest.mark.parametrize("make", [teacher_content, toki_content], ids=["teacher", "toki"])
+def test_the_proof_card_quotes_its_claim_under_an_attribution_on_a_legible_crop(browser, tmp_path, make):
+    content = make()
+    path = write_variant(content, RUN, tmp_path / "v")
+    page = browser.new_page(viewport={"width": 390, "height": 844})
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.clock.install(time=0)
+    page.goto(path.resolve().as_uri())
+    page.clock.run_for(3000)
+    for puzzle in content.puzzles:
+        page.click(f'.option[data-index="{puzzle.answer}"]')
+        page.clock.run_for(800)
+    assert page.evaluate("() => window.simulaCreative.state()") == "proof"
+    label, quotes, scale = page.evaluate("""() => {
+        const shot = document.getElementById('proof-shot');
+        return [document.getElementById('proof-label').textContent,
+                [...document.querySelectorAll('#claims .claim')].map(q => [q.tagName, q.textContent]),
+                shot.getBoundingClientRect().width / shot.naturalWidth]; }""")
+    assert label == f"From {content.host.name}'s screen in Luzia"
+    assert quotes == [["Q", claim.text] for claim in content.proof.claims]
+    assert scale >= 0.8  # content dp to CSS px: an app's 14 dp body text stays at least 11 px tall
+    assert errors == []
+    page.close()
+
+
+@pytest.mark.parametrize("leave", ["skip", "idle"])
+def test_the_end_card_names_the_app_when_the_player_leaves_the_puzzles(browser, tmp_path, leave):
+    path = write_variant(teacher_content(), RUN, tmp_path / "v")
+    page = browser.new_page(viewport={"width": 390, "height": 844})
+    page.clock.install(time=0)
+    page.goto(path.resolve().as_uri())
+    page.clock.run_for(4000)
+    if leave == "skip":
+        page.click("#skip")
+    else:
+        page.clock.run_for(10_000)
+    assert page.evaluate("() => window.simulaCreative.state()") == "end"
+    assert page.locator("#end-app").inner_text() == "Luzia" and page.locator("#end-app").is_visible()
+    page.close()
+
+
+def test_the_skip_and_concept_lines_name_what_they_mean():
+    rows = visible_strings(teacher_content())
+    assert (SKIP, concept("Luzia")) == ("Skip puzzles", "Concept ad, not affiliated with Luzia, not served")
+    assert {("all", SKIP, "template"), ("all", concept("Luzia"), "template"), ("end", "Luzia", "code"),
+            ("proof", "From Teacher's screen in Luzia", "template")} <= set(rows)
+
+
+def test_the_toki_art_is_inlined_cut_to_its_crop_box():
+    content = toki_content()
+    art = re.search(r'"art": "data:image/png;base64,([A-Za-z0-9+/=]+)"', assemble(content, RUN)).group(1)
+    x0, y0, x1, y1 = content.host.art_crop
+    with Image.open(io.BytesIO(base64.b64decode(art))) as image:
+        assert image.size == (x1 - x0, y1 - y0)
+
+
+def state_with(*rows):
+    """s15 with its elements replaced by (id, text, x, y, w, h) rows, in that order (red team, PR 70)."""
+    s15 = model_state("s15")
+    elements = [s15.elements[0].model_copy(update={"id": i, "text": t, "rect_dp": Rect(x=x, y=y, w=w, h=h)})
+                for i, t, x, y, w, h in rows]
+    return s15.model_copy(update={"elements": elements})
+
+
+def half_shown(box, state, cited):
+    return [e.id for e in state.elements
+            if e.id not in cited and e.text.strip() and meets(box, e.rect_dp) and not holds(box, e.rect_dp)]
+
+
+@pytest.mark.parametrize("rows", [
+    [("title", "Screen title", 20, 10, 300, 24), ("claim", "The claim", 100, 100, 200, 40),
+     ("time", "2 days ago", 10, 130, 60, 30)],
+    [("title", "Screen title", 20, 10, 380, 24), ("claim", "The claim", 16, 100, 200, 40),
+     ("time", "SEE MORE", 300, 130, 90, 30)],
+], ids=["label_left", "label_right"])
+def test_a_label_beside_the_claim_does_not_cut_a_line_the_box_already_passed(rows):
+    state = state_with(*rows)
+    assert half_shown(proof_box(state, {"claim"}, (411, 838)), state, {"claim"}) == []
+
+
+@pytest.mark.parametrize("make", [teacher_content, toki_content], ids=["teacher", "toki"])
+def test_a_host_proof_crop_replaces_the_automatic_box(make):
+    content = make()
+    shot = re.search(r'"shot": "data:image/png;base64,([A-Za-z0-9+/=]+)"', assemble(content, RUN)).group(1)
+    x0, y0, x1, y1 = content.proof.crop
+    with Image.open(io.BytesIO(base64.b64decode(shot))) as image:
+        assert image.size == (round(x1) - round(x0), round(y1) - round(y0))

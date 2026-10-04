@@ -46,7 +46,8 @@ def test_luzia_scope_unsafe_flag_hosts_and_allowed_strings():
     allowed = {a.evidence_id: a for a in facts.allowed}
     assert allowed["s15.e02"].text.startswith("Hello! I am Teacher, your personal tutor.")
     assert allowed["s01.e26"].text == "Meet Toki, your virtual pet!"
-    assert allowed["s01.e26"].cited_by == ["host:toki", "m2"]
+    assert allowed["s01.e26"].cited_by == ["m2"]
+    assert allowed["s05.e03"].text == "Tok-Tok! I'm Toki and I need your help!" and "host:toki" in allowed["s05.e03"].cited_by
     assert "s06.e18" not in allowed
     assert all(a.screen in SAFE and a.text.strip() for a in facts.allowed)
     assert [h.id for h in facts.hosts] == ["teacher", "toki"]
@@ -156,3 +157,71 @@ def test_a_host_whose_art_comes_from_an_unsafe_screen_is_refused(tmp_path):
                                            (" I am Teacher", False), ("Teacher, ", False)])
 def test_an_excerpt_is_a_stripped_piece_of_the_text_on_word_boundaries(text, excerpt):
     assert is_excerpt(text, "Hi! I am Teacher, your personal tutor!") is excerpt
+
+
+def test_toki_art_is_cropped_to_toki_and_teacher_art_is_not():
+    hosts = {h.id: h for h in build_facts(RUN).hosts}
+    assert hosts["teacher"].art_crop is None
+    x0, y0, x1, y1 = hosts["toki"].art_crop
+    assert 0 <= x0 < x1 <= 714 and 0 <= y0 < y1 <= 1149
+
+
+@pytest.mark.parametrize("box", [[215, 500, 715, 1065], [215, 500, 215, 1065], [-1, 0, 100, 100]])
+def test_an_art_crop_outside_the_art_is_refused(tmp_path, box):
+    table = json.loads((ROOT / "simula" / "creative" / "hosts" / "luzia.json").read_text())
+    table["hosts"][1]["art_crop"] = box
+    path = tmp_path / "hosts.json"
+    path.write_text(json.dumps(table))
+    with pytest.raises(SystemExit, match="art_crop"):
+        build_facts(RUN, path)
+
+
+def test_a_host_proof_pick_off_its_proof_screen_is_refused(tmp_path):
+    table = json.loads((ROOT / "simula" / "creative" / "hosts" / "luzia.json").read_text())
+    table["hosts"][0]["proof"] = [{"evidence_id": "s01.e14", "text": "Teacher"}]
+    path = tmp_path / "hosts.json"
+    path.write_text(json.dumps(table))
+    with pytest.raises(SystemExit, match="s01.e14 is not on its proof screen s15"):
+        build_facts(RUN, path)
+
+
+def test_each_host_has_a_proof_crop_inside_the_content_frame():
+    for host in build_facts(RUN).hosts:
+        x0, y0, x1, y1 = host.proof_crop
+        assert 0 <= x0 < x1 <= 411 and 0 <= y0 < y1 <= 838
+
+
+@pytest.mark.parametrize("box", [[0, 0, 412, 136], [0, 136, 411, 136], [0, -1, 411, 136]])
+def test_a_proof_crop_outside_the_content_frame_is_refused(tmp_path, box):
+    table = json.loads((ROOT / "simula" / "creative" / "hosts" / "luzia.json").read_text())
+    table["hosts"][0]["proof_crop"] = box
+    path = tmp_path / "hosts.json"
+    path.write_text(json.dumps(table))
+    with pytest.raises(SystemExit, match="proof_crop"):
+        build_facts(RUN, path)
+
+
+def test_a_host_proof_pick_outside_the_content_frame_is_refused(tmp_path):
+    def push_down(model):
+        element = next(e for s in model["states"] for e in s["elements"] if e["id"] == "s15.e02")
+        element["rect_dp"]["y"] = 900
+    run = copy_run(tmp_path, push_down)
+    with pytest.raises(SystemExit, match="s15.e02 is not inside the content frame"):
+        build_facts(run)
+
+
+def test_a_proof_crop_that_misses_its_cited_element_is_refused(tmp_path):
+    table = json.loads((ROOT / "simula" / "creative" / "hosts" / "luzia.json").read_text())
+    table["hosts"][0]["proof_crop"] = [0, 0, 411, 60]
+    path = tmp_path / "hosts.json"
+    path.write_text(json.dumps(table))
+    with pytest.raises(SystemExit, match="proof_crop .* misses s15.e02"):
+        build_facts(RUN, path)
+
+
+def test_a_full_width_pick_that_overhangs_the_rounded_frame_by_under_half_a_dp_is_kept(tmp_path):
+    def widen(model):
+        element = next(e for s in model["states"] for e in s["elements"] if e["id"] == "s15.e02")
+        element["rect_dp"].update(x=0.0, w=411.43)
+    hosts = {h.id: h for h in build_facts(copy_run(tmp_path, widen)).hosts}
+    assert hosts["teacher"].proof[0].evidence_id == "s15.e02"

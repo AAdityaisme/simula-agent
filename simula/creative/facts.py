@@ -7,10 +7,15 @@ import re
 from pathlib import Path
 from typing import Literal
 
+from PIL import Image
+from pydantic import Field
+
 from simula.contracts import ContentRating, ProductModel, Strict
+from simula.render import content_size
 from simula.stages.mock import StartTags
 
 HOSTS = Path(__file__).with_name("hosts")
+SLACK_DP = 0.5  # content_size rounds the frame down; full-width elements reach 411.4 dp on a 411 dp frame
 
 
 class ProofPick(Strict):
@@ -23,9 +28,11 @@ class Host(Strict):
     name: str
     kind: Literal["app_mascot", "app_persona"]
     art: str
+    art_crop: list[int] | None = Field(default=None, min_length=4, max_length=4)  # [x0, y0, x1, y1] in the art's pixels
     evidence_id: str
     greetings: list[str]
     proof_screen: str
+    proof_crop: list[float] | None = Field(default=None, min_length=4, max_length=4)  # [x0, y0, x1, y1] in content dp
     proof: list[ProofPick]
 
 
@@ -71,7 +78,9 @@ def build_facts(run_dir: Path, hosts_path: Path | None = None) -> Facts:
     proof string is the text of an element on a safe-scope screen that an observed or inferred mechanic or a
     value-ledger item cites, or that the host table lists; a mechanic of unknown status counts for nothing. Raises
     SystemExit when the run has no approved mock or QA report, a host-table id is not on a safe-scope screen, or a host
-    proof pick is not a word-boundary excerpt of its element's text."""
+    proof pick is not a word-boundary excerpt of its element's text, not on the host's proof screen or not inside the
+    content frame (within SLACK_DP), or a host's art_crop or proof_crop is not a box inside its art or the content
+    frame, or a proof_crop misses a proof pick's element."""
     model = ProductModel.model_validate_json((run_dir / "model" / "product_model.json").read_text())
     manifest = json.loads((run_dir / "manifest.json").read_text())
     mock = run_dir / "qa" / "approved" / "index.html"
@@ -96,6 +105,7 @@ def build_facts(run_dir: Path, hosts_path: Path | None = None) -> Facts:
     safe = [s.id for s in model.states if s.id not in excluded]
     elements = {e.id: (s.id, e) for s in model.states for e in s.elements}
     table = HostTable.model_validate_json((hosts_path or HOSTS / f"{model.app}.json").read_text())
+    width, height = content_size(model.device)
     for host in table.hosts:
         art_element = host.art.removesuffix(".art.png")
         ids = [host.evidence_id, *host.greetings, *(p.evidence_id for p in host.proof), art_element]
@@ -105,10 +115,35 @@ def build_facts(run_dir: Path, hosts_path: Path | None = None) -> Facts:
         for pick in host.proof:
             if not is_excerpt(pick.text, elements[pick.evidence_id][1].text):
                 raise SystemExit(f"hosts table, {host.id}: proof {pick.text!r} is not an excerpt of {pick.evidence_id}")
+            if elements[pick.evidence_id][0] != host.proof_screen:
+                raise SystemExit(f"hosts table, {host.id}: proof {pick.evidence_id} is not on its proof screen "
+                                 f"{host.proof_screen}, which is cropped to it")
+            r = elements[pick.evidence_id][1].rect_dp
+            if not (-SLACK_DP <= r.x and -SLACK_DP <= r.y and r.x + r.w <= width + SLACK_DP
+                    and r.y + r.h <= height + SLACK_DP):
+                raise SystemExit(f"hosts table, {host.id}: proof {pick.evidence_id} is not inside the content frame "
+                                 f"({width}x{height} dp)")
+        if host.proof_crop:
+            x0, y0, x1, y1 = host.proof_crop
+            if not (0 <= x0 < x1 <= width and 0 <= y0 < y1 <= height):
+                raise SystemExit(f"hosts table, {host.id}: proof_crop {host.proof_crop} is not a box inside the "
+                                 f"content frame ({width}x{height} dp)")
+            for pick in host.proof:
+                r = elements[pick.evidence_id][1].rect_dp
+                if not (r.x < x1 and x0 < r.x + r.w and r.y < y1 and y0 < r.y + r.h):
+                    raise SystemExit(f"hosts table, {host.id}: proof_crop {host.proof_crop} misses "
+                                     f"{pick.evidence_id}, so the card would quote words its screenshot does not show")
         if host.proof_screen not in safe:
             raise SystemExit(f"hosts table, {host.id}: proof screen {host.proof_screen} is not in the safe scope")
-        if not (run_dir / "qa" / "approved" / "assets" / host.art).exists():
+        art = run_dir / "qa" / "approved" / "assets" / host.art
+        if not art.exists():
             raise SystemExit(f"hosts table, {host.id}: no art file qa/approved/assets/{host.art}")
+        if host.art_crop:
+            x0, y0, x1, y1 = host.art_crop
+            with Image.open(art) as image:
+                if not (0 <= x0 < x1 <= image.width and 0 <= y0 < y1 <= image.height):
+                    raise SystemExit(f"hosts table, {host.id}: art_crop {host.art_crop} is not a box inside "
+                                     f"{host.art} ({image.width}x{image.height})")
     cited: dict[str, list[str]] = {}
     for mechanic in model.mechanics:
         if mechanic.status in ("observed", "inferred"):

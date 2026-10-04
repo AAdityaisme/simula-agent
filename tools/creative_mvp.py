@@ -45,8 +45,9 @@ GENERATOR = "creative-v0"
 REVIEW_FIELDS = ("variant", "screen", "string", "source", "verdict", "edit")
 VERDICTS = ("ok", "edit", "reject")  # least to most strict: a merge keeps the strictest
 REVIEWER = re.compile(r"\w[\w .-]*")
-NUMBERS = ("variants_total", "first_pass_accept", "final_accept", "review_edits", "usd_total", "usd_per_accepted",
-           "seconds_per_variant", "starvation_share", "starvation_ci", "starvation_requests", "wrapper_min_propensity")
+NUMBERS = ("variants_total", "first_pass_accept", "final_checks_pass", "final_accept", "review_edits", "usd_total",
+           "usd_per_accepted", "seconds_per_variant", "starvation_share", "starvation_ci", "starvation_requests",
+           "wrapper_min_propensity")
 FIXTURE_LINES = HostLines(intro="Three quick ones!", captions=["One", "Two", "Three"], right_line="Yes!",
                           wrong_hint="Try again", end_headline="Done")
 EMAIL = (
@@ -57,7 +58,7 @@ EMAIL = (
     "advertiser's app (Luzia), and a fixed mini-game template has the app's own Teacher or Toki pose three quick "
     "puzzles that code generates and answers. A proof card shows only exact strings from the app, next to a real "
     "screenshot. On {variants_total} variants, {first_pass_accept} passed every automatic check on the first draft "
-    "and {final_accept} after one repair round and {read}, at ${usd_per_accepted} per accepted creative. On "
+    "and {final_checks_pass} after one repair round; {accepted}. On "
     "take-home 1's own held-out traffic, its ranker gave every unseen real creative zero chance in {starvation_share} "
     "of decisions where a seen one was eligible, so I added an exploration layer with exact logged probabilities. The "
     "limit: your sample advertisers are games, and my explorer reads element trees, so canvas games need a second "
@@ -245,7 +246,8 @@ def fingerprint(facts_json: str, facts: Facts, run_dir: Path, seed: int, qa: dic
     assembler inlines, the content config, the seed, the QA matrix, and the source of the creative package, its
     template, the host-line prompt and this runner. Saved drafts are reusable only under the same fingerprint."""
     art = [(run_dir / "qa" / "approved" / "assets" / host.art).read_bytes() for host in facts.hosts]
-    shots = [proof_png(run_dir, host.proof_screen) for host in facts.hosts]
+    shots = [proof_png(run_dir, host.proof_screen, {p.evidence_id for p in host.proof}, host.proof_crop)
+             for host in facts.hosts]
     code = [path.read_bytes() for path in sorted((ROOT / "simula" / "creative").glob("*.py"))]
     settings = json.dumps({"seed": seed, "paths": list(qa.get("paths", PATHS)),
                            "widths": list(qa.get("widths", WIDTHS)), "modes": list(qa.get("modes", MODES)),
@@ -354,7 +356,7 @@ def report(out: Path) -> dict:
         "status": "pending_review" if pending else "final", "app": facts.app_name, "run_id": facts.run_id,
         "seed": info["seed"],
         "variants_total": len(derived), "first_pass_accept": sum(r.first_pass_accept for r in derived),
-        "final_accept": accepted,
+        "final_checks_pass": sum(r.passed for r in derived), "final_accept": accepted,
         "review_edits": None if pending else sum(r.qa.review_edits for r in records.values()),
         "reviewers": [] if pending else list(dict.fromkeys(name for r in records.values() for name in r.qa.reviewers)),
         "usd_total": usd_total, "usd_per_accepted": round(usd_total / accepted, 4) if accepted else None,
@@ -383,12 +385,16 @@ def render_report(r: dict) -> str:
     def show(value):
         return "pending" if value is None else json.dumps(value)
     names = r["reviewers"]
-    read = (f"a read of every string by the model reviewers {', '.join(names[:-1])} and {names[-1]}" if names
-            else "a read of every string by model reviewers (still pending)")
-    email = EMAIL.format(read=read,
-        variants_total=r["variants_total"], first_pass_accept=r["first_pass_accept"],
-        final_accept="pending" if r["final_accept"] is None else r["final_accept"],
-        usd_per_accepted="pending" if r["usd_per_accepted"] is None else f"{r['usd_per_accepted']:.2f}",
+    if not r["final_checks_pass"]:
+        accepted = "none passed the automatic checks, so there was nothing to read"
+    elif r["final_accept"] is None:
+        accepted = "the model reviewers' read of every string is still pending"
+    else:
+        accepted = (f"after a read of every string by the model reviewers {', '.join(names[:-1])} and {names[-1]}, "
+                    + (f"{r['final_accept']} accepted, at ${r['usd_per_accepted']:.2f} per accepted creative"
+                       if r["final_accept"] else "none accepted"))
+    email = EMAIL.format(accepted=accepted, variants_total=r["variants_total"],
+        first_pass_accept=r["first_pass_accept"], final_checks_pass=r["final_checks_pass"],
         starvation_share="n/a" if r["starvation_share"] is None else f"{r['starvation_share']:.1%}")
     widths = sorted({w for cells in r["playthrough"].values() for w in cells}, key=int)
     lines = [
