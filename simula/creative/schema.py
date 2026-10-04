@@ -121,8 +121,9 @@ class QA(Strict):
     tier_pass: bool
     repair_round: Literal[0, 1]
     first_pass_accept: bool
-    human_verdict: Literal["pending", "accepted", "accepted_with_edits", "rejected"]
-    human_edits: int = Field(ge=0)
+    review_verdict: Literal["pending", "accepted", "accepted_with_edits", "rejected"]
+    review_edits: int = Field(ge=0)
+    reviewers: list[str]
 
 
 class Lineage(Strict):

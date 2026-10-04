@@ -80,15 +80,16 @@
     "qa": {
       "type": "object", "additionalProperties": false,
       "required": ["playthrough_pass", "grounding_pass", "tier_pass", "repair_round", "first_pass_accept",
-                   "human_verdict", "human_edits"],
+                   "review_verdict", "review_edits", "reviewers"],
       "properties": {
         "playthrough_pass": {"type": "boolean"},
         "grounding_pass": {"type": "boolean"},
         "tier_pass": {"type": "boolean"},
         "repair_round": {"enum": [0, 1]},
         "first_pass_accept": {"type": "boolean"},
-        "human_verdict": {"enum": ["pending", "accepted", "accepted_with_edits", "rejected"]},
-        "human_edits": {"type": "integer", "minimum": 0}
+        "review_verdict": {"enum": ["pending", "accepted", "accepted_with_edits", "rejected"]},
+        "review_edits": {"type": "integer", "minimum": 0},
+        "reviewers": {"type": "array", "items": {"type": "string"}, "description": "who read the strings; [] while pending"}
       }
     },
     "lineage": {

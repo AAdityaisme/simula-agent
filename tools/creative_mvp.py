@@ -1,7 +1,9 @@
-"""The creative-generation MVP on the committed Luzia run (spec section 6). Three commands, run from exp-connect:
+"""The creative-generation MVP on the committed Luzia run (spec section 6). Four commands, run from exp-connect:
 
     uv run python tools/creative_mvp.py run        # facts, 4 variants (paid, $6 cap), review.csv, starvation, report
-    uv run python tools/creative_mvp.py finalize   # after Aadi fills review.csv's verdict and edit columns
+    uv run python tools/creative_mvp.py merge --reviewer fable=PATH --reviewer astra=PATH
+                                                   # each model reviewer's filled copy of review.csv -> review.csv
+    uv run python tools/creative_mvp.py finalize   # applies the merged verdicts
     uv run python tools/creative_mvp.py check      # recomputes every number in report.md; exit 1 on a mismatch
 
 report.json is rebuilt from the files beside it (facts.json, run.json, variants/*, trace.jsonl, starvation/,
@@ -11,6 +13,7 @@ import argparse
 import csv
 import hashlib
 import json
+import re
 import shutil
 import statistics
 import sys
@@ -38,8 +41,8 @@ REQUESTS = 10_000
 BRIEF_ID = "br_luzia_v0_grid"
 GENERATOR = "creative-v0"
 REVIEW_FIELDS = ("variant", "screen", "string", "source", "verdict", "edit")
-VERDICTS = ("ok", "edit", "reject")
-NUMBERS = ("variants_total", "first_pass_accept", "final_accept", "human_edits", "usd_total", "usd_per_accepted",
+VERDICTS = ("ok", "edit", "reject")  # least to most strict: a merge keeps the strictest
+NUMBERS = ("variants_total", "first_pass_accept", "final_accept", "review_edits", "usd_total", "usd_per_accepted",
            "seconds_per_variant", "starvation_share", "starvation_ci", "starvation_requests", "wrapper_min_propensity")
 FIXTURE_LINES = HostLines(intro="Three quick ones!", captions=["One", "Two", "Three"], right_line="Yes!",
                           wrong_hint="Try again", end_headline="Done")
@@ -51,15 +54,18 @@ EMAIL = (
     "advertiser's app (Luzia), and a fixed mini-game template has the app's own Teacher or Toki pose three quick "
     "puzzles that code generates and answers. A proof card shows only exact strings from the app, next to a real "
     "screenshot. On {variants_total} variants, {first_pass_accept} passed every automatic check on the first draft "
-    "and {final_accept} after one repair round and my read of every string, at ${usd_per_accepted} per accepted "
-    "creative. On take-home 1's own held-out traffic, its ranker gave every unseen real creative zero chance in "
-    "{starvation_share} of decisions where a seen one was eligible, so I added an exploration layer with exact logged "
-    "probabilities. The limit: your sample advertisers are games, and my explorer reads element trees, so canvas games "
-    "need a second fact source (store listing or an advertiser brief). Could you share one representative advertiser "
-    "asset pack, and how a creative id joins to impressions and postbacks today?")
+    "and {final_accept} after one repair round and a read of every string by two model reviewers (Claude Fable 5.1 and "
+    "GPT-6 Astra), at ${usd_per_accepted} per accepted creative. On take-home 1's own held-out traffic, its ranker "
+    "gave every unseen real creative zero chance in {starvation_share} of decisions where a seen one was eligible, so "
+    "I added an exploration layer with exact logged probabilities. The limit: your sample advertisers are games, and "
+    "my explorer reads element trees, so canvas games need a second fact source (store listing or an advertiser "
+    "brief). Could you share one representative advertiser asset pack, and how a creative id joins to impressions and "
+    "postbacks today?")
 NOT_CLAIMED = (
     "No measured outcomes: no lift in CTR, installs, ROAS, revenue or engagement. Nothing was served.",
-    "Fun is untested: automation cannot establish it, and four variants and one reader cannot either.",
+    "Fun is untested: automation cannot establish it, and four variants and two model reviewers cannot either.",
+    "No person read the strings: two model reviewers did, independently, and the strictest verdict counts; their "
+    "sheets are kept beside review.csv.",
     "The puzzles are not Luzia's product: they are code-made homework puzzles hosted by Luzia characters.",
     "Traceable is not true: a proof claim is an exact string the explorer saw, traceable to an element.",
     "One app: nothing here shows the method transfers to Simula's game advertisers or to canvas apps.",
@@ -77,9 +83,13 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def read_review(out: Path) -> list[dict]:
-    with open(out / "review.csv", newline="") as f:
+def read_sheet(path: Path) -> list[dict]:
+    with open(path, newline="") as f:
         return list(csv.DictReader(f))
+
+
+def read_review(out: Path) -> list[dict]:
+    return read_sheet(out / "review.csv")
 
 
 def expected_rows(out: Path) -> list[tuple[str, str, str, str]]:
@@ -98,20 +108,61 @@ def write_review(out: Path) -> None:
         writer.writerows([*row, "", ""] for row in expected_rows(out))
 
 
-def human_read(out: Path) -> dict[str, tuple[str, str, int]]:
-    """Each passing variant's (status, human_verdict, human_edits) from review.csv. A variant is accepted only when
-    every string it shows has a verdict and none says reject; SystemExit when a string is missing or unread."""
-    rows = read_review(out)
+def unread(rows: list[dict], out: Path) -> str | None:
+    """Why a review sheet does not hold a verdict on exactly the strings the passing variants show, or None."""
     listed = [(row["variant"], row["screen"], row["string"], row["source"]) for row in rows]
     expected = expected_rows(out)
     if listed != expected:
         missing, extra = [row for row in expected if row not in listed], [row for row in listed if row not in expected]
-        raise SystemExit(f"review.csv must list exactly the strings the passing variants show, in order; missing "
-                         f"{len(missing)} (first {missing[:1]}), not shown {len(extra)} (first {extra[:1]})")
+        return (f"it must list exactly the strings the passing variants show, in order; missing {len(missing)} "
+                f"(first {missing[:1]}), not shown {len(extra)} (first {extra[:1]})")
     blank = [row for row in rows if row["verdict"] not in VERDICTS]
     if blank:
-        raise SystemExit(f"review.csv: {len(blank)} rows have no verdict (ok, edit or reject); the first is "
-                         f"{blank[0]['variant']} {blank[0]['string']!r}")
+        return (f"{len(blank)} rows have no verdict (ok, edit or reject); the first is {blank[0]['variant']} "
+                f"{blank[0]['string']!r}")
+    return None
+
+
+def merged(out: Path, sheets: dict[str, Path]) -> list[dict]:
+    """review.csv's rows from two or more reviewers' sheets: each string's strictest verdict, and every reviewer's
+    note as "name: note; name: note". SystemExit naming the reviewer when a sheet misses a string or a verdict."""
+    if len(sheets) < 2 or not all(re.fullmatch(r"[\w-]+", name) for name in sheets):
+        raise SystemExit(f"merge needs two or more reviewers named with letters, digits, _ or -; got {list(sheets)}")
+    copies = {}
+    for name, path in sheets.items():
+        copies[name] = read_sheet(path)
+        problem = unread(copies[name], out)
+        if problem:
+            raise SystemExit(f"{name}'s sheet {path}: {problem}")
+    return [{"variant": row["variant"], "screen": row["screen"], "string": row["string"], "source": row["source"],
+             "verdict": max((rows[i]["verdict"] for rows in copies.values()), key=VERDICTS.index),
+             "edit": "; ".join(f"{name}: {rows[i]['edit']}" for name, rows in copies.items() if rows[i]["edit"])}
+            for i, row in enumerate(next(iter(copies.values())))]
+
+
+def merge(out: Path, sheets: dict[str, Path]) -> None:
+    """Writes review.csv from the reviewers' sheets (see merged), keeps each sheet beside it as review-<name>.csv,
+    and records who reviewed in reviewers.json."""
+    rows = merged(out, sheets)
+    kept = {name: f"review-{name}.csv" for name in sheets}
+    for name, path in sheets.items():
+        if Path(path).resolve() != (out / kept[name]).resolve():
+            shutil.copy(path, out / kept[name])
+    with open(out / "review.csv", "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=REVIEW_FIELDS)
+        writer.writeheader()
+        writer.writerows(rows)
+    (out / "reviewers.json").write_text(json.dumps({"reviewers": list(sheets), "files": kept}, indent=1))
+
+
+def read_verdicts(out: Path) -> dict[str, tuple[str, str, int]]:
+    """Each passing variant's (status, review_verdict, review_edits) from the merged review.csv. A variant is accepted
+    only when every string it shows has a verdict and none says reject; SystemExit when a string is missing or
+    unread."""
+    rows = read_review(out)
+    problem = unread(rows, out)
+    if problem:
+        raise SystemExit(f"review.csv: {problem}")
     read = {}
     for variant in dict.fromkeys(row["variant"] for row in rows):
         verdicts = [row["verdict"] for row in rows if row["variant"] == variant]
@@ -134,7 +185,7 @@ def fingerprint(facts_json: str, facts: Facts, run_dir: Path, seed: int, qa: dic
 
 
 def attributes(content: Content, html: str, facts: Facts, result: VariantResult) -> CreativeAttributes:
-    """The attribute record of a variant that passed every code check, pending Aadi's read."""
+    """The attribute record of a variant that passed every code check, pending the reviewers' read."""
     return CreativeAttributes(
         schema_version=0, creative_id=creative_id(html), status="draft", format="INT",
         advertiser=Advertiser(app_package=facts.app_package, app_name=facts.app_name, app_version=facts.app_version,
@@ -147,7 +198,7 @@ def attributes(content: Content, html: str, facts: Facts, result: VariantResult)
         proof=content.proof, copy=content.copy_, end_card=EndCard(cta=content.cta),
         qa=QA(playthrough_pass=result.playthrough_pass, grounding_pass=result.grounding_pass,
               tier_pass=result.tier_pass, repair_round=result.repair_round, first_pass_accept=result.first_pass_accept,
-              human_verdict="pending", human_edits=0),
+              review_verdict="pending", review_edits=0, reviewers=[]),
         lineage=Lineage(brief_id=BRIEF_ID, parent_creative_id=None, generator_version=GENERATOR,
                         prompt_sha=sha256(PROMPT), template_sha=sha256(TEMPLATE)),
         provenance=dict(PROVENANCE))
@@ -210,7 +261,7 @@ def report(out: Path) -> dict:
                for p in sorted((out / "variants").glob("*/creative.json"))}
     star = json.loads((out / "starvation" / "starvation.json").read_text())
     wrap = json.loads((out / "wrapper.json").read_text())
-    pending = any(r.qa.human_verdict == "pending" for r in records.values())
+    pending = any(r.qa.review_verdict == "pending" for r in records.values())
     accepted = None if pending else sum(r.status == "accepted" for r in records.values())
     usd_total = round(sum(line.usd for line in read_trace(out / "trace.jsonl") if line.stage == "creative"), 4)
     table: dict[str, dict[str, list[int]]] = {}
@@ -221,11 +272,12 @@ def report(out: Path) -> dict:
             cell[0] += not found
             cell[1] += 1
     return {
-        "status": "pending_human_read" if pending else "final", "app": facts.app_name, "run_id": facts.run_id,
+        "status": "pending_review" if pending else "final", "app": facts.app_name, "run_id": facts.run_id,
         "seed": info["seed"],
         "variants_total": len(results), "first_pass_accept": sum(r.first_pass_accept for r in results),
         "final_accept": accepted,
-        "human_edits": None if pending else sum(r.qa.human_edits for r in records.values()),
+        "review_edits": None if pending else sum(r.qa.review_edits for r in records.values()),
+        "reviewers": [] if pending else list(dict.fromkeys(name for r in records.values() for name in r.qa.reviewers)),
         "usd_total": usd_total, "usd_per_accepted": round(usd_total / accepted, 4) if accepted else None,
         "seconds_per_variant": round(statistics.mean(r.seconds for r in results), 1) if results else None,
         "starvation_share": star["starvation_share"], "starvation_ci": star["starvation_ci"],
@@ -238,8 +290,8 @@ def report(out: Path) -> dict:
                       "tier_pass": r.tier_pass, "content_tier": r.content_tier,
                       "gate_tier": records[r.variant_id].gate_tier if r.variant_id in records else None,
                       "seconds": round(r.seconds, 1), "usd": round(r.usd, 4),
-                      "human_verdict": records[r.variant_id].qa.human_verdict if r.variant_id in records else None,
-                      "human_edits": records[r.variant_id].qa.human_edits if r.variant_id in records else None}
+                      "review_verdict": records[r.variant_id].qa.review_verdict if r.variant_id in records else None,
+                      "review_edits": records[r.variant_id].qa.review_edits if r.variant_id in records else None}
                      for r in results],
         "playthrough": table,
         "s04_fixture": json.loads((out / "s04_fixture.json").read_text()),
@@ -259,16 +311,17 @@ def render_report(r: dict) -> str:
     widths = sorted({w for cells in r["playthrough"].values() for w in cells}, key=int)
     lines = [
         f"# Creative generation MVP: {r['app']} (concept, not affiliated, not served)", "",
-        f"Status: {r['status']}. Run {r['run_id']}, puzzle seed {r['seed']}. "
+        f"Status: {r['status']}. Run {r['run_id']}, puzzle seed {r['seed']}. Strings read by model reviewers: "
+        f"{', '.join(r['reviewers']) or 'pending'} (the strictest verdict counts; no person read them). "
         "`uv run python tools/creative_mvp.py check` recomputes every number here from report.json and the files "
         "beside it.", "",
         "## Numbers", "", "| field | value |", "|---|---|", *[f"| {k} | {show(r[k])} |" for k in NUMBERS], "",
         "## Variants", "",
         "| variant | first pass | repair round | passed | playthrough | grounding | tier | content tier | gate tier "
-        "| seconds | $ | human verdict | edits |", "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+        "| seconds | $ | review verdict | edits |", "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
         *[f"| {v['variant']} | {v['first_pass_accept']} | {v['repair_round']} | {v['passed']} | {v['playthrough_pass']} "
           f"| {v['grounding_pass']} | {v['tier_pass']} | {show(v['content_tier'])} | {show(v['gate_tier'])} "
-          f"| {v['seconds']} | {v['usd']} | {show(v['human_verdict'])} | {show(v['human_edits'])} |"
+          f"| {v['seconds']} | {v['usd']} | {show(v['review_verdict'])} | {show(v['review_edits'])} |"
           for v in r["variants"]], "",
         "## Playthrough by path and width", "",
         "Runs passed / runs, over every variant's final draft and both timer modes.", "",
@@ -310,8 +363,8 @@ def run(run_dir: Path = RUN, out: Path = OUT, *, seed: int = SEED, cache_dir: Pa
         qa: dict | None = None, requests: int = REQUESTS) -> dict:
     """Facts, the 2 hosts x 2 hooks variants with QA and one repair round under the $6 cap, the review sheet, the s04
     fixture, starvation (reused when out/starvation/starvation.json exists) and the wrapper, then the report. Refuses
-    to start while review.csv holds a verdict, so a rerun never wipes Aadi's read. A rerun resumes from out/drafts
-    only under the same input fingerprint, and refuses before touching any file otherwise."""
+    to start while review.csv holds a verdict, so a rerun never wipes the reviewers' read. A rerun resumes from
+    out/drafts only under the same input fingerprint, and refuses before touching any file otherwise."""
     if (out / "review.csv").exists() and any(row["verdict"] for row in read_review(out)):
         raise SystemExit(f"{out / 'review.csv'} holds verdicts; move it away before a new run")
     facts = build_facts(run_dir)
@@ -342,22 +395,25 @@ def run(run_dir: Path = RUN, out: Path = OUT, *, seed: int = SEED, cache_dir: Pa
 
 
 def finalize(out: Path = OUT) -> dict:
-    """Applies Aadi's verdicts (see human_read): a variant with a rejected string fails, one with edits is
-    accepted_with_edits (edits are counted, not applied, in v0), the rest are accepted. Then rebuilds the report."""
-    read = human_read(out)
+    """Applies the merged review verdicts (see read_verdicts): a variant with a rejected string fails, one with edits
+    is accepted_with_edits (edits are counted, not applied, in v0), the rest are accepted. Then rebuilds the report."""
+    if not (out / "reviewers.json").exists():
+        raise SystemExit(f"{out / 'reviewers.json'} is missing; run merge first")
+    reviewers = json.loads((out / "reviewers.json").read_text())["reviewers"]
+    read = read_verdicts(out)
     for path in sorted((out / "variants").glob("*/creative.json")):
         status, verdict, edits = read[path.parent.name]
         record = CreativeAttributes.model_validate_json(path.read_text())
-        record = record.model_copy(update={"status": status,
-                                           "qa": record.qa.model_copy(update={"human_verdict": verdict,
-                                                                              "human_edits": edits})})
+        qa = record.qa.model_copy(update={"review_verdict": verdict, "review_edits": edits, "reviewers": reviewers})
+        record = record.model_copy(update={"status": status, "qa": qa})
         path.write_text(json.dumps(dump(record), indent=1))
     return write_report(out)
 
 
 def check(out: Path = OUT) -> list[str]:
-    """Everything report.json or report.md says that the files don't, a review sheet that misses a string, verdicts
-    that no longer match review.csv, and a wrapper.json the starvation decisions no longer give."""
+    """Everything report.json or report.md says that the files don't, a review sheet that misses a string, a
+    review.csv that is not the merge of the reviewers' sheets, verdicts that no longer match it, and a wrapper.json
+    the starvation decisions no longer give."""
     saved = json.loads((out / "report.json").read_text())
     fresh = report(out)
     found = [f"{key}: report.json has {saved.get(key)!r}, the files give {value!r}"
@@ -367,17 +423,27 @@ def check(out: Path = OUT) -> list[str]:
     rows = [(row["variant"], row["screen"], row["string"], row["source"]) for row in read_review(out)]
     records = {p.parent.name: CreativeAttributes.model_validate_json(p.read_text())
                for p in sorted((out / "variants").glob("*/creative.json"))}
+    reviewed = json.loads((out / "reviewers.json").read_text()) if (out / "reviewers.json").exists() else None
     if rows != expected_rows(out):
         found.append(f"review.csv has {len(rows)} rows; the passing variants show {len(expected_rows(out))} strings")
-    elif any(r.qa.human_verdict != "pending" for r in records.values()):
+    elif any(r.qa.review_verdict != "pending" for r in records.values()):
         try:
-            read = human_read(out)
+            read = read_verdicts(out)
         except SystemExit as e:
             found.append(str(e))
         else:
-            found += [f"{variant}: creative.json has {(r.status, r.qa.human_verdict, r.qa.human_edits)}, review.csv "
-                      f"gives {read[variant]}" for variant, r in records.items()
-                      if (r.status, r.qa.human_verdict, r.qa.human_edits) != read[variant]]
+            reviewers = reviewed["reviewers"] if reviewed else None
+            for variant, r in records.items():
+                has = (r.status, r.qa.review_verdict, r.qa.review_edits, r.qa.reviewers)
+                gives = (*read[variant], reviewers)
+                if has != gives:
+                    found.append(f"{variant}: creative.json has {has}, review.csv and reviewers.json give {gives}")
+    if reviewed:
+        try:
+            if read_review(out) != merged(out, {name: out / path for name, path in reviewed["files"].items()}):
+                found.append("review.csv is not the merge of the reviewers' sheets")
+        except SystemExit as e:
+            found.append(str(e))
     if not (out / "starvation" / "starvation_decisions.jsonl").exists():
         found.append("wrapper.json not rechecked: starvation/starvation_decisions.jsonl is git-ignored and absent here")
         return found
@@ -389,7 +455,9 @@ def check(out: Path = OUT) -> list[str]:
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Creative-generation MVP on the committed Luzia run")
-    parser.add_argument("command", choices=("run", "finalize", "check"))
+    parser.add_argument("command", choices=("run", "merge", "finalize", "check"))
+    parser.add_argument("--reviewer", action="append", default=[], metavar="NAME=PATH",
+                        help="merge: one reviewer's filled copy of review.csv; give two or more")
     parser.add_argument("--run", type=Path, default=RUN)
     parser.add_argument("--out", type=Path, default=OUT)
     parser.add_argument("--seed", type=int, default=SEED)
@@ -398,6 +466,13 @@ def main(argv: list[str] | None = None) -> None:
         found = check(args.out)
         print("\n".join(found) or "report.md, report.json and review.csv match the files")
         sys.exit(1 if found else 0)
+    if args.command == "merge":
+        pairs = [arg.partition("=") for arg in args.reviewer]
+        if any(not name or not path for name, _, path in pairs) or len({name for name, _, _ in pairs}) != len(pairs):
+            parser.error("--reviewer takes NAME=PATH, one distinct NAME per reviewer")
+        merge(args.out, {name: Path(path) for name, _, path in pairs})
+        print(f"review.csv merged from {', '.join(name for name, _, _ in pairs)}")
+        return
     if args.command == "run":
         config.load_env()
         result = run(args.run, args.out, seed=args.seed)

@@ -54,25 +54,28 @@ def run(mvp, tmp_path):
 
 
 def fill_review(mvp, out, first_verdict="edit"):
-    rows = mvp.read_review(out)
-    for row in rows:
-        row["verdict"] = "ok"
-    rows[0]["verdict"], rows[0]["edit"] = first_verdict, "Sponsored mini-game"
-    write_rows(mvp, out, rows)
+    """Two reviewers' sheets, merged: fable gives the first string first_verdict, astra says ok to every string."""
+    sheets = {}
+    for name, verdict in (("fable", first_verdict), ("astra", "ok")):
+        rows = [dict(row, verdict="ok") for row in mvp.read_review(out)]
+        rows[0]["verdict"], rows[0]["edit"] = verdict, "" if verdict == "ok" else "Sponsored mini-game"
+        sheets[name] = write_rows(mvp, out.parent / f"{name}.csv", rows)
+    mvp.merge(out, sheets)
 
 
-def write_rows(mvp, out, rows):
-    with open(out / "review.csv", "w", newline="") as f:
+def write_rows(mvp, path, rows):
+    with open(path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=mvp.REVIEW_FIELDS)
         writer.writeheader()
         writer.writerows(rows)
+    return path
 
 
 def test_run_finalize_and_check_recompute_every_number(mvp, calls, tmp_path):
     out = tmp_path / "out"
     report = run(mvp, tmp_path)
     assert (report["variants_total"], report["first_pass_accept"], report["final_accept"]) == (4, 4, None)
-    assert report["status"] == "pending_human_read" and len(calls) == 4
+    assert report["status"] == "pending_review" and len(calls) == 4
     assert report["wrapper_min_propensity"] == pytest.approx(0.025)
     assert report["s04_fixture"]["rejected"] is True
     assert (report["exploration_set_mean"], report["pctr_gap_median"]) == (1.333, 0.01)
@@ -80,14 +83,20 @@ def test_run_finalize_and_check_recompute_every_number(mvp, calls, tmp_path):
     contents = [Content.model_validate_json(p.read_text()) for p in sorted((out / "variants").glob("*/content.json"))]
     assert len(mvp.read_review(out)) == sum(len(visible_strings(c)) for c in contents) > 0
     record = CreativeAttributes.model_validate_json((out / "variants" / "teacher-challenge" / "creative.json").read_text())
-    assert (record.gate_tier, record.qa.human_verdict) == ("suggestive", "pending")
+    assert (record.gate_tier, record.qa.review_verdict, record.qa.reviewers) == ("suggestive", "pending", [])
     assert json.loads((out / "variants" / "toki-help_host" / "adset.json").read_text())["character_names"] == ["Toki"]
     fill_review(mvp, out)
     final = mvp.finalize(out)
-    assert (final["status"], final["final_accept"], final["human_edits"]) == ("final", 4, 1)
+    assert (final["status"], final["final_accept"], final["review_edits"]) == ("final", 4, 1)
+    assert final["reviewers"] == ["fable", "astra"]
+    record = CreativeAttributes.model_validate_json((out / "variants" / "teacher-challenge" / "creative.json").read_text())
+    assert (record.qa.review_verdict, record.qa.reviewers) == ("accepted_with_edits", ["fable", "astra"])
     assert final["usd_per_accepted"] == pytest.approx(final["usd_total"] / 4, abs=1e-4)
     assert mvp.check(out) == []
-    assert "On 4 variants, 4 passed every automatic check on the first draft and 4 after" in (out / "report.md").read_text()
+    md = (out / "report.md").read_text()
+    assert "On 4 variants, 4 passed every automatic check on the first draft and 4 after" in md
+    assert "a read of every string by two model reviewers" in md and "No person read the strings" in md
+    assert "human" not in md.lower() + (out / "report.json").read_text().lower()
 
 
 def test_a_rejected_string_fails_its_variant(mvp, calls, tmp_path):
@@ -95,7 +104,7 @@ def test_a_rejected_string_fails_its_variant(mvp, calls, tmp_path):
     run(mvp, tmp_path)
     fill_review(mvp, out, first_verdict="reject")
     final = mvp.finalize(out)
-    assert (final["final_accept"], final["human_edits"]) == (3, 0)
+    assert (final["final_accept"], final["review_edits"]) == (3, 0)
     rejected = mvp.read_review(out)[0]["variant"]
     assert json.loads((out / "variants" / rejected / "creative.json").read_text())["status"] == "failed"
 
@@ -166,10 +175,10 @@ def test_finalize_refuses_a_review_that_misses_a_verdict(mvp, calls, tmp_path, d
         rows = [row for row in rows if row["variant"] != rows[0]["variant"]]
     else:
         rows[-1]["verdict"] = ""
-    write_rows(mvp, out, rows)
+    write_rows(mvp, out / "review.csv", rows)
     with pytest.raises(SystemExit, match="review.csv"):
         mvp.finalize(out)
-    assert all(json.loads(p.read_text())["qa"]["human_verdict"] == "pending"
+    assert all(json.loads(p.read_text())["qa"]["review_verdict"] == "pending"
                for p in (out / "variants").glob("*/creative.json"))
 
 
@@ -180,8 +189,50 @@ def test_check_catches_a_verdict_changed_after_finalize(mvp, calls, tmp_path):
     mvp.finalize(out)
     rows = mvp.read_review(out)
     rows[0]["verdict"] = "reject"
-    write_rows(mvp, out, rows)
-    assert [line for line in mvp.check(out) if line.startswith(rows[0]["variant"])]
+    write_rows(mvp, out / "review.csv", rows)
+    found = mvp.check(out)
+    assert [line for line in found if line.startswith(rows[0]["variant"])]
+    assert "review.csv is not the merge of the reviewers' sheets" in found
+
+
+def test_merge_keeps_the_strictest_verdict_and_every_note(mvp, calls, tmp_path):
+    out = tmp_path / "out"
+    run(mvp, tmp_path)
+    pairs = [("ok", "ok", "ok"), ("ok", "edit", "edit"), ("edit", "reject", "reject"), ("reject", "ok", "reject"),
+             ("edit", "edit", "edit")]
+    sheets = {}
+    for i, name in enumerate(("fable", "astra")):
+        rows = [dict(row, verdict="ok") for row in mvp.read_review(out)]
+        for row, pair in zip(rows, pairs):
+            row["verdict"], row["edit"] = pair[i], "" if pair[i] == "ok" else f"{name} note"
+        sheets[name] = write_rows(mvp, tmp_path / f"{name}.csv", rows)
+    mvp.merge(out, sheets)
+    merged = mvp.read_review(out)
+    assert [row["verdict"] for row in merged[:5]] == [pair[2] for pair in pairs]
+    assert [row["edit"] for row in merged[:5]] == ["", "astra: astra note", "fable: fable note; astra: astra note",
+                                                   "fable: fable note", "fable: fable note; astra: astra note"]
+    assert all(row["verdict"] == "ok" for row in merged[5:])
+    assert json.loads((out / "reviewers.json").read_text())["reviewers"] == ["fable", "astra"]
+    assert mvp.check(out) == []
+
+
+def test_merge_refuses_a_sheet_that_misses_a_row(mvp, calls, tmp_path):
+    out = tmp_path / "out"
+    run(mvp, tmp_path)
+    rows = [dict(row, verdict="ok") for row in mvp.read_review(out)]
+    sheets = {"fable": write_rows(mvp, tmp_path / "fable.csv", rows),
+              "astra": write_rows(mvp, tmp_path / "astra.csv", rows[1:])}
+    with pytest.raises(SystemExit, match="astra.*missing 1"):
+        mvp.merge(out, sheets)
+    assert not (out / "reviewers.json").exists() and not any(row["verdict"] for row in mvp.read_review(out))
+
+
+def test_finalize_refuses_before_merge(mvp, calls, tmp_path):
+    out = tmp_path / "out"
+    run(mvp, tmp_path)
+    write_rows(mvp, out / "review.csv", [dict(row, verdict="ok") for row in mvp.read_review(out)])
+    with pytest.raises(SystemExit, match="run merge first"):
+        mvp.finalize(out)
 
 
 def test_check_catches_a_changed_starvation_decision(mvp, calls, tmp_path):
