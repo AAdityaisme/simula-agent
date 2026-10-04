@@ -330,7 +330,7 @@ def test_a_start_control_the_screen_no_longer_shows_is_never_tapped(tmp_path, mo
 
 # ---------- nothing app-specific ----------
 
-APP_WORDS = ["janitor", "luzia", "aol", "ooc"]
+APP_WORDS = ["janitor", "luzia", "aol", "ooc", "duolingo"]
 CONTENT = ["kang jun-seo", "nanami", "avarus", "harriet", "yagami", "vac the", "former husband", "gojo", "teacher",
            "toki", "wavemaker", "medieval fantasy", "real life world", "adrian & eleanor", "darko", "aaron",
            "mercenary", "pencil", "su fang", "countdown", "usa today", "vmas"]

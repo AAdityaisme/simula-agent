@@ -9,6 +9,8 @@ from tests.conftest import APPS
 from tests.propose_fixtures import golden
 
 # Apps the system is run on. Candy Crush is left out: it is a judge-validation app, and the bible cites it as a precedent.
+# Duolingo is left out for the same reason the bible gives: it is cited as a precedent, so only its explore is blind;
+# a Duolingo propose run would not be.
 APPS_RUN_ON = ["janitor", "luzia", "aol", "ooc", "perplexity"]
 
 
