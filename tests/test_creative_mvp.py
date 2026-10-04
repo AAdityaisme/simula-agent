@@ -445,3 +445,10 @@ def test_check_passes_on_an_out_folder_moved_after_run(mvp, calls, tmp_path):
     run(mvp, tmp_path)
     shutil.copytree(tmp_path / "out", tmp_path / "moved")
     assert mvp.check(tmp_path / "moved") == []
+
+
+def test_check_passes_a_clean_run_whose_spend_rounds_down(mvp, calls, tmp_path, monkeypatch):
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", lambda model, *args, **kwargs: llm.Reply(
+        text=json.dumps(CLEAN), model=model, tokens_in=1001, tokens_out=210))
+    assert run(mvp, tmp_path)["usd_total"] == 0.0164
+    assert mvp.check(tmp_path / "out") == []

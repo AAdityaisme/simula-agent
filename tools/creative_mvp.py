@@ -323,6 +323,11 @@ def wrapper(decisions) -> dict:
             "wrapper_min_propensity": None if lowest is None else round(lowest, 6)}
 
 
+def creative_spend(out: Path) -> float:
+    """Every creative call's spend in the trace, earlier runs included, unrounded."""
+    return sum(line.usd for line in read_trace(out / "trace.jsonl") if line.stage == "creative")
+
+
 def report(out: Path) -> dict:
     """Every number and table the report shows, recomputed from the files in out."""
     facts = Facts.model_validate_json((out / "facts.json").read_text())
@@ -334,7 +339,7 @@ def report(out: Path) -> dict:
     wrap = json.loads((out / "wrapper.json").read_text())
     pending = any(r.qa.review_verdict == "pending" for r in records.values())
     accepted = None if pending else sum(r.status == "accepted" for r in records.values())
-    usd_total = round(sum(line.usd for line in read_trace(out / "trace.jsonl") if line.stage == "creative"), 4)
+    usd_total = round(creative_spend(out), 4)
     table: dict[str, dict[str, list[int]]] = {}
     for result in derived:
         for run_name, found in result.drafts[-1].playthrough.items():
@@ -553,9 +558,9 @@ def check(out: Path = OUT) -> list[str]:
               for variant, result in derived.items()
               if VariantResult.model_validate_json((out / "variants" / variant / "result.json").read_text())
               .model_dump(exclude={"final_dir"}) != result.model_dump(exclude={"final_dir"})]  # absolute: out may move
-    spent = sum(result.usd for result in derived.values())
-    if spent > fresh["usd_total"] + 1e-6:
-        found.append(f"the drafts spent ${spent:.4f}, more than the trace's creative spend ${fresh['usd_total']:.4f}")
+    spent, traced = sum(result.usd for result in derived.values()), creative_spend(out)
+    if spent > traced + 1e-9:
+        found.append(f"the drafts spent ${spent:.6f}, more than the trace's creative spend ${traced:.6f}")
     if not (out / "starvation" / "starvation_decisions.jsonl").exists():
         found.append("wrapper.json and starvation.json not rechecked: starvation/starvation_decisions.jsonl is "
                      "git-ignored and absent here")
