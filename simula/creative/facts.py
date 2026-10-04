@@ -56,17 +56,30 @@ class Facts(Strict):
     terms: list[str]
 
 
+def is_excerpt(text: str, whole: str) -> bool:
+    """True when text is whole or an exact contiguous piece of it that cuts no word in two."""
+    start = r"\b" if re.match(r"\w", text) else ""
+    end = r"\b" if re.search(r"\w$", text) else ""
+    return bool(text.strip()) and re.search(start + re.escape(text) + end, whole) is not None
+
+
 def build_facts(run_dir: Path, hosts_path: Path | None = None) -> Facts:
     """Facts for one run. A state is in the safe scope when it is rated safe, sits in mock scope and the approved mock
-    draws it. An allowed proof string is the text of an element on a safe-scope screen that an observed or inferred
-    mechanic or a value-ledger item cites, or that the host table lists; a mechanic of unknown status counts for
-    nothing. Raises SystemExit when the run has no approved mock or a host-table id is not on a safe-scope screen."""
+    draws it: a placeholder section QA lists as undrawn does not count. An allowed proof string is the text of an
+    element on a safe-scope screen that an observed or inferred mechanic or a value-ledger item cites, or that the host
+    table lists; a mechanic of unknown status counts for nothing. Raises SystemExit when the run has no approved mock or
+    QA report, a host-table id is not on a safe-scope screen, or a host proof pick is not a word-boundary excerpt of its
+    element's text."""
     model = ProductModel.model_validate_json((run_dir / "model" / "product_model.json").read_text())
     manifest = json.loads((run_dir / "manifest.json").read_text())
     mock = run_dir / "qa" / "approved" / "index.html"
+    qa_report = run_dir / "qa" / "qa_report.json"
     if not mock.exists():
         raise SystemExit(f"{run_dir}: no approved mock at qa/approved/index.html")
-    drawn = set(re.findall(r'<section\b[^>]*\bdata-screen="([^"]+)"', mock.read_text()))
+    if not qa_report.exists():
+        raise SystemExit(f"{run_dir}: no QA report at qa/qa_report.json")
+    drawn = set(re.findall(r"""<section\b[^>]*\bdata-screen=["']?([^"'\s>]+)""", mock.read_text()))
+    drawn -= {u["screen"] for u in json.loads(qa_report.read_text()).get("undrawn_screens", [])}
     excluded = {}
     for state in model.states:
         if state.content_rating != "safe":
@@ -84,6 +97,9 @@ def build_facts(run_dir: Path, hosts_path: Path | None = None) -> Facts:
         for eid in ids:
             if eid not in elements or elements[eid][0] not in safe:
                 raise SystemExit(f"hosts table, {host.id}: {eid} is not an element on a safe-scope screen")
+        for pick in host.proof:
+            if not is_excerpt(pick.text, elements[pick.evidence_id][1].text):
+                raise SystemExit(f"hosts table, {host.id}: proof {pick.text!r} is not an excerpt of {pick.evidence_id}")
         if host.proof_screen not in safe:
             raise SystemExit(f"hosts table, {host.id}: proof screen {host.proof_screen} is not in the safe scope")
         if not (run_dir / "qa" / "approved" / "assets" / host.art).exists():

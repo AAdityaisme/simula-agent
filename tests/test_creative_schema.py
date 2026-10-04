@@ -97,6 +97,15 @@ def test_age_days_appears_only_once_set():
     assert json_schema_errors("creative-attributes-v0.json", record) == []
 
 
+def test_an_explicit_null_age_fails_both():
+    record = luzia_record()
+    record["age_days"] = None
+    record["provenance"]["age_days"] = "code"
+    with pytest.raises(ValidationError, match="age_days"):
+        CreativeAttributes.model_validate(record)
+    assert json_schema_errors("creative-attributes-v0.json", record) != []
+
+
 def test_the_example_brief_validates():
     brief = json.loads((SCHEMAS / "brief.example.json").read_text())
     assert Brief.model_validate(brief).brief_id == "br_example_luzia_0"

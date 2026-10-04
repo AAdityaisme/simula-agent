@@ -1,6 +1,8 @@
 import ast
 import importlib.util
 import json
+import os
+import subprocess
 import sys
 
 import pytest
@@ -37,6 +39,15 @@ def test_th1_runs_under_its_own_project_without_writing_in_its_tree(monkeypatch)
     assert "VIRTUAL_ENV" not in env
 
 
+def test_the_th1_paths_come_from_the_environment(tmp_path):
+    probe = ("from simula.creative import th1; import json; "
+             "print(json.dumps([th1.command('x.py')[4], th1.env()['PYTHONPATH'], str(th1.DATA), str(th1.BUNDLE)]))")
+    env = {**os.environ, "SIMULA_TH1": str(tmp_path / "th1"), "SIMULA_TH1_DATA": str(tmp_path / "data")}
+    done = subprocess.run([sys.executable, "-c", probe], cwd=ROOT, env=env, capture_output=True, text=True, check=True)
+    assert json.loads(done.stdout) == [str(tmp_path / "th1"), str(tmp_path / "th1"), str(tmp_path / "data"),
+                                       str(tmp_path / "th1" / "bundle")]
+
+
 def test_wilson_matches_known_intervals():
     tool = starvation_tool()
     assert tool.wilson(5, 10) == pytest.approx((0.2366, 0.7634), abs=1e-4)
@@ -66,6 +77,8 @@ def test_the_summary_counts_only_requests_with_a_seen_and_an_unseen_tuple():
     assert summary["starvation_ci"] == [round(v, 4) for v in tool.wilson(1, 2)]
     assert summary["exploration_set_size"] == {"mean": 1.25, "histogram": {"1": 3, "2": 1}}
     assert summary["unseen_tuples_with_unseen_C14_share"] == 1.0 and summary["seen_tuples_with_unseen_C14_share"] == 0.0
+    gap = summary["pctr_gap_top_unseen_to_leader"]
+    assert 0.004 <= gap["p10"] <= gap["median"] <= gap["p90"] <= 0.1, gap
 
 
 @pytest.mark.live

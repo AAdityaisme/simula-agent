@@ -1,11 +1,11 @@
 """CreativeAttributes v0, the generation brief, and the content JSON one creative is assembled from. The vocabulary is
-invented (v0). schemas/creative-attributes-v0.json and schemas/brief-v0.json state the same contracts as JSON Schema;
-the gate rule and the provenance rule are checked here only."""
+invented (v0). schemas/creative-attributes-v0.json and schemas/brief-v0.json state the same shapes as JSON Schema; the
+cross-field rules (the gate rule and the provenance rule) live only in these models."""
 
 import hashlib
 from typing import Annotated, Literal
 
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from simula.contracts import Strict
 
@@ -153,6 +153,14 @@ class CreativeAttributes(Strict):
     qa: QA
     lineage: Lineage
     provenance: dict[str, Stamp]
+
+    @field_validator("age_days", mode="before")
+    @classmethod
+    def age_is_omitted_not_null(cls, value):
+        """An unset age is left out, as the JSON Schema requires; None is only the in-memory default."""
+        if value is None:
+            raise ValueError("age_days must be an integer when present; omit it while unset")
+        return value
 
     @model_validator(mode="after")
     def gate_and_provenance(self):

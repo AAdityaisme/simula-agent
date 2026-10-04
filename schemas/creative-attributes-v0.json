@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "creative-attributes/v0",
   "title": "CreativeAttributes v0 (DRAFT, vocabulary invented)",
+  "description": "Shapes only. Two cross-field rules are enforced only by simula.creative.schema.CreativeAttributes: gate_tier == gate_for(content_tier, advertiser.has_unsafe_screens), and provenance stamps each present top-level field once. Validate with it before trusting gate_tier.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "creative_id", "status", "format", "advertiser", "content_tier", "gate_tier",

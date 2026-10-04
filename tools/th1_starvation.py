@@ -63,7 +63,7 @@ def summarize(records: list[dict], *, seed: int, feature_set: str, rows_all: int
     gaps = [r["gap"] for r in both]
     unseen_c14 = [c for r in records for c, u in zip(r["c14"], r["u"]) if u]
     seen_c14 = [c for r in records for c, u in zip(r["c14"], r["u"]) if not u]
-    deciles = statistics.quantiles(gaps, n=10) if len(gaps) > 1 else None
+    deciles = statistics.quantiles(gaps, n=10, method="inclusive") if len(gaps) > 1 else None
     return {
         "requests_sampled": len(records), "sample_seed": seed,
         "starvation_requests": len(both), "starved": len(starved),

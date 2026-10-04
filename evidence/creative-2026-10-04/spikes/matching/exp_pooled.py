@@ -1,3 +1,4 @@
+# Run once against an earlier a_data.pooled_test signature (inter=, three return values); does not run as committed.
 import a_data as A
 from lib import *
 df = prep(cache=True)

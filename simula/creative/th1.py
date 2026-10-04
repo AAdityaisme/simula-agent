@@ -1,6 +1,7 @@
-"""TH1 (take-home 1, /Users/aadi/simula-ctr) runs only as a subprocess: both repos ship a top-level `simula` package,
-so the tools/ scripts run under TH1's own uv project with TH1 on PYTHONPATH, and talk JSON. Nothing here writes in
-TH1's tree: --no-sync keeps uv off its .venv and PYTHONDONTWRITEBYTECODE keeps Python out of its __pycache__."""
+"""TH1 (take-home 1, at $SIMULA_TH1, default /Users/aadi/simula-ctr; its data at $SIMULA_TH1_DATA) runs only as a
+subprocess: both repos ship a top-level `simula` package, so the tools/ scripts run under TH1's own uv project with TH1
+on PYTHONPATH, and talk JSON. Nothing here writes in TH1's tree: --no-sync keeps uv off its .venv and
+PYTHONDONTWRITEBYTECODE keeps Python out of its __pycache__."""
 
 import json
 import os
@@ -10,8 +11,8 @@ from pathlib import Path
 
 from simula.config import ROOT
 
-TH1 = Path("/Users/aadi/simula-ctr")
-DATA = Path("/Users/aadi/Desktop/Simula/ml-takehome/data")
+TH1 = Path(os.environ.get("SIMULA_TH1", "/Users/aadi/simula-ctr"))
+DATA = Path(os.environ.get("SIMULA_TH1_DATA", "/Users/aadi/Desktop/Simula/ml-takehome/data"))
 BUNDLE = TH1 / "bundle"
 TOOLS = ROOT / "tools"
 SAMPLE_SEED = 20261004

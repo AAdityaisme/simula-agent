@@ -20,7 +20,21 @@ def copy_run(tmp_path, edit=None):
         edit(model)
     (run / "model" / "product_model.json").write_text(json.dumps(model))
     shutil.copytree(RUN / "qa" / "approved", run / "qa" / "approved")
+    shutil.copy(RUN / "qa" / "qa_report.json", run / "qa" / "qa_report.json")
     return run
+
+
+def undraw(run, sid):
+    """Swaps sid's section for the placeholder stage 3 draws when a batch fails, and records it in the QA report."""
+    mock = run / "qa" / "approved" / "index.html"
+    html = mock.read_text()
+    start = html.index(f'<section data-screen="{sid}"')
+    end = html.index("</section>", start) + len("</section>")
+    mock.write_text(html[:start] + f'<section data-screen="{sid}"><p>screen not drawn: refusal</p></section>' + html[end:])
+    report = run / "qa" / "qa_report.json"
+    qa = json.loads(report.read_text())
+    qa["undrawn_screens"] = [{"screen": sid, "reason": "refusal"}]
+    report.write_text(json.dumps(qa))
 
 
 def test_luzia_scope_unsafe_flag_hosts_and_allowed_strings():
@@ -56,6 +70,46 @@ def test_a_state_the_approved_mock_does_not_draw_is_out_of_scope(tmp_path):
     mock.write_text(mock.read_text().replace('<section data-screen="s07"', '<section data-gone="s07"'))
     facts = build_facts(run)
     assert facts.excluded["s07"] == "not_drawn" and "s07" not in facts.safe_scope
+
+
+@pytest.mark.parametrize("attr", ["data-screen='s07'", "data-screen=s07"])
+def test_a_section_with_single_or_no_quotes_counts_as_drawn(tmp_path, attr):
+    run = copy_run(tmp_path)
+    mock = run / "qa" / "approved" / "index.html"
+    mock.write_text(mock.read_text().replace('data-screen="s07"', attr))
+    assert "s07" in build_facts(run).safe_scope
+
+
+def test_a_placeholder_for_an_undrawn_screen_is_out_of_scope(tmp_path):
+    run = copy_run(tmp_path)
+    undraw(run, "s07")
+    facts = build_facts(run)
+    assert facts.excluded["s07"] == "not_drawn" and "s07" not in facts.safe_scope
+    assert all(a.screen != "s07" for a in facts.allowed)
+
+
+def test_a_host_whose_proof_screen_is_undrawn_is_refused(tmp_path):
+    run = copy_run(tmp_path)
+    undraw(run, "s15")
+    with pytest.raises(SystemExit, match="s15"):
+        build_facts(run)
+
+
+@pytest.mark.parametrize("text", ["I am Teacher, your personal tutor!", "am Teacher, your personal tu"])
+def test_a_host_proof_pick_that_is_not_a_word_boundary_excerpt_of_its_element_is_refused(tmp_path, text):
+    table = json.loads((ROOT / "simula" / "creative" / "hosts" / "luzia.json").read_text())
+    table["hosts"][0]["proof"][0]["text"] = text
+    path = tmp_path / "hosts.json"
+    path.write_text(json.dumps(table))
+    with pytest.raises(SystemExit, match="s15.e02"):
+        build_facts(RUN, path)
+
+
+def test_a_run_without_a_qa_report_is_refused(tmp_path):
+    run = copy_run(tmp_path)
+    (run / "qa" / "qa_report.json").unlink()
+    with pytest.raises(SystemExit, match="qa_report.json"):
+        build_facts(run)
 
 
 def test_a_host_whose_art_comes_from_an_unsafe_screen_is_refused(tmp_path):

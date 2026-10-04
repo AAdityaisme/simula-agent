@@ -51,7 +51,7 @@ Measurement (b), bundle B, 2,000 random test-window requests x 20 most common tr
 4. Bundle B: real test-window requests x fixed menu; character swapped through the contract's own fields (genre, tier, creator_type, age recomputed from created_at; checked equal to `add_flags`); drawn real characters from all 30 genre x tier cells, 2 draws each, plus feature-only overrides.
 5. Out-of-time check of the model's character-effect heterogeneity on all 127,406 test rows.
 
-Files: `lib.py` (loading, sparse IRLS), `a_data.py <B_pooled> <B_within>` (run with 40 100; about 18 min), `b_model.py 2000` (about 4 min cold, 35 s warm), `make_b_md.py`, `check_confound.py` (output in `confound_out.txt`), `exp_pooled.py` (found that lumping about 1,500 small surfaces into one "other" bucket manufactured the residual signal). `a_results.json`, `b_results.json` hold every number.
+Files: `lib.py` (loading, sparse IRLS), `a_data.py <B_pooled> <B_within>` (run with 40 100; about 18 min), `b_model.py 2000` (about 4 min cold, 35 s warm), `make_b_md.py`, `check_confound.py` (output in `confound_out.txt`), `exp_pooled.py` (found that lumping about 1,500 small surfaces into one "other" bucket manufactured the residual signal; it was run against an earlier `a_data.pooled_test` signature and does not run as committed). `a_results.json`, `b_results.json` hold every number.
 
 ## Caveats
 
