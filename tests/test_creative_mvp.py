@@ -117,3 +117,17 @@ def test_a_rerun_refuses_to_wipe_a_review_with_verdicts(mvp, calls, tmp_path):
     fill_review(mvp, out)
     with pytest.raises(SystemExit, match="holds verdicts"):
         run(mvp, tmp_path)
+
+
+def test_a_rerun_resumes_from_the_saved_drafts_without_calling_the_model(mvp, calls, tmp_path):
+    first = run(mvp, tmp_path)
+    (tmp_path / "cache").rename(tmp_path / "old-cache")
+    assert run(mvp, tmp_path) == first and len(calls) == 4
+    assert mvp.check(tmp_path / "out") == []
+
+
+def test_a_rerun_with_another_seed_refuses_the_saved_drafts(mvp, calls, tmp_path):
+    run(mvp, tmp_path)
+    with pytest.raises(SystemExit, match="new drafts dir"):
+        mvp.run(RUN, tmp_path / "out", seed=8, cache_dir=tmp_path / "cache", qa=ONE_RUN)
+    assert len(calls) == 4

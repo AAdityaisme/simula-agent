@@ -275,12 +275,12 @@ def run(run_dir: Path = RUN, out: Path = OUT, *, seed: int = SEED, cache_dir: Pa
         qa: dict | None = None, requests: int = REQUESTS) -> dict:
     """Facts, the 2 hosts x 2 hooks variants with QA and one repair round under the $6 cap, the review sheet, the s04
     fixture, starvation (reused when out/starvation/starvation.json exists) and the wrapper, then the report. Refuses
-    to start while review.csv holds a verdict, so a rerun never wipes Aadi's read."""
+    to start while review.csv holds a verdict, so a rerun never wipes Aadi's read. A rerun resumes from out/drafts
+    (generate_variant refuses drafts made from another seed or run, and an interrupted round)."""
     if (out / "review.csv").exists() and any(row["verdict"] for row in read_review(out)):
         raise SystemExit(f"{out / 'review.csv'} holds verdicts; move it away before a new run")
     out.mkdir(parents=True, exist_ok=True)
-    for folder in ("variants", "drafts"):
-        shutil.rmtree(out / folder, ignore_errors=True)
+    shutil.rmtree(out / "variants", ignore_errors=True)
     facts = build_facts(run_dir)
     (out / "facts.json").write_text(facts.model_dump_json(indent=1))
     (out / "run.json").write_text(json.dumps({"run_dir": str(run_dir), "seed": seed}, indent=1))
