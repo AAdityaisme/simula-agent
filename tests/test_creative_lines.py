@@ -1,0 +1,89 @@
+import json
+
+import pytest
+
+from simula import llm
+from simula.creative.facts import build_facts
+from simula.creative.lines import CTA, HostLines, build_content, problems, write_lines
+from simula.creative.puzzles import puzzles
+from simula.runlog import read_trace
+from tests.conftest import ROOT
+
+RUN = ROOT / "runs" / "luzia" / "20260929-204554-1f19585"
+CLEAN = {"intro": "Three quick ones. Can you get them all?",
+         "captions": ["Find x", "What comes next?", "Unscramble the word"], "right_line": "That's it!",
+         "wrong_hint": "Not quite, try again", "end_headline": "Keep learning every day"}
+
+
+@pytest.fixture(scope="module")
+def facts():
+    return build_facts(RUN)
+
+
+def host(facts, host_id="teacher"):
+    return next(h for h in facts.hosts if h.id == host_id)
+
+
+def recorded(reply: dict, seen: list):
+    """A provider that records each request's text and answers with the recorded reply."""
+    def provider(model, system, messages, effort, schema, max_tokens, total_timeout=None):
+        seen.append(messages[0]["content"][0]["text"])
+        return llm.Reply(text=json.dumps(reply), model=model, tokens_in=100, tokens_out=10)
+    return provider
+
+
+def call(tmp_path, facts, **extra):
+    return write_lines(facts=facts, host=host(facts), hook="challenge", puzzles=puzzles(7),
+                       budget=llm.Budget("creative", cap=6.0), trace_path=tmp_path / "trace.jsonl",
+                       cache_dir=tmp_path / "cache", **extra)
+
+
+@pytest.mark.parametrize("field, value, flag", [
+    ("intro", "x" * 91, "intro is 91 characters; the limit is 90"),
+    ("right_line", "It's free to keep going!", 'right_line uses the banned word "free"'),
+    ("end_headline", "Grow your own Toki today", 'end_headline names the app feature "Toki"'),
+])
+def test_a_recorded_reply_with_a_bad_line_is_flagged(tmp_path, monkeypatch, facts, field, value, flag):
+    seen = []
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", recorded({**CLEAN, field: value}, seen))
+    lines = call(tmp_path, facts)
+    assert flag in problems(lines, facts, host(facts), puzzles(7))
+    assert len(seen) == 1 and '"forbidden_terms"' in seen[0] and "Hello! I am Teacher" in seen[0]
+
+
+def test_a_clean_reply_passes_and_builds_the_content(tmp_path, monkeypatch, facts):
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", recorded(CLEAN, []))
+    lines = call(tmp_path, facts)
+    assert problems(lines, facts, host(facts), puzzles(7)) == []
+    content = build_content(facts, host(facts), "challenge", 7, lines)
+    assert (content.variant_id, content.cta, content.proof.screen_id) == ("teacher-challenge", CTA, "s15")
+    assert [c.evidence_id for c in content.proof.claims] == ["s15.e02", "s06.e02"]
+    assert content.copy_.intro == CLEAN["intro"] and content.puzzles == puzzles(7)
+    assert content.model_dump()["copy"]["intro"] == CLEAN["intro"]
+    assert [line.stage for line in read_trace(tmp_path / "trace.jsonl")] == ["creative"]
+
+
+def test_the_repair_call_carries_the_previous_answer_and_every_failure(tmp_path, monkeypatch, facts):
+    seen = []
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", recorded(CLEAN, seen))
+    call(tmp_path, facts, previous=HostLines(**{**CLEAN, "intro": "x" * 91}),
+         failures=["intro is 91 characters; the limit is 90", 'right_line uses the banned word "free"'])
+    assert "It failed these checks" in seen[0]
+    assert "- intro is 91 characters; the limit is 90" in seen[0] and '- right_line uses the banned word "free"' in seen[0]
+    assert "x" * 91 in seen[0]
+
+
+def test_toki_may_say_its_own_name_but_teacher_may_not(facts):
+    lines = HostLines(**{**CLEAN, "intro": "Toki needs your help with three quick ones!"})
+    assert problems(lines, facts, host(facts, "toki"), puzzles(7)) == []
+    assert 'intro names the app feature "Toki"' in problems(lines, facts, host(facts), puzzles(7))
+
+
+def test_a_caption_or_hint_that_gives_away_an_answer_is_flagged(facts):
+    ps = puzzles(7)
+    word, x = ps[2].options[ps[2].answer], ps[0].options[ps[0].answer]
+    lines = HostLines(**{**CLEAN, "captions": ["Find x", "What comes next?", f"Hint: it is {word.lower()}"],
+                         "wrong_hint": f"Try {x}"})
+    found = problems(lines, facts, host(facts), ps)
+    assert f"caption 3 gives away the answer {word}" in found
+    assert f"wrong_hint gives away the answer {x}" in found
