@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "creative-brief/v0",
+  "title": "GenerationBrief v0 (DRAFT, schema only: no outcomes exist, nothing writes one in v0)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["brief_id", "advertiser", "format", "keep", "drop", "explore", "siblings_of", "max_variants", "source"],
+  "$defs": {
+    "values": {
+      "type": "object",
+      "propertyNames": {"enum": ["format", "gate_tier", "hook", "character.kind", "interaction.mechanic",
+                                 "end_card.cta", "advertiser.category_iab", "age_days"]},
+      "additionalProperties": {"type": "array", "items": {"type": "string"}}
+    }
+  },
+  "properties": {
+    "brief_id": {"type": "string", "pattern": "^br_[a-z0-9_]+$"},
+    "advertiser": {"type": "string", "description": "the advertiser's app package"},
+    "format": {"enum": ["INT", "RWD", "NAT"]},
+    "keep": {"$ref": "#/$defs/values", "description": "attribute values whose interval sits clearly above the campaign mean"},
+    "drop": {"$ref": "#/$defs/values", "description": "attribute values whose interval sits clearly below the campaign mean"},
+    "explore": {"$ref": "#/$defs/values", "description": "attribute values with fewer than n_min impressions"},
+    "siblings_of": {"type": "array", "items": {"type": "string", "pattern": "^cr_[0-9a-f]{12}$"},
+                    "description": "creatives whose outcome rate at exposure >= 3 falls below 0.6 x their first-exposure rate [assumed]"},
+    "max_variants": {"type": "integer", "minimum": 1},
+    "source": {"type": "string", "description": "what the brief was written from"}
+  }
+}
