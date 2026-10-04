@@ -27,14 +27,15 @@ def luzia_record() -> dict:
         "interaction": {"kind": "minigame", "mechanic": "quick_puzzles",
                         "puzzle_families": ["solve_for_x", "next_in_sequence", "unscramble_word"], "puzzle_count": 3,
                         "seed": 20261004},
-        "proof": {"screen_id": "s15", "claims": [{"text": "I am Teacher, your personal tutor.", "evidence_id": "s15.e02"},
-                                                  {"text": "Ask me for advice, answers", "evidence_id": "s06.e02"}]},
+        "proof": {"screen_id": "s15", "claims": [
+            {"text": "I am Teacher, your personal tutor.", "evidence_id": "s15.e02"},
+            {"text": "I'm here to resolve your doubts, clarify those difficult concepts", "evidence_id": "s15.e02"}]},
         "copy": {"intro": "Three quick ones. Can you get them all?",
                  "captions": ["Find x", "What comes next?", "Unscramble the word"], "right_line": "That's it!",
                  "wrong_hint": "Not quite, try again", "end_headline": "Keep learning every day"},
         "end_card": {"cta": "Install Now"},
         "qa": {"playthrough_pass": True, "grounding_pass": True, "tier_pass": True, "repair_round": 0,
-               "first_pass_accept": True, "human_verdict": "pending", "human_edits": 0},
+               "first_pass_accept": True, "review_verdict": "pending", "review_edits": 0, "reviewers": []},
         "lineage": {"brief_id": "br_luzia_v0_grid", "parent_creative_id": None, "generator_version": "creative-v0",
                     "prompt_sha": "a" * 64, "template_sha": "b" * 64},
         "provenance": dict(PROVENANCE),
@@ -51,6 +52,14 @@ def json_schema_errors(name: str, data: dict) -> list[str]:
 def test_the_luzia_record_validates_in_pydantic_and_in_the_json_schema():
     record = luzia_record()
     assert dump(CreativeAttributes.model_validate(record)) == record
+    assert json_schema_errors("creative-attributes-v0.json", record) == []
+
+
+def test_a_reviewed_record_names_its_reviewers_in_both():
+    record = luzia_record()
+    record["status"] = "accepted"
+    record["qa"].update(review_verdict="accepted", reviewers=["fable", "astra"])
+    assert CreativeAttributes.model_validate(record).qa.reviewers == ["fable", "astra"]
     assert json_schema_errors("creative-attributes-v0.json", record) == []
 
 

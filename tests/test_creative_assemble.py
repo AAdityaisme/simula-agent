@@ -30,8 +30,9 @@ def teacher_content(**copy) -> Content:
                  Puzzle(family="next_in_sequence", prompt="2, 5, 8, 11, ?", options=["17", "14", "15"], answer=1),
                  Puzzle(family="unscramble_word", prompt="LCNEPI", options=["PENCIL", "RULER", "CHALK"], answer=0)],
         copy=Copy(**lines),
-        proof=Proof(screen_id="s15", claims=[Claim(text="I am Teacher, your personal tutor.", evidence_id="s15.e02"),
-                                             Claim(text="Ask me for advice, answers", evidence_id="s06.e02")]),
+        proof=Proof(screen_id="s15", claims=[
+            Claim(text="I am Teacher, your personal tutor.", evidence_id="s15.e02"),
+            Claim(text="I'm here to resolve your doubts, clarify those difficult concepts", evidence_id="s15.e02")]),
         cta="Install Now")
 
 

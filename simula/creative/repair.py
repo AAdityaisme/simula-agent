@@ -132,9 +132,14 @@ def generate_variant(*, facts: Facts, host: Host, hook: Hook, seed: int, run_dir
                       usd=budget.spent - spent)
         (out / "draft.json").write_text(draft.model_dump_json(indent=1))
         drafts.append(draft)
+    return variant_result(variant_id, host.id, hook, drafts, drafts_dir)
+
+
+def variant_result(variant_id: str, host_id: str, hook: Hook, drafts: list[Draft], drafts_dir: Path) -> VariantResult:
+    """A variant's result, derived from its drafts alone."""
     last = drafts[-1]
     return VariantResult(
-        variant_id=variant_id, host_id=host.id, hook=hook, drafts=drafts, first_pass_accept=not drafts[0].failures(),
+        variant_id=variant_id, host_id=host_id, hook=hook, drafts=drafts, first_pass_accept=not drafts[0].failures(),
         repair_round=len(drafts) - 1, passed=not last.failures(),
         playthrough_pass=last.assembled and not any(last.playthrough.values()),
         grounding_pass=last.assembled and not last.grounding_failures,
