@@ -57,9 +57,8 @@ def test_a_clean_reply_passes_and_builds_the_content(tmp_path, monkeypatch, fact
     assert problems(lines, facts, host(facts), puzzles(7)) == []
     content = build_content(facts, host(facts), "challenge", 7, lines)
     assert (content.variant_id, content.cta, content.proof.screen_id) == ("teacher-challenge", CTA, "s15")
-    assert [(c.evidence_id, c.text) for c in content.proof.claims] == [
-        ("s15.e02", "I am Teacher, your personal tutor."),
-        ("s15.e02", "I'm here to resolve your doubts, clarify those difficult concepts")]
+    assert [(c.evidence_id, c.text) for c in content.proof.claims] == [("s15.e02", "I am Teacher, your personal tutor.")]
+    assert content.host.art_crop is None
     assert content.copy_.intro == CLEAN["intro"] and content.puzzles == puzzles(7)
     assert content.model_dump()["copy"]["intro"] == CLEAN["intro"]
     assert [line.stage for line in read_trace(tmp_path / "trace.jsonl")] == ["creative"]
@@ -156,3 +155,9 @@ def test_a_different_complete_number_does_not_give_away_its_tens_answer(facts, f
 def test_a_ones_word_inside_a_larger_number_does_not_give_away_its_answer(facts):
     lines = HostLines(**{**CLEAN, "wrong_hint": "Not twenty three, try again"})
     assert problems(lines, facts, host(facts), puzzles(7)) == []
+
+
+def test_each_host_proves_only_its_identity_and_toki_carries_its_art_crop(facts):
+    toki = build_content(facts, host(facts, "toki"), "challenge", 7, HostLines(**CLEAN))
+    assert [(c.evidence_id, c.text) for c in toki.proof.claims] == [("s01.e26", "Meet Toki, your virtual pet!")]
+    assert toki.host.art_crop == host(facts, "toki").art_crop is not None

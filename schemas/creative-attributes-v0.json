@@ -37,6 +37,8 @@
         "kind": {"enum": ["app_mascot", "app_persona", "publisher_character", "none"]},
         "name": {"type": "string", "maxLength": 40},
         "art_ref": {"type": ["string", "null"], "description": "art crop file, e.g. s05.e01.art.png"},
+        "art_crop": {"type": ["array", "null"], "items": {"type": "integer"}, "minItems": 4, "maxItems": 4,
+                     "description": "box shown from the art file, [x0, y0, x1, y1] in its pixels; null shows all of it"},
         "evidence_id": {"type": ["string", "null"], "description": "element that shows the host in the app"}
       }
     },

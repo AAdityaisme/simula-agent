@@ -156,3 +156,29 @@ def test_a_host_whose_art_comes_from_an_unsafe_screen_is_refused(tmp_path):
                                            (" I am Teacher", False), ("Teacher, ", False)])
 def test_an_excerpt_is_a_stripped_piece_of_the_text_on_word_boundaries(text, excerpt):
     assert is_excerpt(text, "Hi! I am Teacher, your personal tutor!") is excerpt
+
+
+def test_toki_art_is_cropped_to_toki_and_teacher_art_is_not():
+    hosts = {h.id: h for h in build_facts(RUN).hosts}
+    assert hosts["teacher"].art_crop is None
+    x0, y0, x1, y1 = hosts["toki"].art_crop
+    assert 0 <= x0 < x1 <= 714 and 0 <= y0 < y1 <= 1149
+
+
+@pytest.mark.parametrize("box", [[215, 500, 715, 1065], [215, 500, 215, 1065], [-1, 0, 100, 100]])
+def test_an_art_crop_outside_the_art_is_refused(tmp_path, box):
+    table = json.loads((ROOT / "simula" / "creative" / "hosts" / "luzia.json").read_text())
+    table["hosts"][1]["art_crop"] = box
+    path = tmp_path / "hosts.json"
+    path.write_text(json.dumps(table))
+    with pytest.raises(SystemExit, match="art_crop"):
+        build_facts(RUN, path)
+
+
+def test_a_host_proof_pick_off_its_proof_screen_is_refused(tmp_path):
+    table = json.loads((ROOT / "simula" / "creative" / "hosts" / "luzia.json").read_text())
+    table["hosts"][0]["proof"] = [{"evidence_id": "s01.e14", "text": "Teacher"}]
+    path = tmp_path / "hosts.json"
+    path.write_text(json.dumps(table))
+    with pytest.raises(SystemExit, match="s01.e14 is not on its proof screen s15"):
+        build_facts(RUN, path)

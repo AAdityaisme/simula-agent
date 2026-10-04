@@ -106,8 +106,8 @@ def test_run_finalize_and_check_recompute_every_number(mvp, calls, tmp_path):
     assert final["usd_per_accepted"] == pytest.approx(final["usd_total"] / 4, abs=1e-4)
     assert mvp.check(out) == []
     md = (out / "report.md").read_text()
-    assert "On 4 variants, 4 passed every automatic check on the first draft and 4 after" in md
-    assert "a read of every string by the model reviewers fable and astra, at $" in md
+    assert ("On 4 variants, 4 passed every automatic check on the first draft and 4 after one repair round; after "
+            "a read of every string by the model reviewers fable and astra, 4 accepted, at $") in md
     assert "No person reads the strings" in md
     assert "human" not in md.lower() + (out / "report.json").read_text().lower()
 
@@ -283,14 +283,32 @@ def test_the_email_names_the_reviewers_only_once_they_have_read(mvp, calls, tmp_
     out = tmp_path / "out"
     run(mvp, tmp_path)
     md = (out / "report.md").read_text()
-    assert "a read of every string by model reviewers (still pending), at $pending" in md and "Fable" not in md
+    assert ("4 after one repair round; the model reviewers' read of every string is still pending. On" in md
+            and "Fable" not in md and "$pending" not in md)
     rows = [dict(row, verdict="ok") for row in mvp.read_review(out)]
     noted = [dict(rows[0], edit="fine as is"), *rows[1:]]
     mvp.merge(out, {"Claude Fable 5.1": write_rows(mvp, tmp_path / "fable.csv", rows),
                     "GPT-6 Astra": write_rows(mvp, tmp_path / "astra.csv", noted)})
     mvp.finalize(out)
     md = (out / "report.md").read_text()
-    assert "a read of every string by the model reviewers Claude Fable 5.1 and GPT-6 Astra, at $" in md
+    assert "after a read of every string by the model reviewers Claude Fable 5.1 and GPT-6 Astra, 4 accepted, at $" in md
+    assert mvp.check(out) == []
+
+
+def test_the_email_says_none_accepted_when_the_reviewers_reject_every_variant(mvp, calls, tmp_path):
+    out = tmp_path / "out"
+    run(mvp, tmp_path)
+    rows = [dict(row, verdict="ok") for row in mvp.read_review(out)]
+    for variant in {row["variant"] for row in rows}:
+        first = next(row for row in rows if row["variant"] == variant)
+        first["verdict"], first["edit"] = "reject", "unsupported"
+    mvp.merge(out, {"fable": write_rows(mvp, tmp_path / "fable.csv", rows),
+                    "astra": write_rows(mvp, tmp_path / "astra.csv", rows)})
+    final = mvp.finalize(out)
+    assert (final["final_accept"], final["final_checks_pass"], final["usd_per_accepted"]) == (0, 4, None)
+    md = (out / "report.md").read_text()
+    assert "4 after one repair round; after a read of every string by the model reviewers fable and astra, none accepted." in md
+    assert "pending" not in md.split("## Email paragraph")[1].split("## Not claimed")[0]
     assert mvp.check(out) == []
 
 

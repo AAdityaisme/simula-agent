@@ -63,6 +63,18 @@ def test_a_reviewed_record_names_its_reviewers_in_both():
     assert json_schema_errors("creative-attributes-v0.json", record) == []
 
 
+@pytest.mark.parametrize("crop, valid", [([224, 508, 614, 1058], True), (None, True), ([224, 508, 614], False)])
+def test_a_host_art_crop_is_four_pixel_bounds_in_both(crop, valid):
+    record = luzia_record()
+    record["character"]["art_crop"] = crop
+    if valid:
+        assert dump(CreativeAttributes.model_validate(record)) == record
+    else:
+        with pytest.raises(ValidationError):
+            CreativeAttributes.model_validate(record)
+    assert (json_schema_errors("creative-attributes-v0.json", record) == []) is valid
+
+
 def test_a_generated_persona_host_fails_both():
     record = luzia_record()
     record["character"]["kind"] = "generated_persona"

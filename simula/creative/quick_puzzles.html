@@ -28,20 +28,22 @@ body[data-state="closed"]>*{display:none!important}
 .option.right{border-color:#22c55e;background:rgba(34,197,94,.18)}
 #feedback{margin:0;min-height:1.4em;font-weight:600}
 #proof-shot{display:block;width:auto;height:auto;max-width:100%;max-height:52vh;border-radius:14px}
+#proof-label{margin:0;color:#a9aeb8;font-size:13px}
 #claims{display:flex;flex-direction:column;gap:6px;max-width:360px}
-.claim{margin:0;font-size:15px}
+.claim{font-size:17px;font-weight:600}
+#end-app{margin:0;font-size:24px;font-weight:800}
 #cta{width:100%;max-width:360px;min-height:52px;border:0;border-radius:14px;background:#4264fc;color:#fff;font-size:18px;font-weight:800}
 #close{position:fixed;top:8px;right:12px;width:40px;height:40px;border:0;border-radius:50%;background:rgba(255,255,255,.14);font-size:22px;line-height:40px}
 </style>
 </head>
 <body data-state="loading">
 <p id="sponsored">Sponsored</p>
-<button id="skip" type="button" hidden>Skip</button>
+<button id="skip" type="button" hidden>Skip puzzles</button>
 <section data-screen="intro"><img id="host-art" alt=""><p id="host-name"></p><p id="intro-line"></p></section>
 <section data-screen="puzzle"><p id="caption"></p><p id="prompt"></p><div id="options"><button class="option" type="button" data-index="0"></button><button class="option" type="button" data-index="1"></button><button class="option" type="button" data-index="2"></button></div><p id="feedback" aria-live="polite"></p></section>
-<section data-screen="proof"><img id="proof-shot" alt=""><div id="claims"></div></section>
-<section data-screen="end"><button id="close" type="button" aria-label="Close">×</button><img id="end-art" alt=""><p id="end-headline"></p><button id="cta" type="button"></button></section>
-<p id="concept">Concept, not affiliated, not served</p>
+<section data-screen="proof"><img id="proof-shot" alt=""><p id="proof-label"></p><div id="claims"></div></section>
+<section data-screen="end"><button id="close" type="button" aria-label="Close">×</button><img id="end-art" alt=""><p id="end-headline"></p><p id="end-app"></p><button id="cta" type="button"></button></section>
+<p id="concept"></p>
 <script id="creative-data" type="application/json">__DATA__</script>
 <script>
 (() => {
@@ -116,14 +118,17 @@ body[data-state="closed"]>*{display:none!important}
   $('intro-line').textContent = D.copy.intro;
   $('proof-shot').src = D.shot;
   $('proof-shot').alt = 'Screenshot from the app';
+  $('proof-label').textContent = D.proof_label;
   for (const c of D.proof.claims) {
-    const p = document.createElement('p');
-    p.className = 'claim';
-    p.dataset.evidence = c.evidence_id;
-    p.textContent = c.text;
-    $('claims').appendChild(p);
+    const q = document.createElement('q');
+    q.className = 'claim';
+    q.dataset.evidence = c.evidence_id;
+    q.textContent = c.text;
+    $('claims').appendChild(q);
   }
   $('end-headline').textContent = D.copy.end_headline;
+  $('end-app').textContent = D.app_name;
+  $('concept').textContent = D.concept;
   $('cta').textContent = D.cta;
   document.querySelectorAll('.option').forEach((b, k) => b.addEventListener('click', () => tap(k)));
   $('skip').addEventListener('click', toEnd);

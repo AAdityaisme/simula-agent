@@ -44,6 +44,7 @@ class Character(Strict):
     kind: CharacterKind
     name: str = Field(max_length=40)
     art_ref: str | None
+    art_crop: list[int] | None = Field(default=None, min_length=4, max_length=4)
     evidence_id: str | None
 
 

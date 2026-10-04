@@ -7,6 +7,9 @@ import re
 from pathlib import Path
 from typing import Literal
 
+from PIL import Image
+from pydantic import Field
+
 from simula.contracts import ContentRating, ProductModel, Strict
 from simula.stages.mock import StartTags
 
@@ -23,6 +26,7 @@ class Host(Strict):
     name: str
     kind: Literal["app_mascot", "app_persona"]
     art: str
+    art_crop: list[int] | None = Field(default=None, min_length=4, max_length=4)  # [x0, y0, x1, y1] in the art's pixels
     evidence_id: str
     greetings: list[str]
     proof_screen: str
@@ -71,7 +75,8 @@ def build_facts(run_dir: Path, hosts_path: Path | None = None) -> Facts:
     proof string is the text of an element on a safe-scope screen that an observed or inferred mechanic or a
     value-ledger item cites, or that the host table lists; a mechanic of unknown status counts for nothing. Raises
     SystemExit when the run has no approved mock or QA report, a host-table id is not on a safe-scope screen, or a host
-    proof pick is not a word-boundary excerpt of its element's text."""
+    proof pick is not a word-boundary excerpt of its element's text or not on the host's proof screen, or a host's
+    art_crop is not a box inside its art."""
     model = ProductModel.model_validate_json((run_dir / "model" / "product_model.json").read_text())
     manifest = json.loads((run_dir / "manifest.json").read_text())
     mock = run_dir / "qa" / "approved" / "index.html"
@@ -105,10 +110,20 @@ def build_facts(run_dir: Path, hosts_path: Path | None = None) -> Facts:
         for pick in host.proof:
             if not is_excerpt(pick.text, elements[pick.evidence_id][1].text):
                 raise SystemExit(f"hosts table, {host.id}: proof {pick.text!r} is not an excerpt of {pick.evidence_id}")
+            if elements[pick.evidence_id][0] != host.proof_screen:
+                raise SystemExit(f"hosts table, {host.id}: proof {pick.evidence_id} is not on its proof screen "
+                                 f"{host.proof_screen}, which is cropped to it")
         if host.proof_screen not in safe:
             raise SystemExit(f"hosts table, {host.id}: proof screen {host.proof_screen} is not in the safe scope")
-        if not (run_dir / "qa" / "approved" / "assets" / host.art).exists():
+        art = run_dir / "qa" / "approved" / "assets" / host.art
+        if not art.exists():
             raise SystemExit(f"hosts table, {host.id}: no art file qa/approved/assets/{host.art}")
+        if host.art_crop:
+            x0, y0, x1, y1 = host.art_crop
+            with Image.open(art) as image:
+                if not (0 <= x0 < x1 <= image.width and 0 <= y0 < y1 <= image.height):
+                    raise SystemExit(f"hosts table, {host.id}: art_crop {host.art_crop} is not a box inside "
+                                     f"{host.art} ({image.width}x{image.height})")
     cited: dict[str, list[str]] = {}
     for mechanic in model.mechanics:
         if mechanic.status in ("observed", "inferred"):
