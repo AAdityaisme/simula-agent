@@ -131,7 +131,7 @@ You need:
 - macOS or Linux
 - Python 3.12 and [uv](https://docs.astral.sh/uv/)
 - Node 20+
-- For `explore` only: an Android emulator at 1080 × 2400 px and 420 dpi (the `Device` in `simula/contracts.py`), with the apps in `config/apps/` installed (`aol`, `janitorai`, `luzia`, `ooc`, `perplexity`), and `adb` on the path or `ANDROID_HOME` set.
+- For `explore` only: an Android emulator at 1080 × 2400 px and 420 dpi (the `Device` in `simula/contracts.py`), with the apps in `config/apps/` installed (`aol`, `duolingo`, `janitorai`, `luzia`, `ooc`, `perplexity`), and `adb` on the path or `ANDROID_HOME` set.
 
 ```sh
 uv sync
