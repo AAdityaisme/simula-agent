@@ -30,7 +30,8 @@ def undraw(run, sid):
     html = mock.read_text()
     start = html.index(f'<section data-screen="{sid}"')
     end = html.index("</section>", start) + len("</section>")
-    mock.write_text(html[:start] + f'<section data-screen="{sid}"><p>screen not drawn: refusal</p></section>' + html[end:])
+    placeholder = f'<section data-screen="{sid}"><p>screen not drawn: refusal</p></section>'
+    mock.write_text(html[:start] + placeholder + html[end:])
     report = run / "qa" / "qa_report.json"
     qa = json.loads(report.read_text())
     qa["undrawn_screens"] = [{"screen": sid, "reason": "refusal"}]
@@ -98,6 +99,24 @@ def test_a_placeholder_for_an_undrawn_screen_is_out_of_scope(tmp_path):
     facts = build_facts(run)
     assert facts.excluded["s07"] == "not_drawn" and "s07" not in facts.safe_scope
     assert all(a.screen != "s07" for a in facts.allowed)
+
+
+@pytest.mark.parametrize("hide", [lambda section: f"<template>{section}</template>",
+                                  lambda section: section.replace('"s07"', '"s99" data-screen="s07"', 1)],
+                         ids=["template", "duplicate_attribute"])
+def test_a_screen_qa_found_missing_in_the_browser_is_out_of_scope(tmp_path, hide):
+    run = copy_run(tmp_path)
+    mock = run / "qa" / "approved" / "index.html"
+    html = mock.read_text()
+    start = html.index('<section data-screen="s07"')
+    end = html.index("</section>", start) + len("</section>")
+    mock.write_text(html[:start] + hide(html[start:end]) + html[end:])
+    report = run / "qa" / "qa_report.json"
+    qa = json.loads(report.read_text())
+    qa["contract_errors"].append({"kind": "missing_screen", "detail": "no s07 section", "screen": "s07"})
+    report.write_text(json.dumps(qa))
+    facts = build_facts(run)
+    assert facts.excluded["s07"] == "not_drawn" and all(a.screen != "s07" for a in facts.allowed)
 
 
 def test_a_host_whose_proof_screen_is_undrawn_is_refused(tmp_path):

@@ -66,11 +66,11 @@ def is_excerpt(text: str, whole: str) -> bool:
 
 def build_facts(run_dir: Path, hosts_path: Path | None = None) -> Facts:
     """Facts for one run. A state is in the safe scope when it is rated safe, sits in mock scope and the approved mock
-    draws it: a placeholder section QA lists as undrawn does not count. An allowed proof string is the text of an
-    element on a safe-scope screen that an observed or inferred mechanic or a value-ledger item cites, or that the host
-    table lists; a mechanic of unknown status counts for nothing. Raises SystemExit when the run has no approved mock or
-    QA report, a host-table id is not on a safe-scope screen, or a host proof pick is not a word-boundary excerpt of its
-    element's text."""
+    draws it: a placeholder QA lists as undrawn, or a section QA's browser found missing, does not count. An allowed
+    proof string is the text of an element on a safe-scope screen that an observed or inferred mechanic or a
+    value-ledger item cites, or that the host table lists; a mechanic of unknown status counts for nothing. Raises
+    SystemExit when the run has no approved mock or QA report, a host-table id is not on a safe-scope screen, or a host
+    proof pick is not a word-boundary excerpt of its element's text."""
     model = ProductModel.model_validate_json((run_dir / "model" / "product_model.json").read_text())
     manifest = json.loads((run_dir / "manifest.json").read_text())
     mock = run_dir / "qa" / "approved" / "index.html"
@@ -81,7 +81,9 @@ def build_facts(run_dir: Path, hosts_path: Path | None = None) -> Facts:
         raise SystemExit(f"{run_dir}: no QA report at qa/qa_report.json")
     drawn = {t["attrs"]["data-screen"] for t in StartTags(mock.read_text()).tags
              if t["name"] == "section" and "data-screen" in t["attrs"]}
-    drawn -= {u["screen"] for u in json.loads(qa_report.read_text()).get("undrawn_screens", [])}
+    qa = json.loads(qa_report.read_text())
+    drawn -= {u["screen"] for u in qa.get("undrawn_screens", [])}
+    drawn -= {e["screen"] for e in qa.get("contract_errors", []) if e["kind"] == "missing_screen"}
     excluded = {}
     for state in model.states:
         if state.content_rating != "safe":
