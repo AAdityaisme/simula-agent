@@ -208,3 +208,20 @@ def test_a_host_proof_pick_outside_the_content_frame_is_refused(tmp_path):
     run = copy_run(tmp_path, push_down)
     with pytest.raises(SystemExit, match="s15.e02 is not inside the content frame"):
         build_facts(run)
+
+
+def test_a_proof_crop_that_misses_its_cited_element_is_refused(tmp_path):
+    table = json.loads((ROOT / "simula" / "creative" / "hosts" / "luzia.json").read_text())
+    table["hosts"][0]["proof_crop"] = [0, 0, 411, 60]
+    path = tmp_path / "hosts.json"
+    path.write_text(json.dumps(table))
+    with pytest.raises(SystemExit, match="proof_crop .* misses s15.e02"):
+        build_facts(RUN, path)
+
+
+def test_a_full_width_pick_that_overhangs_the_rounded_frame_by_under_half_a_dp_is_kept(tmp_path):
+    def widen(model):
+        element = next(e for s in model["states"] for e in s["elements"] if e["id"] == "s15.e02")
+        element["rect_dp"].update(x=0.0, w=411.43)
+    hosts = {h.id: h for h in build_facts(copy_run(tmp_path, widen)).hosts}
+    assert hosts["teacher"].proof[0].evidence_id == "s15.e02"

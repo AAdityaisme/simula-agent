@@ -15,6 +15,7 @@ from simula.render import content_size
 from simula.stages.mock import StartTags
 
 HOSTS = Path(__file__).with_name("hosts")
+SLACK_DP = 0.5  # content_size rounds the frame down; full-width elements reach 411.4 dp on a 411 dp frame
 
 
 class ProofPick(Strict):
@@ -78,7 +79,8 @@ def build_facts(run_dir: Path, hosts_path: Path | None = None) -> Facts:
     value-ledger item cites, or that the host table lists; a mechanic of unknown status counts for nothing. Raises
     SystemExit when the run has no approved mock or QA report, a host-table id is not on a safe-scope screen, or a host
     proof pick is not a word-boundary excerpt of its element's text, not on the host's proof screen or not inside the
-    content frame, or a host's art_crop or proof_crop is not a box inside its art or the content frame."""
+    content frame (within SLACK_DP), or a host's art_crop or proof_crop is not a box inside its art or the content
+    frame, or a proof_crop misses a proof pick's element."""
     model = ProductModel.model_validate_json((run_dir / "model" / "product_model.json").read_text())
     manifest = json.loads((run_dir / "manifest.json").read_text())
     mock = run_dir / "qa" / "approved" / "index.html"
@@ -117,7 +119,8 @@ def build_facts(run_dir: Path, hosts_path: Path | None = None) -> Facts:
                 raise SystemExit(f"hosts table, {host.id}: proof {pick.evidence_id} is not on its proof screen "
                                  f"{host.proof_screen}, which is cropped to it")
             r = elements[pick.evidence_id][1].rect_dp
-            if not (0 <= r.x and 0 <= r.y and r.x + r.w <= width and r.y + r.h <= height):
+            if not (-SLACK_DP <= r.x and -SLACK_DP <= r.y and r.x + r.w <= width + SLACK_DP
+                    and r.y + r.h <= height + SLACK_DP):
                 raise SystemExit(f"hosts table, {host.id}: proof {pick.evidence_id} is not inside the content frame "
                                  f"({width}x{height} dp)")
         if host.proof_crop:
@@ -125,6 +128,11 @@ def build_facts(run_dir: Path, hosts_path: Path | None = None) -> Facts:
             if not (0 <= x0 < x1 <= width and 0 <= y0 < y1 <= height):
                 raise SystemExit(f"hosts table, {host.id}: proof_crop {host.proof_crop} is not a box inside the "
                                  f"content frame ({width}x{height} dp)")
+            for pick in host.proof:
+                r = elements[pick.evidence_id][1].rect_dp
+                if not (r.x < x1 and x0 < r.x + r.w and r.y < y1 and y0 < r.y + r.h):
+                    raise SystemExit(f"hosts table, {host.id}: proof_crop {host.proof_crop} misses "
+                                     f"{pick.evidence_id}, so the card would quote words its screenshot does not show")
         if host.proof_screen not in safe:
             raise SystemExit(f"hosts table, {host.id}: proof screen {host.proof_screen} is not in the safe scope")
         art = run_dir / "qa" / "approved" / "assets" / host.art
