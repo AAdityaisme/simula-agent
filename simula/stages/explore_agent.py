@@ -58,10 +58,12 @@ class ScreenMoved(NeedRelaunch):
 
 
 def hard_block(c: ob.Candidate, screen: list[dict] | None, core: bool = False) -> str | None:
-    """The guard's word against tapping c on the screen whose element list is given (its tap point, a dialog)."""
+    """The guard's word against tapping c on the screen whose element list is given (its tap point, a dialog). c's own
+    element, when it shows c's words, tells the guard a button or a label-only icon from text."""
     r = c.rect
-    element = {"text": c.tree_label, "label": c.label, "identifier": c.ident,
-               "coordinates": {"x": r.x, "y": r.y, "width": r.w, "height": r.h}}
+    element = next((e for e in screen or () if e.get("ref") == c.ref and ob.words(e) == c.tree_label), None) or \
+        {"type": c.kind, "text": c.tree_label, "label": c.label, "identifier": c.ident,
+         "coordinates": {"x": r.x, "y": r.y, "width": r.w, "height": r.h}}
     return guard.blocked_tap(element, screen, core=core)
 
 
