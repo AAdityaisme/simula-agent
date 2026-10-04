@@ -408,6 +408,29 @@ def test_a_known_native_ad_cannot_be_tapped_as_a_feed_pass(tmp_path, monkeypatch
     assert ("root", "Third article") in taps(phone)
 
 
+@pytest.mark.parametrize("card", ["Sponsored: warm jackets for less", "Partner content: warm jackets for less"])
+def test_a_headline_inside_an_ad_card_is_refused_as_the_core_action(tmp_path, monkeypatch, card):
+    """Greptile on #61: a later read exposes an ad card's headline as its own control, with its own key and label;
+    marking it is refused as marking the ad is, whether the card's label says it is an ad or the planner named it,
+    and nothing is tapped."""
+    ex, phone = start(tmp_path, monkeypatch, articles("First article", card, "Third article"))
+    card_id = element_id(ex, card)
+    ex.turn = AgentTurn(screen="home", goal="read articles", ads=[card_id], ad_notes=f"{card_id}: native; ; ",
+                        steps=[AgentStep(action="start_core", recipient="none", expect="measure")])
+    if card.startswith("Partner"):
+        ex.record_ads(ex.current, ex.turn)
+    headline = control("Great deal on jackets", 20, "TextView",
+                       coordinates={"x": 120, "y": 610, "width": 600, "height": 40})
+    root = phone.screens["root"]
+    root.elements = [*({**e, "text": ""} if e["text"] == card else e for e in root.elements), headline]
+    ex.observe()
+    expose(ex)
+    named = ex.ids[element_id(ex, "Great deal on jackets")]
+    assert any(ob.inside(named.rect, c.rect) for c in ex.current.cands if c.label == card)
+    mark(ex, "Great deal on jackets")
+    assert ex.picked_core is None and not ex.core_ran and "named an ad" in ex.news[-1]
+    assert taps(phone) == []
+
 def test_real_aol_ad_container_is_excluded_from_feed_measurement(tmp_path, monkeypatch):
     """rt-61: a news app's 'AD' slot shares the feed's resource id; its own label keeps it out of the passes."""
     def phone_factory(clock):
