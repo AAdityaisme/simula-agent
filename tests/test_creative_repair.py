@@ -6,6 +6,7 @@ from pydantic import ValidationError
 
 from simula import llm
 from simula.creative.facts import build_facts
+from simula.creative import repair
 from simula.creative.repair import Draft, generate_variant
 from tests.conftest import ROOT
 
@@ -135,3 +136,21 @@ def test_a_saved_draft_without_its_cost_does_not_load(facts, tmp_path, monkeypat
         del draft[field]
         with pytest.raises(ValidationError, match=field):
             Draft.model_validate(draft)
+
+
+def test_an_interrupted_round_is_refused_before_any_model_call(facts, tmp_path, monkeypatch):
+    seen = []
+    monkeypatch.setitem(llm.PROVIDERS, "anthropic", replying([CLEAN, CLEAN], seen))
+
+    def interrupted(*args, **kwargs):
+        raise KeyboardInterrupt("interrupted mid-round")
+    with monkeypatch.context() as m:
+        m.setattr(repair, "playthrough", interrupted)
+        with pytest.raises(KeyboardInterrupt):
+            generate(facts, tmp_path)
+    round0 = tmp_path / "drafts" / "teacher-challenge" / "round0"
+    files = saved(tmp_path)
+    assert round0.is_dir() and not (round0 / "draft.json").exists()
+    with pytest.raises(FileExistsError, match=re.escape(str(round0))):
+        generate(facts, tmp_path, cache="cache-gone")
+    assert len(seen) == 1 and saved(tmp_path) == files

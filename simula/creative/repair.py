@@ -95,7 +95,8 @@ def generate_variant(*, facts: Facts, host: Host, hook: Hook, seed: int, run_dir
     """Generates one variant: a first draft, and a repair round only when the first draft fails a check. A failed
     host-line call, or a host the content can't hold, is a failure like any other. A rerun resumes from the saved
     drafts: it never rewrites a saved round and calls the model only for a round still owed, and raises SystemExit
-    when a saved draft was made from another seed, run or QA matrix (new inputs need a new drafts_dir). seconds and usd sum each
+    when a saved draft was made from another seed, run or QA matrix (new inputs need a new drafts_dir), or
+    FileExistsError for an interrupted round, before any model call. seconds and usd sum each
     draft's own, saved with it, so a resumed result reports what generating the variant cost. paths, widths and modes
     narrow the playthrough (tests use one run). llm.CapReached propagates: the $ cap stops the whole MVP run."""
     variant_id = f"{host.id}-{hook}"
@@ -113,6 +114,9 @@ def generate_variant(*, facts: Facts, host: Host, hook: Hook, seed: int, run_dir
                                  f"{inputs.model_dump()}; use a new drafts dir for new inputs")
             drafts.append(saved)
             continue
+        if out.exists():
+            raise FileExistsError(f"{out} holds an interrupted round with no draft.json; move it aside or use a new "
+                                  "drafts dir")
         previous = drafts[-1] if drafts else None
         started, spent = time.monotonic(), budget.spent
         try:
