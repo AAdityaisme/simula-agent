@@ -21,6 +21,7 @@ from simula.stages.explore import (AWAY, CORE_SECONDS_PER_REP, DEVICE_LOST, FILT
 
 AGENT_MINUTES = 60  # one wall clock for everything the agent does: the tour, the core loop and the replay check
 STALE_TURNS = 10  # planner turns in a row that found no new state end the run
+DONE_SHARE = 0.4  # the share of the tour's clock before which done is refused: navigation runs out long before content
 PLANNER_FAILURES = 3  # planner turns in a row whose answer failed end the run
 BANNER_PASSES = 3  # a dismissible banner over the core action on this many passes in a row is a wall: the loop stops
 # a core-loop stop a banner's own dismiss control may clear; a paywall or a limit is what the loop measures
@@ -150,6 +151,7 @@ class AgentExplorer(Explorer):
         self.raw_of: tuple[object, list[dict]] = (None, [])  # a Google screen's look and its unredacted list
         self.pause, self.sleep = self.sleep, self.bounded_sleep
         self.stale = self.known = self.noops = 0
+        self.opened: set[tuple[str, str]] = set()  # (state, control key) of every tap tried, run or refused
 
     # ---------- the loop ----------
 
@@ -469,6 +471,12 @@ class AgentExplorer(Explorer):
 
     def run_step(self, step: AgentStep) -> None:
         if step.action == "done":
+            if why := self.done_refusal():
+                self.counts["done refused"] += 1
+                self.note("agent.done", f"refused: {why}"[:200], outcome="blocked")
+                self.news.append(f"Your done was refused: {why}.")
+                self.steps.clear()
+                return
             raise Stop(f"the planner said done: {self.turn.done_reason}"[:200])
         if step.action == "launch":
             self.relaunch(why="the planner asked for a fresh launch")
@@ -617,6 +625,29 @@ class AgentExplorer(Explorer):
         if why:
             self.steps.clear()
 
+    def done_refusal(self) -> str:
+        """Why done is too soon, or "": before DONE_SHARE of the tour's clock, or while a list on a recorded screen has
+        an item no tap has tried (ads aside). The $ cap, the clock and the stale-turn stop end the run regardless."""
+        used = self.clock() - self.started
+        if used < DONE_SHARE * self.tour_seconds:
+            return (f"only {used / 60:.0f} of {self.tour_seconds / 60:.0f} minutes are used: open more items, scroll "
+                    f"lists further, and try every menu")
+        left = [(s, c) for s in self.states if s.kind == "screen"
+                for c in ob.feed_items(s.cands, self.device, self.tab_keys())
+                if (s.sid, c.key) not in self.opened and not self.in_ad(s, c)]
+        if left:
+            some = "; ".join(f"{c.label[:40]!r} on {s.sid}" for s, c in left[:3])
+            return f"{len(left)} list items on recorded screens are not opened yet, such as {some}"
+        return ""
+
+    def act(self, move: Move, purpose: str = "tour", **kwargs) -> Seen:
+        """A tap tried on a recorded control counts its item as opened, run or refused: a row that can't open is owed
+        nothing."""
+        s = self.current
+        if move.action == "tap" and move.cand is not None and s is not None:
+            self.opened.add((s.sid, (ob.find(s.cands, move.cand) or move.cand).key))
+        return super().act(move, purpose, **kwargs)
+
     def start_core(self, step: AgentStep) -> None:
         """Marks the core action and measures it at once (core_now), never for a person: a conversation only for an AI
         recipient, since code types there; else the list the element names or lies in (a feed: its items are opened
@@ -686,7 +717,7 @@ class AgentExplorer(Explorer):
 
     def in_ad(self, s: Seen, c: ob.Candidate) -> bool:
         """c is an ad or lies inside one on s, recorded or live: an ad card's headline is a link to the advertiser."""
-        cands = [*s.cands, *(self.obs.cands if self.obs else [])]
+        cands = [*s.cands, *(self.obs.cands if self.obs and s is self.current else [])]
         return any(ob.inside(c.rect, a.rect) for a in cands if self.is_ad(s, a)) or self.is_ad(s, c)
 
     def paywall_pass(self) -> None:

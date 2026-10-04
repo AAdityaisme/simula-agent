@@ -435,7 +435,7 @@ class Explorer:
                     back_to=came_from.sid if came_from and not tab_move and move.action != "swipe" else None,
                     settled=obs.settled,
                     settle_s=obs.settle_s,
-                    captured_at=now(), upsell=ob.is_upsell(obs.elements, self.device),
+                    captured_at=now(), upsell=ob.is_upsell(obs.elements, self.device, box, cands, under),
                     priced=ob.priced(obs.elements, self.device, box, cands, under),
                     via=move.cand.label if move and move.cand else "", box=box, under=under,
                     unscroll_to=came_from.sid if came_from and move.action == "swipe" else None, own_fp=str(obs.fp),

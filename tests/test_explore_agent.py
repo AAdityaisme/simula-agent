@@ -24,6 +24,15 @@ from tests.fake_device import PACKAGE, Clock, FakePhone, Screen, capture, fake_j
 from tests.test_explore_offline import aol_home_2, janitor_like
 
 CHATS_TAB = (540, 2253)
+DONE_REFUSAL = AgentExplorer.done_refusal
+
+
+@pytest.fixture(autouse=True)
+def done_when_said(monkeypatch):
+    """The canned planners end on done long before the time floor: the done gate has its own tests, which put it
+    back (DONE_REFUSAL)."""
+    monkeypatch.setattr(AgentExplorer, "done_refusal", lambda self: "")
+
 DRAWER = (996, 209)
 LINE = re.compile(r"^(o\d+): \S+ '(.*?)'.* \[(\d+),(\d+),(\d+),(\d+)\]", re.MULTILINE)
 
@@ -328,6 +337,59 @@ def test_start_core_marks_a_feed_whose_passes_open_items_and_type_nothing(tmp_pa
     assert len({key for screen, key in taps(phone) if screen == "home"}) == 2  # both rows, in turn
     assert phone.typed == [] and phone.sent == 0
     assert not [e for e in phone.log if e[0] == "type"]
+
+
+def test_a_price_in_an_articles_ad_never_stops_the_feeds_passes(tmp_path, monkeypatch):
+    """Generality audit, finding 1 (rt-61's informational probe): the scripted run's article s05 shows a native ad
+    with a price ("jackets for $2.36"); it read as a paywall and stopped the feed on pass 1. Every pass now runs."""
+    def phone_factory(clock):
+        phone = news_feed(clock)
+        phone.screens["article"] = capture("aol", "aol-article-priced-ad", package=PACKAGE)
+        return phone
+    script = scripted(lambda text: turn({"action": "start_core", "element": oid(text, "Doctors recommend"),
+                                         "recipient": "none", "expect": "marked"}))
+    ex, phone, _ = run(tmp_path, monkeypatch, script, phone_factory=phone_factory)
+    assert ex.core.kind == "feed" and not ex.core_hit, ex.core_results
+    assert ex.core_completed == ex.core_reps and not any("paywall" in r for r in ex.core_results)
+
+
+def test_done_is_refused_before_the_time_floor_and_taken_after_it(tmp_path, monkeypatch):
+    """Generality audit, finding 2: a news app's agent said done after 6 of 60 minutes, its navigation used up."""
+    monkeypatch.setattr(AgentExplorer, "done_refusal", DONE_REFUSAL)
+
+    def script(n, text):
+        if n == 2:
+            ex.clock.t += stage_agent.DONE_SHARE * ex.tour_seconds
+        return turn(DONE, done_reason="covered") if n <= 2 else None
+    ex, phone, planner = agent(tmp_path, monkeypatch, script, phone_factory=phone_of({"root": drawn(control("Menu", 1))}))
+    stage.explore_app(ex)
+    assert "Your done was refused: only 0 of" in planner.texts[1] and len(planner.texts) == 2
+    assert ex.stop_reason == "the planner said done: covered" and ex.counts["done refused"] == 1
+
+
+def test_done_is_refused_while_a_recorded_list_has_an_unopened_item(tmp_path, monkeypatch):
+    """Past the time floor, done waits for every row of a recorded list to be tried; then it is taken."""
+    monkeypatch.setattr(AgentExplorer, "done_refusal", DONE_REFUSAL)
+
+    def phone_factory(clock):
+        phone = news_feed(clock)
+        phone.screens["article"] = drawn(control("An article's long readable story", 1))  # no list of its own
+        return phone
+
+    def script(n, text):
+        if n == 1:
+            ex.clock.t += stage_agent.DONE_SHARE * ex.tour_seconds
+        rows = {2: "Doctors recommend", 5: "Christa Pike"}
+        if n in rows:
+            return turn(tap(oid(text, rows[n]), "the article opens"))
+        if n in (3, 6):
+            return turn({"action": "back", "expect": "the list"})
+        return turn(DONE, done_reason="covered") if n <= 7 else None
+    ex, phone, planner = agent(tmp_path, monkeypatch, script, phone_factory=phone_factory)
+    stage.explore_app(ex)
+    assert "2 list items on recorded screens are not opened yet" in planner.texts[1]
+    assert "1 list items on recorded screens are not opened yet" in planner.texts[4] and "Christa Pike" in planner.texts[4]
+    assert ex.stop_reason == "the planner said done: covered" and len(planner.texts) == 7
 
 
 def start(tmp_path, monkeypatch, factory, reps=3):
@@ -1470,5 +1532,6 @@ def test_the_prompt_asks_for_every_tab_a_fresh_conversation_and_no_early_done():
     assert "the one you start on included (tap its own control)" in said
     assert "Prefer starting a new conversation" in said
     assert "only when no unvisited control of the app's own navigation" in said
-    assert "Open at least one item of each list or feed" in said
+    assert "every item of the lists on the screens you recorded has been opened" in said
+    assert "Code refuses `done` before 40% of the time" in said and stage_agent.DONE_SHARE == 0.4
     assert "never plan the same step the same way on your next turn" in said

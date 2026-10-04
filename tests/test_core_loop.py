@@ -65,6 +65,40 @@ def test_upsell_screens_are_recognized():
     assert ob.is_upsell(paywall, DEVICE) and not ob.is_upsell(home, DEVICE)
 
 
+def elements(app: str, name: str) -> list[dict]:
+    return parse_elements(json.loads((TREES / app / f"{name}.elements.json").read_text()))
+
+
+def test_content_that_names_a_price_is_no_paywall_and_the_plans_screens_still_are():
+    """Generality audit, finding 1: a news app's headline ("Trump's $90 checks", the agent run 20261003-172154 s01)
+    and a native ad's copy ("jackets for $2.36", the scripted run 20260929-205304 s05) made screens paywalls, and the
+    feed's passes stopped there. A price counts in a short text, a control's label or an overlay's own box, never in
+    a sentence of content or inside an ad; the plans screen and the launch offer read as before."""
+    for name in ("aol-home-priced-headline", "aol-article-priced-ad"):
+        assert not ob.is_upsell(elements("aol", name), DEVICE) and not ob.priced(elements("aol", name), DEVICE), name
+    plans, launch = elements("luzia", "luzia-paywall"), elements("janitorai", "j01_launch")
+    assert ob.is_upsell(plans, DEVICE) and ob.priced(plans, DEVICE)
+    assert ob.is_upsell(launch, DEVICE) and not ob.priced(launch, DEVICE)
+
+
+def test_a_price_in_a_feed_row_or_an_ad_is_content_unless_the_screen_asks_for_an_upgrade():
+    def row(text, n, **fields):
+        return {"ref": f"@r{n}", "type": "android.view.ViewGroup", "text": text, "identifier": "app:id/row",
+                "coordinates": {"x": 40, "y": 400 + 300 * n, "width": 1000, "height": 260}, **fields}
+
+    def price(n):
+        return {"ref": f"@p{n}", "type": "android.widget.TextView", "text": "$4.99",
+                "coordinates": {"x": 60, "y": 420 + 300 * n, "width": 200, "height": 50}}
+    shop = [row("Warm winter jacket", 0), price(0), row("Wool scarf", 1), price(1)]
+    assert not ob.priced(shop, DEVICE)
+    upgrade = {"ref": "@u", "type": "android.widget.Button", "text": "Upgrade",
+               "coordinates": {"x": 40, "y": 1900, "width": 1000, "height": 120}}
+    assert ob.priced([*shop, upgrade], DEVICE)
+    ad = [{"ref": "@ad", "type": "android.view.View", "text": "Sponsored",
+           "coordinates": {"x": 40, "y": 400, "width": 1000, "height": 300}}, price(0)]
+    assert not ob.priced(ad, DEVICE) and ob.priced([price(0)], DEVICE)
+
+
 def test_a_counter_in_the_header_counts_and_a_changing_reply_does_not():
     def tree(counter, reply):
         return [{"ref": "@e1", "type": "android.widget.TextView", "text": counter,
@@ -74,6 +108,25 @@ def test_a_counter_in_the_header_counts_and_a_changing_reply_does_not():
     bands = [(0, ob.TOP_CHROME_BOTTOM_PX)]
     assert ob.counters(tree("5 left", "at 3 pm"), tree("4 left", "at 4 pm"), DEVICE, bands) == ["5 left → 4 left"]
     assert ob.counters(tree("5 left", "at 3 pm"), tree("5 left", "at 4 pm"), DEVICE, bands) == []
+
+
+def test_a_count_going_up_is_progress_and_a_count_that_gates_is_a_limit():
+    """Generality audit (Sol), HIGH 3: a score going up stopped the loop as a limit. A moved number counts when it
+    goes down (a quota or lives spent), names a limit, or the screen newly says one or disables a control."""
+    def tree(counter, *more):
+        return [{"ref": "@c", "type": "android.widget.TextView", "text": counter,
+                 "coordinates": {"x": 700, "y": 180, "width": 300, "height": 50}}, *more]
+    bands = [(0, ob.TOP_CHROME_BOTTOM_PX)]
+    for old, new in (("Score 10", "Score 20"), ("Level 3", "Level 4"), ("12 likes", "13 likes")):
+        assert ob.counters(tree(old), tree(new), DEVICE, bands) == [], new
+    assert ob.counters(tree("5 lives"), tree("4 lives"), DEVICE, bands) == ["5 lives → 4 lives"]
+    assert ob.counters(tree("Score 10"), tree("Score 20 · daily limit"), DEVICE, bands)
+    out = {"ref": "@o", "type": "android.widget.TextView", "text": "Out of moves",
+           "coordinates": {"x": 100, "y": 900, "width": 800, "height": 80}}
+    assert ob.counters(tree("Score 10"), tree("Score 20", out), DEVICE, bands) == ["Score 10 → Score 20"]
+    play = {"ref": "@b", "type": "android.widget.Button", "text": "Play", "enabled": True,
+            "coordinates": {"x": 100, "y": 1500, "width": 800, "height": 120}}
+    assert ob.counters(tree("Score 10", play), tree("Score 20", {**play, "enabled": False}), DEVICE, bands)
 
 
 def test_a_message_timestamp_beside_the_composer_is_not_a_counter():
@@ -181,7 +234,7 @@ def test_no_conversation_is_a_paywall_only_a_price_on_a_control_is():
              "coordinates": {"x": 42, "y": 900, "width": 900, "height": 80}}
     plan = {"ref": "@plan", "type": "android.widget.Button", "text": "Get Plus for $4.99/month",
             "coordinates": {"x": 240, "y": 1500, "width": 600, "height": 120}}
-    assert ob.priced([reply], DEVICE) and not ob.priced(chat + [reply], DEVICE)
+    assert not ob.priced([reply], DEVICE) and not ob.priced(chat + [reply], DEVICE)  # a sentence is content anywhere
     assert ob.priced(chat + [reply, plan], DEVICE)
 
 

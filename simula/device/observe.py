@@ -90,8 +90,9 @@ PAYWALL = re.compile(rf"{PRICE.pattern}|subscription|membership|free trial|per (
 CREATE = re.compile(r"\W*(generate|play|draw|spin|roll|scan)\b", re.IGNORECASE)
 ENTRY = re.compile(r"upgrade|\bplans?\b|premium|\bplus\b|\bpro\b|(?<!\d)\+|membership|subscription|remove ads|"
                    r"\bad[- ]free\b|\bno ads\b", re.IGNORECASE)
-LIMIT = re.compile(r"\blimits?\b|\bremaining\b|\bquota\b|resets? in|out of (free )?(messages|credits|swipes|chats|"
-                   r"articles)|no more (free )?\w+|\bleft today\b", re.IGNORECASE)
+AD_MARK = re.compile(r"\bsponsored\b|\badvertis\w*|\bpromoted\b|^\W*ad\W*$", re.IGNORECASE)  # an ad says it is one
+LIMIT = re.compile(r"\blimits?\b|\bremaining\b|\bquota\b|resets? in|no more (free )?\w+|\bleft today\b|"
+                   r"out of (?!(?:the|this|that|your|my|our|their|an?)\b)(free )?[^\W\d_]{3,}", re.IGNORECASE)
 DIGITS = re.compile(r"\d")
 NUMBER = re.compile(r"\d+")
 CLOCK = re.compile(r"\b\d{1,2}:\d{2}\b|\bago\b", re.IGNORECASE)
@@ -809,15 +810,22 @@ def shifted(before: list[dict], after: list[dict], device: Device) -> bool:
 
 
 def counters(before: list[dict], after: list[dict], device: Device, bands: list[tuple[int, int]]) -> list[str]:
-    """Short numbers that changed in place ("5 left" → "4 left") inside the given y bands (the header, the input
-    bar): UI chrome, never the content that scrolls between them."""
+    """Short numbers that changed in place inside the given y bands (the header, the input bar), UI chrome and never
+    the content that scrolls between them, when they gate: the number went down (a quota spent, "5 left" → "4 left")
+    or names a limit, or the screen newly says one where a wall is read from ("Out of moves", never an article's
+    sentence) or disables a control. A score, a level or a like count going up is progress, not a limit."""
     def at(elements):
         return {(bucket(e["coordinates"]["x"], device), bucket(e["coordinates"]["y"], device)): words(e)
                 for e in elements if in_content(e, device) and words(e) and len(words(e)) <= 30
                 and not CLOCK.search(words(e)) and any(y0 <= e["coordinates"]["y"] < y1 for y0, y1 in bands)}
     old, new = at(before), at(after)
+    # ponytail: a quota counted up ("3 of 10 used") gates only with a limit word or a message; add its shape if seen
+    enabled = {c.key for c in controls(before, device) if c.enabled}
+    gated = any(LIMIT.search(t) for t in wall_texts(after, device) - wall_texts(before, device)) \
+        or any(not c.enabled and c.key in enabled for c in controls(after, device))
     return [f"{old[p]} → {new[p]}" for p in old.keys() & new.keys()
-            if old[p] != new[p] and DIGITS.search(old[p]) and DIGITS.search(new[p])]
+            if old[p] != new[p] and DIGITS.search(old[p]) and DIGITS.search(new[p])
+            and (gated or LIMIT.search(new[p]) or int(NUMBER.search(new[p])[0]) < int(NUMBER.search(old[p])[0]))]
 
 
 def change_summary(before: list[dict], after: list[dict], device: Device, limit: int = 160) -> str:
@@ -851,27 +859,34 @@ def read_on_screen(elements: list[dict], reading: str, title: str, device: Devic
     return not wanted or shows_text(elements, wanted, device)
 
 
-def is_upsell(elements: list[dict], device: Device) -> bool:
-    return any(PAYWALL.search(t) for t in texts(elements, device))
+def is_upsell(elements: list[dict], device: Device, box: Rect | None = None, own: list[Candidate] = (),
+              shown: set[str] | None = None) -> bool:
+    return any(PAYWALL.search(t) for t in wall_texts(elements, device, box, own, shown))
 
 
 def wall_texts(elements: list[dict], device: Device, box: Rect | None = None, own: list[Candidate] = (),
                shown: set[str] | None = None) -> set[str]:
-    """The texts a paywall is read from. On a chat (a screen with a composer) only control-shaped labels, the text
-    from the composer down, and an overlay's own texts: inside its box, the words its parent screen didn't show
-    (shown), wherever the tree lists them. With no parent capture, those listed from the overlay's first own control
-    on (content listed before an overlay lies under it). A conversation, the explorer's messages and the replies, is
-    never a paywall."""
+    """The texts a paywall is read from: control-shaped labels, and an overlay's own texts: inside its box, the words
+    its parent screen didn't show (shown), wherever the tree lists them. With no parent capture, those listed from
+    the overlay's first own control on (content listed before an overlay lies under it). On a chat (a screen with a
+    composer) also the text from the composer down: a conversation, the explorer's messages and the replies, is never
+    a paywall. Elsewhere also short texts (a plan's price, "Start free trial"), but never a sentence of content (a
+    headline, an article), and nothing inside an ad or, unless the screen asks for an upgrade, a feed's row."""
     cands = controls(elements, device)
     chat = composer(cands, device)
-    if chat is None:
-        return texts(elements, device)
     refs = {c.ref for c in own}
     start = next((n for n, e in enumerate(elements) if e.get("ref") in refs), len(elements))
-    return ({c.label for c in cands if control_shaped(c.label, c.kind)}
-            | {words(e) for n, e in enumerate(elements) if in_content(e, device) and words(e)
-               and (rect(e).y >= chat[0].rect.y or (box is not None and inside(rect(e), box)
-                                                    and (words(e) not in shown if shown is not None else n >= start)))})
+    content = [rect(e) for e in elements if AD_MARK.search(words(e))] + (
+        [] if chat or asks(cands) else [c.rect for c in feed_items(cands, device)])
+
+    def read(n: int, e: dict) -> bool:
+        if box is not None and inside(rect(e), box) and (words(e) not in shown if shown is not None else n >= start):
+            return True
+        if chat:
+            return rect(e).y >= chat[0].rect.y
+        return control_shaped(words(e), e.get("type", "")) and not any(inside(rect(e), r) for r in content)
+    return ({c.label for c in cands if control_shaped(c.label, c.kind) and not any(inside(c.rect, r) for r in content)}
+            | {words(e) for n, e in enumerate(elements) if in_content(e, device) and words(e) and read(n, e)})
 
 
 def priced(elements: list[dict], device: Device, box: Rect | None = None, own: list[Candidate] = (),
