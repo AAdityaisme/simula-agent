@@ -430,7 +430,7 @@ class Explorer:
                     back_to=came_from.sid if came_from and not tab_move and move.action != "swipe" else None,
                     settled=obs.settled,
                     settle_s=obs.settle_s,
-                    captured_at=now(), upsell=ob.is_upsell(obs.elements, self.device),
+                    captured_at=now(), upsell=ob.is_upsell(obs.elements, self.device, box, cands, under),
                     priced=ob.priced(obs.elements, self.device, box, cands, under),
                     via=move.cand.label if move and move.cand else "", box=box, under=under,
                     unscroll_to=came_from.sid if came_from and move.action == "swipe" else None, own_fp=str(obs.fp),
@@ -1212,7 +1212,7 @@ class Explorer:
         consent = next((c for c in self.surface() if ob.consents(c, tapped=False)), None)
         if check:
             return f"a check only a person can pass ({check[:60]!r})"
-        if ob.priced(self.obs.elements, self.device) or any(ob.CARD.search(t) for t in said):
+        if any(ob.PRICE.search(t) or ob.CARD.search(t) for t in said):  # a form is no content: any price is a charge
             return f"a payment step on {s.sid}"
         if consent:
             return f"it asks for a consent or an attestation ({consent.label[:40]!r})"
@@ -2245,8 +2245,11 @@ class Explorer:
                 return named or f"{here.kind} opened", here.sid
         if here is not s and here.upsell:
             return ("paywall" if here.priced else "upsell screen"), here.sid
-        moved = ob.counters(before.elements, self.obs.elements, self.device, [(0, ob.TOP_CHROME_BOTTOM_PX)])
-        return ("counter", moved[0]) if moved else ("", "")
+        if moved := ob.counters(before.elements, self.obs.elements, self.device, [(0, ob.TOP_CHROME_BOTTOM_PX)]):
+            return "counter", moved[0]
+        said = ob.wall_texts(self.obs.elements, self.device) - ob.wall_texts(before.elements, self.device)
+        told = next((t for t in said if ob.LIMIT.search(t)), None)  # "Out of lives", never an article's sentence
+        return ("limit", told) if told else ("", "")
 
     def chat_stop(self, here: Seen, before: Obs, move: Move, settled: bool) -> tuple[str, str]:
         """In a chat only the window can stop the loop: a dialog over it, a sheet's new words over the text box, the

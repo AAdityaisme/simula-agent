@@ -20,10 +20,20 @@ from simula.device.mcp import McpTimeout
 from simula.stages import explore_agent as stage_agent
 from simula.stages.explore_agent import STALE_TURNS, AgentExplorer, Halt, ScreenMoved
 from tests import fake_device
-from tests.fake_device import PACKAGE, Clock, FakePhone, Screen, capture, fake_jev, fake_sonnet, new_run
+from tests.fake_device import PACKAGE, Clock, FakePhone, Screen, capture, explorer, fake_jev, fake_sonnet, new_run
+from tests.test_core_loop import ad_with_badge, e, subscription_tiers
 from tests.test_explore_offline import aol_home_2, janitor_like
 
 CHATS_TAB = (540, 2253)
+DONE_REFUSAL = AgentExplorer.done_refusal
+
+
+@pytest.fixture(autouse=True)
+def done_when_said(monkeypatch):
+    """The canned planners end on done long before the time floor: the done gate has its own tests, which put it
+    back (DONE_REFUSAL)."""
+    monkeypatch.setattr(AgentExplorer, "done_refusal", lambda self: "")
+
 DRAWER = (996, 209)
 LINE = re.compile(r"^(o\d+): \S+ '(.*?)'.* \[(\d+),(\d+),(\d+),(\d+)\]", re.MULTILINE)
 
@@ -317,6 +327,165 @@ def test_start_core_marks_a_feed_whose_passes_open_items_and_type_nothing(tmp_pa
     assert len({key for screen, key in taps(phone) if screen == "home"}) == 2  # both rows, in turn
     assert phone.typed == [] and phone.sent == 0
     assert not [e for e in phone.log if e[0] == "type"]
+
+
+def on_root(tmp_path, monkeypatch, mode, screen=None):
+    """A scripted or agent explorer recorded on one drawn screen, with nothing sent (rt-65's probes)."""
+    factory = phone_of({"root": screen or drawn(control("Explore", 1))})
+    if mode == "agent":
+        ex, phone, _ = agent(tmp_path, monkeypatch, scripted(), phone_factory=factory, no_send=True)
+    else:
+        ex, phone = explorer(tmp_path, monkeypatch, factory, no_send=True)
+    phone.launch()
+    ex.obs = ex.observe()
+    ex.current = ex.record(ex.obs, None, None, None)
+    ex.root = ex.home = ex.launch_root = ex.current
+    return ex, phone
+
+
+def landed(ex, elements, kind="screen"):
+    """The look before a core pass, and the state the pass landed on, showing these elements."""
+    before = ex.obs
+    ex.obs = dataclasses.replace(before, elements=elements, cands=ob.controls(elements, ex.device))
+    here = dataclasses.replace(ex.current, sid="s99", kind=kind, elements=elements, cands=ex.obs.cands,
+                               upsell=ob.is_upsell(elements, ex.device, None, ex.obs.cands),
+                               priced=ob.priced(elements, ex.device, None, ex.obs.cands), box=None)
+    return before, here
+
+
+@pytest.mark.parametrize("mode", ["scripted", "agent"])
+def test_a_full_screen_plans_chooser_stops_a_pass_in_both_explorers(tmp_path, monkeypatch, mode):
+    ex, _ = on_root(tmp_path, monkeypatch, mode)
+    ex.core = stage.CoreAction("button", ex.current, [], "generate")
+    before, here = landed(ex, subscription_tiers())
+    assert ob.dialog_box(here.cands, ex.device) is None
+    assert ex.hit(ex.current, here, before, stage.Move("tap"))[0] == "paywall"
+
+
+def test_the_scripted_explorer_refuses_continue_on_a_recorded_plans_chooser(tmp_path, monkeypatch):
+    ex, phone = on_root(tmp_path, monkeypatch, "scripted", drawn(*subscription_tiers()))
+    go = next(c for c in ex.current.cands if c.label == "Continue")
+    ex.act(stage.Move("tap", go))
+    assert not [t for t in phone.log if t[0] == "tap"]
+
+
+@pytest.mark.parametrize("mode", ["scripted", "agent"])
+def test_an_ad_card_marked_by_a_small_badge_never_stops_an_article_pass(tmp_path, monkeypatch, mode):
+    ex, _ = on_root(tmp_path, monkeypatch, mode)
+    ex.core = stage.CoreAction("feed", ex.current, [], "read article")
+    before, here = landed(ex, ad_with_badge())
+    assert ex.hit(ex.current, here, before, stage.Move("tap"))[0] == ""
+
+
+@pytest.mark.parametrize("mode", ["scripted", "agent"])
+@pytest.mark.parametrize("message", ["Out of lives", "Out of hearts", "Out of moves"])
+def test_a_screens_own_limit_message_stops_a_pass_without_a_moved_number(tmp_path, monkeypatch, mode, message):
+    """rt-65: a game-over screen saying "Out of lives" (no dialog, no counter) didn't stop the loop."""
+    ex, _ = on_root(tmp_path, monkeypatch, mode)
+    ex.core = stage.CoreAction("button", ex.current, [], "play")
+    before, here = landed(ex, [e("Game over", "@header", y=180, w=400, h=50), e(message),
+                               e("Try again", "@p", y=1500, kind="Button")])
+    assert ob.dialog_box(here.cands, ex.device) is None
+    assert ex.hit(ex.current, here, before, stage.Move("tap")) == ("limit", message)
+
+
+def test_a_tap_on_a_live_title_inside_a_recorded_row_counts_the_row_opened(tmp_path, monkeypatch):
+    """rt-65: only the title's own key was kept, so the row it opened stayed owed and done was refused for it."""
+    first = e("First article", "@first", y=400, w=900, h=200, kind="ViewGroup", identifier="app:id/row")
+    second = e("Second article", "@second", y=700, w=900, h=200, kind="ViewGroup", identifier="app:id/row")
+    ex, phone = on_root(tmp_path, monkeypatch, "agent", drawn(first, second))
+    root = ex.current
+    row = next(c for c in ob.feed_items(root.cands, ex.device) if c.label == "First article")
+    title = e("Newly exposed title", "@title", x=120, y=410, w=700, h=35)
+    summary = e("Newly exposed summary", "@summary", x=120, y=450, w=700, h=35)
+    phone.screens["root"].elements = [*phone.screens["root"].elements[:1], {**first, "text": ""}, title, summary,
+                                       second]
+    phone.screens["article"] = drawn(e("A long readable article body.", "@body", y=700))
+    phone.taps[("root", "Newly exposed title")] = "article"
+    ex.observe()
+    live = next(c for c in ex.obs.cands if c.label == "Newly exposed title")
+    ex.act(stage.Move("tap", live))
+    assert phone.screen == "article" and (root.sid, row.key) in ex.opened
+
+
+def test_a_row_that_says_advertisement_is_an_ad(tmp_path, monkeypatch):
+    """Greptile on f55d256: "Advertisement" missed the ad label ("ad" needs a word break after it)."""
+    ex, _ = on_root(tmp_path, monkeypatch, "agent")
+    row = dataclasses.replace(ex.current.cands[0], label="Advertisement · Shop the sale", tree_label="")
+    assert ex.is_ad(ex.current, row)
+
+def test_a_relaunch_that_moves_the_rows_keeps_them_opened(tmp_path, monkeypatch):
+    """rt-65: refresh moved home's tried keys to the rows' new places but not the opened ones."""
+    monkeypatch.setattr(AgentExplorer, "done_refusal", DONE_REFUSAL)
+    first = e("Article A", "@1", y=900, w=800, h=100, kind="Button", identifier="app:id/row")
+    second = e("Article B", "@2", y=1200, w=800, h=100, kind="Button", identifier="app:id/row")
+    ex, phone = on_root(tmp_path, monkeypatch, "agent", drawn(first, second))
+    root = ex.current
+    rows = ob.feed_items(root.cands, ex.device)
+    root.tried.update(c.key for c in rows)
+    ex.opened.update((root.sid, c.key) for c in rows)
+    ex.clock.t = ex.started + stage_agent.DONE_SHARE * ex.tour_seconds
+    assert ex.done_refusal() == ""
+    lower = [{**r, "coordinates": {**r["coordinates"], "y": r["coordinates"]["y"] + 42}} for r in (first, second)]
+    phone.screens["reloaded"] = drawn(*lower, e("Article C", "@3", y=1500, w=800, h=100, kind="Button",
+                                                identifier="app:id/row"))
+    phone.start = "reloaded"
+    ex.relaunch()
+    moved = [c for c in ob.feed_items(root.cands, ex.device) if c.label in ("Article A", "Article B")]
+    assert ex.current is root and len(moved) == 2 and all(c.key in root.tried for c in moved)
+    assert all((root.sid, c.key) in ex.opened for c in moved)
+
+def test_a_price_in_an_articles_ad_never_stops_the_feeds_passes(tmp_path, monkeypatch):
+    """Generality audit, finding 1 (rt-61's informational probe): the scripted run's article s05 shows a native ad
+    with a price ("jackets for $2.36"); it read as a paywall and stopped the feed on pass 1. Every pass now runs."""
+    def phone_factory(clock):
+        phone = news_feed(clock)
+        phone.screens["article"] = capture("aol", "aol-article-priced-ad", package=PACKAGE)
+        return phone
+    script = scripted(lambda text: turn({"action": "start_core", "element": oid(text, "Doctors recommend"),
+                                         "recipient": "none", "expect": "marked"}))
+    ex, phone, _ = run(tmp_path, monkeypatch, script, phone_factory=phone_factory)
+    assert ex.core.kind == "feed" and not ex.core_hit, ex.core_results
+    assert ex.core_completed == ex.core_reps and not any("paywall" in r for r in ex.core_results)
+
+
+def test_done_is_refused_before_the_time_floor_and_taken_after_it(tmp_path, monkeypatch):
+    """Generality audit, finding 2: a news app's agent said done after 6 of 60 minutes, its navigation used up."""
+    monkeypatch.setattr(AgentExplorer, "done_refusal", DONE_REFUSAL)
+
+    def script(n, text):
+        if n == 2:
+            ex.clock.t += stage_agent.DONE_SHARE * ex.tour_seconds
+        return turn(DONE, done_reason="covered") if n <= 2 else None
+    ex, phone, planner = agent(tmp_path, monkeypatch, script, phone_factory=phone_of({"root": drawn(control("Menu", 1))}))
+    stage.explore_app(ex)
+    assert "Your done was refused: only 0 of" in planner.texts[1] and len(planner.texts) == 2
+    assert ex.stop_reason == "the planner said done: covered" and ex.counts["done refused"] == 1
+
+
+def test_done_is_refused_while_a_recorded_list_has_an_unopened_item(tmp_path, monkeypatch):
+    """Past the time floor, done waits for every row of a recorded list to be tried; then it is taken."""
+    monkeypatch.setattr(AgentExplorer, "done_refusal", DONE_REFUSAL)
+
+    def phone_factory(clock):
+        phone = news_feed(clock)
+        phone.screens["article"] = drawn(control("An article's long readable story", 1))  # no list of its own
+        return phone
+
+    def script(n, text):
+        if n == 1:
+            ex.clock.t += stage_agent.DONE_SHARE * ex.tour_seconds
+        rows = {2: "Doctors recommend", 5: "Christa Pike"}
+        if n in rows:
+            return turn(tap(oid(text, rows[n]), "the article opens"))
+        if n in (3, 6):
+            return turn({"action": "back", "expect": "the list"})
+        return turn(DONE, done_reason="covered") if n <= 7 else None
+    ex, phone, planner = agent(tmp_path, monkeypatch, script, phone_factory=phone_factory)
+    stage.explore_app(ex)
+    assert "2 list items on recorded screens are not opened yet" in planner.texts[1]
+    assert "1 list items on recorded screens are not opened yet" in planner.texts[4] and "Christa Pike" in planner.texts[4]
+    assert ex.stop_reason == "the planner said done: covered" and len(planner.texts) == 7
 
 
 def start(tmp_path, monkeypatch, factory, reps=3):
@@ -1457,5 +1626,6 @@ def test_the_prompt_asks_for_every_tab_a_fresh_conversation_and_no_early_done():
     assert "the one you start on included (tap its own control)" in said
     assert "Prefer starting a new conversation" in said
     assert "only when no unvisited control of the app's own navigation" in said
-    assert "Open at least one item of each list or feed" in said
+    assert "every item of the lists on the screens you recorded has been opened" in said
+    assert "Code refuses `done` before 40% of the time" in said and stage_agent.DONE_SHARE == 0.4
     assert "never plan the same step the same way on your next turn" in said

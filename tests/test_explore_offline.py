@@ -1239,7 +1239,8 @@ def test_a_reply_that_arrived_after_the_chat_was_recorded_never_prices_a_sheet_o
     before = ex.observe()
     phone.go("chat_sheet")
     sheet = ex.record(ex.observe(), chat, stage.Move("tap", why="a voice for the chat"), before)
-    assert sheet.box and sheet.upsell and not sheet.priced
+    # the reply under the sheet once made it an upsell too: content, never its own words (generality audit, 1)
+    assert sheet.box and not sheet.upsell and not sheet.priced
     ex.paywall_pass()
     assert ex.paywall != sheet.sid and "$4.99" not in stage.paywall_line(ex), stage.paywall_line(ex)
     assert reply not in ex.wall_texts(sheet)
