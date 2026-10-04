@@ -75,7 +75,6 @@ def model_built_on(run_dir):
 def no_device_online(monkeypatch):
     from simula.device import devices
     from simula.stages import explore
-    monkeypatch.setenv("SIMULA_REDACT", "someone")
     monkeypatch.setattr(explore, "resolve_serial", devices.resolve_serial)
     monkeypatch.setattr(devices, "adb", lambda: None)
 

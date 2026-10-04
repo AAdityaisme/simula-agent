@@ -79,7 +79,6 @@ def no_device(request, monkeypatch, quiet_osascript):
     if request.node.get_closest_marker("live"):
         return None
 
-    monkeypatch.setenv("SIMULA_REDACT", "offline-test-handle")
     monkeypatch.setattr(runlog, "notify", lambda title, message: False)
     monkeypatch.setenv("PATH", f"{quiet_osascript}{os.pathsep}{os.environ['PATH']}")
 

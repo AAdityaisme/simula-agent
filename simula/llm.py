@@ -12,7 +12,6 @@ import math
 import re
 import threading
 import time
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -461,16 +460,15 @@ PROVIDERS = {"anthropic": call_anthropic, "openai": call_openai}
 def call(*, trace_path: Path, stage: str, step: str, model: str, effort: str | None, system: str,
          messages: list[dict], max_tokens: int, budget: Budget, schema: type[BaseModel] | None = None,
          no_cache: bool = False, replay: bool = False, cache_dir: Path = CACHE, fallback: str | None = None,
-         attempts: int = 2, total_timeout: float | None = None, scrub: Callable[[str], str] | None = None):
+         attempts: int = 2, total_timeout: float | None = None):
     """Returns (parsed schema object or text, Reply). Makes up to `attempts` tries (a typed failure is retried),
     then tries the declared fallback model if one is given, then raises LLMFailure. `total_timeout` bounds one
-    streamed Anthropic attempt end to end. `scrub` rewrites what the model said (its answer, a failure's detail and
-    raw text) before the cache, the trace or the caller sees it; it isn't part of the cache key."""
+    streamed Anthropic attempt end to end."""
     try:
         return _call_model(trace_path=trace_path, stage=stage, step=step, model=model, effort=effort, system=system,
                            messages=messages, max_tokens=max_tokens, budget=budget, schema=schema,
                            no_cache=no_cache, replay=replay, cache_dir=cache_dir, attempts=attempts,
-                           total_timeout=total_timeout, scrub=scrub)
+                           total_timeout=total_timeout)
     except LLMFailure as e:
         if not fallback or e.outcome not in ("error", "timeout"):
             raise
@@ -480,34 +478,11 @@ def call(*, trace_path: Path, stage: str, step: str, model: str, effort: str | N
         return _call_model(trace_path=trace_path, stage=stage, step=step, model=fallback, effort=effort, system=system,
                            messages=messages, max_tokens=max_tokens, budget=budget, schema=schema,
                            no_cache=no_cache, replay=replay, cache_dir=cache_dir, attempts=attempts,
-                           total_timeout=total_timeout, scrub=scrub)
-
-
-def scrub_values(value, scrub: Callable[[str], str]):
-    """Every string in a decoded JSON value, scrubbed: the decoded text, so an escaped character can't hide one."""
-    if isinstance(value, str):
-        return scrub(value)
-    if isinstance(value, list):
-        return [scrub_values(v, scrub) for v in value]
-    if isinstance(value, dict):
-        return {k: scrub_values(v, scrub) for k, v in value.items()}
-    return value
-
-
-def scrub_text(text: str | None, scrub: Callable[[str], str]) -> str | None:
-    """A model's text scrubbed: a JSON answer value by value, anything else as it reads."""
-    if not text:
-        return text
-    try:
-        decoded = json.loads(text)
-    except ValueError:
-        return scrub(text)
-    return scrub(json.dumps(scrub_values(decoded, scrub), ensure_ascii=False))
+                           total_timeout=total_timeout)
 
 
 def _call_model(*, trace_path, stage, step, model, effort, system, messages, max_tokens, budget, schema,
-                no_cache, replay, cache_dir, attempts, total_timeout, scrub=None):
-    scrub = scrub or (lambda text: text)
+                no_cache, replay, cache_dir, attempts, total_timeout):
     provider = config.models()[model]["provider"]
     params = request_params(provider, effort, max_tokens, schema)
     keys = [cache_key(provider, model, system, messages, params, attempt) for attempt in range(attempts)]
@@ -553,7 +528,6 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
             pending.append(key)
             continue
         file_key, cached = chosen[key]
-        cached.text, cached.stop_reason = scrub_text(cached.text, scrub), scrub_text(cached.stop_reason, scrub)
         if cached.failure:
             last = LLMFailure(cached.failure, cached.stop_reason, raw=cached.text)
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
@@ -587,27 +561,24 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
             failure = e if isinstance(e, LLMFailure) else _failure(
                 "blocked" if isinstance(e, ProviderUnavailable) else "error", e)
             spent = {k: getattr(failure, k) for k in SPENT}
-            failure = LLMFailure(failure.outcome, scrub(failure.detail), raw=scrub_text(failure.raw, scrub), **spent)
+            failure = LLMFailure(failure.outcome, failure.detail, raw=failure.raw, **spent)
             cost = usd(model, **spent)
             budget.charge(cost, worst)
-            note = scrub(str(e) if retry or not isinstance(e, Exception) else
-                         f"{type(e).__name__}, not a provider error: {e}")
+            note = (str(e) if retry or not isinstance(e, Exception) else
+                    f"{type(e).__name__}, not a provider error: {e}")
             # Only a retried failure is cached, so only its trace line names a key: a stop or a bug in our own code is
             # no model answer, and --replay must never look for it.
             trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
                   **spent, usd=round(cost, 6), outcome=failure.outcome,
                   note=(f"key {fresh[key][:12]} " if retry else "") + note[:200])
             if not retry:
-                if (clean := _scrubbed(e, scrub)) is e:
-                    raise
-                raise clean from None
+                raise
             cache_write(fresh[key], Reply(text=failure.raw, model=model, **spent, stop_reason=failure.detail,
                                           failure=failure.outcome), cache_dir)
             last = failure
             continue
         cost = usd(model, reply.tokens_in, reply.tokens_out, reply.tokens_cached, reply.tokens_cache_write)
         budget.charge(cost, worst)
-        reply.text, reply.stop_reason = scrub_text(reply.text, scrub), scrub_text(reply.stop_reason, scrub)
         outcome, result = _check(reply, schema)
         trace(trace_path, stage=stage, step=step, decider="model", model=model, effort=effort,
               tokens_in=reply.tokens_in, tokens_out=reply.tokens_out, tokens_cached=reply.tokens_cached,
@@ -622,17 +593,6 @@ def _call_model(*, trace_path, stage, step, model, effort, system, messages, max
         cache_write(fresh[key], reply, cache_dir)
         last = LLMFailure(outcome, reply.stop_reason, raw=reply.text)
     raise last
-
-
-def _scrubbed(e: BaseException, scrub: Callable[[str], str]) -> BaseException:
-    """A stop that must propagate, as itself, with its message scrubbed: whoever catches it may write it down."""
-    said = str(e)
-    if scrub(said) == said:
-        return e
-    try:
-        return type(e)(scrub(said))
-    except Exception:  # noqa: BLE001 - an exception that can't be rebuilt from a message is raised as a plain one
-        return RuntimeError(f"{type(e).__name__}: {scrub(said)}")
 
 
 def provider_error(e: Exception) -> bool:

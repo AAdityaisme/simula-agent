@@ -44,7 +44,7 @@ NOTE = ("Masked SSIM is descriptive: it has no pass threshold. Explore records n
 
 @dataclass
 class Live:
-    """One settled look at the device, redacted before anything reads it."""
+    """One settled look at the device, the test password hidden before anything reads it."""
     reply: dict
     elements: list[dict]
     image: Image.Image
@@ -80,11 +80,7 @@ def run(app: str, run_id: str | None, out: Path, serial: str | None, clock=time.
     """Walks every core flow of a run on the live app and its approved mock, and writes OUT/report.json, report.md and
     each checkpoint's evidence. Reads the run, never writes to it."""
     src = runfolder.resolve_run(app, run_id)
-    secrets = explore.redact_list()
-    if not secrets:
-        raise SystemExit("SIMULA_REDACT is empty: list the emulator account's handle and names in .env first")
-    identity = explore.account_identity()  # an explore that made the account leaves the app showing it
-    secrets, parts = secrets + list(identity.values()), explore.identity_parts(identity)
+    password = explore.account_identity().get("password", "")
     if not (src / "qa" / "approved" / "index.html").exists():
         raise SystemExit(f"{src} has no approved mock: run `simula qa {app}` first")
     approval = approved_outcome(src, app)
@@ -108,7 +104,7 @@ def run(app: str, run_id: str | None, out: Path, serial: str | None, clock=time.
             found = live_device(phone, resolved)
             if found != model.device:
                 raise SystemExit(f"the device is {found}, but the run was explored on {model.device}")
-            audit = Audit(ctx, model, phone, out, secrets, parts, clock, sleep, explored.filter_controls,
+            audit = Audit(ctx, model, phone, out, password, clock, sleep, explored.filter_controls,
                           explored.filter_on)
             with render.open_mock(src / "qa" / "approved") as (page, _):
                 flows, stop = audit.walk(page)
@@ -225,9 +221,9 @@ def launchable(live: Live, device: Device) -> bool:
 class Audit:
     """One walk over a run's flows. `current` is the recorded state the live app is known to show, or None."""
 
-    def __init__(self, ctx: Ctx, model: ProductModel, phone, out: Path, secrets: list[str], parts: list[str], clock,
-                 sleep, filter_controls: list[FilterControl] = (), filter_on: bool | None = None):
-        self.ctx, self.model, self.phone, self.out, self.secrets, self.parts = ctx, model, phone, out, secrets, parts
+    def __init__(self, ctx: Ctx, model: ProductModel, phone, out: Path, password: str, clock, sleep,
+                 filter_controls: list[FilterControl] = (), filter_on: bool | None = None):
+        self.ctx, self.model, self.phone, self.out, self.password = ctx, model, phone, out, password
         self.clock, self.sleep, self.started = clock, sleep, clock()
         self.device, self.package, self.scratch = model.device, ctx.app["package"], out / ".scratch"
         self.states = {s.id: s for s in model.states}
@@ -553,15 +549,11 @@ class Audit:
             self.mutate(self.phone.swipe, "down" if edge.id in self.scroll_backs else "up")
 
     def capture(self) -> Live:
-        """A settled element list and screenshot, both redacted as explore redacts them before anything reads them."""
+        """A settled element list and screenshot, the test password hidden as explore hides it."""
         settled = ob.settle(self.phone.elements, self.phone.small_hash, self.device, self.clock, self.sleep)
         path = self.phone.screenshot(self.scratch / "now.png", (self.device.w_px, self.device.h_px))
         image = Image.open(path).convert("RGB")
-        reply, elements, hits = ob.redact(settled.reply, image, self.secrets, self.parts)
-        if hits or not settled.ok:
-            # the screen may have moved since the list
-            ob.redact(self.phone.elements()[0], image, self.secrets, self.parts)
-        image.save(path)  # no raw capture stays on disk, even when the walk is stopped
+        reply, elements = ob.hide(settled.reply, self.password)
         fg = self.phone.foreground()
         return Live(reply, elements, image, fg, ob.fingerprint(fg, elements, image, self.device),
                     ob.controls(elements, self.device), settled.ok)
@@ -695,7 +687,7 @@ class Audit:
 
     def checkpoint(self, result: dict, edge: Edge | None, expected: str, page, mock_side: dict,
                    control: dict | None) -> None:
-        """Saves both sides as they are now: the live capture and its element list (both redacted), the mock's render,
+        """Saves both sides as they are now: the live capture and its element list, the mock's render,
         and the heatmap of their masked SSIM."""
         self.in_time()
         stem = f"flows/{result['flow']}/{len(result['checkpoints']):02d}"

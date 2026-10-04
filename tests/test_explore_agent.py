@@ -158,7 +158,7 @@ def test_a_relaunch_puts_the_filter_back_and_checks_it_again(tmp_path, monkeypat
 
 def test_on_the_google_account_chooser_only_an_account_row_or_a_flow_button_is_tapped(tmp_path, monkeypatch):
     """Review focus 1 and the red team's HIGH 2: the chooser is another package and is acted on, not left; only the
-    account row (its email redacted) or a plain flow button may be tapped there, never account management."""
+    account row (its email) or a plain flow button may be tapped there, never account management."""
     chooser = drawn(control("someone@example.com", 1), control("Manage your Google Account", 2),
                     control("Add another account", 3), package=guard.ACCOUNT_CHOOSER)
     phone_factory = phone_of({"root": drawn(control("Continue with Google", 1)), "chooser": chooser,
@@ -167,7 +167,7 @@ def test_on_the_google_account_chooser_only_an_account_row_or_a_flow_button_is_t
                               ("chooser", "Manage your Google Account"): "root"})
     script = scripted(lambda text: turn(tap(oid(text, "Continue with Google"), "the account chooser")),
                       lambda text: turn(tap(oid(text, "Manage your Google Account"), "account settings")),
-                      lambda text: turn(tap(oid(text, "[redacted]"), "signed in")))
+                      lambda text: turn(tap(oid(text, "someone@example.com"), "signed in")))
     ex, phone, planner = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
     assert ("chooser", "Manage your Google Account") not in taps(phone)
     assert ("chooser", "someone@example.com") in taps(phone)
@@ -226,26 +226,6 @@ def test_a_run_cut_short_by_the_cap_still_leaves_a_loadable_record(tmp_path, mon
     ex, _, _ = run(tmp_path, monkeypatch, script)
     assert ex.stop_reason.startswith("$ cap") and len(ex.states) >= 3
     loads_cleanly(ex)
-
-
-def test_the_planner_sees_the_raw_screen_and_nothing_on_disk_holds_a_redacted_string(tmp_path, monkeypatch):
-    """Review focus 5: SIMULA_REDACT names a chip's word; the planner echoes it back in its notes."""
-    monkeypatch.setenv("SIMULA_REDACT", "Trending")
-
-    def script(n, text):
-        assert "Trending" not in text
-        if n == 1:
-            return turn(tap(oid(text, "Limited Only"), "the list narrows"), screen="Trending home",
-                        notes=["a Trending chip"])
-        return None
-    ex, _, planner = run(tmp_path, monkeypatch, script)
-    root = next(s for s in ex.states if s.kind == "screen")
-    saved = (ex.out / f"states/{root.sid}.png").read_bytes()
-    assert planner.images[0] and planner.images[0][0] != stage.png_half(Image.open(io.BytesIO(saved)))
-    written = [p for p in ex.out.rglob("*") if p.is_file() and p.suffix in (".json", ".jsonl", ".md")]
-    written += [ex.run_dir / "trace.jsonl", *(ex.run_dir / "exhibits").glob("*")]
-    assert written and not [p.name for p in written if "trending" in p.read_text().lower()]
-    assert "[redacted] home" in planner.texts[1]
 
 
 def test_a_hard_blocked_control_is_logged_denied_and_never_tapped(tmp_path, monkeypatch):
@@ -678,7 +658,6 @@ def test_ads_seen_and_tapped_are_written_live_as_ad_lines(tmp_path, monkeypatch)
     assert not (ex.out / "states" / "ads.jsonl").exists()
 
 
-
 def test_the_hard_block_words_are_part_of_explores_fingerprint(tmp_path):
     assert config.ROOT / "config" / "hard_blocks.toml" in cli.stage_inputs("explore", new_run(tmp_path))
 
@@ -715,39 +694,6 @@ def test_the_guard_reads_the_screen_as_it_is_at_the_tap(tmp_path, monkeypatch):
     ex, phone, _ = run(tmp_path, monkeypatch, script, phone_factory=factory, no_send=True)
     assert not [t for t in taps(phone) if t[0] == "changed"]
     assert any(t.step == "agent.moved" for t in trace(ex))
-
-
-HANDLE = "owner-fake@example.invalid"
-
-
-def test_what_the_planner_says_about_the_account_never_reaches_the_cache_or_the_trace(tmp_path, monkeypatch):
-    """The red team's HIGH 3: the planner reads the raw screen, so its answers and failures are scrubbed in llm.call."""
-    monkeypatch.setenv("SIMULA_REDACT", HANDLE)
-
-    def script(n, text):
-        if n == 1:
-            return llm.LLMFailure("error", f"the provider choked on {HANDLE}", raw=HANDLE)
-        return turn(DONE, screen=HANDLE, notes=[f"signed in as {HANDLE}"])
-    phone_factory = phone_of({"root": drawn(control(HANDLE, 1), control("Explore", 2))})
-    ex, _, planner = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
-    assert len(planner.texts) == 2 and ex.found == ["signed in as [redacted]"]
-    written = [*ex.cache_dir.glob("*.json"), ex.run_dir / "trace.jsonl", *ex.out.rglob("*.json*")]
-    assert len(list(ex.cache_dir.glob("*.json"))) >= 2 and not [p.name for p in written if HANDLE in p.read_text()]
-
-
-def test_the_scrub_isnt_part_of_the_cache_key(tmp_path, monkeypatch):
-    calls = []
-
-    def provider(model, system, messages, effort, schema, max_tokens, total_timeout=None):
-        calls.append(model)
-        return llm.Reply(text=f"hello {HANDLE}", model=model, tokens_in=10, tokens_out=5)
-    monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider)
-    ask = dict(trace_path=tmp_path / "trace.jsonl", stage="explore", step="s", model="claude-sonnet-5-5", effort=None,
-               system="sys", messages=[{"role": "user", "content": [{"type": "text", "text": "hi"}]}], max_tokens=50,
-               budget=llm.Budget.for_stage("explore", tmp_path / "trace.jsonl", 1.0), cache_dir=tmp_path / "cache")
-    said, _ = llm.call(**ask, scrub=lambda text: text.replace(HANDLE, "[redacted]"))
-    again, _ = llm.call(**ask)
-    assert said == again == "hello [redacted]" and len(calls) == 1
 
 
 def test_nothing_runs_after_the_wall_clock(tmp_path, monkeypatch):
@@ -834,35 +780,6 @@ def test_another_app_in_front_at_the_moment_of_acting_stops_the_plan(tmp_path, m
     assert "com.example.other came to the front" in planner.texts[1]
 
 
-def test_a_cached_answer_is_scrubbed_however_it_was_written(tmp_path, monkeypatch):
-    """Greptile on 2e43d0e: an entry written without a scrub, answer or failure, is scrubbed when read with one."""
-    def answering(model, system, messages, effort, schema, max_tokens, total_timeout=None):
-        return llm.Reply(text=f"hello {HANDLE}", model=model, tokens_in=10, tokens_out=5)
-
-    def failing(model, system, messages, effort, schema, max_tokens, total_timeout=None):
-        raise llm.LLMFailure("refusal", f"choked on {HANDLE}", raw=HANDLE)  # kept, unlike a lost call
-
-    def scrub(text):
-        return text.replace(HANDLE, "[redacted]")
-    for provider, text in ((answering, "hi"), (failing, "bye")):
-        monkeypatch.setitem(llm.PROVIDERS, "anthropic", provider)
-        ask = dict(trace_path=tmp_path / "trace.jsonl", stage="explore", step="s", model="claude-sonnet-5-5",
-                   effort=None, system="sys", messages=[{"role": "user", "content": [{"type": "text", "text": text}]}],
-                   max_tokens=50, budget=llm.Budget.for_stage("explore", tmp_path / "trace.jsonl", 1.0),
-                   cache_dir=tmp_path / "cache")
-        try:
-            llm.call(**ask)
-        except llm.LLMFailure:
-            pass
-        monkeypatch.setitem(llm.PROVIDERS, "anthropic", None)  # a second call must come from the cache
-        if provider is answering:
-            assert llm.call(**ask, scrub=scrub)[0] == "hello [redacted]"
-        else:
-            with pytest.raises(llm.LLMFailure) as failed:
-                llm.call(**ask, scrub=scrub)
-            assert HANDLE not in str(failed.value) + failed.value.raw
-
-
 # ---------- Fable's review on 2e43d0e ----------
 
 def test_a_consent_step_after_the_account_row_is_tapped_through_its_flow_button(tmp_path, monkeypatch):
@@ -875,7 +792,7 @@ def test_a_consent_step_after_the_account_row_is_tapped_through_its_flow_button(
                              {("root", "Continue with Google"): "chooser",
                               ("chooser", "someone@example.com"): "consent", ("consent", "Continue"): "home"})
     script = scripted(lambda text: turn(tap(oid(text, "Continue with Google"), "the chooser")),
-                      lambda text: turn(tap(oid(text, "[redacted]"), "the consent")),
+                      lambda text: turn(tap(oid(text, "someone@example.com"), "the consent")),
                       lambda text: turn(tap(oid(text, "Continue"), "signed in")))
     ex, phone, planner = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
     assert ("consent", "Continue") in taps(phone) and planner.texts[3].startswith(f"App in front: {PACKAGE}")
@@ -887,7 +804,7 @@ def test_a_flow_button_on_a_google_dialog_that_names_a_deletion_stays_refused(tm
     dialog = [control("someone@example.com", 1, "TextView"), control("Remove this account", 2, "TextView"),
               control("OK", 3)]
     ok = next(c for c in stage.ob.controls(dialog, ex.device) if c.tree_label == "OK")
-    assert "hard block" in ex.refusal(ok, guard.ACCOUNT_CHOOSER, dialog, dialog, False)
+    assert "hard block" in ex.refusal(ok, guard.ACCOUNT_CHOOSER, dialog, False)
 
 
 def test_a_google_screen_with_a_price_is_a_purchase_and_gets_back(tmp_path, monkeypatch):
@@ -930,13 +847,6 @@ def test_a_switch_flipped_in_place_is_reported_on(tmp_path, monkeypatch):
     assert "didn't happen" not in planner.texts[1]
 
 
-def test_the_scrub_takes_the_identity_parts_as_whole_words(tmp_path, monkeypatch):
-    """L4: as ob.redact does."""
-    monkeypatch.setenv("SIMULA_TEST_NAME", "Quillon Varga")
-    ex, _, _ = agent(tmp_path, monkeypatch, scripted(), phone_factory=phone_of({"root": drawn(control("Explore", 1))}))
-    assert ex.scrub("hello Quillon, Quillonx") == "hello [redacted], Quillonx"
-
-
 # ---------- Codex's review on 2e43d0e ----------
 
 def one_screen(tmp_path, monkeypatch, *elements, **screens):
@@ -947,9 +857,8 @@ def one_screen(tmp_path, monkeypatch, *elements, **screens):
     return ex, phone
 
 
-def test_a_redacted_name_is_no_account_row_and_account_words_are_refused_on_google(tmp_path, monkeypatch):
-    """Item 1: only an email in the unredacted list makes an account row; manage, privacy and the like never pass."""
-    monkeypatch.setenv("SIMULA_REDACT", "Jamie")
+def test_a_name_is_no_account_row_and_account_words_are_refused_on_google(tmp_path, monkeypatch):
+    """Item 1: only an email makes an account row; manage, privacy and the like never pass."""
     page = drawn(control("Manage account for Jamie", 1), control("Privacy", 2), package=guard.ACCOUNT_CHOOSER)
     phone_factory = phone_of({"root": drawn(control("Continue with Google", 1)), "page": page},
                              {("root", "Continue with Google"): "page"}, backs={"page": "root"})
@@ -959,27 +868,25 @@ def test_a_redacted_name_is_no_account_row_and_account_words_are_refused_on_goog
     ex2, _ = one_screen(tmp_path / "unit", monkeypatch, control("Explore", 1))
     row = [control("someone@example.com", 1, "TextView"), control("Manage your account", 2)]
     manage = next(c for c in stage.ob.controls(row, ex2.device) if c.tree_label == "Manage your account")
-    assert "account chooser" in ex2.refusal(manage, guard.ACCOUNT_CHOOSER, row, row, False)
+    assert "account chooser" in ex2.refusal(manage, guard.ACCOUNT_CHOOSER, row, False)
 
 
-def test_an_account_row_is_judged_by_its_unredacted_email(tmp_path, monkeypatch):
-    """Run 1: the chooser's name line ('[redacted] Om') was refused six times, since its email sits in a sibling line
-    of the same row. An email in the raw text, on the element or in its row, makes an account row; a redacted name
-    alone or an account-management word never does."""
+def test_an_account_row_is_judged_by_its_email(tmp_path, monkeypatch):
+    """Run 1: the chooser's name line was refused six times, since its email sits in a sibling line of the same row.
+    An email on the element or in its row-sized row makes an account row; a name alone or an account-management word
+    never does."""
     ex, _ = one_screen(tmp_path, monkeypatch, control("Explore", 1))
 
     def box(e, x, y, w, h):
         return {**e, "coordinates": {"x": x, "y": y, "width": w, "height": h}}
 
-    def judged(raw, redacted, label):
-        c = next(c for c in stage.ob.controls(redacted, ex.device) if c.tree_label == label)
-        return ex.refusal(c, guard.ACCOUNT_CHOOSER, redacted, raw, False)
+    def judged(elements, label):
+        c = next(c for c in stage.ob.controls(elements, ex.device) if c.tree_label == label)
+        return ex.refusal(c, guard.ACCOUNT_CHOOSER, elements, False)
 
-    own = [control("Jamie Om jamie@example.com", 1)]
-    assert judged(own, [control("[redacted] Om", 1)], "[redacted] Om") == ""
-    assert judged([control("Jamie", 1)], [control("[redacted]", 1)], "[redacted]")
-    assert "account chooser" in judged([control("Manage account for Jamie", 1)],
-                                       [control("Manage account for [redacted]", 1)], "Manage account for [redacted]")
+    assert judged([control("Jamie Om jamie@example.com", 1)], "Jamie Om jamie@example.com") == ""
+    assert judged([control("Jamie", 1)], "Jamie")
+    assert "account chooser" in judged([control("Manage account for Jamie", 1)], "Manage account for Jamie")
 
     def chooser(name, address, add):
         return [box(control("", 1, "LinearLayout"), 70, 1265, 940, 169),
@@ -988,20 +895,18 @@ def test_an_account_row_is_judged_by_its_unredacted_email(tmp_path, monkeypatch)
                 box(control("", 5, "LinearLayout"), 70, 1434, 940, 130),
                 box(control(add, 6), 228, 1471, 719, 56)]
 
-    raw = chooser("Jamie Om", "jamie@example.com", "Add another account")
-    redacted = chooser("[redacted] Om", "[redacted]", "Add another account")
-    assert judged(raw, redacted, "[redacted] Om") == ""
-    assert "account chooser" in judged(raw, redacted, "Add another account")
-    nameless = chooser("Jamie Om", "Jamie", "Add another account")
-    assert "account chooser" in judged(nameless, redacted, "[redacted] Om")
+    rows = chooser("Jamie Om", "jamie@example.com", "Add another account")
+    assert judged(rows, "Jamie Om") == ""
+    assert "account chooser" in judged(rows, "Add another account")
+    assert "account chooser" in judged(chooser("Jamie Om", "Jamie", "Add another account"), "Jamie Om")
     # rt-58: a card holding an email header lends it to no separate button in it: the holder must be row-sized
     card = [box(control("", 1, "LinearLayout"), 70, 180, 940, 650),
             box(control("jamie@example.com", 2, "TextView"), 130, 230, 600, 50),
             box(control("Personal info", 3), 130, 500, 600, 70)]
-    shown = [card[0], {**card[1], "text": "[redacted]"}, card[2]]
-    assert "account chooser" in judged(card, shown, "Personal info")
+    assert "account chooser" in judged(card, "Personal info")
     compact = [box(card[0], 70, 180, 940, 280), card[1], box(card[2], 130, 360, 600, 70)]  # rt-58 again: row-sized
-    assert "account chooser" in judged(compact, [compact[0], shown[1], compact[2]], "Personal info")
+    assert "account chooser" in judged(compact, "Personal info")
+
 
 def bar(*xs: int) -> list[dict]:
     """A bottom tab bar of wordless icons, as an app draws one, centered at these x."""
@@ -1077,26 +982,6 @@ def test_a_covered_tap_names_its_cover_and_twice_covered_is_marked_not_offered(t
     assert "covered twice" in " ".join(ex.news) and not [t for t in taps(phone) if t[1] == "Explore"]
     ex.run_step(AgentStep(action="swipe", direction="up", expect="scrolls"))
     assert not ex.covered and "(covered" not in ex.situation(ex.current)
-
-def test_a_json_escaped_handle_and_a_propagated_stop_are_scrubbed(tmp_path, monkeypatch):
-    """Item 2: the decoded values are scrubbed, and a stop that leaves llm.call carries a scrubbed message."""
-    name = "José"
-    ask = dict(trace_path=tmp_path / "trace.jsonl", stage="explore", step="s", model="claude-sonnet-5-5", effort=None,
-               system="sys", messages=[{"role": "user", "content": [{"type": "text", "text": "hi"}]}], max_tokens=50,
-               budget=llm.Budget.for_stage("explore", tmp_path / "trace.jsonl", 1.0), cache_dir=tmp_path / "cache")
-
-    def answering(model, *args):
-        return llm.Reply(text=json.dumps({"said": f"hello {name}"}), model=model, tokens_in=10, tokens_out=5)
-
-    def stopping(model, *args):
-        raise llm.ProviderUnavailable(f"quota for {name}")
-    monkeypatch.setitem(llm.PROVIDERS, "anthropic", answering)
-    said, reply = llm.call(**ask, scrub=lambda text: text.replace(name, "[redacted]"))
-    assert json.loads(said) == {"said": "hello [redacted]"} and name not in json.loads(reply.text)["said"]
-    monkeypatch.setitem(llm.PROVIDERS, "anthropic", stopping)
-    with pytest.raises(llm.ProviderUnavailable) as stopped:
-        llm.call(**{**ask, "system": "other"}, scrub=lambda text: text.replace(name, "[redacted]"))
-    assert name not in str(stopped.value) and name not in (tmp_path / "trace.jsonl").read_text()
 
 
 def test_a_lone_filter_control_must_show_a_strict_value(tmp_path, monkeypatch):
@@ -1243,7 +1128,6 @@ def test_an_ad_tap_whose_landing_cant_be_read_is_still_recorded(tmp_path, monkey
     assert ads[-1].tapped and ads[-1].landing is None
 
 
-
 # ---------- Greptile on 837dd26 ----------
 
 def test_with_no_focus_reported_the_core_loop_types_into_the_composer_it_tapped(tmp_path, monkeypatch):
@@ -1280,7 +1164,7 @@ def test_a_google_consent_step_with_no_account_row_is_signed_through(tmp_path, m
                              {("root", "Continue with Google"): "chooser",
                               ("chooser", "someone@example.com"): "consent", ("consent", "Continue"): "home"})
     script = scripted(lambda text: turn(tap(oid(text, "Continue with Google"), "the chooser")),
-                      lambda text: turn(tap(oid(text, "[redacted]"), "the consent")),
+                      lambda text: turn(tap(oid(text, "someone@example.com"), "the consent")),
                       lambda text: turn(tap(oid(text, "Continue"), "signed in")))
     ex, phone, planner = run(tmp_path, monkeypatch, script, phone_factory=phone_factory, no_send=True)
     assert ("consent", "Continue") in taps(phone) and ("back", "consent") not in phone.log
@@ -1305,14 +1189,13 @@ def test_another_app_before_an_action_is_a_return_not_a_relaunch(tmp_path, monke
     assert not [t for t in taps(phone) if t[0] == "other"] and ex.relaunches == 0 and ex.returns
 
 
-
 def test_consent_prose_about_data_is_sign_in_but_a_manage_button_is_not(tmp_path, monkeypatch):
     """Greptile on 2eec2ce: the account-management words count on a control's label, never on prose."""
     ex, _, _ = agent(tmp_path, monkeypatch, scripted(), phone_factory=phone_of({"root": drawn(control("Explore", 1))}))
     prose = control("The app will access your data and your activity on this device", 1, "TextView")
     consent = [prose, control("Allow", 2)]
-    assert ex.signing([], consent)
-    assert not ex.signing([], [prose, control("Allow", 2), control("Manage your Google Account", 3)])
+    assert ex.signing(consent)
+    assert not ex.signing([prose, control("Allow", 2), control("Manage your Google Account", 3)])
 
 
 def test_the_prompt_asks_for_every_tab_a_fresh_conversation_and_no_early_done():
